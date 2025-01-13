@@ -606,15 +606,15 @@ TEST(DenseSourceTest, Merge) {
   ASSERT_OK_AND_ASSIGN(
       auto src1,
       DenseSource::CreateReadonly(
-          alloc, DataSliceImpl::Create(gen_data(int{1}, /*size=*/32, 2, 0))));
+          alloc, DataSliceImpl::Create(gen_data(int{1}, size, 2, 0))));
   ASSERT_OK_AND_ASSIGN(
       auto src2,
       DenseSource::CreateReadonly(
-          alloc, DataSliceImpl::Create(gen_data(int{2}, size, 4, 2))));
+          alloc, DataSliceImpl::Create(gen_data(int{2}, /*size=*/23, 4, 2))));
   ASSERT_OK_AND_ASSIGN(
       auto src3,
       DenseSource::CreateReadonly(alloc, DataSliceImpl::Create(gen_data(
-                                             float{.5f}, /*size=*/32, 3, 0))));
+                                             float{.5f}, size, 3, 0))));
   ASSERT_OK_AND_ASSIGN(
       auto src4,
       DenseSource::CreateReadonly(

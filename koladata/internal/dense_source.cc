@@ -31,6 +31,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
@@ -40,12 +41,14 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
+#include "koladata/internal/types_buffer.h"
 #include "koladata/internal/value_array.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/quote.h"
+#include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -60,6 +63,8 @@ namespace koladata::internal {
 namespace {
 
 using ::arolla::DenseArray;
+using ::arolla::OptionalValue;
+using ::arolla::view_type_t;
 
 ABSL_ATTRIBUTE_NOINLINE void UpdateMergeConflictStatusWithDataItem(
     absl::Status& status, const DataItem& value, const DataItem& other_value) {
@@ -72,8 +77,8 @@ ABSL_ATTRIBUTE_NOINLINE void UpdateMergeConflictStatusWithDataItem(
 
 template <class T>
 ABSL_ATTRIBUTE_NOINLINE void UpdateMergeConflictStatus(
-    absl::Status& status, arolla::view_type_t<T> value,
-    arolla::view_type_t<T> other_value) {
+    absl::Status& status, view_type_t<T> value,
+    view_type_t<T> other_value) {
   if (!status.ok()) {
     return;
   }
@@ -98,7 +103,7 @@ void ValueArraySet(AllocationId alloc_id, ValueArray& data,
     return;
   }
 
-  using view_type = arolla::view_type_t<T>;
+  using view_type = view_type_t<T>;
   arolla::DenseArraysForEachPresent(
       [&](int64_t id, ObjectId object, arolla::OptionalValue<view_type> value) {
         if (alloc_id.Contains(object)) {
@@ -126,18 +131,18 @@ void ValueArrayUnset(AllocationId alloc_id, ValueArray& data,
 
 class MultitypeDenseSource : public DenseSource {
  public:
-  using ValueArrayVariant = std::variant<   //
-      ValueArray<ObjectId>,                 //
-      ValueArray<int32_t>,                  //
-      ValueArray<int64_t>,                  //
-      ValueArray<float>,                    //
-      ValueArray<double>,                   //
-      ValueArray<bool>,                     //
-      ValueArray<arolla::Unit>,             //
-      ValueArray<arolla::Text>,             //
-      ValueArray<arolla::Bytes>,            //
-      ValueArray<arolla::expr::ExprQuote>,  //
-      ValueArray<schema::DType>>;
+  using ValueBufferVariant = std::variant<   //
+      ValueBuffer<ObjectId>,                 //
+      ValueBuffer<int32_t>,                  //
+      ValueBuffer<int64_t>,                  //
+      ValueBuffer<float>,                    //
+      ValueBuffer<double>,                   //
+      ValueBuffer<bool>,                     //
+      ValueBuffer<arolla::Unit>,             //
+      ValueBuffer<arolla::Text>,             //
+      ValueBuffer<arolla::Bytes>,            //
+      ValueBuffer<arolla::expr::ExprQuote>,  //
+      ValueBuffer<schema::DType>>;
 
   explicit MultitypeDenseSource(AllocationId obj_allocation_id, int64_t size)
       : obj_allocation_id_(obj_allocation_id),
@@ -145,82 +150,76 @@ class MultitypeDenseSource : public DenseSource {
         attr_allocation_ids_() {
     DCHECK_GT(size, 0);
     DCHECK_LE(size, obj_allocation_id_.Capacity());
+    types_buffer_.InitAllUnset(size);
   }
 
   AllocationId allocation_id() const final { return obj_allocation_id_; }
   int64_t size() const final { return size_; }
 
   DataItem Get(ObjectId object) const final {
-    DCHECK(obj_allocation_id_.Contains(object));
+    DCHECK(obj_allocation_id_.Contains(object) && object.Offset() < size_);
     int64_t offset = object.Offset();
-    DataItem res;
-    for (const ValueArrayVariant& var : values_) {
-      std::visit(
-          [&](const auto& value_array) {
-            if (auto v = value_array.Get(offset); v.present) {
-              using T = typename std::decay_t<decltype(value_array)>::base_type;
-              res = DataItem(T(v.value));
-            }
-          },
-          var);
+    uint8_t tidx = types_buffer_.id_to_typeidx[offset];
+    if (!TypesBuffer::is_present_type_idx(tidx)) {
+      return DataItem();
     }
-    return res;
+    return std::visit([&](const auto& buf) { return DataItem(buf[offset]); },
+                      values_[tidx]);
   }
 
   DataSliceImpl Get(const ObjectIdArray& objects,
                     bool check_alloc_id) const final {
     SliceBuilder bldr(objects.size());
-    bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
-    for (const ValueArrayVariant& var : values_) {
-      std::visit(
-          [&](const auto& value_array) {
-            using T = typename std::decay_t<decltype(value_array)>::base_type;
-            auto array = check_alloc_id ? value_array.template Get<true>(
-                                               objects, obj_allocation_id_)
-                                         : value_array.template Get<false>(
-                                               objects, obj_allocation_id_);
-            bldr.InsertIfNotSet<T>(array.bitmap, arolla::bitmap::Bitmap(),
-                                   array.values);
-          },
-          var);
-    }
+    bldr.ApplyMask(objects.ToMask());
+    Get(objects.values.span(), bldr);
     return std::move(bldr).Build();
   }
 
   void Get(absl::Span<const ObjectId> objects, SliceBuilder& bldr) const final {
     bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
-    for (const ValueArrayVariant& var : values_) {
+    int idx = 0;
+    for (const ValueBufferVariant& var : values_) {
       std::visit(
-          [&](const auto& value_array) {
-            using T = typename std::decay_t<decltype(value_array)>::base_type;
+          [&]<class T>(const ValueBuffer<T>& buf) {
             auto typed_bldr = bldr.typed<T>();
             for (int64_t i = 0; i < objects.size(); ++i) {
-              if (typed_bldr.IsSet(i)) {
+              ObjectId id = objects[i];
+              if (typed_bldr.IsSet(i) || !obj_allocation_id_.Contains(id)) {
                 continue;
               }
-              ObjectId id = objects[i];
-              if (obj_allocation_id_.Contains(id)) {
-                auto v = value_array.Get(id.Offset());
-                if (v.present) {
-                  typed_bldr.InsertIfNotSet(i, v.value);
-                }
+              int64_t offset = id.Offset();
+              if (types_buffer_.id_to_typeidx[offset] == idx) {
+                typed_bldr.InsertIfNotSet(i, buf[offset]);
               }
             }
           },
           var);
+      idx++;
     }
   }
 
   DataSliceImpl GetAll() const final {
+    // TODO: Instead of DataSliceImpl return a struct with all
+    // data for merging. Should be O(type_count).
     SliceBuilder bldr(size_);
     bldr.GetMutableAllocationIds().Insert(attr_allocation_ids_);
-    for (const ValueArrayVariant& var : values_) {
+    uint8_t idx = 0;
+    for (const ValueBufferVariant& var : values_) {
+      arolla::bitmap::Bitmap bitmap = types_buffer_.ToBitmap(idx++);
       std::visit(
-          [&](const auto& value_array) {
-            using T = typename std::decay_t<decltype(value_array)>::base_type;
-            auto&& data = value_array.GetAll();
-            bldr.InsertIfNotSet<T>(data.bitmap, arolla::bitmap::Bitmap(),
-                                   data.values);
+          [&]<class T>(const ValueBuffer<T>& buf) {
+            if constexpr (std::is_same_v<T, arolla::Unit>) {
+              bldr.InsertIfNotSet<T>(bitmap, arolla::bitmap::Bitmap(),
+                                     arolla::VoidBuffer(size_));
+            } else if constexpr (std::is_same_v<view_type_t<T>,
+                                                absl::string_view>) {
+              bldr.InsertIfNotSet<T>(
+                  bitmap, arolla::bitmap::Bitmap(),
+                  arolla::StringsBuffer::Create(buf.begin(), buf.end()));
+            } else {
+              bldr.InsertIfNotSet<T>(bitmap, arolla::bitmap::Bitmap(),
+                                     arolla::Buffer<T>(nullptr, buf));
+            }
           },
           var);
     }
@@ -237,34 +236,23 @@ class MultitypeDenseSource : public DenseSource {
       attr_allocation_ids_.Insert(AllocationId(value.value<ObjectId>()));
     }
     int64_t offset = object.Offset();
-    bool found = false;
-    for (ValueArrayVariant& var : values_) {
-      std::visit(
-          [&](auto& value_array) {
-            using DstT =
-                typename std::decay_t<decltype(value_array)>::base_type;
-            value.VisitValue([&](const auto& v) {
-              using SrcT = std::decay_t<decltype(v)>;
-              if constexpr (std::is_same_v<DstT, SrcT>) {
-                found = true;
-                value_array.Set(offset, v);
-              } else {
-                value_array.Unset(offset);
-              }
-            });
-          },
-          var);
+    if (!value.has_value()) {
+      types_buffer_.id_to_typeidx[offset] = TypesBuffer::kRemoved;
+      return absl::OkStatus();
     }
-    if (!found) {
-      value.VisitValue([&](const auto& v) {
-        using T = std::decay_t<decltype(v)>;
-        if constexpr (!std::is_same_v<T, MissingValue>) {
-          ValueArray<T> arr(size_);
-          arr.Set(offset, v);
-          values_.emplace_back(std::move(arr));
+    uint8_t typeidx = types_buffer_.get_or_add_typeidx(value.type_id());
+    types_buffer_.id_to_typeidx[offset] = typeidx;
+    DCHECK_LE(typeidx, values_.size());
+    value.VisitValue([&]<class T>(const T& v) {
+      if constexpr (!std::is_same_v<T, MissingValue>) {
+        if (typeidx == values_.size()) {
+          values_.emplace_back(ValueBuffer<T>(size_));
         }
-      });
-    }
+        if constexpr (!std::is_same_v<T, arolla::Unit>) {
+          std::get<ValueBuffer<T>>(values_[typeidx])[offset] = v;
+        }
+      }
+    });
     return absl::OkStatus();
   }
 
@@ -274,36 +262,34 @@ class MultitypeDenseSource : public DenseSource {
       return arolla::SizeMismatchError(
           {objects.size(), static_cast<int64_t>(values.size())});
     }
+    if (values.is_empty_and_unknown()) {
+      objects.ForEachPresent([&](int64_t id, ObjectId object) {
+        if (obj_allocation_id_.Contains(object)) {
+          types_buffer_.id_to_typeidx[object.Offset()] = TypesBuffer::kRemoved;
+        }
+      });
+      return absl::OkStatus();
+    }
     attr_allocation_ids_.Insert(values.allocation_ids());
 
-    std::vector<bool> updated(values_.size(), false);
-    values.VisitValues([&](const auto& array) {
-      using T = typename std::decay_t<decltype(array)>::base_type;
-      bool found = false;
-      for (int i = 0; i < updated.size(); ++i) {
-        if (std::holds_alternative<ValueArray<T>>(values_[i])) {
-          ValueArraySet(obj_allocation_id_,
-                        std::get<ValueArray<T>>(values_[i]), objects,
-                        array);
-          updated[i] = true;
-          found = true;
-        }
-      }
-      if (!found) {
-        ValueArray<T> arr(size_);
-        ValueArraySet(obj_allocation_id_, arr, objects, array);
-        values_.emplace_back(std::move(arr));
+    if (values.is_single_dtype()) {
+      values.VisitValues([&]<class T>(const DenseArray<T>& array) {
+        SetImpl</*RemoveMissing=*/true>(objects, array);
+      });
+      return absl::OkStatus();
+    }
+
+    values.VisitValues([&]<class T>(const DenseArray<T>& array) {
+      SetImpl</*RemoveMissing=*/false>(objects, array);
+    });
+    const uint8_t* val_typeidx = values.types_buffer().id_to_typeidx.data();
+    objects.ForEachPresent([&](int64_t val_offset, ObjectId id) {
+      if (obj_allocation_id_.Contains(id) &&
+          !TypesBuffer::is_present_type_idx(val_typeidx[val_offset])) {
+        types_buffer_.id_to_typeidx[id.Offset()] = TypesBuffer::kRemoved;
       }
     });
-    for (int i = 0; i < updated.size(); ++i) {
-      if (!updated[i]) {
-        std::visit(
-            [&](auto& value_array) {
-              ValueArrayUnset(obj_allocation_id_, value_array, objects);
-            },
-            values_[i]);
-      }
-    }
+
     return absl::OkStatus();
   }
 
@@ -315,84 +301,41 @@ class MultitypeDenseSource : public DenseSource {
         "DenseSource.");
   }
 
-  absl::Status SetAllSkipMissing(const DataSliceImpl& values,
-                                 ConflictHandlingOption option) final {
+  absl::Status MergeImpl(const DataSliceImpl& values,
+                         ConflictHandlingOption option) final {
+    if (values.size() > size_) {
+      return absl::FailedPreconditionError(absl::StrFormat(
+          "MergeImpl: source size exceeds destination size: %d vs %d",
+          values.size(), size_));
+    }
     absl::Status status = absl::OkStatus();
-    if (option == ConflictHandlingOption::kOverwrite) {
-      OverwriteAllSkipMissing(values);
-      return absl::OkStatus();
+    if (values.is_empty_and_unknown()) {
+      return status;
     }
-
-    std::vector<arolla::bitmap::Word> presence_vec(
-        arolla::bitmap::BitmapSize(size_));
-    arolla::bitmap::Word* presence = presence_vec.data();
-    for (ValueArrayVariant& vals : values_) {
-      std::visit([&](const auto& av) { av.ReadBitmapOr(presence); }, vals);
-    }
-    attr_allocation_ids_.Insert(values.allocation_ids());
-    values.VisitValues([&](const auto& array) {
-      auto sliced_array = array.MakeUnowned().Slice(
-          0, std::min<int64_t>(array.size(), size_));
-      using T = typename std::decay_t<decltype(array)>::base_type;
-      bool found_the_same_type = false;
-      for (ValueArrayVariant& vals : values_) {
-        if (std::holds_alternative<ValueArray<T>>(vals)) {
-          auto& dst_vals = std::get<ValueArray<T>>(vals);
-          if (option == ConflictHandlingOption::kKeepOriginal) {
-            sliced_array.ForEachPresent(
-                [&](int64_t offset, arolla::view_type_t<T> value) {
-                  if (!arolla::bitmap::GetBit(presence, offset)) {
-                    dst_vals.Set(offset, value);
-                  }
-                });
-          } else {  // kRaiseOnConflict
-            sliced_array.ForEachPresent(
-                [&](int64_t offset, arolla::view_type_t<T> value) {
-                  if (!arolla::bitmap::GetBit(presence, offset)) {
-                    dst_vals.Set(offset, value);
-                  } else if (value != dst_vals.Get(offset)) {
-                    UpdateMergeConflictStatus<T>(status, value,
-                                                  dst_vals.Get(offset).value);
-                  }
-                });
-          }
-          found_the_same_type = true;
-          continue;
-        }
-        if (option == ConflictHandlingOption::kRaiseOnConflict) {
-          // `vals` and `array` have different type, so if some index present
-          // in both, it is merge conflict.
-          std::visit(
-              [&](auto& dst_vals) {
-                using VT =
-                    typename std::decay_t<decltype(dst_vals)>::base_type;
-                sliced_array.ForEachPresent(
-                    [&](int64_t offset, arolla::view_type_t<T> value) {
-                      if (dst_vals.Get(offset).present) {
-                        UpdateMergeConflictStatusWithDataItem(
-                            status, DataItem(T(value)),
-                            DataItem(VT(dst_vals.Get(offset).value)));
-                      }
-                    });
-              },
-              vals);
-        }
-      }
-      if (!found_the_same_type) {
-        bool non_empty = false;
-        ValueArray<T> dst_vals(size_);
-        sliced_array.ForEachPresent(
-            [&](int64_t offset, arolla::view_type_t<T> value) {
-              if (!arolla::bitmap::GetBit(presence, offset)) {
-                dst_vals.Set(offset, value);
-                non_empty = true;
-              }
-            });
-        if (non_empty) {
-          values_.emplace_back(std::move(dst_vals));
-        }
-      }
+    values.VisitValues([&]<class T>(const DenseArray<T>& array) {
+      MergeArrayImpl(status, array, option);
     });
+    if (values.types_buffer().types.empty()) {
+      DCHECK(values.is_single_dtype());
+      return status;
+    }
+    for (int64_t offset = 0; offset < values.size(); ++offset) {
+      if (values.types_buffer().id_to_typeidx[offset] !=
+          TypesBuffer::kRemoved) {
+        continue;
+      }
+      if (option == ConflictHandlingOption::kOverwrite ||
+          !TypesBuffer::is_present_type_idx(
+              types_buffer_.id_to_typeidx[offset])) {
+        // Note: replacing kUnset with kRemoved is allowed for any `option`.
+        types_buffer_.id_to_typeidx[offset] = TypesBuffer::kRemoved;
+      } else if (status.ok() &&
+                  option == ConflictHandlingOption::kOverwrite) {
+        UpdateMergeConflictStatusWithDataItem(
+            status, DataItem(),
+            Get(obj_allocation_id_.ObjectByOffset(offset)));
+      }
+    }
     return status;
   }
 
@@ -400,12 +343,17 @@ class MultitypeDenseSource : public DenseSource {
     auto res =
         std::make_shared<MultitypeDenseSource>(obj_allocation_id_, size_);
     res->attr_allocation_ids_ = attr_allocation_ids_;
-    for (const auto& val_arr_variant : values_) {
+    res->types_buffer_ = types_buffer_;
+    for (const auto& val_variant : values_) {
       std::visit(
-          [&res](const auto& val_arr) {
-            res->values_.emplace_back(val_arr.Copy());
+          [&res]<class T>(const ValueBuffer<T>& old_buf) {
+            ValueBuffer<T> new_buf(old_buf.size());
+            if constexpr (!std::is_same_v<T, arolla::Unit>) {
+              std::copy(old_buf.begin(), old_buf.end(), new_buf.begin());
+            }
+            res->values_.emplace_back(std::move(new_buf));
           },
-          val_arr_variant);
+          val_variant);
     }
     return res;
   }
@@ -416,41 +364,77 @@ class MultitypeDenseSource : public DenseSource {
 
   friend class ReadOnlyDenseSource;
 
-  void OverwriteAllSkipMissing(const DataSliceImpl& values) {
-    attr_allocation_ids_.Insert(values.allocation_ids());
-    values.VisitValues([&](const auto& array) {
-      auto sliced_array =
-          array.MakeUnowned().Slice(0, std::min<int64_t>(array.size(), size_));
-      using T = typename std::decay_t<decltype(array)>::base_type;
-      bool found_the_same_type = false;
-      for (ValueArrayVariant& vals : values_) {
-        if (std::holds_alternative<ValueArray<T>>(vals)) {
-          auto& dst_vals = std::get<ValueArray<T>>(vals);
-          sliced_array.ForEachPresent(
-              [&](int64_t offset, arolla::view_type_t<T> value) {
-                dst_vals.Set(offset, value);
-              });
-          found_the_same_type = true;
-        } else {
-          std::visit(
-              [&](auto& dst_vals) {
-                sliced_array.ForEachPresent(
-                    [&](int64_t offset, arolla::view_type_t<T> value) {
-                      dst_vals.Unset(offset);
-                    });
-              },
-              vals);
+  template <class T>
+  uint8_t GetOrAddTypeIdx() {
+    uint8_t typeidx = types_buffer_.get_or_add_typeidx(ScalarTypeId<T>());
+    DCHECK_LE(typeidx, values_.size());
+    if (typeidx == values_.size()) {
+      values_.emplace_back(ValueBuffer<T>(size_));
+    }
+    return typeidx;
+  }
+
+  template <bool RemoveMissing, class T>
+  void SetImpl(const ObjectIdArray& objects, const DenseArray<T>& array) {
+    uint8_t typeidx = GetOrAddTypeIdx<T>();
+    ValueBuffer<T>& dst_vals = std::get<ValueBuffer<T>>(values_[typeidx]);
+    DCHECK_EQ(objects.size(), array.size());
+    arolla::DenseArraysForEach(
+        [&](int64_t, bool valid, ObjectId id, OptionalValue<view_type_t<T>> v) {
+          if (!valid || !obj_allocation_id_.Contains(id)) {
+            return;
+          }
+          int64_t offset = id.Offset();
+          if constexpr (RemoveMissing) {
+            types_buffer_.id_to_typeidx[offset] =
+                v.present ? typeidx : TypesBuffer::kRemoved;
+          } else if (v.present) {
+            types_buffer_.id_to_typeidx[offset] = typeidx;
+          }
+          if constexpr (!std::is_same_v<T, view_type_t<T>>) {
+            dst_vals[offset] = v.present ? T(v.value) : T();
+          } else if constexpr (!std::is_same_v<T, arolla::Unit>) {
+            if (v.present) {
+              dst_vals[offset] = v.value;
+            }
+          }
+        },
+        objects, array)
+        .IgnoreError();  // size mismatch should be checked by the caller
+  }
+
+  template <class T>
+  void MergeArrayImpl(absl::Status& status, const DenseArray<T>& array,
+                      ConflictHandlingOption option) {
+    uint8_t typeidx = GetOrAddTypeIdx<T>();
+    ValueBuffer<T>& dst_vals = std::get<ValueBuffer<T>>(values_[typeidx]);
+    if (option == ConflictHandlingOption::kKeepOriginal) {
+      array.ForEachPresent([&](int64_t offset, view_type_t<T> v) {
+        uint8_t& tidx = types_buffer_.id_to_typeidx[offset];
+        if (tidx == TypesBuffer::kUnset) {
+          tidx = typeidx;
+          dst_vals[offset] = T(v);
         }
-      }
-      if (!found_the_same_type) {
-        ValueArray<T> dst_vals(size_);
-        sliced_array.ForEachPresent(
-            [&](int64_t offset, arolla::view_type_t<T> value) {
-              dst_vals.Set(offset, value);
-            });
-        values_.emplace_back(std::move(dst_vals));
-      }
-    });
+      });
+    } else if (option == ConflictHandlingOption::kOverwrite) {
+      array.ForEachPresent([&](int64_t offset, view_type_t<T> v) {
+        types_buffer_.id_to_typeidx[offset] = typeidx;
+        dst_vals[offset] = T(v);
+      });
+    } else {
+      DCHECK(option == ConflictHandlingOption::kRaiseOnConflict);
+      array.ForEachPresent([&](int64_t offset, view_type_t<T> v) {
+        uint8_t& tidx = types_buffer_.id_to_typeidx[offset];
+        if (tidx == TypesBuffer::kUnset) {
+          tidx = typeidx;
+          dst_vals[offset] = T(v);
+        } else if (status.ok() && (tidx != typeidx || dst_vals[offset] != v)) {
+          UpdateMergeConflictStatusWithDataItem(
+              status, DataItem(T(v)),
+              Get(obj_allocation_id_.ObjectByOffset(offset)));
+        }
+      });
+    }
   }
 
   // AllocationId of `objects` for which this DenseSource has values.
@@ -465,13 +449,14 @@ class MultitypeDenseSource : public DenseSource {
 
   // `values_` contain one ValueArray per value type. We reserve size 2, because
   // for a single type there is an optimized class `TypedDenseSource`.
-  absl::InlinedVector<ValueArrayVariant, 2> values_;
+  absl::InlinedVector<ValueBufferVariant, 2> values_;
+  TypesBuffer types_buffer_;
 };
 
 template <class T>
 class TypedDenseSource final : public DenseSource {
  public:
-  using view_type = arolla::view_type_t<T>;
+  using view_type = view_type_t<T>;
 
   explicit TypedDenseSource(AllocationId obj_allocation_id, int64_t size)
       : obj_allocation_id_(obj_allocation_id),
@@ -629,14 +614,14 @@ class TypedDenseSource final : public DenseSource {
     return absl::OkStatus();
   }
 
-  absl::Status SetAllSkipMissing(const DataSliceImpl& values,
-                                 ConflictHandlingOption option) final {
+  absl::Status MergeImpl(const DataSliceImpl& values,
+                         ConflictHandlingOption option) final {
     if (multitype_ || values.is_mixed_dtype() ||
         values.dtype() != arolla::GetQType<T>()) {
       if (!multitype_) {
         CreateMultitype();
       }
-      return multitype_->SetAllSkipMissing(values, option);
+      return multitype_->MergeImpl(values, option);
     }
     if constexpr (std::is_same_v<T, ObjectId>) {
       attr_allocation_ids_.Insert(values.allocation_ids());
@@ -675,7 +660,16 @@ class TypedDenseSource final : public DenseSource {
     multitype_ =
         std::make_unique<MultitypeDenseSource>(obj_allocation_id_, size());
     multitype_->attr_allocation_ids_ = std::move(attr_allocation_ids_);
-    multitype_->values_.emplace_back(std::move(values_));
+    multitype_->types_buffer_.types.push_back(ScalarTypeId<T>());
+    multitype_->types_buffer_.id_to_typeidx.resize(values_.size());
+    uint8_t* id_to_typeidx = multitype_->types_buffer_.id_to_typeidx.data();
+    arolla::bitmap::IterateByGroups(
+        values_.presence().data(), 0, values_.size(), [&](int64_t offset) {
+          return [id_to_typeidx, offset](int i, bool present) {
+            id_to_typeidx[offset + i] = present ? 0 : TypesBuffer::kUnset;
+          };
+        });
+    multitype_->values_.emplace_back(std::move(values_).MoveValues());
   }
 
   AllocationId obj_allocation_id_;
@@ -696,6 +690,8 @@ class ReadOnlyDenseSource : public DenseSource {
   int64_t size() const final { return data_.size(); }
 
   DataItem Get(ObjectId object) const override {
+    DCHECK(data_.is_mixed_dtype())
+        << "for single type use TypedReadOnlyDenseSource";
     DCHECK(obj_allocation_id_.Contains(object));
     return data_[object.Offset()];
   }
@@ -710,6 +706,8 @@ class ReadOnlyDenseSource : public DenseSource {
 
   void Get(absl::Span<const ObjectId> objects,
            SliceBuilder& bldr) const override {
+    DCHECK(data_.is_mixed_dtype())
+        << "for single type use TypedReadOnlyDenseSource";
     DCHECK_EQ(bldr.size(), objects.size());
     bldr.GetMutableAllocationIds().Insert(data_.allocation_ids());
     data_.VisitValues([&]<class T>(const DenseArray<T>& arr) {
@@ -749,8 +747,17 @@ class ReadOnlyDenseSource : public DenseSource {
     auto res =
         std::make_shared<MultitypeDenseSource>(obj_allocation_id_, size());
     res->attr_allocation_ids_ = data_.allocation_ids();
+    res->types_buffer_ = data_.types_buffer();
     data_.VisitValues([&]<class T>(const DenseArray<T>& arr) {
-      res->values_.emplace_back(ValueArray<T>(arr));
+      ValueBuffer<T> buf(arr.size());
+      if constexpr (!std::is_same_v<view_type_t<T>, T>) {
+        for (int64_t i = 0; i < arr.size(); ++i) {
+          buf[i] = arr.values[i];
+        }
+      } else if constexpr (!std::is_same_v<T, arolla::Unit>) {
+        std::copy(arr.values.begin(), arr.values.end(), buf.begin());
+      }
+      res->values_.emplace_back(std::move(buf));
     });
     return res;
   }
@@ -763,10 +770,9 @@ class ReadOnlyDenseSource : public DenseSource {
  private:
   DataSliceImpl GetAll() const final { return data_; }
 
-  absl::Status SetAllSkipMissing(const DataSliceImpl&,
-                                 ConflictHandlingOption) final {
+  absl::Status MergeImpl(const DataSliceImpl&, ConflictHandlingOption) final {
     return absl::FailedPreconditionError(
-        "SetAttr is not allowed for an immutable DenseSource.");
+        "Merge is not allowed for an immutable DenseSource.");
   }
 
   AllocationId obj_allocation_id_;

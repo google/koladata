@@ -141,6 +141,19 @@ class DataSliceImpl {
     return std::get<arolla::DenseArray<T>>(internal_->values[0]);
   }
 
+  // Get values from the data slice for given type_idx (see TypesBuffer).
+  template <class T>
+  const arolla::DenseArray<T>& values(uint8_t type_idx) const {
+    DCHECK_GT(internal_->values.size(), type_idx);
+    return std::get<arolla::DenseArray<T>>(internal_->values[type_idx]);
+  }
+
+  // Struct that holds type indices for each element. Can be empty for empty or
+  // single-type slices. These indices can be used e.g. in
+  // `DataSlice::values(type_idx)` to get the underlying DenseArray holding
+  // values of the corresponding type.
+  const TypesBuffer& types_buffer() const { return internal_->types_buffer; }
+
   // Call `visitor` on each internal DenseArray of values. Each item is a
   // variant with a value of DenseArray of some of supported scalar types
   // (INT32, FLOAT32, STRING, etc.). All DenseArrays have the same size, with

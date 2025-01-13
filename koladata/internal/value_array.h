@@ -130,6 +130,7 @@ class ValueBuffer<Unit> {
  public:
   explicit ValueBuffer(int64_t size) : size_(size) {}
   int64_t size() const { return size_; }
+  Unit operator[](int64_t offset) const { return Unit{}; }
  private:
   int64_t size_;
 };
@@ -178,6 +179,9 @@ class ValueArray {
   ValueArray(ValueArray&& other)
       : presence_(std::move(other.presence_)),
         values_(std::move(other.values_)) {}
+
+  ValueBuffer<T> MoveValues() && { return std::move(values_); }
+  absl::Span<const Word> presence() const { return presence_; }
 
   size_t size() const { return values_.size(); }
 
@@ -312,6 +316,7 @@ class ValueArray {
 
 }  // namespace value_array_impl
 
+using value_array_impl::ValueBuffer;
 using value_array_impl::ValueArray;
 
 }  // namespace koladata::internal

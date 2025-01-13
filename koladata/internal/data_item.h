@@ -109,6 +109,10 @@ class DataItem {
   // `arolla::GetNothingQType()` is returned for missing value.
   arolla::QTypePtr dtype() const;
 
+  // If DataItem contains T then the result is ScalarTypeId<T>.
+  // If the value is missing then returns 0 (ScalarTypeId<MissingValue>).
+  KodaTypeId type_id() const { return data_.index(); }
+
   // Returns true if the DataItem is not missing.
   bool has_value() const {
     return !std::holds_alternative<MissingValue>(data_);

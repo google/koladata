@@ -15,6 +15,7 @@
 #ifndef KOLADATA_INTERNAL_TYPES_BUFFER_H_
 #define KOLADATA_INTERNAL_TYPES_BUFFER_H_
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
@@ -28,6 +29,9 @@
 
 namespace koladata::internal {
 
+// Type information for a multitype array. Holds list of types and an index in
+// this list (1 byte) for each array element. Used in DataSliceImpl and
+// DenseSource.
 struct TypesBuffer {
   // Special values in id_to_typeidx.
   static constexpr uint8_t kUnset = 0xff;
@@ -47,6 +51,11 @@ struct TypesBuffer {
   int64_t size() const { return id_to_typeidx.size(); }
   size_t type_count() const { return types.size(); }
 
+  void InitAllUnset(int64_t size) {
+    id_to_typeidx.resize(size);
+    std::fill(id_to_typeidx.begin(), id_to_typeidx.end(), kUnset);
+  }
+
   KodaTypeId id_to_scalar_typeid(int64_t id) const {
     DCHECK(0 <= id && id < size());
     uint8_t index = id_to_typeidx[id];
@@ -60,6 +69,18 @@ struct TypesBuffer {
   // Returns QType for given id. `nullptr` if not set or removed.
   absl::Nullable<const arolla::QType*> id_to_type(int64_t id) const {
     return ScalarTypeIdToQType(id_to_scalar_typeid(id));
+  }
+
+  // Returns index of given type in `types` (i.e. typeidx). If not found, adds
+  // it at the end of `types` and returns its index.
+  uint8_t get_or_add_typeidx(KodaTypeId type_id) {
+    for (uint8_t i = 0; i < types.size(); ++i) {
+      if (types[i] == type_id) {
+        return i;
+      }
+    }
+    types.push_back(type_id);
+    return types.size() - 1;
   }
 
   // Creates bitmap of (id_to_typeidx[i] == type_idx) per element.
