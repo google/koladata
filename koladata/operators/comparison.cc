@@ -50,7 +50,9 @@ bool HasOrderedType(const DataSlice& slice) {
          schema::IsImplicitlyCastableTo(narrowed_schema,
                                         internal::DataItem(schema::kString)) ||
          schema::IsImplicitlyCastableTo(narrowed_schema,
-                                        internal::DataItem(schema::kBool));
+                                        internal::DataItem(schema::kBool)) ||
+         schema::IsImplicitlyCastableTo(narrowed_schema,
+                                        internal::DataItem(schema::kMask));
 }
 
 // Returns OK if the DataSlices contain values that can be ordered.
