@@ -1769,12 +1769,6 @@ Returns a functor that allows unused inputs but otherwise behaves the same.
     there is no existing variadic keyword argument.
 ```
 
-### `kd.functor.as_fn(f, *, use_tracing=True, **kwargs)` {#kd.functor.as_fn}
-
-``` {.no-copy}
-A deprecated alias for kd.fn.
-```
-
 ### `kd.functor.bind(fn_def, /, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs)` {#kd.functor.bind}
 Aliases:
 
@@ -2000,7 +1994,7 @@ Returns:
   The evaluation result.
 ```
 
-### `kd.functor.map_py_fn(f, *, schema=None, max_threads=1, ndim=0, **defaults)` {#kd.functor.map_py_fn}
+### `kd.functor.map_py_fn(f, *, schema=None, max_threads=1, ndim=0, include_missing=None, **defaults)` {#kd.functor.map_py_fn}
 
 ``` {.no-copy}
 Returns a Koda functor wrapping a python function for kd.map_py.
@@ -2013,6 +2007,9 @@ Returns a Koda functor wrapping a python function for kd.map_py.
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
     ndim: Dimensionality of items to pass to `f`.
+    include_missing: Specifies whether `f` should be applied to the missing
+      items. By default, the function is applied to all items including the
+      missing. `include_missing=False` can only be used with `ndim=0`.
     **defaults: Keyword defaults to pass to the function. The values in this map
       may be kde expressions, format strings, or 0-dim DataSlices. See the
       docstring for py_fn for more details.
@@ -8272,18 +8269,6 @@ Returns a DataBag where only the selected items are present in child lists.
     need to be combined with the @root_ds via
     @root_ds.updated(selected_path(....)).
 ````
-
-### `kd_ext.npkd.ds_from_np(arr)` {#kd_ext.npkd.ds_from_np}
-
-``` {.no-copy}
-Deprecated alias for from_array.
-```
-
-### `kd_ext.npkd.ds_to_np(ds)` {#kd_ext.npkd.ds_to_np}
-
-``` {.no-copy}
-Deprecated alias for to_array.
-```
 
 ### `kd_ext.npkd.from_array(arr)` {#kd_ext.npkd.from_array}
 
