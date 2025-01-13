@@ -40,16 +40,13 @@ def list_(
   Returns an immutable list if `db` is not provided.
 
   If there is no argument, returns an empty Koda List.
-  If the argument is a DataSlice, creates a slice of Koda Lists.
   If the argument is a Python list, creates a nested Koda List.
 
   Examples:
   list() -> a single empty Koda List
   list([1, 2, 3]) -> Koda List with items 1, 2, 3
-  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
   list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
-  list(kd.slice([[1, 2, 3], [4, 5]]))
-    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
+    # items are Koda lists.
 
   Args:
     items: The items to use. If not specified, an empty list of OBJECTs will be
