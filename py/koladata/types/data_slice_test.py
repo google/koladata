@@ -3323,31 +3323,35 @@ class DataSliceFallbackTest(parameterized.TestCase):
     db = bag()
     x = db.new(abc=ds([3.14, None]))
     x.get_schema().xyz = schema_constants.FLOAT64
-    x.xyz = ds([2.71, None], schema_constants.FLOAT64)
+    x.S[0].xyz = ds(2.71, schema_constants.FLOAT64)
+    # Note: x.S[1].abc is REMOVED, x.S[1].xyz is UNSET
 
     fb_bag = bag()
     fb_x = x.with_bag(fb_bag)
     fb_x.get_schema().abc = schema_constants.FLOAT32
     fb_x.abc = ds([None, 2.71])
+    fb_x.get_schema().xyz = schema_constants.FLOAT64
+    fb_x.xyz = ds([None, 14.5])
 
     merged_x = x.enriched(fb_bag)
 
     testing.assert_allclose(
-        merged_x.abc, ds([3.14, 2.71]).with_bag(merged_x.get_bag())
+        merged_x.abc, ds([3.14, None]).with_bag(merged_x.get_bag())
     )
     testing.assert_allclose(
         merged_x.xyz,
-        ds([2.71, None], schema_constants.FLOAT64).with_bag(merged_x.get_bag()),
+        ds([2.71, 14.5], schema_constants.FLOAT64).with_bag(merged_x.get_bag()),
     )
 
     # update new DataBag
     new_bag = bag()
     new_x = x.with_bag(new_bag).as_any()
     new_x.xyz = ds([None, 3.14], schema_constants.FLOAT64)
+    # Note: new_x.S[0].xyz is REMOVED
     merged_x = new_x.enriched(db, fb_bag)
     testing.assert_allclose(
         merged_x.xyz,
-        ds([2.71, 3.14], schema_constants.FLOAT64)
+        ds([None, 3.14], schema_constants.FLOAT64)
         .as_any()
         .with_bag(merged_x.get_bag()),
     )
@@ -3359,7 +3363,7 @@ class DataSliceFallbackTest(parameterized.TestCase):
     x.xyz = ds([1.61, None], schema_constants.FLOAT64)
     testing.assert_allclose(
         merged_x.xyz,
-        ds([1.61, 3.14], schema_constants.FLOAT64)
+        ds([None, 3.14], schema_constants.FLOAT64)
         .as_any()
         .with_bag(merged_x.get_bag()),
     )
@@ -3367,13 +3371,23 @@ class DataSliceFallbackTest(parameterized.TestCase):
   def test_get_attr_mixed_type(self):
     db = bag()
     x = db.new(abc=ds([314, None])).as_any()
+    x.S[0].xyz = 315
+    # Note: x.S[1].abc is REMOVED, x.S[1].xyz is UNSET
+
     fb_bag = bag()
     fb_x = x.with_bag(fb_bag)
     fb_x.abc = ds([None, '2.71'])
+    fb_x.xyz = ds([None, '3.17'])
+
     merged_x = x.enriched(fb_bag)
+
     testing.assert_equal(
         merged_x.abc,
-        ds([314, '2.71']).as_any().with_bag(merged_x.get_bag()),
+        ds([314, None]).as_any().with_bag(merged_x.get_bag()),
+    )
+    testing.assert_equal(
+        merged_x.xyz,
+        ds([315, '3.17']).as_any().with_bag(merged_x.get_bag()),
     )
 
   def test_dict(self):

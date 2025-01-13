@@ -439,7 +439,9 @@ TEST(DataBagTest, SetGetWithFallbackObjectId) {
     }
 
     // General case
+    std::vector<arolla::OptionalValue<ObjectId>> main_b_ids(size);
     std::vector<arolla::OptionalValue<ObjectId>> main_b_values(size);
+    std::vector<arolla::OptionalValue<ObjectId>> fallback_b_ids(size);
     std::vector<arolla::OptionalValue<ObjectId>> fallback_b_values(size);
     std::vector<arolla::OptionalValue<ObjectId>> merge_b_values(size);
     AllocationId alloc_b1 = Allocate(size);
@@ -447,24 +449,37 @@ TEST(DataBagTest, SetGetWithFallbackObjectId) {
     for (size_t i = 0; i < size; ++i) {
       ObjectId id1 = alloc_b1.ObjectByOffset(i);
       ObjectId id2 = alloc_b2.ObjectByOffset(i);
-      if (i % 4 == 0) {
+      if (int group = i % 5; group == 0) {
+        main_b_ids[i] = ds[i].value<ObjectId>();
         main_b_values[i] = id1;
         merge_b_values[i] = id1;
-      } else if (i % 4 == 1) {
+      } else if (group == 1) {
+        fallback_b_ids[i] = ds[i].value<ObjectId>();
         fallback_b_values[i] = id2;
         merge_b_values[i] = id2;
-      } else if (i % 4 == 2) {
+      } else if (group == 2) {
+        main_b_ids[i] = ds[i].value<ObjectId>();
         main_b_values[i] = id1;
+        fallback_b_ids[i] = ds[i].value<ObjectId>();
         fallback_b_values[i] = id2;
         merge_b_values[i] = id1;
+      } else if (group == 3) {
+        // Note: main_b_values contains removed values, fallback not used
+        main_b_ids[i] = ds[i].value<ObjectId>();
+        fallback_b_ids[i] = ds[i].value<ObjectId>();
+        fallback_b_values[i] = id2;
       }
     }
+    auto main_ds_ids_b = DataSliceImpl::Create(
+        arolla::CreateDenseArray<ObjectId>(main_b_ids));
     auto main_ds_b = DataSliceImpl::Create(
         arolla::CreateDenseArray<ObjectId>(main_b_values));
-    ASSERT_OK(db->SetAttr(ds, "b", main_ds_b));
+    ASSERT_OK(db->SetAttr(main_ds_ids_b, "b", main_ds_b));
+    auto fallback_ds_ids_b = DataSliceImpl::Create(
+        arolla::CreateDenseArray<ObjectId>(fallback_b_ids));
     auto fallback_ds_b = DataSliceImpl::Create(
         arolla::CreateDenseArray<ObjectId>(fallback_b_values));
-    ASSERT_OK(db_f->SetAttr(ds, "b", fallback_ds_b));
+    ASSERT_OK(db_f->SetAttr(fallback_ds_ids_b, "b", fallback_ds_b));
     ASSERT_OK_AND_ASSIGN(DataSliceImpl ds_b_get,
                          db->GetAttr(ds, "b", {db_f.get()}));
     auto merge_ds_b = DataSliceImpl::Create(
@@ -526,7 +541,7 @@ TEST(DataBagTest, SetGetWithFallbackPrimitive) {
         merge_b_values[i] = val1;
       } else if (i % 4 == 1) {
         fallback_b_values[i] = val2;
-        merge_b_values[i] = val2;
+        // Note: main_b_values contains removed values, fallback not used
       } else if (i % 4 == 2) {
         main_b_values[i] = val1;
         fallback_b_values[i] = val2;
@@ -559,31 +574,42 @@ TEST(DataBagTest, SetGetWithFallbackPrimitiveMixedType) {
   for (size_t size : {1, 2, 4, 17, 126}) {
     auto ds = DataSliceImpl::AllocateEmptyObjects(size);
 
+    std::vector<arolla::OptionalValue<ObjectId>> main_b_ids(size);
     std::vector<arolla::OptionalValue<int64_t>> main_b_values(size);
+    std::vector<arolla::OptionalValue<ObjectId>> fallback_b_ids(size);
     std::vector<arolla::OptionalValue<double>> fallback_b_values(size);
+
     std::vector<arolla::OptionalValue<int64_t>> merge_b_values_int64(size);
     std::vector<arolla::OptionalValue<double>> merge_b_values_double(size);
     for (size_t i = 0; i < size; ++i) {
       int64_t val1 = i + 1;
       double val2 = -i - 1;
       if (i % 4 == 0) {
+        main_b_ids[i] = ds[i].value<ObjectId>();
         main_b_values[i] = val1;
         merge_b_values_int64[i] = val1;
       } else if (i % 4 == 1) {
+        fallback_b_ids[i] = ds[i].value<ObjectId>();
         fallback_b_values[i] = val2;
         merge_b_values_double[i] = val2;
       } else if (i % 4 == 2) {
+        main_b_ids[i] = ds[i].value<ObjectId>();
+        fallback_b_ids[i] = ds[i].value<ObjectId>();
         main_b_values[i] = val1;
         fallback_b_values[i] = val2;
         merge_b_values_int64[i] = val1;
       }
     }
+    auto main_ds_ids_b =
+        DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>(main_b_ids));
     auto main_ds_b =
         DataSliceImpl::Create(arolla::CreateDenseArray<int64_t>(main_b_values));
-    ASSERT_OK(db->SetAttr(ds, "b", main_ds_b));
+    ASSERT_OK(db->SetAttr(main_ds_ids_b, "b", main_ds_b));
+    auto fallback_ds_ids_b = DataSliceImpl::Create(
+        arolla::CreateDenseArray<ObjectId>(fallback_b_ids));
     auto fallback_ds_b = DataSliceImpl::Create(
         arolla::CreateDenseArray<double>(fallback_b_values));
-    ASSERT_OK(db_f->SetAttr(ds, "b", fallback_ds_b));
+    ASSERT_OK(db_f->SetAttr(fallback_ds_ids_b, "b", fallback_ds_b));
     ASSERT_OK_AND_ASSIGN(DataSliceImpl ds_b_get,
                          db->GetAttr(ds, "b", {db_f.get()}));
     auto merge_ds_b = DataSliceImpl::Create(

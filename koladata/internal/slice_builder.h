@@ -89,23 +89,6 @@ class SliceBuilder {
     });
   }
 
-  void ConvertMaybeRemovedToUnset() {
-    for (uint8_t& t : types_buffer_.id_to_typeidx) {
-      if (t == TypesBuffer::kMaybeRemoved) {
-        t = TypesBuffer::kUnset;
-        unset_count_++;
-      }
-    }
-  }
-
-  void ConvertMaybeRemovedToRemoved() {
-    for (uint8_t& t : types_buffer_.id_to_typeidx) {
-      if (t == TypesBuffer::kMaybeRemoved) {
-        t = TypesBuffer::kRemoved;
-      }
-    }
-  }
-
   // Set value with given id to `v`. Value can be DataItem, DataItem::View, any
   // type that can be stored in DataItem, or OptionalValue of such type. Each id
   // can be inserted only once. Does nothing if was previously called with the
@@ -367,7 +350,7 @@ void SliceBuilder::InsertIfNotSet(int64_t id, const T& v) {
   }
   unset_count_--;
   if (SliceBuilder::IsMissing(v)) {
-    types_buffer_.id_to_typeidx[id] = TypesBuffer::kMaybeRemoved;
+    types_buffer_.id_to_typeidx[id] = TypesBuffer::kRemoved;
     return;
   }
   if constexpr (arolla::is_optional_v<T>) {
@@ -394,7 +377,7 @@ void SliceBuilder::TypedBuilder<T>::InsertIfNotSet(int64_t id,
   }
   base_.unset_count_--;
   if (SliceBuilder::IsMissing(v)) {
-    id_to_typeidx_[id] = TypesBuffer::kMaybeRemoved;
+    id_to_typeidx_[id] = TypesBuffer::kRemoved;
     return;
   }
   if constexpr (arolla::is_optional_v<OptionalOrT>) {
@@ -428,7 +411,7 @@ void SliceBuilder::UpdateTypesBuffer(uint8_t typeidx,
       [&](int64_t id, bool valid, arolla::Unit, arolla::OptionalUnit presence) {
         if (valid && !IsSet(id)) {
           types_buffer_.id_to_typeidx[id] =
-              presence ? typeidx : TypesBuffer::kMaybeRemoved;
+              presence ? typeidx : TypesBuffer::kRemoved;
           unset_count_--;
           if (presence) {
             add_value_fn(id);

@@ -599,6 +599,17 @@ TEST(DenseSourceTest, SetUnitAttrAndReturnMissingObjectsInternal) {
   EXPECT_THAT(missing_objects, ElementsAre(a3, a1));
 }
 
+DataSliceImpl RemovedToMissing(const DataSliceImpl slice) {
+  SliceBuilder bldr(slice.size());
+  for (int64_t i = 0; i < slice.size(); ++i) {
+     DataItem item = slice[i];
+    if (item.has_value()) {
+      bldr.InsertIfNotSetAndUpdateAllocIds(i, item);
+    }
+  }
+  return std::move(bldr).Build();
+}
+
 TEST(DenseSourceTest, Merge) {
   auto gen_data = [&]<typename T>(T value, int size, int step, int offset) {
     arolla::DenseArrayBuilder<T> bldr(size);
@@ -609,23 +620,28 @@ TEST(DenseSourceTest, Merge) {
   };
   int size = 25;
   AllocationId alloc = Allocate(size);
+  DataSliceImpl data1 = DataSliceImpl::Create(gen_data(int{1}, size, 2, 0));
+  DataSliceImpl data2 =
+      DataSliceImpl::Create(gen_data(int{2}, /*size=*/23, 4, 2));
+  ASSERT_OK_AND_ASSIGN(auto src1_with_removed,
+                       DenseSource::CreateReadonly(alloc, data1));
   ASSERT_OK_AND_ASSIGN(
-      auto src1,
-      DenseSource::CreateReadonly(
-          alloc, DataSliceImpl::Create(gen_data(int{1}, size, 2, 0))));
+      auto src1_with_missing,
+      DenseSource::CreateReadonly(alloc, RemovedToMissing(data1)));
+  ASSERT_OK_AND_ASSIGN(auto src2_with_removed,
+                       DenseSource::CreateReadonly(alloc, data2));
   ASSERT_OK_AND_ASSIGN(
-      auto src2,
-      DenseSource::CreateReadonly(
-          alloc, DataSliceImpl::Create(gen_data(int{2}, /*size=*/23, 4, 2))));
-  ASSERT_OK_AND_ASSIGN(
-      auto src3,
-      DenseSource::CreateReadonly(alloc, DataSliceImpl::Create(gen_data(
-                                             float{.5f}, size, 3, 0))));
-  ASSERT_OK_AND_ASSIGN(
-      auto src4,
-      DenseSource::CreateReadonly(
-          alloc, DataSliceImpl::Create(gen_data(arolla::Text("a"), size, 7, 1),
-                                       gen_data(int64_t{42}, size, 7, 2))));
+      auto src2_with_missing,
+      DenseSource::CreateReadonly(alloc, RemovedToMissing(data2)));
+  ASSERT_OK_AND_ASSIGN(auto src3,
+                       DenseSource::CreateReadonly(
+                           alloc, RemovedToMissing(DataSliceImpl::Create(
+                                      gen_data(float{.5f}, size, 3, 0)))));
+  ASSERT_OK_AND_ASSIGN(auto src4,
+                       DenseSource::CreateReadonly(
+                           alloc, RemovedToMissing(DataSliceImpl::Create(
+                                      gen_data(arolla::Text("a"), size, 7, 1),
+                                      gen_data(int64_t{42}, size, 7, 2)))));
 
   DataItem i1(int{1});
   DataItem i2(int{2});
@@ -636,14 +652,35 @@ TEST(DenseSourceTest, Merge) {
   auto ids =
       DataSliceImpl::ObjectsFromAllocation(alloc, size).values<ObjectId>();
 
+  {  // with_removed
+    auto dst = src1_with_removed->CreateMutableCopy();
+    ASSERT_OK(dst->Merge(*src2_with_removed,
+                         DenseSource::ConflictHandlingOption::kKeepOriginal));
+    EXPECT_THAT(dst->Get(ids), ::testing::ElementsAreArray(data1));
+    ASSERT_OK(dst->Merge(*src2_with_removed,
+                         DenseSource::ConflictHandlingOption::kOverwrite));
+    EXPECT_THAT(dst->Get(ids),
+                ElementsAre(None, None, i2, None, None, None, i2, None, None,
+                            None, i2, None, None, None, i2, None, None, None,
+                            i2, None, None, None, i2, None, i1));
+  }
+  {  // with_removed + kOverwrite with_missing
+    auto dst = src1_with_removed->CreateMutableCopy();
+    ASSERT_OK(dst->Merge(*src2_with_missing,
+                         DenseSource::ConflictHandlingOption::kOverwrite));
+    EXPECT_THAT(dst->Get(ids),
+                ElementsAre(i1, None, i2, None, i1, None, i2, None, i1, None,
+                            i2, None, i1, None, i2, None, i1, None, i2, None,
+                            i1, None, i2, None, i1));
+  }
   {  // kOverwrite
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
-    ASSERT_OK(
-        dst->Merge(*src1, DenseSource::ConflictHandlingOption::kOverwrite));
-    ASSERT_OK(
-        dst->Merge(*src2, DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(dst->Merge(*src1_with_missing,
+                         DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(dst->Merge(*src2_with_missing,
+                         DenseSource::ConflictHandlingOption::kOverwrite));
     ASSERT_OK(
         dst->Merge(*src3, DenseSource::ConflictHandlingOption::kOverwrite));
     ASSERT_OK(
@@ -657,10 +694,10 @@ TEST(DenseSourceTest, Merge) {
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
-    ASSERT_OK(
-        dst->Merge(*src1, DenseSource::ConflictHandlingOption::kKeepOriginal));
-    ASSERT_OK(
-        dst->Merge(*src2, DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(dst->Merge(*src1_with_missing,
+                         DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(dst->Merge(*src2_with_missing,
+                         DenseSource::ConflictHandlingOption::kKeepOriginal));
     ASSERT_OK(
         dst->Merge(*src3, DenseSource::ConflictHandlingOption::kKeepOriginal));
     ASSERT_OK(
@@ -674,10 +711,11 @@ TEST(DenseSourceTest, Merge) {
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
-    ASSERT_OK(dst->Merge(
-        *src1, DenseSource::ConflictHandlingOption::kRaiseOnConflict));
+    ASSERT_OK(
+        dst->Merge(*src1_with_missing,
+                   DenseSource::ConflictHandlingOption::kRaiseOnConflict));
     EXPECT_THAT(
-        dst->Merge(*src2,
+        dst->Merge(*src2_with_missing,
                    DenseSource::ConflictHandlingOption::kRaiseOnConflict),
         StatusIs(absl::StatusCode::kFailedPrecondition,
                  HasSubstr("merge conflict: 1 != 2")));
@@ -686,10 +724,10 @@ TEST(DenseSourceTest, Merge) {
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
-    ASSERT_OK(
-        dst->Merge(*src1, DenseSource::ConflictHandlingOption::kOverwrite));
-    ASSERT_OK(
-        dst->Merge(*src2, DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(dst->Merge(*src1_with_missing,
+                         DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(dst->Merge(*src2_with_missing,
+                         DenseSource::ConflictHandlingOption::kKeepOriginal));
     ASSERT_OK(
         dst->Merge(*src3, DenseSource::ConflictHandlingOption::kOverwrite));
     EXPECT_THAT(
@@ -706,15 +744,17 @@ TEST(DenseSourceTest, MergeUnit) {
   ASSERT_OK_AND_ASSIGN(
       auto src1,
       DenseSource::CreateReadonly(
-          alloc, DataSliceImpl::Create(arolla::CreateDenseArray<Unit>(
-                     {Unit(), std::nullopt, Unit(), Unit(), std::nullopt,
-                      Unit(), Unit()}))));
+          alloc,
+          RemovedToMissing(DataSliceImpl::Create(arolla::CreateDenseArray<Unit>(
+              {Unit(), std::nullopt, Unit(), Unit(), std::nullopt, Unit(),
+               Unit()})))));
   ASSERT_OK_AND_ASSIGN(
       auto src2,
       DenseSource::CreateReadonly(
-          alloc, DataSliceImpl::Create(arolla::CreateDenseArray<Unit>(
-                     {Unit(), Unit(), std::nullopt, Unit(), std::nullopt,
-                      Unit(), std::nullopt}))));
+          alloc,
+          RemovedToMissing(DataSliceImpl::Create(arolla::CreateDenseArray<Unit>(
+              {Unit(), Unit(), std::nullopt, Unit(), std::nullopt, Unit(),
+               std::nullopt})))));
 
   auto ids =
       DataSliceImpl::ObjectsFromAllocation(alloc, size).values<ObjectId>();
@@ -848,9 +888,9 @@ TEST(DenseSourceTest, MergeSelfBoolInitialized) {
   ASSERT_OK(
       ds->Merge(*ds, DenseSource::ConflictHandlingOption::kRaiseOnConflict));
 
-  EXPECT_EQ(ds->Get(alloc.ObjectByOffset(0)), DataItem());
+  EXPECT_EQ(ds->Get(alloc.ObjectByOffset(0)), std::nullopt);
   EXPECT_EQ(ds->Get(alloc.ObjectByOffset(1)), DataItem(true));
-  EXPECT_EQ(ds->Get(alloc.ObjectByOffset(2)), DataItem());
+  EXPECT_EQ(ds->Get(alloc.ObjectByOffset(2)), std::nullopt);
 }
 
 }  // namespace

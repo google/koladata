@@ -56,6 +56,9 @@ class SparseSource {
   // Gets values for those of `objs` that are not set yet in the builder.
   void Get(absl::Span<const ObjectId> objs, SliceBuilder& bldr) const;
 
+  // Returns all content of the SparseSource. ObjectId with empty (MissingValue)
+  // DataItem means "removed" and there will be no lookups in parents and
+  // fallbacks for this ObjectId.
   const absl::flat_hash_map<ObjectId, DataItem>& GetAll() const {
     return data_item_map_;
   }

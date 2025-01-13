@@ -36,7 +36,6 @@ struct TypesBuffer {
   // Special values in id_to_typeidx.
   static constexpr uint8_t kUnset = 0xff;
   static constexpr uint8_t kRemoved = 0xfe;  // explicitly set to missing
-  static constexpr uint8_t kMaybeRemoved = 0xfd;
 
   static constexpr bool is_present_type_idx(uint8_t idx) {
     return (idx & 0x80) == 0;
@@ -88,6 +87,9 @@ struct TypesBuffer {
 
   // Creates bitmap of (id_to_typeidx[i] not in [kUnset, kRemoved]) per element.
   arolla::bitmap::Bitmap ToPresenceBitmap() const;
+
+  // Creates bitmap of (id_to_typeidx[i] != kRemoved) per element.
+  arolla::bitmap::Bitmap ToNotRemovedBitmap() const;
 };
 
 }  // namespace koladata::internal

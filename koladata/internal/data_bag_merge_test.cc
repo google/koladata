@@ -37,6 +37,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/qtype/base_types.h"
@@ -442,22 +443,22 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
     ASSERT_OK(db->SetAttr(a, "a", a_value));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db2->SetAttr(a[2], "a", DataItem(17.0)));
+    ASSERT_OK(db2->SetAttr(a[3], "a", DataItem()));
     ASSERT_OK(db2->SetAttr(a[5], "a", DataItem(57)));
     ASSERT_OK(db->MergeInplace(
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
     std::vector<DataItem> a_value_expected(a_value.begin(), a_value.end());
     a_value_expected[2] = DataItem(17.0);
+    a_value_expected[3] = DataItem();
     a_value_expected[5] = DataItem(57);
     EXPECT_THAT(db->GetAttr(a, "a"),
                 IsOkAndHolds(ElementsAreArray(a_value_expected)));
   }
   {
-    SCOPED_TRACE("merge dense with sparse overwrite nothing");
+    SCOPED_TRACE("merge dense with empty sparse overwrite nothing");
     auto db = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db->SetAttr(a, "a", a_value));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(db2->SetAttr(a[5], "a", a_value[0]));
-    ASSERT_OK(db2->SetAttr(a[5], "a", DataItem()));
     ASSERT_OK(db->MergeInplace(
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
     EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
@@ -480,8 +481,13 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
     auto db2 = DataBagImpl::CreateEmptyDatabag();
 
     auto b_value = DataSliceImpl::AllocateEmptyObjects(kSize);
-    ASSERT_OK(db2->SetAttr(a, "a", b_value));
-    ASSERT_OK(db2->SetAttr(a[5], "a", DataItem()));
+    SliceBuilder a_but_one(a.size());
+    for (int i = 0; i < a.size(); ++i) {
+      if (i != 5) {
+        a_but_one.InsertIfNotSetAndUpdateAllocIds(i, a[i]);
+      }
+    }
+    ASSERT_OK(db2->SetAttr(std::move(a_but_one).Build(), "a", b_value));
     ASSERT_OK(db->MergeInplace(
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
 
@@ -497,10 +503,15 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
     auto db2 = DataBagImpl::CreateEmptyDatabag();
 
     auto b_value = DataSliceImpl::AllocateEmptyObjects(kSize);
-    ASSERT_OK(db2->SetAttr(a, "a", b_value));
+    SliceBuilder a_but_one(a.size());
+    for (int i = 0; i < a.size(); ++i) {
+      if (i != 5) {
+        a_but_one.InsertIfNotSetAndUpdateAllocIds(i, a[i]);
+      }
+    }
+    ASSERT_OK(db2->SetAttr(std::move(a_but_one).Build(), "a", b_value));
     ASSERT_OK(db2->SetAttr(a[1], "a", DataItem(27.0)));
     ASSERT_OK(db2->SetAttr(a[3], "a", DataItem(57)));
-    ASSERT_OK(db2->SetAttr(a[5], "a", DataItem()));
     ASSERT_OK(db->MergeInplace(
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
 

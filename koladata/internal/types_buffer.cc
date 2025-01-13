@@ -80,4 +80,10 @@ arolla::bitmap::Bitmap TypesBuffer::ToPresenceBitmap() const {
   return std::move(bldr).Build();
 }
 
+arolla::bitmap::Bitmap TypesBuffer::ToNotRemovedBitmap() const {
+  arolla::bitmap::Builder bldr(id_to_typeidx.size());
+  bldr.AddForEach(id_to_typeidx, [&](uint8_t t) { return t != kRemoved; });
+  return std::move(bldr).Build();
+}
+
 }  // namespace koladata::internal

@@ -120,6 +120,10 @@ class DenseSource {
   // It is private because it can return internal data of a mutable
   // DenseSource. The returned DataSliceImpl is not guaranteed to be immutable.
   // Used in `MergeOverwrite`.
+  // Returned DataSlice may contain TypesBuffer even if the DataSlice is single
+  // type. TypesBuffer is used to distinguish kRemoved and kUnset values.
+  // If in a single type slice TypesBuffer is empty, all missing values are
+  // kRemoved.
   virtual DataSliceImpl GetAll() const = 0;
 
   // Add all present items from `values` to this DenseSource. Depending on

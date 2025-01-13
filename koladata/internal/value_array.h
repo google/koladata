@@ -27,8 +27,6 @@
 #include "absl/base/dynamic_annotations.h"
 #include "absl/container/fixed_array.h"
 #include "absl/log/check.h"
-#include "absl/log/log.h"
-#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/internal/object_id.h"
@@ -253,43 +251,6 @@ class ValueArray {
       // Needed to free memory
       values_[offset] = T();
     }
-  }
-
-  void MergeOverwrite(const DenseArray<T>& vals) {
-    if constexpr (!std::is_same_v<T, Unit>) {
-      vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
-        values_[offset] = v;
-      });
-    }
-    UpdatePresenceOr(vals);
-  }
-
-  void MergeKeepOriginal(const DenseArray<T>& vals) {
-    if constexpr (!std::is_same_v<T, Unit>) {
-      vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
-        if (!arolla::bitmap::GetBit(presence_.data(), offset)) {
-          values_[offset] = v;
-        }
-      });
-    }
-    UpdatePresenceOr(vals);
-  }
-
-  template <class ConflictFn>
-  absl::Status MergeRaiseOnConflict(const DenseArray<T>& vals,
-                                    ConflictFn&& conflict) {
-    absl::Status status = absl::OkStatus();
-    if constexpr (!std::is_same_v<T, Unit>) {
-      vals.ForEachPresent([&](int64_t offset, arolla::view_type_t<T> v) {
-        if (!arolla::bitmap::GetBit(presence_.data(), offset)) {
-          values_[offset] = v;
-        } else if (values_[offset] != v) {
-          conflict(status, values_[offset], v);
-        }
-      });
-    }
-    UpdatePresenceOr(vals);
-    return status;
   }
 
   ValueArray<T> Copy() const {

@@ -55,6 +55,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/sparse_source.h"
+#include "koladata/internal/types_buffer.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
@@ -184,21 +185,20 @@ absl::Status MergeToMutableDenseSourceOnlySparse(
   auto process_source = [&](const SparseSource* source,
                             auto skip_obj_fn) -> absl::Status {
     for (const auto& [key, item] : source->GetAll()) {
-      if (!item.has_value() || skip_obj_fn(key)) {
+      if (skip_obj_fn(key)) {
         continue;
       }
       if (options.data_conflict_policy == MergeOptions::kOverwrite) {
         RETURN_IF_ERROR(result.Set(key, item));
         continue;
       }
-      if (auto this_result = result.Get(key).value_or(DataItem());
-          !this_result.has_value()) {
+      if (auto this_result = result.Get(key); !this_result.has_value()) {
         RETURN_IF_ERROR(result.Set(key, item));
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
-                 this_result != item) {
+                 *this_result != item) {
         return absl::FailedPreconditionError(
-            absl::StrCat("conflict ", key, ": ", this_result, " vs ", item));
+            absl::StrCat("conflict ", key, ": ", *this_result, " vs ", item));
       }
     }
     return absl::OkStatus();
@@ -256,6 +256,10 @@ absl::Status MergeToMutableDenseSource(
   ASSIGN_OR_RETURN(
       auto other_items,
       GetAttributeFromSources(objects, {&dense_source}, sparse_sources));
+  // GetAttributeFromSources returns information about removed values in
+  // TypesBuffer withing DataSliceImpl. Ensure that TypesBuffer is there.
+  DCHECK_GT(size, 0);
+  DCHECK(!other_items.types_buffer().id_to_typeidx.empty());
 
   if (options.data_conflict_policy == MergeOptions::kOverwrite) {
     const auto& objects_array = objects.values<ObjectId>();
@@ -271,19 +275,19 @@ absl::Status MergeToMutableDenseSource(
 
   for (int64_t offset = 0; offset < size; ++offset) {
     // TODO: try to use batch `GetAttributeFromSources`.
-    auto other_item = other_items[offset];
-    if (!other_item.has_value()) {
+    if (other_items.types_buffer().id_to_typeidx[offset] ==
+        TypesBuffer::kUnset) {
       continue;
     }
+    auto other_item = other_items[offset];
     auto obj_id = alloc.ObjectByOffset(offset);
-    if (auto this_result = result.Get(obj_id).value_or(DataItem());
-        !this_result.has_value()) {
+    if (auto this_result = result.Get(obj_id); !this_result.has_value()) {
       RETURN_IF_ERROR(result.Set(obj_id, other_item));
     } else {
       if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict &&
-          this_result != other_item) {
+          *this_result != other_item) {
         return absl::FailedPreconditionError(absl::StrCat(
-            "conflict ", obj_id, ": ", this_result, " vs ", other_item));
+            "conflict ", obj_id, ": ", *this_result, " vs ", other_item));
       }
     }
   }
@@ -452,7 +456,6 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttr(
       }
       source->Get(objs_span, *bldr);
     }
-    bldr->ConvertMaybeRemovedToUnset();
     if (bldr->is_finalized()) {
       break;
     }
