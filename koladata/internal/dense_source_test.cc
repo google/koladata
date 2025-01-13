@@ -31,6 +31,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
+#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
@@ -372,7 +373,7 @@ TEST(DenseSourceTest, SimpleValueArrayWithComplexAllocDealloc) {
 }
 
 TEST(DenseSourceTest, ImmutableWithMixedTypes) {
-  AllocationId alloc = Allocate(7);
+  AllocationId alloc = Allocate(8);
   SliceBuilder bldr(alloc.Capacity());
   bldr.InsertIfNotSet(0, 5);
   bldr.InsertIfNotSetAndUpdateAllocIds(1, DataItem(alloc.ObjectByOffset(2)));
@@ -380,12 +381,17 @@ TEST(DenseSourceTest, ImmutableWithMixedTypes) {
   bldr.InsertIfNotSet(4, 7);
   bldr.InsertIfNotSet(5, Unit());
   bldr.InsertIfNotSet(6, schema::kFloat32);
+  bldr.InsertIfNotSet(7, DataItem());
   DataSliceImpl attr = std::move(bldr).Build();
   ASSERT_OK_AND_ASSIGN(std::shared_ptr<const DenseSource> ds,
                        DenseSource::CreateReadonly(alloc, attr));
 
   for (int i = 0; i < alloc.Capacity(); ++i) {
-    EXPECT_EQ(ds->Get(alloc.ObjectByOffset(i)), attr[i]);
+    if (attr.types_buffer().id_to_typeidx[i] == TypesBuffer::kUnset) {
+      EXPECT_EQ(ds->Get(alloc.ObjectByOffset(i)), std::nullopt);
+    } else {
+      EXPECT_EQ(ds->Get(alloc.ObjectByOffset(i)), attr[i]);
+    }
   }
 
   {

@@ -191,7 +191,8 @@ absl::Status MergeToMutableDenseSourceOnlySparse(
         RETURN_IF_ERROR(result.Set(key, item));
         continue;
       }
-      if (auto this_result = result.Get(key); !this_result.has_value()) {
+      if (auto this_result = result.Get(key).value_or(DataItem());
+          !this_result.has_value()) {
         RETURN_IF_ERROR(result.Set(key, item));
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
@@ -275,7 +276,8 @@ absl::Status MergeToMutableDenseSource(
       continue;
     }
     auto obj_id = alloc.ObjectByOffset(offset);
-    if (auto this_result = result.Get(obj_id); !this_result.has_value()) {
+    if (auto this_result = result.Get(obj_id).value_or(DataItem());
+        !this_result.has_value()) {
       RETURN_IF_ERROR(result.Set(obj_id, other_item));
     } else {
       if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict &&
@@ -366,10 +368,10 @@ DataItem DataBagImpl::LookupAttrInDataSourcesMap(ObjectId object_id,
       }
       if (auto* s = collection.mutable_dense_source.get(); s != nullptr) {
         DCHECK_EQ(collection.const_dense_source, nullptr);
-        return s->Get(object_id);
+        return s->Get(object_id).value_or(DataItem());
       }
       if (auto* s = collection.const_dense_source.get(); s != nullptr) {
-        return s->Get(object_id);
+        return s->Get(object_id).value_or(DataItem());
       }
       cur_data_bag = collection.lookup_parent
                          ? cur_data_bag->parent_data_bag_.get()

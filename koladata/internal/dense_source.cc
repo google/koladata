@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <type_traits>
 #include <utility>
 #include <variant>
@@ -156,13 +157,17 @@ class MultitypeDenseSource : public DenseSource {
   AllocationId allocation_id() const final { return obj_allocation_id_; }
   int64_t size() const final { return size_; }
 
-  DataItem Get(ObjectId object) const final {
+  std::optional<DataItem> Get(ObjectId object) const final {
     DCHECK(obj_allocation_id_.Contains(object) && object.Offset() < size_);
     int64_t offset = object.Offset();
     uint8_t tidx = types_buffer_.id_to_typeidx[offset];
-    if (!TypesBuffer::is_present_type_idx(tidx)) {
+    if (tidx == TypesBuffer::kUnset) {
+      return std::nullopt;
+    }
+    if (tidx == TypesBuffer::kRemoved || tidx == TypesBuffer::kMaybeRemoved) {
       return DataItem();
     }
+    DCHECK(TypesBuffer::is_present_type_idx(tidx));
     return std::visit([&](const auto& buf) { return DataItem(buf[offset]); },
                       values_[tidx]);
   }
@@ -333,7 +338,8 @@ class MultitypeDenseSource : public DenseSource {
                   option == ConflictHandlingOption::kOverwrite) {
         UpdateMergeConflictStatusWithDataItem(
             status, DataItem(),
-            Get(obj_allocation_id_.ObjectByOffset(offset)));
+            Get(obj_allocation_id_.ObjectByOffset(offset))
+                .value_or(DataItem()));
       }
     }
     return status;
@@ -431,7 +437,8 @@ class MultitypeDenseSource : public DenseSource {
         } else if (status.ok() && (tidx != typeidx || dst_vals[offset] != v)) {
           UpdateMergeConflictStatusWithDataItem(
               status, DataItem(T(v)),
-              Get(obj_allocation_id_.ObjectByOffset(offset)));
+              Get(obj_allocation_id_.ObjectByOffset(offset))
+                  .value_or(DataItem()));
         }
       });
     }
@@ -478,7 +485,7 @@ class TypedDenseSource final : public DenseSource {
     return multitype_ ? multitype_->size() : values_.size();
   }
 
-  DataItem Get(ObjectId object) const final {
+  std::optional<DataItem> Get(ObjectId object) const final {
     if (multitype_) {
       return multitype_->Get(object);
     }
@@ -488,6 +495,8 @@ class TypedDenseSource final : public DenseSource {
     if (v.present) {
       return DataItem(T(v.value));
     } else {
+      // TODO: return std::nullopt for unset and DataItem() for
+      // removed.
       return DataItem();
     }
   }
@@ -689,10 +698,14 @@ class ReadOnlyDenseSource : public DenseSource {
 
   int64_t size() const final { return data_.size(); }
 
-  DataItem Get(ObjectId object) const override {
+  std::optional<DataItem> Get(ObjectId object) const override {
     DCHECK(data_.is_mixed_dtype())
         << "for single type use TypedReadOnlyDenseSource";
     DCHECK(obj_allocation_id_.Contains(object));
+    if (data_.types_buffer().id_to_typeidx[object.Offset()] ==
+        TypesBuffer::kUnset) {
+      return std::nullopt;
+    }
     return data_[object.Offset()];
   }
 
@@ -789,12 +802,14 @@ class TypedReadOnlyDenseSource final : public ReadOnlyDenseSource {
       : ReadOnlyDenseSource(alloc, data),
         data_(data.values<T>()) {}
 
-  DataItem Get(ObjectId object) const override {
+  std::optional<DataItem> Get(ObjectId object) const override {
     DCHECK(allocation_id().Contains(object));
     int64_t offset = object.Offset();
     if (data_.present(offset)) {
       return DataItem(T(data_.values[offset]));
     } else {
+      // TODO: return std::nullopt for unset and DataItem() for
+      // removed.
       return DataItem();
     }
   }

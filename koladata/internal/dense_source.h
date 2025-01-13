@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "absl/base/nullability.h"
@@ -47,7 +48,10 @@ class DenseSource {
 
   // Returns the attribute for the specified object.
   // ObjectId must be inside of the alloc this DenseSource was created for.
-  virtual DataItem Get(ObjectId object) const = 0;
+  // The result is std::nullopt if the value is missing in this data source,
+  // but can potentially present in another one. The result is an empty DataItem
+  // if the value is explicitly removed by this DenseSource.
+  virtual std::optional<DataItem> Get(ObjectId object) const = 0;
 
   // Returns DataSliceImpl with values corresponding to the specified objects.
   // It is not possible to distinguish missing and removed values using this

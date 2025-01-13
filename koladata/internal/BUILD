@@ -212,6 +212,7 @@ cc_test(
         ":dense_source",
         ":dtype",
         ":object_id",
+        ":types_buffer",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/strings",
