@@ -50,6 +50,7 @@ using ::arolla::Unit;
 using ::arolla::bitmap::AlmostFullBuilder;
 using ::arolla::bitmap::Bitmap;
 using ::arolla::bitmap::Word;
+using ::arolla::view_type_t;
 
 // Filters and remaps bitmap by given array of ObjectId.
 // The result is
@@ -122,6 +123,17 @@ class ValueBuffer : public absl::Span<T> {
   ValueBuffer(ValueBuffer&& other) : absl::Span<T>(other) {
     static_cast<absl::Span<T>&>(other) = absl::Span<T>(nullptr, 0);
   }
+
+  explicit ValueBuffer(const arolla::Buffer<T>& buf) : ValueBuffer(buf.size()) {
+    if constexpr (!std::is_same_v<view_type_t<T>, T>) {
+      for (int64_t i = 0; i < buf.size(); ++i) {
+        (*this)[i] = buf[i];
+      }
+    } else {
+      std::copy(buf.begin(), buf.end(), this->begin());
+    }
+  }
+
   ~ValueBuffer() { delete [] this->data(); }
 };
 
@@ -129,6 +141,7 @@ template <>
 class ValueBuffer<Unit> {
  public:
   explicit ValueBuffer(int64_t size) : size_(size) {}
+  explicit ValueBuffer(const arolla::Buffer<Unit>& buf) : size_(buf.size()) {}
   int64_t size() const { return size_; }
   Unit operator[](int64_t offset) const { return Unit{}; }
  private:
