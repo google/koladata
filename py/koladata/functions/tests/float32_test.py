@@ -49,6 +49,9 @@ class Float32Test(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
       fns.float32(x)
 
+  def test_alias(self):
+    self.assertIs(fns.float32, fns.slices.float32)
+
 
 if __name__ == '__main__':
   absltest.main()

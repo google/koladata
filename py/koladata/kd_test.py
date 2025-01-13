@@ -326,10 +326,36 @@ class KdTest(absltest.TestCase):
       item = kd.item(3, schema=kd.OBJECT).with_name('item')
     self.assertIsInstance(ds, arolla.abc.Expr)
     self.assertIsInstance(item, arolla.abc.Expr)
-    kd.testing.assert_equal(ds.qvalue, kd.slice([1, 2, 3], schema=kd.INT64))
-    kd.testing.assert_equal(item.qvalue, kd.item(3, schema=kd.OBJECT))
+    kd.testing.assert_equal(kd.eval(ds), kd.slice([1, 2, 3], schema=kd.INT64))
+    kd.testing.assert_equal(kd.eval(item), kd.item(3, schema=kd.OBJECT))
     self.assertEqual(kd.expr.get_name(ds), 'ds')
     self.assertEqual(kd.expr.get_name(item), 'item')
+
+  def test_tracing_for_slice_of_kd_obj(self):
+    with tracing_mode.enable_tracing():
+      ds = kd.slice([[kd.obj(a=1), kd.obj(a=2)], [kd.obj(a=3)]])
+    self.assertIsInstance(ds, arolla.abc.Expr)
+    kd.testing.assert_equal(kd.eval(ds).a.no_bag(), kd.slice([[1, 2], [3]]))
+
+  def test_tracing_for_nested_slice_with_cast(self):
+    with tracing_mode.enable_tracing():
+      ds = kd.slice(kd.slice([[1, 2], [3]]), schema=kd.INT64)
+    self.assertIsInstance(ds, arolla.abc.Expr)
+    kd.testing.assert_equal(
+        kd.eval(ds), kd.slice([[1, 2], [3]], schema=kd.INT64)
+    )
+
+  def test_tracing_for_kd_item_does_not_use_float32(self):
+    with tracing_mode.enable_tracing():
+      ds = kd.item(1 + 1e-14, schema=kd.FLOAT64)
+    self.assertIsInstance(ds, arolla.abc.Expr)
+    kd.testing.assert_equal(kd.eval(ds), kd.item(1 + 1e-14, schema=kd.FLOAT64))
+
+  def test_tracing_for_nested_item_with_cast(self):
+    with tracing_mode.enable_tracing():
+      ds = kd.item(kd.item(57), schema=kd.INT64)
+    self.assertIsInstance(ds, arolla.abc.Expr)
+    kd.testing.assert_equal(kd.eval(ds), kd.item(57, schema=kd.INT64))
 
   def test_tracing_for_dedicated_py_conversions(self):
     expr = kd.expr.pack_expr(kd.I.x)
@@ -343,16 +369,16 @@ class KdTest(absltest.TestCase):
       bool_item = kd.bool(True)
       mask = kd.mask([kd.present, kd.missing])
       expr_quote = kd.expr_quote(expr)
-    kd.testing.assert_equal(int32.qvalue, kd.slice([1, 2], schema=kd.INT32))
-    kd.testing.assert_equal(int64.qvalue, kd.slice(1, schema=kd.INT64))
-    kd.testing.assert_equal(float32.qvalue, kd.slice(3.14))
-    kd.testing.assert_equal(float64.qvalue, kd.slice(3, schema=kd.FLOAT64))
-    kd.testing.assert_equal(str_item.qvalue, kd.slice('abc'))
-    kd.testing.assert_equal(bytes_slice.qvalue, kd.slice([b'x', b'y']))
-    kd.testing.assert_equal(bool_item.qvalue, kd.slice(True))
-    kd.testing.assert_equal(mask.qvalue, kd.slice([kd.present, kd.missing]))
+    kd.testing.assert_equal(kd.eval(int32), kd.slice([1, 2], schema=kd.INT32))
+    kd.testing.assert_equal(kd.eval(int64), kd.slice(1, schema=kd.INT64))
+    kd.testing.assert_equal(kd.eval(float32), kd.slice(3.14))
+    kd.testing.assert_equal(kd.eval(float64), kd.slice(3, schema=kd.FLOAT64))
+    kd.testing.assert_equal(kd.eval(str_item), kd.slice('abc'))
+    kd.testing.assert_equal(kd.eval(bytes_slice), kd.slice([b'x', b'y']))
+    kd.testing.assert_equal(kd.eval(bool_item), kd.slice(True))
+    kd.testing.assert_equal(kd.eval(mask), kd.slice([kd.present, kd.missing]))
     kd.testing.assert_equal(
-        expr_quote.qvalue, kd.slice(kd.expr.pack_expr(kd.I.x))
+        kd.eval(expr_quote), kd.slice(kd.expr.pack_expr(kd.I.x))
     )
 
   def test_tracing_for_constants(self):

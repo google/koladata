@@ -1009,14 +1009,16 @@ PyMethodDef kPyDataSlice_methods[] = {
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
      "from_vals(x, /, schema=None)\n"
      "--\n\n"
-     R"""(Returns a DataSlice created from Python `value`.
+     R"""(Returns a DataSlice created from `x`.
 
 If `schema` is set, that schema is used, otherwise the schema is inferred from
-`value`.
+`x`.
 
 Args:
-  x: Python value.
-  schema: schema DataSlice to set.
+  x: a Python value or a DataSlice. If it is a (nested) Python list or tuple,
+    a multidimensional DataSlice is created.
+  schema: schema DataItem to set. If `x` is already a DataSlice, this will
+    cast it to the given schema.
 )"""},
     {"_from_py_impl", (PyCFunction)PyDataSlice_from_py,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,

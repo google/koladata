@@ -539,6 +539,58 @@ class BoxingTest(parameterized.TestCase):
     self.assertIsNotNone(s.get_bag())
     testing.assert_equal(s.a, ds([42, 24]).with_bag(s.get_bag()))
 
+  def test_slice_schema_adoption(self):
+    db = data_bag.DataBag.empty()
+    schema = db.new_schema(a=schema_constants.INT32)
+    s = ds([None, None], schema)
+    testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
+    testing.assert_equal(s.get_schema().a.no_bag(), schema_constants.INT32)
+    # In fact, the attached bag is the same here as well.
+    testing.assert_equal(s.get_schema(), schema)
+
+    s = ds(ds([None, None]), schema)
+    testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
+    testing.assert_equal(s.get_schema().a.no_bag(), schema_constants.INT32)
+    # In fact, the attached bag is the same here as well.
+    testing.assert_equal(s.get_schema(), schema)
+
+    s = ds([], schema)
+    testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
+    testing.assert_equal(s.get_schema().a.no_bag(), schema_constants.INT32)
+    # In fact, the attached bag is the same here as well.
+    self.assertTrue(s.is_mutable())
+    testing.assert_equal(s.get_schema(), schema)
+
+    db2 = data_bag.DataBag.empty()
+    s = ds(ds([None, None]).with_bag(db2), schema)
+    testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
+    testing.assert_equal(s.get_schema().a.no_bag(), schema_constants.INT32)
+    # Here we have merged two bags.
+    self.assertFalse(s.is_mutable())
+
+  def test_item_schema_adoption(self):
+    db = data_bag.DataBag.empty()
+    schema = db.new_schema(a=schema_constants.INT32)
+    s = data_item.DataItem.from_vals(None, schema)
+    testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
+    testing.assert_equal(s.get_schema().a.no_bag(), schema_constants.INT32)
+    # In fact, the attached bag is the same here as well.
+    testing.assert_equal(s.get_schema(), schema)
+
+    s = data_item.DataItem.from_vals(ds(None), schema)
+    testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
+    testing.assert_equal(s.get_schema().a.no_bag(), schema_constants.INT32)
+    # In fact, the attached bag is the same here as well.
+    self.assertTrue(s.is_mutable())
+    testing.assert_equal(s.get_schema(), schema)
+
+    db2 = data_bag.DataBag.empty()
+    s = data_item.DataItem.from_vals(ds(None).with_bag(db2), schema)
+    testing.assert_equal(s.get_schema().no_bag(), schema.no_bag())
+    testing.assert_equal(s.get_schema().a.no_bag(), schema_constants.INT32)
+    # Here we have merged two bags.
+    self.assertFalse(s.is_mutable())
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -41,6 +41,9 @@ class BoolTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
       fns.bool(x)
 
+  def test_alias(self):
+    self.assertIs(fns.bool, fns.slices.bool)
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -44,6 +44,9 @@ class Int32Test(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
       fns.int32(x)
 
+  def test_alias(self):
+    self.assertIs(fns.int32, fns.slices.int32)
+
 
 if __name__ == '__main__':
   absltest.main()

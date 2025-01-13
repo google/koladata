@@ -26,6 +26,7 @@ from koladata.functions import py_conversions as _py_conversions
 from koladata.functions import s11n as _s11n
 from koladata.functions import schema as _schema
 from koladata.types import data_bag as _data_bag
+from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import general_eager_ops as _general_eager_ops
 
@@ -159,6 +160,14 @@ to_pytree = _py_conversions.to_pytree
 
 py_reference = _py_conversions.py_reference
 
+from_proto = _proto_conversions.from_proto
+to_proto = _proto_conversions.to_proto
+
+dumps = _s11n.dumps
+loads = _s11n.loads
+
+slice = _data_slice.DataSlice.from_vals  # pylint: disable=redefined-builtin
+item = _data_item.DataItem.from_vals
 int32 = _py_conversions.int32
 int64 = _py_conversions.int64
 float32 = _py_conversions.float32
@@ -169,9 +178,20 @@ bool = _py_conversions.bool_  # pylint: disable=redefined-builtin
 mask = _py_conversions.mask
 expr_quote = _py_conversions.expr_quote
 
-
-from_proto = _proto_conversions.from_proto
-to_proto = _proto_conversions.to_proto
-
-dumps = _s11n.dumps
-loads = _s11n.loads
+slices = _py_types.SimpleNamespace(
+    # We use the top-level functions for `slice` and `item` instead of taking
+    # DataSlice.from_vals again here since for functions implemented in C++
+    # taking them twice from their class returns in different pointers,
+    # so "assertIs" test for aliases fails otherwise.
+    slice=slice,
+    item=item,
+    int32=_py_conversions.int32,
+    int64=_py_conversions.int64,
+    float32=_py_conversions.float32,
+    float64=_py_conversions.float64,
+    str=_py_conversions.str_,
+    bytes=_py_conversions.bytes_,
+    bool=_py_conversions.bool_,
+    mask=_py_conversions.mask,
+    expr_quote=_py_conversions.expr_quote,
+)

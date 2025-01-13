@@ -44,6 +44,9 @@ class MaskTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
       fns.mask(x)
 
+  def test_alias(self):
+    self.assertIs(fns.mask, fns.slices.mask)
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -44,6 +44,9 @@ class ExprQuoteTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
       fns.expr_quote(x)
 
+  def test_alias(self):
+    self.assertIs(fns.expr_quote, fns.slices.expr_quote)
+
 
 if __name__ == '__main__':
   absltest.main()

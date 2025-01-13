@@ -28,9 +28,11 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/types/boxing.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_operator.h"
+#include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -92,6 +94,21 @@ absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m, PyObject*) {
     }
   }
   Py_RETURN_NONE;
+}
+
+absl::Nullable<PyObject*> PyFlattenPyList(PyObject* /*module*/,
+                                          PyObject* py_obj) {
+  ASSIGN_OR_RETURN((auto [py_objects, shape]), FlattenPyList(py_obj),
+                   arolla::python::SetPyErrFromStatus(_));
+  auto py_list =
+      arolla::python::PyObjectPtr::Own(PyList_New(/*len=*/py_objects.size()));
+  for (int i = 0; i < py_objects.size(); ++i) {
+    PyList_SetItem(py_list.get(), i, Py_NewRef(py_objects[i]));
+  }
+  auto py_shape =
+      arolla::python::PyObjectPtr::Own(arolla::python::WrapAsPyQValue(
+          arolla::TypedValue::FromValue(std::move(shape))));
+  return PyTuple_Pack(2, py_list.release(), py_shape.release());
 }
 
 }  // namespace koladata::python

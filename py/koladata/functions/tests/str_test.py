@@ -41,6 +41,9 @@ class StrTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
       fns.str(x)
 
+  def test_alias(self):
+    self.assertIs(fns.str, fns.slices.str)
+
 
 if __name__ == '__main__':
   absltest.main()

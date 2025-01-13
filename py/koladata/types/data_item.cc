@@ -152,15 +152,16 @@ PyMethodDef kPyDataItem_methods[] = {
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
      "from_vals(x, /, schema=None)\n"
      "--\n\n"
-     R"""(Returns a DataItem created from Python `value`.
+     R"""(Returns a DataItem created from `x`.
 
 If `schema` is set, that schema is used, otherwise the schema is inferred from
-`value`. Python value must be convertible to Koda scalar and the result cannot
+`x`. Python value must be convertible to Koda scalar and the result cannot
 be multidimensional DataSlice.
 
 Args:
-  x: Python value.
-  schema: schema DataSlice to set.
+  x: a Python value or a DataItem.
+  schema: schema DataItem to set. If `x` is already a DataItem, this will cast
+    it to the given schema.
 )"""},
     {nullptr}, /* sentinel */
 };

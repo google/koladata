@@ -536,6 +536,7 @@ cc_library(
     srcs = ["py_misc.cc"],
     hdrs = ["py_misc.h"],
     deps = [
+        ":boxing",
         ":wrap_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -545,6 +546,7 @@ cc_library(
         "//koladata/s11n",
         "@com_google_absl//absl/base:nullability",
         "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
@@ -702,5 +704,19 @@ py_test(
         ":ellipsis",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "py_misc_test",
+    srcs = ["py_misc_test.py"],
+    deps = [
+        ":data_slice",
+        ":jagged_shape",
+        ":py_misc_py_ext",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )

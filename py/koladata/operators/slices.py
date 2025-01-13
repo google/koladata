@@ -30,8 +30,10 @@ from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema as schema_ops
 from koladata.operators import view_overloads as _
+from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
+from koladata.types import py_misc_py_ext
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -40,6 +42,10 @@ M = arolla.OperatorsContainer(jagged_shape)
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
+
+
+def _is_unspecified(x):
+  return isinstance(x, arolla.abc.Unspecified)
 
 
 # Implemented in masking.py to avoid a dependency cycle.
@@ -1810,3 +1816,338 @@ def _zip(*args):
       data_slice.DataSlice.from_vals(0),
       M.core.apply_varargs(align, args),
   )
+
+
+@optools.add_to_registry(aliases=['kde.item'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.item',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.item]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+    ],
+)
+def item(x, schema=arolla.unspecified()):
+  """Returns a DataItem created from `x`.
+
+  If `schema` is set, that schema is used, otherwise the schema is inferred from
+  `x`. Python value must be convertible to Koda scalar and the result cannot
+  be multidimensional DataSlice.
+
+  Args:
+    x: a Python value or a DataItem.
+    schema: schema DataItem to set. If `x` is already a DataItem, this will cast
+      it to the given schema.
+  """
+  # If `x` is already a DataSlice, we check that it's 0-dim in the binding
+  # policy. This speeds up the evaluation and often allows to get the error
+  # message closer to where the error is.
+  return arolla.types.DispatchOperator(
+      'x, schema',
+      unspecified_case=arolla.types.DispatchCase(
+          P.x,
+          condition=P.schema == arolla.UNSPECIFIED,
+      ),
+      default=schema_ops.cast_to(P.x, P.schema),
+  )(x, schema)
+
+
+_ITEM_MULTIDIM_ERROR = 'kd.item: argument `x` cannot be a multi-dim DataSlice'
+_SCHEMA_EXPR_ERROR = (
+    '`schema` cannot be an expression when `x` is a Python value, since we need'
+    ' to convert the Python value to a Koda value at binding time'
+)
+
+
+def _item_bind_args(x, schema=arolla.unspecified()):
+  """Binding policy for kde.slices.item."""
+  if isinstance(x, arolla.Expr):
+    x = assertion.with_assertion(
+        x,
+        get_ndim(x) == 0,
+        _ITEM_MULTIDIM_ERROR,
+    )
+    return (x, schema)
+  elif isinstance(x, data_slice.DataSlice):
+    if x.get_ndim() > 0:
+      raise ValueError(_ITEM_MULTIDIM_ERROR)
+    return (x, schema)
+  else:
+    if isinstance(schema, arolla.Expr):
+      raise ValueError(f'kd.item: {_SCHEMA_EXPR_ERROR}')
+    return (
+        data_item.DataItem.from_vals(
+            x, schema=None if _is_unspecified(schema) else schema
+        ),
+        arolla.unspecified(),
+    )
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    item, _item_bind_args, make_literal_fn=py_boxing.literal
+)
+
+
+@optools.add_to_registry(aliases=['kde.slice'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.slice',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.slice]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.schema),
+    ],
+)
+def _slice(x, schema=arolla.unspecified()):
+  """Returns a DataSlice created from `x`.
+
+  If `schema` is set, that schema is used, otherwise the schema is inferred from
+  `x`.
+
+  Args:
+    x: a Python value or a DataSlice. If it is a (nested) Python list or tuple,
+      a multidimensional DataSlice is created.
+    schema: schema DataItem to set. If `x` is already a DataSlice, this will
+      cast it to the given schema.
+  """
+  return arolla.types.DispatchOperator(
+      'x, schema',
+      unspecified_case=arolla.types.DispatchCase(
+          P.x,
+          condition=P.schema == arolla.UNSPECIFIED,
+      ),
+      default=schema_ops.cast_to(P.x, P.schema),
+  )(x, schema)
+
+
+def _slice_bind_args(x, schema=arolla.unspecified()):
+  """Binding policy for kde.slices.slice."""
+  if isinstance(x, (arolla.Expr, data_slice.DataSlice)):
+    return (x, schema)
+  elif type(x) in (  # Checking exact type to match behavior in boxing.cc
+      list,
+      tuple,
+  ):
+    flat_val, shape = py_misc_py_ext.flatten_py_list(x)
+    if not any(isinstance(x, arolla.Expr) for x in flat_val) and not isinstance(
+        schema, arolla.Expr
+    ):
+      # This branch is not necessary for correctness, but it makes the resulting
+      # expr smaller in the literal case.
+      return (
+          data_slice.DataSlice.from_vals(
+              x, schema=None if _is_unspecified(schema) else schema
+          ),
+          arolla.unspecified(),
+      )
+    flat_items = [item(x, schema=schema) for x in flat_val]
+    if flat_items:
+      # stack requires at least one argument.
+      flat_slice = stack(*flat_items)
+    else:
+      flat_slice = schema_ops.with_schema(
+          data_slice.DataSlice.from_vals([]), schema
+      )
+    shaped_slice = jagged_shape_ops.reshape(flat_slice, shape)
+    return (shaped_slice, arolla.unspecified())
+  else:
+    if isinstance(schema, arolla.Expr):
+      raise ValueError(f'kd.slice: {_SCHEMA_EXPR_ERROR}')
+    return (
+        data_slice.DataSlice.from_vals(
+            x, schema=None if _is_unspecified(schema) else schema
+        ),
+        arolla.unspecified(),
+    )
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    _slice, _slice_bind_args, make_literal_fn=py_boxing.literal
+)
+
+
+def _typed_slice_bind_args(x, schema):
+  """Binding policy for typed slice operators."""
+  bound_x, _ = _slice_bind_args(x, schema=schema)
+  return (bound_x,)
+
+
+@optools.add_to_registry(aliases=['kde.int32'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.int32',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.int32]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def int32(x):
+  """Returns kd.slice(x, kd.INT32)."""
+  return schema_ops.to_int32(x)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    int32,
+    lambda x: _typed_slice_bind_args(x, schema_constants.INT32),
+    make_literal_fn=py_boxing.literal,
+)
+
+
+@optools.add_to_registry(aliases=['kde.int64'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.int64',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.int64]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def int64(x):
+  """Returns kd.slice(x, kd.INT64)."""
+  return schema_ops.to_int64(x)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    int64,
+    lambda x: _typed_slice_bind_args(x, schema_constants.INT64),
+    make_literal_fn=py_boxing.literal,
+)
+
+
+@optools.add_to_registry(aliases=['kde.float32'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.float32',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.float32]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def float32(x):
+  """Returns kd.slice(x, kd.FLOAT32)."""
+  return schema_ops.to_float32(x)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    float32,
+    lambda x: _typed_slice_bind_args(x, schema_constants.FLOAT32),
+    make_literal_fn=py_boxing.literal,
+)
+
+
+@optools.add_to_registry(aliases=['kde.float64'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.float64',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.float64]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def float64(x):
+  """Returns kd.slice(x, kd.FLOAT64)."""
+  return schema_ops.to_float64(x)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    float64,
+    lambda x: _typed_slice_bind_args(x, schema_constants.FLOAT64),
+    make_literal_fn=py_boxing.literal,
+)
+
+
+@optools.add_to_registry(aliases=['kde.str'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.str',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.str]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def str_(x):
+  """Returns kd.slice(x, kd.STRING)."""
+  return schema_ops.to_str(x)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    str_,
+    lambda x: _typed_slice_bind_args(x, schema_constants.STRING),
+    make_literal_fn=py_boxing.literal,
+)
+
+
+@optools.add_to_registry(aliases=['kde.bytes'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.bytes',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.bytes]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def bytes_(x):
+  """Returns kd.slice(x, kd.BYTES)."""
+  return schema_ops.to_bytes(x)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    bytes_,
+    lambda x: _typed_slice_bind_args(x, schema_constants.BYTES),
+    make_literal_fn=py_boxing.literal,
+)
+
+
+@optools.add_to_registry(aliases=['kde.bool'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.bool',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.bool]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def bool_(x):
+  """Returns kd.slice(x, kd.BOOLEAN)."""
+  return schema_ops.to_bool(x)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    bool_,
+    lambda x: _typed_slice_bind_args(x, schema_constants.BOOLEAN),
+    make_literal_fn=py_boxing.literal,
+)
+
+
+@optools.add_to_registry(aliases=['kde.mask'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.mask',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kde.slices.mask]',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def mask(x):
+  """Returns kd.slice(x, kd.MASK)."""
+  return schema_ops.to_mask(x)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    mask,
+    lambda x: _typed_slice_bind_args(x, schema_constants.MASK),
+    make_literal_fn=py_boxing.literal,
+)
+
+
+@optools.add_to_registry(aliases=['kde.expr_quote'])
+@arolla.optools.as_lambda_operator(
+    'kde.slices.expr_quote',
+    experimental_aux_policy=(
+        'koladata_adhoc_binding_policy[kde.slices.expr_quote]'
+    ),
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def expr_quote(x):
+  """Returns kd.slice(x, kd.EXPR)."""
+  return schema_ops.to_expr(x)
+
+
+arolla.abc.register_adhoc_aux_binding_policy(
+    expr_quote,
+    lambda x: _typed_slice_bind_args(x, schema_constants.EXPR),
+    make_literal_fn=py_boxing.literal,
+)

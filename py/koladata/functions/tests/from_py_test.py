@@ -394,7 +394,7 @@ class FromPyTest(absltest.TestCase):
         a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
     )
     res = fns.from_py([], from_dim=1, schema=schema)
-    testing.assert_equal(res.no_bag(), ds([], schema))
+    testing.assert_equal(res.no_bag(), ds([], schema.no_bag()))
 
   def test_obj_reference(self):
     obj = fns.obj()

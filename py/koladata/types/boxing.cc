@@ -412,70 +412,6 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
   }
 }
 
-// Parses the Python list and returns flattened items together with appropriate
-// JaggedShape.
-absl::StatusOr<std::pair<std::vector<PyObject*>, DataSlice::JaggedShape>>
-FlattenPyList(PyObject* py_list, AdoptionQueue& adoption_queue,
-              size_t max_depth = 0) {
-  arolla::python::DCheckPyGIL();
-  DataSlice::JaggedShape::EdgeVec edges;
-  std::vector<PyObject*> lst_items;
-  lst_items.push_back(py_list);
-  int cur_len = 1;
-  int cur_depth = 0;
-  while (cur_len > 0 && (max_depth == 0 || cur_depth < max_depth)) {
-    std::vector<PyObject*> next_level_items;
-    // There will be usually more than lst_items.size()/cur_len, but reserving
-    // at least something. NOTE: This cannot be outside the loop, because of the
-    // std::move at the bottom of the loop.
-    next_level_items.reserve(cur_len);
-    std::vector<int64_t> cur_split_points;
-    cur_split_points.reserve(cur_len + 1);
-
-    bool is_list = true;
-    cur_split_points.push_back(0);
-    for (auto lst : lst_items) {
-      bool list_check = PyList_Check(lst);
-      if (list_check || PyTuple_Check(lst)) {
-        int64_t nested_len = list_check ? PyList_Size(lst) : PyTuple_Size(lst);
-        auto getitem = list_check ? PyList_GetItem : PyTuple_GetItem;
-        for (int j = 0; j < nested_len; ++j) {
-          // Not using PySequence_GetItem as it increases refcount.
-          next_level_items.push_back(getitem(lst, j));
-        }
-        cur_split_points.push_back(cur_split_points.back() + nested_len);
-      } else {
-        is_list = false;
-      }
-    }
-    cur_len = next_level_items.size();
-    if (!is_list && !next_level_items.empty()) {
-      return absl::InvalidArgumentError(
-          "input has to be a valid nested list. non-lists and lists cannot be"
-          " mixed in a level");
-    } else if (is_list) {
-      // We do not add last edge, cur_split_points is not valid if all items
-      // were non-lists.
-      ASSIGN_OR_RETURN(
-          edges.emplace_back(),
-          arolla::DenseArrayEdge::FromSplitPoints(
-              arolla::CreateFullDenseArray<int64_t>(cur_split_points)));
-      lst_items = std::move(next_level_items);
-    }
-    if (is_list) {
-      ++cur_depth;
-    }
-  }
-  if (max_depth > 0 && cur_depth < max_depth) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "could not traverse the nested list of depth %d up to the level %d",
-        cur_depth, max_depth));
-  }
-  ASSIGN_OR_RETURN(DataSlice::JaggedShape shape,
-                   DataSlice::JaggedShape::FromEdges(std::move(edges)));
-  return std::make_pair(std::move(lst_items), std::move(shape));
-}
-
 // Parses the Python list and creates a DataSlice from its items with
 // appropriate JaggedShape and type of items. The `py_list` can also have rank
 // 0, in which case we treat it as a scalar Python value.
@@ -484,7 +420,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
                                               AdoptionQueue& adoption_queue) {
   arolla::python::DCheckPyGIL();
   ASSIGN_OR_RETURN((auto [py_objects, shape]),
-                   FlattenPyList(py_list, adoption_queue));
+                   FlattenPyList(py_list, /*max_depth=*/0));
 
   return DataSliceFromPyFlatList(py_objects, std::move(shape),
                                  std::move(schema), adoption_queue);
@@ -567,12 +503,76 @@ absl::Nullable<PyObject*> PyObjectFromDataItem(const DataItem& item,
 
 }  // namespace
 
+// Parses the Python list and returns flattened items together with appropriate
+// JaggedShape.
+absl::StatusOr<std::pair<std::vector<PyObject*>, DataSlice::JaggedShape>>
+FlattenPyList(PyObject* py_list, size_t max_depth) {
+  arolla::python::DCheckPyGIL();
+  DataSlice::JaggedShape::EdgeVec edges;
+  std::vector<PyObject*> lst_items;
+  lst_items.push_back(py_list);
+  int cur_len = 1;
+  int cur_depth = 0;
+  while (cur_len > 0 && (max_depth == 0 || cur_depth < max_depth)) {
+    std::vector<PyObject*> next_level_items;
+    // There will be usually more than lst_items.size()/cur_len, but reserving
+    // at least something. NOTE: This cannot be outside the loop, because of the
+    // std::move at the bottom of the loop.
+    next_level_items.reserve(cur_len);
+    std::vector<int64_t> cur_split_points;
+    cur_split_points.reserve(cur_len + 1);
+
+    bool is_list = true;
+    cur_split_points.push_back(0);
+    for (auto lst : lst_items) {
+      bool list_check = PyList_Check(lst);
+      if (list_check || PyTuple_Check(lst)) {
+        int64_t nested_len = list_check ? PyList_Size(lst) : PyTuple_Size(lst);
+        auto getitem = list_check ? PyList_GetItem : PyTuple_GetItem;
+        for (int j = 0; j < nested_len; ++j) {
+          // Not using PySequence_GetItem as it increases refcount.
+          next_level_items.push_back(getitem(lst, j));
+        }
+        cur_split_points.push_back(cur_split_points.back() + nested_len);
+      } else {
+        is_list = false;
+      }
+    }
+    cur_len = next_level_items.size();
+    if (!is_list && !next_level_items.empty()) {
+      return absl::InvalidArgumentError(
+          "input has to be a valid nested list. non-lists and lists cannot be"
+          " mixed in a level");
+    } else if (is_list) {
+      // We do not add last edge, cur_split_points is not valid if all items
+      // were non-lists.
+      ASSIGN_OR_RETURN(
+          edges.emplace_back(),
+          arolla::DenseArrayEdge::FromSplitPoints(
+              arolla::CreateFullDenseArray<int64_t>(cur_split_points)));
+      lst_items = std::move(next_level_items);
+    }
+    if (is_list) {
+      ++cur_depth;
+    }
+  }
+  if (max_depth > 0 && cur_depth < max_depth) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "could not traverse the nested list of depth %d up to the level %d",
+        cur_depth, max_depth));
+  }
+  ASSIGN_OR_RETURN(DataSlice::JaggedShape shape,
+                   DataSlice::JaggedShape::FromEdges(std::move(edges)));
+  return std::make_pair(std::move(lst_items), std::move(shape));
+}
+
 absl::StatusOr<DataSlice> DataSliceFromPyValue(
     PyObject* py_obj, AdoptionQueue& adoption_queue,
     const std::optional<DataSlice>& schema) {
   arolla::python::DCheckPyGIL();
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
+    adoption_queue.Add(*schema);
   }
   if (arolla::python::IsPyQValueInstance(py_obj)) {
     const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
@@ -629,6 +629,7 @@ absl::StatusOr<DataSlice> DataItemFromPyValue(
   // NOTE: If there is a DataBag `py_obj`, it is added to the adoption_queue.
   if (schema.has_value()) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
+    adoption_queue.Add(*schema);
     schema_item = schema->item();
     EmbeddingDataBag embedding_db;
     schema::CommonSchemaAggregator unused_schema_agg;
@@ -890,7 +891,7 @@ class UniversalConverter {
     }
 
     ASSIGN_OR_RETURN((auto [py_objects, shape]),
-                     FlattenPyList(py_obj, adoption_queue_, from_dim));
+                     FlattenPyList(py_obj, from_dim));
     if (parent_itemid) {
       if (parent_itemid->is_item()) {
         return absl::InvalidArgumentError(

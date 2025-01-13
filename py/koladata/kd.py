@@ -72,23 +72,6 @@ _same_when_tracing = lambda obj: _tracing_mode.same_when_tracing(
 )
 
 
-# TODO: This cannot be applied to constants such as INT64, BYTES,
-# etc., because then they are not parseable by `schema=` argument in kd.slice.
-# They should be addressed by revisting how tracing is done and allow tracing of
-# DataSlice methods at a lower-level.
-def _same_when_tracing_with_literal_output(  # pylint: disable=invalid-name
-    fn: _typing.Callable[..., _typing.Any]
-) -> _typing.Callable[..., _typing.Any]:
-  """Similar to `same_when_tracing`, but wraps the output into Koda literal."""
-  if not callable(fn):
-    raise NotImplementedError(
-        '_same_when_tracing_with_literal_output is supported only for functions'
-    )
-  def TracingWrapper(*args, **kwargs):
-    return _literal_operator.literal(fn(*args, **kwargs))
-  return _tracing_mode.configure_tracing(_tracing_config, fn, TracingWrapper)
-
-
 ### Used as type annotations in user's code.
 types = _eager_only(_py_types.ModuleType('types'))
 types.DataBag = _data_bag.DataBag
@@ -157,25 +140,6 @@ _InitOpsAndContainers()
 
 ### Public functions.
 
-# Creating DataItem / DataSlice.
-item = _same_when_tracing_with_literal_output(_data_item.DataItem.from_vals)
-slice = _same_when_tracing_with_literal_output(_data_slice.DataSlice.from_vals)  # pylint: disable=redefined-builtin
-
-
-# TODO: Find a more principled way to mark them the same in tracing
-# during definition.
-_TRACING_ENABLED_FNS = frozenset([
-    'int32',
-    'int64',
-    'float32',
-    'float64',
-    'str',
-    'bytes',
-    'bool',
-    'mask',
-    'expr_quote',
-])
-
 
 # Impure functions (kd.bag, kd.list, kd.new, kd.set_attr, ...).
 def _LoadImpureFunctions(*modules: _py_types.ModuleType):
@@ -203,8 +167,6 @@ def _LoadImpureFunctions(*modules: _py_types.ModuleType):
               eager=fn_val,
               tracing=getattr(_kde_operators.kde, fn_name),
           )
-        elif fn_name in _TRACING_ENABLED_FNS:
-          globals()[fn_name] = _same_when_tracing_with_literal_output(fn_val)
         else:
           globals()[fn_name] = _eager_only(fn_val)
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.functions import functions as fns
@@ -26,25 +27,43 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 
 
-class Int64Test(parameterized.TestCase):
+class SliceTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      [1], [[1, 2, 3]], [None], [1.0], [ds(1.0)], [2**70 + 1], [b'1'], ['1']
+      (1, ds(1)),
+      (ds(1), ds(1)),
+      (1.5, ds(1.5)),
+      ([1, 2, 3], ds([1, 2, 3])),
+      ([1, 2, 3.0], ds([1, 2, 3.0])),
+      ([[1, 2], [3, 4, 5]], ds([[1, 2], [3, 4, 5]])),
+      (((1, 2), [3, 4, 5]), ds([[1, 2], [3, 4, 5]])),
+      (ds([1, 2, 3]), ds([1, 2, 3])),
   )
-  def test_int64(self, x):
-    testing.assert_equal(fns.int64(x), ds(x, schema_constants.INT64))
+  def test_single_arg(self, x, expected):
+    testing.assert_equal(fns.slice(x), expected)
 
   @parameterized.parameters(
-      (mask_constants.present, 'unsupported schema: MASK'),
-      ('foo', 'unable to parse INT64: foo'),
-      (b'test', 'unable to parse INT64: test'),
+      (1, schema_constants.INT32, ds(1)),
+      (ds(1), schema_constants.INT64, ds(1, schema_constants.INT64)),
+      (1.3, schema_constants.INT32, ds(1)),
+      ([1, 2, 3], schema_constants.FLOAT32, ds([1.0, 2.0, 3.0])),
   )
-  def test_int64_errors(self, x, expected_error_msg):
+  def test_two_args(self, x, schema, expected):
+    testing.assert_equal(fns.slice(x, schema), expected)
+
+  @parameterized.parameters(
+      (
+          mask_constants.present,
+          schema_constants.INT32,
+          'unsupported schema: MASK',
+      ),
+  )
+  def test_errors(self, x, schema, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
-      fns.int64(x)
+      fns.slice(x, schema)
 
   def test_alias(self):
-    self.assertIs(fns.int64, fns.slices.int64)
+    self.assertIs(fns.slice, fns.slices.slice)
 
 
 if __name__ == '__main__':

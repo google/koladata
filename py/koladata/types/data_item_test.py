@@ -76,11 +76,22 @@ class DataItemTest(parameterized.TestCase):
     self.assertIsInstance(x, data_item.DataItem)
     self.assertIsInstance(x, arolla.QValue)
 
+  def test_repeated_application(self):
+    x = data_item.DataItem.from_vals(12)
+    y = data_item.DataItem.from_vals(x)
+    testing.assert_equal(y, x)
+
   def test_from_vals_error(self):
     with self.assertRaisesRegex(
         TypeError, 'DataItem.* cannot create multi-dim DataSlice'
     ):
       _ = data_item.DataItem.from_vals([1, 2, 3])
+    with self.assertRaisesRegex(
+        ValueError, 'can only contain DataItems, got DataSlice'
+    ):
+      _ = data_item.DataItem.from_vals(
+          data_slice.DataSlice.from_vals([1, 2, 3])
+      )
     with self.assertRaisesRegex(
         TypeError, 'accepts 1 to 2 positional arguments but 3 were given'
     ):

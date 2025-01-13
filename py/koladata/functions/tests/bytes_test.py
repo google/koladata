@@ -39,6 +39,9 @@ class BytesTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
       fns.bytes(x)
 
+  def test_alias(self):
+    self.assertIs(fns.bytes, fns.slices.bytes)
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -189,7 +189,7 @@ class CoreNewlikeTest(absltest.TestCase):
       x = expr_eval.eval(
           kde.core.new_like(ds([]), itemid=ds([], schema_constants.ITEMID))
       )
-      testing.assert_equal(x.no_bag(), ds([], x.get_schema()))
+      testing.assert_equal(x.no_bag(), ds([], x.get_schema().no_bag()))
 
     with self.subTest('full DataSlice and sparse itemid'):
       with self.assertRaisesRegex(

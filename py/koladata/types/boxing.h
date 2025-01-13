@@ -19,6 +19,8 @@
 
 #include <cstddef>
 #include <optional>
+#include <utility>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
@@ -44,6 +46,12 @@ namespace koladata::python {
 absl::StatusOr<DataSlice> DataSliceFromPyValue(
     PyObject* py_obj, AdoptionQueue& adoption_queue,
     const std::optional<DataSlice>& schema = std::nullopt);
+
+// Parses the Python list and returns flattened items (borrowed references)
+// together with the appropriate JaggedShape. This is the same logic as used
+// internally by `DataSliceFromPyValue`.
+absl::StatusOr<std::pair<std::vector<PyObject*>, DataSlice::JaggedShape>>
+FlattenPyList(PyObject* py_list, size_t max_depth = 0);
 
 // If `py_obj` is a python list of DataItems, merges their DataBags and attaches
 // to the resulted DataSlice. Otherwise returns a DataSlice without DataBag.

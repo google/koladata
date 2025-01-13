@@ -52,7 +52,7 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_empty_item(self):
     l = fns.list_like(ds(None)).fork_db()
-    testing.assert_equal(l.no_bag(), ds(None, l.get_schema()))
+    testing.assert_equal(l.no_bag(), ds(None, l.get_schema().no_bag()))
     l.append(1)
     testing.assert_equal(l[:].no_bag(), ds([]))
 

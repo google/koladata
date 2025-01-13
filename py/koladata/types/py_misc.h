@@ -29,6 +29,10 @@ absl::Nullable<PyObject*> PyMakeLiteralOperator(PyObject* /*module*/,
 absl::Nullable<PyObject*> PyMakeLiteralExpr(PyObject* /*module*/,
                                             PyObject* value);
 
+// Converts a Python nested list/tuple into a tuple of flat list and shape.
+absl::Nullable<PyObject*> PyFlattenPyList(PyObject* /*module*/,
+                                          PyObject* py_obj);
+
 // Registers all Schema Constants as Python objects into module `m`. Returns
 // Py_None, but raises Error on failure.
 absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m, PyObject*);
