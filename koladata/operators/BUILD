@@ -116,6 +116,7 @@ cc_library(
         "//koladata:object_factories",
         "//koladata:pointwise_utils",
         "//koladata:uuid_utils",
+        "//koladata/internal:casting",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",

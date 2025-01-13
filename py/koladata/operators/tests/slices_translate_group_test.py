@@ -150,7 +150,7 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'group_by is not supported for scalar data',
+        'group_by arguments must be DataSlices with ndim > 0',
     ):
       expr_eval.eval(
           kde.slices.translate_group(ds(['a', 'c', 'd']), ds('a'), ds(1))

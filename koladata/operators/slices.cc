@@ -44,6 +44,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/casting.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -501,47 +502,6 @@ class GroupByIndicesProcessor {
   bool sort_;
 };
 
-absl::StatusOr<DataSlice> GroupByIndicesImpl(
-    absl::Span<const DataSlice* const> slices, bool sort) {
-  if (slices.empty()) {
-    return absl::InvalidArgumentError("requires at least 1 argument");
-  }
-  const auto& shape = slices[0]->GetShape();
-  if (shape.rank() == 0) {
-    return absl::FailedPreconditionError(
-        "group_by is not supported for scalar data");
-  }
-  GroupByIndicesProcessor processor(shape.edges().back(),
-                                    /*sort=*/sort);
-  for (const auto* const ds_ptr : slices) {
-    const auto& ds = *ds_ptr;
-    if (!ds.GetShape().IsEquivalentTo(shape)) {
-      return absl::FailedPreconditionError(
-          "all arguments must have the same shape");
-    }
-    if (sort) {
-      if (ds.slice().is_mixed_dtype()) {
-        return absl::FailedPreconditionError(
-            "sort is not supported for mixed dtype");
-      }
-      if (!internal::IsKodaScalarQTypeSortable(ds.slice().dtype())) {
-        return absl::FailedPreconditionError(absl::StrCat(
-            "sort is not supported for ", ds.slice().dtype()->name()));
-      }
-    }
-    processor.ProcessGroupKey(ds.slice());
-  }
-  auto [indices_array, group_split_points, item_split_points] =
-      processor.CreateFinalDataSlice();
-  ASSIGN_OR_RETURN(auto new_shape,
-                   shape.RemoveDims(/*from=*/shape.rank() - 1)
-                       .AddDims({std::move(group_split_points),
-                                 std::move(item_split_points)}));
-  return DataSlice::Create(
-      internal::DataSliceImpl::Create(std::move(indices_array)),
-      std::move(new_shape), internal::DataItem(schema::kInt64));
-}
-
 struct Slice {
   int64_t start;
   std::optional<int64_t> stop;
@@ -824,13 +784,51 @@ absl::StatusOr<DataSlice> ConcatOrStack(
 
 absl::StatusOr<DataSlice> GroupByIndices(
     absl::Span<const DataSlice* const> slices) {
-  return GroupByIndicesImpl(slices, /*sort=*/false);
+  if (slices.size() < 2) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("_group_by_indices expected at least 2 arguments, but "
+                     "got ", slices.size()));
+  }
+
+  ASSIGN_OR_RETURN(auto sort_bool, GetBoolArgument(*slices[0], "sort"));
+
+  const auto& shape = slices[1]->GetShape();
+  if (shape.rank() == 0) {
+    return absl::InvalidArgumentError(
+        "group_by arguments must be DataSlices with ndim > 0, got DataItems");
+  }
+
+  GroupByIndicesProcessor processor(shape.edges().back(), /*sort=*/sort_bool);
+  for (const auto* const ds_ptr : slices.subspan(1)) {
+    const auto& ds = *ds_ptr;
+    if (!ds.GetShape().IsEquivalentTo(shape)) {
+      return absl::InvalidArgumentError(
+          "all arguments must have the same shape");
+    }
+    if (sort_bool) {
+      if (ds.slice().is_mixed_dtype()) {
+        return absl::InvalidArgumentError(
+            "sort is not supported for mixed dtype");
+      }
+      if (!internal::IsKodaScalarQTypeSortable(ds.slice().dtype())) {
+        return absl::InvalidArgumentError(absl::StrCat(
+            "sort is not supported for ",
+            schema::schema_internal::GetQTypeName(ds.slice().dtype())));
+      }
+    }
+    processor.ProcessGroupKey(ds.slice());
+  }
+  auto [indices_array, group_split_points, item_split_points] =
+      processor.CreateFinalDataSlice();
+  ASSIGN_OR_RETURN(auto new_shape,
+                   shape.RemoveDims(/*from=*/shape.rank() - 1)
+                       .AddDims({std::move(group_split_points),
+                                 std::move(item_split_points)}));
+  return DataSlice::Create(
+      internal::DataSliceImpl::Create(std::move(indices_array)),
+      std::move(new_shape), internal::DataItem(schema::kInt64));
 }
 
-absl::StatusOr<DataSlice> GroupByIndicesSorted(
-    absl::Span<const DataSlice* const> slices) {
-  return GroupByIndicesImpl(slices, /*sort=*/true);
-}
 
 absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
   if (x.is_item()) {
@@ -844,7 +842,8 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
     }
     if (!internal::IsKodaScalarQTypeSortable(x.slice().dtype())) {
       return absl::FailedPreconditionError(absl::StrCat(
-          "sort is not supported for ", x.slice().dtype()->name()));
+          "sort is not supported for ",
+          schema::schema_internal::GetQTypeName(x.slice().dtype())));
     }
   }
 

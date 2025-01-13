@@ -56,10 +56,6 @@ absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj);
 absl::StatusOr<DataSlice> GroupByIndices(
     absl::Span<const DataSlice* const> slices);
 
-// kde.slices.group_by_indices_sorted.
-absl::StatusOr<DataSlice> GroupByIndicesSorted(
-    absl::Span<const DataSlice* const> slices);
-
 // kde.slices.unique.
 absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort);
 

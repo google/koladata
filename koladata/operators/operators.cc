@@ -231,14 +231,12 @@ OPERATOR("kde.slices._collapse", Collapse);
 OPERATOR_FAMILY("kde.slices._concat_or_stack",
                 arolla::MakeVariadicInputOperatorFamily(ConcatOrStack));
 OPERATOR("kde.slices._dense_rank", DenseRank);
+OPERATOR_FAMILY("kde.slices._group_by_indices",
+                arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
 OPERATOR("kde.slices._inverse_mapping", InverseMapping);
 OPERATOR("kde.slices._ordinal_rank", OrdinalRank);
 OPERATOR("kde.slices._select", Select);
 OPERATOR_FAMILY("kde.slices.align", std::make_unique<AlignOperatorFamily>());
-OPERATOR_FAMILY("kde.slices.group_by_indices",
-                arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
-OPERATOR_FAMILY("kde.slices.group_by_indices_sorted",
-                arolla::MakeVariadicInputOperatorFamily(GroupByIndicesSorted));
 OPERATOR("kde.slices.inverse_select", InverseSelect);
 OPERATOR("kde.slices.is_empty", IsEmpty);
 OPERATOR("kde.slices.reverse", Reverse);

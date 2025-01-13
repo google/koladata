@@ -575,8 +575,16 @@ def take(x, indices):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.group_by_indices'])
 @arolla.optools.as_backend_operator(
+    'kde.slices._group_by_indices',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _group_by_indices(*args):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kde.group_by_indices'])
+@optools.as_lambda_operator(
     'kde.slices.group_by_indices',
     qtype_constraints=[
         (
@@ -584,11 +592,10 @@ def take(x, indices):  # pylint: disable=unused-argument
             'expected at least one argument',
         ),
         qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice(P.sort),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
-def group_by_indices(*args):  # pylint: disable=unused-argument
+def group_by_indices(*args, sort=False):  # pylint: disable=redefined-outer-name, unused-argument
   """Returns a indices DataSlice with injected grouped_by dimension.
 
   The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
@@ -599,7 +606,8 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
   dimension. `kde.take(x, kde.group_by_indices(x))` would group the items in
   `x` by their values.
 
-  Groups are ordered by the appearance of the first object in the group.
+  If sort=True groups are ordered by value, otherwise groups are ordered by the
+  appearance of the first object in the group.
 
   Example 1:
     x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
@@ -609,6 +617,12 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
     the items in the original DataSlice.
 
   Example 2:
+    x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3], sort=True)
+    result: kd.slice([[0, 3, 6], [2, 4], [1, 5, 7]])
+
+    Groups are now ordered by value.
+
+  Example 3:
     x: kd.slice([[1, 2, 1, 3, 1, 3], [1, 3, 1]])
     result: kd.slice([[[0, 2, 4], [1], [3, 5]], [[0, 2], [1]]])
 
@@ -616,13 +630,13 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
     in the second sublist in order: 1, 3.
     Each sublist contains the indices of the items in the original sublist.
 
-  Example 3:
+  Example 4:
     x: kd.slice([1, 3, 2, 1, None, 3, 1, None])
     result: kd.slice([[0, 3, 6], [1, 5], [2]])
 
     Missing values are not listed in the result.
 
-  Example 4:
+  Example 5:
     x: kd.slice([1, 2, 3, 1, 2, 3, 1, 3]),
     y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
     result: kd.slice([[0, 6], [1, 4], [2, 5, 7], [3]])
@@ -633,57 +647,13 @@ def group_by_indices(*args):  # pylint: disable=unused-argument
   Args:
     *args: DataSlices keys to group by. All data slices must have the same
       shape. Scalar DataSlices are not supported.
+    sort: Whether groups should be ordered by value.
 
   Returns:
     INT64 DataSlice with indices and injected grouped_by dimension.
   """
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kde.group_by_indices_sorted'])
-@arolla.optools.as_backend_operator(
-    'kde.slices.group_by_indices_sorted',
-    qtype_constraints=[
-        (
-            M.qtype.get_field_count(P.args) > 0,
-            'expected at least one argument',
-        ),
-        qtype_utils.expect_data_slice_args(P.args),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
-)
-def group_by_indices_sorted(*args):  # pylint: disable=unused-argument
-  """Similar to `group_by_indices` but groups are sorted by the value.
-
-  Each argument must contain the values of one type.
-
-  Mixed types are not supported.
-  ExprQuote and DType are not supported.
-
-  Example 1:
-    x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
-    result: kd.slice([[0, 3, 6], [2, 4], [1, 5, 7]])
-
-    We have three groups in order: 1, 2, 3. Each sublist contains the indices of
-    the items in the original DataSlice.
-
-  Example 2:
-    x: kd.slice([1, 2, 3, 1, 2, 3, 1, 3]),
-    y: kd.slice([9, 4, 0, 3, 4, 0, 9, 0]),
-    result: kd.slice([[3], [0, 6], [1, 4], [2, 5, 7]])
-
-    With several arguments keys is a tuple.
-    In this example we have the following groups: (1, 3), (1, 9), (2, 4), (3, 0)
-
-  Args:
-    *args: DataSlices keys to group by. All data slices must have the same
-      shape. Scalar DataSlices are not supported.
-
-  Returns:
-    INT64 DataSlice with indices and injected grouped_by dimension.
-  """
-  raise NotImplementedError('implemented in the backend')
+  args = arolla.optools.fix_trace_args(args)
+  return M.core.apply_varargs(_group_by_indices, sort, args)
 
 
 @optools.add_to_registry(aliases=['kde.group_by'])
@@ -692,9 +662,10 @@ def group_by_indices_sorted(*args):  # pylint: disable=unused-argument
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice(P.sort),
     ],
 )
-def group_by(x, *args):
+def group_by(x, *args, sort=False):  # pylint: disable=redefined-outer-name
   """Returns permutation of `x` with injected grouped_by dimension.
 
   The resulting DataSlice has get_ndim() + 1. The first `get_ndim() - 1`
@@ -705,30 +676,35 @@ def group_by(x, *args):
   keys. If length of `args` is greater than 1, the key is a tuple.
   If `args` is empty, the key is `x`.
 
-  Groups are ordered by the appearance of the first item in the group.
+  If sort=True groups are ordered by value, otherwise groups are ordered by the
+  appearance of the first object in the group.
 
   Example 1:
     x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
     result: kd.slice([[1, 1, 1], [3, 3, 3], [2, 2]])
 
   Example 2:
+    x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3], sort=True)
+    result: kd.slice([[1, 1, 1], [2, 2], [3, 3, 3]])
+
+  Example 3:
     x: kd.slice([[1, 2, 1, 3, 1, 3], [1, 3, 1]])
     result: kd.slice([[[1, 1, 1], [2], [3, 3]], [[1, 1], [3]]])
 
-  Example 3:
+  Example 4:
     x: kd.slice([1, 3, 2, 1, None, 3, 1, None])
     result: kd.slice([[1, 1, 1], [3, 3], [2]])
 
     Missing values are not listed in the result.
 
-  Example 4:
+  Example 5:
     x: kd.slice([1, 2, 3, 4, 5, 6, 7, 8]),
     y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
     result: kd.slice([[1, 7], [2, 5], [3, 6, 8], [4]])
 
     When *args is present, `x` is not used for the key.
 
-  Example 5:
+  Example 6:
     x: kd.slice([1, 2, 3, 4, None, 6, 7, 8]),
     y: kd.slice([7, 4, 0, 9, 4,    0, 7, None]),
     result: kd.slice([[1, 7], [2, None], [3, 6], [4]])
@@ -736,7 +712,7 @@ def group_by(x, *args):
     Items with missing key is not listed in the result.
     Missing `x` values are missing in the result.
 
-  Example 6:
+  Example 7:
     x: kd.slice([1, 2, 3, 4, 5, 6, 7, 8]),
     y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
     z: kd.slice([A, D, B, A, D, C, A, B]),
@@ -751,6 +727,7 @@ def group_by(x, *args):
     *args: DataSlices keys to group by. All data slices must have the same shape
       as x. Scalar DataSlices are not supported. If not present, `x` is used as
       the key.
+    sort: Whether groups should be ordered by value.
 
   Returns:
     DataSlice with the same shape and schema as `x` with injected grouped
@@ -758,15 +735,17 @@ def group_by(x, *args):
   """
   args = arolla.optools.fix_trace_args(args)
   dispatch_op = arolla.types.DispatchOperator(
-      'x, args',
+      'x, args, sort',
       x_is_key_case=arolla.types.DispatchCase(
-          take(P.x, group_by_indices(P.x)),
+          take(P.x, _group_by_indices(P.sort, P.x)),
           condition=M.qtype.get_field_count(P.args) == 0,
       ),
       # TODO: add assertion: x has the same shape as other args.
-      default=take(P.x, M.core.apply_varargs(group_by_indices, P.args)),
+      default=take(
+          P.x, M.core.apply_varargs(_group_by_indices, P.sort, P.args)
+      ),
   )
-  return dispatch_op(x, args)
+  return dispatch_op(x, args, sort)
 
 
 @optools.as_lambda_operator(
