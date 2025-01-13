@@ -14,8 +14,6 @@
 
 import dataclasses
 from typing import Optional
-from unittest import mock
-import warnings
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
@@ -117,12 +115,6 @@ class SchemaFromPyTest(absltest.TestCase):
       _ = fns.schema_from_py(57)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(TypeError, 'unsupported union type'):
       _ = fns.schema_from_py(int | float)
-
-  def test_deprecated_alias(self):
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      int_schema = fns.schema_from_py_type(int)
-      mock_warn.assert_called_once()
-    self.assertEqual(int_schema, schema_constants.INT64)
 
   def test_alias(self):
     self.assertIs(fns.schema_from_py, fns.schema.schema_from_py)

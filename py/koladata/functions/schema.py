@@ -18,7 +18,6 @@ import dataclasses
 import types as py_types
 import typing
 from typing import Any
-import warnings
 
 from koladata.expr import py_expr_eval_py_ext
 from koladata.types import data_bag
@@ -227,12 +226,3 @@ def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:
     raise TypeError(f'unsupported type in kd.schema_from_py: {tpe}.')
 
   return schema_from_py_impl(tpe, bag())
-
-
-def schema_from_py_type(tpe: type[Any]) -> data_slice.DataSlice:
-  """A deprecated alias for kd.schema.schema_from_py."""
-  warnings.warn(
-      'kd.schema_from_py_type is deprecated. Use kd.schema_from_py instead.',
-      RuntimeWarning,
-  )
-  return schema_from_py(tpe)

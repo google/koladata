@@ -117,8 +117,6 @@ dict_schema = _schema.dict_schema
 uu_schema = _schema.uu_schema
 named_schema = _schema.named_schema
 schema_from_py = _schema.schema_from_py
-# TODO: Remove this.
-schema_from_py_type = _schema.schema_from_py_type
 
 schema = _py_types.SimpleNamespace(
     new_schema=_schema.new_schema,
@@ -127,8 +125,6 @@ schema = _py_types.SimpleNamespace(
     uu_schema=_schema.uu_schema,
     named_schema=_schema.named_schema,
     schema_from_py=_schema.schema_from_py,
-    # TODO: Remove this.
-    schema_from_py_type=_schema.schema_from_py_type,
 )
 
 fstr = _fstring.fstr
