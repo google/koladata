@@ -42,7 +42,7 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_single_arg(self):
     def add_one(x):
-      return x + 1 if x is not None else None
+      return x + 1
 
     x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = expr_eval.eval(kde.py.map_py(add_one, x))
@@ -118,8 +118,6 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_multi_args(self):
     def add_all(x, y, z):
-      if x is None or y is None or z is None:
-        return None
       return x + y + z
 
     val1 = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
@@ -132,7 +130,7 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_texting_output(self):
     def as_string(x):
-      return str(x) if x is not None else None
+      return str(x)
 
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = expr_eval.eval(kde.py.map_py(as_string, val))
@@ -142,7 +140,7 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_texting_input(self):
     def as_string(x):
-      return int(x) if x is not None else None
+      return int(x)
 
     val = ds([['1', '2', None, '4'], [None, None], ['7', '8', '9']])
     res = expr_eval.eval(kde.py.map_py(as_string, val))
@@ -152,7 +150,7 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_with_qtype(self):
     def add_one(x):
-      return x + 1 if x is not None else None
+      return x + 1
 
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = expr_eval.eval(
@@ -175,17 +173,13 @@ class PyMapPyTest(parameterized.TestCase):
     )
 
     def my_func_dynamic_schema(x):
-      return None if x is None else functions.new(u=x, v=x + 1)
+      return functions.new(u=x, v=x + 1)
 
     def my_func_any_schema(x):
-      return (
-          None
-          if x is None
-          else functions.new(u=x, v=x + 1, schema=schema_constants.ANY)
-      )
+      return functions.new(u=x, v=x + 1, schema=schema_constants.ANY)
 
     def my_func_correct_schema(x):
-      return None if x is None else functions.new(u=x, v=x + 1, schema=schema)
+      return functions.new(u=x, v=x + 1, schema=schema)
 
     res = expr_eval.eval(
         kde.py.map_py(my_func_correct_schema, val, schema=schema)
@@ -246,7 +240,7 @@ class PyMapPyTest(parameterized.TestCase):
     )
 
     def my_func_same_bag(schema, x):
-      return None if x is None else db.new(u=x, v=x + 1, schema=schema)
+      return db.new(u=x, v=x + 1, schema=schema)
 
     res = expr_eval.eval(
         kde.py.map_py(
@@ -368,7 +362,7 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_scalar_input(self):
     def add_one(x):
-      return x + 1 if x is not None else None
+      return x + 1
 
     val = ds(5)
     res = expr_eval.eval(kde.py.map_py(add_one, val))
@@ -376,8 +370,6 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_auto_expand(self):
     def my_add(x, y):
-      if x is None or y is None:
-        return None
       return x + y
 
     val1 = ds(1)
@@ -387,8 +379,6 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_raw_input(self):
     def my_add(x, y):
-      if x is None or y is None:
-        return None
       return x + y
 
     res = expr_eval.eval(
@@ -398,7 +388,7 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_dict(self):
     def as_dict(x):
-      return {'x': x, 'y': x + 1 if x is not None else 57}
+      return {'x': x, 'y': x + 1}
 
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = expr_eval.eval(kde.py.map_py(as_dict, val))
@@ -408,7 +398,9 @@ class PyMapPyTest(parameterized.TestCase):
     )
     testing.assert_equal(
         res['y'].no_bag(),
-        ds([[2, 3, 57, 5], [57, 57], [8, 9, 10]], schema_constants.OBJECT),
+        ds(
+            [[2, 3, None, 5], [None, None], [8, 9, 10]], schema_constants.OBJECT
+        ),
     )
 
   def test_map_py_invalid_qtype(self):
@@ -422,8 +414,6 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_incompatible_inputs(self):
     def add_x_y(x, y):
-      if x is None or y is None:
-        return None
       return x + y
 
     val1 = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
@@ -439,8 +429,6 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_kwargs(self):
     def my_fn(x, y, z=2, **kwargs):
-      if x is None or y is None or z is None:
-        return None
       return x + y + z + kwargs.get('w', 5)
 
     x = ds([[0, 0, 1], [None, 1, 0]])
@@ -531,13 +519,12 @@ class PyMapPyTest(parameterized.TestCase):
     with self.subTest('expand_one_dim'):
 
       def ranges(x):
-        return list(range(x or 0))
+        return list(range(x))
 
       res = expr_eval.eval(kde.py.map_py(ranges, val))
       self.assertEqual(res.get_ndim(), 2)
       self.assertEqual(
-          res.to_py(),
-          [[[0], [0, 1], []], [[0, 1, 2, 3], [0, 1, 2, 3, 4]]],
+          res.to_py(), [[[0], [0, 1], None], [[0, 1, 2, 3], [0, 1, 2, 3, 4]]]
       )
 
     with self.subTest('expand_several_dims'):
@@ -549,7 +536,7 @@ class PyMapPyTest(parameterized.TestCase):
       self.assertEqual(res.get_ndim(), 2)
       self.assertEqual(
           res.to_py(),
-          [[[[1, -1]], [[2, -1]], [[None, -1]]], [[[4, -1]], [[5, -1]]]],
+          [[[[1, -1]], [[2, -1]], None], [[[4, -1]], [[5, -1]]]],
       )
 
     with self.subTest('agg_and_expand'):

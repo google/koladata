@@ -56,7 +56,7 @@ class PyCloudpickleTest(absltest.TestCase):
 
   def test_map_py(self):
     def f(x):
-      return x + 1 if x is not None else None
+      return x + 1
 
     x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     res = kd.map_py(py_cloudpickle.py_cloudpickle(f), x)

@@ -552,9 +552,9 @@ def map_py(
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
     ndim: Dimensionality of items to pass to `fn`.
-    include_missing: Specifies whether `fn` should be computed to the missing
-      items. By default, the function is applied to all items including the
-      missing. `include_missing=False` can only be used with `ndim=0`.
+    include_missing: Specifies whether `fn` applies to all items (`=True`) or
+      only to items present in all `args` and `kwargs` (`=False`, valid only
+      when `ndim=0`); defaults to `False` when `ndim=0`.
     item_completed_callback: A callback that will be called after each item is
       processed. It will be called in the original thread that called `map_py`
       in case `max_threads` is greater than 1, as we rely on this property for
@@ -573,8 +573,8 @@ def map_py(
       include_missing, param_name='include_missing'
   )
   if include_missing is None:
-    include_missing = True
-  if not include_missing and ndim != 0:
+    include_missing = ndim != 0
+  elif not include_missing and ndim != 0:
     raise ValueError('`include_missing=False` can only be used with `ndim=0`')
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')

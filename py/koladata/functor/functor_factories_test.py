@@ -459,16 +459,12 @@ class FunctorFactoriesTest(absltest.TestCase):
 
   def test_fstr_fn_simple(self):
     testing.assert_equal(
-        kd.call(
-            functor_factories.fstr_fn(f'{I.x:s} {I.y:s}'), x=1, y=2
-        ),
+        kd.call(functor_factories.fstr_fn(f'{I.x:s} {I.y:s}'), x=1, y=2),
         ds('1 2'),
     )
 
     testing.assert_equal(
-        kd.call(
-            functor_factories.fstr_fn(f'{(I.x + I.y):s}'), x=1, y=2
-        ),
+        kd.call(functor_factories.fstr_fn(f'{(I.x + I.y):s}'), x=1, y=2),
         ds('3'),
     )
 
@@ -483,21 +479,15 @@ class FunctorFactoriesTest(absltest.TestCase):
 
   def test_fstr_fn_variable(self):
     testing.assert_equal(
-        kd.call(
-            functor_factories.fstr_fn(f'{V.x:s} {I.y:s}', x=1), y=2
-        ),
+        kd.call(functor_factories.fstr_fn(f'{V.x:s} {I.y:s}', x=1), y=2),
         ds('1 2'),
     )
 
   def test_fstr_fn_no_substitutions(self):
-    with self.assertRaisesRegex(
-        ValueError, 'FString has nothing to format'
-    ):
+    with self.assertRaisesRegex(ValueError, 'FString has nothing to format'):
       _ = kd.call(functor_factories.fstr_fn('abc'))
 
-    with self.assertRaisesRegex(
-        ValueError, 'FString has nothing to format'
-    ):
+    with self.assertRaisesRegex(ValueError, 'FString has nothing to format'):
       # we need to use fstring to avoid the error (f'{I.x}')
       _ = kd.call(functor_factories.fstr_fn('{I.x}'), x=1)
 
@@ -779,7 +769,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         kd.call(
             functor_factories.map_py_fn(fn), x=kdi.slice([1, None, None])
         ).to_py(),
-        [2, -1, -1],
+        [2, None, None],
     )
     self.assertEqual(
         kd.call(

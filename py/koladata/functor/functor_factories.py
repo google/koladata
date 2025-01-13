@@ -448,9 +448,9 @@ def map_py_fn(
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
     ndim: Dimensionality of items to pass to `f`.
-    include_missing: Specifies whether `f` should be applied to the missing
-      items. By default, the function is applied to all items including the
-      missing. `include_missing=False` can only be used with `ndim=0`.
+    include_missing: Specifies whether `f` applies to all items (`=True`) or
+      only to items present in all `args` and `kwargs` (`=False`, valid only
+      when `ndim=0`); defaults to `False` when `ndim=0`.
     **defaults: Keyword defaults to pass to the function. The values in this map
       may be kde expressions, format strings, or 0-dim DataSlices. See the
       docstring for py_fn for more details.
