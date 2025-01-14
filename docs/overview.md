@@ -473,8 +473,8 @@ present or missing and all operators support missing values.
 a = kd.slice([[1, None], [4]])
 b = kd.slice([[None, kd.obj(x=1)], [kd.obj(x=2)]])
 a + b.x  # [[None, None], [6]]
-kd.agg_any(a) # [present, present]
-kd.agg_all(a) # [missing, present]
+kd.agg_any(kd.has(a)) # [present, present]
+kd.agg_all(kd.has(a)) # [missing, present]
 ```
 
 **Masks** are used to represent present/missing state. They are also used in
