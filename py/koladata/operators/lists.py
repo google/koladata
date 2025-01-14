@@ -248,8 +248,6 @@ def implode(
   DataSlice of LIST[T], by folding the items in the last dimension of the
   original DataSlice into newly-created Lists.
 
-  A single list implosion is equivalent to `kd.list(x, db)`.
-
   If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
 
   If `ndim` is set to a negative integer, implodes as many times as possible,
