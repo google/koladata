@@ -164,28 +164,17 @@ def to_dataframe(
   if cols is None:
     if ds.get_bag() is None:
       cols = ['self_']
-    elif (
-        schema.is_primitive_schema()
-        or schema.is_list_schema()
-        or schema.is_dict_schema()
-        or schema == kd.ITEMID
-        or schema == kd.ANY
-    ):
-      cols = ['self_']
-    elif schema.is_struct_schema():
+    elif schema.is_entity_schema():
       cols = ds.get_attr_names(intersection=True)
       if include_self:
         cols.append('self_')
-    elif ds.get_schema() == kd.OBJECT:
-      if kd.any(kd.has_primitive(ds) | kd.has_list(ds) | kd.has_dict(ds)):
-        cols = ['self_']
-      else:
-        cols = ds.get_attr_names(intersection=False)
-        get_attr_fn = kdi.maybe
-        if include_self:
-          cols.append('self_')
+    elif schema == kd.OBJECT and kd.is_entity(ds):
+      cols = ds.get_attr_names(intersection=False)
+      get_attr_fn = kdi.maybe
+      if include_self:
+        cols.append('self_')
     else:
-      assert False, f'Internal error: unsupported schema {schema!r}'
+      cols = ['self_']
 
   col_dss = []
   col_names = []
