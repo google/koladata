@@ -1380,12 +1380,14 @@ def databag_repr_fallbacks(state):
 
 
 @google_benchmark.register
-@google_benchmark.option.arg_names(['sorted_indices'])
-@google_benchmark.option.args([False])
-@google_benchmark.option.args([True])
+@google_benchmark.option.arg_names(['sorted_indices', 'use_slices'])
+@google_benchmark.option.args([True, False])
+@google_benchmark.option.args([False, False])
+@google_benchmark.option.args([True, True])
 def subslice(state):
   """Benchmark ds.S."""
   sorted_indices = state.range(0)
+  use_slices = state.range(1)
   num_dims = 5
   min_size = 10
   max_size = 20
@@ -1399,13 +1401,16 @@ def subslice(state):
   indices = []
   chosen = kd.implode(ds, -1)
   for step in range(num_dims):
-    available = kd.range(kd.list_size(chosen))
-    take = kd.select(
-        available, kd.randint_like(available, 0, 2, seed=100 + step) == 0
-    )
-    if not sorted_indices:
-      # Shuffle.
-      take = kd.sort(take, kd.randint_like(take, 1, 1000, seed=200 + step))
+    if use_slices:
+      take = slice(1, -1)
+    else:
+      available = kd.range(kd.list_size(chosen))
+      take = kd.select(
+          available, kd.randint_like(available, 0, 2, seed=100 + step) == 0
+      )
+      if not sorted_indices:
+        # Shuffle.
+        take = kd.sort(take, kd.randint_like(take, 1, 1000, seed=200 + step))
     indices.append(take)
     chosen = chosen[take]
   while state:
