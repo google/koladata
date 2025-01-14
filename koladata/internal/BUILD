@@ -374,6 +374,19 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "types_buffer_test",
+    srcs = ["types_buffer_test.cc"],
+    deps = [
+        ":types",
+        ":types_buffer",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "data_slice",
     srcs = [
@@ -439,7 +452,6 @@ cc_test(
         ":data_item",
         ":data_slice",
         ":object_id",
-        ":types",
         "@com_google_absl//absl/status",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/memory",

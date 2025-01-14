@@ -256,21 +256,18 @@ absl::Status MergeToMutableDenseSource(
   ASSIGN_OR_RETURN(
       auto other_items,
       GetAttributeFromSources(objects, {&dense_source}, sparse_sources));
-  // GetAttributeFromSources returns information about removed values in
+  // GetAttributeFromSources returns information about unset values in
   // TypesBuffer withing DataSliceImpl. Ensure that TypesBuffer is there.
   DCHECK_GT(size, 0);
   DCHECK(!other_items.types_buffer().id_to_typeidx.empty());
 
   if (options.data_conflict_policy == MergeOptions::kOverwrite) {
     const auto& objects_array = objects.values<ObjectId>();
-    return other_items.VisitValues([&](const auto& items_array) {
-      return result.Set(
-          arolla::DenseArray<ObjectId>{objects_array.values, items_array.bitmap,
-                                       items_array.bitmap_bit_offset},
-          DataSliceImpl::CreateWithAllocIds(
-              AllocationIdSet(),  // AllocationIdSet is not used.
-              items_array));
-    });
+    return result.Set(
+        arolla::DenseArray<ObjectId>{
+            objects_array.values,
+            other_items.types_buffer().ToInvertedBitmap(TypesBuffer::kUnset)},
+        other_items);
   }
 
   for (int64_t offset = 0; offset < size; ++offset) {

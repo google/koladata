@@ -85,11 +85,16 @@ struct TypesBuffer {
   // Creates bitmap of (id_to_typeidx[i] == type_idx) per element.
   arolla::bitmap::Bitmap ToBitmap(uint8_t type_idx) const;
 
+  // Creates bitmap of (id_to_typeidx[i] != type_idx) per element.
+  arolla::bitmap::Bitmap ToInvertedBitmap(uint8_t type_idx) const;
+
   // Creates bitmap of (id_to_typeidx[i] not in [kUnset, kRemoved]) per element.
   arolla::bitmap::Bitmap ToPresenceBitmap() const;
 
   // Creates bitmap of (id_to_typeidx[i] != kRemoved) per element.
-  arolla::bitmap::Bitmap ToNotRemovedBitmap() const;
+  arolla::bitmap::Bitmap ToNotRemovedBitmap() const {
+    return ToInvertedBitmap(kRemoved);
+  }
 };
 
 }  // namespace koladata::internal

@@ -42,9 +42,9 @@ arolla::bitmap::Word GetEqualityMask16(const uint8_t* data, uint8_t type_idx) {
 #endif
 }
 
-}  // namespace
-
-arolla::bitmap::Bitmap TypesBuffer::ToBitmap(uint8_t type_idx) const {
+template <bool Invert>
+arolla::bitmap::Bitmap ToBitmapImpl(const auto& id_to_typeidx,
+                                    uint8_t type_idx) {
   static_assert(arolla::bitmap::kWordBitCount == 32);
   arolla::bitmap::Bitmap::Builder bldr(
       arolla::bitmap::BitmapSize(id_to_typeidx.size()));
@@ -53,19 +53,20 @@ arolla::bitmap::Bitmap TypesBuffer::ToBitmap(uint8_t type_idx) const {
   int64_t offset = 0;
   const int64_t limit32 = static_cast<int64_t>(id_to_typeidx.size()) - 31;
   for (; offset < limit32; offset += 32) {
-    arolla::bitmap::Word mask0 =
+    arolla::bitmap::Word mask =
         GetEqualityMask16(id_to_typeidx.begin() + offset, type_idx);
-    arolla::bitmap::Word mask1 =
-        GetEqualityMask16(id_to_typeidx.begin() + offset + 16, type_idx);
-    bitmask[offset / arolla::bitmap::kWordBitCount] = mask0 | (mask1 << 16);
+    mask |= GetEqualityMask16(id_to_typeidx.begin() + offset + 16, type_idx)
+            << 16;
+    bitmask[offset / arolla::bitmap::kWordBitCount] = Invert ? ~mask : mask;
   }
 
   int64_t limit = static_cast<int64_t>(id_to_typeidx.size()) - offset;
   if (limit > 0) {
     arolla::bitmap::Word mask = 0;
     for (int64_t i = 0; i < limit; ++i) {
-      mask |= static_cast<arolla::bitmap::Word>(id_to_typeidx[offset + i] ==
-                                                type_idx)
+      auto cur_tpe = id_to_typeidx[offset + i];
+      mask |= static_cast<arolla::bitmap::Word>(Invert ? cur_tpe != type_idx
+                                                       : cur_tpe == type_idx)
               << i;
     }
     bitmask.back() = mask;
@@ -73,16 +74,20 @@ arolla::bitmap::Bitmap TypesBuffer::ToBitmap(uint8_t type_idx) const {
   return std::move(bldr).Build();
 }
 
+}  // namespace
+
+arolla::bitmap::Bitmap TypesBuffer::ToBitmap(uint8_t type_idx) const {
+  return ToBitmapImpl</*Invert=*/false>(id_to_typeidx, type_idx);
+}
+
+arolla::bitmap::Bitmap TypesBuffer::ToInvertedBitmap(uint8_t type_idx) const {
+  return ToBitmapImpl</*Invert=*/true>(id_to_typeidx, type_idx);
+}
+
 arolla::bitmap::Bitmap TypesBuffer::ToPresenceBitmap() const {
   arolla::bitmap::Builder bldr(id_to_typeidx.size());
   bldr.AddForEach(id_to_typeidx,
                   [&](uint8_t t) { return is_present_type_idx(t); });
-  return std::move(bldr).Build();
-}
-
-arolla::bitmap::Bitmap TypesBuffer::ToNotRemovedBitmap() const {
-  arolla::bitmap::Builder bldr(id_to_typeidx.size());
-  bldr.AddForEach(id_to_typeidx, [&](uint8_t t) { return t != kRemoved; });
   return std::move(bldr).Build();
 }
 

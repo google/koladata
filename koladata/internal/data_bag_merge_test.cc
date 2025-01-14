@@ -552,7 +552,7 @@ TEST(DataBagTest, MergeObjectsOverwriteDenseSparseInNonForkedRhsBag) {
       *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
 
   std::vector<DataItem> a_value_expected(b_value.begin(), b_value.end());
-  a_value_expected[5] = a_value[5];
+  a_value_expected[5] = DataItem();
   EXPECT_THAT(db->GetAttr(a, "a"),
               IsOkAndHolds(ElementsAreArray(a_value_expected)));
 }
@@ -575,7 +575,7 @@ TEST(DataBagTest, MergeObjectsOverwriteDenseSparseInForkedRhsBag) {
       *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
 
   std::vector<DataItem> a_value_expected(b_value.begin(), b_value.end());
-  a_value_expected[5] = a_value[5];
+  a_value_expected[5] = DataItem();
   EXPECT_THAT(db->GetAttr(a, "a"),
               IsOkAndHolds(ElementsAreArray(a_value_expected)));
 }
