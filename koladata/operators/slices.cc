@@ -61,18 +61,22 @@
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
+#include "koladata/shape_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
+#include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/quote.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/jagged_shape/util/concat.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/frame.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
-#include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/operator_errors.h"
+#include "arolla/qexpr/operators.h"
+#include "arolla/qexpr/operators/dense_array/factory_ops.h"
 #include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
@@ -615,13 +619,116 @@ absl::StatusOr<std::vector<SlicingArgType>> ExtractSlicingArgs(
   // Insert full slices (e.g. slice(0, None)) so that slices have the same
   // size as x_rank.
   // There is an optimization: when ellipsis is the first slicing argument,
-  // only implode and explode the last N dimensions where N is the number of
+  // only work with the last N dimensions where N is the number of
   // non-ellipsis slicing arguments.
   if (ellipsis_pos.has_value() && *ellipsis_pos != 0) {
     slices.insert(slices.begin() + *ellipsis_pos, x_rank - slices.size(),
                   Slice{0, std::nullopt});
   }
   return slices;
+}
+
+// We pass parent_indices by value since it is not used after calling this
+// function, and it helps avoid a copy.
+absl::StatusOr<DataSlice> SubsliceChildIndicesForSingle(
+    DataSlice parent_indices, const DataSlice& child_indices,
+    const arolla::DenseArrayEdge& edge) {
+  ASSIGN_OR_RETURN(
+      auto aligned_slices,
+      shape::Align(std::vector{std::move(parent_indices), child_indices}));
+  ASSIGN_OR_RETURN(auto parent_indices_array,
+                   ToArollaDenseArray<int64_t>(aligned_slices[0]));
+  ASSIGN_OR_RETURN(auto arg_array,
+                   ToArollaDenseArray<int64_t>(aligned_slices[1]));
+  ASSIGN_OR_RETURN(
+      auto new_chosen_indices_array,
+      arolla::CreateDenseOp([&edge](int64_t parent_index, int64_t child_index)
+                                -> arolla::OptionalValue<int64_t> {
+        int64_t parent_size = edge.split_size(parent_index);
+        if (child_index < 0) child_index += parent_size;
+        if (child_index < 0 || child_index >= parent_size) {
+          return std::nullopt;
+        } else {
+          return edge.edge_values().values[parent_index] + child_index;
+        }
+      })(parent_indices_array, arg_array));
+  return DataSlice::Create(
+      internal::DataSliceImpl::Create(std::move(new_chosen_indices_array)),
+      aligned_slices[0].GetShape(), internal::DataItem(schema::kInt64));
+}
+
+absl::StatusOr<DataSlice> SubsliceChildIndicesForRange(
+    const DataSlice& parent_indices, const Slice& child_range,
+    const arolla::DenseArrayEdge& edge) {
+  ASSIGN_OR_RETURN(auto parent_indices_array,
+                   ToArollaDenseArray<int64_t>(parent_indices));
+  arolla::DenseArrayBuilder<int64_t> new_split_points_builder(
+      parent_indices_array.size() + 1);
+  std::vector<int64_t> new_chosen_indices;
+  parent_indices_array.ForEach(
+      [&edge, &child_range, &new_chosen_indices, &new_split_points_builder](
+          int64_t id, bool presence, int64_t parent_index) {
+        new_split_points_builder.Set(id, new_chosen_indices.size());
+        if (!presence) {
+          return;
+        }
+        int64_t parent_size = edge.split_size(parent_index);
+        int64_t start = child_range.start;
+        if (start < 0) start += parent_size;
+        start = std::clamp<int64_t>(start, 0, parent_size);
+        int64_t end = child_range.stop.value_or(parent_size);
+        if (end < 0) end += parent_size;
+        end = std::clamp<int64_t>(end, 0, parent_size);
+        int64_t offset = edge.edge_values().values[parent_index];
+        for (int64_t i = start; i < end; ++i) {
+          new_chosen_indices.push_back(offset + i);
+        }
+      });
+  new_split_points_builder.Set(parent_indices_array.size(),
+                               new_chosen_indices.size());
+  ASSIGN_OR_RETURN(auto new_shape,
+                   parent_indices.GetShape().AddDims(
+                       {arolla::DenseArrayEdge::UnsafeFromSplitPoints(
+                           std::move(new_split_points_builder).Build())}));
+  return DataSlice::Create(
+      internal::DataSliceImpl::Create(
+          arolla::CreateFullDenseArray(new_chosen_indices)),
+      std::move(new_shape), internal::DataItem(schema::kInt64));
+}
+
+absl::StatusOr<DataSlice> SubsliceImpl(
+    arolla::EvaluationContext* ctx, const DataSlice& x,
+    const std::vector<SlicingArgType>& slice_args) {
+  if (slice_args.empty()) {
+    return x;
+  }
+  // When slice_args.size() == 1, we could almost just call Take,
+  // but it does not support negative indices.
+  const auto& shape = x.GetShape();
+  ASSIGN_OR_RETURN(
+      auto chosen_indices,
+      DataSlice::Create(
+          internal::DataSliceImpl::Create(arolla::DenseArrayIotaOp()(
+              ctx,
+              {shape.edges()[shape.rank() - slice_args.size()].parent_size()})),
+          shape.RemoveDims(shape.rank() - slice_args.size()),
+          internal::DataItem(schema::kInt64)));
+  for (int i = 0; i < slice_args.size(); ++i) {
+    const auto& edge = shape.edges()[shape.rank() - slice_args.size() + i];
+    const auto& slice_arg = slice_args[i];
+    if (std::holds_alternative<const DataSlice*>(slice_arg)) {
+      ASSIGN_OR_RETURN(chosen_indices,
+                       SubsliceChildIndicesForSingle(
+                           std::move(chosen_indices),
+                           *std::get<const DataSlice*>(slice_arg), edge));
+    } else {
+      ASSIGN_OR_RETURN(chosen_indices,
+                       SubsliceChildIndicesForRange(
+                           chosen_indices, std::get<Slice>(slice_arg), edge));
+    }
+  }
+  ASSIGN_OR_RETURN(auto flat_x, x.Reshape(shape.FlattenDims(0, shape.rank())));
+  return Take(flat_x, chosen_indices);
 }
 
 class SubsliceOperator : public arolla::InlineOperator {
@@ -640,35 +747,14 @@ class SubsliceOperator : public arolla::InlineOperator {
          result_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
           const auto& x = frame.Get(x_slot);
+
           ASSIGN_OR_RETURN(
               auto slice_args,
               ExtractSlicingArgs(slice_slots, frame, x.GetShape().rank()),
               ctx->set_status(std::move(_)));
-
-          // TODO: improve the performance by avoiding list
-          // creation.
-          auto temp_db = DataBag::Empty();
-          auto new_x = x.WithBag(temp_db);
-          for (size_t i = 0; i < slice_args.size(); ++i) {
-            ASSIGN_OR_RETURN(new_x,
-                             CreateListsFromLastDimension(temp_db, new_x),
-                             ctx->set_status(std::move(_)));
-          }
-
-          for (const auto& slice_arg : slice_args) {
-            if (std::holds_alternative<const DataSlice*>(slice_arg)) {
-              ASSIGN_OR_RETURN(
-                  new_x,
-                  new_x.GetFromList(*std::get<const DataSlice*>(slice_arg)),
-                  ctx->set_status(std::move(_)));
-            } else {
-              auto slice = std::get<Slice>(slice_arg);
-              ASSIGN_OR_RETURN(new_x,
-                               new_x.ExplodeList(slice.start, slice.stop),
-                               ctx->set_status(std::move(_)));
-            }
-          }
-          frame.Set(result_slot, new_x.WithBag(x.GetBag()));
+          ASSIGN_OR_RETURN(auto result, SubsliceImpl(ctx, x, slice_args),
+                           ctx->set_status(std::move(_)));
+          frame.Set(result_slot, std::move(result));
         });
   }
 };
