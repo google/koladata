@@ -253,7 +253,7 @@ class ObjLikeTest(absltest.TestCase):
       fns.obj_like(ds([1, 2, 3]), dct={'a': 42})
 
   def test_alias(self):
-    self.assertIs(fns.obj_like, fns.core.obj_like)
+    self.assertIs(fns.obj_like, fns.objs.like)
 
 
 if __name__ == '__main__':

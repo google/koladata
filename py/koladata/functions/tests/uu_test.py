@@ -141,7 +141,7 @@ class UuTest(absltest.TestCase):
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
   def test_alias(self):
-    self.assertIs(fns.uu, fns.core.uu)
+    self.assertIs(fns.uu, fns.entities.uu)
 
 
 if __name__ == '__main__':

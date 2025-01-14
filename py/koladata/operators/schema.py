@@ -131,7 +131,7 @@ def internal_maybe_named_schema(name_or_schema):
   The operator also passes through arolla.unspecified, and raises when
   it receives anything else except unspecified, string or schema DataItem.
 
-  This operator exists to support kde.core.new* family of operators.
+  This operator exists to support kde.entities.new* family of operators.
 
   Args:
     name_or_schema: The input name or schema.

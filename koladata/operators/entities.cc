@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/operators/core_new.h"
+#include "koladata/operators/entities.h"
 
 #include <memory>
 #include <optional>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -30,10 +29,6 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/non_deterministic_token.h"
-#include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -49,8 +44,6 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/unspecified_qtype.h"
-#include "arolla/util/repr.h"
-#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -258,22 +251,6 @@ absl::StatusOr<arolla::OperatorPtr> UuOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[3]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<UuOperator>(input_types), input_types, output_type);
-}
-
-absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
-                                     internal::NonDeterministicToken) {
-  return ds.VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
-    if constexpr (std::is_same_v<T, internal::DataSliceImpl>) {
-      return DataSlice::Create(internal::NewIdsLike(impl), ds.GetShape(),
-                               ds.GetSchemaImpl());
-    }
-    if constexpr (std::is_same_v<T, internal::DataItem>) {
-      auto slice_impl = internal::DataSliceImpl::Create(/*size=*/1, impl);
-      return DataSlice::Create(internal::NewIdsLike(slice_impl)[0],
-                               ds.GetShape(), ds.GetSchemaImpl());
-    }
-    DCHECK(false);
-  });
 }
 
 absl::StatusOr<arolla::OperatorPtr> NewOperatorFamily::DoGetOperator(

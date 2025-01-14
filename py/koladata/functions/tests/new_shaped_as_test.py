@@ -119,7 +119,7 @@ class NewShapedAsTest(absltest.TestCase):
     )
 
   def test_alias(self):
-    self.assertIs(fns.new_shaped_as, fns.core.new_shaped_as)
+    self.assertIs(fns.new_shaped_as, fns.entities.shaped_as)
 
 
 if __name__ == '__main__':

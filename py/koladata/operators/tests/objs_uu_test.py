@@ -31,7 +31,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
 
 
-class KodaUuObjTest(parameterized.TestCase):
+class ObjsUuTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
@@ -72,8 +72,8 @@ class KodaUuObjTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uuobj(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uuobj(seed=rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.objs.uu(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.objs.uu(seed=rhs_seed, **rhs_kwargs))
     # Check that required attributes are present.
     for attr_name, val in lhs_kwargs.items():
       testing.assert_equal(
@@ -110,31 +110,31 @@ class KodaUuObjTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uuobj(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uuobj(seed=rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.objs.uu(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.objs.uu(seed=rhs_seed, **rhs_kwargs))
     self.assertNotEqual(
         lhs.fingerprint, rhs.with_bag(lhs.get_bag()).fingerprint
     )
 
   def test_default_seed(self):
-    lhs = expr_eval.eval(kde.core.uuobj(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core.uuobj('', a=ds(1), b=ds(2)))
+    lhs = expr_eval.eval(kde.objs.uu(a=ds(1), b=ds(2)))
+    rhs = expr_eval.eval(kde.objs.uu('', a=ds(1), b=ds(2)))
     testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_no_args(self):
-    lhs = expr_eval.eval(kde.core.uuobj())
-    rhs = expr_eval.eval(kde.core.uuobj(''))
+    lhs = expr_eval.eval(kde.objs.uu())
+    rhs = expr_eval.eval(kde.objs.uu(''))
     testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'takes from 0 to 1 positional arguments but 2 were given'
     ):
-      _ = expr_eval.eval(kde.core.uuobj(ds('1'), ds('a')))
+      _ = expr_eval.eval(kde.objs.uu(ds('1'), ds('a')))
 
   def test_bag_adoption(self):
-    a = expr_eval.eval(kde.core.uuobj(a=1))
-    b = expr_eval.eval(kde.core.uuobj(a=a))
+    a = expr_eval.eval(kde.objs.uu(a=1))
+    b = expr_eval.eval(kde.objs.uu(a=a))
     testing.assert_equal(b.a.a, ds(1).with_bag(b.get_bag()))
 
   @parameterized.parameters(
@@ -165,31 +165,31 @@ class KodaUuObjTest(parameterized.TestCase):
         ValueError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.core.uuobj(seed=seed, **kwargs))
+      _ = expr_eval.eval(kde.objs.uu(seed=seed, **kwargs))
 
   def test_non_data_slice_binding(self):
     with self.assertRaisesRegex(
         ValueError, 'expected all arguments to be DATA_SLICE'
     ):
-      _ = kde.core.uuobj(
+      _ = kde.objs.uu(
           a=ds(1),
           b=arolla.unspecified(),
       )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.uuobj(seed=I.seed)))
+    self.assertTrue(view.has_koda_view(kde.objs.uu(seed=I.seed)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.uuobj, kde.uuobj))
+    self.assertTrue(optools.equiv_to_op(kde.objs.uu, kde.uuobj))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.uuobj(a=I.z, seed=I.seed)),
-        'kde.core.uuobj(I.seed, a=I.z)',
+        repr(kde.objs.uu(a=I.z, seed=I.seed)),
+        'kde.objs.uu(I.seed, a=I.z)',
     )
     self.assertEqual(
-        repr(kde.core.uuobj(I.seed, a=I.z)),
-        'kde.core.uuobj(I.seed, a=I.z)',
+        repr(kde.objs.uu(I.seed, a=I.z)),
+        'kde.objs.uu(I.seed, a=I.z)',
     )
 
 

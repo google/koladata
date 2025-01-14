@@ -100,7 +100,7 @@ class UuObjTest(absltest.TestCase):
     self.assertEqual(y.fingerprint, z.fingerprint)
 
   def test_alias(self):
-    self.assertIs(fns.uuobj, fns.core.uuobj)
+    self.assertIs(fns.uuobj, fns.objs.uu)
 
 
 if __name__ == '__main__':

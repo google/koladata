@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_OPERATORS_CORE_OBJ_H_
-#define KOLADATA_OPERATORS_CORE_OBJ_H_
+#ifndef KOLADATA_OPERATORS_ENTITIES_H_
+#define KOLADATA_OPERATORS_ENTITIES_H_
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -22,30 +22,30 @@
 
 namespace koladata::ops {
 
-// kde.core.obj.
-class ObjOperatorFamily final : public arolla::OperatorFamily {
+// kde.entities._new.
+class NewOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core.obj_shaped.
-class ObjShapedOperatorFamily final : public arolla::OperatorFamily {
+// kde.entities._shaped.
+class NewShapedOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core.obj_like.
-class ObjLikeOperatorFamily final : public arolla::OperatorFamily {
+// kde.entities._like.
+class NewLikeOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core.uuobj operator.
-// Creates a DataSlice of UuObjects.
-class UuObjOperatorFamily : public arolla::OperatorFamily {
+// kde.entities._uu operator.
+// Creates a DataSlice of UuEntities.
+class UuOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
@@ -53,4 +53,4 @@ class UuObjOperatorFamily : public arolla::OperatorFamily {
 
 }  // namespace koladata::ops
 
-#endif  // KOLADATA_OPERATORS_CORE_OBJ_H_
+#endif  // KOLADATA_OPERATORS_ENTITIES_H_

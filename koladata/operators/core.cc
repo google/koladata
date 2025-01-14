@@ -36,10 +36,12 @@
 #include "koladata/extract_utils.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/deep_clone.h"
 #include "koladata/internal/op_utils/extract.h"
+#include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/op_utils/utils.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
@@ -416,6 +418,22 @@ DataBagPtr Freeze<DataBagPtr>(const DataBagPtr& x) {
 template <>
 DataSlice Freeze<DataSlice>(const DataSlice& x) {
   return x.FreezeBag();
+}
+
+absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
+                                     internal::NonDeterministicToken) {
+  return ds.VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
+    if constexpr (std::is_same_v<T, internal::DataSliceImpl>) {
+      return DataSlice::Create(internal::NewIdsLike(impl), ds.GetShape(),
+                               ds.GetSchemaImpl());
+    }
+    if constexpr (std::is_same_v<T, internal::DataItem>) {
+      auto slice_impl = internal::DataSliceImpl::Create(/*size=*/1, impl);
+      return DataSlice::Create(internal::NewIdsLike(slice_impl)[0],
+                               ds.GetShape(), ds.GetSchemaImpl());
+    }
+    DCHECK(false);
+  });
 }
 
 absl::StatusOr<DataSlice> Clone(

@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/operators/core_obj.h"
+#include "koladata/operators/objs.h"
 
 #include <memory>
 #include <optional>
-#include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
@@ -30,8 +29,6 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -46,8 +43,6 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
-#include "arolla/util/repr.h"
-#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {

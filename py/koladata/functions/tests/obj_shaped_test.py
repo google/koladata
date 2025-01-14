@@ -154,7 +154,7 @@ class ObjShapedTest(absltest.TestCase):
       fns.obj_shaped(jagged_shape.create_shape([3]), dct={'a': 42})
 
   def test_alias(self):
-    self.assertIs(fns.obj_shaped, fns.core.obj_shaped)
+    self.assertIs(fns.obj_shaped, fns.objs.shaped)
 
 
 if __name__ == '__main__':

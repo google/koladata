@@ -47,24 +47,24 @@ def generate_qtypes():
 QTYPES = list(generate_qtypes())
 
 
-class CoreNewShapedAsTest(absltest.TestCase):
+class EntitiesShapedAsTest(absltest.TestCase):
 
   def test_slice_no_attrs(self):
     shape_from = ds([6, 7, 8])
-    x = kde.core.new_shaped_as(shape_from).eval()
+    x = kde.entities.shaped_as(shape_from).eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
     self.assertFalse(x.is_mutable())
 
   def test_item_no_attrs(self):
     shape_from = ds(0)
-    x = kde.core.new_shaped_as(shape_from).eval()
+    x = kde.entities.shaped_as(shape_from).eval()
     self.assertIsNotNone(x.get_bag())
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
     self.assertFalse(x.is_mutable())
 
   def test_with_attrs(self):
     shape_from = ds([[6, 7, 8], [6, 7, 8]])
-    x = kde.core.new_shaped_as(
+    x = kde.entities.shaped_as(
         shape_from, x=2, a=1, b='p', c=fns.list([5, 6])
     ).eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
@@ -78,14 +78,14 @@ class CoreNewShapedAsTest(absltest.TestCase):
     self.assertFalse(x.is_mutable())
 
   def test_no_sparsity_item_with_empty_attr(self):
-    x = kde.core.new_shaped_as(ds(None), a=42).eval()
+    x = kde.entities.shaped_as(ds(None), a=42).eval()
     testing.assert_equal(
         kde.has(x).eval().no_db(), ds(kd.present, schema_constants.MASK)
     )
 
   def test_no_sparsity_all_empty_slice(self):
     shape_from = ds([None, None])
-    x = kde.core.new_shaped_as(shape_from, a=42).eval()
+    x = kde.entities.shaped_as(shape_from, a=42).eval()
     testing.assert_equal(
         kde.has(x).eval().no_db(),
         ds([kd.present, kd.present], schema_constants.MASK),
@@ -95,8 +95,8 @@ class CoreNewShapedAsTest(absltest.TestCase):
     )
 
   def test_adopt_bag(self):
-    x = kde.core.new_shaped_as(ds(1), a='abc').eval()
-    y = kde.core.new_shaped_as(x, x=x).eval()
+    x = kde.entities.shaped_as(ds(1), a='abc').eval()
+    y = kde.entities.shaped_as(x, x=x).eval()
     # y.db is merged with x.db, so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_db(x.db))
@@ -107,14 +107,14 @@ class CoreNewShapedAsTest(absltest.TestCase):
     schema = fns.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING
     )
-    x = kde.core.new_shaped_as(shape_from, schema=schema).eval()
+    x = kde.entities.shaped_as(shape_from, schema=schema).eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_str_as_schema_arg(self):
     shape_from = ds([[6, 7], [8]])
-    x = kde.core.new_shaped_as(shape_from, schema='name', a=42).eval()
+    x = kde.entities.shaped_as(shape_from, schema='name', a=42).eval()
     expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
     testing.assert_equal(
@@ -124,7 +124,7 @@ class CoreNewShapedAsTest(absltest.TestCase):
 
   def test_str_slice_as_schema_arg(self):
     shape_from = ds([[6, 7], [8]])
-    x = kde.core.new_shaped_as(shape_from, schema=ds('name'), a=42).eval()
+    x = kde.entities.shaped_as(shape_from, schema=ds('name'), a=42).eval()
     expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape_from.get_shape())
     testing.assert_equal(
@@ -137,23 +137,23 @@ class CoreNewShapedAsTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: STRING"
     ):
-      _ = kde.core.new_shaped_as(shape_from, schema=ds(['name']), a=42).eval()
+      _ = kde.entities.shaped_as(shape_from, schema=ds(['name']), a=42).eval()
     with self.assertRaisesRegex(
         ValueError, "schema's schema must be SCHEMA, got: INT32"
     ):
-      _ = kde.core.new_shaped_as(shape_from, schema=42, a=42).eval()
+      _ = kde.entities.shaped_as(shape_from, schema=42, a=42).eval()
 
   def test_itemid_arg(self):
     shape_from = ds([[6, 7], [8]])
     itemid = expr_eval.eval(kde.allocation.new_itemid_shaped_as(shape_from))
-    x = kde.core.new_shaped_as(itemid, a=42, itemid=itemid).eval()
+    x = kde.entities.shaped_as(itemid, a=42, itemid=itemid).eval()
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_update_schema_arg(self):
     shape_from = ds([6, 7])
     schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
-    x = kde.core.new_shaped_as(
+    x = kde.entities.shaped_as(
         shape_from,
         a=42,
         b='xyz',
@@ -173,7 +173,7 @@ class CoreNewShapedAsTest(absltest.TestCase):
         'argument `update_schema` must be an item holding BOOLEAN, got an item'
         ' of INT32',
     ):
-      kde.core.new_shaped_as(
+      kde.entities.shaped_as(
           shape_from,
           schema=schema_constants.ANY,
           update_schema=42,
@@ -183,24 +183,24 @@ class CoreNewShapedAsTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError, "missing 1 required positional argument: 'shape_from'"
     ):
-      _ = kde.core.new_shaped_as().eval()
+      _ = kde.entities.shaped_as().eval()
 
   def test_fails_with_shape_input(self):
     with self.assertRaisesRegex(ValueError, 'expected DATA_SLICE'):
-      _ = kde.core.new_shaped_as(ds(0).get_shape()).eval()
+      _ = kde.entities.shaped_as(ds(0).get_shape()).eval()
 
   def test_non_determinism(self):
     shape_from = ds([[6, 7, 8], [6, 7, 8]])
     res_1 = expr_eval.eval(
-        kde.core.new_shaped_as(shape_from, x=2, a=1, b='p', c=fns.list([5, 6]))
+        kde.entities.shaped_as(shape_from, x=2, a=1, b='p', c=fns.list([5, 6]))
     )
     res_2 = expr_eval.eval(
-        kde.core.new_shaped_as(shape_from, x=2, a=1, b='p', c=fns.list([5, 6]))
+        kde.entities.shaped_as(shape_from, x=2, a=1, b='p', c=fns.list([5, 6]))
     )
     self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
     testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
 
-    expr = kde.core.new_shaped_as(
+    expr = kde.entities.shaped_as(
         shape_from, x=2, a=1, b='p', c=fns.list([5, 6])
     )
     res_1 = expr_eval.eval(expr)
@@ -210,24 +210,24 @@ class CoreNewShapedAsTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.new_shaped,
+        kde.entities.shaped,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.new_shaped_as(I.x)))
-    self.assertTrue(view.has_koda_view(kde.core.new_shaped_as(I.x, a=I.y)))
+    self.assertTrue(view.has_koda_view(kde.entities.shaped_as(I.x)))
+    self.assertTrue(view.has_koda_view(kde.entities.shaped_as(I.x, a=I.y)))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.new_shaped_as, kde.new_shaped_as)
+        optools.equiv_to_op(kde.entities.shaped_as, kde.new_shaped_as)
     )
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.new_shaped_as(I.x, a=I.y)),
-        'kde.core.new_shaped_as(I.x, schema=unspecified, update_schema=DataItem'
+        repr(kde.entities.shaped_as(I.x, a=I.y)),
+        'kde.entities.shaped_as(I.x, schema=unspecified, update_schema=DataItem'
         '(False, schema: BOOLEAN), itemid=unspecified, a=I.y)',
     )
 

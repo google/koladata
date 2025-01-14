@@ -26,8 +26,8 @@
 #include "koladata/operators/bags.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/core.h"
-#include "koladata/operators/core_new.h"
-#include "koladata/operators/core_obj.h"
+#include "koladata/operators/entities.h"
+#include "koladata/operators/objs.h"
 #include "koladata/operators/dicts.h"
 #include "koladata/operators/ids.h"
 #include "koladata/operators/json.h"
@@ -81,14 +81,8 @@ OPERATOR("kde.core._get_attr", GetAttr);
 OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
 OPERATOR("kde.core._get_item", GetItem);
 OPERATOR("kde.core._get_list_item_by_range", GetListItemByRange);
-OPERATOR_FAMILY("kde.core._new", std::make_unique<NewOperatorFamily>());
 OPERATOR("kde.core._new_ids_like", NewIdsLike);
-OPERATOR_FAMILY("kde.core._new_like",
-                std::make_unique<NewLikeOperatorFamily>());
-OPERATOR_FAMILY("kde.core._new_shaped",
-                std::make_unique<NewShapedOperatorFamily>());
 OPERATOR("kde.core._shallow_clone", ShallowClone);
-OPERATOR_FAMILY("kde.core._uu", std::make_unique<UuOperatorFamily>());
 OPERATOR("kde.core.add", Add);
 OPERATOR("kde.core.attr", Attr);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
@@ -103,14 +97,9 @@ OPERATOR("kde.core.is_entity", IsEntity);
 OPERATOR("kde.core.is_primitive", IsPrimitive);
 OPERATOR("kde.core.no_bag", NoBag);
 OPERATOR("kde.core.nofollow", NoFollow);
-OPERATOR_FAMILY("kde.core.obj", std::make_unique<ObjOperatorFamily>());
-OPERATOR_FAMILY("kde.core.obj_like", std::make_unique<ObjLikeOperatorFamily>());
-OPERATOR_FAMILY("kde.core.obj_shaped",
-                std::make_unique<ObjShapedOperatorFamily>());
 OPERATOR("kde.core.ref", Ref);
 OPERATOR("kde.core.stub", Stub);
 OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
-OPERATOR_FAMILY("kde.core.uuobj", std::make_unique<UuObjOperatorFamily>());
 OPERATOR("kde.core.with_attr", WithAttr);
 OPERATOR_FAMILY("kde.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
@@ -126,6 +115,13 @@ OPERATOR("kde.dicts.get_keys", GetKeys);
 OPERATOR("kde.dicts.has_dict", HasDict);
 OPERATOR("kde.dicts.is_dict", IsDict);
 OPERATOR("kde.dicts.size", DictSize);
+//
+OPERATOR_FAMILY("kde.entities._like",
+                std::make_unique<NewLikeOperatorFamily>());
+OPERATOR_FAMILY("kde.entities._new", std::make_unique<NewOperatorFamily>());
+OPERATOR_FAMILY("kde.entities._shaped",
+                std::make_unique<NewShapedOperatorFamily>());
+OPERATOR_FAMILY("kde.entities._uu", std::make_unique<UuOperatorFamily>());
 //
 OPERATOR("kde.ids._agg_uuid", AggUuid);
 OPERATOR("kde.ids._deep_uuid", DeepUuid);
@@ -187,6 +183,11 @@ OPERATOR("kde.math.round", Round);
 OPERATOR("kde.math.sigmoid", Sigmoid);
 OPERATOR("kde.math.sign", Sign);
 OPERATOR("kde.math.subtract", Subtract);
+//
+OPERATOR_FAMILY("kde.objs.like", std::make_unique<ObjLikeOperatorFamily>());
+OPERATOR_FAMILY("kde.objs.new", std::make_unique<ObjOperatorFamily>());
+OPERATOR_FAMILY("kde.objs.shaped", std::make_unique<ObjShapedOperatorFamily>());
+OPERATOR_FAMILY("kde.objs.uu", std::make_unique<UuObjOperatorFamily>());
 //
 OPERATOR("kde.schema._agg_common_schema", AggCommonSchema);
 OPERATOR("kde.schema._internal_maybe_named_schema", InternalMaybeNamedSchema);

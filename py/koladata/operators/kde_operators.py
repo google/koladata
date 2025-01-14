@@ -21,6 +21,7 @@ from koladata.operators import bags as _
 from koladata.operators import comparison as _
 from koladata.operators import core as _
 from koladata.operators import dicts as _
+from koladata.operators import entities as _
 from koladata.operators import functor as _
 from koladata.operators import ids as _
 from koladata.operators import jagged_shape as _
@@ -29,7 +30,7 @@ from koladata.operators import koda_internal as _
 from koladata.operators import lists as _
 from koladata.operators import masking as _
 from koladata.operators import math as _
-from koladata.operators import object_factories as _
+from koladata.operators import objs as _
 from koladata.operators import optools
 from koladata.operators import py as _
 from koladata.operators import random as _
@@ -50,12 +51,14 @@ def get_namespaces() -> list[str]:
       'kde.comparison',
       'kde.core',
       'kde.dicts',
+      'kde.entities',
       'kde.functor',
       'kde.ids',
       'kde.json',
       'kde.lists',
       'kde.masking',
       'kde.math',
+      'kde.objs',
       'kde.py',
       'kde.random',
       'kde.schema',

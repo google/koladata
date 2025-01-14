@@ -243,7 +243,7 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equal(res_1.y.a.no_bag(), res_2.y.a.no_bag())
 
   def test_inner_update_does_not_crash(self):
-    x = kde.core.new(b=kde.core.new(c=1)).with_attrs(d=4)
+    x = kde.entities.new(b=kde.entities.new(c=1)).with_attrs(d=4)
     x = x.updated(kde.attrs(x.b, c=5))
     x = x.eval()
     res = x.clone()

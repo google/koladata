@@ -83,11 +83,13 @@ arolla_operator_package_snapshot(
         "koladata.operators.comparison",
         "koladata.operators.core",
         "koladata.operators.dicts",
+        "koladata.operators.entities",
         "koladata.operators.ids",
         "koladata.operators.jagged_shape",
         "koladata.operators.lists",
         "koladata.operators.masking",
         "koladata.operators.math",
+        "koladata.operators.objs",
         "koladata.operators.random",
         "koladata.operators.slices",
         "koladata.operators.strings",
@@ -104,12 +106,13 @@ arolla_operator_package_snapshot(
         ":comparison",
         ":core",
         ":dicts",
+        ":entities",
         ":ids",
         ":jagged_shape",
         ":lists",
         ":masking",
         ":math",
-        ":object_factories",
+        ":objs",
         ":random",
         ":schema",
         ":slices",
@@ -260,18 +263,6 @@ py_library(
 )
 
 py_library(
-    name = "object_factories",
-    srcs = ["object_factories.py"],
-    deps = [
-        ":optools",
-        ":qtype_utils",
-        ":schema",
-        "//koladata/operators",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_library(
     name = "schema",
     srcs = ["schema.py"],
     deps = [
@@ -352,7 +343,6 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":assertion",
-        ":jagged_shape",
         ":masking",
         ":op_repr",
         ":optools",
@@ -424,13 +414,37 @@ py_library(
 )
 
 py_library(
+    name = "objs",
+    srcs = ["objs.py"],
+    deps = [
+        ":jagged_shape",
+        ":optools",
+        ":qtype_utils",
+        "//koladata/operators",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "entities",
+    srcs = ["entities.py"],
+    deps = [
+        ":jagged_shape",
+        ":optools",
+        ":qtype_utils",
+        ":schema",
+        "//koladata/operators",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
     name = "random",
     srcs = ["random.py"],
     deps = [
         ":allocation",
         ":arolla_bridge",
         ":assertion",
-        ":core",
         ":ids",
         ":jagged_shape",
         ":masking",
@@ -502,6 +516,7 @@ py_library(
         ":comparison",
         ":core",
         ":dicts",
+        ":entities",
         ":functor",
         ":ids",
         ":jagged_shape",
@@ -510,7 +525,7 @@ py_library(
         ":lists",
         ":masking",
         ":math",
-        ":object_factories",
+        ":objs",
         ":optools",
         ":py",
         ":random",
@@ -636,17 +651,9 @@ py_library(
     name = "bags",
     srcs = ["bags.py"],
     deps = [
-        ":arolla_bridge",
-        ":assertion",
-        ":jagged_shape",
-        ":masking",
-        ":op_repr",
         ":optools",
         ":qtype_utils",
-        ":schema",
-        ":tuple",
         ":view_overloads",
-        "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",

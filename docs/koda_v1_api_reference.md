@@ -15,6 +15,7 @@ Category  | Subcategory | Description
  | [bags](#kd.bags) | Operators that work on DataBags.
  | [comparison](#kd.comparison) | Operators that compare DataSlices.
  | [core](#kd.core) | Core operators that are not part of other categories.
+ | [entities](#kd.entities) | Operators that work solely with entities.
  | [dicts](#kd.dicts) | Operators working with dictionaries.
  | [functor](#kd.functor) | Operators to create and call functors.
  | [ids](#kd.ids) | Operators that work with ItemIds.
@@ -22,6 +23,7 @@ Category  | Subcategory | Description
  | [lists](#kd.lists) | Operators working with lists.
  | [masking](#kd.masking) | Masking operators.
  | [math](#kd.math) | Arithmetic operators.
+ | [objs](#kd.objs) | Operators that work solely with objects.
  | [py](#kd.py) | Operators that call Python functions.
  | [random](#kd.random) | Random and sampling operators.
  | [schema](#kd.schema) | Schema-related operators.
@@ -922,117 +924,6 @@ Aliases:
 A shortcut for kde.get_attr(x, attr_name, default=None).
 ```
 
-### `kd.core.new(arg=unspecified, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.core.new}
-Aliases:
-
-- [kd.new](#kd.new)
-
-``` {.no-copy}
-Creates Entities with given attrs.
-
-  Returns an immutable Entity if `db` is not provided.
-
-  Args:
-    arg: optional Python object to be converted to an Entity.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
-      schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-      itemid will only be set when the args is not a primitive or primitive
-      slice if args present.
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-```
-
-### `kd.core.new_like(shape_and_mask_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.core.new_like}
-Aliases:
-
-- [kd.new_like](#kd.new_like)
-
-``` {.no-copy}
-Creates new Entities with the shape and sparsity from shape_and_mask_from.
-
-  Returns immutable Entities if `db` is not provided.
-
-  Args:
-    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
-      DataSlice will have.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
-      schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-```
-
-### `kd.core.new_shaped(shape, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.core.new_shaped}
-Aliases:
-
-- [kd.new_shaped](#kd.new_shaped)
-
-``` {.no-copy}
-Creates new Entities with the given shape.
-
-  Returns immutable Entities if `db` is not provided.
-
-  Args:
-    shape: JaggedShape that the returned DataSlice will have.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
-      schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-```
-
-### `kd.core.new_shaped_as(shape_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.core.new_shaped_as}
-Aliases:
-
-- [kd.new_shaped_as](#kd.new_shaped_as)
-
-``` {.no-copy}
-Creates new Koda entities with shape of the given DataSlice.
-
-  Returns immutable Entities if `db` is not provided.
-
-  Args:
-    shape_from: DataSlice, whose shape the returned DataSlice will have.
-    schema: optional DataSlice schema. If not specified, a new explicit schema
-      will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
-      schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-```
-
 ### `kd.core.no_bag(ds)` {#kd.core.no_bag}
 Aliases:
 
@@ -1065,89 +956,6 @@ traversed during extract, clone, deep_clone, etc.
 
 Args:
   x: DataSlice to wrap.
-```
-
-### `kd.core.obj(arg=unspecified, /, *, itemid=None, db=None, **attrs)` {#kd.core.obj}
-Aliases:
-
-- [kd.obj](#kd.obj)
-
-``` {.no-copy}
-Creates new Objects with an implicit stored schema.
-
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
-
-  Args:
-    arg: optional Python object to be converted to an Object.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-      itemid will only be set when the args is not a primitive or primitive
-      slice if args presents.
-    db: optional DataBag where object are created.
-    **attrs: attrs to set on the returned object.
-
-  Returns:
-    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
-```
-
-### `kd.core.obj_like(shape_and_mask_from, /, *, itemid=None, db=None, **attrs)` {#kd.core.obj_like}
-Aliases:
-
-- [kd.obj_like](#kd.obj_like)
-
-``` {.no-copy}
-Creates Objects with shape and sparsity from shape_and_mask_from.
-
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
-
-  Args:
-    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
-      DataSlice will have.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-```
-
-### `kd.core.obj_shaped(shape, /, *, itemid=None, db=None, **attrs)` {#kd.core.obj_shaped}
-Aliases:
-
-- [kd.obj_shaped](#kd.obj_shaped)
-
-``` {.no-copy}
-Creates Objects with the given shape.
-
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
-
-  Args:
-    shape: JaggedShape that the returned DataSlice will have.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-```
-
-### `kd.core.obj_shaped_as(shape_from, /, *, itemid=None, db=None, **attrs)` {#kd.core.obj_shaped_as}
-Aliases:
-
-- [kd.obj_shaped_as](#kd.obj_shaped_as)
-
-``` {.no-copy}
-Creates Objects with the shape of the given DataSlice.
-
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
-
-  Args:
-    shape_from: DataSlice, whose shape the returned DataSlice will have.
-    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
 ```
 
 ### `kd.core.ref(ds)` {#kd.core.ref}
@@ -1266,63 +1074,6 @@ Returns:
   DataSlice with additional fallbacks.
 ```
 
-### `kd.core.uu(seed=None, *, schema=None, update_schema=False, db=None, **attrs)` {#kd.core.uu}
-Aliases:
-
-- [kd.uu](#kd.uu)
-
-``` {.no-copy}
-Creates UuEntities with given attrs.
-
-  Returns an immutable UU Entity if `db` is not provided.
-
-  Args:
-    seed: string to seed the uuid computation with.
-    schema: optional DataSlice schema. If not specified, a UuSchema
-      will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
-    db: optional DataBag where entities are created.
-    **attrs: attrs to set in the returned Entity.
-
-  Returns:
-    data_slice.DataSlice with the given attrs.
-```
-
-### `kd.core.uuobj(seed=None, *, db=None, **attrs)` {#kd.core.uuobj}
-Aliases:
-
-- [kd.uuobj](#kd.uuobj)
-
-``` {.no-copy}
-Creates object(s) whose ids are uuid(s) with the provided attributes.
-
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
-
-  In order to create a different "Type" from the same arguments, use
-  `seed` key with the desired value, e.g.
-
-  kd.uuobj(seed='type_1', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
-
-  and
-
-  kd.uuobj(seed='type_2', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
-
-  have different ids.
-
-  Args:
-    seed: (str) Allows different uuobj(s) to have different ids when created
-      from the same inputs.
-    db: optional DataBag where entities are created.
-    **attrs: key-value pairs of object attributes where values are DataSlices
-      or can be converted to DataSlices using kd.new / kd.obj.
-
-  Returns:
-    data_slice.DataSlice
-```
-
 ### `kd.core.with_attr(x, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.with_attr}
 Aliases:
 
@@ -1378,6 +1129,152 @@ Args:
 
 Returns:
   A new DataSlice with an immutable DataBags.
+```
+
+</section>
+
+### kd.entities {#kd.entities}
+
+Operators that work solely with entities.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.entities.like(shape_and_mask_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.like}
+Aliases:
+
+- [kd.new_like](#kd.new_like)
+
+``` {.no-copy}
+Creates new Entities with the shape and sparsity from shape_and_mask_from.
+
+  Returns immutable Entities if `db` is not provided.
+
+  Args:
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+```
+
+### `kd.entities.new(arg=unspecified, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.new}
+Aliases:
+
+- [kd.new](#kd.new)
+
+``` {.no-copy}
+Creates Entities with given attrs.
+
+  Returns an immutable Entity if `db` is not provided.
+
+  Args:
+    arg: optional Python object to be converted to an Entity.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+      itemid will only be set when the args is not a primitive or primitive
+      slice if args present.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+```
+
+### `kd.entities.shaped(shape, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.shaped}
+Aliases:
+
+- [kd.new_shaped](#kd.new_shaped)
+
+``` {.no-copy}
+Creates new Entities with the given shape.
+
+  Returns immutable Entities if `db` is not provided.
+
+  Args:
+    shape: JaggedShape that the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+```
+
+### `kd.entities.shaped_as(shape_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.shaped_as}
+Aliases:
+
+- [kd.new_shaped_as](#kd.new_shaped_as)
+
+``` {.no-copy}
+Creates new Koda entities with shape of the given DataSlice.
+
+  Returns immutable Entities if `db` is not provided.
+
+  Args:
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
+    schema: optional DataSlice schema. If not specified, a new explicit schema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead. You can also pass schema='name' as a shortcut for
+      schema=kd.named_schema('name').
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+```
+
+### `kd.entities.uu(seed=None, *, schema=None, update_schema=False, db=None, **attrs)` {#kd.entities.uu}
+Aliases:
+
+- [kd.uu](#kd.uu)
+
+``` {.no-copy}
+Creates UuEntities with given attrs.
+
+  Returns an immutable UU Entity if `db` is not provided.
+
+  Args:
+    seed: string to seed the uuid computation with.
+    schema: optional DataSlice schema. If not specified, a UuSchema
+      will be automatically created based on the schemas of the passed **attrs.
+      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
+      schema instead.
+    update_schema: if schema attribute is missing and the attribute is being set
+      through `attrs`, schema is successfully updated.
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
 ```
 
 </section>
@@ -3508,6 +3405,131 @@ Args:
 
 </section>
 
+### kd.objs {#kd.objs}
+
+Operators that work solely with objects.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.objs.like(shape_and_mask_from, /, *, itemid=None, db=None, **attrs)` {#kd.objs.like}
+Aliases:
+
+- [kd.obj_like](#kd.obj_like)
+
+``` {.no-copy}
+Creates Objects with shape and sparsity from shape_and_mask_from.
+
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+
+  Args:
+    shape_and_mask_from: DataSlice, whose shape and sparsity the returned
+      DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+```
+
+### `kd.objs.new(arg=unspecified, /, *, itemid=None, db=None, **attrs)` {#kd.objs.new}
+Aliases:
+
+- [kd.obj](#kd.obj)
+
+``` {.no-copy}
+Creates new Objects with an implicit stored schema.
+
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+
+  Args:
+    arg: optional Python object to be converted to an Object.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+      itemid will only be set when the args is not a primitive or primitive
+      slice if args presents.
+    db: optional DataBag where object are created.
+    **attrs: attrs to set on the returned object.
+
+  Returns:
+    data_slice.DataSlice with the given attrs and kd.OBJECT schema.
+```
+
+### `kd.objs.shaped(shape, /, *, itemid=None, db=None, **attrs)` {#kd.objs.shaped}
+Aliases:
+
+- [kd.obj_shaped](#kd.obj_shaped)
+
+``` {.no-copy}
+Creates Objects with the given shape.
+
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+
+  Args:
+    shape: JaggedShape that the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+```
+
+### `kd.objs.shaped_as(shape_from, /, *, itemid=None, db=None, **attrs)` {#kd.objs.shaped_as}
+Aliases:
+
+- [kd.obj_shaped_as](#kd.obj_shaped_as)
+
+``` {.no-copy}
+Creates Objects with the shape of the given DataSlice.
+
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+
+  Args:
+    shape_from: DataSlice, whose shape the returned DataSlice will have.
+    itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
+    db: optional DataBag where entities are created.
+    **attrs: attrs to set in the returned Entity.
+
+  Returns:
+    data_slice.DataSlice with the given attrs.
+```
+
+### `kd.objs.uu(seed=None, *, db=None, **attrs)` {#kd.objs.uu}
+Aliases:
+
+- [kd.uuobj](#kd.uuobj)
+
+``` {.no-copy}
+Creates object(s) whose ids are uuid(s) with the provided attributes.
+
+  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+
+  In order to create a different "Type" from the same arguments, use
+  `seed` key with the desired value, e.g.
+
+  kd.uuobj(seed='type_1', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+
+  and
+
+  kd.uuobj(seed='type_2', x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
+
+  have different ids.
+
+  Args:
+    seed: (str) Allows different uuobj(s) to have different ids when created
+      from the same inputs.
+    db: optional DataBag where entities are created.
+    **attrs: key-value pairs of object attributes where values are DataSlices
+      or can be converted to DataSlices using kd.new / kd.obj.
+
+  Returns:
+    data_slice.DataSlice
+```
+
+</section>
+
 ### kd.py {#kd.py}
 
 Operators that call Python functions.
@@ -4210,7 +4232,7 @@ Converts a string to a named schema, passes through schema otherwise.
 The operator also passes through arolla.unspecified, and raises when
 it receives anything else except unspecified, string or schema DataItem.
 
-This operator exists to support kde.core.new* family of operators.
+This operator exists to support kde.entities.new* family of operators.
 
 Args:
   name_or_schema: The input name or schema.
@@ -7690,7 +7712,7 @@ Alias for [kd.schema.named_schema](#kd.schema.named_schema) operator.
 
 ### `kd.new(arg=unspecified, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.new}
 
-Alias for [kd.core.new](#kd.core.new) operator.
+Alias for [kd.entities.new](#kd.entities.new) operator.
 
 ### `kd.new_dictid()` {#kd.new_dictid}
 
@@ -7726,7 +7748,7 @@ Alias for [kd.allocation.new_itemid_shaped_as](#kd.allocation.new_itemid_shaped_
 
 ### `kd.new_like(shape_and_mask_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.new_like}
 
-Alias for [kd.core.new_like](#kd.core.new_like) operator.
+Alias for [kd.entities.like](#kd.entities.like) operator.
 
 ### `kd.new_listid()` {#kd.new_listid}
 
@@ -7752,11 +7774,11 @@ Deprecated. Use kd.schema.new_schema instead.
 
 ### `kd.new_shaped(shape, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.new_shaped}
 
-Alias for [kd.core.new_shaped](#kd.core.new_shaped) operator.
+Alias for [kd.entities.shaped](#kd.entities.shaped) operator.
 
 ### `kd.new_shaped_as(shape_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.new_shaped_as}
 
-Alias for [kd.core.new_shaped_as](#kd.core.new_shaped_as) operator.
+Alias for [kd.entities.shaped_as](#kd.entities.shaped_as) operator.
 
 ### `kd.no_bag(ds)` {#kd.no_bag}
 
@@ -7780,19 +7802,19 @@ Alias for [kd.comparison.not_equal](#kd.comparison.not_equal) operator.
 
 ### `kd.obj(arg=unspecified, /, *, itemid=None, db=None, **attrs)` {#kd.obj}
 
-Alias for [kd.core.obj](#kd.core.obj) operator.
+Alias for [kd.objs.new](#kd.objs.new) operator.
 
 ### `kd.obj_like(shape_and_mask_from, /, *, itemid=None, db=None, **attrs)` {#kd.obj_like}
 
-Alias for [kd.core.obj_like](#kd.core.obj_like) operator.
+Alias for [kd.objs.like](#kd.objs.like) operator.
 
 ### `kd.obj_shaped(shape, /, *, itemid=None, db=None, **attrs)` {#kd.obj_shaped}
 
-Alias for [kd.core.obj_shaped](#kd.core.obj_shaped) operator.
+Alias for [kd.objs.shaped](#kd.objs.shaped) operator.
 
 ### `kd.obj_shaped_as(shape_from, /, *, itemid=None, db=None, **attrs)` {#kd.obj_shaped_as}
 
-Alias for [kd.core.obj_shaped_as](#kd.core.obj_shaped_as) operator.
+Alias for [kd.objs.shaped_as](#kd.objs.shaped_as) operator.
 
 ### `kd.ordinal_rank(x, tie_breaker=unspecified, descending=DataItem(False, schema: BOOLEAN), ndim=unspecified)` {#kd.ordinal_rank}
 
@@ -8158,7 +8180,7 @@ Alias for [kd.bags.updated](#kd.bags.updated) operator.
 
 ### `kd.uu(seed=None, *, schema=None, update_schema=False, db=None, **attrs)` {#kd.uu}
 
-Alias for [kd.core.uu](#kd.core.uu) operator.
+Alias for [kd.entities.uu](#kd.entities.uu) operator.
 
 ### `kd.uu_schema(seed='', *, db=None, **attrs)` {#kd.uu_schema}
 
@@ -8182,7 +8204,7 @@ Alias for [kd.ids.uuids_with_allocation_size](#kd.ids.uuids_with_allocation_size
 
 ### `kd.uuobj(seed=None, *, db=None, **attrs)` {#kd.uuobj}
 
-Alias for [kd.core.uuobj](#kd.core.uuobj) operator.
+Alias for [kd.objs.uu](#kd.objs.uu) operator.
 
 ### `kd.val_like(x, val)` {#kd.val_like}
 

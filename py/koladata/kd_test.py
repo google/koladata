@@ -458,12 +458,12 @@ class KdTest(absltest.TestCase):
   def test_eager_op_overrides_expr_op(self):
     x = kd.obj(a=1, db=kd.bag())
     self.assertTrue(x.db.is_mutable())
-    x = kd.core.obj(a=1, db=kd.bag())
+    x = kd.objs.new(a=1, db=kd.bag())
     self.assertTrue(x.db.is_mutable())
 
     x = kd.eval(kde.obj(a=1))
     self.assertFalse(x.db.is_mutable())
-    x = kd.eval(kde.core.obj(a=1))
+    x = kd.eval(kde.objs.new(a=1))
     self.assertFalse(x.db.is_mutable())
 
     def f1():
@@ -473,7 +473,7 @@ class KdTest(absltest.TestCase):
     self.assertFalse(x.db.is_mutable())
 
     def f2():
-      return kd.core.obj(a=1)
+      return kd.objs.new(a=1)
 
     x = kd.trace_py_fn(f2)()
     self.assertFalse(x.db.is_mutable())

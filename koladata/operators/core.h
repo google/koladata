@@ -124,6 +124,10 @@ DataBagPtr Freeze<DataBagPtr>(const DataBagPtr& x);
 template <>
 DataSlice Freeze<DataSlice>(const DataSlice& x);
 
+// kde.core._new_ids_like
+absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
+                                     internal::NonDeterministicToken);
+
 // kde.core._clone.
 absl::StatusOr<DataSlice> Clone(
     const DataSlice& ds, const DataSlice& itemid, const DataSlice& schema,

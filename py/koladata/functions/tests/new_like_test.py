@@ -365,7 +365,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
       fns.new_like(ds([1, 2, 3]), dct={'a': 42})
 
   def test_alias(self):
-    self.assertIs(fns.new_like, fns.core.new_like)
+    self.assertIs(fns.new_like, fns.entities.like)
 
 
 if __name__ == '__main__':

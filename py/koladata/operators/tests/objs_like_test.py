@@ -44,18 +44,18 @@ def generate_qtypes():
 QTYPES = list(generate_qtypes())
 
 
-class CoreObjLikeTest(absltest.TestCase):
+class ObjsLikeTest(absltest.TestCase):
 
   def test_slice_no_attrs(self):
     shape_and_mask_from = ds([6, 7, 8], schema_constants.INT32)
-    x = kde.core.obj_like(shape_and_mask_from).eval()
+    x = kde.objs.like(shape_and_mask_from).eval()
     testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     self.assertFalse(x.is_mutable())
 
   def test_item_no_attrs(self):
     shape_and_mask_from = ds(0)
-    x = kde.core.obj_like(shape_and_mask_from).eval()
+    x = kde.objs.like(shape_and_mask_from).eval()
     self.assertIsNotNone(x.db)
     testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
@@ -63,7 +63,7 @@ class CoreObjLikeTest(absltest.TestCase):
 
   def test_with_attrs(self):
     shape_and_mask_from = ds([[6, 7, 8], [6, 7, 8]])
-    x = kde.core.obj_like(
+    x = kde.objs.like(
         shape_and_mask_from, x=2, a=1, b='p', c=fns.list([5, 6])
     ).eval()
     testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
@@ -82,13 +82,13 @@ class CoreObjLikeTest(absltest.TestCase):
     self.assertFalse(x.is_mutable())
 
   def test_sparsity_item_with_empty_attr(self):
-    x = kde.core.obj_like(ds(None), a=42).eval()
+    x = kde.objs.like(ds(None), a=42).eval()
     testing.assert_equal(
         kde.has(x).eval().no_db(), ds(None, schema_constants.MASK)
     )
 
   def test_sparsity_all_empty_slice(self):
-    x = kde.core.obj_like(ds([None, None]), a=42).eval()
+    x = kde.objs.like(ds([None, None]), a=42).eval()
     testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
         kde.has(x).eval().no_db(), ds([None, None], schema_constants.MASK)
@@ -98,8 +98,8 @@ class CoreObjLikeTest(absltest.TestCase):
     )
 
   def test_adopt_bag(self):
-    x = kde.core.obj_like(ds(1), a='abc').eval()
-    y = kde.core.obj_like(x, x=x).eval()
+    x = kde.objs.like(ds(1), a='abc').eval()
+    y = kde.objs.like(x, x=x).eval()
     # y.db is merged with x.db, so access to `a` is possible.
     testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
     testing.assert_equal(x.get_schema(), y.x.get_schema().with_db(x.db))
@@ -109,20 +109,18 @@ class CoreObjLikeTest(absltest.TestCase):
     itemid = expr_eval.eval(kde.allocation.new_itemid())
 
     with self.subTest('present DataItem and present itemid'):
-      x = expr_eval.eval(kde.core.obj_like(ds(1), a=42, itemid=itemid))
+      x = expr_eval.eval(kde.objs.like(ds(1), a=42, itemid=itemid))
       testing.assert_equal(
           x,
           itemid.with_schema(x.get_schema()).with_bag(x.get_bag()),
       )
 
     with self.subTest('missing DataItem and missing itemid'):
-      x = expr_eval.eval(
-          kde.core.obj_like(ds(None), a=42, itemid=(itemid & None))
-      )
+      x = expr_eval.eval(kde.objs.like(ds(None), a=42, itemid=(itemid & None)))
       self.assertTrue(x.is_empty())
 
     with self.subTest('missing DataItem and present itemid'):
-      x = expr_eval.eval(kde.core.obj_like(ds(None), a=42, itemid=itemid))
+      x = expr_eval.eval(kde.objs.like(ds(None), a=42, itemid=itemid))
       self.assertTrue(x.is_empty())
 
     with self.subTest('present DataItem and missing itemid'):
@@ -130,9 +128,7 @@ class CoreObjLikeTest(absltest.TestCase):
           ValueError,
           '`itemid` only has 0 present items but 1 are required',
       ):
-        _ = expr_eval.eval(
-            kde.core.obj_like(ds(1), a=42, itemid=(itemid & None))
-        )
+        _ = expr_eval.eval(kde.objs.like(ds(1), a=42, itemid=(itemid & None)))
 
   def test_itemid_dataslice(self):
     id1 = expr_eval.eval(kde.allocation.new_itemid())
@@ -141,7 +137,7 @@ class CoreObjLikeTest(absltest.TestCase):
 
     with self.subTest('full DataSlice and full itemid'):
       x = expr_eval.eval(
-          kde.core.obj_like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))
+          kde.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id3]))
       )
       testing.assert_equal(
           x,
@@ -154,7 +150,7 @@ class CoreObjLikeTest(absltest.TestCase):
           '`itemid` only has 2 present items but 3 are required',
       ):
         _ = expr_eval.eval(
-            kde.core.obj_like(ds([1, 1, 1]), a=42, itemid=ds([id1, None, id3]))
+            kde.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, None, id3]))
         )
 
     with self.subTest('full DataSlice and full itemid with duplicates'):
@@ -163,12 +159,12 @@ class CoreObjLikeTest(absltest.TestCase):
           '`itemid` cannot have duplicate ItemIds',
       ):
         _ = expr_eval.eval(
-            kde.core.obj_like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id1]))
+            kde.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id1]))
         )
 
     with self.subTest('sparse DataSlice and sparse itemid'):
       x = expr_eval.eval(
-          kde.core.obj_like(ds([1, None, 1]), a=42, itemid=ds([id1, None, id3]))
+          kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, None, id3]))
       )
       testing.assert_equal(
           x,
@@ -185,14 +181,12 @@ class CoreObjLikeTest(absltest.TestCase):
           '`itemid` and `shape_and_mask_from` must have the same sparsity',
       ):
         _ = expr_eval.eval(
-            kde.core.obj_like(
-                ds([1, None, 1]), a=42, itemid=ds([id1, id2, None])
-            )
+            kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, None]))
         )
 
     with self.subTest('sparse DataSlice and full itemid'):
       x = expr_eval.eval(
-          kde.core.obj_like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, id3]))
+          kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, id3]))
       )
       testing.assert_equal(
           x,
@@ -207,16 +201,14 @@ class CoreObjLikeTest(absltest.TestCase):
           '`itemid` cannot have duplicate ItemIds',
       ):
         _ = expr_eval.eval(
-            kde.core.obj_like(
-                ds([1, None, 1]), a=42, itemid=ds([id1, id1, id1])
-            )
+            kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id1]))
         )
 
     with self.subTest(
         'sparse DataSlice and full itemid with unused duplicates'
     ):
       x = expr_eval.eval(
-          kde.core.obj_like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id3]))
+          kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id3]))
       )
       testing.assert_equal(
           x,
@@ -229,9 +221,7 @@ class CoreObjLikeTest(absltest.TestCase):
     itemid = fns.obj(non_existent=ds([[42, 42], [42]])).get_itemid()
     assert itemid.get_bag() is not None
     # Successful.
-    x = expr_eval.eval(
-        kde.core.obj_like(ds([[1, None], [1]]), a=42, itemid=itemid)
-    )
+    x = expr_eval.eval(kde.objs.like(ds([[1, None], [1]]), a=42, itemid=itemid))
     # ITEMID's triples are stripped in the new DataBag.
     with self.assertRaisesRegex(
         ValueError, "attribute 'non_existent' is missing"
@@ -243,20 +233,20 @@ class CoreObjLikeTest(absltest.TestCase):
         TypeError,
         "missing 1 required positional argument: 'shape_and_mask_from'",
     ):
-      _ = kde.core.obj_like().eval()
+      _ = kde.objs.like().eval()
 
   def test_fails_with_shape_input(self):
     with self.assertRaisesRegex(ValueError, 'expected DATA_SLICE'):
-      _ = kde.core.obj_like(ds(0).get_shape()).eval()
+      _ = kde.objs.like(ds(0).get_shape()).eval()
 
   def test_non_determinism(self):
     x = ds([1, None, 3])
-    res_1 = expr_eval.eval(kde.core.obj_like(x, a=5))
-    res_2 = expr_eval.eval(kde.core.obj_like(x, a=5))
+    res_1 = expr_eval.eval(kde.objs.like(x, a=5))
+    res_2 = expr_eval.eval(kde.objs.like(x, a=5))
     self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
     testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
 
-    expr = kde.core.obj_like(x, a=5)
+    expr = kde.objs.like(x, a=5)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
@@ -264,22 +254,22 @@ class CoreObjLikeTest(absltest.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.obj_like,
+        kde.objs.like,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.obj_like(I.x)))
-    self.assertTrue(view.has_koda_view(kde.core.obj_like(I.x, a=I.y)))
+    self.assertTrue(view.has_koda_view(kde.objs.like(I.x)))
+    self.assertTrue(view.has_koda_view(kde.objs.like(I.x, a=I.y)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.obj_like, kde.obj_like))
+    self.assertTrue(optools.equiv_to_op(kde.objs.like, kde.obj_like))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.obj_like(I.x, a=I.y)),
-        'kde.core.obj_like(I.x, itemid=unspecified, a=I.y)',
+        repr(kde.objs.like(I.x, a=I.y)),
+        'kde.objs.like(I.x, itemid=unspecified, a=I.y)',
     )
 
 

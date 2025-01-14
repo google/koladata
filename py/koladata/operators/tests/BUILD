@@ -1300,8 +1300,8 @@ py_test(
 )
 
 py_test(
-    name = "core_new_test",
-    srcs = ["core_new_test.py"],
+    name = "entities_new_test",
+    srcs = ["entities_new_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1322,8 +1322,8 @@ py_test(
 )
 
 py_test(
-    name = "core_new_shaped_test",
-    srcs = ["core_new_shaped_test.py"],
+    name = "entities_shaped_test",
+    srcs = ["entities_shaped_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -1345,8 +1345,8 @@ py_test(
 )
 
 py_test(
-    name = "core_new_shaped_as_test",
-    srcs = ["core_new_shaped_as_test.py"],
+    name = "entities_shaped_as_test",
+    srcs = ["entities_shaped_as_test.py"],
     deps = [
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
@@ -1367,8 +1367,8 @@ py_test(
 )
 
 py_test(
-    name = "core_obj_test",
-    srcs = ["core_obj_test.py"],
+    name = "objs_new_test",
+    srcs = ["objs_new_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1389,8 +1389,8 @@ py_test(
 )
 
 py_test(
-    name = "core_obj_shaped_test",
-    srcs = ["core_obj_shaped_test.py"],
+    name = "objs_shaped_test",
+    srcs = ["objs_shaped_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1411,8 +1411,8 @@ py_test(
 )
 
 py_test(
-    name = "core_obj_shaped_as_test",
-    srcs = ["core_obj_shaped_as_test.py"],
+    name = "objs_shaped_as_test",
+    srcs = ["objs_shaped_as_test.py"],
     deps = [
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
@@ -1433,8 +1433,8 @@ py_test(
 )
 
 py_test(
-    name = "core_obj_like_test",
-    srcs = ["core_obj_like_test.py"],
+    name = "objs_like_test",
+    srcs = ["objs_like_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1454,8 +1454,8 @@ py_test(
 )
 
 py_test(
-    name = "core_new_like_test",
-    srcs = ["core_new_like_test.py"],
+    name = "entities_like_test",
+    srcs = ["entities_like_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2963,8 +2963,8 @@ py_test(
 )
 
 py_test(
-    name = "core_uuobj_test",
-    srcs = ["core_uuobj_test.py"],
+    name = "objs_uu_test",
+    srcs = ["objs_uu_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -2981,8 +2981,8 @@ py_test(
 )
 
 py_test(
-    name = "core_uu_test",
-    srcs = ["core_uu_test.py"],
+    name = "entities_uu_test",
+    srcs = ["entities_uu_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

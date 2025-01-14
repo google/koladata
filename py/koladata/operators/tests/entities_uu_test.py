@@ -33,7 +33,7 @@ DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
 
 
-class KodaUuTest(parameterized.TestCase):
+class EntitiesUuTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
@@ -74,8 +74,8 @@ class KodaUuTest(parameterized.TestCase):
       ),
   )
   def test_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uu(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uu(seed=rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.entities.uu(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.entities.uu(seed=rhs_seed, **rhs_kwargs))
     # Check that required attributes are present.
     for attr_name, val in lhs_kwargs.items():
       testing.assert_equal(
@@ -107,8 +107,8 @@ class KodaUuTest(parameterized.TestCase):
       ),
   )
   def test_not_equal(self, lhs_seed, lhs_kwargs, rhs_seed, rhs_kwargs):
-    lhs = expr_eval.eval(kde.core.uu(seed=lhs_seed, **lhs_kwargs))
-    rhs = expr_eval.eval(kde.core.uu(seed=rhs_seed, **rhs_kwargs))
+    lhs = expr_eval.eval(kde.entities.uu(seed=lhs_seed, **lhs_kwargs))
+    rhs = expr_eval.eval(kde.entities.uu(seed=rhs_seed, **rhs_kwargs))
     self.assertNotEqual(
         lhs.fingerprint, rhs.with_bag(lhs.get_bag()).fingerprint
     )
@@ -116,7 +116,7 @@ class KodaUuTest(parameterized.TestCase):
   def test_schema_arg(self):
     db = data_bag.DataBag.empty()
     uu = expr_eval.eval(
-        kde.core.uu(
+        kde.entities.uu(
             seed='',
             a=ds([3.14], schema_constants.FLOAT32),
             schema=db.uu_schema(a=schema_constants.FLOAT64),
@@ -138,7 +138,7 @@ class KodaUuTest(parameterized.TestCase):
   def test_str_as_schema_arg(self):
     db = data_bag.DataBag.empty()
     uu = expr_eval.eval(
-        kde.core.uu(
+        kde.entities.uu(
             seed='anything',
             a=ds([3.14], schema_constants.FLOAT32),
             schema='a',
@@ -160,7 +160,7 @@ class KodaUuTest(parameterized.TestCase):
   def test_update_schema_arg(self):
     db = data_bag.DataBag.empty()
     uu = expr_eval.eval(
-        kde.core.uu(
+        kde.entities.uu(
             seed='',
             a=ds([3.14], schema_constants.FLOAT32),
             schema=db.uu_schema(a=schema_constants.FLOAT64),
@@ -175,24 +175,24 @@ class KodaUuTest(parameterized.TestCase):
     )
 
   def test_default_seed(self):
-    lhs = expr_eval.eval(kde.core.uu(a=ds(1), b=ds(2)))
-    rhs = expr_eval.eval(kde.core.uu('', a=ds(1), b=ds(2)))
+    lhs = expr_eval.eval(kde.entities.uu(a=ds(1), b=ds(2)))
+    rhs = expr_eval.eval(kde.entities.uu('', a=ds(1), b=ds(2)))
     testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_no_args(self):
-    lhs = expr_eval.eval(kde.core.uu())
-    rhs = expr_eval.eval(kde.core.uu(''))
+    lhs = expr_eval.eval(kde.entities.uu())
+    rhs = expr_eval.eval(kde.entities.uu(''))
     testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
 
   def test_keywod_only_args(self):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'takes from 0 to 1 positional arguments but 2 were given'
     ):
-      _ = expr_eval.eval(kde.core.uu(ds('1'), ds('a')))
+      _ = expr_eval.eval(kde.entities.uu(ds('1'), ds('a')))
 
   def test_bag_adoption(self):
-    a = expr_eval.eval(kde.core.uu(a=1))
-    b = expr_eval.eval(kde.core.uu(a=a))
+    a = expr_eval.eval(kde.entities.uu(a=1))
+    b = expr_eval.eval(kde.entities.uu(a=a))
     testing.assert_equal(b.a.a, ds(1).with_bag(b.get_bag()))
 
   @parameterized.parameters(
@@ -247,26 +247,26 @@ class KodaUuTest(parameterized.TestCase):
         err_regex,
     ):
       _ = expr_eval.eval(
-          kde.core.uu(
+          kde.entities.uu(
               seed=seed, schema=schema, update_schema=update_schema, **kwargs
           )
       )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.uu(seed=I.seed)))
+    self.assertTrue(view.has_koda_view(kde.entities.uu(seed=I.seed)))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.uu, kde.uu))
+    self.assertTrue(optools.equiv_to_op(kde.entities.uu, kde.uu))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.uu(a=I.z, seed=I.seed)),
-        'kde.core.uu(I.seed, schema=unspecified,'
+        repr(kde.entities.uu(a=I.z, seed=I.seed)),
+        'kde.entities.uu(I.seed, schema=unspecified,'
         ' update_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
     )
     self.assertEqual(
-        repr(kde.core.uu(I.seed, a=I.z)),
-        'kde.core.uu(I.seed, schema=unspecified,'
+        repr(kde.entities.uu(I.seed, a=I.z)),
+        'kde.entities.uu(I.seed, schema=unspecified,'
         ' update_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
     )
 

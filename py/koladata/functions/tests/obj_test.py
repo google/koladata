@@ -458,7 +458,7 @@ class ObjTest(absltest.TestCase):
     )
 
   def test_alias(self):
-    self.assertIs(fns.obj, fns.core.obj)
+    self.assertIs(fns.obj, fns.objs.new)
 
 
 if __name__ == '__main__':

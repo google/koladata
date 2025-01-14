@@ -47,10 +47,10 @@ def generate_qtypes():
 QTYPES = list(generate_qtypes())
 
 
-class CoreObjTest(parameterized.TestCase):
+class ObjsNewTest(parameterized.TestCase):
 
   def test_item(self):
-    x = kde.core.obj(
+    x = kde.objs.new(
         a=ds(3.14, schema_constants.FLOAT64),
         b=ds('abc', schema_constants.STRING),
     ).eval()
@@ -67,9 +67,9 @@ class CoreObjTest(parameterized.TestCase):
     )
 
   def test_slice(self):
-    x = kde.core.obj(
+    x = kde.objs.new(
         a=ds([[1, 2], [3]]),
-        b=kde.core.obj(bb=ds([['a', 'b'], ['c']])),
+        b=kde.objs.new(bb=ds([['a', 'b'], ['c']])),
         c=ds(b'xyz'),
     ).eval()
     testing.assert_equal(x.a, ds([[1, 2], [3]]).with_bag(x.get_bag()))
@@ -89,7 +89,7 @@ class CoreObjTest(parameterized.TestCase):
     )
 
   def test_adopt_bag(self):
-    x = kde.core.obj(
+    x = kde.objs.new(
         a=ds(3.14, schema_constants.FLOAT64),
         b=ds('abc', schema_constants.STRING),
     ).eval()
@@ -105,13 +105,13 @@ class CoreObjTest(parameterized.TestCase):
 
   def test_itemid(self):
     itemid = kde.allocation.new_itemid_shaped_as(ds([[1, 1], [1]])).eval()
-    x = kde.core.obj(a=42, itemid=itemid).eval()
+    x = kde.objs.new(a=42, itemid=itemid).eval()
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_schema_arg(self):
     with self.assertRaisesRegex(ValueError, 'please use new'):
-      kde.core.obj(a=1, b='a', schema=schema_constants.INT32).eval()
+      kde.objs.new(a=1, b='a', schema=schema_constants.INT32).eval()
 
   @parameterized.parameters(
       (42, ds(42, schema_constants.OBJECT)),
@@ -123,15 +123,15 @@ class CoreObjTest(parameterized.TestCase):
       ),
   )
   def test_converter_primitives(self, x, expected):
-    testing.assert_equal(kde.core.obj(x).eval().no_bag(), expected)
+    testing.assert_equal(kde.objs.new(x).eval().no_bag(), expected)
 
   def test_converter_list(self):
-    l = kde.core.obj(bag().list([1, 2, 3])).eval()
+    l = kde.objs.new(bag().list([1, 2, 3])).eval()
     testing.assert_equal(l.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(l[:], ds([1, 2, 3]).with_bag(l.get_bag()))
 
   def test_converter_empty_list(self):
-    l = kde.core.obj(bag().list()).eval()
+    l = kde.objs.new(bag().list()).eval()
     testing.assert_equal(
         l.get_obj_schema().get_attr('__items__').no_bag(),
         schema_constants.OBJECT,
@@ -139,7 +139,7 @@ class CoreObjTest(parameterized.TestCase):
     testing.assert_equal(l[:].no_bag(), ds([]))
 
   def test_converter_dict(self):
-    d = kde.core.obj(
+    d = kde.objs.new(
         bag().dict({'a': 42, 'b': ds(37, schema_constants.INT64)})
     ).eval()
     testing.assert_equal(d.get_schema().no_bag(), schema_constants.OBJECT)
@@ -150,7 +150,7 @@ class CoreObjTest(parameterized.TestCase):
     )
 
   def test_converter_empty_dict(self):
-    d = kde.core.obj(bag().dict()).eval()
+    d = kde.objs.new(bag().dict()).eval()
     testing.assert_equal(
         d.get_obj_schema().get_attr('__keys__').no_bag(),
         schema_constants.OBJECT,
@@ -165,20 +165,20 @@ class CoreObjTest(parameterized.TestCase):
   def test_converter_entity(self):
     with self.subTest('item'):
       entity = bag().new(a=42, b='abc')
-      obj = kde.core.obj(entity).eval()
+      obj = kde.objs.new(entity).eval()
       testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
       testing.assert_equal(obj.a, ds(42).with_bag(obj.get_bag()))
       testing.assert_equal(obj.b, ds('abc').with_bag(obj.get_bag()))
     with self.subTest('slice'):
       entity = bag().new(a=ds([1, 2]), b='abc')
-      obj = kde.core.obj(entity).eval()
+      obj = kde.objs.new(entity).eval()
       testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
       testing.assert_equal(obj.a, ds([1, 2]).with_bag(obj.get_bag()))
       testing.assert_equal(obj.b, ds(['abc', 'abc']).with_bag(obj.get_bag()))
 
   def test_converter_object(self):
     obj = bag().obj(a=42, b='abc')
-    new_obj = kde.core.obj(obj).eval()
+    new_obj = kde.objs.new(obj).eval()
     self.assertNotEqual(
         obj.get_bag().fingerprint, new_obj.get_bag().fingerprint
     )
@@ -188,21 +188,21 @@ class CoreObjTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, '`itemid` is not supported when converting to object'
     ):
-      kde.core.obj(I.x, itemid=I.itemid).eval(x=ds(42), itemid=bag().new())
+      kde.objs.new(I.x, itemid=I.itemid).eval(x=ds(42), itemid=bag().new())
 
   def test_converter_on_python_objects(self):
     with self.assertRaisesRegex(
         ValueError, 'unable to represent argument `arg` as QValue or Expr'
     ):
-      kde.core.obj({'a': 42}, itemid=I.itemid)
+      kde.objs.new({'a': 42}, itemid=I.itemid)
 
   def test_non_determinism(self):
-    res_1 = expr_eval.eval(kde.core.obj(a=I.a), a=42)
-    res_2 = expr_eval.eval(kde.core.obj(a=I.a), a=42)
+    res_1 = expr_eval.eval(kde.objs.new(a=I.a), a=42)
+    res_2 = expr_eval.eval(kde.objs.new(a=I.a), a=42)
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
-    expr = kde.core.obj(a=42)
+    expr = kde.objs.new(a=42)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
@@ -210,24 +210,24 @@ class CoreObjTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.obj,
+        kde.objs.new,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.obj(I.x)))
+    self.assertTrue(view.has_koda_view(kde.objs.new(I.x)))
     self.assertTrue(
-        view.has_koda_view(kde.core.obj(I.x, itemid=I.itemid, a=I.y))
+        view.has_koda_view(kde.objs.new(I.x, itemid=I.itemid, a=I.y))
     )
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.core.obj, kde.obj))
+    self.assertTrue(optools.equiv_to_op(kde.objs.new, kde.obj))
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.core.obj(a=I.y)),
-        'kde.core.obj(unspecified, itemid=unspecified, a=I.y)',
+        repr(kde.objs.new(a=I.y)),
+        'kde.objs.new(unspecified, itemid=unspecified, a=I.y)',
     )
 
 

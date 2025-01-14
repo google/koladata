@@ -67,16 +67,6 @@ empty_shaped_as = _object_factories.empty_shaped_as
 # NOTE: Explicitly overwrite operators that accept a DataBag as an argument or
 # are mutable in "core" namespace.
 core = _py_types.SimpleNamespace(
-    uu=_object_factories.uu,
-    uuobj=_object_factories.uuobj,
-    new=_object_factories.new,
-    new_like=_object_factories.new_like,
-    new_shaped=_object_factories.new_shaped,
-    new_shaped_as=_object_factories.new_shaped_as,
-    obj=_object_factories.obj,
-    obj_like=_object_factories.obj_like,
-    obj_shaped=_object_factories.obj_shaped,
-    obj_shaped_as=_object_factories.obj_shaped_as,
     container=_object_factories.container,
     empty_shaped=_object_factories.empty_shaped,
     empty_shaped_as=_object_factories.empty_shaped_as,
@@ -99,6 +89,22 @@ lists = _py_types.SimpleNamespace(
     shaped_as=_object_factories.list_shaped_as,
     implode=_object_factories.implode,
     concat=_object_factories.concat_lists,
+)
+
+entities = _py_types.SimpleNamespace(
+    new=_object_factories.new,
+    like=_object_factories.new_like,
+    shaped=_object_factories.new_shaped,
+    shaped_as=_object_factories.new_shaped_as,
+    uu=_object_factories.uu,
+)
+
+objs = _py_types.SimpleNamespace(
+    new=_object_factories.obj,
+    like=_object_factories.obj_like,
+    shaped=_object_factories.obj_shaped,
+    shaped_as=_object_factories.obj_shaped_as,
+    uu=_object_factories.uuobj,
 )
 
 
