@@ -4362,15 +4362,6 @@ Creates a Koda entity schema corresponding to the given Python type.
     to derive the itemid for the uu-schema.
 ```
 
-### `kd.schema.schema_from_py_type(tpe)` {#kd.schema.schema_from_py_type}
-Aliases:
-
-- [kd.schema_from_py_type](#kd.schema_from_py_type)
-
-``` {.no-copy}
-A deprecated alias for kd.schema.schema_from_py.
-```
-
 ### `kd.schema.to_any(x)` {#kd.schema.to_any}
 
 Alias for [kd.schema.as_any](#kd.schema.as_any) operator.
@@ -4967,6 +4958,24 @@ Returns:
   A new DataSlice with items selected by indices.
 ```
 
+### `kd.slices.bool(x)` {#kd.slices.bool}
+Aliases:
+
+- [kd.bool](#kd.bool)
+
+``` {.no-copy}
+Returns kd.slice(x, kd.BOOLEAN).
+```
+
+### `kd.slices.bytes(x)` {#kd.slices.bytes}
+Aliases:
+
+- [kd.bytes](#kd.bytes)
+
+``` {.no-copy}
+Returns kd.slice(x, kd.BYTES).
+```
+
 ### `kd.slices.collapse(x, ndim=unspecified)` {#kd.slices.collapse}
 Aliases:
 
@@ -5191,6 +5200,33 @@ Returns:
   Expanded DataSlice
 ```
 
+### `kd.slices.expr_quote(x)` {#kd.slices.expr_quote}
+Aliases:
+
+- [kd.expr_quote](#kd.expr_quote)
+
+``` {.no-copy}
+Returns kd.slice(x, kd.EXPR).
+```
+
+### `kd.slices.float32(x)` {#kd.slices.float32}
+Aliases:
+
+- [kd.float32](#kd.float32)
+
+``` {.no-copy}
+Returns kd.slice(x, kd.FLOAT32).
+```
+
+### `kd.slices.float64(x)` {#kd.slices.float64}
+Aliases:
+
+- [kd.float64](#kd.float64)
+
+``` {.no-copy}
+Returns kd.slice(x, kd.FLOAT64).
+```
+
 ### `kd.slices.get_ndim(x)` {#kd.slices.get_ndim}
 Aliases:
 
@@ -5396,6 +5432,24 @@ Args:
     If dim < 0 then dim = get_ndim(x) + dim.
 ```
 
+### `kd.slices.int32(x)` {#kd.slices.int32}
+Aliases:
+
+- [kd.int32](#kd.int32)
+
+``` {.no-copy}
+Returns kd.slice(x, kd.INT32).
+```
+
+### `kd.slices.int64(x)` {#kd.slices.int64}
+Aliases:
+
+- [kd.int64](#kd.int64)
+
+``` {.no-copy}
+Returns kd.slice(x, kd.INT64).
+```
+
 ### `kd.slices.inverse_mapping(x, ndim=unspecified)` {#kd.slices.inverse_mapping}
 Aliases:
 
@@ -5537,6 +5591,33 @@ Aliases:
 
 ``` {.no-copy}
 Returns a DataItem indicating whether DataItem x is present in y.
+```
+
+### `kd.slices.item` {#kd.slices.item}
+Aliases:
+
+- [kd.item](#kd.item)
+
+``` {.no-copy}
+Returns a DataItem created from `x`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`x`. Python value must be convertible to Koda scalar and the result cannot
+be multidimensional DataSlice.
+
+Args:
+  x: a Python value or a DataItem.
+  schema: schema DataItem to set. If `x` is already a DataItem, this will cast
+    it to the given schema.
+```
+
+### `kd.slices.mask(x)` {#kd.slices.mask}
+Aliases:
+
+- [kd.mask](#kd.mask)
+
+``` {.no-copy}
+Returns kd.slice(x, kd.MASK).
 ```
 
 ### `kd.slices.ordinal_rank(x, tie_breaker=unspecified, descending=DataItem(False, schema: BOOLEAN), ndim=unspecified)` {#kd.slices.ordinal_rank}
@@ -5758,6 +5839,26 @@ Returns:
   The size of `x`.
 ```
 
+### `kd.slices.slice` {#kd.slices.slice}
+Aliases:
+
+- [kd.slice](#kd.slice)
+
+- [DataSlice.from_vals](#DataSlice.from_vals)
+
+``` {.no-copy}
+Returns a DataSlice created from `x`.
+
+If `schema` is set, that schema is used, otherwise the schema is inferred from
+`x`.
+
+Args:
+  x: a Python value or a DataSlice. If it is a (nested) Python list or tuple,
+    a multidimensional DataSlice is created.
+  schema: schema DataItem to set. If `x` is already a DataSlice, this will
+    cast it to the given schema.
+```
+
 ### `kd.slices.sort(x, sort_by=unspecified, descending=DataItem(False, schema: BOOLEAN))` {#kd.slices.sort}
 Aliases:
 
@@ -5838,6 +5939,15 @@ Args:
 Returns:
   The stacked DataSlice. If the input DataSlices come from different DataBags,
   this will refer to a merged immutable DataBag.
+```
+
+### `kd.slices.str(x)` {#kd.slices.str}
+Aliases:
+
+- [kd.str](#kd.str)
+
+``` {.no-copy}
+Returns kd.slice(x, kd.STRING).
 ```
 
 ### `kd.slices.subslice(x, *slices)` {#kd.slices.subslice}
@@ -6867,15 +6977,11 @@ Alias for [kd.functor.bind](#kd.functor.bind) operator.
 
 ### `kd.bool(x)` {#kd.bool}
 
-``` {.no-copy}
-Returns kd.slice(x, kd.BOOLEAN).
-```
+Alias for [kd.slices.bool](#kd.slices.bool) operator.
 
 ### `kd.bytes(x)` {#kd.bytes}
 
-``` {.no-copy}
-Returns kd.slice(x, kd.BYTES).
-```
+Alias for [kd.slices.bytes](#kd.slices.bytes) operator.
 
 ### `kd.call(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.call}
 
@@ -7090,9 +7196,7 @@ Alias for [kd.lists.explode](#kd.lists.explode) operator.
 
 ### `kd.expr_quote(x)` {#kd.expr_quote}
 
-``` {.no-copy}
-Returns kd.slice(x, kd.EXPR).
-```
+Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
 
 ### `kd.extract(ds, schema=unspecified)` {#kd.extract}
 
@@ -7108,15 +7212,11 @@ Alias for [kd.shapes.flatten](#kd.shapes.flatten) operator.
 
 ### `kd.float32(x)` {#kd.float32}
 
-``` {.no-copy}
-Returns kd.slice(x, kd.FLOAT32).
-```
+Alias for [kd.slices.float32](#kd.slices.float32) operator.
 
 ### `kd.float64(x)` {#kd.float64}
 
-``` {.no-copy}
-Returns kd.slice(x, kd.FLOAT64).
-```
+Alias for [kd.slices.float64](#kd.slices.float64) operator.
 
 ### `kd.fn(f, *, use_tracing=True, **kwargs)` {#kd.fn}
 
@@ -7390,15 +7490,11 @@ Alias for [kd.slices.index](#kd.slices.index) operator.
 
 ### `kd.int32(x)` {#kd.int32}
 
-``` {.no-copy}
-Returns kd.slice(x, kd.INT32).
-```
+Alias for [kd.slices.int32](#kd.slices.int32) operator.
 
 ### `kd.int64(x)` {#kd.int64}
 
-``` {.no-copy}
-Returns kd.slice(x, kd.INT64).
-```
+Alias for [kd.slices.int64](#kd.slices.int64) operator.
 
 ### `kd.inverse_mapping(x, ndim=unspecified)` {#kd.inverse_mapping}
 
@@ -7464,17 +7560,7 @@ Alias for [kd.slices.isin](#kd.slices.isin) operator.
 
 ### `kd.item` {#kd.item}
 
-``` {.no-copy}
-Returns a DataItem created from Python `value`.
-
-If `schema` is set, that schema is used, otherwise the schema is inferred from
-`value`. Python value must be convertible to Koda scalar and the result cannot
-be multidimensional DataSlice.
-
-Args:
-  x: Python value.
-  schema: schema DataSlice to set.
-```
+Alias for [kd.slices.item](#kd.slices.item) operator.
 
 ### `kd.less(x, y)` {#kd.less}
 
@@ -7492,16 +7578,13 @@ Creates list(s) by collapsing `items`.
   Returns an immutable list if `db` is not provided.
 
   If there is no argument, returns an empty Koda List.
-  If the argument is a DataSlice, creates a slice of Koda Lists.
   If the argument is a Python list, creates a nested Koda List.
 
   Examples:
   list() -> a single empty Koda List
   list([1, 2, 3]) -> Koda List with items 1, 2, 3
-  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
   list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
-  list(kd.slice([[1, 2, 3], [4, 5]]))
-    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
+    # items are Koda lists.
 
   Args:
     items: The items to use. If not specified, an empty list of OBJECTs will be
@@ -7569,9 +7652,7 @@ Alias for [kd.py.map_py_on_selected](#kd.py.map_py_on_selected) operator.
 
 ### `kd.mask(x)` {#kd.mask}
 
-``` {.no-copy}
-Returns kd.slice(x, kd.MASK).
-```
+Alias for [kd.slices.mask](#kd.slices.mask) operator.
 
 ### `kd.mask_and(x, y)` {#kd.mask_and}
 
@@ -7814,10 +7895,6 @@ Alias for [kd.random.sample_n](#kd.random.sample_n) operator.
 
 Alias for [kd.schema.schema_from_py](#kd.schema.schema_from_py) operator.
 
-### `kd.schema_from_py_type(tpe)` {#kd.schema_from_py_type}
-
-Alias for [kd.schema.schema_from_py_type](#kd.schema.schema_from_py_type) operator.
-
 ### `kd.select(ds, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#kd.select}
 
 Alias for [kd.slices.select](#kd.slices.select) operator.
@@ -7913,20 +7990,8 @@ Alias for [kd.core.shallow_clone](#kd.core.shallow_clone) operator.
 Alias for [kd.slices.size](#kd.slices.size) operator.
 
 ### `kd.slice` {#kd.slice}
-Aliases:
 
-- [DataSlice.from_vals](#DataSlice.from_vals)
-
-``` {.no-copy}
-Returns a DataSlice created from Python `value`.
-
-If `schema` is set, that schema is used, otherwise the schema is inferred from
-`value`.
-
-Args:
-  x: Python value.
-  schema: schema DataSlice to set.
-```
+Alias for [kd.slices.slice](#kd.slices.slice) operator.
 
 ### `kd.sort(x, sort_by=unspecified, descending=DataItem(False, schema: BOOLEAN))` {#kd.sort}
 
@@ -7938,9 +8003,7 @@ Alias for [kd.slices.stack](#kd.slices.stack) operator.
 
 ### `kd.str(x)` {#kd.str}
 
-``` {.no-copy}
-Returns kd.slice(x, kd.STRING).
-```
+Alias for [kd.slices.str](#kd.slices.str) operator.
 
 ### `kd.stub(x, attrs=DataSlice([], schema: OBJECT, ndims: 1, size: 0))` {#kd.stub}
 
@@ -8860,7 +8923,7 @@ Returns a frozen DataSlice equivalent to `self`.
 
 ### `DataSlice.from_vals` {#DataSlice.from_vals}
 
-Alias for [kd.slice](#kd.slice) operator.
+Alias for [kd.slices.slice](#kd.slices.slice) operator.
 
 ### `DataSlice.get_attr(attr_name, /, default=None)` {#DataSlice.get_attr}
 
@@ -9943,16 +10006,13 @@ Returns present iff this DataBag is mutable.
 Creates list(s) by collapsing `items`.
 
   If there is no argument, returns an empty Koda List.
-  If the argument is a DataSlice, creates a slice of Koda Lists.
   If the argument is a Python list, creates a nested Koda List.
 
   Examples:
   list() -> a single empty Koda List
   list([1, 2, 3]) -> Koda List with items 1, 2, 3
-  list(kd.slice([1, 2, 3])) -> (same as above) Koda List with items 1, 2, 3
   list([[1, 2, 3], [4, 5]]) -> nested Koda List [[1, 2, 3], [4, 5]]
-  list(kd.slice([[1, 2, 3], [4, 5]]))
-    -> 1-D DataSlice with 2 lists [1, 2, 3], [4, 5]
+    # items are Koda lists.
 
   Args:
     items: The items to use. If not specified, an empty list of OBJECTs will be
