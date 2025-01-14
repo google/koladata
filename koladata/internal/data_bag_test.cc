@@ -1307,8 +1307,7 @@ TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjectsSparseToDense) {
     for (int64_t sz : {kSize / 100 + 1, kSize}) {
       auto objs_bldr = arolla::DenseArrayBuilder<ObjectId>(sz);
       objs_bldr.Set(0, AllocateSingleObject());
-      auto objs = DataSliceImpl::CreateWithAllocIds(
-          ds.allocation_ids(), std::move(objs_bldr).Build());
+      auto objs = DataSliceImpl::Create(std::move(objs_bldr).Build());
       ASSERT_OK_AND_ASSIGN(
           auto _, db->InternalSetUnitAttrAndReturnMissingObjects(objs, "a"));
     }
@@ -1438,8 +1437,8 @@ TEST(DataBagTest, SetGetDataSliceUUid) {
   auto object_array = arolla::CreateFullDenseArray<ObjectId>(
       {alloc1.ObjectByOffset(5), alloc3.ObjectByOffset(0),
        alloc2.ObjectByOffset(9)});
-  ds_b = DataSliceImpl::CreateWithAllocIds(AllocationIdSet({alloc1, alloc2}),
-                                           object_array);
+  ds_b = DataSliceImpl::CreateWithAllocIds(
+      AllocationIdSet({alloc1, alloc2, alloc3}), object_array);
   ASSERT_OK(db->SetAttr(ds, "b", ds_b));
   ASSERT_OK_AND_ASSIGN(ds_b_get, db->GetAttr(ds, "b"));
   ASSERT_EQ(ds_b_get.dtype(), arolla::GetQType<ObjectId>());

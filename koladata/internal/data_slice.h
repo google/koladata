@@ -326,6 +326,27 @@ bool VerifyNonIntersectingIds(const arolla::DenseArray<T>& main_values,
 }
 
 template <class T>
+bool VerifyAllocIds(const AllocationIdSet& alloc_ids,
+                    const arolla::DenseArray<T>& values) {
+  if constexpr (std::is_same_v<T, ObjectId>) {
+    bool res = true;
+    values.ForEachPresent([&](int64_t /*id*/, ObjectId obj_id) {
+      if (!obj_id.IsSmallAlloc()) {
+        for (AllocationId alloc_id : alloc_ids.ids()) {
+          if (alloc_id.Contains(obj_id)) return;
+        }
+        res = false;
+      } else if (!alloc_ids.contains_small_allocation_id()) {
+        res = false;
+      }
+    });
+    return res;
+  } else {
+    return true;
+  }
+}
+
+template <class T>
 constexpr bool AreAllTypesDistinct(std::type_identity<T>) {
   return true;
 }
@@ -396,13 +417,15 @@ DataSliceImpl DataSliceImpl::CreateWithAllocIds(
     AllocationIdSet allocation_ids, arolla::DenseArray<T> main_values,
     arolla::DenseArray<Ts>... values) {
   DataSliceImpl res;
-  CreateImpl(res, std::move(main_values), std::move(values)...);
   if constexpr ((std::is_same_v<T, ObjectId> || ... ||
                  std::is_same_v<Ts, ObjectId>)) {
+    DCHECK(data_slice_impl::VerifyAllocIds(allocation_ids, main_values));
+    DCHECK((data_slice_impl::VerifyAllocIds(allocation_ids, values) && ...));
     res.internal_->allocation_ids = std::move(allocation_ids);
   } else {
     (void)allocation_ids;
   }
+  CreateImpl(res, std::move(main_values), std::move(values)...);
   return res;
 }
 
@@ -410,13 +433,14 @@ template <class T>
 DataSliceImpl DataSliceImpl::CreateWithTypesBuffer(TypesBuffer types_buffer,
     AllocationIdSet allocation_ids, arolla::DenseArray<T> values) {
   DataSliceImpl res;
-  CreateImpl(res, std::move(values));
   res.internal_->types_buffer = std::move(types_buffer);
   if constexpr (std::is_same_v<T, ObjectId>) {
+    DCHECK(data_slice_impl::VerifyAllocIds(allocation_ids, values));
     res.internal_->allocation_ids = std::move(allocation_ids);
   } else {
     (void)allocation_ids;
   }
+  CreateImpl(res, std::move(values));
   return res;
 }
 

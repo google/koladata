@@ -209,7 +209,7 @@ void BM_ObjAttributeDataBagManySources(benchmark::State& state) {
     for (int j = i; j < batch_size; j += chain_size) {
       ds_bldr.Set(j, ds_a.values<ObjectId>()[j]);
     }
-    alloc_ids.Insert(ds.allocation_ids());
+    alloc_ids.Insert(ds_a.allocation_ids());
   }
 
   auto ds =
