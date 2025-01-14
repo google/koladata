@@ -980,6 +980,7 @@ TEST(EvalCompilerCacheTest, CacheHits) {
   auto int_2 = tv_int_2.AsRef();
   auto float_1 = tv_float_1.AsRef();
 
+  ClearCompilationCache();
   EXPECT_FALSE(compiler_internal::Lookup("math.add", {int_1, float_1}));
   EXPECT_OK(EvalExpr("math.add", {int_1, float_1}).status());
   EXPECT_TRUE(compiler_internal::Lookup("math.add", {int_1, float_1}));
