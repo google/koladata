@@ -27,6 +27,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -2228,6 +2229,34 @@ TEST_P(ExtractTest, AnySchemaType) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(3);
   auto schema = DataItem(schema::kAny);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(absl::StatusCode::kInternal,
+               "clone/extract not supported for kAny schema"));
+}
+
+TEST_P(ExtractTest, AnySchemaForOneAttribute) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(3);
+  auto schema = AllocateSchema();
+
+  for (int i = 0; i < 15; ++i) {
+    SetSchemaTriples(
+        *db, {{schema, {{absl::StrCat("x", i), DataItem(schema::kInt32)}}}});
+  }
+  SetSchemaTriples(
+      *db, {{schema, {{absl::StrCat("x", 15), DataItem(schema::kAny)}}}});
+  for (int i = 0; i < 15; ++i) {
+    SetSchemaTriples(
+        *db, {{schema, {{absl::StrCat("x", i), DataItem(schema::kInt32)}}}});
+  }
+  for (int i = 0; i < 30; ++i) {
+    SetDataTriples(*db,
+                   {{obj_ids[0], {{absl::StrCat("x", i), obj_ids[1]}}}});
+  }
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(

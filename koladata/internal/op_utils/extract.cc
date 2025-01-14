@@ -523,17 +523,16 @@ class CopyingProcessor {
       }
       return ProcessDicts(ds, db, fallbacks);
     }
-    absl::Status status = absl::OkStatus();
     for (const auto& attr_name_item : attr_names) {
       const std::string_view attr_name = attr_name_item.value<arolla::Text>();
       ASSIGN_OR_RETURN((auto [attr_schema, was_schema_updated]),
           CopyAttrSchema(ds.schema, db, fallbacks, attr_name));
       if (was_schema_updated || ds.slice.present_count() > 0) {
         // Data or schema are not yet copied.
-        status = ProcessAttribute(ds, attr_name, attr_schema);
+        RETURN_IF_ERROR(ProcessAttribute(ds, attr_name, attr_schema));
       }
     }
-    return status;
+    return absl::OkStatus();
   }
 
   // Process slice of objects with entity schema.
