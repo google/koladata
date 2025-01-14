@@ -8,8 +8,6 @@ users. You can see more detailed introduction in the
 
 Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
 
-[TOC]
-
 ## Why Koda
 
 ### Koda Distinguishing Features

@@ -1,7 +1,5 @@
 # Koda
 
-[TOC]
-
 ## Koda
 
 Koda is a **Python + C++ library** that provides a **data representation** and

@@ -1,7 +1,5 @@
 # Add user friendly error messages
 
-[TOC]
-
 When Koda developers find a case where the error message is not readable,
 contains a lot of internal implementation details or is not user oriented, this
 document provides a way to improve it.

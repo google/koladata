@@ -1,7 +1,5 @@
 # koda Glossaries
 
-[TOC]
-
 ## Basics
 
 #### .
