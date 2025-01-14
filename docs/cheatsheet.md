@@ -1112,18 +1112,17 @@ kd.any(x) # present
 ### Type casting operators
 
 ```py
-kd.to_int32(kd.slice([1., 2., 3.]))
-kd.to_int64(kd.slice([1, 2, 3]))
-kd.to_float32(kd.slice([1, 2, 3]))
-kd.to_float64(kd.slice([1., 2., 3.]))
-kd.to_bool(kd.slice([0, 1, 2]))
-kd.to_str(kd.slice([1, 2, 3]))
-kd.to_bytes(kd.slice([b'1', b'2', b'3']))
+# Same operators as for creating a slice of specific type.
+kd.int32(kd.slice([1., 2., 3.]))
+kd.int64(kd.slice([1, 2, 3]))
+kd.float32(kd.slice([1, 2, 3]))
+kd.float64(kd.slice([1., 2., 3.]))
+kd.bool(kd.slice([0, 1, 2]))
+kd.str(kd.slice([1, 2, 3]))
+kd.bytes(kd.slice([b'1', b'2', b'3']))
 
-# Dispatches to the relevant kd.to_* operator
-# or casts into specific schema.
+# Dispatches to the relevant kd.* operator
 kd.cast_to(kd.slice([1, 2, 3]), kd.INT64)
-kd.cast_to(kd.new(x=1), kd.uu_schema(x=kd.INT32))
 ```
 
 </section>
@@ -3222,7 +3221,7 @@ kd.testing.assert_equal(ds3, ds4)
 ds5 = kd.slice([1, 2, 3])
 ds6 = kd.slice([1, 2, 3], kd.INT64)
 kd.testing.assert_equal(ds5, ds6) # Fail
-kd.testing.assert_equal(ds5, kd.to_int32(ds6))
+kd.testing.assert_equal(ds5, kd.int32(ds6))
 
 # It compares DataBags too for DataSlices
 ds7 = kd.uuobj(x=1)

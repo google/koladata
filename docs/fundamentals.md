@@ -793,10 +793,10 @@ kd.slice([1., 2, 3]).get_dtype()  # kd.FLOAT32, because of 1., 2 and 3 are caste
 Primitives can be converted as expected.
 
 ```py
-kd.to_float32(kd.item(1))
-kd.to_str(kd.item(1))
-kd.to_float32(kd.slice([1, 2, 3]))
-kd.to_int64(kd.slice([1, 2, 3]))
+kd.float32(kd.item(1))
+kd.str(kd.item(1))
+kd.float32(kd.slice([1, 2, 3]))
+kd.int64(kd.slice([1, 2, 3]))
 kd.cast_to(kd.slice([1, 2, 3]), kd.INT64)  # the same as above
 ```
 
@@ -1811,7 +1811,7 @@ To convert ItemIds to integers (i.e. INT64), we can use `kd.hash_itemid`.
 ```py
 kd.hash_itemid(kd.uuid(a=1, b=2))  # 1904240190261917870
 # kd.uuid(a=1, b=2) % 98190831 - fails, as itemid's are not integers
-kd.to_int32(kd.hash_itemid(kd.uuid(a=1, b=2)) % 98190831)  # 59785733
+kd.int32(kd.hash_itemid(kd.uuid(a=1, b=2)) % 98190831)  # 59785733
 kd.hash_itemid(kd.deep_uuid(kd.obj(a=1, b=2, seed='my_seed')))
 kd.hash_itemid(kd.new_itemid()) % 31  # Can be used as pseudo-random
 ```
