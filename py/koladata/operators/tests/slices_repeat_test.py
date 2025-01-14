@@ -106,14 +106,19 @@ class SlicesRepeatTest(parameterized.TestCase):
         ),
     )
 
+  def test_align_arguments(self):
+    testing.assert_equal(
+        expr_eval.eval(kde.slices.repeat(ds(1), ds([1, 2, 3]))),
+        ds([[1], [1, 1], [1, 1, 1]]))
+
   def test_incompatible_sizes_shape_error(self):
     x = ds([1, 2, 3])
     sizes = ds([[1, 2], [3]])
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            f'DataSlice with shape={sizes.get_shape()} cannot be expanded to'
-            f' shape={x.get_shape()}'
+            f'DataSlice with shape={x.get_shape()} cannot be expanded to'
+            f' shape={sizes.get_shape()}'
         ),
     ):
       expr_eval.eval(kde.slices.repeat(x, sizes))

@@ -1095,8 +1095,8 @@ def repeat(x, sizes):
     x: A DataSlice of data.
     sizes: A DataSlice of sizes that each value in `x` should be repeated for.
   """
+  x, expanded_sizes = align(x, sizes)
   x_shape = jagged_shape_ops.get_shape(x)
-  expanded_sizes = jagged_shape_ops.expand_to_shape(sizes, x_shape)
   edge = M.edge.from_sizes(
       arolla_bridge.to_arolla_dense_array_int64(expanded_sizes)
   )
@@ -1135,9 +1135,7 @@ def repeat_present(x, sizes):
     x: A DataSlice of data.
     sizes: A DataSlice of sizes that each value in `x` should be repeated for.
   """
-  expanded_sizes = jagged_shape_ops.expand_to_shape(
-      sizes, jagged_shape_ops.get_shape(x)
-  )
+  x, expanded_sizes = align(x, sizes)
   return repeat(x, masking.cond(masking.has(x), expanded_sizes, 0))
 
 
