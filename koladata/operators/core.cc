@@ -196,14 +196,6 @@ class WithAttrsOperator : public arolla::QExprOperator {
   }
 };
 
-absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y))
-      .With(OpError("kd.core.add"));
-  RETURN_IF_ERROR(ExpectCanBeAdded("x", x)).With(OpError("kd.core.add"));
-  RETURN_IF_ERROR(ExpectCanBeAdded("y", y)).With(OpError("kd.core.add"));
-  return SimplePointwiseEval("kde.core._add_impl", {x, y});
-}
-
 DataSlice NoBag(const DataSlice& ds) { return ds.WithBag(nullptr); }
 
 absl::StatusOr<DataSlice> Ref(const DataSlice& ds) {

@@ -22,13 +22,13 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import comparison as _
-from koladata.operators import core
 from koladata.operators import jagged_shape
 from koladata.operators import koda_internal as _
-from koladata.operators import math as _
+from koladata.operators import math
 from koladata.operators import optools
 from koladata.operators import optools_test_utils
 from koladata.operators import qtype_utils
+from koladata.operators import tuple as _
 from koladata.testing import testing
 from koladata.types import data_item as _
 from koladata.types import data_slice
@@ -52,7 +52,7 @@ class OptoolsTest(parameterized.TestCase):
         'test.op_default_boxing',
     )
     def op_default_boxing(x, y):
-      return core.add(x, y)
+      return math.add(x, y)
 
     x = ds(1)
     y = ds(4)
@@ -148,7 +148,7 @@ class OptoolsTest(parameterized.TestCase):
 
     @optools.as_lambda_operator('test.op')
     def op_2(x):
-      return core.add(x, 1)
+      return math.add(x, 1)
 
     with self.assertRaisesRegex(ValueError, 'already exists'):
       _ = optools.add_to_registry(unsafe_override=False)(op_2)
@@ -298,7 +298,7 @@ class OptoolsTest(parameterized.TestCase):
     @arolla.optools.as_lambda_operator('test.op_6.overload_1')
     def overload_1(x, y):  # pylint: disable=unused-variable
       del y
-      return core.add(x, 1)
+      return math.add(x, 1)
 
     @arolla.optools.add_to_registry_as_overload(
         overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
@@ -306,7 +306,7 @@ class OptoolsTest(parameterized.TestCase):
     @arolla.optools.as_lambda_operator('test.op_6.overload_2')
     def overload_2(x, y):  # pylint: disable=unused-variable
       del y
-      return core.add(x, -1)
+      return math.add(x, -1)
 
     # Tests through the overloadable operator itself.
     self.assertIsInstance(op, arolla.types.RegisteredOperator)
@@ -374,7 +374,7 @@ class OptoolsTest(parameterized.TestCase):
     @arolla.optools.as_lambda_operator('test.op_8.overload_1')
     def overload_1(x, y):  # pylint: disable=unused-variable
       del y
-      return core.add(x, 1)
+      return math.add(x, 1)
 
     @optools.add_to_registry_as_overload(
         overload_condition_expr=arolla.P.y != arolla.UNSPECIFIED
@@ -382,7 +382,7 @@ class OptoolsTest(parameterized.TestCase):
     @arolla.optools.as_lambda_operator('test.op_8.overload_2')
     def overload_2(x, y):  # pylint: disable=unused-variable
       del y
-      return core.add(x, -1)
+      return math.add(x, -1)
 
     # Is registered as an overload.
     reg_overload_1 = arolla.abc.lookup_operator('test.op_8.overload_1')
@@ -414,7 +414,7 @@ class OptoolsTest(parameterized.TestCase):
     @arolla.optools.as_lambda_operator('test.op_9.overload')
     def overload(x, y):  # pylint: disable=unused-variable
       del y
-      return core.add(x, 1)
+      return math.add(x, 1)
 
     optools.add_alias('test.op_9', 'test.op_9_alias')
     op_alias = arolla.abc.lookup_operator('test.op_9_alias')
@@ -594,7 +594,7 @@ class OptoolsTest(parameterized.TestCase):
 
     self.assertNotEqual(op(I.x).fingerprint, op(I.x).fingerprint)
     testing.assert_equal(
-        expr_eval.eval(core.add(op(I.x), op(I.x)), x=0), ds(1 + 2)
+        expr_eval.eval(math.add(op(I.x), op(I.x)), x=0), ds(1 + 2)
     )
     with self.assertRaisesRegex(
         ValueError, re.escape('expected NON_DETERMINISTIC_TOKEN')

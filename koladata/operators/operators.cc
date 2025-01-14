@@ -83,7 +83,6 @@ OPERATOR("kde.core._get_item", GetItem);
 OPERATOR("kde.core._get_list_item_by_range", GetListItemByRange);
 OPERATOR("kde.core._new_ids_like", NewIdsLike);
 OPERATOR("kde.core._shallow_clone", ShallowClone);
-OPERATOR("kde.core.add", Add);
 OPERATOR("kde.core.attr", Attr);
 OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR_FAMILY("kde.core.enriched",
@@ -165,6 +164,7 @@ OPERATOR("kde.math._cum_min", CumMin);
 OPERATOR("kde.math._cum_sum", CumSum);
 OPERATOR("kde.math._softmax", Softmax);
 OPERATOR("kde.math.abs", Abs);
+OPERATOR("kde.math.add", Add);
 OPERATOR("kde.math.ceil", Ceil);
 OPERATOR("kde.math.divide", Divide);
 OPERATOR("kde.math.exp", Exp);

@@ -587,8 +587,8 @@ py_test(
 )
 
 py_test(
-    name = "core_add_test",
-    srcs = ["core_add_test.py"],
+    name = "math_add_test",
+    srcs = ["math_add_test.py"],
     deps = [
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
@@ -5837,14 +5837,14 @@ py_test(
 koda_operator_coverage_test(
     name = "kd_core_add_covers_math_add_test",
     arolla_op = "math.add",
-    koda_op = "core.add",
+    koda_op = "math.add",
     skip_test_patterns = [".*weak_float.*"],
 )
 
 koda_operator_coverage_test(
     name = "kd_core_add_covers_strings_join_test",
     arolla_op = "strings.join",
-    koda_op = "core.add",
+    koda_op = "math.add",
     skip_test_patterns = ["(?!(.*arity=2)).*"],
 )
 

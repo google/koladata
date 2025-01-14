@@ -472,15 +472,6 @@ Core operators that are not part of other categories.
 
 **Operators**
 
-### `kd.core.add(x, y)` {#kd.core.add}
-Aliases:
-
-- [kd.add](#kd.add)
-
-``` {.no-copy}
-Computes pointwise x + y.
-```
-
 ### `kd.core.attr(x, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.attr}
 Aliases:
 
@@ -2952,6 +2943,15 @@ Arithmetic operators.
 
 ``` {.no-copy}
 Computes pointwise absolute value of the input.
+```
+
+### `kd.math.add(x, y)` {#kd.math.add}
+Aliases:
+
+- [kd.add](#kd.add)
+
+``` {.no-copy}
+Computes pointwise x + y.
 ```
 
 ### `kd.math.agg_inverse_cdf(x, cdf_arg, ndim=unspecified)` {#kd.math.agg_inverse_cdf}
@@ -6905,7 +6905,7 @@ Returns a tuple constructed from the given arguments.
 
 ### `kd.add(x, y)` {#kd.add}
 
-Alias for [kd.core.add](#kd.core.add) operator.
+Alias for [kd.math.add](#kd.math.add) operator.
 
 ### `kd.agg_all(x, ndim=unspecified)` {#kd.agg_all}
 

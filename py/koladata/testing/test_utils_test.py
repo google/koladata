@@ -55,7 +55,7 @@ class TestUtilsTest(parameterized.TestCase):
     # Success.
     test_utils.assert_equal(kde.add(1, 3), kde.add(1, 3))
     # Failure.
-    lhs = kde.core.add(kde.with_name(kde.add(1, 3), 'x'), 4)
+    lhs = kde.math.add(kde.with_name(kde.add(1, 3), 'x'), 4)
     rhs = kde.math.subtract(1, 3)
     with self.assertRaisesWithLiteralMatch(
         AssertionError,

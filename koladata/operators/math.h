@@ -20,6 +20,9 @@
 
 namespace koladata::ops {
 
+// kde.math.add.
+absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y);
+
 // kde.math.subtract.
 absl::StatusOr<DataSlice> Subtract(const DataSlice& x, const DataSlice& y);
 

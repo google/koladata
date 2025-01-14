@@ -26,6 +26,35 @@ M = arolla.OperatorsContainer(jagged_shape)
 P = arolla.P
 
 
+@arolla.optools.add_to_registry()
+@arolla.optools.as_lambda_operator('kde.math._add_impl')
+def _add_impl(x, y):  # pylint: disable=unused-argument
+  """Arolla implementation of pointwise x + y."""
+  return arolla.types.DispatchOperator(
+      'x, y',
+      # TODO: Add more verbose checks for add_str as well and
+      # then the default will just raise an error with DataSlice specific
+      # information.
+      numeric_case=arolla.types.DispatchCase(
+          M.math.add, condition=M.qtype.is_numeric_qtype(P.x)
+      ),
+      default=M.strings.join,
+  )(x, y)
+
+
+@optools.add_to_registry(aliases=['kde.add'], repr_fn=op_repr.add_repr)
+@optools.as_backend_operator(
+    'kde.math.add',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.y),
+    ],
+)
+def add(x, y):  # pylint: disable=unused-argument
+  """Computes pointwise x + y."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(repr_fn=op_repr.subtract_repr)
 @optools.as_backend_operator(
     'kde.math.subtract',

@@ -125,12 +125,12 @@ class KodaViewTest(parameterized.TestCase):
 
   def test_add(self):
     testing.assert_equal(
-        C.x.val + C.y, kde.core.add(kde.get_attr(C.x, 'val'), C.y)
+        C.x.val + C.y, kde.math.add(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) + C.y, kde.core.add(1, C.y))
+    testing.assert_equal(ds(1) + C.y, kde.math.add(1, C.y))
 
   def test_radd(self):
-    testing.assert_equal(C.x.__radd__(C.y), kde.core.add(C.y, C.x))
+    testing.assert_equal(C.x.__radd__(C.y), kde.math.add(C.y, C.x))
 
   def test_sub(self):
     testing.assert_equal(

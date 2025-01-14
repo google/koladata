@@ -119,10 +119,10 @@ class KodaView(arolla.abc.ExprView):
     return ListSlicingHelper(self)
 
   def __add__(self, other: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.core.add', self, other)
+    return arolla.abc.aux_bind_op('kde.math.add', self, other)
 
   def __radd__(self, other: Any) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kde.core.add', other, self)
+    return arolla.abc.aux_bind_op('kde.math.add', other, self)
 
   def __sub__(self, other: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kde.math.subtract', self, other)

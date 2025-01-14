@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.add.
+"""Tests for kde.math.add.
 
 Note that there are more extensive tests that reuse the existing Arolla tests
 for the M.math.add and M.strings.join operators.
@@ -46,7 +46,7 @@ QTYPES = frozenset([
 ])
 
 
-class CoreAddTest(parameterized.TestCase):
+class MathAddTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
@@ -78,6 +78,7 @@ class CoreAddTest(parameterized.TestCase):
           ds([[1, 2], [3, 4], [5, 6]]),
           ds([[2, 3], [5, 6], [8, 9]]),
       ),
+      # We support strings to make sure we have a single '+' operator.
       (
           ds(['a', 'b', 'c']),
           ds(['1', '2', '3']),
@@ -198,7 +199,7 @@ class CoreAddTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, y, expected):
-    result = expr_eval.eval(kde.core.add(I.x, I.y), x=x, y=y)
+    result = expr_eval.eval(kde.math.add(I.x, I.y), x=x, y=y)
     testing.assert_equal(result, expected)
 
   def test_errors(self):
@@ -206,32 +207,32 @@ class CoreAddTest(parameterized.TestCase):
     y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.core.add: arguments `x` and `y` must contain values castable to a'
+        'kd.math.add: arguments `x` and `y` must contain values castable to a'
         ' common primitive type, got INT32 and STRING',
     ):
-      expr_eval.eval(kde.core.add(I.x, I.y), x=x, y=y)
+      expr_eval.eval(kde.math.add(I.x, I.y), x=x, y=y)
 
     z = ds([[1, 2], [3]])
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'shapes are not compatible',
     ):
-      expr_eval.eval(kde.core.add(I.x, I.z), x=x, z=z)
+      expr_eval.eval(kde.math.add(I.x, I.z), x=x, z=z)
 
     z = ds([[1, '2'], [3]])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.core.add: arguments `x` and `y` must contain values castable to a'
+        'kd.math.add: arguments `x` and `y` must contain values castable to a'
         ' common primitive type, got INT32 and OBJECT with items of types'
         ' INT32, STRING',
     ):
-      expr_eval.eval(kde.core.add(I.x, I.z), x=x, z=z)
+      expr_eval.eval(kde.math.add(I.x, I.z), x=x, z=z)
 
   def test_mixed_types_empty_and_unknown_item(self):
     x = ds(None, schema_constants.OBJECT)
     y = ds(1)
     z = ds('foo')
-    result = expr_eval.eval(kde.core.add(kde.core.add(x, y), z))
+    result = expr_eval.eval(kde.math.add(kde.math.add(x, y), z))
     testing.assert_equal(result, ds(None, schema_constants.OBJECT))
 
   def test_mixed_types_empty_and_unknown_slice(self):
@@ -240,7 +241,7 @@ class CoreAddTest(parameterized.TestCase):
     z = ds(['foo'])
     testing.assert_equal(
         expr_eval.eval(
-            kde.core.add(kde.core.add(I.x, I.y), I.z), x=x, y=y, z=z
+            kde.math.add(kde.math.add(I.x, I.y), I.z), x=x, y=y, z=z
         ),
         ds([None], schema_constants.OBJECT),
     )
@@ -248,7 +249,7 @@ class CoreAddTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.core.add, possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
+            kde.math.add, possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
         ),
         QTYPES,
     )
@@ -259,17 +260,17 @@ class CoreAddTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.core.add: argument `x` must be a slice of consistent numeric,'
+            'kd.math.add: argument `x` must be a slice of consistent numeric,'
             ' bytes or string values, got a slice of SCHEMA(x=INT32)'
         ),
     ):
-      expr_eval.eval(kde.core.add(x, x))
+      expr_eval.eval(kde.math.add(x, x))
 
   def test_repr(self):
-    self.assertEqual(repr(kde.core.add(I.x, I.y)), 'I.x + I.y')
+    self.assertEqual(repr(kde.math.add(I.x, I.y)), 'I.x + I.y')
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.add(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.math.add(I.x, I.y)))
 
 
 if __name__ == '__main__':

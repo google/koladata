@@ -34,6 +34,14 @@ namespace koladata::ops {
 
 constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
 
+absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y))
+      .With(OpError("kd.math.add"));
+  RETURN_IF_ERROR(ExpectCanBeAdded("x", x)).With(OpError("kd.math.add"));
+  RETURN_IF_ERROR(ExpectCanBeAdded("y", y)).With(OpError("kd.math.add"));
+  return SimplePointwiseEval("kde.math._add_impl", {x, y});
+}
+
 absl::StatusOr<DataSlice> Subtract(const DataSlice& x, const DataSlice& y) {
   RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.subtract"));
   RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kde.math.subtract"));

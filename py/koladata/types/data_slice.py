@@ -659,14 +659,14 @@ def _to_py_impl(
 def _add(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
-  return _eval_op('kde.core.add', self, other)
+  return _eval_op('kde.math.add', self, other)
 
 
 @DataSlice._add_method('__radd__')  # pylint: disable=protected-access
 def _radd(self, other: Any) -> DataSlice:
   if isinstance(other, arolla.Expr):
     return NotImplemented
-  return _eval_op('kde.core.add', other, self)
+  return _eval_op('kde.math.add', other, self)
 
 
 @DataSlice._add_method('__sub__')  # pylint: disable=protected-access
