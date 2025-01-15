@@ -770,7 +770,7 @@ def normalize_dim(x, dim):
     ],
 )
 def index(x, dim=-1):
-  """Returns the indices of the elements computed over the last dim dimensions.
+  """Returns the indices of the elements computed over dimension `dim`.
 
   The resulting slice has the same shape as the input.
 
