@@ -534,22 +534,22 @@ kd.slice([1, None, 3]) | kd.slice([4,5,6])  # the same as above
 
 ### Immutability
 
-Koda's data structures are **immutable**. However, Koda offers various ways to
-efficiently create modified copies of your data, including complex edits and
-joins. These copies share the same underlying memory whenever possible, and many
+Koda's data structures are **immutable**. However, Koda offers various efficient
+ways to create modified copies of your data, including complex edits and joins.
+These copies share the same underlying memory whenever possible, and many
 operations, such as edits and joins, are performed in O(1) time. Immutability
 means that modifying an object or entity does *not* automatically update the
 original objects or entities, even if they share the same ItemId.
 
 NOTE: Mutable APIs is available only in advanced, high-performance workflows,
 but with trade-offs. They require a deeper understanding of Koda data model and
-it is easier to make unexpected mistakes.
+it is easier to make mistakes which can be hard to debug.
 
 ```py
 a = kd.obj(x=2, y=kd.obj(z=3))
 # update existing attribute and add a new attribute
 a1 = a.with_attrs(x=4, u=5)  # Obj(u=5, x=4, y=Obj(z=3))
-# a is the same as it is immutable
+# a stays the same as it is immutable
 a # Obj(x=2, y=Obj(z=3))
 
 b = kd.dict({'a': 1, 'b': 2})
@@ -557,13 +557,13 @@ b = kd.dict({'a': 1, 'b': 2})
 b1 = b.with_dict_update('a', 2) # Dict{'a'=2, 'b'=2}
 # update with another dict
 b2 = b.with_dict_update(kd.dict({'a': 3, 'c': 4})) # Dict{'c'=4, 'a'=3, 'b'=2}
-# b is the same as it is immutable
+# b stays the same as it is immutable
 b # Dict{'a'=1, 'b'=2}
 
 c = kd.list([1, 2, 3])
 # Create a new list by appending another list
 c1 = kd.concat_lists(c, kd.list([4, 5]))  # List[1, 2, 3, 4, 5]
-# c is the same as it is immutable
+# c stays the same as it is immutable
 c # List[1, 2, 3]
 ```
 
@@ -571,17 +571,18 @@ c # List[1, 2, 3]
 
 To support modifications and joins in an immutable environment, Koda utilizes
 **bags**. Bags are collections of attributes. Each attribute within a bag is a
-mapping: `(itemid, attribute) -> value`. All data structures (including
+mapping: `(itemid, attribute_name) -> value`. All data structures (including
 entities, dicts, and lists) are represented in this manner, and associated bags
 are accessible via the `get_bag()` method. These mappings are stored using a
 combination of hash maps and arrays. This hybrid approach enables fast,
-vectorized performance for table-like data while supporting data with irregular
-structures. Bags are merged for O(1) by utilizing a concept of **fallbacks**
-(when we don't find a mapping in one bag, we look it up in the other ones),
-which can be completely merged, when higher lookup performance is required.
+vectorized performance for table-like data while supporting data with complex
+structure and sparsity. Bags are merged for O(1) by utilizing a concept of
+**fallbacks** (when we don't find a mapping in one bag, we look it up in the
+other ones). Such a chain of fallback bags can be merged into a single bag when
+higher lookup performance is required.
 
 NOTE: Almost all data (e.g. entities, dicts, lists, objects, schemas) are stored
-as triples in bags.
+as attributes in bags.
 
 ```py
 a = kd.obj(x=2, y=kd.obj(z=3))
@@ -590,19 +591,19 @@ a = kd.obj(x=2, y=kd.obj(z=3))
 db = a.get_bag()
 # Get quick stats of a bag, use its repr
 db
-# Print out all triples
+# Print out all attributes
 db.contents_repr()
-# Print out only data triples
+# Print out only data attributes
 db.data_triples_repr()
-# Print out only schema triples
+# Print out only schema attributes
 db.schema_triples_repr()
-# Get approximate size (e.g. number of triples)
+# Get approximate size (e.g. number of attributes)
 db.get_approx_size()
 ```
 
 <section class='zippy'>
 
-Optional: Understand how entities are represented as triples.
+Optional: Understand how entities are represented as attributes.
 
 ```
 a = kd.obj(x=2, y=kd.obj(z=3))
@@ -638,7 +639,7 @@ a.get_bag().contents_repr()
 
 <section class='zippy'>
 
-Optional: Understand how dicts are represented as triples.
+Optional: Understand how dicts are represented as attributes.
 
 ```
 b = kd.dict({'a': 1, 'b': 2})
@@ -667,7 +668,7 @@ b.get_bag().contents_repr()
 
 <section class='zippy'>
 
-Optional: Understand how lists are represented as triples.
+Optional: Understand how lists are represented as attributes.
 
 ```
 c = kd.list([1, 2, 3])
@@ -694,11 +695,10 @@ c.get_bag().contents_repr()
 
 ### Representing Updates as Bags
 
-Instead of creating a modified object/dict/list directly, we can create an
-**update** representing modifications in a **bag**. Updates can be propagated in
-O(1) time by explicitly joining data. This merges attributes and values for
-entities, dicts and objects with matching ItemIds. Updates overwrite existing
-attributes or add new ones. Applying updates is an O(1) operation.
+Instead of creating a modified object/dict/list directly, we typically create a
+**bag** that contains the data **updates**. Updates are applied in O(1) time by
+the fallback mechanism described above. Updates overwrite existing attributes or
+add new ones.
 
 ```py
 a = kd.obj(x=2, y=kd.obj(z=3))
@@ -716,20 +716,20 @@ b1 = b.updated(upd) # Dict{'a'=2, 'b'=2}
 upd = b.dict_update(kd.dict({'a': 3, 'c': 4}))
 b2 = b.updated(upd) # Dict{'c'=4, 'a'=3, 'b'=2}
 
-# Schemas are stored and can be updated the same way
+# Schemas are stored and can be updated in the same way
 a = kd.new(x=1, schema='MySchema')
 a.updated(kd.attrs(a.get_schema(), y=kd.INT32))  # update the schema
 ```
 
 <section class='zippy'>
 
-Optional: Understand how entity/object updates are represented as triples.
+Optional: Understand how entity/object updates are represented as attributes.
 
 ```
 a = kd.obj(x=2, y=kd.obj(z=3))
 upd = a.attrs(x=4, u=5)
 
-# Only modification is stored as triples in the update bag
+# Only modification is stored as attributes in the update bag
 upd
 # DataBag $7de8:
 #   1 Entities/Objects with 2 values in 2 attrs
@@ -757,7 +757,7 @@ upd.contents_repr()
 
 <section class='zippy'>
 
-Optional: Understand how dict update is represented as triples.
+Optional: Understand how dict update is represented as attributes.
 
 ```
 b = kd.dict({'a': 1, 'b': 2})
@@ -785,7 +785,7 @@ upd.contents_repr()
 
 </section>
 
-Below is a more complex example of putting everything together.
+Here is a more complex example that puts everything together.
 
 ```py
 a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1,2,3]))
