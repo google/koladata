@@ -175,7 +175,7 @@ class EmptyShapedAsTest(parameterized.TestCase):
         fns.empty_shaped_as(ds([1, None, 3]), db=ds([1, 2]))
 
   def test_alias(self):
-    self.assertIs(fns.empty_shaped_as, fns.core.empty_shaped_as)
+    self.assertIs(fns.empty_shaped_as, fns.masking.empty_shaped_as)
 
 
 if __name__ == '__main__':

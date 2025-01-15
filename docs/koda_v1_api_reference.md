@@ -568,48 +568,6 @@ Returns:
   that UUIDs will be copied as ItemIds.
 ```
 
-### `kd.core.empty_shaped(shape, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.core.empty_shaped}
-Aliases:
-
-- [kd.empty_shaped](#kd.empty_shaped)
-
-``` {.no-copy}
-Creates a DataSlice of missing items with the given shape.
-
-  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
-  created and attached to the resulting DataSlice and `schema` is adopted into
-  the DataBag.
-
-  Args:
-    shape: Shape of the resulting DataSlice.
-    schema: optional schema of the resulting DataSlice.
-    db: optional DataBag to hold the schema if applicable.
-
-  Returns:
-    A DataSlice with the given shape.
-```
-
-### `kd.core.empty_shaped_as(shape_from, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.core.empty_shaped_as}
-Aliases:
-
-- [kd.empty_shaped_as](#kd.empty_shaped_as)
-
-``` {.no-copy}
-Creates a DataSlice of missing items with the shape of `shape_from`.
-
-  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
-  created and attached to the resulting DataSlice and `schema` is adopted into
-  the DataBag.
-
-  Args:
-    shape_from: used for the shape of the resulting DataSlice.
-    schema: optional schema of the resulting DataSlice.
-    db: optional DataBag to hold the schema if applicable.
-
-  Returns:
-    A DataSlice with the shape of the given DataSlice.
-```
-
 ### `kd.core.enriched(ds, *bag)` {#kd.core.enriched}
 Aliases:
 
@@ -2735,6 +2693,48 @@ Args:
 
 Returns:
   Coalesced DataSlice.
+```
+
+### `kd.masking.empty_shaped(shape, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.masking.empty_shaped}
+Aliases:
+
+- [kd.empty_shaped](#kd.empty_shaped)
+
+``` {.no-copy}
+Creates a DataSlice of missing items with the given shape.
+
+  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
+  created and attached to the resulting DataSlice and `schema` is adopted into
+  the DataBag.
+
+  Args:
+    shape: Shape of the resulting DataSlice.
+    schema: optional schema of the resulting DataSlice.
+    db: optional DataBag to hold the schema if applicable.
+
+  Returns:
+    A DataSlice with the given shape.
+```
+
+### `kd.masking.empty_shaped_as(shape_from, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.masking.empty_shaped_as}
+Aliases:
+
+- [kd.empty_shaped_as](#kd.empty_shaped_as)
+
+``` {.no-copy}
+Creates a DataSlice of missing items with the shape of `shape_from`.
+
+  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
+  created and attached to the resulting DataSlice and `schema` is adopted into
+  the DataBag.
+
+  Args:
+    shape_from: used for the shape of the resulting DataSlice.
+    schema: optional schema of the resulting DataSlice.
+    db: optional DataBag to hold the schema if applicable.
+
+  Returns:
+    A DataSlice with the shape of the given DataSlice.
 ```
 
 ### `kd.masking.has(x)` {#kd.masking.has}
@@ -7141,11 +7141,11 @@ Returns a DataSlice with OBJECT schema.
 
 ### `kd.empty_shaped(shape, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.empty_shaped}
 
-Alias for [kd.core.empty_shaped](#kd.core.empty_shaped) operator.
+Alias for [kd.masking.empty_shaped](#kd.masking.empty_shaped) operator.
 
 ### `kd.empty_shaped_as(shape_from, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.empty_shaped_as}
 
-Alias for [kd.core.empty_shaped_as](#kd.core.empty_shaped_as) operator.
+Alias for [kd.masking.empty_shaped_as](#kd.masking.empty_shaped_as) operator.
 
 ### `kd.encode_itemid(ds)` {#kd.encode_itemid}
 

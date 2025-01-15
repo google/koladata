@@ -68,8 +68,6 @@ empty_shaped_as = _object_factories.empty_shaped_as
 # are mutable in "core" namespace.
 core = _py_types.SimpleNamespace(
     container=_object_factories.container,
-    empty_shaped=_object_factories.empty_shaped,
-    empty_shaped_as=_object_factories.empty_shaped_as,
 )
 
 bags = _py_types.SimpleNamespace(
@@ -200,4 +198,9 @@ slices = _py_types.SimpleNamespace(
     bool=_py_conversions.bool_,
     mask=_py_conversions.mask,
     expr_quote=_py_conversions.expr_quote,
+)
+
+masking = _py_types.SimpleNamespace(
+    empty_shaped=_object_factories.empty_shaped,
+    empty_shaped_as=_object_factories.empty_shaped_as,
 )
