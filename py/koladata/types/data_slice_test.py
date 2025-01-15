@@ -3742,6 +3742,9 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     with self.assertRaisesRegex(LookupError, 'unknown operator: non-existent'):
       _ = _test_method.getdoc()
 
+    # Remove the method to avoid breaking docstring tests.
+    delattr(data_slice.DataSlice, 'test_method')
+
 
 if __name__ == '__main__':
   absltest.main()
