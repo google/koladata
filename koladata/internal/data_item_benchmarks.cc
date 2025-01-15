@@ -34,7 +34,7 @@ BENCHMARK(BM_AllocateEmptyObject);
 
 template <class T>
 void BM_AllocatePrimitive(benchmark::State& state) {
-  T value;
+  T value = T();
   for (auto _ : state) {
     benchmark::DoNotOptimize(value);
     DataItem item(value);

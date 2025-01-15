@@ -431,6 +431,18 @@ bool DataSliceImpl::IsEquivalentTo(const DataSliceImpl& other) const {
   return true;
 }
 
+bool DataSliceImpl::VerifyAllocIdsConsistency() const {
+  bool res = true;
+  VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
+    if constexpr (std::is_same_v<T, ObjectId>) {
+      if (!data_slice_impl::VerifyAllocIds(allocation_ids(), array)) {
+        res = false;
+      }
+    }
+  });
+  return res;
+}
+
 }  // namespace koladata::internal
 
 namespace arolla {

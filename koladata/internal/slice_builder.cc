@@ -115,6 +115,7 @@ DataSliceImpl SliceBuilder::Build() && {
     res.internal_->values.push_back(std::move(array_variant));
     res.internal_->dtype = ScalarTypeIdToQType(types_buffer_.types[0]);
     res.internal_->types_buffer = std::move(types_buffer_);
+    DCHECK(res.VerifyAllocIdsConsistency());
     return res;
   }
   DataSliceImpl res;
@@ -139,6 +140,7 @@ DataSliceImpl SliceBuilder::Build() && {
   if (res.internal_->values.size() == 1) {
     res.internal_->dtype = ScalarTypeIdToQType(last_present_type_id);
   }
+  DCHECK(res.VerifyAllocIdsConsistency());
   return res;
 }
 

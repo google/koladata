@@ -295,6 +295,7 @@ class MultitypeDenseSource : public DenseSource {
     if (values.is_empty_and_unknown()) {
       return status;
     }
+    attr_allocation_ids_.Insert(values.allocation_ids());
     values.VisitValues([&]<class T>(const DenseArray<T>& array) {
       MergeArrayImpl(status, array, option);
     });

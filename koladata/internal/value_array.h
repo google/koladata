@@ -115,7 +115,15 @@ arolla::DenseArray<T> GetByObjOffsets(const DenseArray<T>& data,
 template <typename T>
 class ValueBuffer : public absl::Span<T> {
  public:
-  explicit ValueBuffer(int64_t size) : absl::Span<T>(new T[size], size) {}
+  explicit ValueBuffer(int64_t size) : absl::Span<T>(new T[size], size) {
+    // For some types (e.g. bool) not all values are valid. In such
+    // cases we have to initialize the memory to avoid undefined behavior.
+    if constexpr (std::is_enum_v<T> || std::is_same_v<T, bool>) {
+      std::memset(this->data(), 0, size * sizeof(T));
+    } else if constexpr (!std::is_same_v<T, Unit>) {
+      ABSL_ANNOTATE_MEMORY_IS_INITIALIZED(this->data(), size * sizeof(T));
+    }
+  }
   ValueBuffer(const ValueBuffer& other) = delete;
   ValueBuffer& operator=(const ValueBuffer&) = delete;
   ValueBuffer(ValueBuffer&& other) : absl::Span<T>(other) {
@@ -176,13 +184,6 @@ class ValueArray {
   explicit ValueArray(size_t size)
       : presence_(arolla::bitmap::BitmapSize(size)), values_(size) {
     std::memset(presence_.data(), 0, presence_.size() * sizeof(Word));
-    // For some types (e.g. bool) not all values are valid. In such
-    // cases we have to initialize the memory to avoid undefined behavior.
-    if constexpr (std::is_enum_v<T> || std::is_same_v<T, bool>) {
-      std::memset(values_.data(), 0, size * sizeof(T));
-    } else if constexpr (!std::is_same_v<T, Unit>) {
-      ABSL_ANNOTATE_MEMORY_IS_INITIALIZED(values_.data(), size * sizeof(T));
-    }
   }
 
   ValueArray(const ValueArray&) = delete;

@@ -295,6 +295,10 @@ class DataSliceImpl {
 
   static void InitTypesBuffer(Internal& impl);
 
+  // Verify that all ObjectId's are in the allocation ids.
+  // It is slow and shouldn't be used in opt mode.
+  bool VerifyAllocIdsConsistency() const;
+
   template <class T, class... Ts>
   static void CreateImpl(DataSliceImpl& res, arolla::DenseArray<T> main_values,
                          arolla::DenseArray<Ts>... values);

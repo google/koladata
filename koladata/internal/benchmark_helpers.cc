@@ -51,7 +51,7 @@ DataSliceImpl RemoveItemsIf(
     if (remove_fn(item)) {
       ++i;
     } else {
-      builder.InsertIfNotSet(i++, item);
+      builder.InsertIfNotSetAndUpdateAllocIds(i++, item);
     }
   }
   return std::move(builder).Build();
