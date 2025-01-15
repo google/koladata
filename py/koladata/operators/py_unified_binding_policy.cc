@@ -661,7 +661,7 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
   }
 
   // (See the base class.)
-  absl::Nullable<ExprNodePtr> DoMakeLiteral(TypedValue&& value) const final {
+  absl::Nullable<ExprNodePtr> MakeLiteral(TypedValue&& value) const final {
     DCheckPyGIL();
     return MakeKdLiteral(std::move(value));
   }
