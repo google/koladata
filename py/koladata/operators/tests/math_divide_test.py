@@ -127,7 +127,7 @@ class MathDivideTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.divide: argument `y` must be a slice of numeric values,'
+            'kd.math.divide: argument `y` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):

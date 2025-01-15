@@ -284,7 +284,7 @@ class EntitiesNewTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.entities.new(a=I.y)),
-        'kde.entities.new(unspecified, schema=unspecified, '
+        'kd.entities.new(unspecified, schema=unspecified, '
         'update_schema=DataItem(False, schema: BOOLEAN), itemid=unspecified, '
         'a=I.y)',
     )

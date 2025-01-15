@@ -24,9 +24,9 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(aliases=['kde.call'])
+@optools.add_to_registry(aliases=['kd.call'])
 @optools.as_backend_operator(
-    'kde.functor.call',
+    'kd.functor.call',
     qtype_inference_expr=P.return_type_as,
     deterministic=False,
 )
@@ -62,7 +62,7 @@ def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.functor._maybe_call',
+    'kd.functor._maybe_call',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.maybe_fn),
         qtype_utils.expect_data_slice(P.arg),

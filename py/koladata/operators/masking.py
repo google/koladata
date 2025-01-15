@@ -27,9 +27,9 @@ M = arolla.M
 P = arolla.P
 
 
-@optools.add_to_registry(aliases=['kde.has'])
+@optools.add_to_registry(aliases=['kd.has'])
 @optools.as_backend_operator(
-    'kde.masking.has', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+    'kd.masking.has', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def has(x):  # pylint: disable=unused-argument
   """Returns presence of `x`.
@@ -48,9 +48,9 @@ def has(x):  # pylint: disable=unused-argument
 
 
 # Implemented here to avoid a dependency cycle.
-@optools.add_to_registry(aliases=['kde.with_schema'])
+@optools.add_to_registry(aliases=['kd.with_schema'])
 @optools.as_backend_operator(
-    'kde.schema.with_schema',
+    'kd.schema.with_schema',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.schema),
@@ -99,10 +99,11 @@ def _with_schema(x, schema):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(
-    aliases=['kde.apply_mask'], repr_fn=op_repr.apply_mask_repr
+    aliases=['kd.apply_mask'],
+    repr_fn=op_repr.apply_mask_repr,
 )
 @optools.as_backend_operator(
-    'kde.masking.apply_mask',
+    'kd.masking.apply_mask',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -125,10 +126,11 @@ def apply_mask(x, y):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(
-    aliases=['kde.coalesce'], repr_fn=op_repr.coalesce_repr
+    aliases=['kd.coalesce'],
+    repr_fn=op_repr.coalesce_repr,
 )
 @optools.as_backend_operator(
-    'kde.masking.coalesce',
+    'kd.masking.coalesce',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -151,15 +153,15 @@ def coalesce(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator('kde.masking._has_not')
+@optools.as_backend_operator('kd.masking._has_not')
 def _has_not(x):  # pylint: disable=unused-argument
   """Returns present iff `x` is missing element-wise."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.has_not'], repr_fn=op_repr.not_repr)
+@optools.add_to_registry(aliases=['kd.has_not'], repr_fn=op_repr.not_repr)
 @optools.as_lambda_operator(
-    'kde.masking.has_not',
+    'kd.masking.has_not',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
 def has_not(x):
@@ -178,9 +180,9 @@ def has_not(x):
   return _has_not(has(x))
 
 
-@optools.add_to_registry(aliases=['kde.cond'])
+@optools.add_to_registry(aliases=['kd.cond'])
 @optools.as_lambda_operator(
-    'kde.masking.cond',
+    'kd.masking.cond',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.condition),
         qtype_utils.expect_data_slice(P.yes),
@@ -207,9 +209,9 @@ def cond(condition, yes, no=None):
   return (yes & condition) | (no & ~condition)
 
 
-@optools.add_to_registry(aliases=['kde.mask_and'])
+@optools.add_to_registry(aliases=['kd.mask_and'])
 @optools.as_lambda_operator(
-    'kde.masking.mask_and',
+    'kd.masking.mask_and',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -236,19 +238,19 @@ def mask_and(x, y):
   x = assertion.assert_ds_has_primitives_of(
       x,
       schema_constants.MASK,
-      'kde.masking.mask_and: argument `x` must have kd.MASK dtype',
+      'kd.masking.mask_and: argument `x` must have kd.MASK dtype',
   )
   y = assertion.assert_ds_has_primitives_of(
       y,
       schema_constants.MASK,
-      'kde.masking.mask_and: argument `y` must have kd.MASK dtype',
+      'kd.masking.mask_and: argument `y` must have kd.MASK dtype',
   )
   return _with_schema(x & y, schema_constants.MASK)
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.masking.mask_or',
+    'kd.masking.mask_or',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -275,19 +277,19 @@ def mask_or(x, y):
   x = assertion.assert_ds_has_primitives_of(
       x,
       schema_constants.MASK,
-      'kde.masking.mask_or: argument `x` must have kd.MASK dtype',
+      'kd.masking.mask_or: argument `x` must have kd.MASK dtype',
   )
   y = assertion.assert_ds_has_primitives_of(
       y,
       schema_constants.MASK,
-      'kde.masking.mask_or: argument `y` must have kd.MASK dtype',
+      'kd.masking.mask_or: argument `y` must have kd.MASK dtype',
   )
   return _with_schema(x | y, schema_constants.MASK)
 
 
-@optools.add_to_registry(aliases=['kde.mask_equal'])
+@optools.add_to_registry(aliases=['kd.mask_equal'])
 @optools.as_lambda_operator(
-    'kde.masking.mask_equal',
+    'kd.masking.mask_equal',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -315,19 +317,19 @@ def mask_equal(x, y):
   x = assertion.assert_ds_has_primitives_of(
       x,
       schema_constants.MASK,
-      'kde.masking.mask_equal: argument `x` must have kd.MASK dtype',
+      'kd.masking.mask_equal: argument `x` must have kd.MASK dtype',
   )
   y = assertion.assert_ds_has_primitives_of(
       y,
       schema_constants.MASK,
-      'kde.masking.mask_equal: argument `y` must have kd.MASK dtype',
+      'kd.masking.mask_equal: argument `y` must have kd.MASK dtype',
   )
   return _with_schema((x & y) | (~x & ~y), schema_constants.MASK)
 
 
-@optools.add_to_registry(aliases=['kde.mask_not_equal'])
+@optools.add_to_registry(aliases=['kd.mask_not_equal'])
 @optools.as_lambda_operator(
-    'kde.masking.mask_not_equal',
+    'kd.masking.mask_not_equal',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -356,14 +358,14 @@ def mask_not_equal(x, y):
   return ~mask_equal(x, y)
 
 
-@optools.as_backend_operator('kde.masking._agg_any')
+@optools.as_backend_operator('kd.masking._agg_any')
 def _agg_any(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_any'])
+@optools.add_to_registry(aliases=['kd.agg_any'])
 @optools.as_lambda_operator(
-    'kde.masking.agg_any',
+    'kd.masking.agg_any',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -385,8 +387,8 @@ def agg_any(x, ndim=arolla.unspecified()):
   return _agg_any(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kde.any'])
-@optools.as_lambda_operator('kde.masking.any')
+@optools.add_to_registry(aliases=['kd.any'])
+@optools.as_lambda_operator('kd.masking.any')
 def any_(x):
   """Returns present iff any element is present over all dimensions.
 
@@ -400,8 +402,8 @@ def any_(x):
   return agg_any(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry(aliases=['kde.agg_has'])
-@optools.as_lambda_operator('kde.masking.agg_has')
+@optools.add_to_registry(aliases=['kd.agg_has'])
+@optools.as_lambda_operator('kd.masking.agg_has')
 def agg_has(x, ndim=arolla.unspecified()):
   """Returns present iff any element is present along the last ndim dimensions.
 
@@ -418,14 +420,14 @@ def agg_has(x, ndim=arolla.unspecified()):
   return agg_any(has(x), ndim=ndim)
 
 
-@optools.as_backend_operator('kde.masking._agg_all')
+@optools.as_backend_operator('kd.masking._agg_all')
 def _agg_all(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_all'])
+@optools.add_to_registry(aliases=['kd.agg_all'])
 @optools.as_lambda_operator(
-    'kde.masking.agg_all',
+    'kd.masking.agg_all',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -447,8 +449,8 @@ def agg_all(x, ndim=arolla.unspecified()):
   return _agg_all(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kde.all'])
-@optools.as_lambda_operator('kde.masking.all')
+@optools.add_to_registry(aliases=['kd.all'])
+@optools.as_lambda_operator('kd.masking.all')
 def all_(x):
   """Returns present iff all elements are present over all dimensions.
 
@@ -462,9 +464,9 @@ def all_(x):
   return agg_all(jagged_shape_ops.flatten(x))
 
 
-@optools.add_to_registry(aliases=['kde.disjoint_coalesce'])
+@optools.add_to_registry(aliases=['kd.disjoint_coalesce'])
 @optools.as_lambda_operator(
-    'kde.masking.disjoint_coalesce',
+    'kd.masking.disjoint_coalesce',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -486,15 +488,15 @@ def disjoint_coalesce(x, y):
   x = assertion.with_assertion(
       x,
       ~any_(has(x) & has(y)),
-      'kde.masking.disjoint_coalesce: `x` and `y` cannot intersect',
+      'kd.masking.disjoint_coalesce: `x` and `y` cannot intersect',
   )
   return coalesce(x, y)
 
 
 # NOTE: Implemented here to avoid a dependency cycle between masking and slices.
-@optools.add_to_registry(aliases=['kde.val_shaped'])
+@optools.add_to_registry(aliases=['kd.val_shaped'])
 @optools.as_lambda_operator(
-    'kde.slices.val_shaped',
+    'kd.slices.val_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice(P.val),
@@ -519,9 +521,9 @@ def _val_shaped(shape, val):
   return jagged_shape_ops.expand_to_shape(val, shape)
 
 
-@optools.add_to_registry(aliases=['kde.val_shaped_as'])
+@optools.add_to_registry(aliases=['kd.val_shaped_as'])
 @optools.as_lambda_operator(
-    'kde.slices.val_shaped_as',
+    'kd.slices.val_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.val),
@@ -546,9 +548,9 @@ def _val_shaped_as(x, val):
   return _val_shaped(jagged_shape_ops.get_shape(x), val)
 
 
-@optools.add_to_registry(aliases=['kde.val_like'])
+@optools.add_to_registry(aliases=['kd.val_like'])
 @optools.as_lambda_operator(
-    'kde.slices.val_like',
+    'kd.slices.val_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.val),
@@ -573,9 +575,9 @@ def _val_like(x, val):
   return _val_shaped_as(x, val) & has(x)
 
 
-@optools.add_to_registry(aliases=['kde.present_shaped'])
+@optools.add_to_registry(aliases=['kd.present_shaped'])
 @optools.as_lambda_operator(
-    'kde.masking.present_shaped',
+    'kd.masking.present_shaped',
     qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
 )
 def present_shaped(shape):
@@ -595,9 +597,9 @@ def present_shaped(shape):
   return _val_shaped(shape, data_slice.DataSlice.from_vals(arolla.present()))
 
 
-@optools.add_to_registry(aliases=['kde.present_shaped_as'])
+@optools.add_to_registry(aliases=['kd.present_shaped_as'])
 @optools.as_lambda_operator(
-    'kde.masking.present_shaped_as',
+    'kd.masking.present_shaped_as',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
 def present_shaped_as(x):
@@ -616,9 +618,9 @@ def present_shaped_as(x):
   return _val_shaped_as(x, data_slice.DataSlice.from_vals(arolla.present()))
 
 
-@optools.add_to_registry(aliases=['kde.present_like'])
+@optools.add_to_registry(aliases=['kd.present_like'])
 @optools.as_lambda_operator(
-    'kde.masking.present_like',
+    'kd.masking.present_like',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
 def present_like(x):

@@ -161,11 +161,11 @@ class KodaUuidTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.ids.uuid(I.seed, a=I.a)),
-        'kde.ids.uuid(I.seed, a=I.a)',
+        'kd.ids.uuid(I.seed, a=I.a)',
     )
     self.assertEqual(
         repr(kde.ids.uuid(seed=I.seed, a=I.a)),
-        'kde.ids.uuid(I.seed, a=I.a)',
+        'kd.ids.uuid(I.seed, a=I.a)',
     )
 
 

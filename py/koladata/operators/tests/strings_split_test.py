@@ -196,12 +196,12 @@ class StringsSplitTest(parameterized.TestCase):
   def test_repr_without_separator(self):
     self.assertEqual(
         repr(kde.strings.split(I.x)),
-        'kde.strings.split(I.x, DataItem(None, schema: NONE))',
+        'kd.strings.split(I.x, DataItem(None, schema: NONE))',
     )
 
   def test_repr_with_separator(self):
     self.assertEqual(
-        repr(kde.strings.split(I.x, I.sep)), 'kde.strings.split(I.x, I.sep)'
+        repr(kde.strings.split(I.x, I.sep)), 'kd.strings.split(I.x, I.sep)'
     )
 
   def test_data_slice_sep_error(self):

@@ -68,7 +68,7 @@ absl::StatusOr<ExprNodePtr> FormattingExpr(const ExprNodePtr& ds_expr,
   ASSIGN_OR_RETURN(
       auto format_kwargs,
       arolla::expr::CallOp("namedtuple.make", {Literal(Text("x")), ds_expr}));
-  return CallOp("kde.strings.format",
+  return CallOp("kd.strings.format",
                 {Literal(std::move(format_ds)), std::move(format_kwargs)});
 }
 
@@ -151,7 +151,7 @@ absl::StatusOr<ExprNodePtr> CreateFStringExprImpl(absl::string_view fstring,
     return absl::InvalidArgumentError(
         "FString has nothing to format. Forgot to specify format `{...:s}`?");
   }
-  return arolla::expr::BindOp("kde.strings.join", to_concat, {});
+  return arolla::expr::BindOp("kd.strings.join", to_concat, {});
 }
 
 }  // namespace

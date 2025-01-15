@@ -259,7 +259,7 @@ class SlicesConcatImplTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.slices.concat(I.x, I.y, I.z, ndim=3)),
-        'kde.slices.concat(I.x, I.y, I.z, ndim=DataItem(3, schema: INT32))',
+        'kd.slices.concat(I.x, I.y, I.z, ndim=DataItem(3, schema: INT32))',
     )
 
 

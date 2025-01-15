@@ -111,7 +111,7 @@ class IdsDeepUuidTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.ids.deep_uuid(I.x, schema=I.schema, seed=I.y)),
-        'kde.ids.deep_uuid(I.x, I.schema, seed=I.y)',
+        'kd.ids.deep_uuid(I.x, I.schema, seed=I.y)',
     )
 
 

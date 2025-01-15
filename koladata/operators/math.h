@@ -20,108 +20,107 @@
 
 namespace koladata::ops {
 
-// kde.math.add.
+// kd.math.add.
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y);
-
-// kde.math.subtract.
+// kd.math.subtract.
 absl::StatusOr<DataSlice> Subtract(const DataSlice& x, const DataSlice& y);
 
-// kde.math.multiply.
+// kd.math.multiply.
 absl::StatusOr<DataSlice> Multiply(const DataSlice& x, const DataSlice& y);
 
-// kde.math.divide.
+// kd.math.divide.
 absl::StatusOr<DataSlice> Divide(const DataSlice& x, const DataSlice& y);
 
-// kde.math.log.
+// kd.math.log.
 absl::StatusOr<DataSlice> Log(const DataSlice& x);
 
-// kde.math.log10.
+// kd.math.log10.
 absl::StatusOr<DataSlice> Log10(const DataSlice& x);
 
-// kde.math.exp.
+// kd.math.exp.
 absl::StatusOr<DataSlice> Exp(const DataSlice& x);
 
 
-// kde.math.sigmoid.
+// kd.math.sigmoid.
 absl::StatusOr<DataSlice> Sigmoid(
     const DataSlice& x,
     const DataSlice& half,
     const DataSlice& slope);
 
-// kde.math.abs.
+// kd.math.abs.
 absl::StatusOr<DataSlice> Abs(const DataSlice& x);
 
-// kde.math.neg.
+// kd.math.neg.
 absl::StatusOr<DataSlice> Neg(const DataSlice& x);
 
-// kde.math.sign.
+// kd.math.sign.
 absl::StatusOr<DataSlice> Sign(const DataSlice& x);
 
-// kde.math.pos.
+// kd.math.pos.
 absl::StatusOr<DataSlice> Pos(const DataSlice& x);
 
-// kde.math.ceil.
+// kd.math.ceil.
 absl::StatusOr<DataSlice> Ceil(const DataSlice& x);
 
-// kde.math.floor.
+// kd.math.floor.
 absl::StatusOr<DataSlice> Floor(const DataSlice& x);
 
-// kde.math.round.
+// kd.math.round.
 absl::StatusOr<DataSlice> Round(const DataSlice& x);
 
-// kde.math.pow.
+// kd.math.pow.
 absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y);
 
-// kde.math.floordiv.
+// kd.math.floordiv.
 absl::StatusOr<DataSlice> FloorDiv(const DataSlice& x, const DataSlice& y);
 
-// kde.math.mod.
+// kd.math.mod.
 absl::StatusOr<DataSlice> Mod(const DataSlice& x, const DataSlice& y);
 
-// kde.math.maximum.
+// kd.math.maximum.
 absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y);
 
-// kde.math.cum_max.
+// kd.math.cum_max.
 absl::StatusOr<DataSlice> CumMax(const DataSlice& x);
 
-// kde.math.minimum.
+// kd.math.minimum.
 absl::StatusOr<DataSlice> Minimum(const DataSlice& x, const DataSlice& y);
 
-// kde.math.cum_min.
+// kd.math.cum_min.
 absl::StatusOr<DataSlice> CumMin(const DataSlice& x);
 
-// kde.math._agg_sum.
+// kd.math._agg_sum.
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x);
 
-// kde.math._cum_sum.
+// kd.math._cum_sum.
 absl::StatusOr<DataSlice> CumSum(const DataSlice& x);
 
-// kde.math.softmax
+// kd.math.softmax
 absl::StatusOr<DataSlice> Softmax(const DataSlice& x, const DataSlice& beta);
 
-// kde.math._cdf.
+// kd.math._cdf.
 absl::StatusOr<DataSlice> Cdf(const DataSlice& x, const DataSlice& weights);
 
-// kde.math._agg_inverse_df.
+// kd.math._agg_inverse_df.
 absl::StatusOr<DataSlice> AggInverseCdf(const DataSlice& x,
                                         const DataSlice& cdf_arg);
 
-// kde.math._agg_mean.
+// kd.math._agg_mean.
 absl::StatusOr<DataSlice> AggMean(const DataSlice& x);
 
-// kde.math._agg_median.
+// kd.math._agg_median.
 absl::StatusOr<DataSlice> AggMedian(const DataSlice& x);
 
-// kde.math._agg_std.
+// kd.math._agg_std.
 absl::StatusOr<DataSlice> AggStd(const DataSlice& x, const DataSlice& unbiased);
 
-// kde.math._agg_var.
+// kd.math._agg_var.
 absl::StatusOr<DataSlice> AggVar(const DataSlice& x, const DataSlice& unbiased);
 
-// kde.math._agg_max.
+// kd.math._agg_max.
 absl::StatusOr<DataSlice> AggMax(const DataSlice& x);
 
-// kde.math._agg_min.
+// kd.math._agg_min.
 absl::StatusOr<DataSlice> AggMin(const DataSlice& x);
 
 }  // namespace koladata::ops

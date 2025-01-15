@@ -26,19 +26,19 @@
 
 namespace koladata::ops {
 
-// kde.core.no_bag.
+// kd.core.no_bag.
 DataSlice NoBag(const DataSlice& ds);
 
-// kde.core.ref.
+// kd.core.ref.
 absl::StatusOr<DataSlice> Ref(const DataSlice& ds);
 
-// kde.core.get_bag.
+// kd.core.get_bag.
 absl::StatusOr<DataBagPtr> GetBag(const DataSlice& ds);
 
-// kde.core.with_bag.
+// kd.core.with_bag.
 DataSlice WithBag(const DataSlice& ds, const DataBagPtr& db);
 
-// kde.core.with_merged_bag.
+// kd.core.with_merged_bag.
 absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds);
 
 class EnrichedOrUpdatedOperatorFamily : public arolla::OperatorFamily {
@@ -50,92 +50,92 @@ class EnrichedOrUpdatedOperatorFamily : public arolla::OperatorFamily {
   virtual bool is_enriched_operator() const = 0;
 };
 
-// kde.core.enriched.
+// kd.core.enriched.
 class EnrichedOperatorFamily final : public EnrichedOrUpdatedOperatorFamily {
   bool is_enriched_operator() const override { return true; }
 };
 
-// kde.core.updated.
+// kd.core.updated.
 class UpdatedOperatorFamily final : public EnrichedOrUpdatedOperatorFamily {
   bool is_enriched_operator() const override { return false; }
 };
 
-// kde.core._extract
+// kd.core._extract
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds, const DataSlice& schema);
 
-// kde.core._get_attr.
+// kd.core._get_attr.
 absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
                                   const DataSlice& attr_name);
 
-// kde.core._get_attr_with_default.
+// kd.core._get_attr_with_default.
 absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
                                              const DataSlice& attr_name,
                                              const DataSlice& default_value);
 
-// kde.core._stub.
+// kd.core._stub.
 absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& keep_attrs);
 
-// kde.core.attrs.
+// kd.core.attrs.
 class AttrsOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core.attr.
+// kd.core.attr.
 absl::StatusOr<DataBagPtr> Attr(const DataSlice& x,
                                 const DataSlice& attr_name,
                                 const DataSlice& value,
                                 const DataSlice& update_schema);
 
-// kde.core.with_attrs.
+// kd.core.with_attrs.
 class WithAttrsOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.core.with_attr.
+// kd.core.with_attr.
 absl::StatusOr<DataSlice> WithAttr(const DataSlice& x,
                                    const DataSlice& attr_name,
                                    const DataSlice& value,
                                    const DataSlice& update_schema);
 
-// kde.core._get_item.
+// kd.core._get_item.
 inline absl::StatusOr<DataSlice> GetItem(const DataSlice& ds,
                                          const DataSlice& key_or_index) {
   return ds.GetItem(key_or_index);
 }
 
-// kde.core.follow.
+// kd.core.follow.
 absl::StatusOr<DataSlice> Follow(const DataSlice& ds);
 
 template <typename T>
 T Freeze(const T& x);
 
-// kde.core._databag_freeze.
+// kd.core._databag_freeze.
 template <>
 DataBagPtr Freeze<DataBagPtr>(const DataBagPtr& x);
 
-// kde.core.freeze_bag.
+// kd.core.freeze_bag.
 template <>
 DataSlice Freeze<DataSlice>(const DataSlice& x);
 
-// kde.core._new_ids_like
+// kd.core._new_ids_like
 absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
                                      internal::NonDeterministicToken);
 
-// kde.core._clone.
+// kd.core._clone.
 absl::StatusOr<DataSlice> Clone(
     const DataSlice& ds, const DataSlice& itemid, const DataSlice& schema,
     internal::NonDeterministicToken);
 
-// kde.core._shallow_clone
+// kd.core._shallow_clone
 absl::StatusOr<DataSlice> ShallowClone(
     const DataSlice& obj, const DataSlice& itemid, const DataSlice& schema,
     internal::NonDeterministicToken = {});
 
-// kde.core._deep_clone
+// kd.core._deep_clone
 absl::StatusOr<DataSlice> DeepClone(
     const DataSlice& ds, const DataSlice& schema,
     internal::NonDeterministicToken = {});

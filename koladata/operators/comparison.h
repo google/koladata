@@ -20,19 +20,19 @@
 
 namespace koladata::ops {
 
-// kde.comparison.less.
+// kd.comparison.less.
 absl::StatusOr<DataSlice> Less(const DataSlice& x, const DataSlice& y);
 
-// kde.comparison.greater.
+// kd.comparison.greater.
 absl::StatusOr<DataSlice> Greater(const DataSlice& x, const DataSlice& y);
 
-// kde.comparison.less_equal.
+// kd.comparison.less_equal.
 absl::StatusOr<DataSlice> LessEqual(const DataSlice& x, const DataSlice& y);
 
-// kde.comparison.greater_equal.
+// kd.comparison.greater_equal.
 absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y);
 
-// kde.comparison.equal.
+// kd.comparison.equal.
 absl::StatusOr<DataSlice> Equal(const DataSlice& x, const DataSlice& y);
 
 }  // namespace koladata::ops

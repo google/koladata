@@ -173,7 +173,7 @@ class MathRoundTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.round: argument `x` must be a slice of numeric values,'
+            'kd.math.round: argument `x` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):
@@ -189,7 +189,7 @@ class MathRoundTest(parameterized.TestCase):
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.round(I.x)), 'kde.math.round(I.x)')
+    self.assertEqual(repr(kde.math.round(I.x)), 'kd.math.round(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.math.round(I.x)))

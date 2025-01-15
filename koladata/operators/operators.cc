@@ -52,228 +52,228 @@ namespace {
 #define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
-OPERATOR("kde.allocation.new_dictid_like", NewDictIdLike);
-OPERATOR("kde.allocation.new_dictid_shaped", NewDictIdShaped);
-OPERATOR("kde.allocation.new_itemid_like", NewItemIdLike);
-OPERATOR("kde.allocation.new_itemid_shaped", NewItemIdShaped);
-OPERATOR("kde.allocation.new_listid_like", NewListIdLike);
-OPERATOR("kde.allocation.new_listid_shaped", NewListIdShaped);
+OPERATOR("kd.allocation.new_dictid_like", NewDictIdLike);
+OPERATOR("kd.allocation.new_dictid_shaped", NewDictIdShaped);
+OPERATOR("kd.allocation.new_itemid_like", NewItemIdLike);
+OPERATOR("kd.allocation.new_itemid_shaped", NewItemIdShaped);
+OPERATOR("kd.allocation.new_listid_like", NewListIdLike);
+OPERATOR("kd.allocation.new_listid_shaped", NewListIdShaped);
 //
-OPERATOR("kde.assertion.assert_ds_has_primitives_of", AssertDsHasPrimitivesOf);
+OPERATOR("kd.assertion.assert_ds_has_primitives_of", AssertDsHasPrimitivesOf);
 //
-OPERATOR_FAMILY("kde.bags.enriched",
+OPERATOR_FAMILY("kd.bags.enriched",
                 std::make_unique<EnrichedDbOperatorFamily>());
-OPERATOR("kde.bags.new", Bag);
-OPERATOR_FAMILY("kde.bags.updated",
+OPERATOR("kd.bags.new", Bag);
+OPERATOR_FAMILY("kd.bags.updated",
                 std::make_unique<UpdatedDbOperatorFamily>());
 //
-OPERATOR("kde.comparison.equal", Equal);
-OPERATOR("kde.comparison.greater", Greater);
-OPERATOR("kde.comparison.greater_equal", GreaterEqual);
-OPERATOR("kde.comparison.less", Less);
-OPERATOR("kde.comparison.less_equal", LessEqual);
+OPERATOR("kd.comparison.equal", Equal);
+OPERATOR("kd.comparison.greater", Greater);
+OPERATOR("kd.comparison.greater_equal", GreaterEqual);
+OPERATOR("kd.comparison.less", Less);
+OPERATOR("kd.comparison.less_equal", LessEqual);
 //
-OPERATOR("kde.core._clone", Clone);
-OPERATOR("kde.core._databag_freeze", Freeze<DataBagPtr>);
-OPERATOR("kde.core._deep_clone", DeepClone);
-OPERATOR("kde.core._extract", Extract);
-OPERATOR("kde.core._get_attr", GetAttr);
-OPERATOR("kde.core._get_attr_with_default", GetAttrWithDefault);
-OPERATOR("kde.core._get_item", GetItem);
-OPERATOR("kde.core._get_list_item_by_range", GetListItemByRange);
-OPERATOR("kde.core._new_ids_like", NewIdsLike);
-OPERATOR("kde.core._shallow_clone", ShallowClone);
-OPERATOR("kde.core.attr", Attr);
-OPERATOR_FAMILY("kde.core.attrs", std::make_unique<AttrsOperatorFamily>());
-OPERATOR_FAMILY("kde.core.enriched",
+OPERATOR("kd.core._clone", Clone);
+OPERATOR("kd.core._databag_freeze", Freeze<DataBagPtr>);
+OPERATOR("kd.core._deep_clone", DeepClone);
+OPERATOR("kd.core._extract", Extract);
+OPERATOR("kd.core._get_attr", GetAttr);
+OPERATOR("kd.core._get_attr_with_default", GetAttrWithDefault);
+OPERATOR("kd.core._get_item", GetItem);
+OPERATOR("kd.core._get_list_item_by_range", GetListItemByRange);
+OPERATOR("kd.core._new_ids_like", NewIdsLike);
+OPERATOR("kd.core._shallow_clone", ShallowClone);
+OPERATOR("kd.core.attr", Attr);
+OPERATOR_FAMILY("kd.core.attrs", std::make_unique<AttrsOperatorFamily>());
+OPERATOR_FAMILY("kd.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
-OPERATOR("kde.core.follow", Follow);
-OPERATOR("kde.core.freeze_bag", Freeze<DataSlice>);
-OPERATOR("kde.core.get_bag", GetBag);
-OPERATOR("kde.core.has_entity", HasEntity);
-OPERATOR("kde.core.has_primitive", HasPrimitive);
-OPERATOR("kde.core.is_entity", IsEntity);
-OPERATOR("kde.core.is_primitive", IsPrimitive);
-OPERATOR("kde.core.no_bag", NoBag);
-OPERATOR("kde.core.nofollow", NoFollow);
-OPERATOR("kde.core.ref", Ref);
-OPERATOR("kde.core.stub", Stub);
-OPERATOR_FAMILY("kde.core.updated", std::make_unique<UpdatedOperatorFamily>());
-OPERATOR("kde.core.with_attr", WithAttr);
-OPERATOR_FAMILY("kde.core.with_attrs",
+OPERATOR("kd.core.follow", Follow);
+OPERATOR("kd.core.freeze_bag", Freeze<DataSlice>);
+OPERATOR("kd.core.get_bag", GetBag);
+OPERATOR("kd.core.has_entity", HasEntity);
+OPERATOR("kd.core.has_primitive", HasPrimitive);
+OPERATOR("kd.core.is_entity", IsEntity);
+OPERATOR("kd.core.is_primitive", IsPrimitive);
+OPERATOR("kd.core.no_bag", NoBag);
+OPERATOR("kd.core.nofollow", NoFollow);
+OPERATOR("kd.core.ref", Ref);
+OPERATOR("kd.core.stub", Stub);
+OPERATOR_FAMILY("kd.core.updated", std::make_unique<UpdatedOperatorFamily>());
+OPERATOR("kd.core.with_attr", WithAttr);
+OPERATOR_FAMILY("kd.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
-OPERATOR("kde.core.with_bag", WithBag);
-OPERATOR("kde.core.with_merged_bag", WithMergedBag);
+OPERATOR("kd.core.with_bag", WithBag);
+OPERATOR("kd.core.with_merged_bag", WithMergedBag);
 //
-OPERATOR("kde.dicts._dict_update", DictUpdate);
-OPERATOR("kde.dicts._get_values", GetValues);
-OPERATOR("kde.dicts._get_values_by_keys", GetValuesByKeys);
-OPERATOR("kde.dicts._like", DictLike);
-OPERATOR("kde.dicts._shaped", DictShaped);
-OPERATOR("kde.dicts.get_keys", GetKeys);
-OPERATOR("kde.dicts.has_dict", HasDict);
-OPERATOR("kde.dicts.is_dict", IsDict);
-OPERATOR("kde.dicts.size", DictSize);
+OPERATOR("kd.dicts._dict_update", DictUpdate);
+OPERATOR("kd.dicts._get_values", GetValues);
+OPERATOR("kd.dicts._get_values_by_keys", GetValuesByKeys);
+OPERATOR("kd.dicts._like", DictLike);
+OPERATOR("kd.dicts._shaped", DictShaped);
+OPERATOR("kd.dicts.get_keys", GetKeys);
+OPERATOR("kd.dicts.has_dict", HasDict);
+OPERATOR("kd.dicts.is_dict", IsDict);
+OPERATOR("kd.dicts.size", DictSize);
 //
-OPERATOR_FAMILY("kde.entities._like",
+OPERATOR_FAMILY("kd.entities._like",
                 std::make_unique<NewLikeOperatorFamily>());
-OPERATOR_FAMILY("kde.entities._new", std::make_unique<NewOperatorFamily>());
-OPERATOR_FAMILY("kde.entities._shaped",
+OPERATOR_FAMILY("kd.entities._new", std::make_unique<NewOperatorFamily>());
+OPERATOR_FAMILY("kd.entities._shaped",
                 std::make_unique<NewShapedOperatorFamily>());
-OPERATOR_FAMILY("kde.entities._uu", std::make_unique<UuOperatorFamily>());
+OPERATOR_FAMILY("kd.entities._uu", std::make_unique<UuOperatorFamily>());
 //
-OPERATOR("kde.ids._agg_uuid", AggUuid);
-OPERATOR("kde.ids._deep_uuid", DeepUuid);
-OPERATOR("kde.ids.decode_itemid", DecodeItemId);
-OPERATOR("kde.ids.encode_itemid", EncodeItemId);
-OPERATOR_FAMILY("kde.ids.uuid", std::make_unique<UuidOperatorFamily>());
-OPERATOR_FAMILY("kde.ids.uuid_for_dict",
+OPERATOR("kd.ids._agg_uuid", AggUuid);
+OPERATOR("kd.ids._deep_uuid", DeepUuid);
+OPERATOR("kd.ids.decode_itemid", DecodeItemId);
+OPERATOR("kd.ids.encode_itemid", EncodeItemId);
+OPERATOR_FAMILY("kd.ids.uuid", std::make_unique<UuidOperatorFamily>());
+OPERATOR_FAMILY("kd.ids.uuid_for_dict",
                 std::make_unique<UuidForDictOperatorFamily>());
-OPERATOR_FAMILY("kde.ids.uuid_for_list",
+OPERATOR_FAMILY("kd.ids.uuid_for_list",
                 std::make_unique<UuidForListOperatorFamily>());
-OPERATOR("kde.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
+OPERATOR("kd.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
 //
-OPERATOR("kde.json.to_json", ToJson);
+OPERATOR("kd.json.to_json", ToJson);
 //
-OPERATOR("kde.lists._explode", Explode);
-OPERATOR("kde.lists._implode", Implode);
-OPERATOR("kde.lists._like", ListLike);
-OPERATOR("kde.lists._shaped", ListShaped);
-OPERATOR("kde.lists.has_list", HasList);
-OPERATOR("kde.lists.is_list", IsList);
-OPERATOR("kde.lists.size", ListSize);
+OPERATOR("kd.lists._explode", Explode);
+OPERATOR("kd.lists._implode", Implode);
+OPERATOR("kd.lists._like", ListLike);
+OPERATOR("kd.lists._shaped", ListShaped);
+OPERATOR("kd.lists.has_list", HasList);
+OPERATOR("kd.lists.is_list", IsList);
+OPERATOR("kd.lists.size", ListSize);
 //
-OPERATOR("kde.masking._agg_all", AggAll);
-OPERATOR("kde.masking._agg_any", AggAny);
-OPERATOR("kde.masking._has_not", HasNot);
-OPERATOR("kde.masking.apply_mask", ApplyMask);
-OPERATOR("kde.masking.coalesce", Coalesce);
-OPERATOR("kde.masking.has", Has);
+OPERATOR("kd.masking._agg_all", AggAll);
+OPERATOR("kd.masking._agg_any", AggAny);
+OPERATOR("kd.masking._has_not", HasNot);
+OPERATOR("kd.masking.apply_mask", ApplyMask);
+OPERATOR("kd.masking.coalesce", Coalesce);
+OPERATOR("kd.masking.has", Has);
 //
-OPERATOR("kde.math._agg_inverse_cdf", AggInverseCdf);
-OPERATOR("kde.math._agg_max", AggMax);
-OPERATOR("kde.math._agg_mean", AggMean);
-OPERATOR("kde.math._agg_median", AggMedian);
-OPERATOR("kde.math._agg_min", AggMin);
-OPERATOR("kde.math._agg_std", AggStd);
-OPERATOR("kde.math._agg_sum", AggSum);
-OPERATOR("kde.math._agg_var", AggVar);
-OPERATOR("kde.math._cdf", Cdf);
-OPERATOR("kde.math._cum_max", CumMax);
-OPERATOR("kde.math._cum_min", CumMin);
-OPERATOR("kde.math._cum_sum", CumSum);
-OPERATOR("kde.math._softmax", Softmax);
-OPERATOR("kde.math.abs", Abs);
-OPERATOR("kde.math.add", Add);
-OPERATOR("kde.math.ceil", Ceil);
-OPERATOR("kde.math.divide", Divide);
-OPERATOR("kde.math.exp", Exp);
-OPERATOR("kde.math.floor", Floor);
-OPERATOR("kde.math.floordiv", FloorDiv);
-OPERATOR("kde.math.log", Log);
-OPERATOR("kde.math.log10", Log10);
-OPERATOR("kde.math.maximum", Maximum);
-OPERATOR("kde.math.minimum", Minimum);
-OPERATOR("kde.math.mod", Mod);
-OPERATOR("kde.math.multiply", Multiply);
-OPERATOR("kde.math.neg", Neg);
-OPERATOR("kde.math.pos", Pos);
-OPERATOR("kde.math.pow", Pow);
-OPERATOR("kde.math.round", Round);
-OPERATOR("kde.math.sigmoid", Sigmoid);
-OPERATOR("kde.math.sign", Sign);
-OPERATOR("kde.math.subtract", Subtract);
+OPERATOR("kd.math._agg_inverse_cdf", AggInverseCdf);
+OPERATOR("kd.math._agg_max", AggMax);
+OPERATOR("kd.math._agg_mean", AggMean);
+OPERATOR("kd.math._agg_median", AggMedian);
+OPERATOR("kd.math._agg_min", AggMin);
+OPERATOR("kd.math._agg_std", AggStd);
+OPERATOR("kd.math._agg_sum", AggSum);
+OPERATOR("kd.math._agg_var", AggVar);
+OPERATOR("kd.math._cdf", Cdf);
+OPERATOR("kd.math._cum_max", CumMax);
+OPERATOR("kd.math._cum_min", CumMin);
+OPERATOR("kd.math._cum_sum", CumSum);
+OPERATOR("kd.math._softmax", Softmax);
+OPERATOR("kd.math.abs", Abs);
+OPERATOR("kd.math.add", Add);
+OPERATOR("kd.math.ceil", Ceil);
+OPERATOR("kd.math.divide", Divide);
+OPERATOR("kd.math.exp", Exp);
+OPERATOR("kd.math.floor", Floor);
+OPERATOR("kd.math.floordiv", FloorDiv);
+OPERATOR("kd.math.log", Log);
+OPERATOR("kd.math.log10", Log10);
+OPERATOR("kd.math.maximum", Maximum);
+OPERATOR("kd.math.minimum", Minimum);
+OPERATOR("kd.math.mod", Mod);
+OPERATOR("kd.math.multiply", Multiply);
+OPERATOR("kd.math.neg", Neg);
+OPERATOR("kd.math.pos", Pos);
+OPERATOR("kd.math.pow", Pow);
+OPERATOR("kd.math.round", Round);
+OPERATOR("kd.math.sigmoid", Sigmoid);
+OPERATOR("kd.math.sign", Sign);
+OPERATOR("kd.math.subtract", Subtract);
 //
-OPERATOR_FAMILY("kde.objs.like", std::make_unique<ObjLikeOperatorFamily>());
-OPERATOR_FAMILY("kde.objs.new", std::make_unique<ObjOperatorFamily>());
-OPERATOR_FAMILY("kde.objs.shaped", std::make_unique<ObjShapedOperatorFamily>());
-OPERATOR_FAMILY("kde.objs.uu", std::make_unique<UuObjOperatorFamily>());
+OPERATOR_FAMILY("kd.objs.like", std::make_unique<ObjLikeOperatorFamily>());
+OPERATOR_FAMILY("kd.objs.new", std::make_unique<ObjOperatorFamily>());
+OPERATOR_FAMILY("kd.objs.shaped", std::make_unique<ObjShapedOperatorFamily>());
+OPERATOR_FAMILY("kd.objs.uu", std::make_unique<UuObjOperatorFamily>());
 //
-OPERATOR("kde.schema._agg_common_schema", AggCommonSchema);
-OPERATOR("kde.schema._internal_maybe_named_schema", InternalMaybeNamedSchema);
-OPERATOR("kde.schema._unsafe_cast_to", UnsafeCastTo);
-OPERATOR("kde.schema.cast_to", CastTo);
-OPERATOR("kde.schema.cast_to_implicit", CastToImplicit);
-OPERATOR("kde.schema.cast_to_narrow", CastToNarrow);
-OPERATOR("kde.schema.dict_schema", DictSchema);
-OPERATOR("kde.schema.get_item_schema", GetItemSchema);
-OPERATOR("kde.schema.get_key_schema", GetKeySchema);
-OPERATOR("kde.schema.get_nofollowed_schema", GetNoFollowedSchema);
-OPERATOR("kde.schema.get_obj_schema", GetObjSchema);
-OPERATOR("kde.schema.get_primitive_schema", GetPrimitiveSchema);
-OPERATOR("kde.schema.get_schema", GetSchema);
-OPERATOR("kde.schema.get_value_schema", GetValueSchema);
-OPERATOR("kde.schema.is_any_schema", IsAnySchema);
-OPERATOR("kde.schema.is_dict_schema", IsDictSchema);
-OPERATOR("kde.schema.is_entity_schema", IsEntitySchema);
-OPERATOR("kde.schema.is_itemid_schema", IsItemIdSchema);
-OPERATOR("kde.schema.is_list_schema", IsListSchema);
-OPERATOR("kde.schema.is_primitive_schema", IsPrimitiveSchema);
-OPERATOR("kde.schema.is_struct_schema", IsStructSchema);
-OPERATOR("kde.schema.list_schema", ListSchema);
-OPERATOR_FAMILY("kde.schema.named_schema",
+OPERATOR("kd.schema._agg_common_schema", AggCommonSchema);
+OPERATOR("kd.schema._internal_maybe_named_schema", InternalMaybeNamedSchema);
+OPERATOR("kd.schema._unsafe_cast_to", UnsafeCastTo);
+OPERATOR("kd.schema.cast_to", CastTo);
+OPERATOR("kd.schema.cast_to_implicit", CastToImplicit);
+OPERATOR("kd.schema.cast_to_narrow", CastToNarrow);
+OPERATOR("kd.schema.dict_schema", DictSchema);
+OPERATOR("kd.schema.get_item_schema", GetItemSchema);
+OPERATOR("kd.schema.get_key_schema", GetKeySchema);
+OPERATOR("kd.schema.get_nofollowed_schema", GetNoFollowedSchema);
+OPERATOR("kd.schema.get_obj_schema", GetObjSchema);
+OPERATOR("kd.schema.get_primitive_schema", GetPrimitiveSchema);
+OPERATOR("kd.schema.get_schema", GetSchema);
+OPERATOR("kd.schema.get_value_schema", GetValueSchema);
+OPERATOR("kd.schema.is_any_schema", IsAnySchema);
+OPERATOR("kd.schema.is_dict_schema", IsDictSchema);
+OPERATOR("kd.schema.is_entity_schema", IsEntitySchema);
+OPERATOR("kd.schema.is_itemid_schema", IsItemIdSchema);
+OPERATOR("kd.schema.is_list_schema", IsListSchema);
+OPERATOR("kd.schema.is_primitive_schema", IsPrimitiveSchema);
+OPERATOR("kd.schema.is_struct_schema", IsStructSchema);
+OPERATOR("kd.schema.list_schema", ListSchema);
+OPERATOR_FAMILY("kd.schema.named_schema",
                 std::make_unique<NamedSchemaOperatorFamily>());
-OPERATOR_FAMILY("kde.schema.new_schema",
+OPERATOR_FAMILY("kd.schema.new_schema",
                 std::make_unique<NewSchemaOperatorFamily>());
-OPERATOR("kde.schema.nofollow_schema", CreateNoFollowSchema);
-OPERATOR_FAMILY("kde.schema.uu_schema",
+OPERATOR("kd.schema.nofollow_schema", CreateNoFollowSchema);
+OPERATOR_FAMILY("kd.schema.uu_schema",
                 std::make_unique<UuSchemaOperatorFamily>());
-OPERATOR("kde.schema.with_schema", WithSchema);
+OPERATOR("kd.schema.with_schema", WithSchema);
 //
-OPERATOR("kde.shapes._expand_to_shape", ExpandToShape);
-OPERATOR_FAMILY("kde.shapes._new_with_size",
+OPERATOR("kd.shapes._expand_to_shape", ExpandToShape);
+OPERATOR_FAMILY("kd.shapes._new_with_size",
                 std::make_unique<JaggedShapeCreateWithSizeOperatorFamily>());
-OPERATOR("kde.shapes._reshape", Reshape);
-OPERATOR("kde.shapes.get_shape", GetShape);
-OPERATOR_FAMILY("kde.shapes.new",
+OPERATOR("kd.shapes._reshape", Reshape);
+OPERATOR("kd.shapes.get_shape", GetShape);
+OPERATOR_FAMILY("kd.shapes.new",
                 std::make_unique<JaggedShapeCreateOperatorFamily>());
 //
-OPERATOR("kde.slices._collapse", Collapse);
-OPERATOR_FAMILY("kde.slices._concat_or_stack",
+OPERATOR("kd.slices._collapse", Collapse);
+OPERATOR_FAMILY("kd.slices._concat_or_stack",
                 arolla::MakeVariadicInputOperatorFamily(ConcatOrStack));
-OPERATOR("kde.slices._dense_rank", DenseRank);
-OPERATOR_FAMILY("kde.slices._group_by_indices",
+OPERATOR("kd.slices._dense_rank", DenseRank);
+OPERATOR_FAMILY("kd.slices._group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
-OPERATOR("kde.slices._inverse_mapping", InverseMapping);
-OPERATOR("kde.slices._ordinal_rank", OrdinalRank);
-OPERATOR("kde.slices._select", Select);
-OPERATOR_FAMILY("kde.slices.align", std::make_unique<AlignOperatorFamily>());
-OPERATOR("kde.slices.inverse_select", InverseSelect);
-OPERATOR("kde.slices.is_empty", IsEmpty);
-OPERATOR("kde.slices.reverse", Reverse);
-OPERATOR_FAMILY("kde.slices.subslice",
+OPERATOR("kd.slices._inverse_mapping", InverseMapping);
+OPERATOR("kd.slices._ordinal_rank", OrdinalRank);
+OPERATOR("kd.slices._select", Select);
+OPERATOR_FAMILY("kd.slices.align", std::make_unique<AlignOperatorFamily>());
+OPERATOR("kd.slices.inverse_select", InverseSelect);
+OPERATOR("kd.slices.is_empty", IsEmpty);
+OPERATOR("kd.slices.reverse", Reverse);
+OPERATOR_FAMILY("kd.slices.subslice",
                 std::make_unique<SubsliceOperatorFamily>());
-OPERATOR("kde.slices.take", Take);
-OPERATOR("kde.slices.translate", Translate);
-OPERATOR("kde.slices.unique", Unique);
+OPERATOR("kd.slices.take", Take);
+OPERATOR("kd.slices.translate", Translate);
+OPERATOR("kd.slices.unique", Unique);
 //
-OPERATOR("kde.strings._agg_join", AggJoin);
-OPERATOR("kde.strings._decode_base64", DecodeBase64);
-OPERATOR_FAMILY("kde.strings._test_only_format_wrapper",
+OPERATOR("kd.strings._agg_join", AggJoin);
+OPERATOR("kd.strings._decode_base64", DecodeBase64);
+OPERATOR_FAMILY("kd.strings._test_only_format_wrapper",
                 arolla::MakeVariadicInputOperatorFamily(TestOnlyFormatWrapper));
-OPERATOR("kde.strings.contains", Contains);
-OPERATOR("kde.strings.count", Count);
-OPERATOR("kde.strings.decode", Decode);
-OPERATOR("kde.strings.encode", Encode);
-OPERATOR("kde.strings.encode_base64", EncodeBase64);
-OPERATOR("kde.strings.find", Find);
-OPERATOR_FAMILY("kde.strings.format", std::make_unique<FormatOperatorFamily>());
-OPERATOR_FAMILY("kde.strings.join",
+OPERATOR("kd.strings.contains", Contains);
+OPERATOR("kd.strings.count", Count);
+OPERATOR("kd.strings.decode", Decode);
+OPERATOR("kd.strings.encode", Encode);
+OPERATOR("kd.strings.encode_base64", EncodeBase64);
+OPERATOR("kd.strings.find", Find);
+OPERATOR_FAMILY("kd.strings.format", std::make_unique<FormatOperatorFamily>());
+OPERATOR_FAMILY("kd.strings.join",
                 arolla::MakeVariadicInputOperatorFamily(Join));
-OPERATOR("kde.strings.length", Length);
-OPERATOR("kde.strings.lower", Lower);
-OPERATOR("kde.strings.lstrip", Lstrip);
-OPERATOR_FAMILY("kde.strings.printf",
+OPERATOR("kd.strings.length", Length);
+OPERATOR("kd.strings.lower", Lower);
+OPERATOR("kd.strings.lstrip", Lstrip);
+OPERATOR_FAMILY("kd.strings.printf",
                 arolla::MakeVariadicInputOperatorFamily(Printf));
-OPERATOR("kde.strings.regex_extract", RegexExtract);
-OPERATOR("kde.strings.regex_match", RegexMatch);
-OPERATOR("kde.strings.replace", Replace);
-OPERATOR("kde.strings.rfind", Rfind);
-OPERATOR("kde.strings.rstrip", Rstrip);
-OPERATOR("kde.strings.split", Split);
-OPERATOR("kde.strings.strip", Strip);
-OPERATOR("kde.strings.substr", Substr);
-OPERATOR("kde.strings.upper", Upper);
+OPERATOR("kd.strings.regex_extract", RegexExtract);
+OPERATOR("kd.strings.regex_match", RegexMatch);
+OPERATOR("kd.strings.replace", Replace);
+OPERATOR("kd.strings.rfind", Rfind);
+OPERATOR("kd.strings.rstrip", Rstrip);
+OPERATOR("kd.strings.split", Split);
+OPERATOR("kd.strings.strip", Strip);
+OPERATOR("kd.strings.substr", Substr);
+OPERATOR("kd.strings.upper", Upper);
 //
 OPERATOR("koda_internal.non_deterministic", NonDeterministicOp);
 OPERATOR_FAMILY("koda_internal.non_deterministic_identity",

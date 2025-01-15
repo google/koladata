@@ -23,9 +23,9 @@ from koladata.operators import qtype_utils
 P = arolla.P
 
 
-@optools.add_to_registry(aliases=['kde.equal'], repr_fn=op_repr.equal_repr)
+@optools.add_to_registry(aliases=['kd.equal'], repr_fn=op_repr.equal_repr)
 @optools.as_backend_operator(
-    'kde.comparison.equal',
+    'kd.comparison.equal',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -45,9 +45,9 @@ def equal(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.full_equal'])
+@optools.add_to_registry(aliases=['kd.full_equal'])
 @optools.as_lambda_operator(
-    'kde.comparison.full_equal',
+    'kd.comparison.full_equal',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -72,10 +72,11 @@ def full_equal(x, y):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(
-    aliases=['kde.not_equal'], repr_fn=op_repr.not_equal_repr
+    aliases=['kd.not_equal'],
+    repr_fn=op_repr.not_equal_repr,
 )
 @optools.as_lambda_operator(
-    'kde.comparison.not_equal',
+    'kd.comparison.not_equal',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -95,9 +96,12 @@ def not_equal(x, y):
   return ~(x == y) & (masking.has(x) & masking.has(y))
 
 
-@optools.add_to_registry(aliases=['kde.greater'], repr_fn=op_repr.greater_repr)
+@optools.add_to_registry(
+    aliases=['kd.greater'],
+    repr_fn=op_repr.greater_repr,
+)
 @optools.as_backend_operator(
-    'kde.comparison.greater',
+    'kd.comparison.greater',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -117,9 +121,9 @@ def greater(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.less'], repr_fn=op_repr.less_repr)
+@optools.add_to_registry(aliases=['kd.less'], repr_fn=op_repr.less_repr)
 @optools.as_backend_operator(
-    'kde.comparison.less',
+    'kd.comparison.less',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -140,10 +144,11 @@ def less(x, y):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(
-    aliases=['kde.greater_equal'], repr_fn=op_repr.greater_equal_repr
+    aliases=['kd.greater_equal'],
+    repr_fn=op_repr.greater_equal_repr,
 )
 @optools.as_backend_operator(
-    'kde.comparison.greater_equal',
+    'kd.comparison.greater_equal',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -164,10 +169,11 @@ def greater_equal(x, y):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(
-    aliases=['kde.less_equal'], repr_fn=op_repr.less_equal_repr
+    aliases=['kd.less_equal'],
+    repr_fn=op_repr.less_equal_repr,
 )
 @optools.as_backend_operator(
-    'kde.comparison.less_equal',
+    'kd.comparison.less_equal',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),

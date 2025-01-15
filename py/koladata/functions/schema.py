@@ -46,7 +46,7 @@ def new_schema(
     data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
   """
   if db is None:
-    return _eval_op('kde.schema.new_schema', **attrs)
+    return _eval_op('kd.schema.new_schema', **attrs)
   return db.new_schema(**attrs)
 
 
@@ -66,7 +66,7 @@ def list_schema(
     data_slice.DataSlice representing a list schema.
   """
   if db is None:
-    return _eval_op('kde.schema.list_schema', item_schema)
+    return _eval_op('kd.schema.list_schema', item_schema)
   return db.list_schema(item_schema)
 
 
@@ -89,7 +89,7 @@ def dict_schema(
     data_slice.DataSlice representing a dict schema.
   """
   if db is None:
-    return _eval_op('kde.schema.dict_schema', key_schema, value_schema)
+    return _eval_op('kd.schema.dict_schema', key_schema, value_schema)
   return db.dict_schema(key_schema, value_schema)
 
 
@@ -113,7 +113,7 @@ def uu_schema(
     data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
   """
   if db is None:
-    return _eval_op('kde.schema.uu_schema', seed=seed, **attrs)
+    return _eval_op('kd.schema.uu_schema', seed=seed, **attrs)
   return db.uu_schema(seed=seed, **attrs)
 
 
@@ -144,7 +144,7 @@ def named_schema(
     attrs.
   """
   if db is None:
-    return _eval_op('kde.schema.named_schema', name, **attrs)
+    return _eval_op('kd.schema.named_schema', name, **attrs)
   return db.named_schema(name, **attrs)
 
 

@@ -77,14 +77,14 @@ class LogicalMaskAndTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         # TODO: b/389032294 - Raise KodaError.
         ValueError,
-        re.escape('kde.masking.mask_and: argument `x` must have kd.MASK dtype'),
+        re.escape('kd.masking.mask_and: argument `x` must have kd.MASK dtype'),
     ):
       _ = expr_eval.eval(kde.masking.mask_and(ds(1), ds(present)))
 
     with self.assertRaisesRegex(
         # TODO: b/389032294 - Raise KodaError.
         ValueError,
-        re.escape('kde.masking.mask_and: argument `y` must have kd.MASK dtype'),
+        re.escape('kd.masking.mask_and: argument `y` must have kd.MASK dtype'),
     ):
       _ = expr_eval.eval(kde.masking.mask_and(ds(present), ds(1)))
 

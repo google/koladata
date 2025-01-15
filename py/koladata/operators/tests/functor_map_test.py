@@ -163,7 +163,7 @@ class MapTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.functor.map(I.fn, x=I.x, y=I.y)),
-        'kde.functor.map(I.fn, x=I.x, y=I.y)',
+        'kd.functor.map(I.fn, x=I.x, y=I.y)',
     )
 
 

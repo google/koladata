@@ -103,7 +103,7 @@ class CoreWithAttrsTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.with_attrs(I.x, a=I.y)),
-        'kde.core.with_attrs(I.x, update_schema=DataItem(False, schema:'
+        'kd.core.with_attrs(I.x, update_schema=DataItem(False, schema:'
         ' BOOLEAN), a=I.y)',
     )
 

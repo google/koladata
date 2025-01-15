@@ -24,9 +24,9 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(aliases=['kde.obj'])
+@optools.add_to_registry(aliases=['kd.obj'])
 @optools.as_backend_operator(
-    'kde.objs.new',
+    'kd.objs.new',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.arg),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
@@ -52,9 +52,9 @@ def obj(arg=arolla.unspecified(), /, *, itemid=arolla.unspecified(), **attrs):  
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.obj_shaped'])
+@optools.add_to_registry(aliases=['kd.obj_shaped'])
 @optools.as_backend_operator(
-    'kde.objs.shaped',
+    'kd.objs.shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
@@ -78,9 +78,9 @@ def obj_shaped(shape, /, *, itemid=arolla.unspecified(), **attrs):  # pylint: di
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.obj_shaped_as'])
+@optools.add_to_registry(aliases=['kd.obj_shaped_as'])
 @optools.as_lambda_operator(
-    'kde.objs.shaped_as',
+    'kd.objs.shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
@@ -110,9 +110,9 @@ def obj_shaped_as(shape_from, /, *, itemid=arolla.unspecified(), **attrs):
   )
 
 
-@optools.add_to_registry(aliases=['kde.obj_like'])
+@optools.add_to_registry(aliases=['kd.obj_like'])
 @optools.as_backend_operator(
-    'kde.objs.like',
+    'kd.objs.like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
@@ -140,9 +140,9 @@ def obj_like(shape_and_mask_from, /, *, itemid=arolla.unspecified(), **attrs):  
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.uuobj'])
+@optools.add_to_registry(aliases=['kd.uuobj'])
 @optools.as_backend_operator(
-    'kde.objs.uu',
+    'kd.objs.uu',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),

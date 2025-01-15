@@ -229,7 +229,7 @@ Assigned schema for List item: INT32""",
   def test_repr(self):
     self.assertEqual(
         repr(kde.lists.shaped_as(I.x, I.y)),
-        'kde.lists.shaped_as(I.x, I.y, item_schema=unspecified,'
+        'kd.lists.shaped_as(I.x, I.y, item_schema=unspecified,'
         ' schema=unspecified, itemid=unspecified)',
     )
 

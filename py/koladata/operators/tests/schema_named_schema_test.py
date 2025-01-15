@@ -123,7 +123,7 @@ class KodaNamedSchemaTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.schema.named_schema('name')),
-        "kde.schema.named_schema(DataItem('name', schema: STRING))",
+        "kd.schema.named_schema(DataItem('name', schema: STRING))",
     )
 
 

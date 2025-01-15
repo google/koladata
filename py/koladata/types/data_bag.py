@@ -351,7 +351,7 @@ def _concat_lists(self: DataBag, /, *lists: _DataSlice) -> _DataSlice:  # pylint
 
   Each input DataSlice must contain only present List items, and the item
   schemas of each input must be compatible. Input DataSlices are aligned (see
-  `kde.align`) automatically before concatenation.
+  `kd.align`) automatically before concatenation.
 
   If `lists` is empty, this returns a single empty list.
 
@@ -371,7 +371,7 @@ def _concat_lists(self: DataBag, /, *lists: _DataSlice) -> _DataSlice:  # pylint
 
 def _freeze(self: DataBag) -> DataBag:
   """Returns a frozen DataBag equivalent to `self`."""
-  return _eval_op('kde.freeze', self)
+  return _eval_op('kd.freeze', self)
 
 
 def _merge_inplace(
@@ -419,12 +419,12 @@ def _merge_inplace(
 
 def _enriched_bag(*dbs) -> DataBag:
   """Returns a merged DataBag with priority for DataBags earlier in the list."""
-  return _eval_op('kde.enriched_bag', *dbs)
+  return _eval_op('kd.enriched_bag', *dbs)
 
 
 def _updated_bag(*dbs) -> DataBag:
   """Returns a merged DataBag with priority for DataBags later in the list."""
-  return _eval_op('kde.updated_bag', *dbs)
+  return _eval_op('kd.updated_bag', *dbs)
 
 
 class ContentsReprWrapper:
@@ -505,4 +505,4 @@ arolla.abc.register_qvalue_specialization(
 @functools.cache
 def null_bag():
   """Returns an instance of a null DataBag."""
-  return _eval_op('kde.get_bag', _DataSlice.from_vals(None))
+  return _eval_op('kd.get_bag', _DataSlice.from_vals(None))

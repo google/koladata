@@ -162,7 +162,7 @@ class MathAbsTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.abs: argument `x` must be a slice of numeric values, got'
+            'kd.math.abs: argument `x` must be a slice of numeric values, got'
             ' a slice of STRING'
         ),
     ):
@@ -178,7 +178,7 @@ class MathAbsTest(parameterized.TestCase):
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.abs(I.x)), 'kde.math.abs(I.x)')
+    self.assertEqual(repr(kde.math.abs(I.x)), 'kd.math.abs(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.math.abs(I.x)))

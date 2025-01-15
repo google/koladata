@@ -1103,11 +1103,11 @@ absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
   // The following checks are already done at Expr qtype constraints level and
   // should never happen.
   if (input_types.empty()) {
-    return OperatorNotDefinedError("kde.slices.subslice", input_types,
+    return OperatorNotDefinedError("kd.slices.subslice", input_types,
                                    "expected at least 1 argument");
   }
   if (input_types[0] != arolla::GetQType<DataSlice>()) {
-    return OperatorNotDefinedError("kde.slices.subslice", input_types,
+    return OperatorNotDefinedError("kd.slices.subslice", input_types,
                                    "'x' must be a DataSlice");
   }
 

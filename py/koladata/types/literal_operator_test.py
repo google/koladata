@@ -28,7 +28,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-kd = eager_op_utils.operators_container('kde')
+kd = eager_op_utils.operators_container('kd')
 ds = data_slice.DataSlice.from_vals
 
 

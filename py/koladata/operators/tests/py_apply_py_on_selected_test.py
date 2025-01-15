@@ -149,7 +149,7 @@ class PyApplyPyOnSelectedTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.py.apply_py_on_selected(I.fn, I.cond, I.x, a=I.a)),
-        'kde.py.apply_py_on_selected(I.fn, I.cond, I.x, a=I.a)',
+        'kd.py.apply_py_on_selected(I.fn, I.cond, I.x, a=I.a)',
     )
 
 

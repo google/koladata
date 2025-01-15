@@ -143,7 +143,7 @@ class MathLogTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.log10: argument `x` must be a slice of numeric values,'
+            'kd.math.log10: argument `x` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):
@@ -159,7 +159,7 @@ class MathLogTest(parameterized.TestCase):
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.log10(I.x)), 'kde.math.log10(I.x)')
+    self.assertEqual(repr(kde.math.log10(I.x)), 'kd.math.log10(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.math.log10(I.x)))

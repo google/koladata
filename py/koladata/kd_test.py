@@ -514,7 +514,7 @@ class KdTest(absltest.TestCase):
 
     @kd.optools.add_to_registry()
     @kd.optools.as_py_function_operator(
-        'kde.core.kd_test_op',
+        'kd.core.kd_test_op',
         qtype_constraints=[
             kd.optools.constraints.expect_data_slice(arolla.P.x)
         ],

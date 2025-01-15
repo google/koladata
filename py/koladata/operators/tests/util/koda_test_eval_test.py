@@ -33,12 +33,12 @@ from koladata.types import data_slice
 M = arolla.M
 L = arolla.L
 P = arolla.P
-kd = eager_op_utils.operators_container('kde')
+kd = eager_op_utils.operators_container('kd')
 
 
 @arolla.optools.add_to_registry()
 @arolla.optools.as_py_function_operator(
-    'kde.add_fake_for_test', qtype_inference_expr=P.x
+    'kd.add_fake_for_test', qtype_inference_expr=P.x
 )
 def add_fake_for_test(x, y):
   if x.get_ndim() == 0 and x > 2**30:
@@ -50,7 +50,7 @@ def add_fake_for_test(x, y):
 
 @arolla.optools.add_to_registry()
 @arolla.optools.as_py_function_operator(
-    'kde.agg_sum_fake_for_test', qtype_inference_expr=P.x
+    'kd.agg_sum_fake_for_test', qtype_inference_expr=P.x
 )
 def agg_sum_fake_for_test(x):
   flat_res = arolla.abc.invoke_op(
@@ -62,7 +62,7 @@ def agg_sum_fake_for_test(x):
 
 @arolla.optools.add_to_registry()
 @arolla.optools.as_py_function_operator(
-    'kde.cum_count_fake_for_test', qtype_inference_expr=P.x
+    'kd.cum_count_fake_for_test', qtype_inference_expr=P.x
 )
 def cum_count_fake_for_test(x):
   flat_res = arolla.abc.invoke_op(
@@ -293,7 +293,7 @@ class KodaTestEvalTest(parameterized.TestCase):
   def test_eval_agg_over_op_unexpected_rank(self):
 
     @arolla.optools.add_to_registry()
-    @arolla.optools.as_lambda_operator('kde.cum_count_incorrect_impl')
+    @arolla.optools.as_lambda_operator('kd.cum_count_incorrect_impl')
     def cum_count_incorrect_impl(x):
       return agg_sum_fake_for_test(x)
 
@@ -312,7 +312,7 @@ class KodaTestEvalTest(parameterized.TestCase):
 
     @arolla.optools.add_to_registry()
     @arolla.optools.as_py_function_operator(
-        'kde.fake_ordinal_rank', qtype_inference_expr=P.x
+        'kd.fake_ordinal_rank', qtype_inference_expr=P.x
     )
     def fake_ordinal_rank(x, tie_breaker, descending):
       if tie_breaker.qtype != arolla.UNSPECIFIED:
@@ -356,7 +356,7 @@ class KodaTestEvalTest(parameterized.TestCase):
 
     @arolla.optools.add_to_registry()
     @arolla.optools.as_py_function_operator(
-        'kde.fake_correlation', qtype_inference_expr=P.x
+        'kd.fake_correlation', qtype_inference_expr=P.x
     )
     def fake_correlation(x, y):
       flat_res = arolla.abc.invoke_op(
@@ -393,7 +393,7 @@ class KodaTestEvalTest(parameterized.TestCase):
 
     @arolla.optools.add_to_registry()
     @arolla.optools.as_py_function_operator(
-        'kde.simple_add_for_test',
+        'kd.simple_add_for_test',
         qtype_inference_expr=P.x,
     )
     def kde_simple_add_for_test(x, y=data_slice.DataSlice.from_vals(y_default)):
@@ -421,7 +421,7 @@ class KodaTestEvalTest(parameterized.TestCase):
 
     @arolla.optools.add_to_registry()
     @arolla.optools.as_py_function_operator(
-        'kde.another_simple_add_for_test',
+        'kd.another_simple_add_for_test',
         qtype_inference_expr=P.x,
     )
     def kde_another_simple_add_for_test(x, y=arolla.unspecified()):

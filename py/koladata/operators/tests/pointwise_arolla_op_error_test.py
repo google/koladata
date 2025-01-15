@@ -59,7 +59,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.subtract: argument `x` must be a slice of numeric values,'
+            'kd.math.subtract: argument `x` must be a slice of numeric values,'
             ' got a slice of SCHEMA(x=INT32)',
         ),
     ):
@@ -71,7 +71,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.subtract: argument `x` must be a slice of numeric values,'
+            'kd.math.subtract: argument `x` must be a slice of numeric values,'
             ' got a slice of OBJECT'
         ),
     ):
@@ -83,7 +83,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.subtract: argument `y` must be a slice of numeric values,'
+            'kd.math.subtract: argument `y` must be a slice of numeric values,'
             ' got a slice of OBJECT',
         ),
     ):
@@ -103,7 +103,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.subtract: argument `y` must be a slice of numeric values,'
+            'kd.math.subtract: argument `y` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):

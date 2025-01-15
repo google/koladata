@@ -45,11 +45,11 @@ def _call(
       isinstance(arg, arolla.Expr) for arg in kwargs.values()
   ):
     return arolla.abc.aux_bind_op(
-        'kde.call', self, *args, return_type_as=return_type_as, **kwargs
+        'kd.call', self, *args, return_type_as=return_type_as, **kwargs
     )
   else:
     return _eval_op(
-        'kde.call', self, *args, return_type_as=return_type_as, **kwargs
+        'kd.call', self, *args, return_type_as=return_type_as, **kwargs
     )
 
 

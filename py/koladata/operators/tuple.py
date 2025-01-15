@@ -29,7 +29,8 @@ constraints = arolla.optools.constraints
 
 
 optools.add_to_registry(
-    name='kde.tuple.make_tuple', aliases=['kde.make_tuple']
+    name='kd.tuple.make_tuple',
+    aliases=['kd.make_tuple'],
 )(arolla.M.core.make_tuple)
 
 
@@ -40,7 +41,7 @@ optools.add_to_registry(
 )
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.tuple.get_nth',
+    'kd.tuple.get_nth',
     qtype_constraints=[qtype_utils.expect_data_slice(P.n)],
 )
 def get_nth(x, n):

@@ -25,38 +25,38 @@
 
 namespace koladata::ops {
 
-// kde.core._get_list_item_by_range.
+// kd.core._get_list_item_by_range.
 inline absl::StatusOr<DataSlice> GetListItemByRange(const DataSlice& ds,
                                                     int64_t start,
                                                     int64_t stop) {
   return ds.ExplodeList(start, stop);
 }
 
-// kde.lists._explode
+// kd.lists._explode
 absl::StatusOr<DataSlice> Explode(const DataSlice& x, int64_t ndim);
 
-// kde.lists._implode
+// kd.lists._implode
 absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
                                   const DataSlice& itemid,
                                   internal::NonDeterministicToken);
 
-// kde.lists.size.
+// kd.lists.size.
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 
-// kde.lists.new operator.
+// kd.lists.new operator.
 absl::StatusOr<DataSlice> List(
     const DataSlice& items, const DataSlice& item_schema,
     const DataSlice& schema, const DataSlice& itemid,
     internal::NonDeterministicToken);
 
-// kde.lists._list_like operator.
+// kd.lists._list_like operator.
 absl::StatusOr<DataSlice> ListLike(
     const DataSlice& shape_and_mask_from, const DataSlice& items,
     const DataSlice& item_schema, const DataSlice& schema,
     const DataSlice& itemid,
     internal::NonDeterministicToken);
 
-// kde.lists._list_shaped operator.
+// kd.lists._list_shaped operator.
 absl::StatusOr<DataSlice> ListShaped(
     const DataSlice::JaggedShape& shape, const DataSlice& items,
     const DataSlice& item_schema, const DataSlice& schema,

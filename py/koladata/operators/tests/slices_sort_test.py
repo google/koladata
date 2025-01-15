@@ -154,7 +154,7 @@ class SlicesSortTest(parameterized.TestCase):
         # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
-            'kde.slices.sort: arguments `x` and `sort_by` must have the same'
+            'kd.slices.sort: arguments `x` and `sort_by` must have the same'
             ' shape'
         ),
     ):
@@ -164,7 +164,7 @@ class SlicesSortTest(parameterized.TestCase):
         # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
-            'kde.slices.sort: arguments `x` and `sort_by` must have the same'
+            'kd.slices.sort: arguments `x` and `sort_by` must have the same'
             ' shape'
         ),
     ):

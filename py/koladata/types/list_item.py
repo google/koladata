@@ -48,7 +48,7 @@ class ListItem(data_item.DataItem):
     return (self[i] for i in range(len(self)))
 
   def __contains__(self, key: Any) -> bool:
-    return bool(_eval_op('kde.isin', key, self[:]))
+    return bool(_eval_op('kd.isin', key, self[:]))
 
   # NOTE: ListItem.clear is inherited from DataSlice.clear.
 

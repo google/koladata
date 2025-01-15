@@ -63,7 +63,7 @@ def _slice_repr(
 def subslice_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
 ) -> arolla.abc.ReprToken:
-  """Repr for kde.slices.subslice."""
+  """Repr for kd.slices.subslice."""
   parts = [
       _slice_repr(dep, tokens, abbreviation=False) for dep in node.node_deps
   ]
@@ -88,7 +88,7 @@ def subslicehelper_repr(
 def get_item_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
 ) -> arolla.abc.ReprToken:
-  """Repr for kde.core.get_item."""
+  """Repr for kd.core.get_item."""
   deps = node.node_deps
   assert len(deps) == 2, 'get_item expects exact two arguments.'
   x = tokens[deps[0]].text
@@ -113,7 +113,7 @@ def _brackets_if(text: str, condition: bool) -> str:
 def getattr_repr(
     node: arolla.Expr, tokens: arolla.abc.NodeTokenView
 ) -> arolla.abc.ReprToken:
-  """Repr for kde.core.get_attr."""
+  """Repr for kd.core.get_attr."""
   res = arolla.abc.ReprToken()
   if node.node_deps[2].qtype != arolla.UNSPECIFIED:
     return default_op_repr(node, tokens)

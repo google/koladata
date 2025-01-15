@@ -214,13 +214,13 @@ class StringsAggJoinTest(parameterized.TestCase):
   def test_repr_without_optional_args(self):
     self.assertEqual(
         repr(kde.strings.agg_join(I.x)),
-        'kde.strings.agg_join(I.x, DataItem(None, schema: NONE), unspecified)',
+        'kd.strings.agg_join(I.x, DataItem(None, schema: NONE), unspecified)',
     )
 
   def test_repr_with_optional_args(self):
     self.assertEqual(
         repr(kde.strings.agg_join(I.x, I.sep, I.ndim)),
-        'kde.strings.agg_join(I.x, I.sep, I.ndim)',
+        'kd.strings.agg_join(I.x, I.sep, I.ndim)',
     )
 
   def test_data_item_input_error(self):

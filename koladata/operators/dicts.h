@@ -26,30 +26,30 @@
 
 namespace koladata::ops {
 
-// kde.dicts.dict_size.
+// kd.dicts.dict_size.
 absl::StatusOr<DataSlice> DictSize(const DataSlice& dicts);
 
-// kde.dicts.get_keys.
+// kd.dicts.get_keys.
 inline absl::StatusOr<DataSlice> GetKeys(const DataSlice& dict_ds) {
   return dict_ds.GetDictKeys();
 }
 
-// kde.dicts._get_values.
+// kd.dicts._get_values.
 inline absl::StatusOr<DataSlice> GetValues(const DataSlice& dict_ds) {
   return dict_ds.GetDictValues();
 }
 
-// kde.dicts._get_values_by_keys.
+// kd.dicts._get_values_by_keys.
 inline absl::StatusOr<DataSlice> GetValuesByKeys(const DataSlice& dict_ds,
                                                  const DataSlice& key_ds) {
   return dict_ds.GetFromDict(key_ds);
 }
 
-// kde.dicts._dict_update
+// kd.dicts._dict_update
 absl::StatusOr<DataBagPtr> DictUpdate(const DataSlice& x, const DataSlice& keys,
                                       const DataSlice& values);
 
-// kde.dicts._shaped operator.
+// kd.dicts._shaped operator.
 absl::StatusOr<DataSlice> DictShaped(
     const DataSlice::JaggedShape& shape, const DataSlice& keys,
     const DataSlice& values, const DataSlice& key_schema,
@@ -57,7 +57,7 @@ absl::StatusOr<DataSlice> DictShaped(
     const DataSlice& itemid,
     internal::NonDeterministicToken);
 
-// kde.dicts._like operator.
+// kd.dicts._like operator.
 absl::StatusOr<DataSlice> DictLike(
     const DataSlice& shape_and_mask_from, const DataSlice& keys,
     const DataSlice& values, const DataSlice& key_schema,

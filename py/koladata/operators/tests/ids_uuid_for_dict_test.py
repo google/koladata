@@ -159,11 +159,11 @@ class KodaUuidForDictTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.ids.uuid_for_dict(seed=I.seed, a=I.a)),
-        'kde.ids.uuid_for_dict(I.seed, a=I.a)',
+        'kd.ids.uuid_for_dict(I.seed, a=I.a)',
     )
     self.assertEqual(
         repr(kde.ids.uuid_for_dict(I.seed, a=I.a)),
-        'kde.ids.uuid_for_dict(I.seed, a=I.a)',
+        'kd.ids.uuid_for_dict(I.seed, a=I.a)',
     )
 
 

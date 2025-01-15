@@ -208,7 +208,7 @@ class MathSoftmaxTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.softmax: argument `x` must be a slice of numeric values,'
+            'kd.math.softmax: argument `x` must be a slice of numeric values,'
             ' got a slice of SCHEMA(x=INT32)'
         ),
     ):
@@ -219,7 +219,7 @@ class MathSoftmaxTest(parameterized.TestCase):
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kde.math.softmax: argument `x` must be a slice of numeric values, got'
+        'kd.math.softmax: argument `x` must be a slice of numeric values, got'
         ' a slice of OBJECT',
     ):
       expr_eval.eval(kde.math.softmax(x))

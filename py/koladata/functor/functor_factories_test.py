@@ -35,7 +35,7 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
-kd = eager_op_utils.operators_container('kde')
+kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 kdi = user_facing_kd.eager
 pack_expr = introspection.pack_expr

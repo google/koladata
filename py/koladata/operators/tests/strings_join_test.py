@@ -34,7 +34,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-# Signatures of 'kde.strings.join' at a maximum arity of 3:
+# Signatures of 'kd.strings.join' at a maximum arity of 3:
 QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE),
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
@@ -92,7 +92,7 @@ class StringsJoinTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'expected at least one argument; while calling kde.strings.join'
+            'expected at least one argument; while calling kd.strings.join'
             ' with args {}'
         ),
     ):

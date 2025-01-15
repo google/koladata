@@ -20,7 +20,7 @@ from koladata.types import mask_constants
 from koladata.types import schema_constants
 
 
-kd = eager_op_utils.operators_container('kde')
+kd = eager_op_utils.operators_container('kd')
 
 
 class MaskConstantsTest(absltest.TestCase):

@@ -29,7 +29,7 @@ class SchemaItem(data_item.DataItem):
   """SchemaItem is a DataItem representing a Koda Schema."""
 
   def get_nofollowed_schema(self) -> data_item.DataItem:
-    return _eval_op('kde.get_nofollowed_schema', self)
+    return _eval_op('kd.get_nofollowed_schema', self)
 
   def __call__(self, *args, **kwargs):
     """Schema DataItem can be used as Entity creator."""

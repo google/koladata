@@ -178,7 +178,7 @@ class MathCeilTest(parameterized.TestCase):
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.ceil(I.x)), 'kde.math.ceil(I.x)')
+    self.assertEqual(repr(kde.math.ceil(I.x)), 'kd.math.ceil(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.math.ceil(I.x)))

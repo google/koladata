@@ -126,7 +126,7 @@ exceptions.KodaError = _exceptions.KodaError
 
 ### Eager operators / functions from operators.
 def _InitOpsAndContainers():
-  kd_ops = _eager_op_utils.operators_container('kde')
+  kd_ops = _eager_op_utils.operators_container('kd')
   # We cannot use dir() since it is overridden in this module.
   for op_or_container_name in kd_ops.__dir__():
     globals()[op_or_container_name] = _dispatch(

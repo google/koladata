@@ -41,7 +41,7 @@ inline absl::StatusOr<DataSlice> NewItemIdShaped(
                            internal::DataItem(schema::kItemId));
 }
 
-// kde.allocation.new_listid_shaped.
+// kd.allocation.new_listid_shaped.
 // Allocates new List ItemIds of the given shape.
 inline absl::StatusOr<DataSlice> NewListIdShaped(
     DataSlice::JaggedShape shape, internal::NonDeterministicToken) {
@@ -52,7 +52,7 @@ inline absl::StatusOr<DataSlice> NewListIdShaped(
       std::move(shape), internal::DataItem(schema::kItemId));
 }
 
-// kde.allocation.new_dictid_shaped.
+// kd.allocation.new_dictid_shaped.
 // Allocates new Dict ItemIds of the given shape.
 inline absl::StatusOr<DataSlice> NewDictIdShaped(
     DataSlice::JaggedShape shape, internal::NonDeterministicToken) {
@@ -63,7 +63,7 @@ inline absl::StatusOr<DataSlice> NewDictIdShaped(
       std::move(shape), internal::DataItem(schema::kItemId));
 }
 
-// kde.allocation.new_itemid_like.
+// kd.allocation.new_itemid_like.
 // Allocates new ItemIds with the shape and sparsity of shape_and_mask_from.
 inline absl::StatusOr<DataSlice> NewItemIdLike(
     const DataSlice& shape_and_mask_from, internal::NonDeterministicToken) {
@@ -72,7 +72,7 @@ inline absl::StatusOr<DataSlice> NewItemIdLike(
       internal::Allocate, internal::DataItem(schema::kItemId));
 }
 
-// kde.allocation.new_listid_like.
+// kd.allocation.new_listid_like.
 // Allocates new List ItemIds with the shape and sparsity of
 // shape_and_mask_from.
 inline absl::StatusOr<DataSlice> NewListIdLike(
@@ -82,7 +82,7 @@ inline absl::StatusOr<DataSlice> NewListIdLike(
       internal::AllocateLists, internal::DataItem(schema::kItemId));
 }
 
-// kde.allocation.new_dictid_like.
+// kd.allocation.new_dictid_like.
 // Allocates new Dict ItemIds with the shape and sparsity of
 // shape_and_mask_from.
 inline absl::StatusOr<DataSlice> NewDictIdLike(

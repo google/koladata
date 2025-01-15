@@ -93,7 +93,7 @@ class MathSigmoidTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.log: argument `x` must be a slice of numeric values, got'
+            'kd.math.log: argument `x` must be a slice of numeric values, got'
             ' a slice of STRING'
         ),
     ):
@@ -137,7 +137,7 @@ class MathSigmoidTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.math.sigmoid(I.x)),
-        'kde.math.sigmoid(I.x, DataItem(0.0, schema: FLOAT32), DataItem(1.0,'
+        'kd.math.sigmoid(I.x, DataItem(0.0, schema: FLOAT32), DataItem(1.0,'
         ' schema: FLOAT32))',
     )
 

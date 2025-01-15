@@ -23,15 +23,15 @@
 
 namespace koladata::ops {
 
-// kde.ids._deep_uuid
+// kd.ids._deep_uuid
 absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
                                    const DataSlice& schema,
                                    const DataSlice& seed);
 
-// kde.ids.agg_uuid operator.
+// kd.ids.agg_uuid operator.
 absl::StatusOr<DataSlice> AggUuid(const DataSlice& x);
 
-// kde.ids.uuid operator.
+// kd.ids.uuid operator.
 // Creates a DataSlice whose items are Fingerprints identifying arguments
 class UuidOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
@@ -39,7 +39,7 @@ class UuidOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.ids.uuid_for_list operator.
+// kd.ids.uuid_for_list operator.
 // Creates a DataSlice whose items are Fingerprints identifying arguments, used
 // for keying ListItems.
 class UuidForListOperatorFamily : public arolla::OperatorFamily {
@@ -48,7 +48,7 @@ class UuidForListOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.ids.uuid_for_dict operator.
+// kd.ids.uuid_for_dict operator.
 // Creates a DataSlice whose items are Fingerprints identifying arguments, used
 // for keying DictItems.
 class UuidForDictOperatorFamily : public arolla::OperatorFamily {
@@ -57,15 +57,15 @@ class UuidForDictOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.ids.uuids_with_allocation_size operator.
+// kd.ids.uuids_with_allocation_size operator.
 // Creates a DataSlice whose items are uuids that share the same allocation.
 absl::StatusOr<DataSlice> UuidsWithAllocationSize(const DataSlice& seed,
                                                   const DataSlice& size);
 
-// kde.ids.encode_itemid
+// kd.ids.encode_itemid
 absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds);
 
-// kde.ids.decode_itemid
+// kd.ids.decode_itemid
 absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds);
 
 }  // namespace koladata::ops

@@ -19,12 +19,12 @@ from koladata.operators import optools
 from koladata.types import py_boxing
 
 with_name = optools.add_to_registry(
-    name='kde.annotation.with_name', aliases=['kde.with_name']
+    name='kd.annotation.with_name', aliases=['kd.with_name']
 )(arolla.abc.lookup_operator('koda_internal.with_name'))
 
 
 def _with_name_bind_args(expr, /, name):
-  """The binding policy for the kde.annotation.with_name operator."""
+  """The binding policy for the kd.annotation.with_name operator."""
   result = (
       py_boxing.as_qvalue_or_expr(expr),
       arolla.types.as_qvalue_or_expr(name),

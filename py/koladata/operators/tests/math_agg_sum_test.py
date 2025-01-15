@@ -154,7 +154,7 @@ class MathAggSumTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_sum: argument `x` must be a slice of numeric values,'
+            'kd.math.agg_sum: argument `x` must be a slice of numeric values,'
             ' got a slice of SCHEMA(x=INT32)'
         ),
     ):
@@ -166,7 +166,7 @@ class MathAggSumTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_sum: argument `x` must be a slice of numeric values,'
+            'kd.math.agg_sum: argument `x` must be a slice of numeric values,'
             ' got a slice of OBJECT'
         ),
     ):

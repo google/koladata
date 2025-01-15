@@ -162,7 +162,7 @@ class MathSignTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.neg: argument `x` must be a slice of numeric values, got'
+            'kd.math.neg: argument `x` must be a slice of numeric values, got'
             ' a slice of STRING'
         ),
     ):
@@ -178,7 +178,7 @@ class MathSignTest(parameterized.TestCase):
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.sign(I.x)), 'kde.math.sign(I.x)')
+    self.assertEqual(repr(kde.math.sign(I.x)), 'kd.math.sign(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.math.sign(I.x)))

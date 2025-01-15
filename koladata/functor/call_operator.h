@@ -23,7 +23,7 @@
 
 namespace koladata::functor {
 
-// kde.functor.call operator.
+// kd.functor.call operator.
 // Calls a given functor with the given arguments.
 class CallOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
@@ -31,7 +31,7 @@ class CallOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.functor._maybe_call operator.
+// kd.functor._maybe_call operator.
 // If the first argument is a functor, calls it on the second argument.
 // Otherwise, returns the first argument.
 absl::StatusOr<DataSlice> MaybeCall(const DataSlice& maybe_fn,

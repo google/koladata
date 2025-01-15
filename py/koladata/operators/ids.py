@@ -29,9 +29,9 @@ constraints = arolla.optools.constraints
 _AGG_UUID_MISSING_VALUE_REPLACEMENT = '__empty_input_to_uuid__'
 
 
-@optools.add_to_registry(aliases=['kde.uuid'])
+@optools.add_to_registry(aliases=['kd.uuid'])
 @optools.as_backend_operator(
-    'kde.ids.uuid',
+    'kd.ids.uuid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
@@ -52,9 +52,14 @@ def uuid(seed='', **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.uuid_for_list', 'lists.uuid_for_list'])
+@optools.add_to_registry(
+    aliases=[
+        'kd.uuid_for_list',
+        'lists.uuid_for_list',
+    ]
+)
 @optools.as_backend_operator(
-    'kde.ids.uuid_for_list',
+    'kd.ids.uuid_for_list',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
@@ -81,9 +86,14 @@ def uuid_for_list(seed='', **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.uuid_for_dict', 'dicts.uuid_for_dict'])
+@optools.add_to_registry(
+    aliases=[
+        'kd.uuid_for_dict',
+        'dicts.uuid_for_dict',
+    ]
+)
 @optools.as_backend_operator(
-    'kde.ids.uuid_for_dict',
+    'kd.ids.uuid_for_dict',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
@@ -110,9 +120,9 @@ def uuid_for_dict(seed='', **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.uuids_with_allocation_size'])
+@optools.add_to_registry(aliases=['kd.uuids_with_allocation_size'])
 @optools.as_backend_operator(
-    'kde.ids.uuids_with_allocation_size',
+    'kd.ids.uuids_with_allocation_size',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice(P.size),
@@ -136,14 +146,14 @@ def uuids_with_allocation_size(seed='', *, size):  # pylint: disable=unused-argu
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator('kde.ids._agg_uuid')
+@optools.as_backend_operator('kd.ids._agg_uuid')
 def _agg_uuid(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_uuid'])
+@optools.add_to_registry(aliases=['kd.agg_uuid'])
 @optools.as_lambda_operator(
-    'kde.ids.agg_uuid',
+    'kd.ids.agg_uuid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -166,15 +176,15 @@ def agg_uuid(x, ndim=arolla.unspecified()):
   return _agg_uuid(x)
 
 
-@optools.as_backend_operator('kde.ids._deep_uuid')
+@optools.as_backend_operator('kd.ids._deep_uuid')
 def _deep_uuid(x, schema, seed):  # pylint: disable=unused-argument
   """Creates a slice with a (deep) uuid of the given slice."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.deep_uuid'])
+@optools.add_to_registry(aliases=['kd.deep_uuid'])
 @optools.as_lambda_operator(
-    'kde.ids.deep_uuid',
+    'kd.ids.deep_uuid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -197,9 +207,9 @@ def deep_uuid(x, /, schema=arolla.unspecified(), *, seed=''):
   return _deep_uuid(x, schema, seed)
 
 
-@optools.add_to_registry(aliases=['kde.encode_itemid'])
+@optools.add_to_registry(aliases=['kd.encode_itemid'])
 @optools.as_backend_operator(
-    'kde.ids.encode_itemid',
+    'kd.ids.encode_itemid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
     ],
@@ -209,9 +219,9 @@ def encode_itemid(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.decode_itemid'])
+@optools.add_to_registry(aliases=['kd.decode_itemid'])
 @optools.as_backend_operator(
-    'kde.ids.decode_itemid',
+    'kd.ids.decode_itemid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
     ],
@@ -221,9 +231,9 @@ def decode_itemid(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.hash_itemid'])
+@optools.add_to_registry(aliases=['kd.hash_itemid'])
 @optools.as_lambda_operator(
-    'kde.ids.hash_itemid',
+    'kd.ids.hash_itemid',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
 def hash_itemid(x):

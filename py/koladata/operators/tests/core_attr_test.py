@@ -156,7 +156,7 @@ class CoreAttrTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.attr(I.x, I.a, I.y)),
-        'kde.core.attr(I.x, I.a, I.y, DataItem(False, schema: BOOLEAN))',
+        'kd.core.attr(I.x, I.a, I.y, DataItem(False, schema: BOOLEAN))',
     )
 
 

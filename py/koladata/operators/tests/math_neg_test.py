@@ -162,7 +162,7 @@ class MathNegTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.neg: argument `x` must be a slice of numeric values, got'
+            'kd.math.neg: argument `x` must be a slice of numeric values, got'
             ' a slice of STRING'
         ),
     ):

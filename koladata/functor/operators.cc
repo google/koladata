@@ -25,8 +25,8 @@ namespace {
 #define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
-OPERATOR("kde.functor._maybe_call", MaybeCall);
-OPERATOR_FAMILY("kde.functor.call", std::make_unique<CallOperatorFamily>());
+OPERATOR("kd.functor._maybe_call", MaybeCall);
+OPERATOR_FAMILY("kd.functor.call", std::make_unique<CallOperatorFamily>());
 // go/keep-sorted end
 
 }  // namespace

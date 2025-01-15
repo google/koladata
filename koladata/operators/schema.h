@@ -31,7 +31,7 @@
 
 namespace koladata::ops {
 
-// kde.schema.new_schema operator.
+// kd.schema.new_schema operator.
 // Creates a new allocated schema.
 class NewSchemaOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
@@ -39,7 +39,7 @@ class NewSchemaOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.schema.uu_schema operator.
+// kd.schema.uu_schema operator.
 // Creates a UuSchema.
 class UuSchemaOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
@@ -47,7 +47,7 @@ class UuSchemaOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.schema.get_primitive_schema.
+// kd.schema.get_primitive_schema.
 inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
   const auto& schema = ds.GetSchemaImpl();
   if (schema.is_primitive_schema()) {
@@ -62,7 +62,7 @@ inline absl::StatusOr<DataSlice> GetPrimitiveSchema(const DataSlice& ds) {
                            internal::DataItem(schema::kSchema));
 }
 
-// kde.schema.named_schema operator.
+// kd.schema.named_schema operator.
 // Creates a named entity schema with its item id derived only from its name.
 class NamedSchemaOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
@@ -70,49 +70,49 @@ class NamedSchemaOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.schema._internal_maybe_named_schema operator.
+// kd.schema._internal_maybe_named_schema operator.
 // Creates a named entity schema if the given slice is a text DataItem,
 // asserts that it is a schema and returns it unchanged otherwise.
 absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
     const DataSlice& name_or_schema);
 
-// kde.schema.cast_to operator.
+// kd.schema.cast_to operator.
 absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema);
 
-// kde.schema.cast_to_implicit operator.
+// kd.schema.cast_to_implicit operator.
 absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
                                          const DataSlice& schema);
 
-// kde.schema.cast_to_narrow operator.
+// kd.schema.cast_to_narrow operator.
 absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
                                        const DataSlice& schema);
 
-// kde.schema._unsafe_cast_to operator.
+// kd.schema._unsafe_cast_to operator.
 absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
                                        const DataSlice& schema);
 
-// kde.schema.list_schema operator.
+// kd.schema.list_schema operator.
 absl::StatusOr<DataSlice> ListSchema(const DataSlice& item_schema);
 
-// kde.schema.dict_schema operator.
+// kd.schema.dict_schema operator.
 absl::StatusOr<DataSlice> DictSchema(const DataSlice& key_schema,
                                      const DataSlice& value_schema);
 
-// kde.schema.with_schema operator.
+// kd.schema.with_schema operator.
 inline absl::StatusOr<DataSlice> WithSchema(const DataSlice& ds,
                                             const DataSlice& schema) {
   return ds.WithSchema(schema);
 }
 
-// kde.schema.get_schema operator.
+// kd.schema.get_schema operator.
 inline DataSlice GetSchema(const DataSlice& ds) { return ds.GetSchema(); }
 
-// kde.schema.get_obj_schema operator.
+// kd.schema.get_obj_schema operator.
 inline absl::StatusOr<DataSlice> GetObjSchema(const DataSlice& ds) {
   return ds.GetObjSchema();
 }
 
-// kde.schema.get_item_schema operator.
+// kd.schema.get_item_schema operator.
 inline absl::StatusOr<DataSlice> GetItemSchema(const DataSlice& list_schema) {
   if (!list_schema.IsListSchema()) {
     return absl::InvalidArgumentError(absl::StrCat(
@@ -122,7 +122,7 @@ inline absl::StatusOr<DataSlice> GetItemSchema(const DataSlice& list_schema) {
   return list_schema.GetAttr(schema::kListItemsSchemaAttr);
 }
 
-// kde.schema.get_key_schema operator.
+// kd.schema.get_key_schema operator.
 inline absl::StatusOr<DataSlice> GetKeySchema(const DataSlice& dict_schema) {
   if (!dict_schema.IsDictSchema()) {
     return absl::InvalidArgumentError(absl::StrCat(
@@ -132,7 +132,7 @@ inline absl::StatusOr<DataSlice> GetKeySchema(const DataSlice& dict_schema) {
   return dict_schema.GetAttr(schema::kDictKeysSchemaAttr);
 }
 
-// kde.schema.get_value_schema operator.
+// kd.schema.get_value_schema operator.
 inline absl::StatusOr<DataSlice> GetValueSchema(const DataSlice& dict_schema) {
   if (!dict_schema.IsDictSchema()) {
     return absl::InvalidArgumentError(absl::StrCat(
@@ -142,45 +142,45 @@ inline absl::StatusOr<DataSlice> GetValueSchema(const DataSlice& dict_schema) {
   return dict_schema.GetAttr(schema::kDictValuesSchemaAttr);
 }
 
-// kde.schema.is_any_schema operator.
+// kd.schema.is_any_schema operator.
 inline DataSlice IsAnySchema(const DataSlice& schema) {
   return AsMask(schema.IsAnySchema());
 }
 
-// kde.schema.is_dict_schema operator.
+// kd.schema.is_dict_schema operator.
 inline DataSlice IsDictSchema(const DataSlice& schema) {
   return AsMask(schema.IsDictSchema());
 }
 
-// kde.schema.is_entity_schema operator.
+// kd.schema.is_entity_schema operator.
 inline DataSlice IsEntitySchema(const DataSlice& schema) {
   return AsMask(schema.IsEntitySchema());
 }
 
-// kde.schema.is_struct_schema operator.
+// kd.schema.is_struct_schema operator.
 inline DataSlice IsStructSchema(const DataSlice& schema) {
   return AsMask(schema.IsStructSchema());
 }
 
-// kde.schema.is_itemid_schema operator.
+// kd.schema.is_itemid_schema operator.
 inline DataSlice IsItemIdSchema(const DataSlice& schema) {
   return AsMask(schema.IsItemIdSchema());
 }
 
-// kde.schema.is_list_schema operator.
+// kd.schema.is_list_schema operator.
 inline DataSlice IsListSchema(const DataSlice& schema) {
   return AsMask(schema.IsListSchema());
 }
 
-// kde.schema.is_primitive_schema operator.
+// kd.schema.is_primitive_schema operator.
 inline DataSlice IsPrimitiveSchema(const DataSlice& schema) {
   return AsMask(schema.IsPrimitiveSchema());
 }
 
-// kde.schema._agg_common_schema operator.
+// kd.schema._agg_common_schema operator.
 absl::StatusOr<DataSlice> AggCommonSchema(const DataSlice& x);
 
-// kde.schema.get_nofollowed_schema.
+// kd.schema.get_nofollowed_schema.
 absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds);
 
 }  // namespace koladata::ops

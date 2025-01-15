@@ -25,20 +25,19 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.as_backend_operator('kde.entities._new', deterministic=False)
+@optools.as_backend_operator('kd.entities._new', deterministic=False)
 def _new(arg, schema, update_schema, itemid, attrs):  # pylint: disable=unused-argument
-  """Internal implementation of kde.entities.new."""
+  """Internal implementation of kd.entities.new."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.new'])
+@optools.add_to_registry(aliases=['kd.new'])
 @optools.as_lambda_operator(
-    'kde.entities.new',
+    'kd.entities.new',
     qtype_constraints=[
         (
             (P.arg == arolla.UNSPECIFIED),
-            'kde.new does not support converter use-case. For converting'
-            ' Python '
+            'kd.new does not support converter use-case. For converting Python '
             + 'objects to Entities, please use eager only kd.eager.new',
         ),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -88,15 +87,15 @@ def new(
   )
 
 
-@optools.as_backend_operator('kde.entities._shaped', deterministic=False)
+@optools.as_backend_operator('kd.entities._shaped', deterministic=False)
 def _shaped(shape, schema, update_schema, itemid, attrs):  # pylint: disable=unused-argument
-  """Internal implementation of kde.entities.shaped."""
+  """Internal implementation of kd.entities.shaped."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.new_shaped'])
+@optools.add_to_registry(aliases=['kd.new_shaped'])
 @optools.as_lambda_operator(
-    'kde.entities.shaped',
+    'kd.entities.shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -140,9 +139,9 @@ def shaped(
   )
 
 
-@optools.add_to_registry(aliases=['kde.new_shaped_as'])
+@optools.add_to_registry(aliases=['kd.new_shaped_as'])
 @optools.as_lambda_operator(
-    'kde.entities.shaped_as',
+    'kd.entities.shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -186,15 +185,15 @@ def shaped_as(
   )
 
 
-@optools.as_backend_operator('kde.entities._like', deterministic=False)
+@optools.as_backend_operator('kd.entities._like', deterministic=False)
 def _like(shape_and_mask_from, schema, update_schema, itemid, attrs):  # pylint: disable=unused-argument
-  """Internal implementation of kde.entities.like."""
+  """Internal implementation of kd.entities.like."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.new_like'])
+@optools.add_to_registry(aliases=['kd.new_like'])
 @optools.as_lambda_operator(
-    'kde.entities.like',
+    'kd.entities.like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -239,15 +238,15 @@ def like(
   )
 
 
-@optools.as_backend_operator('kde.entities._uu')
+@optools.as_backend_operator('kd.entities._uu')
 def _uu(seed, schema, update_schema, kwargs):  # pylint: disable=unused-argument
-  """Internal implementation of kde.uu."""
+  """Internal implementation of kd.uu."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.uu'])
+@optools.add_to_registry(aliases=['kd.uu'])
 @optools.as_lambda_operator(
-    'kde.entities.uu',
+    'kd.entities.uu',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.seed),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),

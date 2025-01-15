@@ -118,7 +118,7 @@ class MathMaximumTest(parameterized.TestCase):
     y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kde.math.maximum: argument `y` must be a slice of numeric values, got'
+        'kd.math.maximum: argument `y` must be a slice of numeric values, got'
         ' a slice of STRING',
     ):
       expr_eval.eval(kde.math.maximum(I.x, I.y), x=x, y=y)

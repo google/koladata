@@ -559,7 +559,7 @@ class KodaViewTest(parameterized.TestCase):
       (
           kde.get_attr(C.x, 'some_attr', 1),
           (
-              "kde.get_attr(C.x, DataItem('some_attr', schema: STRING), "
+              "kd.get_attr(C.x, DataItem('some_attr', schema: STRING), "
               'DataItem(1, schema: INT32))'
           ),
       ),
@@ -593,7 +593,7 @@ class KodaViewTest(parameterized.TestCase):
       (
           C.x(C.y, foo=C.z),
           (
-              'kde.call(C.x, C.y, return_type_as=DataItem(None, schema: NONE),'
+              'kd.call(C.x, C.y, return_type_as=DataItem(None, schema: NONE),'
               ' foo=C.z)'
           ),
       ),

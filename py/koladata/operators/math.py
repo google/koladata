@@ -27,7 +27,7 @@ P = arolla.P
 
 
 @arolla.optools.add_to_registry()
-@arolla.optools.as_lambda_operator('kde.math._add_impl')
+@arolla.optools.as_lambda_operator('kd.math._add_impl')
 def _add_impl(x, y):  # pylint: disable=unused-argument
   """Arolla implementation of pointwise x + y."""
   return arolla.types.DispatchOperator(
@@ -42,9 +42,9 @@ def _add_impl(x, y):  # pylint: disable=unused-argument
   )(x, y)
 
 
-@optools.add_to_registry(aliases=['kde.add'], repr_fn=op_repr.add_repr)
+@optools.add_to_registry(aliases=['kd.add'], repr_fn=op_repr.add_repr)
 @optools.as_backend_operator(
-    'kde.math.add',
+    'kd.math.add',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -57,7 +57,7 @@ def add(x, y):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(repr_fn=op_repr.subtract_repr)
 @optools.as_backend_operator(
-    'kde.math.subtract',
+    'kd.math.subtract',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -70,7 +70,7 @@ def subtract(x, y):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(repr_fn=op_repr.multiply_repr)
 @optools.as_backend_operator(
-    'kde.math.multiply',
+    'kd.math.multiply',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -83,7 +83,7 @@ def multiply(x, y):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math.log',
+    'kd.math.log',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -95,7 +95,7 @@ def log(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math.log10',
+    'kd.math.log10',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -107,7 +107,7 @@ def log10(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math.sigmoid',
+    'kd.math.sigmoid',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.half),
@@ -132,7 +132,7 @@ def sigmoid(x, half=0.0, slope=1.0):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math.exp',
+    'kd.math.exp',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -144,7 +144,7 @@ def exp(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math.abs',
+    'kd.math.abs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -156,7 +156,7 @@ def abs(x):  # pylint: disable=unused-argument,redefined-builtin
 
 @optools.add_to_registry(repr_fn=op_repr.neg_repr)
 @optools.as_backend_operator(
-    'kde.math.neg',
+    'kd.math.neg',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -168,7 +168,7 @@ def neg(x):  # pylint: disable=unused-argument,redefined-builtin
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math.sign',
+    'kd.math.sign',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -187,7 +187,7 @@ def sign(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(repr_fn=op_repr.pos_repr)
 @optools.as_backend_operator(
-    'kde.math.pos',
+    'kd.math.pos',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -199,7 +199,7 @@ def pos(x):  # pylint: disable=unused-argument,redefined-builtin
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math.ceil',
+    'kd.math.ceil',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -215,7 +215,7 @@ def ceil(x):  # pylint: disable=unused-argument,g-doc-args
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math.floor',
+    'kd.math.floor',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -231,7 +231,7 @@ def floor(x):  # pylint: disable=unused-argument,g-doc-args
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.math.round',
+    'kd.math.round',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -256,7 +256,7 @@ def round(x):  # pylint: disable=unused-argument,redefined-builtin,g-doc-args
 
 @optools.add_to_registry(repr_fn=op_repr.divide_repr)
 @optools.as_backend_operator(
-    'kde.math.divide',
+    'kd.math.divide',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -269,7 +269,7 @@ def divide(x, y):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(repr_fn=op_repr.pow_repr)
 @optools.as_backend_operator(
-    'kde.math.pow',
+    'kd.math.pow',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -282,7 +282,7 @@ def _pow(x, y):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(repr_fn=op_repr.floordiv_repr)
 @optools.as_backend_operator(
-    'kde.math.floordiv',
+    'kd.math.floordiv',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -295,7 +295,7 @@ def floordiv(x, y):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(repr_fn=op_repr.mod_repr)
 @optools.as_backend_operator(
-    'kde.math.mod',
+    'kd.math.mod',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -306,14 +306,14 @@ def mod(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator('kde.math._agg_sum')
+@optools.as_backend_operator('kd.math._agg_sum')
 def _agg_sum(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_sum'])
+@optools.add_to_registry(aliases=['kd.agg_sum'])
 @optools.as_lambda_operator(
-    'kde.math.agg_sum',
+    'kd.math.agg_sum',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -339,8 +339,8 @@ def agg_sum(x, ndim=arolla.unspecified()):
   return _agg_sum(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kde.sum'])
-@optools.as_lambda_operator('kde.math.sum')
+@optools.add_to_registry(aliases=['kd.sum'])
+@optools.as_lambda_operator('kd.math.sum')
 def sum(x):
   """Returns the sum of elements over all dimensions.
 
@@ -352,14 +352,14 @@ def sum(x):
   return agg_sum(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator('kde.math._agg_mean')
+@optools.as_backend_operator('kd.math._agg_mean')
 def _agg_mean(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.agg_mean',
+    'kd.math.agg_mean',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -386,7 +386,7 @@ def agg_mean(x, ndim=arolla.unspecified()):
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator('kde.math.mean')
+@optools.as_lambda_operator('kd.math.mean')
 def mean(x):
   """Returns the mean of elements over all dimensions.
 
@@ -398,14 +398,14 @@ def mean(x):
   return agg_mean(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator('kde.math._agg_median')
+@optools.as_backend_operator('kd.math._agg_median')
 def _agg_median(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.agg_median',
+    'kd.math.agg_median',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -432,7 +432,7 @@ def agg_median(x, ndim=arolla.unspecified()):
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator('kde.math.median')
+@optools.as_lambda_operator('kd.math.median')
 def median(x):
   """Returns the median of elements over all dimensions.
 
@@ -450,14 +450,14 @@ def median(x):
   return agg_median(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator('kde.math._agg_std')
+@optools.as_backend_operator('kd.math._agg_std')
 def _agg_std(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.agg_std',
+    'kd.math.agg_std',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -488,14 +488,14 @@ def agg_std(x, unbiased=True, ndim=arolla.unspecified()):
   )
 
 
-@optools.as_backend_operator('kde.math._agg_var')
+@optools.as_backend_operator('kd.math._agg_var')
 def _agg_var(x, unbiased=True):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.agg_var',
+    'kd.math.agg_var',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -526,9 +526,9 @@ def agg_var(x, unbiased=True, ndim=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry(aliases=['kde.maximum'])
+@optools.add_to_registry(aliases=['kd.maximum'])
 @optools.as_backend_operator(
-    'kde.math.maximum',
+    'kd.math.maximum',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -539,9 +539,9 @@ def maximum(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.minimum'])
+@optools.add_to_registry(aliases=['kd.minimum'])
 @optools.as_backend_operator(
-    'kde.math.minimum',
+    'kd.math.minimum',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
@@ -552,14 +552,14 @@ def minimum(x, y):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator('kde.math._agg_max')
+@optools.as_backend_operator('kd.math._agg_max')
 def _agg_max(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_max'])
+@optools.add_to_registry(aliases=['kd.agg_max'])
 @optools.as_lambda_operator(
-    'kde.math.agg_max',
+    'kd.math.agg_max',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -585,8 +585,8 @@ def agg_max(x, ndim=arolla.unspecified()):
   return _agg_max(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kde.max'])
-@optools.as_lambda_operator('kde.math.max')
+@optools.add_to_registry(aliases=['kd.max'])
+@optools.as_lambda_operator('kd.math.max')
 def _max(x):
   """Returns the maximum of items over all dimensions.
 
@@ -598,15 +598,15 @@ def _max(x):
   return agg_max(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator('kde.math._cum_max')
+@optools.as_backend_operator('kd.math._cum_max')
 def _cum_max(x):  # pylint: disable=unused-argument
   """Returns the cumulative max of items."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kd.cum_max'])
 @optools.as_lambda_operator(
-    'kde.math.cum_max',
+    'kd.math.cum_max',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -618,14 +618,14 @@ def cum_max(x, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator('kde.math._agg_min')
+@optools.as_backend_operator('kd.math._agg_min')
 def _agg_min(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.agg_min'])
+@optools.add_to_registry(aliases=['kd.agg_min'])
 @optools.as_lambda_operator(
-    'kde.math.agg_min',
+    'kd.math.agg_min',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -651,8 +651,8 @@ def agg_min(x, ndim=arolla.unspecified()):
   return _agg_min(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
-@optools.add_to_registry(aliases=['kde.min'])
-@optools.as_lambda_operator('kde.math.min')
+@optools.add_to_registry(aliases=['kd.min'])
+@optools.as_lambda_operator('kd.math.min')
 def _min(x):
   """Returns the minimum of items over all dimensions.
 
@@ -664,7 +664,7 @@ def _min(x):
   return agg_min(jagged_shape_ops.flatten(x))
 
 
-@optools.as_backend_operator('kde.math._cum_min')
+@optools.as_backend_operator('kd.math._cum_min')
 def _cum_min(x):  # pylint: disable=unused-argument
   """Returns the cumulative minimum of items."""
   raise NotImplementedError('implemented in the backend')
@@ -672,7 +672,7 @@ def _cum_min(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.cum_min',
+    'kd.math.cum_min',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -684,7 +684,7 @@ def cum_min(x, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator('kde.math._cum_sum')
+@optools.as_backend_operator('kd.math._cum_sum')
 def _cum_sum(x):  # pylint: disable=unused-argument
   """Returns the cumulative sum of items."""
   raise NotImplementedError('implemented in the backend')
@@ -692,7 +692,7 @@ def _cum_sum(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.cum_sum',
+    'kd.math.cum_sum',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.ndim),
@@ -704,14 +704,14 @@ def cum_sum(x, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator('kde.math._softmax')
+@optools.as_backend_operator('kd.math._softmax')
 def _softmax(x, weights):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.softmax',
+    'kd.math.softmax',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.beta),
@@ -735,14 +735,14 @@ def softmax(x, beta=1.0, ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator('kde.math._cdf')
+@optools.as_backend_operator('kd.math._cdf')
 def _cdf(x, weights):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.cdf',
+    'kd.math.cdf',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.weights),
@@ -780,14 +780,14 @@ def cdf(x, weights=arolla.unspecified(), ndim=arolla.unspecified()):
   return jagged_shape_ops.reshape(res, jagged_shape_ops.get_shape(x))
 
 
-@optools.as_backend_operator('kde.math._agg_inverse_cdf')
+@optools.as_backend_operator('kd.math._agg_inverse_cdf')
 def _agg_inverse_cdf(x, cdf_arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.agg_inverse_cdf',
+    'kd.math.agg_inverse_cdf',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.cdf_arg),
@@ -813,7 +813,7 @@ def agg_inverse_cdf(x, cdf_arg, ndim=arolla.unspecified()):
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.math.inverse_cdf',
+    'kd.math.inverse_cdf',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.cdf_arg),

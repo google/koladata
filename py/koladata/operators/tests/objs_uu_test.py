@@ -185,11 +185,11 @@ class ObjsUuTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.objs.uu(a=I.z, seed=I.seed)),
-        'kde.objs.uu(I.seed, a=I.z)',
+        'kd.objs.uu(I.seed, a=I.z)',
     )
     self.assertEqual(
         repr(kde.objs.uu(I.seed, a=I.z)),
-        'kde.objs.uu(I.seed, a=I.z)',
+        'kd.objs.uu(I.seed, a=I.z)',
     )
 
 

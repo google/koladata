@@ -25,7 +25,7 @@
 
 namespace koladata::ops {
 
-// kde.assertion.assert_ds_has_primitives_of.
+// kd.assertion.assert_ds_has_primitives_of.
 inline absl::StatusOr<DataSlice> AssertDsHasPrimitivesOf(
     const DataSlice& ds, const DataSlice& dtype, const arolla::Text& message) {
   RETURN_IF_ERROR(dtype.VerifyIsPrimitiveSchema());

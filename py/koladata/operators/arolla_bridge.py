@@ -29,7 +29,7 @@ to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
 # Implemented here to avoid a dependency cycle between jagged_shape and here.
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.shapes._reshape',
+    'kd.shapes._reshape',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_jagged_shape(P.shape),

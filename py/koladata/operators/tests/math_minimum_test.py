@@ -121,7 +121,7 @@ class MathMinimumTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.minimum: argument `y` must be a slice of numeric values,'
+            'kd.math.minimum: argument `y` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):

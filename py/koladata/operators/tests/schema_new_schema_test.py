@@ -105,7 +105,7 @@ class KodaNewSchemaTest(parameterized.TestCase):
     # This has a hidden seed which is stripped...
     self.assertEqual(
         repr(kde.schema.new_schema(a=I.a, b=I.b)),
-        'kde.schema.new_schema(a=I.a, b=I.b)',
+        'kd.schema.new_schema(a=I.a, b=I.b)',
     )
 
 

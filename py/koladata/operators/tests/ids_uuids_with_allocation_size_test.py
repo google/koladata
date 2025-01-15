@@ -180,12 +180,12 @@ class IdsUuidsWithAllocationSizeTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.ids.uuids_with_allocation_size(seed='foo', size=I.size)),
-        "kde.ids.uuids_with_allocation_size(DataItem('foo', schema:"
+        "kd.ids.uuids_with_allocation_size(DataItem('foo', schema:"
         ' STRING), size=I.size)',
     )
     self.assertEqual(
         repr(kde.ids.uuids_with_allocation_size('foo', size=I.size)),
-        "kde.ids.uuids_with_allocation_size(DataItem('foo', schema:"
+        "kd.ids.uuids_with_allocation_size(DataItem('foo', schema:"
         ' STRING), size=I.size)',
     )
 

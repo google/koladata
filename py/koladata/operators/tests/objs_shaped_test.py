@@ -138,7 +138,7 @@ class ObjsShapedTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.objs.shaped(I.x, a=I.y)),
-        'kde.objs.shaped(I.x, itemid=unspecified, a=I.y)',
+        'kd.objs.shaped(I.x, itemid=unspecified, a=I.y)',
     )
 
 

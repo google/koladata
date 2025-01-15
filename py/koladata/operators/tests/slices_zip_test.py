@@ -132,7 +132,7 @@ class SlicesZipTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.slices.zip(I.x, I.y, I.z)), 'kde.slices.zip(I.x, I.y, I.z)'
+        repr(kde.slices.zip(I.x, I.y, I.z)), 'kd.slices.zip(I.x, I.y, I.z)'
     )
 
 if __name__ == '__main__':

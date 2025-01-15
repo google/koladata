@@ -165,7 +165,7 @@ class MathInverseCdfTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_inverse_cdf: expected `cdf_arg` argument to contain a'
+            'kd.math.agg_inverse_cdf: expected `cdf_arg` argument to contain a'
             ' scalar float value, got DataSlice([0.1, 0.2], schema: FLOAT32,'
             ' shape: JaggedShape(2))'
         ),
@@ -193,7 +193,7 @@ class MathInverseCdfTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
+            'kd.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
             ' values, got a slice of SCHEMA(x=INT32)'
         ),
     ):
@@ -204,7 +204,7 @@ class MathInverseCdfTest(parameterized.TestCase):
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kde.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
+        'kd.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
         ' values, got a slice of OBJECT',
     ):
       expr_eval.eval(kde.math.inverse_cdf(x, ds(0.1)))

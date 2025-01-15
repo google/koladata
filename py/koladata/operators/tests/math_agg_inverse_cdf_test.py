@@ -225,7 +225,7 @@ class MathAggInverseCdfTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
+            'kd.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
             ' values, got a slice of SCHEMA(x=INT32)'
         ),
     ):
@@ -236,7 +236,7 @@ class MathAggInverseCdfTest(parameterized.TestCase):
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kde.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
+        'kd.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
         ' values, got a slice of OBJECT',
     ):
       expr_eval.eval(kde.math.agg_inverse_cdf(x, ds(0.1)))

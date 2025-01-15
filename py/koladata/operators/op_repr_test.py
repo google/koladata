@@ -258,23 +258,23 @@ class OpReprTest(parameterized.TestCase):
     self.assertEqual(repr(expr), expected_repr)
 
   @parameterized.parameters(
-      (kde.subslice(I.x, I.y, I.z), 'kde.subslice(I.x, I.y, I.z)'),
+      (kde.subslice(I.x, I.y, I.z), 'kd.subslice(I.x, I.y, I.z)'),
       (
           kde.subslice(I.x, slice(1, None)),
-          'kde.subslice(I.x, slice(1, None))',
+          'kd.subslice(I.x, slice(1, None))',
       ),
       (
           kde.subslice(I.x, slice(1)),
-          'kde.subslice(I.x, slice(None, 1))',
+          'kd.subslice(I.x, slice(None, 1))',
       ),
       (
           kde.subslice(I.x, slice(None)),
-          'kde.subslice(I.x, slice(None, None))',
+          'kd.subslice(I.x, slice(None, None))',
       ),
-      (kde.subslice(I.x, ...), 'kde.subslice(I.x, ...)'),
+      (kde.subslice(I.x, ...), 'kd.subslice(I.x, ...)'),
       (
           kde.subslice(I.x, ds(1), ..., slice(1)),
-          'kde.subslice(I.x, DataItem(1, schema: INT32), ..., slice(None, 1))',
+          'kd.subslice(I.x, DataItem(1, schema: INT32), ..., slice(None, 1))',
       ),
   )
   def test_subslice_repr(self, expr, expected_repr):
@@ -352,36 +352,36 @@ class OpReprTest(parameterized.TestCase):
       (
           kde.get_attr(I.x, ds('a'), ds(1)),
           (
-              "kde.get_attr(I.x, DataItem('a', schema: STRING), DataItem(1,"
+              "kd.get_attr(I.x, DataItem('a', schema: STRING), DataItem(1,"
               ' schema: INT32))'
           ),
       ),
       # Not text.
       (
           kde.get_attr(I.x, ds(1)),
-          'kde.get_attr(I.x, DataItem(1, schema: INT32), unspecified)',
+          'kd.get_attr(I.x, DataItem(1, schema: INT32), unspecified)',
       ),
       # Not a literal.
       (
           kde.get_attr(I.x, I.a),
-          'kde.get_attr(I.x, I.a, unspecified)',
+          'kd.get_attr(I.x, I.a, unspecified)',
       ),
       # Not an identifier.
       (
           kde.get_attr(I.x, ds('')),
-          "kde.get_attr(I.x, DataItem('', schema: STRING), unspecified)",
+          "kd.get_attr(I.x, DataItem('', schema: STRING), unspecified)",
       ),
       (
           kde.get_attr(I.x, ds('')),
-          "kde.get_attr(I.x, DataItem('', schema: STRING), unspecified)",
+          "kd.get_attr(I.x, DataItem('', schema: STRING), unspecified)",
       ),
       (
           kde.get_attr(I.x, ds('123')),
-          "kde.get_attr(I.x, DataItem('123', schema: STRING), unspecified)",
+          "kd.get_attr(I.x, DataItem('123', schema: STRING), unspecified)",
       ),
       (
           kde.get_attr(I.x, ds('a%')),
-          "kde.get_attr(I.x, DataItem('a%', schema: STRING), unspecified)",
+          "kd.get_attr(I.x, DataItem('a%', schema: STRING), unspecified)",
       ),
   )
   def test_getattr_repr(self, expr, expected_repr):

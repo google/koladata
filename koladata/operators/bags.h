@@ -24,7 +24,7 @@
 
 namespace koladata::ops {
 
-// kde.bags.new.
+// kd.bags.new.
 DataBagPtr Bag(internal::NonDeterministicToken);
 
 class EnrichedOrUpdatedDbOperatorFamily : public arolla::OperatorFamily {
@@ -36,13 +36,13 @@ class EnrichedOrUpdatedDbOperatorFamily : public arolla::OperatorFamily {
   virtual bool is_enriched_operator() const = 0;
 };
 
-// kde.bags.enriched.
+// kd.bags.enriched.
 class EnrichedDbOperatorFamily final
     : public EnrichedOrUpdatedDbOperatorFamily {
   bool is_enriched_operator() const override { return true; }
 };
 
-// kde.bags.updated.
+// kd.bags.updated.
 class UpdatedDbOperatorFamily final : public EnrichedOrUpdatedDbOperatorFamily {
   bool is_enriched_operator() const override { return false; }
 };

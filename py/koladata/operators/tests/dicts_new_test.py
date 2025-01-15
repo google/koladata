@@ -267,7 +267,7 @@ Assigned schema for Dict key: STRING""",
   def test_repr(self):
     self.assertEqual(
         repr(kde.dicts.new(keys=I.x)),
-        'kde.dicts.new(I.x, unspecified, key_schema=unspecified,'
+        'kd.dicts.new(I.x, unspecified, key_schema=unspecified,'
         ' value_schema=unspecified, schema=unspecified, itemid=unspecified)',
     )
 

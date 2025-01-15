@@ -57,7 +57,7 @@ The cause is: DataSlice with mixed types is not supported: DataSlice([1, 2.0], s
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_max: argument `x` must be a slice of numeric values,'
+            'kd.math.agg_max: argument `x` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):

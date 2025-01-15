@@ -94,7 +94,7 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
     tpl = tuple(as_qvalue_or_expr(v) for v in arg)
     if arolla.Expr in (type(v) for v in tpl):
       return arolla.abc.bind_op(
-          'kde.tuple.make_tuple', *(as_expr(v) for v in tpl)
+          'kd.tuple.make_tuple', *(as_expr(v) for v in tpl)
       )
     else:
       return arolla.tuple(*tpl)

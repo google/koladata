@@ -28,30 +28,30 @@
 
 namespace koladata::ops {
 
-// kde.shapes.get_shape operator.
+// kd.shapes.get_shape operator.
 inline DataSlice::JaggedShape GetShape(const DataSlice& x) {
   return x.GetShape();
 }
 
-// kde.shapes._reshape operator.
+// kd.shapes._reshape operator.
 inline absl::StatusOr<DataSlice> Reshape(const DataSlice& x,
                                          DataSlice::JaggedShape shape) {
   return x.Reshape(std::move(shape));
 }
 
-// kde.shapes._expand_to_shape operator.
+// kd.shapes._expand_to_shape operator.
 absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
                                         DataSlice::JaggedShape shape,
                                         int64_t ndim);
 
-// kde.shapes.new operator.
+// kd.shapes.new operator.
 class JaggedShapeCreateOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.shapes._new_with_size operator.
+// kd.shapes._new_with_size operator.
 class JaggedShapeCreateWithSizeOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,

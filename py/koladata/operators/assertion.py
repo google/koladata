@@ -28,7 +28,7 @@ constraints = arolla.optools.constraints
 
 @optools.add_to_registry()
 @arolla.optools.as_lambda_operator(  # Default Arolla boxing (for message).
-    'kde.assertion.with_assertion',
+    'kd.assertion.with_assertion',
     qtype_constraints=[
         (
             (P.condition == arolla.UNIT)
@@ -48,8 +48,8 @@ def with_assertion(x, condition, message):
   Example:
     x = kd.slice(1)
     y = kd.slice(2)
-    kde.assertion.with_assertion(x, x < y, 'x must be less than y') -> x.
-    kde.assertion.with_assertion(x, x > y, 'x must be greater than y') -> error.
+    kd.assertion.with_assertion(x, x < y, 'x must be less than y') -> x.
+    kd.assertion.with_assertion(x, x > y, 'x must be greater than y') -> error.
 
   Args:
     x: The value to return if `condition` is present.
@@ -69,7 +69,7 @@ def with_assertion(x, condition, message):
 
 @optools.add_to_registry()
 @arolla.optools.as_backend_operator(  # Default Arolla boxing
-    'kde.assertion.assert_ds_has_primitives_of',
+    'kd.assertion.assert_ds_has_primitives_of',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.primitive_schema),

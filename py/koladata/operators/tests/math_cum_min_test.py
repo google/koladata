@@ -190,7 +190,7 @@ class MathCumMinTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.cum_min: argument `x` must be a slice of numeric values,'
+            'kd.math.cum_min: argument `x` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):
@@ -214,10 +214,10 @@ class MathCumMinTest(parameterized.TestCase):
 
   def test_repr(self):
     self.assertEqual(
-        repr(kde.math.cum_min(I.x)), 'kde.math.cum_min(I.x, unspecified)'
+        repr(kde.math.cum_min(I.x)), 'kd.math.cum_min(I.x, unspecified)'
     )
     self.assertEqual(
-        repr(kde.math.cum_min(I.x, I.ndim)), 'kde.math.cum_min(I.x, I.ndim)'
+        repr(kde.math.cum_min(I.x, I.ndim)), 'kd.math.cum_min(I.x, I.ndim)'
     )
 
   def test_view(self):

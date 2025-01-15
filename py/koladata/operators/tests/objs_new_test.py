@@ -227,7 +227,7 @@ class ObjsNewTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.objs.new(a=I.y)),
-        'kde.objs.new(unspecified, itemid=unspecified, a=I.y)',
+        'kd.objs.new(unspecified, itemid=unspecified, a=I.y)',
     )
 
 

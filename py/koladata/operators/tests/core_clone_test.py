@@ -261,7 +261,7 @@ class CoreCloneTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)),
-        'kde.core.clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)',
+        'kd.core.clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)',
     )
 
 

@@ -71,7 +71,7 @@ class LogicalHasTest(parameterized.TestCase):
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.masking.has(I.x)), 'kde.masking.has(I.x)')
+    self.assertEqual(repr(kde.masking.has(I.x)), 'kd.masking.has(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.masking.has(I.x)))

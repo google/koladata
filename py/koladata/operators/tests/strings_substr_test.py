@@ -284,7 +284,7 @@ class StringsSubstrTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.strings.substr(I.x, I.start, I.end)),
-        'kde.strings.substr(I.x, I.start, I.end)',
+        'kd.strings.substr(I.x, I.start, I.end)',
     )
 
   def test_view(self):

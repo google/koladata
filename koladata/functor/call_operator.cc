@@ -49,7 +49,7 @@ class CallOperator : public arolla::QExprOperator {
  public:
   explicit CallOperator(absl::Span<const arolla::QTypePtr> input_types,
                         arolla::QTypePtr output_type)
-      : QExprOperator("kde.functor.call", arolla::QExprOperatorSignature::Get(
+      : QExprOperator("kd.functor.call", arolla::QExprOperatorSignature::Get(
                                               input_types, output_type)) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(

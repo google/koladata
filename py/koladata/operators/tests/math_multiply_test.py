@@ -123,7 +123,7 @@ class MathMultiplyTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.multiply: argument `y` must be a slice of numeric values,'
+            'kd.math.multiply: argument `y` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):

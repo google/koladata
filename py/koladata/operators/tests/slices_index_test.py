@@ -123,7 +123,7 @@ class SlicesIndexTest(parameterized.TestCase):
     x = ds(1)
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('kde.slices.index: argument `x` must have non-zero rank'),
+        re.escape('kd.slices.index: argument `x` must have non-zero rank'),
     ):
       expr_eval.eval(kde.slices.index(x))
 
@@ -134,7 +134,7 @@ class SlicesIndexTest(parameterized.TestCase):
         # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
-            'kde.slices.index: expected -get_ndim(x) <= dim < get_ndim(x)'
+            'kd.slices.index: expected -get_ndim(x) <= dim < get_ndim(x)'
         ),
     ):
       expr_eval.eval(kde.slices.index(x, ndim))

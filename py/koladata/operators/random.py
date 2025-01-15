@@ -78,9 +78,9 @@ def _to_dense_array_text_or_unspecified(x):
   )(x)
 
 
-@optools.add_to_registry(aliases=['kde.sample'])
+@optools.add_to_registry(aliases=['kd.sample'])
 @optools.as_lambda_operator(
-    'kde.random.sample',
+    'kd.random.sample',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.ratio),
@@ -154,9 +154,9 @@ def sample(
   return slices.select(x, ds_mask)
 
 
-@optools.add_to_registry(aliases=['kde.sample_n'])
+@optools.add_to_registry(aliases=['kd.sample_n'])
 @optools.as_lambda_operator(
-    'kde.random.sample_n',
+    'kd.random.sample_n',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.n),
@@ -234,9 +234,11 @@ def sample_n(
   return slices.select(x, ds_mask)
 
 
-@optools.add_to_registry(aliases=['kde.randint_shaped'])
+@optools.add_to_registry(
+    aliases=['kd.randint_shaped']
+)
 @optools.as_lambda_operator(
-    'kde.random.randint_shaped',
+    'kd.random.randint_shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.low),
@@ -298,9 +300,11 @@ def randint_shaped(
   return arolla_bridge.to_data_slice(flat_res, shape)
 
 
-@optools.add_to_registry(aliases=['kde.randint_shaped_as'])
+@optools.add_to_registry(
+    aliases=['kd.randint_shaped_as']
+)
 @optools.as_lambda_operator(
-    'kde.random.randint_shaped_as',
+    'kd.random.randint_shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.low),
@@ -334,9 +338,11 @@ def randint_shaped_as(
   return randint_shaped(jagged_shape_ops.get_shape(x), low, high, seed)
 
 
-@optools.add_to_registry(aliases=['kde.randint_like'])
+@optools.add_to_registry(
+    aliases=['kd.randint_like']
+)
 @optools.as_lambda_operator(
-    'kde.random.randint_like',
+    'kd.random.randint_like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.low),

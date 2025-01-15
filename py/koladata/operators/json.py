@@ -23,9 +23,9 @@ from koladata.types import qtypes
 P = arolla.P
 
 
-@optools.add_to_registry(aliases=['kde.to_json'])
+@optools.add_to_registry(aliases=['kd.to_json'])
 @optools.as_backend_operator(
-    'kde.json.to_json',
+    'kd.json.to_json',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.indent),

@@ -39,7 +39,7 @@ namespace koladata::ops {
 
 constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
 
-// kde.masking.apply_mask.
+// kd.masking.apply_mask.
 inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
                                            const DataSlice& mask) {
   RETURN_IF_ERROR(ExpectMask("mask", mask))
@@ -48,7 +48,7 @@ inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
                                                 obj.GetBag());
 }
 
-// kde.masking.coalesce.
+// kd.masking.coalesce.
 inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
                                           const DataSlice& y) {
   RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y))
@@ -60,20 +60,20 @@ inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
       aligned_slices.common_schema, std::move(res_db));
 }
 
-// kde.masking.has.
+// kd.masking.has.
 inline absl::StatusOr<DataSlice> Has(const DataSlice& obj) {
   return DataSliceOp<internal::HasOp>()(
       obj, obj.GetShape(), internal::DataItem(schema::kMask), nullptr);
 }
 
-// kde.masking._has_not.
+// kd.masking._has_not.
 inline absl::StatusOr<DataSlice> HasNot(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectMask("x", x)).With(OpError("kd.masking.has_not"));
   return SimplePointwiseEval("core.presence_not", {x},
                              internal::DataItem(schema::kMask));
 }
 
-// kde.masking._agg_any.
+// kd.masking._agg_any.
 inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectMask("x", x)).With(OpError("kd.masking.agg_any"));
   ASSIGN_OR_RETURN(auto typed_x,
@@ -81,7 +81,7 @@ inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
   return SimpleAggIntoEval("core.any", {std::move(typed_x)});
 }
 
-// kde.masking._agg_all.
+// kd.masking._agg_all.
 inline absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectMask("x", x)).With(OpError("kd.masking.agg_all"));
   ASSIGN_OR_RETURN(auto typed_x,

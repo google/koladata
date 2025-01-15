@@ -25,7 +25,7 @@
 
 namespace koladata::ops {
 
-// kde.strings.format operator.
+// kd.strings.format operator.
 // Formats according to Python str.format.
 // Has a lot of limitations.
 // Must have two arguments:
@@ -38,80 +38,80 @@ class FormatOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.strings._test_only_format_wrapper.
+// kd.strings._test_only_format_wrapper.
 // It is used for koda_operator_coverage_test.
 // It has compatible with arolla signature:
 // format, arg_names, arg 1, arg 2, ...
 absl::StatusOr<DataSlice> TestOnlyFormatWrapper(std::vector<DataSlice> slices);
 
 // go/keep-sorted start ignore_prefixes=absl::StatusOr<DataSlice>
-// kde.strings.agg_join.
+// kd.strings.agg_join.
 absl::StatusOr<DataSlice> AggJoin(const DataSlice& x, const DataSlice& sep);
 //
-// kde.strings.contains.
+// kd.strings.contains.
 absl::StatusOr<DataSlice> Contains(const DataSlice& x, const DataSlice& substr);
 //
-// kde.strings.count.
+// kd.strings.count.
 absl::StatusOr<DataSlice> Count(const DataSlice& x, const DataSlice& substr);
 //
-// kde.strings._decode_base64
+// kd.strings._decode_base64
 absl::StatusOr<DataSlice> DecodeBase64(const DataSlice& x,
                                        bool missing_if_invalid);
 //
-// kde.strings.encode_base64
+// kd.strings.encode_base64
 absl::StatusOr<DataSlice> EncodeBase64(const DataSlice& x);
 //
-// kde.strings.find.
+// kd.strings.find.
 absl::StatusOr<DataSlice> Find(const DataSlice& x, const DataSlice& substr,
                                const DataSlice& start, const DataSlice& end);
 //
-// kde.strings.join.
+// kd.strings.join.
 absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices);
 //
-// kde.strings.length.
+// kd.strings.length.
 absl::StatusOr<DataSlice> Length(const DataSlice& x);
 //
-// kde.strings.lower.
+// kd.strings.lower.
 absl::StatusOr<DataSlice> Lower(const DataSlice& x);
 //
-// kde.strings.lstrip.
+// kd.strings.lstrip.
 absl::StatusOr<DataSlice> Lstrip(const DataSlice& s, const DataSlice& chars);
 //
-// kde.strings.printf.
+// kd.strings.printf.
 absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices);
 //
-// kde.strings.regex_extract.
+// kd.strings.regex_extract.
 absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
                                        const DataSlice& regex);
 //
-// kde.strings.regex_match.
+// kd.strings.regex_match.
 absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
                                      const DataSlice& regex);
 //
-// kde.strings.replace.
+// kd.strings.replace.
 absl::StatusOr<DataSlice> Replace(const DataSlice& s,
                                   const DataSlice& old_substr,
                                   const DataSlice& new_substr,
                                   const DataSlice& max_subs);
 //
-// kde.strings.rfind.
+// kd.strings.rfind.
 absl::StatusOr<DataSlice> Rfind(const DataSlice& x, const DataSlice& substr,
                                 const DataSlice& start, const DataSlice& end);
 //
-// kde.strings.rstrip.
+// kd.strings.rstrip.
 absl::StatusOr<DataSlice> Rstrip(const DataSlice& s, const DataSlice& chars);
 //
-// kde.strings.split.
+// kd.strings.split.
 absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep);
 //
-// kde.strings.strip.
+// kd.strings.strip.
 absl::StatusOr<DataSlice> Strip(const DataSlice& s, const DataSlice& chars);
 //
-// kde.strings.substr.
+// kd.strings.substr.
 absl::StatusOr<DataSlice> Substr(const DataSlice& x, const DataSlice& start,
                                  const DataSlice& end);
 //
-// kde.strings.upper.
+// kd.strings.upper.
 absl::StatusOr<DataSlice> Upper(const DataSlice& x);
 // go/keep-sorted end
 

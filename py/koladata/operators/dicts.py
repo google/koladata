@@ -36,17 +36,17 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-@optools.as_backend_operator('kde.dicts._shaped', deterministic=False)
+@optools.as_backend_operator('kd.dicts._shaped', deterministic=False)
 def _shaped(
     shape, keys, values, key_schema, value_schema, schema, itemid
 ):  # pylint: disable=unused-argument
-  """Implementation of `kde.dicts.shaped`."""
+  """Implementation of `kd.dicts.shaped`."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.dict'])
+@optools.add_to_registry(aliases=['kd.dict'])
 @optools.as_lambda_operator(
-    'kde.dicts.new',
+    'kd.dicts.new',
     qtype_constraints=[
         qtype_utils.expect_data_slice_or_unspecified(P.keys),
         qtype_utils.expect_data_slice_or_unspecified(P.values),
@@ -115,9 +115,9 @@ def create(
   )
 
 
-@optools.add_to_registry(aliases=['kde.dict_shaped'])
+@optools.add_to_registry(aliases=['kd.dict_shaped'])
 @optools.as_lambda_operator(
-    'kde.dicts.shaped',
+    'kd.dicts.shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.keys),
@@ -182,9 +182,9 @@ def shaped(
   )
 
 
-@optools.add_to_registry(aliases=['kde.dict_shaped_as'])
+@optools.add_to_registry(aliases=['kd.dict_shaped_as'])
 @optools.as_lambda_operator(
-    'kde.dicts.shaped_as',
+    'kd.dicts.shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
         qtype_utils.expect_data_slice_or_unspecified(P.keys),
@@ -241,17 +241,17 @@ def shaped_as(
   )
 
 
-@optools.as_backend_operator('kde.dicts._like', deterministic=False)
+@optools.as_backend_operator('kd.dicts._like', deterministic=False)
 def _like(
     shape_and_mask_from, keys, values, key_schema, value_schema, schema, itemid
 ):  # pylint: disable=unused-argument
-  """Implementation of `kde.dicts.like`."""
+  """Implementation of `kd.dicts.like`."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.dict_like'])
+@optools.add_to_registry(aliases=['kd.dict_like'])
 @optools.as_lambda_operator(
-    'kde.dicts.like',
+    'kd.dicts.like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
         qtype_utils.expect_data_slice_or_unspecified(P.keys),
@@ -317,9 +317,9 @@ def like(
   )
 
 
-@optools.add_to_registry(aliases=['kde.dict_size'])
+@optools.add_to_registry(aliases=['kd.dict_size'])
 @optools.as_backend_operator(
-    'kde.dicts.size',
+    'kd.dicts.size',
     qtype_constraints=[qtype_utils.expect_data_slice(P.dict_slice)],
 )
 def size(dict_slice):  # pylint: disable=unused-argument
@@ -327,9 +327,9 @@ def size(dict_slice):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.has_dict'])
+@optools.add_to_registry(aliases=['kd.has_dict'])
 @optools.as_backend_operator(
-    'kde.dicts.has_dict',
+    'kd.dicts.has_dict',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -357,9 +357,9 @@ def has_dict(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.is_dict'])
+@optools.add_to_registry(aliases=['kd.is_dict'])
 @optools.as_backend_operator(
-    'kde.dicts.is_dict', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+    'kd.dicts.is_dict', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def is_dict(x):  # pylint: disable=unused-argument
   """Returns whether x is a Dict DataSlice.
@@ -386,9 +386,9 @@ def is_dict(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.get_keys'])
+@optools.add_to_registry(aliases=['kd.get_keys'])
 @optools.as_backend_operator(
-    'kde.dicts.get_keys',
+    'kd.dicts.get_keys',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.dict_ds),
     ],
@@ -409,19 +409,19 @@ def get_keys(dict_ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator('kde.dicts._get_values')
+@optools.as_backend_operator('kd.dicts._get_values')
 def _get_values(dict_ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator('kde.dicts._get_values_by_keys')
+@optools.as_backend_operator('kd.dicts._get_values_by_keys')
 def _get_values_by_keys(dict_ds, key_ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.get_values'])
+@optools.add_to_registry(aliases=['kd.get_values'])
 @optools.as_lambda_operator(
-    'kde.dicts.get_values',
+    'kd.dicts.get_values',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.dict_ds),
         qtype_utils.expect_data_slice_or_unspecified(P.key_ds),
@@ -454,15 +454,15 @@ def get_values(dict_ds, key_ds=arolla.unspecified()):
   )(dict_ds, key_ds)
 
 
-@optools.add_to_registry(aliases=['kde.select_keys'])
+@optools.add_to_registry(aliases=['kd.select_keys'])
 @arolla.optools.as_lambda_operator(
-    'kde.dicts.select_keys',
+    'kd.dicts.select_keys',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
     experimental_aux_policy=(
-        'koladata_adhoc_binding_policy[kde.dicts.select_keys]'
+        'koladata_adhoc_binding_policy[kd.dicts.select_keys]'
     ),
 )
 def select_keys(ds, fltr):
@@ -482,7 +482,7 @@ def select_keys(ds, fltr):
 
 
 def _select_keys_bind_args(ds, fltr):
-  """Argument binding policy for the `kde.dicts.select_keys` operator."""
+  """Argument binding policy for the `kd.dicts.select_keys` operator."""
   if isinstance(fltr, py_types.FunctionType):
     fltr = fltr(ds.get_keys())
   return (py_boxing.as_qvalue_or_expr(ds), py_boxing.as_qvalue_or_expr(fltr))
@@ -493,15 +493,17 @@ arolla.abc.register_adhoc_aux_binding_policy(
 )
 
 
-@optools.add_to_registry(aliases=['kde.select_values'])
+@optools.add_to_registry(
+    aliases=['kd.select_values']
+)
 @arolla.optools.as_lambda_operator(
-    'kde.dicts.select_values',
+    'kd.dicts.select_values',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
     experimental_aux_policy=(
-        'koladata_adhoc_binding_policy[kde.dicts.select_values]'
+        'koladata_adhoc_binding_policy[kd.dicts.select_values]'
     ),
 )
 def select_values(ds, fltr):
@@ -521,7 +523,7 @@ def select_values(ds, fltr):
 
 
 def _select_values_bind_args(ds, fltr):
-  """Argument binding policy for the `kde.dicts.select_values` operator."""
+  """Argument binding policy for the `kd.dicts.select_values` operator."""
   if isinstance(fltr, py_types.FunctionType):
     fltr = fltr(ds.get_values())
   return (py_boxing.as_qvalue_or_expr(ds), py_boxing.as_qvalue_or_expr(fltr))
@@ -533,16 +535,16 @@ arolla.abc.register_adhoc_aux_binding_policy(
 
 
 @optools.as_backend_operator(
-    'kde.dicts._dict_update', qtype_inference_expr=qtypes.DATA_BAG
+    'kd.dicts._dict_update', qtype_inference_expr=qtypes.DATA_BAG
 )
 def _dict_update(x, keys, values):  # pylint: disable=unused-argument
-  """Backend operator for kde.dict_update(x, keys, values)."""
+  """Backend operator for kd.dict_update(x, keys, values)."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.dict_update'])
+@optools.add_to_registry(aliases=['kd.dict_update'])
 @optools.as_lambda_operator(
-    'kde.dicts.dict_update',
+    'kd.dicts.dict_update',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.keys),
@@ -553,8 +555,8 @@ def dict_update(x, keys, values=arolla.unspecified()):
   """Returns DataBag containing updates to a DataSlice of dicts.
 
   This operator has two forms:
-    kde.dict_update(x, keys, values) where keys and values are slices
-    kde.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
+    kd.dict_update(x, keys, values) where keys and values are slices
+    kd.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
 
   If both keys and values are specified, they must both be broadcastable to the
   shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -577,9 +579,11 @@ def dict_update(x, keys, values=arolla.unspecified()):
   )(x, keys, values)
 
 
-@optools.add_to_registry(aliases=['kde.with_dict_update'])
+@optools.add_to_registry(
+    aliases=['kd.with_dict_update']
+)
 @optools.as_lambda_operator(
-    'kde.dicts.with_dict_update',
+    'kd.dicts.with_dict_update',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.keys),
@@ -590,8 +594,8 @@ def with_dict_update(x, keys, values=arolla.unspecified()):
   """Returns a DataSlice with a new DataBag containing updated dicts.
 
   This operator has two forms:
-    kde.with_dict_update(x, keys, values) where keys and values are slices
-    kde.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
+    kd.with_dict_update(x, keys, values) where keys and values are slices
+    kd.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
       dicts
 
   If both keys and values are specified, they must both be broadcastable to the

@@ -160,7 +160,7 @@ class PyApplyPyTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.py.apply_py(I.fn, I.x, a=I.a)),
-        'kde.py.apply_py(I.fn, I.x, return_type_as=unspecified, a=I.a)',
+        'kd.py.apply_py(I.fn, I.x, return_type_as=unspecified, a=I.a)',
     )
 
 

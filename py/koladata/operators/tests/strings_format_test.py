@@ -244,7 +244,7 @@ class StringsFormatTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.strings.format(I.fmt, a=I.a)),
-        'kde.strings.format(I.fmt, a=I.a)',
+        'kd.strings.format(I.fmt, a=I.a)',
     )
 
   def test_alias(self):

@@ -269,7 +269,7 @@ class ObjsLikeTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.objs.like(I.x, a=I.y)),
-        'kde.objs.like(I.x, itemid=unspecified, a=I.y)',
+        'kd.objs.like(I.x, itemid=unspecified, a=I.y)',
     )
 
 

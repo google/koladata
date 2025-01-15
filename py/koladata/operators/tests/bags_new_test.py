@@ -63,7 +63,7 @@ class BagsNewTest(absltest.TestCase):
     self.assertTrue(optools.equiv_to_op(kde.bags.new, kde.bag))
 
   def test_repr(self):
-    self.assertEqual(repr(kde.bags.new()), 'kde.bags.new()')
+    self.assertEqual(repr(kde.bags.new()), 'kd.bags.new()')
 
 
 if __name__ == '__main__':

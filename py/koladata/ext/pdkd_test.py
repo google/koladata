@@ -199,7 +199,7 @@ class NpkdTest(parameterized.TestCase):
       ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(x=3, y='c')])
       df = pdkd.to_dataframe(ds, cols=['x', S.get_attr('y', default=None)])
       expected_optional_column = (
-          "kde.get_attr(S, DataItem('y', schema: STRING), DataItem(None,"
+          "kd.get_attr(S, DataItem('y', schema: STRING), DataItem(None,"
           ' schema: NONE))'
       )
       self.assertCountEqual(df.columns, ['x', expected_optional_column])

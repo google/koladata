@@ -39,34 +39,34 @@ absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
       .With(OpError("kd.math.add"));
   RETURN_IF_ERROR(ExpectCanBeAdded("x", x)).With(OpError("kd.math.add"));
   RETURN_IF_ERROR(ExpectCanBeAdded("y", y)).With(OpError("kd.math.add"));
-  return SimplePointwiseEval("kde.math._add_impl", {x, y});
+  return SimplePointwiseEval("kd.math._add_impl", {x, y});
 }
 
 absl::StatusOr<DataSlice> Subtract(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.subtract"));
-  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kde.math.subtract"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.subtract"));
+  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kd.math.subtract"));
   return SimplePointwiseEval("math.subtract", {x, y});
 }
 
 absl::StatusOr<DataSlice> Multiply(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.multiply"));
-  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kde.math.multiply"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.multiply"));
+  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kd.math.multiply"));
   return SimplePointwiseEval("math.multiply", {x, y});
 }
 
 absl::StatusOr<DataSlice> Divide(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.divide"));
-  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kde.math.divide"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.divide"));
+  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kd.math.divide"));
   return SimplePointwiseEval("math.divide", {x, y});
 }
 
 absl::StatusOr<DataSlice> Log(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.log"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.log"));
   return SimplePointwiseEval("math.log", {x});
 }
 
 absl::StatusOr<DataSlice> Log10(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.log10"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.log10"));
   return SimplePointwiseEval("math.log10", {x});
 }
 
@@ -74,112 +74,112 @@ absl::StatusOr<DataSlice> Sigmoid(
     const DataSlice& x,
     const DataSlice& half,
     const DataSlice& slope) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.sigmoid"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.sigmoid"));
   RETURN_IF_ERROR(ExpectNumeric("half", half))
-      .With(OpError("kde.math.sigmoid"));
+      .With(OpError("kd.math.sigmoid"));
   RETURN_IF_ERROR(ExpectNumeric("slope", slope))
-      .With(OpError("kde.math.sigmoid"));
+      .With(OpError("kd.math.sigmoid"));
   return SimplePointwiseEval("math.sigmoid", {x, half, slope});
 }
 
 absl::StatusOr<DataSlice> Exp(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.exp"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.exp"));
   return SimplePointwiseEval("math.exp", {x});
 }
 
 absl::StatusOr<DataSlice> Abs(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.abs"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.abs"));
   return SimplePointwiseEval("math.abs", {x});
 }
 
 absl::StatusOr<DataSlice> Neg(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.neg"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.neg"));
   return SimplePointwiseEval("math.neg", {x});
 }
 
 absl::StatusOr<DataSlice> Sign(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.sign"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.sign"));
   return SimplePointwiseEval("math.sign", {x});
 }
 
 absl::StatusOr<DataSlice> Pos(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.pos"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.pos"));
   return SimplePointwiseEval("math.pos", {x});
 }
 
 absl::StatusOr<DataSlice> Ceil(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.ceil"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.ceil"));
   return SimplePointwiseEval("math.ceil", {x});
 }
 
 absl::StatusOr<DataSlice> Floor(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.floor"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.floor"));
   return SimplePointwiseEval("math.floor", {x});
 }
 
 absl::StatusOr<DataSlice> Round(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.round"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.round"));
   return SimplePointwiseEval("math.round", {x});
 }
 
 absl::StatusOr<DataSlice> Pow(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.pow"));
-  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kde.math.pow"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.pow"));
+  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kd.math.pow"));
   return SimplePointwiseEval("math.pow", {x, y});
 }
 
 absl::StatusOr<DataSlice> FloorDiv(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.floordiv"));
-  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kde.math.floordiv"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.floordiv"));
+  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kd.math.floordiv"));
   return SimplePointwiseEval("math.floordiv", {x, y});
 }
 
 absl::StatusOr<DataSlice> Mod(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.mod"));
-  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kde.math.mod"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.mod"));
+  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kd.math.mod"));
   return SimplePointwiseEval("math.mod", {x, y});
 }
 
 absl::StatusOr<DataSlice> Maximum(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.maximum"));
-  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kde.math.maximum"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.maximum"));
+  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kd.math.maximum"));
   return SimplePointwiseEval("math.maximum", {x, y});
 }
 
 absl::StatusOr<DataSlice> Minimum(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.minimum"));
-  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kde.math.minimum"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.minimum"));
+  RETURN_IF_ERROR(ExpectNumeric("y", y)).With(OpError("kd.math.minimum"));
   return SimplePointwiseEval("math.minimum", {x, y});
 }
 
 absl::StatusOr<DataSlice> CumMax(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.cum_max"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.cum_max"));
   return SimpleAggOverEval("math.cum_max", {x});
 }
 
 absl::StatusOr<DataSlice> CumMin(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.cum_min"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.cum_min"));
   return SimpleAggOverEval("math.cum_min", {x});
 }
 
 absl::StatusOr<DataSlice> CumSum(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.cum_sum"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.cum_sum"));
   return SimpleAggOverEval("math.cum_sum", {x});
 }
 
 absl::StatusOr<DataSlice> Softmax(const DataSlice& x, const DataSlice& beta) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.softmax"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.softmax"));
   RETURN_IF_ERROR(ExpectNumeric("beta", beta))
-      .With(OpError("kde.math.softmax"));
+      .With(OpError("kd.math.softmax"));
   return SimpleAggOverEval("math.softmax", {x, beta},
                            /*output_schema=*/internal::DataItem(),
                            /*edge_arg_index=*/2);
 }
 
 absl::StatusOr<DataSlice> Cdf(const DataSlice& x, const DataSlice& weights) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.floordiv"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.floordiv"));
   RETURN_IF_ERROR(ExpectNumeric("weights", weights))
-      .With(OpError("kde.math.cdf"));
+      .With(OpError("kd.math.cdf"));
   return SimpleAggOverEval("math.cdf", {x, weights},
                            /*output_schema=*/internal::DataItem(),
                            /*edge_arg_index=*/2);
@@ -188,10 +188,10 @@ absl::StatusOr<DataSlice> Cdf(const DataSlice& x, const DataSlice& weights) {
 absl::StatusOr<DataSlice> AggInverseCdf(const DataSlice& x,
                                         const DataSlice& cdf_arg) {
   RETURN_IF_ERROR(ExpectNumeric("x", x))
-      .With(OpError("kde.math.agg_inverse_cdf"));
+      .With(OpError("kd.math.agg_inverse_cdf"));
   if (!ToArollaScalar<double>(cdf_arg).ok()) {
     return internal::OperatorEvalError(
-        "kde.math.agg_inverse_cdf",
+        "kd.math.agg_inverse_cdf",
         absl::StrFormat("expected `cdf_arg` argument to contain a scalar float "
                         "value, got %s",
                         DataSliceRepr(cdf_arg)));
@@ -204,9 +204,9 @@ absl::StatusOr<DataSlice> AggInverseCdf(const DataSlice& x,
 }
 
 absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.agg_sum"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.agg_sum"));
   ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x),
-                   internal::OperatorEvalError(std::move(_), "kde.math.agg_sum",
+                   internal::OperatorEvalError(std::move(_), "kd.math.agg_sum",
                                                "invalid inputs"));
   // The input has primitive schema or OBJECT/ANY schema with a single primitive
   // dtype.
@@ -228,12 +228,12 @@ absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
 }
 
 absl::StatusOr<DataSlice> AggMean(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.agg_mean"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.agg_mean"));
   return SimpleAggIntoEval("math.mean", {x});
 }
 
 absl::StatusOr<DataSlice> AggMedian(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.agg_median"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.agg_median"));
   return SimpleAggIntoEval("math.median", {x});
 }
 
@@ -260,12 +260,12 @@ absl::StatusOr<DataSlice> AggVar(const DataSlice& x,
 }
 
 absl::StatusOr<DataSlice> AggMax(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.agg_max"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.agg_max"));
   return SimpleAggIntoEval("math.max", {x});
 }
 
 absl::StatusOr<DataSlice> AggMin(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kde.math.agg_min"));
+  RETURN_IF_ERROR(ExpectNumeric("x", x)).With(OpError("kd.math.agg_min"));
   return SimpleAggIntoEval("math.min", {x});
 }
 

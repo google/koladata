@@ -22,28 +22,28 @@
 
 namespace koladata::ops {
 
-// kde.objs.new.
+// kd.objs.new.
 class ObjOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.objs.shaped.
+// kd.objs.shaped.
 class ObjShapedOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.objs.like.
+// kd.objs.like.
 class ObjLikeOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.objs.uu operator.
+// kd.objs.uu operator.
 // Creates a DataSlice of UuObjects.
 class UuObjOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

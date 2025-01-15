@@ -32,7 +32,7 @@ P = arolla.P
 constraints = arolla.optools.constraints
 
 
-@optools.as_backend_operator('kde.strings._agg_join')
+@optools.as_backend_operator('kd.strings._agg_join')
 def _agg_join(x, sep):  # pylint: disable=unused-argument
   """Returns a DataSlice of strings joined on last dimension."""
   raise NotImplementedError('implemented in the backend')
@@ -40,7 +40,7 @@ def _agg_join(x, sep):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.strings.agg_join',
+    'kd.strings.agg_join',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.sep),
@@ -67,7 +67,7 @@ def agg_join(x, sep=None, ndim=arolla.unspecified()):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.contains',
+    'kd.strings.contains',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.substr),
@@ -96,7 +96,7 @@ def contains(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.count',
+    'kd.strings.count',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.substr),
@@ -125,7 +125,7 @@ def count(s, substr):  # pylint: disable=unused-argument,redefined-outer-name
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.find',
+    'kd.strings.find',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.substr),
@@ -160,7 +160,7 @@ def find(
 
 @optools.add_to_registry()
 @arolla.optools.as_backend_operator(
-    'kde.strings.printf',
+    'kd.strings.printf',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
         qtype_utils.expect_data_slice_args(P.args),
@@ -188,9 +188,9 @@ def printf(fmt, *args):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.format'])
+@optools.add_to_registry(aliases=['kd.format'])
 @optools.as_backend_operator(
-    'kde.strings.format',
+    'kd.strings.format',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
@@ -237,10 +237,10 @@ def format_(fmt, /, **kwargs):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.fstr'])
+@optools.add_to_registry(aliases=['kd.fstr'])
 @arolla.optools.as_lambda_operator(
-    'kde.strings.fstr',
-    experimental_aux_policy='koladata_adhoc_binding_policy[kde.strings.fstr]',
+    'kd.strings.fstr',
+    experimental_aux_policy='koladata_adhoc_binding_policy[kd.strings.fstr]',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
     ],
@@ -252,12 +252,12 @@ def fstr(fmt):
   one formatted DataSlice or Expression.
   Each DataSlice/Expression must have custom format specification,
   e.g. `{ds:s}` or `{expr:.2f}`.
-  Find more about format specification in kde.strings.format docs.
+  Find more about format specification in kd.strings.format docs.
 
   NOTE: `{ds:s}` can be used for any type to achieve default string conversion.
 
   Examples:
-    greeting_expr = kde.fstr(f'Hello, {I.countries:s}!')
+    greeting_expr = kd.fstr(f'Hello, {I.countries:s}!')
 
     countries = kd.slice(['USA', 'Schweiz'])
     kd.eval(greeting_expr, countries=countries)
@@ -265,13 +265,13 @@ def fstr(fmt):
 
     local_greetings = ds(['Hello', 'Gruezi'])
     # Data slice is interpreted as literal.
-    local_greeting_expr = kde.fstr(
+    local_greeting_expr = kd.fstr(
         f'{local_greetings:s}, {I.countries:s}!'
     )
     kd.eval(local_greeting_expr, countries=countries)
       # -> kd.slice(['Hello, USA!', 'Gruezi, Schweiz!'])
 
-    price_expr = kde.fstr(
+    price_expr = kd.fstr(
         f'Lunch price in {I.countries:s} is {I.prices:.2f} {I.currencies:s}.')
     kd.eval(price_expr,
             countries=countries,
@@ -294,7 +294,7 @@ def _fstr_bind_args(fstr, /):  # pylint: disable=redefined-outer-name
 
   This policy takes f-string with base64 encoded Expressions and converts
   to the format expression. This single expression is passed as argument to the
-  identity kde.strings.fstr operator.
+  identity kd.strings.fstr operator.
 
   Example (actual expression may be different):
     kd.fstr(f'Hello {I.x:s}') ->
@@ -318,7 +318,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
 
 @optools.add_to_registry()
 @arolla.optools.as_backend_operator(
-    'kde.strings._test_only_format_wrapper',
+    'kd.strings._test_only_format_wrapper',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fmt),
         qtype_utils.expect_data_slice(P.arg_names),
@@ -334,7 +334,7 @@ def _test_only_format_wrapper(fmt, arg_names, *args):  # pylint: disable=unused-
 
 @optools.add_to_registry()
 @arolla.optools.as_backend_operator(
-    'kde.strings.join',
+    'kd.strings.join',
     qtype_constraints=[
         (
             M.qtype.get_field_count(P.args) > 0,
@@ -365,7 +365,7 @@ def join(*args):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.length', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+    'kd.strings.length', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def length(x):  # pylint: disable=unused-argument
   """Returns a DataSlice of lengths in bytes for Byte or codepoints for String.
@@ -389,7 +389,7 @@ def length(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.lower', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+    'kd.strings.lower', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def lower(x):  # pylint: disable=unused-argument
   """Returns a DataSlice with the lowercase version of each string in the input.
@@ -411,7 +411,7 @@ def lower(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.lstrip',
+    'kd.strings.lstrip',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.chars),
@@ -446,7 +446,7 @@ def lstrip(s, chars=None):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.regex_extract',
+    'kd.strings.regex_extract',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.text),
         qtype_utils.expect_data_slice(P.regex),
@@ -489,7 +489,7 @@ def regex_extract(text, regex):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.regex_match',
+    'kd.strings.regex_match',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.text),
         qtype_utils.expect_data_slice(P.regex),
@@ -527,7 +527,7 @@ def regex_match(text, regex):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.replace',
+    'kd.strings.replace',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.old),
@@ -566,7 +566,7 @@ def replace(
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.rfind',
+    'kd.strings.rfind',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.substr),
@@ -602,7 +602,7 @@ def rfind(
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.rstrip',
+    'kd.strings.rstrip',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.chars),
@@ -637,7 +637,7 @@ def rstrip(s, chars=None):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.split',
+    'kd.strings.split',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.sep),
@@ -660,7 +660,7 @@ def split(x, sep=None):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.strip',
+    'kd.strings.strip',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.s),
         qtype_utils.expect_data_slice(P.chars),
@@ -695,7 +695,7 @@ def strip(s, chars=None):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.substr',
+    'kd.strings.substr',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.start),
@@ -749,7 +749,7 @@ def substr(
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.upper', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+    'kd.strings.upper', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def upper(x):  # pylint: disable=unused-argument
   """Returns a DataSlice with the uppercase version of each string in the input.
@@ -771,7 +771,7 @@ def upper(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.decode', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+    'kd.strings.decode', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def decode(x):  # pylint: disable=unused-argument
   """Decodes `x` as STRING using UTF-8 decoding."""
@@ -780,7 +780,7 @@ def decode(x):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.encode', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+    'kd.strings.encode', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def encode(x):  # pylint: disable=unused-argument
   """Encodes `x` as BYTES using UTF-8 encoding."""
@@ -788,14 +788,14 @@ def encode(x):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry()
-@optools.as_backend_operator('kde.strings._decode_base64')
+@optools.as_backend_operator('kd.strings._decode_base64')
 def _decode_base64(x, missing_if_invalid):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.strings.decode_base64',
+    'kd.strings.decode_base64',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.on_invalid),
@@ -832,7 +832,7 @@ def decode_base64(x, /, *, on_invalid=arolla.unspecified()):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kde.strings.encode_base64',
+    'kd.strings.encode_base64',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
 def encode_base64(x):  # pylint: disable=unused-argument

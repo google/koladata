@@ -260,7 +260,7 @@ class FunctorCallTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.functor.call(I.fn, I.x, I.y, a=I.z)),
-        'kde.functor.call(I.fn, I.x, I.y, return_type_as=DataItem(None, schema:'
+        'kd.functor.call(I.fn, I.x, I.y, return_type_as=DataItem(None, schema:'
         ' NONE), a=I.z)',
     )
 

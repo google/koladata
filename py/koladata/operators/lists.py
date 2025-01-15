@@ -35,17 +35,17 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-@optools.as_backend_operator('kde.lists._like', deterministic=False)
+@optools.as_backend_operator('kd.lists._like', deterministic=False)
 def _like(
     shape_and_mask_from, items, item_schema, schema, itemid  # pylint: disable=unused-argument
 ):
-  """Implementation of `kde.lists.like`."""
+  """Implementation of `kd.lists.like`."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.list_like'])
+@optools.add_to_registry(aliases=['kd.list_like'])
 @optools.as_lambda_operator(
-    'kde.lists.like',
+    'kd.lists.like',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_and_mask_from),
         qtype_utils.expect_data_slice_or_unspecified(P.items),
@@ -88,15 +88,15 @@ def like(
   return _like(shape_and_mask_from, items, item_schema, schema, itemid)
 
 
-@optools.as_backend_operator('kde.lists._shaped', deterministic=False)
+@optools.as_backend_operator('kd.lists._shaped', deterministic=False)
 def _shaped(shape, items, item_schema, schema, itemid):  # pylint: disable=unused-argument
-  """Implementation of `kde.lists.shaped`."""
+  """Implementation of `kd.lists.shaped`."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.list_shaped'])
+@optools.add_to_registry(aliases=['kd.list_shaped'])
 @optools.as_lambda_operator(
-    'kde.lists.shaped',
+    'kd.lists.shaped',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice_or_unspecified(P.items),
@@ -138,9 +138,9 @@ def shaped(
   return _shaped(shape, items, item_schema, schema, itemid)
 
 
-@optools.add_to_registry(aliases=['kde.list_shaped_as'])
+@optools.add_to_registry(aliases=['kd.list_shaped_as'])
 @optools.as_lambda_operator(
-    'kde.lists.shaped_as',
+    'kd.lists.shaped_as',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.shape_from),
         qtype_utils.expect_data_slice_or_unspecified(P.items),
@@ -182,15 +182,15 @@ def shaped_as(
   )
 
 
-@optools.as_backend_operator('kde.lists._explode')
+@optools.as_backend_operator('kd.lists._explode')
 def _explode(x, ndim):  # pylint: disable=unused-argument
-  """Implementation of kde.lists.explode."""
+  """Implementation of kd.lists.explode."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.explode'])
+@optools.add_to_registry(aliases=['kd.explode'])
 @optools.as_lambda_operator(
-    'kde.lists.explode',
+    'kd.lists.explode',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.ndim),
@@ -222,15 +222,15 @@ def explode(x, ndim=data_slice.DataSlice.from_vals(1, schema_constants.INT64)):
   return _explode(x, arolla_bridge.to_arolla_int64(ndim))
 
 
-@optools.as_backend_operator('kde.lists._implode', deterministic=False)
+@optools.as_backend_operator('kd.lists._implode', deterministic=False)
 def _implode(x, ndim, itemid):  # pylint: disable=unused-argument
-  """Implementation of kde.lists.implode."""
+  """Implementation of kd.lists.implode."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.implode'])
+@optools.add_to_registry(aliases=['kd.implode'])
 @optools.as_lambda_operator(
-    'kde.lists.implode',
+    'kd.lists.implode',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.ndim),
@@ -266,9 +266,9 @@ def implode(
   return _implode(x, arolla_bridge.to_arolla_int64(ndim), itemid)
 
 
-@optools.add_to_registry(aliases=['kde.list_size'])
+@optools.add_to_registry(aliases=['kd.list_size'])
 @optools.as_backend_operator(
-    'kde.lists.size',
+    'kd.lists.size',
     qtype_constraints=[qtype_utils.expect_data_slice(P.list_slice)],
 )
 def size(list_slice):  # pylint: disable=unused-argument
@@ -276,9 +276,9 @@ def size(list_slice):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.has_list'])
+@optools.add_to_registry(aliases=['kd.has_list'])
 @optools.as_backend_operator(
-    'kde.lists.has_list',
+    'kd.lists.has_list',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -306,9 +306,9 @@ def has_list(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.is_list'])
+@optools.add_to_registry(aliases=['kd.is_list'])
 @optools.as_backend_operator(
-    'kde.lists.is_list', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+    'kd.lists.is_list', qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def is_list(x):  # pylint: disable=unused-argument
   """Returns whether x is a List DataSlice.
@@ -335,12 +335,12 @@ def is_list(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.select_items'])
+@optools.add_to_registry(aliases=['kd.select_items'])
 @arolla.optools.as_lambda_operator(
-    'kde.lists.select_items',
+    'kd.lists.select_items',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
     experimental_aux_policy=(
-        'koladata_adhoc_binding_policy[kde.lists.select_items]'
+        'koladata_adhoc_binding_policy[kd.lists.select_items]'
     ),
 )
 def select_items(ds, fltr):
@@ -360,7 +360,7 @@ def select_items(ds, fltr):
 
 
 def _select_items_bind_args(ds, fltr):
-  """Argument binding policy for the `kde.lists.select_items` operator."""
+  """Argument binding policy for the `kd.lists.select_items` operator."""
   if isinstance(fltr, py_types.FunctionType):
     fltr = fltr(ds[:])
   return (py_boxing.as_qvalue_or_expr(ds), py_boxing.as_qvalue_or_expr(fltr))

@@ -36,21 +36,21 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-@optools.as_backend_operator('kde.core._get_attr')
+@optools.as_backend_operator('kd.core._get_attr')
 def _get_attr(x, attr_name):  # pylint: disable=unused-argument
   """Gets an attribute from a DataSlice."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator('kde.core._get_attr_with_default')
+@optools.as_backend_operator('kd.core._get_attr_with_default')
 def _get_attr_with_default(x, attr_name, default):  # pylint: disable=unused-argument
   """Gets an attribute from a DataSlice replacing missing items from default."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.get_attr'], repr_fn=op_repr.getattr_repr)
+@optools.add_to_registry(aliases=['kd.get_attr'], repr_fn=op_repr.getattr_repr)
 @optools.as_lambda_operator(
-    'kde.core.get_attr',
+    'kd.core.get_attr',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
@@ -89,22 +89,22 @@ def get_attr(x, attr_name, default=arolla.unspecified()):
   )(x, attr_name, default)
 
 
-@optools.add_to_registry(aliases=['kde.maybe'])
+@optools.add_to_registry(aliases=['kd.maybe'])
 @optools.as_lambda_operator(
-    'kde.core.maybe',
+    'kd.core.maybe',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
     ],
 )
 def maybe(x, attr_name):
-  """A shortcut for kde.get_attr(x, attr_name, default=None)."""
+  """A shortcut for kd.get_attr(x, attr_name, default=None)."""
   return _get_attr_with_default(x, attr_name, None)
 
 
-@optools.add_to_registry(aliases=['kde.has_attr'])
+@optools.add_to_registry(aliases=['kd.has_attr'])
 @optools.as_lambda_operator(
-    'kde.core.has_attr',
+    'kd.core.has_attr',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
@@ -134,9 +134,9 @@ def has_attr(x, attr_name):
   )
 
 
-@optools.add_to_registry(aliases=['kde.has_primitive'])
+@optools.add_to_registry(aliases=['kd.has_primitive'])
 @optools.as_backend_operator(
-    'kde.core.has_primitive',
+    'kd.core.has_primitive',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -164,9 +164,9 @@ def has_primitive(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.is_primitive'])
+@optools.add_to_registry(aliases=['kd.is_primitive'])
 @optools.as_backend_operator(
-    'kde.core.is_primitive',
+    'kd.core.is_primitive',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -196,9 +196,9 @@ def is_primitive(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.has_entity'])
+@optools.add_to_registry(aliases=['kd.has_entity'])
 @optools.as_backend_operator(
-    'kde.core.has_entity',
+    'kd.core.has_entity',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -226,9 +226,9 @@ def has_entity(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.is_entity'])
+@optools.add_to_registry(aliases=['kd.is_entity'])
 @optools.as_backend_operator(
-    'kde.core.is_entity',
+    'kd.core.is_entity',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
     ],
@@ -258,9 +258,9 @@ def is_entity(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.stub'])
+@optools.add_to_registry(aliases=['kd.stub'])
 @optools.as_backend_operator(
-    'kde.core.stub',
+    'kd.core.stub',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attrs),
@@ -296,9 +296,9 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.attrs'])
+@optools.add_to_registry(aliases=['kd.attrs'])
 @optools.as_backend_operator(
-    'kde.core.attrs',
+    'kd.core.attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.update_schema),
@@ -311,9 +311,9 @@ def _attrs(x, /, *, update_schema=False, **attrs):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.attr'])
+@optools.add_to_registry(aliases=['kd.attr'])
 @optools.as_backend_operator(
-    'kde.core.attr',
+    'kd.core.attr',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
@@ -327,9 +327,9 @@ def _attr(x, attr_name, value, update_schema=False):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.with_attrs'])
+@optools.add_to_registry(aliases=['kd.with_attrs'])
 @optools.as_backend_operator(
-    'kde.core.with_attrs',
+    'kd.core.with_attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.update_schema),
@@ -341,9 +341,9 @@ def with_attrs(x, /, *, update_schema=False, **attrs):
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.with_attr'])
+@optools.add_to_registry(aliases=['kd.with_attr'])
 @optools.as_backend_operator(
-    'kde.core.with_attr',
+    'kd.core.with_attr',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
@@ -358,10 +358,14 @@ def with_attr(x, attr_name, value, update_schema=False):
 
 # TODO: Remove the *_db alias.
 @optools.add_to_registry(
-    aliases=['kde.with_bag', 'kde.with_db', 'kde.core.with_db']
+    aliases=[
+        'kd.with_bag',
+        'kd.with_db',
+        'kd.core.with_db',
+    ]
 )
 @optools.as_backend_operator(
-    'kde.core.with_bag',
+    'kd.core.with_bag',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_bag(P.bag),
@@ -381,7 +385,7 @@ def _get_item_bag(bag, ds):
 
 
 @optools.as_backend_operator(
-    'kde.core._get_list_item_by_range',
+    'kd.core._get_list_item_by_range',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         arolla.optools.constraints.expect_scalar_integer(P.start),
@@ -394,7 +398,7 @@ def _get_list_item_by_range(ds, start, stop):  # pylint: disable=unused-argument
 
 
 @optools.as_lambda_operator(
-    'kde.core._get_list_item_by_slice',
+    'kd.core._get_list_item_by_slice',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         (
@@ -421,12 +425,12 @@ def _get_list_item_by_slice(x, s):
   stop = normalize_slice_arg(tuple_ops.get_nth(s, 1), arolla.int64(2**63 - 1))
   step = normalize_slice_arg(tuple_ops.get_nth(s, 2), 1)
   x = assertion.with_assertion(
-      x, step == 1, 'kde.core.get_item: slice with step != 1 is not supported'
+      x, step == 1, 'kd.core.get_item: slice with step != 1 is not supported'
   )
   return _get_list_item_by_range(x, start, stop)
 
 
-@optools.as_backend_operator('kde.core._get_item')
+@optools.as_backend_operator('kd.core._get_item')
 def _get_item(x, key_or_index):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
@@ -436,12 +440,16 @@ def _get_item(x, key_or_index):  # pylint: disable=unused-argument
     overload_condition_expr=P.x == qtypes.DATA_SLICE,
 )
 @optools.add_to_registry(
-    'kde.core.get_item',
-    aliases=['kde.get_item', 'kde.lists.get_item', 'kde.dicts.get_item'],
+    'kd.core.get_item',
+    aliases=[
+        'kd.get_item',
+        'kd.lists.get_item',
+        'kd.dicts.get_item',
+    ],
     repr_fn=op_repr.get_item_repr,
 )
 @optools.as_lambda_operator(
-    'kde.core.get_item',
+    'kd.core.get_item',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         (
@@ -457,13 +465,13 @@ def get_item(x, key_or_index):
   Examples:
   l = kd.list([1, 2, 3])
   # Get List items by range slice from 1 to -1
-  kde.get_item(l, slice(1, -1)) -> kd.slice([2, 3])
+  kd.get_item(l, slice(1, -1)) -> kd.slice([2, 3])
   # Get List items by indices
-  kde.get_item(l, kd.slice([2, 5])) -> kd.slice([3, None])
+  kd.get_item(l, kd.slice([2, 5])) -> kd.slice([3, None])
 
   d = kd.dict({'a': 1, 'b': 2})
   # Get Dict values by keys
-  kde.get_item(d, kd.slice(['a', 'c'])) -> kd.slice([1, None])
+  kd.get_item(d, kd.slice(['a', 'c'])) -> kd.slice([1, None])
 
   Args:
     x: List or Dict DataSlice.
@@ -482,21 +490,21 @@ def get_item(x, key_or_index):
   )(x, key_or_index)
 
 
-@optools.as_backend_operator('kde.core._new_ids_like', deterministic=False)
+@optools.as_backend_operator('kd.core._new_ids_like', deterministic=False)
 def _new_ids_like(x):  # pylint: disable=unused-argument
   """Creates a DataSlice with new ItemIds of a similar kind."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.as_backend_operator('kde.core._extract')
+@optools.as_backend_operator('kd.core._extract')
 def _extract(ds, schema):  # pylint: disable=unused-argument
   """Creates a DataSlice with a new DataBag containing only reachable attrs."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.extract'])
+@optools.add_to_registry(aliases=['kd.extract'])
 @optools.as_lambda_operator(
-    'kde.core.extract',
+    'kd.core.extract',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -516,15 +524,15 @@ def extract(ds, schema=arolla.unspecified()):
   return _extract(ds, schema)
 
 
-@optools.as_backend_operator('kde.core._shallow_clone')
+@optools.as_backend_operator('kd.core._shallow_clone')
 def _shallow_clone(x, itemid, schema, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with shallow clones of immediate attributes."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.shallow_clone'])
+@optools.add_to_registry(aliases=['kd.shallow_clone'])
 @optools.as_lambda_operator(
-    'kde.core.shallow_clone',
+    'kd.core.shallow_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
@@ -581,15 +589,15 @@ def shallow_clone(
   )(x, itemid, schema, overrides, optools.unified_non_deterministic_arg())
 
 
-@optools.as_backend_operator('kde.core._clone')
+@optools.as_backend_operator('kd.core._clone')
 def _clone(x, itemid, schema, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with clones of provided entities in a new DataBag."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.clone'])
+@optools.add_to_registry(aliases=['kd.clone'])
 @optools.as_lambda_operator(
-    'kde.core.clone',
+    'kd.core.clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.itemid),
@@ -646,15 +654,15 @@ def clone(
   )(x, itemid, schema, overrides, optools.unified_non_deterministic_arg())
 
 
-@optools.as_backend_operator('kde.core._deep_clone')
+@optools.as_backend_operator('kd.core._deep_clone')
 def _deep_clone(x, schema, non_deterministic):  # pylint: disable=unused-argument
   """Creates a DataSlice with a deep copy of `x`."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.deep_clone'])
+@optools.add_to_registry(aliases=['kd.deep_clone'])
 @optools.as_lambda_operator(
-    'kde.core.deep_clone',
+    'kd.core.deep_clone',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -702,9 +710,9 @@ def deep_clone(x, /, schema=arolla.unspecified(), **overrides):
   )(x, schema, overrides, optools.unified_non_deterministic_arg())
 
 
-@optools.add_to_registry(aliases=['kde.nofollow'])
+@optools.add_to_registry(aliases=['kd.nofollow'])
 @optools.as_backend_operator(
-    'kde.core.nofollow',
+    'kd.core.nofollow',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
 def nofollow(x):  # pylint: disable=unused-argument
@@ -722,9 +730,9 @@ def nofollow(x):  # pylint: disable=unused-argument
 
 
 # TODO: Remove the *_db alias.
-@optools.add_to_registry(aliases=['kde.no_bag', 'kde.no_db', 'kde.core.no_db'])
+@optools.add_to_registry(aliases=['kd.no_bag', 'kd.no_db', 'kd.core.no_db'])
 @optools.as_backend_operator(
-    'kde.core.no_bag',
+    'kd.core.no_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
 )
 def no_bag(ds):  # pylint: disable=unused-argument
@@ -732,9 +740,9 @@ def no_bag(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.ref'])
+@optools.add_to_registry(aliases=['kd.ref'])
 @optools.as_backend_operator(
-    'kde.core.ref',
+    'kd.core.ref',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
 )
 def ref(ds):  # pylint: disable=unused-argument
@@ -753,9 +761,9 @@ def ref(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.follow'])
+@optools.add_to_registry(aliases=['kd.follow'])
 @optools.as_backend_operator(
-    'kde.core.follow',
+    'kd.core.follow',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
 def follow(x):  # pylint: disable=unused-argument
@@ -774,16 +782,16 @@ def follow(x):  # pylint: disable=unused-argument
 
 
 @optools.as_backend_operator(
-    'kde.core._databag_freeze', qtype_inference_expr=qtypes.DATA_BAG
+    'kd.core._databag_freeze', qtype_inference_expr=qtypes.DATA_BAG
 )
 def _databag_freeze(x):  # pylint: disable=unused-argument
   """Helper operator that freezes a DataBag."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.freeze_bag'])
+@optools.add_to_registry(aliases=['kd.freeze_bag'])
 @optools.as_backend_operator(
-    'kde.core.freeze_bag',
+    'kd.core.freeze_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
 )
 def freeze_bag(x):  # pylint: disable=unused-argument
@@ -793,9 +801,9 @@ def freeze_bag(x):  # pylint: disable=unused-argument
 
 # TODO: remove the DataSlice version from here, making it a
 # simple DataBag only operator.
-@optools.add_to_registry(aliases=['kde.freeze'])
+@optools.add_to_registry(aliases=['kd.freeze'])
 @optools.as_lambda_operator(
-    'kde.core.freeze',
+    'kd.core.freeze',
     qtype_constraints=[
         (
             (P.x == qtypes.DATA_SLICE) | (P.x == qtypes.DATA_BAG),
@@ -817,9 +825,9 @@ def freeze(x):  # pylint: disable=unused-argument
   )(x)
 
 
-@optools.add_to_registry(aliases=['kde.get_bag'])
+@optools.add_to_registry(aliases=['kd.get_bag'])
 @optools.as_backend_operator(
-    'kde.core.get_bag',
+    'kd.core.get_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
     qtype_inference_expr=qtypes.DATA_BAG,
 )
@@ -837,9 +845,9 @@ def get_bag(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.extract_bag'])
+@optools.add_to_registry(aliases=['kd.extract_bag'])
 @optools.as_lambda_operator(
-    'kde.core.extract_bag',
+    'kd.core.extract_bag',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
@@ -858,9 +866,9 @@ def extract_bag(ds, schema=arolla.unspecified()):
   return get_bag(extract(ds, schema))
 
 
-@optools.add_to_registry(aliases=['kde.reify'])
+@optools.add_to_registry(aliases=['kd.reify'])
 @optools.as_lambda_operator(
-    'kde.core.reify',
+    'kd.core.reify',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.source),
@@ -872,9 +880,9 @@ def reify(ds, source):
   return schema_ops.with_schema(ds, schema_ops.get_schema(source))
 
 
-@optools.add_to_registry(aliases=['kde.with_merged_bag'])
+@optools.add_to_registry(aliases=['kd.with_merged_bag'])
 @optools.as_backend_operator(
-    'kde.core.with_merged_bag',
+    'kd.core.with_merged_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
 )
 def with_merged_bag(ds):  # pylint: disable=unused-argument
@@ -896,9 +904,9 @@ def with_merged_bag(ds):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.enriched'])
+@optools.add_to_registry(aliases=['kd.enriched'])
 @arolla.optools.as_backend_operator(
-    'kde.core.enriched',
+    'kd.core.enriched',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_bag_args(P.bag),
@@ -928,9 +936,9 @@ def enriched(ds, *bag):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.updated'])
+@optools.add_to_registry(aliases=['kd.updated'])
 @arolla.optools.as_backend_operator(
-    'kde.core.updated',
+    'kd.core.updated',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_bag_args(P.bag),

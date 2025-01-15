@@ -67,7 +67,7 @@ void BM_Add(benchmark::State& state) {
 
   auto expr = Leaf("x");
   for (size_t i = 0; i < num_operators; ++i) {
-    expr = CallOp("kde.add", {expr, Leaf("x")}).value();
+    expr = CallOp("kd.add", {expr, Leaf("x")}).value();
   }
 
   using Inputs = std::tuple<DataSlice>;
@@ -114,7 +114,7 @@ void BM_AggSum(benchmark::State& state) {
       shape);
   auto ndim_ds = *DataSlice::Create(internal::DataItem(ndim),
                                     internal::DataItem(schema::kInt32));
-  auto expr = *CallOp("kde.agg_sum", {Leaf("x"), Leaf("ndim")});
+  auto expr = *CallOp("kd.agg_sum", {Leaf("x"), Leaf("ndim")});
 
   using Inputs = std::tuple<DataSlice, DataSlice>;
   auto fn = arolla::ExprCompiler<Inputs, DataSlice>()
@@ -167,7 +167,7 @@ void BM_Equal_Int32_Int64(benchmark::State& state) {
                       DataSlice::JaggedShape::FlatFromSize(slice_size), db)
                       .value();
 
-  auto expr = CallOp("kde.equal", {Leaf("x"), Leaf("y")}).value();
+  auto expr = CallOp("kd.equal", {Leaf("x"), Leaf("y")}).value();
 
   using Inputs = std::tuple<DataSlice, DataSlice>;
   auto fn =
@@ -222,7 +222,7 @@ void BM_Coalesce(benchmark::State& state) {
                         internal::DataItem(schema::GetDType<Y>()), db)
           .value();
 
-  auto expr = CallOp("kde.coalesce", {Leaf("x"), Leaf("y")}).value();
+  auto expr = CallOp("kd.coalesce", {Leaf("x"), Leaf("y")}).value();
 
   using Inputs = std::tuple<DataSlice, DataSlice>;
   auto fn =
@@ -274,7 +274,7 @@ void BM_AddViaFunctor(benchmark::State& state) {
                    .value();
   auto expr = input;
   for (size_t i = 0; i < num_operators; ++i) {
-    expr = CallOp("kde.add", {expr, input}).value();
+    expr = CallOp("kd.add", {expr, input}).value();
   }
   auto expr_slice =
       DataSlice::Create(internal::DataItem(arolla::expr::ExprQuote(expr)),

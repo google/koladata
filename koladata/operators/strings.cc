@@ -264,7 +264,7 @@ absl::StatusOr<DataSlice> TestOnlyFormatWrapper(std::vector<DataSlice> slices) {
                    arolla::MakeNamedTuple(arg_names_split, arg_values));
   ASSIGN_OR_RETURN(
       auto result,
-      EvalExpr("kde.strings.format",
+      EvalExpr("kd.strings.format",
                {arolla::TypedRef::FromValue(slices[0]), kwargs.AsRef()}));
   return result.As<DataSlice>();
 }

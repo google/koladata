@@ -77,7 +77,7 @@ class LogicalMaskEqualTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kde.masking.mask_equal: argument `x` must have kd.MASK dtype'
+            'kd.masking.mask_equal: argument `x` must have kd.MASK dtype'
         ),
     ):
       _ = expr_eval.eval(kde.masking.mask_equal(ds(1), ds(present)))
@@ -85,7 +85,7 @@ class LogicalMaskEqualTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kde.masking.mask_equal: argument `y` must have kd.MASK dtype'
+            'kd.masking.mask_equal: argument `y` must have kd.MASK dtype'
         ),
     ):
       _ = expr_eval.eval(kde.masking.mask_equal(ds(present), ds(1)))

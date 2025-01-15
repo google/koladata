@@ -234,7 +234,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.deep_clone(I.x, schema=I.schema, a=I.y)),
-        'kde.core.deep_clone(I.x, I.schema, a=I.y)',
+        'kd.core.deep_clone(I.x, I.schema, a=I.y)',
     )
 
 

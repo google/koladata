@@ -261,12 +261,12 @@ class EntitiesUuTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.entities.uu(a=I.z, seed=I.seed)),
-        'kde.entities.uu(I.seed, schema=unspecified,'
+        'kd.entities.uu(I.seed, schema=unspecified,'
         ' update_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
     )
     self.assertEqual(
         repr(kde.entities.uu(I.seed, a=I.z)),
-        'kde.entities.uu(I.seed, schema=unspecified,'
+        'kd.entities.uu(I.seed, schema=unspecified,'
         ' update_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
     )
 

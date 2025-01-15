@@ -129,7 +129,7 @@ class MathModTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.mod: argument `y` must be a slice of numeric values, got'
+            'kd.math.mod: argument `y` must be a slice of numeric values, got'
             ' a slice of STRING'
         ),
     ):

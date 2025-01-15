@@ -400,16 +400,16 @@ class SlicesSubsliceTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.subslice(I.x, slice(1))),
-        'kde.subslice(I.x, slice(None, 1))',
+        'kd.subslice(I.x, slice(None, 1))',
     )
     self.assertEqual(
         repr(kde.subslice(I.x, arolla.M.core.make_slice(I.start, I.end))),
-        'kde.subslice(I.x, M.core.make_slice(I.start, I.end, unspecified))',
+        'kd.subslice(I.x, M.core.make_slice(I.start, I.end, unspecified))',
     )
-    self.assertEqual(repr(kde.subslice(I.x, ...)), 'kde.subslice(I.x, ...)')
+    self.assertEqual(repr(kde.subslice(I.x, ...)), 'kd.subslice(I.x, ...)')
     self.assertEqual(
         repr(kde.subslice(I.x, ds(1), ...)),
-        'kde.subslice(I.x, DataItem(1, schema: INT32), ...)',
+        'kd.subslice(I.x, DataItem(1, schema: INT32), ...)',
     )
 
   def test_view(self):
@@ -419,7 +419,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
     self.assertTrue(optools.equiv_to_op(kde.slices.subslice, kde.subslice))
     self.assertEqual(
         repr(kde.slices.subslice(I.x, slice(1, 2))),
-        'kde.slices.subslice(I.x, slice(1, 2))',
+        'kd.slices.subslice(I.x, slice(1, 2))',
     )
 
   def test_subslice_for_slicing_helper(self):

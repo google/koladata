@@ -188,7 +188,7 @@ class KodaUuSchemaTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.schema.uu_schema(a=I.a)),
-        "kde.schema.uu_schema(DataItem('', schema: STRING), a=I.a)",
+        "kd.schema.uu_schema(DataItem('', schema: STRING), a=I.a)",
     )
 
 

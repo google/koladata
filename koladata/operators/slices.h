@@ -23,64 +23,64 @@
 
 namespace koladata::ops {
 
-// kde.slices._inverse_mapping.
+// kd.slices._inverse_mapping.
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x);
 
-// kde.slices._ordinal_rank.
+// kd.slices._ordinal_rank.
 absl::StatusOr<DataSlice> OrdinalRank(const DataSlice& x,
                                       const DataSlice& tie_breaker,
                                       const DataSlice& descending);
 
-// kde.slices._dense_rank.
+// kd.slices._dense_rank.
 absl::StatusOr<DataSlice> DenseRank(const DataSlice& x,
                                     const DataSlice& descending);
 
-// kde.slices.align.
+// kd.slices.align.
 class AlignOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;
 };
 
-// kde.slices._collapse.
+// kd.slices._collapse.
 absl::StatusOr<DataSlice> Collapse(const DataSlice& ds);
 
-// kde.slices._concat_or_stack
+// kd.slices._concat_or_stack
 absl::StatusOr<DataSlice> ConcatOrStack(
     absl::Span<const DataSlice* const> slices);
 
-// kde.slices.is_empty.
+// kd.slices.is_empty.
 absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj);
 
-// kde.slices.group_by_indices.
+// kd.slices.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(
     absl::Span<const DataSlice* const> slices);
 
-// kde.slices.unique.
+// kd.slices.unique.
 absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort);
 
-// kde.slices.reverse.
+// kd.slices.reverse.
 absl::StatusOr<DataSlice> Reverse(const DataSlice& obj);
 
-// kde.slices.select.
+// kd.slices.select.
 absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
                                  bool expand_filter);
 
-// kde.slices.inverse_select.
+// kd.slices.inverse_select.
 absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
                                         const DataSlice& filter);
 
-// kde.slices.subslice operator.
+// kd.slices.subslice operator.
 class SubsliceOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
 
-// kde.slices.take operator.
+// kd.slices.take operator.
 absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices);
 
-// kde.slices.translate.
+// kd.slices.translate.
 absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     const DataSlice& keys_from,
                                     const DataSlice& values_from);

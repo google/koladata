@@ -368,7 +368,7 @@ Assigned schema for List item: INT32""",
   def test_repr(self):
     self.assertEqual(
         repr(kde.lists.like(I.x, schema=I.y)),
-        'kde.lists.like(I.x, unspecified, item_schema=unspecified,'
+        'kd.lists.like(I.x, unspecified, item_schema=unspecified,'
         ' schema=I.y, itemid=unspecified)',
     )
 

@@ -20,7 +20,7 @@
 
 namespace koladata::ops {
 
-// kde.json.to_json
+// kd.json.to_json
 absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
                                  DataSlice ensure_ascii, DataSlice keys_attr,
                                  DataSlice values_attr);

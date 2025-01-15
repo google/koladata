@@ -108,7 +108,7 @@ class PyMapPyOnPresentTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.py.map_py_on_present(I.fn, I.x, a=I.a)),
-        "kde.py.map_py_on_present(I.fn, I.x, schema=DataItem(None, schema:"
+        "kd.py.map_py_on_present(I.fn, I.x, schema=DataItem(None, schema:"
         " NONE), max_threads=DataItem(1, schema: INT32),"
         " item_completed_callback=DataItem(None, schema: NONE), a=I.a)",
     )

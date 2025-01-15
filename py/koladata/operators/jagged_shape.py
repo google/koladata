@@ -50,7 +50,7 @@ def _expect_slices_or_edges(value):
 
 @optools.add_to_registry()
 @arolla.optools.as_backend_operator(
-    'kde.shapes.new',
+    'kd.shapes.new',
     qtype_constraints=[_expect_slices_or_edges(P.dimensions)],
     qtype_inference_expr=qtypes.JAGGED_SHAPE,
     experimental_aux_policy=py_boxing.LIST_TO_SLICE_BOXING_POLICY,
@@ -90,7 +90,7 @@ def new(*dimensions):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @arolla.optools.as_backend_operator(
-    'kde.shapes._new_with_size',
+    'kd.shapes._new_with_size',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.result_size),
         _expect_slices_or_edges(P.dimensions),
@@ -121,7 +121,7 @@ def _new_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.shapes.size',
+    'kd.shapes.size',
     qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
 )
 def size(shape):
@@ -129,9 +129,9 @@ def size(shape):
   return arolla_bridge.to_data_slice(M.jagged.size(shape))
 
 
-@optools.add_to_registry(aliases=['kde.get_shape'])
+@optools.add_to_registry(aliases=['kd.get_shape'])
 @optools.as_backend_operator(
-    'kde.shapes.get_shape',
+    'kd.shapes.get_shape',
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
     qtype_inference_expr=qtypes.JAGGED_SHAPE,
 )
@@ -140,8 +140,8 @@ def get_shape(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.reshape'])
-@optools.as_lambda_operator('kde.shapes.reshape')
+@optools.add_to_registry(aliases=['kd.reshape'])
+@optools.as_lambda_operator('kd.shapes.reshape')
 def reshape(x, shape):
   """Returns a DataSlice with the provided shape.
 
@@ -187,8 +187,8 @@ def reshape(x, shape):
   return _reshape(x, to_shape(x, shape))
 
 
-@optools.add_to_registry(aliases=['kde.reshape_as'])
-@optools.as_lambda_operator('kde.shapes.reshape_as')
+@optools.add_to_registry(aliases=['kd.reshape_as'])
+@optools.as_lambda_operator('kd.shapes.reshape_as')
 def reshape_as(x, shape_from):
   """Returns a DataSlice x reshaped to the shape of DataSlice shape_from."""
   return reshape(x, get_shape(shape_from))
@@ -326,15 +326,15 @@ def remove_last_ndim(x, ndim):
   return remove_last_ndim_if_specified(x, ndim)
 
 
-@optools.as_backend_operator('kde.shapes._expand_to_shape')
+@optools.as_backend_operator('kd.shapes._expand_to_shape')
 def _expand_to_shape(x, shape, ndim):  # pylint: disable=unused-argument
   """Broadcasts a DataSlice to the provided shape."""
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.expand_to_shape'])
+@optools.add_to_registry(aliases=['kd.expand_to_shape'])
 @optools.as_lambda_operator(
-    'kde.shapes.expand_to_shape',
+    'kd.shapes.expand_to_shape',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_jagged_shape(P.shape),
@@ -405,7 +405,7 @@ def expand_to_shape(x, shape, ndim=arolla.unspecified()):
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.shapes.is_expandable_to_shape',
+    'kd.shapes.is_expandable_to_shape',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_jagged_shape(P.target_shape),
@@ -429,9 +429,9 @@ def is_expandable_to_shape(x, target_shape, ndim=arolla.unspecified()):
   )
 
 
-@optools.add_to_registry(aliases=['kde.flatten'])
+@optools.add_to_registry(aliases=['kd.flatten'])
 @optools.as_lambda_operator(
-    'kde.shapes.flatten',
+    'kd.shapes.flatten',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.from_dim),
         qtype_utils.expect_data_slice_or_unspecified(P.to_dim),
@@ -491,9 +491,9 @@ def flatten(
   )
 
 
-@optools.add_to_registry(aliases=['kde.shapes.ndim'])
+@optools.add_to_registry(aliases=['kd.shapes.ndim'])
 @optools.as_lambda_operator(
-    'kde.shapes.rank',
+    'kd.shapes.rank',
     qtype_constraints=[qtype_utils.expect_jagged_shape(P.shape)],
 )
 def rank(shape):
@@ -503,7 +503,7 @@ def rank(shape):
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.shapes.dim_sizes',
+    'kd.shapes.dim_sizes',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice(P.dim),
@@ -529,7 +529,7 @@ def dim_sizes(shape, dim):
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kde.shapes.dim_mapping',
+    'kd.shapes.dim_mapping',
     qtype_constraints=[
         qtype_utils.expect_jagged_shape(P.shape),
         qtype_utils.expect_data_slice(P.dim),

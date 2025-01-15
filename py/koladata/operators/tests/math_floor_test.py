@@ -162,7 +162,7 @@ class MathFloorTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.floor: argument `x` must be a slice of numeric values,'
+            'kd.math.floor: argument `x` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):
@@ -178,7 +178,7 @@ class MathFloorTest(parameterized.TestCase):
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.floor(I.x)), 'kde.math.floor(I.x)')
+    self.assertEqual(repr(kde.math.floor(I.x)), 'kd.math.floor(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.math.floor(I.x)))

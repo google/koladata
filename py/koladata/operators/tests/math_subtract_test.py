@@ -120,7 +120,7 @@ class MathSubtractTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.subtract: argument `y` must be a slice of numeric values,'
+            'kd.math.subtract: argument `y` must be a slice of numeric values,'
             ' got a slice of STRING'
         ),
     ):

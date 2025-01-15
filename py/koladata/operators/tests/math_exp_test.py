@@ -139,7 +139,7 @@ class MathExpTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.exp: argument `x` must be a slice of numeric values, got'
+            'kd.math.exp: argument `x` must be a slice of numeric values, got'
             ' a slice of STRING'
         ),
     ):
@@ -155,7 +155,7 @@ class MathExpTest(parameterized.TestCase):
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.math.exp(I.x)), 'kde.math.exp(I.x)')
+    self.assertEqual(repr(kde.math.exp(I.x)), 'kd.math.exp(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.math.exp(I.x)))

@@ -38,7 +38,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-_kd = _eager_op_utils.operators_container('kde')
+_kd = _eager_op_utils.operators_container('kd')
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
@@ -263,7 +263,7 @@ def py_fn(
       # Note: we bypass the binding policy of apply_py since we already
       # have the args/kwargs as tuple and namedtuple.
       arolla.abc.bind_op(
-          'kde.py.apply_py',
+          'kd.py.apply_py',
           py_boxing.as_qvalue(f),
           args=I.args,
           return_type_as=py_boxing.as_qvalue(return_type_as),
@@ -335,7 +335,7 @@ def bind(
     # Note: we bypass the binding policy of functor.call since we already
     # have the args/kwargs as tuple and namedtuple.
     variables['_aux_fn_variables'] = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
-        'kde.functor.call',
+        'kd.functor.call',
         V['_aux_fn_compute_variables'],
         args=I.args,
         return_type_as=arolla.namedtuple(
@@ -353,7 +353,7 @@ def bind(
       # Note: we bypass the binding policy of functor.call since we already
       # have the args/kwargs as tuple and namedtuple.
       arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
-          'kde.functor.call',
+          'kd.functor.call',
           V['_aux_fn'],
           args=I.args,
           return_type_as=py_boxing.as_qvalue(return_type_as),
@@ -457,7 +457,7 @@ def map_py_fn(
   """
   f = expr_fn(
       arolla.abc.bind_op(
-          'kde.py.map_py',
+          'kd.py.map_py',
           py_boxing.as_qvalue(f),
           args=I.args,
           schema=py_boxing.as_qvalue(schema),

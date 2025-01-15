@@ -926,7 +926,7 @@ def concat_lists(
 
   Each input DataSlice must contain only present List items, and the item
   schemas of each input must be compatible. Input DataSlices are aligned (see
-  `kde.align`) automatically before concatenation.
+  `kd.align`) automatically before concatenation.
 
   If `lists` is empty, this returns a single empty list with OBJECT item schema.
 

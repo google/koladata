@@ -186,7 +186,7 @@ class PyApplyPyOnCondTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.py.apply_py_on_cond(I.yes, I.no, I.cond, I.x, a=I.a)),
-        'kde.py.apply_py_on_cond(I.yes, I.no, I.cond, I.x, a=I.a)',
+        'kd.py.apply_py_on_cond(I.yes, I.no, I.cond, I.x, a=I.a)',
     )
 
 

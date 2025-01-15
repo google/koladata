@@ -666,7 +666,7 @@ class PyMapPyTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.py.map_py(I.fn, I.x, a=I.a)),
-        'kde.py.map_py(I.fn, I.x,'
+        'kd.py.map_py(I.fn, I.x,'
         ' schema=DataItem(None, schema: NONE),'
         ' max_threads=DataItem(1, schema: INT32),'
         ' ndim=DataItem(0, schema: INT32),'

@@ -230,7 +230,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
         repr(
             kde.core.shallow_clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)
         ),
-        'kde.core.shallow_clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)',
+        'kd.core.shallow_clone(I.x, itemid=I.itemid, schema=I.schema, a=I.y)',
     )
 
 

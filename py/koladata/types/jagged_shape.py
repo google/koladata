@@ -25,4 +25,4 @@ JaggedShape = jagged_shape.JaggedDenseArrayShape
 
 def create_shape(*dimensions: Any) -> JaggedShape:
   """Returns a JaggedShape from sizes or edges."""
-  return py_expr_eval_py_ext.eval_op('kde.shapes.new', *dimensions)
+  return py_expr_eval_py_ext.eval_op('kd.shapes.new', *dimensions)

@@ -29,9 +29,9 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-@optools.add_to_registry(aliases=['kde.bag'])
+@optools.add_to_registry(aliases=['kd.bag'])
 @optools.as_backend_operator(
-    'kde.bags.new',
+    'kd.bags.new',
     qtype_inference_expr=qtypes.DATA_BAG,
     deterministic=False,
 )
@@ -40,9 +40,9 @@ def bag():
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.enriched_bag'])
+@optools.add_to_registry(aliases=['kd.enriched_bag'])
 @arolla.optools.as_backend_operator(
-    'kde.bags.enriched',
+    'kd.bags.enriched',
     qtype_constraints=[
         qtype_utils.expect_data_bag_args(P.bags),
     ],
@@ -69,9 +69,9 @@ def enriched_bag(*bags):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kde.updated_bag'])
+@optools.add_to_registry(aliases=['kd.updated_bag'])
 @arolla.optools.as_backend_operator(
-    'kde.bags.updated',
+    'kd.bags.updated',
     qtype_constraints=[
         qtype_utils.expect_data_bag_args(P.bags),
     ],

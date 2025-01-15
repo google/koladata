@@ -198,7 +198,7 @@ def _unwrap_scalar_integer(
   if isinstance(value, data_item.DataItem):
     try:
       return eval_op(
-          'kde.schema.cast_to_narrow', value, schema_constants.INT64
+          'kd.schema.cast_to_narrow', value, schema_constants.INT64
       ).__index__()
     except ValueError:
       pass
@@ -213,7 +213,7 @@ def _unwrap_optional_boolean(
   if isinstance(value, data_item.DataItem):
     try:
       return eval_op(
-          'kde.schema.cast_to_narrow', value, schema_constants.BOOLEAN
+          'kd.schema.cast_to_narrow', value, schema_constants.BOOLEAN
       ).to_py()
     except ValueError:
       pass
@@ -221,13 +221,13 @@ def _unwrap_optional_boolean(
 
 
 #
-# kde.py.apply_py* operators
+# kd.py.apply_py* operators
 #
 
 
-@optools.add_to_registry(aliases=['kde.apply_py'])
+@optools.add_to_registry(aliases=['kd.apply_py'])
 @optools.as_py_function_operator(
-    'kde.py.apply_py',
+    'kd.py.apply_py',
     qtype_constraints=[_expect_py_callable(P.fn)],
     qtype_inference_expr=arolla.M.qtype.conditional_qtype(
         P.return_type_as == arolla.UNSPECIFIED,
@@ -268,9 +268,9 @@ def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
   return result
 
 
-@optools.add_to_registry(aliases=['kde.apply_py_on_cond'])
+@optools.add_to_registry(aliases=['kd.apply_py_on_cond'])
 @optools.as_py_function_operator(
-    'kde.py.apply_py_on_cond',
+    'kd.py.apply_py_on_cond',
     qtype_constraints=[
         _expect_py_callable(P.yes_fn),
         _expect_optional_py_callable(P.no_fn),
@@ -322,9 +322,9 @@ def apply_py_on_cond(yes_fn, no_fn, cond, *args, **kwargs):
   return result
 
 
-@optools.add_to_registry(aliases=['kde.apply_py_on_selected'])
+@optools.add_to_registry(aliases=['kd.apply_py_on_selected'])
 @optools.as_lambda_operator(
-    'kde.py.apply_py_on_selected',
+    'kd.py.apply_py_on_selected',
     qtype_constraints=[
         _expect_py_callable(P.fn),
         qtype_utils.expect_data_slice(P.cond),
@@ -358,7 +358,7 @@ def apply_py_on_selected(fn, cond, *args, **kwargs):
 
 
 #
-# kde.py.map_py* operators
+# kd.py.map_py* operators
 #
 
 
@@ -465,9 +465,9 @@ def _basic_map_py(
 
 # TODO: b/370978592 - Consider implementing this operator using kdf.map
 #   combined with kd.py_fn, especially if the performance is comparable.
-@optools.add_to_registry(aliases=['kde.map_py'])
+@optools.add_to_registry(aliases=['kd.map_py'])
 @optools.as_py_function_operator(
-    'kde.py.map_py',
+    'kd.py.map_py',
     qtype_constraints=[
         _expect_py_callable(P.fn),
         _expect_optional_py_callable(P.item_completed_callback),
@@ -579,20 +579,20 @@ def map_py(
     raise ValueError('`include_missing=False` can only be used with `ndim=0`')
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
-  args = eval_op('kde.slices.align', *args, *kwargs.values())
+  args = eval_op('kd.slices.align', *args, *kwargs.values())
   presence_mask = None
   if not include_missing:
     presence_mask = functools.reduce(
-        functools.partial(eval_op, 'kde.masking.mask_and'),
+        functools.partial(eval_op, 'kd.masking.mask_and'),
         map(
-            functools.partial(eval_op, 'kde.masking.has'),
+            functools.partial(eval_op, 'kd.masking.has'),
             itertools.chain(args, kwargs.values()),
         ),
     )
-    if eval_op('kde.masking.all', presence_mask):
+    if eval_op('kd.masking.all', presence_mask):
       presence_mask = None
   if presence_mask is not None:
-    if not eval_op('kde.masking.any', presence_mask):
+    if not eval_op('kd.masking.any', presence_mask):
       # Note: We explicitly handle the case where there are no overlapping
       # present items in the inputs, however the inputs are non-empty.
       #
@@ -611,7 +611,7 @@ def map_py(
     # Apply the presence_mask to the arguments so that masked values don't need
     # unboxing.
     args = map(
-        lambda x: eval_op('kde.slices.select', x, presence_mask),
+        lambda x: eval_op('kd.slices.select', x, presence_mask),
         args,
     )
   kwnames = tuple(kwargs.keys())
@@ -627,13 +627,13 @@ def map_py(
       ),
   )
   if presence_mask is not None:
-    result = eval_op('kde.slices.inverse_select', result, presence_mask)
+    result = eval_op('kd.slices.inverse_select', result, presence_mask)
   return result
 
 
-@optools.add_to_registry(aliases=['kde.map_py_on_cond'])
+@optools.add_to_registry(aliases=['kd.map_py_on_cond'])
 @optools.as_py_function_operator(
-    'kde.py.map_py_on_cond',
+    'kd.py.map_py_on_cond',
     qtype_constraints=[
         _expect_py_callable(P.true_fn),
         _expect_optional_py_callable(P.false_fn),
@@ -695,13 +695,13 @@ def map_py_on_cond(
     raise ValueError(
         "'cond' must have the same or smaller dimension than args + kwargs"
     )
-  cond, *args = eval_op('kde.slices.align', cond, *args)
+  cond, *args = eval_op('kd.slices.align', cond, *args)
   kwnames = tuple(kwargs.keys())
   vcall = arolla.abc.vectorcall
   if false_fn is None:
     # Apply the cond mask to the arguments so that masked values don't need
     # unboxing.
-    args = map(lambda x: eval_op('kde.masking.apply_mask', x, cond), args)
+    args = map(lambda x: eval_op('kd.masking.apply_mask', x, cond), args)
     task_fn = (
         lambda task_cond, *task_args: None
         if task_cond is None
@@ -724,9 +724,9 @@ def map_py_on_cond(
   )
 
 
-@optools.add_to_registry(aliases=['kde.map_py_on_selected'])
+@optools.add_to_registry(aliases=['kd.map_py_on_selected'])
 @optools.as_lambda_operator(
-    'kde.py.map_py_on_selected',
+    'kd.py.map_py_on_selected',
     qtype_constraints=[
         _expect_py_callable(P.fn),
         qtype_utils.expect_data_slice(P.cond),
@@ -785,9 +785,9 @@ def map_py_on_selected(
   )
 
 
-@optools.add_to_registry(aliases=['kde.map_py_on_present'])
+@optools.add_to_registry(aliases=['kd.map_py_on_present'])
 @optools.as_py_function_operator(
-    'kde.py.map_py_on_present',
+    'kd.py.map_py_on_present',
     qtype_constraints=[
         _expect_py_callable(P.fn),
         qtype_utils.expect_data_slice_args(P.args),
@@ -813,9 +813,9 @@ def map_py_on_present(
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
   cond = functools.reduce(
-      functools.partial(eval_op, 'kde.masking.mask_and'),
+      functools.partial(eval_op, 'kd.masking.mask_and'),
       map(
-          functools.partial(eval_op, 'kde.masking.has'),
+          functools.partial(eval_op, 'kd.masking.has'),
           itertools.chain(args, kwargs.values()),
       ),
   )
@@ -831,9 +831,9 @@ def map_py_on_present(
   )
 
 
-@optools.add_to_registry(aliases=['kde.map'])
+@optools.add_to_registry(aliases=['kd.map'])
 @optools.as_lambda_operator(
-    'kde.functor.map',
+    'kd.functor.map',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.fn),
         qtype_utils.expect_data_slice_args(P.args),
@@ -843,7 +843,7 @@ def map_py_on_present(
 def _map(fn, *args, **kwargs):
   """Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
 
-  Current implentaion is a wrapper around kde.py.map_py_on_cond (Python
+  Current implentaion is a wrapper around kd.py.map_py_on_cond (Python
   based) so it might be slow and intended for experiments only.
 
   If certain items of fn are missing, the corresponding items of the result will

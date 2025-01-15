@@ -40,7 +40,7 @@ KodaValue = Any
 # NOTE: We use eager operators instead of lazy operators since they implement a
 # superset of the functionality of lazy operators. This way, we ensure that all
 # paths are stress tested.
-kd = eager_op_utils.operators_container('kde')
+kd = eager_op_utils.operators_container('kd')
 
 
 @functools.cache

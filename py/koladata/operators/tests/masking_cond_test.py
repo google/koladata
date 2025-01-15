@@ -206,7 +206,7 @@ class LogicalCondTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.masking.cond(I.x, I.y, I.z)),
-        'kde.masking.cond(I.x, I.y, I.z)',
+        'kd.masking.cond(I.x, I.y, I.z)',
     )
 
   def test_view(self):

@@ -157,7 +157,7 @@ class MathAggMedianTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_median: argument `x` must be a slice of numeric'
+            'kd.math.agg_median: argument `x` must be a slice of numeric'
             ' values, got a slice of SCHEMA(x=INT32)'
         ),
     ):
@@ -169,7 +169,7 @@ class MathAggMedianTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kde.math.agg_median: argument `x` must be a slice of numeric'
+            'kd.math.agg_median: argument `x` must be a slice of numeric'
             ' values, got a slice of OBJECT'
         ),
     ):

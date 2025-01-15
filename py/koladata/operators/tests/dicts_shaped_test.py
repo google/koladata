@@ -312,7 +312,7 @@ Assigned schema for Dict key: STRING""",
   def test_repr(self):
     self.assertEqual(
         repr(kde.dicts.shaped(I.x, keys=I.y)),
-        'kde.dicts.shaped(I.x, I.y, unspecified, key_schema=unspecified,'
+        'kd.dicts.shaped(I.x, I.y, unspecified, key_schema=unspecified,'
         ' value_schema=unspecified, schema=unspecified, itemid=unspecified)',
     )
 

@@ -61,7 +61,7 @@ class SlicesIsEmptyTest(parameterized.TestCase):
     )
 
   def test_repr(self):
-    self.assertEqual(repr(kde.slices.is_empty(I.x)), 'kde.slices.is_empty(I.x)')
+    self.assertEqual(repr(kde.slices.is_empty(I.x)), 'kd.slices.is_empty(I.x)')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.slices.is_empty(I.x)))

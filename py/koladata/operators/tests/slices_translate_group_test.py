@@ -139,7 +139,7 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         # TODO: b/389032294 - Raise KodaError.
         ValueError,
-        'kde.slices.translate_group: `keys_from` and `values_from` must have'
+        'kd.slices.translate_group: `keys_from` and `values_from` must have'
         ' the same shape',
     ):
       expr_eval.eval(

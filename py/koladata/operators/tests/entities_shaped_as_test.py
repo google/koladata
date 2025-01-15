@@ -227,7 +227,7 @@ class EntitiesShapedAsTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.entities.shaped_as(I.x, a=I.y)),
-        'kde.entities.shaped_as(I.x, schema=unspecified, update_schema=DataItem'
+        'kd.entities.shaped_as(I.x, schema=unspecified, update_schema=DataItem'
         '(False, schema: BOOLEAN), itemid=unspecified, a=I.y)',
     )
 

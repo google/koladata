@@ -86,7 +86,7 @@ class SlicesIsInTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         # TODO: b/389032294 - Raise KodaError.
         ValueError,
-        'kde.slices.isin: argument `x` must be a DataItem',
+        'kd.slices.isin: argument `x` must be a DataItem',
     ):
       expr_eval.eval(kde.slices.isin(ds([1, 2, 3]), ds([1, 2, 3])))
 
