@@ -89,9 +89,7 @@ class SchemaItemTest(absltest.TestCase):
     s = fns.schema.new_schema(
         a=schema_constants.FLOAT32, b=schema_constants.STRING
     )
-    self.assertFalse(s.is_list_schema())
-    self.assertFalse(s.is_dict_schema())
-    self.assertTrue(s.is_struct_schema())
+    self.assertTrue(s.is_entity_schema())
     entity = s(a=42, b='xyz')
     testing.assert_equal(entity.a, ds(42.0).with_bag(entity.get_bag()))
     testing.assert_equal(entity.b, ds('xyz').with_bag(entity.get_bag()))
@@ -100,12 +98,11 @@ class SchemaItemTest(absltest.TestCase):
 
   def test_creating_obj(self):
     o = fns.obj(a=schema_constants.FLOAT32, b=schema_constants.STRING)
-    self.assertFalse(o.is_struct_schema())
+    self.assertFalse(o.is_entity_schema())
 
   def test_creating_list(self):
     l = fns.list_schema(item_schema=fns.list_schema(schema_constants.FLOAT32))
     self.assertTrue(l.is_list_schema())
-    self.assertTrue(l.is_struct_schema())
     lst = l([[1., 2], [3]])
     testing.assert_equal(
         lst[:][:], ds([[1.0, 2.0], [3.0]]).with_bag(lst.get_bag())
@@ -119,7 +116,6 @@ class SchemaItemTest(absltest.TestCase):
         value_schema=schema_constants.FLOAT32,
     )
     self.assertTrue(d.is_dict_schema())
-    self.assertTrue(d.is_struct_schema())
     dct = d({'a': 42, 'b': 37})
     testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
     testing.assert_equal(

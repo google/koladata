@@ -782,13 +782,6 @@ absl::Nullable<PyObject*> PyDataSlice_is_entity_schema(PyObject* self,
   return WrapPyDataSlice(AsMask(ds.IsEntitySchema()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_struct_schema(PyObject* self,
-                                                       PyObject*) {
-  arolla::python::DCheckPyGIL();
-  const auto& ds = UnsafeDataSliceRef(self);
-  return WrapPyDataSlice(AsMask(ds.IsStructSchema()));
-}
-
 absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,
                                                      PyObject*) {
   arolla::python::DCheckPyGIL();
@@ -1074,16 +1067,6 @@ Note that the Entity schema includes List and Dict schemas.
 
 Returns:
   Present iff this DataSlice represents an Entity Schema.
-     )"""},
-    {"is_struct_schema", PyDataSlice_is_struct_schema, METH_NOARGS,
-     "is_struct_schema()\n"
-     "--\n\n"
-     R"""(Returns present iff this DataSlice represents a Struct Schema.
-
-Note that the Entity schema includes Entity, List and Dict schemas.
-
-Returns:
-  Present iff this DataSlice represents a Struct Schema.
      )"""},
     {"is_dict", PyDataSlice_is_dict, METH_NOARGS,
      "is_dict()\n"

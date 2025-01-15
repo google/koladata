@@ -468,9 +468,6 @@ class KodaView(arolla.abc.ExprView):
   def is_entity_schema(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.schema.is_entity_schema', self)
 
-  def is_struct_schema(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kd.schema.is_struct_schema', self)
-
   def is_list_schema(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.schema.is_list_schema', self)
 
