@@ -633,7 +633,7 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   // Search attribute value for the given object in small_alloc_sources_
   // including parents.
-  ABSL_ATTRIBUTE_ALWAYS_INLINE DataItem
+  ABSL_ATTRIBUTE_ALWAYS_INLINE std::optional<DataItem>
   LookupAttrInDataItemMap(ObjectId object_id, absl::string_view attr) const {
     size_t attr_hash = absl::HashOf(attr);
     for (const DataBagImpl* db = this; db != nullptr;
@@ -646,13 +646,13 @@ class DataBagImpl : public arolla::RefcountedBase {
         }
       }
     }
-    return DataItem();
+    return std::nullopt;
   }
 
   // Search attribute value for the given object in sources_
-  // including parents.
-  DataItem LookupAttrInDataSourcesMap(ObjectId object_id,
-                                      absl::string_view attr) const;
+  // including parents. Returns DataItem() for REMOVED and nullopt for UNSET.
+  std::optional<DataItem> LookupAttrInDataSourcesMap(
+      ObjectId object_id, absl::string_view attr) const;
 
   template <bool kReturnValues>
   absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>

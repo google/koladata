@@ -350,8 +350,8 @@ bool DataBagImpl::IsPristine() const {
          dicts_.empty();
 }
 
-DataItem DataBagImpl::LookupAttrInDataSourcesMap(ObjectId object_id,
-                                                 absl::string_view attr) const {
+std::optional<DataItem> DataBagImpl::LookupAttrInDataSourcesMap(
+    ObjectId object_id, absl::string_view attr) const {
   const DataBagImpl* cur_data_bag = this;
   AllocationId alloc_id(object_id);
   SourceKeyView search_key{alloc_id, attr};
@@ -362,17 +362,20 @@ DataItem DataBagImpl::LookupAttrInDataSourcesMap(ObjectId object_id,
       const SourceCollection& collection = it->second;
       // mutable source overrides const source if both present.
       if (auto* s = collection.mutable_sparse_source.get(); s != nullptr) {
-        std::optional<DataItem> res = s->Get(object_id);
-        if (res.has_value()) {
-          return *res;
+        if (std::optional<DataItem> res = s->Get(object_id); res.has_value()) {
+          return res;
         }
       }
       if (auto* s = collection.mutable_dense_source.get(); s != nullptr) {
         DCHECK_EQ(collection.const_dense_source, nullptr);
-        return s->Get(object_id).value_or(DataItem());
+        if (std::optional<DataItem> res = s->Get(object_id); res.has_value()) {
+          return res;
+        }
       }
       if (auto* s = collection.const_dense_source.get(); s != nullptr) {
-        return s->Get(object_id).value_or(DataItem());
+        if (std::optional<DataItem> res = s->Get(object_id); res.has_value()) {
+          return res;
+        }
       }
       cur_data_bag = collection.lookup_parent
                          ? cur_data_bag->parent_data_bag_.get()
@@ -381,7 +384,7 @@ DataItem DataBagImpl::LookupAttrInDataSourcesMap(ObjectId object_id,
       cur_data_bag = cur_data_bag->parent_data_bag_.get();
     }
   }
-  return DataItem();
+  return std::nullopt;
 }
 
 SparseSource& DataBagImpl::GetMutableSmallAllocSource(absl::string_view attr) {
@@ -479,27 +482,27 @@ absl::StatusOr<DataItem> DataBagImpl::GetAttr(const DataItem& object,
   ObjectId object_id = object.value<ObjectId>();
   AllocationId alloc_id(object_id);
   if (alloc_id.IsSmall()) {
-    auto result = LookupAttrInDataItemMap(object_id, attr);
-    if (result.has_value() || fallbacks.empty()) {
-      return result;
+    std::optional<DataItem> result = LookupAttrInDataItemMap(object_id, attr);
+    if (result.has_value()) {
+      return std::move(*result);
     }
     for (const DataBagImpl* fallback : fallbacks) {
       if (auto item = fallback->LookupAttrInDataItemMap(object_id, attr);
           item.has_value()) {
-        return item;
+        return std::move(*item);
       }
     }
     return DataItem();
   }
 
-  auto result = LookupAttrInDataSourcesMap(object_id, attr);
-  if (result.has_value() || fallbacks.empty()) {
-    return result;
+  std::optional<DataItem> result = LookupAttrInDataSourcesMap(object_id, attr);
+  if (result.has_value()) {
+    return std::move(*result);
   }
   for (const DataBagImpl* fallback : fallbacks) {
     if (auto item = fallback->LookupAttrInDataSourcesMap(object_id, attr);
         item.has_value()) {
-      return item;
+      return std::move(*item);
     }
   }
   return DataItem();

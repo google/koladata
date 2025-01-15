@@ -1365,11 +1365,22 @@ TEST(DataBagTest, SetGetDataItemWithFallback) {
 
     auto db = DataBagImpl::CreateEmptyDatabag();
 
-    ASSERT_OK_AND_ASSIGN(DataItem ds_b_get, db->GetAttr(ds, "b"));
     EXPECT_THAT(db->GetAttr(ds, "b", {db_fb.get()}),
                 IsOkAndHolds(DataItem(75)));
-
     EXPECT_THAT(db->GetAttr(ds, "b"), IsOkAndHolds(DataItem()));
+
+    if (auto obj = ds.value<ObjectId>(); AllocationId(obj).Capacity() > 1) {
+      // Check that setting another value in the same allocation doesn't
+      // change the result.
+      AllocationId alloc(obj);
+      DataItem ds_other(
+          alloc.ObjectByOffset((obj.Offset() + 1) % alloc.Capacity()));
+      ASSERT_OK(db->SetAttr(ds_other, "b", DataItem(arolla::Text("X"))));
+
+      EXPECT_THAT(db->GetAttr(ds, "b", {db_fb.get()}),
+                  IsOkAndHolds(DataItem(75)));
+      EXPECT_THAT(db->GetAttr(ds, "b"), IsOkAndHolds(DataItem()));
+    }
 
     ASSERT_OK(db->SetAttr(ds, "b", DataItem(arolla::Text("B"))));
     EXPECT_THAT(db->GetAttr(ds, "b"),
@@ -1378,6 +1389,11 @@ TEST(DataBagTest, SetGetDataItemWithFallback) {
                 IsOkAndHolds(DataItem(arolla::Text("B"))));
     EXPECT_THAT(db->GetAttr(ds, "b", {db_fb.get()}),
                 IsOkAndHolds(DataItem(arolla::Text("B"))));
+
+    // Check that if value is REMOVED we don't search it in fallback.
+    ASSERT_OK(db->SetAttr(ds, "b", DataItem()));
+    EXPECT_THAT(db->GetAttr(ds, "b", {db_fb.get()}), IsOkAndHolds(DataItem()));
+    EXPECT_THAT(db->GetAttr(ds, "b"), IsOkAndHolds(DataItem()));
   }
 }
 
