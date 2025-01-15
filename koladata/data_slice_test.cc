@@ -47,6 +47,7 @@
 #include "koladata/testing/matchers.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
+#include "arolla/jagged_shape/testing/matchers.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
@@ -334,6 +335,25 @@ TEST(DataSliceUtils, CreateWithSchemaFromDataError) {
                   .status(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("for primitive types")));
+}
+
+TEST(DataSliceTest, CreateWithFlatShape) {
+  {
+    auto slice = *DataSlice::CreateWithFlatShape(
+        internal::DataSliceImpl::Create(std::vector<internal::DataItem>{}),
+        internal::DataItem(schema::kNone));
+    EXPECT_THAT(slice.GetShape(),
+                IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(0)));
+  }
+  {
+    auto slice = *DataSlice::CreateWithFlatShape(
+        internal::DataSliceImpl::Create(std::vector<internal::DataItem>{
+            internal::DataItem(1), internal::DataItem(2),
+            internal::DataItem(3)}),
+        internal::DataItem(schema::kInt32));
+    EXPECT_THAT(slice.GetShape(),
+                IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(3)));
+  }
 }
 
 TEST(DataSliceTest, IsWhole) {

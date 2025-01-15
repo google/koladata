@@ -111,6 +111,11 @@ class DataSlice {
       internal::DataSliceImpl impl, JaggedShape shape, DataBagPtr db = nullptr,
       Wholeness wholeness = Wholeness::kNotWhole);
 
+  // Creates a DataSlice with shape JaggedShape::FlatFromSize(impl.size()).
+  static absl::StatusOr<DataSlice> CreateWithFlatShape(
+      internal::DataSliceImpl impl, internal::DataItem schema,
+      DataBagPtr db = nullptr, Wholeness wholeness = Wholeness::kNotWhole);
+
   // Convenience factory method that accepts JaggedShape, so that we can use
   // implementation-agnostic constructions in visitors passed to VisitImpl.
   static absl::StatusOr<DataSlice> Create(

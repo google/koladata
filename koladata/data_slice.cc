@@ -848,6 +848,14 @@ absl::StatusOr<DataSlice> DataSlice::CreateWithSchemaFromData(
                 std::move(db), wholeness);
 }
 
+absl::StatusOr<DataSlice> DataSlice::CreateWithFlatShape(
+    internal::DataSliceImpl impl, internal::DataItem schema, DataBagPtr db,
+    Wholeness wholeness) {
+  const auto size = impl.size();
+  return Create(std::move(impl), JaggedShape::FlatFromSize(size),
+                std::move(schema), std::move(db), wholeness);
+}
+
 absl::StatusOr<DataSlice> DataSlice::Create(const internal::DataItem& item,
                                             JaggedShape shape,
                                             internal::DataItem schema,
