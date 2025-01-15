@@ -1893,9 +1893,9 @@ Returns a Koda functor wrapping a python function for kd.map_py.
     schema: The schema to use for resulting DataSlice.
     max_threads: maximum number of threads to use.
     ndim: Dimensionality of items to pass to `f`.
-    include_missing: Specifies whether `f` should be applied to the missing
-      items. By default, the function is applied to all items including the
-      missing. `include_missing=False` can only be used with `ndim=0`.
+    include_missing: Specifies whether `f` applies to all items (`=True`) or
+      only to items present in all `args` and `kwargs` (`=False`, valid only
+      when `ndim=0`); defaults to `False` when `ndim=0`.
     **defaults: Keyword defaults to pass to the function. The values in this map
       may be kde expressions, format strings, or 0-dim DataSlices. See the
       docstring for py_fn for more details.
@@ -3690,9 +3690,9 @@ Args:
   schema: The schema to use for resulting DataSlice.
   max_threads: maximum number of threads to use.
   ndim: Dimensionality of items to pass to `fn`.
-  include_missing: Specifies whether `fn` should be computed to the missing
-    items. By default, the function is applied to all items including the
-    missing. `include_missing=False` can only be used with `ndim=0`.
+  include_missing: Specifies whether `fn` applies to all items (`=True`) or
+    only to items present in all `args` and `kwargs` (`=False`, valid only
+    when `ndim=0`); defaults to `False` when `ndim=0`.
   item_completed_callback: A callback that will be called after each item is
     processed. It will be called in the original thread that called `map_py`
     in case `max_threads` is greater than 1, as we rely on this property for
@@ -5256,7 +5256,7 @@ Aliases:
 Returns the number of dimensions of DataSlice `x`.
 ```
 
-### `kd.slices.group_by(x, *args)` {#kd.slices.group_by}
+### `kd.slices.group_by(x, *args, sort=DataItem(False, schema: BOOLEAN))` {#kd.slices.group_by}
 Aliases:
 
 - [kd.group_by](#kd.group_by)
@@ -5272,30 +5272,35 @@ Values of the result is a permutation of `x`. `args` are used for the grouping
 keys. If length of `args` is greater than 1, the key is a tuple.
 If `args` is empty, the key is `x`.
 
-Groups are ordered by the appearance of the first item in the group.
+If sort=True groups are ordered by value, otherwise groups are ordered by the
+appearance of the first object in the group.
 
 Example 1:
   x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
   result: kd.slice([[1, 1, 1], [3, 3, 3], [2, 2]])
 
 Example 2:
+  x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3], sort=True)
+  result: kd.slice([[1, 1, 1], [2, 2], [3, 3, 3]])
+
+Example 3:
   x: kd.slice([[1, 2, 1, 3, 1, 3], [1, 3, 1]])
   result: kd.slice([[[1, 1, 1], [2], [3, 3]], [[1, 1], [3]]])
 
-Example 3:
+Example 4:
   x: kd.slice([1, 3, 2, 1, None, 3, 1, None])
   result: kd.slice([[1, 1, 1], [3, 3], [2]])
 
   Missing values are not listed in the result.
 
-Example 4:
+Example 5:
   x: kd.slice([1, 2, 3, 4, 5, 6, 7, 8]),
   y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
   result: kd.slice([[1, 7], [2, 5], [3, 6, 8], [4]])
 
   When *args is present, `x` is not used for the key.
 
-Example 5:
+Example 6:
   x: kd.slice([1, 2, 3, 4, None, 6, 7, 8]),
   y: kd.slice([7, 4, 0, 9, 4,    0, 7, None]),
   result: kd.slice([[1, 7], [2, None], [3, 6], [4]])
@@ -5303,7 +5308,7 @@ Example 5:
   Items with missing key is not listed in the result.
   Missing `x` values are missing in the result.
 
-Example 6:
+Example 7:
   x: kd.slice([1, 2, 3, 4, 5, 6, 7, 8]),
   y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
   z: kd.slice([A, D, B, A, D, C, A, B]),
@@ -5318,13 +5323,14 @@ Args:
   *args: DataSlices keys to group by. All data slices must have the same shape
     as x. Scalar DataSlices are not supported. If not present, `x` is used as
     the key.
+  sort: Whether groups should be ordered by value.
 
 Returns:
   DataSlice with the same shape and schema as `x` with injected grouped
   by dimension.
 ```
 
-### `kd.slices.group_by_indices(*args)` {#kd.slices.group_by_indices}
+### `kd.slices.group_by_indices(*args, sort=DataItem(False, schema: BOOLEAN))` {#kd.slices.group_by_indices}
 Aliases:
 
 - [kd.group_by_indices](#kd.group_by_indices)
@@ -5340,7 +5346,8 @@ Values of the DataSlice are the indices of the items within the parent
 dimension. `kde.take(x, kde.group_by_indices(x))` would group the items in
 `x` by their values.
 
-Groups are ordered by the appearance of the first object in the group.
+If sort=True groups are ordered by value, otherwise groups are ordered by the
+appearance of the first object in the group.
 
 Example 1:
   x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
@@ -5350,6 +5357,12 @@ Example 1:
   the items in the original DataSlice.
 
 Example 2:
+  x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3], sort=True)
+  result: kd.slice([[0, 3, 6], [2, 4], [1, 5, 7]])
+
+  Groups are now ordered by value.
+
+Example 3:
   x: kd.slice([[1, 2, 1, 3, 1, 3], [1, 3, 1]])
   result: kd.slice([[[0, 2, 4], [1], [3, 5]], [[0, 2], [1]]])
 
@@ -5357,13 +5370,13 @@ Example 2:
   in the second sublist in order: 1, 3.
   Each sublist contains the indices of the items in the original sublist.
 
-Example 3:
+Example 4:
   x: kd.slice([1, 3, 2, 1, None, 3, 1, None])
   result: kd.slice([[0, 3, 6], [1, 5], [2]])
 
   Missing values are not listed in the result.
 
-Example 4:
+Example 5:
   x: kd.slice([1, 2, 3, 1, 2, 3, 1, 3]),
   y: kd.slice([7, 4, 0, 9, 4, 0, 7, 0]),
   result: kd.slice([[0, 6], [1, 4], [2, 5, 7], [3]])
@@ -5374,42 +5387,7 @@ Example 4:
 Args:
   *args: DataSlices keys to group by. All data slices must have the same
     shape. Scalar DataSlices are not supported.
-
-Returns:
-  INT64 DataSlice with indices and injected grouped_by dimension.
-```
-
-### `kd.slices.group_by_indices_sorted(*args)` {#kd.slices.group_by_indices_sorted}
-Aliases:
-
-- [kd.group_by_indices_sorted](#kd.group_by_indices_sorted)
-
-``` {.no-copy}
-Similar to `group_by_indices` but groups are sorted by the value.
-
-Each argument must contain the values of one type.
-
-Mixed types are not supported.
-ExprQuote and DType are not supported.
-
-Example 1:
-  x: kd.slice([1, 3, 2, 1, 2, 3, 1, 3])
-  result: kd.slice([[0, 3, 6], [2, 4], [1, 5, 7]])
-
-  We have three groups in order: 1, 2, 3. Each sublist contains the indices of
-  the items in the original DataSlice.
-
-Example 2:
-  x: kd.slice([1, 2, 3, 1, 2, 3, 1, 3]),
-  y: kd.slice([9, 4, 0, 3, 4, 0, 9, 0]),
-  result: kd.slice([[3], [0, 6], [1, 4], [2, 5, 7]])
-
-  With several arguments keys is a tuple.
-  In this example we have the following groups: (1, 3), (1, 9), (2, 4), (3, 0)
-
-Args:
-  *args: DataSlices keys to group by. All data slices must have the same
-    shape. Scalar DataSlices are not supported.
+  sort: Whether groups should be ordered by value.
 
 Returns:
   INT64 DataSlice with indices and injected grouped_by dimension.
@@ -7456,17 +7434,13 @@ Alias for [kd.comparison.greater](#kd.comparison.greater) operator.
 
 Alias for [kd.comparison.greater_equal](#kd.comparison.greater_equal) operator.
 
-### `kd.group_by(x, *args)` {#kd.group_by}
+### `kd.group_by(x, *args, sort=DataItem(False, schema: BOOLEAN))` {#kd.group_by}
 
 Alias for [kd.slices.group_by](#kd.slices.group_by) operator.
 
-### `kd.group_by_indices(*args)` {#kd.group_by_indices}
+### `kd.group_by_indices(*args, sort=DataItem(False, schema: BOOLEAN))` {#kd.group_by_indices}
 
 Alias for [kd.slices.group_by_indices](#kd.slices.group_by_indices) operator.
-
-### `kd.group_by_indices_sorted(*args)` {#kd.group_by_indices_sorted}
-
-Alias for [kd.slices.group_by_indices_sorted](#kd.slices.group_by_indices_sorted) operator.
 
 ### `kd.has(x)` {#kd.has}
 
@@ -9131,8 +9105,6 @@ A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
 DataSlice of LIST[T], by folding the items in the last dimension of the
 original DataSlice into newly-created Lists.
 
-A single list implosion is equivalent to `kd.list(x, db)`.
-
 If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
 
 If `ndim` is set to a negative integer, implodes as many times as possible,
@@ -9991,8 +9963,6 @@ Implodes a Dataslice `x` a specified number of times.
   A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
   DataSlice of LIST[T], by folding the items in the last dimension of the
   original DataSlice into newly-created Lists.
-
-  A single list implosion is equivalent to `kd.list(x, db)`.
 
   If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
 
