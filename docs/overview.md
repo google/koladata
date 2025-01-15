@@ -1027,7 +1027,7 @@ db = kd.loads(serialized_bytes)
 ```py
 def call_slow_fn(prompt):
   return slow_fn(prompt)
-kd.map_py_on_present(call_slow_fn, kd.slice(['hello', None, 'world']), max_threads=16)
+kd.map_py(call_slow_fn, kd.slice(['hello', None, 'world']), max_threads=16)
 ```
 
 ## Mutable Workflows

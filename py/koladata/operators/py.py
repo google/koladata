@@ -804,25 +804,7 @@ def map_py_on_present(
     item_completed_callback=None,
     **kwargs,
 ):
-  """Apply python function `fn` to items present in all `args` and `kwargs`.
-
-  Also see kd.map_py().
-
-  Args:
-    fn: function.
-    *args: Input DataSlices.
-    schema: The schema to use for resulting DataSlice.
-    max_threads: maximum number of threads to use.
-    item_completed_callback: A callback that will be called after each item is
-      processed. It will be called in the original thread that called
-      `map_py_on_present` in case `max_threads` is greater than 1, as we rely on
-      this property for cases like progress reporting. As such, it can not be
-      attached to the `fn` itself.
-    **kwargs: Input DataSlices.
-
-  Returns:
-    Result DataSlice.
-  """
+  """Deprecated. Use kd.map_py instead."""
   warnings.warn(
       '`kd.map_py_on_present` is deprecated and will be removed, please use'
       ' `kd.map_py` instead',

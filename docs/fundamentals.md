@@ -215,11 +215,10 @@ kd.agg_max(ds, ndim=2)  # [5, 10]
 
 # can change number of dimensions to be passed into map_py
 # min over the last two dimensions
-kd.map_py(lambda x: min([b for a in x for b in a], default=None) if x else None,
-          ds, ndim=2) # [1, 6]
+kd.map_py(lambda x: min([b for a in x for b in a], default=None), ds, ndim=2)  # [1, 6]
 
 # map_py can be used simply for debugging:
-kd.map_py(lambda x: print(x) if x else None, ds, ndim=2)
+kd.map_py(lambda x: print(x), ds, ndim=2)
 ```
 
 **Collapse** is a convenient way to reduce the number of dimensions, and replace
@@ -1692,19 +1691,18 @@ my_schema = kd.new_schema(x=kd.INT32, y=kd.INT32)
 kd.new(None, schema=my_schema)  # missing with some schema
 ```
 
-Use `map_py_on_present` to apply python functions to potentially sparse
-DataSlices.
+Use `map_py` to apply python functions to potentially sparse DataSlices.
 
 ```py
 s = kd.slice(["Hello", None, "World"])
 # Returns: ['HELLO', None, 'WORLD']
-kd.map_py_on_present(lambda x: x.upper(), s, schema=kd.STRING, max_threads=4)
+kd.map_py(lambda x: x.upper(), s, schema=kd.STRING, max_threads=4)
 
 # Schema is passed to handle empty inputs (otherwise cannot derive the schema)
 ds = kd.slice([None, None, None], schema=kd.STRING)
-kd.map_py_on_present(lambda x: x.upper(), ds, max_threads=4)  # None return schema
-kd.map_py_on_present(lambda x: x.upper(), ds, schema=kd.STRING, max_threads=4)  # None return schema
-kd.str(kd.map_py_on_present(lambda x: x.upper(), ds, max_threads=4))  # The same as above
+kd.map_py(lambda x: x.upper(), ds, max_threads=4)  # None return schema
+kd.map_py(lambda x: x.upper(), ds, schema=kd.STRING, max_threads=4)  # None return schema
+kd.str(kd.map_py(lambda x: x.upper(), ds, max_threads=4))  # The same as above
 ```
 
 Sparsity can be also used to manipulate subsets of entities.
@@ -2033,35 +2031,57 @@ sparse.
 a = kd.slice([1, 2, 3, 4])
 b = kd.slice([3, 4, 5, 6])
 # the same as (lambda x,y: x+y)(a, b)
-kd.apply_py(lambda x, y: x + y, a, b)  # [4,5,8,10]
+kd.apply_py(lambda x, y: x + y, a, b)  # [4,6,8,10]
 # the same as (lambda x,y: x+y)(a & (a>=2), b & (b >= 2))
 kd.apply_py_on_selected(lambda x, y: x + y, a >= 2, a, b)  # [None,6,8,10]
 # the same as (lambda x,y: x+y)(a & (a>=2), b & (b >= 2)) | (lambda x,y: x-y)(a & ~(a>=2), b & ~(b >= 2))
 kd.apply_py_on_cond(lambda x, y: x + y, lambda x, y: x - y, a >= 2, a, b)  # [-2,6,8,10]
 ```
 
-Alternatively, can use `map_py` and its variants to use python functions that
-would be applied to individual items (or lists of items).
+`map_py` and `map_py_on_cond` can be used to apply python functions to
+individual items.
 
 ```py
-ds = kd.slice([[[1, 2], [3, 4, 5]], [[6], [], [7, 8, 9, 10]]])
+ds = kd.slice([[[1, 2], [3, 4, 5]], [[6], [], [], [7, 8, 9, 10]]])
 
-# can change number of dimensions to be passed into map_py
-# min over the last two dimensions
-kd.map_py(lambda x: min([b for a in x for b in a], default=None) if x else None,
-          ds, ndim=2) # [1, 6]
+# map_py applies a function to individual items
+kd.map_py(lambda x: x + 1, ds)  # [[[2, 3], [4, 5, 6]], [[7], [], [], [8, 9, 10, 11]]]
 
-# map_py can be used simply for debugging:
-kd.map_py(lambda x: print(x) if x else None, ds, ndim=2)
+# map_py_on_cond allows you to apply different functions depending on
+# a condition
+kd.map_py_on_cond(
+    lambda x: x + 1,
+    lambda x: x - 1,
+    ds >= 3,
+    ds
+)  # [[[0, 1], [4, 5, 6]], [[7], [], [8, 9, 10, 11]]]
 
-# map_py_on_present can be used to
-kd.map_py_on_present(lambda x, y: x + y,
-                     kd.slice([1 ,None, 2]),
-                    kd.slice([3, 4, None]))  # [4, None, None]
+# by default, map_py applies the function only to present items
+kd.map_py(lambda x: x + 1, kd.slice([1, None, 2]))  # [2, None, 3]
 
-# map_py_on_cond can be used to apply different functions on the condition
-ds = kd.slice([1, 2, 3, 4, 5, 6])
-kd.map_py_on_cond(lambda x: x + 1, lambda x: x - 1, ds >= 3, ds) # [0, 1, 4, 5, 6, 7]
+# however, you can specify `include_missing=True` to apply the function to
+# missing items too
+kd.map_py(lambda x: -1 if x is None else x + 1,
+          kd.slice([1, None, 2]),
+          include_missing=True)  # [2, -1, 3]
+
+# both map_py and map_py_on_cond can also be used with multiple inputs
+kd.map_py(lambda x, y: x + y,
+          x = kd.slice([1, None, 2]),
+          y = kd.slice([3, 4, None]))  # [4, None, None]
+
+# as a note, sometimes it is convenient to simply use `print(...)` within
+# the function for debugging
+kd.map_py(lambda x: print(x), ds)
+```
+
+Additionally, with `map_py`, you can specify the number of dimensions to apply
+the function to.
+
+```py
+ds = kd.slice([[[1, 2], [3, 4, 5]], [[6], [], [], [7, 8, 9, 10]]])
+kd.map_py(lambda x: len(x), ds, ndim=1)  # [[2, 3], [1, 0, 0, 4]]
+kd.map_py(lambda x: len(x), ds, ndim=2)  # [2, 4]
 ```
 
 ### Serialization, protos
@@ -2131,7 +2151,7 @@ def expensive_fn(x):
   time.sleep(0.1)
   print('Done', x)
   return x + 1
-kd.map_py_on_present(expensive_fn, kd.range(16), schema=kd.INT32, max_threads=16)
+kd.map_py(expensive_fn, kd.range(16), schema=kd.INT32, max_threads=16)
 ```
 
 Processing batches in parallel.
@@ -2149,7 +2169,7 @@ data = kd.slice([[1, 2], [3, 4, 5], [6, 7, 8, 9], [10, 11], [12]])
 imploded_data = kd.implode(data)
 batched_data = kd.group_by(imploded_data, kd.index(imploded_data) // 2)
 batches = kd.implode(batched_data)
-res = kd.map_py_on_present(expensive_fn, batches, schema=kd.list_schema(kd.list_schema(kd.INT32)), max_threads=16)
+res = kd.map_py(expensive_fn, batches, schema=kd.list_schema(kd.list_schema(kd.INT32)), max_threads=16)
 res[:][:].flatten(0, 2)
 ```
 
@@ -2579,8 +2599,8 @@ b.get_bag()  # 3 attributes
 b.enriched(a.get_bag()).x.z.u  # 2
 ```
 
-To quickly check if two DataSlices use the same bag of attributes, one can use bags'
-fingerprint.
+To quickly check if two DataSlices use the same bag of attributes, one can use
+bags' fingerprint.
 
 ```python
 t = kd.obj(x=kd.obj(a=1, b=2), y=kd.obj(c=3, d=4))
@@ -2730,9 +2750,9 @@ z.x1a.c  # 6
 z.x1b.c  # 7
 ```
 
-Remember that data updates are not eagerly merged, which means that it's possible to
-have multiple versions of the same expensive data simultaneously without
-duplicating it in memory.
+Remember that data updates are not eagerly merged, which means that it's
+possible to have multiple versions of the same expensive data simultaneously
+without duplicating it in memory.
 
 ```python
 t = kd.obj(x=kd.slice(list(range(1000))))
@@ -3074,10 +3094,6 @@ ds_a = kd.slice(a)
 It's possible to execute different functors on different objects:
 
 ```python
-def _kd_map(fn, obj):
-  return kd.map_py_on_present(lambda fn, obj: fn(obj), fn, obj)
-kd.map = _kd_map
-
 fn1 = kd.fn(lambda x: x+1)
 fn2 = kd.fn(lambda x: x-1)
 x = kd.slice([1, 2, 3, 4])
