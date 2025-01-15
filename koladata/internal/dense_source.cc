@@ -814,13 +814,12 @@ class TypedDenseSource final : public DenseSource {
   friend class TypedDenseSource;
 
   void CreateMultitype() {
-    multitype_ =
-        std::make_unique<MultitypeDenseSource>(obj_allocation_id_, size());
+    multitype_ = std::make_unique<MultitypeDenseSource>(obj_allocation_id_,
+                                                        values_.size());
     multitype_->attr_allocation_ids_ = std::move(attr_allocation_ids_);
     multitype_->types_buffer_.types.push_back(ScalarTypeId<T>());
     multitype_->types_buffer_.id_to_typeidx.resize(values_.size());
     uint8_t* id_to_typeidx = multitype_->types_buffer_.id_to_typeidx.data();
-    const uint32_t* mask = values_mask_.data();
     if (values_mask_.empty()) {
       arolla::bitmap::IterateByGroups(
           values_.presence().data(), 0, values_.size(), [&](int64_t offset) {
@@ -829,6 +828,7 @@ class TypedDenseSource final : public DenseSource {
             };
           });
     } else {
+      const uint32_t* mask = values_mask_.data();
       arolla::bitmap::IterateByGroups(
           values_.presence().data(), 0, values_.size(), [&](int64_t offset) {
             return [offset, id_to_typeidx, mask](int i, bool present) {
