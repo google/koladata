@@ -420,6 +420,7 @@ def _parallel_map(
 
 def _basic_map_py(
     fn: Callable[..., Any],
+    cond: data_slice.DataSlice | None,
     arg0: data_slice.DataSlice,
     *args: data_slice.DataSlice,
     schema: data_slice.DataSlice | None,
@@ -427,17 +428,21 @@ def _basic_map_py(
     max_threads: int,
     item_completed_callback: Callable[[Any], None] | None,
 ):
-  """A basic_map_py() utility.
+  """A basic map_py(...) utility.
 
   This utility function implements only the core functionality; the missing
   features will be built on top of it.
 
   Args:
     fn: A python callable that implements the computation.
+    cond: An optional condition mask; if specified, the function `fn` is applied
+      only when `cond` is `kd.present`.
     arg0: The first input DataSlice.
-    *args: The remaining input DataSlices; all input DataSlices must be aligned.
+    *args: The remaining input DataSlices. The `cond` argument and all input
+      DataSlices must be aligned.
     schema: The schema for the resulting DataSlice.
-    ndim: Dimensionality of items to pass to `fn`.
+    ndim: Dimensionality of items to pass to `fn`; must be 0 if `cond` is
+      specified.
     max_threads: Maximum number of threads to use.
     item_completed_callback: A callback that will be called after each item is
       processed. It will be called in the original thread that called `map_py`
@@ -452,14 +457,49 @@ def _basic_map_py(
   shape_rank = shape.rank()
   if ndim < 0 or ndim > shape_rank:
     raise ValueError(f'ndim should be between 0 and {shape_rank}, got {ndim=}')
+  if ndim != 0 and cond is not None:
+    raise ValueError('ndim must be 0 if `cond` is specified')
+  # Flatten the inputs and `cond` (if specified).
+  arg0 = arg0.flatten(0, shape_rank - ndim)
+  args = (arg.flatten(0, shape_rank - ndim) for arg in args)
+  if cond is not None:
+    if eval_op('kd.masking.all', cond):
+      # Skip applying the condition mask if it's full as it won't affect
+      # the inputs. This also handles the case where `cond` is empty, implying
+      # empty inputs.
+      cond = None
+    elif not eval_op('kd.masking.any', cond):
+      # Explicitly handle the case when the inputs are non-empty (covered by
+      # the previous branch), but `cond` contains no present elements.
+      #
+      # This is necessary because `from_py(...)` assigns different schemas in
+      # the following cases:
+      #
+      #   from_py([None], from_dim=1, schema=None).get_schema() -> NONE
+      #
+      # and
+      #
+      #   from_py([], from_dim=1, schema=None).get_schema() -> OBJECT
+      return eval_op(
+          'kd.shapes.expand_to_shape',
+          _from_py(None, schema=schema, from_dim=0),
+          shape,
+      )
+    else:
+      cond = cond.flatten()
+      # Apply `cond` to the inputs so that masked values don't need unboxing.
+      arg0 = eval_op('kd.slices.select', arg0, cond)
+      args = map(lambda x: eval_op('kd.slices.select', x, cond), args)
   result = _parallel_map(
       fn,
-      arg0.flatten(0, shape_rank - ndim).internal_as_py(),
-      *(arg.flatten(0, shape_rank - ndim).internal_as_py() for arg in args),
+      arg0.internal_as_py(),
+      *(arg.internal_as_py() for arg in args),
       max_threads=max_threads,
       item_completed_callback=item_completed_callback,
   )
   result = _from_py(result, schema=schema, from_dim=1)
+  if cond is not None:
+    result = eval_op('kd.slices.inverse_select', result, cond)
   return result.reshape(shape[: shape_rank - ndim])
 
 
@@ -577,58 +617,32 @@ def map_py(
     include_missing = ndim != 0
   elif not include_missing and ndim != 0:
     raise ValueError('`include_missing=False` can only be used with `ndim=0`')
+  item_completed_callback = _unwrap_optional_py_callable(
+      item_completed_callback, param_name='item_completed_callback'
+  )
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
   args = eval_op('kd.slices.align', *args, *kwargs.values())
-  presence_mask = None
+  cond = None
   if not include_missing:
-    presence_mask = functools.reduce(
+    cond = functools.reduce(
         functools.partial(eval_op, 'kd.masking.mask_and'),
         map(
             functools.partial(eval_op, 'kd.masking.has'),
             itertools.chain(args, kwargs.values()),
         ),
     )
-    if eval_op('kd.masking.all', presence_mask):
-      presence_mask = None
-  if presence_mask is not None:
-    if not eval_op('kd.masking.any', presence_mask):
-      # Note: We explicitly handle the case where there are no overlapping
-      # present items in the inputs, however the inputs are non-empty.
-      #
-      # This is necessary because `_basic_map_py(...)` internally uses
-      # `from_py(...)`, which assigns different schemas in the following cases:
-      #
-      #   from_py([None], from_dim=1, schema=None).get_schema() -> NONE
-      #
-      # and
-      #
-      #   from_py([], from_dim=1, schema=None).get_schema() -> OBJECT
-      #
-      # Importantly, the case with empty inputs involves no masking and is
-      # handled by the common path.
-      return _from_py(None, schema=schema, from_dim=0).expand_to(presence_mask)
-    # Apply the presence_mask to the arguments so that masked values don't need
-    # unboxing.
-    args = map(
-        lambda x: eval_op('kd.slices.select', x, presence_mask),
-        args,
-    )
   kwnames = tuple(kwargs.keys())
   vcall = arolla.abc.vectorcall
-  result = _basic_map_py(
+  return _basic_map_py(
       lambda *task_args: vcall(fn, *task_args, kwnames),
+      cond,
       *args,
       schema=schema,
       ndim=ndim,
       max_threads=max_threads,
-      item_completed_callback=_unwrap_optional_py_callable(
-          item_completed_callback, param_name='item_completed_callback'
-      ),
+      item_completed_callback=item_completed_callback,
   )
-  if presence_mask is not None:
-    result = eval_op('kd.slices.inverse_select', result, presence_mask)
-  return result
 
 
 @optools.add_to_registry(aliases=['kd.map_py_on_cond'])
@@ -685,7 +699,11 @@ def map_py_on_cond(
   """
   true_fn = _unwrap_py_callable(true_fn, param_name='true_fn')
   false_fn = _unwrap_optional_py_callable(false_fn, param_name='false_fn')
+  schema = _unwrap_optional_schema(schema, param_name='schema')
   max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
+  item_completed_callback = _unwrap_optional_py_callable(
+      item_completed_callback, param_name='item_completed_callback'
+  )
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
   if cond.get_schema() != schema_constants.MASK:
@@ -693,34 +711,33 @@ def map_py_on_cond(
   args = (*args, *kwargs.values())
   if cond.get_ndim() > max(arg.get_ndim() for arg in args):
     raise ValueError(
-        "'cond' must have the same or smaller dimension than args + kwargs"
+        "'cond' must have the same or smaller dimension than `args` and"
+        ' `kwargs`'
     )
   cond, *args = eval_op('kd.slices.align', cond, *args)
   kwnames = tuple(kwargs.keys())
   vcall = arolla.abc.vectorcall
   if false_fn is None:
-    # Apply the cond mask to the arguments so that masked values don't need
-    # unboxing.
-    args = map(lambda x: eval_op('kd.masking.apply_mask', x, cond), args)
-    task_fn = (
-        lambda task_cond, *task_args: None
-        if task_cond is None
-        else vcall(true_fn, *task_args, kwnames)
-    )
-  else:
-    task_fn = lambda task_cond, *task_args: vcall(
-        false_fn if task_cond is None else true_fn, *task_args, kwnames
+    return _basic_map_py(
+        lambda *task_args: vcall(true_fn, *task_args, kwnames),
+        cond,
+        *args,
+        schema=schema,
+        ndim=0,
+        max_threads=max_threads,
+        item_completed_callback=item_completed_callback,
     )
   return _basic_map_py(
-      task_fn,
-      cond,
+      lambda task_cond, *task_args: vcall(
+          false_fn if task_cond is None else true_fn, *task_args, kwnames
+      ),
+      None,  # cond=
+      cond,  # arg0=
       *args,
-      schema=_unwrap_optional_schema(schema, param_name='schema'),
+      schema=schema,
       ndim=0,
       max_threads=max_threads,
-      item_completed_callback=_unwrap_optional_py_callable(
-          item_completed_callback, param_name='item_completed_callback'
-      ),
+      item_completed_callback=item_completed_callback,
   )
 
 
@@ -732,6 +749,7 @@ def map_py_on_cond(
         qtype_utils.expect_data_slice(P.cond),
         qtype_utils.expect_data_slice_args(P.args),
         _expect_optional_schema(P.schema),
+        _expect_scalar_integer(P.max_threads),
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
@@ -792,6 +810,7 @@ def map_py_on_selected(
         _expect_py_callable(P.fn),
         qtype_utils.expect_data_slice_args(P.args),
         _expect_optional_schema(P.schema),
+        _expect_scalar_integer(P.max_threads),
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
@@ -812,17 +831,9 @@ def map_py_on_present(
   )
   if not args and not kwargs:
     raise TypeError('expected at least one input DataSlice, got none')
-  cond = functools.reduce(
-      functools.partial(eval_op, 'kd.masking.mask_and'),
-      map(
-          functools.partial(eval_op, 'kd.masking.has'),
-          itertools.chain(args, kwargs.values()),
-      ),
-  )
   return eval_op(
-      map_py_on_selected,
+      map_py,
       fn,
-      cond,
       *args,
       schema=schema,
       max_threads=max_threads,

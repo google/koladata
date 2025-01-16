@@ -139,7 +139,8 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     val = ds([1])
     with self.assertRaisesWithLiteralMatch(
         ValueError,
-        "'cond' must have the same or smaller dimension than args + kwargs",
+        "'cond' must have the same or smaller dimension than `args` and"
+        ' `kwargs`',
     ):
       expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val.repeat(1) > 2, val))
 

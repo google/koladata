@@ -62,56 +62,67 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
         res.no_bag(), ds([[2, 3, 0, 5], [None, None], [8, 9, 10]])
     )
 
-  def test_empty_input(self):
-    fn = lambda x: x + 1 if x is not None else 0
+  def test_map_py_empty_input(self):
+    def my_fn(x):
+      return x
 
-    val = ds([])
-    cond = ds([], schema_constants.MASK)
-    res = expr_eval.eval(
-        kde.py.map_py_on_selected(
-            fn, cond, x=val, schema=schema_constants.FLOAT32
-        )
-    )
-    testing.assert_equal(res, ds([], schema_constants.FLOAT32))
-    self.assertIsNone(res.get_bag())
+    val = ds([[]])
+    cond = ds([[]], schema_constants.MASK)
 
-    res = expr_eval.eval(kde.py.map_py_on_selected(fn, cond, x=val))
-    testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
-    self.assertIsNone(res.get_bag())
+    with self.subTest("no_schema"):
+      res = expr_eval.eval(kde.py.map_py_on_selected(my_fn, cond, val))
+      testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
+      self.assertIsNone(res.get_bag())
 
-    res = expr_eval.eval(
-        kde.py.map_py_on_selected(
-            fn, cond, x=val, schema=schema_constants.OBJECT
-        )
-    )
-    testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
-    self.assertIsNotNone(res.get_bag())
+    with self.subTest("schema=FLOAT32"):
+      res = expr_eval.eval(
+          kde.py.map_py_on_selected(
+              my_fn, cond, val, schema=schema_constants.FLOAT32
+          )
+      )
+      testing.assert_equal(res, ds([[]], schema_constants.FLOAT32))
+      self.assertIsNone(res.get_bag())
 
-    val = ds([1, 2, 3])
-    cond = ds(
-        [mask_constants.missing, mask_constants.missing, mask_constants.missing]
-    )
-    res = expr_eval.eval(
-        kde.py.map_py_on_selected(
-            fn, cond, x=val, schema=schema_constants.FLOAT32
-        )
-    )
-    testing.assert_equal(res, ds([None, None, None], schema_constants.FLOAT32))
-    self.assertIsNone(res.get_bag())
+    with self.subTest("schema=OBJECT"):
+      res = expr_eval.eval(
+          kde.py.map_py_on_selected(
+              my_fn, cond, val, schema=schema_constants.OBJECT
+          )
+      )
+      testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
+      self.assertFalse(res.get_bag().is_mutable())
 
-    res = expr_eval.eval(kde.py.map_py_on_selected(fn, cond, x=val))
-    testing.assert_equal(res, ds([None, None, None]))
-    self.assertIsNone(res.get_bag())
+  def test_map_py_all_missing_input(self):
+    def my_fn(x):
+      return x
 
-    res = expr_eval.eval(
-        kde.py.map_py_on_selected(
-            fn, cond, x=val, schema=schema_constants.OBJECT
-        )
-    )
-    testing.assert_equal(
-        res.no_bag(), ds([None, None, None], schema_constants.OBJECT)
-    )
-    self.assertIsNotNone(res.get_bag())
+    val = ds([[1]])
+    cond = ds([None], schema_constants.MASK)
+
+    with self.subTest("no_schema"):
+      res = expr_eval.eval(kde.py.map_py_on_selected(my_fn, cond, val))
+      testing.assert_equal(
+          res.no_bag(), ds([[None]], schema=schema_constants.NONE)
+      )
+      self.assertIsNone(res.get_bag())
+
+    with self.subTest("schema=FLOAT32"):
+      res = expr_eval.eval(
+          kde.py.map_py_on_selected(
+              my_fn, cond, val, schema=schema_constants.FLOAT32
+          )
+      )
+      testing.assert_equal(res, ds([[None]], schema_constants.FLOAT32))
+      self.assertIsNone(res.get_bag())
+
+    with self.subTest("schema=OBJECT"):
+      res = expr_eval.eval(
+          kde.py.map_py_on_selected(
+              my_fn, cond, val, schema=schema_constants.OBJECT
+          )
+      )
+      testing.assert_equal(res.no_bag(), ds([[None]], schema_constants.OBJECT))
+      self.assertFalse(res.get_bag().is_mutable())
 
   def test_error_non_mask_cond(self):
     fn = lambda _: None
@@ -121,12 +132,21 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.py.map_py_on_selected(fn, val, val))
 
+  def test_error_no_inputs(self):
+    fn = lambda _: None
+    cond = ds([None], schema_constants.MASK)
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, "expected at least one input DataSlice, got none"
+    ):
+      expr_eval.eval(kde.py.map_py_on_selected(fn, cond))
+
   def test_error_higher_dimension_cond(self):
     fn = lambda _: None
     val = ds([[1]])
     with self.assertRaisesWithLiteralMatch(
         ValueError,
-        "'cond' must have the same or smaller dimension than args + kwargs",
+        "'cond' must have the same or smaller dimension than `args` and"
+        " `kwargs`",
     ):
       expr_eval.eval(kde.py.map_py_on_selected(fn, val.repeat(1) > 2, val))
 
