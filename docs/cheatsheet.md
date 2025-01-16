@@ -133,7 +133,7 @@ kd.reverse(ds) # [[2, 1], [5, None, 3]]
 i = kd.slice(1) # same as kd.item(1)
 i.get_ndim() # 0
 
-# Visualize a DataSlice
+# Visualize a DataSlice (go/koda-ds-display)
 ds.display()
 ```
 
