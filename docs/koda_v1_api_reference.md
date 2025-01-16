@@ -253,8 +253,8 @@ Returns `x` if `condition` is present, else raises error `message`.
 Example:
   x = kd.slice(1)
   y = kd.slice(2)
-  kde.assertion.with_assertion(x, x < y, 'x must be less than y') -> x.
-  kde.assertion.with_assertion(x, x > y, 'x must be greater than y') -> error.
+  kd.assertion.with_assertion(x, x < y, 'x must be less than y') -> x.
+  kd.assertion.with_assertion(x, x > y, 'x must be greater than y') -> error.
 
 Args:
   x: The value to return if `condition` is present.
@@ -720,13 +720,13 @@ Get items from Lists or Dicts in `x` by `key_or_index`.
 Examples:
 l = kd.list([1, 2, 3])
 # Get List items by range slice from 1 to -1
-kde.get_item(l, slice(1, -1)) -> kd.slice([2, 3])
+kd.get_item(l, slice(1, -1)) -> kd.slice([2, 3])
 # Get List items by indices
-kde.get_item(l, kd.slice([2, 5])) -> kd.slice([3, None])
+kd.get_item(l, kd.slice([2, 5])) -> kd.slice([3, None])
 
 d = kd.dict({'a': 1, 'b': 2})
 # Get Dict values by keys
-kde.get_item(d, kd.slice(['a', 'c'])) -> kd.slice([1, None])
+kd.get_item(d, kd.slice(['a', 'c'])) -> kd.slice([1, None])
 
 Args:
   x: List or Dict DataSlice.
@@ -870,7 +870,7 @@ Aliases:
 - [kd.maybe](#kd.maybe)
 
 ``` {.no-copy}
-A shortcut for kde.get_attr(x, attr_name, default=None).
+A shortcut for kd.get_attr(x, attr_name, default=None).
 ```
 
 ### `kd.core.no_bag(ds)` {#kd.core.no_bag}
@@ -1245,8 +1245,8 @@ Aliases:
 Returns DataBag containing updates to a DataSlice of dicts.
 
 This operator has two forms:
-  kde.dict_update(x, keys, values) where keys and values are slices
-  kde.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
+  kd.dict_update(x, keys, values) where keys and values are slices
+  kd.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
 
 If both keys and values are specified, they must both be broadcastable to the
 shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -1565,8 +1565,8 @@ Aliases:
 Returns a DataSlice with a new DataBag containing updated dicts.
 
 This operator has two forms:
-  kde.with_dict_update(x, keys, values) where keys and values are slices
-  kde.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
+  kd.with_dict_update(x, keys, values) where keys and values are slices
+  kd.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
     dicts
 
 If both keys and values are specified, they must both be broadcastable to the
@@ -1807,7 +1807,7 @@ Aliases:
 ``` {.no-copy}
 Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
 
-Current implentaion is a wrapper around kde.py.map_py_on_cond (Python
+Current implentaion is a wrapper around kd.py.map_py_on_cond (Python
 based) so it might be slow and intended for experiments only.
 
 If certain items of fn are missing, the corresponding items of the result will
@@ -2272,7 +2272,7 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
   Each input DataSlice must contain only present List items, and the item
   schemas of each input must be compatible. Input DataSlices are aligned (see
-  `kde.align`) automatically before concatenation.
+  `kd.align`) automatically before concatenation.
 
   If `lists` is empty, this returns a single empty list with OBJECT item schema.
 
@@ -3149,6 +3149,9 @@ input.
 ```
 
 ### `kd.math.cum_max(x, ndim=unspecified)` {#kd.math.cum_max}
+Aliases:
+
+- [kd.cum_max](#kd.cum_max)
 
 ``` {.no-copy}
 Returns the cumulative max of items along the last ndim dimensions.
@@ -3745,24 +3748,7 @@ Aliases:
 - [kd.map_py_on_present](#kd.map_py_on_present)
 
 ``` {.no-copy}
-Apply python function `fn` to items present in all `args` and `kwargs`.
-
-Also see kd.map_py().
-
-Args:
-  fn: function.
-  *args: Input DataSlices.
-  schema: The schema to use for resulting DataSlice.
-  max_threads: maximum number of threads to use.
-  item_completed_callback: A callback that will be called after each item is
-    processed. It will be called in the original thread that called
-    `map_py_on_present` in case `max_threads` is greater than 1, as we rely on
-    this property for cases like progress reporting. As such, it can not be
-    attached to the `fn` itself.
-  **kwargs: Input DataSlices.
-
-Returns:
-  Result DataSlice.
+Deprecated. Use kd.map_py instead.
 ```
 
 ### `kd.py.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_selected}
@@ -4232,7 +4218,7 @@ Converts a string to a named schema, passes through schema otherwise.
 The operator also passes through arolla.unspecified, and raises when
 it receives anything else except unspecified, string or schema DataItem.
 
-This operator exists to support kde.entities.new* family of operators.
+This operator exists to support kd.core.new* family of operators.
 
 Args:
   name_or_schema: The input name or schema.
@@ -5343,7 +5329,7 @@ dimensions are unchanged. The last two dimensions corresponds to the groups
 and the items within the groups.
 
 Values of the DataSlice are the indices of the items within the parent
-dimension. `kde.take(x, kde.group_by_indices(x))` would group the items in
+dimension. `kd.take(x, kd.group_by_indices(x))` would group the items in
 `x` by their values.
 
 If sort=True groups are ordered by value, otherwise groups are ordered by the
@@ -5399,7 +5385,7 @@ Aliases:
 - [kd.index](#kd.index)
 
 ``` {.no-copy}
-Returns the indices of the elements computed over the last dim dimensions.
+Returns the indices of the elements computed over dimension `dim`.
 
 The resulting slice has the same shape as the input.
 
@@ -7030,6 +7016,10 @@ Alias for [kd.slices.count](#kd.slices.count) operator.
 ### `kd.cum_count(x, ndim=unspecified)` {#kd.cum_count}
 
 Alias for [kd.slices.cum_count](#kd.slices.cum_count) operator.
+
+### `kd.cum_max(x, ndim=unspecified)` {#kd.cum_max}
+
+Alias for [kd.math.cum_max](#kd.math.cum_max) operator.
 
 ### `kd.decode_itemid(ds)` {#kd.decode_itemid}
 
@@ -8669,8 +8659,8 @@ Returns size of a Dict.
 Returns DataBag containing updates to a DataSlice of dicts.
 
 This operator has two forms:
-  kde.dict_update(x, keys, values) where keys and values are slices
-  kde.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
+  kd.dict_update(x, keys, values) where keys and values are slices
+  kd.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
 
 If both keys and values are specified, they must both be broadcastable to the
 shape of `x`. If only keys is specified (as dict_updates), it must be
@@ -9254,17 +9244,6 @@ Returns:
 Returns present iff this DataSlice is a primitive (scalar) Schema.
 ```
 
-### `DataSlice.is_struct_schema()` {#DataSlice.is_struct_schema}
-
-``` {.no-copy}
-Returns present iff this DataSlice represents a Struct Schema.
-
-Note that the Entity schema includes Entity, List and Dict schemas.
-
-Returns:
-  Present iff this DataSlice represents a Struct Schema.
-```
-
 ### `DataSlice.list_size(self)` {#DataSlice.list_size}
 
 ``` {.no-copy}
@@ -9274,7 +9253,7 @@ Returns size of a List.
 ### `DataSlice.maybe(self, attr_name)` {#DataSlice.maybe}
 
 ``` {.no-copy}
-A shortcut for kde.get_attr(x, attr_name, default=None).
+A shortcut for kd.get_attr(x, attr_name, default=None).
 ```
 
 ### `DataSlice.no_bag()` {#DataSlice.no_bag}
@@ -9679,8 +9658,8 @@ Alias for [DataSlice.with_bag](#DataSlice.with_bag) operator.
 Returns a DataSlice with a new DataBag containing updated dicts.
 
 This operator has two forms:
-  kde.with_dict_update(x, keys, values) where keys and values are slices
-  kde.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
+  kd.with_dict_update(x, keys, values) where keys and values are slices
+  kd.with_dict_update(x, dict_updates) where dict_updates is a DataSlice of
     dicts
 
 If both keys and values are specified, they must both be broadcastable to the
@@ -9775,7 +9754,7 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
   Each input DataSlice must contain only present List items, and the item
   schemas of each input must be compatible. Input DataSlices are aligned (see
-  `kde.align`) automatically before concatenation.
+  `kd.align`) automatically before concatenation.
 
   If `lists` is empty, this returns a single empty list.
 
