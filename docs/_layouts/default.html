@@ -25,20 +25,14 @@ with an addition of sidebar navigation.-->
 
         <p>{{ site.description | default: site.github.project_tagline }}</p>
 
-         <p>
+        <p>
           <a href="{{ "/" | absolute_url }}">Home</a>
           <br />
-          <a href="{{ "overview.html" | relative_url }}">Overview</a>
-          <br />
-          <a href="{{ "fundamentals.html" | relative_url }}">Fundamentals</a>
-          <br />
-          <a href="{{ "glossary.html" | relative_url }}">Glossary</a>
-          <br />
-          <a href="{{ "cheatsheet.html" | relative_url }}">Cheatsheet</a>
-          <br />
-          <a href="{{ "koda_v1_api_reference.html" | relative_url }}">API Reference</a>
-          <br />
-         </p>
+          {% for item in site.data.navigation.items %}
+            <a href="{{ item.url | relative_url}}">{{ item.title }}</a>
+            <br />
+          {% endfor %}
+        </p>
 
         {% if site.github.is_project_page %}
         <p class="view"><a href="{{ site.github.repository_url }}">View the Project on GitHub <small>{{ site.github.repository_nwo }}</small></a></p>
