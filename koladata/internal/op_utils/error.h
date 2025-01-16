@@ -35,16 +35,6 @@ absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name,
                                absl::string_view error_message);
 
-// absl::Status adaptor that attaches operator name and wraps the given status
-// into an OperatorEvalError.
-// TODO: b/389032294 - Remove this adaptor once ReturnsOperatorEvalError is used
-// automatically.
-inline auto ToOperatorEvalError(absl::string_view operator_name) {
-  return [operator_name](absl::Status status) {
-    return OperatorEvalError(std::move(status), operator_name);
-  };
-}
-
 // Returns a absl::InvalidArgumentError status with a Koda error payload
 // containing the given error message.
 absl::Status OperatorEvalError(absl::string_view operator_name,

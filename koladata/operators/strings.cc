@@ -66,8 +66,6 @@
 namespace koladata::ops {
 namespace {
 
-constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
-
 // A wrapper around CastToNarrow with nicer error message.
 absl::StatusOr<DataSlice> NarrowToInt64(const DataSlice& arg,
                                         absl::string_view arg_name) {
@@ -88,8 +86,10 @@ absl::StatusOr<DataSlice> EvalFormatOp(absl::string_view op_name,
   }
   // From here on, we know that at least one input has known schema and we
   // should eval.
-  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("fmt", fmt))
-      .With(OpError(absl::StrCat("kd.", op_name)));
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("fmt", fmt)).With([&](auto _) {
+    return internal::OperatorEvalError(std::move(_),
+                                       absl::StrCat("kd.", op_name));
+  });
   return SimplePointwiseEval(op_name, std::move(slices), fmt.GetSchemaImpl());
 }
 
@@ -262,7 +262,9 @@ absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {
     RETURN_IF_ERROR(ExpectConsistentStringOrBytes(
                         {"slices[0]", absl::StrCat("slices[", i, "]")},
                         slices[0], slices[i]))
-        .With(OpError("kd.strings.join"));
+        .With([](auto _) {
+          return internal::OperatorEvalError(_, "kd.strings.join");
+        });
   }
   return SimplePointwiseEval("strings.join", std::move(slices));
 }

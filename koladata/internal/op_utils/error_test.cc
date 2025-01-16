@@ -87,20 +87,6 @@ TEST(OperatorEvalError, WithStatusContainingCause) {
   EXPECT_THAT(payload->cause().error_message(), Eq("cause"));
 }
 
-TEST(OperatorEvalError, ToOperatorEvalError) {
-  auto status = []() {
-    RETURN_IF_ERROR(absl::InvalidArgumentError("Test error"))
-        .With(ToOperatorEvalError("op_name"));
-    return absl::OkStatus();
-  }();
-  EXPECT_THAT(status,
-              StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
-  std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
-  EXPECT_THAT(payload->error_message(), Eq("op_name: Test error"));
-  EXPECT_FALSE(payload->has_cause());
-}
-
 TEST(OperatorEvalError, SubsequentCalls) {
   absl::Status status = OperatorEvalError(
       OperatorEvalError("op_name", "error_message"), "op_name");
