@@ -20,7 +20,10 @@ from koladata.exceptions import error_pb2
 from koladata.exceptions import py_exceptions_py_ext as _py_exceptions_py_ext
 
 
-class KodaError(Exception):
+# Inheriting from ValueError in order to keep the existing
+# assertRaises(ValueError) tests passing.
+# TODO: b/389032294 - Restore Exception as a base class.
+class KodaError(ValueError):
   """Koda exception."""
 
   def __init__(self, err: error_pb2.Error, cause: Self | None = None):

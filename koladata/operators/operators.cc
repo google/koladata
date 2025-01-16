@@ -14,27 +14,31 @@
 //
 #include <cstdint>
 #include <memory>
+#include <string>
 
+#include "absl/log/check.h"
+#include "absl/strings/string_view.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/op_utils/error.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/allocation.h"
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/bags.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/core.h"
-#include "koladata/operators/entities.h"
-#include "koladata/operators/objs.h"
 #include "koladata/operators/dicts.h"
+#include "koladata/operators/entities.h"
 #include "koladata/operators/ids.h"
 #include "koladata/operators/json.h"
 #include "koladata/operators/lists.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/math.h"
 #include "koladata/operators/non_deterministic_op.h"
+#include "koladata/operators/objs.h"
 #include "koladata/operators/predicates.h"
 #include "koladata/operators/schema.h"
 #include "koladata/operators/shapes.h"
@@ -48,7 +52,23 @@
 namespace koladata::ops {
 namespace {
 
-#define OPERATOR AROLLA_REGISTER_QEXPR_OPERATOR
+template <typename Ret, typename... Args>
+internal::ReturnsOperatorEvalError<Ret, Args...> OperatorMacroImpl(
+    absl::string_view name, Ret (*func)(Args...)) {
+  return internal::ReturnsOperatorEvalError(std::string(name), func);
+}
+
+template <typename Ret, typename... Args>
+internal::ReturnsOperatorEvalError<Ret, Args...> OperatorMacroImpl(
+    absl::string_view name, Ret (*func)(Args...),
+    absl::string_view display_name) {
+  DCHECK_NE(name, display_name) << "remove excessive display_name argument";
+  return internal::ReturnsOperatorEvalError(std::string(display_name), func);
+}
+
+#define OPERATOR(name, ...) \
+  AROLLA_REGISTER_QEXPR_OPERATOR(name, OperatorMacroImpl(name, __VA_ARGS__))
+
 #define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
@@ -73,16 +93,19 @@ OPERATOR("kd.comparison.greater_equal", GreaterEqual);
 OPERATOR("kd.comparison.less", Less);
 OPERATOR("kd.comparison.less_equal", LessEqual);
 //
-OPERATOR("kd.core._clone", Clone);
-OPERATOR("kd.core._databag_freeze", Freeze<DataBagPtr>);
-OPERATOR("kd.core._deep_clone", DeepClone);
-OPERATOR("kd.core._extract", Extract);
-OPERATOR("kd.core._get_attr", GetAttr);
-OPERATOR("kd.core._get_attr_with_default", GetAttrWithDefault);
-OPERATOR("kd.core._get_item", GetItem);
-OPERATOR("kd.core._get_list_item_by_range", GetListItemByRange);
-OPERATOR("kd.core._new_ids_like", NewIdsLike);
-OPERATOR("kd.core._shallow_clone", ShallowClone);
+OPERATOR("kd.core._clone", Clone, "kd.core.clone");
+OPERATOR("kd.core._databag_freeze", Freeze<DataBagPtr>,
+         "kd.core.databag_freeze");
+OPERATOR("kd.core._deep_clone", DeepClone, "kd.core.deep_clone");
+OPERATOR("kd.core._extract", Extract, "kd.core.extract");
+OPERATOR("kd.core._get_attr", GetAttr, "kd.core.get_attr");
+OPERATOR("kd.core._get_attr_with_default", GetAttrWithDefault,
+         "kd.core.get_attr_with_default");
+OPERATOR("kd.core._get_item", GetItem, "kd.core.get_item");
+OPERATOR("kd.core._get_list_item_by_range", GetListItemByRange,
+         "kd.core.get_list_item_by_range");
+OPERATOR("kd.core._new_ids_like", NewIdsLike, "kd.core.new_ids_like");
+OPERATOR("kd.core._shallow_clone", ShallowClone, "kd.core.shallow_clone");
 OPERATOR("kd.core.attr", Attr);
 OPERATOR_FAMILY("kd.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR_FAMILY("kd.core.enriched",
@@ -105,11 +128,12 @@ OPERATOR_FAMILY("kd.core.with_attrs",
 OPERATOR("kd.core.with_bag", WithBag);
 OPERATOR("kd.core.with_merged_bag", WithMergedBag);
 //
-OPERATOR("kd.dicts._dict_update", DictUpdate);
-OPERATOR("kd.dicts._get_values", GetValues);
-OPERATOR("kd.dicts._get_values_by_keys", GetValuesByKeys);
-OPERATOR("kd.dicts._like", DictLike);
-OPERATOR("kd.dicts._shaped", DictShaped);
+OPERATOR("kd.dicts._dict_update", DictUpdate, "kd.dicts.dict_update");
+OPERATOR("kd.dicts._get_values", GetValues, "kd.dicts.get_values");
+OPERATOR("kd.dicts._get_values_by_keys", GetValuesByKeys,
+         "kd.dicts.get_values_by_keys");
+OPERATOR("kd.dicts._like", DictLike, "kd.dicts.like");
+OPERATOR("kd.dicts._shaped", DictShaped, "kd.dicts.shaped");
 OPERATOR("kd.dicts.get_keys", GetKeys);
 OPERATOR("kd.dicts.has_dict", HasDict);
 OPERATOR("kd.dicts.is_dict", IsDict);
@@ -122,8 +146,8 @@ OPERATOR_FAMILY("kd.entities._shaped",
                 std::make_unique<NewShapedOperatorFamily>());
 OPERATOR_FAMILY("kd.entities._uu", std::make_unique<UuOperatorFamily>());
 //
-OPERATOR("kd.ids._agg_uuid", AggUuid);
-OPERATOR("kd.ids._deep_uuid", DeepUuid);
+OPERATOR("kd.ids._agg_uuid", AggUuid, "kd.ids.agg_uuid");
+OPERATOR("kd.ids._deep_uuid", DeepUuid, "kd.ids.deep_uuid");
 OPERATOR("kd.ids.decode_itemid", DecodeItemId);
 OPERATOR("kd.ids.encode_itemid", EncodeItemId);
 OPERATOR_FAMILY("kd.ids.uuid", std::make_unique<UuidOperatorFamily>());
@@ -135,34 +159,34 @@ OPERATOR("kd.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
 //
 OPERATOR("kd.json.to_json", ToJson);
 //
-OPERATOR("kd.lists._explode", Explode);
-OPERATOR("kd.lists._implode", Implode);
-OPERATOR("kd.lists._like", ListLike);
-OPERATOR("kd.lists._shaped", ListShaped);
+OPERATOR("kd.lists._explode", Explode, "kd.lists.explode");
+OPERATOR("kd.lists._implode", Implode, "kd.lists.implode");
+OPERATOR("kd.lists._like", ListLike, "kd.lists.like");
+OPERATOR("kd.lists._shaped", ListShaped, "kd.lists.shaped");
 OPERATOR("kd.lists.has_list", HasList);
 OPERATOR("kd.lists.is_list", IsList);
 OPERATOR("kd.lists.size", ListSize);
 //
-OPERATOR("kd.masking._agg_all", AggAll);
-OPERATOR("kd.masking._agg_any", AggAny);
-OPERATOR("kd.masking._has_not", HasNot);
+OPERATOR("kd.masking._agg_all", AggAll, "kd.masking.agg_all");
+OPERATOR("kd.masking._agg_any", AggAny, "kd.masking.agg_any");
+OPERATOR("kd.masking._has_not", HasNot, "kd.masking.has_not");
 OPERATOR("kd.masking.apply_mask", ApplyMask);
 OPERATOR("kd.masking.coalesce", Coalesce);
 OPERATOR("kd.masking.has", Has);
 //
-OPERATOR("kd.math._agg_inverse_cdf", AggInverseCdf);
-OPERATOR("kd.math._agg_max", AggMax);
-OPERATOR("kd.math._agg_mean", AggMean);
-OPERATOR("kd.math._agg_median", AggMedian);
-OPERATOR("kd.math._agg_min", AggMin);
-OPERATOR("kd.math._agg_std", AggStd);
-OPERATOR("kd.math._agg_sum", AggSum);
-OPERATOR("kd.math._agg_var", AggVar);
-OPERATOR("kd.math._cdf", Cdf);
-OPERATOR("kd.math._cum_max", CumMax);
-OPERATOR("kd.math._cum_min", CumMin);
-OPERATOR("kd.math._cum_sum", CumSum);
-OPERATOR("kd.math._softmax", Softmax);
+OPERATOR("kd.math._agg_inverse_cdf", AggInverseCdf, "kd.math.agg_inverse_cdf");
+OPERATOR("kd.math._agg_max", AggMax, "kd.math.agg_max");
+OPERATOR("kd.math._agg_mean", AggMean, "kd.math.agg_mean");
+OPERATOR("kd.math._agg_median", AggMedian, "kd.math.agg_median");
+OPERATOR("kd.math._agg_min", AggMin, "kd.math.agg_min");
+OPERATOR("kd.math._agg_std", AggStd, "kd.math.agg_std");
+OPERATOR("kd.math._agg_sum", AggSum, "kd.math.agg_sum");
+OPERATOR("kd.math._agg_var", AggVar, "kd.math.agg_var");
+OPERATOR("kd.math._cdf", Cdf, "kd.math.cdf");
+OPERATOR("kd.math._cum_max", CumMax, "kd.math.cum_max");
+OPERATOR("kd.math._cum_min", CumMin, "kd.math.cum_min");
+OPERATOR("kd.math._cum_sum", CumSum, "kd.math.cum_sum");
+OPERATOR("kd.math._softmax", Softmax, "kd.math.softmax");
 OPERATOR("kd.math.abs", Abs);
 OPERATOR("kd.math.add", Add);
 OPERATOR("kd.math.ceil", Ceil);
@@ -189,9 +213,11 @@ OPERATOR_FAMILY("kd.objs.new", std::make_unique<ObjOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.shaped", std::make_unique<ObjShapedOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.uu", std::make_unique<UuObjOperatorFamily>());
 //
-OPERATOR("kd.schema._agg_common_schema", AggCommonSchema);
-OPERATOR("kd.schema._internal_maybe_named_schema", InternalMaybeNamedSchema);
-OPERATOR("kd.schema._unsafe_cast_to", UnsafeCastTo);
+OPERATOR("kd.schema._agg_common_schema", AggCommonSchema,
+         "kd.schema.agg_common_schema");
+OPERATOR("kd.schema._internal_maybe_named_schema", InternalMaybeNamedSchema,
+         "kd.schema.internal_maybe_named_schema");
+OPERATOR("kd.schema._unsafe_cast_to", UnsafeCastTo, "kd.schema.unsafe_cast_to");
 OPERATOR("kd.schema.cast_to", CastTo);
 OPERATOR("kd.schema.cast_to_implicit", CastToImplicit);
 OPERATOR("kd.schema.cast_to_narrow", CastToNarrow);
@@ -220,23 +246,25 @@ OPERATOR_FAMILY("kd.schema.uu_schema",
                 std::make_unique<UuSchemaOperatorFamily>());
 OPERATOR("kd.schema.with_schema", WithSchema);
 //
-OPERATOR("kd.shapes._expand_to_shape", ExpandToShape);
+OPERATOR("kd.shapes._expand_to_shape", ExpandToShape,
+         "kd.shapes.expand_to_shape");
 OPERATOR_FAMILY("kd.shapes._new_with_size",
                 std::make_unique<JaggedShapeCreateWithSizeOperatorFamily>());
-OPERATOR("kd.shapes._reshape", Reshape);
+OPERATOR("kd.shapes._reshape", Reshape, "kd.shapes.reshape");
 OPERATOR("kd.shapes.get_shape", GetShape);
 OPERATOR_FAMILY("kd.shapes.new",
                 std::make_unique<JaggedShapeCreateOperatorFamily>());
 //
-OPERATOR("kd.slices._collapse", Collapse);
+OPERATOR("kd.slices._collapse", Collapse, "kd.slices.collapse");
 OPERATOR_FAMILY("kd.slices._concat_or_stack",
                 arolla::MakeVariadicInputOperatorFamily(ConcatOrStack));
-OPERATOR("kd.slices._dense_rank", DenseRank);
+OPERATOR("kd.slices._dense_rank", DenseRank, "kd.slices.dense_rank");
 OPERATOR_FAMILY("kd.slices._group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(GroupByIndices));
-OPERATOR("kd.slices._inverse_mapping", InverseMapping);
-OPERATOR("kd.slices._ordinal_rank", OrdinalRank);
-OPERATOR("kd.slices._select", Select);
+OPERATOR("kd.slices._inverse_mapping", InverseMapping,
+         "kd.slices.inverse_mapping");
+OPERATOR("kd.slices._ordinal_rank", OrdinalRank, "kd.slices.ordinal_rank");
+OPERATOR("kd.slices._select", Select, "kd.slices.select");
 OPERATOR_FAMILY("kd.slices.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kd.slices.inverse_select", InverseSelect);
 OPERATOR("kd.slices.is_empty", IsEmpty);
@@ -247,8 +275,8 @@ OPERATOR("kd.slices.take", Take);
 OPERATOR("kd.slices.translate", Translate);
 OPERATOR("kd.slices.unique", Unique);
 //
-OPERATOR("kd.strings._agg_join", AggJoin);
-OPERATOR("kd.strings._decode_base64", DecodeBase64);
+OPERATOR("kd.strings._agg_join", AggJoin, "kd.strings.agg_join");
+OPERATOR("kd.strings._decode_base64", DecodeBase64, "kd.strings.decode_base64");
 OPERATOR_FAMILY("kd.strings._test_only_format_wrapper",
                 arolla::MakeVariadicInputOperatorFamily(TestOnlyFormatWrapper));
 OPERATOR("kd.strings.contains", Contains);
