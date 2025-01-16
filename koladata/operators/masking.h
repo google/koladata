@@ -27,7 +27,6 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/op_utils/presence_or.h"
@@ -37,13 +36,10 @@
 
 namespace koladata::ops {
 
-constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
-
 // kd.masking.apply_mask.
 inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
                                            const DataSlice& mask) {
-  RETURN_IF_ERROR(ExpectMask("mask", mask))
-      .With(OpError("kd.masking.apply_mask"));
+  RETURN_IF_ERROR(ExpectMask("mask", mask));
   return DataSliceOp<internal::PresenceAndOp>()(obj, mask, obj.GetSchemaImpl(),
                                                 obj.GetBag());
 }
@@ -51,8 +47,7 @@ inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
 // kd.masking.coalesce.
 inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
                                           const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y))
-      .With(OpError("kd.masking.coalesce"));
+  RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y));
   auto res_db = DataBag::CommonDataBag({x.GetBag(), y.GetBag()});
   ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}));
   return DataSliceOp<internal::PresenceOrOp>()(
@@ -68,14 +63,14 @@ inline absl::StatusOr<DataSlice> Has(const DataSlice& obj) {
 
 // kd.masking._has_not.
 inline absl::StatusOr<DataSlice> HasNot(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectMask("x", x)).With(OpError("kd.masking.has_not"));
+  RETURN_IF_ERROR(ExpectMask("x", x));
   return SimplePointwiseEval("core.presence_not", {x},
                              internal::DataItem(schema::kMask));
 }
 
 // kd.masking._agg_any.
 inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectMask("x", x)).With(OpError("kd.masking.agg_any"));
+  RETURN_IF_ERROR(ExpectMask("x", x));
   ASSIGN_OR_RETURN(auto typed_x,
                    CastToNarrow(x, internal::DataItem(schema::kMask)));
   return SimpleAggIntoEval("core.any", {std::move(typed_x)});
@@ -83,7 +78,7 @@ inline absl::StatusOr<DataSlice> AggAny(const DataSlice& x) {
 
 // kd.masking._agg_all.
 inline absl::StatusOr<DataSlice> AggAll(const DataSlice& x) {
-  RETURN_IF_ERROR(ExpectMask("x", x)).With(OpError("kd.masking.agg_all"));
+  RETURN_IF_ERROR(ExpectMask("x", x));
   ASSIGN_OR_RETURN(auto typed_x,
                    CastToNarrow(x, internal::DataItem(schema::kMask)));
   return SimpleAggIntoEval("core.all", {std::move(typed_x)});

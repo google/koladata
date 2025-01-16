@@ -146,7 +146,7 @@ class SlicesTranslateTest(parameterized.TestCase):
   def test_incompatible_shapes(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'values_from must be broadcastable to keys_from',
+        'kd.slices.translate: values_from must be broadcastable to keys_from',
     ):
       expr_eval.eval(
           kde.slices.translate(
@@ -156,15 +156,17 @@ class SlicesTranslateTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'keys_from and values_from must have at least one dimension',
+        'kd.slices.translate: keys_from and values_from must have at least one'
+        ' dimension',
     ):
       expr_eval.eval(kde.slices.translate(ds(['a', 'c', 'd']), ds('a'), ds(1)))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.translate: keys_from.get_shape()[:-1] must be broadcastable to'
-            ' keys_to, but got JaggedShape(1) vs JaggedShape(2, [2, 1])'
+            'kd.slices.translate: keys_from.get_shape()[:-1] must be'
+            ' broadcastable to keys_to, but got JaggedShape(1) vs'
+            ' JaggedShape(2, [2, 1])'
         ),
     ):
       expr_eval.eval(

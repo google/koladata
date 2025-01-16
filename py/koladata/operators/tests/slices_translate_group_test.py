@@ -159,8 +159,9 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.translate: keys_from.get_shape()[:-1] must be broadcastable to'
-            ' keys_to, but got JaggedShape(1) vs JaggedShape(2, [2, 1])'
+            'kd.slices.translate: keys_from.get_shape()[:-1] must be'
+            ' broadcastable to keys_to, but got JaggedShape(1) vs'
+            ' JaggedShape(2, [2, 1])'
         ),
     ):
       expr_eval.eval(
@@ -172,7 +173,9 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
   def test_different_key_schemas(self):
     s2 = db.new_schema(x=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'cannot find a common schema'
+        exceptions.KodaError,
+        'kd.slices.translate: keys_to schema must be castable to keys_from'
+        ' schema',
     ):
       expr_eval.eval(
           kde.slices.translate(

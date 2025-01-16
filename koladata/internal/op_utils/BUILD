@@ -635,7 +635,6 @@ cc_library(
     name = "inverse_select",
     hdrs = ["inverse_select.h"],
     deps = [
-        ":error",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "@com_google_absl//absl/status",

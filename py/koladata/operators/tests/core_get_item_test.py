@@ -28,6 +28,7 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
+
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE

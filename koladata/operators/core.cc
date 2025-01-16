@@ -38,16 +38,14 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/deep_clone.h"
-#include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/schema_utils.h"
-#include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
 #include "koladata/repr_utils.h"
-#include "koladata/schema_utils.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
@@ -63,8 +61,6 @@
 
 namespace koladata::ops {
 namespace {
-
-constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
 
 absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
                                  absl::Span<const absl::string_view> attr_names,
@@ -212,15 +208,13 @@ DataSlice WithBag(const DataSlice& ds, const DataBagPtr& db) {
 }
 
 absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds) {
-  constexpr absl::string_view kOperatorName = "kd.with_merged_bag";
   if (ds.GetBag() == nullptr) {
-    return internal::OperatorEvalError(
-        kOperatorName, "expect the DataSlice to have a DataBag attached");
+    return absl::InvalidArgumentError(
+        "expect the DataSlice to have a DataBag attached");
   }
-  ASSIGN_OR_RETURN(
-      auto merged_db, ds.GetBag()->MergeFallbacks(),
-      internal::OperatorEvalError(std::move(_), kOperatorName,
-                                  "failed to merge fallback DataBags"));
+  ASSIGN_OR_RETURN(auto merged_db, ds.GetBag()->MergeFallbacks(),
+                   internal::KodaErrorFromCause(
+                       "failed to merge fallback DataBags", std::move(_)));
   merged_db->UnsafeMakeImmutable();
   return ds.WithBag(std::move(merged_db));
 }

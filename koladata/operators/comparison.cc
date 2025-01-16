@@ -25,55 +25,40 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/equal.h"
-#include "koladata/internal/op_utils/error.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
-constexpr auto OpError = ::koladata::internal::ToOperatorEvalError;
-
 absl::StatusOr<DataSlice> Less(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y))
-      .With(OpError("kd.comparison.less"));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x))
-      .With(OpError("kd.comparison.less"));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y))
-      .With(OpError("kd.comparison.less"));
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
+  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
+  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
   return SimplePointwiseEval("core.less", {x, y},
                              internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> Greater(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y))
-      .With(OpError("kd.comparison.greater"));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x))
-      .With(OpError("kd.comparison.greater"));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y))
-      .With(OpError("kd.comparison.greater"));
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
+  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
+  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
   return SimplePointwiseEval("core.greater", {x, y},
                              internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> LessEqual(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y))
-      .With(OpError("kd.comparison.less_equal"));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x))
-      .With(OpError("kd.comparison.less_equal"));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y))
-      .With(OpError("kd.comparison.less_equal"));
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
+  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
+  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
   return SimplePointwiseEval("core.less_equal", {x, y},
                              internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y))
-      .With(OpError("kd.comparison.greater_equal"));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x))
-      .With(OpError("kd.comparison.greater_equal"));
-  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y))
-      .With(OpError("kd.comparison.greater_equal"));
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
+  RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
+  RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
   return SimplePointwiseEval("core.greater_equal", {x, y},
                              internal::DataItem(schema::kMask));
 }
@@ -81,8 +66,7 @@ absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y) {
 absl::StatusOr<DataSlice> Equal(const DataSlice& x, const DataSlice& y) {
   // NOTE: Casting is handled internally by EqualOp. The schema compatibility is
   // still verified to ensure that e.g. ITEMID and OBJECT are not compared.
-  RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y))
-      .With(OpError("kd.comparison.equal"));
+  RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y));
   return DataSliceOp<internal::EqualOp>()(
       x, y, internal::DataItem(schema::kMask), nullptr);
 }

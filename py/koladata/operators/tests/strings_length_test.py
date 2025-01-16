@@ -91,7 +91,7 @@ class StringsLengthTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.strings.count: argument `x` must be a slice of either STRING or'
+        'kd.strings.length: argument `x` must be a slice of either STRING or'
         ' BYTES, got a slice of INT32',
     ):
       expr_eval.eval(kde.strings.length(I.x), x=x)
@@ -99,7 +99,7 @@ class StringsLengthTest(parameterized.TestCase):
     x = ds(['abc', b'def'])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.strings.count: argument `x` must be a slice of either STRING or'
+        'kd.strings.length: argument `x` must be a slice of either STRING or'
         ' BYTES, got a slice of OBJECT with items of types',
     ):
       expr_eval.eval(kde.strings.length(I.x), x=x)

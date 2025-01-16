@@ -18,7 +18,6 @@
 #include <cstdint>
 #include <optional>
 #include <utility>
-#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -26,10 +25,8 @@
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_group_ops.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
@@ -61,9 +58,8 @@ struct InverseSelectOp {
       presence_mask_array =
           arolla::CreateEmptyDenseArray<arolla::Unit>(filter.size());
     } else if (filter.dtype() != arolla::GetQType<arolla::Unit>()) {
-      return OperatorEvalError(kInverseSelectOpName,
-                               "fltr argument must have all items "
-                               "of MASK dtype");
+      return absl::InvalidArgumentError(
+          "fltr argument must have all items of MASK dtype");
     } else {
       presence_mask_array = filter.values<arolla::Unit>();
     }
@@ -83,12 +79,10 @@ struct InverseSelectOp {
                      arolla::JaggedDenseArrayShape::FromEdges(
                          std::move(filter_select_edges)));
     if (!filter_select_shape.IsEquivalentTo(ds_shape)) {
-      return OperatorEvalError(
-          kInverseSelectOpName,
-          absl::StrCat("the shape of `ds` and the shape of the present elements"
-                       " in `fltr` do not match: ",
-                       arolla::Repr(ds_shape), " vs ",
-                       arolla::Repr(filter_select_shape)));
+      return absl::InvalidArgumentError(absl::StrCat(
+          "the shape of `ds` and the shape of the present elements"
+          " in `fltr` do not match: ",
+          arolla::Repr(ds_shape), " vs ", arolla::Repr(filter_select_shape)));
     }
 
     arolla::DenseArray<int64_t> present_indices =
@@ -119,16 +113,14 @@ struct InverseSelectOp {
       const DataItem& filter,
       const arolla::JaggedDenseArrayShape& filter_shape) const {
     if (filter.has_value() && !filter.holds_value<arolla::Unit>()) {
-      return OperatorEvalError(kInverseSelectOpName,
-                               "fltr argument must have all items "
-                               "of MASK dtype");
+      return absl::InvalidArgumentError(
+          "fltr argument must have all items of MASK dtype");
     }
     if (ds_impl.has_value() != filter.has_value()) {
-      return OperatorEvalError(
-          kInverseSelectOpName,
-          "the shape of `ds` and the shape of the present elements"
-          " in `fltr` do not match: because both are DataItems but have "
-          "different presences");
+      return absl::InvalidArgumentError(
+          "the shape of `ds` and the shape of the present elements in `fltr` "
+          "do not match: because both are DataItems but have different "
+          "presences");
     }
     return ds_impl;
   };

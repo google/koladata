@@ -274,8 +274,8 @@ class SlicesSelectTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.select: the schema of the `fltr` DataSlice should only be ANY,'
-            ' OBJECT or MASK'
+            'kd.slices.select: the schema of the `fltr` DataSlice should only'
+            ' be ANY, OBJECT or MASK'
         ),
     ):
       expr_eval.eval(kde.slices.select(val, val))
@@ -346,7 +346,7 @@ class SlicesSelectTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape('kd.select: failed to broadcast `fltr` to `ds`'),
+        re.escape('kd.slices.select: failed to broadcast `fltr` to `ds`'),
     ):
       _ = expr_eval.eval(kde.slices.select(x, y))
 

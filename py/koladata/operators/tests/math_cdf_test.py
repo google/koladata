@@ -202,7 +202,7 @@ class MathCdfTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.math.floordiv: argument `x` must be a slice of numeric values,'
+            'kd.math.cdf: argument `x` must be a slice of numeric values,'
             ' got a slice of SCHEMA(x=INT32)'
         ),
     ):
@@ -213,7 +213,7 @@ class MathCdfTest(parameterized.TestCase):
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.math.floordiv: argument `x` must be a slice of numeric values, got'
+        'kd.math.cdf: argument `x` must be a slice of numeric values, got'
         ' a slice of OBJECT',
     ):
       expr_eval.eval(kde.math.cdf(x))

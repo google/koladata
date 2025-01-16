@@ -1811,9 +1811,9 @@ foo.get_obj_schema().x = <desired_schema>"""),
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.select: the schema of the `fltr` DataSlice should only be ANY,'
-            ' OBJECT or MASK or can be evaluated to such DataSlice (i.e. Python'
-            ' function or Koda Functor)'
+            'kd.slices.select: the schema of the `fltr` DataSlice should only'
+            ' be ANY, OBJECT or MASK or can be evaluated to such DataSlice'
+            ' (i.e. Python function or Koda Functor)'
         ),
     ):
       x.select(ds([1, 2, 3]))
@@ -1821,7 +1821,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
     with self.subTest('Shape mismatch'):
       with self.assertRaisesRegex(
           exceptions.KodaError,
-          re.escape('kd.select: failed to broadcast `fltr` to `ds`'),
+          re.escape('kd.slices.select: failed to broadcast `fltr` to `ds`'),
       ):
         x = ds([[1, 2], [None, None], [7, 8, 9]])
         y = ds([arolla.present(), arolla.present(), None, arolla.present()])

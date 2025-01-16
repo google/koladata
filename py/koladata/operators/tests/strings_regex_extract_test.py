@@ -137,7 +137,7 @@ class StringsRegexExtractTest(parameterized.TestCase):
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.strings.extract_regex: argument `text` must be a slice of STRING,'
+        'kd.strings.regex_extract: argument `text` must be a slice of STRING,'
         ' got a slice of OBJECT with items of types',
     ):
       expr_eval.eval(kde.strings.regex_extract(ds([1, 'fo']), ds('foo')))

@@ -107,7 +107,7 @@ class SlicesTakeTest(parameterized.TestCase):
   def test_data_item_input_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape('kd.take: DataItem is not supported.'),
+        re.escape('kd.slices.take: DataItem is not supported.'),
     ):
       expr_eval.eval(kde.take(ds(1), ds(0)))
 
@@ -115,9 +115,9 @@ class SlicesTakeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.take: DataSlice with shape=JaggedShape(3) cannot be expanded to'
-            ' shape=JaggedShape(2); kd.at requires shape(x)[:-1] to be'
-            ' broadcastable to shape(indices) when ndim(x) <= ndim(indices)'
+            'kd.slices.take: DataSlice with shape=JaggedShape(3) cannot be'
+            ' expanded to shape=JaggedShape(2); kd.at requires shape(x)[:-1] to'
+            ' be broadcastable to shape(indices) when ndim(x) <= ndim(indices)'
         ),
     ):
       expr_eval.eval(kde.take(ds([[1], [2, 3]]), ds([1, 2, 3])))
@@ -125,7 +125,7 @@ class SlicesTakeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """kd.take: indices must be broadcastable to shape(x)[:-1] when ndim(x) - 1 > ndim(indices)
+            """kd.slices.take: indices must be broadcastable to shape(x)[:-1] when ndim(x) - 1 > ndim(indices)
 
 The cause is: DataSlice with shape=JaggedShape(3) cannot be expanded to shape=JaggedShape(2, [1, 2])"""
         ),
@@ -136,7 +136,7 @@ The cause is: DataSlice with shape=JaggedShape(3) cannot be expanded to shape=Ja
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """kd.take: invalid indices DataSlice is provided
+            """kd.slices.take: invalid indices DataSlice is provided
 
 The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice"""
         ),

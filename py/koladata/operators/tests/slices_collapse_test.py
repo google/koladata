@@ -86,7 +86,7 @@ class SlicesCollapseTest(parameterized.TestCase):
     x = ds(1)
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape('kd.collapse: DataItem is not supported'),
+        re.escape('kd.slices.collapse: DataItem is not supported'),
     ):
       expr_eval.eval(kde.slices.collapse(x))
 
