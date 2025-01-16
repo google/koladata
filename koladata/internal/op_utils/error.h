@@ -16,10 +16,12 @@
 #define KOLADATA_INTERNAL_OP_UTILS_ERROR_H_
 
 #include <string>
+#include <type_traits>
 #include <utility>
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/status.h"
 
 namespace koladata::internal {
@@ -42,32 +44,46 @@ absl::Status OperatorEvalError(absl::string_view operator_name,
 
 // Wraps the given function, so all its errors are converted into
 // OperatorEvalError.
-template <typename Ret, typename... Args>
-class ReturnsOperatorEvalError {
- public:
-  ReturnsOperatorEvalError(std::string name, Ret (*func)(Args...))
-      : name_(std::move(name)), func_(func) {}
+template <typename Fn, typename Ret, typename ArgsList>
+class ReturnsOperatorEvalError;
 
-  Ret operator()(const Args&... args) const {
+template <typename Fn, typename Ret, typename... Args>
+class ReturnsOperatorEvalError<Fn, Ret, arolla::meta::type_list<Args...>> {
+ public:
+  ReturnsOperatorEvalError(std::string name, Fn func)
+      : name_(std::move(name)), func_(std::move(func)) {}
+
+  // NOTE: Unlike for a regularly deduced template function, `Args...` resemble
+  // the original function's signature and so may contain reference types.
+  // Because of that, we are using `std::forward` to perfectly forward the
+  // arguments.
+  Ret operator()(Args... args) const {
     if constexpr (arolla::IsStatusOrT<Ret>::value) {
-      auto result = func_(args...);
+      auto result = func_(std::forward<Args>(args)...);
       if (!result.ok()) {
         return OperatorEvalError(result.status(), name_);
       }
       return result;
+    } else if constexpr (std::is_same_v<Ret, absl::Status>) {
+      auto status = func_(std::forward<Args>(args)...);
+      if (!status.ok()) {
+        return OperatorEvalError(status, name_);
+      }
+      return status;
     } else {
-      return func_(args...);
+      return func_(std::forward<Args>(args)...);
     }
   }
 
  private:
   std::string name_;
-  Ret (*func_)(Args...);
+  Fn func_;
 };
 
-template <typename Ret, typename... Args>
-ReturnsOperatorEvalError(std::string name, Ret (*func)(Args...))
-    -> ReturnsOperatorEvalError<Ret, Args...>;
+template <typename Fn>
+ReturnsOperatorEvalError(std::string name, Fn func) -> ReturnsOperatorEvalError<
+    Fn, typename arolla::meta::function_traits<Fn>::return_type,
+    typename arolla::meta::function_traits<Fn>::arg_types>;
 
 }  // namespace koladata::internal
 

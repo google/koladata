@@ -53,15 +53,13 @@ namespace koladata::ops {
 namespace {
 
 template <typename Ret, typename... Args>
-internal::ReturnsOperatorEvalError<Ret, Args...> OperatorMacroImpl(
-    absl::string_view name, Ret (*func)(Args...)) {
+auto OperatorMacroImpl(absl::string_view name, Ret (*func)(Args...)) {
   return internal::ReturnsOperatorEvalError(std::string(name), func);
 }
 
 template <typename Ret, typename... Args>
-internal::ReturnsOperatorEvalError<Ret, Args...> OperatorMacroImpl(
-    absl::string_view name, Ret (*func)(Args...),
-    absl::string_view display_name) {
+auto OperatorMacroImpl(absl::string_view name, Ret (*func)(Args...),
+                       absl::string_view display_name) {
   DCHECK_NE(name, display_name) << "remove excessive display_name argument";
   return internal::ReturnsOperatorEvalError(std::string(display_name), func);
 }
