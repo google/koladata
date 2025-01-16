@@ -43,7 +43,7 @@ TEST(OperatorEvalError, NoCause) {
               StatusIs(absl::StatusCode::kInvalidArgument, "error_message"));
   std::optional<internal::Error> payload =
       internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
+  ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: error_message"));
   EXPECT_FALSE(payload->has_cause());
 }
@@ -55,9 +55,20 @@ TEST(OperatorEvalError, WithStatus) {
               StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
   std::optional<internal::Error> payload =
       internal::GetErrorPayload(new_status);
-  EXPECT_TRUE(payload.has_value());
+  ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: Test error"));
   EXPECT_THAT(payload->cause().error_message(), Eq(""));
+}
+
+TEST(OperatorEvalError, EmptyOperatorName) {
+  absl::Status status = absl::InvalidArgumentError("Test error");
+  absl::Status new_status = OperatorEvalError(status, "");
+  EXPECT_THAT(new_status,
+              StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
+  std::optional<internal::Error> payload =
+      internal::GetErrorPayload(new_status);
+  ASSERT_TRUE(payload.has_value());
+  EXPECT_THAT(payload->error_message(), Eq("Test error"));
 }
 
 TEST(OperatorEvalError, WithStatusAndErrorMessage) {
@@ -68,7 +79,7 @@ TEST(OperatorEvalError, WithStatusAndErrorMessage) {
               StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
   std::optional<internal::Error> payload =
       internal::GetErrorPayload(new_status);
-  EXPECT_TRUE(payload.has_value());
+  ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: error_message"));
   EXPECT_THAT(payload->cause().error_message(), Eq("Test error"));
 }
@@ -85,7 +96,7 @@ TEST(OperatorEvalError, WithStatusContainingCause) {
               StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
   std::optional<internal::Error> payload =
       internal::GetErrorPayload(new_status);
-  EXPECT_TRUE(payload.has_value());
+  ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: error_message"));
   EXPECT_THAT(payload->cause().error_message(), Eq("cause"));
 }
@@ -96,7 +107,7 @@ TEST(OperatorEvalError, SubsequentCalls) {
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument, "error_message"));
   std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
+  ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: error_message"));
   EXPECT_FALSE(payload->has_cause());
 }
@@ -111,7 +122,7 @@ TEST(ReturnsOperatorEvalError, WrapsStatusOr) {
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument, "test error 57"));
   std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
+  ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: test error 57"));
   EXPECT_FALSE(payload->has_cause());
 }
@@ -126,7 +137,7 @@ TEST(ReturnsOperatorEvalError, WrapsStatus) {
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument, "test error 57"));
   std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
+  ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: test error 57"));
   EXPECT_FALSE(payload->has_cause());
 }
@@ -140,7 +151,7 @@ TEST(ReturnsOperatorEvalError, WithLambda) {
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument, "test error 57"));
   std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
+  ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: test error 57"));
   EXPECT_FALSE(payload->has_cause());
 }
@@ -223,7 +234,7 @@ TEST(ReturnsOperatorEvalError, NoExtraInputCopies) {
             absl::StatusCode::kInvalidArgument,
             "by_value: 1/1, by_const_ref: 0/0, by_rvalue: 0/0, by_ref: 0/0"));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
+    ASSERT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
                 Eq("op_name: by_value: 1/1, by_const_ref: 0/0, by_rvalue: 0/0, "
                    "by_ref: 0/0"));

@@ -4052,6 +4052,7 @@ py_test(
     srcs = ["slices_group_by_indices_test.py"],
     deps = [
         "//py/koladata:kd",
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4073,6 +4074,7 @@ py_test(
     srcs = ["slices_group_by_test.py"],
     deps = [
         "//py/koladata:kd",
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

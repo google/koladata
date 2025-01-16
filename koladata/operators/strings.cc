@@ -86,10 +86,7 @@ absl::StatusOr<DataSlice> EvalFormatOp(absl::string_view op_name,
   }
   // From here on, we know that at least one input has known schema and we
   // should eval.
-  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("fmt", fmt)).With([&](auto _) {
-    return internal::OperatorEvalError(std::move(_),
-                                       absl::StrCat("kd.", op_name));
-  });
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("fmt", fmt));
   return SimplePointwiseEval(op_name, std::move(slices), fmt.GetSchemaImpl());
 }
 
@@ -121,7 +118,9 @@ class FormatOperator : public arolla::QExprOperator {
           values.insert(values.begin(), {format_spec, arg_names_slice});
           ASSIGN_OR_RETURN(
               auto result,
-              EvalFormatOp("strings.format", format_spec, std::move(values)),
+              internal::ReturnsOperatorEvalError("kd.strings.format",
+                                                 EvalFormatOp)(
+                  "strings.format", format_spec, std::move(values)),
               ctx->set_status(std::move(_)));
           frame.Set(output_slot, std::move(result));
         });
@@ -260,11 +259,7 @@ absl::StatusOr<DataSlice> Join(std::vector<DataSlice> slices) {
   }
   for (size_t i = 1; i < slices.size(); ++i) {
     RETURN_IF_ERROR(ExpectConsistentStringOrBytes(
-                        {"slices[0]", absl::StrCat("slices[", i, "]")},
-                        slices[0], slices[i]))
-        .With([](auto _) {
-          return internal::OperatorEvalError(_, "kd.strings.join");
-        });
+        {"slices[0]", absl::StrCat("slices[", i, "]")}, slices[0], slices[i]));
   }
   return SimplePointwiseEval("strings.join", std::move(slices));
 }
