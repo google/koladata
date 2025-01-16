@@ -20,12 +20,14 @@ from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
 from koladata.operators import jagged_shape as jagged_shape_ops
+from koladata.operators import koda_internal as _
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import slices as slice_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
+from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
@@ -264,6 +266,34 @@ def implode(
   """
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
   return _implode(x, arolla_bridge.to_arolla_int64(ndim), itemid)
+
+
+@arolla.optools.as_backend_operator(
+    'kd.lists._concat_lists',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+)
+def _concat_lists(*args):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.concat_lists'])
+@optools.as_lambda_operator(
+    'kd.lists.concat_lists',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.arg0),
+        qtype_utils.expect_data_slice_args(P.args),
+    ],
+    deterministic=False,
+)
+def concat_lists(arg0, *args):
+  """Implementation of kde.lists.concat_lists."""
+  # TODO: Support 0 args.
+  args = arolla.optools.fix_trace_args(args)
+  return arolla.M.core.apply_varargs(
+      _concat_lists,
+      arolla.abc.aux_bind_op('koda_internal.non_deterministic_identity', arg0),
+      args,
+  )
 
 
 @optools.add_to_registry(aliases=['kd.list_size'])

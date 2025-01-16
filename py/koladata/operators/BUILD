@@ -366,6 +366,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":jagged_shape",
+        ":koda_internal",
         ":optools",
         ":qtype_utils",
         ":slices",
@@ -373,6 +374,7 @@ py_library(
         "//koladata/operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",

@@ -18,6 +18,7 @@
 #include <optional>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"
@@ -35,7 +36,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/object_factories.h"
-#include "koladata/operators/utils.h"
 #include "koladata/uuid_utils.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
@@ -161,6 +161,13 @@ absl::StatusOr<DataSlice> ListShaped(
                                               : std::make_optional(item_schema),
           IsUnspecifiedDataSlice(itemid) ? std::nullopt
                                          : std::make_optional(itemid)));
+  db->UnsafeMakeImmutable();
+  return result;
+}
+
+absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists) {
+  const DataBagPtr db = DataBag::Empty();
+  ASSIGN_OR_RETURN(auto result, ConcatLists(db, std::move(lists)));
   db->UnsafeMakeImmutable();
   return result;
 }

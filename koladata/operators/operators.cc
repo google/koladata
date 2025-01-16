@@ -158,6 +158,8 @@ OPERATOR_FAMILY("kd.ids.uuid_for_list",
 OPERATOR("kd.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
 //
 OPERATOR("kd.json.to_json", ToJson);
+OPERATOR_FAMILY("kd.lists._concat_lists",
+                arolla::MakeVariadicInputOperatorFamily(ConcatLists));
 //
 OPERATOR("kd.lists._explode", Explode, "kd.lists.explode");
 OPERATOR("kd.lists._implode", Implode, "kd.lists.implode");

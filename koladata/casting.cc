@@ -14,6 +14,7 @@
 //
 #include "koladata/casting.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -24,6 +25,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
@@ -366,7 +368,16 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
     return std::move(schema_agg).Get();
   };
 
-  ASSIGN_OR_RETURN(auto common_schema, get_common_schema());
+  auto get_fallback_db = [&slices] {
+    std::vector<DataBagPtr> ret(slices.size());
+    std::transform(slices.begin(), slices.end(), ret.begin(),
+                   [](const DataSlice& ds) { return ds.GetBag(); });
+    return ret;
+  };
+  ASSIGN_OR_RETURN(
+      auto common_schema, get_common_schema(),
+      AssembleErrorMessage(
+          _, {.db = DataBag::ImmutableEmptyWithFallbacks(get_fallback_db())}));
   for (auto& slice : slices) {
     // Since we cast to a common schema, we don't need to validate implicit
     // compatibility or validate schema (during casting to OBJECT) as no

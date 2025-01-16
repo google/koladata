@@ -18,6 +18,7 @@
 // List operator implementations.
 
 #include <cstdint>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
@@ -62,6 +63,9 @@ absl::StatusOr<DataSlice> ListShaped(
     const DataSlice& item_schema, const DataSlice& schema,
     const DataSlice& itemid,
     internal::NonDeterministicToken);
+
+// kde.lists.concat_lists operator.
+absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists);
 
 }  // namespace koladata::ops
 
