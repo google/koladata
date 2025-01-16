@@ -12,13 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_INTERNAL_OP_UTILS_UTILS_H_
-#define KOLADATA_INTERNAL_OP_UTILS_UTILS_H_
+#ifndef KOLADATA_INTERNAL_OP_UTILS_ERROR_H_
+#define KOLADATA_INTERNAL_OP_UTILS_ERROR_H_
 
+#include <string>
 #include <utility>
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "arolla/util/status.h"
 
 namespace koladata::internal {
 
@@ -28,11 +30,15 @@ namespace koladata::internal {
 // By default, the error message is taken from the status, but can be overridden
 // by passing a custom error_message.
 absl::Status OperatorEvalError(absl::Status status,
+                               absl::string_view operator_name);
+absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name,
-                               absl::string_view error_message = "");
+                               absl::string_view error_message);
 
 // absl::Status adaptor that attaches operator name and wraps the given status
 // into an OperatorEvalError.
+// TODO: b/389032294 - Remove this adaptor once ReturnsOperatorEvalError is used
+// automatically.
 inline auto ToOperatorEvalError(absl::string_view operator_name) {
   return [operator_name](absl::Status status) {
     return OperatorEvalError(std::move(status), operator_name);
@@ -44,6 +50,35 @@ inline auto ToOperatorEvalError(absl::string_view operator_name) {
 absl::Status OperatorEvalError(absl::string_view operator_name,
                                absl::string_view error_message);
 
+// Wraps the given function, so all its errors are converted into
+// OperatorEvalError.
+template <typename Ret, typename... Args>
+class ReturnsOperatorEvalError {
+ public:
+  ReturnsOperatorEvalError(std::string name, Ret (*func)(Args...))
+      : name_(std::move(name)), func_(func) {}
+
+  Ret operator()(const Args&... args) const {
+    if constexpr (arolla::IsStatusOrT<Ret>::value) {
+      auto result = func_(args...);
+      if (!result.ok()) {
+        return OperatorEvalError(result.status(), name_);
+      }
+      return result;
+    } else {
+      return func_(args...);
+    }
+  }
+
+ private:
+  std::string name_;
+  Ret (*func_)(Args...);
+};
+
+template <typename Ret, typename... Args>
+ReturnsOperatorEvalError(std::string name, Ret (*func)(Args...))
+    -> ReturnsOperatorEvalError<Ret, Args...>;
+
 }  // namespace koladata::internal
 
-#endif  // KOLADATA_INTERNAL_OP_UTILS_UTILS_H_
+#endif  // KOLADATA_INTERNAL_OP_UTILS_ERROR_H_

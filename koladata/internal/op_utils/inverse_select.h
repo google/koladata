@@ -26,7 +26,7 @@
 #include "absl/strings/string_view.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "koladata/internal/op_utils/utils.h"
+#include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"

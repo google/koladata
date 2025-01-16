@@ -37,7 +37,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/op_utils/utils.h"
+#include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"

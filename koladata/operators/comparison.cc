@@ -25,7 +25,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/equal.h"
-#include "koladata/internal/op_utils/utils.h"
+#include "koladata/internal/op_utils/error.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"

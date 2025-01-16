@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/internal/op_utils/utils.h"
+#include "koladata/internal/op_utils/error.h"
 
 #include <optional>
 #include <utility>
 
 #include "absl/status/status.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/error.pb.h"
@@ -26,31 +27,30 @@
 namespace koladata::internal {
 
 absl::Status OperatorEvalError(absl::Status status,
+                               absl::string_view operator_name) {
+  internal::Error error =
+      internal::GetErrorPayload(status).value_or(internal::Error());
+  if (error.error_message().empty()) {
+    error.set_error_message(status.message());
+  }
+  if (!absl::StartsWith(error.error_message(), operator_name)) {
+    error.set_error_message(
+        absl::StrFormat("%s: %s", operator_name, error.error_message()));
+  }
+  return internal::WithErrorPayload(std::move(status), error);
+}
+
+absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name,
                                absl::string_view error_message) {
-  internal::Error error;
-  std::optional<internal::Error> cause = internal::GetErrorPayload(status);
-  if (cause) {
-    *error.mutable_cause() = *std::move(cause);
-  } else if (!error_message.empty()) {
-    error.mutable_cause()->set_error_message(status.message());
-  } else {
-    error_message = status.message();
-  }
-  error.set_error_message(
-      absl::StrFormat("%s: %s", operator_name, error_message));
-  return internal::WithErrorPayload(std::move(status), error);
+  return OperatorEvalError(KodaErrorFromCause(error_message, std::move(status)),
+                           operator_name);
 }
 
 absl::Status OperatorEvalError(absl::string_view operator_name,
                                absl::string_view error_message) {
-  internal::Error error;
-  error.set_error_message(
-      absl::StrFormat("%s: %s", operator_name, error_message));
-  // Note error_message inside the status is not used by the error handling
-  // logic in the CPython layer.
-  return internal::WithErrorPayload(absl::InvalidArgumentError(error_message),
-                                    error);
+  return OperatorEvalError(absl::InvalidArgumentError(error_message),
+                           operator_name);
 }
 
 }  // namespace koladata::internal
