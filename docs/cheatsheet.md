@@ -2546,8 +2546,6 @@ kd.trace_py_fn(f3)(a=1)  # 4
 
 </section>
 
-</section>
-
 <section>
 
 ### Invoke Another Function in a Traced Function
@@ -2640,6 +2638,8 @@ traced_f2(a1, a2, b, c) # 'cb'
 ```
 
 </section>
+
+<section>
 
 ### Improve Structure/Readability of Resulting Functor
 
@@ -2865,6 +2865,8 @@ new_expr = kd.expr.sub_inputs(expr, b=kd.slice([2, 4]))
 ```
 
 </section>
+
+<section>
 
 ### Defining Custom Operators
 
