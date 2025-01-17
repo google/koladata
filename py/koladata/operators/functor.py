@@ -39,7 +39,7 @@ def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):
     kd.call(kd.fn(I.x + I.y), x=2, y=3)
     # returns kd.item(5)
 
-    kde.call(I.fn, x=2, y=3).eval(fn=kd.fn(I.x + I.y))
+    kd.lazy.call(I.fn, x=2, y=3).eval(fn=kd.fn(I.x + I.y))
     # returns kd.item(5)
 
   Args:

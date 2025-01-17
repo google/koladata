@@ -125,9 +125,9 @@ def obj_like(shape_and_mask_from, /, *, itemid=arolla.unspecified(), **attrs):  
 
   Please note the difference to obj_shaped_as:
 
-  x = kde.obj_like(ds([None, None]), a=42).eval()
-    kde.has._eval(x) # => ds([None, None], schema_constants.MASK)
-    x.a # => ds([None, None], schema_constants.OBJECT)
+  x = kd.obj_like(ds([None, None]), a=42)
+  kd.has(x) # => ds([None, None], schema_constants.MASK)
+  x.a # => ds([None, None], schema_constants.OBJECT)
 
   Args:
     shape_and_mask_from: DataSlice to copy the shape and mask from.

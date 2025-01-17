@@ -257,7 +257,7 @@ def fstr(fmt):
   NOTE: `{ds:s}` can be used for any type to achieve default string conversion.
 
   Examples:
-    greeting_expr = kd.fstr(f'Hello, {I.countries:s}!')
+    greeting_expr = kd.lazy.fstr(f'Hello, {I.countries:s}!')
 
     countries = kd.slice(['USA', 'Schweiz'])
     kd.eval(greeting_expr, countries=countries)
@@ -265,13 +265,13 @@ def fstr(fmt):
 
     local_greetings = ds(['Hello', 'Gruezi'])
     # Data slice is interpreted as literal.
-    local_greeting_expr = kd.fstr(
+    local_greeting_expr = kd.lazy.fstr(
         f'{local_greetings:s}, {I.countries:s}!'
     )
     kd.eval(local_greeting_expr, countries=countries)
       # -> kd.slice(['Hello, USA!', 'Gruezi, Schweiz!'])
 
-    price_expr = kd.fstr(
+    price_expr = kd.lazy.fstr(
         f'Lunch price in {I.countries:s} is {I.prices:.2f} {I.currencies:s}.')
     kd.eval(price_expr,
             countries=countries,
