@@ -48,6 +48,8 @@ TEST(TypesBufferTest, Basic) {
   EXPECT_THAT(b.ToInvertedBitmap(0), ElementsAre(0b11011));
   EXPECT_THAT(b.ToInvertedBitmap(1), ElementsAre(0b01110));
   EXPECT_THAT(b.ToInvertedBitmap(TypesBuffer::kRemoved), ElementsAre(0b10111));
+  EXPECT_THAT(b.ToNotRemovedBitmap(), ElementsAre(0b10111));
+  EXPECT_THAT(b.ToSetBitmap(), ElementsAre(0b11101));
   EXPECT_THAT(b.ToPresenceBitmap(), ElementsAre(0b10101));
 }
 

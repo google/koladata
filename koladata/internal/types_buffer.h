@@ -95,6 +95,10 @@ struct TypesBuffer {
   arolla::bitmap::Bitmap ToNotRemovedBitmap() const {
     return ToInvertedBitmap(kRemoved);
   }
+  // Creates bitmap of (id_to_typeidx[i] != kUnset) per element.
+  arolla::bitmap::Bitmap ToSetBitmap() const {
+    return ToInvertedBitmap(kUnset);
+  }
 };
 
 }  // namespace koladata::internal
