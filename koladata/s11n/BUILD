@@ -77,11 +77,35 @@ cc_test(
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
         "//koladata/testing:test_env",
+        "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/serialization",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "serialization_benchmarks",
+    testonly = 1,
+    srcs = ["serialization_benchmarks.cc"],
+    deps = [
+        ":s11n",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/strings",
+        "@com_google_arolla//arolla/dense_array/testing",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/serialization",
+        "@com_google_arolla//arolla/util",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
     ],
 )
 

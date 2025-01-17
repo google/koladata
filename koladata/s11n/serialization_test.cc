@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <cstdint>
+#include <numeric>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -20,6 +22,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/typed_value.h"
@@ -83,6 +86,28 @@ TEST(SerializationTest, DataSliceImpl) {
   ASSERT_OK_AND_ASSIGN(DataSliceImpl res,
                        decode_result.values[0].As<DataSliceImpl>());
   EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
+}
+
+TEST(SerializationTest, DataSliceImplInt64BytesSize) {
+  constexpr int64_t kSize = 1000000;
+  std::vector<int64_t> values(kSize);
+  std::iota(values.begin(), values.end(), 0);
+  auto slice = DataSliceImpl::Create(arolla::CreateFullDenseArray(values));
+  std::vector<TypedValue> typed_values;
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                       {TypedValue::FromValue(slice)}, {}));
+  // Real number is 6MB. We set a limit a bit higher.
+  EXPECT_LT(proto.ByteSizeLong(), 10 * 1000 * 1000);
+}
+
+TEST(SerializationTest, DataSliceImplObjectIdBytesSize) {
+  constexpr int64_t kSize = 1000000;
+  auto slice = DataSliceImpl::AllocateEmptyObjects(kSize);
+  std::vector<TypedValue> typed_values;
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                       {TypedValue::FromValue(slice)}, {}));
+  // Real number is 17MB. We set a limit a bit higher.
+  EXPECT_LT(proto.ByteSizeLong(), 30 * 1000 * 1000);
 }
 
 }  // namespace

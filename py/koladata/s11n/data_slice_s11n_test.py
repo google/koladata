@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for data_slice_s11n."""
-
 import re
 
 from absl.testing import absltest
@@ -53,6 +51,12 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
 
   def test_slice(self):
     value = data_slice.DataSlice.from_vals([1, 2, 3])
+    data = arolla.s11n.dumps(value)
+    res = arolla.s11n.loads(data)
+    kd_testing.assert_equal(res, value)
+
+  def test_big_slice(self):
+    value = data_slice.DataSlice.from_vals(list(range(10**7)))
     data = arolla.s11n.dumps(value)
     res = arolla.s11n.loads(data)
     kd_testing.assert_equal(res, value)
