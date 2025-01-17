@@ -31,10 +31,10 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/object_factories.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
@@ -115,11 +115,13 @@ class JaggedShapeCreateOperator : public arolla::QExprOperator {
       arolla::TypedSlot output_slot) const override {
     Slot<DataSlice::JaggedShape> shape_slot =
         output_slot.UnsafeToSlot<DataSlice::JaggedShape>();
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.shapes.new",
         [edge_or_slice_slots =
              std::vector(input_slots.begin(), input_slots.end()),
-         shape_slot = std::move(shape_slot)](arolla::EvaluationContext* ctx,
-                                             arolla::FramePtr frame) {
+         shape_slot = std::move(shape_slot)](
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           DataSlice::JaggedShape::EdgeVec edges;
           edges.reserve(edge_or_slice_slots.size());
           for (const auto& input_slot : edge_or_slice_slots) {
@@ -130,15 +132,14 @@ class JaggedShapeCreateOperator : public arolla::QExprOperator {
                   auto edge,
                   GetEdgeFromSizes</*is_parent_size=*/true>(
                       frame.Get(input_slot.UnsafeToSlot<DataSlice>()),
-                      edges.empty() ? 1 : edges.back().child_size(), ctx),
-                  ctx->set_status(std::move(_)));
+                      edges.empty() ? 1 : edges.back().child_size(), ctx));
               edges.push_back(std::move(edge));
             }
           }
           ASSIGN_OR_RETURN(auto jagged_shape,
-                           DataSlice::JaggedShape::FromEdges(std::move(edges)),
-                           ctx->set_status(std::move(_)));
+                           DataSlice::JaggedShape::FromEdges(std::move(edges)));
           frame.Set(shape_slot, std::move(jagged_shape));
+          return absl::OkStatus();
         });
   }
 };
@@ -182,101 +183,98 @@ class JaggedShapeCreateWithSizeOperator : public arolla::QExprOperator {
     Slot<DataSlice> size_slot = input_slots[0].UnsafeToSlot<DataSlice>();
     Slot<DataSlice::JaggedShape> shape_slot =
         output_slot.UnsafeToSlot<DataSlice::JaggedShape>();
-    return arolla::MakeBoundOperator([size_slot = std::move(size_slot),
-                                      edge_or_slice_slots =
-                                          std::vector(input_slots.begin() + 1,
-                                                      input_slots.end()),
-                                      shape_slot = std::move(shape_slot)](
-                                         arolla::EvaluationContext* ctx,
-                                         arolla::FramePtr frame) {
-      // To support the placeholder dimension (-1), we look to its adjacent
-      // dimensions to figure out the size. The LHS edges are computed
-      // through a "forward pass" using prior edges (lower dimensions) to
-      // resolve uniform dimension specifications. Conversely, the RHS edges
-      // are computed through a "backward pass" using higher dimensions
-      // starting with the provided size. The placeholder dimension is then
-      // formed through the child size of the previous dimension and the
-      // parent size of the next dimension.
-      ASSIGN_OR_RETURN(int64_t size,
-                       ToArollaScalar<int64_t>(frame.Get(size_slot)),
-                       ctx->set_status(std::move(_)));
-      if (size < 0) {
-        ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-            "size must be a non-negative integer, got: %d", size)));
-        return;
-      }
-      DataSlice::JaggedShape::EdgeVec edges(edge_or_slice_slots.size());
-      auto previous_child_size = [&](int i) {
-        return i == 0 ? 1 : edges[i - 1].child_size();
-      };
-      auto next_parent_size = [&](int i) {
-        return i == edges.size() - 1 ? size : edges[i + 1].parent_size();
-      };
-      ASSIGN_OR_RETURN(int placeholder_dim_index,
-                       GetPlaceholderDimension(frame, edge_or_slice_slots),
-                       ctx->set_status(std::move(_)));
-      int iterto =
-          placeholder_dim_index >= 0 ? placeholder_dim_index : edges.size();
-      // Forward pass.
-      for (int i = 0; i < iterto; ++i) {
-        const auto& input_slot = edge_or_slice_slots[i];
-        if (input_slot.GetType() == arolla::GetQType<Edge>()) {
-          edges[i] = frame.Get(input_slot.UnsafeToSlot<Edge>());
-        } else {
-          ASSIGN_OR_RETURN(auto edge,
-                           GetEdgeFromSizes</*is_parent_size=*/true>(
-                               frame.Get(input_slot.UnsafeToSlot<DataSlice>()),
-                               previous_child_size(i), ctx),
-                           ctx->set_status(std::move(_)));
-          edges[i] = std::move(edge);
-        }
-      }
-      // Backward pass.
-      for (int i = edges.size() - 1; i > iterto; --i) {
-        const auto& input_slot = edge_or_slice_slots[i];
-        if (input_slot.GetType() == arolla::GetQType<Edge>()) {
-          edges[i] = frame.Get(input_slot.UnsafeToSlot<Edge>());
-        } else {
-          ASSIGN_OR_RETURN(auto edge,
-                           GetEdgeFromSizes</*is_parent_size=*/false>(
-                               frame.Get(input_slot.UnsafeToSlot<DataSlice>()),
-                               next_parent_size(i), ctx),
-                           ctx->set_status(std::move(_)));
-          edges[i] = std::move(edge);
-        }
-      }
-      if (placeholder_dim_index != -1) {
-        int64_t parent_size = previous_child_size(placeholder_dim_index);
-        int64_t child_size = next_parent_size(placeholder_dim_index);
-        // In case `parent_size` is 0, all subsequent dimensions must also
-        // be 0. Otherwise, we need to figure out the actual group size.
-        int64_t group_size = 0;
-        if (parent_size != 0) {
-          if (child_size % parent_size != 0) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "parent_size=%d does not divide child_size=%d, so the "
-                "placeholder dimension at index %d cannot be resolved",
-                child_size, parent_size, placeholder_dim_index)));
-            return;
+    return MakeBoundOperator(
+        // NOTE: The operator is called `kd.shapes._new_with_size`, but its only
+        // usage is through `kd.shapes.reshape`.
+        "kd.shapes.reshape",
+        [size_slot = std::move(size_slot),
+         edge_or_slice_slots =
+             std::vector(input_slots.begin() + 1, input_slots.end()),
+         shape_slot = std::move(shape_slot)](
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
+          // To support the placeholder dimension (-1), we look to its adjacent
+          // dimensions to figure out the size. The LHS edges are computed
+          // through a "forward pass" using prior edges (lower dimensions) to
+          // resolve uniform dimension specifications. Conversely, the RHS edges
+          // are computed through a "backward pass" using higher dimensions
+          // starting with the provided size. The placeholder dimension is then
+          // formed through the child size of the previous dimension and the
+          // parent size of the next dimension.
+          ASSIGN_OR_RETURN(int64_t size,
+                           ToArollaScalar<int64_t>(frame.Get(size_slot)));
+          if (size < 0) {
+            return absl::InvalidArgumentError(absl::StrFormat(
+                "size must be a non-negative integer, got: %d", size));
           }
-          group_size = child_size / parent_size;
-        }
-        ASSIGN_OR_RETURN(edges[placeholder_dim_index],
-                         Edge::FromUniformGroups(parent_size, group_size),
-                         ctx->set_status(std::move(_)));
-      }
-      ASSIGN_OR_RETURN(auto jagged_shape,
-                       DataSlice::JaggedShape::FromEdges(std::move(edges)),
-                       ctx->set_status(std::move(_)));
-      if (jagged_shape.size() != size) {
-        ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-            "invalid dimension specification - the resulting shape size=%d "
-            "!= the expected size=%d",
-            jagged_shape.size(), size)));
-        return;
-      }
-      frame.Set(shape_slot, std::move(jagged_shape));
-    });
+          DataSlice::JaggedShape::EdgeVec edges(edge_or_slice_slots.size());
+          auto previous_child_size = [&](int i) {
+            return i == 0 ? 1 : edges[i - 1].child_size();
+          };
+          auto next_parent_size = [&](int i) {
+            return i == edges.size() - 1 ? size : edges[i + 1].parent_size();
+          };
+          ASSIGN_OR_RETURN(int placeholder_dim_index,
+                           GetPlaceholderDimension(frame, edge_or_slice_slots));
+          int iterto =
+              placeholder_dim_index >= 0 ? placeholder_dim_index : edges.size();
+          // Forward pass.
+          for (int i = 0; i < iterto; ++i) {
+            const auto& input_slot = edge_or_slice_slots[i];
+            if (input_slot.GetType() == arolla::GetQType<Edge>()) {
+              edges[i] = frame.Get(input_slot.UnsafeToSlot<Edge>());
+            } else {
+              ASSIGN_OR_RETURN(
+                  auto edge,
+                  GetEdgeFromSizes</*is_parent_size=*/true>(
+                      frame.Get(input_slot.UnsafeToSlot<DataSlice>()),
+                      previous_child_size(i), ctx));
+              edges[i] = std::move(edge);
+            }
+          }
+          // Backward pass.
+          for (int i = edges.size() - 1; i > iterto; --i) {
+            const auto& input_slot = edge_or_slice_slots[i];
+            if (input_slot.GetType() == arolla::GetQType<Edge>()) {
+              edges[i] = frame.Get(input_slot.UnsafeToSlot<Edge>());
+            } else {
+              ASSIGN_OR_RETURN(
+                  auto edge,
+                  GetEdgeFromSizes</*is_parent_size=*/false>(
+                      frame.Get(input_slot.UnsafeToSlot<DataSlice>()),
+                      next_parent_size(i), ctx));
+              edges[i] = std::move(edge);
+            }
+          }
+          if (placeholder_dim_index != -1) {
+            int64_t parent_size = previous_child_size(placeholder_dim_index);
+            int64_t child_size = next_parent_size(placeholder_dim_index);
+            // In case `parent_size` is 0, all subsequent dimensions must also
+            // be 0. Otherwise, we need to figure out the actual group size.
+            int64_t group_size = 0;
+            if (parent_size != 0) {
+              if (child_size % parent_size != 0) {
+                return absl::InvalidArgumentError(absl::StrFormat(
+                    "parent_size=%d does not divide child_size=%d, so the "
+                    "placeholder dimension at index %d cannot be resolved",
+                    parent_size, child_size, placeholder_dim_index));
+              }
+              group_size = child_size / parent_size;
+            }
+            ASSIGN_OR_RETURN(edges[placeholder_dim_index],
+                             Edge::FromUniformGroups(parent_size, group_size));
+          }
+          ASSIGN_OR_RETURN(auto jagged_shape,
+                           DataSlice::JaggedShape::FromEdges(std::move(edges)));
+          if (jagged_shape.size() != size) {
+            return absl::InvalidArgumentError(absl::StrFormat(
+                "invalid dimension specification - the resulting shape size=%d "
+                "!= the expected size=%d",
+                jagged_shape.size(), size));
+          }
+          frame.Set(shape_slot, std::move(jagged_shape));
+          return absl::OkStatus();
+        });
   }
 };
 

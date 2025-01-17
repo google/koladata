@@ -40,6 +40,7 @@
 #include "koladata/internal/op_utils/deep_uuid.h"
 #include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/op_utils/itemid.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/utils.h"
 #include "koladata/uuid_utils.h"
@@ -70,21 +71,21 @@ class UuidOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.ids.uuid",
         [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
-                           GetStringArgument(frame.Get(seed_slot), "seed"),
-                           ctx->set_status(std::move(_)));
+                           GetStringArgument(frame.Get(seed_slot), "seed"));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
-          ASSIGN_OR_RETURN(
-              auto result,
-              koladata::CreateUuidFromFields(seed, attr_names, values),
-              ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(auto result, koladata::CreateUuidFromFields(
+                                            seed, attr_names, values));
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -98,21 +99,21 @@ class UuidForListOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.ids.uuid_for_list",
         [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
-                           GetStringArgument(frame.Get(seed_slot), "seed"),
-                           ctx->set_status(std::move(_)));
+                           GetStringArgument(frame.Get(seed_slot), "seed"));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
-          ASSIGN_OR_RETURN(
-              auto result,
-              koladata::CreateListUuidFromFields(seed, attr_names, values),
-              ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(auto result, koladata::CreateListUuidFromFields(
+                                            seed, attr_names, values));
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -126,21 +127,21 @@ class UuidForDictOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.ids.uuid_for_dict",
         [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
-                           GetStringArgument(frame.Get(seed_slot), "seed"),
-                           ctx->set_status(std::move(_)));
+                           GetStringArgument(frame.Get(seed_slot), "seed"));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
-          ASSIGN_OR_RETURN(
-              auto result,
-              koladata::CreateDictUuidFromFields(seed, attr_names, values),
-              ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(auto result, koladata::CreateDictUuidFromFields(
+                                            seed, attr_names, values));
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };

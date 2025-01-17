@@ -17,6 +17,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -83,17 +84,22 @@ class ShapesNewTest(parameterized.TestCase):
       kde.shapes.new(arolla.float32(1.0))
 
   def test_unsupported_rank_error(self):
-    with self.assertRaisesRegex(ValueError, 'unsupported DataSlice rank: 2'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'kd.shapes.new: unsupported DataSlice rank: 2'
+    ):
       expr_eval.eval(kde.shapes.new(ds([[1]])))
 
   def test_unsupported_sizes_type_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'unsupported narrowing cast to INT64'
+        exceptions.KodaError,
+        'kd.shapes.new: unsupported narrowing cast to INT64',
     ):
       expr_eval.eval(kde.shapes.new(ds(1.0)))
 
   def test_incompatible_dimensions_error(self):
-    with self.assertRaisesRegex(ValueError, 'incompatible dimensions'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'kd.shapes.new: incompatible dimensions'
+    ):
       expr_eval.eval(kde.shapes.new(ds(2), ds([1])))
 
   def test_view(self):

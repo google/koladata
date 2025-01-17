@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -98,17 +99,21 @@ class KodaNamedSchemaTest(parameterized.TestCase):
 
   def test_wrong_attr_type(self):
     with self.assertRaisesRegex(
-        ValueError, 'only schemas can be assigned as attributes of schemas'
+        exceptions.KodaError,
+        'kd.schema.named_schema: only schemas can be assigned as attributes of'
+        ' schemas',
     ):
       kde.schema.named_schema('name', a=1.0).eval()
     with self.assertRaisesRegex(
-        ValueError, 'only schemas can be assigned as attributes of schemas'
+        exceptions.KodaError,
+        'kd.schema.named_schema: only schemas can be assigned as attributes of'
+        ' schemas',
     ):
       kde.schema.named_schema('name', a=ds(1.0)).eval()
     with self.assertRaisesRegex(
-        ValueError,
-        'trying to assign a slice with 1 dimensions to a slice with only 0'
-        ' dimensions',
+        exceptions.KodaError,
+        'kd.schema.named_schema: trying to assign a slice with 1 dimensions to'
+        ' a slice with only 0 dimensions',
     ):
       kde.schema.named_schema('name', a=ds([schema_constants.INT32])).eval()
 

@@ -110,7 +110,8 @@ class CoreAttrsTest(absltest.TestCase):
         bag().obj(bag().new(x='1', y=10)), bag().obj(bag().new(x=2, y=20))
     ).eval()
     with self.assertRaisesRegex(
-        exceptions.KodaError, "the schema for attribute 'x' is incompatible."
+        exceptions.KodaError,
+        "kd.core.attrs: the schema for attribute 'x' is incompatible.",
     ):
       _ = kde.core.attrs(o, x='2').eval()
     db2 = kde.core.attrs(o, x='2', update_schema=True).eval()
@@ -139,15 +140,15 @@ class CoreAttrsTest(absltest.TestCase):
   def test_non_bool_update_schema(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
-        ValueError,
-        'argument `update_schema` must be an item holding BOOLEAN, got an'
-        ' item of INT32',
+        exceptions.KodaError,
+        'kd.core.attrs: argument `update_schema` must be an item holding'
+        ' BOOLEAN, got an item of INT32',
     ):
       kde.core.attrs(o, x=2, update_schema=1).eval()
     with self.assertRaisesRegex(
-        ValueError,
-        'argument `update_schema` must be an item holding BOOLEAN, got a'
-        ' slice of rank 1 > 0',
+        exceptions.KodaError,
+        'kd.core.attrs: argument `update_schema` must be an item holding'
+        ' BOOLEAN, got a slice of rank 1 > 0',
     ):
       kde.core.attrs(o, x=2, update_schema=ds([True])).eval()
 
@@ -164,15 +165,16 @@ class CoreAttrsTest(absltest.TestCase):
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(
-        ValueError, 'cannot get or set attributes on schema: INT32'
+        exceptions.KodaError,
+        'kd.core.attrs: cannot get or set attributes on schema: INT32',
     ):
       _ = kde.core.attrs(ds(0).with_bag(bag()), x=1).eval()
 
   def test_error_no_databag(self):
     o = bag().new(x=1).no_bag()
     with self.assertRaisesRegex(
-        ValueError,
-        'cannot set attributes on a DataSlice without a DataBag',
+        exceptions.KodaError,
+        'kd.core.attrs: cannot set attributes on a DataSlice without a DataBag',
     ):
       _ = kde.core.attrs(o, x=1).eval()
 

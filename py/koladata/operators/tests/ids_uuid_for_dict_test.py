@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -23,6 +24,7 @@ from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
+
 
 I = input_container.InputContainer('I')
 M = arolla.M
@@ -103,36 +105,28 @@ class KodaUuidForDictTest(parameterized.TestCase):
       (
           '',
           dict(a=ds([1, 2, 3]), b=ds([1, 2])),
-          'shapes are not compatible',
+          'kd.ids.uuid_for_dict: shapes are not compatible',
       ),
       (
           ds(['seed1', 'seed2']),
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              'argument `seed` must be an item holding STRING, got a slice of'
-              ' rank 1 > 0'
+              'kd.ids.uuid_for_dict: argument `seed` must be an item holding'
+              ' STRING, got a slice of rank 1 > 0'
           ),
       ),
       (
           0,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              'argument `seed` must be an item holding STRING, got an item of'
-              ' INT32'
-          ),
-      ),
-      (
-          '',
-          dict(a=ds([1, 2, 3]), b=arolla.text('')),
-          (
-              'expected all arguments to be DATA_SLICE, got kwargs:'
-              ' namedtuple<a=DATA_SLICE,b=TEXT>'
+              'kd.ids.uuid_for_dict: argument `seed` must be an item holding'
+              ' STRING, got an item of INT32'
           ),
       ),
   )
   def test_error(self, seed, kwargs, err_regex):
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         err_regex,
     ):
       _ = expr_eval.eval(kde.ids.uuid_for_dict(seed=seed, **kwargs))

@@ -29,11 +29,11 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/agg_common_schema.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/qexpr_operator_signature.h"
@@ -56,18 +56,20 @@ class NewSchemaOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.schema.new_schema",
         [named_tuple_slot = input_slots[0],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           auto attr_names =
               GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
-          ASSIGN_OR_RETURN(auto result, CreateSchema(db, attr_names, values),
-                           ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(auto result, CreateSchema(db, attr_names, values));
           db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -81,22 +83,23 @@ class UuSchemaOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.schema.uu_schema",
         [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
-                           GetStringArgument(frame.Get(seed_slot), "seed"),
-                           ctx->set_status(std::move(_)));
+                           GetStringArgument(frame.Get(seed_slot), "seed"));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result,
-                           CreateUuSchema(db, seed, attr_names, values),
-                           ctx->set_status(std::move(_)));
+                           CreateUuSchema(db, seed, attr_names, values));
           db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -110,22 +113,23 @@ class NamedSchemaOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.schema.named_schema",
         [name_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view name,
-                           GetStringArgument(frame.Get(name_slot), "name"),
-                           ctx->set_status(std::move(_)));
+                           GetStringArgument(frame.Get(name_slot), "name"));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result,
-                           CreateNamedSchema(db, name, attr_names, values),
-                           ctx->set_status(std::move(_)));
+                           CreateNamedSchema(db, name, attr_names, values));
           db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };

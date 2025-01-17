@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -23,6 +24,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer('I')
 M = arolla.M
@@ -77,8 +79,8 @@ class KodaNewSchemaTest(parameterized.TestCase):
 
   def test_invalid_arguments(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'schema\'s schema must be SCHEMA, got: INT32',
+        exceptions.KodaError,
+        'kd.schema.new_schema: schema\'s schema must be SCHEMA, got: INT32',
     ):
       _ = expr_eval.eval(kde.schema.new_schema(
           a=schema_constants.INT32,

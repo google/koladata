@@ -318,9 +318,9 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.subslice: slicing argument at position 0 is invalid: 'start'"
-            ' argument of a Slice must be an integer, DataItem containing an'
-            ' integer or unspecified, got: TEXT'
+            'kd.slices.subslice: slicing argument at position 0 is invalid:'
+            " 'start' argument of a Slice must be an integer, DataItem"
+            ' containing an integer or unspecified, got: TEXT'
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice('a', 3)))
@@ -328,23 +328,23 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.subslice: slicing argument at position 0 is invalid: 'end'"
-            ' argument of a Slice must be an integer, DataItem containing an'
-            ' integer or unspecified, got: TEXT'
+            'kd.slices.subslice: slicing argument at position 0 is invalid:'
+            " 'end' argument of a Slice must be an integer, DataItem containing"
+            ' an integer or unspecified, got: TEXT'
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, 'a')))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        "kd.subslice: cannot subslice DataSlice 'x', if slice argument is a"
-        ' DataSlice, it must be an integer DataItem',
+        "kd.slices.subslice: cannot subslice DataSlice 'x', if slice argument"
+        ' is a DataSlice, it must be an integer DataItem',
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds([1, 2]))))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.subslice: cannot subslice'
+        'kd.slices.subslice: cannot subslice'
         " DataSlice 'x', if slice argument is a DataSlice, it must be an"
         ' integer DataItem',
     ):
@@ -352,16 +352,16 @@ class SlicesSubsliceTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        "kd.subslice: cannot subslice DataSlice 'x', if slice argument is a"
-        ' DataSlice, it must be an integer DataItem',
+        "kd.slices.subslice: cannot subslice DataSlice 'x', if slice argument"
+        ' is a DataSlice, it must be an integer DataItem',
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds(1.0))))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.subslice: slicing argument at position 0 is invalid: 'step'"
-            ' argument of a Slice is not supported, got: INT32'
+            'kd.slices.subslice: slicing argument at position 0 is invalid:'
+            " 'step' argument of a Slice is not supported, got: INT32"
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, 4, 2)))
@@ -370,7 +370,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.subslice: cannot subslice DataSlice 'x' as the number of"
+            "kd.slices.subslice: cannot subslice DataSlice 'x' as the number of"
             ' provided non-ellipsis slicing arguments is larger than x.ndim:'
             ' 2 > 1'
         ),
@@ -380,7 +380,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.subslice: cannot subslice DataSlice 'x' as the number of"
+            "kd.slices.subslice: cannot subslice DataSlice 'x' as the number of"
             ' provided non-ellipsis slicing arguments is larger than x.ndim:'
             ' 2 > 1'
         ),
@@ -390,9 +390,9 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.subslice: slicing argument at position 2 is invalid: ellipsis'
-            ' ... can appear at most once in the slicing arguments, found at'
-            ' least two at positions: 0 and 2',
+            'kd.slices.subslice: slicing argument at position 2 is invalid:'
+            ' ellipsis ... can appear at most once in the slicing arguments,'
+            ' found at least two at positions: 0 and 2',
         ),
     ):
       expr_eval.eval(kde.subslice(ds([[1, 2], [3]]), ..., slice(1), ...))

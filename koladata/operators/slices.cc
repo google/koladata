@@ -55,6 +55,7 @@
 #include "koladata/internal/op_utils/collapse.h"
 #include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/op_utils/inverse_select.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/op_utils/reverse.h"
 #include "koladata/internal/op_utils/select.h"
 #include "koladata/internal/slice_builder.h"
@@ -73,7 +74,6 @@
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/frame.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operator_errors.h"
 #include "arolla/qexpr/operators.h"
@@ -93,9 +93,6 @@
 namespace koladata::ops {
 namespace {
 
-constexpr absl::string_view kSubsliceOperatorName = "kd.subslice";
-constexpr absl::string_view kTakeOperatorName = "kd.take";
-
 class AlignOperator : public arolla::QExprOperator {
  public:
   explicit AlignOperator(absl::Span<const arolla::QTypePtr> input_types)
@@ -112,9 +109,11 @@ class AlignOperator : public arolla::QExprOperator {
     for (const auto& input_slot : input_slots) {
       ds_input_slots.push_back(input_slot.UnsafeToSlot<DataSlice>());
     }
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.slices.align",
         [ds_input_slots(std::move(ds_input_slots)), output_slot = output_slot](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           std::optional<DataSlice::JaggedShape> largest_shape;
           for (const auto& input_slot : ds_input_slots) {
             const DataSlice& input = frame.Get(input_slot);
@@ -128,12 +127,12 @@ class AlignOperator : public arolla::QExprOperator {
             const auto& input_slot = ds_input_slots[i];
             const DataSlice& input = frame.Get(input_slot);
             ASSIGN_OR_RETURN(DataSlice output,
-                             BroadcastToShape(input, largest_shape.value()),
-                             ctx->set_status(std::move(_)));
+                             BroadcastToShape(input, largest_shape.value()));
             const auto& output_subslot =
                 output_slot.SubSlot(i).UnsafeToSlot<DataSlice>();
             frame.Set(output_subslot, std::move(output));
           }
+          return absl::OkStatus();
         });
   }
 };
@@ -576,16 +575,13 @@ absl::StatusOr<std::optional<int64_t>> GetSliceArg(
     auto& ds = frame.Get(field.UnsafeToSlot<DataSlice>());
     ASSIGN_OR_RETURN(
         auto res, ToArollaScalar<int64_t>(ds),
-        internal::OperatorEvalError(
-            kSubsliceOperatorName,
-            absl::StrCat(
-                "cannot subslice DataSlice 'x', if slice argument is a "
-                "DataSlice, it must be an integer DataItem, got: ",
-                arolla::Repr(ds))));
+        absl::InvalidArgumentError(absl::StrCat(
+            "cannot subslice DataSlice 'x', if slice argument is a "
+            "DataSlice, it must be an integer DataItem, got: ",
+            arolla::Repr(ds))));
     return res;
   } else {
-    return internal::OperatorEvalError(kSubsliceOperatorName,
-                                       "invalid slice argument.");
+    return absl::InvalidArgumentError("invalid slice argument.");
   }
 }
 
@@ -608,8 +604,7 @@ absl::StatusOr<std::vector<SlicingArgType>> ExtractSlicingArgs(
   }
 
   if (slices.size() > x_rank) {
-    return internal::OperatorEvalError(
-        kSubsliceOperatorName,
+    return absl::InvalidArgumentError(
         absl::StrFormat("cannot subslice DataSlice 'x' as the number of "
                         "provided non-ellipsis slicing arguments is larger "
                         "than x.ndim: %d > %d",
@@ -741,20 +736,21 @@ class SubsliceOperator : public arolla::InlineOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const override {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.slices.subslice",
         [x_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          slice_slots = std::vector(input_slots.begin() + 1, input_slots.end()),
          result_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           const auto& x = frame.Get(x_slot);
 
           ASSIGN_OR_RETURN(
               auto slice_args,
-              ExtractSlicingArgs(slice_slots, frame, x.GetShape().rank()),
-              ctx->set_status(std::move(_)));
-          ASSIGN_OR_RETURN(auto result, SubsliceImpl(ctx, x, slice_args),
-                           ctx->set_status(std::move(_)));
+              ExtractSlicingArgs(slice_slots, frame, x.GetShape().rank()));
+          ASSIGN_OR_RETURN(auto result, SubsliceImpl(ctx, x, slice_args));
           frame.Set(result_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -1096,13 +1092,14 @@ absl::StatusOr<arolla::OperatorPtr> SubsliceOperatorFamily::DoGetOperator(
   }
 
   std::optional<int64_t> ellipsis_pos_for_error;
+  // TODO: remove this to Expr operator constraints.
   for (size_t i = 1; i < input_types.size(); ++i) {
     auto input_type = input_types[i];
     if (auto status =
             IsSliceQTypeValid(input_type, i - 1, ellipsis_pos_for_error);
         !status.ok()) {
       return internal::OperatorEvalError(
-          kSubsliceOperatorName,
+          "kd.slices.subslice",
           absl::StrFormat("slicing argument at position %d is invalid: %s",
                           i - 1, status.message()));
     }

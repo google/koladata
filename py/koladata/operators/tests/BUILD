@@ -2795,6 +2795,7 @@ py_test(
     name = "schema_uu_schema_test",
     srcs = ["schema_uu_schema_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2814,6 +2815,7 @@ py_test(
     name = "schema_new_schema_test",
     srcs = ["schema_new_schema_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2912,6 +2914,7 @@ py_test(
     name = "ids_uuid_test",
     srcs = ["ids_uuid_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2930,6 +2933,7 @@ py_test(
     name = "ids_uuid_for_list_test",
     srcs = ["ids_uuid_for_list_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2948,6 +2952,7 @@ py_test(
     name = "ids_uuid_for_dict_test",
     srcs = ["ids_uuid_for_dict_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3578,6 +3583,7 @@ py_test(
     name = "shapes_new_test",
     srcs = ["shapes_new_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3677,6 +3683,7 @@ py_test(
     name = "shapes_reshape_test",
     srcs = ["shapes_reshape_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5679,6 +5686,7 @@ py_test(
     name = "shapes_new_with_size_test",
     srcs = ["shapes_new_with_size_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6575,6 +6583,7 @@ py_test(
     name = "schema_named_schema_test",
     srcs = ["schema_named_schema_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

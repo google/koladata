@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -24,6 +25,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer('I')
 M = arolla.M
@@ -141,27 +143,27 @@ class KodaUuSchemaTest(parameterized.TestCase):
           ds(['seed1', 'seed2']),
           dict(a=schema_constants.INT32, b=schema_constants.FLOAT32),
           (
-              'argument `seed` must be an item holding STRING, got a slice of'
-              ' rank 1 > 0'
+              'kd.schema.uu_schema: argument `seed` must be an item holding'
+              ' STRING, got a slice of rank 1 > 0'
           ),
       ),
       (
           0,
           dict(a=schema_constants.INT32, b=schema_constants.FLOAT32),
           (
-              'argument `seed` must be an item holding STRING, got an item of'
-              ' INT32'
+              'kd.schema.uu_schema: argument `seed` must be an item holding'
+              ' STRING, got an item of INT32'
           ),
       ),
       (
           ds('seed1'),
           dict(a=ds(0), b=schema_constants.FLOAT32),
-          "schema's schema must be SCHEMA, got: INT32",
+          "kd.schema.uu_schema: schema's schema must be SCHEMA, got: INT32",
       ),
   )
   def test_error(self, seed, kwargs, err_regex):
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         err_regex,
     ):
       _ = expr_eval.eval(kde.schema.uu_schema(seed, **kwargs))

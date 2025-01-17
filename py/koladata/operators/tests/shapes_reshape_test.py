@@ -17,6 +17,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -94,9 +95,9 @@ class ShapesReshapeTest(parameterized.TestCase):
 
   def test_unresolvable_placeholder_dim_exception(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'parent_size=3 does not divide child_size=2, so the placeholder'
-        ' dimension at index 1 cannot be resolved',
+        exceptions.KodaError,
+        'kd.shapes.reshape: parent_size=2 does not divide child_size=3, so the'
+        ' placeholder dimension at index 1 cannot be resolved',
     ):
       expr_eval.eval(
           kde.shapes.reshape(ds([1, 2, 3]), arolla.tuple(ds([2]), ds(-1)))
@@ -104,23 +105,24 @@ class ShapesReshapeTest(parameterized.TestCase):
 
   def test_multiple_placeholder_dims_exception(self):
     with self.assertRaisesRegex(
-        ValueError, 'only one dimension can be a placeholder'
+        exceptions.KodaError,
+        'kd.shapes.reshape: only one dimension can be a placeholder',
     ):
       expr_eval.eval(kde.shapes.reshape(ds(1), arolla.tuple(ds(-1), ds(-1))))
 
   def test_incompatible_dimension_specification_exception(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'invalid dimension specification - the resulting shape size=3 != the'
-        ' expected size=2',
+        exceptions.KodaError,
+        'kd.shapes.reshape: invalid dimension specification - the resulting'
+        ' shape size=3 != the expected size=2',
     ):
       expr_eval.eval(kde.shapes.reshape(ds([1, 2]), arolla.tuple(ds(3))))
 
   def test_incompatible_shape_exception(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'shape size must be compatible with number of items: shape_size=2 !='
-        ' items_size=3',
+        exceptions.KodaError,
+        'kd.shapes.reshape: shape size must be compatible with number of items:'
+        ' shape_size=2 != items_size=3',
     ):
       expr_eval.eval(
           kde.shapes.reshape(ds([1, 2, 3]), jagged_shape.create_shape([2]))

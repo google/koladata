@@ -65,15 +65,17 @@ class CoreWithAttrsTest(absltest.TestCase):
 
   def test_error_primitive_schema(self):
     with self.assertRaisesRegex(
-        ValueError, 'cannot get or set attributes on schema: INT32'
+        exceptions.KodaError,
+        'kd.core.with_attrs: cannot get or set attributes on schema: INT32',
     ):
       _ = kde.core.with_attrs(ds(0).with_bag(bag()), x=1).eval()
 
   def test_error_no_databag(self):
     o = bag().new(x=1).no_bag()
     with self.assertRaisesRegex(
-        ValueError,
-        'cannot set attributes on a DataSlice without a DataBag',
+        exceptions.KodaError,
+        'kd.core.with_attrs: cannot set attributes on a DataSlice without a'
+        ' DataBag',
     ):
       _ = kde.core.with_attrs(o, x=1).eval()
 

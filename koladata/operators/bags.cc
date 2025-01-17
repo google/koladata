@@ -28,10 +28,10 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/qexpr_operator_signature.h"
@@ -58,7 +58,8 @@ class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const override {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        is_enriched_operator_ ? "kd.bags.enriched" : "kd.bags.updated",
         [input_slots = std::vector<arolla::TypedSlot>(input_slots.begin(),
                                                       input_slots.end()),
          output_slot = output_slot.UnsafeToSlot<DataBagPtr>(),
@@ -72,6 +73,7 @@ class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
             std::reverse(db_list.begin(), db_list.end());
           }
           frame.Set(output_slot, DataBag::ImmutableEmptyWithFallbacks(db_list));
+          return absl::OkStatus();
         });
   }
 

@@ -43,13 +43,13 @@
 #include "koladata/internal/op_utils/deep_clone.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/new_ids_like.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/utils.h"
 #include "koladata/repr_utils.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/qexpr_operator_signature.h"
@@ -127,24 +127,25 @@ class AttrsOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.core.attrs",
         [slice_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          update_schema_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[2],
          output_slot = output_slot.UnsafeToSlot<DataBagPtr>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           const auto& slice = frame.Get(slice_slot);
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
-              ctx->set_status(std::move(_)));
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
           const auto& attr_names = GetAttrNames(named_tuple_slot);
           const auto& values =
               GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result,
-                           Attrs(slice, update_schema, attr_names, values),
-                           ctx->set_status(std::move(_)));
+                           Attrs(slice, update_schema, attr_names, values));
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -170,24 +171,25 @@ class WithAttrsOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.core.with_attrs",
         [slice_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          update_schema_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[2],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           const auto& slice = frame.Get(slice_slot);
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
-              ctx->set_status(std::move(_)));
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
           const auto& attr_names = GetAttrNames(named_tuple_slot);
           const auto& values =
               GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result,
-                           WithAttrs(slice, update_schema, attr_names, values),
-                           ctx->set_status(std::move(_)));
+                           WithAttrs(slice, update_schema, attr_names, values));
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -233,7 +235,8 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const override {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        is_enriched_operator_ ? "kd.core.enriched" : "kd.core.updated",
         [input_slots = std::vector<arolla::TypedSlot>(input_slots.begin(),
                                                       input_slots.end()),
          output_slot = output_slot.UnsafeToSlot<DataSlice>(),
@@ -258,6 +261,7 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
           }
           frame.Set(output_slot,
                     ds.WithBag(DataBag::ImmutableEmptyWithFallbacks(db_list)));
+          return absl::OkStatus();
         });
   }
 
