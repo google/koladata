@@ -230,7 +230,10 @@ class CopyingProcessor {
     }
     ASSIGN_OR_RETURN(auto attr_ds,
                      databag_.GetAttr(old_ds, attr_name, fallbacks_));
-    RETURN_IF_ERROR(new_databag_->SetAttr(ds, attr_name, attr_ds));
+    // TODO: Extract and respect removed values.
+    ASSIGN_OR_RETURN(auto has_attr_ds, HasOp()(attr_ds));
+    ASSIGN_OR_RETURN(auto filtered_ds, PresenceAndOp()(ds, has_attr_ds));
+    RETURN_IF_ERROR(new_databag_->SetAttr(filtered_ds, attr_name, attr_ds));
     RETURN_IF_ERROR(Visit({attr_ds, attr_schema, slice.schema_source}));
     return absl::OkStatus();
   }

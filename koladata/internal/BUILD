@@ -475,65 +475,6 @@ cc_test(
 )
 
 cc_library(
-    name = "data_slice_accessors",
-    srcs = ["data_slice_accessors.cc"],
-    hdrs = ["data_slice_accessors.h"],
-    deps = [
-        ":data_item",
-        ":data_slice",
-        ":dense_source",
-        ":object_id",
-        ":sparse_source",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/types:span",
-        "@com_google_arolla//arolla/dense_array",
-        "@com_google_arolla//arolla/memory",
-        "@com_google_arolla//arolla/qtype",
-    ],
-)
-
-cc_test(
-    name = "data_slice_accessors_test",
-    srcs = ["data_slice_accessors_test.cc"],
-    deps = [
-        ":data_item",
-        ":data_slice",
-        ":data_slice_accessors",
-        ":dense_source",
-        ":object_id",
-        ":sparse_source",
-        "@com_google_absl//absl/status:status_matchers",
-        "@com_google_arolla//arolla/dense_array",
-        "@com_google_arolla//arolla/memory",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "data_slice_benchmarks",
-    srcs = ["data_slice_benchmarks.cc"],
-    deps = [
-        ":benchmark_helpers",
-        ":data_slice",
-        ":data_slice_accessors",
-        ":dense_source",
-        ":object_id",
-        "@com_google_arolla//arolla/dense_array",
-        "@com_google_arolla//arolla/dense_array/ops",
-        "@com_google_arolla//arolla/dense_array/qtype",
-        "@com_google_arolla//arolla/memory",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_benchmark//:benchmark_main",
-        "@com_google_googletest//:gtest",
-    ],
-)
-
-cc_library(
     name = "triples",
     srcs = ["triples.cc"],
     hdrs = ["triples.h"],
@@ -575,7 +516,6 @@ cc_library(
         ":data_item",
         ":data_list",
         ":data_slice",
-        ":data_slice_accessors",
         ":dense_source",
         ":dict",
         ":dtype",
@@ -694,6 +634,19 @@ cc_test(
         "@com_google_arolla//arolla/dense_array/qtype",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "data_bag_extract_content_test",
+    srcs = ["data_bag_extract_content_test.cc"],
+    deps = [
+        ":data_bag",
+        ":data_item",
+        ":data_slice",
+        ":object_id",
+        ":types_buffer",
         "@com_google_googletest//:gtest_main",
     ],
 )

@@ -44,7 +44,6 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_list.h"
 #include "koladata/internal/data_slice.h"
-#include "koladata/internal/data_slice_accessors.h"
 #include "koladata/internal/dense_source.h"
 #include "koladata/internal/dict.h"
 #include "koladata/internal/dtype.h"
@@ -76,6 +75,61 @@ namespace {
 
 constexpr size_t kSparseSourceSparsityCoef = 64;
 ABSL_CONST_INIT const DataList kEmptyList;
+
+using DenseSourceSpan = absl::Span<const DenseSource* const>;
+using SparseSourceSpan = absl::Span<const SparseSource* const>;
+
+
+absl::StatusOr<DataSliceImpl> GetAttributeFromSources(
+    const DataSliceImpl& slice, DenseSourceSpan dense_sources,
+    SparseSourceSpan sparse_sources) {
+  if (slice.is_empty_and_unknown()) {
+    return DataSliceImpl::CreateEmptyAndUnknownType(slice.size());
+  }
+  if (slice.dtype() != arolla::GetQType<ObjectId>()) {
+    return absl::FailedPreconditionError(
+        "Getting attribute from primitive (or mixed) values is not supported");
+  }
+  const ObjectIdArray& objs = slice.values<ObjectId>();
+
+  SliceBuilder bldr(objs.size());
+  bldr.ApplyMask(objs.ToMask());
+  absl::Span<const ObjectId> objs_span = objs.values.span();
+  // Sparse sources have priority over dense sources.
+  for (const SparseSource* source : sparse_sources) {
+    if (bldr.is_finalized()) {
+      break;
+    }
+    source->Get(objs_span, bldr);
+  }
+  for (const DenseSource* source : dense_sources) {
+    if (bldr.is_finalized()) {
+      break;
+    }
+    source->Get(objs_span, bldr);
+  }
+  return std::move(bldr).Build();
+}
+
+std::optional<DataItem> GetAttributeFromSources(
+    ObjectId id, DenseSourceSpan dense_sources,
+    SparseSourceSpan sparse_sources) {
+  // There shouldn't be more than one dense source because they override each
+  // other.
+  DCHECK_LE(dense_sources.size(), 1);
+
+  for (const auto& source : sparse_sources) {
+    if (std::optional<DataItem> res = source->Get(id); res.has_value()) {
+      return res;
+    }
+  }
+  for (const auto& source : dense_sources) {
+    if (std::optional<DataItem> res = source->Get(id); res.has_value()) {
+      return res;
+    }
+  }
+  return std::nullopt;
+}
 
 absl::StatusOr<ObjectId> ItemToListObjectId(const DataItem& list) {
   if (list.holds_value<ObjectId>()) {
@@ -2728,7 +2782,7 @@ absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
           if (!other_item.has_value() || skip_object_id(obj_id)) {
             continue;
           }
-          DataItem this_value;
+          std::optional<DataItem> this_value;
           if (options.data_conflict_policy != MergeOptions::kOverwrite) {
             this_value =
                   GetAttributeFromSources(obj_id, {}, this_sources);
@@ -2736,10 +2790,10 @@ absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
           if (this_value.has_value()) {
             if (options.data_conflict_policy ==
                     MergeOptions::kRaiseOnConflict &&
-                this_value != other_item) {
+                *this_value != other_item) {
               return absl::FailedPreconditionError(
                   absl::StrCat("conflicting values for ", attr_name, " for ",
-                               obj_id, ": ", this_value, " vs ", other_item));
+                               obj_id, ": ", *this_value, " vs ", other_item));
             }
           } else {
             if (this_mutable_source == nullptr) {
