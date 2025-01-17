@@ -19,6 +19,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "arolla/memory/frame.h"
@@ -28,8 +29,8 @@
 namespace koladata {
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::testing::Eq;
-using ::testing::status::StatusIs;
 
 TEST(QExpr, MakeBoundOperator) {
   auto bound_op = MakeBoundOperator(

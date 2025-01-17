@@ -937,6 +937,7 @@ cc_test(
         "//koladata/internal:error_cc_proto",
         "//koladata/internal:error_utils",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_googletest//:gtest_main",
