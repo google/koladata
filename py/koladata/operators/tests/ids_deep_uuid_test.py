@@ -52,6 +52,21 @@ class IdsDeepUuidTest(parameterized.TestCase):
     result2 = expr_eval.eval(kde.deep_uuid(o2))
     testing.assert_equal(result2, expr_eval.eval(kde.at(result, 0)))
 
+  @parameterized.product(
+      pass_schema=[True, False],
+  )
+  def test_obj_equal_to_entity(self, pass_schema):
+    db = data_bag.DataBag.empty()
+    o = db.obj(b=db.obj(a=ds([1, None, 2])), c=ds(['foo', 'bar', 'baz']))
+    e = db.new(b=db.new(a=ds([1, None, 2])), c=ds(['foo', 'bar', 'baz']))
+    if pass_schema:
+      result_o = expr_eval.eval(kde.deep_uuid(o, o.get_schema()))
+      result_e = expr_eval.eval(kde.deep_uuid(e, e.get_schema()))
+    else:
+      result_o = expr_eval.eval(kde.deep_uuid(o))
+      result_e = expr_eval.eval(kde.deep_uuid(e))
+    testing.assert_equal(result_o, result_e)
+
   def test_with_seed(self):
     x = bag().obj(y=bag().obj(a=1), z=bag().list([2, 3]))
     res_no_seed = expr_eval.eval(kde.ids.deep_uuid(x))

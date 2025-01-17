@@ -431,24 +431,19 @@ TEST_P(DeepUuidTest, ObjectsSlice) {
   DataItem xdictschema = CreateSchemaUuidFromFields(
       "", {schema::kDictKeysSchemaAttr, schema::kDictValuesSchemaAttr},
       {std::cref(xbytes), std::cref(xint)});
-  EXPECT_NE(
+  EXPECT_EQ(
       result_slice[0],
       CreateUuidFromFields("", {"x", "y"}, {std::cref(x1), std::cref(x2)}));
-  EXPECT_EQ(
-      result_slice[1],
-      CreateUuidFromFields("", {"x", "y", schema::kSchemaAttr},
-                           {std::cref(x3), std::cref(x4), std::cref(xschema)}));
   EXPECT_EQ(result_slice[3],
             CreateListUuidFromItemsAndFields(
                 "", DataSliceImpl::Create(CreateDenseArray<int32_t>({4, 5})),
-                {schema::kSchemaAttr}, {std::cref(xlistschema)}));
+                {}, {}));
   EXPECT_EQ(
       result_slice[4],
       CreateDictUuidFromKeysValuesAndFields(
           "",
           DataSliceImpl::Create(CreateDenseArray<DataItem>({DataItem("a")})),
-          DataSliceImpl::Create(CreateDenseArray<int32_t>({1})),
-          {schema::kSchemaAttr}, {std::cref(xdictschema)}));
+          DataSliceImpl::Create(CreateDenseArray<int32_t>({1})), {}, {}));
 }
 
 TEST_P(DeepUuidTest, ItemIdSlice) {

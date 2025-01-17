@@ -75,15 +75,7 @@ class DeepUuidVisitor : AbstractVisitor {
                          bool is_object_schema,
                          const DataSliceImpl& items) override {
     DCHECK(list.is_list());
-    DataItem uuid;
-    if (is_object_schema) {
-      ASSIGN_OR_RETURN(auto schema_value,
-                       GetValue(schema, DataItem(schema::kSchema)));
-      uuid = CreateListUuidFromItemsAndFields(
-          seed_, items, {schema::kSchemaAttr}, {std::cref(schema_value)});
-    } else {
-      uuid = CreateListUuidFromItemsAndFields(seed_, items, {}, {});
-    }
+    DataItem uuid = CreateListUuidFromItemsAndFields(seed_, items, {}, {});
     object_tracker_.emplace(list, std::move(uuid));
     return absl::OkStatus();
   }
@@ -93,16 +85,8 @@ class DeepUuidVisitor : AbstractVisitor {
                          const DataSliceImpl& values) override {
     DCHECK(dict.is_dict());
     DCHECK(keys.size() == values.size());
-    DataItem uuid;
-    if (is_object_schema) {
-      ASSIGN_OR_RETURN(auto schema_value,
-                       GetValue(schema, DataItem(schema::kSchema)));
-      uuid = CreateDictUuidFromKeysValuesAndFields(seed_, keys, values,
-                                                   {schema::kSchemaAttr},
-                                                   {std::cref(schema_value)});
-    } else {
-      uuid = CreateDictUuidFromKeysValuesAndFields(seed_, keys, values, {}, {});
-    }
+    DataItem uuid =
+        CreateDictUuidFromKeysValuesAndFields(seed_, keys, values, {}, {});
     object_tracker_.emplace(dict, std::move(uuid));
     return absl::OkStatus();
   }
@@ -122,13 +106,6 @@ class DeepUuidVisitor : AbstractVisitor {
     attr_values.ForEach([&](size_t id, bool presence, const DataItem& item) {
       attr_values_view.push_back(std::cref(item));
     });
-    DataItem schema_value;
-    if (is_object_schema) {
-      attr_names_view.push_back(schema::kSchemaAttr);
-      ASSIGN_OR_RETURN(schema_value,
-                       GetValue(schema, DataItem(schema::kSchema)));
-      attr_values_view.push_back(std::cref(schema_value));
-    }
     DataItem uuid =
         CreateUuidFromFields(seed_, attr_names_view, attr_values_view);
     object_tracker_.emplace(object, std::move(uuid));
