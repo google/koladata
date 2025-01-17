@@ -7,6 +7,9 @@ through the guide in order for new users to use Koda effectively.
 
 Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
 
+* TOC
+{:toc}
+
 ## Vectorization of Structured Data
 
 Koda introduces new data structures and concepts which allow working with any

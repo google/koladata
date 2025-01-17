@@ -1,5 +1,8 @@
 # koda Glossaries
 
+* TOC
+{:toc}
+
 ## Basics
 
 #### .
