@@ -114,7 +114,7 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(message, expected_message)
 
   def test_oneof(self):
-    s = fns.new_schema(
+    s = fns.schema.new_schema(
         oneof_int32_field=schema_constants.INT32,
         oneof_bytes_field=schema_constants.BYTES,
     )
@@ -169,7 +169,7 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(messages, expected_messages)
 
   def test_repeated_oneof(self):
-    s = fns.new_schema(
+    s = fns.schema.new_schema(
         oneof_int32_field=schema_constants.INT32,
         oneof_bytes_field=schema_constants.BYTES,
     )

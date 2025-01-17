@@ -264,7 +264,7 @@ class JsonToJsonTest(parameterized.TestCase):
         ValueError, 'unsupported schema SCHEMA for json serialization'
     ):
       _ = expr_eval.eval(
-          kde.json.to_json(fns.new_schema(a=schema_constants.INT32))
+          kde.json.to_json(fns.schema.new_schema(a=schema_constants.INT32))
       )
 
     with self.assertRaisesRegex(

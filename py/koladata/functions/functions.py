@@ -15,7 +15,6 @@
 """A front-end module for Koda functions."""
 
 import types as _py_types
-import warnings as _warnings
 
 from koladata.fstring import fstring as _fstring
 from koladata.functions import attrs as _attrs
@@ -25,7 +24,6 @@ from koladata.functions import proto_conversions as _proto_conversions
 from koladata.functions import py_conversions as _py_conversions
 from koladata.functions import s11n as _s11n
 from koladata.functions import schema as _schema
-from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import general_eager_ops as _general_eager_ops
@@ -104,17 +102,6 @@ objs = _py_types.SimpleNamespace(
     shaped_as=_object_factories.obj_shaped_as,
     uu=_object_factories.uuobj,
 )
-
-
-def new_schema(
-    db: _data_bag.DataBag | None = None, **attrs: _data_slice.DataSlice
-) -> _data_slice.DataSlice:
-  """Deprecated. Use kd.schema.new_schema instead."""
-  _warnings.warn(
-      'kd.new_schema is deprecated. Use kd.schema.new_schema instead.',
-      RuntimeWarning,
-  )
-  return _schema.new_schema(db, **attrs)
 
 
 list_schema = _schema.list_schema

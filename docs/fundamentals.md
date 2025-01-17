@@ -829,7 +829,7 @@ a1 = kd.new(x=1, y=2, schema=kd.named_schema('Pair'))
 a2 = kd.new(x=3, y=4, schema=kd.named_schema('Pair'))
 a1.get_schema() == a2.get_schema()  # yes
 
-my_schema = kd.new_schema(x=kd.INT32, y=kd.INT32)
+my_schema = kd.schema.new_schema(x=kd.INT32, y=kd.INT32)
 a1 = kd.new(x=1, y=2, schema=my_schema)
 a2 = kd.new(x=3, y=4, schema=my_schema)
 a1.get_schema() == a2.get_schema()  # yes
@@ -885,7 +885,7 @@ no matter when and where created). Universally-unique entities and objects have
 universally-unique schemas by default.
 
 ```py
-kd.new_schema(x=kd.INT32) != kd.new_schema(x=kd.INT32)  # yes
+kd.schema.new_schema(x=kd.INT32) != kd.schema.new_schema(x=kd.INT32)  # yes
 kd.uu_schema(x=kd.INT32) == kd.uu_schema(x=kd.INT32)  # yes
 kd.uu(x=1).get_schema() == kd.uu_schema(x=kd.INT32)  # yes
 
@@ -937,7 +937,7 @@ t.x  # [1, 3]
 t.z  # [None, None] - works, but a and b don't have that attribute
 
 # with_schema can be used to convert objects to schemas
-s = kd.new_schema(x=kd.INT32)
+s = kd.schema.new_schema(x=kd.INT32)
 a = kd.obj(x=kd.slice([1, 2, 3, 4])).with_schema(s)  # Entity now
 
 a = kd.obj(x=1, y=2)
@@ -1146,7 +1146,7 @@ or directly in fully vectorized ways using DataSlices of attributes.
 
 ```py
 # DataSlice of entities from list of entities with *the same* schema
-s = kd.new_schema(a=kd.INT32, b=kd.INT32)
+s = kd.schema.new_schema(a=kd.INT32, b=kd.INT32)
 ds = kd.slice([kd.new(a=1, b=6, schema=s), kd.new(a=2, b=7, schema=s),
                kd.new(a=3, b=8, schema=s), kd.new(a=4, b=9, schema=s)])
 
@@ -1690,7 +1690,7 @@ kd.str(None).is_empty()  # yes
 kd.obj(None)  # Empty object
 kd.obj(None).is_empty()  # yes
 
-my_schema = kd.new_schema(x=kd.INT32, y=kd.INT32)
+my_schema = kd.schema.new_schema(x=kd.INT32, y=kd.INT32)
 kd.new(None, schema=my_schema)  # missing with some schema
 ```
 

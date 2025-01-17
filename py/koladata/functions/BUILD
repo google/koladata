@@ -34,7 +34,6 @@ py_library(
         ":s11n",
         ":schema",
         "//py/koladata/fstring",
-        "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:general_eager_ops",

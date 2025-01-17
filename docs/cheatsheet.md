@@ -749,7 +749,7 @@ kd.new_like(x, itemid=itemid)
 kd.new_shaped_as(x, itemid=itemid)
 kd.new_shaped(s, itemid=itemid)
 
-schema = kd.new_schema(...)
+schema = kd.schema.new_schema(...)
 kd.new_like(x, schema=schema)
 
 # Empty List creation
@@ -1588,8 +1588,8 @@ or dtypes for primitives. DataSlice Schema can be primitive schema, Entity
 schema, OBJECT, ITEMID, or ANY. Embedded Schema cannot be ITEMID or ANY.
 
 Entity schemas can be either **explicit** or **implicit**. Explicit schemas are
-created using `kd.new_schema/list_schema/dict_schema()` while implicit schemas
-are created as a by-product of `kd.obj()`.
+created using `kd.schema.new_schema/list_schema/dict_schema()` while implicit
+schemas are created as a by-product of `kd.obj()`.
 
 <section>
 
