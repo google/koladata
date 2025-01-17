@@ -917,3 +917,28 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "qexpr",
+    hdrs = ["qexpr.h"],
+    deps = [
+        ":error",
+        "@com_google_absl//absl/status",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+    ],
+)
+
+cc_test(
+    name = "qexpr_test",
+    srcs = ["qexpr_test.cc"],
+    deps = [
+        ":qexpr",
+        "//koladata/internal:error_cc_proto",
+        "//koladata/internal:error_utils",
+        "@com_google_absl//absl/status",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
