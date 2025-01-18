@@ -42,11 +42,13 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/wrap_utils.h"
+#include "arolla/expr/expr_debug_string.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/string.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
@@ -193,10 +195,14 @@ absl::Nullable<PyObject*> PyEvalOp(PyObject* /*self*/, PyObject** py_args,
       input_qvalues.push_back(internal::NonDeterministicTokenValue().AsRef());
       continue;
     }
-    return PyErr_Format(PyExc_TypeError,
-                        "kd.eval_op() expected all arguments to be values, "
-                        "got an expression for the parameter '%s'",
-                        param_name(i).c_str());
+    return PyErr_Format(
+        PyExc_TypeError,
+        "%s: for eager evaluation, all arguments must be eager values (e.g. "
+        "DataSlices), got an Expr for the argument '%s': %s; if it is "
+        "intentional, perhaps wrap the Expr into a Koda Functor using "
+        "kd.fn(expr) or use corresponding kd.lazy operator",
+        std::string(op->display_name()).c_str(), param_name(i).c_str(),
+        arolla::Truncate(arolla::expr::ToDebugString(expr), 100).c_str());
   }
 
   // Call the implementation.

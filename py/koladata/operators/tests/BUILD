@@ -1782,6 +1782,7 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functor:functor_factories",
+        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",

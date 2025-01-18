@@ -256,8 +256,10 @@ class EagerOpUtilsTest(parameterized.TestCase):
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.eval_op() expected all arguments to be values, got an expression'
-        " for the parameter 'arg'",
+        'test.non_deterministic_op: for eager evaluation, all arguments must be'
+        " eager values (e.g. DataSlices), got an Expr for the argument 'arg':"
+        ' P.x; if it is intentional, perhaps wrap the Expr into a Koda Functor'
+        ' using kd.fn(expr) or use corresponding kd.lazy operator',
     ):
       op(arolla.P.x)
 

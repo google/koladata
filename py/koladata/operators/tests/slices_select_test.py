@@ -22,6 +22,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import functor_factories
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -29,6 +30,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -329,6 +331,18 @@ class SlicesSelectTest(parameterized.TestCase):
         re.escape(expected),
     ):
       expr_eval.eval(kde.slices.select(values, fltr))
+
+  def test_select_expr_filter(self):
+    kd_select = eager_op_utils.EagerOperator(kde.slices.select)
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'kd.slices.select: for eager evaluation, all arguments must be eager'
+        " values (e.g. DataSlices), got an Expr for the argument 'fltr': I.x >"
+        ' DataItem(1, schema: INT32); if it is intentional, perhaps wrap the'
+        ' Expr into a Koda Functor using kd.fn(expr) or use corresponding'
+        ' kd.lazy operator',
+    ):
+      kd_select(ds([1, 2, None, 4]), I.x > 1)
 
   def test_select_expand_to_shape(self):
     x = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])

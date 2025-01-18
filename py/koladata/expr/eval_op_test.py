@@ -132,39 +132,53 @@ class EvalOpTest(absltest.TestCase):
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.eval_op() expected all arguments to be values, got an expression'
-        " for the parameter 'args[0]'",
+        'tuple_1: for eager evaluation, all arguments must be eager values'
+        " (e.g. DataSlices), got an Expr for the argument 'args[0]': I.arg; if"
+        ' it is intentional, perhaps wrap the Expr into a Koda Functor using'
+        ' kd.fn(expr) or use corresponding kd.lazy operator',
     ):
       eval_op(op_tuple_1, I.arg)
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.eval_op() expected all arguments to be values, got an expression'
-        " for the parameter 'args[1]'",
+        'tuple_1: for eager evaluation, all arguments must be eager values'
+        " (e.g. DataSlices), got an Expr for the argument 'args[1]': I.arg; if"
+        ' it is intentional, perhaps wrap the Expr into a Koda Functor using'
+        ' kd.fn(expr) or use corresponding kd.lazy operator',
     ):
       eval_op(op_tuple_1, arolla.unit(), I.arg)
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.eval_op() expected all arguments to be values, got an expression'
-        " for the parameter 'args'",
+        'tuple_2: for eager evaluation, all arguments must be eager values'
+        " (e.g. DataSlices), got an Expr for the argument 'args':"
+        ' M.core.make_tuple(I.arg); if it is intentional, perhaps wrap the Expr'
+        ' into a Koda Functor using kd.fn(expr) or use corresponding kd.lazy'
+        ' operator',
     ):
       eval_op(op_tuple_2, I.arg)
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.eval_op() expected all arguments to be values, got an expression'
-        " for the parameter 'args'",
+        'tuple_2: for eager evaluation, all arguments must be eager values'
+        " (e.g. DataSlices), got an Expr for the argument 'args':"
+        ' M.core.make_tuple(unit, I.arg); if it is intentional, perhaps wrap'
+        ' the Expr into a Koda Functor using kd.fn(expr) or use corresponding'
+        ' kd.lazy operator',
     ):
       eval_op(op_tuple_2, arolla.unit(), I.arg)
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.eval_op() expected all arguments to be values, got an expression'
-        " for the parameter 'x'",
+        'first: for eager evaluation, all arguments must be eager values (e.g.'
+        " DataSlices), got an Expr for the argument 'x': I.arg; if it is"
+        ' intentional, perhaps wrap the Expr into a Koda Functor using'
+        ' kd.fn(expr) or use corresponding kd.lazy operator',
     ):
       eval_op(op_first, I.arg, arolla.unspecified())
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.eval_op() expected all arguments to be values, got an expression'
-        " for the parameter 'x'",
+        'first: for eager evaluation, all arguments must be eager values (e.g.'
+        " DataSlices), got an Expr for the argument 'x': I.arg; if it is"
+        ' intentional, perhaps wrap the Expr into a Koda Functor using'
+        ' kd.fn(expr) or use corresponding kd.lazy operator',
     ):
       eval_op(op_first, x=I.arg)
 
