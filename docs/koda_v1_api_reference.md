@@ -7739,12 +7739,6 @@ Alias for [kd.allocation.new_listid_shaped](#kd.allocation.new_listid_shaped) op
 
 Alias for [kd.allocation.new_listid_shaped_as](#kd.allocation.new_listid_shaped_as) operator.
 
-### `kd.new_schema(db=None, **attrs)` {#kd.new_schema}
-
-``` {.no-copy}
-Deprecated. Use kd.schema.new_schema instead.
-```
-
 ### `kd.new_shaped(shape, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.new_shaped}
 
 Alias for [kd.entities.shaped](#kd.entities.shaped) operator.
