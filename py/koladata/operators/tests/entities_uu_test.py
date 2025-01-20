@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -201,7 +202,7 @@ class EntitiesUuTest(parameterized.TestCase):
           arolla.unspecified(),
           False,
           dict(a=ds([1, 2, 3]), b=ds([1, 2])),
-          'shapes are not compatible',
+          'kd.entities.uu: shapes are not compatible',
       ),
       (
           ds(['seed1', 'seed2']),
@@ -209,8 +210,8 @@ class EntitiesUuTest(parameterized.TestCase):
           False,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              'argument `seed` must be an item holding STRING, got a slice of'
-              ' rank 1 > 0'
+              'kd.entities.uu: argument `seed` must be an item holding STRING,'
+              ' got a slice of rank 1 > 0'
           ),
       ),
       (
@@ -219,8 +220,8 @@ class EntitiesUuTest(parameterized.TestCase):
           False,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              'argument `seed` must be an item holding STRING, got an item of'
-              ' INT32'
+              'kd.entities.uu: argument `seed` must be an item holding STRING,'
+              ' got an item of INT32'
           ),
       ),
       (
@@ -236,14 +237,14 @@ class EntitiesUuTest(parameterized.TestCase):
           0,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              'argument `update_schema` must be an item holding BOOLEAN, got an'
-              ' item of INT32'
+              'kd.entities.uu: argument `update_schema` must be an item holding'
+              ' BOOLEAN, got an item of INT32'
           ),
       ),
   )
   def test_error(self, seed, schema, update_schema, kwargs, err_regex):
     with self.assertRaisesRegex(
-        ValueError,
+        exceptions.KodaError,
         err_regex,
     ):
       _ = expr_eval.eval(

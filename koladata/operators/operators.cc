@@ -218,7 +218,9 @@ OPERATOR_FAMILY("kd.objs.uu", std::make_unique<UuObjOperatorFamily>());
 OPERATOR("kd.schema._agg_common_schema", AggCommonSchema,
          "kd.schema.agg_common_schema");
 OPERATOR("kd.schema._internal_maybe_named_schema", InternalMaybeNamedSchema,
-         "kd.schema.internal_maybe_named_schema");
+         // Don't pass the display name, because it's confusing.
+         // TODO: b/374841918 - Use the outer lambda's name instead.
+         "");
 OPERATOR("kd.schema._unsafe_cast_to", UnsafeCastTo, "kd.schema.unsafe_cast_to");
 OPERATOR("kd.schema.cast_to", CastTo);
 OPERATOR("kd.schema.cast_to_implicit", CastToImplicit);

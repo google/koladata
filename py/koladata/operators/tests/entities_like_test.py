@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -132,13 +133,13 @@ class EntitiesLikeTest(absltest.TestCase):
   def test_schema_arg_errors(self):
     shape_and_mask_from = ds([[6, 7], [8]])
     with self.assertRaisesRegex(
-        ValueError, "schema's schema must be SCHEMA, got: STRING"
+        exceptions.KodaError, "schema's schema must be SCHEMA, got: STRING"
     ):
       _ = kde.entities.like(
           shape_and_mask_from, schema=ds(['name']), a=42
       ).eval()
     with self.assertRaisesRegex(
-        ValueError, "schema's schema must be SCHEMA, got: INT32"
+        exceptions.KodaError, "schema's schema must be SCHEMA, got: INT32"
     ):
       _ = kde.entities.like(shape_and_mask_from, schema=42, a=42).eval()
 
@@ -164,8 +165,9 @@ class EntitiesLikeTest(absltest.TestCase):
 
     with self.subTest('present DataItem and missing itemid'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` only has 0 present items but 1 are required',
+          exceptions.KodaError,
+          'kd.entities.like: `itemid` only has 0 present items but 1 are'
+          ' required',
       ):
         _ = expr_eval.eval(
             kde.entities.like(ds(1), a=42, itemid=(itemid & None))
@@ -193,8 +195,9 @@ class EntitiesLikeTest(absltest.TestCase):
 
     with self.subTest('full DataSlice and sparse itemid'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` only has 2 present items but 3 are required',
+          exceptions.KodaError,
+          'kd.entities.like: `itemid` only has 2 present items but 3 are'
+          ' required',
       ):
         _ = expr_eval.eval(
             kde.entities.like(ds([1, 1, 1]), a=42, itemid=ds([id1, None, id3]))
@@ -202,8 +205,8 @@ class EntitiesLikeTest(absltest.TestCase):
 
     with self.subTest('full DataSlice and full itemid with duplicates'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` cannot have duplicate ItemIds',
+          exceptions.KodaError,
+          'kd.entities.like: `itemid` cannot have duplicate ItemIds',
       ):
         _ = expr_eval.eval(
             kde.entities.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id1]))
@@ -224,8 +227,9 @@ class EntitiesLikeTest(absltest.TestCase):
         'sparse DataSlice and sparse itemid with sparsity mismatch'
     ):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` and `shape_and_mask_from` must have the same sparsity',
+          exceptions.KodaError,
+          'kd.entities.like: `itemid` and `shape_and_mask_from` must have the'
+          ' same sparsity',
       ):
         _ = expr_eval.eval(
             kde.entities.like(
@@ -246,8 +250,8 @@ class EntitiesLikeTest(absltest.TestCase):
 
     with self.subTest('sparse DataSlice and full itemid with duplicates'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` cannot have duplicate ItemIds',
+          exceptions.KodaError,
+          'kd.entities.like: `itemid` cannot have duplicate ItemIds',
       ):
         _ = expr_eval.eval(
             kde.entities.like(
@@ -300,9 +304,9 @@ class EntitiesLikeTest(absltest.TestCase):
   def test_update_schema_arg_error(self):
     shape_and_mask_from = ds([6, 7])
     with self.assertRaisesRegex(
-        ValueError,
-        'argument `update_schema` must be an item holding BOOLEAN, got an item'
-        ' of INT32',
+        exceptions.KodaError,
+        'kd.entities.like: argument `update_schema` must be an item holding'
+        ' BOOLEAN, got an item of INT32',
     ):
       kde.entities.like(
           shape_and_mask_from,

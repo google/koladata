@@ -29,6 +29,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -58,21 +59,21 @@ class NewOperator final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.entities.new",
         [schema_slot = input_slots[1],
          update_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
-         item_id_slot = input_slots[3],
-         named_tuple_slot = input_slots[4],
+         item_id_slot = input_slots[3], named_tuple_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           std::optional<DataSlice> schema;
           if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
-              ctx->set_status(std::move(_)));
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -82,13 +83,12 @@ class NewOperator final : public arolla::QExprOperator {
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::Empty();
-          ASSIGN_OR_RETURN(
-              auto result,
-              EntityCreator::FromAttrs(result_db, attr_names, attr_values,
-                                       schema, update_schema, item_id),
-              ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(auto result, EntityCreator::FromAttrs(
+                                            result_db, attr_names, attr_values,
+                                            schema, update_schema, item_id));
           result_db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -102,14 +102,15 @@ class NewShapedOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.entities.shaped",
         [shape_slot = input_slots[0].UnsafeToSlot<DataSlice::JaggedShape>(),
          schema_slot = input_slots[1],
          update_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
-         item_id_slot = input_slots[3],
-         named_tuple_slot = input_slots[4],
+         item_id_slot = input_slots[3], named_tuple_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           const auto& shape = frame.Get(shape_slot);
           std::optional<DataSlice> schema;
           if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
@@ -117,8 +118,7 @@ class NewShapedOperator : public arolla::QExprOperator {
           }
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
-              ctx->set_status(std::move(_)));
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -131,10 +131,10 @@ class NewShapedOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(
               auto result,
               EntityCreator::Shaped(result_db, shape, attr_names, attr_values,
-                                    schema, update_schema, item_id),
-              ctx->set_status(std::move(_)));
+                                    schema, update_schema, item_id));
           result_db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -148,14 +148,15 @@ class NewLikeOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.entities.like",
         [shape_and_mask_from_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          schema_slot = input_slots[1],
          update_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
-         item_id_slot = input_slots[3],
-         named_tuple_slot = input_slots[4],
+         item_id_slot = input_slots[3], named_tuple_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           const auto& shape_and_mask_from = frame.Get(shape_and_mask_from_slot);
           std::optional<DataSlice> schema;
           if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
@@ -163,8 +164,7 @@ class NewLikeOperator : public arolla::QExprOperator {
           }
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
-              ctx->set_status(std::move(_)));
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -177,10 +177,10 @@ class NewLikeOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(
               auto result,
               EntityCreator::Like(result_db, shape_and_mask_from, attr_names,
-                                  attr_values, schema, update_schema, item_id),
-              ctx->set_status(std::move(_)));
+                                  attr_values, schema, update_schema, item_id));
           result.GetBag()->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -194,13 +194,15 @@ class UuOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.entities.uu",
         [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          schema_slot = input_slots[1],
          update_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[3],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           std::optional<DataSlice> schema;
           if (schema_slot.GetType() == arolla::GetUnspecifiedQType()) {
             schema = absl::nullopt;
@@ -208,21 +210,18 @@ class UuOperator : public arolla::QExprOperator {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
           ASSIGN_OR_RETURN(absl::string_view seed,
-                           GetStringArgument(frame.Get(seed_slot), "seed"),
-                           ctx->set_status(std::move(_)));
+                           GetStringArgument(frame.Get(seed_slot), "seed"));
           ASSIGN_OR_RETURN(
               bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"),
-              ctx->set_status(std::move(_)));
+              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
-          ASSIGN_OR_RETURN(
-              auto result,
-              CreateUu(db, seed, attr_names, values, schema, update_schema),
-              ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(auto result, CreateUu(db, seed, attr_names, values,
+                                                 schema, update_schema));
           db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };

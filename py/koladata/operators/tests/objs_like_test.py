@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -125,8 +126,8 @@ class ObjsLikeTest(absltest.TestCase):
 
     with self.subTest('present DataItem and missing itemid'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` only has 0 present items but 1 are required',
+          exceptions.KodaError,
+          'kd.objs.like: `itemid` only has 0 present items but 1 are required',
       ):
         _ = expr_eval.eval(kde.objs.like(ds(1), a=42, itemid=(itemid & None)))
 
@@ -146,8 +147,8 @@ class ObjsLikeTest(absltest.TestCase):
 
     with self.subTest('full DataSlice and sparse itemid'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` only has 2 present items but 3 are required',
+          exceptions.KodaError,
+          'kd.objs.like: `itemid` only has 2 present items but 3 are required',
       ):
         _ = expr_eval.eval(
             kde.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, None, id3]))
@@ -155,8 +156,8 @@ class ObjsLikeTest(absltest.TestCase):
 
     with self.subTest('full DataSlice and full itemid with duplicates'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` cannot have duplicate ItemIds',
+          exceptions.KodaError,
+          'kd.objs.like: `itemid` cannot have duplicate ItemIds',
       ):
         _ = expr_eval.eval(
             kde.objs.like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id1]))
@@ -177,8 +178,9 @@ class ObjsLikeTest(absltest.TestCase):
         'sparse DataSlice and sparse itemid with sparsity mismatch'
     ):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` and `shape_and_mask_from` must have the same sparsity',
+          exceptions.KodaError,
+          'kd.objs.like: `itemid` and `shape_and_mask_from` must have the same'
+          ' sparsity',
       ):
         _ = expr_eval.eval(
             kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, None]))
@@ -197,8 +199,8 @@ class ObjsLikeTest(absltest.TestCase):
 
     with self.subTest('sparse DataSlice and full itemid with duplicates'):
       with self.assertRaisesRegex(
-          ValueError,
-          '`itemid` cannot have duplicate ItemIds',
+          exceptions.KodaError,
+          'kd.objs.like: `itemid` cannot have duplicate ItemIds',
       ):
         _ = expr_eval.eval(
             kde.objs.like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id1]))

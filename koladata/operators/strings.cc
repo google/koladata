@@ -37,7 +37,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/op_utils/error.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/operators/utils.h"
@@ -46,7 +46,6 @@
 #include "koladata/shape_utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/qexpr_operator_signature.h"
@@ -106,23 +105,22 @@ class FormatOperator : public arolla::QExprOperator {
         DataSlice::Create(
             internal::DataItem(arolla::Text(absl::StrJoin(attr_names, ","))),
             internal::DataItem(schema::kString)));
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.strings.format",
         [arg_names_slice = std::move(arg_names_slice),
          attr_names = std::move(attr_names),
          format_spec_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          named_tuple_slot, output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           auto values = GetValueDataSlices(named_tuple_slot, frame);
-
           const DataSlice& format_spec = frame.Get(format_spec_slot);
           values.insert(values.begin(), {format_spec, arg_names_slice});
           ASSIGN_OR_RETURN(
               auto result,
-              internal::ReturnsOperatorEvalError("kd.strings.format",
-                                                 EvalFormatOp)(
-                  "strings.format", format_spec, std::move(values)),
-              ctx->set_status(std::move(_)));
+              EvalFormatOp("strings.format", format_spec, std::move(values)));
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };

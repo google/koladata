@@ -20,8 +20,8 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/qexpr_operator_signature.h"
@@ -36,7 +36,6 @@ using ::arolla::BoundOperator;
 using ::arolla::EvaluationContext;
 using ::arolla::FramePtr;
 using ::arolla::GetQType;
-using ::arolla::MakeBoundOperator;
 using ::arolla::OperatorPtr;
 using ::arolla::QExprOperator;
 using ::arolla::QExprOperatorSignature;
@@ -47,16 +46,17 @@ class NonDeterministicIdentityOp final : public QExprOperator {
  public:
   NonDeterministicIdentityOp(absl::Span<const QTypePtr> input_types,
                              QTypePtr output_type)
-      : QExprOperator("kode_interanl.non_deterministic_identity",
-                      QExprOperatorSignature::Get(input_types, output_type)) {}
+      : QExprOperator(QExprOperatorSignature::Get(input_types, output_type)) {}
 
   absl::StatusOr<std::unique_ptr<BoundOperator>> DoBind(
       absl::Span<const TypedSlot> input_slots,
       TypedSlot output_slot) const final {
-    return MakeBoundOperator([input_slot = input_slots[0], output_slot](
-                                 EvaluationContext*, FramePtr frame) -> void {
-      input_slot.CopyTo(frame, output_slot, frame);
-    });
+    return MakeBoundOperator("koda_internal.non_deterministic_identity",
+                             [input_slot = input_slots[0], output_slot](
+                                 EvaluationContext*, FramePtr frame) {
+                               input_slot.CopyTo(frame, output_slot, frame);
+                               return absl::OkStatus();
+                             });
   }
 };
 

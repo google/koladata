@@ -211,16 +211,14 @@ class StringsFormatTest(parameterized.TestCase):
       )
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'unsupported argument types.*UNIT',
+        'kd.strings.format: unsupported argument types.*UNIT',
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(arolla.present())))
 
   def test_missing_input_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        "argument name 'v' is not found",
+        "kd.strings.format: argument name 'v' is not found",
     ):
       expr_eval.eval(kde.strings.format(ds('{v}')))
 
@@ -234,7 +232,8 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        'kd.strings.format: DataSlice with mixed types is not supported',
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds([1, 'foo'])))
 

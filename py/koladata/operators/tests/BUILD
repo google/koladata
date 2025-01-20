@@ -1370,6 +1370,7 @@ py_test(
     name = "objs_new_test",
     srcs = ["objs_new_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1436,6 +1437,7 @@ py_test(
     name = "objs_like_test",
     srcs = ["objs_like_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1457,6 +1459,7 @@ py_test(
     name = "entities_like_test",
     srcs = ["entities_like_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2972,6 +2975,7 @@ py_test(
     name = "objs_uu_test",
     srcs = ["objs_uu_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2990,6 +2994,7 @@ py_test(
     name = "entities_uu_test",
     srcs = ["entities_uu_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

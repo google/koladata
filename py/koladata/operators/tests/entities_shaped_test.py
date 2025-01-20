@@ -126,7 +126,8 @@ class EntitiesShapedTest(absltest.TestCase):
   def test_schema_arg_implicit_casting_failure(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError, r'schema for attribute \'a\' is incompatible'
+        exceptions.KodaError,
+        "kd.entities.shaped: the schema for attribute 'a' is incompatible",
     ):
       kde.entities.shaped(
           jagged_shape.create_shape([2]), a='xyz', schema=schema

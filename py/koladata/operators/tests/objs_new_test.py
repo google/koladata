@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -186,13 +187,15 @@ class ObjsNewTest(parameterized.TestCase):
 
   def test_converter_into_itemid_is_not_supported(self):
     with self.assertRaisesRegex(
-        ValueError, '`itemid` is not supported when converting to object'
+        exceptions.KodaError,
+        'kd.objs.new: `itemid` is not supported when converting to object',
     ):
       kde.objs.new(I.x, itemid=I.itemid).eval(x=ds(42), itemid=bag().new())
 
   def test_converter_on_python_objects(self):
     with self.assertRaisesRegex(
-        ValueError, 'unable to represent argument `arg` as QValue or Expr'
+        ValueError,
+        'unable to represent argument `arg` as QValue or Expr',
     ):
       kde.objs.new({'a': 42}, itemid=I.itemid)
 

@@ -30,6 +30,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -68,12 +69,13 @@ class ObjOperator final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
-        [first_arg_slot = input_slots[0],
-         item_id_slot = input_slots[1],
+    return MakeBoundOperator(
+        "kd.objs.new",
+        [first_arg_slot = input_slots[0], item_id_slot = input_slots[1],
          named_tuple_slot = input_slots[2],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           std::optional<DataSlice> first_arg;
           if (first_arg_slot.GetType() == arolla::GetQType<DataSlice>()) {
             first_arg = frame.Get(first_arg_slot.UnsafeToSlot<DataSlice>());
@@ -90,25 +92,23 @@ class ObjOperator final : public arolla::QExprOperator {
           std::optional<DataSlice> result;
           if (first_arg.has_value()) {
             if (item_id.has_value()) {
-              ctx->set_status(absl::InvalidArgumentError(
-                  "`itemid` is not supported when converting to object"));
-              return;
+              return absl::InvalidArgumentError(
+                  "`itemid` is not supported when converting to object");
             }
             if (!attr_values.empty()) {
-              ctx->set_status(absl::InvalidArgumentError(
-                  "cannot set extra attributes when converting to object"));
-              return;
+              return absl::InvalidArgumentError(
+                  "cannot set extra attributes when converting to object");
             }
-            ASSIGN_OR_RETURN(result, ConvertWithAdoption(result_db, *first_arg),
-                             ctx->set_status(std::move(_)));
+            ASSIGN_OR_RETURN(result,
+                             ConvertWithAdoption(result_db, *first_arg));
           } else {
             ASSIGN_OR_RETURN(result,
                              ObjectCreator::FromAttrs(result_db, attr_names,
-                                                      attr_values, item_id),
-                             ctx->set_status(std::move(_)));
+                                                      attr_values, item_id));
           }
           result_db->UnsafeMakeImmutable();
           frame.Set(output_slot, *std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -122,12 +122,13 @@ class ObjShapedOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.objs.shaped",
         [shape_slot = input_slots[0].UnsafeToSlot<DataSlice::JaggedShape>(),
-         item_id_slot = input_slots[1],
-         named_tuple_slot = input_slots[2],
+         item_id_slot = input_slots[1], named_tuple_slot = input_slots[2],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           const auto& shape = frame.Get(shape_slot);
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
@@ -140,10 +141,10 @@ class ObjShapedOperator : public arolla::QExprOperator {
           DataBagPtr result_db = DataBag::Empty();
           ASSIGN_OR_RETURN(auto result,
                            ObjectCreator::Shaped(result_db, shape, attr_names,
-                                                 attr_values, item_id),
-                           ctx->set_status(std::move(_)));
+                                                 attr_values, item_id));
           result_db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -157,12 +158,13 @@ class ObjLikeOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.objs.like",
         [shape_and_mask_from_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
-         item_id_slot = input_slots[1],
-         named_tuple_slot = input_slots[2],
+         item_id_slot = input_slots[1], named_tuple_slot = input_slots[2],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           const auto& shape_and_mask_from = frame.Get(shape_and_mask_from_slot);
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
@@ -173,13 +175,12 @@ class ObjLikeOperator : public arolla::QExprOperator {
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::Empty();
-          ASSIGN_OR_RETURN(
-              auto result,
-              ObjectCreator::Like(result_db, shape_and_mask_from, attr_names,
-                                  attr_values, item_id),
-              ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(auto result, ObjectCreator::Like(
+                                            result_db, shape_and_mask_from,
+                                            attr_names, attr_values, item_id));
           result.GetBag()->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };
@@ -193,22 +194,23 @@ class UuObjOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.objs.uu",
         [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[1],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
-                           GetStringArgument(frame.Get(seed_slot), "seed"),
-                           ctx->set_status(std::move(_)));
+                           GetStringArgument(frame.Get(seed_slot), "seed"));
           auto attr_names = GetAttrNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result,
-                           CreateUuObject(db, seed, attr_names, values),
-                           ctx->set_status(std::move(_)));
+                           CreateUuObject(db, seed, attr_names, values));
           db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };

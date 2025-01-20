@@ -226,23 +226,31 @@ class EntitiesNewTest(absltest.TestCase):
 
   def test_schema_arg_errors(self):
     with self.assertRaisesRegex(
-        ValueError, 'schema must be SCHEMA, got: INT32'
+        exceptions.KodaError,
+        "schema's schema must be SCHEMA, got: INT32",
     ):
       kde.entities.new(a=1, schema=ds([1, 2, 3])).eval()
     with self.assertRaisesRegex(
-        ValueError, 'schema must be SCHEMA, got: STRING'
+        exceptions.KodaError,
+        "schema's schema must be SCHEMA, got: STRING",
     ):
       kde.entities.new(a=1, schema=ds(['name'])).eval()
-    with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'schema can only be 0-rank'
+    ):
       kde.entities.new(
           a=1, schema=ds([schema_constants.INT32, schema_constants.STRING])
       ).eval()
     with self.assertRaisesRegex(
-        ValueError, 'requires Entity schema, got INT32'
+        exceptions.KodaError,
+        'kd.entities.new: processing Entity attributes requires Entity schema,'
+        ' got INT32',
     ):
       kde.entities.new(a=1, schema=schema_constants.INT32).eval()
     with self.assertRaisesRegex(
-        ValueError, 'requires Entity schema, got OBJECT'
+        exceptions.KodaError,
+        'kd.entities.new: processing Entity attributes requires Entity schema,'
+        ' got OBJECT',
     ):
       kde.entities.new(a=1, schema=schema_constants.OBJECT).eval()
 
