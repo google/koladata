@@ -65,15 +65,15 @@ class TupleMakeTupleTest(parameterized.TestCase):
 
   @parameterized.parameters(
       ((), arolla.tuple()),
-      ((ds(0),), arolla.tuple(ds(0))),
+      ((0,), arolla.tuple(ds(0))),
       (
-          (ds(0), ds(1)),
+          (0, 1),
           arolla.tuple(ds(0), ds(1)),
       ),
       (
           (
               ds([[1, 2, 3], [4, 5]]),
-              ds('a'),
+              'a',
               ds([1, 2]),
           ),
           arolla.tuple(
@@ -96,6 +96,9 @@ class TupleMakeTupleTest(parameterized.TestCase):
         possible_qtypes=[DATA_SLICE, arolla.INT64],
         max_arity=2,
     )
+
+  def test_boxing_rules_regression(self):
+    testing.assert_equal(kde.tuple.make_tuple(42).node_deps[0].qvalue, ds(42))
 
   def test_view(self):
     x_tuple = kde.tuple.make_tuple(I.x, I.y)

@@ -20,6 +20,7 @@ from koladata.operators import arolla_bridge
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import view_overloads as _
+from koladata.types import py_boxing
 from koladata.types import schema_constants
 
 M = arolla.OperatorsContainer(jagged_shape)
@@ -28,10 +29,16 @@ MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
 
 
-optools.add_to_registry(
-    name='kd.tuple.make_tuple',
-    aliases=['kd.make_tuple'],
-)(arolla.M.core.make_tuple)
+# Note that we use the lambda operator instead of an alias so that the operator
+# implemented Koladata-specific boxing rules.
+@optools.add_to_registry(aliases=['kd.make_tuple'])
+@arolla.optools.as_lambda_operator(
+    'kd.tuple.make_tuple',
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
+)
+def make_tuple(*args):
+  """Returns a tuple-like object containing the given `*args`."""
+  return arolla.optools.fix_trace_args(args)
 
 
 @optools.add_to_registry_as_overload(

@@ -331,6 +331,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         ":view_overloads",
+        "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
