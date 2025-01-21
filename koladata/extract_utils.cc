@@ -14,6 +14,7 @@
 //
 #include "koladata/extract_utils.h"
 
+#include <optional>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -28,8 +29,9 @@
 namespace koladata {
 namespace extract_utils_internal {
 
-absl::StatusOr<DataSlice> ExtractWithSchema(const DataSlice& ds,
-                                            const DataSlice& schema) {
+absl::StatusOr<DataSlice> ExtractWithSchema(
+    const DataSlice& ds, const DataSlice& schema, int max_depth,
+    const std::optional<internal::LeafCallback>& leaf_callback) {
   const auto& db = ds.GetBag();
   if (db == nullptr) {
     return absl::InvalidArgumentError("cannot extract without a DataBag");
@@ -46,14 +48,16 @@ absl::StatusOr<DataSlice> ExtractWithSchema(const DataSlice& ds,
     if (schema_db != nullptr && schema_db != db) {
       FlattenFallbackFinder schema_fb_finder(*schema_db);
       auto schema_fallbacks = schema_fb_finder.GetFlattenFallbacks();
-      RETURN_IF_ERROR(extract_op(
-          impl, schema_impl, db->GetImpl(), std::move(fallbacks_span),
-          &(schema_db->GetImpl()), std::move(schema_fallbacks)));
+      RETURN_IF_ERROR(
+          extract_op(impl, schema_impl, db->GetImpl(),
+                     std::move(fallbacks_span), &(schema_db->GetImpl()),
+                     std::move(schema_fallbacks), max_depth, leaf_callback));
     } else {
       RETURN_IF_ERROR(extract_op(
           impl, schema_impl, db->GetImpl(), std::move(fallbacks_span),
           /*schema_databag=*/nullptr,
-          /*schema_fallbacks=*/internal::DataBagImpl::FallbackSpan()));
+          /*schema_fallbacks=*/internal::DataBagImpl::FallbackSpan(), max_depth,
+          leaf_callback));
     }
     result_db->UnsafeMakeImmutable();
     return DataSlice::Create(impl, ds.GetShape(), schema_impl, result_db);

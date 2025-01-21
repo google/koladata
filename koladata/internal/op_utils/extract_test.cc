@@ -47,6 +47,8 @@ namespace koladata::internal {
 namespace {
 
 using ::absl_testing::StatusIs;
+using ::testing::IsEmpty;
+using ::testing::UnorderedElementsAre;
 
 using ::arolla::CreateDenseArray;
 using ::koladata::internal::testing::DataBagEqual;
@@ -77,6 +79,32 @@ void SetDataTriples(DataBagImpl& db, const TriplesT& data_triples) {
       EXPECT_OK(db.SetAttr(item, attr_name, attr_data));
     }
   }
+}
+
+void SetListValues(DataBagImplPtr db, const DataSliceImpl& lists,
+                   const DataSliceImpl& values) {
+  DCHECK(lists.size() <= values.size());
+  std::vector<arolla::OptionalValue<int64_t>> split_points;
+  split_points.push_back(0);
+  int64_t remaining_size = values.size();
+  for (int i = 0; i < lists.size() - 1; ++i) {
+    split_points.push_back(1);
+    --remaining_size;
+  }
+  split_points.push_back(remaining_size);
+
+  ASSERT_OK_AND_ASSIGN(const arolla::DenseArrayEdge edge,
+                       arolla::DenseArrayEdge::FromSplitPoints(
+                           CreateDenseArray<int64_t>(split_points)));
+
+  ASSERT_OK(db->ExtendLists(lists, values, edge));
+}
+
+void SetListValues(DataBagImplPtr db, const DataItem& list,
+                   const DataSliceImpl& values) {
+  const DataSliceImpl list_expanded =
+      DataSliceImpl::Create(CreateDenseArray<DataItem>({list}));
+  SetListValues(db, list_expanded, values);
 }
 
 TriplesT GenNoiseDataTriples() {
@@ -111,6 +139,17 @@ struct ExtractTestParam {
   ExtractAllocParam alloc_param;
 };
 
+struct LeafCollector {
+  LeafCallback GetCallback() {
+    return [this](const DataSliceImpl& slice, const DataItem& schema) {
+      for (const DataItem& item : slice) {
+        collected_items.push_back(item);
+      }
+      return absl::OkStatus();
+    };
+  }
+  std::vector<DataItem> collected_items;
+};
 
 class CopyingOpTest : public ::testing::TestWithParam<ExtractTestParam> {
  public:
@@ -979,6 +1018,474 @@ TEST_P(ExtractTest, DataSliceEntity) {
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
+  const DataItem obj_dtype = DataItem(schema::kObject);
+  const DataItem int_dtype = DataItem(schema::kInt32);
+  const DataItem text_dtype = DataItem(schema::kString);
+  DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();
+
+  // Schema triples.
+  const DataItem root_schema = obj_dtype;
+  const DataItem list_schema_a = AllocateSchema();
+  const DataItem list_schema_b = AllocateSchema();
+  const DataItem obj_level2_schema = AllocateSchema();
+  const TriplesT schema_triples_level0 = {
+      {list_schema_a, {{schema::kListItemsSchemaAttr, obj_level2_schema}}},
+      {list_schema_b, {{schema::kListItemsSchemaAttr, obj_level2_schema}}},
+  };
+  const TriplesT schema_triples_level1 = {
+      {obj_level2_schema, {{"x", int_dtype}, {"y", int_dtype}}},
+  };
+  const TriplesT schema_triples_level2 = {};
+
+  // Data triples.
+  const AllocationId lists_alloc = AllocateLists(2);
+  const DataSliceImpl root_ds =
+      DataSliceImpl::ObjectsFromAllocation(lists_alloc, 2);
+  const DataItem list_a = root_ds[0];
+  const DataItem list_b = root_ds[1];
+  const DataSliceImpl obj_ids = AllocateEmptyObjects(2);
+  const DataItem obj_a = obj_ids[0];
+  const DataItem obj_b = obj_ids[1];
+
+  const TriplesT data_triples_level0 = {
+      {list_a, {{schema::kSchemaAttr, list_schema_a}}},
+      {list_b, {{schema::kSchemaAttr, list_schema_b}}},
+  };
+
+  const TriplesT data_triples_level1 = {};
+
+  const TriplesT data_triples_level2 = {
+      {obj_a, {{"x", DataItem(12)}, {"y", DataItem(34)}}},
+      {obj_b, {{"x", DataItem(56)}, {"y", DataItem(78)}}},
+  };
+
+  // Lists values.
+  const DataSliceImpl list_a_values =
+      DataSliceImpl::Create(CreateDenseArray<DataItem>({obj_a}));
+
+  const DataSliceImpl list_b_values =
+      DataSliceImpl::Create(CreateDenseArray<DataItem>({obj_b}));
+
+  SetSchemaTriples(*db, schema_triples_level0);
+  SetSchemaTriples(*db, schema_triples_level1);
+  SetSchemaTriples(*db, schema_triples_level2);
+  SetDataTriples(*db, data_triples_level0);
+  SetDataTriples(*db, data_triples_level1);
+  SetDataTriples(*db, data_triples_level2);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  SetListValues(db, list_a, list_a_values);
+  SetListValues(db, list_b, list_b_values);
+
+  // Everything extracted.
+  {
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetSchemaTriples(*expected_db, schema_triples_level1);
+    SetSchemaTriples(*expected_db, schema_triples_level2);
+    SetDataTriples(*expected_db, data_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level1);
+    SetDataTriples(*expected_db, data_triples_level2);
+    SetListValues(expected_db, list_a, list_a_values);
+    SetListValues(expected_db, list_b, list_b_values);
+    {  // default max_depth, i.e. -1
+      DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+      ASSERT_OK(ExtractOp(result_db.get())(root_ds, obj_dtype, *GetMainDb(db),
+                                           {GetFallbackDb(db).get()}, nullptr,
+                                           {}));
+
+      ASSERT_NE(result_db.get(), db.get());
+      EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    }
+    {  // max_depth == maximum dataslice depth
+      DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+      LeafCollector leaf_collector;
+
+      ASSERT_OK(ExtractOp(result_db.get())(
+          root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
+          nullptr, {}, /*max_depth=*/2, leaf_collector.GetCallback()));
+
+      ASSERT_NE(result_db.get(), db.get());
+      EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+      EXPECT_THAT(leaf_collector.collected_items, IsEmpty());
+    }
+  }
+  {  // max_depth = 1
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetSchemaTriples(*expected_db, schema_triples_level1);
+    SetDataTriples(*expected_db, data_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level1);
+    SetListValues(expected_db, list_a, list_a_values);
+    SetListValues(expected_db, list_b, list_b_values);
+
+    DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+    LeafCollector leaf_collector;
+
+    ASSERT_OK(ExtractOp(result_db.get())(
+        root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
+        {}, /*max_depth=*/1, leaf_collector.GetCallback()));
+
+    ASSERT_NE(result_db.get(), db.get());
+    EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    EXPECT_THAT(leaf_collector.collected_items,
+                UnorderedElementsAre(obj_a, obj_b));
+  }
+  {  // max_depth = 0
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level1);
+
+    DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+    LeafCollector leaf_collector;
+
+    ASSERT_OK(ExtractOp(result_db.get())(
+        root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
+        {}, /*max_depth=*/0, leaf_collector.GetCallback()));
+
+    ASSERT_NE(result_db.get(), db.get());
+    EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    EXPECT_THAT(leaf_collector.collected_items,
+                UnorderedElementsAre(list_a, list_b));
+  }
+}
+
+TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
+  const DataItem obj_dtype = DataItem(schema::kObject);
+  const DataItem int_dtype = DataItem(schema::kInt32);
+  const DataItem text_dtype = DataItem(schema::kString);
+  DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();
+
+  // Schema triples.
+  const DataItem root_schema = obj_dtype;
+  const AllocationId list_schemas =
+      AllocateExplicitSchemas(kSmallAllocMaxCapacity + 1);
+  const DataItem list_schema_a = DataItem(list_schemas.ObjectByOffset(0));
+  const DataItem list_schema_b = DataItem(list_schemas.ObjectByOffset(1));
+  const DataItem obj_level2_schema1 = AllocateSchema();
+  const DataItem obj_level2_schema2 = AllocateSchema();
+  const TriplesT schema_triples_level0 = {
+      {list_schema_a, {{schema::kListItemsSchemaAttr, obj_level2_schema1}}},
+      {list_schema_b, {{schema::kListItemsSchemaAttr, obj_level2_schema2}}},
+  };
+  const TriplesT schema_triples_level1 = {
+      {obj_level2_schema1, {{"x", int_dtype}, {"y", int_dtype}}},
+      {obj_level2_schema2, {{"x", int_dtype}, {"y", int_dtype}}},
+  };
+  const TriplesT schema_triples_level2 = {};
+
+  // Data triples.
+  const AllocationId lists_alloc = AllocateLists(2);
+  const DataSliceImpl root_ds =
+      DataSliceImpl::ObjectsFromAllocation(lists_alloc, 2);
+  const DataItem list_a = root_ds[0];
+  const DataItem list_b = root_ds[1];
+  const DataSliceImpl obj_ids = AllocateEmptyObjects(2);
+  const DataItem obj_a = obj_ids[0];
+  const DataItem obj_b = obj_ids[1];
+
+  const TriplesT data_triples_level0 = {
+      {list_a, {{schema::kSchemaAttr, list_schema_a}}},
+      {list_b, {{schema::kSchemaAttr, list_schema_b}}},
+  };
+
+  const TriplesT data_triples_level1 = {};
+
+  const TriplesT data_triples_level2 = {
+      {obj_a, {{"x", DataItem(12)}, {"y", DataItem(34)}}},
+      {obj_b, {{"x", DataItem(56)}, {"y", DataItem(78)}}},
+  };
+
+  // Lists values.
+  const DataSliceImpl list_a_values =
+      DataSliceImpl::Create(CreateDenseArray<DataItem>({obj_a}));
+
+  const DataSliceImpl list_b_values =
+      DataSliceImpl::Create(CreateDenseArray<DataItem>({obj_b}));
+
+  SetSchemaTriples(*db, schema_triples_level0);
+  SetSchemaTriples(*db, schema_triples_level1);
+  SetSchemaTriples(*db, schema_triples_level2);
+  SetDataTriples(*db, data_triples_level0);
+  SetDataTriples(*db, data_triples_level1);
+  SetDataTriples(*db, data_triples_level2);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  SetListValues(db, list_a, list_a_values);
+  SetListValues(db, list_b, list_b_values);
+
+  // Everything extracted.
+  {
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetSchemaTriples(*expected_db, schema_triples_level1);
+    SetSchemaTriples(*expected_db, schema_triples_level2);
+    SetDataTriples(*expected_db, data_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level1);
+    SetDataTriples(*expected_db, data_triples_level2);
+    SetListValues(expected_db, list_a, list_a_values);
+    SetListValues(expected_db, list_b, list_b_values);
+    {  // default max_depth, i.e. -1
+      DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+      ASSERT_OK(ExtractOp(result_db.get())(root_ds, obj_dtype, *GetMainDb(db),
+                                           {GetFallbackDb(db).get()}, nullptr,
+                                           {}));
+
+      ASSERT_NE(result_db.get(), db.get());
+      EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    }
+    {  // max_depth == maximum dataslice depth
+      DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+      LeafCollector leaf_collector;
+
+      ASSERT_OK(ExtractOp(result_db.get())(
+          root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
+          nullptr, {}, /*max_depth=*/2, leaf_collector.GetCallback()));
+
+      ASSERT_NE(result_db.get(), db.get());
+      EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+      EXPECT_THAT(leaf_collector.collected_items, IsEmpty());
+    }
+  }
+  {  // max_depth = 1
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetSchemaTriples(*expected_db, schema_triples_level1);
+    SetDataTriples(*expected_db, data_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level1);
+    SetListValues(expected_db, list_a, list_a_values);
+    SetListValues(expected_db, list_b, list_b_values);
+
+    DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+    LeafCollector leaf_collector;
+
+    ASSERT_OK(ExtractOp(result_db.get())(
+        root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
+        {}, /*max_depth=*/1, leaf_collector.GetCallback()));
+
+    ASSERT_NE(result_db.get(), db.get());
+    EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    EXPECT_THAT(leaf_collector.collected_items,
+                UnorderedElementsAre(obj_a, obj_b));
+  }
+  {  // max_depth = 0
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level1);
+
+    DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+    LeafCollector leaf_collector;
+
+    ASSERT_OK(ExtractOp(result_db.get())(
+        root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
+        {}, /*max_depth=*/0, leaf_collector.GetCallback()));
+
+    ASSERT_NE(result_db.get(), db.get());
+    EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    EXPECT_THAT(leaf_collector.collected_items,
+                UnorderedElementsAre(list_a, list_b));
+  }
+}
+
+TEST_P(ExtractTest, MaxDepth) {
+  const DataItem obj_dtype = DataItem(schema::kObject);
+  const DataItem int_dtype = DataItem(schema::kInt32);
+  DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();
+
+  // Schema triples.
+  const DataItem root_schema = AllocateSchema();
+  const DataItem obj_level1_schema = AllocateSchema();
+  const DataItem dict_level1_schema = AllocateSchema();
+  const DataItem dict_level2_schema = AllocateSchema();
+  const DataItem list_of_lists_level1_schema = AllocateSchema();
+  const DataItem list_level2_schema = AllocateSchema();
+  const TriplesT schema_triples_level0 = {
+      {root_schema,
+       {
+           {"obj", obj_dtype},
+           {"dict", dict_level1_schema},
+           {"list_of_lists", list_of_lists_level1_schema},
+       }},
+  };
+  const TriplesT schema_triples_level1 = {
+      {dict_level1_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+        {schema::kDictValuesSchemaAttr, dict_level2_schema}}},
+      {list_of_lists_level1_schema,
+       {{schema::kListItemsSchemaAttr, list_level2_schema}}},
+      {obj_level1_schema, {{"x", int_dtype}, {"y", int_dtype}}},
+  };
+  const TriplesT schema_triples_level2 = {
+      {dict_level2_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}},
+      {list_level2_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
+
+  // Data triples.
+  const DataSliceImpl obj_ids = AllocateEmptyObjects(2);
+  const DataItem root_obj = obj_ids[0];
+  const DataItem obj_level1 = obj_ids[1];
+  const DataSliceImpl obj_ids_level2 = AllocateEmptyObjects(1);
+  const DataItem obj_level2 = obj_ids_level2[0];
+  const DataItem dict_level1 = DataItem(AllocateSingleDict());
+  const DataSliceImpl dicts_level2 = AllocateEmptyDicts(1);
+  const DataItem list_of_lists_level1 = DataItem(AllocateSingleList());
+  const DataSliceImpl lists_level2 = AllocateEmptyLists(2);
+
+  const TriplesT data_triples_level0 = {
+      {root_obj,
+       {
+           {schema::kSchemaAttr, root_schema},
+       }},
+  };
+
+  const TriplesT data_triples_level1 = {
+      {root_obj,
+       {{"obj", obj_level1},
+        {"dict", dict_level1},
+        {"list_of_lists", list_of_lists_level1}}},
+      {obj_level1, {{schema::kSchemaAttr, obj_level1_schema}}},
+  };
+
+  const TriplesT data_triples_level2 = {
+      {obj_level1, {{"x", DataItem(123)}, {"y", DataItem(456)}}},
+  };
+
+  // Dicts/lists values.
+  const DataSliceImpl dicts_expanded_level1 =
+      DataSliceImpl::Create(CreateDenseArray<DataItem>({dict_level1}));
+  const DataSliceImpl keys_level1 =
+      DataSliceImpl::Create(CreateDenseArray<int64_t>({123}));
+
+  const DataSliceImpl keys_level2 =
+      DataSliceImpl::Create(CreateDenseArray<int64_t>({456}));
+  const DataSliceImpl values_level2 =
+      DataSliceImpl::Create(CreateDenseArray<float>({789.0}));
+
+  const DataSliceImpl list_values_level2 =
+      DataSliceImpl::Create(CreateDenseArray<int32_t>({1, 2, 3, 4, 5, 6, 7}));
+
+  SetSchemaTriples(*db, schema_triples_level0);
+  SetSchemaTriples(*db, schema_triples_level1);
+  SetSchemaTriples(*db, schema_triples_level2);
+  SetDataTriples(*db, data_triples_level0);
+  SetDataTriples(*db, data_triples_level1);
+  SetDataTriples(*db, data_triples_level2);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+  ASSERT_OK(db->SetInDict(dicts_expanded_level1, keys_level1, dicts_level2));
+  ASSERT_OK(db->SetInDict(dicts_level2, keys_level2, values_level2));
+
+  SetListValues(db, list_of_lists_level1, lists_level2);
+  SetListValues(db, lists_level2, list_values_level2);
+
+  // Everything extracted.
+  {
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetSchemaTriples(*expected_db, schema_triples_level1);
+    SetSchemaTriples(*expected_db, schema_triples_level2);
+    SetDataTriples(*expected_db, data_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level1);
+    SetDataTriples(*expected_db, data_triples_level2);
+    ASSERT_OK(expected_db->SetInDict(dicts_expanded_level1, keys_level1,
+                                     dicts_level2));
+    ASSERT_OK(expected_db->SetInDict(dicts_level2, keys_level2, values_level2));
+
+    SetListValues(expected_db, list_of_lists_level1, lists_level2);
+    SetListValues(expected_db, lists_level2, list_values_level2);
+    {  // default max_depth, i.e. -1
+      DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+
+      ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
+                                           {GetFallbackDb(db).get()}, nullptr,
+                                           {}));
+
+      ASSERT_NE(result_db.get(), db.get());
+      EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    }
+    {  // max_depth == maximum dataslice depth
+      DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+      LeafCollector leaf_collector;
+
+      ASSERT_OK(ExtractOp(result_db.get())(
+          root_obj, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
+          nullptr, {}, /*max_depth=*/3, leaf_collector.GetCallback()));
+
+      ASSERT_NE(result_db.get(), db.get());
+      EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+      EXPECT_THAT(leaf_collector.collected_items, IsEmpty());
+    }
+  }
+  // max_depth=2
+  {
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetSchemaTriples(*expected_db, schema_triples_level1);
+    SetSchemaTriples(*expected_db, schema_triples_level2);
+    SetDataTriples(*expected_db, data_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level1);
+    SetDataTriples(*expected_db, data_triples_level2);
+    ASSERT_OK(expected_db->SetInDict(dicts_expanded_level1, keys_level1,
+                                     dicts_level2));
+    SetListValues(expected_db, list_of_lists_level1, lists_level2);
+    DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+    LeafCollector leaf_collector;
+    ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/2,
+                                         leaf_collector.GetCallback()));
+
+    ASSERT_NE(result_db.get(), db.get());
+    EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    EXPECT_THAT(leaf_collector.collected_items,
+                UnorderedElementsAre(dicts_level2[0], lists_level2[0],
+                                     lists_level2[1]));
+  }
+  // max_depth=1
+  {
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetSchemaTriples(*expected_db, schema_triples_level1);
+    SetDataTriples(*expected_db, data_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level1);
+    DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+    LeafCollector leaf_collector;
+    ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/1,
+                                         leaf_collector.GetCallback()));
+
+    ASSERT_NE(result_db.get(), db.get());
+    EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    EXPECT_THAT(
+        leaf_collector.collected_items,
+        UnorderedElementsAre(dict_level1, list_of_lists_level1, obj_level1));
+  }
+  // max_depth=0
+  {
+    DataBagImplPtr expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples_level0);
+    SetDataTriples(*expected_db, data_triples_level0);
+    DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
+    LeafCollector leaf_collector;
+    ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/0,
+                                         leaf_collector.GetCallback()));
+
+    ASSERT_NE(result_db.get(), db.get());
+    EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+    EXPECT_THAT(leaf_collector.collected_items, UnorderedElementsAre(root_obj));
+  }
 }
 
 TEST_P(ExtractTest, DataSliceObjectIds) {

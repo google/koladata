@@ -15,6 +15,7 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 #define KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 
+#include <optional>
 #include <utility>
 
 #include "absl/base/nullability.h"
@@ -26,6 +27,9 @@
 
 namespace koladata::internal {
 
+using LeafCallback = std::function<absl::Status(const DataSliceImpl& item,
+                                                const DataItem& schema)>;
+
 // Extracts DataSliceImpl / DataItem.
 class ExtractOp {
  public:
@@ -35,13 +39,15 @@ class ExtractOp {
       const DataSliceImpl& ds, const DataItem& schema,
       const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
       absl::Nullable<const DataBagImpl*> schema_databag,
-      DataBagImpl::FallbackSpan schema_fallbacks) const;
+      DataBagImpl::FallbackSpan schema_fallbacks, int max_depth = -1,
+      const std::optional<LeafCallback>& leaf_callback = std::nullopt) const;
 
   absl::Status operator()(
       const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks,
       absl::Nullable<const DataBagImpl*> schema_databag,
-      DataBagImpl::FallbackSpan schema_fallbacks) const;
+      DataBagImpl::FallbackSpan schema_fallbacks, int max_depth = -1,
+      const std::optional<LeafCallback>& leaf_callback = std::nullopt) const;
 
  private:
   DataBagImpl* new_databag_;

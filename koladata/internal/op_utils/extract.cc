@@ -77,6 +77,7 @@ struct QueuedSlice {
   // schema_source indicates which (schema or data) DataBag we are using to
   // retrieve schema for the current slice.
   SchemaSource schema_source;
+  int depth;
 };
 
 class CopyingProcessor {
@@ -85,7 +86,9 @@ class CopyingProcessor {
       const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
       absl::Nullable<const DataBagImpl*> schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks,
-      const DataBagImplPtr& new_databag, bool is_shallow_clone = false)
+      const DataBagImplPtr& new_databag, bool is_shallow_clone = false,
+      int max_depth = -1,
+      const std::optional<LeafCallback>& leaf_callback = std::nullopt)
       : ctx_(),
         group_by_(),
         queued_slices_(),
@@ -95,7 +98,9 @@ class CopyingProcessor {
         schema_fallbacks_(std::move(schema_fallbacks)),
         new_databag_(new_databag),
         objects_tracker_(DataBagImpl::CreateEmptyDatabag()),
-        is_shallow_clone_(is_shallow_clone) {}
+        is_shallow_clone_(is_shallow_clone),
+        max_depth_(max_depth),
+        leaf_callback_(leaf_callback) {}
 
   absl::Status ExtractSlice(const QueuedSlice& slice) {
     RETURN_IF_ERROR(VisitImpl(slice));
@@ -157,10 +162,10 @@ class CopyingProcessor {
     if (update_slice.present_count() == 0) {
       return absl::OkStatus();
     }
-    queued_slices_.push(
-        QueuedSlice{.slice = update_slice,
-                    .schema = slice.schema,
-                    .schema_source = SchemaSource::kDataDatabag});
+    queued_slices_.push(QueuedSlice{.slice = std::move(update_slice),
+                                    .schema = slice.schema,
+                                    .schema_source = SchemaSource::kDataDatabag,
+                                    .depth = slice.depth + 1});
     return absl::OkStatus();
   }
 
@@ -181,7 +186,8 @@ class CopyingProcessor {
     RETURN_IF_ERROR(MarkSchemaAsVisited(slice.schema, slice.schema_source));
     queued_slices_.push(QueuedSlice{.slice = update_slice,
                                     .schema = slice.schema,
-                                    .schema_source = slice.schema_source});
+                                    .schema_source = slice.schema_source,
+                                    .depth = slice.depth + 1});
     return absl::OkStatus();
   }
 
@@ -211,6 +217,13 @@ class CopyingProcessor {
     return absl::OkStatus();
   }
 
+  absl::Status NotifyLeaf(const QueuedSlice& slice) {
+    if (leaf_callback_.has_value()) {
+      RETURN_IF_ERROR(leaf_callback_.value()(slice.slice, slice.schema));
+    }
+    return absl::OkStatus();
+  }
+
   absl::Status Visit(const QueuedSlice& slice) {
     if (is_shallow_clone_) {
       return absl::OkStatus();
@@ -233,8 +246,11 @@ class CopyingProcessor {
     // TODO: Extract and respect removed values.
     ASSIGN_OR_RETURN(auto has_attr_ds, HasOp()(attr_ds));
     ASSIGN_OR_RETURN(auto filtered_ds, PresenceAndOp()(ds, has_attr_ds));
-    RETURN_IF_ERROR(new_databag_->SetAttr(filtered_ds, attr_name, attr_ds));
-    RETURN_IF_ERROR(Visit({attr_ds, attr_schema, slice.schema_source}));
+    if (max_depth_ == -1 || slice.depth < max_depth_) {
+      RETURN_IF_ERROR(new_databag_->SetAttr(filtered_ds, attr_name, attr_ds));
+    }
+    RETURN_IF_ERROR(Visit(
+        {std::move(attr_ds), attr_schema, slice.schema_source, slice.depth}));
     return absl::OkStatus();
   }
 
@@ -251,10 +267,10 @@ class CopyingProcessor {
     ASSIGN_OR_RETURN((auto [keys_ds, keys_edge]),
                      databag_.GetDictKeys(old_ds, fallbacks_));
     if (ds.present_count() == 0) {
-      RETURN_IF_ERROR(
-          Visit({DataSliceImpl(), keys_schema, slice.schema_source}));
-      RETURN_IF_ERROR(
-          Visit({DataSliceImpl(), values_schema, slice.schema_source}));
+      RETURN_IF_ERROR(Visit(
+          {DataSliceImpl(), keys_schema, slice.schema_source, slice.depth}));
+      RETURN_IF_ERROR(Visit(
+          {DataSliceImpl(), values_schema, slice.schema_source, slice.depth}));
       return absl::OkStatus();
     }
     ASSIGN_OR_RETURN(
@@ -266,17 +282,22 @@ class CopyingProcessor {
       ASSIGN_OR_RETURN(auto old_dicts_expanded,
                        arolla::DenseArrayExpandOp()(
                            &ctx_, old_ds.values<ObjectId>(), keys_edge));
-      ASSIGN_OR_RETURN(values_ds, databag_.GetFromDict(
-                                      DataSliceImpl::Create(old_dicts_expanded),
-                                      keys_ds, fallbacks_));
+      ASSIGN_OR_RETURN(values_ds,
+                       databag_.GetFromDict(
+                           DataSliceImpl::Create(std::move(old_dicts_expanded)),
+                           keys_ds, fallbacks_));
     } else {
       ASSIGN_OR_RETURN(values_ds, databag_.GetFromDict(dict_expanded_ds,
                                                        keys_ds, fallbacks_));
     }
-    RETURN_IF_ERROR(
-        new_databag_->SetInDict(dict_expanded_ds, keys_ds, values_ds));
-    RETURN_IF_ERROR(Visit({keys_ds, keys_schema, slice.schema_source}));
-    RETURN_IF_ERROR(Visit({values_ds, values_schema, slice.schema_source}));
+    if (max_depth_ == -1 || slice.depth < max_depth_) {
+      RETURN_IF_ERROR(
+          new_databag_->SetInDict(dict_expanded_ds, keys_ds, values_ds));
+    }
+    RETURN_IF_ERROR(Visit(
+        {std::move(keys_ds), keys_schema, slice.schema_source, slice.depth}));
+    RETURN_IF_ERROR(Visit({std::move(values_ds), values_schema,
+                           slice.schema_source, slice.depth}));
     return absl::OkStatus();
   }
 
@@ -293,9 +314,12 @@ class CopyingProcessor {
         auto list_items,
         databag_.ExplodeLists(old_ds, DataBagImpl::ListRange(), fallbacks_));
     const auto& [list_items_ds, list_items_edge] = list_items;
+    if (max_depth_ == -1 || slice.depth < max_depth_) {
+      RETURN_IF_ERROR(
+          new_databag_->ExtendLists(ds, list_items_ds, list_items_edge));
+    }
     RETURN_IF_ERROR(
-        new_databag_->ExtendLists(ds, list_items_ds, list_items_edge));
-    RETURN_IF_ERROR(Visit({list_items_ds, attr_schema, slice.schema_source}));
+        Visit({list_items_ds, attr_schema, slice.schema_source, slice.depth}));
     return absl::OkStatus();
   }
 
@@ -578,7 +602,8 @@ class CopyingProcessor {
       auto item_slice =
           QueuedSlice{.slice = DataSliceImpl::CreateEmptyAndUnknownType(0),
                       .schema = item,
-                      .schema_source = SchemaSource::kDataDatabag};
+                      .schema_source = SchemaSource::kDataDatabag,
+                      .depth = ds.depth};
       RETURN_IF_ERROR(ProcessEntitySlice(item_slice));
     }
     return absl::OkStatus();
@@ -586,7 +611,7 @@ class CopyingProcessor {
 
   absl::Status ProcessObjectsListItemsAttribute(
       const DataSliceImpl& new_ds, const DataSliceImpl& new_schemas,
-      const DataSliceImpl& old_schemas) {
+      const DataSliceImpl& old_schemas, int depth) {
     ASSIGN_OR_RETURN((auto [items_schemas, was_schema_updated]),
                      CopyAttrSchemas(new_schemas, old_schemas,
                                      schema::kListItemsSchemaAttr));
@@ -599,7 +624,8 @@ class CopyingProcessor {
     if (single_schema.has_value()) {
       return ProcessListItems({.slice = new_ds,
                                .schema = DataItem(schema::kObject),
-                               .schema_source = SchemaSource::kDataDatabag},
+                               .schema_source = SchemaSource::kDataDatabag,
+                               .depth = depth},
                               std::move(*single_schema));
     }
     ASSIGN_OR_RETURN((auto [group_schemas, new_ds_grouped]),
@@ -617,7 +643,8 @@ class CopyingProcessor {
                   {.slice =
                        DataSliceImpl::Create(std::move(new_ds_grouped[idx])),
                    .schema = DataItem(schema::kObject),
-                   .schema_source = SchemaSource::kDataDatabag},
+                   .schema_source = SchemaSource::kDataDatabag,
+                   .depth = depth},
                   DataItem(item_schema));
             });
           } else {
@@ -629,7 +656,7 @@ class CopyingProcessor {
 
   absl::Status ProcessObjectsDictKeysAndValuesAttributes(
       const DataSliceImpl& new_ds, const DataSliceImpl& new_schemas,
-      const DataSliceImpl& old_schemas) {
+      const DataSliceImpl& old_schemas, int depth) {
     ASSIGN_OR_RETURN(
         (auto [keys_schemas, was_keys_schema_updated]),
         CopyAttrSchemas(new_schemas, old_schemas, schema::kDictKeysSchemaAttr));
@@ -649,7 +676,8 @@ class CopyingProcessor {
       return ProcessDictKeysAndValues(
           {.slice = new_ds,
            .schema = DataItem(schema::kObject),
-           .schema_source = SchemaSource::kDataDatabag},
+           .schema_source = SchemaSource::kDataDatabag,
+           .depth = depth},
           std::move(*single_keys_schema), std::move(*single_values_schema));
     }
     ASSIGN_OR_RETURN(
@@ -681,7 +709,8 @@ class CopyingProcessor {
                             {.slice = DataSliceImpl::Create(
                                  std::move(new_ds_grouped[idx])),
                              .schema = DataItem(schema::kObject),
-                             .schema_source = SchemaSource::kDataDatabag},
+                             .schema_source = SchemaSource::kDataDatabag,
+                             .depth = depth},
                             DataItem(key_schema), DataItem(value_schema));
                       },
                       group_keys_schemas_T, group_values_schemas_T);
@@ -699,7 +728,7 @@ class CopyingProcessor {
   absl::Status ProcessObjectsAttribute(const DataSliceImpl& new_ds,
                                        const DataSliceImpl& new_schemas,
                                        const DataSliceImpl& old_schemas,
-                                       std::string_view attr_name) {
+                                       std::string_view attr_name, int depth) {
     ASSIGN_OR_RETURN((auto [attr_schemas, was_schema_updated]),
                      CopyAttrSchemas(new_schemas, old_schemas, attr_name));
     if (!was_schema_updated && new_ds.present_count() == 0) {
@@ -714,7 +743,8 @@ class CopyingProcessor {
     if (single_schema.has_value()) {
       return ProcessAttribute({.slice = new_ds,
                                .schema = DataItem(schema::kObject),
-                               .schema_source = SchemaSource::kDataDatabag},
+                               .schema_source = SchemaSource::kDataDatabag,
+                               .depth = depth},
                               attr_name, std::move(*single_schema));
     }
     ASSIGN_OR_RETURN((auto [group_schemas, new_ds_grouped]),
@@ -732,7 +762,8 @@ class CopyingProcessor {
                   {.slice =
                        DataSliceImpl::Create(std::move(new_ds_grouped[idx])),
                    .schema = DataItem(schema::kObject),
-                   .schema_source = SchemaSource::kDataDatabag},
+                   .schema_source = SchemaSource::kDataDatabag,
+                   .depth = depth},
                   attr_name, DataItem(attr_schema));
             });
           } else {
@@ -745,10 +776,9 @@ class CopyingProcessor {
   // Process slice of objects with ObjectId schema, where all schemas are either
   // in a single big allocation or are in small allocation and are equal.
   absl::Status ProcessObjectsWithSchemasInSingleAllocation(
-      ObjectId schemas_allocation_id,
-      const DataSliceImpl& new_ds,
-      const DataSliceImpl& new_schemas,
-      const DataSliceImpl& old_schemas) {
+      ObjectId schemas_allocation_id, const DataSliceImpl& new_ds,
+      const DataSliceImpl& new_schemas, const DataSliceImpl& old_schemas,
+      int depth) {
     RETURN_IF_ERROR(CopySchemasDataIfNeeded(new_schemas, old_schemas));
     std::vector<DataItem> attr_names;
     if (schemas_allocation_id.IsSmallAlloc()) {
@@ -769,17 +799,17 @@ class CopyingProcessor {
                  attr_name_str == schema::kDictValuesSchemaAttr) {
         has_dicts = true;
       } else {
-        RETURN_IF_ERROR(ProcessObjectsAttribute(new_ds, new_schemas,
-                                                old_schemas, attr_name_str));
+        RETURN_IF_ERROR(ProcessObjectsAttribute(
+            new_ds, new_schemas, old_schemas, attr_name_str, depth));
       }
     }
     if (has_lists) {
-      RETURN_IF_ERROR(
-          ProcessObjectsListItemsAttribute(new_ds, new_schemas, old_schemas));
+      RETURN_IF_ERROR(ProcessObjectsListItemsAttribute(new_ds, new_schemas,
+                                                       old_schemas, depth));
     }
     if (has_dicts) {
       RETURN_IF_ERROR(ProcessObjectsDictKeysAndValuesAttributes(
-          new_ds, new_schemas, old_schemas));
+          new_ds, new_schemas, old_schemas, depth));
     }
     return absl::OkStatus();
   }
@@ -787,7 +817,8 @@ class CopyingProcessor {
   // Process slice of objects with ObjectId schema.
   absl::Status ProcessObjectsWithSchemas(const DataSliceImpl& new_ds,
                                          const DataSliceImpl& new_schemas,
-                                         const DataSliceImpl& old_schemas) {
+                                         const DataSliceImpl& old_schemas,
+                                         int depth) {
     DCHECK(new_ds.dtype() == arolla::GetQType<ObjectId>());
     DCHECK(new_schemas.dtype() == arolla::GetQType<ObjectId>());
     DCHECK(old_schemas.dtype() == arolla::GetQType<ObjectId>());
@@ -815,8 +846,8 @@ class CopyingProcessor {
       return absl::OkStatus();
     }
     if (is_single_allocation) {
-      return ProcessObjectsWithSchemasInSingleAllocation(*schema_alloc, new_ds,
-                                                      new_schemas, old_schemas);
+      return ProcessObjectsWithSchemasInSingleAllocation(
+          *schema_alloc, new_ds, new_schemas, old_schemas, depth);
     }
     const auto schema_allocs = std::move(schema_allocs_bldr).Build();
     ASSIGN_OR_RETURN(auto edge, group_by_.EdgeFromSchemasArray(schema_allocs));
@@ -835,10 +866,9 @@ class CopyingProcessor {
         return;
       }
       status = ProcessObjectsWithSchemasInSingleAllocation(
-          schema_alloc,
-          DataSliceImpl::Create(std::move(new_ds_grouped[idx])),
+          schema_alloc, DataSliceImpl::Create(std::move(new_ds_grouped[idx])),
           DataSliceImpl::Create(std::move(new_schemas_grouped[idx])),
-          DataSliceImpl::Create(std::move(old_schemas_grouped[idx])));
+          DataSliceImpl::Create(std::move(old_schemas_grouped[idx])), depth);
     });
     return status;
   }
@@ -866,7 +896,8 @@ class CopyingProcessor {
     if (!is_shallow_clone_) {
       RETURN_IF_ERROR(
           new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, old_schemas));
-      return ProcessObjectsWithSchemas(ds.slice, old_schemas, old_schemas);
+      return ProcessObjectsWithSchemas(ds.slice, old_schemas, old_schemas,
+                                       ds.depth);
     }
     // Create new implicit schemas and keep allocated explicit schemas unchanged
     arolla::DenseArrayBuilder<arolla::Unit> implicit_mask_bldr(ds.slice.size());
@@ -889,13 +920,20 @@ class CopyingProcessor {
     RETURN_IF_ERROR(
         new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, new_schemas));
     RETURN_IF_ERROR(SetMappingToInitialIds(new_schemas, old_schemas));
-    return ProcessObjectsWithSchemas(ds.slice, new_schemas, old_schemas);
+    return ProcessObjectsWithSchemas(ds.slice, new_schemas, old_schemas,
+                                     ds.depth);
   }
 
   absl::Status ProcessQueue() {
     while (!queued_slices_.empty()) {
       QueuedSlice slice = std::move(queued_slices_.front());
       queued_slices_.pop();
+      if (max_depth_ >= 0 && slice.depth > max_depth_) {
+        continue;
+      } else if (max_depth_ >= 0 && slice.depth == max_depth_) {
+        // We notify the leaf, but keep processing slice.
+        RETURN_IF_ERROR(NotifyLeaf(slice));
+      }
       if (slice.schema.holds_value<ObjectId>()) {
         // Entity schema.
         RETURN_IF_ERROR(ProcessEntitySlice(slice));
@@ -931,6 +969,8 @@ class CopyingProcessor {
   const DataBagImplPtr new_databag_;
   const DataBagImplPtr objects_tracker_;
   const bool is_shallow_clone_;
+  const int max_depth_;
+  const std::optional<LeafCallback>& leaf_callback_;
 };
 
 absl::StatusOr<DataSliceImpl> ValidateCompatibilityAndFilterItemid(
@@ -1004,15 +1044,19 @@ absl::Status ExtractOp::operator()(
     const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks,
     absl::Nullable<const DataBagImpl*> schema_databag,
-    DataBagImpl::FallbackSpan schema_fallbacks) const {
+    DataBagImpl::FallbackSpan schema_fallbacks, int max_depth,
+    const std::optional<LeafCallback>& leaf_callback) const {
   SchemaSource schema_source = schema_databag == nullptr
                                    ? SchemaSource::kDataDatabag
                                    : SchemaSource::kSchemaDatabag;
-  auto slice = QueuedSlice{
-      .slice = ds, .schema = schema, .schema_source = schema_source};
+  auto slice = QueuedSlice{.slice = ds,
+                           .schema = schema,
+                           .schema_source = schema_source,
+                           .depth = -1};
   auto processor = CopyingProcessor(databag, std::move(fallbacks),
                                     schema_databag, std::move(schema_fallbacks),
-                                    DataBagImplPtr::NewRef(new_databag_));
+                                    DataBagImplPtr::NewRef(new_databag_), false,
+                                    max_depth, leaf_callback);
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
   return absl::OkStatus();
 }
@@ -1021,10 +1065,11 @@ absl::Status ExtractOp::operator()(
     const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks,
     absl::Nullable<const DataBagImpl*> schema_databag,
-    DataBagImpl::FallbackSpan schema_fallbacks) const {
+    DataBagImpl::FallbackSpan schema_fallbacks, int max_depth,
+    const std::optional<LeafCallback>& leaf_callback) const {
   return (*this)(DataSliceImpl::Create(/*size=*/1, item), schema, databag,
                  std::move(fallbacks), schema_databag,
-                 std::move(schema_fallbacks));
+                 std::move(schema_fallbacks), max_depth, leaf_callback);
 }
 
 absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
@@ -1055,7 +1100,8 @@ absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
                                    : SchemaSource::kSchemaDatabag;
   auto slice = QueuedSlice{.slice = filtered_itemid,
                            .schema = schema,
-                           .schema_source = schema_source};
+                           .schema_source = schema_source,
+                           .depth = -1};
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
   ASSIGN_OR_RETURN(auto result_slice,
                    WithReplacedObjectIds(ds, filtered_itemid));
