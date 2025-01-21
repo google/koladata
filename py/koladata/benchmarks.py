@@ -1395,7 +1395,7 @@ def subslice(state):
   # Create random ragged data.
   for step in range(num_dims):
     ds = ds.repeat(kd.randint_like(ds, min_size, max_size + 1, seed=step))
-  # Replace repeated values with random values.
+  # Replace repeated present with random values.
   ds = kd.randint_like(ds, 1, 100, seed=57)
   # Choose random indices to take.
   indices = []
@@ -1415,6 +1415,31 @@ def subslice(state):
     chosen = chosen[take]
   while state:
     _ = ds.S[*indices]
+
+
+@google_benchmark.register
+@google_benchmark.option.arg_names(['ndim'])
+@google_benchmark.option.args([0])
+@google_benchmark.option.args([1])
+@google_benchmark.option.args([2])
+@google_benchmark.option.args([3])
+def expand_to(state):
+  """Benchmark for kd.expand_to."""
+  ndim = state.range(0)
+  ds = kd.present
+  min_size = 5
+  max_size = 10
+  for step in range(3):
+    ds = ds.repeat(kd.randint_like(ds, min_size, max_size + 1, seed=step))
+  child_ds = ds
+  for step in range(2):
+    child_ds = child_ds.repeat(
+        kd.randint_like(ds, min_size, max_size + 1, seed=10 + step)
+    )
+  # Replace repeated present with random values.
+  ds = kd.randint_like(ds, 1, 100, seed=57)
+  while state:
+    _ = ds.expand_to(child_ds, ndim=ndim)
 
 
 if __name__ == '__main__':
