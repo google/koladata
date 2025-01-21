@@ -30,6 +30,11 @@ message KodaV1Proto {
     optional uint64 lo = 2;
   }
 
+  message RepeatedPackedObjectIdProto {
+    repeated uint64 hi = 1 [packed = true];
+    repeated uint64 lo = 2 [packed = true];
+  }
+
   message DataItemProto {
     oneof value {
       bool missing = 1;
@@ -69,7 +74,7 @@ message KodaV1Proto {
     optional bytes types_buffer = 255;
 
     // Field ids must be equal to ScalarTypeId<T>() for corresponding type.
-    repeated ObjectIdProto object_id = 1;
+    optional RepeatedPackedObjectIdProto object_id = 1;
     repeated int32 i32 = 2 [packed = true];
     repeated int64 i64 = 3 [packed = true];
     repeated float f32 = 4 [packed = true];

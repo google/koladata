@@ -273,7 +273,7 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
         }
       """))
 
-  def test_data_slice_compact_decoder_errors(self):
+  def test_data_slice_compact_decoder_errors_wrong_number_of_values(self):
     with self.assertRaisesRegex(
         ValueError,
         re.escape('DataSliceCompactProto has not enough values for type INT32'),
@@ -335,6 +335,78 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
           i32: 1
           i32: 2
           f32: 2
+        }
+      """))
+
+  def test_data_slice_compact_decoder_errors_wrong_object_ids(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataSliceCompactProto has different number of hi and lo values',
+    ):
+      self.parse_container_text_proto(_get_data_slice_test_case("""
+        data_slice_compact {
+          types_buffer: "\x01\x01"
+          object_id {
+            hi: 1
+            hi: 2
+            lo: 2
+          }
+        }
+      """))
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataSliceCompactProto has different number of hi and lo values',
+    ):
+      self.parse_container_text_proto(_get_data_slice_test_case("""
+        data_slice_compact {
+          types_buffer: "\x01\x01"
+          object_id {
+            hi: 1
+            lo: 2
+            lo: 1
+          }
+        }
+      """))
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataSliceCompactProto has different number of hi and lo values',
+    ):
+      self.parse_container_text_proto(_get_data_slice_test_case("""
+        data_slice_compact {
+          types_buffer: "\x02"
+          i32: 1
+          object_id {
+            hi: 1
+            hi: 2
+            lo: 1
+          }
+        }
+      """))
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataSliceCompactProto has not enough values for type OBJECT_ID',
+    ):
+      self.parse_container_text_proto(_get_data_slice_test_case("""
+        data_slice_compact {
+          types_buffer: "\x01\x01"
+          object_id {
+            hi: 1
+            lo: 1
+          }
+        }
+      """))
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataSliceCompactProto has unused values for type OBJECT_ID',
+    ):
+      self.parse_container_text_proto(_get_data_slice_test_case("""
+        data_slice_compact {
+          types_buffer: "\x02"
+          i32: 1
+          object_id {
+            hi: 1
+            lo: 1
+          }
         }
       """))
 

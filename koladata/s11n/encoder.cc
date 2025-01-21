@@ -358,9 +358,9 @@ void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
   if constexpr (std::is_same_v<T, internal::ObjectId>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kObjectIdFieldNumber ==
                   internal::ScalarTypeId<T>());
-    auto* id_proto = slice_proto.add_object_id();
-    id_proto->set_hi(v.InternalHigh64());
-    id_proto->set_lo(v.InternalLow64());
+    auto* packed_ids_proto = slice_proto.mutable_object_id();
+    packed_ids_proto->add_hi(v.InternalHigh64());
+    packed_ids_proto->add_lo(v.InternalLow64());
   } else if constexpr (std::is_same_v<T, int32_t>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kI32FieldNumber ==
                   internal::ScalarTypeId<T>());
