@@ -616,6 +616,44 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "subslice_utils",
+    srcs = ["subslice_utils.cc"],
+    hdrs = ["subslice_utils.h"],
+    deps = [
+        ":arolla_utils",
+        ":data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:error_utils",
+        "//koladata/internal/op_utils:at",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/ops",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "subslice_utils_test",
+    srcs = ["subslice_utils_test.cc"],
+    deps = [
+        ":data_slice",
+        ":subslice_utils",
+        ":test_utils",
+        "//koladata/testing:matchers",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "test_utils_test",
     srcs = ["test_utils_test.cc"],
