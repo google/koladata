@@ -26,6 +26,7 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_bag.h"
+#include "koladata/internal/error_utils.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/refcount_ptr.h"
@@ -66,8 +67,11 @@ class DataBag : public arolla::RefcountedBase {
   absl::StatusOr<std::reference_wrapper<internal::DataBagImpl>>
   GetMutableImpl() {
     if (!is_mutable_) {
-      return absl::InvalidArgumentError(
-          "DataBag is immutable, try DataSlice.fork_db()");
+      return internal::AsKodaError(absl::InvalidArgumentError(
+          "cannot modify/create item(s) on an immutable DataBag, perhaps use "
+          "immutable update APIs (e.g. with_attr, with_dict_update) on "
+          "immutable entities/dicts or use db.fork() or ds.fork_bag() create a "
+          "mutable DataBag first"));
     }
     // We check forked_ first without exchanging to be more efficient when it is
     // already false (which is the common case).

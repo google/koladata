@@ -1691,7 +1691,13 @@ Assigned schema for Dict key: INT32""",
     db1 = db1.fork(mutable=False)
     x = bag().obj()
     with self.assertRaisesRegex(
-        ValueError, 'DataBag is immutable, try DataSlice.fork_db()'
+        exceptions.KodaError,
+        re.escape(
+            'cannot modify/create item(s) on an immutable DataBag, perhaps use'
+            ' immutable update APIs (e.g. with_attr, with_dict_update) on'
+            ' immutable entities/dicts or use db.fork() or ds.fork_bag() create'
+            ' a mutable DataBag first'
+        ),
     ):
       db1.adopt(x)
 
@@ -1800,7 +1806,14 @@ Assigned schema for Dict key: INT32""",
     x2 = x1.with_bag(db2)
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('DataBag is immutable')):
+        exceptions.KodaError,
+        re.escape(
+            'cannot modify/create item(s) on an immutable DataBag, perhaps use'
+            ' immutable update APIs (e.g. with_attr, with_dict_update) on'
+            ' immutable entities/dicts or use db.fork() or ds.fork_bag() create'
+            ' a mutable DataBag first'
+        ),
+    ):
       x2.set_attr('a', 2)
 
     with self.assertRaisesRegex(

@@ -71,6 +71,7 @@ cc_library(
     deps = [
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
+        "//koladata/internal:error_utils",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
         "//koladata/internal:triples",

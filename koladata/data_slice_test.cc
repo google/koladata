@@ -468,9 +468,11 @@ TEST(DataSliceTest, ForkDb) {
   EXPECT_THAT(immutable_ds.GetAttr("a"),
               IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(1, 2))));
 
-  EXPECT_THAT(immutable_ds.SetAttr("a", ds_a),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("DataBag is immutable")));
+  EXPECT_THAT(
+      immutable_ds.SetAttr("a", ds_a),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("cannot modify/create item(s) on an immutable DataBag")));
 
   ASSERT_OK_AND_ASSIGN(auto forked_ds, immutable_ds.ForkBag());
   ASSERT_OK(forked_ds.SetAttr("a", test::DataSlice<int>({42, 37})));
@@ -490,9 +492,11 @@ TEST(DataSliceTest, Freeze) {
   ASSERT_TRUE(ds.GetBag()->IsMutable());
 
   auto frozen_ds = ds.FreezeBag();
-  EXPECT_THAT(frozen_ds.SetAttr("a", ds_a),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("DataBag is immutable")));
+  EXPECT_THAT(
+      frozen_ds.SetAttr("a", ds_a),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("cannot modify/create item(s) on an immutable DataBag")));
 }
 
 TEST(DataSliceTest, FreezeImmutable) {
@@ -506,9 +510,11 @@ TEST(DataSliceTest, FreezeImmutable) {
   auto frozen_ds = ds.FreezeBag();
   // Same ref, no forks.
   EXPECT_THAT(ds.GetBag()->fingerprint(), Eq(immutable_db->fingerprint()));
-  EXPECT_THAT(frozen_ds.SetAttr("a", ds_a),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("DataBag is immutable")));
+  EXPECT_THAT(
+      frozen_ds.SetAttr("a", ds_a),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("cannot modify/create item(s) on an immutable DataBag")));
 }
 
 TEST(DataSliceTest, ForkErrors) {
@@ -4611,8 +4617,9 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
       immutable_dicts.SetInDict(
           test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
           test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("DataBag is immutable")));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("cannot modify/create item(s) on an immutable DataBag")));
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
@@ -4687,8 +4694,9 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
       immutable_dicts.SetInDict(
           test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
           test::DataSlice<int>({4, 5, 6}, keys_shape, schema::kObject)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("DataBag is immutable")));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("cannot modify/create item(s) on an immutable DataBag")));
 }
 
 TEST(DataSliceTest, GetFromDict_ImplicitCast_Entity) {
