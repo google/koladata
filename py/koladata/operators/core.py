@@ -419,7 +419,6 @@ def _get_list_item_by_slice(x, s):
           P.default,
           condition=P.n == arolla.UNSPECIFIED,
       ),
-      default=P.n,
   )
   start = normalize_slice_arg(tuple_ops.get_nth(s, 0), 0)
   stop = normalize_slice_arg(tuple_ops.get_nth(s, 1), arolla.int64(2**63 - 1))

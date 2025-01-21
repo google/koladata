@@ -145,7 +145,7 @@ class CoreGetItemTest(parameterized.TestCase):
   def test_invalid_qtype_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        'expected an integer scalar, got start: TEXT',
+        'unsupported narrowing cast to INT64 for the given STRING DataSlice',
     ):
       expr_eval.eval(kde.get_item(ds([1, 2, 3]), slice('a', 3)))
 
@@ -159,29 +159,35 @@ class CoreGetItemTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.get_item(I.x, slice(1))),
-        'I.x[:1]',
+        'I.x[:DataItem(1, schema: INT32)]',
     )
     self.assertEqual(
         repr(kde.get_item(I.x, slice(1, None))),
-        'I.x[1:]',
+        'I.x[DataItem(1, schema: INT32):]',
     )
     self.assertEqual(
         repr(kde.get_item(I.x, slice(1, -1))),
-        'I.x[1:-1]',
+        'I.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
     )
     self.assertEqual(
-        repr(kde.get_item(I.x, arolla.M.core.make_slice(I.start, I.end))),
-        'I.x[M.core.make_slice(I.start, I.end, unspecified)]',
+        repr(kde.get_item(I.x, kde.tuple.make_slice(I.start, I.end))),
+        'I.x[kd.tuple.make_slice(I.start, I.end, unspecified)]',
     )
     self.assertEqual(
         repr(kde.get_item(I.x, ds(1).no_bag())),
         'I.x[DataItem(1, schema: INT32)]',
     )
-    self.assertEqual(repr(I.x[:1]), 'I.x[:1]')
-    self.assertEqual(repr(I.x[1:]), 'I.x[1:]')
-    self.assertEqual(repr(I.x[1:-1]), 'I.x[1:-1]')
+    self.assertEqual(repr(I.x[:1]), 'I.x[:DataItem(1, schema: INT32)]')
+    self.assertEqual(repr(I.x[1:]), 'I.x[DataItem(1, schema: INT32):]')
+    self.assertEqual(
+        repr(I.x[1:-1]),
+        'I.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
+    )
     self.assertEqual(repr(I.x[I.s]), 'I.x[I.s]')
-    self.assertEqual(repr(I.x[slice(1, -1)]), 'I.x[1:-1]')
+    self.assertEqual(
+        repr(I.x[slice(1, -1)]),
+        'I.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
+    )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

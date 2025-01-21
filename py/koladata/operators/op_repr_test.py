@@ -261,11 +261,11 @@ class OpReprTest(parameterized.TestCase):
       (kde.subslice(I.x, I.y, I.z), 'kd.subslice(I.x, I.y, I.z)'),
       (
           kde.subslice(I.x, slice(1, None)),
-          'kd.subslice(I.x, slice(1, None))',
+          'kd.subslice(I.x, slice(DataItem(1, schema: INT32), None))',
       ),
       (
           kde.subslice(I.x, slice(1)),
-          'kd.subslice(I.x, slice(None, 1))',
+          'kd.subslice(I.x, slice(None, DataItem(1, schema: INT32)))',
       ),
       (
           kde.subslice(I.x, slice(None)),
@@ -274,7 +274,10 @@ class OpReprTest(parameterized.TestCase):
       (kde.subslice(I.x, ...), 'kd.subslice(I.x, ...)'),
       (
           kde.subslice(I.x, ds(1), ..., slice(1)),
-          'kd.subslice(I.x, DataItem(1, schema: INT32), ..., slice(None, 1))',
+          (
+              'kd.subslice(I.x, DataItem(1, schema: INT32), ..., slice(None,'
+              ' DataItem(1, schema: INT32)))'
+          ),
       ),
   )
   def test_subslice_repr(self, expr, expected_repr):
@@ -289,15 +292,15 @@ class OpReprTest(parameterized.TestCase):
       ),
       (
           kde.slices._subslice_for_slicing_helper(I.x, I.y, slice(1, 2)),
-          'I.x.S[I.y, 1:2]',
+          'I.x.S[I.y, DataItem(1, schema: INT32):DataItem(2, schema: INT32)]',
       ),
       (
           kde.slices._subslice_for_slicing_helper(I.x, I.y, slice(2)),
-          'I.x.S[I.y, :2]',
+          'I.x.S[I.y, :DataItem(2, schema: INT32)]',
       ),
       (
           kde.slices._subslice_for_slicing_helper(I.x, I.y, slice(1, None)),
-          'I.x.S[I.y, 1:]',
+          'I.x.S[I.y, DataItem(1, schema: INT32):]',
       ),
       (
           kde.slices._subslice_for_slicing_helper(I.x, I.y, slice(None)),
@@ -324,12 +327,15 @@ class OpReprTest(parameterized.TestCase):
     self.assertEqual(repr(expr), expected_repr)
 
   @parameterized.parameters(
-      (kde.get_item(I.x, slice(1)), 'I.x[:1]'),
-      (kde.get_item(I.x, slice(1, None)), 'I.x[1:]'),
-      (kde.get_item(I.x, slice(1, -1)), 'I.x[1:-1]'),
+      (kde.get_item(I.x, slice(1)), 'I.x[:DataItem(1, schema: INT32)]'),
+      (kde.get_item(I.x, slice(1, None)), 'I.x[DataItem(1, schema: INT32):]'),
       (
-          kde.get_item(I.x, arolla.M.core.make_slice(I.start, I.end)),
-          'I.x[M.core.make_slice(I.start, I.end, unspecified)]',
+          kde.get_item(I.x, slice(1, -1)),
+          'I.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
+      ),
+      (
+          kde.get_item(I.x, kde.tuple.make_slice(I.start, I.end)),
+          'I.x[kd.tuple.make_slice(I.start, I.end, unspecified)]',
       ),
       (
           kde.get_item(I.x, ds(1).no_bag()),

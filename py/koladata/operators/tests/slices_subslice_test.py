@@ -318,9 +318,9 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.slices.subslice: slicing argument at position 0 is invalid:'
-            " 'start' argument of a Slice must be an integer, DataItem"
-            ' containing an integer or unspecified, got: TEXT'
+            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
+            ' argument is a DataSlice, it must be an integer DataItem, got:'
+            " DataItem('a', schema: STRING)"
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice('a', 3)))
@@ -328,32 +328,40 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'kd.slices.subslice: slicing argument at position 0 is invalid:'
-            " 'end' argument of a Slice must be an integer, DataItem containing"
-            ' an integer or unspecified, got: TEXT'
+            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
+            ' argument is a DataSlice, it must be an integer DataItem, got:'
+            " DataItem('a', schema: STRING)"
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, 'a')))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        "kd.slices.subslice: cannot subslice DataSlice 'x', if slice argument"
-        ' is a DataSlice, it must be an integer DataItem',
+        re.escape(
+            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
+            ' argument is a DataSlice, it must be an integer DataItem, got:'
+            ' DataSlice([1, 2], schema: INT32, ndims: 1, size: 2)'
+        ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds([1, 2]))))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.slices.subslice: cannot subslice'
-        " DataSlice 'x', if slice argument is a DataSlice, it must be an"
-        ' integer DataItem',
+        re.escape(
+            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
+            ' argument is a DataSlice, it must be an integer DataItem, got:'
+            " DataItem('1', schema: STRING)"
+        ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds('1'))))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        "kd.slices.subslice: cannot subslice DataSlice 'x', if slice argument"
-        ' is a DataSlice, it must be an integer DataItem',
+        re.escape(
+            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
+            ' argument is a DataSlice, it must be an integer DataItem, got:'
+            ' DataItem(1.0, schema: FLOAT32)'
+        ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds(1.0))))
 
@@ -361,7 +369,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
         exceptions.KodaError,
         re.escape(
             'kd.slices.subslice: slicing argument at position 0 is invalid:'
-            " 'step' argument of a Slice is not supported, got: INT32"
+            " 'step' argument of a Slice is not supported, got: DATA_SLICE"
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, 4, 2)))
@@ -400,7 +408,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.subslice(I.x, slice(1))),
-        'kd.subslice(I.x, slice(None, 1))',
+        'kd.subslice(I.x, slice(None, DataItem(1, schema: INT32)))',
     )
     self.assertEqual(
         repr(kde.subslice(I.x, arolla.M.core.make_slice(I.start, I.end))),
@@ -419,7 +427,8 @@ class SlicesSubsliceTest(parameterized.TestCase):
     self.assertTrue(optools.equiv_to_op(kde.slices.subslice, kde.subslice))
     self.assertEqual(
         repr(kde.slices.subslice(I.x, slice(1, 2))),
-        'kd.slices.subslice(I.x, slice(1, 2))',
+        'kd.slices.subslice(I.x, slice(DataItem(1, schema: INT32), DataItem(2,'
+        ' schema: INT32)))',
     )
 
   def test_subslice_for_slicing_helper(self):
@@ -437,19 +446,19 @@ class SlicesSubsliceTest(parameterized.TestCase):
     )
     self.assertEqual(
         repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(1, 2))),
-        'I.x.S[I.s1, 1:2]',
+        'I.x.S[I.s1, DataItem(1, schema: INT32):DataItem(2, schema: INT32)]',
     )
     self.assertEqual(
         repr(
             kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(None, 2))
         ),
-        'I.x.S[I.s1, :2]',
+        'I.x.S[I.s1, :DataItem(2, schema: INT32)]',
     )
     self.assertEqual(
         repr(
             kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(1, None))
         ),
-        'I.x.S[I.s1, 1:]',
+        'I.x.S[I.s1, DataItem(1, schema: INT32):]',
     )
     self.assertEqual(
         repr(kde.slices._subslice_for_slicing_helper(I.x, I.s1, slice(None))),

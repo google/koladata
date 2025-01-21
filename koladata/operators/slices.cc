@@ -531,30 +531,26 @@ absl::Status IsSliceQTypeValid(const arolla::QTypePtr& qtype, int64_t curr_pos,
     DCHECK_EQ(subfields.size(), 3);
 
     auto start_qtype = subfields[0].GetType();
-    if (start_qtype != arolla::GetQType<int32_t>() &&
-        start_qtype != arolla::GetQType<int64_t>() &&
-        start_qtype != arolla::GetQType<DataSlice>() &&
+    if (start_qtype != arolla::GetQType<DataSlice>() &&
         start_qtype != arolla::GetUnspecifiedQType()) {
       return absl::InvalidArgumentError(
-          absl::StrCat("'start' argument of a Slice must be an integer, "
+          absl::StrCat("'start' argument of a Slice must be a "
                        "DataItem containing an integer or unspecified, got: ",
                        start_qtype->name()));
     }
-    auto end_qtype = subfields[1].GetType();
-    if (end_qtype != arolla::GetQType<int32_t>() &&
-        end_qtype != arolla::GetQType<int64_t>() &&
-        end_qtype != arolla::GetQType<DataSlice>() &&
-        end_qtype != arolla::GetUnspecifiedQType()) {
+    auto stop_qtype = subfields[1].GetType();
+    if (stop_qtype != arolla::GetQType<DataSlice>() &&
+        stop_qtype != arolla::GetUnspecifiedQType()) {
       return absl::InvalidArgumentError(
-          absl::StrCat("'end' argument of a Slice must be an integer, DataItem "
+          absl::StrCat("'stop' argument of a Slice must be a DataItem "
                        "containing an integer or unspecified, got: ",
-                       end_qtype->name()));
+                       stop_qtype->name()));
     }
     auto step_qtype = subfields[2].GetType();
     if (step_qtype != arolla::GetUnspecifiedQType()) {
       return absl::InvalidArgumentError(
           absl::StrCat("'step' argument of a Slice is not supported, got: ",
-                       end_qtype->name()));
+                       step_qtype->name()));
     }
     return absl::OkStatus();
   }
@@ -567,10 +563,6 @@ absl::StatusOr<std::optional<int64_t>> GetSliceArg(
     const arolla::TypedSlot& field, arolla::FramePtr frame) {
   if (field.GetType() == arolla::GetUnspecifiedQType()) {
     return std::nullopt;
-  } else if (field.GetType() == arolla::GetQType<int32_t>()) {
-    return frame.Get(field.UnsafeToSlot<int32_t>());
-  } else if (field.GetType() == arolla::GetQType<int64_t>()) {
-    return frame.Get(field.UnsafeToSlot<int64_t>());
   } else if (field.GetType() == arolla::GetQType<DataSlice>()) {
     auto& ds = frame.Get(field.UnsafeToSlot<DataSlice>());
     ASSIGN_OR_RETURN(
@@ -596,8 +588,8 @@ absl::StatusOr<std::vector<SlicingArgType>> ExtractSlicingArgs(
       slices.push_back(&frame.Get(slots[i].UnsafeToSlot<DataSlice>()));
     } else if (arolla::IsSliceQType(qtype)) {
       ASSIGN_OR_RETURN(auto start, GetSliceArg(slots[i].SubSlot(0), frame));
-      ASSIGN_OR_RETURN(auto end, GetSliceArg(slots[i].SubSlot(1), frame));
-      slices.emplace_back(Slice{start.has_value() ? *start : 0, end});
+      ASSIGN_OR_RETURN(auto stop, GetSliceArg(slots[i].SubSlot(1), frame));
+      slices.emplace_back(Slice{start.has_value() ? *start : 0, stop});
     } else if (qtype == arolla::GetQType<koladata::internal::Ellipsis>()) {
       ellipsis_pos = i;
     }
@@ -671,11 +663,11 @@ absl::StatusOr<DataSlice> SubsliceChildIndicesForRange(
         int64_t start = child_range.start;
         if (start < 0) start += parent_size;
         start = std::clamp<int64_t>(start, 0, parent_size);
-        int64_t end = child_range.stop.value_or(parent_size);
-        if (end < 0) end += parent_size;
-        end = std::clamp<int64_t>(end, 0, parent_size);
+        int64_t stop = child_range.stop.value_or(parent_size);
+        if (stop < 0) stop += parent_size;
+        stop = std::clamp<int64_t>(stop, 0, parent_size);
         int64_t offset = edge.edge_values().values[parent_index];
-        for (int64_t i = start; i < end; ++i) {
+        for (int64_t i = start; i < stop; ++i) {
           new_chosen_indices.push_back(offset + i);
         }
       });

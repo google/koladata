@@ -59,23 +59,29 @@ class PyBoxingTest(parameterized.TestCase):
       (arolla.L.x, arolla.L.x),
       (
           slice(2),
-          arolla.types.Slice(arolla.unspecified(), 2, arolla.unspecified()),
+          arolla.types.Slice(arolla.unspecified(), ds(2), arolla.unspecified()),
       ),
-      (slice(1, 2, 3), arolla.types.Slice(1, 2, 3)),
-      # TODO: The scalars should be wrapped into
-      # literal_operator.literal. This will be done automatically in the future
-      # when using a custom slice operator.
+      (slice(1, 2, 3), arolla.types.Slice(ds(1), ds(2), ds(3))),
       (
           slice(arolla.L.x),
-          arolla.M.core.make_slice(
+          kde.tuple.make_slice(
               arolla.unspecified(), arolla.L.x, arolla.unspecified()
           ),
       ),
-      (slice(arolla.L.x, 2, 3), arolla.M.core.make_slice(arolla.L.x, 2, 3)),
-      (slice(1, arolla.L.x, 3), arolla.M.core.make_slice(1, arolla.L.x, 3)),
-      (slice(1, 2, arolla.L.x), arolla.M.core.make_slice(1, 2, arolla.L.x)),
+      (
+          slice(arolla.L.x, 2, 3),
+          kde.tuple.make_slice(arolla.L.x, 2, 3),
+      ),
+      (
+          slice(1, arolla.L.x, 3),
+          kde.tuple.make_slice(1, arolla.L.x, 3),
+      ),
+      (
+          slice(1, 2, arolla.L.x),
+          kde.tuple.make_slice(1, 2, arolla.L.x),
+      ),
       (..., ellipsis.ellipsis()),
-      (data_slice.DataSlice, data_slice.DataSlice.from_vals(None)),
+      (data_slice.DataSlice, ds(None)),
       ((), arolla.tuple()),
       ((1, 2), arolla.tuple(ds(1), ds(2))),
       (
@@ -87,9 +93,7 @@ class PyBoxingTest(parameterized.TestCase):
       ),
   )
   def test_as_qvalue_or_expr(self, value, expected_res):
-    self.assertEqual(
-        py_boxing.as_qvalue_or_expr(value).fingerprint, expected_res.fingerprint
-    )
+    testing.assert_equal(py_boxing.as_qvalue_or_expr(value), expected_res)
 
   def test_as_qvalue_or_expr_raises_on_list(self):
     with self.assertRaisesRegex(
@@ -135,11 +139,11 @@ class PyBoxingTest(parameterized.TestCase):
       (ds([1, 2, 3]), ds([1, 2, 3])),
       (
           slice(2),
-          arolla.types.Slice(arolla.unspecified(), 2, arolla.unspecified()),
+          arolla.types.Slice(arolla.unspecified(), ds(2), arolla.unspecified()),
       ),
-      (slice(1, 2, 3), arolla.types.Slice(1, 2, 3)),
+      (slice(1, 2, 3), arolla.types.Slice(ds(1), ds(2), ds(3))),
       (..., ellipsis.ellipsis()),
-      (data_slice.DataSlice, data_slice.DataSlice.from_vals(None)),
+      (data_slice.DataSlice, ds(None)),
       ((1, 2), arolla.tuple(ds(1), ds(2))),
   )
   def test_as_qvalue(self, value, expected_res):
@@ -166,7 +170,10 @@ class PyBoxingTest(parameterized.TestCase):
           literal_operator.literal(ds([1, 2, 3])),
       ),
       (arolla.L.x, arolla.L.x),
-      (slice(arolla.L.x, 2, 3), arolla.M.core.make_slice(arolla.L.x, 2, 3)),
+      (
+          slice(arolla.L.x, 2, 3),
+          kde.tuple.make_slice(arolla.L.x, 2, 3),
+      ),
   )
   def test_as_expr(self, value, expected_res):
     arolla.testing.assert_expr_equal_by_fingerprint(
@@ -188,8 +195,8 @@ class DefaultBoxingPolicyTest(absltest.TestCase):
         expr,
         arolla.abc.bind_op(
             op_with_default_boxing,
-            literal_operator.literal(data_slice.DataSlice.from_vals(1)),
-            literal_operator.literal(data_slice.DataSlice.from_vals(2)),
+            literal_operator.literal(ds(1)),
+            literal_operator.literal(ds(2)),
         ),
     )
 
@@ -199,8 +206,8 @@ class DefaultBoxingPolicyTest(absltest.TestCase):
         expr,
         arolla.abc.bind_op(
             op_with_default_boxing,
-            literal_operator.literal(data_slice.DataSlice.from_vals(1)),
-            literal_operator.literal(arolla.types.Slice(1, None, 2)),
+            literal_operator.literal(ds(1)),
+            literal_operator.literal(arolla.types.Slice(ds(1), None, ds(2))),
         ),
     )
 
@@ -210,7 +217,7 @@ class DefaultBoxingPolicyTest(absltest.TestCase):
         expr,
         arolla.abc.bind_op(
             op_with_default_boxing,
-            literal_operator.literal(data_slice.DataSlice.from_vals(1)),
+            literal_operator.literal(ds(1)),
             literal_operator.literal(ellipsis.ellipsis()),
         ),
     )
@@ -234,8 +241,8 @@ class ListBoxingPolicyTest(absltest.TestCase):
         expr,
         arolla.abc.bind_op(
             op_with_list_boxing,
-            literal_operator.literal(data_slice.DataSlice.from_vals(42)),
-            literal_operator.literal(data_slice.DataSlice.from_vals([1, 2, 3])),
+            literal_operator.literal(ds(42)),
+            literal_operator.literal(ds([1, 2, 3])),
             literal_operator.literal(ellipsis.ellipsis()),
         ),
     )

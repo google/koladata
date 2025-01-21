@@ -83,13 +83,23 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
   if isinstance(arg, (arolla.QValue, arolla.Expr)):
     return arg
   if isinstance(arg, slice):
-    # NOTE: Slices purposfully use default Arolla boxing and in practice only
-    # support ints or Nones.
-    if arolla.Expr in (type(arg.start), type(arg.stop), type(arg.step)):
-      # TODO: use a koda-specific operator for pretty printing.
-      return arolla.M.core.make_slice(arg.start, arg.stop, arg.step)
+    # None has a special meaning for slices defined by the Python language
+    # (for example [2:] sets stop to None), so we box it to arolla.unspecified
+    # instead of ds(None) here.
+    def _wrap(x: Any) -> arolla.Expr | arolla.QValue:
+      if x is None:
+        return arolla.unspecified()
+      return as_qvalue_or_expr(x)
+
+    start = _wrap(arg.start)
+    stop = _wrap(arg.stop)
+    step = _wrap(arg.step)
+    if arolla.Expr in (type(start), type(stop), type(step)):
+      return arolla.abc.bind_op(
+          'kd.tuple.make_slice', as_expr(start), as_expr(stop), as_expr(step)
+      )
     else:
-      return arolla.types.Slice(arg.start, arg.stop, arg.step)
+      return arolla.types.Slice(start, stop, step)
   if isinstance(arg, tuple):
     tpl = tuple(as_qvalue_or_expr(v) for v in arg)
     if arolla.Expr in (type(v) for v in tpl):

@@ -138,7 +138,7 @@ class ExprEval(absltest.TestCase):
 
   def test_eval_with_slice(self):
     res = expr_eval.eval(I.x, x=slice(0, None, 2))
-    testing.assert_equal(res, arolla.types.Slice(0, None, 2))
+    testing.assert_equal(res, arolla.types.Slice(ds(0), None, ds(2)))
 
   def test_eval_with_ellipsis(self):
     res = expr_eval.eval(I.x, x=...)

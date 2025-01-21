@@ -41,6 +41,25 @@ def make_tuple(*args):
   return arolla.optools.fix_trace_args(args)
 
 
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.tuple.make_slice',
+)
+def make_slice(
+    start=arolla.unspecified(),
+    stop=arolla.unspecified(),
+    step=arolla.unspecified(),
+):
+  """Returns a slice for the Python indexing syntax foo[start:stop:step].
+
+  Args:
+    start: (optional) Indexing start.
+    stop: (optional) Indexing stop.
+    step: (optional) Indexing step size.
+  """
+  return arolla.M.core.make_slice(start, stop, step)
+
+
 @optools.add_to_registry_as_overload(
     'koda_internal.view.get_item._tuple',
     overload_condition_expr=arolla.M.qtype.is_tuple_qtype(arolla.P.x)

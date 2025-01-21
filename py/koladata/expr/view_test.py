@@ -97,7 +97,7 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(
         C.x.S[C.s1, 1:2],
         kde.slices._subslice_for_slicing_helper(
-            C.x, C.s1, arolla.types.Slice(1, 2)
+            C.x, C.s1, arolla.types.Slice(ds(1), ds(2))
         ),
     )
     testing.assert_equal(
@@ -110,17 +110,18 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(C.x.L[C.s1], kde.slices.subslice(C.x, C.s1, ...))
     testing.assert_equal(
         C.x.L[1:2],
-        kde.slices.subslice(C.x, arolla.types.Slice(1, 2), ...),
+        kde.slices.subslice(C.x, arolla.types.Slice(ds(1), ds(2)), ...),
     )
     testing.assert_equal(
         C.x.L[1:],
-        kde.slices.subslice(C.x, arolla.types.Slice(1, None), ...),
+        kde.slices.subslice(C.x, arolla.types.Slice(ds(1), None), ...),
     )
 
   def test_get_item(self):
     testing.assert_equal(C.x[C.s], view_overloads.get_item(C.x, C.s))
     testing.assert_equal(
-        C.x[slice(1, 2)], view_overloads.get_item(C.x, arolla.types.Slice(1, 2))
+        C.x[slice(1, 2)],
+        view_overloads.get_item(C.x, arolla.types.Slice(ds(1), ds(2))),
     )
 
   def test_add(self):
@@ -516,18 +517,27 @@ class KodaViewTest(parameterized.TestCase):
       # Slicing helper.
       (C.x.S[C.s1], 'C.x.S[C.s1]'),
       (C.x.S[C.s1, C.s2], 'C.x.S[C.s1, C.s2]'),
-      (C.x.S[C.s1, 1:2], 'C.x.S[C.s1, 1:2]'),
-      (C.x.S[C.s1, :2], 'C.x.S[C.s1, :2]'),
-      (C.x.S[C.s1, 1:], 'C.x.S[C.s1, 1:]'),
+      (
+          C.x.S[C.s1, 1:2],
+          'C.x.S[C.s1, DataItem(1, schema: INT32):DataItem(2, schema: INT32)]',
+      ),
+      (C.x.S[C.s1, :2], 'C.x.S[C.s1, :DataItem(2, schema: INT32)]'),
+      (C.x.S[C.s1, 1:], 'C.x.S[C.s1, DataItem(1, schema: INT32):]'),
       (C.x.S[C.s1, :], 'C.x.S[C.s1, :]'),
       (C.x.S[C.s1, ...], 'C.x.S[C.s1, ...]'),
       (C.x.S[C.s1, ..., C.s2.S[C.s3]], 'C.x.S[C.s1, ..., C.s2.S[C.s3]]'),
       # get_item
-      (C.x[:1], 'C.x[:1]'),
-      (C.x[1:], 'C.x[1:]'),
-      (C.x[1:-1], 'C.x[1:-1]'),
+      (C.x[:1], 'C.x[:DataItem(1, schema: INT32)]'),
+      (C.x[1:], 'C.x[DataItem(1, schema: INT32):]'),
+      (
+          C.x[1:-1],
+          'C.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
+      ),
       (C.x[C.s], 'C.x[C.s]'),
-      (C.x[slice(1, -1)], 'C.x[1:-1]'),
+      (
+          C.x[slice(1, -1)],
+          'C.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
+      ),
       # Add.
       (C.x + 1, 'C.x + DataItem(1, schema: INT32)'),
       (1 + C.x, 'DataItem(1, schema: INT32) + C.x'),
