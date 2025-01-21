@@ -407,6 +407,33 @@ TEST(DataSliceImpl, CreateEmptyAndUnknownType) {
   EXPECT_EQ(ds.present(43), false);
 }
 
+TEST(DataSliceImpl, CreateEmptyAndUnknownTypeWithTypesBuffer) {
+  constexpr size_t kSize = 57;
+  TypesBuffer tb;
+  tb.InitAllUnset(kSize);
+  {
+    DataSliceImpl ds = DataSliceImpl::CreateEmptyAndUnknownType(tb);
+    EXPECT_EQ(ds.size(), kSize);
+    EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
+    EXPECT_TRUE(ds.is_empty_and_unknown());
+    EXPECT_EQ(ds.types_buffer().size(), kSize);
+    EXPECT_THAT(
+        ds.types_buffer().id_to_typeidx,
+        ElementsAreArray(std::vector<uint8_t>(kSize, TypesBuffer::kUnset)));
+  }
+  tb.id_to_typeidx[43] = TypesBuffer::kRemoved;
+  {
+    DataSliceImpl ds = DataSliceImpl::CreateEmptyAndUnknownType(tb);
+    EXPECT_EQ(ds.size(), kSize);
+    EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
+    EXPECT_TRUE(ds.is_empty_and_unknown());
+    EXPECT_EQ(ds.types_buffer().size(), kSize);
+    auto expected = std::vector<uint8_t>(kSize, TypesBuffer::kUnset);
+    expected[43] = TypesBuffer::kRemoved;
+    EXPECT_THAT(ds.types_buffer().id_to_typeidx, ElementsAreArray(expected));
+  }
+}
+
 TEST(DataSliceImpl, CreateMixed) {
   constexpr int64_t kSize = 3;
   auto array_f = arolla::CreateDenseArray<float>(

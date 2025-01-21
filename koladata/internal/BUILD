@@ -452,6 +452,7 @@ cc_test(
         ":data_item",
         ":data_slice",
         ":object_id",
+        ":types_buffer",
         "@com_google_absl//absl/status",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/memory",

@@ -109,6 +109,22 @@ DataSliceImpl DataSliceImpl::CreateEmptyAndUnknownType(size_t size) {
   return result;
 }
 
+DataSliceImpl DataSliceImpl::CreateEmptyAndUnknownType(
+    TypesBuffer types_buffer) {
+#ifndef NDEBUG
+  for (int64_t i = 0; i < types_buffer.size(); ++i) {
+    DCHECK(!TypesBuffer::is_present_type_idx(types_buffer.id_to_typeidx[i]));
+  }
+#endif
+  if (types_buffer.size() == 0) {
+    return DataSliceImpl();
+  }
+  DataSliceImpl result;
+  result.internal_->size = types_buffer.size();
+  result.internal_->types_buffer = std::move(types_buffer);
+  return result;
+}
+
 DataSliceImpl DataSliceImpl::Create(const arolla::DenseArray<DataItem>& items) {
   if (items.IsAllMissing()) {
     return DataSliceImpl::CreateEmptyAndUnknownType(items.size());

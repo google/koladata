@@ -70,8 +70,13 @@ class DataSliceImpl {
   static DataSliceImpl ObjectsFromAllocation(AllocationId alloc_id,
                                              size_t size);
 
-  // Returns empty DataSliceImpl with given `size` and unknown type.
+  // Returns all-removed DataSliceImpl with given size and unknown type
   static DataSliceImpl CreateEmptyAndUnknownType(size_t size);
+
+  // Returns empty DataSliceImpl with given `types_buffer`.
+  // TypesBuffer is used to distinguish missing and removed values.
+  // Only kRemoved and kUnset are allowed.
+  static DataSliceImpl CreateEmptyAndUnknownType(TypesBuffer types_buffer);
 
   // Returns 0 dimension DataSliceImpl with specified ObjectId's and
   // AllocationId's.

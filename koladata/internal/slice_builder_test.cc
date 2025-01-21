@@ -25,6 +25,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
@@ -48,7 +49,34 @@ arolla::bitmap::Bitmap CreateBitmap(
 
 TEST(SliceBuilderTest, Empty) {
   DataSliceImpl ds = SliceBuilder(3).Build();
+  EXPECT_TRUE(ds.is_empty_and_unknown());
   EXPECT_THAT(ds, ElementsAre(DataItem(), DataItem(), DataItem()));
+  EXPECT_THAT(ds.types_buffer().id_to_typeidx,
+              ElementsAre(TypesBuffer::kUnset, TypesBuffer::kUnset,
+                          TypesBuffer::kUnset));
+}
+
+TEST(SliceBuilderTest, AllRemoved) {
+  auto bldr = SliceBuilder(3);
+  bldr.InsertIfNotSet(0, DataItem());
+  bldr.InsertIfNotSet(1, DataItem());
+  bldr.InsertIfNotSet(2, DataItem());
+  DataSliceImpl ds = std::move(bldr).Build();
+  EXPECT_TRUE(ds.is_empty_and_unknown());
+  EXPECT_THAT(ds, ElementsAre(DataItem(), DataItem(), DataItem()));
+  EXPECT_EQ(ds.types_buffer().size(), 0);
+}
+
+TEST(SliceBuilderTest, EmptyWithRemoved) {
+  auto bldr = SliceBuilder(3);
+  bldr.InsertIfNotSet(0, DataItem());
+  bldr.InsertIfNotSet(2, DataItem());
+  DataSliceImpl ds = std::move(bldr).Build();
+  EXPECT_TRUE(ds.is_empty_and_unknown());
+  EXPECT_THAT(ds, ElementsAre(DataItem(), DataItem(), DataItem()));
+  EXPECT_THAT(ds.types_buffer().id_to_typeidx,
+              ElementsAre(TypesBuffer::kRemoved, TypesBuffer::kUnset,
+                          TypesBuffer::kRemoved));
 }
 
 TEST(SliceBuilderTest, SingleValue) {
