@@ -1441,7 +1441,19 @@ def _expect_data_slices_or_slices_or_ellipsis(value):
   is_data_slice_or_slice_or_ellipsis = arolla.LambdaOperator(
       'x',
       (P.x == qtypes.DATA_SLICE)
-      | M.qtype.is_slice_qtype(P.x)
+      | (
+          M.qtype.is_slice_qtype(P.x)
+          & M.seq.all(
+              M.seq.map(
+                  arolla.LambdaOperator(
+                      'arg',
+                      (P.arg == qtypes.DATA_SLICE)
+                      | (P.arg == arolla.UNSPECIFIED),
+                  ),
+                  M.qtype.get_field_qtypes(P.x),
+              )
+          )
+      )
       | (P.x == qtypes.ELLIPSIS),
   )
   return (
@@ -1480,11 +1492,16 @@ def subslice(x, *slices):  # pylint: disable=unused-argument
     1) INT32/INT64 DataItem or Python integer wrapped into INT32 DataItem. It is
        used to select a single item in one dimension. It reduces the number of
        dimensions in the resulting DataSlice by 1.
-    2) INT32/INT64 DataSlice or Python nested list of integer wrapped into INT32
-       DataSlice. It is used to select multiple items in one dimension.
+    2) INT32/INT64 DataSlice. It is used to select multiple items in one
+    dimension.
     3) Python slice (e.g. slice(1), slice(1, 3), slice(2, -1)). It is used to
        select a slice of items in one dimension. 'step' is not supported and it
-       results in no item if 'start' is larger than or equal to 'stop'.
+       results in no item if 'start' is larger than or equal to 'stop'. 'start'
+       and 'stop' can be either Python integers, DataItems or DataSlices, in
+       the latter case we can select a different range for different items,
+       or even select multiple ranges for the same item if the 'start'
+       or 'stop' have more dimensions. If an item is missing either in 'start'
+       or in 'stop', the corresponding slice is considered empty.
     4) .../Ellipsis. It can appear at most once in `slices` and used to fill
        corresponding dimensions in `x` but missing in `slices`. It means
        selecting all items in these dimensions.
@@ -1552,6 +1569,17 @@ def subslice(x, *slices):  # pylint: disable=unused-argument
     x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
     kd.subslice(x, 1, 2, 3, 4)
       => error as at most 3 slicing arguments can be provided
+
+  Example 12:
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, slice(kd.slice([0, 1, 2]), None))
+      => kd.slice([[[1, 2], [3]], [[5, 6]], [[], []]])
+
+  Example 13:
+    x = kd.slice([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]])
+    kd.subslice(x, slice(kd.slice([0, 1, 2]), kd.slice([2, 3, None])), ...)
+      => kd.slice([[[[1, 2], [3]], [[4, 5, 6]]], [[[4, 5, 6]], [[7], [8, 9]]],
+      []])
 
   Note that there is a shortcut `ds.S[*slices] for this operator which is more
   commonly used and the Python slice can be written as [start:end] format. For

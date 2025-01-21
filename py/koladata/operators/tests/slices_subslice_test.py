@@ -79,6 +79,28 @@ class SlicesSubsliceTest(parameterized.TestCase):
       ),
       (ds([1, 2, 3]), [...], ds([1, 2, 3])),
       (ds([1, 2, 3]), [], ds([1, 2, 3])),
+      # DataSlice as slice argument
+      (
+          ds([1, 2, 3]),
+          [slice(0, ds([1, 2, 3, -1, -2, -3]))],
+          ds([[1], [1, 2], [1, 2, 3], [1, 2], [1], []]),
+      ),
+      (
+          ds([1, 2, 3]),
+          [slice(ds([1, None, 0]), ds([3, 3, 2]))],
+          ds([[2, 3], [], [1, 2]]),
+      ),
+      (
+          ds([1, 2, 3]),
+          [slice(None, ds([1, 2, 3, -1, -2, -3]))],
+          ds([[1], [1, 2], [1, 2, 3], [1, 2], [1], []]),
+      ),
+      (
+          ds([1, 2, 3]),
+          # Note that ds(None) is different from None here.
+          [slice(ds(None), ds([1, 2, 3, -1, -2, -3]))],
+          ds([[], [], [], [], [], []], schema_constants.INT32),
+      ),
       # x.ndim=2
       (ds([[1, 2], [3], [4, 5, 6]]), [ds(0), ds(-1)], ds(2)),
       (
@@ -133,6 +155,27 @@ class SlicesSubsliceTest(parameterized.TestCase):
           ds([1, None, 6]),
       ),
       (ds([[1, 2], [3], [4, 5, 6]]), [slice(1, 3)], ds([[2], [], [5, 6]])),
+      (
+          ds([[1, 2], [3], [4, 5, 6]]),
+          [slice(1, 3), slice(None, ds([1, 2]))],
+          ds([[3], [4, 5]]),
+      ),
+      (ds([[1, 2], [3], [4, 5, 6]]), [slice(1, 3)], ds([[2], [], [5, 6]])),
+      (
+          ds([[1, 2], [3], [4, 5, 6]]),
+          [
+              slice(
+                  ds([[0, 0, 0], [1, 1, 1], [2, 2, 2]]),
+                  ds([[1, 2, 3], [1, 2, 3], [1, 2, 3]]),
+              ),
+              slice(1, None),
+          ],
+          ds([
+              [[[2]], [[2], []], [[2], [], [5, 6]]],
+              [[], [[]], [[], [5, 6]]],
+              [[], [], [[5, 6]]],
+          ]),
+      ),
       # x.ndim=3
       (
           ds([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]]),
@@ -153,6 +196,16 @@ class SlicesSubsliceTest(parameterized.TestCase):
           ds([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]]),
           [2, ..., slice(1, None)],
           ds([[], [9]]),
+      ),
+      (
+          ds([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]]),
+          [slice(ds([0, 1, 2]), None)],
+          ds([[[1, 2], [3]], [[5, 6]], [[], []]]),
+      ),
+      (
+          ds([[[1, 2], [3]], [[4, 5, 6]], [[7], [8, 9]]]),
+          [slice(ds([0, 1, 2]), ds([2, 3, None])), ...],
+          ds([[[[1, 2], [3]], [[4, 5, 6]]], [[[4, 5, 6]], [[7], [8, 9]]], []]),
       ),
       # Mixed types
       (
@@ -318,9 +371,8 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
-            ' argument is a DataSlice, it must be an integer DataItem, got:'
-            " DataItem('a', schema: STRING)"
+            "kd.slices.subslice: 'start' argument of a Slice must contain only"
+            ' integers'
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice('a', 3)))
@@ -328,9 +380,8 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
-            ' argument is a DataSlice, it must be an integer DataItem, got:'
-            " DataItem('a', schema: STRING)"
+            "kd.slices.subslice: 'stop' argument of a Slice must contain only"
+            ' integers'
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, 'a')))
@@ -338,19 +389,8 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
-            ' argument is a DataSlice, it must be an integer DataItem, got:'
-            ' DataSlice([1, 2], schema: INT32, ndims: 1, size: 2)'
-        ),
-    ):
-      expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds([1, 2]))))
-
-    with self.assertRaisesRegex(
-        exceptions.KodaError,
-        re.escape(
-            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
-            ' argument is a DataSlice, it must be an integer DataItem, got:'
-            " DataItem('1', schema: STRING)"
+            "kd.slices.subslice: 'stop' argument of a Slice must contain only"
+            ' integers'
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds('1'))))
@@ -358,9 +398,8 @@ class SlicesSubsliceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "kd.slices.subslice: cannot subslice DataSlice 'x', if slice"
-            ' argument is a DataSlice, it must be an integer DataItem, got:'
-            ' DataItem(1.0, schema: FLOAT32)'
+            "kd.slices.subslice: 'stop' argument of a Slice must contain only"
+            ' integers'
         ),
     ):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds(1.0))))

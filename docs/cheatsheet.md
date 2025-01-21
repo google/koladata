@@ -479,7 +479,15 @@ ds.S[kd.slice([[0, 2], [0, 1]]),
         kd.slice([[0, 0], [1, 0]])]
 # -> [[1, None], [2, 4]]
 
-# Ellipse
+# slice boundaries can also be DataSlices
+ds = kd.slice([[1, 2, 3], [4, 5]])
+ds.S[kd.slice([0, 0]):kd.slice([2, 1])] # [[1, 2], [4]]
+ds.S[kd.slice([0, 0]):kd.slice([2, 1]), :]
+# -> [[[1, 2, 3], [4, 5]], [[1, 2, 3]]]
+ds.S[:kd.index(ds) + 1] # [[[1], [1, 2], [1, 2, 3]], [[4], [4, 5]]]
+kd.agg_sum(ds.S[:kd.index(ds) + 1]) # [[1, 3, 6], [4, 9]]
+
+# Ellipsis
 ds = kd.slice([[[1, 2, 3], [4, 5]],
                 [[6, 7]], [[8], [9, 10]]])
 ds.S[1:, ...] # [[[6, 7]], [[8], [9, 10]]]
