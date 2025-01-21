@@ -163,7 +163,7 @@ class DataBagImpl : public arolla::RefcountedBase {
   bool IsPristine() const;
 
   // Returns DataSliceImpl with attribute for every object.
-  // Missing values are looked up in the fallback databags.
+  // Missing (not removed) values are looked up in the fallback databags.
   absl::StatusOr<DataSliceImpl> GetAttr(
       const DataSliceImpl& objects,
       absl::string_view attr,
@@ -171,6 +171,15 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   absl::StatusOr<DataItem> GetAttr(
       const DataItem& object,
+      absl::string_view attr,
+      FallbackSpan fallbacks = {}) const;
+
+  // Returns DataSliceImpl with attribute for every object.
+  // Resulting DataSliceImpl always contains types_buffer to distinguish
+  // removed and unset values.
+  // Missing (not removed) values are looked up in the fallback databags.
+  absl::StatusOr<DataSliceImpl> GetAttrWithRemoved(
+      const DataSliceImpl& objects,
       absl::string_view attr,
       FallbackSpan fallbacks = {}) const;
 
@@ -653,6 +662,12 @@ class DataBagImpl : public arolla::RefcountedBase {
   // including parents. Returns DataItem() for REMOVED and nullopt for UNSET.
   std::optional<DataItem> LookupAttrInDataSourcesMap(
       ObjectId object_id, absl::string_view attr) const;
+
+  absl::StatusOr<DataSliceImpl> GetAttrImpl(
+      const DataSliceImpl& objects,
+      absl::string_view attr,
+      FallbackSpan fallbacks,
+      bool with_removed) const;
 
   template <bool kReturnValues>
   absl::StatusOr<std::pair<DataSliceImpl, arolla::DenseArrayEdge>>

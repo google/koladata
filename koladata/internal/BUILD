@@ -566,6 +566,7 @@ cc_test(
         ":dtype",
         ":object_id",
         ":schema_utils",
+        ":types_buffer",
         ":uuid_object",
         "//koladata/internal/testing:matchers",
         "//koladata/s11n",

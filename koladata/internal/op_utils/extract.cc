@@ -42,7 +42,9 @@
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
+#include "koladata/internal/types_buffer.h"
 #include "koladata/internal/uuid_object.h"
+#include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/memory/optional_value.h"
@@ -234,23 +236,30 @@ class CopyingProcessor {
   absl::Status ProcessAttribute(const QueuedSlice& slice,
                                 const std::string_view attr_name,
                                 const DataItem& attr_schema) {
-    const auto& ds = slice.slice;
+    auto ds = slice.slice;
     DataSliceImpl old_ds;
     if (is_shallow_clone_) {
       ASSIGN_OR_RETURN(old_ds, objects_tracker_->GetAttr(ds, kMappingAttrName));
     } else {
       old_ds = ds;
     }
-    ASSIGN_OR_RETURN(auto attr_ds,
-                     databag_.GetAttr(old_ds, attr_name, fallbacks_));
-    // TODO: Extract and respect removed values.
-    ASSIGN_OR_RETURN(auto has_attr_ds, HasOp()(attr_ds));
-    ASSIGN_OR_RETURN(auto filtered_ds, PresenceAndOp()(ds, has_attr_ds));
-    if (max_depth_ == -1 || slice.depth < max_depth_) {
-      RETURN_IF_ERROR(new_databag_->SetAttr(filtered_ds, attr_name, attr_ds));
+    ASSIGN_OR_RETURN(auto attr_ds, databag_.GetAttrWithRemoved(
+                                       old_ds, attr_name, fallbacks_));
+    if (attr_ds.types_buffer().size() != 0) {
+      auto set_mask =
+          attr_ds.types_buffer().ToInvertedBitmap(TypesBuffer::kUnset);
+      if (!arolla::bitmap::AreAllBitsSet(set_mask.begin(), ds.size())) {
+        const auto& objects_array = ds.values<ObjectId>();
+        ds = DataSliceImpl::CreateWithAllocIds(
+            ds.allocation_ids(),
+            ObjectIdArray{objects_array.values, std::move(set_mask)});
+      }
     }
-    RETURN_IF_ERROR(Visit(
-        {std::move(attr_ds), attr_schema, slice.schema_source, slice.depth}));
+    if (max_depth_ == -1 || slice.depth < max_depth_) {
+      RETURN_IF_ERROR(new_databag_->SetAttr(ds, attr_name, attr_ds));
+    }
+    RETURN_IF_ERROR(
+        Visit({std::move(attr_ds), attr_schema, slice.schema_source}));
     return absl::OkStatus();
   }
 

@@ -37,6 +37,7 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/internal/types_buffer.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -157,6 +158,49 @@ TEST(DataBagTest, SetGet) {
   EXPECT_EQ(ds_a_get.values<ObjectId>().size(), kSize);
   EXPECT_THAT(ds_a_get.values<ObjectId>(),
               ElementsAreArray(ds_a.values<ObjectId>()));
+}
+
+TEST(DataBagTest, GetAttrWithRemoved) {
+  for (int64_t size : {1, 3, 7, 13, 1023}) {
+    SCOPED_TRACE(absl::StrCat("size: ", size));
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    AllocationId alloc = Allocate(size);
+    std::vector<DataItem> objects;
+    for (int64_t i = 0; i < size; ++i) {
+      objects.push_back(i % 3 == 2 ? DataItem()
+                                   : DataItem(alloc.ObjectByOffset(i)));
+    }
+    auto ds = DataSliceImpl::Create(objects);
+    std::vector<DataItem> items;
+    for (int64_t i = 0; i < size; ++i) {
+      items.push_back(i % 2 == 1 ? DataItem(i) : DataItem());
+    }
+    auto ds_a = DataSliceImpl::Create(items);
+
+    ASSERT_OK(db->SetAttr(ds, "a", ds_a));
+
+    auto all_objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
+    ASSERT_OK_AND_ASSIGN(auto ds_a_get,
+                         db->GetAttrWithRemoved(all_objects, "a"));
+
+    EXPECT_EQ(ds_a_get.size(), size);
+    EXPECT_THAT(ds_a_get.allocation_ids(), IsEmpty());
+    EXPECT_EQ(ds_a_get.types_buffer().size(), size);
+    EXPECT_EQ(ds_a_get.is_empty_and_unknown(), size == 1);
+    for (int64_t i = 0; i < size; ++i) {
+      bool is_set = i % 3 != 2;
+      bool is_removed = i % 2 == 0;
+      ASSERT_EQ(ds_a_get[i], is_set && !is_removed ? DataItem(i) : DataItem())
+          << i;
+      if (size != 1) {
+        auto expected_typeidx = is_set
+                                    ? (is_removed ? TypesBuffer::kRemoved : 0)
+                                    : TypesBuffer::kUnset;
+        ASSERT_EQ(ds_a_get.types_buffer().id_to_typeidx[i], expected_typeidx)
+            << i;
+      }
+    }
+  }
 }
 
 TEST(DataBagTest, GetObjSchemaAttr) {

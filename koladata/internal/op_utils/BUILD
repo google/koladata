@@ -128,6 +128,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
+        "//koladata/internal:types_buffer",
         "//koladata/internal:uuid_object",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log:check",

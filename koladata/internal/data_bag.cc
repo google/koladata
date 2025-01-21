@@ -34,7 +34,6 @@
 #include "absl/container/inlined_vector.h"
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
-#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -445,9 +444,9 @@ SparseSource& DataBagImpl::GetMutableSmallAllocSource(absl::string_view attr) {
   return small_alloc_sources_[attr];
 }
 
-absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttr(
+absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
     const DataSliceImpl& objects, absl::string_view attr,
-    FallbackSpan fallbacks) const {
+    FallbackSpan fallbacks, bool with_removed) const {
   if (objects.is_empty_and_unknown()) {
     return DataSliceImpl::CreateEmptyAndUnknownType(objects.size());
   }
@@ -468,6 +467,9 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttr(
   };
 
   std::optional<SliceBuilder> bldr;
+  if (with_removed) {
+    bldr.emplace(objs.size());
+  }
   for (const DataBagImpl* db = this; db != nullptr; db = next_fallback()) {
     ConstDenseSourceArray dense_sources;
     ConstSparseSourceArray sparse_sources;
@@ -520,6 +522,19 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttr(
   } else {
     return DataSliceImpl::CreateEmptyAndUnknownType(objects.size());
   }
+}
+
+absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttr(
+    const DataSliceImpl& objects, absl::string_view attr,
+    FallbackSpan fallbacks) const {
+  return GetAttrImpl(objects, attr, fallbacks, /*with_removed=*/false);
+}
+
+
+absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrWithRemoved(
+    const DataSliceImpl& objects, absl::string_view attr,
+    FallbackSpan fallbacks) const {
+  return GetAttrImpl(objects, attr, fallbacks, /*with_removed=*/true);
 }
 
 absl::StatusOr<DataItem> DataBagImpl::GetAttr(const DataItem& object,

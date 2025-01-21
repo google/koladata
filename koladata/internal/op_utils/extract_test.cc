@@ -47,15 +47,17 @@
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::testing::IsEmpty;
 using ::testing::UnorderedElementsAre;
 
 using ::arolla::CreateDenseArray;
 using ::koladata::internal::testing::DataBagEqual;
+using ::koladata::internal::testing::IsEquivalentTo;
 
-using TriplesT = std::vector<
-    std::pair<DataItem, std::vector<std::pair<std::string_view, DataItem>>>>;
+using AttrsT = std::vector<std::pair<std::string_view, DataItem>>;
+using TriplesT = std::vector<std::pair<DataItem, AttrsT>>;
 
 DataItem AllocateSchema() {
   return DataItem(internal::AllocateExplicitSchema());
@@ -1017,6 +1019,103 @@ TEST_P(ExtractTest, DataSliceEntity) {
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(ExtractTest, DataSliceEntityRemovedValues) {
+  for (int64_t size : {1, 3, 17, 1034}) {
+    auto obj_ids = AllocateEmptyObjects(size);
+    auto int_dtype = DataItem(schema::kInt32);
+    auto schema = AllocateSchema();
+
+    TriplesT schema_triples = {{schema, {{"x", int_dtype}, {"y", int_dtype}}}};
+    TriplesT data_triples;
+    TriplesT data_triples_fallback;
+    TriplesT data_triples_expected;
+    for (int64_t i = 0; i < size; ++i) {
+      if (i % 3 == 0) {
+        data_triples.emplace_back(obj_ids[i], AttrsT{{"x", DataItem()}});
+        data_triples_fallback.emplace_back(obj_ids[i],
+                                           AttrsT{{"x", DataItem(i * 2 + 97)}});
+        data_triples_expected.emplace_back(obj_ids[i],
+                                           AttrsT{{"x", DataItem()}});
+      } else if (i % 3 == 1) {
+        data_triples.emplace_back(obj_ids[i], AttrsT{{"x", DataItem(i * 2)}});
+        data_triples_fallback.emplace_back(obj_ids[i],
+                                           AttrsT{{"x", DataItem(i * 2 + 19)}});
+        data_triples_expected.emplace_back(obj_ids[i],
+                                           AttrsT{{"x", DataItem(i * 2)}});
+      } else {
+        data_triples_fallback.emplace_back(obj_ids[i],
+                                           AttrsT{{"x", DataItem(i * 2 - 13)}});
+        data_triples_expected.emplace_back(obj_ids[i],
+                                           AttrsT{{"x", DataItem(i * 2 - 13)}});
+      }
+    }
+
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*db, schema_triples);
+    SetDataTriples(*db, data_triples);
+    auto fb = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*fb, schema_triples);
+    SetDataTriples(*fb, data_triples_fallback);
+    SetSchemaTriples(*db, GenNoiseSchemaTriples());
+    SetDataTriples(*db, GenNoiseDataTriples());
+
+    auto expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples);
+    SetDataTriples(*expected_db, data_triples_expected);
+
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr,
+                                         {}));
+
+    ASSERT_NE(result_db.get(), db.get());
+    {
+      ASSERT_OK_AND_ASSIGN(auto expected_x, expected_db->GetAttr(obj_ids, "x"));
+      EXPECT_THAT(result_db->GetAttr(obj_ids, "x", {fb.get()}),
+                  IsOkAndHolds(IsEquivalentTo(expected_x)));
+    }
+  }
+}
+
+TEST_P(ExtractTest, DataSliceEntityAllUnset) {
+  for (int64_t size : {1, 3, 17, 1034}) {
+    auto obj_ids = AllocateEmptyObjects(size);
+    auto int_dtype = DataItem(schema::kInt32);
+    auto schema = AllocateSchema();
+
+    TriplesT schema_triples = {{schema, {{"x", int_dtype}, {"y", int_dtype}}}};
+    TriplesT data_triples;
+    for (int64_t i = 0; i < size; ++i) {
+      data_triples.emplace_back(obj_ids[i],
+                                         AttrsT{{"x", DataItem(i)}});
+    }
+
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*db, schema_triples);
+    auto fb = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*fb, schema_triples);
+    SetDataTriples(*fb, data_triples);
+    SetSchemaTriples(*db, GenNoiseSchemaTriples());
+    SetDataTriples(*db, GenNoiseDataTriples());
+
+    auto expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples);
+    SetDataTriples(*expected_db, data_triples);
+
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr,
+                                         {}));
+
+    ASSERT_NE(result_db.get(), db.get());
+    {
+      ASSERT_OK_AND_ASSIGN(auto expected_x, expected_db->GetAttr(obj_ids, "x"));
+      EXPECT_THAT(result_db->GetAttr(obj_ids, "x", {fb.get()}),
+                  IsOkAndHolds(IsEquivalentTo(expected_x)));
+    }
+  }
 }
 
 TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
