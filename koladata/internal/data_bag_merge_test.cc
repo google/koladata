@@ -419,6 +419,25 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
   }
 }
 
+TEST(DataBagTest, MergeToDenseAllRemoved) {
+  for (int64_t size : {1, 3, 16, 37, 128, 512, 1034}) {
+    auto a = DataSliceImpl::AllocateEmptyObjects(size);
+    auto a_value = DataSliceImpl::CreateEmptyAndUnknownType(size);
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(a, "a", a_value));
+
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db2->SetAttr(a, "a", a_value));
+
+    db2 = db2->PartiallyPersistentFork();
+    // Now remove the value in sparse source.
+    ASSERT_OK(db2->SetAttr(a[0], "a", a_value[0]));
+
+    ASSERT_OK(db->MergeInplace(*db2));
+    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+  }
+}
+
 TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
   constexpr int64_t kSize = 179;
   auto a = DataSliceImpl::AllocateEmptyObjects(kSize);

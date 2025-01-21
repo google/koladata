@@ -101,11 +101,6 @@ void SliceBuilder::RemoveEmptyTypes(DataSliceImpl::Internal& impl,
 
 DataSliceImpl SliceBuilder::Build() && {
   if (storage_state_ == kStorageEmpty) {
-    if (unset_count_ == 0) {
-      // All values are removed, so by convention we may return slice without
-      // types buffer.
-      return DataSliceImpl::CreateEmptyAndUnknownType(size());
-    }
     return DataSliceImpl::CreateEmptyAndUnknownType(std::move(types_buffer_));
   }
   if (storage_state_ == kFirstStorage) {

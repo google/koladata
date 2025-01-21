@@ -64,7 +64,9 @@ TEST(SliceBuilderTest, AllRemoved) {
   DataSliceImpl ds = std::move(bldr).Build();
   EXPECT_TRUE(ds.is_empty_and_unknown());
   EXPECT_THAT(ds, ElementsAre(DataItem(), DataItem(), DataItem()));
-  EXPECT_EQ(ds.types_buffer().size(), 0);
+  EXPECT_THAT(ds.types_buffer().id_to_typeidx,
+              ElementsAre(TypesBuffer::kRemoved, TypesBuffer::kRemoved,
+                          TypesBuffer::kRemoved));
 }
 
 TEST(SliceBuilderTest, EmptyWithRemoved) {
