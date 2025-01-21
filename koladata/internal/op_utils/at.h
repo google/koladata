@@ -18,26 +18,19 @@
 #include <strings.h>
 
 #include <cstdint>
-#include <optional>
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "koladata/internal/data_slice.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 
 namespace koladata::internal {
 
 // Return a new DataSliceImpl with items in 'ds' at provided indices.
-// Indices are based on the dimension represented by 'ds_to_common'.
 // Out-of-bound indices result in missing items and negative indices are
-// supported. If ds_to_common is scalar, indices_to_common is not used and can
-// be std::nullopt. Otherwise, indices_to_common must be provided and have the
-// same parent size as ds_to_common.
-absl::StatusOr<DataSliceImpl> AtOp(
-    const DataSliceImpl& ds, const arolla::DenseArray<int64_t>& indices,
-    const arolla::DenseArrayEdge& ds_to_common,
-    const std::optional<arolla::DenseArrayEdge>& indices_to_common);
+// supported.
+absl::StatusOr<DataSliceImpl> AtOp(const DataSliceImpl& ds,
+                                   const arolla::DenseArray<int64_t>& indices);
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_OP_UTILS_AT_H_

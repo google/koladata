@@ -19,113 +19,44 @@
 #include <cstdint>
 #include <optional>
 #include <utility>
-#include <vector>
 
 #include "absl/base/optimization.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/types/span.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
-#include "arolla/dense_array/ops/multi_edge_util.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/memory/raw_buffer_factory.h"
-#include "arolla/util/meta.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
-namespace {
 
-// Note SelectWithOffsets is almost the same as Arolla TakeOverOverOp but
-// supports negative indices and ignores out-of-bound indices.
-template <typename T>
-absl::StatusOr<arolla::DenseArray<T>> SelectWithOffsets(
-    const arolla::DenseArray<T>& values,
-    const arolla::DenseArray<int64_t>& offsets,
-    const arolla::DenseArrayEdge& ds_to_common,
-    const arolla::DenseArrayEdge& indices_to_common) {
-  using OptT = arolla::OptionalValue<T>;
-  using ValuesPerGroup = std::vector<arolla::view_type_t<OptT>>;
-  std::vector<ValuesPerGroup> groups(ds_to_common.parent_size());
-  absl::Span<ValuesPerGroup> groups_span(groups.data(), groups.size());
-
-  auto add_values_fn = [](ValuesPerGroup& values_per_group, int64_t,
-                          arolla::view_type_t<OptT> v) {
-    values_per_group.push_back(v);
-  };
-  RETURN_IF_ERROR(arolla::DenseArrayMultiEdgeUtil::ApplyChildArgs(
-      add_values_fn, groups_span, ds_to_common, arolla::meta::type_list<OptT>{},
-      values));
-
-  auto result_fn = [&](const ValuesPerGroup& values_per_group, int64_t child_id,
-                       int64_t offset) -> arolla::view_type_t<OptT> {
-    if (offset < 0) {
-      offset += values_per_group.size();
-    }
-    if (offset < 0 || offset >= values_per_group.size()) {
-      return std::nullopt;
-    }
-    return values_per_group[offset];
-  };
-  auto res = arolla::DenseArrayMultiEdgeUtil::template ProduceResult<T>(
-      arolla::GetHeapBufferFactory(), result_fn, groups_span, indices_to_common,
-      arolla::meta::type_list<int64_t>{}, offsets);
-  return res;
-}
-
-template <typename T>
-absl::StatusOr<arolla::DenseArray<T>> GlobalAt(
-    const arolla::DenseArray<T>& array,
-    const arolla::DenseArray<int64_t>& indices) {
-  // We cannot call DenseArrayAtOp since it does not support negative indices.
-  int64_t size = array.size();
-  auto at_fn =
-      [&array,
-       &size](int64_t id) -> arolla::OptionalValue<arolla::view_type_t<T>> {
-    if (id < 0) {
-      id += size;
-    }
-    if (id < 0 || id >= size || !array.present(id)) {
-      return std::nullopt;
-    }
-    return array.values[id];
-  };
-  // We need to explicitly specify the template argument for
-  // Text/string_view to work properly.
-  return arolla::CreateDenseOp<decltype(at_fn), T>(at_fn)(indices);
-}
-
-}  // namespace
-
-absl::StatusOr<DataSliceImpl> AtOp(
-    const DataSliceImpl& ds, const arolla::DenseArray<int64_t>& indices,
-    const arolla::DenseArrayEdge& ds_to_common,
-    const std::optional<arolla::DenseArrayEdge>& indices_to_common) {
+absl::StatusOr<DataSliceImpl> AtOp(const DataSliceImpl& ds,
+                                   const arolla::DenseArray<int64_t>& indices) {
   if (ds.is_empty_and_unknown()) {
     return DataSliceImpl::CreateEmptyAndUnknownType(indices.size());
   }
 
   auto process_dense_array = [&]<class T>(const arolla::DenseArray<T>& array)
       -> absl::StatusOr<arolla::DenseArray<T>> {
-    if (ds_to_common.parent_size() > 1) {
-      if (!indices_to_common.has_value()) {
-        return absl::InternalError(
-            "indices_to_common must be provided when ds_to_common is not a "
-            "scalar edge "
-            "for kd.at.");
+    // We cannot call DenseArrayAtOp since it does not support negative indices.
+    int64_t size = array.size();
+    auto at_fn =
+        [&array,
+         &size](int64_t id) -> arolla::OptionalValue<arolla::view_type_t<T>> {
+      if (id < 0) {
+        id += size;
       }
-      // Ensured by the caller.
-      DCHECK_EQ(indices_to_common->parent_size(), ds_to_common.parent_size());
-      return SelectWithOffsets(array, indices, ds_to_common,
-                               *indices_to_common);
-    } else {
-      // Fast path for the common case.
-      return GlobalAt(array, indices);
-    }
+      if (id < 0 || id >= size || !array.present(id)) {
+        return std::nullopt;
+      }
+      return array.values[id];
+    };
+    // We need to explicitly specify the template argument for
+    // Text/string_view to work properly.
+    return arolla::CreateDenseOp<decltype(at_fn), T>(at_fn)(indices);
   };
 
   // TODO: keep only necessary allocation ids.

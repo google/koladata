@@ -506,6 +506,18 @@ class GroupByIndicesProcessor {
   bool sort_;
 };
 
+absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
+  if (x.GetShape().rank() != 1) {
+    return absl::InternalError("AtImpl should only be called on flat slices");
+  }
+  ASSIGN_OR_RETURN(auto index_array, ToArollaDenseArray<int64_t>(indices),
+                   internal::KodaErrorFromCause(
+                       "invalid indices DataSlice is provided", std::move(_)));
+
+  return DataSlice::Create(internal::AtOp(x.slice(), index_array),
+                           indices.GetShape(), x.GetSchemaImpl(), x.GetBag());
+}
+
 struct Slice {
   absl::Nullable<const DataSlice*> start;
   absl::Nullable<const DataSlice*> stop;
@@ -726,8 +738,12 @@ absl::StatusOr<DataSlice> SubsliceImpl(
   if (slice_args.empty()) {
     return x;
   }
-  // When slice_args.size() == 1, we could almost just call Take,
-  // but it does not support negative indices.
+  if (slice_args.size() == 1 &&
+      std::holds_alternative<const DataSlice*>(slice_args[0]) &&
+      x.GetShape().rank() == 1) {
+    // Fast path for the most common case.
+    return AtImpl(x, *std::get<const DataSlice*>(slice_args[0]));
+  }
   const auto& shape = x.GetShape();
   ASSIGN_OR_RETURN(
       auto chosen_indices,
@@ -752,7 +768,7 @@ absl::StatusOr<DataSlice> SubsliceImpl(
     }
   }
   ASSIGN_OR_RETURN(auto flat_x, x.Reshape(shape.FlattenDims(0, shape.rank())));
-  return Take(flat_x, chosen_indices);
+  return AtImpl(flat_x, chosen_indices);
 }
 
 class SubsliceOperator : public arolla::InlineOperator {
@@ -785,32 +801,6 @@ class SubsliceOperator : public arolla::InlineOperator {
 };
 
 }  // namespace
-
-absl::StatusOr<DataSlice> AtImpl(const DataSlice& x, const DataSlice& indices) {
-  const auto& x_shape = x.GetShape();
-  const auto& indices_shape = indices.GetShape();
-  // If ndim(indices) == ndim(x) - 1, insert a unit dimension to the end,
-  // which is needed by internal::AtOp().
-  // If ndim(indices) > ndim(x) - 1, flatten the last ndim(indices) - ndim(x)
-  // + 1 dimensions.
-  // The flattened_shape always has the same rank and the same N-1 dimensions
-  // as the shape of x.
-  auto flattened_shape =
-      indices_shape.FlattenDims(x_shape.rank() - 1, indices_shape.rank());
-
-  std::optional<arolla::DenseArrayEdge> indices_to_common =
-      flattened_shape.edges().empty()
-          ? std::nullopt
-          : std::make_optional(flattened_shape.edges().back());
-  auto x_to_common = x_shape.edges().back();
-  ASSIGN_OR_RETURN(auto index_array, ToArollaDenseArray<int64_t>(indices),
-                   internal::KodaErrorFromCause(
-                       "invalid indices DataSlice is provided", std::move(_)));
-
-  return DataSlice::Create(
-      internal::AtOp(x.slice(), index_array, x_to_common, indices_to_common),
-      indices_shape, x.GetSchemaImpl(), x.GetBag());
-}
 
 absl::StatusOr<DataSlice> InverseMapping(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectInteger("x", x));
@@ -1143,28 +1133,17 @@ absl::StatusOr<DataSlice> Take(const DataSlice& x, const DataSlice& indices) {
   if (x_shape.rank() == 0) {
     return absl::InvalidArgumentError("DataItem is not supported.");
   }
-  auto shape_for_expansion = x_shape.RemoveDims(x_shape.rank() - 1);
+  const auto shape_for_expansion = x_shape.RemoveDims(x_shape.rank() - 1);
   const auto& indices_shape = indices.GetShape();
-  if (indices_shape.rank() >= shape_for_expansion.rank()) {
-    if (!shape_for_expansion.IsBroadcastableTo(indices_shape)) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "DataSlice with shape=%s cannot be expanded to shape=%s; kd.at "
-          "requires shape(x)[:-1] to be broadcastable to shape(indices) "
-          "when "
-          "ndim(x) <= ndim(indices)",
-          arolla::Repr(indices_shape), arolla::Repr(shape_for_expansion)));
-    }
-    return AtImpl(x, indices);
-  } else {
-    // Expand indices if rank(indices_shape) < rank(shape_for_expansion).
-    ASSIGN_OR_RETURN(auto expanded_indices,
-                     BroadcastToShape(indices, std::move(shape_for_expansion)),
-                     internal::KodaErrorFromCause(
-                         "indices must be broadcastable to shape(x)[:-1] when "
-                         "ndim(x) - 1 > ndim(indices)",
-                         std::move(_)));
-    return AtImpl(x, expanded_indices);
+  if (!shape_for_expansion.IsBroadcastableTo(indices_shape) &&
+      !indices_shape.IsBroadcastableTo(shape_for_expansion)) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "DataSlice with shape=%s is not compatible with shape=%s; kd.take "
+        "requires shape(x)[:-1] to be compatible with shape(indices)",
+        arolla::Repr(shape_for_expansion), arolla::Repr(indices_shape)));
   }
+  arolla::EvaluationContext ctx;
+  return SubsliceImpl(&ctx, x, {&indices});
 }
 
 absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
