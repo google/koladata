@@ -19,12 +19,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
 #include <variant>
 #include <vector>
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -47,8 +49,10 @@
 #include "arolla/util/iterator.h"
 #include "arolla/util/refcount_ptr.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
 
@@ -197,6 +201,27 @@ class DataSliceImpl {
     }
   }
 
+  // Transforms values of the DataSliceImpl.
+  //
+  // `result_size` is the size of the result DataSliceImpl.
+  //
+  // `allocation_ids` is the set of allocation ids that are allowed to be
+  // present in the result DataSliceImpl. If `std::nullopt`, any allocation id
+  // is allowed.
+  //
+  // `transform` is a functor that takes a DenseArray of values of the
+  // DataSliceImpl and returns a DenseArray of values of the result
+  // DataSliceImpl.
+  //
+  // All DenseArrays in the result DataSliceImpl must have the same size and
+  // non-intersecting presence ids.
+  //
+  // All resulted DenseArrays must have different types.
+  template <class DenseArrayTransformer>
+  absl::StatusOr<DataSliceImpl> TransformValues(
+      size_t result_size, std::optional<AllocationIdSet> allocation_ids,
+      DenseArrayTransformer&& transform) const;
+
   // Returns DataItem with given offset.
   DataItem operator[](int64_t offset) const;
 
@@ -262,6 +287,15 @@ class DataSliceImpl {
  private:
   friend class SliceBuilder;
 
+  template <class T>
+  void AddAllocIds(const arolla::DenseArray<T>& array) {
+    if constexpr (std::is_same_v<T, ObjectId>) {
+      AllocationIdSet& id_set = internal_->allocation_ids;
+      array.ForEachPresent(
+          [&](int64_t id, ObjectId obj) { id_set.Insert(AllocationId(obj)); });
+    }
+  }
+
   using Variant = std::variant<arolla::DenseArray<ObjectId>,                 //
                                arolla::DenseArray<int32_t>,                  //
                                arolla::DenseArray<float>,                    //
@@ -314,24 +348,40 @@ class DataSliceImpl {
 
 namespace data_slice_impl {
 
+class NonIntersectingIdsChecker {
+ public:
+  explicit NonIntersectingIdsChecker(size_t size)
+      : size_(size),
+        bitmap_size_(arolla::bitmap::BitmapSize(size)),
+        present_ids_(bitmap_size_) {}
+
+  template <class T>
+  bool Verify(const arolla::DenseArray<T>& array) {
+    if (array.size() != size_) {
+      return false;
+    }
+    for (size_t i = 0; i < bitmap_size_; ++i) {
+      arolla::bitmap::Word word = arolla::bitmap::GetWordWithOffset(
+          array.bitmap, i, array.bitmap_bit_offset);
+      if (present_ids_[i] & word) {
+        return false;
+      }
+      present_ids_[i] |= word;
+    }
+    return true;
+  }
+
+ private:
+  size_t size_;
+  size_t bitmap_size_;
+  std::vector<arolla::bitmap::Word> present_ids_;
+};
+
 template <class T, class... Ts>
 bool VerifyNonIntersectingIds(const arolla::DenseArray<T>& main_values,
                               const arolla::DenseArray<Ts>&... values) {
-  size_t bitmap_size = arolla::bitmap::BitmapSize(main_values.size());
-  std::vector<arolla::bitmap::Word> present_ids(bitmap_size);
-  auto process_ids = [&](const auto& array) {
-    for (size_t i = 0; i < bitmap_size; ++i) {
-      arolla::bitmap::Word word = arolla::bitmap::GetWordWithOffset(
-          array.bitmap, i, array.bitmap_bit_offset);
-      if (present_ids[i] & word) {
-        return true;
-      }
-      present_ids[i] |= word;
-    }
-    return false;
-  };
-  process_ids(main_values);
-  return !(process_ids(values) || ...);
+  NonIntersectingIdsChecker checker(main_values.size());
+  return checker.Verify(main_values) && (checker.Verify(values) && ...);
 }
 
 template <class T>
@@ -368,6 +418,70 @@ constexpr bool AreAllTypesDistinct(std::type_identity<T>,
 }
 
 }  // namespace data_slice_impl
+
+template <class DenseArrayTransformer>
+absl::StatusOr<DataSliceImpl> DataSliceImpl::TransformValues(
+    size_t result_size, std::optional<AllocationIdSet> allocation_ids,
+    DenseArrayTransformer&& transform) const {
+  const auto& values = internal_->values;
+  DataSliceImpl res;
+
+  auto& res_impl = *res.internal_;
+  res_impl.size = result_size;
+
+  if (allocation_ids.has_value()) {
+    res_impl.allocation_ids = std::move(*allocation_ids);
+  }
+
+#ifndef NDEBUG
+  absl::flat_hash_set<arolla::QTypePtr> qtypes;
+  qtypes.reserve(values.size());
+  data_slice_impl::NonIntersectingIdsChecker checker(result_size);
+#endif
+
+  auto add_array = [&]<class T>(arolla::DenseArray<T> transformed_array) {
+#ifndef NDEBUG
+    DCHECK(qtypes.insert(arolla::GetQType<T>()).second)
+        << "duplicated type: " << arolla::GetQType<T>();
+    DCHECK_EQ(transformed_array.size(), result_size);
+    DCHECK_EQ(transformed_array.bitmap_bit_offset, 0);
+    DCHECK(checker.Verify(transformed_array)) << "ids are intersecting";
+#endif
+    if (!allocation_ids.has_value()) {
+      res.AddAllocIds(transformed_array);
+    }
+    if (!transformed_array.IsAllMissing()) {
+      res_impl.dtype = res_impl.values.empty() ? arolla::GetQType<T>()
+                                               : arolla::GetNothingQType();
+      res_impl.values.push_back(std::move(transformed_array));
+    }
+  };
+
+  res_impl.values.reserve(values.size());
+
+  for (const Variant& vals : values) {
+    RETURN_IF_ERROR(std::visit(
+        [&](const auto& array) -> absl::Status {
+          auto s = transform(array);
+          if constexpr (arolla::IsStatusOrT<decltype(s)>::value) {
+            if (!s.ok()) {
+              return s.status();
+            }
+            add_array(*std::move(s));
+          } else {
+            add_array(std::move(s));
+          }
+          return absl::OkStatus();
+        },
+        vals));
+  }
+
+  if (res_impl.values.size() > 1) {
+    InitTypesBuffer(res_impl);
+  }
+  DCHECK(res.VerifyAllocIdsConsistency());
+  return res;
+}
 
 template <class T, class... Ts>
 void DataSliceImpl::CreateImpl(DataSliceImpl& res,
@@ -408,15 +522,8 @@ template <class T, class... Ts>
 DataSliceImpl DataSliceImpl::Create(arolla::DenseArray<T> main_values,
                                     arolla::DenseArray<Ts>... values) {
   DataSliceImpl res;
-  auto add_alloc_ids = [&res](const auto& arr) {
-    if constexpr (std::is_same_v<decltype(arr), const ObjectIdArray&>) {
-      AllocationIdSet& id_set = res.internal_->allocation_ids;
-      arr.ForEachPresent(
-          [&](int64_t id, ObjectId obj) { id_set.Insert(AllocationId(obj)); });
-    }
-  };
-  add_alloc_ids(main_values);
-  (add_alloc_ids(values), ...);
+  res.AddAllocIds(main_values);
+  (res.AddAllocIds(values), ...);
   CreateImpl(res, std::move(main_values), std::move(values)...);
   return res;
 }

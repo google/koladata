@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
@@ -45,8 +46,10 @@
 namespace koladata::internal {
 namespace {
 
+using ::absl_testing::StatusIs;
 using ::arolla::Bytes;
 using ::arolla::CreateDenseArray;
+using ::arolla::CreateEmptyDenseArray;
 using ::arolla::OptionalValue;
 using ::testing::AllOf;
 using ::testing::ElementsAre;
@@ -78,23 +81,18 @@ TEST(DataSliceImpl, EmptyArrayConstructionMustBeEmptyAndUnknown) {
       DataSliceImpl::CreateEmptyAndUnknownType(77).is_empty_and_unknown());
   {
     SCOPED_TRACE("from empty single dense array");
-    EXPECT_TRUE(
-        DataSliceImpl::CreateObjectsDataSlice(
-            arolla::CreateEmptyDenseArray<ObjectId>(17), AllocationIdSet())
-            .is_empty_and_unknown());
-    EXPECT_TRUE(
-        DataSliceImpl::CreateWithAllocIds(
-            AllocationIdSet(), arolla::CreateEmptyDenseArray<ObjectId>(17))
-            .is_empty_and_unknown());
-    EXPECT_TRUE(
-        DataSliceImpl::Create(arolla::CreateEmptyDenseArray<DataItem>(17))
-            .is_empty_and_unknown());
-    EXPECT_TRUE(
-        DataSliceImpl::Create(arolla::CreateEmptyDenseArray<ObjectId>(17))
-            .is_empty_and_unknown());
-    EXPECT_TRUE(
-        DataSliceImpl::Create(arolla::CreateEmptyDenseArray<float>(17))
-            .is_empty_and_unknown());
+    EXPECT_TRUE(DataSliceImpl::CreateObjectsDataSlice(
+                    CreateEmptyDenseArray<ObjectId>(17), AllocationIdSet())
+                    .is_empty_and_unknown());
+    EXPECT_TRUE(DataSliceImpl::CreateWithAllocIds(
+                    AllocationIdSet(), CreateEmptyDenseArray<ObjectId>(17))
+                    .is_empty_and_unknown());
+    EXPECT_TRUE(DataSliceImpl::Create(CreateEmptyDenseArray<DataItem>(17))
+                    .is_empty_and_unknown());
+    EXPECT_TRUE(DataSliceImpl::Create(CreateEmptyDenseArray<ObjectId>(17))
+                    .is_empty_and_unknown());
+    EXPECT_TRUE(DataSliceImpl::Create(CreateEmptyDenseArray<float>(17))
+                    .is_empty_and_unknown());
   }
 }
 
@@ -220,13 +218,13 @@ TEST(DataSliceImpl, CreateFromDataItemSpan) {
 
 TEST(DataSliceImpl, CreateFromDataItemDenseArray) {
   {
-    auto array = arolla::CreateEmptyDenseArray<DataItem>(0);
+    auto array = CreateEmptyDenseArray<DataItem>(0);
     DataSliceImpl ds = DataSliceImpl::Create(array);
     EXPECT_EQ(ds.size(), 0);
     EXPECT_TRUE(ds.is_empty_and_unknown());
   }
   {
-    auto array = arolla::CreateEmptyDenseArray<DataItem>(6);
+    auto array = CreateEmptyDenseArray<DataItem>(6);
     DataSliceImpl ds = DataSliceImpl::Create(array);
     EXPECT_EQ(ds.size(), 6);
     EXPECT_TRUE(ds.is_empty_and_unknown());
@@ -293,7 +291,7 @@ TEST(DataSliceImpl, AsDataItemDenseArray) {
   {
     // Empty
     DataSliceImpl ds = DataSliceImpl::CreateEmptyAndUnknownType(6);
-    auto expected = arolla::CreateEmptyDenseArray<DataItem>(6);
+    auto expected = CreateEmptyDenseArray<DataItem>(6);
     EXPECT_THAT(ds.AsDataItemDenseArray(), ElementsAreArray(expected));
     EXPECT_EQ(ds.present(3), false);
     EXPECT_EQ(ds.present(4), false);
@@ -474,8 +472,8 @@ TEST(DataSliceImpl, CreateMixedWithEmptyArrays) {
   constexpr int64_t kSize = 3;
   auto array_f = arolla::CreateDenseArray<float>(
       std::vector<OptionalValue<float>>{7.0f, std::nullopt, std::nullopt});
-  auto array_int = arolla::CreateEmptyDenseArray<int>(3);
-  auto array_bytes = arolla::CreateEmptyDenseArray<Bytes>(3);
+  auto array_int = CreateEmptyDenseArray<int>(3);
+  auto array_bytes = CreateEmptyDenseArray<Bytes>(3);
   for (DataSliceImpl ds : {
            DataSliceImpl::Create(array_f, array_int, array_bytes),
            DataSliceImpl::Create(array_int, array_f, array_bytes),
@@ -491,9 +489,9 @@ TEST(DataSliceImpl, CreateMixedWithEmptyArrays) {
 
 TEST(DataSliceImpl, CreateMixedAllEmptyArrays) {
   constexpr int64_t kSize = 3;
-  auto array_f = arolla::CreateEmptyDenseArray<float>(3);
-  auto array_int = arolla::CreateEmptyDenseArray<int>(3);
-  auto array_bytes = arolla::CreateEmptyDenseArray<Bytes>(3);
+  auto array_f = CreateEmptyDenseArray<float>(3);
+  auto array_int = CreateEmptyDenseArray<int>(3);
+  auto array_bytes = CreateEmptyDenseArray<Bytes>(3);
   DataSliceImpl ds = DataSliceImpl::Create(array_f, array_int, array_bytes);
   EXPECT_EQ(ds.size(), kSize);
   EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
@@ -952,6 +950,310 @@ TEST(DataSliceImpl, AbslStringify) {
           // exceed the limit (1000) by a lot.
           SizeIs(Ge((1000))), SizeIs(Lt((1100))),
           MatchesRegex(R"re(\[.*, \.\.\. \(10000 elements total\)\])re")));
+}
+
+TEST(DataSliceImpl, TransformValuesEmptyAndUnknown) {
+  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
+  ASSERT_OK_AND_ASSIGN(
+      auto res,
+      ds.TransformValues(1, std::nullopt,
+                         []<class T>(const arolla::DenseArray<T>& x) {
+                           return arolla::CreateFullDenseArray<T>({T()});
+                         }));
+  EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
+  EXPECT_EQ(res.size(), 1);
+  EXPECT_TRUE(res.is_empty_and_unknown());
+}
+
+TEST(DataSliceImpl, TransformValuesStatusOr) {
+  auto ds = DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3}));
+  {
+    SCOPED_TRACE("identical");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(
+            3, std::nullopt,
+            []<class T>(const arolla::DenseArray<T>& x)
+                -> absl::StatusOr<arolla::DenseArray<T>> { return x; }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<int>());
+    EXPECT_THAT(res.values<int>(), ElementsAre(1, 2, 3));
+  }
+  {
+    SCOPED_TRACE("error");
+    EXPECT_THAT(
+        ds.TransformValues(3, std::nullopt,
+                           []<class T>(const arolla::DenseArray<T>& x)
+                               -> absl::StatusOr<arolla::DenseArray<T>> {
+                             return absl::InternalError("test error");
+                           }),
+        StatusIs(absl::StatusCode::kInternal, "test error"));
+  }
+}
+
+TEST(DataSliceImpl, TransformValuesSinglePrimitiveType) {
+  auto ds = DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3}));
+  {
+    SCOPED_TRACE("identical");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(
+            3, std::nullopt,
+            []<class T>(const arolla::DenseArray<T>& x) { return x; }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<int>());
+    EXPECT_THAT(res.values<int>(), ElementsAre(1, 2, 3));
+  }
+  {
+    SCOPED_TRACE("int -> int change values");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(3, std::nullopt,
+                           []<class T>(const arolla::DenseArray<T>& x) {
+                             return CreateDenseArray<int>({3, 2, 1});
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<int>());
+    EXPECT_THAT(res.values<int>(), ElementsAre(3, 2, 1));
+  }
+  {
+    SCOPED_TRACE("int -> int change size");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(4, std::nullopt,
+                           []<class T>(const arolla::DenseArray<T>& x) {
+                             return CreateDenseArray<int>({3, 2, 1, 0});
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<int>());
+    EXPECT_THAT(res.values<int>(), ElementsAre(3, 2, 1, 0));
+  }
+  {
+    SCOPED_TRACE("int -> int all empty");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(2, std::nullopt,
+                           []<class T>(const arolla::DenseArray<T>& x) {
+                             return CreateEmptyDenseArray<int>(2);
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
+    EXPECT_TRUE(res.is_empty_and_unknown());
+  }
+  {
+    SCOPED_TRACE("int -> float all empty");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(2, std::nullopt,
+                           []<class T>(const arolla::DenseArray<T>& x) {
+                             return CreateEmptyDenseArray<float>(2);
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
+    EXPECT_TRUE(res.is_empty_and_unknown());
+  }
+  {
+    SCOPED_TRACE("int -> float");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(
+            4, std::nullopt, []<class T>(const arolla::DenseArray<T>& x) {
+              return CreateDenseArray<float>({3.1, 2.2, 1.3, 0.4});
+            }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<float>());
+    EXPECT_THAT(res.values<float>(), ElementsAre(3.1, 2.2, 1.3, 0.4));
+  }
+}
+
+TEST(DataSliceImpl, TransformValuesObjectIdType) {
+  auto ds = DataSliceImpl::AllocateEmptyObjects(3);
+  {
+    SCOPED_TRACE("identical without alloc ids");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(
+            3, std::nullopt,
+            []<class T>(const arolla::DenseArray<T>& x) { return x; }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_THAT(res.values<ObjectId>(),
+                ElementsAreArray(ds.values<ObjectId>()));
+  }
+  {
+    SCOPED_TRACE("identical with alloc ids");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(
+            3, ds.allocation_ids(),
+            []<class T>(const arolla::DenseArray<T>& x) { return x; }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_THAT(res.values<ObjectId>(),
+                ElementsAreArray(ds.values<ObjectId>()));
+  }
+  {
+    SCOPED_TRACE("inverse&filter with alloc ids");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(2, ds.allocation_ids(),
+                           []<class T>(const arolla::DenseArray<T>& x) {
+                             return CreateDenseArray<T>(
+                                 std::vector<arolla::OptionalValue<T>>{
+                                     T(x.values[2]), std::nullopt});
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_EQ(res.allocation_ids(),
+              AllocationIdSet(ds.allocation_ids().ids()[0]));
+    EXPECT_THAT(res.values<ObjectId>(),
+                ElementsAre(ds.values<ObjectId>()[2], std::nullopt));
+  }
+  {
+    SCOPED_TRACE("new allocation with alloc ids");
+    AllocationId alloc_id = Allocate(3);
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(2, AllocationIdSet(alloc_id),
+                           [&]<class T>(const arolla::DenseArray<T>& x) {
+                             return CreateDenseArray<ObjectId>(
+                                 std::vector<arolla::OptionalValue<ObjectId>>{
+                                     alloc_id.ObjectByOffset(2), std::nullopt});
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_EQ(res.allocation_ids(), AllocationIdSet(alloc_id));
+    EXPECT_THAT(res.values<ObjectId>(),
+                ElementsAre(alloc_id.ObjectByOffset(2), std::nullopt));
+  }
+  {
+    SCOPED_TRACE("new allocation without alloc ids");
+    AllocationId alloc_id = Allocate(3);
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(2, std::nullopt,
+                           [&]<class T>(const arolla::DenseArray<T>& x) {
+                             return CreateDenseArray<ObjectId>(
+                                 std::vector<arolla::OptionalValue<ObjectId>>{
+                                     alloc_id.ObjectByOffset(2), std::nullopt});
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
+    EXPECT_EQ(res.allocation_ids(), AllocationIdSet(alloc_id));
+    EXPECT_THAT(res.values<ObjectId>(),
+                ElementsAre(alloc_id.ObjectByOffset(2), std::nullopt));
+  }
+  {
+    SCOPED_TRACE("all empty");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(2, std::nullopt,
+                           [&]<class T>(const arolla::DenseArray<T>& x) {
+                             return CreateEmptyDenseArray<ObjectId>(2);
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
+    EXPECT_EQ(res.allocation_ids(), AllocationIdSet());
+    EXPECT_TRUE(res.is_empty_and_unknown());
+  }
+}
+
+TEST(DataSliceImpl, TransformValuesMultiType) {
+  AllocationId alloc_id = Allocate(3);
+  auto ds = DataSliceImpl::Create({DataItem(int64_t{1}),
+                                   DataItem(alloc_id.ObjectByOffset(1)),
+                                   DataItem(double{3.5})});
+  {
+    SCOPED_TRACE("identical without alloc ids");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(
+            3, std::nullopt,
+            []<class T>(const arolla::DenseArray<T>& x) { return x; }));
+    EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
+    EXPECT_THAT(res, ElementsAreArray(ds));
+  }
+  {
+    SCOPED_TRACE("identical with alloc ids");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(
+            3, ds.allocation_ids(),
+            []<class T>(const arolla::DenseArray<T>& x) { return x; }));
+    EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
+    EXPECT_THAT(res, ElementsAreArray(ds));
+  }
+  {
+    SCOPED_TRACE("inverse without alloc ids");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(
+            3, std::nullopt, []<class T>(const arolla::DenseArray<T>& x) {
+              return CreateDenseArray<T>({OptionalValue<T>(x[2]),
+                                          OptionalValue<T>(x[1]),
+                                          OptionalValue<T>(x[0])});
+            }));
+    EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
+    EXPECT_THAT(res, ElementsAre(ds[2], ds[1], ds[0]));
+  }
+  {
+    SCOPED_TRACE("identical with alloc ids");
+    ASSERT_OK_AND_ASSIGN(
+        auto res, ds.TransformValues(
+                      3, ds.allocation_ids(),
+                      []<class T>(const arolla::DenseArray<T>& x) {
+                        return CreateDenseArray<T>({OptionalValue<T>(x[2]),
+                                                    OptionalValue<T>(x[1]),
+                                                    OptionalValue<T>(x[0])});
+                      }));
+    EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
+    EXPECT_THAT(res, ElementsAre(ds[2], ds[1], ds[0]));
+  }
+  {
+    SCOPED_TRACE("keep one type");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(3, ds.allocation_ids(),
+                           []<class T>(const arolla::DenseArray<T>& x) {
+                             if (x[0].present) {
+                               return x;
+                             }
+                             return CreateEmptyDenseArray<T>(3);
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetQType<int64_t>());
+    EXPECT_THAT(res, ElementsAre(1, std::nullopt, std::nullopt));
+  }
+  {
+    SCOPED_TRACE("to empty and unknown");
+    ASSERT_OK_AND_ASSIGN(
+        auto res,
+        ds.TransformValues(3, ds.allocation_ids(),
+                           []<class T>(const arolla::DenseArray<T>& x) {
+                             return CreateEmptyDenseArray<T>(3);
+                           }));
+    EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
+    EXPECT_THAT(res, ElementsAre(std::nullopt, std::nullopt, std::nullopt));
+  }
+}
+
+TEST(DataSliceImplDeathTest, TransformValuesDeath) {
+#ifdef NDEBUG
+  GTEST_SKIP() << "Skipping death tests in opt mode";
+#endif
+  AllocationId alloc_id = Allocate(3);
+  AllocationId alloc_id2 = Allocate(3);
+  auto ds = DataSliceImpl::Create({DataItem(int64_t{1}),
+                                   DataItem(alloc_id.ObjectByOffset(1)),
+                                   DataItem(double{3.5})});
+  EXPECT_DEATH(auto res = ds.TransformValues(
+                   3, AllocationIdSet(alloc_id2),
+                   []<class T>(const arolla::DenseArray<T>& x) { return x; }),
+               "res.VerifyAllocIdsConsistency");
+  EXPECT_DEATH(auto res = ds.TransformValues(
+                   3, std::nullopt,
+                   []<class T>(const arolla::DenseArray<T>& x) {
+                     return CreateEmptyDenseArray<T>(2);
+                   }),
+               "transformed_array.size.*result_size");
+  EXPECT_DEATH(auto res = ds.TransformValues(
+                   1, std::nullopt,
+                   []<class T>(const arolla::DenseArray<T>& x) {
+                     return CreateDenseArray<T>({T()});
+                   }),
+               "ids are intersecting");
+  EXPECT_DEATH(auto res = ds.TransformValues(
+                   1, std::nullopt,
+                   []<class T>(const arolla::DenseArray<T>& x) {
+                     return CreateDenseArray<int>({0});
+                   }),
+               "duplicated type.*INT32");
 }
 
 }  // namespace
