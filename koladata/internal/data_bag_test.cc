@@ -34,6 +34,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
@@ -373,6 +374,28 @@ TEST(DataBagTest, GetSchemaAttrsForBigAllocationAsVector) {
                                      DataItem::View<arolla::Text>("a_mixed"),
                                      DataItem::View<arolla::Text>("b_int"),
                                      DataItem::View<arolla::Text>("c_float")));
+  }
+}
+
+TEST(DataBagTest, SetSchemaName) {
+  {
+    // Valid name.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema = DataItem(AllocateExplicitSchema());
+    auto schema_name = DataItem(arolla::Text("foo"));
+    ASSERT_OK(db->SetSchemaAttr(schema, schema::kSchemaNameAttr, schema_name));
+    ASSERT_OK_AND_ASSIGN(DataItem assigned_name,
+                         db->GetSchemaAttr(schema, schema::kSchemaNameAttr));
+    EXPECT_EQ(schema_name, assigned_name);
+  }
+  {
+    // Invalid name;
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema = DataItem(AllocateExplicitSchema());
+    auto schema_name = DataItem(1);
+    EXPECT_THAT(db->SetSchemaAttr(schema, schema::kSchemaNameAttr, schema_name),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("only Text can be used as a schema name")));
   }
 }
 

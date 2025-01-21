@@ -563,10 +563,11 @@ std::string GetSchemaNameOrEmpty(const DataBagPtr& bag,
   DCHECK(schema.holds_value<ObjectId>());
   const internal::DataBagImpl & bag_impl = bag->GetImpl();
   FlattenFallbackFinder finder(*bag);
-  ASSIGN_OR_RETURN(DataItem schema_name,
-                   bag_impl.GetAttr(schema, schema::kSchemaNameAttr,
-                                           finder.GetFlattenFallbacks()),
-                   [](const absl::Status& status) { return ""; }(_));
+  ASSIGN_OR_RETURN(
+      DataItem schema_name,
+      bag_impl.GetSchemaAttrAllowMissing(schema, schema::kSchemaNameAttr,
+                                         finder.GetFlattenFallbacks()),
+      [](const absl::Status& status) { return ""; }(_));
   if (!schema_name.has_value()) {
     return "";
   }

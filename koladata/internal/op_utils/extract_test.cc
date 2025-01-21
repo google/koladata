@@ -42,6 +42,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/text.h"
 
 namespace koladata::internal {
 namespace {
@@ -131,8 +132,8 @@ TriplesT GenNoiseSchemaTriples() {
   return schema_triples;
 }
 
-enum ExtractDbParam {kMainDb, kFallbackDb};
-enum ExtractAllocParam {kSingleAlloc, kMultipleAllocs};
+enum ExtractDbParam { kMainDb, kFallbackDb };
+enum ExtractAllocParam { kSingleAlloc, kMultipleAllocs };
 
 struct ExtractTestParam {
   ExtractDbParam db_param;
@@ -150,7 +151,6 @@ struct LeafCollector {
   }
   std::vector<DataItem> collected_items;
 };
-
 class CopyingOpTest : public ::testing::TestWithParam<ExtractTestParam> {
  public:
   DataBagImplPtr GetMainDb(DataBagImplPtr db) {
@@ -693,11 +693,11 @@ TEST_P(ShallowCloneTest, ObjectsWithImplicitAndExplicitSchemas) {
   auto schema0 = AllocateSchema();
   auto schema4 = AllocateSchema();
   auto u1 = DataItem(internal::CreateUuidWithMainObject<
-      internal::ObjectId::kUuidImplicitSchemaFlag>(
+                     internal::ObjectId::kUuidImplicitSchemaFlag>(
       a1.value<ObjectId>(),
       arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
   auto u2 = DataItem(internal::CreateUuidWithMainObject<
-      internal::ObjectId::kUuidImplicitSchemaFlag>(
+                     internal::ObjectId::kUuidImplicitSchemaFlag>(
       a2.value<ObjectId>(),
       arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
   TriplesT data_triples = {
@@ -758,14 +758,12 @@ TEST_P(ShallowCloneTest, ObjectsWithImplicitAndExplicitSchemas) {
       {result_a4, {{schema::kSchemaAttr, schema4}, {"name", DataItem("a4")}}},
   };
   TriplesT expected_schema_triples = {
-               {schema0, {{"x", DataItem(schema::kInt32)}}},
-               {schema4, {{"name", DataItem(schema::kString)}}},
-               {result_u1,
-                {{"x", DataItem(schema::kInt32)},
-                 {"name", DataItem(schema::kString)}}},
-               {result_u2,
-                {{"y", DataItem(schema::kInt32)},
-                 {"self", DataItem(schema::kObject)}}}};
+      {schema0, {{"x", DataItem(schema::kInt32)}}},
+      {schema4, {{"name", DataItem(schema::kString)}}},
+      {result_u1,
+       {{"x", DataItem(schema::kInt32)}, {"name", DataItem(schema::kString)}}},
+      {result_u2,
+       {{"y", DataItem(schema::kInt32)}, {"self", DataItem(schema::kObject)}}}};
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetDataTriples(*expected_db, expected_data_triples);
   SetSchemaTriples(*expected_db, expected_schema_triples);
@@ -812,14 +810,15 @@ TEST_P(ShallowCloneTest, NamedSchemaSlice) {
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();
   TriplesT schema_triples = {
-      {s1, {{"x", DataItem(schema::kInt32)}}},
-      {s2, {{"a", DataItem(schema::kString)}}},
+      {s1,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s1"))},
+        {"x", DataItem(schema::kInt32)}}},
+      {s2,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))},
+        {"a", DataItem(schema::kString)}}},
   };
-  TriplesT data_triples = {{s1, {{schema::kSchemaNameAttr, DataItem("s1")}}},
-                           {s2, {{schema::kSchemaNameAttr, DataItem("s2")}}}};
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, data_triples);
   SetDataTriples(*db, GenNoiseDataTriples());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
@@ -837,14 +836,14 @@ TEST_P(ShallowCloneTest, NamedSchemaSlice) {
   EXPECT_NE(result_slice[0], s1);
   EXPECT_NE(result_slice[1], s2);
   TriplesT expected_schema_triples = {
-      {result_slice[0], {{"x", DataItem(schema::kInt32)}}},
-      {result_slice[1], {{"a", DataItem(schema::kString)}}},
+      {result_slice[0],
+       {{"x", DataItem(schema::kInt32)},
+        {schema::kSchemaNameAttr, DataItem(arolla::Text("s1"))}}},
+      {result_slice[1],
+       {{"a", DataItem(schema::kString)},
+        {schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))}}},
   };
-  TriplesT expected_data_triples = {
-      {result_slice[0], {{schema::kSchemaNameAttr, DataItem("s1")}}},
-      {result_slice[1], {{schema::kSchemaNameAttr, DataItem("s2")}}}};
   SetSchemaTriples(*expected_db, expected_schema_triples);
-  SetDataTriples(*expected_db, expected_data_triples);
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
@@ -1726,20 +1725,19 @@ TEST_P(ExtractTest, DataSliceDictsObjectIds) {
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys = DataSliceImpl::Create(
       CreateDenseArray<DataItem>({k0, k1, k2, k0, k3, k0, k2}));
-  auto values = DataSliceImpl::Create(CreateDenseArray<DataItem>(
-      {v0, v0, v0, v1, v2, DataItem(), DataItem()}));
+  auto values = DataSliceImpl::Create(
+      CreateDenseArray<DataItem>({v0, v0, v0, v1, v2, DataItem(), DataItem()}));
   ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
   auto dict_schema = AllocateSchema();
   auto key_schema = AllocateSchema();
   auto value_schema = AllocateSchema();
-  TriplesT data_triples = {
-      {k0, {{"x", DataItem(0)}, {"y", DataItem(0)}}},
-      {k1, {{"x", DataItem(0)}, {"y", DataItem(1)}}},
-      {k2, {{"x", DataItem(0)}, {"y", DataItem(2)}}},
-      {k3, {{"x", DataItem(1)}, {"y", DataItem(0)}}},
-      {v0, {{"val", DataItem(1.5)}}},
-      {v1, {{"val", DataItem(2.0)}}},
-      {v2, {{"val", DataItem(2.5)}}}};
+  TriplesT data_triples = {{k0, {{"x", DataItem(0)}, {"y", DataItem(0)}}},
+                           {k1, {{"x", DataItem(0)}, {"y", DataItem(1)}}},
+                           {k2, {{"x", DataItem(0)}, {"y", DataItem(2)}}},
+                           {k3, {{"x", DataItem(1)}, {"y", DataItem(0)}}},
+                           {v0, {{"val", DataItem(1.5)}}},
+                           {v1, {{"val", DataItem(2.0)}}},
+                           {v2, {{"val", DataItem(2.5)}}}};
   TriplesT schema_triples = {
       {key_schema,
        {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
@@ -1781,14 +1779,14 @@ TEST_P(ExtractTest, DataSliceDictsObjectIdsObjectSchema) {
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys = DataSliceImpl::Create(
       CreateDenseArray<DataItem>({k0, k1, k2, k0, k3, k0, k2}));
-  auto values = DataSliceImpl::Create(CreateDenseArray<DataItem>(
-      {v0, v0, v0, v1, v2, DataItem(), DataItem()}));
+  auto values = DataSliceImpl::Create(
+      CreateDenseArray<DataItem>({v0, v0, v0, v1, v2, DataItem(), DataItem()}));
   ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
   auto key_schema = AllocateSchema();
   auto value_schema = AllocateSchema();
   auto dict_schema = AllocateSchema();
-  std::pair<std::string_view, DataItem> key_schema_attr = {
-      schema::kSchemaAttr, key_schema};
+  std::pair<std::string_view, DataItem> key_schema_attr = {schema::kSchemaAttr,
+                                                           key_schema};
   std::pair<std::string_view, DataItem> value_schema_attr = {
       schema::kSchemaAttr, value_schema};
   TriplesT data_triples = {
@@ -1839,17 +1837,16 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema) {
       {dicts[0], dicts[1], dicts[2], dicts[1], dicts[2], dicts[0], dicts[2]}));
   ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
   TriplesT data_triples = {
-    {k0, {{"x", DataItem(0)}}},
-    {k1, {{"x", DataItem(1)}}},
-    {k2, {{"x", DataItem(2)}}},
+      {k0, {{"x", DataItem(0)}}},
+      {k1, {{"x", DataItem(1)}}},
+      {k2, {{"x", DataItem(2)}}},
   };
   auto key_schema = AllocateSchema();
   auto dict_schema = AllocateSchema();
-  TriplesT schema_triples = {
-      {key_schema, {{"x", DataItem(schema::kInt64)}}},
-      {dict_schema,
-       {{schema::kDictKeysSchemaAttr, key_schema},
-        {schema::kDictValuesSchemaAttr, dict_schema}}}};
+  TriplesT schema_triples = {{key_schema, {{"x", DataItem(schema::kInt64)}}},
+                             {dict_schema,
+                              {{schema::kDictKeysSchemaAttr, key_schema},
+                               {schema::kDictValuesSchemaAttr, dict_schema}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -1872,11 +1869,10 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema_NoData) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto key_schema = AllocateSchema();
   auto dict_schema = AllocateSchema();
-  TriplesT schema_triples = {
-      {key_schema, {{"x", DataItem(schema::kInt64)}}},
-      {dict_schema,
-       {{schema::kDictKeysSchemaAttr, key_schema},
-        {schema::kDictValuesSchemaAttr, dict_schema}}}};
+  TriplesT schema_triples = {{key_schema, {{"x", DataItem(schema::kInt64)}}},
+                             {dict_schema,
+                              {{schema::kDictKeysSchemaAttr, key_schema},
+                               {schema::kDictValuesSchemaAttr, dict_schema}}}};
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
@@ -2197,9 +2193,8 @@ TEST_P(ExtractTest, ExtendedSchemaWithDifferentDataBag) {
 
   TriplesT extended_schema_triples = {
       {schema, {{"next", schema}, {"b", object_dtype}, {"y", int_dtype}}}};
-  TriplesT schema_triples = {
-      {schema, {{"b", object_dtype}, {"y", int_dtype}}},
-      {missing_schema, {{"next", missing_schema}}}};
+  TriplesT schema_triples = {{schema, {{"b", object_dtype}, {"y", int_dtype}}},
+                             {missing_schema, {{"next", missing_schema}}}};
   TriplesT data_triples = {
       {a1, {{"next", a2}, {"b", b1}}},
       {a2, {{"y", DataItem(5)}, {"b", b0}}},
@@ -2283,7 +2278,6 @@ TEST_P(ExtractTest, NonReducingSchemaWithDifferentDataBag) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
-
 TEST_P(ExtractTest, MergeSchemaFromTwoDatabags) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto schema_db = DataBagImpl::CreateEmptyDatabag();
@@ -2296,8 +2290,8 @@ TEST_P(ExtractTest, MergeSchemaFromTwoDatabags) {
   auto unreachable_schema = AllocateSchema();
 
   TriplesT data_triples = {
-    {a0, {{"next", a1}, {"x", DataItem(1)}}},
-    {a1, {{schema::kSchemaAttr, DataItem(schema)}, {"y", DataItem(4)}}},
+      {a0, {{"next", a1}, {"x", DataItem(1)}}},
+      {a1, {{schema::kSchemaAttr, DataItem(schema)}, {"y", DataItem(4)}}},
   };
   TriplesT unreachable_data_triples = {
       {a0, {{"y", DataItem(2)}}},  // TODO: should be extracted
@@ -2341,8 +2335,8 @@ TEST_P(ExtractTest, ConflictingSchemasInTwoDatabags) {
   auto unreachable_schema = AllocateSchema();
 
   TriplesT data_triples = {
-    {a0, {{"next", a1}}},
-    {a1, {{schema::kSchemaAttr, DataItem(schema)}}},
+      {a0, {{"next", a1}}},
+      {a1, {{schema::kSchemaAttr, DataItem(schema)}}},
   };
   TriplesT schema_triples = {
       {schema, {{"next", object_dtype}, {"x", text_dtype}}}};
@@ -2379,21 +2373,22 @@ TEST_P(ExtractTest, ConflictingSchemaNamesInTwoDatabags) {
   auto unreachable_schema = AllocateSchema();
 
   TriplesT data_triples = {
-    {a0, {{"next", a1}}},
-    {a1, {{schema::kSchemaAttr, DataItem(schema)}}},
-    {schema, {{schema::kSchemaNameAttr, DataItem("schema")}}},
-  };
-  TriplesT schema_db_data_triples = {
-    {schema, {{schema::kSchemaNameAttr, DataItem("foo")}}},
+      {a0, {{"next", a1}}},
+      {a1, {{schema::kSchemaAttr, DataItem(schema)}}},
   };
   TriplesT schema_triples = {
-      {schema, {{"next", object_dtype}, {"x", text_dtype}}}};
+      {schema,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("schema"))},
+        {"next", object_dtype},
+        {"x", text_dtype}}}};
   TriplesT schema_db_triples = {
-      {schema, {{"next", object_dtype}, {"x", text_dtype}}}};
+      {schema,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("foo"))},
+        {"next", object_dtype},
+        {"x", text_dtype}}}};
 
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*schema_db, schema_db_data_triples);
   SetSchemaTriples(*schema_db, schema_db_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -2406,7 +2401,7 @@ TEST_P(ExtractTest, ConflictingSchemaNamesInTwoDatabags) {
           absl::StatusCode::kInvalidArgument,
           ::testing::AllOf(
               ::testing::HasSubstr("conflicting values for some of schemas"),
-              ::testing::HasSubstr("name: [b'foo'] != [b'schema']"))));
+              ::testing::HasSubstr("__schema_name__: ['foo'] != ['schema']"))));
 }
 
 TEST_P(ExtractTest, NoFollowEntitySchema) {
@@ -2466,15 +2461,13 @@ TEST_P(ExtractTest, NoFollowObjectSchema) {
                        schema::NoFollowSchemaItem(schema1));
   auto obj_dtype = DataItem(schema::kObject);
 
-  TriplesT schema_triples = {
-      {schema0, {{"nofollow", obj_dtype}}}};
+  TriplesT schema_triples = {{schema0, {{"nofollow", obj_dtype}}}};
   TriplesT unreachable_schema_triples = {
       {nofollow_schema1, {{"prev", obj_dtype}, {"next", obj_dtype}}},
       {schema2, {{"prev", obj_dtype}}}};
   TriplesT data_triples = {
       {a0, {{schema::kSchemaAttr, schema0}, {"nofollow", a1}}},
-      {a1, {{schema::kSchemaAttr, nofollow_schema1}}}
-  };
+      {a1, {{schema::kSchemaAttr, nofollow_schema1}}}};
   TriplesT unreachable_data_triples = {
       {a1,
        {{schema::kSchemaAttr, nofollow_schema1}, {"prev", a0}, {"next", a2}}},
@@ -2584,20 +2577,20 @@ TEST_P(ExtractTest, NamedSchemaSlice) {
   auto s2 = AllocateSchema();
   auto s3 = AllocateSchema();
   TriplesT schema_triples = {
-      {s1, {{"x", DataItem(schema::kInt32)}}},
-      {s2, {{"a", DataItem(schema::kString)}}},
+      {s1,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s1"))},
+        {"x", DataItem(schema::kInt32)}}},
+      {s2,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))},
+        {"a", DataItem(schema::kString)}}},
       {s3, {{"a", DataItem(schema::kString)}}},
   };
-  TriplesT data_triples = {{s1, {{schema::kSchemaNameAttr, DataItem("s1")}}},
-                           {s2, {{schema::kSchemaNameAttr, DataItem("s2")}}}};
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, data_triples);
   SetDataTriples(*db, GenNoiseDataTriples());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
-  SetDataTriples(*expected_db, data_triples);
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2, s3}));
 
@@ -2616,22 +2609,19 @@ TEST_P(ExtractTest, NamedSchemaWithDatabag) {
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();
   TriplesT schema_triples = {
-      {s1, {{"x", s2}}},
-      {s2, {{"a", DataItem(schema::kString)}}}
-  };
-  TriplesT schema_data_triples = {
-      {s1, {{schema::kSchemaNameAttr, DataItem("s1")}}},
-      {s2, {{schema::kSchemaNameAttr, DataItem("s2")}}}};
+      {s1,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s1"))}, {"x", s2}}},
+      {s2,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))},
+        {"a", DataItem(schema::kString)}}}};
   SetSchemaTriples(*schema_db, schema_triples);
   SetSchemaTriples(*schema_db, GenNoiseSchemaTriples());
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*schema_db, schema_data_triples);
   SetDataTriples(*schema_db, GenNoiseDataTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
-  SetDataTriples(*expected_db, schema_data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(
@@ -2651,15 +2641,16 @@ TEST_P(ExtractTest, NamedSchemaObjects) {
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
   TriplesT schema_triples = {
-      {s1, {{"x", DataItem(schema::kObject)}}},
-      {s2, {{"a", DataItem(schema::kString)}}}
-  };
+      {s1,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s1"))},
+        {"x", DataItem(schema::kObject)}}},
+      {s2,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))},
+        {"a", DataItem(schema::kString)}}}};
   TriplesT data_triples = {
       {a1, {{schema::kSchemaAttr, s1}, {"x", a2}}},
       {a2, {{schema::kSchemaAttr, s1}, {"x", a0}}},
-      {a0, {{schema::kSchemaAttr, s2}, {"a", DataItem("foo")}}},
-      {s1, {{schema::kSchemaNameAttr, DataItem("s1")}}},
-      {s2, {{schema::kSchemaNameAttr, DataItem("s2")}}}};
+      {a0, {{schema::kSchemaAttr, s2}, {"a", DataItem("foo")}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -2670,14 +2661,13 @@ TEST_P(ExtractTest, NamedSchemaObjects) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(result_db.get())(
-      a1, DataItem(schema::kObject), *GetMainDb(db), {GetFallbackDb(db).get()},
-      nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(a1, DataItem(schema::kObject),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
-
 
 TEST_P(ExtractTest, ObjectSchemaMissing) {
   auto db = DataBagImpl::CreateEmptyDatabag();
@@ -2761,8 +2751,7 @@ TEST_P(ExtractTest, AnySchemaForOneAttribute) {
         *db, {{schema, {{absl::StrCat("x", i), DataItem(schema::kInt32)}}}});
   }
   for (int i = 0; i < 30; ++i) {
-    SetDataTriples(*db,
-                   {{obj_ids[0], {{absl::StrCat("x", i), obj_ids[1]}}}});
+    SetDataTriples(*db, {{obj_ids[0], {{absl::StrCat("x", i), obj_ids[1]}}}});
   }
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();

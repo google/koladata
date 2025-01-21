@@ -138,12 +138,8 @@ TEST(NamedSchemaTest, CreateNamedSchema_SchemaName) {
   EXPECT_EQ(named_schema.GetSchemaImpl(), schema::kSchema);
   EXPECT_OK(named_schema.VerifyIsSchema());
 
-  // To get the schema name, we need to set the schema to ANY.
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice named_schema_any,
-      named_schema.WithSchema(internal::DataItem(schema::kAny)));
   ASSERT_OK_AND_ASSIGN(auto schema_name,
-                       named_schema_any.GetAttr(schema::kSchemaNameAttr));
+                       named_schema.GetAttr(schema::kSchemaNameAttr));
   EXPECT_EQ(schema_name.item(), arolla::Text("name"));
 }
 

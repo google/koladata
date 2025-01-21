@@ -181,6 +181,7 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
 }
 
 // Fetches all attribute names from `schema_item` and returns them ordered.
+// Excludes kSchemaNameAttr from the result.
 absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromSchemaItem(
     const internal::DataItem& schema_item, const internal::DataBagImpl& db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks) {
@@ -205,6 +206,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromSchemaItem(
       [&](int64_t id, absl::string_view attr) {
         result.insert(std::string(attr));
       });
+  result.erase(schema::kSchemaNameAttr);
   return result;
 }
 
@@ -387,7 +389,11 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
   if (schema == schema::kSchema) {
-    res_schema = internal::DataItem(schema::kSchema);
+    if (attr_name == schema::kSchemaNameAttr) {
+      res_schema = internal::DataItem(schema::kString);
+    } else {
+      res_schema = internal::DataItem(schema::kSchema);
+    }
     return GetSchemaAttrImpl(db_impl, impl, attr_name, fallbacks,
                              allow_missing_schema);
   }

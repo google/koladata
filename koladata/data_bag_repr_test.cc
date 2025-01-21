@@ -458,9 +458,9 @@ TEST(DataBagReprTest, TestDataBagStringRepresentation_NamedSchema) {
                                           test::Schema(schema::kInt32)}));
   EXPECT_THAT(DataBagToStr(bag), IsOkAndHolds(MatchesRegex(
                                      R"regex(DataBag \$[0-9a-f]{4}:
-\#[0-9a-zA-Z]{22}\.__schema_name__ => test_schema
 
 SchemaBag:
+\#[0-9a-zA-Z]{22}\.__schema_name__ => 'test_schema'
 \#[0-9a-zA-Z]{22}\.a => STRING
 \#[0-9a-zA-Z]{22}\.b => INT32
 )regex")));

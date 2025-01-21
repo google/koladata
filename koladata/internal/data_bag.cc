@@ -2469,7 +2469,14 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataItem& schema_item,
     }
     return InvalidSchemaObjectId(schema_item);
   }
-  RETURN_IF_ERROR(VerifyIsSchema(value));
+  if (attr == schema::kSchemaNameAttr) {
+    if (!value.holds_value<arolla::Text>()) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "only Text can be used as a schema name, got: %v", value));
+    }
+  } else {
+    RETURN_IF_ERROR(VerifyIsSchema(value));
+  }
   ASSIGN_OR_RETURN(ObjectId schema_id, ItemToSchemaObjectId(schema_item));
   if (!schema_id.IsSmallAlloc()) {
     auto& dict =
@@ -2578,14 +2585,20 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
   if (values.is_single_dtype()) {
     return values.VisitValues([&]<class T>(const T& vec) -> absl::Status {
       using ValueT = typename T::base_type;
+      if constexpr (std::is_same_v<ValueT, arolla::Text>) {
+        if (attr != schema::kSchemaNameAttr) {
+          return InvalidRhsSetSchemaAttrError(values);
+        }
+      }
       if constexpr (std::is_same_v<ValueT, schema::DType> ||
-                    std::is_same_v<ValueT, ObjectId>) {
+                    std::is_same_v<ValueT, ObjectId> ||
+                    std::is_same_v<ValueT, arolla::Text>) {
         absl::Status status = absl::OkStatus();
         RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
             [&](int64_t /*id*/, ObjectId schema_id,
-                arolla::OptionalValue<ValueT> value) {
+            arolla::view_type_t<ValueT> value) {
               if constexpr (std::is_same_v<ValueT, ObjectId>) {
-                if (value.present && !value.value.IsSchema()) {
+                if (!value.IsSchema()) {
                   status = InvalidRhsSetSchemaAttrError(values);
                   return;
                 }
@@ -2600,7 +2613,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
                 Dict& schema_dict = GetOrCreateMutableDict(schema_id);
                 schema_dict.Set(
                     DataItem::View<arolla::Text>(attr),
-                    value.present ? DataItem(value.value) : DataItem());
+                    DataItem(ValueT{value}));
               }
             },
             schema_slice.values<ObjectId>(), vec));
