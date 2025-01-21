@@ -40,6 +40,14 @@ message IncompatibleSchema {
   optional arolla.serialization_base.ContainerProto assigned_schema = 3;
 }
 
+// Schema or dict conflicts when merging two DataBags.
+message SchemaOrDictConflict {
+  optional arolla.serialization_base.ContainerProto object_id = 1;
+  optional arolla.serialization_base.ContainerProto key = 2;
+  optional arolla.serialization_base.ContainerProto expected_value = 3;
+  optional arolla.serialization_base.ContainerProto assigned_value = 4;
+}
+
 // Koda error message transportation proto.
 message Error {
   optional string error_message = 1;
@@ -48,5 +56,6 @@ message Error {
     NoCommonSchema no_common_schema = 3;
     MissingObjectSchema missing_object_schema = 4;
     IncompatibleSchema incompatible_schema = 5;
+    SchemaOrDictConflict schema_or_dict_conflict = 6;
   }
 }

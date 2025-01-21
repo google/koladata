@@ -18,7 +18,6 @@
 #include <utility>
 #include <vector>
 
-
 #include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/function_ref.h"
@@ -33,6 +32,7 @@
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/status_macros_backport.h"
 

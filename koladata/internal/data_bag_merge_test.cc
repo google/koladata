@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
@@ -35,6 +36,8 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error.pb.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
@@ -957,6 +960,9 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
     if (merge_options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
       EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                    HasSubstr("conflict")));
+      std::optional<Error> error = GetErrorPayload(status);
+      ASSERT_TRUE(error.has_value());
+      EXPECT_TRUE(error->has_schema_or_dict_conflict());
     } else if (merge_options.data_conflict_policy == MergeOptions::kOverwrite) {
       EXPECT_OK(status);
       EXPECT_THAT(db->GetFromDict(a, k), IsOkAndHolds(DataItem(75)));
@@ -1061,10 +1067,13 @@ TEST(DataBagTest, MergeExplicitSchemas) {
   {
     SCOPED_TRACE("overwrite data");
     auto res = db->PartiallyPersistentFork();
-    EXPECT_THAT(
-        res->MergeInplace(*db2, MergeOptions{.data_conflict_policy =
-                                                 MergeOptions::kOverwrite}),
-        StatusIs(absl::StatusCode::kFailedPrecondition, HasSubstr("conflict")));
+    absl::Status status = res->MergeInplace(
+        *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite});
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
+                                 HasSubstr("conflict")));
+    std::optional<Error> error = GetErrorPayload(status);
+    ASSERT_TRUE(error.has_value());
+    EXPECT_TRUE(error->has_schema_or_dict_conflict());
   }
   {
     SCOPED_TRACE("keep schema");
@@ -1078,17 +1087,24 @@ TEST(DataBagTest, MergeExplicitSchemas) {
   {
     SCOPED_TRACE("keep data");
     auto res = db->PartiallyPersistentFork();
-    EXPECT_THAT(
-        res->MergeInplace(*db2, MergeOptions{.data_conflict_policy =
-                                                 MergeOptions::kKeepOriginal}),
-        StatusIs(absl::StatusCode::kFailedPrecondition, HasSubstr("conflict")));
+    absl::Status status = res->MergeInplace(
+        *db2,
+        MergeOptions{.data_conflict_policy = MergeOptions::kKeepOriginal});
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
+                                 HasSubstr("conflict")));
+    std::optional<Error> error = GetErrorPayload(status);
+    ASSERT_TRUE(error.has_value());
+    EXPECT_TRUE(error->has_schema_or_dict_conflict());
   }
   {
     SCOPED_TRACE("raise on conflict");
     auto res = db->PartiallyPersistentFork();
-    EXPECT_THAT(
-        res->MergeInplace(*db2, MergeOptions()),
-        StatusIs(absl::StatusCode::kFailedPrecondition, HasSubstr("conflict")));
+    absl::Status status = res->MergeInplace(*db2, MergeOptions());
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
+                                 HasSubstr("conflict")));
+    std::optional<Error> error = GetErrorPayload(status);
+    ASSERT_TRUE(error.has_value());
+    EXPECT_TRUE(error->has_schema_or_dict_conflict());
   }
 }
 

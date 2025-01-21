@@ -29,6 +29,7 @@ namespace koladata {
 struct SupplementalData {
   absl::Nullable<const koladata::DataBagPtr> db;
   std::optional<const koladata::DataSlice> ds;
+  absl::Nullable<const koladata::DataBagPtr> to_be_merged_db;
 };
 
 // Creates the readable error message and sets it in the payload of Status if

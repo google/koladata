@@ -358,6 +358,21 @@ MergeOptions::ConflictHandlingOption ReverseConflictHandlingOption(
   return MergeOptions::kRaiseOnConflict;
 }
 
+absl::StatusOr<internal::Error> MakeSchemaOrDictMergeError(
+    const internal::ObjectId& object, const DataItem& key,
+    const DataItem& expected_value, const DataItem& assigned_value) {
+  internal::Error error;
+  auto* schema_or_dict_conflict = error.mutable_schema_or_dict_conflict();
+  ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_object_id(),
+                   internal::EncodeDataItem(internal::DataItem(object)));
+  ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_key(),
+                   internal::EncodeDataItem(key));
+  ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_expected_value(),
+                   internal::EncodeDataItem(expected_value));
+  ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_assigned_value(),
+                   internal::EncodeDataItem(assigned_value));
+  return error;
+}
 }  // namespace
 
 MergeOptions ReverseMergeOptions(const MergeOptions& options) {
@@ -3017,9 +3032,13 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
           const DataItem& this_value = this_dict.GetOrAssign(key, other_value);
           if (conflict_policy == MergeOptions::kRaiseOnConflict &&
               this_value != other_value) {
-            return absl::FailedPreconditionError(absl::StrCat(
-                "conflicting dict values for ", alloc_id.ObjectByOffset(i),
-                " key", key, ": ", this_value, " vs ", other_value));
+            internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
+            return internal::WithErrorPayload(
+                absl::FailedPreconditionError(absl::StrCat(
+                    "conflicting dict values for ", object_id, " key", key,
+                    ": ", this_value, " vs ", other_value)),
+                MakeSchemaOrDictMergeError(object_id, key, this_value,
+                                              other_value));
           }
         }
       }

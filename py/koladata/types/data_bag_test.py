@@ -1580,12 +1580,39 @@ Assigned schema for Dict key: INT32""",
 
   def test_merge_inplace_schema_conflict(self):
     db1 = bag()
-    x1 = db1.new(a=1, b=2)
+    x1 = db1.new(a=db1.new(x=1))
     db2 = bag()
     x2 = x1.with_bag(db2)
-    x2.set_attr('a', 'foo')
-    with self.assertRaisesRegex(ValueError, 'conflicting dict values'):
+    x2.set_attr('a', db2.new(c=2))
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""cannot merge DataBags due to an exception encountered when merging schemas.
+
+The conflicting schema in the first DataBag: SCHEMA\(a=SCHEMA\(x=INT32\)\)
+The conflicting schema in the second DataBag: SCHEMA\(a=SCHEMA\(c=INT32\)\)
+
+The cause is the schema for attribute 'a' is incompatible: SCHEMA\(x=INT32\) vs SCHEMA\(c=INT32\)
+""",
+    ):
       db1.merge_inplace(db2)
+
+  def test_merge_inplace_dict_conflict(self):
+    itemid = kde.allocation.new_dictid().eval()
+    db1 = bag()
+    db1.dict({1: db1.obj(x=1)}, itemid=itemid)
+    db2 = bag()
+    db2.dict({1: db2.obj(y=2)}, itemid=itemid)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""cannot merge DataBags due to an exception encountered when merging dicts.
+
+The conflicting dict in the first DataBag: Dict\{1=Entity\(\):\$[0-9a-zA-Z]{22}\}
+The conflicting dict in the second DataBag: Dict\{1=Entity\(\):\$[0-9a-zA-Z]{22}\}
+
+The cause is the value of the key 1 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}
+""",
+    ):
+      db1.merge_inplace(db2, allow_data_conflicts=False)
 
   def test_merge_inplace_schema_overwrite(self):
     db1 = bag()

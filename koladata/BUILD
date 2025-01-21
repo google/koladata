@@ -102,6 +102,7 @@ cc_test(
         ":test_utils",
         "//koladata/internal:data_bag",
         "//koladata/testing:matchers",
+        "//koladata/testing:test_env",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/util:status_backport",

@@ -202,6 +202,69 @@ absl::StatusOr<Error> SetIncompatibleSchemaError(
   return cause;
 }
 
+constexpr const char* kDataBagMergeErrorSchemaConflict =
+    "cannot merge DataBags due to an exception encountered when merging "
+    "schemas.\n\n"
+    "The conflicting schema in the first DataBag: %s\n"
+    "The conflicting schema in the second DataBag: %s\n\n"
+    "The cause is the schema for attribute %s is incompatible: %s vs %s\n";
+
+constexpr const char* kDataBagMergeErrorDictConflict =
+    "cannot merge DataBags due to an exception encountered when merging "
+    "dicts.\n\n"
+    "The conflicting dict in the first DataBag: %s\n"
+    "The conflicting dict in the second DataBag: %s\n\n"
+    "The cause is the value of the key %s is incompatible: %s vs %s\n";
+
+absl::StatusOr<Error> SetDataBagMergeError(Error cause, const DataBagPtr& db1,
+                                           const DataBagPtr& db2) {
+  const auto& schema_or_dict_conflict = cause.schema_or_dict_conflict();
+  ASSIGN_OR_RETURN(
+      internal::DataItem object_item,
+      DecodeDataItem(schema_or_dict_conflict.object_id()));
+  ASSIGN_OR_RETURN(internal::DataItem key_item,
+                   DecodeDataItem(schema_or_dict_conflict.key()));
+  internal::DataItem schema = internal::DataItem(
+      object_item.is_schema() ? schema::kSchema : schema::kAny);
+  ASSIGN_OR_RETURN(
+      DataSlice expected_value,
+      DataSlice::Create(
+          DecodeDataItem(schema_or_dict_conflict.expected_value()),
+          DataSlice::JaggedShape::Empty(), schema,
+          db1));
+  ASSIGN_OR_RETURN(
+      DataSlice assigned_value,
+      DataSlice::Create(
+          DecodeDataItem(schema_or_dict_conflict.assigned_value()),
+          DataSlice::JaggedShape::Empty(), schema,
+          db2));
+  ASSIGN_OR_RETURN(
+      DataSlice item,
+      DataSlice::Create(object_item, schema, db1));
+  ASSIGN_OR_RETURN(
+      DataSlice conflicting_item,
+      DataSlice::Create(object_item, std::move(schema), db2));
+
+  std::string key_str = internal::DataItemRepr(
+      key_item, {.strip_quotes = false});
+  ASSIGN_OR_RETURN(std::string item_str, DataSliceToStr(item));
+  ASSIGN_OR_RETURN(std::string conflicting_item_str,
+                   DataSliceToStr(conflicting_item));
+  ASSIGN_OR_RETURN(std::string expected_value_str,
+                   DataSliceToStr(expected_value));
+  ASSIGN_OR_RETURN(std::string assigned_value_str,
+                   DataSliceToStr(assigned_value));
+  std::string error_str =
+      object_item.is_schema()
+          ? absl::StrFormat(kDataBagMergeErrorSchemaConflict, item_str,
+                            conflicting_item_str, key_str, expected_value_str,
+                            assigned_value_str)
+          : absl::StrFormat(kDataBagMergeErrorDictConflict, item_str,
+                            conflicting_item_str, key_str, expected_value_str,
+                            assigned_value_str);
+  cause.set_error_message(std::move(error_str));
+  return cause;
+}
 }  // namespace
 
 absl::Status AssembleErrorMessage(const absl::Status& status,
@@ -223,6 +286,12 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
   if (cause->has_incompatible_schema()) {
     ASSIGN_OR_RETURN(Error error, SetIncompatibleSchemaError(*std::move(cause),
                                                              data.db, data.ds));
+    return WithErrorPayload(status, error);
+  }
+  if (cause->has_schema_or_dict_conflict()) {
+    ASSIGN_OR_RETURN(Error error,
+                     SetDataBagMergeError(*std::move(cause), data.db,
+                                                data.to_be_merged_db));
     return WithErrorPayload(status, error);
   }
   return status;
