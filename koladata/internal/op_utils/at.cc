@@ -33,8 +33,6 @@
 #include "arolla/dense_array/ops/multi_edge_util.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/memory/raw_buffer_factory.h"
-#include "arolla/qexpr/eval_context.h"
-#include "arolla/qexpr/operators/dense_array/array_ops.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
@@ -79,6 +77,28 @@ absl::StatusOr<arolla::DenseArray<T>> SelectWithOffsets(
   return res;
 }
 
+template <typename T>
+absl::StatusOr<arolla::DenseArray<T>> GlobalAt(
+    const arolla::DenseArray<T>& array,
+    const arolla::DenseArray<int64_t>& indices) {
+  // We cannot call DenseArrayAtOp since it does not support negative indices.
+  int64_t size = array.size();
+  auto at_fn =
+      [&array,
+       &size](int64_t id) -> arolla::OptionalValue<arolla::view_type_t<T>> {
+    if (id < 0) {
+      id += size;
+    }
+    if (id < 0 || id >= size || !array.present(id)) {
+      return std::nullopt;
+    }
+    return array.values[id];
+  };
+  // We need to explicitly specify the template argument for
+  // Text/string_view to work properly.
+  return arolla::CreateDenseOp<decltype(at_fn), T>(at_fn)(indices);
+}
+
 }  // namespace
 
 absl::StatusOr<DataSliceImpl> AtOp(
@@ -91,7 +111,6 @@ absl::StatusOr<DataSliceImpl> AtOp(
 
   auto process_dense_array = [&]<class T>(const arolla::DenseArray<T>& array)
       -> absl::StatusOr<arolla::DenseArray<T>> {
-    // Use AtOp if it is scalar edge otherwise TakeOverOverOp.
     if (ds_to_common.parent_size() > 1) {
       if (!indices_to_common.has_value()) {
         return absl::InternalError(
@@ -104,10 +123,8 @@ absl::StatusOr<DataSliceImpl> AtOp(
       return SelectWithOffsets(array, indices, ds_to_common,
                                *indices_to_common);
     } else {
-      // NOTE: out-of-bound errors are reported to the EvaluationContext and
-      // ignored here.
-      arolla::EvaluationContext ctx;
-      return arolla::DenseArrayAtOp()(&ctx, array, indices);
+      // Fast path for the common case.
+      return GlobalAt(array, indices);
     }
   };
 

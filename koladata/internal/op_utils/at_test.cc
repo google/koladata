@@ -235,11 +235,21 @@ TEST(AtTest, EmptyDataSlice) {
   }
 }
 
+TEST(AtTest, NegativeIndices) {
+  auto ds =
+      DataSliceImpl::Create(CreateDenseArray<int>({1, 2, std::nullopt, 12}));
+  auto indices = CreateDenseArray<int64_t>({-1, -2, -3, -4});
+  auto ds_to_common = CreateEdge({0, 4});
+
+  ASSERT_OK_AND_ASSIGN(auto res, AtOp(ds, indices, ds_to_common, std::nullopt));
+  EXPECT_THAT(res, ElementsAre(12, std::nullopt, 2, 1));
+}
+
 TEST(AtTest, OutOfBoundIndices) {
   auto ds =
       DataSliceImpl::Create(CreateDenseArray<int>({1, 1, std::nullopt, 12}));
-  auto indices = CreateDenseArray<int64_t>({-1, std::nullopt, 4});
-  auto ds_to_common = CreateEdge({0, 7});
+  auto indices = CreateDenseArray<int64_t>({-5, std::nullopt, 4});
+  auto ds_to_common = CreateEdge({0, 4});
 
   ASSERT_OK_AND_ASSIGN(auto res, AtOp(ds, indices, ds_to_common, std::nullopt));
   EXPECT_THAT(res, ElementsAre(std::nullopt, std::nullopt, std::nullopt));

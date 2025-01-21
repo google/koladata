@@ -57,6 +57,12 @@ class SlicesTakeTest(parameterized.TestCase):
       (ds([[1, 2], [3, 4]]), ds([1, 3]), ds([2, None])),
       (ds([[1, 2], [3, 4]]), ds([[1], [3]]), ds([[2], [None]])),
       # Negative indices
+      (ds([1, 2, 3, 4]), ds([-1, -2, -3, -4, -5]), ds([4, 3, 2, 1, None])),
+      (
+          ds([1, 2, 3, 4]),
+          ds([[-1, -2], [-3, -4, -5]]),
+          ds([[4, 3], [2, 1, None]]),
+      ),
       (ds([[1, 2], [3, 4]]), ds(-1), ds([2, 4])),
       (ds([[1, 2], [3, 4]]), ds([-1, -2]), ds([2, 3])),
       # Out-of-bound indices
