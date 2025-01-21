@@ -252,6 +252,9 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
     }
   };
 
+  auto last_object_id =
+      internal::ObjectId::UnsafeCreateFromInternalHighLow(0, 0);
+
   auto process_type = [&]<typename T>(
                           std::type_identity<T>,
                           size_t start_id) -> absl::StatusOr<size_t> {
@@ -260,7 +263,6 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
     ASSIGN_OR_RETURN(size_t values_size,
                      get_values_size(std::type_identity<T>(), values));
     size_t next_start_id = proto_types_buffer.size();
-    bool all_values_used = std::is_same_v<T, arolla::Unit>;
     size_t last_id = 0;
     for (size_t cur = start_id; cur < proto_types_buffer.size(); ++cur) {
       uint8_t cur_type_idx = static_cast<uint8_t>(proto_types_buffer[cur]);
@@ -291,7 +293,6 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
                          input_values[0].As<arolla::expr::ExprQuote>());
         input_values = input_values.subspan(1);
         typed_bldr.InsertIfNotSet(cur, std::move(q));
-        all_values_used = input_values.empty();
       } else {
         if (last_id >= values_size) {
           return absl::InvalidArgumentError(absl::StrCat(
@@ -300,7 +301,9 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
         }
         if constexpr (std::is_same_v<T, internal::ObjectId>) {
           auto object_id = internal::ObjectId::UnsafeCreateFromInternalHighLow(
-              values.hi(last_id), values.lo(last_id));
+              values.hi(last_id) + last_object_id.InternalHigh64(),
+              values.lo(last_id) + last_object_id.InternalLow64());
+          last_object_id = object_id;
           typed_bldr.InsertIfNotSet(cur, object_id);
           bldr.GetMutableAllocationIds().Insert(
               internal::AllocationId(object_id));
@@ -310,10 +313,10 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
                        arolla::view_type_t<T>(values[last_id])));
         }
         ++last_id;
-        all_values_used = last_id == values_size;
       }
     }
-    if (!all_values_used) {
+    if (last_id != values_size ||
+        (std::is_same_v<T, arolla::expr::ExprQuote> && !input_values.empty())) {
       return absl::InvalidArgumentError(
           absl::StrCat("DataSliceCompactProto has unused values for type ",
                        arolla::GetQType<T>()->name()));

@@ -179,8 +179,8 @@ absl::StatusOr<ValueProto> EncodeNonDeterministic(arolla::TypedRef value,
     koda_proto->set_non_deterministic_token_qtype(true);
   } else {
     return absl::InvalidArgumentError(
-        absl::StrFormat("%s does not support serialization of %s",
-                        kKodaV1Codec, value.GetType()->name()));
+        absl::StrFormat("%s does not support serialization of %s", kKodaV1Codec,
+                        value.GetType()->name()));
   }
   return value_proto;
 }
@@ -354,13 +354,18 @@ absl::StatusOr<ValueProto> EncodeDataItem(arolla::TypedRef value,
 template <typename T>
 void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
                             KodaV1Proto::DataSliceCompactProto& slice_proto,
-                            arolla::view_type_t<T> v, absl::Status& status) {
+                            arolla::view_type_t<T> v,
+                            internal::ObjectId& last_object_id,
+                            absl::Status& status) {
   if constexpr (std::is_same_v<T, internal::ObjectId>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kObjectIdFieldNumber ==
                   internal::ScalarTypeId<T>());
     auto* packed_ids_proto = slice_proto.mutable_object_id();
-    packed_ids_proto->add_hi(v.InternalHigh64());
-    packed_ids_proto->add_lo(v.InternalLow64());
+    packed_ids_proto->add_hi(v.InternalHigh64() -
+                             last_object_id.InternalHigh64());
+    packed_ids_proto->add_lo(v.InternalLow64() -
+                             last_object_id.InternalLow64());
+    last_object_id = v;
   } else if constexpr (std::is_same_v<T, int32_t>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kI32FieldNumber ==
                   internal::ScalarTypeId<T>());
@@ -436,6 +441,8 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
   }
 
   absl::Status status = absl::OkStatus();
+  auto last_object_id =
+      internal::ObjectId::UnsafeCreateFromInternalHighLow(0, 0);
   slice.VisitValues([&]<typename T>(const arolla::DenseArray<T>& v) {
     v.ForEachPresent([&](int64_t id, arolla::view_type_t<T> value) {
       if (!status.ok()) {
@@ -443,7 +450,7 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
       }
       proto_types_buffer[id] = static_cast<char>(internal::ScalarTypeId<T>());
       AddSliceElementToProto<T>(encoder, value_proto, *compact_proto, value,
-                                status);
+                                last_object_id, status);
     });
   });
   RETURN_IF_ERROR(std::move(status));

@@ -31,6 +31,10 @@ message KodaV1Proto {
   }
 
   message RepeatedPackedObjectIdProto {
+    // Packed ids are stored as a diff from the previous id.
+    // For example, [10, 11, 12, 13] is stored as [10, 1, 1, 1].
+    // Unsigned integer underflow is expected and allowed.
+    // It is done to save space.
     repeated uint64 hi = 1 [packed = true];
     repeated uint64 lo = 2 [packed = true];
   }

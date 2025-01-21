@@ -100,14 +100,35 @@ TEST(SerializationTest, DataSliceImplInt64BytesSize) {
   EXPECT_LT(proto.ByteSizeLong(), 5 * 1000 * 1000);
 }
 
-TEST(SerializationTest, DataSliceImplObjectIdBytesSize) {
+TEST(SerializationTest, DataSliceImplObjectLinkToParentIdBytesSize) {
+  constexpr int64_t kSize = 1000000;
+  constexpr int64_t kPerParent = 100;
+  auto slice = DataSliceImpl::AllocateEmptyObjects(kSize / kPerParent);
+  std::vector<DataItem> items;
+  items.reserve(kSize);
+  for (const auto& item : slice) {
+    for (int i = 0; i < kPerParent; ++i) {
+     items.push_back(DataItem(item));
+    }
+  }
+  slice = DataSliceImpl::Create(items);
+
+  std::vector<TypedValue> typed_values;
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                       {TypedValue::FromValue(slice)}, {}));
+  // Real number is 3MB. We set a limit a bit higher.
+  EXPECT_LT(proto.ByteSizeLong(), 3.5 * 1000 * 1000);
+}
+
+// Quite common case that may be useful to optimize in the future.
+TEST(SerializationTest, DataSliceImplObjectIdFullAllocBytesSize) {
   constexpr int64_t kSize = 1000000;
   auto slice = DataSliceImpl::AllocateEmptyObjects(kSize);
   std::vector<TypedValue> typed_values;
   ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
                                        {TypedValue::FromValue(slice)}, {}));
-  // Real number is 13MB. We set a limit a bit higher.
-  EXPECT_LT(proto.ByteSizeLong(), 15 * 1000 * 1000);
+  // Real number is 3MB. We set a limit a bit higher.
+  EXPECT_LT(proto.ByteSizeLong(), 3.5 * 1000 * 1000);
 }
 
 }  // namespace
