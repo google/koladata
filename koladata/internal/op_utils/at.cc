@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/optimization.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -88,10 +89,8 @@ absl::StatusOr<DataSliceImpl> AtOp(
     return DataSliceImpl::CreateEmptyAndUnknownType(indices.size());
   }
 
-  // TODO: keep only necessary allocation ids.
-  SliceBuilder builder(indices.size(), ds.allocation_ids());
-  RETURN_IF_ERROR(ds.VisitValues([&]<class T>(const arolla::DenseArray<T>&
-                                                  array) -> absl::Status {
+  auto process_dense_array = [&]<class T>(const arolla::DenseArray<T>& array)
+      -> absl::StatusOr<arolla::DenseArray<T>> {
     // Use AtOp if it is scalar edge otherwise TakeOverOverOp.
     if (ds_to_common.parent_size() > 1) {
       if (!indices_to_common.has_value()) {
@@ -102,19 +101,37 @@ absl::StatusOr<DataSliceImpl> AtOp(
       }
       // Ensured by the caller.
       DCHECK_EQ(indices_to_common->parent_size(), ds_to_common.parent_size());
-      ASSIGN_OR_RETURN(auto res, SelectWithOffsets(array, indices, ds_to_common,
-                                                   *indices_to_common));
-      builder.InsertIfNotSet<T>(res.bitmap, {}, res.values);
+      return SelectWithOffsets(array, indices, ds_to_common,
+                               *indices_to_common);
     } else {
       // NOTE: out-of-bound errors are reported to the EvaluationContext and
       // ignored here.
       arolla::EvaluationContext ctx;
-      auto res = arolla::DenseArrayAtOp()(&ctx, array, indices);
-      builder.InsertIfNotSet<T>(res.bitmap, {}, res.values);
+      return arolla::DenseArrayAtOp()(&ctx, array, indices);
     }
-    return absl::OkStatus();
-  }));
+  };
 
-  return std::move(builder).Build();
+  // TODO: keep only necessary allocation ids.
+  if (ABSL_PREDICT_TRUE(ds.is_single_dtype())) {
+    DataSliceImpl res_impl;
+    RETURN_IF_ERROR(ds.VisitValues(
+        [&]<class T>(const arolla::DenseArray<T>& array) -> absl::Status {
+          ASSIGN_OR_RETURN(auto res, process_dense_array(array));
+          res_impl = DataSliceImpl::CreateWithAllocIds(ds.allocation_ids(),
+                                                       std::move(res));
+          return absl::OkStatus();
+        }));
+    return std::move(res_impl);
+  } else {
+    SliceBuilder builder(indices.size(), ds.allocation_ids());
+    RETURN_IF_ERROR(ds.VisitValues(
+        [&]<class T>(const arolla::DenseArray<T>& array) -> absl::Status {
+          ASSIGN_OR_RETURN(auto res, process_dense_array(array));
+          builder.InsertIfNotSet<T>(res.bitmap, {}, res.values);
+          return absl::OkStatus();
+        }));
+
+    return std::move(builder).Build();
+  }
 }
 }  // namespace koladata::internal
