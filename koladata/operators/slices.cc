@@ -140,7 +140,7 @@ absl::StatusOr<DataSlice> ConcatOrStackImpl(bool stack, int64_t ndim,
     return DataSlice::Create(
         internal::DataSliceImpl::CreateEmptyAndUnknownType(0),
         DataSlice::JaggedShape::FlatFromSize(0),
-        internal::DataItem(schema::kObject), nullptr);
+        internal::DataItem(schema::kNone), nullptr);
   }
 
   const int64_t rank = args[0].GetShape().rank();

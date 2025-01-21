@@ -75,7 +75,7 @@ class JsonToJsonTest(parameterized.TestCase):
           ds('[[1], [2, 3]]'),
       ),
       (
-          fns.dict({}),
+          fns.dict(),
           {},
           ds('{}'),
       ),

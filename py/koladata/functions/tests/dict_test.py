@@ -53,6 +53,12 @@ class DictTest(parameterized.TestCase):
         d[keys], ds([1, None, 1], schema_constants.OBJECT).with_bag(d.get_bag())
     )
 
+  def test_no_input_values(self):
+    d = fns.dict({})
+    self.assertIsInstance(d, dict_item.DictItem)
+    testing.assert_dicts_keys_equal(d, ds([]))
+    testing.assert_dicts_values_equal(d, ds([]))
+
   def test_dict_with_uuid(self):
     db = fns.bag()
     testing.assert_equal(

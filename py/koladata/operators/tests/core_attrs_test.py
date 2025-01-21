@@ -119,7 +119,7 @@ class CoreAttrsTest(absltest.TestCase):
 
   def test_empty_slice(self):
     entity = kde.new_like(ds([])).eval()
-    db = kde.core.attrs(entity, x=ds([])).eval()
+    db = kde.core.attrs(entity, x=ds([], schema_constants.OBJECT)).eval()
     expected_db = bag()
     expected_db[entity.get_schema()].x = schema_constants.OBJECT
     testing.assert_equivalent(db, expected_db)

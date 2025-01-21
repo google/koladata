@@ -605,6 +605,7 @@ py_test(
     name = "to_py_test",
     srcs = ["to_py_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_slice",

@@ -161,7 +161,7 @@ class ListItemTest(parameterized.TestCase):
           "empty",
           [],
           "List[]",
-          r"DataItem\(List\[\], schema: LIST\[OBJECT\]\)",
+          r"DataItem\(List\[\], schema: LIST\[NONE\]\)",
       ),
       (
           "mixed_data",

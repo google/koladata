@@ -516,12 +516,11 @@ TEST(SchemaUtilsTest, VerifySchemaForItemIds) {
 
 TEST(SchemaUtilsTest, VerifyDictKeySchema) {
   EXPECT_THAT(VerifyDictKeySchema(DataItem(schema::kInt32)), IsOk());
+  EXPECT_THAT(VerifyDictKeySchema(DataItem(schema::kNone)), IsOk());
   EXPECT_THAT(VerifyDictKeySchema(DataItem(schema::kFloat32)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("dict keys cannot be FLOAT32")));
   EXPECT_THAT(VerifyDictKeySchema(DataItem(schema::kFloat64)),
-              StatusIs(absl::StatusCode::kInvalidArgument));
-  EXPECT_THAT(VerifyDictKeySchema(DataItem(schema::kNone)),
               StatusIs(absl::StatusCode::kInvalidArgument));
   EXPECT_THAT(VerifyDictKeySchema(DataItem(schema::kExpr)),
               StatusIs(absl::StatusCode::kInvalidArgument));

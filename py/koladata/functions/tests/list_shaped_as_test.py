@@ -39,7 +39,9 @@ class ListShapedAsTest(parameterized.TestCase):
   def test_item(self):
     l = fns.list_shaped_as(ds(1))
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:], ds([], schema_constants.OBJECT).with_bag(l.get_bag())
+    )
 
   def test_item_with_items(self):
     l = fns.list_shaped_as(ds(1), [1, 2])
@@ -49,7 +51,10 @@ class ListShapedAsTest(parameterized.TestCase):
   def test_slice(self):
     l = fns.list_shaped_as(ds([['a', 'b'], ['c']])).fork_db()
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:],
+        ds([[[], []], [[]]], schema_constants.OBJECT).with_bag(l.get_bag()),
+    )
     l.append(1)
     testing.assert_equal(
         l[:],

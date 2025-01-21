@@ -38,7 +38,7 @@ ITEMID = schema_constants.ITEMID
 
 
 db = data_bag.DataBag.empty()
-LIST0 = db.list([])
+LIST0 = db.list()
 LIST1 = db.list([1, 2, 3])
 LIST2 = db.list([[1], [2, 3]])
 LIST3 = db.list([[None], [None, None]])

@@ -415,7 +415,7 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
   def test_universal_converter_empty_list(self):
     l = fns.new([])
     testing.assert_equal(
-        l.get_schema().get_attr('__items__').no_bag(), schema_constants.OBJECT
+        l.get_schema().get_attr('__items__').no_bag(), schema_constants.NONE
     )
     testing.assert_equal(l[:].no_bag(), ds([]))
 
@@ -440,10 +440,10 @@ The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
   def test_universal_converter_empty_dict(self):
     d = fns.new({})
     testing.assert_equal(
-        d.get_schema().get_attr('__keys__').no_bag(), schema_constants.OBJECT
+        d.get_schema().get_attr('__keys__').no_bag(), schema_constants.NONE
     )
     testing.assert_equal(
-        d.get_schema().get_attr('__values__').no_bag(), schema_constants.OBJECT
+        d.get_schema().get_attr('__values__').no_bag(), schema_constants.NONE
     )
     testing.assert_dicts_keys_equal(d, ds([]))
     testing.assert_equal(d[ds([])].no_bag(), ds([]))

@@ -1108,12 +1108,12 @@ class DataSliceTest(parameterized.TestCase):
     x.a = []
     testing.assert_equal(
         x.a.get_schema().get_attr('__items__'),
-        schema_constants.OBJECT.with_bag(db),
+        schema_constants.NONE.with_bag(db),
     )
     x.a = ()
     testing.assert_equal(
         x.a.get_schema().get_attr('__items__'),
-        schema_constants.OBJECT.with_bag(db),
+        schema_constants.NONE.with_bag(db),
     )
     # Other iterables are not supported in boxing code.
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
@@ -2289,7 +2289,9 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
 
     single_list[:] = ds([1, 2, 3])
     many_lists[ds(None)] = ds([1, 2, 3])
-    testing.assert_equal(many_lists[:], ds([[], [], []]).with_bag(db))
+    testing.assert_equal(
+        many_lists[:], ds([[], [], []], schema_constants.OBJECT).with_bag(db)
+    )
     many_lists[:] = ds([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
     single_list[1] = 'x'
@@ -2324,8 +2326,12 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
 
     single_list.clear()
     many_lists.clear()
-    testing.assert_equal(single_list[:], ds([]).with_bag(db))
-    testing.assert_equal(many_lists[:], ds([[], [], []]).with_bag(db))
+    testing.assert_equal(
+        single_list[:], ds([], schema_constants.OBJECT).with_bag(db)
+    )
+    testing.assert_equal(
+        many_lists[:], ds([[], [], []], schema_constants.OBJECT).with_bag(db)
+    )
 
     lst = db.list([db.obj(a=1), db.obj(a=2)])
     testing.assert_equal(lst[:].a, ds([1, 2]).with_bag(db))
@@ -2624,7 +2630,9 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
     ds(None).with_bag(db).as_any()[:] = ds([42])
     (db.list() & ds(None))[:] = ds([42])
 
-    testing.assert_equal((db.dict() & ds(None))[:], ds([]).with_bag(db))
+    testing.assert_equal(
+        (db.dict() & ds(None))[:], ds([], schema_constants.OBJECT).with_bag(db)
+    )
     testing.assert_equal(db.dict().as_any()[:], ds([]).as_any().with_bag(db))
     testing.assert_equal(
         db.dict_shaped(jagged_shape.create_shape([3])).as_any()[:],

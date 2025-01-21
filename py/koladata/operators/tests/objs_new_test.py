@@ -137,7 +137,7 @@ class ObjsNewTest(parameterized.TestCase):
         l.get_obj_schema().get_attr('__items__').no_bag(),
         schema_constants.OBJECT,
     )
-    testing.assert_equal(l[:].no_bag(), ds([]))
+    testing.assert_equal(l[:].no_bag(), ds([], schema_constants.OBJECT))
 
   def test_converter_dict(self):
     d = kde.objs.new(
@@ -160,8 +160,8 @@ class ObjsNewTest(parameterized.TestCase):
         d.get_obj_schema().get_attr('__values__').no_bag(),
         schema_constants.OBJECT,
     )
-    testing.assert_dicts_keys_equal(d, ds([]))
-    testing.assert_equal(d[ds([])].no_bag(), ds([]))
+    testing.assert_dicts_keys_equal(d, ds([], schema_constants.OBJECT))
+    testing.assert_equal(d[ds([])].no_bag(), ds([], schema_constants.OBJECT))
 
   def test_converter_entity(self):
     with self.subTest('item'):

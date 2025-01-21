@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kd.concat_lists."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.functions import functions as fns
@@ -45,7 +43,7 @@ class ImplodeTest(parameterized.TestCase):
   @parameterized.parameters(
       (
           (),
-          fns.list([]),
+          fns.list(),
       ),
       (
           (fns.list([1, 2, 3]),),

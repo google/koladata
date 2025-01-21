@@ -43,11 +43,18 @@ class ListTest(parameterized.TestCase):
   def test_empty(self):
     l = fns.list().fork_db()
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:], ds([], schema_constants.OBJECT).with_bag(l.get_bag())
+    )
     l.append(1)
     testing.assert_equal(
         l[:], ds([1], schema_constants.OBJECT).with_bag(l.get_bag())
     )
+
+  def test_no_values(self):
+    l = fns.list([]).fork_db()
+    self.assertIsInstance(l, list_item.ListItem)
+    testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
 
   def test_list_with_uuid(self):
     db = fns.bag()

@@ -351,6 +351,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
   auto impl = [&]<bool explicit_cast>() -> absl::StatusOr<DataSlice> {
     internal::SliceBuilder bldr(res_size);
     schema::CommonSchemaAggregator schema_agg;
+    schema_agg.Add(schema::kNone);
     EmbeddingDataBag embedding_db;
     int64_t text_total_size = 0;
     std::vector<std::pair<int64_t, absl::string_view>> texts;
@@ -389,9 +390,6 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
       ASSIGN_OR_RETURN(schema, std::move(schema_agg).Get(),
                        AssembleErrorMessage(
                            _, {.db = adoption_queue.GetBagWithFallbacks()}));
-      if (!schema.has_value()) {
-        schema = DataItem(schema::kObject);
-      }
     }
     // The slice should be casted explicitly if the schema is provided by the
     // user. If this is gathered from data, it is validated to be implicitly
@@ -991,7 +989,7 @@ class UniversalConverter {
       }
       schema_item = input_schema->item();
     } else if (!schema_item.has_value()) {
-      schema_item = internal::DataItem(schema::kObject);
+      schema_item = internal::DataItem(schema::kNone);
     }
     if constexpr (std::is_same_v<Factory, ObjectCreator>) {
       if (!is_root) {

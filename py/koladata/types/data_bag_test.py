@@ -1339,10 +1339,20 @@ Assigned schema for Dict key: INT32""",
     db = bag()
     l = db.list()
     self.assertEqual(l.get_shape().rank(), 0)
-    testing.assert_equal(l[:], ds([]).with_bag(db))
+    testing.assert_equal(l[:], ds([], schema_constants.OBJECT).with_bag(db))
     testing.assert_equal(
         l.get_schema().get_attr('__items__'),
         schema_constants.OBJECT.with_bag(db),
+    )
+
+  def test_list_no_values(self):
+    db = bag()
+    l = db.list([])
+    self.assertEqual(l.get_shape().rank(), 0)
+    testing.assert_equal(l[:], ds([], schema_constants.NONE).with_bag(db))
+    testing.assert_equal(
+        l.get_schema().get_attr('__items__'),
+        schema_constants.NONE.with_bag(db),
     )
 
   def test_list_errors(self):
@@ -1382,7 +1392,7 @@ Assigned schema for Dict key: INT32""",
     testing.assert_equal(item_schema.get_bag(), db)
     testing.assert_equal(
         item_schema.no_bag(),
-        schema_constants.INT32 if values else schema_constants.OBJECT,
+        schema_constants.INT32 if values else schema_constants.NONE,
     )
 
     exploded_ds = l
@@ -1848,7 +1858,7 @@ Assigned schema for Dict key: INT32""",
     db = bag()
     x = db._from_proto([], [], None, None)
     self.assertEqual(x.get_bag().fingerprint, db.fingerprint)
-    testing.assert_equal(x.no_bag(), ds([]))
+    testing.assert_equal(x.no_bag(), ds([], schema_constants.OBJECT))
 
   def test_from_proto_errors(self):
     with self.assertRaisesRegex(

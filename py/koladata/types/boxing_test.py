@@ -50,7 +50,7 @@ class BoxingTest(parameterized.TestCase):
 
   @parameterized.parameters(
       ([None], None, [None], NONE),
-      ([], None, [], OBJECT),
+      ([], None, [], NONE),
       ([1, 2, 3], None, [1, 2, 3], INT32),
       ([3.14], FLOAT64, [3.14], FLOAT64),
       (

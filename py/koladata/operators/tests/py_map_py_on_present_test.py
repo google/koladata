@@ -67,7 +67,7 @@ class PyMapPyOnPresentTest(parameterized.TestCase):
     self.assertIsNone(res.get_bag())
 
     res = expr_eval.eval(kde.py.map_py_on_present(yes_fn, x=val))
-    testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
+    testing.assert_equal(res.no_bag(), ds([]))
     self.assertIsNone(res.get_bag())
 
     res = expr_eval.eval(

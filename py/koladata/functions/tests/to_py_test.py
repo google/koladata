@@ -15,6 +15,7 @@
 import dataclasses
 
 from absl.testing import absltest
+from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.types import data_slice
@@ -29,7 +30,14 @@ class ToPyTest(absltest.TestCase):
 
   def test_list(self):
     root = fns.container()
-    root.list_value = []
+    root.none_list_value = []
+    root.none_list_value.append(None)
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'the schema for List item is incompatible'
+    ):
+      root.none_list_value.append(1)
+
+    root.list_value = fns.list()
     root.list_value.append(1)
     root.list_value.append(2)
     nested_values = ds([[1, 2], [3, 4, 5]])
@@ -41,12 +49,13 @@ class ToPyTest(absltest.TestCase):
         'list_value': [1, 2],
         'nested_list': [[1, 2], [3, 4, 5]],
         'empty_list': [],
+        'none_list_value': [None],
     }
     self.assertEqual(expected, py_obj)
 
   def test_dict(self):
     root = fns.container()
-    root.dict_value = {}
+    root.dict_value = fns.dict()
     root.dict_value['key_1'] = 'value_1'
     root.dict_value['key_2'] = 'value_2'
     root.empty_dict = {}
@@ -60,7 +69,7 @@ class ToPyTest(absltest.TestCase):
 
   def test_dict_with_obj_keys(self):
     root = fns.container()
-    root.dict_value = {}
+    root.dict_value = fns.dict()
     k = fns.obj(a=1)
     root.dict_value[k] = 1
     py_obj = fns.to_py(root)

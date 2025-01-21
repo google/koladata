@@ -37,7 +37,9 @@ class ListLikeTest(parameterized.TestCase):
   def test_item(self):
     l = fns.list_like(ds(1)).fork_db()
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:], ds([], schema_constants.OBJECT).with_bag(l.get_bag())
+    )
     l.append(1)
     testing.assert_equal(
         l[:], ds([1], schema_constants.OBJECT).with_bag(l.get_bag())
@@ -54,12 +56,15 @@ class ListLikeTest(parameterized.TestCase):
     l = fns.list_like(ds(None)).fork_db()
     testing.assert_equal(l.no_bag(), ds(None, l.get_schema().no_bag()))
     l.append(1)
-    testing.assert_equal(l[:].no_bag(), ds([]))
+    testing.assert_equal(l[:].no_bag(), ds([], schema_constants.OBJECT))
 
   def test_slice(self):
     l = fns.list_like(ds([[1, None], [3]])).fork_db()
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:],
+        ds([[[], []], [[]]], schema_constants.OBJECT).with_bag(l.get_bag()),
+    )
     l.append(1)
     testing.assert_equal(
         l[:],
@@ -69,9 +74,15 @@ class ListLikeTest(parameterized.TestCase):
   def test_all_missing_slice(self):
     l = fns.list_like(ds([[None, None], [None]])).fork_db()
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:],
+        ds([[[], []], [[]]], schema_constants.OBJECT).with_bag(l.get_bag()),
+    )
     l.append(1)
-    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:],
+        ds([[[], []], [[]]], schema_constants.OBJECT).with_bag(l.get_bag()),
+    )
 
   def test_slice_with_scalar_items(self):
     l = fns.list_like(ds([[1, None], [3]]), 1).fork_db()

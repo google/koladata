@@ -89,7 +89,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     self.assertIsNone(res.get_bag())
 
     res = expr_eval.eval(kde.py.map_py_on_cond(yes_fn, None, cond, x=val))
-    testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
+    testing.assert_equal(res.no_bag(), ds([]))
     self.assertIsNone(res.get_bag())
 
     res = expr_eval.eval(

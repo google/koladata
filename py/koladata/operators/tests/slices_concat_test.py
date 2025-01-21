@@ -21,6 +21,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
+from koladata.operators import slices
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -143,6 +144,11 @@ class SlicesConcatImplTest(parameterized.TestCase):
   def test_eval(self, args, ndim, expected):
     result = expr_eval.eval(kde.slices.concat(*args, ndim=ndim))
     testing.assert_equal(result, expected)
+
+  def test_default_output(self):
+    # NOTE(b/390562645): Tests the default output of kd.concat.
+    result = expr_eval.eval(slices._concat_or_stack(ds(False), ds(1)))
+    testing.assert_equal(result, ds([]))
 
   @parameterized.parameters(
       # rank = 0

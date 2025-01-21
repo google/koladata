@@ -293,7 +293,7 @@ class PyMapPyTest(parameterized.TestCase):
       res = expr_eval.eval(
           kde.py.map_py(my_fn, val, include_missing=include_missing)
       )
-      testing.assert_equal(res.no_bag(), ds([[]], schema_constants.OBJECT))
+      testing.assert_equal(res.no_bag(), ds([[]]))
       self.assertIsNone(res.get_bag())
 
     with self.subTest('schema=FLOAT32'):

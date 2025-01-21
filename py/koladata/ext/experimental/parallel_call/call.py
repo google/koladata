@@ -391,7 +391,9 @@ def _schedule_call(
   """
   inputs = bind_args(fn, args, kwargs)
   debug = parent_debug.get_bag().obj(
-      name=debug_name, start_time=kd.item(time.time(), kd.FLOAT64), children=[]
+      name=debug_name,
+      start_time=kd.item(time.time(), kd.FLOAT64),
+      children=kd.list(),
   )
   parent_debug.children.append(debug)
   fn_call = _FunctorCall(fn, inputs, debug)
@@ -435,7 +437,7 @@ def call_multithreaded_with_debug(
   kwargs = {k: kd.optools.as_qvalue(v) for k, v in kwargs.items()}
   repo = task_repository.TaskRepository()
   debug_db = kd.bag()
-  root_debug = debug_db.obj(children=[])
+  root_debug = debug_db.obj(children=kd.list())
   final_result_task = _schedule_call(
       repo, fn, args, kwargs, root_debug, '<root>'
   )

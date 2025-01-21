@@ -29,7 +29,7 @@ class FromProtoTest(absltest.TestCase):
 
   def test_zero_messages(self):
     x = fns.from_proto([])
-    testing.assert_equal(x.no_bag(), ds([]))
+    testing.assert_equal(x.no_bag(), ds([], schema_constants.OBJECT))
 
   def test_single_none(self):
     x = fns.from_proto(None)

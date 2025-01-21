@@ -79,6 +79,11 @@ class SlicesInverseSelectTest(parameterized.TestCase):
       (
           ds([[], [], []]),
           ds([[None], [None], [None]], schema_constants.MASK),
+          ds([[None], [None], [None]]),
+      ),
+      (
+          ds([[], [], []], schema_constants.OBJECT),
+          ds([[None], [None], [None]], schema_constants.MASK),
           ds([[None], [None], [None]], schema_constants.OBJECT),
       ),
       # Mixed types

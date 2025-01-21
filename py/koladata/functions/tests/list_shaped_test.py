@@ -41,7 +41,9 @@ class ListShapedTest(parameterized.TestCase):
     shape = jagged_shape.create_shape()
     l = fns.list_shaped(shape).fork_db()
     self.assertIsInstance(l, list_item.ListItem)
-    testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:], ds([], schema_constants.OBJECT).with_bag(l.get_bag())
+    )
     l.append(1)
     testing.assert_equal(
         l[:], ds([1], schema_constants.OBJECT).with_bag(l.get_bag())
@@ -59,7 +61,10 @@ class ListShapedTest(parameterized.TestCase):
     shape = jagged_shape.create_shape([2], [2, 1])
     l = fns.list_shaped(shape).fork_db()
     self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[[], []], [[]]]).with_bag(l.get_bag()))
+    testing.assert_equal(
+        l[:],
+        ds([[[], []], [[]]], schema_constants.OBJECT).with_bag(l.get_bag()),
+    )
     l.append(1)
     testing.assert_equal(
         l[:],

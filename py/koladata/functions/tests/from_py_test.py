@@ -272,6 +272,10 @@ class FromPyTest(absltest.TestCase):
     l3 = fns.from_py([1, 2], from_dim=1)
     testing.assert_equal(l3, ds([1, 2]))
 
+  def test_empty_from_dim(self):
+    l0 = fns.from_py([], from_dim=1)
+    testing.assert_equal(l0, ds([]).with_bag(l0.get_bag()))
+
   def test_list_from_dim_with_schema(self):
     input_list = [[1, 2.0], [3, 4]]
 

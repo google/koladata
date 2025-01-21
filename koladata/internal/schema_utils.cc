@@ -338,8 +338,8 @@ bool VerifySchemaForItemIds(const internal::DataItem& schema_item) {
 }
 
 absl::Status VerifyDictKeySchema(const internal::DataItem& schema_item) {
-  if (schema_item == kNone || schema_item == kFloat32 ||
-      schema_item == kFloat64 || schema_item == kExpr) {
+  if (schema_item == kFloat32 || schema_item == kFloat64 ||
+      schema_item == kExpr) {
     return absl::InvalidArgumentError(
         absl::StrFormat("dict keys cannot be %v", schema_item));
   }
