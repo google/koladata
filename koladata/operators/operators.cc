@@ -165,6 +165,7 @@ OPERATOR("kd.lists._explode", Explode, "kd.lists.explode");
 OPERATOR("kd.lists._implode", Implode, "kd.lists.implode");
 OPERATOR("kd.lists._like", ListLike, "kd.lists.like");
 OPERATOR("kd.lists._shaped", ListShaped, "kd.lists.shaped");
+OPERATOR("kd.lists.appended_list", ListAppended);
 OPERATOR("kd.lists.has_list", HasList);
 OPERATOR("kd.lists.is_list", IsList);
 OPERATOR("kd.lists.size", ListSize);

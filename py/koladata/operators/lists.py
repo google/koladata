@@ -389,6 +389,30 @@ def select_items(ds, fltr):
   return slice_ops.select(ds=explode(ds), fltr=fltr)
 
 
+@optools.add_to_registry(aliases=['kd.appended_list'])
+@optools.as_backend_operator(
+    'kd.lists.appended_list',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.append),
+    ],
+)
+def appended_list(x, append):
+  """Concatenates elements in `append` to the end of each list in `x`.
+
+  `x` and `append` should have compatible shapes, i.e. one can be broadcasted
+  to the other.
+
+  Args:
+    x: DataSlice of lists.
+    append: DataSlice of lists.
+
+  Returns:
+    DataSlice of lists with a in a new immutable Databag.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 def _select_items_bind_args(ds, fltr):
   """Argument binding policy for the `kd.lists.select_items` operator."""
   if isinstance(fltr, py_types.FunctionType):

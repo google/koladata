@@ -67,6 +67,10 @@ absl::StatusOr<DataSlice> ListShaped(
 // kde.lists.concat_lists operator.
 absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists);
 
+// kd.appended_list operator.
+absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
+                                       const DataSlice& append);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_LISTS_H_

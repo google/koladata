@@ -172,4 +172,25 @@ absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists) {
   return result;
 }
 
+absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
+                                       const DataSlice& append) {
+  if (x.GetBag() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot update a DataSlice of lists without a DataBag");
+  }
+  if (!x.IsList()) {
+    return absl::InvalidArgumentError(
+        "expected first argument to be a DataSlice of lists");
+  }
+
+  DataBagPtr result_db = DataBag::Empty();
+  ASSIGN_OR_RETURN(auto list_items, Explode(x, 1));
+  ASSIGN_OR_RETURN(
+      auto result,
+      CreateListLike(result_db, x, std::move(list_items), x.GetSchema()));
+  RETURN_IF_ERROR(result.AppendToList(append));
+  result_db->UnsafeMakeImmutable();
+  return result;
+}
+
 }  // namespace koladata::ops
