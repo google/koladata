@@ -54,8 +54,9 @@ using ScalarVariant = std::variant<  //
     arolla::Unit,                    //
     arolla::Text,                    //
     arolla::Bytes,                   //
-    arolla::expr::ExprQuote,         //
-    schema::DType>;
+    schema::DType,                   //
+    arolla::expr::ExprQuote          //
+  >;
 // NOTE: Please update `koda_internal._to_data_slice`. ExprQuote and DType are
 // intentionally omitted (for now).
 // LINT.ThenChange(

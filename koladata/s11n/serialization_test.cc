@@ -96,8 +96,8 @@ TEST(SerializationTest, DataSliceImplInt64BytesSize) {
   std::vector<TypedValue> typed_values;
   ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
                                        {TypedValue::FromValue(slice)}, {}));
-  // Real number is 6MB. We set a limit a bit higher.
-  EXPECT_LT(proto.ByteSizeLong(), 10 * 1000 * 1000);
+  // Real number is 4MB. We set a limit a bit higher.
+  EXPECT_LT(proto.ByteSizeLong(), 5 * 1000 * 1000);
 }
 
 TEST(SerializationTest, DataSliceImplObjectIdBytesSize) {

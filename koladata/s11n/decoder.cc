@@ -14,11 +14,16 @@
 //
 #include "arolla/serialization_base/decoder.h"
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/base/optimization.h"
@@ -40,19 +45,25 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
+#include "koladata/internal/types.h"
+#include "koladata/internal/types_buffer.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
+#include "arolla/dense_array/bitmap.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/expr/quote.h"
+#include "arolla/memory/buffer.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serialization_base/base.pb.h"
 #include "arolla/serialization_codecs/registry.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/init_arolla.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::s11n {
@@ -89,8 +100,8 @@ absl::StatusOr<internal::DataItem> DecodeDataItemProto(
   switch (item_proto.value_case()) {
     case KodaV1Proto::DataItemProto::kBoolean:
       return internal::DataItem(item_proto.boolean());
-    case KodaV1Proto::DataItemProto::kBytes:
-      return internal::DataItem(arolla::Bytes(item_proto.bytes_()));
+    case KodaV1Proto::DataItemProto::kBytesData:
+      return internal::DataItem(arolla::Bytes(item_proto.bytes_data()));
     case KodaV1Proto::DataItemProto::kDtype:
       return internal::DataItem(schema::DType(item_proto.dtype()));
     case KodaV1Proto::DataItemProto::kExprQuote: {
@@ -135,24 +146,238 @@ absl::StatusOr<ValueDecoderResult> DecodeDataItemValue(
   return TypedValue::FromValue(std::move(res));
 }
 
+absl::StatusOr<ValueDecoderResult> DecodeDataItemVectorProto(
+    const KodaV1Proto::DataItemVectorProto& vec_proto,
+    absl::Span<const TypedValue> input_values) {
+  internal::SliceBuilder bldr(vec_proto.values_size());
+  for (size_t i = 0; i < vec_proto.values_size(); ++i) {
+    ASSIGN_OR_RETURN(internal::DataItem item,
+                     DecodeDataItemProto(vec_proto.values(i), input_values));
+    bldr.InsertIfNotSetAndUpdateAllocIds(i, item);
+  }
+  if (!input_values.empty()) {
+    return absl::InvalidArgumentError("got more input_values than expected");
+  }
+  return TypedValue::FromValue(std::move(bldr).Build());
+}
+
+// Returns a reference to the values field in the DataSliceCompactProto.
+// For types that are not stored in the DataSliceCompactProto,
+// returns a reference to a fake object that shouldn't be used.
+template <typename T>
+const auto& GetValuesFromDataSliceCompactProto(
+    const KodaV1Proto::DataSliceCompactProto& slice_proto) {
+  if constexpr (std::is_same_v<T, internal::ObjectId>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kObjectIdFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    return slice_proto.object_id();
+  } else if constexpr (std::is_same_v<T, int32_t>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kI32FieldNumber ==
+                  internal::ScalarTypeId<T>());
+    return slice_proto.i32();
+  } else if constexpr (std::is_same_v<T, int64_t>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kI64FieldNumber ==
+                  internal::ScalarTypeId<T>());
+    return slice_proto.i64();
+  } else if constexpr (std::is_same_v<T, float>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kF32FieldNumber ==
+                  internal::ScalarTypeId<T>());
+    return slice_proto.f32();
+  } else if constexpr (std::is_same_v<T, double>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kF64FieldNumber ==
+                  internal::ScalarTypeId<T>());
+    return slice_proto.f64();
+  } else if constexpr (std::is_same_v<T, bool>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kBooleanFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    return slice_proto.boolean();
+  } else if constexpr (std::is_same_v<T, arolla::Unit>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kUnitFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    static std::type_identity<T> res;
+    return res;
+  } else if constexpr (std::is_same_v<T, arolla::Text>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kTextFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    return slice_proto.text();
+  } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kBytesDataFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    return slice_proto.bytes_data();
+  } else if constexpr (std::is_same_v<T, schema::DType>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kDtypeFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    return slice_proto.dtype();
+  } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kExprQuoteFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    static std::type_identity<T> res;
+    return res;
+  } else {
+    static_assert(false);
+  }
+  ABSL_UNREACHABLE();
+}
+
+absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
+    const KodaV1Proto::DataSliceCompactProto& slice_proto,
+    absl::Span<const TypedValue> input_values) {
+  const std::string& proto_types_buffer = slice_proto.types_buffer();
+  internal::SliceBuilder bldr(proto_types_buffer.size());
+  uint64_t processed_types = 0;
+  static_assert(std::variant_size_v<internal::ScalarVariant> <
+                sizeof(uint64_t) * 8);
+
+  auto is_valid_present_type_idx = [](uint8_t idx) {
+    return idx > 0 && idx < std::variant_size_v<internal::ScalarVariant>;
+  };
+
+  auto process_type = [&]<typename T>(
+                          std::type_identity<T>,
+                          size_t start_id) -> absl::StatusOr<size_t> {
+    auto typed_bldr = bldr.typed<T>();
+    const auto& values = GetValuesFromDataSliceCompactProto<T>(slice_proto);
+    size_t next_start_id = proto_types_buffer.size();
+    bool all_values_used = std::is_same_v<T, arolla::Unit>;
+    size_t last_id = 0;
+    for (size_t cur = start_id; cur < proto_types_buffer.size(); ++cur) {
+      uint8_t cur_type_idx = static_cast<uint8_t>(proto_types_buffer[cur]);
+      if (cur_type_idx == internal::TypesBuffer::kUnset) {
+        continue;
+      }
+      if (cur_type_idx == internal::TypesBuffer::kRemoved) {
+        bldr.InsertIfNotSet(cur, std::nullopt);
+        continue;
+      }
+      if (!is_valid_present_type_idx(cur_type_idx)) {
+        return absl::InvalidArgumentError(
+            absl::StrCat("invalid type index: ", cur_type_idx));
+      }
+      if (cur_type_idx != internal::ScalarTypeId<T>()) {
+        next_start_id = std::min(next_start_id, cur);
+        continue;
+      }
+      if constexpr (std::is_same_v<T, arolla::Unit>) {
+        typed_bldr.InsertIfNotSet(cur, arolla::Unit());
+      } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
+        if (input_values.empty()) {
+          return absl::InvalidArgumentError(absl::StrCat(
+              "DataSliceCompactProto has not enough values for type ",
+              arolla::GetQType<T>()->name()));
+        }
+        ASSIGN_OR_RETURN(arolla::expr::ExprQuote q,
+                         input_values[0].As<arolla::expr::ExprQuote>());
+        input_values = input_values.subspan(1);
+        typed_bldr.InsertIfNotSet(cur, std::move(q));
+        all_values_used = input_values.empty();
+      } else {
+        if (last_id >= values.size()) {
+          return absl::InvalidArgumentError(absl::StrCat(
+              "DataSliceCompactProto has not enough values for type ",
+              arolla::GetQType<T>()->name()));
+        }
+        if constexpr (std::is_same_v<T, internal::ObjectId>) {
+          auto object_id = DecodeObjectId(values[last_id]);
+          typed_bldr.InsertIfNotSet(cur, object_id);
+          bldr.GetMutableAllocationIds().Insert(
+              internal::AllocationId(object_id));
+        } else {
+          typed_bldr.InsertIfNotSet(
+              cur, internal::DataItem::View<T>(
+                       arolla::view_type_t<T>(values[last_id])));
+        }
+        ++last_id;
+        all_values_used = last_id == values.size();
+      }
+    }
+    if (!all_values_used) {
+      return absl::InvalidArgumentError(
+          absl::StrCat("DataSliceCompactProto has unused values for type ",
+                       arolla::GetQType<T>()->name()));
+    }
+    return next_start_id;
+  };
+
+  for (size_t i = 0; i < proto_types_buffer.size(); ++i) {
+    uint8_t type_idx = static_cast<uint8_t>(proto_types_buffer[i]);
+    if (type_idx == internal::TypesBuffer::kUnset) {
+      continue;
+    }
+    if (type_idx == internal::TypesBuffer::kRemoved) {
+      bldr.InsertIfNotSet(i, std::nullopt);
+      continue;
+    }
+    if (!is_valid_present_type_idx(type_idx)) {
+      return absl::InvalidArgumentError(
+          absl::StrCat("invalid type index: ", type_idx));
+    }
+    uint64_t msk = uint64_t{1} << type_idx;
+    if (processed_types & msk) {
+      continue;
+    }
+    processed_types |= msk;
+
+    absl::Status status = absl::OkStatus();
+
+    arolla::meta::foreach_type<internal::supported_types_list>(
+        [&](auto type_meta) {
+          using T = typename decltype(type_meta)::type;
+          if (type_idx != internal::ScalarTypeId<T>()) {
+            return;
+          }
+          absl::StatusOr<size_t> next_i =
+              process_type(std::type_identity<T>(), i);
+          if (!next_i.ok()) {
+            status = next_i.status();
+            return;
+          }
+          i = *next_i - 1;
+        });
+    RETURN_IF_ERROR(std::move(status));
+  }
+  {
+    absl::Status status = absl::OkStatus();
+    arolla::meta::foreach_type<internal::supported_types_list>(
+        [&](auto type_meta) {
+          using T = typename decltype(type_meta)::type;
+          auto type_idx = internal::ScalarTypeId<T>();
+          if (processed_types & (uint64_t{1} << type_idx)) {
+            return;
+          }
+          const auto& values =
+              GetValuesFromDataSliceCompactProto<T>(slice_proto);
+          bool all_values_used = std::is_same_v<T, arolla::Unit>;
+          if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
+            all_values_used = input_values.empty();
+          } else if constexpr (!std::is_same_v<T, arolla::Unit>) {
+            all_values_used = values.empty();
+          }
+          if (!all_values_used) {
+            status = absl::InvalidArgumentError(absl::StrCat(
+                "DataSliceCompactProto has unused values for type ",
+                arolla::GetQType<T>()->name()));
+          }
+        });
+    RETURN_IF_ERROR(std::move(status));
+  }
+
+  if (!input_values.empty()) {
+    return absl::InvalidArgumentError("got more input_values than expected");
+  }
+  return TypedValue::FromValue(std::move(bldr).Build());
+}
+
 absl::StatusOr<ValueDecoderResult> DecodeDataSliceImplValue(
     const KodaV1Proto::DataSliceImplProto& slice_proto,
     absl::Span<const TypedValue> input_values) {
   switch (slice_proto.value_case()) {
     case KodaV1Proto::DataSliceImplProto::kDataItemVector: {
-      const auto& vec_proto = slice_proto.data_item_vector();
-      internal::SliceBuilder bldr(vec_proto.values_size());
-      for (size_t i = 0; i < vec_proto.values_size(); ++i) {
-        ASSIGN_OR_RETURN(
-            internal::DataItem item,
-            DecodeDataItemProto(vec_proto.values(i), input_values));
-        bldr.InsertIfNotSetAndUpdateAllocIds(i, item);
-      }
-      if (!input_values.empty()) {
-        return absl::InvalidArgumentError(
-            "got more input_values than expected");
-      }
-      return TypedValue::FromValue(std::move(bldr).Build());
+      return DecodeDataItemVectorProto(slice_proto.data_item_vector(),
+                                       input_values);
+    }
+    case KodaV1Proto::DataSliceImplProto::kDataSliceCompact: {
+      return DecodeDataSliceCompactProto(slice_proto.data_slice_compact(),
+                                         input_values);
     }
     case KodaV1Proto::DataSliceImplProto::VALUE_NOT_SET:
       return absl::InvalidArgumentError("value not set");
@@ -233,8 +458,27 @@ absl::Status DecodeAttrProto(const KodaV1Proto::AttrProto& attr_proto,
             "`first_object_id`: values size is %d, alloc capacity is %d",
             values.size(), alloc.Capacity()));
       }
-      auto objects =
-          internal::DataSliceImpl::ObjectsFromAllocation(alloc, values.size());
+      internal::DataSliceImpl objects;
+      if (values.types_buffer().id_to_typeidx.empty()) {
+        objects = internal::DataSliceImpl::ObjectsFromAllocation(alloc,
+                                                                 values.size());
+      } else {
+        auto bitmap = values.types_buffer().ToSetBitmap();
+        arolla::Buffer<internal::ObjectId>::Builder objects_builder(
+            values.size());
+        size_t id = 0;
+        arolla::bitmap::Iterate(bitmap, 0, values.size(), [&](bool present) {
+          if (present) {
+            objects_builder.Set(id, alloc.ObjectByOffset(id));
+          }
+          ++id;
+        });
+
+        objects = internal::DataSliceImpl::CreateWithAllocIds(
+            internal::AllocationIdSet(alloc),
+            internal::ObjectIdArray{std::move(objects_builder).Build(),
+                                    std::move(bitmap)});
+      }
       if (alloc.IsSchemasAlloc() &&
           attr_proto.name() != schema::kSchemaNameAttr) {
         RETURN_IF_ERROR(db.SetSchemaAttr(objects, attr_proto.name(), values));

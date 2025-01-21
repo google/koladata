@@ -97,6 +97,51 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     kd.testing.assert_equivalent(values[1], db2)
     kd.testing.assert_equivalent(values[2], slice_with_fallback)
 
+  def test_removed_values(self):
+    db = kd.bag()
+    obj_single = db.new(a=1, b=None, c=2)
+    obj_dense = db.new(x=kd.slice([1, 2, None, 4, 5, 7, 8, 9, 10] * 10))
+    (obj_dense & (obj_dense.x > 2)).y = 17
+    (obj_dense & (obj_dense.x > 4)).y = None
+    (obj_dense & (obj_dense.x > 8)).z = 37
+    (obj_dense & (obj_dense.x > 9)).z = None
+
+    fb = kd.bag()
+    fb_obj_single = obj_single.with_bag(fb)
+    fb_obj_single.a = 77
+    fb_obj_single.b = 97
+    fb_obj_single.d = 57
+
+    fb_obj_dense = obj_dense.with_bag(fb)
+    fb_obj_dense.x = kd.slice([-7] * 90)
+    fb_obj_dense.y = kd.slice([-39, None, -57, -4, -5, -7, None, -9, None] * 10)
+    fb_obj_dense.z = kd.slice(
+        [-39, None, -57, -43, None, -17, None, -9, -77] * 10
+    )
+
+    obj_single_with_fb = obj_single.enriched(fb)
+    obj_dense_with_fb = obj_dense.enriched(fb)
+
+    data = arolla.s11n.dumps_many(
+        [db, fb, obj_single_with_fb, obj_dense_with_fb], []
+    )
+    values, _ = arolla.s11n.loads_many(data)
+    self.assertLen(values, 4)
+    kd.testing.assert_equivalent(values[0], db)
+    kd.testing.assert_equivalent(values[1], fb)
+    kd.testing.assert_equivalent(values[2], obj_single_with_fb)
+    for attr in ['a', 'c', 'd']:
+      with self.subTest(f'single_object_{attr}'):
+        kd.testing.assert_equivalent(
+            getattr(values[2], attr),
+            getattr(obj_single_with_fb, attr))
+    kd.testing.assert_equivalent(values[3], obj_dense_with_fb)
+    for attr in ['x', 'y', 'z']:
+      with self.subTest(f'dense_object_{attr}'):
+        kd.testing.assert_equivalent(
+            getattr(values[3], attr),
+            getattr(obj_dense_with_fb, attr))
+
   def test_obj_with_databag(self):
     v = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     data = arolla.s11n.dumps(v)

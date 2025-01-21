@@ -37,8 +37,10 @@ py_test(
     srcs = ["data_slice_s11n_test.py"],
     deps = [
         "//koladata/s11n:codec_py_proto",
+        "//py/koladata:kd",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//arolla/jagged_shape/dense_array/serialization_codecs:jagged_shape_codec_py_proto",
         "@com_google_arolla//arolla/serialization_codecs/dense_array:dense_array_codec_py_proto",

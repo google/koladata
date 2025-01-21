@@ -36,6 +36,8 @@
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
+#include "koladata/internal/types.h"
+#include "koladata/internal/types_buffer.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
 #include "arolla/dense_array/dense_array.h"
@@ -54,6 +56,7 @@
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::s11n {
@@ -64,6 +67,8 @@ using ::arolla::serialization_base::ValueProto;
 using ::arolla::serialization_codecs::RegisterValueEncoderByQType;
 using ::arolla::serialization_codecs::
     RegisterValueEncoderByQValueSpecialisationKey;
+
+using ::koladata::internal::TypesBuffer;
 
 absl::StatusOr<ValueProto> GenValueProto(Encoder& encoder) {
   ASSIGN_OR_RETURN(auto codec_index, encoder.EncodeCodec(kKodaV1Codec));
@@ -319,7 +324,7 @@ absl::Status FillItemProto(Encoder& encoder, ValueProto& value_proto,
     } else if constexpr (std::is_same_v<T, arolla::Text>) {
       item_proto.set_text(v.view());
     } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
-      item_proto.set_bytes_(v);
+      item_proto.set_bytes_data(v);
     } else if constexpr (std::is_same_v<T, schema::DType>) {
       item_proto.set_dtype(v.type_id());
     } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
@@ -346,6 +351,67 @@ absl::StatusOr<ValueProto> EncodeDataItem(arolla::TypedRef value,
   return value_proto;
 }
 
+template <typename T>
+void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
+                            KodaV1Proto::DataSliceCompactProto& slice_proto,
+                            arolla::view_type_t<T> v, absl::Status& status) {
+  if constexpr (std::is_same_v<T, internal::ObjectId>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kObjectIdFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    auto* id_proto = slice_proto.add_object_id();
+    id_proto->set_hi(v.InternalHigh64());
+    id_proto->set_lo(v.InternalLow64());
+  } else if constexpr (std::is_same_v<T, int32_t>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kI32FieldNumber ==
+                  internal::ScalarTypeId<T>());
+    slice_proto.add_i32(v);
+  } else if constexpr (std::is_same_v<T, int64_t>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kI64FieldNumber ==
+                  internal::ScalarTypeId<T>());
+    slice_proto.add_i64(v);
+  } else if constexpr (std::is_same_v<T, float>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kF32FieldNumber ==
+                  internal::ScalarTypeId<T>());
+    slice_proto.add_f32(v);
+  } else if constexpr (std::is_same_v<T, double>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kF64FieldNumber ==
+                  internal::ScalarTypeId<T>());
+    slice_proto.add_f64(v);
+  } else if constexpr (std::is_same_v<T, bool>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kBooleanFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    slice_proto.add_boolean(v);
+  } else if constexpr (std::is_same_v<T, arolla::Unit>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kUnitFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    // Do nothing.
+  } else if constexpr (std::is_same_v<T, arolla::Text>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kTextFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    slice_proto.add_text(v);
+  } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kBytesDataFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    slice_proto.add_bytes_data(v);
+  } else if constexpr (std::is_same_v<T, schema::DType>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kDtypeFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    slice_proto.add_dtype(v.type_id());
+  } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
+    static_assert(KodaV1Proto::DataSliceCompactProto::kExprQuoteFieldNumber ==
+                  internal::ScalarTypeId<T>());
+    absl::StatusOr<int64_t> index =
+        encoder.EncodeValue(arolla::TypedValue::FromValue(std::move(v)));
+    if (!index.ok()) {
+      status = index.status();
+      return;
+    }
+    value_proto.add_input_value_indices(*index);
+  } else {
+    static_assert(false);
+  }
+}
+
 absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
                                                Encoder& encoder) {
   ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
@@ -354,12 +420,33 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
                    value.As<internal::DataSliceImpl>());
   KodaV1Proto::DataSliceImplProto* slice_proto =
       koda_proto->mutable_data_slice_impl_value();
-  KodaV1Proto::DataItemVectorProto* vector_proto =
-      slice_proto->mutable_data_item_vector();
-  for (int64_t i = 0; i < slice.size(); ++i) {
-    RETURN_IF_ERROR(FillItemProto(encoder, value_proto,
-                                  *vector_proto->add_values(), slice[i]));
+  KodaV1Proto::DataSliceCompactProto* compact_proto =
+      slice_proto->mutable_data_slice_compact();
+  const TypesBuffer& slice_types_buffer = slice.types_buffer();
+  std::string& proto_types_buffer = *compact_proto->mutable_types_buffer();
+  proto_types_buffer.resize(slice.size(), TypesBuffer::kRemoved);
+  if (slice_types_buffer.size() > 0) {
+    for (int64_t i = 0; i < slice.size(); ++i) {
+      uint8_t type_idx = slice_types_buffer.id_to_typeidx[i];
+      if (!TypesBuffer::is_present_type_idx(type_idx)) {
+        proto_types_buffer[i] = static_cast<char>(type_idx);
+        continue;
+      }
+    }
   }
+
+  absl::Status status = absl::OkStatus();
+  slice.VisitValues([&]<typename T>(const arolla::DenseArray<T>& v) {
+    v.ForEachPresent([&](int64_t id, arolla::view_type_t<T> value) {
+      if (!status.ok()) {
+        return;
+      }
+      proto_types_buffer[id] = static_cast<char>(internal::ScalarTypeId<T>());
+      AddSliceElementToProto<T>(encoder, value_proto, *compact_proto, value,
+                                status);
+    });
+  });
+  RETURN_IF_ERROR(std::move(status));
   return value_proto;
 }
 
