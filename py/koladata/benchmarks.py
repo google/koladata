@@ -1380,17 +1380,26 @@ def databag_repr_fallbacks(state):
 
 
 @google_benchmark.register
-@google_benchmark.option.arg_names(['sorted_indices', 'use_slices'])
-@google_benchmark.option.args([True, False])
-@google_benchmark.option.args([False, False])
-@google_benchmark.option.args([True, True])
+@google_benchmark.option.arg_names(
+    ['sorted_indices', 'use_slices', 'num_dims', 'dims_to_slice']
+)
+@google_benchmark.option.args([True, False, 5, 5])
+@google_benchmark.option.args([False, False, 5, 5])
+@google_benchmark.option.args([True, True, 5, 5])
+@google_benchmark.option.args([False, False, 5, 1])
+@google_benchmark.option.args([False, False, 1, 1])
 def subslice(state):
   """Benchmark ds.S."""
   sorted_indices = state.range(0)
   use_slices = state.range(1)
-  num_dims = 5
-  min_size = 10
-  max_size = 20
+  num_dims = state.range(2)
+  dims_to_slice = state.range(3)
+  if num_dims == 1:
+    min_size = 10**6
+    max_size = min_size
+  else:
+    min_size = 10
+    max_size = 20
   ds = kd.present
   # Create random ragged data.
   for step in range(num_dims):
@@ -1399,8 +1408,8 @@ def subslice(state):
   ds = kd.randint_like(ds, 1, 100, seed=57)
   # Choose random indices to take.
   indices = []
-  chosen = kd.implode(ds, -1)
-  for step in range(num_dims):
+  chosen = kd.implode(ds, ndim=dims_to_slice)
+  for step in range(dims_to_slice):
     if use_slices:
       take = slice(1, -1)
     else:
