@@ -124,21 +124,6 @@ class DataItemTest(parameterized.TestCase):
     x = x.with_bag(db)
     self.assertIsNotNone(x.get_bag())
 
-  def test_add_method(self):
-    # We are adding a method to DataSlice and should be visible in DataItem
-    # after the fact.
-    self.assertFalse(hasattr(data_item.DataItem, 'foo'))
-
-    @data_slice.DataSlice._add_method('foo')
-    def foo(self):
-      """Converts DataSlice to DenseArray."""
-      return self.internal_as_dense_array()
-
-    self.assertTrue(hasattr(data_item.DataItem, 'foo'))
-
-    x = ds('abc')
-    arolla.testing.assert_qvalue_allequal(x.foo(), arolla.dense_array(['abc']))
-
   def test_set_get_attr(self):
     db = data_bag.DataBag.empty()
     x = db.new(abc=ds(3.14))

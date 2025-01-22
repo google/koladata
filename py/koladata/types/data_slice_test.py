@@ -59,7 +59,7 @@ class DataSliceMethodsTest(parameterized.TestCase):
   def test_add_method(self):
     self.assertFalse(hasattr(data_slice.DataSlice, 'foo'))
 
-    @data_slice.DataSlice._add_method('foo')
+    @data_slice.add_method(data_slice.DataSlice, 'foo')
     def foo(self):
       """Converts DataSlice to Python list."""
       return self.internal_as_py()
@@ -70,7 +70,7 @@ class DataSliceMethodsTest(parameterized.TestCase):
     self.assertEqual(x.foo(), [1, 2, 3])
 
     with self.assertRaisesRegex(TypeError, 'method name must be a string'):
-      data_slice.DataSlice.internal_register_reserved_class_method_name(b'foo')
+      data_slice.add_method(data_slice.DataSlice, b'foo')(lambda x: x)  # pytype: disable=wrong-arg-types
 
     with self.assertRaisesRegex(
         AttributeError, r'object attribute \'foo\' is read-only'
@@ -85,12 +85,28 @@ class DataSliceMethodsTest(parameterized.TestCase):
     self.assertFalse(hasattr(data_slice.DataSlice, 'bar'))
     self.assertFalse(hasattr(SubDataSlice, 'bar'))
 
-    @SubDataSlice._add_method('bar')
+    @data_slice.add_method(SubDataSlice, 'bar')
     def bar(self):
       del self
       pass
 
     self.assertFalse(hasattr(data_slice.DataSlice, 'bar'))
+    self.assertTrue(hasattr(SubDataSlice, 'bar'))
+
+  def test_add_method_to_superclass(self):
+
+    class SubDataSlice(data_slice.DataSlice):
+      pass
+
+    self.assertFalse(hasattr(data_slice.DataSlice, 'bar'))
+    self.assertFalse(hasattr(SubDataSlice, 'bar'))
+
+    @data_slice.add_method(data_slice.DataSlice, 'bar')
+    def bar(self):
+      del self
+      pass
+
+    self.assertTrue(hasattr(data_slice.DataSlice, 'bar'))
     self.assertTrue(hasattr(SubDataSlice, 'bar'))
 
   def test_subclass(self):
@@ -3742,8 +3758,8 @@ class DataSliceListSlicingTest(parameterized.TestCase):
       )
 
   def test_docstring_from_non_existent_operator_fails(self):
-    @data_slice.DataSlice._add_method(
-        'test_method', docstring_from='non-existent'
+    @data_slice.add_method(
+        data_slice.DataSlice, 'test_method', docstring_from='non-existent'
     )
     def _test_method(self):
       return self.internal_as_py()

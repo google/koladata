@@ -17,10 +17,25 @@
 
 #include <Python.h>
 
+#include "absl/base/nullability.h"
+
 namespace koladata::python {
 
 // Returns a PyType of Python DataSlice.
-PyTypeObject* PyDataSlice_Type();
+absl::Nullable<PyTypeObject*> PyDataSlice_Type();
+
+// Returns true iff `attr_name` can be accessed through:
+//   getattr(slice, attr_name)
+absl::Nullable<PyObject*> PyDataSliceModule_is_compliant_attr_name(
+    PyObject* /*module*/, PyObject* attr_name);
+
+// Registers a name in method_name to be reserved as a method of the DataSlice
+// class or it subclasses. For these registered method names, getattr will
+// invoke a PyObject_GenericGetAttr.
+//
+// This must be called when adding new methods to the class in Python.
+absl::Nullable<PyObject*> PyDataSliceModule_register_reserved_class_method_name(
+    PyObject* /*module*/, PyObject* method_name);
 
 }  // namespace koladata::python
 

@@ -19,8 +19,6 @@ from typing import Any, Callable
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_item_py_ext as _data_item_py_ext
-# Used to initialize DataSlice, so it is available when defining subclasses of
-# DataItem.
 from koladata.types import data_slice
 
 _eval_op = _py_expr_eval_py_ext.eval_op
@@ -29,7 +27,7 @@ DataItem = _data_item_py_ext.DataItem
 
 
 ### Implementation of the DataItem's additional functionality.
-@DataItem._add_method('__hash__')  # pylint: disable=protected-access
+@data_slice.add_method(DataItem, '__hash__')  # pylint: disable=protected-access
 def _hash(self) -> int:
   return hash(self.fingerprint)
 
@@ -37,7 +35,7 @@ def _hash(self) -> int:
 # Ideally we'd do this only for functors, but we don't have a fast way
 # to check if a DataItem is a functor now. Note that SchemaItem overrides
 # this behavior.
-@DataItem._add_method('__call__')  # pylint: disable=protected-access
+@data_slice.add_method(DataItem, '__call__')  # pylint: disable=protected-access
 def _call(
     self, *args: Any, return_type_as: Any = data_slice.DataSlice, **kwargs: Any
 ) -> data_slice.DataSlice:
@@ -68,7 +66,7 @@ def register_bind_method_implementation(
 
 # Ideally we'd do this only for functors, but we don't have a fast way
 # to check if a DataItem is a functor now.
-@DataItem._add_method('bind')  # pylint: disable=protected-access
+@data_slice.add_method(DataItem, 'bind')  # pylint: disable=protected-access
 def bind(
     self,
     *,

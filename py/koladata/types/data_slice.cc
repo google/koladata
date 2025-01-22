@@ -312,19 +312,6 @@ bool IsCompliantAttrName(absl::string_view attr_name) {
              attr_name);
 }
 
-// classmethod
-absl::Nullable<PyObject*> PyDataSlice_is_compliant_attr_name(
-    PyObject* cls, PyObject* attr_name) {
-  arolla::python::DCheckPyGIL();
-  Py_ssize_t size;
-  const char* attr_name_ptr = PyUnicode_AsUTF8AndSize(attr_name, &size);
-  if (attr_name_ptr == nullptr) {
-    return nullptr;
-  }
-  auto attr_name_view = absl::string_view(attr_name_ptr, size);
-  return PyBool_FromLong(IsCompliantAttrName(attr_name_view));
-}
-
 absl::Nullable<PyObject*> PyDataSlice_getattro(PyObject* self,
                                                PyObject* attr_name) {
   arolla::python::DCheckPyGIL();
@@ -963,28 +950,6 @@ absl::Nullable<PyObject*> PyDataSlice_debug_repr(PyObject* self) {
       debug_repr.c_str(), static_cast<Py_ssize_t>(debug_repr.size()));
 }
 
-// classmethod
-absl::Nullable<PyObject*>
-PyDataSlice_internal_register_reserved_class_method_name(
-    PyTypeObject* cls, PyObject* method_name) {
-  arolla::python::DCheckPyGIL();
-  if (!PyUnicode_Check(method_name)) {
-    PyErr_SetString(PyExc_TypeError, "method name must be a string");
-    return nullptr;
-  }
-  Py_ssize_t size;
-  const char* method_name_ptr = PyUnicode_AsUTF8AndSize(method_name, &size);
-  if (method_name_ptr == nullptr) {
-    return nullptr;
-  }
-  auto method_name_view = absl::string_view(method_name_ptr, size);
-  if (size == 0 || method_name_view[0] != '_') {
-    PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore().insert(
-        method_name_view);
-  }
-  Py_RETURN_NONE;
-}
-
 PyMethodDef kPyDataSlice_methods[] = {
     {"get_bag", PyDataSlice_get_bag, METH_NOARGS,
      "get_bag()\n"
@@ -1220,29 +1185,12 @@ Returns:
      "Returns a format representation with a special support for non empty "
      "specification.\n\nDataSlice will be replaced with base64 encoded "
      "DataSlice.\nMust be used with kd.fstr or kde.fstr."},
-    {"internal_register_reserved_class_method_name",
-     (PyCFunction)PyDataSlice_internal_register_reserved_class_method_name,
-     METH_CLASS | METH_O,
-     "internal_register_reserved_class_method_name(method_name, /)\n"
-     "--\n\n"
-     "Registers a name to be reserved as a method of the DataSlice class.\n"
-     "\n"
-     "You must call this when adding new methods to the class in Python.\n"
-     "\n"
-     "Args:\n"
-     "  method_name: (str)\n"},
     {"_repr_with_params", (PyCFunction)PyDataSlice_repr_with_params,
      METH_FASTCALL | METH_KEYWORDS,
      "_repr_with_params("
      "*, depth=1, unbounded_type_max_len=-1, format_html=False)\n"
      "--\n\n"
      "Used to generate str representation for interactive repr in Colab."},
-    {"internal_is_compliant_attr_name",
-     (PyCFunction)PyDataSlice_is_compliant_attr_name, METH_CLASS | METH_O,
-     "internal_is_compliant_attr_name(attr_name, /)\n"
-     "--\n\n"
-     "Returns true iff `attr_name` can be accessed through "
-     "`getattr(slice, attr_name)`."},
     {"_debug_repr", (PyCFunction)PyDataSlice_debug_repr, METH_NOARGS,
      "_debug_repr()\n"
      "--\n\n"
@@ -1347,6 +1295,39 @@ PyTypeObject* PyDataSlice_Type() {
   arolla::python::CheckPyGIL();
   static PyTypeObject* type = InitPyDataSliceType();
   return type;
+}
+
+// data_slice_py_ext module methods
+absl::Nullable<PyObject*> PyDataSliceModule_is_compliant_attr_name(
+    PyObject* /*module*/, PyObject* attr_name) {
+  arolla::python::DCheckPyGIL();
+  Py_ssize_t size;
+  const char* attr_name_ptr = PyUnicode_AsUTF8AndSize(attr_name, &size);
+  if (attr_name_ptr == nullptr) {
+    return nullptr;
+  }
+  auto attr_name_view = absl::string_view(attr_name_ptr, size);
+  return PyBool_FromLong(IsCompliantAttrName(attr_name_view));
+}
+
+absl::Nullable<PyObject*> PyDataSliceModule_register_reserved_class_method_name(
+    PyObject* /*module*/, PyObject* method_name) {
+  arolla::python::DCheckPyGIL();
+  if (!PyUnicode_Check(method_name)) {
+    PyErr_SetString(PyExc_TypeError, "method name must be a string");
+    return nullptr;
+  }
+  Py_ssize_t size;
+  const char* method_name_ptr = PyUnicode_AsUTF8AndSize(method_name, &size);
+  if (method_name_ptr == nullptr) {
+    return nullptr;
+  }
+  auto method_name_view = absl::string_view(method_name_ptr, size);
+  if (size == 0 || method_name_view[0] != '_') {
+    PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore().insert(
+        method_name_view);
+  }
+  Py_RETURN_NONE;
 }
 
 }  // namespace koladata::python

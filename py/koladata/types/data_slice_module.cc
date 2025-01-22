@@ -21,12 +21,34 @@ namespace {
 
 constexpr const char* kThisModuleName = "koladata.types.data_slice";
 
+PyMethodDef kPyDataSliceModule_methods[] = {
+    {"internal_register_reserved_class_method_name",
+     (PyCFunction)PyDataSliceModule_register_reserved_class_method_name,
+     METH_O,
+     "internal_register_reserved_class_method_name(method_name, /)\n"
+     "--\n\n"
+     R"""(Registers a name to be reserved as a method of DataSlice or its subclasses.
+
+You must call this when adding new methods to the class in Python.
+
+Args:
+  method_name: (str)
+)"""},
+    {"internal_is_compliant_attr_name",
+     (PyCFunction)PyDataSliceModule_is_compliant_attr_name, METH_O,
+     "internal_is_compliant_attr_name(attr_name, /)\n"
+     "--\n\n"
+     "Returns true iff `attr_name` can be accessed through "
+     "`getattr(slice, attr_name)`."},
+    {nullptr} /* sentinel */
+};
+
 struct PyModuleDef data_slice = {
     PyModuleDef_HEAD_INIT,
     kThisModuleName,
     /*module docstring=*/"A DataSlice definition.",
     -1,
-    /*methods=*/nullptr,
+    /*methods=*/kPyDataSliceModule_methods,
 };
 
 // NOTE: This PyInit function must be named this way
