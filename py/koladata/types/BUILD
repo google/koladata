@@ -593,7 +593,6 @@ py_test(
         ":data_slice",
         ":literal_operator",
         ":qtypes",
-        ":schema_constants",
         "//py/koladata/expr:view",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",

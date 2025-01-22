@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for literal_operator."""
+import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -25,7 +25,6 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import literal_operator
 from koladata.types import qtypes
-from koladata.types import schema_constants
 
 
 kd = eager_op_utils.operators_container('kd')
@@ -143,6 +142,16 @@ class LiteralOperatorTest(parameterized.TestCase):
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         arolla.eval(op()), arolla.int32(1)
     )
+
+  def test_op_binding_debug_string(self):
+    # This uses a debug repr which avoids pretty printing. This ensures that we
+    # include the wrapped value in the repr.
+    x = literal_operator.literal(arolla.int32(1))
+    self.assertEqual(x.op.display_name, 'koda_internal.literal[1]')
+    with self.assertRaisesRegex(
+        ValueError, re.escape('koda_internal.literal[1]():INT32')
+    ):
+      arolla.M.annotation.qtype(x, arolla.FLOAT32)
 
   @parameterized.parameters(
       (arolla.L.x,),

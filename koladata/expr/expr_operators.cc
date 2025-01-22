@@ -15,6 +15,7 @@
 #include "koladata/expr/expr_operators.h"
 
 #include <cstdint>
+#include <string>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -87,8 +88,8 @@ absl::StatusOr<arolla::expr::ExprAttributes> InputOperator::InferAttributes(
 
 LiteralOperator::LiteralOperator(arolla::TypedValue value)
     : arolla::expr::ExprOperatorWithFixedSignature(
-          "koda_internal.literal", arolla::expr::ExprOperatorSignature{},
-          "Koda literal.",
+          absl::StrFormat("koda_internal.literal[%s]", value.Repr()),
+          arolla::expr::ExprOperatorSignature{}, "Koda literal.",
           arolla::FingerprintHasher("::koladata::expr::LiteralOperator")
               .Combine(value.GetFingerprint())
               .Finish()),
