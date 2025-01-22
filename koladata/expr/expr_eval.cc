@@ -191,7 +191,7 @@ absl::StatusOr<TransformedExprPtr> TransformExprForEval(
 }
 
 using CompiledExpr = std::function<absl::StatusOr<arolla::TypedValue>(
-    absl::Span<const arolla::TypedRef>)>;
+    EvalOptions, absl::Span<const arolla::TypedRef>)>;
 
 using Compiler = arolla::ExprCompiler<absl::Span<const arolla::TypedRef>,
                                       arolla::TypedValue>;
@@ -271,7 +271,7 @@ absl::StatusOr<CompiledExpr> Compile(
             // TODO: b/374841918 - Provide stack trace information in a
             // structured way instead of disabling it.
             .VerboseRuntimeErrors(false)
-            .Compile(expr));
+            .Compile<arolla::ExprCompilerFlags::kEvalWithOptions>(expr));
     fn = CompilationCache::Instance().Put(key, std::move(fn));
   }
   return fn;
@@ -282,7 +282,8 @@ absl::StatusOr<CompiledExpr> Compile(
 absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
     const arolla::expr::ExprNodePtr& expr,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> inputs,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> variables) {
+    absl::Span<const std::pair<std::string, arolla::TypedRef>> variables,
+    const EvalOptions& eval_options) {
   ASSIGN_OR_RETURN(auto transformed_expr, TransformExprForEval(expr));
   const auto& expr_info = transformed_expr->info;
 
@@ -337,7 +338,7 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
   ASSIGN_OR_RETURN(
       auto compiled_expr,
       Compile(transformed_expr->expr, expr_info.leaf_keys, input_qvalues));
-  return compiled_expr(input_qvalues);
+  return compiled_expr(eval_options, input_qvalues);
 }
 
 absl::StatusOr<std::vector<std::string>> GetExprVariables(

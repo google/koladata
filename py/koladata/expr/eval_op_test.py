@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+import signal
+import threading
+import time
+
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
@@ -190,6 +195,22 @@ class EvalOpTest(absltest.TestCase):
         " 'unknown_aux_policy'",
     ):
       eval_op(op, arolla.unspecified())
+
+  def test_cancellation(self):
+    expr = arolla.P.x
+    for _ in range(10**4):
+      expr += expr
+    op = arolla.LambdaOperator(expr)
+    x = arolla.dense_array_int64(range(10**6))
+
+    def do_keyboard_interrupt():
+      time.sleep(0.1)
+      signal.raise_signal(signal.SIGINT)
+
+    threading.Thread(target=do_keyboard_interrupt).start()
+    with self.assertRaisesRegex(ValueError, re.escape('interrupt')):
+      # this computation takes approximately 1-10 seconds, unless interrupted
+      eval_op(op, x)
 
 
 if __name__ == '__main__':

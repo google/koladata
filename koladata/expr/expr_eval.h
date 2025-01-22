@@ -25,6 +25,7 @@
 #include "arolla/expr/expr_node.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/serving/expr_compiler.h"
 
 namespace koladata::expr {
 
@@ -33,6 +34,8 @@ namespace koladata::expr {
 constexpr absl::string_view kNonDeterministicTokenLeafKey =
     "_koladata_non_deterministic_token_leaf";
 
+using EvalOptions = ::arolla::ModelFunctionOptions;
+
 // Evaluates the given expression with the provided inputs and variables.
 // The expression must refer to inputs/variables via InputOperator, not via
 // leaves and placeholders.
@@ -40,7 +43,8 @@ constexpr absl::string_view kNonDeterministicTokenLeafKey =
 absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
     const arolla::expr::ExprNodePtr& expr,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> inputs,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> variables);
+    absl::Span<const std::pair<std::string, arolla::TypedRef>> variables,
+    const EvalOptions& eval_options = {});
 
 // Retrieves the list of variables used in the given expression.
 // This reuses the same cache as EvalExprWithCompilationCache, so it is cheap
