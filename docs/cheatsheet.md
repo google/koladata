@@ -431,8 +431,8 @@ p_obj = kd.obj('a')
 
 # An OBJECT Dataslice with entity, list,
 # dict and primitive items
-kd.slice([kd.obj(a=1), 1, kd.obj(kd.list([1, 2])),
-          kd.obj(kd.dict({'a': 1}))])
+kd.slice([kd.obj(a=1), 1, kd.obj([1, 2]),
+          kd.obj({'a': 1})])
 ```
 
 </section>
@@ -857,8 +857,8 @@ a = kd.slice([1, None, 3])
 kd.has(a) # [present, missing, present]
 kd.has_not(a) # [missing, present, missing]
 
-b = kd.slice([kd.obj(), kd.obj(kd.list()),
-              kd.obj(kd.dict()), None, 1])
+b = kd.slice([kd.obj(a=1), kd.obj([1, 2]),
+              kd.obj({1: 2}), None, 1])
 
 kd.has_entity(b)
 # -> [present, missing, missing, missing, missing]
@@ -1318,8 +1318,8 @@ kd.unique(ds1.flatten()) # [1, 1.0, '1']
 
 o1 = kd.obj(a=1)
 o2 = kd.obj(a=2)
-l = kd.obj(kd.list())
-d = kd.obj(kd.dict())
+l = kd.obj([])
+d = kd.obj({})
 ds2 = kd.slice([[o1, o1, o2], [l, d, None]])
 
 # For entities/objects/lists/dicts,
