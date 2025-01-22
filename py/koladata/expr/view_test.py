@@ -616,6 +616,7 @@ class KodaViewTest(parameterized.TestCase):
         # go/keep-sorted start
         'append',
         'clear',
+        'display',
         'embed_schema',
         'fingerprint',
         'fork_bag',

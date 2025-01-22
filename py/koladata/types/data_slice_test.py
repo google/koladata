@@ -14,6 +14,7 @@
 
 import gc
 import inspect
+import io
 import re
 import sys
 from unittest import mock
@@ -3752,6 +3753,13 @@ class DataSliceListSlicingTest(parameterized.TestCase):
 
     # Remove the method to avoid breaking docstring tests.
     delattr(data_slice.DataSlice, 'test_method')
+
+  def test_display(self):
+    with mock.patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+      with mock.patch.object(warnings, 'warn') as mock_warn:
+        _ = ds([1, 2]).display()
+        self.assertEqual(mock_stdout.getvalue(), repr(ds([1, 2])) + '\n')
+        mock_warn.assert_not_called()
 
 
 if __name__ == '__main__':

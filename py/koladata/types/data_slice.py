@@ -652,6 +652,14 @@ def _to_py_impl(
   return py_obj
 
 
+@DataSlice._add_method('display')  # pylint: disable=protected-access
+def _display(
+    self,
+):
+  """Prints a DataSlice repr."""
+  print(repr(self))
+
+
 ##### DataSlice Magic methods. #####
 
 
