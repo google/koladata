@@ -179,6 +179,14 @@ TEST(DataBagTest, GetAttrWithRemoved) {
 
     ASSERT_OK(db->SetAttr(ds, "a", ds_a));
 
+    ASSERT_OK_AND_ASSIGN(
+        auto empty_get,
+        db->GetAttrWithRemoved(DataSliceImpl::CreateEmptyAndUnknownType(size),
+                               "a"));
+    EXPECT_EQ(empty_get.size(), size);
+    EXPECT_THAT(empty_get.allocation_ids(), IsEmpty());
+    EXPECT_EQ(empty_get.types_buffer().size(), 0);
+
     auto all_objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
     ASSERT_OK_AND_ASSIGN(auto ds_a_get,
                          db->GetAttrWithRemoved(all_objects, "a"));

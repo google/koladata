@@ -107,7 +107,7 @@ DataSliceImpl SliceBuilder::Build() && {
     auto [present, idx, array_variant] = BuildDataSliceVariant(first_storage_);
     DCHECK_EQ(idx, 0);
     if (!present) {
-      return DataSliceImpl::CreateEmptyAndUnknownType(size());
+      return DataSliceImpl::CreateEmptyAndUnknownType(std::move(types_buffer_));
     }
     DataSliceImpl res;
     res.internal_->allocation_ids = std::move(allocation_ids_);

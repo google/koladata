@@ -484,6 +484,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
   std::optional<SliceBuilder> bldr;
   if (with_removed) {
     bldr.emplace(objs.size());
+    bldr->ApplyMask(objs.ToMask());
   }
   for (const DataBagImpl* db = this; db != nullptr; db = next_fallback()) {
     ConstDenseSourceArray dense_sources;

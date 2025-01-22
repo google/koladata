@@ -69,6 +69,20 @@ TEST(SliceBuilderTest, AllRemoved) {
                           TypesBuffer::kRemoved));
 }
 
+TEST(SliceBuilderTest, AllRemovedViaTypedBuilder) {
+  auto bldr = SliceBuilder(3);
+  auto typed = bldr.typed<int>();
+  typed.InsertIfNotSet(0, std::nullopt);
+  typed.InsertIfNotSet(1, std::nullopt);
+  typed.InsertIfNotSet(2, std::nullopt);
+  DataSliceImpl ds = std::move(bldr).Build();
+  EXPECT_TRUE(ds.is_empty_and_unknown());
+  EXPECT_THAT(ds, ElementsAre(DataItem(), DataItem(), DataItem()));
+  EXPECT_THAT(ds.types_buffer().id_to_typeidx,
+              ElementsAre(TypesBuffer::kRemoved, TypesBuffer::kRemoved,
+                          TypesBuffer::kRemoved));
+}
+
 TEST(SliceBuilderTest, EmptyWithRemoved) {
   auto bldr = SliceBuilder(3);
   bldr.InsertIfNotSet(0, DataItem());
