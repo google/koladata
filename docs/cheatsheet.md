@@ -446,7 +446,7 @@ Sub-slicing slices **all** dimensions of a DataSlice or the last dimension when
 only one dimension is specified. The API is called "subslice" because it slices
 a DataSlice to create a sub-DataSlice.
 
-See [kd.subslice](koda_v1_api_reference.md#kd.slices.subslice) APIs for more details.
+See [kd.subslice](api_reference.md#kd.slices.subslice) APIs for more details.
 
 ```py
 ds = kd.slice([[1, 2, 3], [4, 5]])
