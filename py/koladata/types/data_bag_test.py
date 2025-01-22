@@ -1614,6 +1614,42 @@ The cause is the value of the key 1 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22
     ):
       db1.merge_inplace(db2, allow_data_conflicts=False)
 
+  def test_merge_inplace_list_item_conflict(self):
+    itemid = kde.allocation.new_listid().eval()
+    db1 = bag()
+    db1.list([db1.obj(x=1), db1.obj(y=2)], itemid=itemid)
+    db2 = bag()
+    db2.list([db2.obj(x=1), db2.obj(y=3)], itemid=itemid)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""cannot merge DataBags due to an exception encountered when merging lists.
+
+The conflicting list in the first DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
+The conflicting list in the second DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
+
+The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}
+""",
+    ):
+      db1.merge_inplace(db2, allow_data_conflicts=False)
+
+  def test_merge_inplace_list_size_conflict(self):
+    itemid = kde.allocation.new_listid().eval()
+    db1 = bag()
+    db1.list([db1.obj(x=1), db1.obj(y=2)], itemid=itemid)
+    db2 = bag()
+    db2.list([db2.obj(x=1)], itemid=itemid)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""cannot merge DataBags due to an exception encountered when merging lists.
+
+The conflicting list in the first DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
+The conflicting list in the second DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}\]
+
+The cause is the list sizes are incompatible: 2 vs 1
+""",
+    ):
+      db1.merge_inplace(db2, allow_data_conflicts=False)
+
   def test_merge_inplace_schema_overwrite(self):
     db1 = bag()
     x1 = db1.new(a=1, b=2)

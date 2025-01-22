@@ -40,12 +40,28 @@ message IncompatibleSchema {
   optional arolla.serialization_base.ContainerProto assigned_schema = 3;
 }
 
-// Schema or dict conflicts when merging two DataBags.
-message SchemaOrDictConflict {
-  optional arolla.serialization_base.ContainerProto object_id = 1;
-  optional arolla.serialization_base.ContainerProto key = 2;
-  optional arolla.serialization_base.ContainerProto expected_value = 3;
-  optional arolla.serialization_base.ContainerProto assigned_value = 4;
+// Conflicts when merging two DataBags.
+message DataBagMergeConflict {
+  message ListConflict {
+    optional arolla.serialization_base.ContainerProto list_object_id = 1;
+    optional uint64 first_list_size = 2;
+    optional uint64 second_list_size = 3;
+    optional uint64 list_item_conflict_index = 4;
+    optional arolla.serialization_base.ContainerProto first_conflicting_item =
+        5;
+    optional arolla.serialization_base.ContainerProto second_conflicting_item =
+        6;
+  }
+  message SchemaOrDictConflict {
+    optional arolla.serialization_base.ContainerProto object_id = 1;
+    optional arolla.serialization_base.ContainerProto key = 2;
+    optional arolla.serialization_base.ContainerProto expected_value = 3;
+    optional arolla.serialization_base.ContainerProto assigned_value = 4;
+  }
+  oneof conflict {
+    ListConflict list_conflict = 1;
+    SchemaOrDictConflict schema_or_dict_conflict = 2;
+  }
 }
 
 // Koda error message transportation proto.
@@ -56,6 +72,6 @@ message Error {
     NoCommonSchema no_common_schema = 3;
     MissingObjectSchema missing_object_schema = 4;
     IncompatibleSchema incompatible_schema = 5;
-    SchemaOrDictConflict schema_or_dict_conflict = 6;
+    DataBagMergeConflict data_bag_merge_conflict = 6;
   }
 }

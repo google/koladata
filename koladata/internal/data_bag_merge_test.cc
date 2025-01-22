@@ -798,6 +798,9 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
       EXPECT_THAT(status,
                   StatusIs(absl::StatusCode::kFailedPrecondition,
                            HasSubstr("conflict")));
+      std::optional<Error> error = GetErrorPayload(status);
+      ASSERT_TRUE(error.has_value());
+      EXPECT_TRUE(error->data_bag_merge_conflict().has_list_conflict());
     } else if (merge_options.data_conflict_policy == MergeOptions::kOverwrite) {
       EXPECT_OK(status);
       verify_lists(lists, db.get());
@@ -823,6 +826,9 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
       EXPECT_THAT(status,
                   StatusIs(absl::StatusCode::kFailedPrecondition,
                            HasSubstr("conflict")));
+      std::optional<Error> error = GetErrorPayload(status);
+      ASSERT_TRUE(error.has_value());
+      EXPECT_TRUE(error->data_bag_merge_conflict().has_list_conflict());
     } else if (merge_options.data_conflict_policy == MergeOptions::kOverwrite) {
       EXPECT_OK(status);
       verify_lists(lists, db.get());
@@ -962,7 +968,8 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
                                    HasSubstr("conflict")));
       std::optional<Error> error = GetErrorPayload(status);
       ASSERT_TRUE(error.has_value());
-      EXPECT_TRUE(error->has_schema_or_dict_conflict());
+      EXPECT_TRUE(
+          error->data_bag_merge_conflict().has_schema_or_dict_conflict());
     } else if (merge_options.data_conflict_policy == MergeOptions::kOverwrite) {
       EXPECT_OK(status);
       EXPECT_THAT(db->GetFromDict(a, k), IsOkAndHolds(DataItem(75)));
@@ -1073,7 +1080,7 @@ TEST(DataBagTest, MergeExplicitSchemas) {
                                  HasSubstr("conflict")));
     std::optional<Error> error = GetErrorPayload(status);
     ASSERT_TRUE(error.has_value());
-    EXPECT_TRUE(error->has_schema_or_dict_conflict());
+    EXPECT_TRUE(error->data_bag_merge_conflict().has_schema_or_dict_conflict());
   }
   {
     SCOPED_TRACE("keep schema");
@@ -1094,7 +1101,7 @@ TEST(DataBagTest, MergeExplicitSchemas) {
                                  HasSubstr("conflict")));
     std::optional<Error> error = GetErrorPayload(status);
     ASSERT_TRUE(error.has_value());
-    EXPECT_TRUE(error->has_schema_or_dict_conflict());
+    EXPECT_TRUE(error->data_bag_merge_conflict().has_schema_or_dict_conflict());
   }
   {
     SCOPED_TRACE("raise on conflict");
@@ -1104,7 +1111,7 @@ TEST(DataBagTest, MergeExplicitSchemas) {
                                  HasSubstr("conflict")));
     std::optional<Error> error = GetErrorPayload(status);
     ASSERT_TRUE(error.has_value());
-    EXPECT_TRUE(error->has_schema_or_dict_conflict());
+    EXPECT_TRUE(error->data_bag_merge_conflict().has_schema_or_dict_conflict());
   }
 }
 

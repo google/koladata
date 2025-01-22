@@ -362,7 +362,9 @@ absl::StatusOr<internal::Error> MakeSchemaOrDictMergeError(
     const internal::ObjectId& object, const DataItem& key,
     const DataItem& expected_value, const DataItem& assigned_value) {
   internal::Error error;
-  auto* schema_or_dict_conflict = error.mutable_schema_or_dict_conflict();
+  auto* data_bag_merge_conflict = error.mutable_data_bag_merge_conflict();
+  auto* schema_or_dict_conflict =
+      data_bag_merge_conflict->mutable_schema_or_dict_conflict();
   ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_object_id(),
                    internal::EncodeDataItem(internal::DataItem(object)));
   ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_key(),
@@ -371,6 +373,39 @@ absl::StatusOr<internal::Error> MakeSchemaOrDictMergeError(
                    internal::EncodeDataItem(expected_value));
   ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_assigned_value(),
                    internal::EncodeDataItem(assigned_value));
+  return error;
+}
+
+absl::StatusOr<internal::Error> MakeListMergeError(
+    const internal::ObjectId& list_object_id,
+    const std::optional<int64_t> first_list_size,
+    const std::optional<int64_t> second_list_size,
+    const std::optional<int64_t> list_item_conflict_index,
+    const DataItem& first_list_item, const DataItem& second_list_item) {
+  DCHECK(list_object_id.IsList());
+  internal::Error error;
+  auto* data_bag_merge_conflict = error.mutable_data_bag_merge_conflict();
+  auto* list_conflict = data_bag_merge_conflict->mutable_list_conflict();
+  ASSIGN_OR_RETURN(
+      *list_conflict->mutable_list_object_id(),
+      internal::EncodeDataItem(internal::DataItem(list_object_id)));
+  if (first_list_size.has_value()) {
+    list_conflict->set_first_list_size(*first_list_size);
+  }
+  if (second_list_size.has_value()) {
+    list_conflict->set_second_list_size(*second_list_size);
+  }
+  if (list_item_conflict_index.has_value()) {
+    list_conflict->set_list_item_conflict_index(*list_item_conflict_index);
+  }
+  if (first_list_item.has_value()) {
+    ASSIGN_OR_RETURN(*list_conflict->mutable_first_conflicting_item(),
+                     internal::EncodeDataItem(first_list_item));
+  }
+  if (second_list_item.has_value()) {
+    ASSIGN_OR_RETURN(*list_conflict->mutable_second_conflicting_item(),
+                     internal::EncodeDataItem(second_list_item));
+  }
   return error;
 }
 }  // namespace
@@ -2987,15 +3022,23 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
         }
         if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
           if (this_list.size() != other_list.size()) {
-            return absl::FailedPreconditionError(
-                absl::StrCat("conflicting list sizes for ", alloc_id, ": ",
-                             this_list.size(), " vs ", other_list.size()));
+            return internal::WithErrorPayload(
+                absl::FailedPreconditionError(
+                    absl::StrCat("conflicting list sizes for ", alloc_id, ": ",
+                                 this_list.size(), " vs ", other_list.size())),
+                MakeListMergeError(alloc_id.ObjectByOffset(i), this_list.size(),
+                                   other_list.size(), std::nullopt, DataItem(),
+                                   DataItem()));
           }
           for (size_t j = 0; j < other_list.size(); ++j) {
             if (this_list[j] != other_list[j]) {
-              return absl::FailedPreconditionError(absl::StrCat(
-                  "conflicting list values for ", alloc_id, "at index ", j,
-                  ": ", this_list[j], " vs ", other_list[j]));
+              return internal::WithErrorPayload(
+                  absl::FailedPreconditionError(absl::StrCat(
+                      "conflicting list values for ", alloc_id, "at index ", j,
+                      ": ", this_list[j], " vs ", other_list[j])),
+                  MakeListMergeError(alloc_id.ObjectByOffset(i),
+                                     this_list.size(), other_list.size(), j,
+                                     this_list[j], other_list[j]));
             }
           }
         }
@@ -3039,7 +3082,7 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
                     "conflicting dict values for ", object_id, " key", key,
                     ": ", this_value, " vs ", other_value)),
                 MakeSchemaOrDictMergeError(object_id, key, this_value,
-                                              other_value));
+                                           other_value));
           }
         }
       }
