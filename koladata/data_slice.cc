@@ -1341,10 +1341,10 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
 absl::StatusOr<DataSlice> DataSlice::EmbedSchema(bool overwrite) const {
   if (!GetSchemaImpl().is_primitive_schema() &&
       !GetSchemaImpl().is_struct_schema() && GetSchemaImpl() != schema::kNone) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("schema embedding is only supported for primitive and "
-                        "entity schemas, got %v",
-                        GetSchemaImpl()));
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "schema embedding is only supported for a DataSlice with primitive, "
+        "entity, list or dict schemas, got %v",
+        GetSchemaImpl()));
   }
   return ToObject(*this, /*validate_schema=*/!overwrite);
 }

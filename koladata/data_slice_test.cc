@@ -1526,10 +1526,12 @@ TEST(DataSliceTest, EmbedSchema_MixedNotAllowed) {
   auto values = test::MixedDataSlice<int, ObjectId>(
       {1, std::nullopt}, {std::nullopt, internal::AllocateSingleObject()},
       schema::kAny);
-  EXPECT_THAT(values.EmbedSchema(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "schema embedding is only supported for primitive and "
-                       "entity schemas, got ANY"));
+  EXPECT_THAT(
+      values.EmbedSchema(),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "schema embedding is only supported for a DataSlice with primitive, "
+          "entity, list or dict schemas, got ANY"));
 }
 
 TEST(DataSliceTest, EmbedSchema_Object_Errors) {

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for embed_schema."""
-
 from absl.testing import absltest
 from arolla import arolla
 from koladata.functions import functions as fns
@@ -48,8 +46,8 @@ class EmbedSchemaTest(absltest.TestCase):
   def test_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        'schema embedding is only supported for primitive and entity schemas,'
-        ' got ANY',
+        'schema embedding is only supported for a DataSlice with primitive, '
+        'entity, list or dict schemas, got ANY',
     ):
       fns.embed_schema(ds([1, 'a']).as_any())
 

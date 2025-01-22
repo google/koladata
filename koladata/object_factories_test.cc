@@ -1141,9 +1141,10 @@ TEST(ObjectCreatorTest, ObjectConverterError) {
   EXPECT_THAT(
       ObjectCreator::ConvertWithoutAdopt(
           db, test::DataSlice<int>({1}, schema::kAny)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "schema embedding is only supported for primitive and "
-               "entity schemas, got ANY"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "schema embedding is only supported for a DataSlice with primitive, "
+          "entity, list or dict schemas, got ANY"));
 }
 
 TEST(UuObjectCreatorTest, DataSlice) {
