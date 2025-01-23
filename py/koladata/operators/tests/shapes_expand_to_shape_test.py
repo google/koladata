@@ -136,6 +136,26 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.expand_to_shape(ds([[1, 2], [3]]), js([3]), 1))
 
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "DataSlice with shape=JaggedShape(2) cannot be expanded to"
+            " shape=JaggedShape()"
+        ),
+    ):
+      expr_eval.eval(kde.expand_to_shape(ds([1, 2]), js()))
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "Cannot expand 'x' imploded with the last 1 dimension(s) to 'shape'"
+            " due to incompatible shapes. Got 'x' shape: JaggedShape(2, [2,"
+            " 1]), imploded 'x' shape: JaggedShape(2), 'shape' to expand:"
+            " JaggedShape()"
+        ),
+    ):
+      expr_eval.eval(kde.expand_to_shape(ds([[1, 2], [3]]), js(), 1))
+
   def test_boxing(self):
     testing.assert_equal(
         kde.expand_to_shape(1, js([2]), 0),

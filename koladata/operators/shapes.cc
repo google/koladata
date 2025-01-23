@@ -28,11 +28,13 @@
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "koladata/arolla_utils.h"
-#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
-#include "koladata/object_factories.h"
+#include "koladata/subslice_utils.h"
+#include "arolla/dense_array/dense_array.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
@@ -331,23 +333,35 @@ absl::StatusOr<DataSlice> ExpandToShape(const DataSlice& x,
         "ndim must be a positive integer and <= x.ndim, got %d", ndim));
   }
 
-  auto temp_db = DataBag::Empty();
-  auto new_x = x.WithBag(temp_db);
-  for (int64_t i = 0; i < ndim; ++i) {
-    ASSIGN_OR_RETURN(new_x, CreateListsFromLastDimension(temp_db, new_x));
+  auto create_error = [&]() -> absl::Status {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "Cannot expand 'x' imploded with the last %d dimension(s) to "
+        "'shape' due to incompatible shapes. Got 'x' shape: %s, imploded "
+        "'x' shape: %s, 'shape' to expand: %s",
+        ndim, arolla::Repr(x.GetShape()),
+        arolla::Repr(x.GetShape().RemoveDims(x.GetShape().rank() - ndim)),
+        arolla::Repr(shape)));
+  };
+
+  // We need to check this separately since Subslice would work in this case
+  // as well (making expand_to a no-op).
+  if (x.GetShape().rank() - ndim > shape.rank()) {
+    return create_error();
   }
   ASSIGN_OR_RETURN(
-      new_x, BroadcastToShape(new_x, shape),
-      _ << absl::StrFormat(
-          "Cannot expand 'x' imploded with the last %d dimension(s) to "
-          "'shape' due to incompatible shapes. Got 'x' shape: %s, imploded "
-          "'x' shape: %s, 'shape' to expand: %s",
-          ndim, arolla::Repr(x.GetShape()), arolla::Repr(new_x.GetShape()),
-          arolla::Repr(shape)));
-  for (int64_t i = 0; i < ndim; ++i) {
-    ASSIGN_OR_RETURN(new_x, new_x.ExplodeList(0, std::nullopt));
+      auto zeros, DataSlice::Create(internal::DataSliceImpl::Create(
+                                        arolla::CreateConstDenseArray<int64_t>(
+                                            shape.size(), 0)),
+                                    shape, internal::DataItem(schema::kInt64)));
+  std::vector<subslice::SlicingArgType> slice_args;
+  slice_args.reserve(ndim);
+  slice_args.emplace_back(subslice::Slice{std::move(zeros), std::nullopt});
+  for (int i = 1; i < ndim; ++i) {
+    slice_args.emplace_back(subslice::Slice{std::nullopt, std::nullopt});
   }
-  return new_x.WithBag(x.GetBag());
+  ASSIGN_OR_RETURN(auto res, subslice::Subslice(x, std::move(slice_args)),
+                   create_error());
+  return std::move(res);
 }
 
 }  // namespace koladata::ops
