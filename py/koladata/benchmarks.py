@@ -267,6 +267,22 @@ def get_attr_native(state):
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['size'])
+@google_benchmark.option.range(100, 10000)
+def get_attr_one_obj_per_big_alloc(state):
+  size = state.range(0)
+  alloc_size = 17
+  objs = []
+  schema = kd.uu_schema(a=kd.FLOAT32)
+  for i in range(size):
+    obj = schema(a=kd.slice([i] * alloc_size))
+    objs.append(obj.S[0])
+  ds = kd.slice(objs)
+  while state:
+    _ = ds.a
+
+
+@google_benchmark.register
 def uuid_item(state):
   a = kd.slice(42)
   b = kd.slice('abc')
