@@ -2491,14 +2491,15 @@ kd.trace_py_fn(f6)(a1, a2, c)
 
 There are three execution modes in Koda:
 
--   **Eager** (i.e. `kdi`): always execute eagerly
+-   **Eager** (i.e. `kd.eager`): always execute eagerly
 -   **Auto** (i.e. `kd`): execute eagerly in normal context or lazily in tracing
     mode
--   **Lazy** (i.e. `kde`): return Expr as result which can be executed lazily
+-   **Lazy** (i.e. `kd.lazy`): return Expr as result which can be executed
+    lazily
 
-`kdi` and `kd` are similar to `np` and `jnp` in JAX, correspondingly. There is
-no pure lazy model (i.e. `kde`) in JAX as JAX does not directly expose lazy
-operators.
+`kd.eager` and `kd` are similar to `np` and `jnp` in JAX, correspondingly. There
+is no pure lazy model (i.e. `kd.lazy`) in JAX as JAX does not directly expose
+lazy operators.
 
 To simplify the mental model and avoid unexpected surprises, tracing in Koda
 works the same way as the just-in-time
@@ -2513,12 +2514,12 @@ compilation in JAX. It involves three steps:
 It is different from TensorFlow 2 which analyzes the Python AST and is able to
 trace Python control logic (e.g. `if`/`for`). Therefore, users should primarily
 use `kd` operators in the Python function and try to avoid Python control logic
-(e.g. `if`/`for`) and `kde/kdf` operators unless understanding what they
-actually do.
+(e.g. `if`/`for`) and `kd.lazy/kd.functor` operators unless understanding what
+they actually do.
 
-In most cases, users only need `kd` for eager and tracing mode and `kde` for if
-they want to use Expr directly. `kdi` is only useful for eager execution in the
-tracing mode.
+In most cases, users only need `kd` for eager and tracing mode and `kd.lazy` for
+if they want to use Expr directly. `kd.eager` is only useful for eager execution
+in the tracing mode.
 
 ```py
 def f1(a):
@@ -2531,25 +2532,13 @@ kd.trace_py_fn(f1)
 kd.trace_py_fn(f1)(a=1)  # 4
 
 def f2(a):
-  b = kdi.item(1) + kdi.item(2)
+  b = kd.eager.item(1) + kd.eager.item(2)
   return kd.add(a, b)
 
 f2(1)  # 4
 # Returns Functor(return=I.a + 3)
 kd.trace_py_fn(f2)
 kd.trace_py_fn(f2)(a=1)  # 4
-
-# TODO: Support kde.slice/item
-def f3(a):
-  b = kde.item(1) + kde.item(2)
-  return kd.add(a, b)
-
-# Fails as kd.add does not work
-# for Expr in normal context
-f3(1)
-# Returns Functor(return=I.a + 1 + 2)
-kd.trace_py_fn(f3)
-kd.trace_py_fn(f3)(a=1)  # 4
 ```
 
 </section>
@@ -2597,11 +2586,12 @@ kd.trace_py_fn(fn4)
 
 ### Avoid tracing Some Operations
 
-If some operators should always be executed eagerly, use `kdi` instead of `kd`.
+If some operators should always be executed eagerly, use `kd.eager` instead of
+`kd`.
 
 ```py
 def f1(a):
-  b = kdi.item(1) + kdi.item(2)
+  b = kd.eager.item(1) + kd.eager.item(2)
   return kd.add(a, b)
 
 kd.trace_py_fn(f1)
@@ -2653,8 +2643,8 @@ traced_f2(a1, a2, b, c) # 'cb'
 
 By default, names of local variables are lost during tracing. To preserve these
 names, we can use `kd.with_name`. In the eager mode, `kd.with_name` is a no-op.
-In the lazy mode, it is just `kde.with_name` which adds a name annotation to the
-resulting Expr.
+In the lazy mode, it is just `kd.lazy.with_name` which adds a name annotation to
+the resulting Expr.
 
 ```py
 def fn1(a, b):
@@ -2701,11 +2691,11 @@ primitives) provided at Expr **creation** time.
 **Operator nodes** are internal nodes representing an operation to be performed
 on the values of sub-Exprs. For example, `I.a + I.b` returns an Expr
 representing a `+` operation, with two input nodes as its children. Koda Expr
-provides a comprehensive list of operators for basic operations under `kde`
+provides a comprehensive list of operators for basic operations under `kd.lazy`
 module.
 
 Tip: Almost all operators from `kd` module have their corresponding Expr version
-in `kde` module. A few exceptions (e.g. `kd.eval(expr)`,
+in `kd.lazy` module. A few exceptions (e.g. `kd.eval(expr)`,
 `kd.expr.pack_expr(expr)`, etc.) should be self-explanatory based on the
 context.
 
@@ -2714,7 +2704,6 @@ context.
 ### Useful Aliases
 
 ```py
-kde = kd.lazy
 I = kd.I
 V = kd.V
 S = kd.S
@@ -2728,7 +2717,7 @@ S = kd.S
 
 ```py
 # Create an Expr to represent a + b
-expr1 = kde.add(I.a, I.b)
+expr1 = kd.lazy.add(I.a, I.b)
 # which is equivalent to
 expr2 = I.a + I.b
 
@@ -2738,14 +2727,14 @@ expr3 = I.a + 1
 # Build Expr by composing other Exprs
 add_ab = I.a + I.b
 weighted_ab = I.w * add_ab
-score = kde.agg_sum(weighted_ab)
+score = kd.lazy.agg_sum(weighted_ab)
 
 # Print out an Expr
 score
 
 # Use [] for list explosion or dict lookup
 a = kd.slice([1, 2, 3])
-kd.eval(kde.list(I.a)[:], a=a)
+kd.eval(kd.lazy.implode(I.a)[:], a=a)
 b = kd.dict({1: 2, 3: 4})
 kd.eval(I.b[I.a], a=a, b=b)
 
@@ -2767,7 +2756,7 @@ assert kd.is_expr(expr1)
 ### Evaluating Koda Expr
 
 ```py
-expr = kde.add(I.a, I.b)
+expr = kd.lazy.add(I.a, I.b)
 kd.eval(expr, a=kd.slice([1, 2, 3]), b=kd.item(2))
 
 # which is equivalent to
@@ -2797,7 +2786,7 @@ kd.eval(expr, a=x, b=x)
 ```py
 add_ab = I.a + I.b
 weighted_ab = I.w * add_ab
-score = kde.agg_sum(weighted_ab)
+score = kd.lazy.agg_sum(weighted_ab)
 
 # Pack Expr into a DataItem
 packed_expr = kd.expr.pack_expr(score)
@@ -2809,7 +2798,8 @@ assert packed_expr.get_schema() == kd.EXPR
 
 # Creates a task object containing
 # both data and expr
-task = kd.obj(expr=expr, a=kd.list([1, 2, 3]),
+task = kd.obj(expr=packed_expr,
+              a=kd.list([1, 2, 3]),
               b=kd.list([4, 5, 6]),
               w=kd.list([0.1, 0.2, 0.3]))
 
@@ -2880,13 +2870,13 @@ new_expr = kd.expr.sub_inputs(expr, b=kd.slice([2, 4]))
 
 ```py
 # Create a lambda operator 'score'
-# under the existing namespace 'kde.core'
+# under the existing namespace 'kd.core'
 @kd.optools.add_to_registry()
-@kd.optools.as_lambda_operator('kde.core.score')
+@kd.optools.as_lambda_operator('kd.core.score')
 def score(a, b, w):
-  return kde.agg_sum(w * (a + b))
+  return kd.lazy.agg_sum(w * (a + b))
 
-kd.eval(kde.core.score(I.a, I.b, I.w),
+kd.eval(kd.lazy.core.score(I.a, I.b, I.w),
         a=a, b=b, w=w)
 
 # It can be used as eager op too
@@ -2897,10 +2887,10 @@ kd.core.score(a, b, w)
 @kd.optools.add_to_registry()
 @kd.optools.as_lambda_operator('E.my_func')
 def my_func(a):
-  return kde.add(a, a)
+  return kd.lazy.add(a, a)
 
 # Create the operator container 'E'
-E = x = kd.optools.make_operators_container('E').E
+E = kd.optools.make_operators_container('E').E
 kd.eval(E.my_func(I.a), a=1)
 
 expect_data_slice =
@@ -2909,7 +2899,7 @@ expect_data_slice =
 # Create an operator based on Py function
 @kd.optools.add_to_registry()
 @kd.optools.as_py_function_operator(
-    'kde.core.fn',
+    'kd.core.fn',
     qtype_constraints=[
         expect_data_slice(arolla.P.a),
         expect_data_slice(arolla.P.pos)
@@ -2919,11 +2909,11 @@ expect_data_slice =
 def fn(a, pos):
   return kd.slice(a.S[pos].to_py() + 1)
 
-kd.eval(kde.core.fn(kd.slice([1, 2, 3]), 1))
+kd.eval(kd.lazy.core.fn(kd.slice([1, 2, 3]), 1))
 
 # Register operator alias so that
-# kde.add is same as E.add
-kd.optools.add_alias('kde.add', 'E.Add')
+# kd.add is same as E.add
+kd.optools.add_alias('kd.add', 'E.Add')
 ```
 
 </section>
@@ -2982,7 +2972,7 @@ fn3 = kd.functor.fstr_fn(
 # Create a Functor with local variables
 fn4 = kd.functor.fstr_fn(
   f'{I.s.name:s} ({V.names:s})\n',
-  names=kde.strings.agg_join(I.s.cities[:].name, ', '))
+  names=kd.lazy.strings.agg_join(I.s.cities[:].name, ', '))
 fn5 = kd.functor.fstr_fn(f'A: {V.fn(s=I.s1):s}'
                          f'B: {V.fn(s=I.s2):s}',
                          fn=fn4)
@@ -3000,7 +2990,7 @@ fn9 = kd.fn(lambda x, y: x + y)
 fn10 = kd.fn(fn8)
 
 # Create a functor calling another functor
-fn11 = kd.fn(kde.call(fn1, a=I.c, b=I.d))
+fn11 = kd.fn(kd.lazy.call(fn1, a=I.c, b=I.d))
 fn12 = kd.functor.fstr_fn(
   f'result {V.f(a=I.c, b=I.d):s}', f=fn1)
 ```
@@ -3025,7 +3015,7 @@ g = kd.fn(V.nf(x=I.x, y=2), nf=f)
 g(x=1)  # 3
 
 # Alternative
-g = kd.fn(kde.call(V.nf, x=I.x, y=2), nf=f)
+g = kd.fn(kd.lazy.call(V.nf, x=I.x, y=2), nf=f)
 g(x=1)  # 3
 
 # Functors can also be called using `fstr_fn`
