@@ -6,7 +6,7 @@ This guide goes through common pitfalls new users could encounter in Koda. It is
 recommended to read through the guide after finishing reading
 [Koda Fundamentals](fundamentals.md). It can be used as a tutorial to check your
 understanding of Koda or as references to individual
-issues.koladata/g3doc/cheatsheet.mdff
+issues.
 
 * TOC
 {:toc}
@@ -304,7 +304,7 @@ assert d1 == d2
 assert d1.no_bag() == d2
 ```
 
-NOTE: `x == y` and `x != y` require `x` and `y` to have compatible schema. If
+NOTE: `x == y` and `x != y` require `x` and `y` to have compatible schemas. If
 they have incompatible schemas, the comparisons will raise an exception. That
 will happen irrespective of the equality or inequality of the ItemIds of `x` and
 `y`.
