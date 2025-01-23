@@ -41,7 +41,7 @@ class ListTest(parameterized.TestCase):
     self.assertTrue(fns.list(db=fns.bag()).is_mutable())
 
   def test_empty(self):
-    l = fns.list().fork_db()
+    l = fns.list().fork_bag()
     self.assertIsInstance(l, list_item.ListItem)
     testing.assert_equal(
         l[:], ds([], schema_constants.OBJECT).with_bag(l.get_bag())
@@ -52,7 +52,7 @@ class ListTest(parameterized.TestCase):
     )
 
   def test_no_values(self):
-    l = fns.list([]).fork_db()
+    l = fns.list([]).fork_bag()
     self.assertIsInstance(l, list_item.ListItem)
     testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
 

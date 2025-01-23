@@ -115,7 +115,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
 
     # NOTE: Invalidate the eval cache, because schema's fingerprint did NOT
     # change, so the same `result` from above would be returned without forking.
-    schema = schema.fork_db()
+    schema = schema.fork_bag()
     schema.a = schema_constants.OBJECT
     testing.assert_equal(entity.a.no_bag(), ds(1))  # still INT32
     testing.assert_equal(

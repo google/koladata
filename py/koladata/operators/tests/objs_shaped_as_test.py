@@ -82,27 +82,27 @@ class ObjsShapedAsTest(absltest.TestCase):
   def test_item_with_empty_attr(self):
     x = kde.objs.shaped_as(ds(None), a=42).eval()
     testing.assert_equal(
-        kde.has(x).eval().no_db(), ds(kd.present, schema_constants.MASK)
+        kde.has(x).eval().no_bag(), ds(kd.present, schema_constants.MASK)
     )
 
   def test_all_empty_slice(self):
     x = kde.objs.shaped_as(ds([None, None]), a=42).eval()
-    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        kde.has(x).eval().no_db(),
+        kde.has(x).eval().no_bag(),
         ds([kd.present, kd.present], schema_constants.MASK),
     )
     testing.assert_equal(
-        x.a, ds([42, 42], schema_constants.INT32).with_db(x.db)
+        x.a, ds([42, 42], schema_constants.INT32).with_bag(x.get_bag())
     )
 
   def test_adopt_bag(self):
     x = kde.objs.shaped_as(ds(1), a='abc').eval()
     y = kde.objs.shaped_as(x, x=x).eval()
-    # y.db is merged with x.db, so access to `a` is possible.
-    testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
-    testing.assert_equal(x.get_schema(), y.x.get_schema().with_db(x.db))
-    testing.assert_equal(y.x.a.no_db().get_schema(), schema_constants.STRING)
+    # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
+    testing.assert_equal(y.x.a, ds('abc').with_bag(y.get_bag()))
+    testing.assert_equal(x.get_schema(), y.x.get_schema().with_bag(x.get_bag()))
+    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid(self):
     itemid = expr_eval.eval(
@@ -139,14 +139,18 @@ class ObjsShapedAsTest(absltest.TestCase):
     res_2 = expr_eval.eval(
         kde.objs.shaped_as(shape_from, x=2, a=1, b='p', c=fns.list([5, 6]))
     )
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
-    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
+    testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
     expr = kde.objs.shaped_as(shape_from, x=2, a=1, b='p', c=fns.list([5, 6]))
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
-    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
+    testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

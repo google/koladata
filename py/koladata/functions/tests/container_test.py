@@ -51,10 +51,10 @@ class ContainerTest(absltest.TestCase):
   def test_db_arg(self):
     db = fns.bag()
     c = fns.container(db=db)
-    testing.assert_equal(c.db, db)
+    testing.assert_equal(c.get_bag(), db)
 
     c = fns.container(db=db, a=42)
-    testing.assert_equal(c.db, db)
+    testing.assert_equal(c.get_bag(), db)
     testing.assert_equal(c.a.no_bag(), ds(42))
 
   def test_non_data_item(self):

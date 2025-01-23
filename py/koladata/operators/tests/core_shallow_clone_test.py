@@ -154,11 +154,11 @@ class CoreShallowCloneTest(parameterized.TestCase):
     y = db.new(x=42)
     x = db.new(y=y)
     ids = expr_eval.eval(kde.shallow_clone(x))
-    testing.assert_equal(ids.y.no_db(), y.no_db())
+    testing.assert_equal(ids.y.no_bag(), y.no_bag())
     result = expr_eval.eval(kde.shallow_clone(x, itemid=ids))
     self.assertFalse(result.get_bag().is_mutable())
-    testing.assert_equal(result.no_db(), ids.no_db())
-    testing.assert_equal(result.y.no_db(), y.no_db())
+    testing.assert_equal(result.no_bag(), ids.no_bag())
+    testing.assert_equal(result.y.no_bag(), y.no_bag())
 
   def test_mixed_idtypes(self):
     db = data_bag.DataBag.empty()
@@ -170,7 +170,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     ids = expr_eval.eval(kde.shallow_clone(a))
     result = expr_eval.eval(kde.shallow_clone(a, itemid=ids))
     self.assertFalse(result.get_bag().is_mutable())
-    testing.assert_equal(result.no_db(), ids.no_db())
+    testing.assert_equal(result.no_bag(), ids.no_bag())
 
   def test_itemid_wrong_rank(self):
     db = data_bag.DataBag.empty()

@@ -13,7 +13,7 @@ Here is an example of an improved error message.
 
 ```python
 >>> obj = kd.obj(a=1)
->>> obj.with_db(kd.bag()).a
+>>> obj.with_bag(kd.bag()).a
 ...
 
 KodaError: object schema is missing for the DataItem whose item is: $000fd856bbfc03480000000000000001:0

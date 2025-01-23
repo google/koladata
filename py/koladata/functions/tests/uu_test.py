@@ -32,7 +32,7 @@ class UuTest(absltest.TestCase):
     x = fns.uu(
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
-    ).fork_db()
+    ).fork_bag()
     testing.assert_equal(
         x.get_schema(),
         x.get_bag().uu_schema(

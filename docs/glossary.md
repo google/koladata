@@ -513,7 +513,7 @@ is possible to create a new copy with different mutability using
 A DataSlice with a mutable DataBag is considered **mutable**. Similar to
 DataBag, DataSlice's mutability cannot be changed directly. However, it is
 possible to create a new DataSlice copy with the forked DataBag using
-`ds.fork_db(mutable=)`.
+`ds.fork_bag(mutable=)`.
 
 #### Operator Node {#operator_node}
 

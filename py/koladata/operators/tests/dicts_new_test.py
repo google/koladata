@@ -241,13 +241,17 @@ Assigned schema for Dict key: STRING""",
     values = ds([3, 7])
     res_1 = expr_eval.eval(kde.dicts.new(keys=keys, values=values))
     res_2 = expr_eval.eval(kde.dicts.new(keys=keys, values=values))
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
     testing.assert_dicts_equal(res_1, res_2)
 
     expr = kde.dicts.new(keys=keys, values=values)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
     testing.assert_dicts_equal(res_1, res_2)
 
   def test_qtype_signatures(self):

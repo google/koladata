@@ -1771,7 +1771,7 @@ The cause is the list sizes are incompatible: 2 vs 1
     db2 = bag()
     db2.uuobj(seed='1').y = 2
     o3 = db2.adopt(o1)
-    self.assertEqual(o3.db.fingerprint, db2.fingerprint)
+    self.assertEqual(o3.get_bag().fingerprint, db2.fingerprint)
     testing.assert_equivalent(o3.x.no_bag(), ds(1))
     testing.assert_equivalent(o3.y.no_bag(), ds(2))
 

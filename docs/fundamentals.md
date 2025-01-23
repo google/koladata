@@ -771,7 +771,7 @@ x.d.g = kd.dict({'a': 1, 'b': 2})
 o = x.freeze()
 
 # Convert objects to containers
-x1 = o.fork_db()
+x1 = o.fork_bag()
 ```
 
 ### Schemas

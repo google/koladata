@@ -50,15 +50,15 @@ class ObjsLikeTest(absltest.TestCase):
   def test_slice_no_attrs(self):
     shape_and_mask_from = ds([6, 7, 8], schema_constants.INT32)
     x = kde.objs.like(shape_and_mask_from).eval()
-    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     self.assertFalse(x.is_mutable())
 
   def test_item_no_attrs(self):
     shape_and_mask_from = ds(0)
     x = kde.objs.like(shape_and_mask_from).eval()
-    self.assertIsNotNone(x.db)
-    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
+    self.assertIsNotNone(x.get_bag())
+    testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     self.assertFalse(x.is_mutable())
 
@@ -67,7 +67,7 @@ class ObjsLikeTest(absltest.TestCase):
     x = kde.objs.like(
         shape_and_mask_from, x=2, a=1, b='p', c=fns.list([5, 6])
     ).eval()
-    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(x.get_shape(), shape_and_mask_from.get_shape())
     testing.assert_equal(x.x.no_bag(), ds([[2, 2, 2], [2, 2, 2]]))
     testing.assert_equal(x.a.no_bag(), ds([[1, 1, 1], [1, 1, 1]]))
@@ -85,26 +85,26 @@ class ObjsLikeTest(absltest.TestCase):
   def test_sparsity_item_with_empty_attr(self):
     x = kde.objs.like(ds(None), a=42).eval()
     testing.assert_equal(
-        kde.has(x).eval().no_db(), ds(None, schema_constants.MASK)
+        kde.has(x).eval().no_bag(), ds(None, schema_constants.MASK)
     )
 
   def test_sparsity_all_empty_slice(self):
     x = kde.objs.like(ds([None, None]), a=42).eval()
-    testing.assert_equal(x.no_db().get_schema(), schema_constants.OBJECT)
+    testing.assert_equal(x.no_bag().get_schema(), schema_constants.OBJECT)
     testing.assert_equal(
-        kde.has(x).eval().no_db(), ds([None, None], schema_constants.MASK)
+        kde.has(x).eval().no_bag(), ds([None, None], schema_constants.MASK)
     )
     testing.assert_equal(
-        x.a, ds([None, None], schema_constants.OBJECT).with_db(x.db)
+        x.a, ds([None, None], schema_constants.OBJECT).with_bag(x.get_bag())
     )
 
   def test_adopt_bag(self):
     x = kde.objs.like(ds(1), a='abc').eval()
     y = kde.objs.like(x, x=x).eval()
-    # y.db is merged with x.db, so access to `a` is possible.
-    testing.assert_equal(y.x.a, ds('abc').with_db(y.db))
-    testing.assert_equal(x.get_schema(), y.x.get_schema().with_db(x.db))
-    testing.assert_equal(y.x.a.no_db().get_schema(), schema_constants.STRING)
+    # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.
+    testing.assert_equal(y.x.a, ds('abc').with_bag(y.get_bag()))
+    testing.assert_equal(x.get_schema(), y.x.get_schema().with_bag(x.get_bag()))
+    testing.assert_equal(y.x.a.no_bag().get_schema(), schema_constants.STRING)
 
   def test_itemid_dataitem(self):
     itemid = expr_eval.eval(kde.allocation.new_itemid())
@@ -245,14 +245,18 @@ class ObjsLikeTest(absltest.TestCase):
     x = ds([1, None, 3])
     res_1 = expr_eval.eval(kde.objs.like(x, a=5))
     res_2 = expr_eval.eval(kde.objs.like(x, a=5))
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
-    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
+    testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
     expr = kde.objs.like(x, a=5)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
-    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
+    testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

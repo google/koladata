@@ -129,10 +129,6 @@ _init_data_slice_class()
 
 ##### DataSlice methods. #####
 
-# TODO: Remove these aliases.
-add_method(DataSlice, 'with_db')(DataSlice.with_bag)
-add_method(DataSlice, 'no_db')(DataSlice.no_bag)
-
 
 @add_method(DataSlice, '__dir__')
 def _dir(self) -> list[str]:
@@ -310,8 +306,6 @@ def _deep_uuid(
 
 
 @add_method(DataSlice, 'fork_bag')
-# TODO: Remove this alias.
-@add_method(DataSlice, 'fork_db')
 def _fork_bag(self) -> DataSlice:
   """Returns a copy of the DataSlice with a forked mutable DataBag."""
   if self.get_bag() is None:

@@ -413,11 +413,6 @@ class KodaViewTest(parameterized.TestCase):
   def test_explode(self):
     testing.assert_equal(C.x.explode(1), kde.explode(C.x, 1))
 
-  def test_with_db(self):
-    testing.assert_equal(
-        C.x.with_db(C.y.get_bag()), kde.with_bag(C.x, C.y.get_bag())
-    )
-
   def test_with_bag(self):
     testing.assert_equal(
         C.x.with_bag(C.y.get_bag()), kde.with_bag(C.x, C.y.get_bag())
@@ -432,14 +427,8 @@ class KodaViewTest(parameterized.TestCase):
   def test_get_values(self):
     testing.assert_equal(C.x.get_values(), kde.get_values(C.x))
 
-  def test_db(self):
-    testing.assert_equal(C.x.db, kde.get_bag(C.x))
-
   def test_get_bag(self):
     testing.assert_equal(C.x.get_bag(), kde.get_bag(C.x))
-
-  def test_no_db(self):
-    testing.assert_equal(C.x.no_db(), kde.no_bag(C.x))
 
   def test_no_bag(self):
     testing.assert_equal(C.x.no_bag(), kde.no_bag(C.x))
@@ -620,7 +609,6 @@ class KodaViewTest(parameterized.TestCase):
         'embed_schema',
         'fingerprint',
         'fork_bag',
-        'fork_db',
         'from_vals',
         'get_attr_names',
         'internal_as_arolla_value',

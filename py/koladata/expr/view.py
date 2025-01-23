@@ -425,24 +425,11 @@ class KodaView(arolla.abc.ExprView):
   def with_bag(self, bag: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.with_bag', self, bag)
 
-  # TODO: Remove this alias.
-  def with_db(self, bag: Any) -> arolla.Expr:
-    return self.with_bag(bag)
-
   def get_bag(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.get_bag', self)
 
-  # TODO: Remove this alias.
-  @property
-  def db(self) -> arolla.Expr:
-    return self.get_bag()
-
   def no_bag(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.no_bag', self)
-
-  # TODO: Remove this alias.
-  def no_db(self) -> arolla.Expr:
-    return self.no_bag()
 
   def with_merged_bag(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.with_merged_bag', self)

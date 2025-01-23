@@ -39,7 +39,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_item(self):
     shape = jagged_shape.create_shape()
-    l = fns.list_shaped(shape).fork_db()
+    l = fns.list_shaped(shape).fork_bag()
     self.assertIsInstance(l, list_item.ListItem)
     testing.assert_equal(
         l[:], ds([], schema_constants.OBJECT).with_bag(l.get_bag())
@@ -51,7 +51,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_item_with_items(self):
     shape = jagged_shape.create_shape()
-    l = fns.list_shaped(shape, [1, 2]).fork_db()
+    l = fns.list_shaped(shape, [1, 2]).fork_bag()
     self.assertIsInstance(l, list_item.ListItem)
     testing.assert_equal(l[:], ds([1, 2]).with_bag(l.get_bag()))
     l.append(3)
@@ -59,7 +59,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_slice(self):
     shape = jagged_shape.create_shape([2], [2, 1])
-    l = fns.list_shaped(shape).fork_db()
+    l = fns.list_shaped(shape).fork_bag()
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(
         l[:],
@@ -73,7 +73,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_slice_with_scalar_items(self):
     shape = jagged_shape.create_shape([2], [2, 1])
-    l = fns.list_shaped(shape, 1).fork_db()
+    l = fns.list_shaped(shape, 1).fork_bag()
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(l[:], ds([[[1], [1]], [[1]]]).with_bag(l.get_bag()))
     l.append(2)
@@ -83,7 +83,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_slice_with_slice_items(self):
     shape = jagged_shape.create_shape([2], [2, 1])
-    l = fns.list_shaped(shape, ds([[[1, 2], [3, 4]], [[5, 6]]])).fork_db()
+    l = fns.list_shaped(shape, ds([[[1, 2], [3, 4]], [[5, 6]]])).fork_bag()
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(
         l[:], ds([[[1, 2], [3, 4]], [[5, 6]]]).with_bag(l.get_bag())

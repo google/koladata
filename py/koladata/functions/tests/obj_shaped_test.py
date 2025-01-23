@@ -88,7 +88,7 @@ class ObjShapedTest(absltest.TestCase):
       fns.obj_shaped(jagged_shape.create_shape([2]), a=ds([42]))
 
   def test_adopt_bag(self):
-    x = fns.obj_shaped(jagged_shape.create_shape()).fork_db()
+    x = fns.obj_shaped(jagged_shape.create_shape()).fork_bag()
     x.a = 'abc'
     y = fns.obj_shaped(x.get_shape(), x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.

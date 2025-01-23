@@ -154,7 +154,6 @@ class DataSliceMethodsTest(parameterized.TestCase):
           },
           skip_params=[
               ('with_bag', 0),  # bag is positional-only in C++
-              ('with_db', 0),  # bag is positional-only in C++
               ('with_schema', 0),  # schema is positional-only in C++
               ('set_schema', 0),  # schema is positional-only in C++
               ('get_attr', 0),  # attr_name is positional-only in C++
@@ -782,20 +781,6 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_equal(
         x.get_values(), ds([], schema_constants.NONE).with_bag(x.get_bag())
     )
-
-  def test_deprecated_db_methods(self):
-    x = fns.new(a=1)
-    testing.assert_equal(x.db, x.get_bag())
-    db = bag()
-    y = x.with_db(db)
-    testing.assert_equal(y.get_bag(), db)
-    z = x.no_db()
-    self.assertIsNone(z.get_bag())
-    t = x.fork_db()
-    testing.assert_equal(t.a, ds(1).with_bag(t.get_bag()))
-    t.a = 2
-    testing.assert_equal(t.a, ds(2).with_bag(t.get_bag()))
-    testing.assert_equal(x.a, ds(1).with_bag(x.get_bag()))
 
   def test_fork_bag(self):
     x = ds([1, 2, 3])
@@ -1477,13 +1462,8 @@ foo.get_obj_schema().x = <desired_schema>"""),
     ):
       x.fingerprint = 42
     # DataSlice's specific property `db`.
-    x.set_attr('db', 42)
-    testing.assert_equal(x.get_attr('db'), ds(42).with_db(x.db))
-    testing.assert_equal(x.db, x.db)
-    with self.assertRaisesRegex(
-        AttributeError, r'attribute \'db\'.*is not writable'
-    ):
-      x.db = 42
+    x.db = 42
+    testing.assert_equal(x.db, ds(42).with_bag(x.get_bag()))
 
   def test_getattr_errors(self):
     x = ds([1, 2, 3])
@@ -1879,7 +1859,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
       ),
   )
   def test_select_items(self, x, filter_input, expected_output):
-    testing.assert_equal(x.select_items(filter_input).no_db(), expected_output)
+    testing.assert_equal(x.select_items(filter_input).no_bag(), expected_output)
 
   # More comprehensive tests are in the core_select_keys_test.py.
   @parameterized.parameters(
@@ -1905,7 +1885,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
       ),
   )
   def test_select_keys(self, x, filter_input, expected_output):
-    testing.assert_equal(x.select_keys(filter_input).no_db(), expected_output)
+    testing.assert_equal(x.select_keys(filter_input).no_bag(), expected_output)
 
   # More comprehensive tests are in the core_select_values_test.py.
   @parameterized.parameters(
@@ -1931,7 +1911,9 @@ foo.get_obj_schema().x = <desired_schema>"""),
       ),
   )
   def test_select_values(self, x, filter_input, expected_output):
-    testing.assert_equal(x.select_values(filter_input).no_db(), expected_output)
+    testing.assert_equal(
+        x.select_values(filter_input).no_bag(), expected_output
+    )
 
   @parameterized.parameters(
       # ndim=0

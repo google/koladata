@@ -118,13 +118,17 @@ class ListsConcatListsTest(parameterized.TestCase):
     res_2 = expr_eval.eval(
         kde.lists.concat_lists(db.list([1, 2]), db.list([3]))
     )
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
     testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
 
     expr = kde.lists.concat_lists(db.list([1, 2]), db.list([3]))
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
     testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
 
   def test_qtype_signatures(self):

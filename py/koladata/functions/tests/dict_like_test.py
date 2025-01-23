@@ -38,7 +38,7 @@ class DictLikeTest(parameterized.TestCase):
     )
 
   def test_no_kv(self):
-    x = fns.dict_like(ds([[0, None], [0]])).fork_db()
+    x = fns.dict_like(ds([[0, None], [0]])).fork_bag()
     x[1] = 2
     x[2] = 3
     testing.assert_equal(

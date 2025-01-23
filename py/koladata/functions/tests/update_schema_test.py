@@ -25,7 +25,7 @@ ds = data_slice.DataSlice.from_vals
 class UpdateSchemaTest(absltest.TestCase):
 
   def test_update_schema(self):
-    o = fns.new().fork_db()
+    o = fns.new().fork_bag()
     fns.update_schema(o, x=schema_constants.INT32, y=schema_constants.FLOAT32)
     self.assertEqual(o.get_schema().x, schema_constants.INT32)
     self.assertEqual(o.get_schema().y, schema_constants.FLOAT32)

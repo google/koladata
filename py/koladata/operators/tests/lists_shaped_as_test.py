@@ -202,13 +202,17 @@ Assigned schema for List item: INT32""",
     items = ds([[1, 2], [3]])
     res_1 = expr_eval.eval(kde.lists.shaped_as(shape, items=items))
     res_2 = expr_eval.eval(kde.lists.shaped_as(shape, items=items))
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
     testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
 
     expr = kde.lists.shaped_as(shape, items=items)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
     testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
 
   def test_qtype_signatures(self):

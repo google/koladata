@@ -63,18 +63,20 @@ class SchemaCastToTest(parameterized.TestCase):
     del entity.get_schema().x
 
     result = expr_eval.eval(kde.schema.cast_to(entity, schema))
-    testing.assert_equal(result.x.no_db(), ds([1]))
+    testing.assert_equal(result.x.no_bag(), ds([1]))
     testing.assert_equal(
-        result.no_db(), entity.no_db().with_schema(schema.no_db())
+        result.no_bag(), entity.no_bag().with_schema(schema.no_bag())
     )
-    self.assertNotEqual(result.x.db.fingerprint, bag1.fingerprint)
-    self.assertNotEqual(result.x.db.fingerprint, schema.get_bag().fingerprint)
+    self.assertNotEqual(result.x.get_bag().fingerprint, bag1.fingerprint)
+    self.assertNotEqual(
+        result.x.get_bag().fingerprint, schema.get_bag().fingerprint
+    )
 
   def test_casting_conflict(self):
     bag1 = data_bag.DataBag.empty()
     bag2 = data_bag.DataBag.empty()
     entity = bag1.new(x=1)
-    schema = entity.get_schema().with_db(bag2)
+    schema = entity.get_schema().with_bag(bag2)
     schema.x = schema_constants.FLOAT32
     result = expr_eval.eval(kde.schema.cast_to(entity, schema))
     with self.assertRaisesRegex(

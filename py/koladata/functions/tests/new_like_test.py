@@ -103,7 +103,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
 
   def test_adopt_bag(self):
-    x = fns.new_like(ds(1)).fork_db()
+    x = fns.new_like(ds(1)).fork_bag()
     x.set_attr('a', 'abc')
     y = fns.new_like(x, x=x)
     # y.get_bag() is merged with x.get_bag(), so access to `a` is possible.

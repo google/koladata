@@ -3196,7 +3196,7 @@ db1.merge_inplace(db2)
 o1_in_db1 = db1.adopt(o1)
 # Equivalent to the below
 db1.merge_inplace(o1.extract())
-o1_in_db1 = o1.with_db(db1)
+o1_in_db1 = o1.with_bag(db1)
 
 # Adopt avoids multiple extractions
 # The code below has two extractions
@@ -3267,7 +3267,7 @@ ds2 = kd.uuobj(x=1)
 kd.testing.assert_equivalent(ds1, ds2)
 
 ds3 = kd.uuobj(x=kd.slice([1, 2]))
-# Fail as ds3.db has more contents than ds1.db
+# Fail as ds3.get_bag() has more contents than ds1.get_bag()
 kd.testing.assert_equivalent(ds1, ds3.S[0])
 
 # It works for DataBags too

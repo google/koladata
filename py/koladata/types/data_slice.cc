@@ -83,11 +83,6 @@ absl::Nullable<PyObject*> PyDataSlice_get_bag(PyObject* self, PyObject*) {
   return arolla::python::WrapAsPyQValue(arolla::TypedValue::FromValue(db));
 }
 
-// TODO: Remove this alias.
-absl::Nullable<PyObject*> PyDataSlice_db_getter(PyObject* self, void*) {
-  return PyDataSlice_get_bag(self, nullptr);
-}
-
 absl::Nullable<PyObject*> PyDataSlice_with_bag(PyObject* self, PyObject* db) {
   arolla::python::DCheckPyGIL();
   if (db == Py_None) {
@@ -1238,13 +1233,7 @@ PyObject* PyDataSlice_richcompare_not_implemented(PyObject* self,
   return nullptr;
 }
 
-// TODO: Remove this alias.
 PyGetSetDef kPyDataSlice_getset[] = {
-    {
-        .name = "db",
-        .get = PyDataSlice_db_getter,
-        .doc = "This property is deprecated, please use .get_bag().",
-    },
     {nullptr}, /* sentinel */
 };
 

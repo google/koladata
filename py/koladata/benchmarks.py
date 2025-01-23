@@ -1376,7 +1376,7 @@ def databag_repr_fallbacks(state):
     attr_name = 'abc' if state.range(1) else f'abc{i}'
     e = kd.with_attr(e, attr_name, kd.slice([1, 2, 3, 4, 5, 6, 7]))
   while state:
-    _ = repr(e.db)
+    _ = repr(e.get_bag())
 
 
 @google_benchmark.register

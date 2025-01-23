@@ -55,8 +55,6 @@ class CoreNoBagTest(parameterized.TestCase):
 
   def test_aliases(self):
     self.assertTrue(optools.equiv_to_op(kde.core.no_bag, kde.no_bag))
-    self.assertTrue(optools.equiv_to_op(kde.core.no_bag, kde.core.no_db))
-    self.assertTrue(optools.equiv_to_op(kde.core.no_bag, kde.no_db))
 
 
 if __name__ == '__main__':

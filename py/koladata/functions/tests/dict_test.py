@@ -40,7 +40,7 @@ class DictTest(parameterized.TestCase):
     self.assertTrue(fns.dict(db=fns.bag()).is_mutable())
 
   def test_empty(self):
-    d = fns.dict().fork_db()
+    d = fns.dict().fork_bag()
     self.assertIsInstance(d, dict_item.DictItem)
     testing.assert_dicts_keys_equal(d, ds([], schema_constants.OBJECT))
     d['a'] = 1
@@ -77,7 +77,7 @@ class DictTest(parameterized.TestCase):
       fns.dict(ds([1, 2, 3]))
 
   def test_two_args(self):
-    d = fns.dict('a', 1).fork_db()
+    d = fns.dict('a', 1).fork_bag()
     self.assertIsInstance(d, dict_item.DictItem)
     self.assertEqual(d.get_shape().rank(), 0)
     d['b'] = 1

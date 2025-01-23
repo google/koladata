@@ -40,7 +40,7 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_no_kv(self):
     shape = jagged_shape.create_shape([3])
-    x = fns.dict_shaped(shape).fork_db()
+    x = fns.dict_shaped(shape).fork_bag()
     self.assertIsInstance(x, data_slice.DataSlice)
     x['a'] = ds([1, 2, 3])
     testing.assert_equal(
@@ -49,7 +49,7 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_no_kv_scalar(self):
     shape = jagged_shape.create_shape()
-    x = fns.dict_shaped(shape).fork_db()
+    x = fns.dict_shaped(shape).fork_bag()
     self.assertIsInstance(x, dict_item.DictItem)
     x['a'] = 57
     testing.assert_equal(

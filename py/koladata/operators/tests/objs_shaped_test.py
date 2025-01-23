@@ -112,14 +112,18 @@ class ObjsShapedTest(absltest.TestCase):
     res_2 = expr_eval.eval(
         kde.objs.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
     )
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
-    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
+    testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
     expr = kde.objs.shaped(shape, x=2, a=1, b='p', c=fns.list([5, 6]))
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
-    self.assertNotEqual(res_1.db.fingerprint, res_2.db.fingerprint)
-    testing.assert_equal(res_1.a.no_db(), res_2.a.no_db())
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
+    testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

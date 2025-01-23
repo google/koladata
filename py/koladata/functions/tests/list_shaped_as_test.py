@@ -49,7 +49,7 @@ class ListShapedAsTest(parameterized.TestCase):
     testing.assert_equal(l[:], ds([1, 2]).with_bag(l.get_bag()))
 
   def test_slice(self):
-    l = fns.list_shaped_as(ds([['a', 'b'], ['c']])).fork_db()
+    l = fns.list_shaped_as(ds([['a', 'b'], ['c']])).fork_bag()
     self.assertIsInstance(l, data_slice.DataSlice)
     testing.assert_equal(
         l[:],

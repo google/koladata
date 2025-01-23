@@ -35,7 +35,7 @@ class DictShapedAsTest(parameterized.TestCase):
     )
 
   def test_no_kv(self):
-    x = fns.dict_shaped_as(ds([1, 2, 3])).fork_db()
+    x = fns.dict_shaped_as(ds([1, 2, 3])).fork_bag()
     self.assertIsInstance(x, data_slice.DataSlice)
     x['a'] = ds([1, 2, 3])
     testing.assert_equal(

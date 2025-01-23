@@ -356,14 +356,7 @@ def with_attr(x, attr_name, value, update_schema=False):
   raise NotImplementedError('implemented in the backend')
 
 
-# TODO: Remove the *_db alias.
-@optools.add_to_registry(
-    aliases=[
-        'kd.with_bag',
-        'kd.with_db',
-        'kd.core.with_db',
-    ]
-)
+@optools.add_to_registry(aliases=['kd.with_bag'])
 @optools.as_backend_operator(
     'kd.core.with_bag',
     qtype_constraints=[
@@ -728,8 +721,7 @@ def nofollow(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-# TODO: Remove the *_db alias.
-@optools.add_to_registry(aliases=['kd.no_bag', 'kd.no_db', 'kd.core.no_db'])
+@optools.add_to_registry(aliases=['kd.no_bag'])
 @optools.as_backend_operator(
     'kd.core.no_bag',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
