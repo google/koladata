@@ -14,7 +14,7 @@
 
 """Testing utilities."""
 
-from typing import Any
+from typing import Any, Optional
 
 from arolla import arolla as _arolla
 from koladata.exceptions import exceptions as _
@@ -141,6 +141,12 @@ def assert_equal(
   )
 
 
+def _bag_content(bag: Optional[_data_bag.DataBag]) -> str:
+  if bag is None:
+    return 'None'
+  return repr(bag.contents_repr())
+
+
 def _assert_equivalent_bags(
     actual_value: _data_bag.DataBag,
     expected_value: _data_bag.DataBag,
@@ -161,8 +167,9 @@ def _assert_equivalent_bags(
   raise AssertionError(
       msg
       or (
-          f'DataBags are not equivalent\n\n{actual_value.contents_repr()!r} !='
-          f' {expected_value.contents_repr()!r}'
+          'DataBags are not'
+          ' equivalent\n\n'
+          f'{_bag_content(actual_value)} != {_bag_content(expected_value)}'
       )
   )
 
@@ -210,8 +217,8 @@ def assert_equivalent(
           msg
           or (
               'DataSlices are not equivalent, because their DataBags are not'
-              f' equivalent\n\n  {actual_value.get_bag().contents_repr()!r} !='
-              f' {expected_value.get_bag().contents_repr()!r}'
+              f' equivalent\n\n  {_bag_content(actual_value.get_bag())} !='
+              f' {_bag_content(expected_value.get_bag())}'
           )
       ) from None
     return

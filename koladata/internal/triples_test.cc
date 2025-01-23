@@ -64,6 +64,7 @@ TEST(TriplesTest, SimpleAttr) {
   ObjectId=04000000000000010000000000000000:0 attr=c value='aaa'
   ObjectId=04000000000000020000000000000000:0 attr=b value=5
   ObjectId=04000000000000020000000000000000:0 attr=c value=b'bbb'
+  ObjectId=04000000000000020000000000000000:0 attr=d value=None
 })DB");
 }
 

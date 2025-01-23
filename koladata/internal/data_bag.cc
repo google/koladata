@@ -3220,8 +3220,7 @@ DataBagImpl::ExtractSmallAllocAttrContent(absl::string_view attr_name) const {
   absl::flat_hash_set<ObjectId> visited_ids;
   for (const SparseSource* source : sources) {
     for (const auto& [obj, value] : source->GetAll()) {
-      if (bool inserted = visited_ids.insert(obj).second;
-          inserted && value.has_value()) {
+      if (bool inserted = visited_ids.insert(obj).second; inserted) {
         res.push_back({obj, value});
       }
     }

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <bit>
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -30,6 +32,42 @@ using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 
 namespace {
+
+TEST(DataBagTest, ExtractSingleItemRemovedValues) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto ds_a = DataItem(AllocateSingleObject());
+  ASSERT_OK(db->SetAttr(ds_a, "a", DataItem()));
+
+  ASSERT_OK_AND_ASSIGN(auto content, db->ExtractContent());
+  const auto& items = content.attrs["a"].items;
+  ASSERT_EQ(items.size(), 1);
+  EXPECT_EQ(items[0].object_id, ds_a.value<ObjectId>());
+  EXPECT_EQ(items[0].value, DataItem());
+}
+
+TEST(DataBagTest, ExtractSingleItemBigAllocRemovedValues) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  size_t size = 5;
+  auto ds_a = DataItem(Allocate(size).ObjectByOffset(3));
+  ASSERT_OK(db->SetAttr(ds_a, "a", DataItem()));
+
+  ASSERT_OK_AND_ASSIGN(auto content, db->ExtractContent());
+  const auto& allocs = content.attrs["a"].allocs;
+  ASSERT_EQ(allocs.size(), 1);
+  EXPECT_EQ(allocs[0].alloc_id, AllocationId(ds_a.value<ObjectId>()));
+  const auto& tb = allocs[0].values.types_buffer();
+  EXPECT_THAT(
+      tb.id_to_typeidx,
+      ElementsAre(TypesBuffer::kUnset, TypesBuffer::kUnset, TypesBuffer::kUnset,
+                  TypesBuffer::kRemoved, TypesBuffer::kUnset,
+                  // Above the size.
+                  TypesBuffer::kUnset, TypesBuffer::kUnset,
+                  TypesBuffer::kUnset));
+  EXPECT_THAT(allocs[0].values, ElementsAreArray(std::vector<DataItem>(
+                                    std::bit_ceil(size), DataItem())));
+}
 
 TEST(DataBagTest, ExtractRemovedValues) {
   int64_t size = 5;

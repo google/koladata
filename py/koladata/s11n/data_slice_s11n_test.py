@@ -212,6 +212,19 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
     res = arolla.s11n.loads(data)
     kd.testing.assert_equivalent(res, value)
 
+  def test_removed_value_single_object(self):
+    x = kd.obj().with_attrs(a=None)
+    x_deserialized = kd.loads(kd.dumps(x))
+    kd.testing.assert_equivalent(x.a.with_bag(None), kd.slice(None))
+    kd.testing.assert_equivalent(
+        x_deserialized.a.with_bag(None), kd.slice(None)
+    )
+    # Verifying that value is actually removed.
+    z = x_deserialized.enriched(kd.attrs(x, a=1))
+    kd.testing.assert_equivalent(
+        z.a.with_bag(None), kd.slice(None)
+    )
+
   def test_correct_case(self):
     text = _get_data_slice_test_case()
     value = data_slice.DataSlice.from_vals([1, 2])
