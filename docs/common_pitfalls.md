@@ -199,6 +199,179 @@ assert ns1 == ns2
 ns2.updated(ns1.get_bag())  # Schema(a=INT32, b=BOOLEAN)
 ```
 
+## Vectorized Creation of Entities
+
+To create entities in a vectorized way, we use `kd.new(**kwargs_in_ds)`.
+`**kwargs_in_ds` are first aligned to have the same shape.
+
+```py
+# Note 'x' is first wrapped into kd.str('x') then broadcasted to kd.str(['x', 'x', 'x'])
+kd.new(a=kd.slice([1, 2, 3]), b='x', c=kd.new(d=kd.slice([4, 5, 6])))
+# -> [Entity(a=1, b='x', c=Entity(d=4)),
+#     Entity(a=2, b='x', c=Entity(d=5)),
+#     Entity(a=3, b='x', c=Entity(d=6))]
+```
+
+Creating entity objects is similar. We use `kd.obj(**kwargs_in_ds)`.
+
+```py
+kd.obj(a=kd.slice([1, 2, 3]), b='x', c=kd.obj(d=kd.slice([4, 5, 6])))
+# -> [Obj(a=1, b='x', c=Obj(d=4)),
+#     Obj(a=2, b='x', c=Obj(d=5)),
+#     Obj(a=3, b='x', c=Obj(d=6))]
+```
+
+## Explicit Entity Schemas vs Implicit Entity Schemas
+
+Entity schemas created explicitly using schema creation APIs or as a by-product
+of `kd.new(**kwargs)` are called explicit entity schemas. Those created
+implicitly as a by-product of `kd.obj(**kwargs)` are called implicit schemas.
+
+Explicit entity schemas and implicit entity schemas differ by how they handle
+schema conflicts during assignment. Attributes of an explicit entity schema
+cannot be overridden unless `update_schema=True` is set while attributes of an
+implicit entity schema can be overridden by default.
+
+```py
+entity = kd.new(a=1)
+# Fail as schemas are not compatible
+# entity.with_attrs(a='2')
+entity = entity.with_attrs(a='2', update_schema=True)
+entity.get_schema()  # SCHEMA(a=STRING)
+
+obj = kd.obj(a=1)
+obj = obj.with_attrs(a='2')
+obj.get_obj_schema()  # IMPLICIT_SCHEMA(a=STRING)
+```
+
+The motivation behind this is that an explicit entity schema can be used by
+multiple entities while an implicit schema cannot. Thus overriding schema
+attributes of an explicit schema without `update_schema=True` is dangerous. For
+example,
+
+```py
+entities = kd.new(a=kd.slice([1, 2]))
+# Only update the first item
+# We want to assign it to '3' rather than 3 by mistake
+# Imagine the following line succeeds without update_schema=True
+upd = kd.attrs(entities.S[0], a='3', update_schema=True)
+entities = entities.updated(upd)
+# Fails because one value is 2 but schema is STRING
+entities.a
+```
+
+However, it is not a problem for an implicit schema and allowing direct
+overrides makes the code more concise.
+
+```py
+objs = kd.obj(a=kd.slice([1, 2]))
+objs.a  # DataSlice([1, 2], schema: INT32, ndims: 1, size: 2)
+upd = kd.attrs(objs.S[0], a='3')
+objs = objs.updated(upd)
+# It is fine as objects have different implicit schemas
+objs.a  # DataSlice(['3', 2], schema: OBJECT, ndims: 1, size: 2)
+```
+
+NOTE: Adding new attributes is allowed for both explicit and implicit entity
+schemas.
+
+```py
+entity = kd.new(a=1)
+entity = entity.with_attrs(b='2')
+entity.get_schema()  # SCHEMA(a=INT32, b=STRING)
+
+obj = kd.obj(a=1)
+obj = obj.with_attrs(b='2')
+obj.get_obj_schema()  # IMPLICIT_SCHEMA(a=INT32, b=STRING)
+```
+
+## `kd.obj(**kwargs_in_ds)` and `kd.obj(kd.new(**kwargs_in_ds))` Are Different
+
+`kd.obj(**kwargs_in_ds)` is not equivalent to `kd.obj(kd.new(**kwargs_in_ds))`.
+`kd.new(**kwargs_in_ds)` creates entities with the same schema and
+`kd.obj(entities)` then embeds the schema into each entity.
+`kd.obj(**kwargs_in_ds)` creates objects with different schemas.
+
+```py
+kwargs_in_ds = dict(a=kd.slice([1, 2, 3]), b='x')
+entities = kd.new(**kwargs_in_ds)
+objs_1 = kd.obj(entities)
+objs_1.get_obj_schema() == entities.get_schema()  # [present, present, present]
+# Schemas are the same
+objs_1.get_obj_schema().get_itemid()
+# [Schema:$7IzNK3toe5Fiq3uZOg396n, Schema:$7IzNK3toe5Fiq3uZOg396n, Schema:$7IzNK3toe5Fiq3uZOg396n]
+
+# Modification of the schema of one item affects the other items
+upd = kd.attrs(objs_1.S[1], c=4.0)
+objs_1.updated(upd)
+# [Obj(a=1, b='x', c=None), Obj(a=2, b='x', c=4.0), Obj(a=3, b='x', c=None)]
+
+objs_2 = kd.obj(**kwargs_in_ds)
+# Schemas are different
+objs_2.get_obj_schema().get_itemid()
+# [Schema:#6wYkMBuiRTtW7jaIQfyPEy, Schema:#6wYkMBuiRTtW7jaIQfyPEz, Schema:#6wYkMBuiRTtW7jaIQfyPF0]
+
+# Modification of the schema for one item does not affect the other items
+upd = kd.attrs(objs_2.S[1], c=4.0)
+objs_2.updated(upd)
+# [Obj(a=1, b='x'), Obj(a=2, b='x', c=4.0), Obj(a=3, b='x')]
+```
+
+## Vectorized Creation of Lists Using `kd.implode`
+
+To create lists in a vectorized way, we use `kd.implode(ds)` rather than
+`kd.list(ds)` because it is unclear how many dimensions of `ds` should be
+imploded into lists when using `kd.list(ds)` and `ds.get_ndim() > 1`.
+
+```py
+# DataSlice with three dimensions
+ds = kd.slice([[[1, 2], [3]], [[4], [5, 6]], [[7], [None]], [[], [8]]])
+
+# Implode the last dimension
+kd.implode(ds)
+kd.implode(ds, ndim=1)  # Same as above
+# DataSlice([
+#   [List[1, 2], List[3]], [List[4], List[5, 6]],
+#   [List[7], List[None]], [List[], List[8]]
+# ], schema: LIST[INT32], ndims: 2, size: 8)
+
+# Implode the last two dimensions
+kd.implode(ds, ndim=2)
+# DataSlice([
+#   List[List[1, 2], List[3]],
+#   List[List[4], List[5, 6]],
+#   List[List[7], List[None]],
+#   List[List[], List[8]],
+# ], schema: LIST[LIST[INT32]], ndims: 1, size: 4)
+
+# Implode the last three dimensions
+kd.implode(ds, ndim=3)
+kd.implode(ds, ndim=-1)  # Same as above, implode repeatedly until the result is a DataItem
+# DataItem(List[
+#   List[List[1, 2], List[3]],
+#   List[List[4], List[5, 6]],
+#   List[List[7], List[None]],
+#   List[List[], List[8]],
+# ], schema: LIST[LIST[LIST[INT32]]])
+```
+
+NOTE: `kd.list(py_list)` is equivalent to `kd.implode(kd.slice(py_list),
+ndim=-1)`. That is, `kd.list(py_list)` always implodes all dimensions into lists
+if `py_list` is a nested Python list.
+
+TIP: `ds.implode(ndim)` is a shortcut for `kd.implode(ds, ndim)`.
+
+## Vectorized Creation of Dicts Using `kd.dict`
+
+To create dicts in a vectorized way, we use `kd.dict(key_ds, value_ds)`.
+
+```py
+kd.dict(kd.item(1), kd.item(2))  # Dict{1=2}
+kd.dict(kd.slice([1]), kd.slice([2]))  # Dict{1=2}
+kd.dict(kd.slice([1, 2]), kd.slice([3, 4]))  # Dict{1=3, 2=4}
+kd.dict(kd.slice([[1, 2], [3]]), kd.slice([5, 6])) # [Dict{2=5, 1=5}, Dict{3=6}]
+```
+
 ## Check if a DataSlice is a Primitive/Entity/List/Dict DataSlice
 
 `kd.is_primitive(ds)`, `kd.is_entity(ds)`, `kd.is_list(ds)` and `kd.is_dict(ds)`
