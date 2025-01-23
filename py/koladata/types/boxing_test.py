@@ -272,8 +272,8 @@ class BoxingTest(parameterized.TestCase):
         exceptions.KodaError,
         r"""cannot find a common schema for provided schemas
 
- the common schema\(s\) [0-9a-f]{32}:0: SCHEMA\(x=INT32\)
- the first conflicting schema [0-9a-f]{32}:0: SCHEMA\(\)""",
+ the common schema\(s\) Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(x=INT32\)
+ the first conflicting schema Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
     ):
       ds([db.new(x=1), db.new()])
 
@@ -282,7 +282,7 @@ class BoxingTest(parameterized.TestCase):
         r"""cannot find a common schema for provided schemas
 
  the common schema\(s\) OBJECT: OBJECT
- the first conflicting schema [0-9a-f]{32}:0: SCHEMA\(\)""",
+ the first conflicting schema Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
     ):
       ds([1, 'a', db.new()])
 
@@ -291,7 +291,7 @@ class BoxingTest(parameterized.TestCase):
         r"""cannot find a common schema for provided schemas
 
  the common schema\(s\) OBJECT: OBJECT
- the first conflicting schema [0-9a-f]{32}:0: SCHEMA\(\)""",
+ the first conflicting schema Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
     ):
       ds([db.new(), 1, 'a'])
 
@@ -299,8 +299,8 @@ class BoxingTest(parameterized.TestCase):
         exceptions.KodaError,
         r"""cannot find a common schema for provided schemas
 
- the common schema\(s\) [0-9a-f]{32}:0: SCHEMA\(\)
- the first conflicting schema [0-9a-f]{32}:0: SCHEMA\(\)""",
+ the common schema\(s\) Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)
+ the first conflicting schema Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
     ):
       ds([db.new(), 1, 'a', db.new()])
 

@@ -549,17 +549,20 @@ TEST(ObjectIdTest, TypedValueRepr) {
   AllocationId alloc_id = Allocate(1024);
   std::string repr0 =
       arolla::TypedValue::FromValue(alloc_id.ObjectByOffset(0)).Repr();
-  EXPECT_THAT(repr0, testing::MatchesRegex(R"regexp([a-f0-9]*.000)regexp"));
   std::string repr1 =
-      arolla::TypedValue::FromValue(alloc_id.ObjectByOffset(10)).Repr();
-  EXPECT_THAT(repr1, testing::MatchesRegex(R"regexp([a-f0-9]*.00a)regexp"));
-  std::string repr2 = absl::StrCat(alloc_id.ObjectByOffset(0xff));
-  EXPECT_THAT(repr2, testing::MatchesRegex(R"regexp([a-f0-9]*.0ff)regexp"));
+      arolla::TypedValue::FromValue(alloc_id.ObjectByOffset(1)).Repr();
+  std::string repr2 =
+      arolla::TypedValue::FromValue(alloc_id.ObjectByOffset(2)).Repr();
 
   EXPECT_NE(repr0, repr1);
-  // All but last digit (in base 16) should be the same.
-  EXPECT_EQ(repr0.substr(0, repr0.size() - 1),
-            repr1.substr(0, repr1.size() - 1));
+  // Test that consecutive ids have a common prefix, i.e. all but the last
+  // digit. It can happen that consecutive ids do not have this common prefix
+  // when there is carry-over, but in that case the next consecutive pair should
+  // have this prefix.
+  EXPECT_TRUE(
+      (repr0.substr(0, repr0.size() - 1) ==
+       repr1.substr(0, repr1.size() - 1)) ||
+      (repr1.substr(0, repr1.size() - 1) == repr2.substr(0, repr2.size() - 1)));
 }
 
 TEST(ObjectIdTest, AbslHash) {
@@ -742,18 +745,6 @@ TEST(ObjectIdTest, AllocationIdSetUnionSmall) {
     EXPECT_TRUE(id_set.contains_small_allocation_id());
     id_set.Insert(id_set1);
     EXPECT_TRUE(id_set.contains_small_allocation_id());
-  }
-}
-
-TEST(ObjectIdTest, ObjectIdDebugStringFormatBoundaryCondition) {
-  EXPECT_THAT(Allocate(0).ObjectByOffset(0).DebugString(),
-              MatchesRegex(R"regex([0-9a-f]{32}:0)regex"));
-
-  for (size_t i = 1; i <= 10; i++) {
-    AllocationId alloc_id = Allocate(1ull << (i * 4));
-    EXPECT_THAT(alloc_id.ObjectByOffset((1ull << (i * 4)) - 1).DebugString(),
-                MatchesRegex(absl::StrFormat(
-                    R"regex([0-9a-f]{%d}:[f]{%d})regex", (32 - i), i)));
   }
 }
 

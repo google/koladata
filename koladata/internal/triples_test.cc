@@ -36,16 +36,17 @@ TEST(TriplesTest, TripleDebugString) {
   ObjectId obj = Allocate(15).ObjectByOffset(3);
   ObjectId dict = AllocateDicts(15).ObjectByOffset(3);
   ObjectId schema = AllocateExplicitSchema();
-  EXPECT_THAT(
-      (AttrTriple{obj, "a", DataItem(1)}).DebugString(),
-      ::testing::MatchesRegex("ObjectId=[0-9a-f]{31}:3 attr=a value=1"));
+  EXPECT_THAT((AttrTriple{obj, "a", DataItem(1)}).DebugString(),
+              ::testing::MatchesRegex(
+                  "ObjectId=Entity:\\$[0-9a-zA-Z]{22} attr=a value=1"));
   EXPECT_THAT((DictItemTriple{dict, DataItem(arolla::Text("a")), DataItem(1)})
                   .DebugString(),
-              ::testing::MatchesRegex("DictId=[0-9a-f]{31}:3 key='a' value=1"));
-  EXPECT_THAT(
-      (DictItemTriple{schema, DataItem(arolla::Text("a")), DataItem(1)})
-          .DebugString(),
-      ::testing::MatchesRegex("SchemaId=[0-9a-f]{32}:0 key='a' value=1"));
+              ::testing::MatchesRegex(
+                  "DictId=Dict:\\$[0-9a-zA-Z]{22} key='a' value=1"));
+  EXPECT_THAT((DictItemTriple{schema, DataItem(arolla::Text("a")), DataItem(1)})
+                  .DebugString(),
+              ::testing::MatchesRegex(
+                  "SchemaId=Schema:\\$[0-9a-zA-Z]{22} key='a' value=1"));
 }
 
 TEST(TriplesTest, SimpleAttr) {
@@ -60,11 +61,11 @@ TEST(TriplesTest, SimpleAttr) {
   ASSERT_OK(db->SetAttr(DataItem(obj2), "d", DataItem()));
 
   EXPECT_EQ(Triples(*db->ExtractContent()).DebugString(), R"DB(DataBag {
-  ObjectId=04000000000000010000000000000000:0 attr=a value=04000000000000020000000000000000:0
-  ObjectId=04000000000000010000000000000000:0 attr=c value='aaa'
-  ObjectId=04000000000000020000000000000000:0 attr=b value=5
-  ObjectId=04000000000000020000000000000000:0 attr=c value=b'bbb'
-  ObjectId=04000000000000020000000000000000:0 attr=d value=None
+  ObjectId=Entity:#07Xy61DuGvoVPxWFT5JFKK attr=a value=Entity:#07Xy61DuGvorOdnpUBTWsa
+  ObjectId=Entity:#07Xy61DuGvoVPxWFT5JFKK attr=c value='aaa'
+  ObjectId=Entity:#07Xy61DuGvorOdnpUBTWsa attr=b value=5
+  ObjectId=Entity:#07Xy61DuGvorOdnpUBTWsa attr=c value=b'bbb'
+  ObjectId=Entity:#07Xy61DuGvorOdnpUBTWsa attr=d value=None
 })DB");
 }
 
@@ -86,8 +87,8 @@ TEST(TriplesTest, SimpleDict) {
 
   EXPECT_THAT(Triples(*db->ExtractContent(index)).DebugString(),
               ::testing::MatchesRegex(R"DB(DataBag \{
-  DictId=[0-9a-f]+:0 key=1 value=2
-  DictId=[0-9a-f]+:0 key=3 value=4
+  DictId=Dict:\$[0-9a-zA-Z]{22} key=1 value=2
+  DictId=Dict:\$[0-9a-zA-Z]{22} key=3 value=4
 \})DB"));
 
   EXPECT_THAT(db, DataBagEqual(db));
@@ -105,8 +106,8 @@ TEST(TriplesTest, SimpleList) {
             "DataBag {\n}");
   EXPECT_THAT(Triples(*db->ExtractContent()).DebugString(),
               ::testing::MatchesRegex(R"DB(DataBag \{
-  ListId=[0-9a-f]+:0 \[5, 3\]
-  ListId=[0-9a-f]+:0 \[4\]
+  ListId=List:\$[0-9a-zA-Z]{22} \[5, 3\]
+  ListId=List:\$[0-9a-zA-Z]{22} \[4\]
 \})DB"));
   EXPECT_THAT(db, DataBagEqual(db));
   EXPECT_THAT(db, Not(DataBagEqual(DataBagImpl::CreateEmptyDatabag())));

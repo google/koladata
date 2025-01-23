@@ -57,6 +57,10 @@ ObjectId ObjectId::NoFollowObjectSchemaId() {
   return id;
 }
 
+std::string ObjectId::DebugString() const {
+  return ObjectIdStr(*this, /*show_flag_prefix=*/true);
+}
+
 bool AllocationIdSet::InsertBigAllocationSlow(AllocationId id) {
   if (auto it = std::lower_bound(ids_.begin(), ids_.end(), id);
       it == ids_.end() || *it != id) {

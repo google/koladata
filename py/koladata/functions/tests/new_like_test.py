@@ -338,7 +338,7 @@ schema.a = <desired_schema>"""
         exceptions.KodaError,
         r"""cannot create Item\(s\)
 
-The cause is: conflicting values for x for [0-9a-z]{32}:0: 1 vs 2""",
+The cause is: conflicting values for x for Entity:#[0-9a-zA-Z]{22}: 1 vs 2""",
     ):
       db1.new_like(ds([1, 2, 3]), y=b)
 

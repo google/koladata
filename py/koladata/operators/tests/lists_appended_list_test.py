@@ -144,8 +144,8 @@ class KodaAppendedListTest(parameterized.TestCase):
     e.set_attr('a', 2)
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.lists.appended_list: conflicting values for a for [0-9a-z:]*: 1'
-        ' vs 2',
+        'kd.lists.appended_list: conflicting values for a for'
+        ' Entity:#[0-9a-zA-Z]{22}: 1 vs 2',
     ):
       _ = expr_eval.eval(kde.lists.appended_list(lst, e))
 

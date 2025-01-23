@@ -119,16 +119,7 @@ class ObjectId {
 
   // Returns the string representation of the object id.
   // Format: <allocator_id><allocation id>.<offset>
-  std::string DebugString() const {
-    auto bits2hex_width = [](size_t bit_width) {
-      return bit_width == 0 ? absl::kNoPad
-                            : absl::PadSpec((bit_width - 1) / 4 + 1);
-    };
-    return absl::StrCat(
-        absl::Hex(InternalHigh64(), absl::kZeroPad16),
-        absl::Hex(id_ >> offset_bits_, bits2hex_width(64 - offset_bits_)), ":",
-        absl::Hex(Offset(), bits2hex_width(offset_bits_)));
-  }
+  std::string DebugString() const;
 
   friend std::ostream& operator<<(std::ostream& os, const ObjectId& obj) {
     os << absl::StrCat(obj.DebugString());
