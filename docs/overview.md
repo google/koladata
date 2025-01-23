@@ -1049,8 +1049,8 @@ d = kd.dict()  # immutable
 d = d.fork_bag()  # mutable
 for i in range(100):
   # Insert random x=>y mappings (10 at a time)
-  k = kd.random.randint_shaped(kd.shapes.create(10))
-  v = kd.random.randint_shaped(kd.shapes.create(10))
+  k = kd.random.randint_shaped(kd.shapes.new(10))
+  v = kd.random.randint_shaped(kd.shapes.new(10))
   d[k] = v
 d = d.freeze_bag()  # immutable
 
