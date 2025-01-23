@@ -645,7 +645,9 @@ TEST(DataBagTest, SetGetWithFallbackPrimitive) {
 TEST(DataBagTest, SetGetManyAllocations) {
   auto db = DataBagImpl::CreateEmptyDatabag();
 
-  for (size_t size : {1, 2, 4, 17, 126, 1034, 5234}) {
+  // We use big size to test that there is no quadratic complexity in the
+  // implementation.
+  for (size_t size : {1, 2, 4, 17, 126, 1034, 5234, 190359}) {
     std::vector<DataItem> objs;
     objs.reserve(size);
     std::vector<DataItem> values;
