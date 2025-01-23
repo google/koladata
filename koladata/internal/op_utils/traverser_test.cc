@@ -27,6 +27,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_bag.h"
@@ -140,6 +141,10 @@ class NoOpVisitor : AbstractVisitor {
       : previsited_(), value_item_(DataItem("get value result")) {}
 
   absl::Status Previsit(const DataItem& item, const DataItem& schema) override {
+    if (!schema.is_schema()) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("%v is not a schema", schema));
+    }
     previsited_.push_back({item, schema});
     return absl::OkStatus();
   }
@@ -537,6 +542,35 @@ TEST_P(NoOpTraverserTest, SchemaSlice) {
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
   EXPECT_OK(TraverseSlice(ds, DataItem(schema::kSchema), *GetMainDb(db),
+                          {GetFallbackDb(db).get()}));
+}
+
+TEST_P(NoOpTraverserTest, SliceWithNamedSchema) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto int_dtype = DataItem(schema::kInt32);
+  auto schema = AllocateSchema();
+  ASSERT_OK_AND_ASSIGN(auto named_schema,
+                       db->CreateUuSchemaFromFields(
+                           absl::StrCat("__named_schema__", "foo"), {}, {}));
+  TriplesT schema_triples = {
+      {schema, {{"x", int_dtype}, {"y", int_dtype}}},
+      {named_schema,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("foo"))},
+        {"x", DataItem(schema)},
+        {"y", int_dtype}}}};
+  TriplesT data_triples = {{a0, {{"x", a1}, {"y", DataItem(1)}}},
+                           {a1, {{"x", DataItem(2)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+
+  auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({a0}));
+  EXPECT_OK(TraverseSlice(ds, DataItem(named_schema), *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
 }
 

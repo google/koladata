@@ -285,6 +285,9 @@ class Traverser {
           if (!status.ok()) {
             return;
           }
+          if (attr_name == schema::kSchemaNameAttr) {
+            return;
+          }
           status = PrevisitAttribute(item, attr_name);
         });
     return status;
@@ -339,8 +342,11 @@ class Traverser {
             status = attr_schema_or.status();
             return;
           }
+          auto schema_dtype = (attr_name == schema::kSchemaNameAttr)
+                                  ? schema::kString
+                                  : schema::kSchema;
           status = Previsit(
-              {.item = *attr_schema_or, .schema = DataItem(schema::kSchema)});
+              {.item = *attr_schema_or, .schema = DataItem(schema_dtype)});
         });
     return status;
   }
@@ -459,12 +465,15 @@ class Traverser {
         return;
       }
       auto attr_schema = *attr_schema_or;
-      if (!attr_schema.is_schema()) {
+      DataItem attr_schema_schema = DataItem(schema::kSchema);
+      if (attr_name == schema::kSchemaNameAttr) {
+        attr_schema_schema = DataItem(schema::kString);
+      } else if (!attr_schema.is_schema()) {
         status = absl::InvalidArgumentError(absl::StrFormat(
             "schema %v has unexpected attribute %s", schema, attr_name));
         return;
       }
-      auto attr_value_or = GetValue(attr_schema, DataItem(schema::kSchema));
+      auto attr_value_or = GetValue(attr_schema, attr_schema_schema);
       if (!attr_value_or.ok()) {
         status = attr_value_or.status();
         return;
@@ -538,11 +547,17 @@ class Traverser {
       return VisitDict(item, is_object);
     }
     arolla::DenseArrayBuilder<DataItem> attr_values(attr_names.size());
+    arolla::DenseArrayBuilder<arolla::Text> actual_attr_names(
+        attr_names.size());
     absl::Status status = absl::OkStatus();
+    size_t attr_count = 0;
     attr_names.ForEach([&](int64_t id, bool presence,
                            std::string_view attr_name) {
       DCHECK(presence);
       if (!status.ok()) {
+        return;
+      }
+      if (attr_name == schema::kSchemaNameAttr) {
         return;
       }
       auto attr_item_or = databag_.GetAttr(item.item, attr_name, fallbacks_);
@@ -561,14 +576,17 @@ class Traverser {
         status = value_or.status();
         return;
       }
-      attr_values.Set(id, *value_or);
+      attr_values.Set(attr_count, *value_or);
+      actual_attr_names.Set(attr_count, attr_name);
+      ++attr_count;
     });
     if (!status.ok()) {
       return status;
     }
-    return visitor_->VisitorT::VisitObject(item.item, item.schema, is_object,
-                                            attr_names,
-                                            std::move(attr_values).Build());
+    return visitor_->VisitorT::VisitObject(
+        item.item, item.schema, is_object,
+        std::move(actual_attr_names).Build(attr_count),
+        std::move(attr_values).Build(attr_count));
   }
 
   absl::Status VisitObject(const ItemWithSchema& item) {

@@ -157,6 +157,20 @@ class CoreDeepCloneTest(parameterized.TestCase):
   @parameterized.product(
       pass_schema=[True, False],
   )
+  def test_named_schema(self, pass_schema):
+    db = data_bag.DataBag.empty()
+    schema = db.named_schema('foo', x=schema_constants.INT32)
+    o = db.new(x=ds([1, 2, 3]), schema=schema)
+    if pass_schema:
+      result = expr_eval.eval(kde.deep_clone(o, schema))
+    else:
+      result = expr_eval.eval(kde.deep_clone(o))
+    testing.assert_equal(result.get_schema().no_bag(), schema.no_bag())
+    testing.assert_equal(result.x.no_bag(), ds([1, 2, 3]))
+
+  @parameterized.product(
+      pass_schema=[True, False],
+  )
   def test_clone_only_reachable(self, pass_schema):
     db = data_bag.DataBag.empty()
     fb = data_bag.DataBag.empty()
