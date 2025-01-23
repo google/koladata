@@ -41,8 +41,7 @@ production (i.e. C++ environments).
 *   **Zoom in on your data**: utilize **data views, updates, overlays,
     versions**, including when working with **large data sources**, and use only
     parts of the data needed at the moment.
-*   **Performance**: computation is vectorized and performed in highly optimized
-    C++.
+*   **Performance**: computation is vectorized and performed in optimized C++.
 *   **Evaluate in distributed environment or serve in production**: convert
     evaluation logic into **computational graphs**
     (ASTs) that can be introspected, optimized then evaluated in distributed

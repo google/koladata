@@ -367,9 +367,7 @@ The **size** of a DataSlice is the number of items including
 #### Sparsity {#sparsity}
 
 DataSlice can be **sparse**, which means some items in the DataSlice are
-**missing**. Sparsity is supported natively[^1].
-
-[^1]: very sparse case has not been highly optimized yet.
+**missing**. Sparsity is supported natively.
 
 #### Stub {#stub}
 
