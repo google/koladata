@@ -1535,8 +1535,11 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
-  ASSIGN_OR_RETURN(DataSlice indices_int64,
-                   CastToNarrow(indices, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(
+      DataSlice indices_int64,
+      CastToNarrow(indices, internal::DataItem(schema::kInt64)),
+      internal::KodaErrorFromCause(
+          "cannot get items from list(s): expected indices to be integers", _));
   ASSIGN_OR_RETURN(auto expanded_indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
@@ -1727,8 +1730,11 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
-  ASSIGN_OR_RETURN(DataSlice indices_int64,
-                   CastToNarrow(indices, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(
+      DataSlice indices_int64,
+      CastToNarrow(indices, internal::DataItem(schema::kInt64)),
+      internal::KodaErrorFromCause(
+          "cannot set items from list(s): expected indices to be integers", _));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }
@@ -1816,8 +1822,12 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
   // Note: expanding `this` has an overhead. In future we can try to optimize
   // it.
   ASSIGN_OR_RETURN(auto expanded_this, BroadcastToShape(*this, shape));
-  ASSIGN_OR_RETURN(DataSlice indices_int64,
-                   CastToNarrow(indices, internal::DataItem(schema::kInt64)));
+  ASSIGN_OR_RETURN(
+      DataSlice indices_int64,
+      CastToNarrow(indices, internal::DataItem(schema::kInt64)),
+      internal::KodaErrorFromCause(
+          "cannot remove items from list(s): expected indices to be integers",
+          _));
   if (indices_int64.present_count() == 0) {
     return absl::OkStatus();
   }

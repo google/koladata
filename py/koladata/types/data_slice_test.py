@@ -2681,11 +2681,21 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
         ds(None, schema_constants.INT32).with_bag(db),
     )
     with self.assertRaisesRegex(
-        ValueError, 'unsupported narrowing cast to INT64'
+        exceptions.KodaError,
+        re.escape(
+            """cannot get items from list(s): expected indices to be integers
+
+The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice"""
+        ),
     ):
       _ = (db.list() & ds(None))['abc']
     with self.assertRaisesRegex(
-        ValueError, 'unsupported narrowing cast to INT64'
+        exceptions.KodaError,
+        re.escape(
+            """cannot set items from list(s): expected indices to be integers
+
+The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice"""
+        ),
     ):
       (db.list() & ds(None))['abc'] = 42
 
@@ -2725,6 +2735,15 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
         ValueError, 'passing a Python list/tuple.*is ambiguous'
     ):
       del lst[[1, 2]]
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            r"""cannot remove items from list(s): expected indices to be integers
+
+The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice"""
+        ),
+    ):
+      del lst['a']
 
   def test_dict_subscript_key_error(self):
     dct = bag().dict({'a': 42})
