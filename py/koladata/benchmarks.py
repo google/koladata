@@ -269,7 +269,7 @@ def get_attr_native(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['size'])
 @google_benchmark.option.range(100, 10000)
-def get_attr_one_obj_per_big_alloc(state):
+def set_get_attr_one_obj_per_big_alloc(state):
   size = state.range(0)
   alloc_size = 17
   objs = []
@@ -277,9 +277,9 @@ def get_attr_one_obj_per_big_alloc(state):
   for i in range(size):
     obj = schema(a=kd.slice([i] * alloc_size))
     objs.append(obj.S[0])
-  ds = kd.slice(objs)
+  ds = kd.slice(objs).fork_bag()
   while state:
-    _ = ds.a
+    ds.a = ds.a + 1
 
 
 @google_benchmark.register
