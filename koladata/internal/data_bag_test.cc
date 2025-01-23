@@ -642,6 +642,26 @@ TEST(DataBagTest, SetGetWithFallbackPrimitive) {
   }
 }
 
+TEST(DataBagTest, SetGetManyAllocations) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  for (size_t size : {1, 2, 4, 17, 126, 1034, 5234}) {
+    std::vector<DataItem> objs;
+    objs.reserve(size);
+    std::vector<DataItem> values;
+    values.reserve(size);
+    for (int64_t i = 0; i < static_cast<int64_t>(size); ++i) {
+      objs.push_back(DataItem(Allocate(37 * size).ObjectByOffset(i)));
+      values.push_back(DataItem(i * 17));
+    }
+    ASSERT_OK(db->SetAttr(DataSliceImpl::Create(objs), "a",
+                          DataSliceImpl::Create(values)));
+    ASSERT_OK_AND_ASSIGN(auto ds_a,
+                         db->GetAttr(DataSliceImpl::Create(objs), "a"));
+    EXPECT_THAT(ds_a, ElementsAreArray(values));
+  }
+}
+
 TEST(DataBagTest, SetGetWithFallbackPrimitiveMixedType) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto db_f = DataBagImpl::CreateEmptyDatabag();

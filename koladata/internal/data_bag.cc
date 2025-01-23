@@ -78,6 +78,13 @@ ABSL_CONST_INIT const DataList kEmptyList;
 using DenseSourceSpan = absl::Span<const DenseSource* const>;
 using SparseSourceSpan = absl::Span<const SparseSource* const>;
 
+bool HasTooManyAllocationIds(size_t allocation_id_count, size_t obj_count) {
+  static constexpr int64_t kAllowedAllocsForBatchLookup = 5;
+  return allocation_id_count > kAllowedAllocsForBatchLookup &&
+         // Too many allocations if allocation_id_count > 2 * log2(obj_count).
+         (allocation_id_count / 2 >= sizeof(size_t) * 8 ||
+          (size_t{1} << (allocation_id_count / 2)) > obj_count);
+}
 
 absl::StatusOr<DataSliceImpl> GetAttributeFromSources(
     const DataSliceImpl& slice, DenseSourceSpan dense_sources,
@@ -516,12 +523,33 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
     return res;
   };
 
+  bool has_too_many_allocs = HasTooManyAllocationIds(
+      objects.allocation_ids().size(), objs_span.size());
+
   std::optional<SliceBuilder> bldr;
-  if (with_removed) {
+  if (with_removed || has_too_many_allocs) {
     bldr.emplace(objs.size());
     bldr->ApplyMask(objs.ToMask());
   }
+
   for (const DataBagImpl* db = this; db != nullptr; db = next_fallback()) {
+    if (has_too_many_allocs) {
+      DCHECK(bldr.has_value());
+      for (size_t i = 0; i < objs_span.size(); ++i) {
+        if (bldr->IsSet(i)) {
+          continue;
+        }
+        if (auto item = db->LookupAttrInDataSourcesMap(objs_span[i], attr);
+            item.has_value()) {
+          bldr->InsertIfNotSetAndUpdateAllocIds(i, std::move(*item));
+        }
+      }
+      if (bldr->is_finalized()) {
+        break;
+      }
+      continue;
+    }
+
     ConstDenseSourceArray dense_sources;
     ConstSparseSourceArray sparse_sources;
     if (objects.allocation_ids().contains_small_allocation_id()) {
