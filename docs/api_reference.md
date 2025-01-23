@@ -968,7 +968,7 @@ Returns:
   copied by reference.
 ```
 
-### `kd.core.stub(x, attrs=DataSlice([], schema: OBJECT, ndims: 1, size: 0))` {#kd.core.stub}
+### `kd.core.stub(x, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#kd.core.stub}
 Aliases:
 
 - [kd.stub](#kd.stub)
@@ -2262,6 +2262,25 @@ Operators working with lists.
 <section class="zippy closed">
 
 **Operators**
+
+### `kd.lists.appended_list(x, append)` {#kd.lists.appended_list}
+Aliases:
+
+- [kd.appended_list](#kd.appended_list)
+
+``` {.no-copy}
+Concatenates elements in `append` to the end of each list in `x`.
+
+`x` and `append` should have compatible shapes, i.e. one can be broadcasted
+to the other.
+
+Args:
+  x: DataSlice of lists.
+  append: DataSlice of lists.
+
+Returns:
+  DataSlice of lists with a in a new immutable Databag.
+```
 
 ### `kd.lists.concat(*lists, db=None)` {#kd.lists.concat}
 Aliases:
@@ -6955,6 +6974,10 @@ Alias for [kd.masking.all](#kd.masking.all) operator.
 
 Alias for [kd.masking.any](#kd.masking.any) operator.
 
+### `kd.appended_list(x, append)` {#kd.appended_list}
+
+Alias for [kd.lists.appended_list](#kd.lists.appended_list) operator.
+
 ### `kd.apply_mask(x, y)` {#kd.apply_mask}
 
 Alias for [kd.masking.apply_mask](#kd.masking.apply_mask) operator.
@@ -8019,7 +8042,7 @@ Alias for [kd.slices.stack](#kd.slices.stack) operator.
 
 Alias for [kd.slices.str](#kd.slices.str) operator.
 
-### `kd.stub(x, attrs=DataSlice([], schema: OBJECT, ndims: 1, size: 0))` {#kd.stub}
+### `kd.stub(x, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#kd.stub}
 
 Alias for [kd.core.stub](#kd.core.stub) operator.
 
@@ -8705,7 +8728,7 @@ Args:
 ### `DataSlice.display(self, num_items=48, detail_width=None, detail_height=300)` {#DataSlice.display}
 
 ``` {.no-copy}
-Visualizes a DataSlice as a html widget.
+Visualizes a DataSlice as an html widget.
 ```
 
 ### `DataSlice.embed_schema()` {#DataSlice.embed_schema}
@@ -9167,27 +9190,10 @@ structure will contain DataItems.
 Returns present iff this DataSlice is ANY Schema.
 ```
 
-### `DataSlice.internal_is_compliant_attr_name` {#DataSlice.internal_is_compliant_attr_name}
-
-``` {.no-copy}
-Returns true iff `attr_name` can be accessed through `getattr(slice, attr_name)`.
-```
-
 ### `DataSlice.internal_is_itemid_schema()` {#DataSlice.internal_is_itemid_schema}
 
 ``` {.no-copy}
 Returns present iff this DataSlice is ITEMID Schema.
-```
-
-### `DataSlice.internal_register_reserved_class_method_name` {#DataSlice.internal_register_reserved_class_method_name}
-
-``` {.no-copy}
-Registers a name to be reserved as a method of the DataSlice class.
-
-You must call this when adding new methods to the class in Python.
-
-Args:
-  method_name: (str)
 ```
 
 ### `DataSlice.is_dict()` {#DataSlice.is_dict}
@@ -9534,7 +9540,7 @@ Returns:
   copied by reference.
 ```
 
-### `DataSlice.stub(self, attrs=DataSlice([], schema: OBJECT, ndims: 1, size: 0))` {#DataSlice.stub}
+### `DataSlice.stub(self, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#DataSlice.stub}
 
 ``` {.no-copy}
 Copies a DataSlice's schema stub to a new DataBag.
