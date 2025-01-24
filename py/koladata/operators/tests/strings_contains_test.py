@@ -124,8 +124,8 @@ class StringsContainsTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.strings.contains: argument `substr` must be a slice of either'
-        ' STRING or BYTES, got a slice of OBJECT with items of types INT32,'
-        ' STRING',
+        ' STRING or BYTES, got a slice of OBJECT containing INT32 and STRING'
+        ' values',
     ):
       expr_eval.eval(kde.strings.contains(ds('foo'), ds([1, 'fo'])))
 

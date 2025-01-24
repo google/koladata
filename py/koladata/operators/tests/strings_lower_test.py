@@ -103,7 +103,7 @@ class StringsLowerTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.strings.lower: argument `x` must be a slice of STRING, got a slice'
-        ' of OBJECT with items of types',
+        ' of OBJECT containing BYTES and STRING values',
     ):
       expr_eval.eval(kde.strings.lower(I.x), x=x)
 

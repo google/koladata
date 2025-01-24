@@ -116,7 +116,7 @@ class StringsDecodeBase64Test(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         exceptions.KodaError,
         'kd.strings.decode_base64: argument `x` must be a slice of either'
-        ' STRING or BYTES, got a slice of OBJECT with an item of type INT32',
+        ' STRING or BYTES, got a slice of OBJECT containing INT32 values',
     ):
       _ = kde.strings.decode_base64(ds(1, schema_constants.OBJECT)).eval()
 

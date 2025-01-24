@@ -132,8 +132,8 @@ class ComparisonFullEqualTest(parameterized.TestCase):
         exceptions.KodaError,
         re.escape(
             'kd.comparison.equal: arguments `x` and `y` must contain values'
-            ' castable to a common type, got SCHEMA(x=INT32) and OBJECT with an'
-            ' item of type ITEMID'
+            ' castable to a common type, got SCHEMA(x=INT32) and OBJECT'
+            ' containing non-primitive values'
         ),
     ):
       expr_eval.eval(kde.comparison.full_equal(db.new(x=1), db.obj()))

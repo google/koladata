@@ -129,7 +129,7 @@ class StringsCountTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.strings.count: argument `substr` must be a slice of either STRING'
-        ' or BYTES, got a slice of OBJECT with items of types',
+        ' or BYTES, got a slice of OBJECT containing INT32 and STRING values',
     ):
       expr_eval.eval(kde.strings.count(ds('foo'), ds([1, 'fo'])))
 

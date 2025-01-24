@@ -100,7 +100,7 @@ class StringsLengthTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.strings.length: argument `x` must be a slice of either STRING or'
-        ' BYTES, got a slice of OBJECT with items of types',
+        ' BYTES, got a slice of OBJECT containing BYTES and STRING values',
     ):
       expr_eval.eval(kde.strings.length(I.x), x=x)
 

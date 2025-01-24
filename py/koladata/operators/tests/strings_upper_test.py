@@ -107,7 +107,7 @@ class StringsUpperTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.strings.upper: argument `x` must be a slice of STRING, got a slice'
-        ' of OBJECT with items of types',
+        ' of OBJECT containing BYTES and STRING values',
     ):
       expr_eval.eval(kde.strings.upper(I.x), x=x)
 

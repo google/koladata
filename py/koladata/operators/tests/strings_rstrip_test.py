@@ -187,7 +187,7 @@ class StringsRstripTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.strings.rstrip: argument `chars` must be a slice of either STRING'
-        ' or BYTES, got a slice of OBJECT with items of types',
+        ' or BYTES, got a slice of OBJECT containing INT32 and STRING values',
     ):
       expr_eval.eval(kde.strings.rstrip(ds('foo'), ds(['fo', 123])))
 

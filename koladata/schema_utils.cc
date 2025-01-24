@@ -49,7 +49,7 @@ constexpr absl::string_view DTypeName() {
   if constexpr (std::is_same_v<T, koladata::internal::ObjectId>) {
     // NOTE: internal::ObjectId can also mean OBJECT or SCHEMA, but for now we
     // decided to disambiguate it in the error messages.
-    return "ITEMID";
+    return "non-primitive";
   } else if constexpr (std::is_same_v<T, koladata::schema::DType>) {
     return "DTYPE";
   } else {
@@ -67,6 +67,18 @@ absl::Status ExpectNoneOr(schema::DType dtype, absl::string_view arg_name,
         dtype, schema_utils_internal::DescribeSliceSchema(arg)));
   }
   return absl::OkStatus();
+}
+
+// Returns a simple description of the slice schema. Note that OBJECT and ANY
+// schemas are opaque and the contents (e.g. __schema__) are _not_ included.
+std::string SimpleDescribeSliceSchema(const DataSlice& slice) {
+  absl::StatusOr<std::string> schema_str = DataSliceToStr(slice.GetSchema());
+  // NOTE: schema_str might be always ok(). I don't know a breaking
+  // scenario, so adding the "if" just in case.
+  if (!schema_str.ok()) {
+    schema_str = absl::StrCat(slice.GetSchemaImpl());
+  }
+  return *std::move(schema_str);
 }
 
 }  // namespace
@@ -185,10 +197,7 @@ namespace schema_utils_internal {
 std::string DescribeSliceSchema(const DataSlice& slice) {
   if (slice.GetSchemaImpl() == schema::kObject ||
       slice.GetSchemaImpl() == schema::kAny) {
-    std::string result =
-        absl::StrCat(slice.GetSchemaImpl(), " with ",
-                     slice.size() == 1 ? "an item" : "items", " of ",
-                     slice.impl_has_mixed_dtype() ? "types" : "type", " ");
+    std::string result = absl::StrCat(slice.GetSchemaImpl(), " containing ");
     slice.VisitImpl(absl::Overload(
         [&](const internal::DataItem& impl) {
           impl.VisitValue([&]<typename T>(const T& value) {
@@ -201,18 +210,24 @@ std::string DescribeSliceSchema(const DataSlice& slice) {
           impl.VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
             type_names.push_back(DTypeName<T>());
           });
-          std::sort(type_names.begin(), type_names.end());
-          absl::StrAppend(&result, absl::StrJoin(type_names, ", "));
+          if (type_names.empty()) {
+            absl::StrAppend(&result, schema::kNone.name());
+          } else if (type_names.size() == 1) {
+            absl::StrAppend(&result, type_names[0]);
+          } else {
+            std::sort(type_names.begin(), type_names.end());
+            absl::StrAppend(
+                &result,
+                absl::StrJoin(absl::MakeConstSpan(type_names)
+                                  .subspan(0, type_names.size() - 1),
+                              ", "),
+                " and ", type_names.back());
+          }
         }));
+    absl::StrAppend(&result, " values");
     return result;
   } else {
-    absl::StatusOr<std::string> schema_str = DataSliceToStr(slice.GetSchema());
-    // NOTE: schema_str might be always ok(). I don't know a breaking
-    // scenario, so adding the "if" just in case.
-    if (!schema_str.ok()) {
-      schema_str = absl::StrCat(slice.GetSchemaImpl());
-    }
-    return *std::move(schema_str);
+    return SimpleDescribeSliceSchema(slice);
   }
 }
 

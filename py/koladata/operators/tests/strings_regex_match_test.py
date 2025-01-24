@@ -112,7 +112,7 @@ class StringsRegexMatchTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.strings.regex_match: argument `text` must be a slice of STRING, got'
-        ' a slice of OBJECT with items of types',
+        ' a slice of OBJECT containing INT32 and STRING values',
     ):
       expr_eval.eval(kde.strings.regex_match(ds([1, 'fo']), ds('foo')))
 

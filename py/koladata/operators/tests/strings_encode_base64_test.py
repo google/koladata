@@ -70,7 +70,7 @@ class StringsEncodeBase64Test(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         exceptions.KodaError,
         'kd.strings.encode_base64: argument `x` must be a slice of BYTES, got a'
-        ' slice of OBJECT with an item of type STRING',
+        ' slice of OBJECT containing STRING values',
     ):
       _ = kde.strings.encode_base64(ds('a', schema_constants.OBJECT)).eval()
 

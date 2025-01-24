@@ -217,7 +217,8 @@ class StringsReplaceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.strings.replace: argument `old_substr` must be a slice of either'
-        ' STRING or BYTES, got a slice of OBJECT with items of types',
+        ' STRING or BYTES, got a slice of OBJECT containing INT32 and STRING'
+        ' values',
     ):
       expr_eval.eval(kde.strings.replace(ds('foo'), ds([1, 'fo']), ds('bar')))
 

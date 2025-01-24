@@ -223,8 +223,8 @@ class MathAddTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.math.add: arguments `x` and `y` must contain values castable to a'
-        ' common primitive type, got INT32 and OBJECT with items of types'
-        ' INT32, STRING',
+        ' common primitive type, got INT32 and OBJECT containing INT32 and'
+        ' STRING values',
     ):
       expr_eval.eval(kde.math.add(I.x, I.z), x=x, z=z)
 
