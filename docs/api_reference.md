@@ -879,19 +879,11 @@ A shortcut for kd.get_attr(x, attr_name, default=None).
 ### `kd.core.no_bag(ds)` {#kd.core.no_bag}
 Aliases:
 
-- [kd.core.no_db](#kd.core.no_db)
-
 - [kd.no_bag](#kd.no_bag)
-
-- [kd.no_db](#kd.no_db)
 
 ``` {.no-copy}
 Returns DataSlice without any DataBag attached.
 ```
-
-### `kd.core.no_db(ds)` {#kd.core.no_db}
-
-Alias for [kd.core.no_bag](#kd.core.no_bag) operator.
 
 ### `kd.core.nofollow(x)` {#kd.core.nofollow}
 Aliases:
@@ -1047,19 +1039,11 @@ Returns a DataSlice with a new DataBag containing updated attributes.
 ### `kd.core.with_bag(ds, bag)` {#kd.core.with_bag}
 Aliases:
 
-- [kd.core.with_db](#kd.core.with_db)
-
 - [kd.with_bag](#kd.with_bag)
-
-- [kd.with_db](#kd.with_db)
 
 ``` {.no-copy}
 Returns a DataSlice with the given DataBatg attached.
 ```
-
-### `kd.core.with_db(ds, bag)` {#kd.core.with_db}
-
-Alias for [kd.core.with_bag](#kd.core.with_bag) operator.
 
 ### `kd.core.with_merged_bag(ds)` {#kd.core.with_merged_bag}
 Aliases:
@@ -7801,10 +7785,6 @@ Alias for [kd.entities.shaped_as](#kd.entities.shaped_as) operator.
 
 Alias for [kd.core.no_bag](#kd.core.no_bag) operator.
 
-### `kd.no_db(ds)` {#kd.no_db}
-
-Alias for [kd.core.no_bag](#kd.core.no_bag) operator.
-
 ### `kd.nofollow(x)` {#kd.nofollow}
 
 Alias for [kd.core.nofollow](#kd.core.nofollow) operator.
@@ -8247,10 +8227,6 @@ Alias for [kd.core.with_attrs](#kd.core.with_attrs) operator.
 
 Alias for [kd.core.with_bag](#kd.core.with_bag) operator.
 
-### `kd.with_db(ds, bag)` {#kd.with_db}
-
-Alias for [kd.core.with_bag](#kd.core.with_bag) operator.
-
 ### `kd.with_dict_update(x, keys, values=unspecified)` {#kd.with_dict_update}
 
 Alias for [kd.dicts.with_dict_update](#kd.dicts.with_dict_update) operator.
@@ -8652,12 +8628,6 @@ Returns:
   ItemIds) and all of the rest extracted.
 ```
 
-### `DataSlice.db` {#DataSlice.db}
-
-``` {.no-copy}
-This property is deprecated, please use .get_bag().
-```
-
 ### `DataSlice.deep_clone(self, schema=unspecified, **overrides)` {#DataSlice.deep_clone}
 
 ``` {.no-copy}
@@ -8934,17 +8904,10 @@ Args:
 ```
 
 ### `DataSlice.fork_bag(self)` {#DataSlice.fork_bag}
-Aliases:
-
-- [DataSlice.fork_db](#DataSlice.fork_db)
 
 ``` {.no-copy}
 Returns a copy of the DataSlice with a forked mutable DataBag.
 ```
-
-### `DataSlice.fork_db(self)` {#DataSlice.fork_db}
-
-Alias for [DataSlice.fork_bag](#DataSlice.fork_bag) operator.
 
 ### `DataSlice.freeze(self)` {#DataSlice.freeze}
 
@@ -9293,17 +9256,10 @@ A shortcut for kd.get_attr(x, attr_name, default=None).
 ```
 
 ### `DataSlice.no_bag()` {#DataSlice.no_bag}
-Aliases:
-
-- [DataSlice.no_db](#DataSlice.no_db)
 
 ``` {.no-copy}
 Returns a copy of DataSlice without DataBag.
 ```
-
-### `DataSlice.no_db()` {#DataSlice.no_db}
-
-Alias for [DataSlice.no_bag](#DataSlice.no_bag) operator.
 
 ### `DataSlice.qtype` {#DataSlice.qtype}
 
@@ -9676,17 +9632,10 @@ Returns a DataSlice with a new DataBag containing updated attributes.
 ```
 
 ### `DataSlice.with_bag(bag, /)` {#DataSlice.with_bag}
-Aliases:
-
-- [DataSlice.with_db](#DataSlice.with_db)
 
 ``` {.no-copy}
 Returns a copy of DataSlice with DataBag `db`.
 ```
-
-### `DataSlice.with_db(bag, /)` {#DataSlice.with_db}
-
-Alias for [DataSlice.with_bag](#DataSlice.with_bag) operator.
 
 ### `DataSlice.with_dict_update(self, keys, values=unspecified)` {#DataSlice.with_dict_update}
 
