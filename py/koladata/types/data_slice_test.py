@@ -1759,10 +1759,19 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
           jagged_shape.create_shape([2], [2, 1]),
           ds([[1, 2], [3]]),
       ),
+      (
+          ds([1, 2, 3]),
+          (2, ds([2, 1])),
+          ds([[1, 2], [3]]),
+      ),
+      (
+          ds([[1, 2], [3]]),
+          (-1,),
+          ds([1, 2, 3]),
+      ),
   )
   def test_reshape(self, x, shape, expected_output):
     new_x = x.reshape(shape)
-    testing.assert_equal(new_x.get_shape(), shape)
     testing.assert_equal(new_x, expected_output)
 
   def test_reshape_incompatible_shape_exception(self):
@@ -1777,7 +1786,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
   @parameterized.parameters(1, arolla.int32(1))
   def test_reshape_non_shape(self, non_shape):
     x = ds([1, 2, 3])
-    with self.assertRaisesRegex(TypeError, '`shape` must be a JaggedShape'):
+    with self.assertRaisesRegex(ValueError, 'expected a tuple'):
       x.reshape(non_shape)
 
   @parameterized.parameters(

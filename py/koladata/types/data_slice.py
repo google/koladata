@@ -161,8 +161,6 @@ def _has_attr(self, attr_name: str) -> DataSlice:
 
 @add_method(DataSlice, 'reshape', docstring_from='kd.reshape')
 def _reshape(self, shape: jagged_shape.JaggedShape) -> DataSlice:
-  if not isinstance(shape, jagged_shape.JaggedShape):
-    raise TypeError(f'`shape` must be a JaggedShape, got: {shape}')
   return _eval_op('kd.reshape', self, shape)
 
 
