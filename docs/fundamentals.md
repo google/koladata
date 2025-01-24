@@ -447,18 +447,17 @@ Lists are immutable by default, and need to be recreated to append/extend.
 ```py
 x = kd.list([1, 2, 3, 4])
 y = kd.list([5, 6, 7, 8])
-kd.concat_lists(x, y)  # == kd.list([1, 2, 3, 4, 5, 6, 7, 8])
+kd.concat_lists(x, y)  # List[1, 2, 3, 4, 5, 6, 7, 8]
 kd.implode(kd.concat(x[:], y[:]))  # the same as above
 
-# append, by creating a new list with one item
-z = 5
-kd.concat_lists(x, kd.implode(kd.item(z).repeat(1)))
-kd.implode(kd.concat(x[:], kd.item(z).repeat(1)))  # the same as above
+# Append a single item
+kd.appended_list(x, 5)  # List[1, 2, 3, 4, 5]
+# Append multiple items
+kd.appended_list(x, kd.slice([7, 8]))  # List[1, 2, 3, 4, 7, 8]
 
 x = kd.obj(y=kd.list([1, 2, 3, 4]), z=kd.list([5, 6, 7, 8]), u=4)
 x = x.with_attrs(a=kd.concat_lists(x.y, x.z))
-x = x.with_attrs(b=kd.concat_lists(x.y, kd.list([x.u])))  # append one value
-# x = x.with_attrs(b=kd.appended_list(x.a, x.u))  # the same as above
+x = x.with_attrs(b=kd.appended_list(x.y, x.u))  # append one value
 ```
 
 **Dicts** can be created in a way similar to lists, and are immutable by

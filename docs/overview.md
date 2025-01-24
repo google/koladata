@@ -563,8 +563,10 @@ b2 = b.with_dict_update(kd.dict({'a': 3, 'c': 4})) # Dict{'c'=4, 'a'=3, 'b'=2}
 b # Dict{'a'=1, 'b'=2}
 
 c = kd.list([1, 2, 3])
-# Create a new list by appending another list
+# Create a new list by concatenating two lists
 c1 = kd.concat_lists(c, kd.list([4, 5]))  # List[1, 2, 3, 4, 5]
+# Or create a new list by appending a DataSlice
+c2 = kd.appended_list(c, kd.slice([4, 5]))  # List[1, 2, 3, 4, 5]
 # c stays the same as it is immutable
 c # List[1, 2, 3]
 ```

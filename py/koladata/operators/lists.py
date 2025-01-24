@@ -398,14 +398,15 @@ def select_items(ds, fltr):
     ],
 )
 def appended_list(x, append):
-  """Concatenates elements in `append` to the end of each list in `x`.
+  """Appends items in `append` to the end of each list in `x`.
 
-  `x` and `append` should have compatible shapes, i.e. one can be broadcasted
-  to the other.
+  `x` and `append` must have compatible shapes.
+
+  The resulting lists have different ItemIds from the original lists.
 
   Args:
     x: DataSlice of lists.
-    append: DataSlice of lists.
+    append: DataSlice of values to append to each list in `x`.
 
   Returns:
     DataSlice of lists with a in a new immutable Databag.

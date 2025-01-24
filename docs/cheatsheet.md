@@ -270,9 +270,13 @@ kd.explode(l2, ndim=-1)
 l6 = kd.list([1, 2, None, 4])
 l6.select_items(lambda x: x >= 2) # [2, 4]
 
-# Returns a DataSlice of lists concatenated from
-# the list items of arguments.
+# Returns a list concatenated from the list items
+# of arguments
 kd.concat_lists(kd.list([1, 2]), kd.list([3, 4]))
+
+# Return a list with appended items
+kd.appended_list(kd.list([1, 2]), 3)
+kd.appended_list(kd.list([1, 2]), kd.slice([3, 4]))
 ```
 
 </section>
