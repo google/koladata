@@ -520,3 +520,170 @@ x != y  # [missing, missing, missing]
 ~kd.all(x != y)  # present
 kd.full_equal(x, y)  # missing
 ```
+
+## Masks vs Booleans
+
+As Koda supports sparsity natively, a boolean has three possible states (`True`,
+`False`, `None/missing`) whereas a mask only has two possible states (`present`,
+`missing`). Koda uses masks rather than booleans to avoid three-value-boolean
+problem. Imagine the following cases:
+
+-   `~kd.bool(None)`: should it return `kd.bool(None)` or `kd.bool(True)`
+-   `kd.bool(None) & kd.bool(False)`: should it return `kd.bool(None)` or
+    `kd.bool(False)`
+-   `kd.bool(None) | kd.bool(True)`: should it return `kd.bool(None)` or
+    `kd.bool(True)`
+
+In contrast, there is no confusion around masks:
+
+-   `~kd.missing` -> `kd.present`
+-   `kd.missing & kd.missing` -> `kd.missing`
+-   `kd.missing | kd.present` -> `kd.present`
+
+## Conversion between Koda Masks and Python Booleans
+
+To convert Koda mask DataItems to Python booleans, we can use the Python
+built-in `bool()`. This is especially useful when using Koda in a Python `if`
+statement.
+
+```py
+bool(kd.present)  # True
+bool(kd.missing)  # False
+
+ds = kd.slice([1, 2, 3])
+
+if kd.all(kd.has(ds)):
+  print('ds is full')
+
+if ds.is_primitive():
+  print('ds is primitive')
+```
+
+However, `bool()` does not work for mask DataSlices with `ndim > 0`. The items
+of such a DataSlice should be aggregated into a mask DataItem first, for example
+by using `kd.all` or `kd.any`.
+
+```py
+ds = kd.slice([kd.present, kd.missing])
+# The next line fails
+# bool(ds)
+
+bool(kd.any(ds))  # True
+bool(kd.all(ds))  # False
+```
+
+When converting from Koda to Python using `to_py` or `to_pytree`, individual
+present mask items are mapped to the `kd.present` object as there is no native
+mask concept in Python. Users can explicitly convert Koda masks to Koda boolean
+first by deciding if `missing` should be interpreted as `False` or `None`.
+
+```py
+kd.to_py(kd.present)  # DataItem(present, schema: MASK)
+kd.to_py(kd.missing)  # None
+
+ds = kd.slice([kd.present, kd.missing])
+kd.to_py(ds) # [DataItem(present, schema: MASK), None]
+
+kd.to_py(kd.cond(ds, True, False))  # [True, False]
+kd.to_py(kd.cond(ds, True, None))  # [True, None]
+```
+
+To convert Python booleans to Koda mask, users can first convert them to Koda
+boolean and decide how `False` and `missing` should be handled.
+
+```py
+ds_bool = kd.slice([True, False, None])
+
+# Treat False as present
+kd.has(ds_bool)  # [present, present, missing]
+# Treat False as missing
+ds_bool == True # [present, missing, missing]
+```
+
+## Sparsity Rule And `x != y` vs `~(x == y)`
+
+Many Koda operations are pointwise operations. For example, adding two
+DataSlices first aligns their shapes and then perform addition for the
+corresponding pairs of items. The sparsity rule for pointwise operation states
+any pointwise operations involving a missing value return a missing value. For
+example,
+
+```py
+x = kd.slice([1, None, 3])
+y = kd.int32(1)
+
+x + y  # [2, None, 4], as y is broadcasted to [1, 1, 1] before pointwise addition
+```
+
+However, there is one exception: the `kd.has_not` operator (which is the same as
+`~`) returns `kd.present` for missing values.
+
+```py
+kd.has_not(x)  # [missing, present, missing]
+~x  # [missing, present, missing]
+```
+
+Because of how sparsity is handled, `x != y` is not equivalent to `~(x == y)`.
+
+```py
+x = kd.slice([1, None, 3])
+y = kd.int32(1)
+
+x != y  # [missing, missing, present]
+x == y  # [present, missing, missing]
+~(x == y)  # [missing, present, present]
+```
+
+## Broadcasting DataSlices of Entities/Lists/Dicts Replicates ItemIds
+
+Entities/lists/dicts in a DataSlice are not fully copied when broadcasting the
+DataSlice, but their ItemIds are replicated. It is similar to `[a] * 10` in
+Python, which duplicates the reference to `a` 10 times in Python. After
+broadcasting, modifying one entity/list/dict will affect the others too.
+
+```py
+ds1 = kd.new(a=kd.slice([1, 2]))
+ds2 = kd.slice([[0, 0], [0, 0]])
+ds3 = ds1.expand_to(ds2)  # [[Entity(a=1), Entity(a=1)], [Entity(a=2), Entity(a=2)]]
+ds3.get_itemid()
+# [
+#   [Entity:$009KNMsAwrXS5TiSE706kY, Entity:$009KNMsAwrXS5TiSE706kY],
+#   [Entity:$009KNMsAwrXS5TiSE706kZ, Entity:$009KNMsAwrXS5TiSE706kZ],
+# ]
+
+# Only modify the first element
+# Note the items with the same ItemIds are modfied too
+ds3.updated(kd.attrs(ds3.S[..., 0], a=3))  # [[Entity(a=3), Entity(a=3)], [Entity(a=3), Entity(a=3)]]
+```
+
+It can yield unanticipated results, especially when the broadcasting happens
+implicitly (e.g. as part of assignment). For example,
+
+```py
+z = kd.new(x=1)
+a = kd.new(x=kd.slice([1, 2, 3]))
+a = a.with_attrs(z=z)  # the same ItemId is auto-expanded
+a.S[0].z.get_itemid() == a.S[1].z.get_itemid()  # yes
+# update 2nd object in a, but it is the same as 0th and 1st
+a = a.updated(kd.attrs(a.S[2].z, x=10))
+a.z.x  # [10, 10, 10]
+```
+
+If this is undesirable, you use `kd.clone` or `kd.new_like` to create new
+entities with distinct ItemIds.
+
+```py
+z = kd.new(x=1)
+a = kd.new(x=kd.slice([1, 2, 3]))
+a = a.with_attrs(z=z.expand_to(a).clone())
+a.S[0].z.get_itemid() != a.S[1].z.get_itemid()  # yes
+# update only 2nd object in a
+a = a.updated(kd.attrs(a.S[2].z, x=10))
+a.z.x  # [1, 1, 10]
+
+a = a.with_attrs(y=kd.new_like(a))
+a.S[0].y.get_itemid() != a.S[1].y.get_itemid()  # yes
+# update only 2nd object in a
+a = a.updated(kd.attrs(a.S[2].y, x=100))
+a.y.x  # [None, None, 100]
+```
