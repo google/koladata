@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
+from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.types import data_slice
 
@@ -39,8 +42,12 @@ class SetAttrTest(absltest.TestCase):
     db = fns.bag()
     x = db.obj(xyz=3.14)
     with self.assertRaisesRegex(
-        ValueError,
-        "the attribute 'foo' is missing",
+        exceptions.KodaError,
+        re.escape(
+            """the attribute 'foo' is missing on the schema.
+
+If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('foo')"""
+        ),
     ):
       fns.del_attr(x, 'foo')
 

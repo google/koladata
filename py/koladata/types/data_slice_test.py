@@ -1637,23 +1637,75 @@ foo.get_obj_schema().x = <desired_schema>"""),
           e.a.get_schema(), schema_constants.INT32.with_bag(db)
       )
       del e.get_schema().b
-      with self.assertRaisesRegex(ValueError, "the attribute 'b' is missing"):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          re.escape(
+              """the attribute 'b' is missing on the schema.
+
+If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('b')"""
+          ),
+      ):
         _ = e.b
-      with self.assertRaisesRegex(ValueError, "the attribute 'c' is missing"):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          re.escape(
+              """the attribute 'c' is missing on the schema.
+
+If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('c')"""
+          ),
+      ):
         del e.get_schema().c
-      with self.assertRaisesRegex(ValueError, "the attribute 'c' is missing"):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          re.escape(
+              """the attribute 'c' is missing on the schema.
+
+If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('c')"""
+          ),
+      ):
         del e.c
 
     with self.subTest('object'):
       o = db.obj(a=1, b=2)
       del o.a
-      with self.assertRaisesRegex(ValueError, "the attribute 'a' is missing"):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          re.escape(
+              """the attribute 'a' is missing on the schema.
+
+If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('a')"""
+          ),
+      ):
         _ = o.a
       del o.get_attr('__schema__').b
-      with self.assertRaisesRegex(ValueError, "the attribute 'b' is missing"):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          re.escape(
+              """the attribute 'b' is missing on the schema.
+
+If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('b')"""
+          ),
+      ):
         del o.b
-      with self.assertRaisesRegex(ValueError, "the attribute 'c' is missing"):
+      with self.assertRaisesRegex(
+          exceptions.KodaError,
+          re.escape(
+              """the attribute 'c' is missing on the schema.
+
+If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('c')"""
+          ),
+      ):
         del o.c
+
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            """the attribute 'a' is missing for at least one object at ds.flatten().S[1]
+
+If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('a')"""
+        ),
+    ):
+      _ = ds([[db.obj(a=1), db.obj(b=2)]]).a
 
   def test_maybe_method(self):
     db = bag()

@@ -2468,8 +2468,11 @@ absl::StatusOr<DataItem> DataBagImpl::GetSchemaAttr(
   ASSIGN_OR_RETURN(auto res,
                    GetSchemaAttrAllowMissing(schema_item, attr, fallbacks));
   if (!res.has_value() && schema_item.has_value()) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("the attribute '", attr, "' is missing"));
+    return internal::AsKodaError(absl::InvalidArgumentError(absl::StrCat(
+        "the attribute '", attr,
+        "' is missing on the schema.\n\nIf it is not a typo, perhaps ignore "
+        "the schema when getting the attribute. For example, ds.maybe('",
+        attr, "')")));
   }
   return std::move(res);
 }
@@ -2497,8 +2500,24 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttr(
   ASSIGN_OR_RETURN(auto result,
                    GetSchemaAttrAllowMissing(schema_slice, attr, fallbacks));
   if (result.present_count() != schema_slice.present_count()) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("the attribute '", attr, "' is missing"));
+    std::optional<int64_t> first_missing_schema_index;
+    RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
+        [&first_missing_schema_index](
+            int64_t index, DataItem schema_item,
+            arolla::OptionalValue<DataItem> schema_attr) {
+          if (!schema_attr.present) {
+            first_missing_schema_index = index;
+          }
+        },
+        schema_slice.AsDataItemDenseArray(), result.AsDataItemDenseArray()));
+    DCHECK(first_missing_schema_index.has_value());
+    return internal::AsKodaError(absl::InvalidArgumentError(absl::StrCat(
+        "the attribute '", attr,
+        "' is missing for at least one object at ds.flatten().S[",
+        *first_missing_schema_index, "]\n\n",
+        "If it is not a typo, perhaps ignore "
+        "the schema when getting the attribute. For example, ds.maybe('",
+        attr, "')")));
   }
   return result;
 }

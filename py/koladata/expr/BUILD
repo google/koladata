@@ -176,6 +176,7 @@ py_test(
         ":input_container",
         ":py_expr_eval_py_ext",
         ":view",
+        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",

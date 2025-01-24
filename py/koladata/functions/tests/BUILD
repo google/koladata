@@ -525,6 +525,7 @@ py_test(
     name = "del_attr_test",
     srcs = ["del_attr_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
