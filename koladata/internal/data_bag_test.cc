@@ -1359,6 +1359,20 @@ TEST(DataBagTest, EmptySliceSet) {
   ASSERT_OK(db->SetAttr(ds, "a", ds));
 }
 
+TEST(DataBagTest, SmallBigAllocMixSetGet) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto ds = DataSliceImpl::Create({
+      DataItem(AllocateSingleObject()),
+      DataItem(Allocate(8).ObjectByOffset(0)),
+      DataItem(AllocateSingleObject()),
+      DataItem(Allocate(81).ObjectByOffset(17)),
+  });
+
+  ASSERT_OK(db->SetAttr(ds, "a", ds));
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl ds_get, db->GetAttr(ds, "a"));
+  EXPECT_THAT(ds_get, IsEquivalentTo(ds));
+}
+
 TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjects) {
   constexpr int64_t kSize = 3;
   auto db = DataBagImpl::CreateEmptyDatabag();

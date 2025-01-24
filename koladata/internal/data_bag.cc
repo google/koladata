@@ -976,7 +976,7 @@ absl::Status DataBagImpl::SetAttr(const DataSliceImpl& objects,
   const auto& objects_array = objects.values<ObjectId>();
   if (objects.allocation_ids().contains_small_allocation_id()) {
     auto& source = GetMutableSmallAllocSource(attr);
-    return source.Set(objects_array, values);
+    RETURN_IF_ERROR(source.Set(objects_array, values));
   }
 
   // Process big allocations.
