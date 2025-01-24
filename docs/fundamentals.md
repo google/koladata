@@ -61,17 +61,19 @@ digraph {
   "dim_1:0" -> "dim_2:0"
   "dim_1:0" -> "dim_2:1"
   "dim_1:0" -> "dim_2:2"
-  "dim_1:1" -> "dim_2:3"
-  "dim_1:1" -> "dim_2:4"
+  "dim_2:0 bis" [label = "dim_2:0"]
+  "dim_2:1 bis" [label = "dim_2:1"]
+  "dim_1:1" -> "dim_2:0 bis"
+  "dim_1:1" -> "dim_2:1 bis"
   "dim_2:0" -> one
   "dim_2:1" -> two
   "dim_2:2" -> three
-  "dim_2:3" -> four
-  "dim_2:4" -> five
+  "dim_2:0 bis" -> four
+  "dim_2:1 bis" -> five
 
   subgraph cluster_x {
     graph [style="dashed", label="Partition tree"]
-    Root;"dim_1:0";"dim_1:1";"dim_2:0";"dim_2:1";"dim_2:2";"dim_2:3";"dim_2:4";
+    Root;"dim_1:0";"dim_1:1";"dim_2:0";"dim_2:1";"dim_2:2";"dim_2:0 bis";"dim_2:1 bis";
   }
 
   subgraph cluster_y {
