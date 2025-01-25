@@ -2253,14 +2253,15 @@ Aliases:
 - [kd.appended_list](#kd.appended_list)
 
 ``` {.no-copy}
-Concatenates elements in `append` to the end of each list in `x`.
+Appends items in `append` to the end of each list in `x`.
 
-`x` and `append` should have compatible shapes, i.e. one can be broadcasted
-to the other.
+`x` and `append` must have compatible shapes.
+
+The resulting lists have different ItemIds from the original lists.
 
 Args:
   x: DataSlice of lists.
-  append: DataSlice of lists.
+  append: DataSlice of values to append to each list in `x`.
 
 Returns:
   DataSlice of lists with a in a new immutable Databag.
@@ -8695,7 +8696,7 @@ Args:
   values: A DataSlice of values, or unspecified if `keys` contains dicts.
 ```
 
-### `DataSlice.display(self, num_items=48, detail_width=None, detail_height=300)` {#DataSlice.display}
+### `DataSlice.display(self, options=None)` {#DataSlice.display}
 
 ``` {.no-copy}
 Visualizes a DataSlice as an html widget.
