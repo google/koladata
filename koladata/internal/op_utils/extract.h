@@ -15,6 +15,7 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 #define KOLADATA_INTERNAL_OP_UTILS_EXTRACT_H_
 
+#include <functional>
 #include <optional>
 #include <utility>
 
