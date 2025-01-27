@@ -669,7 +669,7 @@ a = a.updated(kd.attrs(a.S[2].z, x=10))
 a.z.x  # [10, 10, 10]
 ```
 
-If this is undesirable, you use `kd.clone` or `kd.new_like` to create new
+If this is undesirable, you can use `kd.clone` or `kd.new_like` to create new
 entities with distinct ItemIds.
 
 ```py
