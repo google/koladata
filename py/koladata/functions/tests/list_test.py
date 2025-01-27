@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import mock
-import warnings
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
@@ -81,16 +78,6 @@ class ListTest(parameterized.TestCase):
     self.assertIsInstance(nested_l_1, list_item.ListItem)
     testing.assert_equal(nested_l_0[:], ds([1, 2]).with_bag(l.get_bag()))
     testing.assert_equal(nested_l_1[:], ds([3]).with_bag(l.get_bag()))
-
-  def test_slice_with_data_slice_input(self):
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      _ = fns.list([[1, 2], [3]])
-      mock_warn.assert_not_called()
-      l = fns.list(ds([[1, 2], [3]]))
-      mock_warn.assert_called_once()
-
-    self.assertIsInstance(l, data_slice.DataSlice)
-    testing.assert_equal(l[:], ds([[1, 2], [3]]).with_bag(l.get_bag()))
 
   def test_itemid(self):
     itemid = expr_eval.eval(kde.allocation.new_listid())
@@ -190,6 +177,10 @@ class ListTest(parameterized.TestCase):
       fns.list(item_schema=schema_constants.INT64, schema=list_schema)
 
   def test_wrong_arg_types(self):
+    with self.assertRaisesRegex(
+        TypeError, 'does not accept DataSlice as an input'
+    ):
+      fns.list(ds([1, 2, 3]))
     with self.assertRaisesRegex(
         TypeError, 'expecting item_schema to be a DataSlice, got int'
     ):

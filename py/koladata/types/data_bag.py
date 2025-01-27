@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import functools
 from typing import Any, Iterable
-import warnings
 
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
@@ -237,12 +236,6 @@ def _list(
   Returns:
     A DataSlice with the list/lists.
   """
-  if isinstance(items, _DataSlice):
-    warnings.warn(
-        'bag.list(slice) is deprecated; use bag.implode for DataSlice inputs; '
-        'bag.list can only accept Python lists.',
-        RuntimeWarning,
-    )
   return self._list(items, item_schema, schema, itemid)  # pylint: disable=protected-access
 
 

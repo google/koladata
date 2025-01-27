@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for set_attr."""
-
 import re
 
 from absl.testing import absltest

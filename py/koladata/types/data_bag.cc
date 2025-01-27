@@ -904,22 +904,24 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
     ASSIGN_OR_RETURN(res, CreateEmptyList(self_db, schema, item_schema, itemid),
                      arolla::python::SetPyErrFromStatus(_));
   } else {
+    if (arolla::python::IsPyQValueInstance(py_values) &&
+        arolla::python::UnsafeUnwrapPyQValue(py_values).GetType() ==
+        arolla::GetQType<DataSlice>()) {
+      PyErr_SetString(
+          PyExc_TypeError,
+          "kd.list does not accept DataSlice as an input, please use "
+          "kd.implode");
+      return nullptr;
+    }
     AdoptionQueue adoption_queue;
     ASSIGN_OR_RETURN(auto values,
                      DataSliceFromPyValue(py_values, adoption_queue),
                      arolla::python::SetPyErrFromStatus(_));
     // Replacing the DataBag to avoid double adoption.
     values = values.WithBag(self_db);
-    if (PyList_Check(py_values)) {
-      ASSIGN_OR_RETURN(
-          res, CreateNestedList(self_db, values, schema, item_schema, itemid),
-          arolla::python::SetPyErrFromStatus(_));
-    } else {
-      ASSIGN_OR_RETURN(res,
-                       CreateListsFromLastDimension(self_db, values, schema,
-                                                    item_schema, itemid),
-                       arolla::python::SetPyErrFromStatus(_));
-    }
+    ASSIGN_OR_RETURN(
+        res, CreateNestedList(self_db, values, schema, item_schema, itemid),
+        arolla::python::SetPyErrFromStatus(_));
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
         .With(arolla::python::SetPyErrFromStatus);
   }
