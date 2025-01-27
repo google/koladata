@@ -256,34 +256,42 @@ the operation is applied to **all the items** in the DataSlice
 ```py
 # Root
 # ├── dim_1:0
-# │   ├── dim_2:0 -> kd.obj(x=1, y=20)
-# │   └── dim_2:1 -> kd.obj(x=2, y=30)
+# │   ├── dim_2:0 -> kd.new(x=1, y=20, schema='Point')
+# │   └── dim_2:1 -> kd.new(x=2, y=30, schema='Point')
 # └── dim_1:1
-#     ├── dim_2:0 -> kd.obj(x=3, y=40)
-#     ├── dim_2:1 -> kd.obj(x=4, y=50)
-#     └── dim_2:2 -> kd.obj(x=5, y=60)
+#     ├── dim_2:0 -> kd.new(x=3, y=40, schema='Point')
+#     ├── dim_2:1 -> kd.new(x=4, y=50, schema='Point')
+#     └── dim_2:2 -> kd.new(x=5, y=60, schema='Point')
 kd.slice([
-    [kd.obj(x=1, y=20), kd.obj(x=2, y=30)],
-    [kd.obj(x=3, y=40), kd.obj(x=4, y=50), kd.obj(x=5, y=60)]])
+    [
+      kd.new(x=1, y=20, schema='Point'),
+      kd.new(x=2, y=30, schema='Point')
+    ],
+    [
+      kd.new(x=3, y=40, schema='Point'),
+      kd.new(x=4, y=50, schema='Point'),
+      kd.new(x=5, y=60, schema='Point')
+    ]
+])
 
 # Root
-# ├── dim_1:0 -> kd.list([20,30])
-# └── dim_1:1 -> kd.list([40,50,60])
-kd.slice([kd.list([20,30]), kd.list([40,50,60])])
+# ├── dim_1:0 -> kd.list([20, 30])
+# └── dim_1:1 -> kd.list([40, 50, 60])
+kd.slice([kd.list([20, 30]), kd.list([40, 50, 60])])
 
 # Root
 # ├── dim_1:0
-# │   ├── dim_2:0 -> kd.dict({'a':1,'b':2})
-# │   └── dim_2:1 -> kd.dict({'b':3,'c':4})
+# │   ├── dim_2:0 -> kd.dict({'a': 1,'b': 2})
+# │   └── dim_2:1 -> kd.dict({'b': 3,'c': 4})
 # └── dim_1:1
-#     └── dim_2:0 -> kd.dict({'a':5,'b':6,'c':7})
-kd.slice([[kd.dict({'a':1,'b':2}), kd.dict({'b':3,'c':4})],
- [kd.dict({'a':5,'b':6,'c':7})]])
+#     └── dim_2:0 -> kd.dict({'a': 5,'b': 6,'c': 7})
+kd.slice([[kd.dict({'a': 1,'b': 2}), kd.dict({'b': 3,'c': 4})],
+ [kd.dict({'a': 5,'b': 6,'c': 7})]])
 ```
 
 As a result of **attribute access** of a **DataSlice of entities**, a new
 DataSlice is returned, which contains attributes of every corresponding entity
-or object in the original DataSlice.
+in the original DataSlice.
 
 ```py
 a = kd.slice([kd.new(x=1, schema='Foo'),
@@ -294,9 +302,12 @@ a.x  # [1, 2, 3]
 
 a = kd.new(x=kd.slice([1, 2, 3]), schema='Foo')  # The same as above, but more compact
 
-a = kd.slice([kd.obj(x=1), kd.obj(y=2), kd.obj(z=3)])
+b = kd.slice([kd.new(x=1, schema='Foo'),
+              kd.new(schema='Foo'),
+              kd.new(x=3, schema='Foo')])
+b  # [Entity(x=1), Entity(), Entity(x=3)]
 
-a.maybe('x')  # [1, None, None] - only the first one has an attribute 'x'
+b.maybe('x')  # [1, None, 3] - only the first one has an attribute 'x'
 ```
 
 When accessing a **single element** of a **DataSlice of lists** or a **key** of
@@ -391,8 +402,8 @@ x[0]  # Obj(a=1, b=2)
 x[:].maybe('a')  # [1, None]
 
 # Mix objects with different schemas
-kd.slice([kd.obj(1), kd.obj("hello"), kd.obj(kd.list([1,2,3]))])
-kd.slice([kd.obj(x=1,y=2), kd.obj(x="hello", y="world"), kd.obj(1)])
+kd.slice([kd.obj(1), kd.obj("hello"), kd.obj([1, 2, 3])])
+kd.slice([kd.obj(x=1, y=2), kd.obj(x="hello", y="world"), kd.obj(1)])
 
 kd.obj(x=1).get_schema() # kd.OBJECT
 kd.obj(x=1).get_schema() == kd.obj(1).get_schema()  # yes
