@@ -798,7 +798,7 @@ a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1,2,3]))
 upd = kd.attrs(a, x=4, u=5)  # create data update
 a1 = a.updated(upd)
 a1 = a.with_attrs(x=4, u=5)  # a shortcut for above
-a2 = a.updated(kd.attrs(a.y, z=5))  # update deep attribute of a.y
+a2 = a.updated(kd.attrs(a.y, z=5))  # update a deep attribute a.y.z
 a3 = a.updated(kd.dict_update(a.z, 'b', 3))  # update dict
 a4 = a.updated(kd.dict_update(a.z, kd.dict({'b': 3, 'c': 4})))  # multi-update dict
 a5 = a.with_attrs(t=kd.concat_lists(a.t, kd.list([4, 5])))  # lists need to be updated as whole
@@ -808,7 +808,7 @@ Instead of being applied immediately, updates can be accumulated and applied
 later.
 
 ```py
-# Updates can be joined using << and >>, which defines what overwrites what
+# Updates can be composed using << and >>, which defines what overwrites what
 kd.attrs(a, x=3, y=4) << kd.attrs(a, x=5, u=6)  # == kd.attrs(a, x=5, y=4, u=6)
 kd.attrs(a, x=3, y=4) >> kd.attrs(a, x=5, u=6)  # == kd.attrs(a, x=3, y=4, u=6)
 
@@ -818,17 +818,17 @@ upd = kd.bag()  # empty update
 upd <<= kd.attrs(a, x=a.x + 1)
 upd <<= kd.attrs(a, x=a.updated(upd).x + 2)  # can use a.x with an update
 upd <<= kd.attrs(a, u=a.y.z + a.updated(upd).x)
-a6 = a.updated(upd)  # update
+a6 = a.updated(upd)  # Obj(x=5, y=Obj(z=3), u=8)
 ```
 
 All APIs and concepts mentioned above support vectorization using DataSlice.
 
 ```py
-a = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
-a.with_attrs(z=kd.slice([7, 8, 9]))  # add z attribute to 3 entities
-a.updated(kd.attrs(a, x=kd.slice([10, 11, 12])))  # update attribute
-# Can set only to a subset of entities utilizing sparsity
-a.updated(kd.attrs(a & (a.y >=5), z=kd.slice([7, 8, 9]))).z  # [None, 8 ,9]
+a = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))  # [Entity(x=1, y=4), Entity(x=2, y=5), Entity(x=3, y=6)]
+a.with_attrs(z=kd.slice([7, 8, 9]))  # [Entity(x=1, y=4, z=7), Entity(x=2, y=5, z=8), Entity(x=3, y=6, z=9)]
+a.updated(kd.attrs(a, x=kd.slice([10, 11, 12])))  # [Entity(x=10, y=4), Entity(x=11, y=5), Entity(x=12, y=6)]
+# Updates can target a subset of entities by utilizing sparsity
+a.updated(kd.attrs(a & (a.y >=5), z=kd.slice([7, 8, 9]))).z  # [None, 8, 9]
 ```
 
 ### Enrichments
@@ -838,7 +838,8 @@ missing attributes without overwriting existing ones. This operation is also
 O(1).
 
 TIP: The key difference between update and enrichment is that update overrides
-existing attributes while enrichment does not.
+existing attributes while enrichment does not. Enrichment augments the
+attributes using the fallback mechanism described above.
 
 ```py
 a = kd.obj(x=2, y=kd.obj(z=3))
@@ -852,28 +853,29 @@ a.enriched(a_attrs) # Obj(u=5, x=2, y=Obj(z=3))
 
 Updates and enrichments merge multiple bags together. After enrichments and
 updates, merged bags may contain attributes irrelevant to a specific object or
-entity (e.g. enrichment with unrelated data). The `extract_bag()` method allows
-extracting a bag containing only relevant attributes (those recursively
-accessible).
+entity (e.g. enrichment with unrelated data). The `ds.extract_bag()` method
+allows extracting a bag containing only relevant attributes (those recursively
+accessible from `ds`). `ds.extract()` is equivalent to
+`ds.with_bag(ds.extract_bag())`.
 
 ```py
 a = kd.obj(x=2, y=kd.obj(z=3), z=kd.dict({'a': 1, 'b': 2}), t=kd.list([1, 2, 3]))
+a.get_bag().get_approx_size()  # 20
+
 ay1 = a.y.with_attrs(z=4, zz=5)  # Modify ay1 on its own
-a.updated(ay1.extract().get_bag())  # Apply the attributes from ay1 to a
-a.updated(ay1.extract_bag())  # The same as above
-a.enriched(ay1.get_bag())  # instead, can join the data without overwriting
+ay1.get_bag().get_approx_size()  # 25, as it contains all attributes from a
 
-# Can create "stubs" (without attributes), and then join later
-a_stub = a.stub()
-# a0.x would fail, as it is only a "stub"
-a_stub1 = a_stub.with_attrs(x=4, u=5)
-a.updated(a_stub1.extract_bag())  # apply data from the stub, and overwriting
-a.enriched(a_stub1.get_bag())  # the same, but enrich
+extracted_bag = ay1.extract_bag()
+extracted_bag.get_approx_size()  # 5, only it only contain ay1 attributes
 
-# Can enrich with unrelated data, and later remove it
+a.updated(extracted_bag)  # Apply the attributes from ay1 to a
+a.enriched(extracted_bag)  # Instead, this augments the data without overwriting
+
+# If data is enriched with unrelated data, we can use extract to remove it
+
 b = kd.obj(x=1, y=2)
 a9 = a.enriched(kd.attrs(b, z=3))  # adding an unrelated attribute
-a9.extract()  # == a9 - unaccessible attributes are removed
+a9.extract()  # == a9 with inaccessible attributes removed
 ```
 
 ### Cloning
