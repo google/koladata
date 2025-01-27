@@ -21,6 +21,7 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
+#include "koladata/expr/expr_eval.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 
@@ -35,9 +36,15 @@ namespace koladata::functor {
 // via V.foo, in which case the variable expression will be evaluated before
 // evaluating the expression that refers to it. In case of a cycle in variables,
 // an error will be returned.
+//
+// The `eval_options` parameter provides a default buffer factory
+// (typically either the default allocator or an arena allocator)
+// and a cancellation checker, which allows the computation to be
+// interrupted midway if needed.
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs);
+    absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs,
+    const expr::EvalOptions& eval_options);
 
 }  // namespace koladata::functor
 

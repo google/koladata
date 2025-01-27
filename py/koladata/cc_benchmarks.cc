@@ -24,6 +24,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/expr/expr_eval.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/functor.h"
 #include "koladata/internal/data_item.h"
@@ -60,10 +61,10 @@ void BM_Add(benchmark::State& state) {
 
   auto db = DataBag::Empty();
   auto ds = DataSlice::CreateWithSchemaFromData(
-      internal::DataSliceImpl::Create(
-          arolla::CreateFullDenseArray<int>(values)),
-      DataSlice::JaggedShape::FlatFromSize(slice_size), db)
-      .value();
+                internal::DataSliceImpl::Create(
+                    arolla::CreateFullDenseArray<int>(values)),
+                DataSlice::JaggedShape::FlatFromSize(slice_size), db)
+                .value();
 
   auto expr = Leaf("x");
   for (size_t i = 0; i < num_operators; ++i) {
@@ -157,10 +158,10 @@ void BM_Equal_Int32_Int64(benchmark::State& state) {
 
   auto db = DataBag::Empty();
   auto int32_ds = DataSlice::CreateWithSchemaFromData(
-                    internal::DataSliceImpl::Create(
-                        arolla::CreateFullDenseArray<int>(int32_values)),
-                    DataSlice::JaggedShape::FlatFromSize(slice_size), db)
-                    .value();
+                      internal::DataSliceImpl::Create(
+                          arolla::CreateFullDenseArray<int>(int32_values)),
+                      DataSlice::JaggedShape::FlatFromSize(slice_size), db)
+                      .value();
   auto int64_ds = DataSlice::CreateWithSchemaFromData(
                       internal::DataSliceImpl::Create(
                           arolla::CreateFullDenseArray<int64_t>(int64_values)),
@@ -282,9 +283,11 @@ void BM_AddViaFunctor(benchmark::State& state) {
           .value();
   auto functor = functor::CreateFunctor(expr_slice, std::nullopt, {}).value();
 
-  auto fn = [&functor](const auto& ds) {
+  expr::EvalOptions eval_options;
+
+  auto fn = [&functor, &eval_options](const auto& ds) {
     return functor::CallFunctorWithCompilationCache(
-        functor, {arolla::TypedRef::FromValue(ds)}, {});
+        functor, {arolla::TypedRef::FromValue(ds)}, {}, eval_options);
   };
 
   {

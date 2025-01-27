@@ -34,7 +34,8 @@ class CallOperatorFamily : public arolla::OperatorFamily {
 // kd.functor._maybe_call operator.
 // If the first argument is a functor, calls it on the second argument.
 // Otherwise, returns the first argument.
-absl::StatusOr<DataSlice> MaybeCall(const DataSlice& maybe_fn,
+absl::StatusOr<DataSlice> MaybeCall(arolla::EvaluationContext* ctx,
+                                    const DataSlice& maybe_fn,
                                     const DataSlice& arg);
 
 }  // namespace koladata::functor

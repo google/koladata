@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import re
+import signal
+import threading
+import time
 
 from absl.testing import absltest
 from arolla import arolla
@@ -213,7 +216,7 @@ class FunctorCallTest(absltest.TestCase):
     )
     self.assertIsInstance(outer_ex.__cause__, ValueError)
     self.assertRegex(
-        str(outer_ex.__cause__), 'object with unsupported type: type',
+        str(outer_ex.__cause__), 'object with unsupported type: type'
     )
 
   def test_call_with_functor_as_input(self):
@@ -250,6 +253,24 @@ class FunctorCallTest(absltest.TestCase):
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
     testing.assert_equal(res_1.a.no_bag(), res_2.a.no_bag())
+
+  def test_cancellable(self):
+    expr = I.x
+    for _ in range(10**4):
+      expr += expr
+    expr = kde.call(functor_factories.expr_fn(expr), x=I.x)
+    x = ds(list(range(10**6)))
+
+    def do_keyboard_interrupt():
+      time.sleep(0.1)
+      signal.raise_signal(signal.SIGINT)
+
+    threading.Thread(target=do_keyboard_interrupt).start()
+    with self.assertRaisesRegex(ValueError, re.escape('interrupt')):
+      # This computation typically takes more than 10 seconds and fails
+      # with a different error unless the interruption is handled by
+      # the operator.
+      expr_eval.eval(expr, x=x)
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.call(I.fn)))

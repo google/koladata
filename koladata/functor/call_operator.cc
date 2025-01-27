@@ -50,7 +50,7 @@ class CallOperator : public arolla::QExprOperator {
   explicit CallOperator(absl::Span<const arolla::QTypePtr> input_types,
                         arolla::QTypePtr output_type)
       : QExprOperator("kd.functor.call", arolla::QExprOperatorSignature::Get(
-                                              input_types, output_type)) {}
+                                             input_types, output_type)) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -77,10 +77,11 @@ class CallOperator : public arolla::QExprOperator {
                 {kwarg_names[i],
                  arolla::TypedRef::FromSlot(kwargs_slot.SubSlot(i), frame)});
           }
-          ASSIGN_OR_RETURN(auto result,
-                           functor::CallFunctorWithCompilationCache(
-                               fn_data_slice, arg_refs, kwarg_refs),
-                           ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(
+              auto result,
+              functor::CallFunctorWithCompilationCache(
+                  fn_data_slice, arg_refs, kwarg_refs, ctx->options()),
+              ctx->set_status(std::move(_)));
           if (result.GetType() != output_slot.GetType()) {
             ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
                 "the functor was called with `%s` as the output type, but the"
@@ -121,13 +122,15 @@ absl::StatusOr<arolla::OperatorPtr> CallOperatorFamily::DoGetOperator(
       output_type);
 }
 
-absl::StatusOr<DataSlice> MaybeCall(const DataSlice& maybe_fn,
+absl::StatusOr<DataSlice> MaybeCall(arolla::EvaluationContext* ctx,
+                                    const DataSlice& maybe_fn,
                                     const DataSlice& arg) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(maybe_fn));
   if (is_functor) {
     ASSIGN_OR_RETURN(auto result,
                      functor::CallFunctorWithCompilationCache(
-                         maybe_fn, {arolla::TypedRef::FromValue(arg)}, {}));
+                         maybe_fn, /*args=*/{arolla::TypedRef::FromValue(arg)},
+                         /*kwargs=*/{}, /*eval_options=*/ctx->options()));
     if (result.GetType() != arolla::GetQType<DataSlice>()) {
       return absl::InternalError(absl::StrFormat(
           "the functor is expected to be evaluated to a DataSlice"

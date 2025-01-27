@@ -129,6 +129,7 @@ cc_test(
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
+        "//koladata/expr:expr_eval",
         "//koladata/functor",
         "//koladata/functor:call",
         "//koladata/internal:data_item",

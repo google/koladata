@@ -107,7 +107,8 @@ absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
 
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs) {
+    absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs,
+    const expr::EvalOptions& eval_options) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
   if (!is_functor) {
     return absl::InvalidArgumentError(
@@ -142,8 +143,9 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
       // This passes all variables computed so far, even those not used, and
       // EvalExprWithCompilationCache will traverse all provided variables,
       // so this is O(num_variables**2). We can optimize this later if needed.
-      ASSIGN_OR_RETURN(auto variable_value, expr::EvalExprWithCompilationCache(
-                                                expr, inputs, variables));
+      ASSIGN_OR_RETURN(auto variable_value,
+                       expr::EvalExprWithCompilationCache(
+                           expr, inputs, variables, eval_options));
       computed_variable_holder.push_back(std::move(variable_value));
     } else {
       computed_variable_holder.push_back(

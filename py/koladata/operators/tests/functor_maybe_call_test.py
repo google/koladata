@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import re
+import signal
+import threading
+import time
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -90,10 +93,29 @@ class FunctorMaybeCallTest(parameterized.TestCase):
         QTYPES,
     )
 
+  def test_cancellable(self):
+    expr = I.self
+    for _ in range(10**4):
+      expr += expr
+    expr = kde.functor._maybe_call(functor_factories.expr_fn(expr), I.x)
+    x = ds(list(range(10**6)))
+
+    def do_keyboard_interrupt():
+      time.sleep(0.1)
+      signal.raise_signal(signal.SIGINT)
+
+    threading.Thread(target=do_keyboard_interrupt).start()
+    with self.assertRaisesRegex(ValueError, re.escape('interrupt')):
+      # This computation typically takes more than 10 seconds and fails
+      # with a different error unless the interruption is handled by
+      # the operator.
+      expr_eval.eval(expr, x=x)
+
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(kde.functor._maybe_call(I.maybe_fn, I.arg))
     )
+
 
 if __name__ == '__main__':
   absltest.main()
