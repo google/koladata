@@ -35,7 +35,7 @@
 #include "koladata/operators/arolla_bridge.h"
 #include "py/arolla/abc/py_aux_binding_policy.h"
 #include "py/arolla/abc/py_cached_eval.h"
-#include "py/arolla/abc/py_cancellation_checker.h"
+#include "py/arolla/abc/py_cancellation_context.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_operator.h"
 #include "py/arolla/abc/py_qvalue.h"
@@ -62,7 +62,7 @@ using ::arolla::python::AuxBindingPolicyPtr;
 using ::arolla::python::DCheckPyGIL;
 using ::arolla::python::InvokeOpWithCompilationCache;
 using ::arolla::python::ParseArgPyOperator;
-using ::arolla::python::PyCancellationChecker;
+using ::arolla::python::PyCancellationContext;
 using ::arolla::python::QValueOrExpr;
 using ::arolla::python::ReleasePyGIL;
 using ::arolla::python::SetPyErrFromStatus;
@@ -116,9 +116,9 @@ absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
 
     // Set up a mechanism to check if the computation has been interrupted by
     // the Python interpreter.
-    PyCancellationChecker cancellation_checker;
+    PyCancellationContext cancellation_context;
     koladata::expr::EvalOptions eval_options{
-        .cancellation_checker = &cancellation_checker,
+        .cancellation_context = &cancellation_context,
     };
     result_or_error = koladata::expr::EvalExprWithCompilationCache(
         expr, input_qvalues, {}, eval_options);
