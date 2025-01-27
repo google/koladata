@@ -427,6 +427,13 @@ class DataSlice {
     return VisitImpl([&](const auto& impl) { return impl.dtype(); });
   }
 
+  // Returns true iff any present value is a primitive.
+  bool ContainsAnyPrimitives() const {
+    return VisitImpl([&](auto impl) {
+      return impl.ContainsAnyPrimitives();
+    });
+  }
+
   // Returns true iff the underlying implementation is DataItem.
   bool is_item() const {
     return std::holds_alternative<internal::DataItem>(internal_->impl);
@@ -568,6 +575,7 @@ namespace internal_broadcast {
 
 absl::StatusOr<DataSlice> BroadcastToShapeSlow(const DataSlice& slice,
                                                DataSlice::JaggedShape shape);
+
 }
 
 // Returns a new DataSlice whose values and shape are broadcasted to `shape`.
@@ -601,6 +609,14 @@ absl::StatusOr<DataSlice> CastOrUpdateSchema(
     const DataSlice& value, const internal::DataItem& lhs_schema,
     absl::string_view attr_name, bool update_schema,
     internal::DataBagImpl& db_impl);
+
+// NOTE: See how this can be used for List / Dict access as well.
+//
+// Assembles an Error for a Set / Get attribute on primitives. The Error message
+// produced depends on whether the schema is primitive or not as well as on if
+// it is a DataSlice / DataItem and if it is a schema.
+absl::Status AttrOnPrimitiveError(const DataSlice& slice,
+                                  absl::string_view error_headline);
 
 }  // namespace koladata
 

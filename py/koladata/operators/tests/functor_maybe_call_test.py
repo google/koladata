@@ -60,7 +60,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
 
     data = ds([1, 2, 3])
     with self.assertRaisesRegex(
-        ValueError, 'cannot fetch attributes without a DataBag: some_attr'
+        ValueError, 'primitives do not have attributes'
     ):
       expr_eval.eval(kde.functor._maybe_call(f, data))
 

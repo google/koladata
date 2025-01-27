@@ -108,17 +108,16 @@ class CoreAttrTest(parameterized.TestCase):
     ):
       _ = kde.core.attr(o, 'x', bag().new(z=3)).eval()
 
-  def test_error_primitive_schema(self):
+  def test_error_primitives(self):
     with self.assertRaisesRegex(
-        ValueError, 'cannot get or set attributes on schema: INT32'
+        ValueError, 'primitives do not have attributes, got INT32'
     ):
       _ = kde.core.attr(ds(0).with_bag(bag()), 'x', 1).eval()
 
   def test_error_no_databag(self):
     o = bag().new(x=1).no_bag()
     with self.assertRaisesRegex(
-        ValueError,
-        'cannot set attributes on a DataSlice without a DataBag',
+        ValueError, 'the DataSlice is a reference without a Bag',
     ):
       _ = kde.core.attr(o, 'x', 1).eval()
 

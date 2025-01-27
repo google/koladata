@@ -532,6 +532,29 @@ TEST(DataSliceImpl, PresentCount) {
   EXPECT_EQ(DataSliceImpl::AllocateEmptyObjects(12).present_count(), 12);
 }
 
+TEST(DataSliceImpl, ContainsAnyPrimitives) {
+  EXPECT_TRUE(DataSliceImpl::Create(arolla::CreateDenseArray<int>({42}))
+              .ContainsAnyPrimitives());
+  EXPECT_FALSE(
+      DataSliceImpl::Create(arolla::CreateDenseArray<int>({std::nullopt}))
+      .ContainsAnyPrimitives());
+  EXPECT_TRUE(DataSliceImpl::Create(
+                  arolla::CreateDenseArray<int>({42, std::nullopt}),
+                  arolla::CreateDenseArray<ObjectId>({std::nullopt,
+                                                      AllocateSingleObject()}))
+              .ContainsAnyPrimitives());
+  EXPECT_FALSE(DataSliceImpl().ContainsAnyPrimitives());
+  EXPECT_FALSE(
+      DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({std::nullopt}))
+      .ContainsAnyPrimitives());
+  EXPECT_FALSE(DataSliceImpl::Create(arolla::CreateDenseArray<ObjectId>({
+                                         std::nullopt,
+                                         AllocateSingleObject(),
+                                         AllocateSingleList(),
+                                     }))
+               .ContainsAnyPrimitives());
+}
+
 TEST(DataSliceImpl, ContainsOnlyLists) {
   EXPECT_TRUE(DataSliceImpl().ContainsOnlyLists());
   EXPECT_TRUE(

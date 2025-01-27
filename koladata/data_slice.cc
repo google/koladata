@@ -364,6 +364,50 @@ absl::StatusOr<internal::DataItem> GetResultSchema(
   return UnwrapIfNoFollowSchema(res_schema);
 }
 
+std::optional<std::pair<int64_t, internal::DataItem>>
+GetFirstIndexAndPrimitive(const internal::DataSliceImpl& slice) {
+  std::optional<std::pair<int64_t, internal::DataItem>> result;
+  slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
+    if (result.has_value()) {
+      return;
+    }
+    if constexpr (!std::is_same_v<T, internal::ObjectId>) {
+      if (!array.empty()) {
+        array.ForEachPresent([&](int64_t id, arolla::view_type_t<T> val_view) {
+          if (result.has_value()) {
+            return;
+          }
+          result = {id, internal::DataItem(T(val_view))};
+        });
+      }
+    }
+  });
+  return result;
+}
+
+absl::Status AttrOnPrimitiveError(const DataSlice& slice,
+                                  absl::string_view attr_name,
+                                  absl::string_view action) {
+  return AttrOnPrimitiveError(
+      slice, absl::StrFormat("failed to %s '%s' attribute", action, attr_name));
+}
+
+absl::Status AttrOnPrimitiveError(const internal::DataItem& item,
+                                  const internal::DataItem& schema,
+                                  absl::string_view attr_name,
+                                  absl::string_view action) {
+  return AttrOnPrimitiveError(
+      *DataSlice::Create(item, schema), attr_name, action);
+}
+
+absl::Status AttrOnPrimitiveError(const internal::DataSliceImpl& slice,
+                                  const internal::DataItem& schema,
+                                  absl::string_view attr_name,
+                                  absl::string_view action) {
+  return AttrOnPrimitiveError(
+      *DataSlice::CreateWithFlatShape(slice, schema), attr_name, action);
+}
+
 // Calls DataBagImpl::GetAttr on the specific implementation (DataSliceImpl or
 // DataItem). Returns DataSliceImpl / DataItem data and fills `res_schema` with
 // schema of the resulting DataSlice as side output.
@@ -377,13 +421,18 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
                                   absl::string_view attr_name,
                                   internal::DataItem& res_schema,
                                   bool allow_missing_schema) {
-  if (db == nullptr) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("cannot fetch attributes without a DataBag: ", attr_name));
+  if (schema.is_primitive_schema() || impl.ContainsAnyPrimitives()) {
+    return AttrOnPrimitiveError(impl, schema, attr_name, "get");
   }
-  if (schema.is_primitive_schema()) {
-    return absl::InvalidArgumentError(
-        "getting attributes from primitive values is not supported");
+  if (schema.is_itemid_schema()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "failed to get '%s' attribute; ITEMIDs do not allow attribute access",
+        attr_name));
+  }
+  if (db == nullptr) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "failed to get '%s' attribute; the DataSlice is a reference without a "
+        "Bag", attr_name));
   }
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
@@ -1218,9 +1267,18 @@ absl::Status DataSlice::SetSchemaAttr(absl::string_view attr_name,
 absl::Status DataSlice::SetAttr(absl::string_view attr_name,
                                 const DataSlice& values,
                                 bool update_schema) const {
+  if (GetSchemaImpl().is_primitive_schema() || ContainsAnyPrimitives()) {
+    return AttrOnPrimitiveError(*this, attr_name, "set");
+  }
+  if (GetSchemaImpl().is_itemid_schema()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "failed to set '%s' attribute; ITEMIDs do not allow attribute access",
+        attr_name));
+  }
   if (GetBag() == nullptr) {
-    return absl::InvalidArgumentError(
-        "cannot set attributes without a DataBag");
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "failed to set '%s' attribute; the DataSlice is a reference without a "
+        "Bag", attr_name));
   }
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, GetShape()),
                    _.With([&](auto status) {
@@ -1230,16 +1288,6 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
                    }));
   if (GetSchemaImpl() == schema::kSchema) {
     return SetSchemaAttr(attr_name, expanded_values);
-  }
-  if (GetSchemaImpl().holds_value<schema::DType>()) {
-    if (GetSchemaImpl().value<schema::DType>().is_primitive()) {
-      return absl::InvalidArgumentError(
-          "setting attributes on primitive slices is not allowed");
-    }
-    if (GetSchemaImpl().value<schema::DType>() == schema::kItemId) {
-      return absl::InvalidArgumentError(
-          "setting attributes on ITEMID slices is not allowed");
-    }
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
@@ -1966,6 +2014,33 @@ absl::StatusOr<DataSlice> CastOrUpdateSchema(
   RETURN_IF_ERROR(
       data_handler.ProcessSchemaObjectAttr(lhs_schema, db_impl, {}));
   return data_handler.GetValues();
+}
+
+absl::Status AttrOnPrimitiveError(const DataSlice& slice,
+                                  absl::string_view error_headline) {
+  const internal::DataItem& schema = slice.GetSchemaImpl();
+  if (schema.is_primitive_schema()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "%s; primitives do not have attributes, got %v",
+        error_headline, schema));
+  }
+  if (slice.is_item()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "%s; primitives do not have attributes, got %v DataItem with primitive "
+        "%v", error_headline, schema, slice.item()));
+  }
+  auto id_and_val = GetFirstIndexAndPrimitive(slice.slice());
+  if (id_and_val.has_value()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "%s; primitives do not have attributes, got %v DataSlice with at least "
+        "one primitive %v at ds.flatten().S[%d]",
+        error_headline, schema, id_and_val->second, id_and_val->first));
+  }
+  // NOTE: This is a fallback that is future proof, but cannot happen in
+  // practice.
+  return absl::InvalidArgumentError(absl::StrFormat(
+      "%s; primitives do not have attributes, got %v DataSlice with primitive "
+      "values", error_headline, schema));
 }
 
 }  // namespace koladata

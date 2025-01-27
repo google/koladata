@@ -507,6 +507,14 @@ TEST(DataItemTest, IsItemIdSchema) {
   EXPECT_TRUE(DataItem(schema::kItemId).is_itemid_schema());
 }
 
+TEST(DataItemTest, ContainsAnyPrimitives) {
+  EXPECT_TRUE(DataItem(0).ContainsAnyPrimitives());
+  EXPECT_TRUE(DataItem(4.f).ContainsAnyPrimitives());
+  EXPECT_FALSE(DataItem().ContainsAnyPrimitives());
+  EXPECT_FALSE(DataItem(AllocateSingleObject()).ContainsAnyPrimitives());
+  EXPECT_FALSE(DataItem(AllocateSingleList()).ContainsAnyPrimitives());
+}
+
 TEST(DataItemTest, ContainsOnlyLists) {
   EXPECT_TRUE(DataItem(AllocateSingleList()).ContainsOnlyLists());
   EXPECT_TRUE(DataItem().ContainsOnlyLists());

@@ -117,7 +117,7 @@ class CoreHasAttrTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'cannot fetch attributes without a DataBag: a',
+        'failed to get \'a\' attribute.* primitives do not have attributes'
     ):
       expr_eval.eval(kde.core.has_attr(43, 'a'))
 

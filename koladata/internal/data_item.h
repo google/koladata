@@ -165,6 +165,11 @@ class DataItem {
   // Returns number of present elements in DataItem (can be 0 or 1).
   size_t present_count() const { return has_value() ? 1 : 0; }
 
+  // Returns true iff any present value is a primitive.
+  bool ContainsAnyPrimitives() const {
+    return has_value() && !holds_value<internal::ObjectId>();
+  }
+
   // Returns true iff all present values are lists.
   bool ContainsOnlyLists() const { return !has_value() || is_list(); }
 

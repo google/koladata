@@ -50,6 +50,7 @@ using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::FieldsAre;
+using ::testing::HasSubstr;
 using ::testing::Optional;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
@@ -173,7 +174,7 @@ TEST(CreateFunctorTest, InvalidSignature) {
   EXPECT_THAT(
       CreateFunctor(returns_expr, slice_57, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot fetch attributes without a DataBag: parameters"));
+               HasSubstr("primitives do not have attributes")));
 }
 
 TEST(CreateFunctorTest, VariablesWithNon0Rank) {

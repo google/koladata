@@ -45,7 +45,7 @@ class UpdateSchemaTest(absltest.TestCase):
     self.assertEqual(o.S[1].get_obj_schema().y, schema_constants.STRING)
 
     with self.assertRaisesRegex(
-        ValueError, 'cannot get or set attributes on schema: ANY'
+        ValueError, 'failed to set \'x\' attribute'
     ):
       fns.update_schema(o.as_any(), x=schema_constants.INT32)
 

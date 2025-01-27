@@ -194,6 +194,16 @@ size_t DataSliceImpl::present_count() const {
   return res;
 }
 
+bool DataSliceImpl::ContainsAnyPrimitives() const {
+  bool result = false;
+  VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {
+    if constexpr (!std::is_same_v<T, ObjectId>) {
+      result = true;
+    }
+  });
+  return result;
+}
+
 bool DataSliceImpl::ContainsOnlyLists() const {
   bool result = true;
   VisitValues([&]<typename T>(const arolla::DenseArray<T>& array) {

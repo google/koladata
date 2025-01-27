@@ -66,9 +66,19 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
                                  absl::Span<const absl::string_view> attr_names,
                                  absl::Span<const DataSlice> attr_values) {
   DCHECK_EQ(attr_names.size(), attr_values.size());
+  if (obj.GetSchemaImpl().is_primitive_schema() ||
+      obj.ContainsAnyPrimitives()) {
+    return AttrOnPrimitiveError(obj, "failed to create attribute update");
+  }
+  if (obj.GetSchemaImpl().is_itemid_schema()) {
+    return absl::InvalidArgumentError(
+        "failed to create attribute update; "
+        "ITEMIDs do not allow attribute access");
+  }
   if (obj.GetBag() == nullptr) {
     return absl::InvalidArgumentError(
-        "cannot set attributes on a DataSlice without a DataBag");
+        "failed to create attribute update; "
+        "the DataSlice is a reference without a Bag");
   }
 
   DataBagPtr result_db = DataBag::Empty();

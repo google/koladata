@@ -71,26 +71,22 @@ class SetAttrTest(absltest.TestCase):
 
   def test_primitives(self):
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape(r'cannot set attributes without a DataBag'),
+        ValueError, 'primitives do not have attributes'
     ):
       fns.set_attr(ds(1), 'xyz', 2, update_schema=False)
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape(r'setting attributes on primitive slices is not allowed'),
+        ValueError, 'primitives do not have attributes'
     ):
       fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, update_schema=False)
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape(r'setting attributes on primitive slices is not allowed'),
+        ValueError, 'primitives do not have attributes'
     ):
       fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, update_schema=True)
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape(r'getting attribute of a primitive is not allowed'),
+        ValueError, 'primitives do not have attributes'
     ):
       fns.set_attr(
           ds(1, schema_constants.OBJECT).with_bag(fns.bag()),
@@ -100,8 +96,7 @@ class SetAttrTest(absltest.TestCase):
       )
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape(r'getting attribute of a primitive is not allowed'),
+        ValueError, 'primitives do not have attributes'
     ):
       fns.set_attr(
           ds(1, schema_constants.OBJECT).with_bag(fns.bag()),

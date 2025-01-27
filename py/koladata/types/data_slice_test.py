@@ -1468,8 +1468,7 @@ foo.get_obj_schema().x = <desired_schema>"""),
   def test_getattr_errors(self):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
-        ValueError,
-        'cannot fetch attributes without a DataBag: abc',
+        ValueError, 'failed to get \'abc\' attribute',
     ):
       _ = x.abc
     with self.assertRaisesRegex(TypeError, r'attribute name must be string'):

@@ -140,6 +140,9 @@ class DataSliceImpl {
   // either is_mixed_dtype() or is_empty_and_unknown() is true.
   arolla::QTypePtr dtype() const { return internal_->dtype; }
 
+  // Returns true iff any present value is a primitive.
+  bool ContainsAnyPrimitives() const;
+
   // Returns true iff all present values are lists.
   bool ContainsOnlyLists() const;
 

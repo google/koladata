@@ -1227,7 +1227,8 @@ TEST(DataSliceTest, GetAttrErrors) {
         test::DataSlice<internal::ObjectId>({std::nullopt}, schema::kObject);
     EXPECT_THAT(x.GetAttr("a"),
                 StatusIs(absl::StatusCode::kInvalidArgument,
-                         "cannot fetch attributes without a DataBag: a"));
+                         AllOf(HasSubstr("failed to get 'a' attribute;"),
+                               HasSubstr("DataSlice is a reference"))));
   }
   {
     // Primitive schema.
@@ -1236,15 +1237,29 @@ TEST(DataSliceTest, GetAttrErrors) {
     EXPECT_THAT(
         x.GetAttr("a"),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 "getting attributes from primitive values is not supported"));
+                 "failed to get 'a' attribute; primitives do not have "
+                 "attributes, got INT32"));
   }
-  {  // Primitive data.
+  {  // Primitive data - slice.
     auto db = DataBag::Empty();
     auto x = test::DataSlice<int>({1}, schema::kObject, db);
     EXPECT_THAT(
         x.GetAttr("a"),
-        StatusIs(absl::StatusCode::kFailedPrecondition,
-                 "getting attributes of primitives is not allowed"));
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            "failed to get 'a' attribute; primitives do not have attributes, "
+            "got OBJECT DataSlice with at least one primitive 1 at "
+            "ds.flatten().S[0]"));
+  }
+  {  // Primitive data - item.
+    auto db = DataBag::Empty();
+    auto x = test::DataItem(1, schema::kAny, db);
+    EXPECT_THAT(
+        x.GetAttr("a"),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            "failed to get 'a' attribute; primitives do not have attributes, "
+            "got ANY DataItem with primitive 1"));
   }
 }
 
@@ -1632,6 +1647,16 @@ TEST(DataSliceTest, EmbedSchema_NotAllowed_On_NoFollowSlice) {
   EXPECT_THAT(nofollow_ds.EmbedSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "schema must not be a NoFollow schema"));
+}
+
+// More extensive tests are located in DataItem and DataSliceImpl tests.
+TEST(DataSliceTest, ContainsAnyPrimitives) {
+  EXPECT_TRUE(test::DataSlice<int64_t>({42, 12}).ContainsAnyPrimitives());
+  EXPECT_TRUE(test::DataItem(42).ContainsAnyPrimitives());
+  EXPECT_FALSE(test::AllocateDataSlice(/*size=*/2, schema::kAny)
+               .ContainsAnyPrimitives());
+  EXPECT_FALSE(test::DataItem(internal::ObjectId()).ContainsAnyPrimitives());
+  EXPECT_FALSE(test::DataItem(internal::DataItem()).ContainsAnyPrimitives());
 }
 
 TEST(DataSliceTest, IsList_Empty) {
@@ -2108,8 +2133,9 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {
 
   EXPECT_THAT(
       obj.GetAttr("a"),
-      StatusIs(absl::StatusCode::kFailedPrecondition,
-               HasSubstr("getting attributes of primitives is not allowed")));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("failed to get 'a' attribute; primitives")));
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
@@ -2223,10 +2249,16 @@ TEST(DataSliceTest, SetAttr_OnItemIdNotAllowed) {
     internal::AllocateSingleObject()}, db);
   ASSERT_OK_AND_ASSIGN(ds_object_id,
                        ds_object_id.WithSchema(test::Schema(schema::kItemId)));
-  EXPECT_THAT(ds_object_id.SetAttr("a", ds_primitive),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("setting attributes on ITEMID slices is not "
-                                 "allowed")));
+  EXPECT_THAT(
+      ds_object_id.GetAttr("a"),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               AllOf(HasSubstr("failed to get 'a' attribute;"),
+                     HasSubstr("ITEMIDs do not allow attribute access"))));
+  EXPECT_THAT(
+      ds_object_id.SetAttr("a", ds_primitive),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               AllOf(HasSubstr("failed to set 'a' attribute;"),
+                     HasSubstr("ITEMIDs do not allow attribute access"))));
 }
 
 TEST(DataSliceTest, SetAttr_ObjectWithExplicitSchema_Incompatible) {
@@ -2853,17 +2885,20 @@ TEST(DataSliceTest, SetGetError) {
   auto ds_a = test::AllocateDataSlice(2, schema::kAny);
   EXPECT_THAT(ds.SetAttr("QQQ", ds_a),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       ContainsRegex("without.*DataBag")));
-  EXPECT_THAT(ds.GetAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
-                                        HasSubstr("without a DataBag: a")));
+                       AllOf(HasSubstr("failed to set 'QQQ' attribute;"),
+                             HasSubstr("reference"))));
+  EXPECT_THAT(ds.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       AllOf(HasSubstr("failed to get 'a' attribute;"),
+                             HasSubstr("reference"))));
 
   ds = ds.WithBag(DataBag::Empty());
 
   auto ds_primitive = test::DataSlice<int>({42, 42}, ds.GetBag());
   EXPECT_THAT(ds_primitive.SetAttr("a", ds_a),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("setting attributes on primitive slices is not"
-                                 " allowed")));
+                       AllOf(HasSubstr("failed to set 'a' attribute;"),
+                             HasSubstr("primitives do not have attributes"))));
 
   EXPECT_THAT(
       ds_a.WithBag(ds.GetBag()).SetAttr(schema::kSchemaAttr, ds_primitive),
@@ -5218,22 +5253,30 @@ TEST(DataSliceTest, SchemaSlice) {
   // Getting and Setting attributes on Schema constants is not allowed.
   EXPECT_THAT(
       x_schema.GetAttr("not_allowed"),
-      StatusIs(absl::StatusCode::kFailedPrecondition,
-               HasSubstr("cannot get or set attributes on schema: INT32")));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          AllOf(HasSubstr("failed to get 'not_allowed' attribute;"),
+                HasSubstr("SCHEMA DataItem with primitive INT32"))));
   EXPECT_THAT(
       x_schema.SetAttr("not_allowed", y_schema),
-      StatusIs(absl::StatusCode::kFailedPrecondition,
-               HasSubstr("cannot get or set attributes on schema: INT32")));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          AllOf(HasSubstr("failed to set 'not_allowed' attribute;"),
+                HasSubstr("SCHEMA DataItem with primitive INT32"))));
 
   auto any_schema = test::DataItem(schema::kAny, schema::kSchema, db);
   EXPECT_THAT(
       any_schema.GetAttr("not_allowed"),
-      StatusIs(absl::StatusCode::kFailedPrecondition,
-               HasSubstr("cannot get or set attributes on schema: ANY")));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          AllOf(HasSubstr("failed to get 'not_allowed' attribute;"),
+                HasSubstr("SCHEMA DataItem with primitive ANY"))));
   EXPECT_THAT(
       any_schema.SetAttr("not_allowed", schema),
-      StatusIs(absl::StatusCode::kFailedPrecondition,
-               HasSubstr("cannot get or set attributes on schema: ANY")));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          AllOf(HasSubstr("failed to set 'not_allowed' attribute;"),
+                HasSubstr("SCHEMA DataItem with primitive ANY"))));
 
   // Setting a non-schema as a schema attribute.
   EXPECT_THAT(y_schema.SetAttr("non_schema", x),
