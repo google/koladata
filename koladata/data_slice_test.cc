@@ -3432,7 +3432,7 @@ TEST(DataSliceTest, DelAttr_NoDataBag) {
                        EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
   ds = ds.WithBag(nullptr);
   EXPECT_THAT(ds.DelAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
-                                        HasSubstr("without a DataBag")));
+                                        HasSubstr("DataSlice is a reference")));
 }
 
 TEST(DataSliceTest, DelAttr_DisallowedSchema) {
@@ -3441,15 +3441,15 @@ TEST(DataSliceTest, DelAttr_DisallowedSchema) {
   EXPECT_THAT(
       ds_primitive.DelAttr("c"),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("Deleting an attribute cannot be done on a DataSlice "
-                         "with INT32 schema")));
+               AllOf(HasSubstr("failed to delete 'c' attribute;"),
+                     HasSubstr("got INT32"))));
 
   auto ds_item_id = test::AllocateDataSlice(3, schema::kItemId, db);
   EXPECT_THAT(
       ds_item_id.DelAttr("c"),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("Deleting an attribute cannot be done on a DataSlice "
-                         "with ITEMID schema")));
+               AllOf(HasSubstr("failed to delete 'c' attribute;"),
+                     HasSubstr("ITEMIDs do not allow attribute access"))));
 }
 
 TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaDTypeMatch) {

@@ -432,7 +432,7 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
   if (db == nullptr) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "failed to get '%s' attribute; the DataSlice is a reference without a "
-        "Bag", attr_name));
+        "bag", attr_name));
   }
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
@@ -1278,7 +1278,7 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
   if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "failed to set '%s' attribute; the DataSlice is a reference without a "
-        "Bag", attr_name));
+        "bag", attr_name));
   }
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, GetShape()),
                    _.With([&](auto status) {
@@ -1351,9 +1351,18 @@ absl::Status DelObjSchemaAttr(const ImplT& impl, absl::string_view attr_name,
 }
 
 absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
+  if (GetSchemaImpl().is_primitive_schema() || ContainsAnyPrimitives()) {
+    return AttrOnPrimitiveError(*this, attr_name, "delete");
+  }
+  if (GetSchemaImpl().is_itemid_schema()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "failed to delete '%s' attribute; ITEMIDs do not allow attribute "
+        "access", attr_name));
+  }
   if (GetBag() == nullptr) {
-    return absl::InvalidArgumentError(
-        "cannot delete attributes without a DataBag");
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "failed to delete '%s' attribute; the DataSlice is a reference without "
+        "a bag", attr_name));
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
@@ -1372,8 +1381,8 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
           DelSchemaAttrItem(GetSchemaImpl(), attr_name, db_mutable_impl));
     } else if (GetSchemaImpl() != schema::kAny) {
       return absl::InvalidArgumentError(absl::StrFormat(
-          "Deleting an attribute cannot be done on a DataSlice with %v schema",
-          GetSchemaImpl()));
+          "failed to delete '%s' attribute; cannot delete on a DataSlice with "
+          "%v schema", attr_name, GetSchemaImpl()));
     }
     // Remove attribute data by overwriting with empty.
     if constexpr (std::is_same_v<ImplT, internal::DataSliceImpl>) {
