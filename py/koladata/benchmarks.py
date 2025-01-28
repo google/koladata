@@ -1467,5 +1467,32 @@ def expand_to(state):
     _ = ds.expand_to(child_ds, ndim=ndim)
 
 
+@google_benchmark.register
+def map_py(state):
+  """Benchmark for kd.map_py."""
+  x = kd.range(int(1e3))
+  fn = lambda x: x + 1
+  while state:
+    _ = kd.map_py(fn, x)
+
+
+@google_benchmark.register
+def map_with_traced_fn(state):
+  """Benchmark for kd.map with a traced fn inside."""
+  x = kd.range(int(1e3))
+  fn = kd.fn(lambda x: x + 1)
+  while state:
+    _ = kd.map(fn, x)
+
+
+@google_benchmark.register
+def map_with_py_fn(state):
+  """Benchmark for kd.map with a py_fn inside."""
+  x = kd.range(int(1e3))
+  fn = kd.py_fn(lambda x: x + 1)
+  while state:
+    _ = kd.map(fn, x)
+
+
 if __name__ == '__main__':
   google_benchmark.main()
