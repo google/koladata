@@ -217,15 +217,15 @@ TEST(BindArgumentsTest, Basic) {
   std::vector<DataSlice> slices = {test::DataItem(0), test::DataItem(1),
                                    test::DataItem(2), test::DataItem(3),
                                    test::DataItem(4), test::DataItem(5)};
-  ASSERT_OK_AND_ASSIGN(
-      auto bound_arguments,
-      BindArguments(signature,
-                    {arolla::TypedRef::FromValue(slices[0]),
-                     arolla::TypedRef::FromValue(slices[1]),
-                     arolla::TypedRef::FromValue(slices[2]),
-                     arolla::TypedRef::FromValue(slices[3])},
-                    {{"f", arolla::TypedRef::FromValue(slices[4])},
-                     {"g", arolla::TypedRef::FromValue(slices[5])}}));
+  ASSERT_OK_AND_ASSIGN(auto bound_arguments,
+                       BindArguments(signature,
+                                     {arolla::TypedRef::FromValue(slices[0]),
+                                      arolla::TypedRef::FromValue(slices[1]),
+                                      arolla::TypedRef::FromValue(slices[2]),
+                                      arolla::TypedRef::FromValue(slices[3]),
+                                      arolla::TypedRef::FromValue(slices[4]),
+                                      arolla::TypedRef::FromValue(slices[5])},
+                                     {"f", "g"}));
   auto expected_var_args =
       arolla::MakeTuple({arolla::TypedRef::FromValue(slices[2]),
                          arolla::TypedRef::FromValue(slices[3])});
@@ -272,15 +272,15 @@ TEST(BindArgumentsTest, NotValidIdentifiers) {
   std::vector<DataSlice> slices = {test::DataItem(0), test::DataItem(1),
                                    test::DataItem(2), test::DataItem(3),
                                    test::DataItem(4), test::DataItem(5)};
-  ASSERT_OK_AND_ASSIGN(
-      auto bound_arguments,
-      BindArguments(signature,
-                    {arolla::TypedRef::FromValue(slices[0]),
-                     arolla::TypedRef::FromValue(slices[1]),
-                     arolla::TypedRef::FromValue(slices[2]),
-                     arolla::TypedRef::FromValue(slices[3])},
-                    {{"", arolla::TypedRef::FromValue(slices[4])},
-                     {"!", arolla::TypedRef::FromValue(slices[5])}}));
+  ASSERT_OK_AND_ASSIGN(auto bound_arguments,
+                       BindArguments(signature,
+                                     {arolla::TypedRef::FromValue(slices[0]),
+                                      arolla::TypedRef::FromValue(slices[1]),
+                                      arolla::TypedRef::FromValue(slices[2]),
+                                      arolla::TypedRef::FromValue(slices[3]),
+                                      arolla::TypedRef::FromValue(slices[4]),
+                                      arolla::TypedRef::FromValue(slices[5])},
+                                     {"", "!"}));
   auto expected_var_args =
       arolla::MakeTuple({arolla::TypedRef::FromValue(slices[2]),
                          arolla::TypedRef::FromValue(slices[3])});
@@ -314,8 +314,8 @@ TEST(BindArgumentsTest, PositionalOnlyAndKeywordSameName) {
   auto input_slice = test::DataItem(43);
   ASSERT_OK_AND_ASSIGN(
       auto bound_arguments,
-      BindArguments(signature, {},
-                    {{"foo", arolla::TypedRef::FromValue(input_slice)}}));
+      BindArguments(signature, {arolla::TypedRef::FromValue(input_slice)},
+                    {"foo"}));
   ASSERT_EQ(bound_arguments.size(), 2);
   EXPECT_THAT(bound_arguments[0].As<DataSlice>(),
               IsOkAndHolds(IsEquivalentTo(p1.default_value.value())));
@@ -339,8 +339,8 @@ TEST(BindArgumentsTest, PositionalOnlyAndKeywordSameNameErrorMessage) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1, p2}));
   auto input_slice = test::DataItem(43);
   EXPECT_THAT(
-      BindArguments(signature, {},
-                    {{"foo", arolla::TypedRef::FromValue(input_slice)}}),
+      BindArguments(signature, {arolla::TypedRef::FromValue(input_slice)},
+                    {"foo"}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "no value provided for positional only parameter [foo]"));
 }
@@ -352,11 +352,12 @@ TEST(BindArgumentsTest, SpecifyingSameBothAsPositionalAndKeyword) {
   };
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
   auto input_slice = test::DataItem(43);
-  EXPECT_THAT(
-      BindArguments(signature, {arolla::TypedRef::FromValue(input_slice)},
-                    {{"foo", arolla::TypedRef::FromValue(input_slice)}}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "parameter [foo] specified twice"));
+  EXPECT_THAT(BindArguments(signature,
+                            {arolla::TypedRef::FromValue(input_slice),
+                             arolla::TypedRef::FromValue(input_slice)},
+                            {"foo"}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "parameter [foo] specified twice"));
 }
 
 TEST(BindArgumentsTest, SpecifyingSameAsKeywordTwice) {
@@ -366,12 +367,12 @@ TEST(BindArgumentsTest, SpecifyingSameAsKeywordTwice) {
   };
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
   auto input_slice = test::DataItem(43);
-  EXPECT_THAT(
-      BindArguments(signature, {},
-                    {{"foo", arolla::TypedRef::FromValue(input_slice)},
-                     {"foo", arolla::TypedRef::FromValue(input_slice)}}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "parameter [foo] specified twice"));
+  EXPECT_THAT(BindArguments(signature,
+                            {arolla::TypedRef::FromValue(input_slice),
+                             arolla::TypedRef::FromValue(input_slice)},
+                            {"foo", "foo"}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "parameter [foo] specified twice"));
 }
 
 TEST(BindArgumentsTest, SpecifyingSameUnknownAsKeywordTwice) {
@@ -381,13 +382,13 @@ TEST(BindArgumentsTest, SpecifyingSameUnknownAsKeywordTwice) {
   };
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
   auto input_slice = test::DataItem(43);
-  EXPECT_THAT(
-      BindArguments(signature, {},
-                    {{"foo", arolla::TypedRef::FromValue(input_slice)},
-                     {"foo", arolla::TypedRef::FromValue(input_slice)}}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               // We can improve this error message if needed.
-               HasSubstr("field name foo is duplicated")));
+  EXPECT_THAT(BindArguments(signature,
+                            {arolla::TypedRef::FromValue(input_slice),
+                             arolla::TypedRef::FromValue(input_slice)},
+                            {"foo", "foo"}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       // We can improve this error message if needed.
+                       HasSubstr("field name foo is duplicated")));
 }
 
 TEST(BindArgumentsTest, TooFewPositional) {
@@ -437,11 +438,23 @@ TEST(BindArgumentsTest, UnknownKeyword) {
   };
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
   auto input_slice = test::DataItem(43);
-  EXPECT_THAT(BindArguments(signature, {},
-                            {{"b", arolla::TypedRef::FromValue(input_slice)},
-                             {"a", arolla::TypedRef::FromValue(input_slice)}}),
+  EXPECT_THAT(BindArguments(signature,
+                            {arolla::TypedRef::FromValue(input_slice),
+                             arolla::TypedRef::FromValue(input_slice)},
+                            {"b", "a"}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unknown keyword arguments: [b, a]"));
+}
+
+TEST(BindArgumentsTest, InvalidArgsKwnamesSizes) {
+  Signature::Parameter p1 = {
+      .name = "foo",
+      .kind = Signature::Parameter::Kind::kVarPositional,
+  };
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
+  EXPECT_THAT(BindArguments(signature, {}, {"foo"}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "args.size < kwnames.size()"));
 }
 
 }  // namespace

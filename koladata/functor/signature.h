@@ -18,7 +18,6 @@
 #include <cstddef>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
@@ -96,7 +95,7 @@ class Signature {
 // must own it.
 absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
     const Signature& signature, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs);
+    absl::Span<const std::string> kwnames);
 
 // Makes it possible to use absl::StrCat/absl::StrFormat (with %v) with kinds.
 template <typename Sink>

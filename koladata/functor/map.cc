@@ -48,19 +48,15 @@ absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
   ASSIGN_OR_RETURN(auto aligned_args, shape::Align(std::move(args)));
   DataSlice aligned_functors = std::move(aligned_args.back());
   aligned_args.pop_back();
-  int64_t num_positional = aligned_args.size() - kwnames.size();
   // Pre-allocate the vectors to avoid reallocations in the loop.
   std::vector<arolla::TypedRef> arg_refs;
-  arg_refs.reserve(num_positional);
-  std::vector<std::pair<std::string, arolla::TypedRef>> kwarg_refs;
-  kwarg_refs.reserve(kwnames.size());
+  arg_refs.reserve(aligned_args.size());
   std::vector<DataSlice> result_slices;
   ASSIGN_OR_RETURN(DataSlice missing,
                    DataSlice::Create(internal::DataItem(std::nullopt),
                                      internal::DataItem(schema::kNone)));
 
-  auto call_on_items = [&kwnames, &missing, &arg_refs, &kwarg_refs,
-                        &num_positional, &include_missing,
+  auto call_on_items = [&kwnames, &missing, &arg_refs, &include_missing,
                         &eval_options](const DataSlice& functor,
                                        const std::vector<DataSlice>& arg_slices)
       -> absl::StatusOr<DataSlice> {
@@ -68,29 +64,19 @@ absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
       return missing;
     }
     arg_refs.clear();
-    for (int64_t i = 0; i < num_positional; ++i) {
-      const auto& value = arg_slices[i];
+    for (const auto& value : arg_slices) {
       DCHECK(value.is_item());
       if (!include_missing && !value.item().has_value()) {
         return missing;
       }
       arg_refs.push_back(arolla::TypedRef::FromValue(value));
     }
-    kwarg_refs.clear();
-    for (int64_t i = 0; i < kwnames.size(); ++i) {
-      const auto& value = arg_slices[num_positional + i];
-      DCHECK(value.is_item());
-      if (!include_missing && !value.item().has_value()) {
-        return missing;
-      }
-      kwarg_refs.emplace_back(kwnames[i], arolla::TypedRef::FromValue(value));
-    }
     // We can improve the performance a lot if "functor" is the same for many
     // items, as a lot of the work inside CallFunctorWithCompilationCache could
     // be reused between items then.
     ASSIGN_OR_RETURN(auto result,
-                     CallFunctorWithCompilationCache(functor, arg_refs,
-                                                     kwarg_refs, eval_options));
+                     CallFunctorWithCompilationCache(functor, arg_refs, kwnames,
+                                                     eval_options));
     if (result.GetType() != arolla::GetQType<DataSlice>()) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "the functor is expected to be evaluated to a DataItem"

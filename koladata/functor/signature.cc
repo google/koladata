@@ -107,7 +107,12 @@ Signature::Signature(absl::Span<const Parameter> parameters)
 
 absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
     const Signature& signature, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs) {
+    absl::Span<const std::string> kwnames) {
+  if (args.size() < kwnames.size()) {
+    return absl::InvalidArgumentError("args.size < kwnames.size()");
+  }
+  const size_t kwargs_offset = args.size() - kwnames.size();
+
   const auto& parameters = signature.parameters();
   const auto& keyword_parameter_index = signature.keyword_parameter_index();
   std::vector<arolla::TypedValue> bound_arguments(
@@ -119,7 +124,7 @@ absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
   std::vector<arolla::TypedRef> unknown_kwarg_values;
 
   // Process positional arguments.
-  for (size_t i = 0; i < args.size(); ++i) {
+  for (size_t i = 0; i < kwargs_offset; ++i) {
     if (i >= parameters.size() ||
         (parameters[i].kind != Signature::Parameter::Kind::kPositionalOnly &&
          parameters[i].kind !=
@@ -131,15 +136,17 @@ absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
   }
 
   // Process keyword arguments.
-  for (const auto& [name, value] : kwargs) {
+  for (size_t i = kwargs_offset; i < args.size(); ++i) {
+    const auto& name = kwnames[i - kwargs_offset];
+    const auto& value = args[i];
     auto it = keyword_parameter_index.find(name);
     if (it == keyword_parameter_index.end()) {
       unknown_kwarg_names.push_back(name);
       unknown_kwarg_values.push_back(value);
     } else {
       if (bound_arguments[it->second].GetType() != arolla::GetNothingQType()) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "parameter [%s] specified twice", parameters[it->second].name));
+        return absl::InvalidArgumentError(
+            absl::StrFormat("parameter [%s] specified twice", name));
       }
       bound_arguments[it->second] = arolla::TypedValue(value);
     }

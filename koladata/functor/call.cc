@@ -107,7 +107,7 @@ absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
 
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs,
+    absl::Span<const std::string> kwnames,
     const expr::EvalOptions& eval_options) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
   if (!is_functor) {
@@ -117,7 +117,7 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
   ASSIGN_OR_RETURN(auto signature_item, functor.GetAttr(kSignatureAttrName));
   ASSIGN_OR_RETURN(auto signature, KodaSignatureToCppSignature(signature_item));
   ASSIGN_OR_RETURN(auto bound_arguments,
-                   BindArguments(signature, args, kwargs));
+                   BindArguments(signature, args, kwnames));
   ASSIGN_OR_RETURN(auto variable_evaluation_order,
                    GetVariableEvaluationOrder(functor));
   if (variable_evaluation_order.empty() ||

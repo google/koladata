@@ -28,15 +28,17 @@ namespace koladata::functor {
 // Calls the given functors pointwise on items from the provided arguments and
 // keyword arguments, expects them to return DataItems, and stacks
 // those into a single DataSlice.
-// `args` must contain first all positional arguments, then all keyword
-// arguments, so `kwnames` corresponds to a suffix of `args`.
+//
+// `args` must contain values for positional arguments followed by values for
+// keyword arguments; `kwnames` must contain the names of the keyword arguments,
+// so `kwnames` corresponds to a suffix of `args`.
+//
 // `include_missing` controls whether to call the functors on missing items of
 // `args` and `kwargs`.
 //
-// The `eval_options` parameter provides a default buffer factory
-// (typically either the default allocator or an arena allocator)
-// and a cancellation checker, which allows the computation to be
-// interrupted midway if needed.
+// `eval_options` parameter provides a default buffer factory (typically either
+// the default allocator or an arena allocator) and a cancellation context,
+// which allows the computation to be interrupted midway if needed.
 absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
     const DataSlice& functors, std::vector<DataSlice> args,
     absl::Span<const std::string> kwnames, bool include_missing,

@@ -116,26 +116,20 @@ TEST(CallTest, VariableRhombus) {
       arolla::TypedValue::FromValue(3),
       arolla::TypedValue::FromValue(4),
   };
-  ASSERT_OK_AND_ASSIGN(auto result, CallFunctorWithCompilationCache(
-                                        fn,
-                                        /*args=*/
-                                        {
-                                            inputs[0].AsRef(),
-                                            inputs[1].AsRef(),
-                                            inputs[2].AsRef(),
-                                        },
-                                        /*kwargs=*/{}, /*eval_options=*/{}));
+  ASSERT_OK_AND_ASSIGN(
+      auto result,
+      CallFunctorWithCompilationCache(
+          fn,
+          /*args=*/{inputs[0].AsRef(), inputs[1].AsRef(), inputs[2].AsRef()},
+          /*kwnames=*/{}, /*eval_options=*/{}));
   EXPECT_THAT(result.As<int32_t>(), IsOkAndHolds(2 * ((3 + 5) + (3 + 4))));
 
   ASSERT_OK_AND_ASSIGN(
       result,
       CallFunctorWithCompilationCache(
           fn,
-          /*args=*/
-          {
-              inputs[0].AsRef(),
-          },
-          /*kwargs=*/{{"c", inputs[1].AsRef()}, {"b", inputs[2].AsRef()}},
+          /*args=*/{inputs[0].AsRef(), inputs[1].AsRef(), inputs[2].AsRef()},
+          /*kwnames=*/{"c", "b"},
           /*eval_options=*/{}));
   EXPECT_THAT(result.As<int32_t>(), IsOkAndHolds(2 * ((4 + 5) + (4 + 3))));
 }
@@ -150,7 +144,7 @@ TEST(CallTest, VariableCycle) {
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature,
                                      {{"a", var_a_expr}, {"b", var_b_expr}}));
-  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwargs=*/{},
+  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{},
                                               /*eval_options=*/{}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "variable [a] has a dependency cycle"));
@@ -165,7 +159,7 @@ TEST(CallTest, JustLiteral) {
                        CreateFunctor(returns_expr, koda_signature, {}));
   ASSERT_OK_AND_ASSIGN(
       auto result, CallFunctorWithCompilationCache(
-                       fn, /*args=*/{}, /*kwargs=*/{}, /*eval_options=*/{}));
+                       fn, /*args=*/{}, /*kwnames=*/{}, /*eval_options=*/{}));
   EXPECT_THAT(result.As<int32_t>(), IsOkAndHolds(57));
 }
 
@@ -177,7 +171,7 @@ TEST(CallTest, MustBeScalar) {
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}));
   ASSERT_OK_AND_ASSIGN(fn, fn.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
-  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwargs=*/{},
+  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{},
                                               /*eval_options=*/{}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the first argument of kd.call must be a functor"));
@@ -192,7 +186,7 @@ TEST(CallTest, NoBag) {
                        CreateFunctor(returns_expr, koda_signature, {}));
   EXPECT_THAT(
       CallFunctorWithCompilationCache(fn.WithBag(nullptr), /*args=*/{},
-                                      /*kwargs=*/{}, /*eval_options=*/{}),
+                                      /*kwnames=*/{}, /*eval_options=*/{}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "the first argument of kd.call must be a functor"));
 }
@@ -209,7 +203,7 @@ TEST(CallTest, DataSliceVariable) {
       auto fn, CreateFunctor(returns_expr, koda_signature, {{"a", var_a}}));
   ASSERT_OK_AND_ASSIGN(auto result, CallFunctorWithCompilationCache(
                                         fn, /*args=*/{},
-                                        /*kwargs=*/{}, /*eval_options=*/{}));
+                                        /*kwnames=*/{}, /*eval_options=*/{}));
   EXPECT_THAT(result.As<DataSlice>(),
               IsOkAndHolds(IsEquivalentTo(var_a.WithBag(fn.GetBag()))));
 }
@@ -240,7 +234,7 @@ TEST(CallTest, EvalError) {
       CallFunctorWithCompilationCache(
           fn,
           /*args=*/{arolla::TypedRef::FromValue(input)},
-          /*kwargs=*/{}, /*eval_options=*/{}),
+          /*kwnames=*/{}, /*eval_options=*/{}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "expected numerics, got x: DATA_SLICE; while calling math.add "
                "with args {annotation.qtype(L['I.a'], DATA_SLICE), 57}; while "
@@ -277,7 +271,7 @@ TEST(CallTest, Cancellation) {
     expr::EvalOptions eval_options{.cancellation_context = cancel_ctx.get()};
     EXPECT_THAT(CallFunctorWithCompilationCache(
                     fn, /*args=*/{arolla::TypedRef::FromValue(1)},
-                    /*kwargs=*/{}, eval_options),
+                    /*kwnames=*/{}, eval_options),
                 StatusIs(absl::StatusCode::kCancelled));
   }
   {
@@ -292,7 +286,7 @@ TEST(CallTest, Cancellation) {
     ASSERT_OK_AND_ASSIGN(auto result,
                          CallFunctorWithCompilationCache(
                              fn, /*args=*/{arolla::TypedRef::FromValue(1)},
-                             /*kwargs=*/{}, eval_options));
+                             /*kwnames=*/{}, eval_options));
     EXPECT_THAT(result.As<int>(), IsOkAndHolds(3));
   }
 }

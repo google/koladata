@@ -30,20 +30,22 @@ namespace koladata::functor {
 // Calls the given functor with the provided arguments and keyword arguments.
 // The functor would typically be created by the CreateFunctor method,
 // and consists of a returns expression, a signature, and a set of variables.
-// The passed args and kwargs will be bound to the parameters of the signature
-// to produce the values for the inputs (I.foo) in the provided expression and
-// in the variable expressions. The expressions can also refer to the variables
-// via V.foo, in which case the variable expression will be evaluated before
-// evaluating the expression that refers to it. In case of a cycle in variables,
-// an error will be returned.
 //
-// The `eval_options` parameter provides a default buffer factory
-// (typically either the default allocator or an arena allocator)
-// and a cancellation checker, which allows the computation to be
-// interrupted midway if needed.
+// `args` must contain values for positional arguments followed by values for
+// keyword arguments; `kwnames` must contain the names of the keyword arguments,
+// so `kwnames` corresponds to a suffix of `args`. The passed arguments will be
+// bound to the parameters of the signature to produce the values for the inputs
+// (I.foo) in the provided expression and in the variable expressions. The
+// expressions can also refer to the variables via V.foo, in which case the
+// variable expression will be evaluated before evaluating the expression that
+// refers to it. In case of a cycle in variables, an error will be returned.
+//
+// `eval_options` parameter provides a default buffer factory (typically either
+// the default allocator or an arena allocator) and a cancellation context,
+// which allows the computation to be interrupted midway if needed.
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> kwargs,
+    absl::Span<const std::string> kwnames,
     const expr::EvalOptions& eval_options);
 
 }  // namespace koladata::functor

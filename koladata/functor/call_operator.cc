@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/call_operator.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
@@ -62,25 +63,21 @@ class CallOperator : public arolla::QExprOperator {
           const auto& fn_data_slice = frame.Get(fn_slot);
 
           std::vector<arolla::TypedRef> arg_refs;
-          arg_refs.reserve(args_slot.SubSlotCount());
-          for (int i = 0; i < args_slot.SubSlotCount(); ++i) {
+          arg_refs.reserve(args_slot.SubSlotCount() +
+                           kwargs_slot.SubSlotCount());
+          for (int64_t i = 0; i < args_slot.SubSlotCount(); ++i) {
             arg_refs.push_back(
                 arolla::TypedRef::FromSlot(args_slot.SubSlot(i), frame));
           }
-
-          auto kwargs_qtype = kwargs_slot.GetType();
-          auto kwarg_names = arolla::GetFieldNames(kwargs_qtype);
-          std::vector<std::pair<std::string, arolla::TypedRef>> kwarg_refs;
-          kwarg_refs.reserve(kwargs_slot.SubSlotCount());
-          for (int i = 0; i < kwargs_slot.SubSlotCount(); ++i) {
-            kwarg_refs.push_back(
-                {kwarg_names[i],
-                 arolla::TypedRef::FromSlot(kwargs_slot.SubSlot(i), frame)});
+          for (int64_t i = 0; i < kwargs_slot.SubSlotCount(); ++i) {
+            arg_refs.push_back(
+                arolla::TypedRef::FromSlot(kwargs_slot.SubSlot(i), frame));
           }
+          auto kwnames = arolla::GetFieldNames(kwargs_slot.GetType());
           ASSIGN_OR_RETURN(
               auto result,
-              functor::CallFunctorWithCompilationCache(
-                  fn_data_slice, arg_refs, kwarg_refs, ctx->options()),
+              functor::CallFunctorWithCompilationCache(fn_data_slice, arg_refs,
+                                                       kwnames, ctx->options()),
               ctx->set_status(std::move(_)));
           if (result.GetType() != output_slot.GetType()) {
             ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
