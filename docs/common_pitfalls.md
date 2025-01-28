@@ -453,7 +453,7 @@ ds = kd.slice([1, '2', None, kd.obj(), kd.obj(kd.list()), kd.obj(kd.dict())])
 kd.full_equal(kd.has(ds), kd.has_primitive(ds) | kd.has_entity(ds) | kd.has_list(ds) | kd.has_dict(ds))
 ```
 
-## Pointwise Equality Only Compares ItemIds for Entities/Lists/Dicts
+## Pointwise Equality Only Compares ItemIds for Entities/Lists/Dicts {#pointwise-equality}
 
 The pointwise equality operator `x == y` only compares **ItemIds** for
 structured data (i.e. entities/lists/dicts) and ignores their contents and
@@ -519,6 +519,90 @@ y = kd.slice([1, 2, 3])
 x != y  # [missing, missing, missing]
 ~kd.all(x != y)  # present
 kd.full_equal(x, y)  # missing
+```
+
+## Compare Entities/Lists/Dicts by Value
+
+As we explained [above](#pointwise-equality), the pointwise equality operator
+`x == y` compares ItemIds for entities/lists/dicts rather than the values of
+their contents. To compare by value, we can use `kd.deep_uuid` to generate uuids
+based on the values of the contents and then compare the generated uuids.
+
+```py
+import dataclasses
+
+@dataclasses.dataclass
+class Foo:
+  x: int
+  y: int
+
+foo1 = Foo(x=1, y=2)
+foo2 = Foo(x=1, y=2)
+assert foo1 == foo2  # Compare by value in Python
+
+es = kd.schema_from_py(Foo)
+e1 = kd.from_py(foo1, schema=es)
+e2 = kd.from_py(foo2, schema=es)
+assert e1 != e2
+assert kd.deep_uuid(e1) == kd.deep_uuid(e2)
+```
+
+```py
+py_l1 = [1, 2, 3]
+py_l2 = [1, 2, 3]
+assert py_l1 == py_l2
+
+l1 = kd.list(py_l1)
+l2 = kd.list(py_l2)
+assert l1 != l2
+assert kd.deep_uuid(l1) == kd.deep_uuid(l2)
+```
+
+```py
+py_d1 = {'a': 1, 'b': 2}
+py_d2 = {'a': 1, 'b': 2}
+assert py_d1 == py_d2
+
+d1 = kd.dict(py_d1)
+d2 = kd.dict(py_d2)
+assert d1 != d2
+assert kd.deep_uuid(d1) == kd.deep_uuid(d2)
+```
+
+NOTE: `kd.deep_uuid` works for nested structured data.
+
+```py
+i1 = kd.obj(a=kd.obj(b=kd.obj(c=1),
+                    d=kd.list([2, 3]),
+                    e=kd.dict({'f': 4})))
+i2 = kd.obj(a=kd.obj(b=kd.obj(c=1),
+                    d=kd.list([2, 3]),
+                    e=kd.dict({'f': 4})))
+
+assert kd.deep_uuid(i1) == kd.deep_uuid(i2)
+```
+
+NOTE: Even though certain values are considered as the same in Python,
+`kd.deep_uuid()` treats them as different values if they have different Koda
+dtypes.
+
+```py
+o1 = kd.obj(x=1)
+o2 = kd.obj(x=kd.int64(1))
+assert kd.deep_uuid(o1) != kd.deep_uuid(o2)
+
+assert 1 == 1.0
+o3 = kd.obj(x=1.0)
+assert kd.deep_uuid(o1) != kd.deep_uuid(o3)
+```
+
+However, `kd.deep_uuid` does not print out a nice error message to explain which
+sub-parts are different, which is useful in unit test debugging. To get a better
+error message, the current recommendation is to convert to pytrees and use
+Python comparison assertions.
+
+```py
+self.assertEqual(i1.to_pytree(max_depth=-1), i2.to_pytree(max_depth=-1))
 ```
 
 ## Masks vs Booleans
@@ -634,6 +718,120 @@ x == y  # [present, missing, missing]
 ~(x == y)  # [missing, present, present]
 ```
 
+## List Updates are More Expensive than Entity/Dict Updates
+
+Entity attributes and dict key/value pairs can be updated using `with_attrs` and
+`with_dict_updated`, respectively. Entity attributes and key/value pairs have no
+order and are stored internally in a hashmap-like data structure. Updates can be
+represented as bags which can be created at a cost of `O(N)` where `N` is the
+number of **updated** attributes or key/value pairs. Also, looking up through a
+chain of fallback bags can be done efficiently. For example, when looking up an
+attribute, we can stop when the attribute is found in the first bag of the
+fallback bag chain.
+
+In contrast to that, list elements are ordered and lists cannot be updated as
+efficiently as entities/dicts. The cost of creating list updates is `O(N + M)`
+where `N` is the number of **updated** elements and `M` is the number of
+elements in the original list.
+
+<section class='zippy'>
+
+Optional: Why cannot list updates be represented efficiently?
+
+Most commonly, list elements are stored sequentially in memory and element
+access is cheap. However, it poses problems in immutable workflows where
+modification is done by creating updates that overlay the original unmodified
+data. We would have to be able to represent updates to elements in the middle of
+the list, for example, and somehow retain the efficiency of accesses.
+Representing lists as index/value pairs in a hashmap-like structure is possible,
+but it makes accesses much slower. Koda chose not to do so.
+
+</section>
+
+WARNING: `with_list_append_update` is still WIP and will be available in next
+few days.
+
+```py
+l1 = kd.list([1, 2, 3])
+l2 = l1.with_list_append_update(4)  # List[1, 2, 3, 4]
+assert l1.get_itemid() == l2.get_itemid()
+l3 = l2.with_list_append_update(kd.slice([4, 5]))  # List[1, 2, 3, 4, 5]
+assert l2.get_itemid() == l3.get_itemid()
+```
+
+If a new distinct ItemId is preferred, we can use `kd.concat_lists(*lists)` or
+`kd.appended_list(list, values_to_append)` to create new lists.
+
+```py
+l1 = kd.list([1, 2, 3])
+l2 = kd.appended_list(l1, 4)  # List[1, 2, 3, 4]
+assert l1.get_itemid() != l2.get_itemid()
+l3 = kd.appended_list(l1, kd.slice([4, 5]))  # List[1, 2, 3, 4, 5]
+assert l1.get_itemid() != l3.get_itemid()
+
+l4 = kd.list([4, 5])
+l5 = kd.list([6, 7])
+l6 = kd.concat_lists(l1, l4, l5)  # List[1, 2, 3, 4, 5, 6, 7]
+assert l1.get_itemid() != l6.get_itemid()
+```
+
+## Multiple Versions of Entities/Lists/Dicts with the Same ItemIds
+
+Using multiple versions of entities/lists/dicts with the same ItemIds but
+different data can lead to **unexpected overrides**.
+
+The following example uses entities but the same applies to lists and dicts.
+
+```py
+a = kd.new(b=kd.new(c=1))
+# Let's say we want to create a new b with c=2 and add it back to a
+new_b = a.b.with_attrs(c=2)
+a = a.with_attrs(new_b=new_b)
+# Note that a.b.c is also updated to 2
+a  # Entity(b=Entity(c=2), new_b=Entity(c=2))
+```
+
+It is similar to copying by reference and then modifying the reference in
+Python.
+
+```py
+a = {'b': {'c': 1}}
+new_b = a['b']  # Instead, it should be a['b'].copy()
+new_b['c'] = 2
+a['new_b'] = new_b
+a  # {'b': {'c': 2}, 'new_b': {'c': 2}}
+```
+
+If this is undesirable, you use `kd.clone` to create new entities with distinct
+ItemIds.
+
+```py
+a = kd.new(b=kd.new(c=1))
+new_b = a.b.clone().with_attrs(c=2)
+a = a.with_attrs(new_b=new_b)
+a  # Entity(b=Entity(c=1), new_b=Entity(c=2))
+```
+
+Sometimes, it can lead to **conflicts** rather than implicit overrides.
+
+```py
+a = kd.new(b=kd.new(c=1))
+new_b1 = a.b.with_attrs(c=2)
+new_b2 = a.b.with_attrs(c=3)
+# It fails with conflicting values for c: 2 vs 3
+# a.with_attrs(new_b1=new_b1, new_b2=new_b2)
+```
+
+To fix this, we can use `kd.clone` or `kd.deep_clone`.
+
+```py
+a = kd.new(b=kd.new(c=1))
+new_b1 = a.b.clone().with_attrs(c=2)
+new_b2 = a.b.clone().with_attrs(c=3)
+a = a.with_attrs(new_b1=new_b1, new_b2=new_b2)
+a  # Entity(b=Entity(c=1), new_b1=Entity(c=2), new_b2=Entity(c=3))
+```
+
 ## Broadcasting DataSlices of Entities/Lists/Dicts Replicates ItemIds
 
 Entities/lists/dicts in a DataSlice are not fully copied when broadcasting the
@@ -686,4 +884,44 @@ a.S[0].y.get_itemid() != a.S[1].y.get_itemid()  # yes
 # update only 2nd object in a
 a = a.updated(kd.attrs(a.S[2].y, x=100))
 a.y.x  # [None, None, 100]
+```
+
+## Mutable APIs cannot be Traced
+
+When a Python function using Koda is traced to create a Koda functor, the
+corresponding logic is converted to a computation graph. Koda requires traceable
+logic to only use Koda operators which are immutable. Tracing a function that
+uses mutable APIs will fail.
+
+<section class='zippy'>
+
+Optional: Why cannot mutable APIs be traced?
+
+Immutability helps to make the execution more flexible and efficient. For
+example:
+
+-   It is possible to execute sub-graphs of the traced computation graph in
+    parallel when needed. The sub-graphs cannot interfere with each other
+    because there are no concurrent writes to the same data.
+-   There is a lot of flexibility to perform optimizations, for example to
+    re-order the execution of operations, to eliminate common subexpressions,
+    etc. Without immutability, the operations would have to be executed pretty
+    much in the same order in which they were defined in the Python logic.
+
+</section>
+
+```py
+def f1():
+  a = kd.new(x=1)
+  return kd.new(y=a)
+
+traced_f1 = kd.fn(f1)
+
+def f2():
+  bag = kd.bag()
+  a = bag.new(x=1)  # mutable API
+  return bag.new(y=a)
+
+# The following line fails
+# kd.fn(f2)
 ```

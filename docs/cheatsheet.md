@@ -3387,9 +3387,13 @@ kd.testing.assert_dicts_values_equal(
 
 ### Comparing Complex Objects
 
-Right now, Koda does not provide a way to compare complex objects by
-**contents** ignoring ItemIds, DataBags and schemas. The current recommendation
-is to convert to pytrees and use Python comparison assertions.
+When the Koda equality operator `x == y` is applied to complex objects, it will
+simply compare their ItemIds for equality. That is different from Python, in
+which `x == y` will compare the values of their contents. To do the same in
+Koda, we can use `kd.deep_uuid(x) == kd.deep_uuid(y)`. However, it does not
+print out a nice error message to explain which sub-parts are different. To get
+a better error message, the current recommendation is to convert to pytrees and
+use Python comparison assertions.
 
 ```py
 i1 = kd.obj(a=kd.obj(b=kd.obj(c=1),
@@ -3399,8 +3403,12 @@ i2 = kd.obj(a=kd.obj(b=kd.obj(c=1),
                     d=kd.list([2, 3]),
                     e=kd.dict({'f': 4})))
 
-assert i1.to_pytree(max_depth=-1)
-  == i2.to_pytree(max_depth=-1)
+assert i1 != i2
+assert kd.deep_uuid(i1) == kd.deep_uuid(i2)
+
+# To get better error message, do this in unit tests
+self.assertEqual(i1.to_pytree(max_depth=-1),
+                 i2.to_pytree(max_depth=-1))
 ```
 
 </section>

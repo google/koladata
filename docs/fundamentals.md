@@ -5,7 +5,9 @@
 This guide goes through fundemantals in Koda. It is highly recommended to read
 through the guide in order for new users to use Koda effectively.
 
-Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
+Also see [Koda Cheatsheet](cheatsheet.md) for quick references and
+[Koda Common Pitfalls and Gotchas](common_pitfalls.md) for common pitfalls and
+frequent misunderstandings.
 
 * TOC
 {:toc}
