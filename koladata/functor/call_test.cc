@@ -32,8 +32,7 @@
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
+#include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
@@ -68,9 +67,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> CreateVariable(
 absl::StatusOr<DataSlice> WrapExpr(
     absl::StatusOr<arolla::expr::ExprNodePtr> expr_or_error) {
   ASSIGN_OR_RETURN(auto expr, expr_or_error);
-  return DataSlice::Create(
-      internal::DataItem(arolla::expr::ExprQuote(std::move(expr))),
-      internal::DataItem(schema::kExpr));
+  return test::DataItem(arolla::expr::ExprQuote(std::move(expr)));
 }
 
 TEST(CallTest, VariableRhombus) {
@@ -196,9 +193,7 @@ TEST(CallTest, DataSliceVariable) {
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(CreateVariable("a")));
-  ASSERT_OK_AND_ASSIGN(auto var_a,
-                       DataSlice::Create(internal::DataItem(57),
-                                         internal::DataItem(schema::kInt32)));
+  auto var_a = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(
       auto fn, CreateFunctor(returns_expr, koda_signature, {{"a", var_a}}));
   ASSERT_OK_AND_ASSIGN(auto result, CallFunctorWithCompilationCache(
@@ -223,9 +218,7 @@ TEST(CallTest, EvalError) {
           "math.add", {CreateInput("a"), arolla::expr::Literal(57)})));
   ASSERT_OK_AND_ASSIGN(auto fn, CreateFunctor(returns_expr, koda_signature,
                                               {{"foo", var_expr}}));
-  ASSERT_OK_AND_ASSIGN(auto input,
-                       DataSlice::Create(internal::DataItem(43),
-                                         internal::DataItem(schema::kInt32)));
+  auto input = test::DataItem(43);
   // This error message should be improved, in particular it should actually
   // mention that we are evaluating a functor, which variable, etc.
   // It is OK to only improve this on the Python side, the C++ error is not

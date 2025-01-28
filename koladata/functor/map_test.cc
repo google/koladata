@@ -36,8 +36,6 @@
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/dtype.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -47,7 +45,6 @@
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/quote.h"
 #include "arolla/jagged_shape/testing/matchers.h"
-#include "arolla/qtype/typed_ref.h"
 #include "arolla/util/cancellation_context.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
@@ -69,9 +66,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
 absl::StatusOr<DataSlice> WrapExpr(
     absl::StatusOr<arolla::expr::ExprNodePtr> expr_or_error) {
   ASSIGN_OR_RETURN(auto expr, expr_or_error);
-  return DataSlice::Create(
-      internal::DataItem(arolla::expr::ExprQuote(std::move(expr))),
-      internal::DataItem(schema::kExpr));
+  return test::DataItem(arolla::expr::ExprQuote(std::move(expr)));
 }
 
 TEST(MapTest, Basic) {
@@ -93,31 +88,12 @@ TEST(MapTest, Basic) {
   ASSERT_OK_AND_ASSIGN(auto fn_b,
                        CreateFunctor(returns_b_expr, koda_signature, {}));
   auto merged_bag = DataBag::CommonDataBag({fn_a.GetBag(), fn_b.GetBag()});
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice fn,
-      DataSlice::CreateWithFlatShape(
-          internal::DataSliceImpl::Create(
-              {fn_a.item(), fn_b.item(), internal::DataItem(), fn_a.item()}),
-          fn_a.GetSchemaImpl(), merged_bag));
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice a_input,
-      DataSlice::CreateWithFlatShape(
-          internal::DataSliceImpl::Create(
-              arolla::CreateFullDenseArray<int32_t>({1, 2, 3, 4})),
-          internal::DataItem(schema::kInt32)));
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice b_input,
-      DataSlice::CreateWithFlatShape(
-          internal::DataSliceImpl::Create(
-              arolla::CreateDenseArray<int32_t>({5, 6, 7, std::nullopt})),
-          internal::DataItem(schema::kInt32)));
-
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice expected1,
-      DataSlice::CreateWithFlatShape(
-          internal::DataSliceImpl::Create(arolla::CreateDenseArray<int32_t>(
-              {1, 6, std::nullopt, std::nullopt})),
-          internal::DataItem(schema::kInt32)));
+  auto fn = test::DataSlice<internal::DataItem>(
+      {fn_a.item(), fn_b.item(), internal::DataItem(), fn_a.item()},
+      merged_bag);
+  auto a_input = test::DataSlice<int>({1, 2, 3, 4});
+  auto b_input = test::DataSlice<int>({5, 6, 7, std::nullopt});
+  auto expected1 = test::DataSlice<int>({1, 6, std::nullopt, std::nullopt});
   EXPECT_THAT(MapFunctorWithCompilationCache(
                   fn, /*args=*/{a_input, b_input}, /*kwnames=*/{"a", "b"},
                   /*include_missing=*/false, /*eval_options=*/{}),
@@ -131,12 +107,7 @@ TEST(MapTest, Basic) {
                   /*include_missing=*/false, /*eval_options=*/{}),
               IsOkAndHolds(IsEquivalentTo(expected1)));
 
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice expected2,
-      DataSlice::CreateWithFlatShape(
-          internal::DataSliceImpl::Create(
-              arolla::CreateDenseArray<int32_t>({1, 6, std::nullopt, 4})),
-          internal::DataItem(schema::kInt32)));
+  auto expected2 = test::DataSlice<int>({1, 6, std::nullopt, 4});
   EXPECT_THAT(MapFunctorWithCompilationCache(
                   fn, /*args=*/{a_input, b_input}, /*kwnames=*/{"b"},
                   /*include_missing=*/true, /*eval_options=*/{}),
@@ -162,11 +133,8 @@ TEST(MapTest, Alignment) {
   ASSERT_OK_AND_ASSIGN(auto fn_b,
                        CreateFunctor(returns_b_expr, koda_signature, {}));
   auto merged_bag = DataBag::CommonDataBag({fn_a.GetBag(), fn_b.GetBag()});
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice fn,
-      DataSlice::CreateWithFlatShape(
-          internal::DataSliceImpl::Create({fn_a.item(), fn_b.item()}),
-          fn_a.GetSchemaImpl(), merged_bag));
+  auto fn = test::DataSlice<internal::DataItem>({fn_a.item(), fn_b.item()},
+                                                merged_bag);
   ASSERT_OK_AND_ASSIGN(auto edge1,
                        arolla::DenseArrayEdge::FromSplitPoints(
                            arolla::CreateFullDenseArray<int64_t>({0, 2})));
@@ -175,22 +143,9 @@ TEST(MapTest, Alignment) {
                            arolla::CreateFullDenseArray<int64_t>({0, 3, 7})));
   ASSERT_OK_AND_ASSIGN(auto shape,
                        DataSlice::JaggedShape::FromEdges({edge1, edge2}));
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice a_input,
-      DataSlice::Create(
-          internal::DataSliceImpl::Create(
-              arolla::CreateFullDenseArray<int32_t>({1, 2, 3, 4, 5, 6, 7})),
-          shape, internal::DataItem(schema::kInt32)));
-  ASSERT_OK_AND_ASSIGN(DataSlice b_input,
-                       DataSlice::Create(internal::DataItem(8),
-                                         internal::DataItem(schema::kInt32)));
-
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice expected,
-      DataSlice::Create(
-          internal::DataSliceImpl::Create(
-              arolla::CreateDenseArray<int32_t>({1, 2, 3, 8, 8, 8, 8})),
-          shape, internal::DataItem(schema::kInt32)));
+  auto a_input = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7}, shape);
+  auto b_input = test::DataItem(8);
+  auto expected = test::DataSlice<int>({1, 2, 3, 8, 8, 8, 8}, shape);
   EXPECT_THAT(MapFunctorWithCompilationCache(
                   fn, /*args=*/{a_input, b_input}, /*kwnames=*/{"b"},
                   /*include_missing=*/false, /*eval_options=*/{}),

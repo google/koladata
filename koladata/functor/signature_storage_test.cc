@@ -23,7 +23,6 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/signature.h"
-#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/masking.h"
@@ -158,9 +157,7 @@ TEST(KodaSignatureToCppSignatureTest, Missing) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(auto missing,
-                       DataSlice::Create(internal::DataItem(arolla::kMissing),
-                                         internal::DataItem(schema::kMask)));
+  auto missing = test::DataItem(arolla::kMissing, schema::kMask);
   ASSERT_OK_AND_ASSIGN(auto koda_signature_missing,
                        ops::ApplyMask(koda_signature, missing));
   EXPECT_THAT(
@@ -173,9 +170,7 @@ TEST(KodaSignatureToCppSignatureTest, MissingParameterList) {
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
-  ASSERT_OK_AND_ASSIGN(auto missing,
-                       DataSlice::Create(internal::DataItem(arolla::kMissing),
-                                         internal::DataItem(schema::kMask)));
+  auto missing = test::DataItem(arolla::kMissing, schema::kMask);
   ASSERT_OK_AND_ASSIGN(auto parameters, koda_signature.GetAttr("parameters"));
   ASSERT_OK_AND_ASSIGN(auto parameters_missing,
                        ops::ApplyMask(parameters, missing));
@@ -194,9 +189,7 @@ TEST(KodaSignatureToCppSignatureTest, MissingParameter) {
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
-  ASSERT_OK_AND_ASSIGN(auto missing,
-                       DataSlice::Create(internal::DataItem(arolla::kMissing),
-                                         internal::DataItem(schema::kMask)));
+  auto missing = test::DataItem(arolla::kMissing, schema::kMask);
   ASSERT_OK_AND_ASSIGN(auto parameters, koda_signature.GetAttr("parameters"));
   ASSERT_OK(parameters.SetInList(test::DataItem(0), missing));
   EXPECT_THAT(
@@ -213,9 +206,7 @@ TEST(KodaSignatureToCppSignatureTest, NonTextParameterName) {
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
-  ASSERT_OK_AND_ASSIGN(auto missing,
-                       DataSlice::Create(internal::DataItem(arolla::kMissing),
-                                         internal::DataItem(schema::kMask)));
+  auto missing = test::DataItem(arolla::kMissing, schema::kMask);
   ASSERT_OK_AND_ASSIGN(auto parameters, koda_signature.GetAttr("parameters"));
   ASSERT_OK_AND_ASSIGN(auto parameter,
                        parameters.GetFromList(test::DataItem(0)));
@@ -238,9 +229,7 @@ TEST(KodaSignatureToCppSignatureTest, DuplicateParameterName) {
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
-  ASSERT_OK_AND_ASSIGN(auto missing,
-                       DataSlice::Create(internal::DataItem(arolla::kMissing),
-                                         internal::DataItem(schema::kMask)));
+  auto missing = test::DataItem(arolla::kMissing, schema::kMask);
   ASSERT_OK_AND_ASSIGN(auto parameters, koda_signature.GetAttr("parameters"));
   ASSERT_OK_AND_ASSIGN(auto parameter,
                        parameters.GetFromList(test::DataItem(0)));
@@ -259,9 +248,7 @@ TEST(KodaSignatureToCppSignatureTest, InvalidKind) {
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(koda_signature, koda_signature.ForkBag());
-  ASSERT_OK_AND_ASSIGN(auto missing,
-                       DataSlice::Create(internal::DataItem(arolla::kMissing),
-                                         internal::DataItem(schema::kMask)));
+  auto missing = test::DataItem(arolla::kMissing, schema::kMask);
   ASSERT_OK_AND_ASSIGN(auto parameters, koda_signature.GetAttr("parameters"));
   ASSERT_OK_AND_ASSIGN(auto parameter,
                        parameters.GetFromList(test::DataItem(0)));

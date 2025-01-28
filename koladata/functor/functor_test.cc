@@ -69,9 +69,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> CreateVariable(
 absl::StatusOr<DataSlice> WrapExpr(
     absl::StatusOr<arolla::expr::ExprNodePtr> expr_or_error) {
   ASSIGN_OR_RETURN(auto expr, expr_or_error);
-  return DataSlice::Create(
-      internal::DataItem(arolla::expr::ExprQuote(std::move(expr))),
-      internal::DataItem(schema::kExpr));
+  return test::DataItem(arolla::expr::ExprQuote(std::move(expr)));
 }
 
 TEST(CreateFunctorTest, Basic) {
@@ -87,9 +85,7 @@ TEST(CreateFunctorTest, Basic) {
       WrapExpr(arolla::expr::CallOp("math.multiply",
                                     {CreateInput("a"), CreateVariable("a")})));
   ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateInput("b")));
-  ASSERT_OK_AND_ASSIGN(auto slice_57,
-                       DataSlice::Create(internal::DataItem(57),
-                                         internal::DataItem(schema::kInt32)));
+  auto slice_57 = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(auto my_obj, ObjectCreator::FromAttrs(
                                         DataBag::Empty(), {"a"}, {slice_57}));
   ASSERT_OK_AND_ASSIGN(auto fn,
@@ -118,9 +114,7 @@ TEST(CreateFunctorTest, DefaultSignature) {
       WrapExpr(arolla::expr::CallOp("math.multiply",
                                     {CreateInput("a"), CreateVariable("a")})));
   ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateInput("b")));
-  ASSERT_OK_AND_ASSIGN(auto slice_57,
-                       DataSlice::Create(internal::DataItem(57),
-                                         internal::DataItem(schema::kInt32)));
+  auto slice_57 = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(
       auto fn, CreateFunctor(returns_expr, std::nullopt, {{"a", var_a_expr}}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature, fn.GetAttr(kSignatureAttrName));
@@ -139,9 +133,7 @@ TEST(CreateFunctorTest, DefaultSignature) {
 }
 
 TEST(CreateFunctorTest, NonExprReturns) {
-  ASSERT_OK_AND_ASSIGN(auto slice_57,
-                       DataSlice::Create(internal::DataItem(57),
-                                         internal::DataItem(schema::kInt32)));
+  auto slice_57 = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
@@ -151,9 +143,7 @@ TEST(CreateFunctorTest, NonExprReturns) {
 }
 
 TEST(CreateFunctorTest, Non0RankReturns) {
-  ASSERT_OK_AND_ASSIGN(auto slice_57,
-                       DataSlice::Create(internal::DataItem(57),
-                                         internal::DataItem(schema::kInt32)));
+  auto slice_57 = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(
       auto slice_57_1dim,
       slice_57.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
@@ -168,9 +158,7 @@ TEST(CreateFunctorTest, Non0RankReturns) {
 
 TEST(CreateFunctorTest, InvalidSignature) {
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
-  ASSERT_OK_AND_ASSIGN(auto slice_57,
-                       DataSlice::Create(internal::DataItem(57),
-                                         internal::DataItem(schema::kInt32)));
+  auto slice_57 = test::DataItem(57);
   EXPECT_THAT(
       CreateFunctor(returns_expr, slice_57, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -182,9 +170,7 @@ TEST(CreateFunctorTest, VariablesWithNon0Rank) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(auto slice_57,
-                       DataSlice::Create(internal::DataItem(57),
-                                         internal::DataItem(schema::kInt32)));
+  auto slice_57 = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(
       auto slice_57_with_dim,
       slice_57.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
@@ -213,7 +199,7 @@ TEST(IsFunctorTest, Basic) {
 }
 
 TEST(IsFunctorTest, PrimitiveWithBag) {
-  auto x = test::DataItem<int32_t>(1).WithBag(DataBag::Empty());
+  auto x = test::DataItem(1).WithBag(DataBag::Empty());
   EXPECT_THAT(IsFunctor(x), IsOkAndHolds(false));
   EXPECT_THAT(IsFunctor(*x.WithSchema(test::Schema(schema::kObject))),
               IsOkAndHolds(false));
