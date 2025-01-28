@@ -19,9 +19,7 @@ from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
 
-M = arolla.M
 P = arolla.P
-constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry(aliases=['kd.call'])
@@ -56,6 +54,60 @@ def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):
 
   Returns:
     The result of the call.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.map'])
+@optools.as_backend_operator(
+    'kd.functor.map',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.fn),
+        qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice(P.include_missing),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+    ],
+    deterministic=False,
+)
+def map_(fn, *args, include_missing=False, **kwargs):
+  """Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
+
+  If certain items of `fn` are missing, the corresponding items of the result
+  will also be missing.
+  If certain items of `args`/`kwargs` are missing then:
+  - when include_missing=False (the default), the corresponding item of the
+    result will be missing.
+  - when include_missing=True, we are still calling the functor on those missing
+    args/kwargs.
+
+  `fn`, `args`, `kwargs` will all be broadcast to the common shape. The return
+  values of the functors will be converted to a common schema, or an exception
+  will be raised if the schemas are not compatible. In that case, you can add
+  the appropriate cast inside the functor.
+
+  Example:
+    fn1 = kdf.fn(lambda x, y: x + y)
+    fn2 = kdf.fn(lambda x, y: x - y)
+    fn = kd.slice([fn1, fn2])
+    x = kd.slice([[1, None, 3], [4, 5, 6]])
+    y = kd.slice(1)
+
+    kd.map(kd.slice([fn1, fn2]), x=x, y=y)
+    # returns kd.slice([[2, None, 4], [3, 4, 5]])
+
+    kd.map(kd.slice([fn1, None]), x=x, y=y)
+    # returns kd.slice([[2, None, 4], [None, None, None]])
+
+  Args:
+    fn: DataSlice containing the functor(s) to evaluate. All functors must
+      return a DataItem.
+    *args: The positional argument(s) to pass to the functors.
+    include_missing: Whether to call the functors on missing items of
+      args/kwargs.
+    **kwargs: The keyword argument(s) to pass to the functors.
+
+  Returns:
+    The evaluation result.
   """
   raise NotImplementedError('implemented in the backend')
 

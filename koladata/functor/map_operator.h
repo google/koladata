@@ -12,24 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include <memory>
+#ifndef KOLADATA_FUNCTOR_MAP_OPERATOR_H_
+#define KOLADATA_FUNCTOR_MAP_OPERATOR_H_
 
-#include "koladata/data_slice_qtype.h"
-#include "koladata/functor/call_operator.h"
-#include "koladata/functor/map_operator.h"
-#include "arolla/qexpr/optools.h"
+#include "absl/status/statusor.h"
+#include "absl/types/span.h"
+#include "arolla/qexpr/operators.h"
+#include "arolla/qtype/qtype.h"
 
 namespace koladata::functor {
-namespace {
 
-#define OPERATOR AROLLA_REGISTER_QEXPR_OPERATOR
-#define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
+// kd.functor.map operator.
+// Calls the given functor(s) with the given arguments.
+class MapOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
 
-// go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
-OPERATOR("kd.functor._maybe_call", MaybeCall);
-OPERATOR_FAMILY("kd.functor.call", std::make_unique<CallOperatorFamily>());
-OPERATOR_FAMILY("kd.functor.map", std::make_unique<MapOperatorFamily>());
-// go/keep-sorted end
-
-}  // namespace
 }  // namespace koladata::functor
+
+#endif  // KOLADATA_FUNCTOR_MAP_OPERATOR_H_

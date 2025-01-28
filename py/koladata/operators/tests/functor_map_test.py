@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+import signal
+import threading
+import time
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import functions as fns
 from koladata.functor import functions
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -50,6 +56,37 @@ class MapTest(parameterized.TestCase):
     testing.assert_equal(
         expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=x, y=y),
         ds(3),
+    )
+
+  def test_include_missing(self):
+    fn = kdf.fn((I.x | 0) + (I.y | 0))
+    x = ds(None)
+    y = ds(2)
+    testing.assert_equal(
+        expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=x, y=y),
+        ds(None),
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=y, y=x),
+        ds(None),
+    )
+    testing.assert_equal(
+        expr_eval.eval(
+            kde.functor.map(I.fn, x=I.x, y=I.y, include_missing=False),
+            fn=fn,
+            x=x,
+            y=y,
+        ),
+        ds(None),
+    )
+    testing.assert_equal(
+        expr_eval.eval(
+            kde.functor.map(I.fn, x=I.x, y=I.y, include_missing=True),
+            fn=fn,
+            x=x,
+            y=y,
+        ),
+        ds(2),
     )
 
   def test_item_missing(self):
@@ -104,11 +141,38 @@ class MapTest(parameterized.TestCase):
     x = ds([1, 2, 3, 4])
     testing.assert_equal(
         expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x & (I.x >= 3)),
+            kde.functor.map(I.fn, x=I.x & (I.x >= 3), include_missing=True),
             fn=fn,
             x=x,
         ),
         ds([1, 1, 4, 5]),
+    )
+    testing.assert_equal(
+        expr_eval.eval(
+            kde.functor.map(I.fn, x=I.x & (I.x >= 3), include_missing=False),
+            fn=fn,
+            x=x,
+        ),
+        ds([None, None, 4, 5]),
+    )
+    testing.assert_equal(
+        expr_eval.eval(
+            kde.functor.map(I.fn, x=I.x & (I.x >= 3)),
+            fn=fn,
+            x=x,
+        ),
+        ds([None, None, 4, 5]),
+    )
+
+  def test_empty_output(self):
+    fn = kdf.fn(lambda x: x + 1)
+    testing.assert_equal(
+        expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=ds([])),
+        ds([]),
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=ds([None])),
+        ds([None]),
     )
 
   def test_different_shapes(self):
@@ -125,9 +189,20 @@ class MapTest(parameterized.TestCase):
 
     testing.assert_equal(
         expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x, y=I.y),
-            fn=ds([fn1, None]), x=x, y=y),
-        ds([[2, None, 4], [None, None, None]])
+            kde.functor.map(I.fn, x=I.x, y=I.y), fn=ds([fn1, None]), x=x, y=y
+        ),
+        ds([[2, None, 4], [None, None, None]]),
+    )
+
+    # Even with include_missing=True, the missing functor is not called.
+    testing.assert_equal(
+        expr_eval.eval(
+            kde.functor.map(I.fn, include_missing=True, x=I.x, y=I.y),
+            fn=ds([fn1, None]),
+            x=x,
+            y=y,
+        ),
+        ds([[2, None, 4], [None, None, None]]),
     )
 
   def test_return_slice(self):
@@ -137,7 +212,9 @@ class MapTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     fn = kdf.fn(f)
     with self.assertRaisesRegex(
-        ValueError, r'got DataSlice with shape JaggedShape\(2\)'
+        ValueError,
+        r'the functor is expected to be evaluated to a DataItem, but the result'
+        r' has shape: JaggedShape\(2\)',
     ):
       _ = expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=x)
 
@@ -149,10 +226,73 @@ class MapTest(parameterized.TestCase):
     fn = kdf.fn(f)
     with self.assertRaisesRegex(
         ValueError,
-        'the functor was called with `DATA_SLICE` as the output type, but the'
-        ' computation resulted in type `DATA_BAG` instead',
+        'the functor is expected to be evaluated to a DataItem, but the result'
+        ' has type `DATA_BAG` instead',
     ):
       _ = expr_eval.eval(kde.functor.map(I.fn, unused_x=I.x), fn=fn, x=x)
+
+  def test_adoption(self):
+    fn = kdf.fn(kde.obj(x=I.x + 1))
+    x = ds([1, 2, 3])
+    testing.assert_equal(
+        expr_eval.eval(kde.functor.map(I.fn, x=I.x), fn=fn, x=x).x.no_bag(),
+        ds([2, 3, 4]),
+    )
+
+  def test_incompatible_shapes(self):
+    fn = kdf.fn(I.x + I.y)
+    fn = ds([fn, fn])
+    x = ds([[1, 2], [3, 4], [5, 6]])
+    y = ds([[7, 8], [9, 10], [11, 12]])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'shapes are not compatible: JaggedShape(2) vs JaggedShape(3, 2)'
+        ),
+    ):
+      _ = expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=x, y=y)
+
+  def test_common_schema(self):
+    fn1 = kdf.fn(lambda x: x.foo)
+    fn2 = kdf.fn(lambda x: x.bar)
+    fn = ds([fn1, fn2])
+    x = fns.new(foo=ds([1, 2]), bar=ds(['3', '4']))
+    testing.assert_equal(
+        expr_eval.eval(
+            kde.functor.map(I.fn, x=I.x),
+            fn=fn,
+            x=x,
+        ),
+        ds([1, '4']).with_bag(x.get_bag()),
+    )
+
+    y = fns.new(foo=fns.new(a=ds([1, 2])), bar=fns.new(a=ds([3, 4])))
+    with self.assertRaisesRegex(
+        ValueError, 'cannot find a common schema for provided schemas'
+    ):
+      _ = expr_eval.eval(
+          kde.functor.map(I.fn, x=I.x),
+          fn=fn,
+          x=y,
+      )
+
+  def test_cancellable(self):
+    expr = I.self
+    for _ in range(10**4):
+      expr += expr
+    expr = kde.functor.map(kdf.expr_fn(expr), I.x)
+    x = ds(list(range(10**3)))
+
+    def do_keyboard_interrupt():
+      time.sleep(0.1)
+      signal.raise_signal(signal.SIGINT)
+
+    threading.Thread(target=do_keyboard_interrupt).start()
+    with self.assertRaisesRegex(ValueError, re.escape('interrupt')):
+      # This computation typically takes more than 10 seconds and fails
+      # with a different error unless the interruption is handled by
+      # the operator.
+      expr_eval.eval(expr, x=x)
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.functor.map(I.fn, I.x, I.y)))
@@ -163,7 +303,8 @@ class MapTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.functor.map(I.fn, x=I.x, y=I.y)),
-        'kd.functor.map(I.fn, x=I.x, y=I.y)',
+        'kd.functor.map(I.fn, include_missing=DataItem(False, schema: BOOLEAN),'
+        ' x=I.x, y=I.y)',
     )
 
 

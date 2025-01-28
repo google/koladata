@@ -184,10 +184,87 @@ cc_library(
     srcs = ["operators.cc"],
     deps = [
         ":call_operator",
+        ":map_operator",
         "//koladata:data_slice_qtype",
         "@com_google_arolla//arolla/qexpr",
     ],
     alwayslink = 1,
+)
+
+cc_library(
+    name = "map_operator",
+    srcs = ["map_operator.cc"],
+    hdrs = ["map_operator.h"],
+    deps = [
+        ":map",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "map",
+    srcs = ["map.cc"],
+    hdrs = ["map.h"],
+    deps = [
+        ":call",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/expr:expr_eval",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "map_test",
+    srcs = ["map_test.cc"],
+    deps = [
+        ":functor",
+        ":map",
+        ":signature",
+        ":signature_storage",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:test_utils",
+        "//koladata/expr:expr_eval",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal/testing:matchers",
+        "//koladata/testing:matchers",
+        "//koladata/testing:test_env",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/time",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/jagged_shape/testing",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
+    ],
 )
 
 cc_test(

@@ -466,7 +466,6 @@ py_library(
     name = "py",
     srcs = ["py.py"],
     deps = [
-        ":masking",
         ":optools",
         ":qtype_utils",
         ":schema",
