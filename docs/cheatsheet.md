@@ -1157,16 +1157,16 @@ c = kd.slice([[1], [2, 3]])
 kd.expand_to(a, c)
 # raises an exception
 # which is equivalent to
-kd.expand_to(a, c, last_ndim_to_implode=0)
+kd.expand_to(a, c, ndim=0)
 
-kd.expand_to(a, c, last_ndim_to_implode=1)
+kd.expand_to(a, c, ndim=1)
 # returns [[[1, 2]], [[3], [3]]]
 
-kd.expand_to(a, c, last_ndim_to_implode=2)
+kd.expand_to(a, c, ndim=2)
 # returns [[[[1, 2], [3]]], [[[1, 2], [3]],
 #          [[1, 2], [3]]]]
 
-kd.expand_to(a, c, last_ndim_to_implode=3)
+kd.expand_to(a, c, ndim=3)
 # raises an exception
 ```
 
