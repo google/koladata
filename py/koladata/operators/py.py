@@ -466,23 +466,6 @@ def _basic_map_py(
       # the inputs. This also handles the case where `cond` is empty, implying
       # empty inputs.
       cond = None
-    elif not eval_op('kd.masking.any', cond):
-      # Explicitly handle the case when the inputs are non-empty (covered by
-      # the previous branch), but `cond` contains no present elements.
-      #
-      # This is necessary because `from_py(...)` assigns different schemas in
-      # the following cases:
-      #
-      #   from_py([None], from_dim=1, schema=None).get_schema() -> NONE
-      #
-      # and
-      #
-      #   from_py([], from_dim=1, schema=None).get_schema() -> OBJECT
-      return eval_op(
-          'kd.shapes.expand_to_shape',
-          _from_py(None, schema=schema, from_dim=0),
-          shape,
-      )
     else:
       cond = cond.flatten()
       # Apply `cond` to the inputs so that masked values don't need unboxing.
