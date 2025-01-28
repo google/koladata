@@ -18,7 +18,6 @@ import concurrent.futures
 import functools
 import itertools
 from typing import Any, Callable, Iterable
-import warnings
 
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
@@ -800,45 +799,6 @@ def map_py_on_selected(
       max_threads=max_threads,
       item_completed_callback=item_completed_callback,
       kwargs=kwargs,
-  )
-
-
-@optools.add_to_registry(aliases=['kd.map_py_on_present'])
-@optools.as_py_function_operator(
-    'kd.py.map_py_on_present',
-    qtype_constraints=[
-        _expect_py_callable(P.fn),
-        qtype_utils.expect_data_slice_args(P.args),
-        _expect_optional_schema(P.schema),
-        _expect_scalar_integer(P.max_threads),
-        _expect_optional_py_callable(P.item_completed_callback),
-        qtype_utils.expect_data_slice_kwargs(P.kwargs),
-    ],
-)
-def map_py_on_present(
-    fn,
-    *args,
-    schema=None,
-    max_threads=1,
-    item_completed_callback=None,
-    **kwargs,
-):
-  """Deprecated. Use kd.map_py instead."""
-  warnings.warn(
-      '`kd.map_py_on_present` is deprecated and will be removed, please use'
-      ' `kd.map_py` instead',
-      DeprecationWarning,
-  )
-  if not args and not kwargs:
-    raise TypeError('expected at least one input DataSlice, got none')
-  return eval_op(
-      map_py,
-      fn,
-      *args,
-      schema=schema,
-      max_threads=max_threads,
-      item_completed_callback=item_completed_callback,
-      **kwargs,
   )
 
 
