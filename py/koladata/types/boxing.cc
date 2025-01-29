@@ -51,7 +51,6 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/missing_value.h"
-#include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
@@ -61,16 +60,13 @@
 #include "koladata/uuid_utils.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
-#include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/types/py_attr_provider.h"
-#include "py/koladata/types/wrap_utils.h"
 #include "arolla/array/qtype/types.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
-#include "arolla/expr/quote.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
@@ -424,81 +420,6 @@ absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
                                  std::move(schema), adoption_queue);
 }
 
-/****************** Building blocks for "To Python" ******************/
-
-// The following functions Return a new reference to a Python object, equivalent
-// to `value`.
-PyObject* PyObjectFromValue(int value) { return PyLong_FromLongLong(value); }
-
-PyObject* PyObjectFromValue(int64_t value) {
-  return PyLong_FromLongLong(value);
-}
-
-PyObject* PyObjectFromValue(float value) { return PyFloat_FromDouble(value); }
-
-PyObject* PyObjectFromValue(double value) { return PyFloat_FromDouble(value); }
-
-PyObject* PyObjectFromValue(bool value) { return PyBool_FromLong(value); }
-
-PyObject* PyObjectFromValue(Unit value) {
-  auto ds_or = DataSlice::Create(DataItem(value), DataItem(schema::kMask));
-  // NOTE: `schema` is already consistent with `value` as otherwise DataSlice
-  // would not even be created.
-  DCHECK_OK(ds_or);
-  return WrapPyDataSlice(*std::move(ds_or));
-}
-
-PyObject* PyObjectFromValue(const Text& value) {
-  absl::string_view text_view = value;
-  return PyUnicode_DecodeUTF8(text_view.data(), text_view.size(), nullptr);
-}
-
-PyObject* PyObjectFromValue(const Bytes& value) {
-  absl::string_view bytes_view = value;
-  return PyBytes_FromStringAndSize(bytes_view.data(), bytes_view.size());
-}
-
-PyObject* PyObjectFromValue(const arolla::expr::ExprQuote& value) {
-  return arolla::python::WrapAsPyQValue(arolla::TypedValue::FromValue(value));
-}
-
-// NOTE: Although DType is also a QValue, we don't want to expose it to user, as
-// it is an internal type.
-PyObject* PyObjectFromValue(schema::DType value) {
-  auto ds_or = DataSlice::Create(DataItem(value), DataItem(schema::kSchema));
-  // NOTE: `schema` is already consistent with `value` as otherwise DataSlice
-  // would not even be created.
-  DCHECK_OK(ds_or);
-  return WrapPyDataSlice(*std::move(ds_or));
-}
-PyObject* PyObjectFromValue(internal::ObjectId value, const DataItem& schema,
-                            const DataBagPtr& db) {
-  auto ds_or = DataSlice::Create(DataItem(value), schema, db);
-  // NOTE: `schema` is already consistent with `value` as otherwise DataSlice
-  // would not even be created.
-  DCHECK_OK(ds_or);
-  return WrapPyDataSlice(*std::move(ds_or));
-}
-
-// Returns a new reference to a Python object, equivalent to the value stored in
-// a `DataItem`.
-absl::Nullable<PyObject*> PyObjectFromDataItem(const DataItem& item,
-                                               const DataItem& schema,
-                                               const DataBagPtr& db) {
-  PyObject* res = nullptr;
-  item.VisitValue([&](const auto& value) {
-    using T = std::decay_t<decltype(value)>;
-    if constexpr (std::is_same_v<T, internal::MissingValue>) {
-      res = Py_NewRef(Py_None);
-    } else if constexpr (std::is_same_v<T, internal::ObjectId>) {
-      res = PyObjectFromValue(value, schema, db);
-    } else {
-      res = PyObjectFromValue(value);
-    }
-  });
-  return res;
-}
-
 }  // namespace
 
 // Parses the Python list and returns flattened items together with appropriate
@@ -654,51 +575,6 @@ absl::StatusOr<DataSlice> DataItemFromPyValue(
   }
   ASSIGN_OR_RETURN(DataBagPtr res_bag, adoption_queue.GetCommonOrMergedDb());
   return res.WithBag(std::move(res_bag));
-}
-
-absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds) {
-  arolla::python::DCheckPyGIL();
-  if (ds.is_item()) {
-    DCHECK_EQ(ds.size(), 1);  // Invariant ensured by DataSlice creation.
-    return PyObjectFromDataItem(ds.item(), ds.GetSchemaImpl(), ds.GetBag());
-  }
-  // Starting from a flat list of PyObject* equivalent to DataItems.
-  auto py_list =
-      arolla::python::PyObjectPtr::Own(PyList_New(/*len=*/ds.size()));
-  const auto& ds_impl = ds.slice();
-  for (int i = 0; i < ds.size(); ++i) {
-    PyObject* val =
-        PyObjectFromDataItem(ds_impl[i], ds.GetSchemaImpl(), ds.GetBag());
-    if (val == nullptr) {
-      return nullptr;
-    }
-    PyList_SetItem(py_list.get(), i, val);
-  }
-  // Nesting the flat list by iterating through JaggedShape in reverse. The last
-  // Edge in shape is ignored, because the result is already produced.
-  const auto& edges = ds.GetShape().edges();
-  for (int edge_i = edges.size() - 1; edge_i > 0; --edge_i) {
-    const auto& edge = edges[edge_i];
-    DCHECK_EQ(edge.edge_type(), arolla::DenseArrayEdge::SPLIT_POINTS);
-    auto new_list = arolla::python::PyObjectPtr::Own(
-        PyList_New(/*len=*/edge.parent_size()));
-    int offset = 0;
-    edge.edge_values()
-        .Slice(1, edge.parent_size())
-        .ForEach([&](int64_t id, bool present, int64_t pt) {
-          DCHECK(present);
-          auto sub_list = PyList_New(/*len=*/pt - offset);
-          for (int i = 0; i < pt - offset; ++i) {
-            PyList_SetItem(
-                sub_list, i,
-                Py_NewRef(PyList_GetItem(py_list.get(), offset + i)));
-          }
-          PyList_SetItem(new_list.get(), id, sub_list);
-          offset = pt;
-        });
-    py_list = std::move(new_list);
-  }
-  return py_list.release();
 }
 
 absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(

@@ -72,11 +72,6 @@ inline absl::StatusOr<DataSlice> DataSliceFromPyValueNoAdoption(
 absl::StatusOr<DataSlice> DataItemFromPyValue(
     PyObject* py_obj, const std::optional<DataSlice>& schema = std::nullopt);
 
-// Converts a DataSlice `ds` to an equivalent Python value. In case of presence
-// of multiple dimensions, a nested list of items is returned. Returns a new
-// reference to a Python object.
-absl::Nullable<PyObject*> DataSliceToPyValue(const DataSlice& ds);
-
 // Converts Python objects into DataSlices and converts them into appropriate
 // Koda Entities. The conversion is deep, such that all nested structures (e.g.
 // dicts) are also Entities (including Koda Lists and Dicts) or primitive

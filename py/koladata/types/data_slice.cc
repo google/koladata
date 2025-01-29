@@ -48,6 +48,7 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/base/to_py_object.h"
 #include "py/koladata/fstring/fstring_processor.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/py_utils.h"
@@ -168,7 +169,7 @@ absl::Nullable<PyObject*> PyDataSlice_internal_as_py(PyObject* self,
                                                      PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  return DataSliceToPyValue(ds);
+  return PyObjectFromDataSlice(ds).release();
 }
 
 absl::Nullable<PyObject*> PyDataSlice_internal_as_arolla_value(PyObject* self,

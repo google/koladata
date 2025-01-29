@@ -23,10 +23,12 @@
 #include "absl/log/check.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/base/to_py_object.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/data_slice.h"
 #include "py/koladata/types/py_utils.h"
@@ -89,7 +91,7 @@ absl::Nullable<PyObject*> PyDataItem_int(PyObject* self) {
         "int() argument cannot be a DataItem that holds an ItemId, got %s",
         arolla::Repr(ds).c_str());
   }
-  auto py_obj = arolla::python::PyObjectPtr::Own(DataSliceToPyValue(ds));
+  const arolla::python::PyObjectPtr py_obj = PyObjectFromDataSlice(ds);
   if (py_obj == nullptr) {
     return nullptr;
   }
@@ -106,7 +108,7 @@ absl::Nullable<PyObject*> PyDataItem_float(PyObject* self) {
         "float() argument cannot be a DataItem that holds an ItemId, got %s",
         arolla::Repr(ds).c_str());
   }
-  auto py_obj = arolla::python::PyObjectPtr::Own(DataSliceToPyValue(ds));
+  const arolla::python::PyObjectPtr py_obj = PyObjectFromDataSlice(ds);
   if (py_obj == nullptr) {
     return nullptr;
   }
