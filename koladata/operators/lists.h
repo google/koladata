@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/status/statusor.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/non_deterministic_token.h"
 
@@ -70,6 +71,10 @@ absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists);
 // kd.appended_list operator.
 absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
                                        const DataSlice& append);
+
+// kd.lists.append_update operator.
+absl::StatusOr<DataBagPtr> ListAppendUpdate(const DataSlice& x,
+                                            const DataSlice& items);
 
 }  // namespace koladata::ops
 

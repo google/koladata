@@ -409,7 +409,37 @@ def appended_list(x, append):
     append: DataSlice of values to append to each list in `x`.
 
   Returns:
-    DataSlice of lists with a in a new immutable Databag.
+    DataSlice of lists with new itemd ids in a new immutable DataBag.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.list_append_update'])
+@optools.as_backend_operator(
+    'kd.lists.list_append_update',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.append),
+    ],
+    qtype_inference_expr=qtypes.DATA_BAG,
+)
+def list_update(x, append):
+  """Returns a DataBag containing an update to a DataSlice of lists.
+
+  The updated lists are the lists in `x` with the specified items appended at
+  the end.
+
+  `x` and `append` must have compatible shapes.
+
+  The resulting lists maintain the same ItemIds. Also see kd.appended_list()
+  which works similarly but resulting lists have new ItemIds.
+
+  Args:
+    x: DataSlice of lists.
+    append: DataSlice of values to append to each list in `x`.
+
+  Returns:
+    A new immutable DataBag containing the list with the appended items.
   """
   raise NotImplementedError('implemented in the backend')
 

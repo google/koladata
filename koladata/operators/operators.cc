@@ -168,6 +168,7 @@ OPERATOR("kd.lists._shaped", ListShaped, "kd.lists.shaped");
 OPERATOR("kd.lists.appended_list", ListAppended);
 OPERATOR("kd.lists.has_list", HasList);
 OPERATOR("kd.lists.is_list", IsList);
+OPERATOR("kd.lists.list_append_update", ListAppendUpdate);
 OPERATOR("kd.lists.size", ListSize);
 //
 OPERATOR("kd.masking._agg_all", AggAll, "kd.masking.agg_all");

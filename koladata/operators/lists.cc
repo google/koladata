@@ -27,6 +27,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -176,7 +177,8 @@ absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
                                        const DataSlice& append) {
   if (x.GetBag() == nullptr) {
     return absl::InvalidArgumentError(
-        "cannot update a DataSlice of lists without a DataBag");
+        "cannot update a DataSlice of lists; "
+        "the DataSlice is a reference without a Bag");
   }
   if (!x.IsList()) {
     return absl::InvalidArgumentError(
@@ -191,6 +193,26 @@ absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
   RETURN_IF_ERROR(result.AppendToList(append));
   result_db->UnsafeMakeImmutable();
   return result;
+}
+
+absl::StatusOr<DataBagPtr> ListAppendUpdate(const DataSlice& x,
+                                            const DataSlice& append) {
+  if (x.GetBag() == nullptr) {
+    return absl::InvalidArgumentError(
+        "cannot update a DataSlice of lists; "
+        "the DataSlice is a reference without a Bag");
+  }
+  if (!x.IsList()) {
+    return absl::InvalidArgumentError(
+        "expected first argument to be a DataSlice of lists");
+  }
+  DataBagPtr result_db = DataBag::Empty();
+  // Adopt stub already copies the list elements, so we don't need to copy them
+  // ourselves.
+  RETURN_IF_ERROR(AdoptStub(result_db, x));
+  RETURN_IF_ERROR(x.WithBag(result_db).AppendToList(append));
+  result_db->UnsafeMakeImmutable();
+  return result_db;
 }
 
 }  // namespace koladata::ops

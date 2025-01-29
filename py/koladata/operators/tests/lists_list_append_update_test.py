@@ -33,7 +33,7 @@ kde = kde_operators.kde
 db = bag()
 
 
-class KodaAppendedListTest(parameterized.TestCase):
+class KodaListAppendUpdateTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
@@ -80,9 +80,9 @@ class KodaAppendedListTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, append, expected):
-    result = expr_eval.eval(kde.lists.appended_list(x, append))
-    testing.assert_nested_lists_equal(result, expected)
-    self.assertFalse(result.is_mutable())
+    update = expr_eval.eval(kde.lists.list_append_update(x, append))
+    self.assertFalse(update.is_mutable())
+    testing.assert_nested_lists_equal(x.updated(update), expected)
 
   def test_db_adoption(self):
     db1 = bag()
@@ -90,7 +90,8 @@ class KodaAppendedListTest(parameterized.TestCase):
     x = db1.list([e1])
     db2 = bag()
     e2 = db2.obj(a=2)
-    result = expr_eval.eval(kde.lists.appended_list(x, e2))
+    update = expr_eval.eval(kde.lists.list_append_update(x, e2))
+    result = x.updated(update)
 
     testing.assert_equal(result[0].a, ds(1).with_bag(result.get_bag()))
     testing.assert_equal(result[1].a, ds(2).with_bag(result.get_bag()))
@@ -100,15 +101,15 @@ class KodaAppendedListTest(parameterized.TestCase):
           ds([1, 2, 3]),
           ds([1, 2, 3]),
           (
-              'kd.lists.appended_list: cannot update a DataSlice of lists; the'
-              ' DataSlice is a reference without a Bag'
+              'kd.lists.list_append_update: cannot update a DataSlice of lists;'
+              ' the DataSlice is a reference without a Bag'
           ),
       ),
       (
           db.dict({'a': 1}),
           ds([1, 2, 3]),
           (
-              'kd.lists.appended_list: expected first argument to be a'
+              'kd.lists.list_append_update: expected first argument to be a'
               ' DataSlice of lists'
           ),
       ),
@@ -116,7 +117,7 @@ class KodaAppendedListTest(parameterized.TestCase):
           ds([[db.list([1, 2]), db.list([4, 5])], [db.list([7, 8])]]),
           ds([[3], [6, 9]]),  # instead of [[3, 6], [9]]
           (
-              'kd.lists.appended_list: DataSlice with shape=JaggedShape(2,'
+              'kd.lists.list_append_update: DataSlice with shape=JaggedShape(2,'
               ' [1, 2]) cannot be expanded to shape=JaggedShape(2, [2,'
               ' 1])'
           ),
@@ -125,7 +126,7 @@ class KodaAppendedListTest(parameterized.TestCase):
           db.list([1, 2]),
           ds('a'),
           (
-              'kd.lists.appended_list: the schema for List item is'
+              'kd.lists.list_append_update: the schema for List item is'
               ' incompatible.\n\nExpected schema for List item: INT32\nAssigned'
               ' schema for List item: STRING'
           ),
@@ -136,25 +137,28 @@ class KodaAppendedListTest(parameterized.TestCase):
         exceptions.KodaError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.lists.appended_list(x, append))
+      _ = expr_eval.eval(kde.lists.list_append_update(x, append))
 
-  def test_merge_error(self):
+  def test_merge_overwrite(self):
     lst = bag().list([bag().uu(a=1)])
     e = bag().uu(a=1)
     e.set_attr('a', 2)
-    with self.assertRaisesRegex(
-        exceptions.KodaError,
-        'kd.lists.appended_list: conflicting values for a for'
-        ' Entity:#[0-9a-zA-Z]{22}: 1 vs 2',
-    ):
-      _ = expr_eval.eval(kde.lists.appended_list(lst, e))
+    update = expr_eval.eval(kde.lists.list_append_update(lst, e))
+    result = lst.updated(update)
+
+    testing.assert_equal(result[0].a, ds(2).with_bag(result.get_bag()))
+    testing.assert_equal(result[1].a, ds(2).with_bag(result.get_bag()))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.lists.appended_list(I.x, I.append)))
+    self.assertTrue(
+        view.has_koda_view(kde.lists.list_append_update(I.x, I.append))
+    )
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.lists.appended_list, kde.appended_list)
+        optools.equiv_to_op(
+            kde.lists.list_append_update, kde.lists.list_append_update
+        )
     )
 
 
