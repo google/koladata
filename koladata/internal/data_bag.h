@@ -53,7 +53,7 @@
 namespace koladata::internal {
 
 struct MergeOptions {
-  using ConflictHandlingOption = DenseSource::ConflictHandlingOption;
+  using ConflictHandlingOption = DenseSource::ConflictHandlingOption::Option;
   using ConflictHandlingOption::kRaiseOnConflict;
   using ConflictHandlingOption::kKeepOriginal;
   using ConflictHandlingOption::kOverwrite;

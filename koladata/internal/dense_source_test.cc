@@ -654,11 +654,13 @@ TEST(DenseSourceTest, Merge) {
 
   {  // with_removed
     auto dst = src1_with_removed->CreateMutableCopy();
-    ASSERT_OK(dst->Merge(*src2_with_removed,
-                         DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(dst->Merge(
+        *src2_with_removed,
+        {DenseSource::ConflictHandlingOption::kKeepOriginal}));
     EXPECT_THAT(dst->Get(ids), ::testing::ElementsAreArray(data1));
-    ASSERT_OK(dst->Merge(*src2_with_removed,
-                         DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(
+        dst->Merge(*src2_with_removed,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
     EXPECT_THAT(dst->Get(ids),
                 ElementsAre(None, None, i2, None, None, None, i2, None, None,
                             None, i2, None, None, None, i2, None, None, None,
@@ -666,8 +668,9 @@ TEST(DenseSourceTest, Merge) {
   }
   {  // with_removed + kOverwrite with_missing
     auto dst = src1_with_removed->CreateMutableCopy();
-    ASSERT_OK(dst->Merge(*src2_with_missing,
-                         DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(
+        dst->Merge(*src2_with_missing,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
     EXPECT_THAT(dst->Get(ids),
                 ElementsAre(i1, None, i2, None, i1, None, i2, None, i1, None,
                             i2, None, i1, None, i2, None, i1, None, i2, None,
@@ -677,14 +680,16 @@ TEST(DenseSourceTest, Merge) {
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
-    ASSERT_OK(dst->Merge(*src1_with_missing,
-                         DenseSource::ConflictHandlingOption::kOverwrite));
-    ASSERT_OK(dst->Merge(*src2_with_missing,
-                         DenseSource::ConflictHandlingOption::kOverwrite));
     ASSERT_OK(
-        dst->Merge(*src3, DenseSource::ConflictHandlingOption::kOverwrite));
+        dst->Merge(*src1_with_missing,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
     ASSERT_OK(
-        dst->Merge(*src4, DenseSource::ConflictHandlingOption::kOverwrite));
+        dst->Merge(*src2_with_missing,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
+    ASSERT_OK(dst->Merge(
+        *src3, {DenseSource::ConflictHandlingOption::kOverwrite}));
+    ASSERT_OK(dst->Merge(
+        *src4, {DenseSource::ConflictHandlingOption::kOverwrite}));
 
     EXPECT_THAT(dst->Get(ids), ElementsAre(f, t, i42, f, i1, None, f, None, t,
                                            i42, i2, None, f, None, i2, t, i42,
@@ -694,14 +699,16 @@ TEST(DenseSourceTest, Merge) {
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
-    ASSERT_OK(dst->Merge(*src1_with_missing,
-                         DenseSource::ConflictHandlingOption::kKeepOriginal));
-    ASSERT_OK(dst->Merge(*src2_with_missing,
-                         DenseSource::ConflictHandlingOption::kKeepOriginal));
-    ASSERT_OK(
-        dst->Merge(*src3, DenseSource::ConflictHandlingOption::kKeepOriginal));
-    ASSERT_OK(
-        dst->Merge(*src4, DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(dst->Merge(
+        *src1_with_missing,
+        {DenseSource::ConflictHandlingOption::kKeepOriginal}));
+    ASSERT_OK(dst->Merge(
+        *src2_with_missing,
+        {DenseSource::ConflictHandlingOption::kKeepOriginal}));
+    ASSERT_OK(dst->Merge(
+        *src3, {DenseSource::ConflictHandlingOption::kKeepOriginal}));
+    ASSERT_OK(dst->Merge(
+        *src4, {DenseSource::ConflictHandlingOption::kKeepOriginal}));
 
     EXPECT_THAT(dst->Get(ids), ElementsAre(i1, t, i1, f, i1, None, i1, None, i1,
                                            f, i1, None, i1, None, i1, f, i1,
@@ -711,12 +718,13 @@ TEST(DenseSourceTest, Merge) {
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
-    ASSERT_OK(
-        dst->Merge(*src1_with_missing,
-                   DenseSource::ConflictHandlingOption::kRaiseOnConflict));
+    ASSERT_OK(dst->Merge(
+        *src1_with_missing,
+        {DenseSource::ConflictHandlingOption::kRaiseOnConflict}));
     EXPECT_THAT(
-        dst->Merge(*src2_with_missing,
-                   DenseSource::ConflictHandlingOption::kRaiseOnConflict),
+        dst->Merge(
+            *src2_with_missing,
+            {DenseSource::ConflictHandlingOption::kRaiseOnConflict}),
         StatusIs(absl::StatusCode::kFailedPrecondition,
                  HasSubstr("merge conflict: 1 != 2")));
   }
@@ -724,15 +732,18 @@ TEST(DenseSourceTest, Merge) {
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
-    ASSERT_OK(dst->Merge(*src1_with_missing,
-                         DenseSource::ConflictHandlingOption::kOverwrite));
-    ASSERT_OK(dst->Merge(*src2_with_missing,
-                         DenseSource::ConflictHandlingOption::kKeepOriginal));
     ASSERT_OK(
-        dst->Merge(*src3, DenseSource::ConflictHandlingOption::kOverwrite));
+        dst->Merge(*src1_with_missing,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
+    ASSERT_OK(dst->Merge(
+        *src2_with_missing,
+        {DenseSource::ConflictHandlingOption::kKeepOriginal}));
+    ASSERT_OK(dst->Merge(
+        *src3, {DenseSource::ConflictHandlingOption::kOverwrite}));
     EXPECT_THAT(
-        dst->Merge(*src4,
-                   DenseSource::ConflictHandlingOption::kRaiseOnConflict),
+        dst->Merge(
+            *src4,
+            {DenseSource::ConflictHandlingOption::kRaiseOnConflict}),
         StatusIs(absl::StatusCode::kFailedPrecondition,
                  HasSubstr("merge conflict")));
   }
@@ -759,9 +770,10 @@ TEST(DenseSourceTest, MergeUnit) {
   auto ids =
       DataSliceImpl::ObjectsFromAllocation(alloc, size).values<ObjectId>();
 
-  auto options = {DenseSource::ConflictHandlingOption::kOverwrite,
-                  DenseSource::ConflictHandlingOption::kKeepOriginal,
-                  DenseSource::ConflictHandlingOption::kRaiseOnConflict};
+  std::vector<DenseSource::ConflictHandlingOption::Option> options = {
+      DenseSource::ConflictHandlingOption::kOverwrite,
+      DenseSource::ConflictHandlingOption::kKeepOriginal,
+      DenseSource::ConflictHandlingOption::kRaiseOnConflict};
 
   for (auto option1 : options) {
     for (auto option2 : options) {
@@ -769,11 +781,11 @@ TEST(DenseSourceTest, MergeUnit) {
       ASSERT_OK_AND_ASSIGN(
           auto dst, DenseSource::CreateMutable(
                         alloc, size, /*main_type=*/arolla::GetQType<Unit>()));
-      ASSERT_OK(dst->Merge(*src1, option1));
+      ASSERT_OK(dst->Merge(*src1, {option1}));
       EXPECT_THAT(dst->Get(ids),
                   ElementsAre(Unit(), std::nullopt, Unit(), Unit(),
                               std::nullopt, Unit(), Unit()));
-      ASSERT_OK(dst->Merge(*src2, option2));
+      ASSERT_OK(dst->Merge(*src2, {option2}));
       EXPECT_THAT(dst->Get(ids), ElementsAre(Unit(), Unit(), Unit(), Unit(),
                                              std::nullopt, Unit(), Unit()));
     }
@@ -797,22 +809,25 @@ TEST(DenseSourceTest, MergeFullReadOnly) {
   auto ids =
       DataSliceImpl::ObjectsFromAllocation(alloc, size).values<ObjectId>();
 
-  auto options = {DenseSource::ConflictHandlingOption::kOverwrite,
-                  DenseSource::ConflictHandlingOption::kKeepOriginal,
-                  DenseSource::ConflictHandlingOption::kRaiseOnConflict};
+  auto options = {
+      DenseSource::ConflictHandlingOption::kOverwrite,
+      DenseSource::ConflictHandlingOption::kKeepOriginal,
+      DenseSource::ConflictHandlingOption::kRaiseOnConflict};
 
   for (auto option : options) {
     SCOPED_TRACE(absl::StrCat("option: ", option));
     ASSERT_OK_AND_ASSIGN(
         auto dst, DenseSource::CreateMutable(
                       alloc, size, /*main_type=*/arolla::GetQType<int>()));
-    ASSERT_OK(dst->Merge(*src, option));
+    ASSERT_OK(dst->Merge(*src, {option}));
     EXPECT_THAT(dst->Get(ids), ElementsAre(1, 2, 3, 4, 5, 6, 7));
-    ASSERT_OK(dst->Merge(*src_inverse,
-                         DenseSource::ConflictHandlingOption::kKeepOriginal));
+    ASSERT_OK(dst->Merge(
+        *src_inverse,
+        {DenseSource::ConflictHandlingOption::kKeepOriginal}));
     EXPECT_THAT(dst->Get(ids), ElementsAre(1, 2, 3, 4, 5, 6, 7));
-    ASSERT_OK(dst->Merge(*src_inverse,
-                         DenseSource::ConflictHandlingOption::kOverwrite));
+    ASSERT_OK(
+        dst->Merge(*src_inverse,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
     EXPECT_THAT(dst->Get(ids), ElementsAre(7, 6, 5, 4, 3, 2, 1));
   }
 }
@@ -885,8 +900,8 @@ TEST(DenseSourceTest, MergeSelfBoolInitialized) {
   ASSERT_OK_AND_ASSIGN(
       auto ds, DenseSource::CreateMutable(alloc, 3, arolla::GetQType<bool>()));
   ASSERT_OK(ds->Set(alloc.ObjectByOffset(1), DataItem(true)));
-  ASSERT_OK(
-      ds->Merge(*ds, DenseSource::ConflictHandlingOption::kRaiseOnConflict));
+  ASSERT_OK(ds->Merge(
+      *ds, {DenseSource::ConflictHandlingOption::kRaiseOnConflict}));
 
   EXPECT_EQ(ds->Get(alloc.ObjectByOffset(0)), std::nullopt);
   EXPECT_EQ(ds->Get(alloc.ObjectByOffset(1)), DataItem(true));

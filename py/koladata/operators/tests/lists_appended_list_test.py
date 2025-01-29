@@ -144,8 +144,11 @@ class KodaAppendedListTest(parameterized.TestCase):
     e.set_attr('a', 2)
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.lists.appended_list: conflicting values for a for'
-        ' Entity:#[0-9a-zA-Z]{22}: 1 vs 2',
+        r"""kd.lists.appended_list: cannot merge DataBags due to an exception encountered when merging entities.
+
+The conflicting entities in the both DataBags: Entity\(\):\#[0-9a-zA-Z]{22}
+
+The cause is the values of attribute 'a' are different: 1 vs 2""",
     ):
       _ = expr_eval.eval(kde.lists.appended_list(lst, e))
 

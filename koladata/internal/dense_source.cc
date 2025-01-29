@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <type_traits>
@@ -27,6 +28,7 @@
 #include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/container/inlined_vector.h"
+#include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
@@ -68,18 +70,21 @@ using ::arolla::OptionalValue;
 using ::arolla::view_type_t;
 
 ABSL_ATTRIBUTE_NOINLINE void UpdateMergeConflictStatusWithDataItem(
-    absl::Status& status, const DataItem& value, const DataItem& other_value) {
+    absl::Status& status, const DataItem& value, const DataItem& other_value,
+    absl::FunctionRef<void()> on_conflict_callback) {
   if (!status.ok()) {
     return;
   }
   status = absl::FailedPreconditionError(
       absl::StrCat("merge conflict: ", value, " != ", other_value));
+  on_conflict_callback();
 }
 
 template <class T>
 ABSL_ATTRIBUTE_NOINLINE void UpdateMergeConflictStatus(
     absl::Status& status, OptionalValue<view_type_t<T>> value,
-    OptionalValue<view_type_t<T>> other_value) {
+    OptionalValue<view_type_t<T>> other_value,
+    absl::FunctionRef<void()> on_conflict_callback) {
   if (!status.ok()) {
     return;
   }
@@ -90,7 +95,7 @@ ABSL_ATTRIBUTE_NOINLINE void UpdateMergeConflictStatus(
   if (other_value.present) {
     i2 = DataItem(T(other_value.value));
   }
-  UpdateMergeConflictStatusWithDataItem(status, i1, i2);
+  UpdateMergeConflictStatusWithDataItem(status, i1, i2, on_conflict_callback);
 }
 
 class MultitypeDenseSource : public DenseSource {
@@ -285,7 +290,7 @@ class MultitypeDenseSource : public DenseSource {
   }
 
   absl::Status MergeImpl(const DataSliceImpl& values,
-                         ConflictHandlingOption option) final {
+                         const ConflictHandlingOption& option) final {
     if (values.size() > size_) {
       return absl::FailedPreconditionError(absl::StrFormat(
           "MergeImpl: source size exceeds destination size: %d vs %d",
@@ -307,16 +312,20 @@ class MultitypeDenseSource : public DenseSource {
       if (val_id_to_tidx && val_id_to_tidx[offset] != TypesBuffer::kRemoved) {
         continue;
       }
-      if (option == ConflictHandlingOption::kOverwrite ||
+      if (option.option == ConflictHandlingOption::Option::kOverwrite ||
           !TypesBuffer::is_present_type_idx(
               types_buffer_.id_to_typeidx[offset])) {
         // Note: replacing kUnset with kRemoved is allowed for any `option`.
         types_buffer_.id_to_typeidx[offset] = TypesBuffer::kRemoved;
-      } else if (status.ok() && option == ConflictHandlingOption::kOverwrite) {
+      } else if (status.ok() &&
+                 option.option == ConflictHandlingOption::Option::kOverwrite) {
+        internal::ObjectId obj_id = obj_allocation_id_.ObjectByOffset(offset);
         UpdateMergeConflictStatusWithDataItem(
-            status, DataItem(),
-            Get(obj_allocation_id_.ObjectByOffset(offset))
-                .value_or(DataItem()));
+            status, DataItem(), Get(obj_id).value_or(DataItem()), [&]() {
+              if (option.on_conflict_callback) {
+                option.on_conflict_callback(obj_id);
+              }
+            });
       }
     }
     return status;
@@ -391,7 +400,7 @@ class MultitypeDenseSource : public DenseSource {
                       ConflictHandlingOption option) {
     uint8_t typeidx = GetOrAddTypeIdx<T>();
     ValueBuffer<T>& dst_vals = std::get<ValueBuffer<T>>(values_[typeidx]);
-    if (option == ConflictHandlingOption::kKeepOriginal) {
+    if (option.option == ConflictHandlingOption::Option::kKeepOriginal) {
       array.ForEachPresent([&](int64_t offset, view_type_t<T> v) {
         uint8_t& tidx = types_buffer_.id_to_typeidx[offset];
         if (tidx == TypesBuffer::kUnset) {
@@ -399,23 +408,26 @@ class MultitypeDenseSource : public DenseSource {
           dst_vals[offset] = T(v);
         }
       });
-    } else if (option == ConflictHandlingOption::kOverwrite) {
+    } else if (option.option == ConflictHandlingOption::Option::kOverwrite) {
       array.ForEachPresent([&](int64_t offset, view_type_t<T> v) {
         types_buffer_.id_to_typeidx[offset] = typeidx;
         dst_vals[offset] = T(v);
       });
     } else {
-      DCHECK(option == ConflictHandlingOption::kRaiseOnConflict);
+      DCHECK(option.option == ConflictHandlingOption::Option::kRaiseOnConflict);
       array.ForEachPresent([&](int64_t offset, view_type_t<T> v) {
         uint8_t& tidx = types_buffer_.id_to_typeidx[offset];
         if (tidx == TypesBuffer::kUnset) {
           tidx = typeidx;
           dst_vals[offset] = T(v);
         } else if (status.ok() && (tidx != typeidx || dst_vals[offset] != v)) {
+          internal::ObjectId obj_id = obj_allocation_id_.ObjectByOffset(offset);
           UpdateMergeConflictStatusWithDataItem(
-              status, DataItem(T(v)),
-              Get(obj_allocation_id_.ObjectByOffset(offset))
-                  .value_or(DataItem()));
+              status, DataItem(T(v)), Get(obj_id).value_or(DataItem()), [&]() {
+                if (option.on_conflict_callback) {
+                  option.on_conflict_callback(obj_id);
+                }
+              });
         }
       });
     }
@@ -715,7 +727,7 @@ class TypedDenseSource final : public DenseSource {
   }
 
   absl::Status MergeImpl(const DataSliceImpl& values,
-                         ConflictHandlingOption option) final {
+                         const ConflictHandlingOption& option) final {
     if (multitype_ || values.is_mixed_dtype() ||
         values.dtype() != arolla::GetQType<T>()) {
       if (!multitype_) {
@@ -732,22 +744,22 @@ class TypedDenseSource final : public DenseSource {
 
     auto process_fn = [&](auto&& IsThisSet, auto&& SetThis, auto&& IsOtherSet) {
       absl::Status status = absl::OkStatus();
-      switch (option) {
-        case DenseSource::ConflictHandlingOption::kOverwrite:
+      switch (option.option) {
+        case DenseSource::ConflictHandlingOption::Option::kOverwrite:
           sliced_array.ForEach([&](int64_t id, bool present, view_type_t<T> v) {
             if (IsOtherSet(id)) {
               SetThis(id, present, v);
             }
           });
           break;
-        case DenseSource::ConflictHandlingOption::kKeepOriginal:
+        case DenseSource::ConflictHandlingOption::Option::kKeepOriginal:
           sliced_array.ForEach([&](int64_t id, bool present, view_type_t<T> v) {
             if (IsOtherSet(id) && !IsThisSet(id)) {
               SetThis(id, present, v);
             }
           });
           break;
-        case DenseSource::ConflictHandlingOption::kRaiseOnConflict:
+        case DenseSource::ConflictHandlingOption::Option::kRaiseOnConflict:
           sliced_array.ForEach([&](int64_t id, bool present, view_type_t<T> v) {
             if (!IsOtherSet(id)) {
               return;
@@ -757,7 +769,12 @@ class TypedDenseSource final : public DenseSource {
               auto this_v = values_.Get(id);
               arolla::OptionalValue<view_type_t<T>> other_v(present, v);
               if (this_v != other_v) {
-                UpdateMergeConflictStatus<T>(status, this_v, other_v);
+                UpdateMergeConflictStatus<T>(status, this_v, other_v, [&]() {
+                  if (option.on_conflict_callback) {
+                    option.on_conflict_callback(
+                        obj_allocation_id_.ObjectByOffset(id));
+                  }
+                });
               }
             }
           });
@@ -953,7 +970,8 @@ class ReadOnlyDenseSource : public DenseSource {
  private:
   DataSliceImpl GetAll() const final { return data_; }
 
-  absl::Status MergeImpl(const DataSliceImpl&, ConflictHandlingOption) final {
+  absl::Status MergeImpl(const DataSliceImpl&,
+                         const ConflictHandlingOption&) final {
     return absl::FailedPreconditionError(
         "Merge is not allowed for an immutable DenseSource.");
   }

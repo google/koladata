@@ -349,7 +349,11 @@ schema.b = <desired_schema>""",
         exceptions.KodaError,
         r"""cannot create Item\(s\)
 
-The cause is: conflicting values for x for Entity:#[0-9a-zA-Z]{22}: 1 vs 2""",
+The cause is: cannot merge DataBags due to an exception encountered when merging entities.
+
+The conflicting entities in the both DataBags: Entity\(\):\#[0-9a-zA-Z]{22}
+
+The cause is the values of attribute 'x' are different: 1 vs 2""",
     ):
       db1.new(y=b)
 

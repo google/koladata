@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import gc
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -355,7 +354,13 @@ class BoxingTest(parameterized.TestCase):
     db1 = data_bag.DataBag.empty()
     e1 = db1.new().embed_schema()
     with self.assertRaisesRegex(
-        ValueError, 'conflicting values for __schema__'
+        exceptions.KodaError,
+        r"""cannot merge DataBags due to an exception encountered when merging entities.
+
+The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
+
+The cause is the values of attribute '__schema__' are different: SCHEMA\(\) vs SCHEMA\(\)
+""",
     ):
       # Try to embed a schema that conflicts with the existing one.
       ds([e1, e1.with_schema(db1.new().get_schema())], OBJECT)

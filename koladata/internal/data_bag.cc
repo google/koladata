@@ -236,12 +236,24 @@ absl::Status ProcessSparseSources(
   return absl::OkStatus();
 }
 
+absl::StatusOr<internal::Error> MakeEntityOrObjectMergeError(
+    const internal::ObjectId& object, absl::string_view attr) {
+  internal::Error error;
+  auto* data_bag_merge_conflict = error.mutable_data_bag_merge_conflict();
+  auto* entity_or_object_conflict =
+      data_bag_merge_conflict->mutable_entity_object_conflict();
+  ASSIGN_OR_RETURN(*entity_or_object_conflict->mutable_object_id(),
+                   internal::EncodeDataItem(internal::DataItem(object)));
+  entity_or_object_conflict->set_attr_name(attr);
+  return error;
+}
+
 // Merges the given sparse sources ordered by priority into a mutable dense
 // source.
 // Conflicts are resolved according to MergeOptions.
 absl::Status MergeToMutableDenseSourceOnlySparse(
     DenseSource& result, absl::Span<const SparseSource* const> sources,
-    MergeOptions options) {
+    MergeOptions options, absl::string_view attr) {
   DCHECK(result.IsMutable());
   auto process_source = [&](const SparseSource* source,
                             auto skip_obj_fn) -> absl::Status {
@@ -258,8 +270,10 @@ absl::Status MergeToMutableDenseSourceOnlySparse(
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
                  *this_result != item) {
-        return absl::FailedPreconditionError(
-            absl::StrCat("conflict ", key, ": ", *this_result, " vs ", item));
+        return internal::WithErrorPayload(
+            absl::FailedPreconditionError(absl::StrCat(
+                "conflict ", key, ": ", *this_result, " vs ", item)),
+            MakeEntityOrObjectMergeError(key, attr));
       }
     }
     return absl::OkStatus();
@@ -272,7 +286,7 @@ absl::Status MergeToMutableDenseSourceOnlySparse(
 // Conflicts are resolved according to MergeOptions.
 absl::Status MergeToMutableSparseSourceOnlySparse(
     SparseSource& result, absl::Span<const SparseSource* const> sources,
-    MergeOptions options) {
+    MergeOptions options, absl::string_view attr) {
   auto process_source = [&](const SparseSource* source,
                             auto skip_obj_fn) -> absl::Status {
     for (const auto& [key, item] : source->GetAll()) {
@@ -289,8 +303,10 @@ absl::Status MergeToMutableSparseSourceOnlySparse(
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
                  *this_result != item) {
-        return absl::FailedPreconditionError(
-            absl::StrCat("conflict ", key, ": ", *this_result, " vs ", item));
+        return internal::WithErrorPayload(
+            absl::FailedPreconditionError(absl::StrCat(
+                "conflict ", key, ": ", *this_result, " vs ", item)),
+            MakeEntityOrObjectMergeError(key, attr));
       }
     }
     return absl::OkStatus();
@@ -302,15 +318,21 @@ absl::Status MergeToMutableSparseSourceOnlySparse(
 // SparseSources always overwrite DenseSource.
 // Conflicts are resolved according to MergeOptions.
 absl::Status MergeToMutableDenseSource(
-    DenseSource& result, AllocationId alloc,
-    const DenseSource& dense_source,
-    absl::Span<const SparseSource* const> sparse_sources,
-    MergeOptions options) {
+    DenseSource& result, AllocationId alloc, const DenseSource& dense_source,
+    absl::Span<const SparseSource* const> sparse_sources, MergeOptions options,
+    absl::string_view attr) {
   DCHECK(result.IsMutable());
   int64_t size = std::min<int64_t>(result.size(), dense_source.size());
   if (sparse_sources.empty()) {
     DCHECK_EQ(dense_source.allocation_id(), alloc);
-    return result.Merge(dense_source, options.data_conflict_policy);
+    absl::StatusOr<internal::Error> error;
+    absl::Status status = result.Merge(dense_source,
+                     {.option = options.data_conflict_policy,
+                      .on_conflict_callback =
+                          [attr, &error](const ObjectId& obj_id) mutable {
+                            error = MakeEntityOrObjectMergeError(obj_id, attr);
+                          }});
+    return internal::WithErrorPayload(std::move(status), std::move(error));
   }
 
   auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
@@ -344,8 +366,10 @@ absl::Status MergeToMutableDenseSource(
     } else {
       if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict &&
           *this_result != other_item) {
-        return absl::FailedPreconditionError(absl::StrCat(
-            "conflict ", obj_id, ": ", *this_result, " vs ", other_item));
+        return internal::WithErrorPayload(
+            absl::FailedPreconditionError(absl::StrCat(
+                "conflict ", obj_id, ": ", *this_result, " vs ", other_item)),
+            MakeEntityOrObjectMergeError(obj_id, attr));
       }
     }
   }
@@ -2933,9 +2957,11 @@ absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
             if (options.data_conflict_policy ==
                     MergeOptions::kRaiseOnConflict &&
                 *this_value != other_item) {
-              return absl::FailedPreconditionError(
-                  absl::StrCat("conflicting values for ", attr_name, " for ",
-                               obj_id, ": ", *this_value, " vs ", other_item));
+              return WithErrorPayload(
+                  absl::FailedPreconditionError(absl::StrCat(
+                      "conflicting values for ", attr_name, " for ", obj_id,
+                      ": ", *this_value, " vs ", other_item)),
+                  MakeEntityOrObjectMergeError(obj_id, attr_name));
             }
           } else {
             if (this_mutable_source == nullptr) {
@@ -3021,13 +3047,14 @@ absl::Status DataBagImpl::MergeBigAllocInplace(const DataBagImpl& other,
         if (other_dense_sources.empty()) {
           RETURN_IF_ERROR(MergeToMutableDenseSourceOnlySparse(
               *this_collection.mutable_dense_source, other_sparse_sources,
-              options));
+              options, attr_name));
           continue;
         }
         DCHECK_EQ(other_dense_sources.size(), 1);
         RETURN_IF_ERROR(MergeToMutableDenseSource(
             *this_collection.mutable_dense_source, alloc,
-            *other_dense_sources.front(), other_sparse_sources, options));
+            *other_dense_sources.front(), other_sparse_sources, options,
+            attr_name));
         continue;
       }
 
@@ -3042,7 +3069,7 @@ absl::Status DataBagImpl::MergeBigAllocInplace(const DataBagImpl& other,
         }
         RETURN_IF_ERROR(MergeToMutableDenseSourceOnlySparse(
             *other_source_collection_copy.mutable_dense_source,
-            this_sparse_sources, ReverseMergeOptions(options)));
+            this_sparse_sources, ReverseMergeOptions(options), attr_name));
         this_collection = other_source_collection_copy;
         continue;
       }
@@ -3055,8 +3082,8 @@ absl::Status DataBagImpl::MergeBigAllocInplace(const DataBagImpl& other,
           MergeToMutableSparseSource(this_sparse_sources);
       this_collection.lookup_parent = false;
       RETURN_IF_ERROR(MergeToMutableSparseSourceOnlySparse(
-          *this_collection.mutable_sparse_source, other_sparse_sources,
-          options));
+          *this_collection.mutable_sparse_source, other_sparse_sources, options,
+          attr_name));
     }
   }
   return absl::OkStatus();

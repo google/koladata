@@ -1545,21 +1545,46 @@ Assigned schema for Dict key: INT32""",
     self.assertEqual(x1.a, ds(1))
     self.assertEqual(x1.b, ds(2))
 
-  def test_merge_inplace_conflict(self):
+  def test_merge_inplace_conflict_small_alloc(self):
     db1 = bag()
     x1 = db1.new(a=1, b=2)
     db2 = bag()
     x2 = x1.with_bag(db2)
     x2.set_attr('a', 3)
-    with self.assertRaisesRegex(ValueError, 'conflicting values'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""cannot merge DataBags due to an exception encountered when merging entities.
+
+The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
+
+The cause is the values of attribute 'a' are different: 1 vs 3
+""",
+    ):
+      db1.merge_inplace(db2, allow_data_conflicts=False)
+
+  def test_merge_inplace_data_conflict(self):
+    db1 = bag()
+    x1 = db1.new(x=data_slice.DataSlice.from_vals([1, 2, 3, 4, 5, 6, 7, 8]))
+    db2 = bag()
+    x2 = x1.L[0].with_bag(db2)
+    x2.set_attr('x', 2)
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        r"""cannot merge DataBags due to an exception encountered when merging entities.
+
+The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
+
+The cause is the values of attribute 'x' are different: 1 vs 2
+""",
+    ):
       db1.merge_inplace(db2, allow_data_conflicts=False)
 
   def test_merge_inplace_schema_conflict(self):
     db1 = bag()
-    x1 = db1.new(a=db1.new(x=1))
+    x1 = db1.new_schema(a=db1.new_schema(x=schema_constants.INT32))
     db2 = bag()
     x2 = x1.with_bag(db2)
-    x2.set_attr('a', db2.new(c=2))
+    x2.set_attr('a', db2.new_schema(c=schema_constants.INT32))
     with self.assertRaisesRegex(
         exceptions.KodaError,
         r"""cannot merge DataBags due to an exception encountered when merging schemas.

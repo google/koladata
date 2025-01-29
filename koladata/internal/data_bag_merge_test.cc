@@ -303,9 +303,12 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
     auto db2 = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db2->SetAttr(a, "a", a_value));
     ASSERT_OK(db->SetAttr(a[5], "a", a_value[7]));
-    EXPECT_THAT(
-        db->MergeInplace(*db2),
-        StatusIs(absl::StatusCode::kFailedPrecondition, HasSubstr("conflict")));
+    absl::Status status = db->MergeInplace(*db2);
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
+                                 HasSubstr("conflict")));
+    std::optional<Error> error = GetErrorPayload(status);
+    ASSERT_TRUE(error.has_value());
+    EXPECT_TRUE(error->has_data_bag_merge_conflict());
     ASSERT_OK(db->MergeInplace(
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
     EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
@@ -334,12 +337,18 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
     ASSERT_OK(db->SetAttr(a, "a", a_value));
     ASSERT_OK(db2->SetAttr(a, "a", a_value));
     ASSERT_OK(db2->SetAttr(a[0], "a", a_value[1]));
-    EXPECT_THAT(
-        db->MergeInplace(*db2),
-        StatusIs(absl::StatusCode::kFailedPrecondition, HasSubstr("conflict")));
-    EXPECT_THAT(
-        db2->MergeInplace(*db),
-        StatusIs(absl::StatusCode::kFailedPrecondition, HasSubstr("conflict")));
+    absl::Status status = db->MergeInplace(*db2);
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
+                                 HasSubstr("conflict")));
+    std::optional<Error> error = GetErrorPayload(status);
+    ASSERT_TRUE(error.has_value());
+    EXPECT_TRUE(error->data_bag_merge_conflict().has_entity_object_conflict());
+    status = db2->MergeInplace(*db);
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
+                                 HasSubstr("conflict")));
+    error = GetErrorPayload(status);
+    ASSERT_TRUE(error.has_value());
+    EXPECT_TRUE(error->data_bag_merge_conflict().has_entity_object_conflict());
   }
   {
     SCOPED_TRACE("merge dense with dense conflict allowed");
@@ -408,9 +417,13 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
         } else {
           if (conflict_layer != -1 && merge_options.data_conflict_policy ==
                                           MergeOptions::kRaiseOnConflict) {
-            EXPECT_THAT(db2->MergeInplace(*db, merge_options),
-                        StatusIs(absl::StatusCode::kFailedPrecondition,
-                                 HasSubstr("conflict")));
+            absl::Status status = db2->MergeInplace(*db, merge_options);
+            EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
+                                         HasSubstr("conflict")));
+            auto error = GetErrorPayload(status);
+            ASSERT_TRUE(error.has_value());
+            EXPECT_TRUE(
+                error->data_bag_merge_conflict().has_entity_object_conflict());
             continue;
           }
           ASSERT_OK(db2->MergeInplace(*db, ReverseMergeOptions(merge_options)));
@@ -609,9 +622,13 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectAttrsOnlyConflicts) {
   ASSERT_OK(db1->SetAttr(a, "x", DataItem(57)));
   auto db2 = db->PartiallyPersistentFork();
   ASSERT_OK(db2->SetAttr(a, "x", DataItem(75.0)));
-  EXPECT_THAT(
-      db1->MergeInplace(*db2),
-      StatusIs(absl::StatusCode::kFailedPrecondition, HasSubstr("conflict")));
+  absl::Status status = db1->MergeInplace(*db2);
+  EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
+                               HasSubstr("conflict")));
+  std::optional<Error> error = GetErrorPayload(status);
+  ASSERT_TRUE(error.has_value());
+  EXPECT_TRUE(error->has_data_bag_merge_conflict());
+
   // the same value is not a conflict
   ASSERT_OK(db2->SetAttr(a, "x", DataItem(57)));
   ASSERT_OK(db1->MergeInplace(*db2));

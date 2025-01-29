@@ -257,6 +257,32 @@ absl::StatusOr<std::string> SetSchemaOrDictErrorMessage(
                                expected_value_str, assigned_value_str);
 }
 
+constexpr const char* kDataBagMergeErrorTripleConflict =
+    "cannot merge DataBags due to an exception encountered when merging "
+    "entities.\n\n"
+    "The conflicting entities in the both DataBags: %s\n\n"
+    "The cause is the values of attribute '%s' are different: %s vs %s\n";
+
+absl::StatusOr<std::string> SetEntityOrObjectErrorMessage(
+    const internal::DataBagMergeConflict::EntityObjectConflict& conflict,
+    const DataBagPtr& db1, const DataBagPtr& db2) {
+  ASSIGN_OR_RETURN(internal::DataItem object_item,
+                   DecodeDataItem(conflict.object_id()));
+  ASSIGN_OR_RETURN(
+      DataSlice item,
+      DataSlice::Create(object_item, internal::DataItem(schema::kAny), db1));
+  ASSIGN_OR_RETURN(
+      DataSlice conflicting_item,
+      DataSlice::Create(object_item, internal::DataItem(schema::kAny), db2));
+  ASSIGN_OR_RETURN(std::string item_str, DataSliceToStr(item));
+  ASSIGN_OR_RETURN(DataSlice a, item.GetAttr(conflict.attr_name()));
+  ASSIGN_OR_RETURN(DataSlice b, conflicting_item.GetAttr(conflict.attr_name()));
+  ASSIGN_OR_RETURN(std::string a_str, DataSliceToStr(a));
+  ASSIGN_OR_RETURN(std::string b_str, DataSliceToStr(b));
+  return absl::StrFormat(kDataBagMergeErrorTripleConflict, item_str,
+                         conflict.attr_name(), a_str, b_str);
+}
+
 constexpr const char* kDataBagMergeErrorListSizeConflict =
     "cannot merge DataBags due to an exception encountered when merging "
     "lists.\n\n"
@@ -325,6 +351,12 @@ absl::StatusOr<Error> SetDataBagMergeError(Error cause, const DataBagPtr& db1,
         error_str,
         SetListErrorMessage(cause.data_bag_merge_conflict().list_conflict(),
                             db1, db2));
+  }
+  if (cause.data_bag_merge_conflict().has_entity_object_conflict()) {
+    ASSIGN_OR_RETURN(
+        error_str, SetEntityOrObjectErrorMessage(
+                       cause.data_bag_merge_conflict().entity_object_conflict(),
+                       db1, db2));
   }
   cause.set_error_message(std::move(error_str));
   return cause;

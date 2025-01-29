@@ -58,9 +58,14 @@ message DataBagMergeConflict {
     optional arolla.serialization_base.ContainerProto expected_value = 3;
     optional arolla.serialization_base.ContainerProto assigned_value = 4;
   }
+  message EntityObjectConflict {
+    optional arolla.serialization_base.ContainerProto object_id = 1;
+    optional string attr_name = 2;
+  }
   oneof conflict {
     ListConflict list_conflict = 1;
     SchemaOrDictConflict schema_or_dict_conflict = 2;
+    EntityObjectConflict entity_object_conflict = 3;
   }
 }
 

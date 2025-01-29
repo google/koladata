@@ -16,6 +16,7 @@
 #define KOLADATA_INTERNAL_DENSE_SOURCE_H_
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -94,14 +95,22 @@ class DenseSource {
   virtual absl::Status SetUnitAndUpdateMissingObjects(
       const ObjectIdArray& objects, std::vector<ObjectId>& missing_objects) = 0;
 
-
-  enum class ConflictHandlingOption {
-    kRaiseOnConflict = 0,
-    kOverwrite = 1,
-    kKeepOriginal = 2,
+  struct ConflictHandlingOption {
+    enum Option {
+      kRaiseOnConflict = 0,
+      kOverwrite = 1,
+      kKeepOriginal = 2,
+    };
+    Option option = ConflictHandlingOption::kRaiseOnConflict;
+    // Callback to be called for getting the conflicting object id.
+    std::function<void(ObjectId)> on_conflict_callback;
   };
 
-  absl::Status Merge(const DenseSource& source, ConflictHandlingOption option) {
+  absl::Status Merge(
+      const DenseSource& source,
+      const ConflictHandlingOption& option = ConflictHandlingOption{
+          .option = ConflictHandlingOption::kRaiseOnConflict,
+          .on_conflict_callback = {}}) {
     return MergeImpl(source.GetAll(), option);
   }
 
@@ -131,7 +140,7 @@ class DenseSource {
   // already present in the source) it can either overwrite, keep original, or
   // return an error.
   virtual absl::Status MergeImpl(const DataSliceImpl& values,
-                                 ConflictHandlingOption option) = 0;
+                                 const ConflictHandlingOption& option) = 0;
 };
 
 }  // namespace koladata::internal
