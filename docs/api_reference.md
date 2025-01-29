@@ -1786,7 +1786,7 @@ Checks if `obj` represents a functor.
     otherwise (for example if obj has wrong type).
 ```
 
-### `kd.functor.map(fn, *args, **kwargs)` {#kd.functor.map}
+### `kd.functor.map(fn, *args, include_missing=DataItem(False, schema: BOOLEAN), **kwargs)` {#kd.functor.map}
 Aliases:
 
 - [kd.map](#kd.map)
@@ -1794,13 +1794,18 @@ Aliases:
 ``` {.no-copy}
 Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
 
-Current implentaion is a wrapper around kd.py.map_py_on_cond (Python
-based) so it might be slow and intended for experiments only.
+If certain items of `fn` are missing, the corresponding items of the result
+will also be missing.
+If certain items of `args`/`kwargs` are missing then:
+- when include_missing=False (the default), the corresponding item of the
+  result will be missing.
+- when include_missing=True, we are still calling the functor on those missing
+  args/kwargs.
 
-If certain items of fn are missing, the corresponding items of the result will
-be also missing.
-If certain items of args/kwars are missing we are still calling the functor
-on those missing args/kwargs.
+`fn`, `args`, `kwargs` will all be broadcast to the common shape. The return
+values of the functors will be converted to a common schema, or an exception
+will be raised if the schemas are not compatible. In that case, you can add
+the appropriate cast inside the functor.
 
 Example:
   fn1 = kdf.fn(lambda x, y: x + y)
@@ -1818,8 +1823,10 @@ Example:
 Args:
   fn: DataSlice containing the functor(s) to evaluate. All functors must
     return a DataItem.
-  *args: The positional argument(s) to pass to the functions.
-  **kwargs: The keyword argument(s) to pass to the functions.
+  *args: The positional argument(s) to pass to the functors.
+  include_missing: Whether to call the functors on missing items of
+    args/kwargs.
+  **kwargs: The keyword argument(s) to pass to the functors.
 
 Returns:
   The evaluation result.
@@ -3753,15 +3760,6 @@ Args:
 
 Returns:
   Result DataSlice.
-```
-
-### `kd.py.map_py_on_present(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_present}
-Aliases:
-
-- [kd.map_py_on_present](#kd.map_py_on_present)
-
-``` {.no-copy}
-Deprecated. Use kd.map_py instead.
 ```
 
 ### `kd.py.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_selected}
@@ -7658,7 +7656,7 @@ Deserializes a DataSlice or a DataBag.
 
 Alias for [kd.tuple.make_tuple](#kd.tuple.make_tuple) operator.
 
-### `kd.map(fn, *args, **kwargs)` {#kd.map}
+### `kd.map(fn, *args, include_missing=DataItem(False, schema: BOOLEAN), **kwargs)` {#kd.map}
 
 Alias for [kd.functor.map](#kd.functor.map) operator.
 
@@ -7669,10 +7667,6 @@ Alias for [kd.py.map_py](#kd.py.map_py) operator.
 ### `kd.map_py_on_cond(true_fn, false_fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py_on_cond}
 
 Alias for [kd.py.map_py_on_cond](#kd.py.map_py_on_cond) operator.
-
-### `kd.map_py_on_present(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py_on_present}
-
-Alias for [kd.py.map_py_on_present](#kd.py.map_py_on_present) operator.
 
 ### `kd.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py_on_selected}
 
