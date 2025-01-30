@@ -60,6 +60,13 @@ def make_slice(
   return arolla.M.core.make_slice(start, stop, step)
 
 
+@optools.add_to_registry()
+@optools.as_lambda_operator('kd.tuple.make_namedtuple')
+def make_namedtuple(**kwargs):
+  """Returns a namedtuple-like object containing the given `**kwargs`."""
+  return arolla.optools.fix_trace_kwargs(kwargs)
+
+
 @optools.add_to_registry_as_overload(
     'koda_internal.view.get_item._tuple',
     overload_condition_expr=arolla.M.qtype.is_tuple_qtype(arolla.P.x)
