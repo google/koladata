@@ -247,6 +247,8 @@ cc_test(
         "//koladata:test_utils",
         "//koladata/expr:expr_eval",
         "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
         "//koladata/internal/testing:matchers",
         "//koladata/testing:matchers",
         "//koladata/testing:test_env",

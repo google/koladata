@@ -18,6 +18,7 @@
 #include "koladata/functor/map.h"
 
 #include <cstdint>
+#include <numeric>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -35,6 +36,8 @@
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
