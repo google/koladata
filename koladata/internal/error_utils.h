@@ -34,7 +34,7 @@ std::optional<Error> GetErrorPayload(const absl::Status& status);
 
 // Sets the `error` in the payload of the `status` if not ok. Otherwise, returns
 // the `status`.
-absl::Status WithErrorPayload(absl::Status status, const Error& error);
+absl::Status WithErrorPayload(absl::Status status, Error error);
 
 // Sets the `error` in the payload of the `status` if not ok. If `error` is not
 // ok, the error message of `error` will be appended to the `status`.

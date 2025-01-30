@@ -48,6 +48,7 @@ using ::koladata::schema::ObjectDType;
 using ::koladata::schema::SchemaDType;
 using ::testing::Eq;
 using ::testing::HasSubstr;
+using ::testing::StrEq;
 using ::testing::Optional;
 
 TEST(ErrorUtilsTest, TestEncodeDataItem) {
@@ -91,9 +92,9 @@ TEST(ErrorUtilsTest, SetAndGetPayload) {
 
   absl::Status status_with_payload = WithErrorPayload(std::move(status), error);
 
-  EXPECT_THAT(
-      GetErrorPayload(status_with_payload),
-      Optional(EqualsProto(R"pb(error_message: "test error message")pb")));
+  auto error_payload = GetErrorPayload(status_with_payload);
+  ASSERT_TRUE(error_payload.has_value());
+  EXPECT_THAT(error_payload->error_message(), StrEq("test error message"));
 
   absl::Status ok_status_with_payload =
       WithErrorPayload(absl::OkStatus(), error);
@@ -116,8 +117,10 @@ TEST(ErrorUtilsTest, AsKodaError) {
   absl::Status koda_status = AsKodaError(status);
 
   EXPECT_THAT(koda_status.message(), Eq(status.message()));
-  EXPECT_THAT(GetErrorPayload(koda_status),
-              Optional(EqualsProto(R"pb(error_message: "test error")pb")));
+
+  auto error_payload = GetErrorPayload(koda_status);
+  ASSERT_TRUE(error_payload.has_value());
+  EXPECT_THAT(error_payload->error_message(), StrEq("test error"));
 }
 
 TEST(ErrorUtilsTest, AsKodaError_OkStatus) {
@@ -129,10 +132,10 @@ TEST(ErrorUtilsTest, KodaErrorFromCause) {
   absl::Status koda_status = KodaErrorFromCause("got an error", status);
 
   EXPECT_THAT(koda_status.message(), Eq(status.message()));
-  EXPECT_THAT(
-      GetErrorPayload(koda_status),
-      Optional(EqualsProto(R"pb(error_message: "got an error"
-                                cause { error_message: "test error" })pb")));
+  auto error_payload = GetErrorPayload(koda_status);
+  ASSERT_TRUE(error_payload.has_value());
+  EXPECT_THAT(error_payload->error_message(), StrEq("got an error"));
+  EXPECT_THAT(error_payload->cause().error_message(), StrEq("test error"));
 }
 
 TEST(ErrorUtilsTest, KodaErrorFromCause_OkStatus) {

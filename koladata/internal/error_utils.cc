@@ -45,7 +45,7 @@ std::optional<Error> GetErrorPayload(const absl::Status& status) {
   return error;
 }
 
-absl::Status WithErrorPayload(absl::Status status, const Error& error) {
+absl::Status WithErrorPayload(absl::Status status, Error error) {
   if (status.ok()) {
     return status;
   }
@@ -63,7 +63,7 @@ absl::Status WithErrorPayload(absl::Status status,
     absl::Status ret_status = absl::Status(status.code(), annotated);
     return ret_status;
   }
-  return WithErrorPayload(std::move(status), error.value());
+  return WithErrorPayload(std::move(status), std::move(error.value()));
 }
 
 absl::StatusOr<Error> CreateNoCommonSchemaError(
@@ -98,7 +98,7 @@ absl::Status AsKodaError(absl::Status status) {
   }
   internal::Error error;
   error.set_error_message(status.message());
-  return internal::WithErrorPayload(std::move(status), error);
+  return internal::WithErrorPayload(std::move(status), std::move(error));
 }
 
 absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause) {
@@ -111,7 +111,7 @@ absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause) {
   std::optional<internal::Error> cause_error = internal::GetErrorPayload(cause);
   DCHECK(cause_error.has_value());  // Guaranteed by AsKodaError.
   *error.mutable_cause() = *std::move(cause_error);
-  return internal::WithErrorPayload(std::move(cause), error);
+  return internal::WithErrorPayload(std::move(cause), std::move(error));
 }
 
 }  // namespace koladata::internal

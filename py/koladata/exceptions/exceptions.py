@@ -20,6 +20,9 @@ from koladata.exceptions import error_pb2
 from koladata.exceptions import py_exceptions_py_ext as _py_exceptions_py_ext
 
 
+_VERBOSE_ERRORS_ENABLED = False
+
+
 # Inheriting from ValueError in order to keep the existing
 # assertRaises(ValueError) tests passing.
 # TODO: b/389032294 - Restore Exception as a base class.
@@ -33,7 +36,17 @@ class KodaError(ValueError):
   def __str__(self):
     if self._cause:
       return f'{self.err.error_message}\n\nThe cause is: {self._cause}'
-    return self.err.error_message
+    if _VERBOSE_ERRORS_ENABLED:
+      return f'{self.err.error_message}{self._format_source_locations()}'
+    return f'{self.err.error_message}'
+
+  def _format_source_locations(self) -> str:
+    if self.err.source_location:
+      return '\n\nlocation:\n' + '\n'.join(
+          f' {source_location.file_name}:{source_location.line_number}'
+          for source_location in self.err.source_location
+      )
+    return ''
 
 
 def _create_koda_error(error: error_pb2.Error) -> KodaError | None:
@@ -60,6 +73,17 @@ def _create_koda_error_from_bytes(proto: bytes) -> KodaError | None:
   """
   error = error_pb2.Error.FromString(proto)
   return _create_koda_error(error)
+
+
+def set_koda_error_config(enable_verbose_errors: bool):
+  """Sets the KodaError config."""
+  if not isinstance(enable_verbose_errors, bool):
+    raise TypeError(
+        'expected bool for enable_verbose_errors, got'
+        f' {type(enable_verbose_errors)}'
+    )
+  global _VERBOSE_ERRORS_ENABLED
+  _VERBOSE_ERRORS_ENABLED = enable_verbose_errors
 
 
 _py_exceptions_py_ext.register_koda_exception(_create_koda_error_from_bytes)

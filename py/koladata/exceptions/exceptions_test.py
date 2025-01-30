@@ -25,7 +25,9 @@ class ExceptionsTest(absltest.TestCase):
   def test_koda_error(self):
     with self.assertRaises(exceptions.KodaError) as cm:
       testing_pybind.raise_from_status_with_payload('test error')
-    self.assertEqual(str(cm.exception), 'test error')
+    self.assertRegex(str(cm.exception), 'test error')
+    # ignore source locations in the test
+    cm.exception.err.ClearField('source_location')
     self.assertEqual(
         cm.exception.err, error_pb2.Error(error_message='test error')
     )

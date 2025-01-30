@@ -14,6 +14,8 @@
 //
 #include <Python.h>
 
+#include <utility>
+
 #include "absl/status/status.h"
 #include "absl/strings/cord.h"
 #include "absl/strings/string_view.h"
@@ -30,6 +32,13 @@ namespace koladata::python {
 using ::arolla::python::SetPyErrFromStatus;
 using ::koladata::internal::Error;
 using ::koladata::internal::WithErrorPayload;
+
+absl::Status CreateErrorFromCause(absl::string_view cause_message) {
+  absl::Status status = absl::InternalError(cause_message);
+  Error error;
+  error.set_error_message(cause_message);
+  return WithErrorPayload(status, std::move(error));
+}
 
 PYBIND11_MODULE(testing_pybind, m) {
   arolla::InitArolla();
@@ -51,7 +60,7 @@ PYBIND11_MODULE(testing_pybind, m) {
           Error error;
           error.ParseFromString(serialized_payload);
           SetPyErrFromStatus(
-              WithErrorPayload(absl::InternalError(message), error));
+              WithErrorPayload(absl::InternalError(message), std::move(error)));
           throw pybind11::error_already_set();
         });
 
@@ -61,5 +70,12 @@ PYBIND11_MODULE(testing_pybind, m) {
     SetPyErrFromStatus(status);
     throw pybind11::error_already_set();
   });
+
+  m.def("create_error_from_cause",
+        [](absl::string_view message, absl::string_view cause_message) {
+          SetPyErrFromStatus(internal::KodaErrorFromCause(
+              message, CreateErrorFromCause(cause_message)));
+          throw pybind11::error_already_set();
+        });
 };
 }  // namespace koladata::python

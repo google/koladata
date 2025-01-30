@@ -372,23 +372,23 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
   if (cause->has_no_common_schema()) {
     ASSIGN_OR_RETURN(Error error,
                      SetNoCommonSchemaError(*std::move(cause), data.db));
-    return WithErrorPayload(status, error);
+    return WithErrorPayload(status, std::move(error));
   }
   if (cause->has_missing_object_schema()) {
     ASSIGN_OR_RETURN(Error error, SetMissingObjectAttributeError(
                                       *std::move(cause), data.ds));
-    return WithErrorPayload(status, error);
+    return WithErrorPayload(status, std::move(error));
   }
   if (cause->has_incompatible_schema()) {
     ASSIGN_OR_RETURN(Error error, SetIncompatibleSchemaError(*std::move(cause),
                                                              data.db, data.ds));
-    return WithErrorPayload(status, error);
+    return WithErrorPayload(status, std::move(error));
   }
   if (cause->has_data_bag_merge_conflict()) {
     ASSIGN_OR_RETURN(Error error,
                      SetDataBagMergeError(*std::move(cause), data.db,
                                                 data.to_be_merged_db));
-    return WithErrorPayload(status, error);
+    return WithErrorPayload(status, std::move(error));
   }
   return status;
 }

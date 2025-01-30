@@ -695,7 +695,7 @@ absl::StatusOr<DataItem> DataBagImpl::GetObjSchemaAttr(
   return internal::WithErrorPayload(
       absl::InvalidArgumentError(
           absl::StrFormat("object %v is missing __schema__ attribute", item)),
-      error);
+      std::move(error));
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetObjSchemaAttr(
@@ -723,7 +723,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetObjSchemaAttr(
   return internal::WithErrorPayload(
       absl::InvalidArgumentError(
           absl::StrFormat("object %v is missing __schema__ attribute", slice)),
-      error);
+      std::move(error));
 }
 
 void DataBagImpl::GetSmallAllocDataSources(
