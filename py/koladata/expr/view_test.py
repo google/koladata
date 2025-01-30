@@ -123,6 +123,7 @@ class KodaViewTest(parameterized.TestCase):
         C.x[slice(1, 2)],
         view_overloads.get_item(C.x, arolla.types.Slice(ds(1), ds(2))),
     )
+    testing.assert_equal(C.x['a'], view_overloads.get_item(C.x, ds('a')))
 
   def test_add(self):
     testing.assert_equal(

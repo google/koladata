@@ -69,8 +69,8 @@ def make_namedtuple(**kwargs):
 
 @optools.add_to_registry_as_overload(
     'koda_internal.view.get_item._tuple',
-    overload_condition_expr=arolla.M.qtype.is_tuple_qtype(arolla.P.x)
-    | arolla.M.qtype.is_slice_qtype(arolla.P.x),
+    overload_condition_expr=M.qtype.is_tuple_qtype(P.x)
+    | M.qtype.is_slice_qtype(P.x),
 )
 @optools.add_to_registry()
 @optools.as_lambda_operator(
@@ -89,3 +89,26 @@ def get_nth(x, n):
   """
   n = arolla_bridge.to_arolla_int64(n)
   return M.core.get_nth(x, n)
+
+
+@optools.add_to_registry_as_overload(
+    'koda_internal.view.get_item._namedtuple',
+    overload_condition_expr=arolla.M.qtype.is_namedtuple_qtype(P.namedtuple),
+)
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.tuple.get_namedtuple_field',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.field_name)],
+)
+def get_namedtuple_field(namedtuple, field_name):
+  """Returns the value of the specified `field_name` from the `namedtuple`.
+
+  Note that `field_name` _must_ be a literal (foldable) string.
+
+  Args:
+    namedtuple: a namedtuple.
+    field_name: the name of the field to return. _Must_ be a literal (foldable)
+      string.
+  """
+  field_name = arolla_bridge.to_arolla_text(field_name)
+  return M.namedtuple.get_field(namedtuple, field_name)
