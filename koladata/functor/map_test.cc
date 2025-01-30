@@ -28,7 +28,6 @@
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "absl/time/time.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/expr_eval.h"
@@ -171,11 +170,17 @@ TEST(MapTest, Cancellation) {
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}));
 
+  std::vector<int> items(512);  // Prepare a long enough test slice.
+  std::iota(items.begin(), items.end(), 0);
+  ASSERT_OK_AND_ASSIGN(
+      auto test_slice,
+      DataSlice::Create(
+          internal::DataSliceImpl::Create(arolla::CreateFullDenseArray(items)),
+          DataSlice::JaggedShape::FlatFromSize(items.size()),
+          internal::DataItem(schema::GetDType<int>())));
   auto cancel_ctx = arolla::CancellationContext::Make(
-      /*no cooldown*/ absl::Nanoseconds(-1),
-      /*no countdown*/ -1, [] { return absl::CancelledError(""); });
+      /*no cooldown*/ {}, [] { return absl::CancelledError(""); });
   expr::EvalOptions eval_options{.cancellation_context = cancel_ctx.get()};
-  auto test_slice = test::DataSlice<int>({1, 2, 3});
   EXPECT_THAT(MapFunctorWithCompilationCache(
                   fn, /*args=*/{test_slice},
                   /*kwnames=*/{}, /*include_missing=*/false, eval_options),

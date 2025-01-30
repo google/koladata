@@ -26,7 +26,6 @@
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "absl/time/time.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/expr_eval.h"
 #include "koladata/functor/functor.h"
@@ -244,37 +243,33 @@ TEST(CallTest, Cancellation) {
       }));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  // returns_expr = I.x + I.x + I.x
-  ASSERT_OK_AND_ASSIGN(
-      auto returns_expr,
-      WrapExpr(arolla::expr::CallOp(
-          "math.add", {arolla::expr::CallOp(
-                           "math.add", {CreateInput("a"), CreateInput("a")}),
-                       CreateInput("a")})));
-  ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature, {}));
-
+  const auto gen_returns_expr = [](int op_count) {
+    auto result = CreateInput("a");
+    for (int i = 0; i < op_count; ++i) {
+      result = arolla::expr::CallOp("math.add", {result, CreateInput("a")});
+    }
+    return WrapExpr(result);
+  };
   {
-    int op_count = 2;  // Stop after the second operator.
+    const int op_count = 512;  // Long enough computation.
+    ASSERT_OK_AND_ASSIGN(auto returns_expr, gen_returns_expr(op_count));
+    ASSERT_OK_AND_ASSIGN(auto fn,
+                         CreateFunctor(returns_expr, koda_signature, {}));
     auto cancel_ctx = arolla::CancellationContext::Make(
-        /*no cooldown*/ absl::Nanoseconds(-1),
-        /*no countdown*/ -1, [&op_count] {
-          return --op_count > 0 ? absl::OkStatus() : absl::CancelledError("");
-        });
+        /*no cooldown period*/ {}, [] { return absl::CancelledError(""); });
     expr::EvalOptions eval_options{.cancellation_context = cancel_ctx.get()};
     EXPECT_THAT(CallFunctorWithCompilationCache(
                     fn, /*args=*/{arolla::TypedRef::FromValue(1)},
                     /*kwnames=*/{}, eval_options),
                 StatusIs(absl::StatusCode::kCancelled));
   }
-  {
-    int op_count = 3;  // Should stop after the third operator;
-                       // however, there are only two operators.
+  {  // The computation is insufficiently long to detect cancellation.
+    const int op_count = 2;
+    ASSERT_OK_AND_ASSIGN(auto returns_expr, gen_returns_expr(op_count));
+    ASSERT_OK_AND_ASSIGN(auto fn,
+                         CreateFunctor(returns_expr, koda_signature, {}));
     auto cancel_ctx = arolla::CancellationContext::Make(
-        /*no cooldown*/ absl::Nanoseconds(-1),
-        /*no countdown*/ -1, [&op_count] {
-          return --op_count > 0 ? absl::OkStatus() : absl::CancelledError("");
-        });
+        /*no cooldown period*/ {}, [] { return absl::CancelledError(""); });
     expr::EvalOptions eval_options{.cancellation_context = cancel_ctx.get()};
     ASSERT_OK_AND_ASSIGN(auto result,
                          CallFunctorWithCompilationCache(
