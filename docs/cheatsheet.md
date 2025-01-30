@@ -191,7 +191,8 @@ e.get_attr('z', default=0) # 0
 es.get_attr('x', default=0) # [1, 2, 0]
 
 # Entities are immutable by default, modification is done
-# by creating a new entity with updated attributes
+# by creating a new entity with the same ItemId and
+# updated attributes
 e = kd.new(x=1, y=2, schema='Point')
 
 # Update attributes
@@ -200,9 +201,11 @@ e1 = e.with_attr('x', 3)
 e1 = e.with_attr('z', 4)
 # Also override schema
 e1 = e.with_attr('y', 'a', update_schema=True)
+# Remove a single attribute
+e1 = e.with_attr('x', None)
 
-# Update multiple attributes
-e2 = e.with_attrs(z=4, x=3)
+# Update/remove multiple attributes
+e2 = e.with_attrs(z=4, x=None)
 # Also override schema for 'y'
 e2 = e.with_attrs(z=4, y='a', update_schema=True)
 
@@ -211,7 +214,7 @@ upd = kd.attrs(e, z=4, y=10)
 e3 = e.updated(upd)
 
 # Allows mixing multiple updates
-e4 = e.updated(kd.attrs(e, z=4), kd.attrs(e, y=10))
+e4 = e.updated(kd.attrs(e, z=4), kd.attrs(e, y=None))
 
 # Update nested attributes
 nested = kd.new(a=kd.new(c=kd.new(e=1), d=2), b=3)
@@ -270,8 +273,8 @@ kd.explode(l2, ndim=-1)
 l6 = kd.list([1, 2, None, 4])
 l6.select_items(lambda x: x >= 2) # [2, 4]
 
-# Returns a list concatenated from the list items
-# of arguments
+# Returns a list with a different ItemId and items
+# concatenated from the list items of arguments
 kd.concat_lists(kd.list([1, 2]), kd.list([3, 4]))
 
 # Return a list with appended items
@@ -314,7 +317,8 @@ d1.select_keys(lambda k: k != 'b') # ['a']
 d1.select_values(lambda v: v > 1) # [2]
 
 # Dicts are immutable by default, modification is done
-# by creating a new dict with updated key/values
+# by creating a new dict with the same ItemId and
+# updated key/values
 
 # Update a key/value
 d4 = d1.with_dict_update('c', 5)
@@ -324,6 +328,11 @@ d5 = d1.with_dict_update(another_dict)
 # Same as above
 d5 = d1.with_dict_update(kd.slice(['a', 'c']),
                          kd.slice([3, 5]))
+
+# Note that dict update does not support
+# removing values for now
+d1.with_dict_update('a', None)
+# Dict{'a': 1, 'b': 2} rather than Dict{'b': 2}
 
 # Create an update and apply it separately
 upd = d1.dict_update(another_dict)
@@ -385,7 +394,8 @@ o.get_attr('z', default=0) # 0
 os.get_attr('x', default=0) # [1, 0, 'a']
 
 # Objects are immutable by default, modification is done
-# by creating a new object with updated attributes
+# by creating a new object with the same ItemId and
+# updated attributes
 o = kd.obj(x=1, y=2)
 
 # Update a single attribute
@@ -394,9 +404,11 @@ o1 = o.with_attr('z', 4)
 # Also override schema
 # no update_schema=True is needed
 o1 = o.with_attr('y', 'a')
+# Remove a single attribute
+o1 = o.with_attr('x', None)
 
-# Update multiple attributes
-o2 = o.with_attrs(z=4, x=3)
+# Update/remove multiple attributes
+o2 = o.with_attrs(z=4, x=None)
 # Also override schema for 'y'
 o2 = o.with_attrs(z=4, y='a')
 
@@ -405,7 +417,7 @@ upd = kd.attrs(o, z=4, y=10)
 o3 = o.updated(upd)
 
 # Allows mixing multiple updates
-o4 = o.updated(kd.attrs(o, z=4), kd.attrs(o, y=10))
+o4 = o.updated(kd.attrs(o, z=4), kd.attrs(o, y=None))
 
 # Update nested attributes
 nested = kd.obj(a=kd.obj(c=kd.obj(e=1), d=2), b=3)
@@ -686,8 +698,29 @@ i1 = kd.uuid(x=1, y=2)
 i2 = kd.uuid(x=1, y=2)
 assert i1 == i2
 
-# Traverse attrs instead of using their UUIDs
-kd.deep_uuid(obj)
+# Generate uuids based on the values of the
+# nested contents rather than their ItemId
+kd.deep_uuid(ds)
+
+# Can be use to compare entities/lists/dicts/objects
+# by value rather than ItemIds
+e1 = kd.new(a=1, b=kd.new(c=2))
+e2 = kd.new(a=1, b=kd.new(c=2))
+assert kd.deep_uuid(e1) == kd.deep_uuid(e2)
+
+# Uuid computation does not depend on schemas
+# Note that o1 is an object and e1 is an entity
+o1 = kd.obj(a=1, b=kd.obj(c=2))
+assert kd.deep_uuid(o1) == kd.deep_uuid(e1)
+
+# A missing/removed attribute is different from
+# an attribute which does not exist
+e3 = kd.new(a=1, b=kd.new(c=2), c=None)
+assert kd.deep_uuid(e1) != kd.deep_uuid(e3)
+
+l1 = kd.list([kd.obj(a=1), kd.obj(b=2)])
+l2 = kd.list([kd.obj(a=1), kd.obj(b=2)])
+assert kd.deep_uuid(l1) == kd.deep_uuid(l2)
 
 # Compute UUIDs by aggregating items
 # over the last dimension
@@ -3103,14 +3136,21 @@ db = kd.bag()
 e = db.new(x=1, y=2)
 e.x = 3
 e.z = 'a'
-del e.y
+# immutable version e.with_attrs(y=None)
+e.y = None  # Entity(x=3, y=None, z='a')
+# same as 'e.y = None' if 'y' already exists,
+# no-op otherwise
+del e.y  # Entity(x=3, y=None, z='a')
 
 # Create a mutable object and
 # modify its attributes
-o = db.new(x=1, y=2)
+o = db.obj(x=1, y=2)
 o.x = 'a'
 o.z = 3
-del o.y
+# immutable version o.with_attrs(y=None).
+o.y = None  # Obj(x=3, y=None, z='a')
+# remove both the attribute and its schema
+del o.y  # Obj(x=3, z='a')
 
 # Create a mutable list and
 # modify its items
@@ -3118,14 +3158,16 @@ l = db.list([1, 2, 3])
 l[1] = 20
 l.append(4)
 l.append(kd.slice([5, 6]))
-del l[:4]
+l[2] = None  # List[1, 20, None, 4, 5, 6]
+del l[:4]  # List[5, 6]
 
 # Create a mutable dict and
 # modify its entries
 d = db.dict({'a': 1, 'b': 2})
 d['a'] = 20
 d['c'] = 30
-del d['b']
+d['a'] = None  # Dict{'c'=30, 'b'=2}
+del d['a']  # same as above
 
 # Other APIs works similarly
 db.new_like(...)
@@ -3397,11 +3439,11 @@ use Python comparison assertions.
 
 ```py
 i1 = kd.obj(a=kd.obj(b=kd.obj(c=1),
-                    d=kd.list([2, 3]),
-                    e=kd.dict({'f': 4})))
+                     d=kd.list([2, 3]),
+                     e=kd.dict({'f': 4})))
 i2 = kd.obj(a=kd.obj(b=kd.obj(c=1),
-                    d=kd.list([2, 3]),
-                    e=kd.dict({'f': 4})))
+                     d=kd.list([2, 3]),
+                     e=kd.dict({'f': 4})))
 
 assert i1 != i2
 assert kd.deep_uuid(i1) == kd.deep_uuid(i2)

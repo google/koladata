@@ -427,7 +427,7 @@ kd.implode(kd.implode(kd.slice(a)))  # == kd.list(a)
 kd.implode(kd.slice(a), ndim=-1)  # the same as above
 ```
 
-IMPORTANT: slicing operators over lists (e.g. a[1:]) do not return lists, but
+IMPORTANT: slicing operators over lists (e.g. `a[1:]`) do not return lists, but
 DataSlices with plus-one dimension (explosion operation which is discussed in
 the [DataSlice of Structured Data](#structured_data) section later).
 
@@ -487,6 +487,13 @@ d.updated(upd1, upd2)  # == kd.dict({'a':1, 'b':2, 'c':4})
 
 upd = kd.dict_update(d, kd.dict({'b':2, 'c':4}))
 d.updated(upd)
+```
+
+WARNING: Dicts do not support removing values for now. We are working on it.
+
+```py
+d = kd.dict({'a':1, 'b':2, 'c':4})
+d.with_dict_update('a', None) # Dict{'a'=1, 'b'=2, 'c'=4} rather than Dict{'b'=2, 'c'=4}
 ```
 
 Dicts can be looked up and have `get_keys()` and corresponding `get_values()`,
@@ -556,10 +563,6 @@ kd.slice([a, b.with_schema(a.get_schema())])  # works
 Entities are immutable, and have special APIs to modify attributes (including
 deep ones).
 
-NOTE: Entities created using `kd.new_xxx` methods are mutable now as we are
-migrating from Koda v0 to v1. Once it is fully migrated, they will be switched
-to immutable.
-
 ```py
 r = kd.new(x=1, y=2, schema='Point')
 
@@ -570,6 +573,9 @@ r.updated(kd.attrs(r, z=4, y=10)) # the same above
 # Or can do multiple updates
 r.updated(kd.attrs(r, z=4)).updated(kd.attrs(r, y=10))
 r.updated(kd.attrs(r, z=4), kd.attrs(r, y=10))
+
+# Use attr=None to remove attributes
+r.with_attrs(x=None)  # Entity(x=None, y=2)
 
 # kd.attrs makes it possible to update attributes of nested entities.
 r = kd.new(x=1, y=2, z=kd.new(a=3, b=4, schema='Data'), schema='PointWithData')
@@ -594,7 +600,7 @@ You need to clone or deep-clone entities in order to create copies with
 different attributes (similar to working with python objects).
 
 ```py
-# entities have ids ("pointers"), which stay the same
+# entities have ItemIds ("pointers"), which stay the same
 a = kd.new(x=1, y=2, schema='Point')
 r = kd.new(u=a, v=a, schema='Pair')
 r = r.updated(kd.attrs(r.u, x=10))  # both r.u.x == r.v.x == 10, as r.u == r.v
@@ -706,10 +712,11 @@ Objects can be edited similar to entities, but restrictions are relaxed as with
 python objects.
 
 ```py
-a = kd.obj(x=1, y=kd.obj(u=2, v=3))
-a = a.with_attrs(z=4)
-a = a.updated(kd.attrs(a.y, v=6, w=5))
-a = a.with_attrs(x='hello')  # No need for update_schema=True
+a = kd.obj(x=1, y=kd.obj(u=2, v=3))  # Obj(x=1, y=Obj(u=2, v=3))
+a = a.with_attrs(x=None, z=4)  # Obj(x=None, y=Obj(u=2, v=3), z=4)
+a = a.updated(kd.attrs(a.y, v=None, w=5)) # Obj(x=None, y=Obj(u=2, v=None, w=5), z=4)
+# Note no need to set update_schema=True
+a = a.with_attrs(x='hello')  # Obj(x='hello', y=Obj(u=2, v=None, w=5), z=4)
 ```
 
 Similar to entities, lists and dicts can be objects too.
@@ -1113,8 +1120,8 @@ ds[keys]  # kd.slice([[[2, 2], [None, 3, 4]], [[None, 5]]])
 ds.get_keys()  # kd.slice([[['a', 'b'], ['b', 'c']], [['b', 'c', 'a']]])
 # The same, but for values
 ds.get_values()  # kd.slice([[[1, 2], [3, 4]], [[6, 5, 7]]])
-ds[:]  # equivallent to the above
-ds[ds.get_keys()]  # equivallent to the above
+ds[:]  # equivalent to the above
+ds[ds.get_keys()]  # equivalent to the above
 # only the first 2 keys are used
 ds[ds.get_keys().S[:2]] # [[[1, 2], [3, 4]], [[6, 5]]]
 ```
@@ -2236,13 +2243,13 @@ In Koda, all the data is represented as collections of **(itemid, attribute) ->
 value** mapping triples: **bags**, where itemid is **globally unique 128-bit
 id**. Note, there can be **one value** for each itemid-attribute pair.
 
-Every entity, object, list or dict have associated itemid, and can be
-represented as a bag of attributes, which can be obtained through `x.get_bag()`.
+Every entity, list, dict or object has associated itemid, and can be represented
+as a bag of attributes, which can be obtained through `x.get_bag()`.
 
 Schemas also stored as mapping triples, just values are schemas.
 
-In addition, each 'object' has an extra mapping triple which associate the
-object with its schema (the main difference between `kd.new` and `kd.obj`).
+In addition, each object has an extra mapping triple which associate the object
+with its schema (the main difference between `kd.new` and `kd.obj`).
 
 ```python
 x = kd.new(a=1, b=kd.new(c=2, d='hello'))   # auto-allocated schemas
@@ -2282,7 +2289,7 @@ db.data_triples_repr()  # 5 triples above
 db.schema_triples_repr()  # 3 schema triples
 ```
 
-`kd.bag` and `kd.attrs` or `x.attrs` are used to create bags.
+`kd.bag` and `kd.attrs` are used to create bags.
 
 ```python
 kd.bag()  # empty bag
@@ -2320,7 +2327,7 @@ kd.updated_bag(kd.attrs(x, a=1), kd.attrs(x, a=2, b=3))
 kd.attrs(x, a=1) << kd.attrs(x, a=2, b=3)  # the same as above
 
 # Enrich keeps attributes of the first bag.
-# x.a => **1**, x.b => 3
+# x.a => 1, x.b => 3
 kd.enriched_bag(kd.attrs(x, a=1), kd.attrs(x, a=2, b=3))
 kd.attrs(x, a=1) >> kd.attrs(x, a=2, b=3)  # the same as above
 
@@ -2403,7 +2410,7 @@ x.updated(upd).get_bag()  # the same as x.get_bag() << upd
 x.enriched(upd)  # Obj(a=1, b=20) - don't change 'a'
 x.enriched(upd).get_bag()  # the same as x.get_bag() >> upd
 
-# All below are equivallent
+# All below are equivalent
 x.with_attrs(a=10, b=20)
 x.updated(kd.attrs(x, a=10, b=20))
 x.updated(kd.attrs(x, a=10)).updated(kd.attrs(x, b=20))
@@ -2416,6 +2423,23 @@ upd = kd.attrs(x, a='hello', b='world')  # works - x is object
 x = kd.new(a=1)
 # upd = kd.attrs(x, a='hello', b='world')  # fails - x is entity
 upd = kd.attrs(x, a='hello', b='world', update_schema=True)
+```
+
+Besides adding new attributes or modifying existing attributes, it is also
+possible to remove attributes.
+
+```py
+x = kd.new(a=1, b=2)  # Entity(a=1, b=2)
+x = x.with_attrs(a=None)  # Entity(a=None, b=2)
+x = x.with_attrs(a=10, b=None)  # Entity(a=10, b=None)
+
+# Note a removed attribute is different from an attribute which never exists
+# x is equivalent to x2 rather than x1
+x1 = kd.new(a=10)
+x2 = kd.new(a=10, b=None)
+# We use kd.deep_uuid to compare entities by contents
+assert kd.deep_uuid(x) != kd.deep_uuid(x1)
+assert kd.deep_uuid(x) == kd.deep_uuid(x2)
 ```
 
 It's also possible to directly change the bag of attributes associated with a
@@ -2431,9 +2455,8 @@ x.with_bag(x.get_bag() >> upd)  # The same as above
 ```
 
 Lists and dicts are used when itemid-attribute pair can have multiple values.
-Individual list values cannot be changed, while individual dict values can be
-updated. That is, dicts can be updated or enriched, but lists can be only
-changed as whole.
+Individual list elements cannot be changed, but lists can be only changed as
+whole. Individual dict key/value pairs can be updated.
 
 ```python
 x = kd.new()
@@ -2538,7 +2561,7 @@ a1.with_attrs(c=2).get_bag()  # 1 attr
 kd.attrs(a1, c=2)  # the same kd.attrs(a, c=2)
 
 # Enrich with the attributes from the original.
-a1.enriched(a.get_bag())  # equivallent to just a
+a1.enriched(a.get_bag())  # equivalent to just a
 a1.enriched(a.get_bag()).v  # 3 - the same as a.v
 a1.with_attrs(c=2).enriched(a.get_bag())  # the same as a.with_attrs(c=2)
 
