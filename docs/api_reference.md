@@ -2271,7 +2271,7 @@ Args:
   append: DataSlice of values to append to each list in `x`.
 
 Returns:
-  DataSlice of lists with a in a new immutable Databag.
+  DataSlice of lists with new itemd ids in a new immutable DataBag.
 ```
 
 ### `kd.lists.concat(*lists, db=None)` {#kd.lists.concat}
@@ -2455,6 +2455,30 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
   Returns:
     A DataSlice with the lists.
+```
+
+### `kd.lists.list_append_update(x, append)` {#kd.lists.list_append_update}
+Aliases:
+
+- [kd.list_append_update](#kd.list_append_update)
+
+``` {.no-copy}
+Returns a DataBag containing an update to a DataSlice of lists.
+
+The updated lists are the lists in `x` with the specified items appended at
+the end.
+
+`x` and `append` must have compatible shapes.
+
+The resulting lists maintain the same ItemIds. Also see kd.appended_list()
+which works similarly but resulting lists have new ItemIds.
+
+Args:
+  x: DataSlice of lists.
+  append: DataSlice of values to append to each list in `x`.
+
+Returns:
+  A new immutable DataBag containing the list with the appended items.
 ```
 
 ### `kd.lists.select_items(ds, fltr)` {#kd.lists.select_items}
@@ -7625,6 +7649,10 @@ Creates list(s) by collapsing `items`.
   Returns:
     The slice with list/lists.
 ```
+
+### `kd.list_append_update(x, append)` {#kd.list_append_update}
+
+Alias for [kd.lists.list_append_update](#kd.lists.list_append_update) operator.
 
 ### `kd.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list_like}
 
