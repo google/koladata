@@ -6,9 +6,6 @@ This document lists public **Koda** APIs, including operators (accessible from
 `kd` and `kde` packages) and methods of main abstractions (e.g.
 DataSlice, DataBag, etc.).
 
-* TOC
-{:toc}
-
 Category  | Subcategory | Description
 --------- | ----------- | ------------
 [kd](#kd_category) | | `kd` and `kde` operators
