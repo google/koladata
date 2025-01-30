@@ -41,7 +41,6 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error_utils.h"
-#include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/shape_utils.h"
@@ -196,15 +195,14 @@ absl::StatusOr<DataSlice> SimpleAggEval(
   DCHECK_LE(edge_arg_index, inputs.size());
   ASSIGN_OR_RETURN(
       auto primary_operand_schema_info,
-      GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices),
-      internal::OperatorEvalError(std::move(_), op_name, "invalid inputs"));
+      GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices));
   ASSIGN_OR_RETURN(
       (auto [aligned_ds, aligned_shape]),
       shape::AlignNonScalars(std::move(inputs)),
-      internal::OperatorEvalError(std::move(_), op_name,
-                                  "cannot align all inputs to a common shape"));
+      internal::KodaErrorFromCause("cannot align all inputs to a common shape",
+                                   std::move(_)));
   if (aligned_shape.rank() == 0) {
-    return internal::OperatorEvalError(op_name, "expected rank(x) > 0");
+    return absl::InvalidArgumentError("expected rank(x) > 0");
   }
   auto result_shape = is_agg_into
                           ? aligned_shape.RemoveDims(aligned_shape.rank() - 1)
@@ -237,12 +235,7 @@ absl::StatusOr<DataSlice> SimpleAggEval(
   }
   auto edge_tv = arolla::TypedValue::FromValue(aligned_shape.edges().back());
   typed_refs[edge_arg_index] = edge_tv.AsRef();
-  ASSIGN_OR_RETURN(
-      auto result, EvalExpr(op_name, typed_refs),
-      internal::OperatorEvalError(
-          std::move(_), op_name,
-          "successfully converted input DataSlice(s) to DenseArray(s) but "
-          "failed to evaluate the Arolla operator"));
+  ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs));
   if (!output_schema.has_value()) {
     // Get the common schema from the primary inputs and output.
     ASSIGN_OR_RETURN(auto result_schema, GetResultSchema(result));
@@ -305,9 +298,9 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
     internal::DataItem output_schema,
     const std::optional<absl::Span<const int>>& primary_operand_indices) {
   DCHECK_GE(inputs.size(), 1);
-  ASSIGN_OR_RETURN(auto primary_operand_schema_info,
-                   GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices),
-                   internal::AsKodaError(std::move(_)));
+  ASSIGN_OR_RETURN(
+      auto primary_operand_schema_info,
+      GetPrimaryOperandSchemaInfo(inputs, primary_operand_indices));
   // All primary inputs are empty-and-unknown. We then skip evaluation and just
   // broadcast the first input to the common shape and common schema. It is the
   // caller's responsibility to make sure that the non-primary inputs have
@@ -344,8 +337,7 @@ absl::StatusOr<DataSlice> SimplePointwiseEval(
                          primary_operand_schema_info.first_primitive_schema));
     typed_refs.push_back(std::move(ref));
   }
-  ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs),
-                   internal::AsKodaError(std::move(_)));
+  ASSIGN_OR_RETURN(auto result, EvalExpr(op_name, typed_refs));
   if (!output_schema.has_value()) {
     // Get the common schema from the primary inputs and output.
     ASSIGN_OR_RETURN(auto result_schema, GetResultSchema(result));

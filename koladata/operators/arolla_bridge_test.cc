@@ -182,10 +182,6 @@ TEST(ArollaEval, SimplePointwiseEval) {
         status,
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("DataSlice with Struct schema is not supported")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(),
-                HasSubstr("DataSlice with Struct schema is not supported"));
   }
   {
     // invalid input: mixed types.
@@ -198,10 +194,6 @@ TEST(ArollaEval, SimplePointwiseEval) {
         status,
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("DataSlice with mixed types is not supported")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(),
-                HasSubstr("DataSlice with mixed types is not supported"));
   }
   {
     // Invalid input: object.
@@ -212,10 +204,6 @@ TEST(ArollaEval, SimplePointwiseEval) {
     EXPECT_THAT(status,
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("DataSlice has no primitive schema")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(),
-                HasSubstr("DataSlice has no primitive schema"));
   }
   {
     // Incompatible shapes.
@@ -227,7 +215,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
                          HasSubstr("shapes are not compatible: JaggedShape(1) "
                                    "vs JaggedShape(3)")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
+    ASSERT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
                 Eq("cannot align inputs to a common shape"));
     EXPECT_THAT(
@@ -246,7 +234,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
                          HasSubstr("shapes are not compatible: JaggedShape(1) "
                                    "vs JaggedShape(3)")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
+    ASSERT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
                 Eq("cannot align inputs to a common shape"));
     EXPECT_THAT(
@@ -264,10 +252,6 @@ TEST(ArollaEval, SimplePointwiseEval) {
         status,
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("expected numerics, got y: DENSE_ARRAY_TEXT")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(),
-                HasSubstr("expected numerics, got y: DENSE_ARRAY_TEXT"));
   }
   {
     // Arolla op eval error.
@@ -276,9 +260,6 @@ TEST(ArollaEval, SimplePointwiseEval) {
     auto status = SimplePointwiseEval("math.floordiv", {x, y}).status();
     EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                  HasSubstr("division by zero")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(), HasSubstr("division by zero"));
   }
 }
 
@@ -412,13 +393,8 @@ TEST(ArollaEval, SimpleAggIntoEval) {
     // Scalar input error.
     DataSlice x = test::DataItem(1, schema::kObject);
     absl::Status status = SimpleAggIntoEval("math.sum", {x}).status();
-    EXPECT_THAT(status,
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("expected rank(x) > 0")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(), Eq("math.sum: expected "
-                                             "rank(x) > 0"));
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
+                                 HasSubstr("expected rank(x) > 0")));
   }
   {
     // Mixed input error.
@@ -429,11 +405,6 @@ TEST(ArollaEval, SimpleAggIntoEval) {
         status,
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("DataSlice with mixed types is not supported")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(), Eq("math.sum: invalid inputs"));
-    EXPECT_THAT(payload->cause().error_message(),
-                HasSubstr("DataSlice with mixed types is not supported"));
   }
   {
     DataSlice x =
@@ -443,14 +414,6 @@ TEST(ArollaEval, SimpleAggIntoEval) {
         status,
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("expected numerics, got x: DENSE_ARRAY_TEXT")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(),
-                Eq("math.max: successfully converted input DataSlice(s) to "
-                   "DenseArray(s) but failed to "
-                   "evaluate the Arolla operator"));
-    EXPECT_THAT(payload->cause().error_message(),
-                HasSubstr("expected numerics, got x: DENSE_ARRAY_TEXT"));
   }
   {
     // Eval with several inputs - default edge index.
@@ -573,12 +536,8 @@ TEST(ArollaEval, SimpleAggOverEval) {
     // Scalar input error.
     DataSlice x = test::DataItem(1, schema::kObject);
     absl::Status status = SimpleAggOverEval("math.sum", {x}).status();
-    EXPECT_THAT(status,
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("expected rank(x) > 0")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(), Eq("math.sum: expected rank(x) > 0"));
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
+                                 HasSubstr("expected rank(x) > 0")));
   }
   {
     // Mixed input error.
@@ -590,12 +549,6 @@ TEST(ArollaEval, SimpleAggOverEval) {
         status,
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("DataSlice with mixed types is not supported")));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    EXPECT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(),
-                Eq("array.inverse_mapping: invalid inputs"));
-    EXPECT_THAT(payload->cause().error_message(),
-                HasSubstr("DataSlice with mixed types is not supported"));
   }
   {
     // Eval with several inputs - default edge index.

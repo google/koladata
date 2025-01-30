@@ -38,9 +38,8 @@ class SimpleAggArollaOpErrorTest(absltest.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            """math.max: invalid inputs
-
-The cause is: DataSlice with mixed types is not supported: DataSlice([1, 2.0], schema: OBJECT, shape: JaggedShape(2))"""
+            'kd.math.agg_max: DataSlice with mixed types is not supported:'
+            ' DataSlice([1, 2.0], schema: OBJECT, shape: JaggedShape(2))'
         ),
     ):
       expr_eval.eval(kde.agg_max(x))
@@ -48,7 +47,7 @@ The cause is: DataSlice with mixed types is not supported: DataSlice([1, 2.0], s
   def test_expect_rank_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape("""math.max: expected rank(x) > 0"""),
+        re.escape('kd.math.agg_max: expected rank(x) > 0'),
     ):
       expr_eval.eval(kde.agg_max(ds(1)))
 

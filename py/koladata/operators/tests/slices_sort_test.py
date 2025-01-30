@@ -145,7 +145,7 @@ class SlicesSortTest(parameterized.TestCase):
         exceptions.KodaError,
         # TODO: b/374841918 - For lambdas we only report underlying operator
         # names.
-        re.escape('array.ordinal_rank: expected rank(x) > 0'),
+        re.escape('kd.slices.ordinal_rank: expected rank(x) > 0'),
     ):
       expr_eval.eval(kde.slices.sort(ds(0)))
 
