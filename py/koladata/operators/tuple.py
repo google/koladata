@@ -60,7 +60,7 @@ def make_slice(
   return arolla.M.core.make_slice(start, stop, step)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kd.make_namedtuple'])
 @optools.as_lambda_operator('kd.tuple.make_namedtuple')
 def make_namedtuple(**kwargs):
   """Returns a namedtuple-like object containing the given `**kwargs`."""

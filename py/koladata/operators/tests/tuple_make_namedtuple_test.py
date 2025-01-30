@@ -19,6 +19,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
@@ -69,6 +70,11 @@ class TupleMakeNamedtupleTest(parameterized.TestCase):
   def test_view(self):
     x_namedtuple = kde.tuple.make_namedtuple(x=I.x, y=I.y)
     self.assertTrue(view.has_koda_view(x_namedtuple))
+
+  def test_alias(self):
+    self.assertTrue(
+        optools.equiv_to_op(kde.tuple.make_namedtuple, kde.make_namedtuple)
+    )
 
 
 if __name__ == '__main__':
