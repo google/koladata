@@ -16,11 +16,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -33,6 +36,7 @@
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
 #include "nlohmann/json.hpp"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/casting.h"
@@ -41,9 +45,12 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_utils.h"
+#include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
@@ -67,6 +74,278 @@ absl::Status ForEachDataItem(const DataSlice& slice, Fn fn) {
   }
   return absl::OkStatus();
 }
+
+}  // namespace
+
+namespace json_internal {
+
+absl::StatusOr<internal::DataItem> JsonBoolToDataItem(
+    bool value, const internal::DataItem& schema_impl) {
+  if (schema_impl == schema::kBool) {
+    return internal::DataItem(value);
+  } else if (schema_impl == schema::kMask) {
+    return internal::DataItem(arolla::OptionalUnit(value));
+  }
+  ASSIGN_OR_RETURN(auto result,
+                   schema::CastDataTo(internal::DataItem(value), schema_impl),
+                   _ << absl::StrFormat("json number %v invalid for %v schema",
+                                        value, schema_impl));
+  return result;
+}
+
+absl::StatusOr<internal::DataItem> JsonNumberToDataItem(
+    int64_t value, const internal::DataItem& schema_impl,
+    const internal::DataItem& default_number_schema_impl) {
+  internal::DataItem effective_schema_impl = schema_impl;
+  if (schema_impl == schema::kObject) {
+    if (default_number_schema_impl == schema::kObject) {
+      // Infer number dtype from value.
+      // Note: because of nlohmann number parsing rules, this is only ever
+      // called to convert negative integers, so the `<= max` check here is
+      // technically redundant.
+      if (value <= std::numeric_limits<int32_t>::max() &&
+          value >= std::numeric_limits<int32_t>::min()) {
+        return internal::DataItem(static_cast<int32_t>(value));
+      }
+      return internal::DataItem(value);
+    } else {
+      effective_schema_impl = default_number_schema_impl;
+    }
+  }
+  ASSIGN_OR_RETURN(
+      auto result,
+      schema::CastDataTo(internal::DataItem(value), effective_schema_impl),
+      _ << absl::StrFormat("json number %v invalid for %v schema", value,
+                           effective_schema_impl));
+  return result;
+}
+
+absl::StatusOr<internal::DataItem> JsonNumberToDataItem(
+    uint64_t value, const internal::DataItem& schema_impl,
+    const internal::DataItem& default_number_schema_impl) {
+  internal::DataItem effective_schema_impl = schema_impl;
+  if (schema_impl == schema::kObject) {
+    if (default_number_schema_impl == schema::kObject) {
+      // Infer number dtype from value.
+      if (value <= std::numeric_limits<int32_t>::max()) {
+        return internal::DataItem(static_cast<int32_t>(value));
+      }
+      // Note: this will wrap large uint64 values to negative int64 values,
+      // matching the behavior of kd.from_py and similar operators.
+      return internal::DataItem(static_cast<int64_t>(value));
+    } else {
+      effective_schema_impl = default_number_schema_impl;
+    }
+  }
+  ASSIGN_OR_RETURN(
+      auto result,
+      schema::CastDataTo(internal::DataItem(static_cast<int64_t>(value)),
+                         effective_schema_impl),
+      _ << absl::StrFormat("json number %v invalid for %v schema", value,
+                           effective_schema_impl));
+  return result;
+}
+
+absl::StatusOr<internal::DataItem> JsonNumberToDataItem(
+    double value, absl::string_view value_str,
+    const internal::DataItem& schema_impl,
+    const internal::DataItem& default_number_schema_impl) {
+  internal::DataItem effective_schema_impl = schema_impl;
+  if (schema_impl == schema::kObject) {
+    if (default_number_schema_impl == schema::kObject) {
+      // Infer number dtype from value.
+      // To match the behavior of `kd.from_py`, we always infer 32-bit
+      // floats. Users can opt for additional precision using an explicit
+      // schema or `default_number_schema=kd.FLOAT64`
+      return internal::DataItem(static_cast<float>(value));
+    } else {
+      effective_schema_impl = default_number_schema_impl;
+    }
+  }
+  ASSIGN_OR_RETURN(
+      auto result,
+      schema::CastDataTo(internal::DataItem(value), effective_schema_impl),
+      _ << absl::StrFormat("json number %v invalid for %v schema", value,
+                           effective_schema_impl));
+  return result;
+}
+
+absl::StatusOr<internal::DataItem> JsonStringToDataItem(
+    std::string value, const internal::DataItem& schema_impl) {
+  auto value_text_item = internal::DataItem(arolla::Text(std::move(value)));
+  if (schema_impl == schema::kString) {
+    return std::move(value_text_item);
+  }
+  ASSIGN_OR_RETURN(
+      auto result, schema::CastDataTo(std::move(value_text_item), schema_impl),
+      _ << absl::StrFormat("json string invalid for %v schema", schema_impl));
+  return result;
+}
+
+absl::StatusOr<internal::DataItem> JsonArrayToList(
+    std::vector<internal::DataItem> json_array_values,
+    const internal::DataItem& schema_impl,
+    const internal::DataItem& value_schema_impl, bool embed_schema,
+    const DataBagPtr& bag) {
+  ASSIGN_OR_RETURN(
+      DataSlice values_slice,
+      DataSlice::CreateWithFlatShape(
+          internal::DataSliceImpl::Create(std::move(json_array_values)),
+          value_schema_impl, bag));
+  ASSIGN_OR_RETURN(DataSlice values_list, CreateListsFromLastDimension(
+                                              bag, values_slice, std::nullopt));
+  if (embed_schema) {
+    ASSIGN_OR_RETURN(values_list, values_list.EmbedSchema());
+  }
+  return values_list.item();
+}
+
+absl::StatusOr<internal::DataItem> JsonObjectToEntity(
+    std::vector<std::string> json_object_keys,
+    std::vector<internal::DataItem> json_object_values,
+    const internal::DataItem& schema_impl,
+    const std::optional<absl::string_view>& keys_attr,
+    const std::optional<absl::string_view>& values_attr, bool embed_schema,
+    const DataBagPtr& bag) {
+  const bool entity_has_obj_schema = schema_impl == schema::kObject;
+
+  std::optional<DataSlice> entity_schema;  // nullopt iff entity_has_obj_schema
+  DataSlice::AttrNamesSet entity_schema_attr_names;
+  if (!entity_has_obj_schema) {
+    ASSIGN_OR_RETURN(
+        entity_schema,
+        DataSlice::Create(schema_impl, internal::DataItem(schema::kSchema),
+                          bag));
+    ASSIGN_OR_RETURN(entity_schema_attr_names, entity_schema->GetAttrNames());
+  }
+
+  bool should_add_keys_attr =
+      keys_attr.has_value() &&
+      (entity_has_obj_schema || entity_schema_attr_names.contains(*keys_attr));
+  bool should_add_values_attr =
+      values_attr.has_value() &&
+      (entity_has_obj_schema ||
+       entity_schema_attr_names.contains(*values_attr));
+  if (should_add_values_attr && !should_add_keys_attr) {
+    return absl::InvalidArgumentError(
+        "cannot add json values list attr without adding json keys list attr");
+  }
+
+  std::vector<absl::string_view> entity_attr_names;
+  std::vector<DataSlice> entity_attr_values;
+  size_t max_extra_attrs =
+      (should_add_keys_attr ? 1 : 0) + (should_add_values_attr ? 1 : 0);
+  entity_attr_names.reserve(json_object_keys.size() + max_extra_attrs);
+  entity_attr_values.reserve(json_object_keys.size() + max_extra_attrs);
+  std::optional<arolla::DenseArrayBuilder<arolla::Text>> keys_array_builder;
+  if (should_add_keys_attr) {
+    keys_array_builder.emplace(json_object_keys.size());
+  }
+  for (int64_t i = 0; i < json_object_keys.size(); ++i) {
+    const auto& key = json_object_keys[i];
+    if (key != keys_attr && key != values_attr &&
+        (entity_has_obj_schema || entity_schema_attr_names.contains(key))) {
+      entity_attr_names.emplace_back(key);
+      internal::DataItem value_schema_impl;
+      if (entity_has_obj_schema) {
+        value_schema_impl = internal::DataItem(schema::kObject);
+      } else {
+        // TODO: Avoid this second entity schema attr lookup to improve
+        // performance. We already do this lookup when parsing the value.
+        ASSIGN_OR_RETURN(auto value_schema, entity_schema->GetAttr(key));
+        value_schema_impl = value_schema.item();
+      }
+      ASSIGN_OR_RETURN(auto value,
+                       DataSlice::Create(json_object_values[i],
+                                         std::move(value_schema_impl), bag));
+      entity_attr_values.emplace_back(std::move(value));
+    }
+    if (should_add_keys_attr) {
+      keys_array_builder->Add(i, arolla::Text(key));
+    }
+  }
+
+  if (should_add_keys_attr) {
+    ASSIGN_OR_RETURN(auto keys_slice,
+                     DataSlice::CreateWithFlatShape(
+                         internal::DataSliceImpl::Create(
+                             std::move(*keys_array_builder).Build()),
+                         internal::DataItem(schema::kString)));
+    ASSIGN_OR_RETURN(auto keys_list,
+                     CreateListsFromLastDimension(bag, keys_slice));
+    entity_attr_names.emplace_back(*keys_attr);
+    entity_attr_values.emplace_back(std::move(keys_list));
+  }
+  if (should_add_values_attr) {
+    ASSIGN_OR_RETURN(auto values_slice,
+                     DataSlice::CreateWithFlatShape(
+                         internal::DataSliceImpl::Create(json_object_values),
+                         internal::DataItem(schema::kObject)));
+    ASSIGN_OR_RETURN(auto values_list,
+                     CreateListsFromLastDimension(bag, values_slice));
+    entity_attr_names.emplace_back(*values_attr);
+    entity_attr_values.emplace_back(std::move(values_list));
+  }
+
+  if (entity_has_obj_schema) {
+    ASSIGN_OR_RETURN(auto entity, ObjectCreator::Shaped(
+                                      bag, DataSlice::JaggedShape::Empty(),
+                                      entity_attr_names, entity_attr_values));
+    return entity.item();
+  } else {
+    ASSIGN_OR_RETURN(auto entity, EntityCreator::Shaped(
+                                      bag, DataSlice::JaggedShape::Empty(),
+                                      entity_attr_names, entity_attr_values,
+                                      std::move(entity_schema), false));
+    if (embed_schema) {
+      ASSIGN_OR_RETURN(entity, entity.EmbedSchema());
+    }
+    return entity.item();
+  }
+}
+
+absl::StatusOr<internal::DataItem> JsonObjectToDict(
+    std::vector<std::string> json_object_keys,
+    std::vector<internal::DataItem> json_object_values,
+    const internal::DataItem& schema_impl, bool embed_schema,
+    const DataBagPtr& bag) {
+  // JSON objects with schema OBJECT are converted to entities, so this path
+  // will never be called with schema_impl == OBJECT.
+  DCHECK(schema_impl != schema::kObject);
+  ASSIGN_OR_RETURN(
+      auto dict_schema,
+      DataSlice::Create(schema_impl, internal::DataItem(schema::kSchema), bag));
+  DCHECK(dict_schema.IsDictSchema());
+  ASSIGN_OR_RETURN(auto key_schema,
+                   dict_schema.GetAttr(schema::kDictKeysSchemaAttr));
+  ASSIGN_OR_RETURN(auto value_schema,
+                   dict_schema.GetAttr(schema::kDictValuesSchemaAttr));
+  std::vector<internal::DataItem> keys_items;
+  for (auto& key : json_object_keys) {
+    ASSIGN_OR_RETURN(auto item,
+                     JsonStringToDataItem(std::move(key), key_schema.item()));
+    keys_items.emplace_back(std::move(item));
+  }
+  ASSIGN_OR_RETURN(auto keys, DataSlice::CreateWithFlatShape(
+                                  internal::DataSliceImpl::Create(keys_items),
+                                  key_schema.item(), bag));
+  ASSIGN_OR_RETURN(DataSlice values,
+                   DataSlice::CreateWithFlatShape(
+                       internal::DataSliceImpl::Create(json_object_values),
+                       value_schema.item(), bag));
+  ASSIGN_OR_RETURN(
+      auto dict,
+      CreateDictShaped(bag, DataSlice::JaggedShape::Empty(), std::move(keys),
+                       std::move(values), std::move(dict_schema)));
+  if (embed_schema) {
+    ASSIGN_OR_RETURN(dict, dict.EmbedSchema());
+  }
+  return dict.item();
+}
+
+}  // namespace json_internal
+
+namespace {
 
 // Map-like class that preserves insertion order *and* duplicate keys. This is
 // used to give us more complete control over the JSON serializer.
@@ -125,8 +404,7 @@ absl::StatusOr<SerializableJson> PrimitiveValueToSerializableJson(
     } else {
       return SerializableJson(nullptr);  // null
     }
-  } else if constexpr (std::is_same_v<T, int> ||
-                       std::is_same_v<T, int64_t>) {
+  } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, int64_t>) {
     return SerializableJson(static_cast<int64_t>(value));
   } else if constexpr (std::is_same_v<T, float> || std::is_same_v<T, double>) {
     if (std::isfinite(value)) {
@@ -353,8 +631,7 @@ absl::StatusOr<SerializableJson> DataItemToSerializableJson(
   if (item_object_id.has_value()) {
     if (!path_object_ids.insert(*item_object_id).second) {
       return absl::InvalidArgumentError(absl::StrFormat(
-          "cycle detected in json serialization at %s",
-          DataSliceRepr(item)));
+          "cycle detected in json serialization at %s", DataSliceRepr(item)));
     }
   }
 
