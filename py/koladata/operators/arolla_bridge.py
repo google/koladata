@@ -24,6 +24,7 @@ constraints = arolla.optools.constraints
 
 # NOTE: Implemented in C++ to allow bind-time literal evaluation.
 to_arolla_int64 = arolla.abc.lookup_operator('koda_internal.to_arolla_int64')
+to_arolla_text = arolla.abc.lookup_operator('koda_internal.to_arolla_text')
 
 
 # Implemented here to avoid a dependency cycle between jagged_shape and here.

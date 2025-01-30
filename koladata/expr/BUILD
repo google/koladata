@@ -27,7 +27,6 @@ cc_library(
     deps = [
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
-        "//koladata/internal:ellipsis",
         "//koladata/internal:non_deterministic_token",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

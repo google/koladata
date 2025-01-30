@@ -15,13 +15,19 @@
 #ifndef KOLADATA_EXPR_EXPR_OPERATORS_H_
 #define KOLADATA_EXPR_EXPR_OPERATORS_H_
 
+#include <string>
+#include <utility>
+
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr_attributes.h"
 #include "arolla/expr/expr_operator.h"
+#include "arolla/expr/expr_operator_signature.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/fingerprint.h"
 
 namespace koladata::expr {
 
@@ -58,17 +64,46 @@ class LiteralOperator final
   arolla::TypedValue value_;
 };
 
-// Non-lowerable operator `koda_internal.to_arolla_int64(x)` that converts
-// DataSlice to int64_t. Supports evaluation at operator binding time if the
-// provided input is a literal.
-class ToArollaInt64Operator final
+// Base class for non-lowerable operators that converts a DataSlice to an Arolla
+// type T. Supports evaluation at operator binding time if the provided input is
+// a literal. Dispatches the actual conversion to a corresponding
+// backend-operator.
+class ToArollaValueOperator
     : public arolla::expr::BackendExprOperatorTag,
       public arolla::expr::ExprOperatorWithFixedSignature {
  public:
-  ToArollaInt64Operator();
+  ToArollaValueOperator(absl::string_view name,
+                        arolla::expr::ExprOperatorSignature signature,
+                        absl::string_view doc, arolla::Fingerprint fingerprint,
+                        std::string backend_operator_name,
+                        arolla::QTypePtr output_qtype)
+      : ExprOperatorWithFixedSignature(name, std::move(signature), doc,
+                                       fingerprint),
+        backend_operator_name_(std::move(backend_operator_name)),
+        output_qtype_(output_qtype) {}
 
   absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
       absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
+
+ private:
+  std::string backend_operator_name_;
+  arolla::QTypePtr output_qtype_;
+};
+
+// Non-lowerable operator `koda_internal.to_arolla_int64(x)` that converts
+// DataSlice to int64_t. Supports evaluation at operator binding time if the
+// provided input is a literal.
+class ToArollaInt64Operator final : public ToArollaValueOperator {
+ public:
+  ToArollaInt64Operator();
+};
+
+// Non-lowerable operator `koda_internal.to_arolla_text(x)` that converts
+// DataSlice to Text. Supports evaluation at operator binding time if the
+// provided input is a literal.
+class ToArollaTextOperator final : public ToArollaValueOperator {
+ public:
+  ToArollaTextOperator();
 };
 
 // Non-lowerable operator

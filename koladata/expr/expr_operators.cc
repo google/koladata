@@ -107,8 +107,31 @@ absl::string_view LiteralOperator::py_qvalue_specialization_key() const {
 
 const arolla::TypedValue& LiteralOperator::value() const { return value_; }
 
+absl::StatusOr<arolla::expr::ExprAttributes>
+ToArollaValueOperator::InferAttributes(
+    absl::Span<const arolla::expr::ExprAttributes> inputs) const {
+  RETURN_IF_ERROR(ValidateOpInputsCount(inputs));
+  if (!inputs[0].qtype()) {
+    return arolla::expr::ExprAttributes{};  // Not ready yet.
+  }
+  if (inputs[0].qtype() != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected DATA_SLICE, got x: %s", inputs[0].qtype()->name()));
+  }
+  // Eval if possible.
+  if (inputs[0].qvalue()) {
+    ASSIGN_OR_RETURN(
+        auto casted_value,
+        arolla::InvokeOperator(backend_operator_name_, {*inputs[0].qvalue()},
+                               output_qtype_));
+    return arolla::expr::ExprAttributes{std::move(casted_value)};
+  }
+  // Otherwise, return the output qtype.
+  return arolla::expr::ExprAttributes{output_qtype_};
+}
+
 ToArollaInt64Operator::ToArollaInt64Operator()
-    : arolla::expr::ExprOperatorWithFixedSignature(
+    : ToArollaValueOperator(
           "koda_internal.to_arolla_int64",
           arolla::expr::ExprOperatorSignature({{"x"}},
                                               "koladata_default_boxing"),
@@ -124,30 +147,27 @@ ToArollaInt64Operator::ToArollaInt64Operator()
           "Args:\n"
           "  x: A DataItem to be converted into an arolla int64 value.",
           arolla::FingerprintHasher("::koladata::expr::ToArollaInt64Operator")
-              .Finish()) {}
+              .Finish(),
+          "koda_internal.to_arolla_int64", arolla::GetQType<int64_t>()) {}
 
-absl::StatusOr<arolla::expr::ExprAttributes>
-ToArollaInt64Operator::InferAttributes(
-    absl::Span<const arolla::expr::ExprAttributes> inputs) const {
-  RETURN_IF_ERROR(ValidateOpInputsCount(inputs));
-  if (!inputs[0].qtype()) {
-    return arolla::expr::ExprAttributes{};  // Not ready yet.
-  }
-  if (inputs[0].qtype() != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "expected DATA_SLICE, got x: %s", inputs[0].qtype()->name()));
-  }
-  // Eval if possible.
-  if (inputs[0].qvalue()) {
-    ASSIGN_OR_RETURN(auto casted_value,
-                     arolla::InvokeOperator("koda_internal.to_arolla_int64",
-                                            {*inputs[0].qvalue()},
-                                            arolla::GetQType<int64_t>()));
-    return arolla::expr::ExprAttributes{std::move(casted_value)};
-  }
-  // Otherwise, return the output qtype.
-  return arolla::expr::ExprAttributes{arolla::GetQType<int64_t>()};
-}
+ToArollaTextOperator::ToArollaTextOperator()
+    : ToArollaValueOperator(
+          "koda_internal.to_arolla_text",
+          arolla::expr::ExprOperatorSignature({{"x"}},
+                                              "koladata_default_boxing"),
+          "Returns `x` converted into an arolla text value.\n"
+          "\n"
+          "Note that `x` must adhere to the following requirements:\n"
+          "* `rank = 0`.\n"
+          "* Have one of the following schemas: NONE, STRING, OBJECT, ANY.\n"
+          "* Have a present value with type TEXT.\n"
+          "\n"
+          "In all other cases, an exception is raised.\n\n"
+          "Args:\n"
+          "  x: A DataItem to be converted into an arolla text value.",
+          arolla::FingerprintHasher("::koladata::expr::ToArollaTextOperator")
+              .Finish(),
+          "koda_internal.to_arolla_text", arolla::GetQType<arolla::Text>()) {}
 
 NonDeterministicOperator::NonDeterministicOperator()
   : arolla::expr::ExprOperatorWithFixedSignature(

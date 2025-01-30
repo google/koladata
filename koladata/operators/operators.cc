@@ -336,6 +336,7 @@ OPERATOR("koda_internal.to_arolla_float64", ToArollaScalar<double>);
 OPERATOR("koda_internal.to_arolla_int64", ToArollaScalar<int64_t>);
 OPERATOR("koda_internal.to_arolla_optional_unit",
          ToArollaOptionalScalar<arolla::Unit>);
+OPERATOR("koda_internal.to_arolla_text", ToArollaScalar<arolla::Text>);
 // go/keep-sorted end
 
 }  // namespace

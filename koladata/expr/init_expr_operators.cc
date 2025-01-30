@@ -53,6 +53,10 @@ AROLLA_INITIALIZER(
                               "koda_internal.to_arolla_int64",
                               std::make_shared<ToArollaInt64Operator>())
                               .status());
+          RETURN_IF_ERROR(arolla::expr::RegisterOperator(
+                              "koda_internal.to_arolla_text",
+                              std::make_shared<ToArollaTextOperator>())
+                              .status());
           RETURN_IF_ERROR(
               arolla::expr::RegisterOperator<NonDeterministicOperator>(
                   "koda_internal.non_deterministic").status());
