@@ -1200,6 +1200,37 @@ def _range(start, end=arolla.unspecified()):
   )(start, end)
 
 
+@optools.add_to_registry(aliases=['kd.tile'])
+@optools.as_lambda_operator(
+    'kd.slices.tile',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_jagged_shape(P.shape),
+    ],
+)
+def tile(x, shape):
+  """Nests the whole `x` under `shape`.
+
+  Example 1:
+    x: [1, 2]
+    shape: JaggedShape([3])
+    result: [[1, 2], [1, 2], [1, 2]]
+
+  Example 2:
+    x: [1, 2]
+    shape: JaggedShape([2], [2, 1])
+    result: [[[1, 2], [1, 2]], [[1, 2]]]
+
+  Args:
+    x: DataSlice to expand.
+    shape: JaggedShape.
+
+  Returns:
+    Expanded DataSlice.
+  """
+  return jagged_shape_ops.expand_to_shape(x, shape, get_ndim(x))
+
+
 @optools.as_backend_operator('kd.slices._select')
 def _select(ds, fltr, expand_filter):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
