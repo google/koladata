@@ -21,6 +21,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -33,6 +34,7 @@ from koladata.types import literal_operator
 from koladata.types import qtypes
 
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -81,7 +83,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, shape, ndim, expected_output):
-    res = expr_eval.eval(kde.expand_to_shape(x, shape, ndim))
+    res = eval_op("kd.expand_to_shape", x, shape, ndim)
     testing.assert_equal(res, expected_output)
 
   @parameterized.parameters(
@@ -99,7 +101,7 @@ class ShapesExpandToShapeTest(parameterized.TestCase):
     source = ds([[1], [2, 3]]).with_bag(db)
     shape = js([2], [2, 1])
     expected = ds([[[1], [1]], [[2, 3]]]).with_bag(db)
-    result = expr_eval.eval(kde.expand_to_shape(source, shape, 1))
+    result = eval_op("kd.expand_to_shape", source, shape, 1)
     testing.assert_equal(result, expected)
 
   def test_invalid_ndim_error(self):

@@ -30,7 +30,6 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/types/boxing.h"
 #include "py/koladata/types/wrap_utils.h"
-#include "arolla/expr/expr.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
@@ -38,9 +37,9 @@
 
 namespace koladata::python {
 
-namespace {
-
-arolla::expr::ExprOperatorPtr MakeLiteralOperator(PyObject* value) {
+absl::Nullable<PyObject*> PyMakeLiteralOperator(PyObject* /*module*/,
+                                                PyObject* value) {
+  arolla::python::DCheckPyGIL();
   if (!arolla::python::IsPyQValueInstance(value)) {
     PyErr_Format(PyExc_TypeError,
                  "`value` must be a QValue to be wrapped into a "
@@ -48,21 +47,10 @@ arolla::expr::ExprOperatorPtr MakeLiteralOperator(PyObject* value) {
                  Py_TYPE(value)->tp_name);
     return nullptr;
   }
-  return std::make_shared<expr::LiteralOperator>(
-      arolla::python::UnsafeUnwrapPyQValue(value));
-}
-
-}  // namespace
-
-absl::Nullable<PyObject*> PyMakeLiteralOperator(PyObject* /*module*/,
-                                                PyObject* value) {
-  arolla::python::DCheckPyGIL();
-  arolla::expr::ExprOperatorPtr op = MakeLiteralOperator(value);
-  if (op == nullptr) {
-    return nullptr;
-  }
   return arolla::python::WrapAsPyQValue(
-      arolla::TypedValue::FromValue(std::move(op)));
+      arolla::TypedValue::FromValue(arolla::expr::ExprOperatorPtr(
+          koladata::expr::LiteralOperator::MakeLiteralOperator(
+              arolla::python::UnsafeUnwrapPyQValue(value)))));
 }
 
 // NOTE: kd.literal does not do any implicit boxing of Python values into
@@ -71,13 +59,15 @@ absl::Nullable<PyObject*> PyMakeLiteralOperator(PyObject* /*module*/,
 absl::Nullable<PyObject*> PyMakeLiteralExpr(PyObject* /*module*/,
                                             PyObject* value) {
   arolla::python::DCheckPyGIL();
-  arolla::expr::ExprOperatorPtr op = MakeLiteralOperator(value);
-  if (op == nullptr) {
+  if (!arolla::python::IsPyQValueInstance(value)) {
+    PyErr_Format(PyExc_TypeError,
+                 "`value` must be a QValue to be wrapped into a "
+                 "LiteralExpr, got: %s",
+                 Py_TYPE(value)->tp_name);
     return nullptr;
   }
-  ASSIGN_OR_RETURN(auto node, arolla::expr::MakeOpNode(std::move(op), {}),
-                   arolla::python::SetPyErrFromStatus(_));
-  return arolla::python::WrapAsPyExpr(std::move(node));
+  return arolla::python::WrapAsPyExpr(koladata::expr::MakeLiteral(
+      arolla::python::UnsafeUnwrapPyQValue(value)));
 }
 
 absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m, PyObject*) {

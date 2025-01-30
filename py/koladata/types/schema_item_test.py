@@ -17,6 +17,7 @@ import itertools
 from absl.testing import absltest
 from arolla import arolla
 from koladata.exceptions import exceptions
+from koladata.expr import py_expr_eval_py_ext
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -27,6 +28,7 @@ from koladata.types import jagged_shape
 from koladata.types import schema_constants
 from koladata.types import schema_item
 
+eval_op = py_expr_eval_py_ext.eval_op
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
@@ -82,7 +84,7 @@ class SchemaItemTest(absltest.TestCase):
   def test_get_nofollowed_schema(self):
     db = bag()
     orig_schema = db.new().get_schema()
-    nofollow = kde.nofollow_schema(orig_schema).eval()
+    nofollow = eval_op('kd.schema.nofollow_schema', orig_schema)
     testing.assert_equal(nofollow.get_nofollowed_schema(), orig_schema)
 
   def test_creating_entity(self):

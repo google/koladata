@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata import kd
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -29,6 +30,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -73,9 +75,9 @@ class SlicesUniqueTest(parameterized.TestCase):
       ),
   )
   def test_eval_one_input_unsort(self, x, expected):
-    result = expr_eval.eval(kde.unique(x))
+    result = eval_op('kd.unique', x)
     testing.assert_equal(result, expected)
-    result = expr_eval.eval(kde.unique(x, sort=False))
+    result = eval_op('kd.unique', x, sort=False)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(

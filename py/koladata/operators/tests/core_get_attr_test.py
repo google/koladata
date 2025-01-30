@@ -17,6 +17,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -31,6 +32,7 @@ I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
+eval_op = py_expr_eval_py_ext.eval_op
 
 
 QTYPES = frozenset([
@@ -94,7 +96,7 @@ class CoreGetAttrTest(parameterized.TestCase):
   def test_same_bag(self):
     default = self.db.new(a=42).with_schema(self.entity.get_schema())
     entity = self.db.new(e=self.entity & ds([arolla.present(), None, None]))
-    result = expr_eval.eval(kde.get_attr(entity, 'e', default))
+    result = eval_op('kd.get_attr', entity, 'e', default)
     testing.assert_equal(result.get_bag(), self.db)
     testing.assert_equal(result.a, ds([1, 42, 42]).with_bag(self.db))
 

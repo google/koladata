@@ -17,6 +17,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -26,6 +27,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
@@ -40,7 +42,7 @@ class CoreGetBagTest(parameterized.TestCase):
       ds([bag().obj(a=1)]),
   )
   def test_eval(self, x):
-    testing.assert_equal(expr_eval.eval(kde.core.get_bag(x)), x.get_bag())
+    testing.assert_equal(eval_op('kd.core.get_bag', x), x.get_bag())
 
   def test_no_databag(self):
     null_db = expr_eval.eval(kde.core.get_bag(ds([1, 2, 3])))

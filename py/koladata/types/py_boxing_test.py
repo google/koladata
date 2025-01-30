@@ -186,6 +186,12 @@ class PyBoxingTest(parameterized.TestCase):
     ):
       py_boxing.as_expr([1])
 
+  def test_databag_literal_is_immutable(self):
+    db = bag()
+    self.assertTrue(db.is_mutable())
+    self.assertFalse(py_boxing.as_expr(db).qvalue.is_mutable())
+    self.assertFalse(py_boxing.as_expr(db.new(x='hello')).qvalue.is_mutable())
+
 
 class DefaultBoxingPolicyTest(absltest.TestCase):
 

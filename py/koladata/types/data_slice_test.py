@@ -3028,7 +3028,7 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
       bag().obj(x=1).with_schema_from_obj()
 
   def test_follow(self):
-    x = bag().new()
+    x = kde.new().eval()
     testing.assert_equal(kde.nofollow(x).eval().follow(), x)
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
       ds([1, 2, 3]).follow()

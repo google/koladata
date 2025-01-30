@@ -19,6 +19,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -30,6 +31,7 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
@@ -121,7 +123,7 @@ class ListsExplodeTest(parameterized.TestCase):
       (db.list([None]), -1, ds([None]))
   )
   def test_eval(self, x, ndim, expected):
-    result = expr_eval.eval(kde.lists.explode(x, ndim))
+    result = eval_op("kd.lists.explode", x, ndim)
     testing.assert_equal(result, expected)
 
     # Check consistency with x[:] operator if applicable.

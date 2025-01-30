@@ -19,6 +19,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -28,6 +29,7 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
@@ -64,12 +66,12 @@ class RandomSampleTest(parameterized.TestCase):
       (bag().list([[1, 2], [3], [4], [5, 6]])[:],),
   )
   def test_eval(self, x):
-    sampled_1 = expr_eval.eval(kde.random.sample(x, 0.5, 123))
-    sampled_2 = expr_eval.eval(kde.random.sample(x, 0.5, 123))
+    sampled_1 = eval_op('kd.random.sample', x, 0.5, 123)
+    sampled_2 = eval_op('kd.random.sample', x, 0.5, 123)
     testing.assert_equal(sampled_1, sampled_2)
     self.assertLess(sampled_1.get_size(), x.get_size())
 
-    sampled_3 = expr_eval.eval(kde.random.sample(x, 0.5, 456))
+    sampled_3 = eval_op('kd.random.sample', x, 0.5, 456)
     self.assertNotEqual(sampled_1.fingerprint, sampled_3.fingerprint)
 
   @parameterized.parameters(

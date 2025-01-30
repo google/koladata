@@ -83,7 +83,7 @@ absl::StatusOr<ValueDecoderResult> DecodeLiteralOperator(
         input_values.size()));
   }
   arolla::expr::ExprOperatorPtr op =
-      std::make_shared<expr::LiteralOperator>(input_values[0]);
+      expr::LiteralOperator::MakeLiteralOperator(input_values[0]);
   return TypedValue::FromValue(std::move(op));
 }
 

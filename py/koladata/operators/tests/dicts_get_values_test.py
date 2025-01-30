@@ -19,6 +19,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -29,6 +30,7 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
@@ -79,7 +81,7 @@ class DictsGetValuesTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, dict_ds, expected):
-    result = expr_eval.eval(kde.get_values(dict_ds))
+    result = eval_op('kd.get_values', dict_ds)
     testing.assert_unordered_equal(result, expected)
     testing.assert_equal(dict_ds[dict_ds.get_keys()], result)
 
@@ -121,7 +123,7 @@ class DictsGetValuesTest(parameterized.TestCase):
       ),
   )
   def test_eval_with_key(self, dict_ds, key_ds, expected):
-    result = expr_eval.eval(kde.get_values(dict_ds, key_ds))
+    result = eval_op('kd.get_values', dict_ds, key_ds)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -129,27 +131,27 @@ class DictsGetValuesTest(parameterized.TestCase):
       (dict_slice, arolla.unspecified(), ds([[2, 4], [], [5]])),
   )
   def test_eval_with_unspecified_key(self, dict_ds, key_ds, expected):
-    result = expr_eval.eval(kde.get_values(dict_ds, key_ds))
+    result = eval_op('kd.get_values', dict_ds, key_ds)
     testing.assert_unordered_equal(result, expected)
 
   def test_fork(self):
     d1 = data_bag.DataBag.empty().dict({1: 2, 3: 4})
-    result = expr_eval.eval(kde.get_values(d1))
+    result = eval_op('kd.get_values', d1)
     testing.assert_unordered_equal(result, ds([2, 4]).with_bag(d1.get_bag()))
 
     d2 = d1.freeze_bag()
-    result = expr_eval.eval(kde.get_values(d2))
+    result = eval_op('kd.get_values', d2)
     testing.assert_unordered_equal(result, ds([2, 4]).with_bag(d2.get_bag()))
 
     d3 = d2.fork_bag()
     del d3[1]
-    result = expr_eval.eval(kde.get_values(d3))
+    result = eval_op('kd.get_values', d3)
     testing.assert_unordered_equal(result, ds([4]).with_bag(d3.get_bag()))
 
     d4 = d3.fork_bag()
     d4[1] = 1
     d4[5] = 6
-    result = expr_eval.eval(kde.get_values(d4))
+    result = eval_op('kd.get_values', d4)
     testing.assert_unordered_equal(result, ds([1, 4, 6]).with_bag(d4.get_bag()))
 
   def test_fallback(self):
@@ -160,11 +162,11 @@ class DictsGetValuesTest(parameterized.TestCase):
     del d2[1]
 
     d3 = d1.enriched(d2.get_bag())
-    result = expr_eval.eval(kde.get_values(d3))
+    result = eval_op('kd.get_values', d3)
     testing.assert_unordered_equal(result, ds([2, 4, 6]).with_bag(d3.get_bag()))
 
     d4 = d2.enriched(d1.get_bag())
-    result = expr_eval.eval(kde.get_values(d4))
+    result = eval_op('kd.get_values', d4)
     testing.assert_unordered_equal(result, ds([2, 3, 6]).with_bag(d4.get_bag()))
 
   def test_errors(self):

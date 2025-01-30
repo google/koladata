@@ -19,6 +19,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -29,6 +30,7 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -59,19 +61,17 @@ class CoreNofollowTest(parameterized.TestCase):
   )
   def test_eval(self, x):
     schema = x.get_schema()
-    nofollow_x = expr_eval.eval(kde.nofollow(x))
-    nofollow_schema = kde.nofollow_schema(schema)
+    nofollow_x = eval_op('kd.nofollow', x)
+    nofollow_schema = eval_op('kd.nofollow_schema', (schema))
     # Same data contents.
     testing.assert_equal(nofollow_x.as_any(), x.as_any())
     # nofollow's schema <=> nofollow_schema.
-    testing.assert_equal(
-        nofollow_x.get_schema(), expr_eval.eval(nofollow_schema)
-    )
+    testing.assert_equal(nofollow_x.get_schema(), nofollow_schema)
     # get_nofollowed_schema <=> original schema.
     testing.assert_equal(
-        expr_eval.eval(kde.get_nofollowed_schema(nofollow_schema)), schema
+        eval_op('kd.get_nofollowed_schema', nofollow_schema), schema
     )
-    testing.assert_equal(expr_eval.eval(kde.follow(kde.nofollow(x))), x)
+    testing.assert_equal(eval_op('kd.follow', nofollow_x), x)
 
   def test_primitives_error(self):
     with self.assertRaisesRegex(

@@ -15,18 +15,18 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators import view_overloads
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
@@ -42,7 +42,7 @@ class CoreWithBagTest(parameterized.TestCase):
   )
   def test_eval(self, x):
     testing.assert_equal(
-        expr_eval.eval(kde.core.with_bag(x.with_bag(None), x.get_bag())), x
+        eval_op('kd.core.with_bag', x.with_bag(None), x.get_bag()), x
     )
 
   @parameterized.parameters(
@@ -52,14 +52,12 @@ class CoreWithBagTest(parameterized.TestCase):
   )
   def test_view_overload_eval(self, x):
     testing.assert_equal(
-        expr_eval.eval(view_overloads.get_item(x.get_bag(), x.with_bag(None))),
-        x,
+        eval_op('koda_internal.view.get_item', x.get_bag(), x.with_bag(None)), x
     )
 
   def test_null_bag(self):
     testing.assert_equal(
-        expr_eval.eval(kde.core.with_bag(ds(42), data_bag.null_bag())),
-        ds(42)
+        eval_op('kd.core.with_bag', ds(42), data_bag.null_bag()), ds(42)
     )
 
   def test_qtype_signatures(self):

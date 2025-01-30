@@ -1139,6 +1139,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -1578,6 +1579,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -1600,6 +1602,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -1621,6 +1624,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -1642,6 +1646,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -1824,6 +1829,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/operators:kde_operators",
@@ -1845,6 +1851,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/operators:kde_operators",
@@ -1867,6 +1874,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/operators:kde_operators",
@@ -1973,6 +1981,7 @@ py_test(
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -1995,6 +2004,7 @@ py_test(
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -3162,6 +3172,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -3283,6 +3294,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -3366,6 +3378,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -3465,12 +3478,11 @@ py_test(
     name = "core_with_bag_test",
     srcs = ["core_with_bag_test.py"],
     deps = [
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
-        "//py/koladata/operators:view_overloads",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
@@ -3588,6 +3600,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4028,6 +4041,7 @@ py_test(
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4195,6 +4209,7 @@ py_test(
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4318,6 +4333,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4338,6 +4354,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4413,6 +4430,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4456,6 +4474,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators/tests/util:qtypes",
@@ -4476,6 +4495,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators/tests/util:qtypes",
@@ -4495,6 +4515,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators/tests/util:qtypes",
@@ -4741,6 +4762,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4763,6 +4785,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4785,6 +4808,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4807,6 +4831,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4933,6 +4958,7 @@ py_test(
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4955,6 +4981,7 @@ py_test(
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -4974,8 +5001,8 @@ py_test(
     name = "schema_get_schema_test",
     srcs = ["schema_get_schema_test.py"],
     deps = [
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -5244,6 +5271,7 @@ py_test(
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -5557,6 +5585,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -6765,6 +6794,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators/tests/util:qtypes",
@@ -6785,6 +6815,7 @@ py_test(
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators/tests/util:qtypes",

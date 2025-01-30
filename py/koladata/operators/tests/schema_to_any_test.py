@@ -20,8 +20,8 @@ Extensive testing is done in C++.
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -34,6 +34,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -63,7 +64,7 @@ class SchemaToAnyTest(parameterized.TestCase):
       (ds([ENTITY]), ds([ENTITY], schema_constants.ANY)),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.schema.to_any(x))
+    res = eval_op("kd.schema.to_any", x)
     testing.assert_equal(res, expected)
 
   def test_boxing(self):

@@ -17,6 +17,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.functor import functor_factories
 from koladata.operators import kde_operators
@@ -27,6 +28,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
@@ -82,7 +84,7 @@ class ListsSelectItemsTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, value, fltr, expected):
-    result = expr_eval.eval(kde.lists.select_items(value, fltr))
+    result = eval_op('kd.lists.select_items', value, fltr)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -93,7 +95,7 @@ class ListsSelectItemsTest(parameterized.TestCase):
     result = expr_eval.eval(
         kde.lists.select_items(I.x, fltr), x=db.list([1, 2, 3])
     )
-    testing.assert_equal(result, ds([2, 3]))
+    testing.assert_equal(result, ds([2, 3]).with_bag(db))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

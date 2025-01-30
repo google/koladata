@@ -53,7 +53,6 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
-#include "arolla/util/testing/repr_token_eq.h"
 #include "arolla/util/text.h"
 
 namespace koladata {

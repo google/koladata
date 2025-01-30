@@ -19,6 +19,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -28,6 +29,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -80,7 +82,7 @@ class SlicesExpandToTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, target, ndim, expected):
-    result = expr_eval.eval(kde.expand_to(x, target, ndim))
+    result = eval_op("kd.expand_to", x, target, ndim)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -98,7 +100,7 @@ class SlicesExpandToTest(parameterized.TestCase):
     x = ds([[1], [2, 3]]).with_bag(db)
     target = ds([[1, 2], [3]])
     expected = ds([[[1], [1]], [[2, 3]]]).with_bag(db)
-    result = expr_eval.eval(kde.expand_to(x, target, 1))
+    result = eval_op("kd.expand_to", x, target, 1)
     arolla.testing.assert_qvalue_equal_by_fingerprint(result, expected)
 
   def test_invalid_ndim_error(self):

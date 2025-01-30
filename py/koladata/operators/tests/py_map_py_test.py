@@ -24,6 +24,7 @@ from arolla import arolla
 from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.functions import functions
 from koladata.operators import kde_operators
@@ -33,6 +34,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
@@ -190,9 +192,8 @@ class PyMapPyTest(parameterized.TestCase):
     )
     self.assertFalse(res.is_mutable())
 
-    res = expr_eval.eval(
-        kde.py.map_py(my_func_correct_schema, ds([]), schema=schema)
-    )
+    # Use eval_op to preserve mutability of the DataSlice which is tested below.
+    res = eval_op('kd.py.map_py', my_func_correct_schema, ds([]), schema=schema)
     self.assertEqual(res.get_schema(), schema)
     testing.assert_equal(res.v.no_bag(), ds([], schema_constants.INT32))
     self.assertTrue(res.is_mutable())
@@ -242,12 +243,12 @@ class PyMapPyTest(parameterized.TestCase):
     def my_func_same_bag(schema, x):
       return db.new(u=x, v=x + 1, schema=schema)
 
-    res = expr_eval.eval(
-        kde.py.map_py(
-            functools.partial(my_func_same_bag, schema_same_bag),
-            val,
-            schema=schema_same_bag,
-        )
+    # Use eval_op to preserve mutability of the DataSlice which is tested below.
+    res = eval_op(
+        'kd.py.map_py',
+        functools.partial(my_func_same_bag, schema_same_bag),
+        val,
+        schema=schema_same_bag,
     )
     self.assertEqual(res.get_schema(), schema_same_bag)
     testing.assert_equal(

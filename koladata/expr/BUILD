@@ -25,6 +25,7 @@ cc_library(
     srcs = ["expr_operators.cc"],
     hdrs = ["expr_operators.h"],
     deps = [
+        "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal:non_deterministic_token",
@@ -39,6 +40,21 @@ cc_library(
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "expr_operators_test",
+    srcs = ["expr_operators_test.cc"],
+    deps = [
+        ":expr_operators",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata:test_utils",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

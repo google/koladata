@@ -22,6 +22,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -31,6 +32,7 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -91,7 +93,7 @@ class SchemaCommonSchemaTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.schema.common_schema(x))
+    res = eval_op('kd.schema.common_schema', x)
     testing.assert_equal(res, expected)
 
   def test_not_schema_error(self):

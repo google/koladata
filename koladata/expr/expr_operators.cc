@@ -15,6 +15,7 @@
 #include "koladata/expr/expr_operators.h"
 
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -24,10 +25,12 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "koladata/internal/non_deterministic_token.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr_attributes.h"
+#include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
@@ -54,6 +57,17 @@ absl::Status ValidateTextLiteral(const arolla::expr::ExprAttributes& attr,
         absl::StrFormat("expected %s to be a literal", param_name));
   }
   return absl::OkStatus();
+}
+
+arolla::TypedValue FreezeDataBagOrDataSlice(arolla::TypedValue value) {
+  if (value.GetType() == arolla::GetQType<DataBagPtr>()) {
+    return arolla::TypedValue::FromValue(
+        value.UnsafeAs<DataBagPtr>()->Freeze());
+  } else if (value.GetType() == arolla::GetQType<DataSlice>()) {
+    return arolla::TypedValue::FromValue(
+        value.UnsafeAs<DataSlice>().FreezeBag());
+  }
+  return value;
 }
 
 }  // namespace
@@ -86,7 +100,22 @@ absl::StatusOr<arolla::expr::ExprAttributes> InputOperator::InferAttributes(
   return arolla::expr::ExprAttributes{};
 }
 
-LiteralOperator::LiteralOperator(arolla::TypedValue value)
+arolla::expr::ExprNodePtr MakeLiteral(arolla::TypedValue value) {
+  value = FreezeDataBagOrDataSlice(std::move(value));
+  auto attr = arolla::expr::ExprAttributes(value);
+  return arolla::expr::ExprNode::UnsafeMakeOperatorNode(
+      expr::LiteralOperator::MakeLiteralOperator(std::move(value)), {},
+      std::move(attr));
+}
+
+std::shared_ptr<LiteralOperator> LiteralOperator::MakeLiteralOperator(
+    arolla::TypedValue value) {
+  return std::make_shared<LiteralOperator>(
+      FreezeDataBagOrDataSlice(std::move(value)), PrivateConstructorTag{});
+}
+
+LiteralOperator::LiteralOperator(arolla::TypedValue value,
+                                 PrivateConstructorTag)
     : arolla::expr::ExprOperatorWithFixedSignature(
           absl::StrFormat("koda_internal.literal[%s]", value.Repr()),
           arolla::expr::ExprOperatorSignature{}, "Koda literal.",

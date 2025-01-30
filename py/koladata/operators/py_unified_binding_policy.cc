@@ -344,13 +344,6 @@ bool PrebindUnifiedArguments(
   return true;
 }
 
-// Returns a koldata literal.
-ExprNodePtr MakeKdLiteral(TypedValue value) {
-  ExprAttributes attr(value);
-  return ExprNode::UnsafeMakeOperatorNode(
-      std::make_shared<LiteralOperator>(std::move(value)), {}, std::move(attr));
-}
-
 // Returns a non-deterministic token.
 absl::StatusOr<ExprNodePtr> GenNonDeterministicToken() {
   static const absl::NoDestructor op(
@@ -476,8 +469,8 @@ std::optional<QValueOrExpr> AsQValueOrExprVarArgs(
     if (auto* expr = std::get_if<ExprNodePtr>(&arg)) {
       node_deps.push_back(std::move(*expr));
     } else {
-      node_deps.push_back(
-          MakeKdLiteral(std::move(*std::get_if<TypedValue>(&arg))));
+      node_deps.push_back(expr::MakeLiteral(
+          std::move(*std::get_if<TypedValue>(&arg))));
     }
   }
   static const absl::NoDestructor make_tuple_op(
@@ -549,8 +542,8 @@ std::optional<QValueOrExpr> AsQValueOrExprVarKwArgs(
     if (auto* expr = std::get_if<ExprNodePtr>(&args[i])) {
       node_deps.push_back(std::move(*expr));
     } else {
-      node_deps.push_back(
-          MakeKdLiteral(std::move(*std::get_if<TypedValue>(&args[i]))));
+      node_deps.push_back(expr::MakeLiteral(
+          std::move(*std::get_if<TypedValue>(&args[i]))));
     }
   }
   node_deps[0] = Literal(Text(std::move(field_names)));
@@ -663,7 +656,7 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
   // (See the base class.)
   absl::Nullable<ExprNodePtr> MakeLiteral(TypedValue&& value) const final {
     DCheckPyGIL();
-    return MakeKdLiteral(std::move(value));
+    return expr::MakeLiteral(std::move(value));
   }
 };
 

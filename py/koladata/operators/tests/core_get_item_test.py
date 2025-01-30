@@ -17,10 +17,10 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
-from koladata.operators import view_overloads
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -29,6 +29,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
@@ -132,10 +133,10 @@ class CoreGetItemTest(parameterized.TestCase):
       ),
   )
   def test_slice_eval(self, x, keys_or_indices, expected):
-    result = expr_eval.eval(kde.get_item(x, keys_or_indices))
-    view_result = expr_eval.eval(view_overloads.get_item(x, keys_or_indices))
-    testing.assert_equal(result, expected)
-    testing.assert_equal(view_result, expected)
+    result = eval_op('kd.get_item', x, keys_or_indices)
+    view_result = eval_op('koda_internal.view.get_item', x, keys_or_indices)
+    testing.assert_equal(result, expected.with_bag(x.get_bag()))
+    testing.assert_equal(view_result, expected.with_bag(x.get_bag()))
 
   def test_slice_expr(self):
     expr = kde.get_item(I.x, arolla.M.core.make_slice(I.start, I.end))

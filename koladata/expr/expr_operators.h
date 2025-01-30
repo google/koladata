@@ -23,6 +23,7 @@
 #include "absl/types/span.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr_attributes.h"
+#include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/qtype/qtype.h"
@@ -50,8 +51,13 @@ class InputOperator final
 class LiteralOperator final
     : public arolla::expr::BuiltinExprOperatorTag,
       public arolla::expr::ExprOperatorWithFixedSignature {
+  struct PrivateConstructorTag {};
+
  public:
-  explicit LiteralOperator(arolla::TypedValue value);
+  explicit LiteralOperator(arolla::TypedValue value, PrivateConstructorTag);
+
+  static std::shared_ptr<LiteralOperator> MakeLiteralOperator(
+      arolla::TypedValue value);
 
   absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
       absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
@@ -105,6 +111,9 @@ class ToArollaTextOperator final : public ToArollaValueOperator {
  public:
   ToArollaTextOperator();
 };
+
+// Return a literal Expr node.
+arolla::expr::ExprNodePtr MakeLiteral(arolla::TypedValue value);
 
 // Non-lowerable operator
 // ```

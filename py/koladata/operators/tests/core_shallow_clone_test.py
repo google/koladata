@@ -19,6 +19,7 @@ from absl.testing import parameterized
 from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -27,6 +28,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
@@ -91,9 +93,9 @@ class CoreShallowCloneTest(parameterized.TestCase):
       o_fb = o.enriched(fb, fb_noise)
 
     if pass_schema:
-      result = expr_eval.eval(kde.shallow_clone(o_fb, schema=o_fb.get_schema()))
+      result = eval_op('kd.shallow_clone', o_fb, schema=o_fb.get_schema())
     else:
-      result = expr_eval.eval(kde.shallow_clone(o_fb))
+      result = eval_op('kd.shallow_clone', o_fb)
 
     self.assertFalse(result.get_bag().is_mutable())
     testing.assert_equal(result.a.no_bag(), o_fb.a.no_bag())

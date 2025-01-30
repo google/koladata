@@ -22,6 +22,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -29,11 +30,11 @@ from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import literal_operator
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
+eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -61,7 +62,7 @@ class SchemaToItemidTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, expected):
-    res = expr_eval.eval(kde.schema.to_itemid(x))
+    res = eval_op("kd.schema.to_itemid", x)
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
@@ -77,12 +78,6 @@ class SchemaToItemidTest(parameterized.TestCase):
     x = ds("a", schema_constants.OBJECT)
     with self.assertRaisesRegex(ValueError, "cannot cast STRING to ITEMID"):
       expr_eval.eval(kde.schema.to_itemid(x))
-
-  def test_boxing(self):
-    testing.assert_equal(
-        kde.schema.to_itemid(OBJ),
-        arolla.abc.bind_op(kde.schema.to_itemid, literal_operator.literal(OBJ)),
-    )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

@@ -419,6 +419,7 @@ py_test(
         ":schema_constants",
         ":schema_item",
         "//py/koladata/exceptions",
+        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",

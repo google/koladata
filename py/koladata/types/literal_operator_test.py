@@ -132,7 +132,7 @@ class LiteralOperatorTest(parameterized.TestCase):
   def test_literal_expr_non_qvalue_error(self, non_qvalue):
     with self.assertRaisesRegex(
         TypeError,
-        '`value` must be a QValue to be wrapped into a LiteralOperator,'
+        '`value` must be a QValue to be wrapped into a LiteralExpr,'
         rf' got: .*{type(non_qvalue).__name__}',
     ):
       literal_operator.literal(non_qvalue)
