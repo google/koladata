@@ -649,7 +649,7 @@ def _to_py_impl(
 @add_method(DataSlice, 'display')
 def _display(
     self,
-):
+) -> None:
   """Prints a DataSlice repr."""
   print(repr(self))
 
