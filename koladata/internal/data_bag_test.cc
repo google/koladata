@@ -62,6 +62,7 @@ using ::testing::IsEmpty;
 using ::testing::Ne;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
+using ::testing::UnorderedElementsAreArray;
 
 TEST(DataBagTest, Empty) {
   auto empty = DataBagImpl::CreateEmptyDatabag();
@@ -1395,9 +1396,9 @@ TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjects) {
       db->InternalSetUnitAttrAndReturnMissingObjects(ds_union, "a"));
   EXPECT_THAT(ds_result.allocation_ids(),
               ElementsAreArray(ConcatAllocations(ds_a, ds_b)));
-  EXPECT_THAT(
-      ds_result.values<ObjectId>(),
-      ElementsAreArray({ds_a.values<ObjectId>()[1], ds_a.values<ObjectId>()[2],
+  EXPECT_THAT(ds_result.values<ObjectId>(),
+              UnorderedElementsAreArray(
+                  {ds_a.values<ObjectId>()[1], ds_a.values<ObjectId>()[2],
                    ds_b.values<ObjectId>()[0], ds_b.values<ObjectId>()[2]}));
 
   ASSERT_OK_AND_ASSIGN(
@@ -1448,12 +1449,47 @@ TEST(DataBagTest,
   {
     auto ds = DataSliceImpl::Create(objs1);
     EXPECT_THAT(db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"),
-                IsOkAndHolds(ElementsAreArray(objs1)));
+                IsOkAndHolds(UnorderedElementsAreArray(objs1)));
   }
   {
     auto ds = DataSliceImpl::Create(objs2);
+    EXPECT_THAT(
+        db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"),
+        IsOkAndHolds(UnorderedElementsAreArray(expected_objs2_missing)));
+  }
+}
+
+TEST(DataBagTest,
+     InternalSetUnitAttrAndReturnMissingObjectsMixSmallAndBigAllocations) {
+  constexpr int64_t kSize = 111;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  std::vector<DataItem> objs1;
+  std::vector<DataItem> objs2;
+  std::vector<DataItem> expected_objs2_missing;
+  for (int64_t i = 0; i < kSize; ++i) {
+    auto obj = i % 5 == 0 ? DataItem(Allocate(57).ObjectByOffset(i % 57))
+                          : DataItem(AllocateSingleObject());
+    if (i % 2 == 0) {
+      objs1.push_back(obj);
+    } else {
+      objs2.push_back(obj);
+      if (i % 3 == 0) {
+        objs1.push_back(obj);
+      } else {
+        expected_objs2_missing.push_back(obj);
+      }
+    }
+  }
+  {
+    auto ds = DataSliceImpl::Create(objs1);
     EXPECT_THAT(db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"),
-                IsOkAndHolds(ElementsAreArray(expected_objs2_missing)));
+                IsOkAndHolds(UnorderedElementsAreArray(objs1)));
+  }
+  {
+    auto ds = DataSliceImpl::Create(objs2);
+    EXPECT_THAT(
+        db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"),
+        IsOkAndHolds(UnorderedElementsAreArray(expected_objs2_missing)));
   }
 }
 
