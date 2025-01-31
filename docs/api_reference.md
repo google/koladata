@@ -6092,6 +6092,32 @@ Returns:
 
 Alias for [kd.slices.at](#kd.slices.at) operator.
 
+### `kd.slices.tile(x, shape)` {#kd.slices.tile}
+Aliases:
+
+- [kd.tile](#kd.tile)
+
+``` {.no-copy}
+Nests the whole `x` under `shape`.
+
+Example 1:
+  x: [1, 2]
+  shape: JaggedShape([3])
+  result: [[1, 2], [1, 2], [1, 2]]
+
+Example 2:
+  x: [1, 2]
+  shape: JaggedShape([2], [2, 1])
+  result: [[[1, 2], [1, 2]], [[1, 2]]]
+
+Args:
+  x: DataSlice to expand.
+  shape: JaggedShape.
+
+Returns:
+  Expanded DataSlice.
+```
+
 ### `kd.slices.translate(keys_to, keys_from, values_from)` {#kd.slices.translate}
 Aliases:
 
@@ -6887,6 +6913,19 @@ Operators to create tuples.
 
 **Operators**
 
+### `kd.tuple.get_namedtuple_field(namedtuple, field_name)` {#kd.tuple.get_namedtuple_field}
+
+``` {.no-copy}
+Returns the value of the specified `field_name` from the `namedtuple`.
+
+Note that `field_name` _must_ be a literal (foldable) string.
+
+Args:
+  namedtuple: a namedtuple.
+  field_name: the name of the field to return. _Must_ be a literal (foldable)
+    string.
+```
+
 ### `kd.tuple.get_nth(x, n)` {#kd.tuple.get_nth}
 
 ``` {.no-copy}
@@ -6898,6 +6937,15 @@ Args:
   x: a tuple.
   n: the index of the element to return. _Must_ be a literal integer in the
     range [0, len(x)).
+```
+
+### `kd.tuple.make_namedtuple(**kwargs)` {#kd.tuple.make_namedtuple}
+Aliases:
+
+- [kd.make_namedtuple](#kd.make_namedtuple)
+
+``` {.no-copy}
+Returns a namedtuple-like object containing the given `**kwargs`.
 ```
 
 ### `kd.tuple.make_slice(start=unspecified, stop=unspecified, step=unspecified)` {#kd.tuple.make_slice}
@@ -7677,6 +7725,10 @@ Alias for [kd.lists.size](#kd.lists.size) operator.
 Deserializes a DataSlice or a DataBag.
 ```
 
+### `kd.make_namedtuple(**kwargs)` {#kd.make_namedtuple}
+
+Alias for [kd.tuple.make_namedtuple](#kd.tuple.make_namedtuple) operator.
+
 ### `kd.make_tuple(*args)` {#kd.make_tuple}
 
 Alias for [kd.tuple.make_tuple](#kd.tuple.make_tuple) operator.
@@ -8057,6 +8109,10 @@ Alias for [kd.math.sum](#kd.math.sum) operator.
 ### `kd.take(x, indices)` {#kd.take}
 
 Alias for [kd.slices.at](#kd.slices.at) operator.
+
+### `kd.tile(x, shape)` {#kd.tile}
+
+Alias for [kd.slices.tile](#kd.slices.tile) operator.
 
 ### `kd.to_any(x)` {#kd.to_any}
 
