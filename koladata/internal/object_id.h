@@ -21,12 +21,14 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <tuple>
 #include <utility>
 
 #include "absl/base/optimization.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/numeric/bits.h"
@@ -568,7 +570,7 @@ class AllocationIdSet {
       return !std::exchange(contains_small_allocation_id_, true);
     }
     if (ABSL_PREDICT_FALSE(ids_.empty())) {
-      ids_.emplace_back(id);
+      ids_.push_back(id);
       return true;
     }
     if (ABSL_PREDICT_TRUE(ids_[0] == id)) {
@@ -602,22 +604,10 @@ class AllocationIdSet {
   friend bool operator==(const AllocationIdSet& lhs,
                          const AllocationIdSet& rhs);
 
-  friend bool operator!=(const AllocationIdSet& lhs,
-                         const AllocationIdSet& rhs);
-
   std::string DebugString() const;
 
   friend std::ostream& operator<<(std::ostream& os,
                                   const AllocationIdSet& id_set);
-
-  template <typename H>
-  friend H AbslHashValue(H h, const AllocationIdSet& id_set) {
-    H res = H::combine(std::move(h), id_set.contains_small_allocation_id_);
-    for (const auto& id : id_set.ids_) {
-      res = H::combine(std::move(res), id);
-    }
-    return res;
-  }
 
   template <typename Sink>
   friend void AbslStringify(Sink& sink, const AllocationIdSet& id_set) {
@@ -625,10 +615,17 @@ class AllocationIdSet {
   }
 
  private:
+  static constexpr size_t kMaxSortedSize = 30;
+
   bool InsertBigAllocationSlow(AllocationId id);
 
   bool contains_small_allocation_id_ = false;
-  absl::InlinedVector<AllocationId, 1> ids_;  // sorted set of allocations
+  // Allocations are sorted upto kMaxSortedSize.
+  // For larger sets the rest of elements are unsorted, but unique.
+  // Many allocations are rare, but we want to avoid quadratic behavior.
+  absl::InlinedVector<AllocationId, 1> ids_;
+  // AllocationIds that are stored in the end of ids_ after kMaxSortedSize.
+  std::optional<absl::flat_hash_set<AllocationId>> unsorted_ids_;
 };
 
 }  // namespace koladata::internal

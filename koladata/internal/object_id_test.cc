@@ -619,20 +619,6 @@ TEST(ObjectIdTest, AllocationIdSet) {
   EXPECT_THAT(ids2, UnorderedElementsAreArray(ids));
 }
 
-TEST(ObjectIdTest, AllocationIdSetAbslHash) {
-  AllocationIdSet ids_1(std::vector{Allocate(10), Allocate(10)});
-  AllocationIdSet ids_2(std::vector{Allocate(10), Allocate(11)});
-  AllocationIdSet ids_3(Allocate(10));
-  AllocationIdSet ids_4(/*contains_small_allocation_id=*/true);
-  AllocationIdSet ids_5(/*contains_small_allocation_id=*/true);
-  ids_5.Insert(Allocate(10));
-  AllocationIdSet ids_6;
-  ids_6.Insert(Allocate(10));
-  std::vector cases{ids_1, ids_2, ids_3, ids_4, ids_5, ids_6};
-
-  EXPECT_TRUE(absl::VerifyTypeImplementsAbslHashCorrectly(cases));
-}
-
 TEST(ObjectIdTest, AllocationIdSetFromSpan) {
   std::vector<AllocationId> allocs;
   for (int64_t i = 0; i != 10; ++i) {
@@ -667,6 +653,7 @@ TEST(ObjectIdTest, AllocationIdSetWithSmall) {
     auto id_set = AllocationIdSet(/*contains_small_allocation_id=*/true);
     EXPECT_TRUE(id_set.contains_small_allocation_id());
     EXPECT_TRUE(id_set.empty());
+    EXPECT_FALSE(id_set == AllocationIdSet());
   }
   {
     AllocationIdSet id_set;
@@ -745,6 +732,163 @@ TEST(ObjectIdTest, AllocationIdSetUnionSmall) {
     EXPECT_TRUE(id_set.contains_small_allocation_id());
     id_set.Insert(id_set1);
     EXPECT_TRUE(id_set.contains_small_allocation_id());
+  }
+}
+
+TEST(ObjectIdTest, AllocationIdSetManyAllocs) {
+  for (int64_t size = 1; size < 100; ++size) {
+    SCOPED_TRACE(absl::StrCat("size: ", size));
+    AllocationIdSet id_set;
+    AllocationIdSet id_set2;
+    std::vector<AllocationId> allocs;
+    for (int64_t i = 0; i < size; ++i) {
+      allocs.push_back(Allocate(17));
+    }
+    std::shuffle(allocs.begin(), allocs.end(), absl::BitGen());
+    for (AllocationId alloc : allocs) {
+      ASSERT_TRUE(id_set.Insert(alloc));
+    }
+    EXPECT_THAT(id_set, UnorderedElementsAreArray(allocs));
+    // Make sure that inserting one more time still works.
+    std::shuffle(allocs.begin(), allocs.end(), absl::BitGen());
+    for (AllocationId alloc : allocs) {
+      ASSERT_FALSE(id_set.Insert(alloc));
+      ASSERT_TRUE(id_set2.Insert(alloc));
+    }
+    ASSERT_THAT(id_set, UnorderedElementsAreArray(allocs));
+    ASSERT_TRUE(id_set == id_set2);
+  }
+}
+
+TEST(ObjectIdTest, AllocationIdSetManyAllocsMerge) {
+  for (int64_t size = 1; size < 500; ++size) {
+    SCOPED_TRACE(absl::StrCat("size: ", size));
+    AllocationIdSet id_set1;
+    AllocationIdSet id_set2;
+    AllocationIdSet id_set_union;
+    std::vector<AllocationId> allocs1;
+    std::vector<AllocationId> allocs2;
+    std::vector<AllocationId> allocs_union;
+    for (int64_t i = 0; i < size; ++i) {
+      auto alloc = Allocate(27 + i);
+      allocs_union.push_back(alloc);
+      if (i % 3 == 0) {
+        allocs1.push_back(alloc);
+      } else if (i % 3 == 1) {
+        allocs2.push_back(alloc);
+      } else {
+        allocs1.push_back(alloc);
+        allocs2.push_back(alloc);
+      }
+    }
+    std::shuffle(allocs1.begin(), allocs1.end(), absl::BitGen());
+    std::shuffle(allocs2.begin(), allocs2.end(), absl::BitGen());
+    for (AllocationId alloc : allocs1) {
+      ASSERT_TRUE(id_set1.Insert(alloc));
+      id_set_union.Insert(alloc);
+    }
+    for (AllocationId alloc : allocs2) {
+      ASSERT_TRUE(id_set2.Insert(alloc));
+      id_set_union.Insert(alloc);
+    }
+    id_set1.Insert(id_set2);
+    ASSERT_THAT(id_set1, UnorderedElementsAreArray(allocs_union));
+    ASSERT_TRUE(id_set1 == id_set_union);
+
+    // Test Insert to empty.
+    id_set1 = AllocationIdSet();
+    id_set1.Insert(id_set2);
+    ASSERT_THAT(id_set1, UnorderedElementsAreArray(allocs2));
+    ASSERT_TRUE(id_set1 == id_set2);
+  }
+}
+
+TEST(ObjectIdTest, AllocationIdSetManyAllocsMergeOneBeforeOther) {
+  for (int64_t size = 1; size < 500; ++size) {
+    SCOPED_TRACE(absl::StrCat("size: ", size));
+    AllocationIdSet id_set1;
+    AllocationIdSet id_set1_copy;
+    AllocationIdSet id_set2;
+    AllocationIdSet id_set_union;
+    std::vector<AllocationId> allocs1;
+    std::vector<AllocationId> allocs2;
+    std::vector<AllocationId> allocs_union;
+    for (int64_t i = 0; i < size; ++i) {
+      auto alloc = Allocate(27 + i);
+      allocs1.push_back(alloc);
+      allocs_union.push_back(alloc);
+    }
+    for (int64_t i = 0; i < size; ++i) {
+      auto alloc = Allocate(27 + i);
+      allocs2.push_back(alloc);
+      allocs_union.push_back(alloc);
+    }
+    std::shuffle(allocs1.begin(), allocs1.end(), absl::BitGen());
+    std::shuffle(allocs2.begin(), allocs2.end(), absl::BitGen());
+    for (AllocationId alloc : allocs1) {
+      ASSERT_TRUE(id_set1.Insert(alloc));
+      ASSERT_TRUE(id_set1_copy.Insert(alloc));
+      id_set_union.Insert(alloc);
+    }
+    for (AllocationId alloc : allocs2) {
+      ASSERT_TRUE(id_set2.Insert(alloc));
+      id_set_union.Insert(alloc);
+    }
+    id_set1.Insert(id_set2);
+    ASSERT_THAT(id_set1, UnorderedElementsAreArray(allocs_union));
+    ASSERT_TRUE(id_set1 == id_set_union);
+
+    id_set2.Insert(id_set1_copy);
+    ASSERT_THAT(id_set2, UnorderedElementsAreArray(allocs_union));
+    ASSERT_TRUE(id_set2 == id_set_union);
+  }
+}
+
+
+TEST(ObjectIdTest, AllocationIdSetManyAllocsMergeWithBigCommonPrefix) {
+  for (int64_t size = 1; size < 500; ++size) {
+    SCOPED_TRACE(absl::StrCat("size: ", size));
+    AllocationIdSet id_set1;
+    AllocationIdSet id_set1_copy;
+    AllocationIdSet id_set2;
+    AllocationIdSet id_set_union;
+    std::vector<AllocationId> allocs1;
+    std::vector<AllocationId> allocs2;
+    std::vector<AllocationId> allocs_union;
+    for (int64_t i = 0; i < size; ++i) {
+      auto alloc = Allocate(27 + i);
+      allocs1.push_back(alloc);
+      allocs2.push_back(alloc);
+      allocs_union.push_back(alloc);
+    }
+    for (int64_t i = 0; i < size; ++i) {
+      auto alloc1 = Allocate(27 + i);
+      allocs1.push_back(alloc1);
+      allocs_union.push_back(alloc1);
+      auto alloc2 = Allocate(27 + i);
+      allocs2.push_back(alloc2);
+      allocs_union.push_back(alloc2);
+    }
+    std::shuffle(allocs1.begin(), allocs1.begin() + size, absl::BitGen());
+    std::shuffle(allocs2.begin(), allocs2.begin() + size, absl::BitGen());
+    std::shuffle(allocs1.begin() + size, allocs1.end(), absl::BitGen());
+    std::shuffle(allocs2.begin() + size, allocs2.end(), absl::BitGen());
+    for (AllocationId alloc : allocs1) {
+      ASSERT_TRUE(id_set1.Insert(alloc));
+      ASSERT_TRUE(id_set1_copy.Insert(alloc));
+      id_set_union.Insert(alloc);
+    }
+    for (AllocationId alloc : allocs2) {
+      ASSERT_TRUE(id_set2.Insert(alloc));
+      id_set_union.Insert(alloc);
+    }
+    id_set1.Insert(id_set2);
+    ASSERT_THAT(id_set1, UnorderedElementsAreArray(allocs_union));
+    ASSERT_TRUE(id_set1 == id_set_union);
+
+    id_set2.Insert(id_set1_copy);
+    ASSERT_THAT(id_set2, UnorderedElementsAreArray(allocs_union));
+    ASSERT_TRUE(id_set2 == id_set_union);
   }
 }
 

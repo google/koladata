@@ -25,6 +25,7 @@
 #include <utility>
 
 #include "absl/base/optimization.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/numeric/bits.h"
 #include "absl/random/random.h"
@@ -59,15 +60,6 @@ ObjectId ObjectId::NoFollowObjectSchemaId() {
 
 std::string ObjectId::DebugString() const {
   return ObjectIdStr(*this, /*show_flag_prefix=*/true);
-}
-
-bool AllocationIdSet::InsertBigAllocationSlow(AllocationId id) {
-  if (auto it = std::lower_bound(ids_.begin(), ids_.end(), id);
-      it == ids_.end() || *it != id) {
-    ids_.insert(it, id);
-    return true;
-  }
-  return false;
 }
 
 AllocationId Allocate(size_t size) {
@@ -184,10 +176,35 @@ ObjectId AllocateSingleObject() {
   return id;
 }
 
+bool AllocationIdSet::InsertBigAllocationSlow(AllocationId id) {
+  auto sorted_end = ids_.size() >= kMaxSortedSize
+                        ? ids_.begin() + kMaxSortedSize
+                        : ids_.end();
+  auto sorted_it = std::lower_bound(ids_.begin(), sorted_end, id);
+  if (sorted_it != sorted_end && *sorted_it == id) {
+    return false;
+  }
+  if (ids_.size() < kMaxSortedSize) {
+    ids_.insert(sorted_it, id);
+    if (ids_.size() >= kMaxSortedSize) {
+      unsorted_ids_.emplace();
+      // Last element is outside of the sorted range.
+      unsorted_ids_->insert(ids_.back());
+    }
+    return true;
+  }
+  if (unsorted_ids_->insert(id).second) {
+    ids_.push_back(id);
+    return true;
+  }
+  return false;
+}
+
 void AllocationIdSet::Insert(const AllocationIdSet& new_ids) {
   contains_small_allocation_id_ |= new_ids.contains_small_allocation_id_;
   if (ids_.empty()) {
     ids_.assign(new_ids.begin(), new_ids.end());
+    unsorted_ids_ = new_ids.unsorted_ids_;
     return;
   }
   size_t offset = 0;
@@ -195,22 +212,57 @@ void AllocationIdSet::Insert(const AllocationIdSet& new_ids) {
   while (offset != min_size && ids_[offset] == new_ids.ids_[offset]) {
     ++offset;
   }
-  if (offset != new_ids.size()) {
-    ids_.insert(ids_.end(), new_ids.ids_.begin() + offset, new_ids.ids_.end());
+  if (offset == new_ids.size()) {
+    return;
+  }
+  ids_.insert(ids_.end(), new_ids.ids_.begin() + offset, new_ids.ids_.end());
+  // We may have many ids here, but after duplicate removal we may stay in the
+  // small mode.
+  if (ids_.size() < kMaxSortedSize) {
     std::inplace_merge(ids_.begin() + offset,
                        ids_.end() - (new_ids.size() - offset), ids_.end());
     ids_.erase(std::unique(ids_.begin() + offset, ids_.end()), ids_.end());
+  } else {
+    std::sort(ids_.begin(), ids_.end());
+    ids_.erase(std::unique(ids_.begin(), ids_.end()), ids_.end());
+  }
+  // Check whether we are in big mode after duplicate removal.
+  if (ids_.size() >= kMaxSortedSize) {
+    if (!unsorted_ids_.has_value()) {
+      unsorted_ids_.emplace();
+    }
+    // Note that unsorted_ids_ may contain leftover ids that are within sorted
+    // range. It is fine.
+    for (size_t i = kMaxSortedSize; i < ids_.size(); ++i) {
+      unsorted_ids_->insert(ids_[i]);
+    }
   }
 }
 
 bool operator==(const AllocationIdSet& lhs, const AllocationIdSet& rhs) {
-  return lhs.contains_small_allocation_id_ ==
-             rhs.contains_small_allocation_id_ &&
-         lhs.ids_ == rhs.ids_;
-}
-
-bool operator!=(const AllocationIdSet& lhs, const AllocationIdSet& rhs) {
-  return !(lhs == rhs);
+  bool fast_check =
+      lhs.contains_small_allocation_id_ == rhs.contains_small_allocation_id_ &&
+      lhs.ids_.size() == rhs.ids_.size();
+  if (!fast_check) {
+    return false;
+  }
+  DCHECK(lhs.ids_.size() == rhs.ids_.size());
+  if (lhs.ids_.size() >= AllocationIdSet::kMaxSortedSize) {
+    DCHECK_GE(rhs.ids_.size(), AllocationIdSet::kMaxSortedSize);
+    absl::flat_hash_set<AllocationId> lhs_set(*lhs.unsorted_ids_);
+    for (size_t i = 0; i != AllocationIdSet::kMaxSortedSize; ++i) {
+      lhs_set.insert(lhs.ids_[i]);
+    }
+    for (const AllocationId& id : rhs.ids_) {
+      if (!lhs_set.contains(id)) {
+        return false;
+      }
+    }
+    return true;
+  } else {
+    DCHECK_LT(rhs.ids_.size(), AllocationIdSet::kMaxSortedSize);
+    return lhs.ids_ == rhs.ids_;
+  }
 }
 
 std::string AllocationIdSet::DebugString() const {
