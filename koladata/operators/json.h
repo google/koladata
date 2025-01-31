@@ -16,7 +16,6 @@
 #define KOLADATA_OPERATORS_JSON_H_
 
 #include <cstdint>
-#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -29,7 +28,14 @@
 
 namespace koladata::ops {
 
-// kd.json.to_json
+// kde.json.from_json
+absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
+                                   DataSlice default_number_schema,
+                                   DataSlice on_invalid,
+                                   DataSlice keys_attr, DataSlice values_attr,
+                                   internal::NonDeterministicToken);
+
+// kde.json.to_json
 absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
                                  DataSlice ensure_ascii, DataSlice keys_attr,
                                  DataSlice values_attr);

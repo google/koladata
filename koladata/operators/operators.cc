@@ -157,6 +157,7 @@ OPERATOR_FAMILY("kd.ids.uuid_for_list",
                 std::make_unique<UuidForListOperatorFamily>());
 OPERATOR("kd.ids.uuids_with_allocation_size", UuidsWithAllocationSize);
 //
+OPERATOR("kd.json.from_json", FromJson);
 OPERATOR("kd.json.to_json", ToJson);
 OPERATOR_FAMILY("kd.lists._concat_lists",
                 arolla::MakeVariadicInputOperatorFamily(ConcatLists));

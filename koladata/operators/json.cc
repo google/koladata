@@ -36,6 +36,7 @@
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
 #include "nlohmann/json.hpp"
+#include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
@@ -44,8 +45,10 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/missing_value.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
@@ -55,6 +58,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -344,6 +348,489 @@ absl::StatusOr<internal::DataItem> JsonObjectToDict(
 }
 
 }  // namespace json_internal
+
+namespace {
+
+// It's necessary to use the nlohmann SAX parser interface to create reasonable
+// JSON parse error messages without C++ exceptions enabled, and to avoid either
+// on-stack recursion or buffering all of the JSON tokens (which are both softer
+// requirements, but good to have).
+//
+// Unfortunately, the resulting explicit-stack control flow is somewhat hard to
+// follow. Read the comments on JsonSaxParser::StackFrame to get a better sense
+// of how this class operates.
+//
+// This class assumes that the nlohmann SAX parser code calls its methods in the
+// correct order for a valid JSON parse, and only DCHECKs these assumptions.
+class JsonSaxParser final : public nlohmann::json::json_sax_t {
+ public:
+  JsonSaxParser(DataBagPtr bag, internal::DataItem schema_impl,
+                internal::DataItem default_number_schema_impl,
+                std::optional<absl::string_view> keys_attr,
+                std::optional<absl::string_view> values_attr)
+      : bag_(std::move(bag)),
+        keys_attr_(std::move(keys_attr)),
+        values_attr_(std::move(values_attr)),
+        default_number_schema_impl_(std::move(default_number_schema_impl)) {
+    // Fake array stack frame used to collect top-level value.
+    bool embed_value_schemas = schema_impl == schema::kObject;
+    stack_.emplace_back(StackFrame{
+        .frame_type = FrameType::kJsonArray,
+        .schema_impl = internal::DataItem(),
+        .has_constant_value_schema = true,
+        .embed_value_schemas = embed_value_schemas,
+        .value_schema_impl = std::move(schema_impl),
+    });
+  }
+
+  // Called when the SAX parser encounters a `null`.
+  bool null() override {
+    AddValue(internal::DataItem());
+    return true;
+  }
+
+  // Called when the SAX parser encounters a `true` or `false`.
+  bool boolean(bool value) override {
+    return AddValueOrSetError(json_internal::JsonBoolToDataItem(
+        value, CurrFrame().value_schema_impl));
+  }
+
+  // Called when the SAX parser encounters an int64_t number.
+  bool number_integer(int64_t value) override {
+    return AddValueOrSetError(json_internal::JsonNumberToDataItem(
+        value, CurrFrame().value_schema_impl, default_number_schema_impl_));
+  }
+
+  // Called when the SAX parser encounters an uint64_t number.
+  bool number_unsigned(uint64_t value) override {
+    return AddValueOrSetError(json_internal::JsonNumberToDataItem(
+        value, CurrFrame().value_schema_impl, default_number_schema_impl_));
+  }
+
+  // Called when the SAX parser encounters a number with a decimal point or
+  // exponent.
+  bool number_float(double value, const std::string& value_str) override {
+    return AddValueOrSetError(json_internal::JsonNumberToDataItem(
+        value, value_str, CurrFrame().value_schema_impl,
+        default_number_schema_impl_));
+  }
+
+  // Called when the SAX parser encounters a string (excluding object keys).
+  bool string(std::string& value) override {
+    return AddValueOrSetError(json_internal::JsonStringToDataItem(
+        std::move(value), CurrFrame().value_schema_impl));
+  }
+
+  // Called when the SAX parser encounters a `{`.
+  bool start_object(size_t) override {
+    status_ = StartJsonObject();
+    return status_.ok();
+  }
+
+  // Called when the SAX parser encounters a `}`.
+  bool end_object() override {
+    status_ = EndJsonObject();
+    return status_.ok();
+  }
+
+  // Called when the SAX parser encounters a `[`.
+  bool start_array(size_t) override {
+    status_ = StartJsonArray();
+    return status_.ok();
+  }
+
+  // Called when the SAX parser encounters a `]`.
+  bool end_array() override {
+    status_ = EndJsonArray();
+    return status_.ok();
+  }
+
+  // Called when the SAX parser encounters an object key.
+  bool key(std::string& value) override {
+    status_ = AddJsonObjectKeyAndPrepareNextValueSchema(std::move(value));
+    return status_.ok();
+  }
+
+  bool parse_error(size_t position, const std::string& last_token,
+                   const nlohmann::json::exception& exc) override {
+    status_ = absl::InvalidArgumentError(
+        absl::StrFormat("json parse error at position %d near token \"%s\": %s",
+                        position, last_token, exc.what()));
+    return false;
+  }
+
+  bool binary(nlohmann::json::binary_t& value) override {
+    return false;  // Shouldn't be callable from text JSON parsing.
+  }
+
+  absl::StatusOr<internal::DataItem> ToDataItem() && {
+    if (!status_.ok()) {
+      return std::move(status_);
+    }
+    DCHECK_EQ(stack_.size(), 1);
+    return std::move(CurrFrame().values.back());
+  }
+
+ private:
+  enum class FrameType { kJsonArray, kJsonObject };
+
+  // This "stack frame" represents the child-most *container* (array or object)
+  // currently being parsed. Primitives do not get their own stack frames. The
+  // first stack frame is always a dummy array, to allow us to uniformly handle
+  // inputs that are not containers.
+  struct StackFrame {
+    // The type of JSON container being parsed at this level of the stack. The
+    // top-level container is an implicit length-1 array.
+    FrameType frame_type;
+
+    // The schema of the Koda value (list/dict/entity) being built from this
+    // container. Missing for the top-level container.
+    internal::DataItem schema_impl;
+
+    // True if the Koda value being built has the same schema for all values,
+    // stored in value_schema_impl. This is true for all LIST and DICT schemas.
+    // False if the value schema needs to be looked up for each object key.
+    bool has_constant_value_schema;
+
+    // If true, the schemas of all values must be embedded so that they can be
+    // used via OBJECT-schema references. Note that this is a no-op for all
+    // primtitives, so only code paths that can produce non-primitives check it.
+    bool embed_value_schemas;
+
+    // The schema to be used for the next value in the container. For arrays,
+    // this is constant, and for objects, it is updated when the object key is
+    // parsed in preparation for the value.
+    internal::DataItem value_schema_impl;
+
+    // For objects, the sequence of keys parsed so far. Empty for arrays.
+    std::vector<std::string> keys;
+
+    // The sequence of values (w/ schemas) parsed so far.
+    std::vector<internal::DataItem> values;
+  };
+
+  StackFrame& CurrFrame() { return stack_.back(); }
+  const StackFrame& CurrFrame() const { return stack_.back(); }
+
+  absl::Status StartJsonArray() {
+    // Determine the value schema for the array using the LIST schema of the
+    // values in the current container.
+    ASSIGN_OR_RETURN(
+        auto item_value_schema_impl,
+        [&]() -> absl::StatusOr<internal::DataItem> {
+          internal::DataItem schema_impl = CurrFrame().value_schema_impl;
+          if (schema_impl == schema::kObject) {
+            return internal::DataItem(schema::kObject);
+          }
+          ASSIGN_OR_RETURN(
+              auto schema,
+              DataSlice::Create(schema_impl,
+                                internal::DataItem(schema::kSchema), bag_));
+          if (!schema.IsListSchema()) {
+            return absl::InvalidArgumentError(
+                absl::StrFormat("json array invalid for non-LIST schema %v",
+                                DataSliceRepr(schema)));
+          }
+          ASSIGN_OR_RETURN(auto item_value_schema,
+                           schema.GetAttr(schema::kListItemsSchemaAttr));
+          return item_value_schema.item();
+        }());
+
+    bool embed_value_schemas = item_value_schema_impl == schema::kObject;
+    stack_.emplace_back(StackFrame{
+        .frame_type = FrameType::kJsonArray,
+        .schema_impl = CurrFrame().value_schema_impl,
+        .has_constant_value_schema = true,
+        .embed_value_schemas = embed_value_schemas,
+        .value_schema_impl = std::move(item_value_schema_impl),
+    });
+    return absl::OkStatus();
+  }
+
+  absl::Status EndJsonArray() {
+    DCHECK(CurrFrame().frame_type == FrameType::kJsonArray);
+    auto list_schema_impl = std::move(CurrFrame().schema_impl);
+    auto value_schema_impl = std::move(CurrFrame().value_schema_impl);
+    std::vector<internal::DataItem> values = std::move(CurrFrame().values);
+    stack_.pop_back();
+
+    ASSIGN_OR_RETURN(auto list,
+                     json_internal::JsonArrayToList(
+                         std::move(values), list_schema_impl, value_schema_impl,
+                         CurrFrame().embed_value_schemas, bag_));
+    AddValue(std::move(list));
+    return absl::OkStatus();
+  }
+
+  absl::Status StartJsonObject() {
+    // Check that the value schema in the current container can be used for a
+    // JSON object. Must be OBJECT, DICT[K, V] (for STRING, OBJECT or numeric
+    // K), or entity schema.
+    internal::DataItem schema_impl = CurrFrame().value_schema_impl;
+    if (schema_impl == schema::kObject) {
+      stack_.emplace_back(StackFrame{
+          .frame_type = FrameType::kJsonObject,
+          .schema_impl = internal::DataItem(schema::kObject),
+          .has_constant_value_schema = true,
+          .embed_value_schemas = true,
+          .value_schema_impl = internal::DataItem(schema::kObject),
+      });
+      return absl::OkStatus();
+    }
+
+    ASSIGN_OR_RETURN(
+        auto schema,
+        DataSlice::Create(schema_impl, internal::DataItem(schema::kSchema),
+                          bag_));
+    if (schema.IsDictSchema()) {
+      ASSIGN_OR_RETURN(auto key_schema,
+                       schema.GetAttr(schema::kDictKeysSchemaAttr));
+      // Ensure that the key schema of the dict will be something we can convert
+      // to when we have the vector of key strings in EndJsonObject.
+      if (key_schema.item() != schema::kString &&
+          key_schema.item() != schema::kInt32 &&
+          key_schema.item() != schema::kInt64 &&
+          key_schema.item() != schema::kFloat32 &&
+          key_schema.item() != schema::kFloat64 &&
+          key_schema.item() != schema::kObject) {
+        return absl::InvalidArgumentError(
+            absl::StrFormat("json object invalid for schema %v",
+                            DataSliceRepr(schema)));
+      }
+      ASSIGN_OR_RETURN(auto value_schema,
+                       schema.GetAttr(schema::kDictValuesSchemaAttr));
+      stack_.emplace_back(StackFrame{
+          .frame_type = FrameType::kJsonObject,
+          .schema_impl = std::move(schema_impl),
+          .has_constant_value_schema = true,
+          .embed_value_schemas = value_schema.item() == schema::kObject,
+          .value_schema_impl = value_schema.item(),
+      });
+      return absl::OkStatus();
+    } else if (schema.IsEntitySchema()) {
+      bool embed_value_schemas = false;
+      if (values_attr_.has_value()) {
+        ASSIGN_OR_RETURN(auto values_attr_schema,
+                         schema.GetAttrOrMissing(*values_attr_));
+        if (!values_attr_schema.IsEmpty()) {
+          // If we will be setting the json values attr, values will need
+          // embedded schemas.
+          embed_value_schemas = true;
+        }
+      }
+      stack_.emplace_back(StackFrame{
+          .frame_type = FrameType::kJsonObject,
+          .schema_impl = std::move(schema_impl),
+          .has_constant_value_schema = false,
+          .embed_value_schemas = embed_value_schemas,
+      });
+      return absl::OkStatus();
+    }
+
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "json object invalid for schema %v", DataSliceRepr(schema)));
+  }
+
+  absl::Status EndJsonObject() {
+    DCHECK(CurrFrame().frame_type == FrameType::kJsonObject);
+    DCHECK_EQ(CurrFrame().keys.size(), CurrFrame().values.size());
+    ASSIGN_OR_RETURN(
+        auto schema,
+        DataSlice::Create(std::move(CurrFrame().schema_impl),
+                          internal::DataItem(schema::kSchema), bag_));
+    std::vector<std::string> keys = std::move(CurrFrame().keys);
+    std::vector<internal::DataItem> values = std::move(CurrFrame().values);
+    stack_.pop_back();
+
+    if (schema.IsDictSchema()) {
+      ASSIGN_OR_RETURN(auto dict,
+                       json_internal::JsonObjectToDict(
+                           std::move(keys), std::move(values), schema.item(),
+                           CurrFrame().embed_value_schemas, bag_));
+      AddValue(std::move(dict));
+      return absl::OkStatus();
+    } else {
+      ASSIGN_OR_RETURN(auto entity, json_internal::JsonObjectToEntity(
+                                        std::move(keys), std::move(values),
+                                        schema.item(), keys_attr_, values_attr_,
+                                        CurrFrame().embed_value_schemas, bag_));
+      AddValue(std::move(entity));
+      return absl::OkStatus();
+    }
+  }
+
+  // Note: For DICT schemas with non-STRING keys, the conversion happens when
+  // the dict is constructed, not in this method.
+  absl::Status AddJsonObjectKeyAndPrepareNextValueSchema(std::string key) {
+    DCHECK(!stack_.empty());
+    DCHECK(CurrFrame().frame_type == FrameType::kJsonObject);
+    DCHECK_EQ(CurrFrame().keys.size(), CurrFrame().values.size());
+
+    if (!CurrFrame().has_constant_value_schema) {
+      ASSIGN_OR_RETURN(
+          auto schema,
+          DataSlice::Create(CurrFrame().schema_impl,
+                            internal::DataItem(schema::kSchema), bag_));
+      ASSIGN_OR_RETURN(auto value_schema, schema.GetAttrOrMissing(key));
+      if (value_schema.IsEmpty()) {
+        CurrFrame().value_schema_impl = internal::DataItem(schema::kObject);
+      } else {
+        CurrFrame().value_schema_impl = value_schema.item();
+      }
+    }
+
+    CurrFrame().keys.emplace_back(std::move(key));
+    return absl::OkStatus();
+  }
+
+  bool AddValueOrSetError(absl::StatusOr<internal::DataItem> value) {
+    if (value.ok()) {
+      AddValue(std::move(*value));
+      return true;
+    } else {
+      status_ = std::move(value).status();
+      return false;
+    }
+  }
+
+  void AddValue(internal::DataItem value) {
+    DCHECK(!stack_.empty());
+    CurrFrame().values.emplace_back(std::move(value));
+  }
+
+  absl::Status status_ = absl::OkStatus();
+  const DataBagPtr bag_;
+  const std::optional<absl::string_view> keys_attr_;
+  const std::optional<absl::string_view> values_attr_;
+  const internal::DataItem default_number_schema_impl_;
+  // TODO: Try using std::deque for performance.
+  std::vector<StackFrame> stack_;
+};
+
+}  // namespace
+
+absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
+                                   DataSlice default_number_schema,
+                                   DataSlice on_invalid, DataSlice keys_attr,
+                                   DataSlice values_attr,
+                                   internal::NonDeterministicToken) {
+  // Validate `x`.
+  RETURN_IF_ERROR(ExpectString("x", x));
+
+  // Validate `schema` and `default_number_schema`.
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  RETURN_IF_ERROR(default_number_schema.VerifyIsSchema());
+  if (default_number_schema.item() != schema::kObject &&
+      default_number_schema.item() != schema::kInt32 &&
+      default_number_schema.item() != schema::kInt64 &&
+      default_number_schema.item() != schema::kFloat32 &&
+      default_number_schema.item() != schema::kFloat64) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("expected default_number_schema to be OBJECT or a "
+                        "numeric primitive schema, got %v",
+                        DataSliceRepr(default_number_schema.GetSchema())));
+  }
+
+  // Validate `on_invalid`.
+  std::optional<internal::DataItem> on_invalid_item;
+  if (on_invalid.is_item()) {
+    on_invalid_item.emplace(on_invalid.item());
+  } else if (on_invalid.size() == 0) {
+    // Special marker value.
+  } else {
+    return absl::InvalidArgumentError(
+        "on_invalid must be a DataItem");
+  }
+
+  // Validate `keys_attr` and `values_attr`.
+  std::optional<absl::string_view> keys_attr_value;
+  std::optional<absl::string_view> values_attr_value;
+  if (!keys_attr.IsEmpty()) {
+    RETURN_IF_ERROR(
+        ExpectPresentScalar("keys_attr", keys_attr, schema::kString));
+    keys_attr_value = keys_attr.item().value<arolla::Text>().view();
+    if (!values_attr.IsEmpty()) {
+      RETURN_IF_ERROR(
+          ExpectPresentScalar("values_attr", values_attr, schema::kString));
+      values_attr_value = values_attr.item().value<arolla::Text>().view();
+    }
+  } else if (!values_attr.IsEmpty()) {
+    return absl::InvalidArgumentError(
+        "values_attr must be None if keys_attr is None");
+  }
+
+  internal::DataItem result_schema_impl = schema.item();
+  if (on_invalid_item) {
+    ASSIGN_OR_RETURN(
+        result_schema_impl,
+        schema::CommonSchema(result_schema_impl, on_invalid.GetSchemaImpl()));
+  }
+
+  DataBagPtr bag = DataBag::Empty();
+  {
+    AdoptionQueue adoption_queue;
+    adoption_queue.Add(schema);
+    // `default_number_schema` is a primitive schema, so no need to adopt.
+    adoption_queue.Add(on_invalid);
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*bag));
+  }
+
+  const auto& item_from_json =
+      [&](absl::string_view value) -> absl::StatusOr<internal::DataItem> {
+    JsonSaxParser parser(bag, schema.item(), default_number_schema.item(),
+                         keys_attr_value, values_attr_value);
+    // TODO: Support strict=false (i.e. recovering from
+    // truncated JSON input). Also maybe set ignore_comments if
+    // strict=false, although this is maybe too nlohmann-specific.
+    nlohmann::json::sax_parse(value, &parser,
+                              nlohmann::json::input_format_t::json,
+                              /*strict=*/true, /*ignore_comments=*/false);
+    auto parsed_item = std::move(parser).ToDataItem();
+    if (!parsed_item.ok()) {
+      if (on_invalid_item.has_value()) {
+        // Swallow parse error and use `on_invalid_item` as marker.
+        return *on_invalid_item;
+      } else {
+        return std::move(parsed_item).status();  // Propagate parse error.
+      }
+    } else {
+      return std::move(*parsed_item);
+    }
+  };
+
+  if (x.is_item()) {
+    internal::DataItem result_item;
+    if (x.item().holds_value<arolla::Text>()) {
+      ASSIGN_OR_RETURN(result_item,
+                       item_from_json(x.item().value<arolla::Text>()));
+    }
+    bag->UnsafeMakeImmutable();
+    return DataSlice::Create(std::move(result_item),
+                             std::move(result_schema_impl), std::move(bag),
+                             DataSlice::Wholeness::kWhole);
+  } else {
+    internal::SliceBuilder result_builder(x.size());
+    if (x.slice().dtype() == arolla::GetQType<arolla::Text>()) {
+      absl::Status status = absl::OkStatus();
+      x.slice().values<arolla::Text>().ForEachPresent(
+          [&](int64_t i, arolla::view_type_t<arolla::Text> value) {
+            if (status.ok()) {
+              auto result_item = item_from_json(value);
+              if (result_item.ok()) {
+                result_builder.InsertIfNotSet(i, result_item.value());
+              } else {
+                status = std::move(result_item).status();
+              }
+            }
+          });
+      RETURN_IF_ERROR(std::move(status));
+    }
+    bag->UnsafeMakeImmutable();
+    return DataSlice::Create(std::move(result_builder).Build(), x.GetShape(),
+                             std::move(result_schema_impl), std::move(bag),
+                             DataSlice::Wholeness::kWhole);
+  }
+}
 
 namespace {
 

@@ -342,7 +342,7 @@ class JsonToJsonTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.strings.printf,
+        kde.json.to_json,
         QTYPES,
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         max_arity=3,
