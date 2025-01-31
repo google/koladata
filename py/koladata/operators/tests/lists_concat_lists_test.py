@@ -151,10 +151,10 @@ class ListsConcatListsTest(parameterized.TestCase):
     b = db.list([[1, 2, 3], [4, 5, 6]])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""cannot find a common schema for provided schemas
+        r"""cannot find a common schema
 
  the common schema\(s\) INT32: INT32
- the first conflicting schema Schema:#[0-9a-zA-Z]{22}: LIST\[INT32\]""",
+ the first conflicting schema #[0-9a-zA-Z]{22}: LIST\[INT32\]""",
     ):
       expr_eval.eval(kde.lists.concat_lists(a, b))
 

@@ -269,37 +269,37 @@ class BoxingTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""cannot find a common schema for provided schemas
+        r"""cannot find a common schema
 
- the common schema\(s\) Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(x=INT32\)
- the first conflicting schema Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
+ the common schema\(s\) \$[0-9a-zA-Z]{22}: SCHEMA\(x=INT32\)
+ the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
     ):
       ds([db.new(x=1), db.new()])
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""cannot find a common schema for provided schemas
+        r"""cannot find a common schema
 
  the common schema\(s\) OBJECT: OBJECT
- the first conflicting schema Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
+ the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
     ):
       ds([1, 'a', db.new()])
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""cannot find a common schema for provided schemas
+        r"""cannot find a common schema
 
  the common schema\(s\) OBJECT: OBJECT
- the first conflicting schema Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
+ the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
     ):
       ds([db.new(), 1, 'a'])
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""cannot find a common schema for provided schemas
+        r"""cannot find a common schema
 
- the common schema\(s\) Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)
- the first conflicting schema Schema:\$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
+ the common schema\(s\) \$[0-9a-zA-Z]{22}: SCHEMA\(\)
+ the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
     ):
       ds([db.new(), 1, 'a', db.new()])
 

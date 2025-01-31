@@ -122,7 +122,7 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
   def test_cast_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape("""cannot find a common schema for provided schemas
+        re.escape("""cannot find a common schema
 
  the common schema(s) INT64
  the first conflicting schema ITEMID"""),

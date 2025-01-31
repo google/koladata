@@ -216,7 +216,7 @@ class PyMapPyTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape('cannot find a common schema for provided schemas'),
+        re.escape('cannot find a common schema'),
     ):
       _ = expr_eval.eval(
           kde.py.map_py(my_func_dynamic_schema, ds([1, 2]), schema=schema)

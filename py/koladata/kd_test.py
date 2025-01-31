@@ -421,7 +421,7 @@ class KdTest(absltest.TestCase):
     x = kd.slice(1)
     with self.assertRaisesRegex(
         kd.exceptions.KodaError,
-        re.escape("""cannot find a common schema for provided schemas
+        re.escape("""cannot find a common schema
 
  the common schema(s) INT32
  the first conflicting schema ITEMID"""),

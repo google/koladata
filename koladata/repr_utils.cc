@@ -58,20 +58,36 @@ absl::StatusOr<Error> SetNoCommonSchemaError(
                                       internal::DataItem(schema::kSchema), db));
     ASSIGN_OR_RETURN(std::string common_schema_str,
                     DataSliceToStr(common_schema));
+    std::string common_schema_id_repr;
+    if (common_schema_item.holds_value<internal::ObjectId>()) {
+      common_schema_id_repr =
+          ObjectIdStr(common_schema_item.value<internal::ObjectId>(),
+                      /*show_flag_prefix=*/false);
+    } else {
+      common_schema_id_repr = common_schema_item.DebugString();
+    }
     ASSIGN_OR_RETURN(DataSlice conflict_schema,
                     DataSlice::Create(conflict_schema_item,
                                       internal::DataItem(schema::kSchema), db));
     ASSIGN_OR_RETURN(std::string conflict_schema_str,
                     DataSliceToStr(conflict_schema));
-    cause.set_error_message(absl::StrFormat(
-        "\ncannot find a common schema for provided schemas\n\n"
-        " the common schema(s) %s: %s\n"
-        " the first conflicting schema %s: %s",
-        common_schema_item.DebugString(), common_schema_str,
-        conflict_schema_item.DebugString(), conflict_schema_str));
+    std::string conflict_schema_id_repr;
+    if (conflict_schema_item.holds_value<internal::ObjectId>()) {
+      conflict_schema_id_repr =
+          ObjectIdStr(conflict_schema_item.value<internal::ObjectId>(),
+                      /*show_flag_prefix=*/false);
+    } else {
+      conflict_schema_id_repr = conflict_schema_item.DebugString();
+    }
+    cause.set_error_message(
+        absl::StrFormat("\ncannot find a common schema\n\n"
+                        " the common schema(s) %s: %s\n"
+                        " the first conflicting schema %s: %s",
+                        common_schema_id_repr, common_schema_str,
+                        conflict_schema_id_repr, conflict_schema_str));
   } else {
     cause.set_error_message(
-        absl::StrFormat("\ncannot find a common schema for provided schemas\n\n"
+        absl::StrFormat("\ncannot find a common schema\n\n"
                         " the common schema(s) %s\n"
                         " the first conflicting schema %s",
                         internal::DataItemRepr(common_schema_item),

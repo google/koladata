@@ -267,9 +267,7 @@ class MapTest(parameterized.TestCase):
     )
 
     y = fns.new(foo=fns.new(a=ds([1, 2])), bar=fns.new(a=ds([3, 4])))
-    with self.assertRaisesRegex(
-        ValueError, 'cannot find a common schema for provided schemas'
-    ):
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       _ = expr_eval.eval(
           kde.functor.map(I.fn, x=I.x),
           fn=fn,
