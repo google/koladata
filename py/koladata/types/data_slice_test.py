@@ -997,7 +997,7 @@ class DataSliceTest(parameterized.TestCase):
     ):
       x.no_bag().get_attr_names(intersection=True)
     with self.assertRaisesRegex(
-        ValueError, 'object.*is missing __schema__ attribute'
+        ValueError, 'object schema is missing for the DataItem'
     ):
       db.new(a=1, b='abc').with_schema(schema_constants.OBJECT).get_attr_names(
           intersection=True

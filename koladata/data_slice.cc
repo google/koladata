@@ -1184,7 +1184,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
     // For entities, just process the schema of the DataSlice.
     return GetAttrsFromSchemaItem(GetSchemaImpl(), db_impl, fallbacks);
   }
-  return VisitImpl(absl::Overload(
+  auto result = VisitImpl(absl::Overload(
       [&](const internal::DataItem& item) {
         return GetAttrsFromDataItem(item, GetSchemaImpl(), db_impl, fallbacks);
       },
@@ -1192,6 +1192,10 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
         return GetAttrsFromDataSlice(slice, GetSchemaImpl(), db_impl, fallbacks,
                                      union_object_attrs);
       }));
+  if (!result.ok()) {
+    return AssembleErrorMessage(result.status(), {.ds = *this});
+  }
+  return result;
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetAttr(
