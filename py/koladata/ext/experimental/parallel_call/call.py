@@ -66,15 +66,14 @@ def _to_py_signature(koda_signature: kd.types.DataItem) -> inspect.Signature:
       kind = inspect.Parameter.VAR_KEYWORD
     else:
       assert False
-    koda_default = koda_param.default_value
+    if koda_param.default_value.with_schema(
+        kd.OBJECT
+    ) == no_default_value.with_schema(kd.OBJECT):
+      default = inspect.Parameter.empty
+    else:
+      default = koda_param.default_value
     params.append(
-        inspect.Parameter(
-            koda_param.name.to_py(),
-            kind,
-            default=inspect.Parameter.empty
-            if koda_default.as_any() == no_default_value.as_any()
-            else koda_default,
-        )
+        inspect.Parameter(koda_param.name.to_py(), kind, default=default)
     )
   return inspect.Signature(params)
 
