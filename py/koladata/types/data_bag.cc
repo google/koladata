@@ -1207,18 +1207,10 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self,
-                                          PyObject* const* py_args,
-                                          Py_ssize_t nargs) {
+absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self, PyObject* ds) {
   arolla::python::DCheckPyGIL();
-  DataBagPtr db = UnsafeDataBagPtr(self);
-  if (nargs != 1) {
-    PyErr_Format(PyExc_ValueError,
-                 "DataBag.adopt accepts exactly 1 argument, got %d", nargs);
-    return nullptr;
-  }
-
-  const DataSlice* slice = UnwrapDataSlice(py_args[0], "slice");
+  const DataBagPtr& db = UnsafeDataBagPtr(self);
+  const DataSlice* slice = UnwrapDataSlice(ds, "slice");
   if (!slice) {
     return nullptr;
   }
@@ -1231,18 +1223,10 @@ absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self,
   return WrapPyDataSlice(slice->WithBag(std::move(db)));
 }
 
-absl::Nullable<PyObject*> PyDataBag_adopt_stub(PyObject* self,
-                                               PyObject* const* py_args,
-                                               Py_ssize_t nargs) {
+absl::Nullable<PyObject*> PyDataBag_adopt_stub(PyObject* self, PyObject* ds) {
   arolla::python::DCheckPyGIL();
-  DataBagPtr db = UnsafeDataBagPtr(self);
-  if (nargs != 1) {
-    PyErr_Format(PyExc_ValueError,
-                 "DataBag.adopt_stub accepts exactly 1 argument, got %d",
-                 nargs);
-    return nullptr;
-  }
-  const DataSlice* slice = UnwrapDataSlice(py_args[0], "slice");
+  const DataBagPtr& db = UnsafeDataBagPtr(self);
+  const DataSlice* slice = UnwrapDataSlice(ds, "slice");
   if (!slice) {
     return nullptr;
   }
@@ -1663,7 +1647,7 @@ Returns:
      "*bags)\n"
      "--\n\n"
      "DataBag._merge_inplace"},
-    {"adopt", (PyCFunction)PyDataBag_adopt, METH_FASTCALL,
+    {"adopt", (PyCFunction)PyDataBag_adopt, METH_O,
      "adopt(slice, /)\n"
      "--\n\n"
      R"""(Adopts all data reachable from the given slice into this DataBag.
@@ -1674,7 +1658,7 @@ Args:
 Returns:
   The DataSlice with this DataBag (including adopted data) attached.
 )"""},
-    {"adopt_stub", (PyCFunction)PyDataBag_adopt_stub, METH_FASTCALL,
+    {"adopt_stub", (PyCFunction)PyDataBag_adopt_stub, METH_O,
      "adopt_stub(slice, /)\n"
      "--\n\n"
      R"""(Copies the given DataSlice's schema stub into this DataBag.

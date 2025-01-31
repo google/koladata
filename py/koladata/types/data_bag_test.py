@@ -1741,14 +1741,12 @@ The cause is the list sizes are incompatible: 2 vs 1
       db1.merge_inplace([x1])
 
   def test_adopt_args_errors(self):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'DataBag.adopt accepts exactly 1 argument, got 0'
-    ):
+    with self.assertRaises(TypeError):  # Python runtime error.
       bag().adopt()
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'DataBag.adopt accepts exactly 1 argument, got 2'
-    ):
+    with self.assertRaises(TypeError):  # Python runtime error.
       bag().adopt(ds(1), ds(2))
+    with self.assertRaisesRegex(TypeError, 'expecting slice to be a DataSlice'):
+      bag().adopt(bag())
 
   def test_adopt_immutable(self):
     db1 = bag()
@@ -1777,14 +1775,12 @@ The cause is the list sizes are incompatible: 2 vs 1
     testing.assert_equivalent(o3.y.no_bag(), ds(2))
 
   def test_adopt_stub_args_errors(self):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'DataBag.adopt_stub accepts exactly 1 argument, got 0'
-    ):
+    with self.assertRaises(TypeError):  # Python runtime error.
       bag().adopt_stub()
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'DataBag.adopt_stub accepts exactly 1 argument, got 2'
-    ):
+    with self.assertRaises(TypeError):  # Python runtime error.
       bag().adopt_stub(ds(1), ds(2))
+    with self.assertRaisesRegex(TypeError, 'expecting slice to be a DataSlice'):
+      bag().adopt_stub(bag())
 
   def test_adopt_stub_immutable(self):
     db1 = bag()
