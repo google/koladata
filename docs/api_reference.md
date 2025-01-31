@@ -34,6 +34,7 @@ Category  | Subcategory | Description
 [kd_ext](#kd_ext_category) | | `kd_ext` operators
 [DataSlice](#DataSlice_category) | | `DataSlice` methods
 [DataBag](#DataBag_category) | | `DataBag` methods
+[DataItem](#DataItem_category) | | `DataItem` methods
 
 ## `kd` and `kde` operators {#kd_category}
 
@@ -186,6 +187,8 @@ Aliases:
 - [DataSlice.with_name](#DataSlice.with_name)
 
 - [DataBag.with_name](#DataBag.with_name)
+
+- [DataItem.with_name](#DataItem.with_name)
 
 ``` {.no-copy}
 Checks that the `name` is a string and returns `obj` unchanged.
@@ -5614,6 +5617,8 @@ Aliases:
 
 - [kd.item](#kd.item)
 
+- [DataItem.from_vals](#DataItem.from_vals)
+
 ``` {.no-copy}
 Returns a DataItem created from `x`.
 
@@ -8660,24 +8665,36 @@ Slicing helper for DataSlice.
 ```
 
 ### `DataSlice.append(value, /)` {#DataSlice.append}
+Aliases:
+
+- [DataItem.append](#DataItem.append)
 
 ``` {.no-copy}
 Append a value to each list in this DataSlice
 ```
 
 ### `DataSlice.as_any()` {#DataSlice.as_any}
+Aliases:
+
+- [DataItem.as_any](#DataItem.as_any)
 
 ``` {.no-copy}
 Returns a DataSlice with ANY schema.
 ```
 
 ### `DataSlice.clear()` {#DataSlice.clear}
+Aliases:
+
+- [DataItem.clear](#DataItem.clear)
 
 ``` {.no-copy}
 Clears all dicts or lists in this DataSlice
 ```
 
 ### `DataSlice.clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataSlice.clone}
+Aliases:
+
+- [DataItem.clone](#DataItem.clone)
 
 ``` {.no-copy}
 Creates a DataSlice with clones of provided entities in a new DataBag.
@@ -8705,6 +8722,9 @@ Returns:
 ```
 
 ### `DataSlice.deep_clone(self, schema=unspecified, **overrides)` {#DataSlice.deep_clone}
+Aliases:
+
+- [DataItem.deep_clone](#DataItem.deep_clone)
 
 ``` {.no-copy}
 Creates a slice with a (deep) copy of the given slice.
@@ -8732,6 +8752,9 @@ Returns:
 ```
 
 ### `DataSlice.deep_uuid(self, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#DataSlice.deep_uuid}
+Aliases:
+
+- [DataItem.deep_uuid](#DataItem.deep_uuid)
 
 ``` {.no-copy}
 Recursively computes uuid for x.
@@ -8747,12 +8770,18 @@ Returns:
 ```
 
 ### `DataSlice.dict_size(self)` {#DataSlice.dict_size}
+Aliases:
+
+- [DataItem.dict_size](#DataItem.dict_size)
 
 ``` {.no-copy}
 Returns size of a Dict.
 ```
 
 ### `DataSlice.dict_update(self, keys, values=unspecified)` {#DataSlice.dict_update}
+Aliases:
+
+- [DataItem.dict_update](#DataItem.dict_update)
 
 ``` {.no-copy}
 Returns DataBag containing updates to a DataSlice of dicts.
@@ -8772,12 +8801,18 @@ Args:
 ```
 
 ### `DataSlice.display(self, options=None)` {#DataSlice.display}
+Aliases:
+
+- [DataItem.display](#DataItem.display)
 
 ``` {.no-copy}
 Visualizes a DataSlice as an html widget.
 ```
 
 ### `DataSlice.embed_schema()` {#DataSlice.embed_schema}
+Aliases:
+
+- [DataItem.embed_schema](#DataItem.embed_schema)
 
 ``` {.no-copy}
 Returns a DataSlice with OBJECT schema.
@@ -8788,6 +8823,9 @@ Returns a DataSlice with OBJECT schema.
 ```
 
 ### `DataSlice.enriched(self, *bag)` {#DataSlice.enriched}
+Aliases:
+
+- [DataItem.enriched](#DataItem.enriched)
 
 ``` {.no-copy}
 Returns a copy of a DataSlice with a additional fallback DataBag(s).
@@ -8810,6 +8848,9 @@ Returns:
 ```
 
 ### `DataSlice.expand_to(self, target, ndim=unspecified)` {#DataSlice.expand_to}
+Aliases:
+
+- [DataItem.expand_to](#DataItem.expand_to)
 
 ``` {.no-copy}
 Expands `x` based on the shape of `target`.
@@ -8866,6 +8907,9 @@ Returns:
 ```
 
 ### `DataSlice.explode(self, ndim=DataItem(1, schema: INT64))` {#DataSlice.explode}
+Aliases:
+
+- [DataItem.explode](#DataItem.explode)
 
 ``` {.no-copy}
 Explodes a List DataSlice `x` a specified number of times.
@@ -8892,6 +8936,9 @@ Returns:
 ```
 
 ### `DataSlice.extract(self, schema=unspecified)` {#DataSlice.extract}
+Aliases:
+
+- [DataItem.extract](#DataItem.extract)
 
 ``` {.no-copy}
 Creates a DataSlice with a new DataBag containing only reachable attrs.
@@ -8905,6 +8952,9 @@ Returns:
 ```
 
 ### `DataSlice.extract_bag(self, schema=unspecified)` {#DataSlice.extract_bag}
+Aliases:
+
+- [DataItem.extract_bag](#DataItem.extract_bag)
 
 ``` {.no-copy}
 Creates a new DataBag containing only reachable attrs from 'ds'.
@@ -8924,6 +8974,9 @@ Unique identifier of the value.
 ```
 
 ### `DataSlice.flatten(self, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#DataSlice.flatten}
+Aliases:
+
+- [DataItem.flatten](#DataItem.flatten)
 
 ``` {.no-copy}
 Returns `x` with dimensions `[from_dim:to_dim]` flattened.
@@ -8965,6 +9018,9 @@ Args:
 ```
 
 ### `DataSlice.follow(self)` {#DataSlice.follow}
+Aliases:
+
+- [DataItem.follow](#DataItem.follow)
 
 ``` {.no-copy}
 Returns the original DataSlice from a NoFollow DataSlice.
@@ -8980,18 +9036,27 @@ Args:
 ```
 
 ### `DataSlice.fork_bag(self)` {#DataSlice.fork_bag}
+Aliases:
+
+- [DataItem.fork_bag](#DataItem.fork_bag)
 
 ``` {.no-copy}
 Returns a copy of the DataSlice with a forked mutable DataBag.
 ```
 
 ### `DataSlice.freeze(self)` {#DataSlice.freeze}
+Aliases:
+
+- [DataItem.freeze](#DataItem.freeze)
 
 ``` {.no-copy}
 Deprecated. Use freeze_bag() instead.
 ```
 
 ### `DataSlice.freeze_bag()` {#DataSlice.freeze_bag}
+Aliases:
+
+- [DataItem.freeze_bag](#DataItem.freeze_bag)
 
 ``` {.no-copy}
 Returns a frozen DataSlice equivalent to `self`.
@@ -9002,6 +9067,9 @@ Returns a frozen DataSlice equivalent to `self`.
 Alias for [kd.slices.slice](#kd.slices.slice) operator.
 
 ### `DataSlice.get_attr(attr_name, /, default=None)` {#DataSlice.get_attr}
+Aliases:
+
+- [DataItem.get_attr](#DataItem.get_attr)
 
 ``` {.no-copy}
 Gets attribute `attr_name` where missing items are filled from `default`.
@@ -9013,6 +9081,9 @@ Args:
 ```
 
 ### `DataSlice.get_attr_names(*, intersection)` {#DataSlice.get_attr_names}
+Aliases:
+
+- [DataItem.get_attr_names](#DataItem.get_attr_names)
 
 ``` {.no-copy}
 Returns a sorted list of unique attribute names of this DataSlice.
@@ -9030,12 +9101,18 @@ Returns:
 ```
 
 ### `DataSlice.get_bag()` {#DataSlice.get_bag}
+Aliases:
+
+- [DataItem.get_bag](#DataItem.get_bag)
 
 ``` {.no-copy}
 Returns the attached DataBag.
 ```
 
 ### `DataSlice.get_dtype(self)` {#DataSlice.get_dtype}
+Aliases:
+
+- [DataItem.get_dtype](#DataItem.get_dtype)
 
 ``` {.no-copy}
 Returns a primitive schema representing the underlying items' dtype.
@@ -9064,36 +9141,54 @@ Returns:
 ```
 
 ### `DataSlice.get_item_schema(self)` {#DataSlice.get_item_schema}
+Aliases:
+
+- [DataItem.get_item_schema](#DataItem.get_item_schema)
 
 ``` {.no-copy}
 Returns the item schema of a List schema`.
 ```
 
 ### `DataSlice.get_itemid(self)` {#DataSlice.get_itemid}
+Aliases:
+
+- [DataItem.get_itemid](#DataItem.get_itemid)
 
 ``` {.no-copy}
 Casts `x` to ITEMID using explicit (permissive) casting rules.
 ```
 
 ### `DataSlice.get_key_schema(self)` {#DataSlice.get_key_schema}
+Aliases:
+
+- [DataItem.get_key_schema](#DataItem.get_key_schema)
 
 ``` {.no-copy}
 Returns the key schema of a Dict schema`.
 ```
 
 ### `DataSlice.get_keys()` {#DataSlice.get_keys}
+Aliases:
+
+- [DataItem.get_keys](#DataItem.get_keys)
 
 ``` {.no-copy}
 Returns keys of all dicts in this DataSlice.
 ```
 
 ### `DataSlice.get_ndim(self)` {#DataSlice.get_ndim}
+Aliases:
+
+- [DataItem.get_ndim](#DataItem.get_ndim)
 
 ``` {.no-copy}
 Returns the number of dimensions of DataSlice `x`.
 ```
 
 ### `DataSlice.get_obj_schema(self)` {#DataSlice.get_obj_schema}
+Aliases:
+
+- [DataItem.get_obj_schema](#DataItem.get_obj_schema)
 
 ``` {.no-copy}
 Returns a DataSlice of schemas for Objects and primitives in `x`.
@@ -9115,6 +9210,9 @@ Returns:
 ```
 
 ### `DataSlice.get_present_count(self)` {#DataSlice.get_present_count}
+Aliases:
+
+- [DataItem.get_present_count](#DataItem.get_present_count)
 
 ``` {.no-copy}
 Returns the count of present items over all dimensions.
@@ -9126,18 +9224,27 @@ Args:
 ```
 
 ### `DataSlice.get_schema()` {#DataSlice.get_schema}
+Aliases:
+
+- [DataItem.get_schema](#DataItem.get_schema)
 
 ``` {.no-copy}
 Returns a schema DataItem with type information about this DataSlice.
 ```
 
 ### `DataSlice.get_shape()` {#DataSlice.get_shape}
+Aliases:
+
+- [DataItem.get_shape](#DataItem.get_shape)
 
 ``` {.no-copy}
 Returns the shape of the DataSlice.
 ```
 
 ### `DataSlice.get_size(self)` {#DataSlice.get_size}
+Aliases:
+
+- [DataItem.get_size](#DataItem.get_size)
 
 ``` {.no-copy}
 Returns the number of items in `x`, including missing items.
@@ -9150,18 +9257,27 @@ Returns:
 ```
 
 ### `DataSlice.get_value_schema(self)` {#DataSlice.get_value_schema}
+Aliases:
+
+- [DataItem.get_value_schema](#DataItem.get_value_schema)
 
 ``` {.no-copy}
 Returns the value schema of a Dict schema`.
 ```
 
 ### `DataSlice.get_values()` {#DataSlice.get_values}
+Aliases:
+
+- [DataItem.get_values](#DataItem.get_values)
 
 ``` {.no-copy}
 Returns values of all dicts in this DataSlice.
 ```
 
 ### `DataSlice.has_attr(self, attr_name)` {#DataSlice.has_attr}
+Aliases:
+
+- [DataItem.has_attr](#DataItem.has_attr)
 
 ``` {.no-copy}
 Indicates whether the items in `x` DataSlice have the given attribute.
@@ -9179,6 +9295,9 @@ Returns:
 ```
 
 ### `DataSlice.implode(self, ndim=DataItem(1, schema: INT64), itemid=unspecified)` {#DataSlice.implode}
+Aliases:
+
+- [DataItem.implode](#DataItem.implode)
 
 ``` {.no-copy}
 Implodes a Dataslice `x` a specified number of times.
@@ -9203,18 +9322,27 @@ Returns:
 ```
 
 ### `DataSlice.internal_as_arolla_value()` {#DataSlice.internal_as_arolla_value}
+Aliases:
+
+- [DataItem.internal_as_arolla_value](#DataItem.internal_as_arolla_value)
 
 ``` {.no-copy}
 Converts primitive DataSlice / DataItem into an equivalent Arolla value.
 ```
 
 ### `DataSlice.internal_as_dense_array()` {#DataSlice.internal_as_dense_array}
+Aliases:
+
+- [DataItem.internal_as_dense_array](#DataItem.internal_as_dense_array)
 
 ``` {.no-copy}
 Converts primitive DataSlice to an Arolla DenseArray with appropriate qtype.
 ```
 
 ### `DataSlice.internal_as_py()` {#DataSlice.internal_as_py}
+Aliases:
+
+- [DataItem.internal_as_py](#DataItem.internal_as_py)
 
 ``` {.no-copy}
 Returns a Python object equivalent to this DataSlice.
@@ -9224,42 +9352,63 @@ structure will contain DataItems.
 ```
 
 ### `DataSlice.internal_is_any_schema()` {#DataSlice.internal_is_any_schema}
+Aliases:
+
+- [DataItem.internal_is_any_schema](#DataItem.internal_is_any_schema)
 
 ``` {.no-copy}
 Returns present iff this DataSlice is ANY Schema.
 ```
 
 ### `DataSlice.internal_is_itemid_schema()` {#DataSlice.internal_is_itemid_schema}
+Aliases:
+
+- [DataItem.internal_is_itemid_schema](#DataItem.internal_is_itemid_schema)
 
 ``` {.no-copy}
 Returns present iff this DataSlice is ITEMID Schema.
 ```
 
 ### `DataSlice.is_dict()` {#DataSlice.is_dict}
+Aliases:
+
+- [DataItem.is_dict](#DataItem.is_dict)
 
 ``` {.no-copy}
 Returns present iff this DataSlice has Dict schema or contains only dicts.
 ```
 
 ### `DataSlice.is_dict_schema()` {#DataSlice.is_dict_schema}
+Aliases:
+
+- [DataItem.is_dict_schema](#DataItem.is_dict_schema)
 
 ``` {.no-copy}
 Returns present iff this DataSlice is a Dict Schema.
 ```
 
 ### `DataSlice.is_empty()` {#DataSlice.is_empty}
+Aliases:
+
+- [DataItem.is_empty](#DataItem.is_empty)
 
 ``` {.no-copy}
 Returns present iff this DataSlice is empty.
 ```
 
 ### `DataSlice.is_entity()` {#DataSlice.is_entity}
+Aliases:
+
+- [DataItem.is_entity](#DataItem.is_entity)
 
 ``` {.no-copy}
 Returns present iff this DataSlice has Entity schema or contains only entities.
 ```
 
 ### `DataSlice.is_entity_schema()` {#DataSlice.is_entity_schema}
+Aliases:
+
+- [DataItem.is_entity_schema](#DataItem.is_entity_schema)
 
 ``` {.no-copy}
 Returns present iff this DataSlice represents an Entity Schema.
@@ -9271,24 +9420,36 @@ Returns:
 ```
 
 ### `DataSlice.is_list()` {#DataSlice.is_list}
+Aliases:
+
+- [DataItem.is_list](#DataItem.is_list)
 
 ``` {.no-copy}
 Returns present iff this DataSlice has List schema or contains only lists.
 ```
 
 ### `DataSlice.is_list_schema()` {#DataSlice.is_list_schema}
+Aliases:
+
+- [DataItem.is_list_schema](#DataItem.is_list_schema)
 
 ``` {.no-copy}
 Returns present iff this DataSlice is a List Schema.
 ```
 
 ### `DataSlice.is_mutable()` {#DataSlice.is_mutable}
+Aliases:
+
+- [DataItem.is_mutable](#DataItem.is_mutable)
 
 ``` {.no-copy}
 Returns present iff the attached DataBag is mutable.
 ```
 
 ### `DataSlice.is_primitive(self)` {#DataSlice.is_primitive}
+Aliases:
+
+- [DataItem.is_primitive](#DataItem.is_primitive)
 
 ``` {.no-copy}
 Returns whether x is a primitive DataSlice.
@@ -9314,24 +9475,36 @@ Returns:
 ```
 
 ### `DataSlice.is_primitive_schema()` {#DataSlice.is_primitive_schema}
+Aliases:
+
+- [DataItem.is_primitive_schema](#DataItem.is_primitive_schema)
 
 ``` {.no-copy}
 Returns present iff this DataSlice is a primitive (scalar) Schema.
 ```
 
 ### `DataSlice.list_size(self)` {#DataSlice.list_size}
+Aliases:
+
+- [DataItem.list_size](#DataItem.list_size)
 
 ``` {.no-copy}
 Returns size of a List.
 ```
 
 ### `DataSlice.maybe(self, attr_name)` {#DataSlice.maybe}
+Aliases:
+
+- [DataItem.maybe](#DataItem.maybe)
 
 ``` {.no-copy}
 A shortcut for kd.get_attr(x, attr_name, default=None).
 ```
 
 ### `DataSlice.no_bag()` {#DataSlice.no_bag}
+Aliases:
+
+- [DataItem.no_bag](#DataItem.no_bag)
 
 ``` {.no-copy}
 Returns a copy of DataSlice without DataBag.
@@ -9344,6 +9517,9 @@ QType of the stored value.
 ```
 
 ### `DataSlice.ref(self)` {#DataSlice.ref}
+Aliases:
+
+- [DataItem.ref](#DataItem.ref)
 
 ``` {.no-copy}
 Returns `ds` with the DataBag removed.
@@ -9360,6 +9536,9 @@ Args:
 ```
 
 ### `DataSlice.repeat(self, sizes)` {#DataSlice.repeat}
+Aliases:
+
+- [DataItem.repeat](#DataItem.repeat)
 
 ``` {.no-copy}
 Returns `x` with values repeated according to `sizes`.
@@ -9386,6 +9565,9 @@ Args:
 ```
 
 ### `DataSlice.reshape(self, shape)` {#DataSlice.reshape}
+Aliases:
+
+- [DataItem.reshape](#DataItem.reshape)
 
 ``` {.no-copy}
 Returns a DataSlice with the provided shape.
@@ -9422,12 +9604,18 @@ Args:
 ```
 
 ### `DataSlice.reshape_as(self, shape_from)` {#DataSlice.reshape_as}
+Aliases:
+
+- [DataItem.reshape_as](#DataItem.reshape_as)
 
 ``` {.no-copy}
 Returns a DataSlice x reshaped to the shape of DataSlice shape_from.
 ```
 
 ### `DataSlice.select(self, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#DataSlice.select}
+Aliases:
+
+- [DataItem.select](#DataItem.select)
 
 ``` {.no-copy}
 Creates a new DataSlice by filtering out missing items in fltr.
@@ -9460,6 +9648,9 @@ Returns:
 ```
 
 ### `DataSlice.select_items(self, fltr)` {#DataSlice.select_items}
+Aliases:
+
+- [DataItem.select_items](#DataItem.select_items)
 
 ``` {.no-copy}
 Selects List items by filtering out missing items in fltr.
@@ -9476,6 +9667,9 @@ Returns:
 ```
 
 ### `DataSlice.select_keys(self, fltr)` {#DataSlice.select_keys}
+Aliases:
+
+- [DataItem.select_keys](#DataItem.select_keys)
 
 ``` {.no-copy}
 Selects Dict keys by filtering out missing items in `fltr`.
@@ -9492,12 +9686,18 @@ Returns:
 ```
 
 ### `DataSlice.select_present(self)` {#DataSlice.select_present}
+Aliases:
+
+- [DataItem.select_present](#DataItem.select_present)
 
 ``` {.no-copy}
 Creates a new DataSlice by removing missing items.
 ```
 
 ### `DataSlice.select_values(self, fltr)` {#DataSlice.select_values}
+Aliases:
+
+- [DataItem.select_values](#DataItem.select_values)
 
 ``` {.no-copy}
 Selects Dict values by filtering out missing items in `fltr`.
@@ -9514,12 +9714,18 @@ Returns:
 ```
 
 ### `DataSlice.set_attr(attr_name, value, /, update_schema=False)` {#DataSlice.set_attr}
+Aliases:
+
+- [DataItem.set_attr](#DataItem.set_attr)
 
 ``` {.no-copy}
 Sets an attribute `attr_name` to `value`.
 ```
 
 ### `DataSlice.set_attrs(*, update_schema=False, **attrs)` {#DataSlice.set_attrs}
+Aliases:
+
+- [DataItem.set_attrs](#DataItem.set_attrs)
 
 ``` {.no-copy}
 Sets multiple attributes on an object / entity.
@@ -9532,6 +9738,9 @@ Args:
 ```
 
 ### `DataSlice.set_schema(schema, /)` {#DataSlice.set_schema}
+Aliases:
+
+- [DataItem.set_schema](#DataItem.set_schema)
 
 ``` {.no-copy}
 Returns a copy of DataSlice with the provided `schema`.
@@ -9546,6 +9755,9 @@ Returns:
 ```
 
 ### `DataSlice.shallow_clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataSlice.shallow_clone}
+Aliases:
+
+- [DataItem.shallow_clone](#DataItem.shallow_clone)
 
 ``` {.no-copy}
 Creates a DataSlice with shallow clones of immediate attributes.
@@ -9573,6 +9785,9 @@ Returns:
 ```
 
 ### `DataSlice.stub(self, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#DataSlice.stub}
+Aliases:
+
+- [DataItem.stub](#DataItem.stub)
 
 ``` {.no-copy}
 Copies a DataSlice's schema stub to a new DataBag.
@@ -9603,6 +9818,9 @@ Returns:
 ```
 
 ### `DataSlice.take(self, indices)` {#DataSlice.take}
+Aliases:
+
+- [DataItem.take](#DataItem.take)
 
 ``` {.no-copy}
 Returns a new DataSlice with items at provided indices.
@@ -9639,6 +9857,9 @@ Returns:
 ```
 
 ### `DataSlice.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True)` {#DataSlice.to_py}
+Aliases:
+
+- [DataItem.to_py](#DataItem.to_py)
 
 ``` {.no-copy}
 Returns a readable python object from a DataSlice.
@@ -9656,6 +9877,9 @@ Returns a readable python object from a DataSlice.
 ```
 
 ### `DataSlice.to_pytree(ds, max_depth=2, include_missing_attrs=True)` {#DataSlice.to_pytree}
+Aliases:
+
+- [DataItem.to_pytree](#DataItem.to_pytree)
 
 ``` {.no-copy}
 Returns a readable python object from a DataSlice.
@@ -9674,6 +9898,9 @@ Returns a readable python object from a DataSlice.
 ```
 
 ### `DataSlice.updated(self, *bag)` {#DataSlice.updated}
+Aliases:
+
+- [DataItem.updated](#DataItem.updated)
 
 ``` {.no-copy}
 Returns a copy of a DataSlice with DataBag(s) of updates applied.
@@ -9696,24 +9923,36 @@ Returns:
 ```
 
 ### `DataSlice.with_attr(self, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#DataSlice.with_attr}
+Aliases:
+
+- [DataItem.with_attr](#DataItem.with_attr)
 
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing a single updated attribute.
 ```
 
 ### `DataSlice.with_attrs(self, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataSlice.with_attrs}
+Aliases:
+
+- [DataItem.with_attrs](#DataItem.with_attrs)
 
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing updated attributes.
 ```
 
 ### `DataSlice.with_bag(bag, /)` {#DataSlice.with_bag}
+Aliases:
+
+- [DataItem.with_bag](#DataItem.with_bag)
 
 ``` {.no-copy}
 Returns a copy of DataSlice with DataBag `db`.
 ```
 
 ### `DataSlice.with_dict_update(self, keys, values=unspecified)` {#DataSlice.with_dict_update}
+Aliases:
+
+- [DataItem.with_dict_update](#DataItem.with_dict_update)
 
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing updated dicts.
@@ -9734,6 +9973,9 @@ Args:
 ```
 
 ### `DataSlice.with_merged_bag(self)` {#DataSlice.with_merged_bag}
+Aliases:
+
+- [DataItem.with_merged_bag](#DataItem.with_merged_bag)
 
 ``` {.no-copy}
 Returns a DataSlice with the DataBag of `ds` merged with its fallbacks.
@@ -9757,6 +9999,9 @@ Returns:
 Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
 
 ### `DataSlice.with_schema(schema, /)` {#DataSlice.with_schema}
+Aliases:
+
+- [DataItem.with_schema](#DataItem.with_schema)
 
 ``` {.no-copy}
 Returns a copy of DataSlice with the provided `schema`.
@@ -9772,6 +10017,9 @@ Returns:
 ```
 
 ### `DataSlice.with_schema_from_obj(self)` {#DataSlice.with_schema_from_obj}
+Aliases:
+
+- [DataItem.with_schema_from_obj](#DataItem.with_schema_from_obj)
 
 ``` {.no-copy}
 Returns `x` with its embedded common schema set as the schema.
@@ -10344,5 +10592,428 @@ Returns:
 ### `DataBag.with_name(obj, name)` {#DataBag.with_name}
 
 Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
+
+</section>
+
+## `DataItem` methods {#DataItem_category}
+
+`DataItem` represents a single item (i.e. primitive value, ItemId).
+
+<section class="zippy closed">
+
+**Operators**
+
+### `DataItem.L` {#DataItem.L}
+
+``` {.no-copy}
+ListSlicing helper for DataSlice.
+
+  x.L on DataSlice returns a ListSlicingHelper, which treats the first dimension
+  of DataSlice x as a a list.
+```
+
+### `DataItem.S` {#DataItem.S}
+
+``` {.no-copy}
+Slicing helper for DataSlice.
+
+  It is a syntactic sugar for kd.subslice. That is, kd.subslice(ds, *slices)
+  is equivalent to ds.S[*slices]. For example,
+    kd.subslice(x, 0) == x.S[0]
+    kd.subslice(x, 0, 1, kd.item(0)) == x.S[0, 1, kd.item(0)]
+    kd.subslice(x, slice(0, -1)) == x.S[0:-1]
+    kd.subslice(x, slice(0, -1), slice(0, 1), slice(1, None))
+      == x.S[0:-1, 0:1, 1:]
+    kd.subslice(x, ..., slice(1, None)) == x.S[..., 1:]
+    kd.subslice(x, slice(1, None)) == x.S[1:]
+
+  Please see kd.subslice for more detailed explanations and examples.
+```
+
+### `DataItem.append(value, /)` {#DataItem.append}
+
+Alias for [DataSlice.append](#DataSlice.append) operator.
+
+### `DataItem.as_any()` {#DataItem.as_any}
+
+Alias for [DataSlice.as_any](#DataSlice.as_any) operator.
+
+### `DataItem.bind(self, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs)` {#DataItem.bind}
+
+``` {.no-copy}
+Returns a Koda functor that partially binds a function to `kwargs`.
+
+  This function is intended to work the same as functools.partial in Python.
+  More specifically, for every "k=something" argument that you pass to this
+  function, whenever the resulting functor is called, if the user did not
+  provide "k=something_else" at call time, we will add "k=something".
+
+  Note that you can only provide defaults for the arguments passed as keyword
+  arguments this way. Positional arguments must still be provided at call time.
+  Moreover, if the user provides a value for a positional-or-keyword argument
+  positionally, and it was previously bound using this method, an exception
+  will occur.
+
+  You can pass expressions with their own inputs as values in `kwargs`. Those
+  inputs will become inputs of the resulting functor, will be used to compute
+  those expressions, _and_ they will also be passed to the underying functor.
+  Use kdf.call_fn for a more clear separation of those inputs.
+
+  Example:
+    f = kd.fn(I.x + I.y).bind(x=0)
+    kd.call(f, y=1)  # 1
+
+  Args:
+    self: A Koda functor.
+    return_type_as: The return type of the functor is expected to be the same as
+      the type of this value. This needs to be specified if the functor does not
+      return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
+      passed here.
+    **kwargs: Partial parameter binding. The values in this map may be Koda
+      expressions or DataItems. When they are expressions, they must evaluate to
+      a DataSlice/DataItem or a primitive that will be automatically wrapped
+      into a DataItem. This function creates auxiliary variables with names
+      starting with '_aux_fn', so it is not recommended to pass variables with
+      such names.
+
+  Returns:
+    A new Koda functor with some parameters bound.
+```
+
+### `DataItem.clear()` {#DataItem.clear}
+
+Alias for [DataSlice.clear](#DataSlice.clear) operator.
+
+### `DataItem.clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataItem.clone}
+
+Alias for [DataSlice.clone](#DataSlice.clone) operator.
+
+### `DataItem.deep_clone(self, schema=unspecified, **overrides)` {#DataItem.deep_clone}
+
+Alias for [DataSlice.deep_clone](#DataSlice.deep_clone) operator.
+
+### `DataItem.deep_uuid(self, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#DataItem.deep_uuid}
+
+Alias for [DataSlice.deep_uuid](#DataSlice.deep_uuid) operator.
+
+### `DataItem.dict_size(self)` {#DataItem.dict_size}
+
+Alias for [DataSlice.dict_size](#DataSlice.dict_size) operator.
+
+### `DataItem.dict_update(self, keys, values=unspecified)` {#DataItem.dict_update}
+
+Alias for [DataSlice.dict_update](#DataSlice.dict_update) operator.
+
+### `DataItem.display(self, options=None)` {#DataItem.display}
+
+Alias for [DataSlice.display](#DataSlice.display) operator.
+
+### `DataItem.embed_schema()` {#DataItem.embed_schema}
+
+Alias for [DataSlice.embed_schema](#DataSlice.embed_schema) operator.
+
+### `DataItem.enriched(self, *bag)` {#DataItem.enriched}
+
+Alias for [DataSlice.enriched](#DataSlice.enriched) operator.
+
+### `DataItem.expand_to(self, target, ndim=unspecified)` {#DataItem.expand_to}
+
+Alias for [DataSlice.expand_to](#DataSlice.expand_to) operator.
+
+### `DataItem.explode(self, ndim=DataItem(1, schema: INT64))` {#DataItem.explode}
+
+Alias for [DataSlice.explode](#DataSlice.explode) operator.
+
+### `DataItem.extract(self, schema=unspecified)` {#DataItem.extract}
+
+Alias for [DataSlice.extract](#DataSlice.extract) operator.
+
+### `DataItem.extract_bag(self, schema=unspecified)` {#DataItem.extract_bag}
+
+Alias for [DataSlice.extract_bag](#DataSlice.extract_bag) operator.
+
+### `DataItem.fingerprint` {#DataItem.fingerprint}
+
+``` {.no-copy}
+Unique identifier of the value.
+```
+
+### `DataItem.flatten(self, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#DataItem.flatten}
+
+Alias for [DataSlice.flatten](#DataSlice.flatten) operator.
+
+### `DataItem.follow(self)` {#DataItem.follow}
+
+Alias for [DataSlice.follow](#DataSlice.follow) operator.
+
+### `DataItem.fork_bag(self)` {#DataItem.fork_bag}
+
+Alias for [DataSlice.fork_bag](#DataSlice.fork_bag) operator.
+
+### `DataItem.freeze(self)` {#DataItem.freeze}
+
+Alias for [DataSlice.freeze](#DataSlice.freeze) operator.
+
+### `DataItem.freeze_bag()` {#DataItem.freeze_bag}
+
+Alias for [DataSlice.freeze_bag](#DataSlice.freeze_bag) operator.
+
+### `DataItem.from_vals` {#DataItem.from_vals}
+
+Alias for [kd.slices.item](#kd.slices.item) operator.
+
+### `DataItem.get_attr(attr_name, /, default=None)` {#DataItem.get_attr}
+
+Alias for [DataSlice.get_attr](#DataSlice.get_attr) operator.
+
+### `DataItem.get_attr_names(*, intersection)` {#DataItem.get_attr_names}
+
+Alias for [DataSlice.get_attr_names](#DataSlice.get_attr_names) operator.
+
+### `DataItem.get_bag()` {#DataItem.get_bag}
+
+Alias for [DataSlice.get_bag](#DataSlice.get_bag) operator.
+
+### `DataItem.get_dtype(self)` {#DataItem.get_dtype}
+
+Alias for [DataSlice.get_dtype](#DataSlice.get_dtype) operator.
+
+### `DataItem.get_item_schema(self)` {#DataItem.get_item_schema}
+
+Alias for [DataSlice.get_item_schema](#DataSlice.get_item_schema) operator.
+
+### `DataItem.get_itemid(self)` {#DataItem.get_itemid}
+
+Alias for [DataSlice.get_itemid](#DataSlice.get_itemid) operator.
+
+### `DataItem.get_key_schema(self)` {#DataItem.get_key_schema}
+
+Alias for [DataSlice.get_key_schema](#DataSlice.get_key_schema) operator.
+
+### `DataItem.get_keys()` {#DataItem.get_keys}
+
+Alias for [DataSlice.get_keys](#DataSlice.get_keys) operator.
+
+### `DataItem.get_ndim(self)` {#DataItem.get_ndim}
+
+Alias for [DataSlice.get_ndim](#DataSlice.get_ndim) operator.
+
+### `DataItem.get_obj_schema(self)` {#DataItem.get_obj_schema}
+
+Alias for [DataSlice.get_obj_schema](#DataSlice.get_obj_schema) operator.
+
+### `DataItem.get_present_count(self)` {#DataItem.get_present_count}
+
+Alias for [DataSlice.get_present_count](#DataSlice.get_present_count) operator.
+
+### `DataItem.get_schema()` {#DataItem.get_schema}
+
+Alias for [DataSlice.get_schema](#DataSlice.get_schema) operator.
+
+### `DataItem.get_shape()` {#DataItem.get_shape}
+
+Alias for [DataSlice.get_shape](#DataSlice.get_shape) operator.
+
+### `DataItem.get_size(self)` {#DataItem.get_size}
+
+Alias for [DataSlice.get_size](#DataSlice.get_size) operator.
+
+### `DataItem.get_value_schema(self)` {#DataItem.get_value_schema}
+
+Alias for [DataSlice.get_value_schema](#DataSlice.get_value_schema) operator.
+
+### `DataItem.get_values()` {#DataItem.get_values}
+
+Alias for [DataSlice.get_values](#DataSlice.get_values) operator.
+
+### `DataItem.has_attr(self, attr_name)` {#DataItem.has_attr}
+
+Alias for [DataSlice.has_attr](#DataSlice.has_attr) operator.
+
+### `DataItem.implode(self, ndim=DataItem(1, schema: INT64), itemid=unspecified)` {#DataItem.implode}
+
+Alias for [DataSlice.implode](#DataSlice.implode) operator.
+
+### `DataItem.internal_as_arolla_value()` {#DataItem.internal_as_arolla_value}
+
+Alias for [DataSlice.internal_as_arolla_value](#DataSlice.internal_as_arolla_value) operator.
+
+### `DataItem.internal_as_dense_array()` {#DataItem.internal_as_dense_array}
+
+Alias for [DataSlice.internal_as_dense_array](#DataSlice.internal_as_dense_array) operator.
+
+### `DataItem.internal_as_py()` {#DataItem.internal_as_py}
+
+Alias for [DataSlice.internal_as_py](#DataSlice.internal_as_py) operator.
+
+### `DataItem.internal_is_any_schema()` {#DataItem.internal_is_any_schema}
+
+Alias for [DataSlice.internal_is_any_schema](#DataSlice.internal_is_any_schema) operator.
+
+### `DataItem.internal_is_itemid_schema()` {#DataItem.internal_is_itemid_schema}
+
+Alias for [DataSlice.internal_is_itemid_schema](#DataSlice.internal_is_itemid_schema) operator.
+
+### `DataItem.is_dict()` {#DataItem.is_dict}
+
+Alias for [DataSlice.is_dict](#DataSlice.is_dict) operator.
+
+### `DataItem.is_dict_schema()` {#DataItem.is_dict_schema}
+
+Alias for [DataSlice.is_dict_schema](#DataSlice.is_dict_schema) operator.
+
+### `DataItem.is_empty()` {#DataItem.is_empty}
+
+Alias for [DataSlice.is_empty](#DataSlice.is_empty) operator.
+
+### `DataItem.is_entity()` {#DataItem.is_entity}
+
+Alias for [DataSlice.is_entity](#DataSlice.is_entity) operator.
+
+### `DataItem.is_entity_schema()` {#DataItem.is_entity_schema}
+
+Alias for [DataSlice.is_entity_schema](#DataSlice.is_entity_schema) operator.
+
+### `DataItem.is_list()` {#DataItem.is_list}
+
+Alias for [DataSlice.is_list](#DataSlice.is_list) operator.
+
+### `DataItem.is_list_schema()` {#DataItem.is_list_schema}
+
+Alias for [DataSlice.is_list_schema](#DataSlice.is_list_schema) operator.
+
+### `DataItem.is_mutable()` {#DataItem.is_mutable}
+
+Alias for [DataSlice.is_mutable](#DataSlice.is_mutable) operator.
+
+### `DataItem.is_primitive(self)` {#DataItem.is_primitive}
+
+Alias for [DataSlice.is_primitive](#DataSlice.is_primitive) operator.
+
+### `DataItem.is_primitive_schema()` {#DataItem.is_primitive_schema}
+
+Alias for [DataSlice.is_primitive_schema](#DataSlice.is_primitive_schema) operator.
+
+### `DataItem.list_size(self)` {#DataItem.list_size}
+
+Alias for [DataSlice.list_size](#DataSlice.list_size) operator.
+
+### `DataItem.maybe(self, attr_name)` {#DataItem.maybe}
+
+Alias for [DataSlice.maybe](#DataSlice.maybe) operator.
+
+### `DataItem.no_bag()` {#DataItem.no_bag}
+
+Alias for [DataSlice.no_bag](#DataSlice.no_bag) operator.
+
+### `DataItem.qtype` {#DataItem.qtype}
+
+``` {.no-copy}
+QType of the stored value.
+```
+
+### `DataItem.ref(self)` {#DataItem.ref}
+
+Alias for [DataSlice.ref](#DataSlice.ref) operator.
+
+### `DataItem.repeat(self, sizes)` {#DataItem.repeat}
+
+Alias for [DataSlice.repeat](#DataSlice.repeat) operator.
+
+### `DataItem.reshape(self, shape)` {#DataItem.reshape}
+
+Alias for [DataSlice.reshape](#DataSlice.reshape) operator.
+
+### `DataItem.reshape_as(self, shape_from)` {#DataItem.reshape_as}
+
+Alias for [DataSlice.reshape_as](#DataSlice.reshape_as) operator.
+
+### `DataItem.select(self, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#DataItem.select}
+
+Alias for [DataSlice.select](#DataSlice.select) operator.
+
+### `DataItem.select_items(self, fltr)` {#DataItem.select_items}
+
+Alias for [DataSlice.select_items](#DataSlice.select_items) operator.
+
+### `DataItem.select_keys(self, fltr)` {#DataItem.select_keys}
+
+Alias for [DataSlice.select_keys](#DataSlice.select_keys) operator.
+
+### `DataItem.select_present(self)` {#DataItem.select_present}
+
+Alias for [DataSlice.select_present](#DataSlice.select_present) operator.
+
+### `DataItem.select_values(self, fltr)` {#DataItem.select_values}
+
+Alias for [DataSlice.select_values](#DataSlice.select_values) operator.
+
+### `DataItem.set_attr(attr_name, value, /, update_schema=False)` {#DataItem.set_attr}
+
+Alias for [DataSlice.set_attr](#DataSlice.set_attr) operator.
+
+### `DataItem.set_attrs(*, update_schema=False, **attrs)` {#DataItem.set_attrs}
+
+Alias for [DataSlice.set_attrs](#DataSlice.set_attrs) operator.
+
+### `DataItem.set_schema(schema, /)` {#DataItem.set_schema}
+
+Alias for [DataSlice.set_schema](#DataSlice.set_schema) operator.
+
+### `DataItem.shallow_clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataItem.shallow_clone}
+
+Alias for [DataSlice.shallow_clone](#DataSlice.shallow_clone) operator.
+
+### `DataItem.stub(self, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#DataItem.stub}
+
+Alias for [DataSlice.stub](#DataSlice.stub) operator.
+
+### `DataItem.take(self, indices)` {#DataItem.take}
+
+Alias for [DataSlice.take](#DataSlice.take) operator.
+
+### `DataItem.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True)` {#DataItem.to_py}
+
+Alias for [DataSlice.to_py](#DataSlice.to_py) operator.
+
+### `DataItem.to_pytree(ds, max_depth=2, include_missing_attrs=True)` {#DataItem.to_pytree}
+
+Alias for [DataSlice.to_pytree](#DataSlice.to_pytree) operator.
+
+### `DataItem.updated(self, *bag)` {#DataItem.updated}
+
+Alias for [DataSlice.updated](#DataSlice.updated) operator.
+
+### `DataItem.with_attr(self, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#DataItem.with_attr}
+
+Alias for [DataSlice.with_attr](#DataSlice.with_attr) operator.
+
+### `DataItem.with_attrs(self, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataItem.with_attrs}
+
+Alias for [DataSlice.with_attrs](#DataSlice.with_attrs) operator.
+
+### `DataItem.with_bag(bag, /)` {#DataItem.with_bag}
+
+Alias for [DataSlice.with_bag](#DataSlice.with_bag) operator.
+
+### `DataItem.with_dict_update(self, keys, values=unspecified)` {#DataItem.with_dict_update}
+
+Alias for [DataSlice.with_dict_update](#DataSlice.with_dict_update) operator.
+
+### `DataItem.with_merged_bag(self)` {#DataItem.with_merged_bag}
+
+Alias for [DataSlice.with_merged_bag](#DataSlice.with_merged_bag) operator.
+
+### `DataItem.with_name(obj, name)` {#DataItem.with_name}
+
+Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
+
+### `DataItem.with_schema(schema, /)` {#DataItem.with_schema}
+
+Alias for [DataSlice.with_schema](#DataSlice.with_schema) operator.
+
+### `DataItem.with_schema_from_obj(self)` {#DataItem.with_schema_from_obj}
+
+Alias for [DataSlice.with_schema_from_obj](#DataSlice.with_schema_from_obj) operator.
 
 </section>
