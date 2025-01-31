@@ -116,8 +116,7 @@ class CoreHasAttrTest(parameterized.TestCase):
       expr_eval.eval(kde.core.has_attr(self.entity, 42))
 
     with self.assertRaisesRegex(
-        ValueError,
-        'failed to get \'a\' attribute.* primitives do not have attributes'
+        ValueError, 'primitives do not have attributes'
     ):
       expr_eval.eval(kde.core.has_attr(43, 'a'))
 

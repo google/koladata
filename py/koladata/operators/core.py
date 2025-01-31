@@ -102,38 +102,6 @@ def maybe(x, attr_name):
   return _get_attr_with_default(x, attr_name, None)
 
 
-@optools.add_to_registry(aliases=['kd.has_attr'])
-@optools.as_lambda_operator(
-    'kd.core.has_attr',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.attr_name),
-    ],
-)
-def has_attr(x, attr_name):
-  """Indicates whether the items in `x` DataSlice have the given attribute.
-
-  This function checks for attributes based on data rather than "schema" and may
-  be slow in some cases.
-
-  Args:
-    x: DataSlice
-    attr_name: Name of the attribute to check.
-
-  Returns:
-    A MASK DataSlice with the same shape as `x` that contains present if the
-    attribute exists for the corresponding item.
-  """
-  return masking.has(
-      maybe(x & (x.get_schema() == schema_constants.SCHEMA), attr_name)
-  ) | masking.has(
-      maybe(
-          (x & (x.get_schema() != schema_constants.SCHEMA)).as_any(),
-          attr_name,
-      )
-  )
-
-
 @optools.add_to_registry(aliases=['kd.has_primitive'])
 @optools.as_backend_operator(
     'kd.core.has_primitive',
@@ -194,6 +162,53 @@ def is_primitive(x):  # pylint: disable=unused-argument
     A MASK DataItem.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.no_bag'])
+@optools.as_backend_operator(
+    'kd.core.no_bag',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
+)
+def no_bag(ds):  # pylint: disable=unused-argument
+  """Returns DataSlice without any DataBag attached."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.has_attr'])
+@optools.as_lambda_operator(
+    'kd.core.has_attr',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.attr_name),
+    ],
+)
+def has_attr(x, attr_name):
+  """Indicates whether the items in `x` DataSlice have the given attribute.
+
+  This function checks for attributes based on data rather than "schema" and may
+  be slow in some cases.
+
+  Args:
+    x: DataSlice
+    attr_name: Name of the attribute to check.
+
+  Returns:
+    A MASK DataSlice with the same shape as `x` that contains present if the
+    attribute exists for the corresponding item.
+  """
+  x = assertion.with_assertion(
+      x, ~masking.any_(has_primitive(x)), 'primitives do not have attributes'
+  )
+  return masking.has(
+      maybe(x & (x.get_schema() == schema_constants.SCHEMA), attr_name)
+  ) | masking.has(
+      maybe(
+          (x & (x.get_schema() != schema_constants.SCHEMA)).with_schema(
+              schema_ops.uu_schema().no_bag()
+          ),
+          attr_name,
+      )
+  )
 
 
 @optools.add_to_registry(aliases=['kd.has_entity'])
@@ -718,16 +733,6 @@ def nofollow(x):  # pylint: disable=unused-argument
   Args:
     x: DataSlice to wrap.
   """
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kd.no_bag'])
-@optools.as_backend_operator(
-    'kd.core.no_bag',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-)
-def no_bag(ds):  # pylint: disable=unused-argument
-  """Returns DataSlice without any DataBag attached."""
   raise NotImplementedError('implemented in the backend')
 
 
