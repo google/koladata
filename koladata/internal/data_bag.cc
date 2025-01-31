@@ -816,7 +816,19 @@ DataBagImpl::InternalSetUnitAttrAndReturnMissingObjects(
   std::vector<ObjectId> missing_objects;
   missing_objects.reserve(objects.size());
   AllocationIdSet missing_objects_alloc_ids;
-  for (AllocationId alloc_id : objects.allocation_ids()) {
+
+  if (objects.allocation_ids().contains_small_allocation_id()) {
+    const auto missing_objects_sz = missing_objects.size();
+    auto& source = GetMutableSmallAllocSource(attr);
+    RETURN_IF_ERROR(source.SetUnitAndUpdateMissingObjects(
+        objects.values<ObjectId>(), missing_objects));
+    if (missing_objects.size() != missing_objects_sz) {
+      missing_objects_alloc_ids.InsertSmallAllocationId();
+    }
+  }
+
+  auto process_allocation = [&](const ObjectIdArray& objs,
+                                AllocationId alloc_id) -> absl::Status {
     absl::Cleanup complete_processing_allocation =
         [&, missing_objects_sz = missing_objects.size()] {
           if (missing_objects.size() != missing_objects_sz) {
@@ -829,25 +841,34 @@ DataBagImpl::InternalSetUnitAttrAndReturnMissingObjects(
     }
     RETURN_IF_ERROR(GetOrCreateMutableSourceInCollection(
         collection, alloc_id, attr, arolla::GetQType<arolla::Unit>(),
-        /*update_size=*/objects.size()));
+        /*update_size=*/objs.size()));
     if (collection.mutable_dense_source) {
-      RETURN_IF_ERROR(
-          collection.mutable_dense_source->SetUnitAndUpdateMissingObjects(
-              objects.values<ObjectId>(), missing_objects));
-    } else {
-      DCHECK(collection.mutable_sparse_source);
-      RETURN_IF_ERROR(
-          collection.mutable_sparse_source->SetUnitAndUpdateMissingObjects(
-              objects.values<ObjectId>(), missing_objects));
+      return collection.mutable_dense_source->SetUnitAndUpdateMissingObjects(
+          objs, missing_objects);
     }
-  }
-  if (objects.allocation_ids().contains_small_allocation_id()) {
-    const auto missing_objects_sz = missing_objects.size();
-    auto& source = GetMutableSmallAllocSource(attr);
-    RETURN_IF_ERROR(source.SetUnitAndUpdateMissingObjects(
-        objects.values<ObjectId>(), missing_objects));
-    if (missing_objects.size() != missing_objects_sz) {
-      missing_objects_alloc_ids.InsertSmallAllocationId();
+    DCHECK(collection.mutable_sparse_source);
+    return collection.mutable_sparse_source->SetUnitAndUpdateMissingObjects(
+        objs, missing_objects);
+  };
+
+  const auto& objects_array = objects.values<ObjectId>();
+  if (HasTooManyAllocationIds(objects.allocation_ids().size(),
+                              objects.size())) {
+    auto status = absl::OkStatus();
+    std::vector<ObjectId> to_process_vec(1);
+    ObjectIdArray to_process_array{
+        arolla::Buffer<ObjectId>{nullptr, absl::MakeConstSpan(to_process_vec)}};
+    objects_array.ForEachPresent([&](int64_t i, ObjectId obj) {
+      if (!status.ok() || obj.IsSmallAlloc()) {
+        return;
+      }
+      to_process_vec[0] = obj;
+      status = process_allocation(to_process_array, AllocationId(obj));
+    });
+    RETURN_IF_ERROR(std::move(status));
+  } else {
+    for (AllocationId alloc_id : objects.allocation_ids()) {
+      RETURN_IF_ERROR(process_allocation(objects_array, alloc_id));
     }
   }
   if (missing_objects.size() == objects.size()) {

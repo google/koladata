@@ -1425,6 +1425,38 @@ TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjectsSparseToDense) {
   }
 }
 
+TEST(DataBagTest,
+     InternalSetUnitAttrAndReturnMissingObjectsManyBigAllocations) {
+  constexpr int64_t kSize = 50000;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  std::vector<DataItem> objs1;
+  std::vector<DataItem> objs2;
+  std::vector<DataItem> expected_objs2_missing;
+  for (int64_t i = 0; i < kSize; ++i) {
+    auto obj = DataItem(Allocate(57).ObjectByOffset(i % 57));
+    if (i % 2 == 0) {
+      objs1.push_back(obj);
+    } else {
+      objs2.push_back(obj);
+      if (i % 3 == 0) {
+        objs1.push_back(obj);
+      } else {
+        expected_objs2_missing.push_back(obj);
+      }
+    }
+  }
+  {
+    auto ds = DataSliceImpl::Create(objs1);
+    EXPECT_THAT(db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"),
+                IsOkAndHolds(ElementsAreArray(objs1)));
+  }
+  {
+    auto ds = DataSliceImpl::Create(objs2);
+    EXPECT_THAT(db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"),
+                IsOkAndHolds(ElementsAreArray(expected_objs2_missing)));
+  }
+}
+
 TEST(DataBagTest, SetGetDataItem) {
   auto ds_a = DataItem(57.0f);
   for (DataItem ds : {
