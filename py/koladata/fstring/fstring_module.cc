@@ -23,6 +23,8 @@ constexpr const char* kThisModuleName = "koladata.fstring";
 
 PyMethodDef kPyDataSliceModule_methods[] = {
     {"fstr", (PyCFunction)PyEagerFStringEval, METH_O,
+     "fstr(x)\n"
+     "--\n\n"
      R"DOC(Evaluates Koladata f-string into DataSlice.
 
   f-string must be created via Python f-string syntax. It must contain at least

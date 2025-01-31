@@ -298,7 +298,7 @@ Returns:
   An immutable DataBag enriched by `bags`.
 ```
 
-### `kd.bags.new` {#kd.bags.new}
+### `kd.bags.new()` {#kd.bags.new}
 Aliases:
 
 - [kd.bag](#kd.bag)
@@ -5612,7 +5612,7 @@ Aliases:
 Returns a DataItem indicating whether DataItem x is present in y.
 ```
 
-### `kd.slices.item` {#kd.slices.item}
+### `kd.slices.item(x, /, schema=None)` {#kd.slices.item}
 Aliases:
 
 - [kd.item](#kd.item)
@@ -5860,7 +5860,7 @@ Returns:
   The size of `x`.
 ```
 
-### `kd.slices.slice` {#kd.slices.slice}
+### `kd.slices.slice(x, /, schema=None)` {#kd.slices.slice}
 Aliases:
 
 - [kd.slice](#kd.slice)
@@ -6525,7 +6525,7 @@ Returns:
   The formatted string.
 ```
 
-### `kd.strings.fstr` {#kd.strings.fstr}
+### `kd.strings.fstr(x)` {#kd.strings.fstr}
 Aliases:
 
 - [kd.fstr](#kd.fstr)
@@ -7067,7 +7067,7 @@ Alias for [kd.core.attr](#kd.core.attr) operator.
 
 Alias for [kd.core.attrs](#kd.core.attrs) operator.
 
-### `kd.bag` {#kd.bag}
+### `kd.bag()` {#kd.bag}
 
 Alias for [kd.bags.new](#kd.bags.new) operator.
 
@@ -7091,7 +7091,7 @@ Alias for [kd.functor.call](#kd.functor.call) operator.
 
 Alias for [kd.schema.cast_to](#kd.schema.cast_to) operator.
 
-### `kd.clear_eval_cache` {#kd.clear_eval_cache}
+### `kd.clear_eval_cache()` {#kd.clear_eval_cache}
 
 ``` {.no-copy}
 Clears Koda specific eval caches.
@@ -7442,7 +7442,7 @@ Converts Python object into DataSlice.
 
 Alias for [kd.from_py](#kd.from_py) operator.
 
-### `kd.fstr` {#kd.fstr}
+### `kd.fstr(x)` {#kd.fstr}
 
 Alias for [kd.strings.fstr](#kd.strings.fstr) operator.
 
@@ -7658,7 +7658,7 @@ Returns kd.present if the given object is a DataSlice and kd.missing otherwise.
 
 Alias for [kd.slices.isin](#kd.slices.isin) operator.
 
-### `kd.item` {#kd.item}
+### `kd.item(x, /, schema=None)` {#kd.item}
 
 Alias for [kd.slices.item](#kd.slices.item) operator.
 
@@ -8083,7 +8083,7 @@ Alias for [kd.core.shallow_clone](#kd.core.shallow_clone) operator.
 
 Alias for [kd.slices.size](#kd.slices.size) operator.
 
-### `kd.slice` {#kd.slice}
+### `kd.slice(x, /, schema=None)` {#kd.slice}
 
 Alias for [kd.slices.slice](#kd.slices.slice) operator.
 
@@ -9062,7 +9062,7 @@ Aliases:
 Returns a frozen DataSlice equivalent to `self`.
 ```
 
-### `DataSlice.from_vals` {#DataSlice.from_vals}
+### `DataSlice.from_vals(x, /, schema=None)` {#DataSlice.from_vals}
 
 Alias for [kd.slices.slice](#kd.slices.slice) operator.
 
@@ -10199,7 +10199,7 @@ Creates new Koda dicts with the given shape.
     A DataSlice with the dicts.
 ```
 
-### `DataBag.empty` {#DataBag.empty}
+### `DataBag.empty()` {#DataBag.empty}
 
 Alias for [kd.bags.new](#kd.bags.new) operator.
 
@@ -10758,7 +10758,7 @@ Alias for [DataSlice.freeze](#DataSlice.freeze) operator.
 
 Alias for [DataSlice.freeze_bag](#DataSlice.freeze_bag) operator.
 
-### `DataItem.from_vals` {#DataItem.from_vals}
+### `DataItem.from_vals(x, /, schema=None)` {#DataItem.from_vals}
 
 Alias for [kd.slices.item](#kd.slices.item) operator.
 
