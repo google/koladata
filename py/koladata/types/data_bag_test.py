@@ -1776,6 +1776,62 @@ The cause is the list sizes are incompatible: 2 vs 1
     testing.assert_equivalent(o3.x.no_bag(), ds(1))
     testing.assert_equivalent(o3.y.no_bag(), ds(2))
 
+  def test_adopt_stub_args_errors(self):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'DataBag.adopt_stub accepts exactly 1 argument, got 0'
+    ):
+      bag().adopt_stub()
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'DataBag.adopt_stub accepts exactly 1 argument, got 2'
+    ):
+      bag().adopt_stub(ds(1), ds(2))
+
+  def test_adopt_stub_immutable(self):
+    db1 = bag()
+    db1 = db1.fork(mutable=False)
+    x = bag().obj()
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'cannot modify/create item(s) on an immutable DataBag, perhaps use'
+            ' immutable update APIs (e.g. with_attr, with_dict_update) on'
+            ' immutable entities/dicts or use db.fork() or ds.fork_bag() create'
+            ' a mutable DataBag first'
+        ),
+    ):
+      db1.adopt_stub(x)
+
+  def test_adopt_stub(self):
+    db = bag()
+    x = db.list(
+        [db.list([1, 2]).embed_schema(), db.list([3]).embed_schema()]
+    ).embed_schema()
+    db2 = bag()
+    x_stub = db2.adopt_stub(x)
+    testing.assert_equal(x_stub.get_bag(), db2)
+    testing.assert_equal(x_stub.no_bag(), x.no_bag())
+    testing.assert_equal(
+        x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
+    )
+    testing.assert_equal(x_stub[:].no_bag(), x[:].no_bag())
+    testing.assert_equal(
+        x_stub[:].get_obj_schema().no_bag(), x[:].get_obj_schema().no_bag()
+    )
+    self.assertSameElements(
+        x_stub.get_obj_schema().get_attr_names(intersection=True), ['__items__']
+    )
+
+  def test_adopt_stub_dict(self):
+    x = bag().dict({1: 2, 3: 4})
+    db = bag()
+    x_stub = db.adopt_stub(x)
+    testing.assert_equal(x_stub.get_bag(), db)
+    testing.assert_equal(x_stub.no_bag(), x.no_bag())
+    self.assertSameElements(
+        x_stub.get_schema().get_attr_names(intersection=True),
+        ['__keys__', '__values__'],
+    )
+
   def test_lshift(self):
     db1 = bag()
     o1 = db1.uuobj(x=1)

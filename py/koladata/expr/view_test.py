@@ -646,6 +646,7 @@ class KodaViewTest(parameterized.TestCase):
     skipped_data_bag_attrs = {
         # go/keep-sorted start
         'adopt',
+        'adopt_stub',
         'concat_lists',
         'contents_repr',
         'data_triples_repr',

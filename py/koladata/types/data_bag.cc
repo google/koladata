@@ -1231,6 +1231,26 @@ absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self,
   return WrapPyDataSlice(slice->WithBag(std::move(db)));
 }
 
+absl::Nullable<PyObject*> PyDataBag_adopt_stub(PyObject* self,
+                                               PyObject* const* py_args,
+                                               Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  DataBagPtr db = UnsafeDataBagPtr(self);
+  if (nargs != 1) {
+    PyErr_Format(PyExc_ValueError,
+                 "DataBag.adopt_stub accepts exactly 1 argument, got %d",
+                 nargs);
+    return nullptr;
+  }
+  const DataSlice* slice = UnwrapDataSlice(py_args[0], "slice");
+  if (!slice) {
+    return nullptr;
+  }
+  RETURN_IF_ERROR(AdoptStub(db, *slice))
+      .With(arolla::python::SetPyErrFromStatus);
+  return WrapPyDataSlice(slice->WithBag(std::move(db)));
+}
+
 absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& db = UnsafeDataBagPtr(self);
@@ -1653,6 +1673,21 @@ Args:
 
 Returns:
   The DataSlice with this DataBag (including adopted data) attached.
+)"""},
+    {"adopt_stub", (PyCFunction)PyDataBag_adopt_stub, METH_FASTCALL,
+     "adopt_stub(slice, /)\n"
+     "--\n\n"
+     R"""(Copies the given DataSlice's schema stub into this DataBag.
+
+The "schema stub" of a DataSlice is a subset of its schema (including embedded
+schemas) that contains just enough information to support direct updates to
+that DataSlice. See kd.stub() for more details.
+
+Args:
+  slice: DataSlice to extract the schema stub from.
+
+Returns:
+  The "stub" with this DataBag attached.
 )"""},
     {"merge_fallbacks", PyDataBag_merge_fallbacks, METH_NOARGS,
      "merge_fallbacks()\n"
