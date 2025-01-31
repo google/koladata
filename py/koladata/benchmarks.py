@@ -15,6 +15,7 @@
 """Benchmarks for Kola Data library."""
 
 import copy
+import json
 import random
 
 from arolla import arolla
@@ -545,6 +546,129 @@ def internal_as_py_deep_nesting(state):
   x = kd.slice(lst)
   while state:
     _ = x.internal_as_py()
+
+
+@google_benchmark.register
+def from_json_simple_from_py_baseline(state):
+  x = '{"a": 1, "b": "2", "c": 3.0, "d": [true, false, null]}'
+  while state:
+    _ = kd.from_py(json.loads(x))
+
+
+@google_benchmark.register
+def from_json_simple(state):
+  x = kd.item('{"a": 1, "b": "2", "c": 3.0, "d": [true, false, null]}')
+  while state:
+    _ = kd.from_json(x)
+
+
+@google_benchmark.register
+def from_json_simple_with_schema_from_py_baseline(state):
+  schema = kd.schema.new_schema(
+      a=kd.INT32, b=kd.STRING, c=kd.FLOAT32, d=kd.list_schema(kd.BOOLEAN)
+  )
+  while state:
+    _ = kd.from_py(
+        json.loads('{"a": 1, "b": "2", "c": 3.0, "d": [true, false, null]}'),
+        schema=schema,
+    )
+
+
+@google_benchmark.register
+def from_json_simple_with_schema(state):
+  schema = kd.schema.new_schema(
+      a=kd.INT32, b=kd.STRING, c=kd.FLOAT32, d=kd.list_schema(kd.BOOLEAN)
+  )
+  while state:
+    _ = kd.from_json(
+        '{"a": 1, "b": "2", "c": 3.0, "d": [true, false, null]}',
+        schema=schema,
+    )
+
+
+@google_benchmark.register
+def from_json_100_nested_array_from_py_baseline(state):
+  x = '[' * 100 + ']' * 100
+  while state:
+    _ = kd.from_py(json.loads(x))
+
+
+@google_benchmark.register
+def from_json_100_nested_array(state):
+  x = kd.item('[' * 100 + ']' * 100)
+  while state:
+    _ = kd.from_json(x)
+
+
+@google_benchmark.register
+def from_json_100_nested_object_from_py_baseline(state):
+  x = '{"x":' * 100 + 'null' + '}' * 100
+  while state:
+    _ = kd.from_py(json.loads(x))
+
+
+@google_benchmark.register
+def from_json_100_nested_object_no_keys_attr(state):
+  x = kd.item('{"x":' * 100 + 'null' + '}' * 100)
+  while state:
+    _ = kd.from_json(x, keys_attr=None, values_attr=None)
+
+
+@google_benchmark.register
+def from_json_100_nested_object(state):
+  x = kd.item('{"x":' * 100 + 'null' + '}' * 100)
+  while state:
+    _ = kd.from_json(x)
+
+
+@google_benchmark.register
+def to_json_simple_to_pytree_baseline(state):
+  x = kd.new(a=1, b='2', c=3.0, d=kd.list([True, False, None]))
+  while state:
+    _ = json.dumps(kd.to_pytree(x, max_depth=-1))
+
+
+@google_benchmark.register
+def to_json_simple(state):
+  x = kd.new(a=1, b='2', c=3.0, d=kd.list([True, False, None]))
+  while state:
+    _ = kd.to_json(x)
+
+
+@google_benchmark.register
+def to_json_100_nested_array_to_pytree_baseline(state):
+  x = kd.item(None)
+  for _ in range(100):
+    x = kd.list([x])
+  while state:
+    _ = json.dumps(kd.to_pytree(x, max_depth=-1))
+
+
+@google_benchmark.register
+def to_json_100_nested_array(state):
+  x = kd.item(None)
+  for _ in range(100):
+    x = kd.list([x])
+  while state:
+    _ = kd.to_json(x)
+
+
+@google_benchmark.register
+def to_json_100_nested_object_to_pytree_baseline(state):
+  x = kd.item(None)
+  for _ in range(100):
+    x = kd.new(x=x)
+  while state:
+    _ = json.dumps(kd.to_pytree(x, max_depth=-1))
+
+
+@google_benchmark.register
+def to_json_100_nested_object(state):
+  x = kd.item(None)
+  for _ in range(100):
+    x = kd.new(x=x)
+  while state:
+    _ = kd.to_json(x)
 
 
 @google_benchmark.register
