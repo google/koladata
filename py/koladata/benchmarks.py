@@ -269,7 +269,7 @@ def get_attr_native(state):
 @google_benchmark.register
 @google_benchmark.option.arg_names(['size'])
 @google_benchmark.option.range(100, 10000)
-def set_get_attr_one_obj_per_big_alloc(state):
+def one_obj_per_big_alloc(state):
   size = state.range(0)
   alloc_size = 17
   objs = []
@@ -280,6 +280,9 @@ def set_get_attr_one_obj_per_big_alloc(state):
   ds = kd.slice(objs).fork_bag()
   while state:
     ds.a = ds.a + 1
+    # Extraction of the half of the slice.
+    new_obj = kd.obj(x=ds.S[size // 2:])
+    del new_obj
 
 
 @google_benchmark.register
@@ -1411,7 +1414,7 @@ def subslice(state):
   num_dims = state.range(2)
   dims_to_slice = state.range(3)
   if num_dims == 1:
-    min_size = 10**6
+    min_size = 10**5
     max_size = min_size
   else:
     min_size = 10
