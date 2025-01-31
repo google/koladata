@@ -109,5 +109,5 @@ def selected_path_update(
       else:
         mask = kdi.agg_any(mask)
       child_slice = db.list_like(mask, child_slice)
-    (parent_slice & mask).with_bag(db).as_any().set_attr(attribute, child_slice)
+    db.adopt_stub(parent_slice & mask).set_attr(attribute, child_slice)
   return db
