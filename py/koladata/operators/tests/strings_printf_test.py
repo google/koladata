@@ -114,7 +114,9 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        'kd.strings.printf: cannot format argument 1 of type OBJECT containing'
+        ' INT32 and STRING values',
     ):
       expr_eval.eval(kde.strings.printf(ds('%v'), ds([1, 'foo'])))
 

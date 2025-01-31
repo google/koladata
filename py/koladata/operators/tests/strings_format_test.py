@@ -201,9 +201,16 @@ class StringsFormatTest(parameterized.TestCase):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(b'foo')))
 
   def test_unsupported_types_error(self):
-    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'kd.strings.format: cannot format argument `v` of type ITEMID',
+    ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=kde.uuid()))
-    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'kd.strings.format: cannot format argument `v` of type ANY containing'
+        ' non-primitive values',
+    ):
       expr_eval.eval(
           kde.strings.format(
               ds('{v}'), v=kde.with_schema(kde.uuid(), schema_constants.ANY)
@@ -211,7 +218,7 @@ class StringsFormatTest(parameterized.TestCase):
       )
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.strings.format: unsupported argument types.*UNIT',
+        'kd.strings.format: cannot format argument `v` of type MASK',
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(arolla.present())))
 
@@ -233,7 +240,8 @@ class StringsFormatTest(parameterized.TestCase):
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.strings.format: DataSlice with mixed types is not supported',
+        'kd.strings.format: cannot format argument `v` of type OBJECT'
+        ' containing INT32 and STRING values',
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds([1, 'foo'])))
 

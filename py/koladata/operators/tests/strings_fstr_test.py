@@ -173,9 +173,16 @@ class StringsFstrTest(parameterized.TestCase):
       expr_eval.eval(kde.strings.fstr(f'{ds(b"foo"):s}'))
 
   def test_unsupported_types_error(self):
-    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'cannot format argument `x` of type ITEMID',
+    ):
       expr_eval.eval(kde.strings.fstr(f'{kde.uuid():s}'))
-    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'cannot format argument `x` of type ANY containing non-primitive'
+        ' values',
+    ):
       expr_eval.eval(
           kde.strings.fstr(
               f'{kde.with_schema(kde.uuid(), schema_constants.ANY):s}'
@@ -183,14 +190,15 @@ class StringsFstrTest(parameterized.TestCase):
       )
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        # TODO: Make errors Koda friendly.
-        'unsupported argument types.*UNIT',
+        'cannot format argument `x` of type MASK',
     ):
       expr_eval.eval(kde.strings.fstr(f'{ds(arolla.present()):s}'))
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        exceptions.KodaError,
+        'cannot format argument `x` of type OBJECT containing INT32 and STRING'
+        ' values',
     ):
       expr_eval.eval(kde.strings.fstr(f'{ds([1, "foo"]):s}'))
 

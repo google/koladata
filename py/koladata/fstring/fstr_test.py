@@ -129,9 +129,17 @@ class FstrTest(absltest.TestCase):
 
   def test_fstr_errors(self):
     o = fns.obj(x=ds('X'))
-    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'cannot format argument `x` of type OBJECT containing non-primitive'
+        ' values',
+    ):
       fstring.fstr(f'h:{o:s}-y')
-    with self.assertRaisesRegex(exceptions.KodaError, 'no primitive schema'):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        'cannot format argument `x` of type OBJECT containing non-primitive'
+        ' values',
+    ):
       fstring.fstr(f'w:{ds([1]):s}h:{o:s}')
 
   def test_fstr_nothing_to_format_error(self):

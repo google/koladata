@@ -72,6 +72,32 @@ absl::StatusOr<DataSlice> NarrowToInt64(const DataSlice& arg,
   return CastToNarrow(arg, internal::DataItem(schema::kInt64));
 }
 
+// Returns OK if all the arguments can be formatted. If arg_names is not empty,
+// it will be used for error reporting.
+absl::Status ExpectCanBeFormatted(absl::Span<const absl::string_view> arg_names,
+                                  absl::Span<const DataSlice> args) {
+  for (size_t i = 0; i < args.size(); ++i) {
+    auto narrowed_schema = GetNarrowedSchema(args[i]);
+    bool can_be_formatted =
+        schema::IsImplicitlyCastableTo(narrowed_schema,
+                                       internal::DataItem(schema::kFloat64)) ||
+        narrowed_schema == schema::kBytes ||
+        narrowed_schema == schema::kString || narrowed_schema == schema::kBool;
+    if (!can_be_formatted) {
+      // NOTE: here we are "overfitting" the function for the two existing use
+      // cases. If we need to support more, we should consider a more generic
+      // solution.
+      std::string arg_name = arg_names.empty()
+                                 ? absl::StrCat(i + 1)
+                                 : absl::StrCat("`", arg_names[i], "`");
+      return absl::InvalidArgumentError(
+          absl::StrFormat("cannot format argument %s of type %s", arg_name,
+                          DescribeSliceSchema(args[i])));
+    }
+  }
+  return absl::OkStatus();
+}
+
 absl::StatusOr<DataSlice> EvalFormatOp(absl::string_view op_name,
                                        const DataSlice& fmt,
                                        std::vector<DataSlice> slices) {
@@ -85,7 +111,6 @@ absl::StatusOr<DataSlice> EvalFormatOp(absl::string_view op_name,
   }
   // From here on, we know that at least one input has known schema and we
   // should eval.
-  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("fmt", fmt));
   return SimplePointwiseEval(op_name, std::move(slices), fmt.GetSchemaImpl());
 }
 
@@ -114,7 +139,9 @@ class FormatOperator : public arolla::QExprOperator {
             arolla::EvaluationContext* ctx,
             arolla::FramePtr frame) -> absl::Status {
           auto values = GetValueDataSlices(named_tuple_slot, frame);
+          RETURN_IF_ERROR(ExpectCanBeFormatted(attr_names, values));
           const DataSlice& format_spec = frame.Get(format_spec_slot);
+          RETURN_IF_ERROR(ExpectConsistentStringOrBytes("fmt", format_spec));
           values.insert(values.begin(), {format_spec, arg_names_slice});
           ASSIGN_OR_RETURN(
               auto result,
@@ -223,6 +250,8 @@ absl::StatusOr<DataSlice> Printf(std::vector<DataSlice> slices) {
     return absl::InvalidArgumentError("expected at least one input");
   }
   const auto& fmt = slices[0];
+  RETURN_IF_ERROR(ExpectConsistentStringOrBytes("fmt", fmt));
+  RETURN_IF_ERROR(ExpectCanBeFormatted({}, absl::MakeSpan(slices).subspan(1)));
   return EvalFormatOp("strings.printf", fmt, std::move(slices));
 }
 

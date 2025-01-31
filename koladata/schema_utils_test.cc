@@ -135,28 +135,21 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Slice) {
 TEST(SchemaUtilsTest, DescribeSliceSchema) {
   // Primitives.
 
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(test::DataItem(57)),
-            "INT32");
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
-                test::DataItem(schema::kInt32)),
-            "SCHEMA");
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
+  EXPECT_EQ(DescribeSliceSchema(test::DataItem(57)), "INT32");
+  EXPECT_EQ(DescribeSliceSchema(test::DataItem(schema::kInt32)), "SCHEMA");
+  EXPECT_EQ(DescribeSliceSchema(
                 test::DataSlice<arolla::Text>({"a", "b", std::nullopt})),
             "STRING");
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
-                test::DataItem(57, schema::kObject)),
+  EXPECT_EQ(DescribeSliceSchema(test::DataItem(57, schema::kObject)),
             "OBJECT containing INT32 values");
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
-                test::DataItem(std::nullopt, schema::kAny)),
+  EXPECT_EQ(DescribeSliceSchema(test::DataItem(std::nullopt, schema::kAny)),
             "ANY containing NONE values");
-  EXPECT_EQ(
-      schema_utils_internal::DescribeSliceSchema(
-          test::DataSlice<internal::ObjectId>({std::nullopt}, schema::kAny)),
-      "ANY containing NONE values");
-  EXPECT_EQ(
-      schema_utils_internal::DescribeSliceSchema(test::DataSlice<arolla::Text>(
-          {"a", "b", std::nullopt}, schema::kObject)),
-      "OBJECT containing STRING values");
+  EXPECT_EQ(DescribeSliceSchema(test::DataSlice<internal::ObjectId>(
+                {std::nullopt}, schema::kAny)),
+            "ANY containing NONE values");
+  EXPECT_EQ(DescribeSliceSchema(test::DataSlice<arolla::Text>(
+                {"a", "b", std::nullopt}, schema::kObject)),
+            "OBJECT containing STRING values");
 
   // Entities and objects.
 
@@ -166,33 +159,30 @@ TEST(SchemaUtilsTest, DescribeSliceSchema) {
   ASSERT_OK(db->GetMutableImpl()->get().SetSchemaAttr(
       internal::DataItem(entity_schema), "x",
       internal::DataItem(schema::kInt32)));
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(entity),
-            "SCHEMA(x=INT32)");
+  EXPECT_EQ(DescribeSliceSchema(entity), "SCHEMA(x=INT32)");
   // Without a DataBag we can only print an object id.
-  EXPECT_THAT(
-      schema_utils_internal::DescribeSliceSchema(entity.WithBag(nullptr)),
-      MatchesRegex(R"(\$\w+)"));
+  EXPECT_THAT(DescribeSliceSchema(entity.WithBag(nullptr)),
+              MatchesRegex(R"(\$\w+)"));
 
   ASSERT_OK_AND_ASSIGN(auto object, ToObject(entity));
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(object),
+  EXPECT_EQ(DescribeSliceSchema(object),
             "OBJECT containing non-primitive values");
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(object.WithBag(nullptr)),
+  EXPECT_EQ(DescribeSliceSchema(object.WithBag(nullptr)),
             "OBJECT containing non-primitive values");
 
   // Mixed slices.
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
-                test::MixedDataSlice<arolla::Text, std::string>(
-                    {"foo", std::nullopt, std::nullopt},
-                    {std::nullopt, "bar", std::nullopt})),
+  EXPECT_EQ(DescribeSliceSchema(test::MixedDataSlice<arolla::Text, std::string>(
+                {"foo", std::nullopt, std::nullopt},
+                {std::nullopt, "bar", std::nullopt})),
             "OBJECT containing BYTES and STRING values");
-  EXPECT_EQ(schema_utils_internal::DescribeSliceSchema(
-                test::MixedDataSlice<arolla::Text, std::string, int>(
-                    {"foo", std::nullopt, std::nullopt},
-                    {std::nullopt, "bar", std::nullopt},
-                    {std::nullopt, std::nullopt, 1})),
-            "OBJECT containing BYTES, INT32 and STRING values");
   EXPECT_EQ(
-      schema_utils_internal::DescribeSliceSchema(
+      DescribeSliceSchema(test::MixedDataSlice<arolla::Text, std::string, int>(
+          {"foo", std::nullopt, std::nullopt},
+          {std::nullopt, "bar", std::nullopt},
+          {std::nullopt, std::nullopt, 1})),
+      "OBJECT containing BYTES, INT32 and STRING values");
+  EXPECT_EQ(
+      DescribeSliceSchema(
           test::MixedDataSlice<arolla::Text, internal::ObjectId>(
               {"foo", std::nullopt, std::nullopt},
               {std::nullopt, internal::AllocateSingleObject(), std::nullopt})),

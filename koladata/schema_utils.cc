@@ -64,7 +64,7 @@ absl::Status ExpectNoneOr(schema::DType dtype, absl::string_view arg_name,
   if (narrowed_schema != schema::kNone && narrowed_schema != dtype) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
-        dtype, schema_utils_internal::DescribeSliceSchema(arg)));
+        dtype, DescribeSliceSchema(arg)));
   }
   return absl::OkStatus();
 }
@@ -103,7 +103,7 @@ absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg) {
                                       internal::DataItem(schema::kFloat64))) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "argument `%s` must be a slice of numeric values, got a slice of %s",
-        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
+        arg_name, DescribeSliceSchema(arg)));
   }
   return absl::OkStatus();
 }
@@ -113,7 +113,7 @@ absl::Status ExpectInteger(absl::string_view arg_name, const DataSlice& arg) {
                                       internal::DataItem(schema::kInt64))) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "argument `%s` must be a slice of integer values, got a slice of %s",
-        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
+        arg_name, DescribeSliceSchema(arg)));
   }
   return absl::OkStatus();
 }
@@ -131,7 +131,7 @@ absl::Status ExpectCanBeAdded(absl::string_view arg_name,
     return absl::InvalidArgumentError(absl::StrFormat(
         "argument `%s` must be a slice of consistent numeric, bytes or "
         "string values, got a slice of %s",
-        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
+        arg_name, DescribeSliceSchema(arg)));
   }
   return absl::OkStatus();
 }
@@ -149,7 +149,7 @@ absl::Status ExpectCanBeOrdered(absl::string_view arg_name,
   if (!can_be_ordered) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "argument `%s` must be a slice of orderable values, got a slice of %s",
-        arg_name, schema_utils_internal::DescribeSliceSchema(arg)));
+        arg_name, DescribeSliceSchema(arg)));
   }
   return absl::OkStatus();
 }
@@ -182,7 +182,7 @@ absl::Status ExpectPresentScalar(absl::string_view arg_name,
   if (GetNarrowedSchema(arg) != expected_dtype) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "argument `%s` must be an item holding %v, got an item of %s", arg_name,
-        expected_dtype, schema_utils_internal::DescribeSliceSchema(arg)));
+        expected_dtype, DescribeSliceSchema(arg)));
   }
   if (arg.present_count() != 1) {
     return absl::InvalidArgumentError(
@@ -191,8 +191,6 @@ absl::Status ExpectPresentScalar(absl::string_view arg_name,
   }
   return absl::OkStatus();
 }
-
-namespace schema_utils_internal {
 
 std::string DescribeSliceSchema(const DataSlice& slice) {
   if (slice.GetSchemaImpl() == schema::kObject ||
@@ -230,6 +228,8 @@ std::string DescribeSliceSchema(const DataSlice& slice) {
     return SimpleDescribeSliceSchema(slice);
   }
 }
+
+namespace schema_utils_internal {
 
 absl::Status ExpectConsistentStringOrBytesImpl(
     absl::Span<const absl::string_view> arg_names,
@@ -283,9 +283,8 @@ absl::Status ExpectHaveCommonSchema(
   return absl::InvalidArgumentError(
       absl::StrFormat("arguments `%s` and `%s` must contain values castable to "
                       "a common type, got %s and %s",
-                      arg_names[0], arg_names[1],
-                      schema_utils_internal::DescribeSliceSchema(lhs),
-                      schema_utils_internal::DescribeSliceSchema(rhs)));
+                      arg_names[0], arg_names[1], DescribeSliceSchema(lhs),
+                      DescribeSliceSchema(rhs)));
 }
 
 absl::Status ExpectHaveCommonPrimitiveSchema(
@@ -305,9 +304,8 @@ absl::Status ExpectHaveCommonPrimitiveSchema(
   return absl::InvalidArgumentError(
       absl::StrFormat("arguments `%s` and `%s` must contain values castable to "
                       "a common primitive type, got %s and %s",
-                      arg_names[0], arg_names[1],
-                      schema_utils_internal::DescribeSliceSchema(lhs),
-                      schema_utils_internal::DescribeSliceSchema(rhs)));
+                      arg_names[0], arg_names[1], DescribeSliceSchema(lhs),
+                      DescribeSliceSchema(rhs)));
 }
 
 }  // namespace koladata

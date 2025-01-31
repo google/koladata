@@ -69,16 +69,16 @@ absl::Status ExpectCanBeAdded(absl::string_view arg_name, const DataSlice& arg);
 absl::Status ExpectCanBeOrdered(absl::string_view arg_name,
                                 const DataSlice& arg);
 
+// Returns a human-readable description of the schema of the DataSlice. Can be
+// used in custom versions of Expect* functions.
+std::string DescribeSliceSchema(const DataSlice& slice);
+
 namespace schema_utils_internal {
 
 // (internal) Implementation of ExpectConsistentStringOrBytes.
 absl::Status ExpectConsistentStringOrBytesImpl(
     absl::Span<const absl::string_view> arg_names,
     absl::Span<absl::Nonnull<const DataSlice* const>> args);
-
-// (internal) Returns a human-readable description of the schema of the
-// DataSlice. The function is public only for testing.
-std::string DescribeSliceSchema(const DataSlice& slice);
 
 }  // namespace schema_utils_internal
 
