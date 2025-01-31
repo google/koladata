@@ -15,6 +15,7 @@
 """Benchmarks for Kola Data library."""
 
 import copy
+import random
 
 from arolla import arolla
 import google_benchmark
@@ -277,6 +278,7 @@ def one_obj_per_big_alloc(state):
   for i in range(size):
     obj = schema(a=kd.slice([i] * alloc_size))
     objs.append(obj.S[0])
+  random.shuffle(objs)
   ds = kd.slice(objs).fork_bag()
   while state:
     ds.a = ds.a + 1
