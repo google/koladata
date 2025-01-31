@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <algorithm>
 #include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "benchmark/benchmark.h"
+#include "absl/random/random.h"
 #include "koladata/internal/benchmark_helpers.h"
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/bitmap.h"
@@ -138,6 +141,27 @@ void BM_AllocationIdSetInsertManySame(benchmark::State& state) {
 }
 
 BENCHMARK(BM_AllocationIdSetInsertManySame)->Range(1, 2048);
+
+void BM_AllocationIdSetInsertManyDifferent(benchmark::State& state) {
+  int64_t size = state.range(0);
+  std::vector<AllocationId> alloc_ids;
+  alloc_ids.reserve(size);
+  for (int64_t i = 0; i < size; ++i) {
+    alloc_ids.push_back(Allocate(57));
+  }
+  std::shuffle(alloc_ids.begin(), alloc_ids.end(), absl::BitGen());
+  for (auto s : state) {
+    benchmark::DoNotOptimize(size);
+    benchmark::DoNotOptimize(alloc_ids);
+    AllocationIdSet alloc_id_set;
+    for (int64_t i = 0; i < size; ++i) {
+      alloc_id_set.Insert(alloc_ids[i]);
+    }
+    benchmark::DoNotOptimize(alloc_id_set);
+  }
+}
+
+BENCHMARK(BM_AllocationIdSetInsertManyDifferent)->Range(1, (1 << 13));
 
 }  // namespace
 }  // namespace koladata::internal

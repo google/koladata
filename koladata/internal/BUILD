@@ -161,6 +161,7 @@ cc_test(
     deps = [
         ":benchmark_helpers",
         ":object_id",
+        "@com_google_absl//absl/random",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qtype",
