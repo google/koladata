@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
@@ -91,7 +90,7 @@ class DictsGetKeysTest(parameterized.TestCase):
     d3 = d2.fork_bag()
     del d3[1]
     result = eval_op('kd.get_keys', d3)
-    testing.assert_unordered_equal(result, ds([3]).with_bag(d3.get_bag()))
+    testing.assert_unordered_equal(result, ds([1, 3]).with_bag(d3.get_bag()))
 
     d4 = d3.fork_bag()
     d4[1] = 1
@@ -119,19 +118,19 @@ class DictsGetKeysTest(parameterized.TestCase):
         ValueError,
         'cannot get dict keys without a DataBag',
     ):
-      expr_eval.eval(kde.get_keys(ds([1, 2, 3]).no_bag()))
+      eval_op('kd.get_keys', ds([1, 2, 3]).no_bag())
 
     with self.assertRaisesRegex(
         ValueError,
         'cannot get or set attributes',
     ):
-      expr_eval.eval(kde.get_keys(ds([1, 2, 3])))
+      eval_op('kd.get_keys', ds([1, 2, 3]))
 
     with self.assertRaisesRegex(
         ValueError,
         'getting attributes of primitives is not allowed',
     ):
-      expr_eval.eval(kde.get_keys(ds([dict_item, 1], schema_constants.OBJECT)))
+      eval_op('kd.get_keys', ds([dict_item, 1], schema_constants.OBJECT))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

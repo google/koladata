@@ -17,7 +17,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -37,7 +39,12 @@ namespace koladata::internal {
 class Dict {
  public:
   void Clear() {
+    std::vector<DataItem> keys = GetKeys({});
     data_.clear();
+    data_.reserve(keys.size());
+    for (const auto& key : keys) {
+      data_.emplace(key, DataItem());
+    }
     parent_ = nullptr;
   }
 
@@ -69,30 +76,20 @@ class Dict {
     using KeyT = arolla::meta::strip_template_t<DataItem::View, T>;
     DCHECK(!IsUnsupportedKeyType<KeyT>());
     if constexpr (!IsUnsupportedKeyType<KeyT>()) {
-      if (parent_ == nullptr && !value.has_value()) {
-        data_.erase(key);
-      } else {
-        data_[key] = std::move(value);
-      }
+      data_[key] = std::move(value);
     }
   }
 
   // `T` is either DataItem, or one of the types that can be stored in DataItem.
   template <typename T>
-  const DataItem& Get(const T& key) const {
-    return Get(key, DataItem::Hash()(key));
-  }
-  // Same as above with user provided `key_hash` that must be computed via
-  // DataItem::Hash()(key).
-  template <typename T>
-  const DataItem& Get(const T& key, size_t key_hash) const {
-    DCHECK_EQ(key_hash, DataItem::Hash()(key));
+  std::optional<std::reference_wrapper<const DataItem>> Get(
+      const T& key) const {
     for (const Dict* dict = this; dict != nullptr; dict = dict->parent_) {
-      if (auto it = dict->data_.find(key, key_hash); it != dict->data_.end()) {
-        return it->second;
+      if (auto it = dict->data_.find(key); it != dict->data_.end()) {
+        return std::ref(it->second);
       }
     }
-    return *empty_item_;
+    return std::nullopt;
   }
 
   // Returns the reference to existing non empty element.
@@ -114,23 +111,18 @@ class Dict {
     }
     if (parent_ == nullptr) {
       auto [it, _] = data_.try_emplace(key, std::forward<ValueT>(value));
-      if (ABSL_PREDICT_FALSE(!it->second.has_value())) {
-        data_.erase(it);
-        return *empty_item_;
-      }
       return it->second;
     }
-    auto key_hash = DataItem::Hash()(key);
-    if (auto it = data_.find(key, key_hash); it != data_.end()) {
+    if (auto it = data_.find(key); it != data_.end()) {
       if (!it->second.has_value()) {
         it->second = std::forward<ValueT>(value);
       }
       return it->second;
     }
 
-    const DataItem& parent_value = parent_->Get(key, key_hash);
+    auto parent_value = parent_->Get(key);
     if (parent_value.has_value()) {
-      return parent_value;
+      return *parent_value;
     }
 
     auto [it, _] = data_.emplace(key, std::forward<ValueT>(value));

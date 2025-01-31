@@ -41,6 +41,7 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::DenseArrayEdge;
+using ::testing::_;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::Eq;
@@ -405,6 +406,60 @@ TEST(DataBagTest, DictFallbacks) {
     EXPECT_THAT(db->GetDictSize(all_dicts[2], {fb_db.get()}),
               IsOkAndHolds(DataItem(int64_t{2})));
   }
+}
+
+TEST(DataBagTest, DictFallbacksSingleItemWithRemovedValues) {
+  auto dict = DataItem(AllocateSingleDict());
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(db->SetInDict(dict, DataItem(1), DataItem()));
+  auto fb_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(fb_db->SetInDict(dict, DataItem(1), DataItem(7)));
+
+  EXPECT_THAT(db->GetFromDict(dict, DataItem(1), {fb_db.get()}),
+              IsOkAndHolds(DataItem()));
+  EXPECT_THAT(db->GetDictKeys(dict, {fb_db.get()}),
+              IsOkAndHolds(Pair(ElementsAre(DataItem(1)), _)));
+  EXPECT_THAT(db->GetDictValues(dict, {fb_db.get()}),
+              IsOkAndHolds(Pair(ElementsAre(DataItem()), _)));
+
+  ASSERT_OK(db->SetInDict(dict, DataItem(2), DataItem(7)));
+  auto fork_db = db->PartiallyPersistentFork();
+  ASSERT_OK(fork_db->SetInDict(dict, DataItem(2), DataItem()));
+  EXPECT_THAT(fork_db->GetFromDict(dict, DataItem(1), {}),
+              IsOkAndHolds(DataItem()));
+  EXPECT_THAT(fork_db->GetFromDict(dict, DataItem(2), {}),
+              IsOkAndHolds(DataItem()));
+  EXPECT_THAT(
+      fork_db->GetDictKeys(dict, {fb_db.get()}),
+      IsOkAndHolds(Pair(UnorderedElementsAre(DataItem(1), DataItem(2)), _)));
+  EXPECT_THAT(fork_db->GetDictValues(dict, {fb_db.get()}),
+              IsOkAndHolds(Pair(ElementsAre(DataItem(), DataItem()), _)));
+}
+
+TEST(DataBagTest, DictFallbacksSingleItemManyKeysWithRemovedValues) {
+  auto dict = DataItem(AllocateSingleDict());
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(db->SetInDict(DataSliceImpl::Create({dict, dict}),
+                          DataSliceImpl::Create({DataItem(1), DataItem(2)}),
+                          DataSliceImpl::Create({DataItem(), DataItem(7)})));
+  auto fb_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(
+      fb_db->SetInDict(DataSliceImpl::Create({dict, dict}),
+                       DataSliceImpl::Create({DataItem(1), DataItem(2)}),
+                       DataSliceImpl::Create({DataItem(9), DataItem(1)})));
+
+  EXPECT_THAT(db->GetFromDict(DataSliceImpl::Create({dict, dict}),
+                              DataSliceImpl::Create({DataItem(1), DataItem(2)}),
+                              {fb_db.get()}),
+              IsOkAndHolds(ElementsAre(DataItem(), DataItem(7))));
+  EXPECT_THAT(
+      db->GetDictKeys(dict, {fb_db.get()}),
+      IsOkAndHolds(Pair(UnorderedElementsAre(DataItem(1), DataItem(2)), _)));
+  EXPECT_THAT(
+      db->GetDictValues(dict, {fb_db.get()}),
+      IsOkAndHolds(Pair(UnorderedElementsAre(DataItem(), DataItem(7)), _)));
 }
 
 }  // namespace

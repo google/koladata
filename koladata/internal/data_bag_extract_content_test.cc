@@ -15,6 +15,7 @@
 #include <bit>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -30,6 +31,8 @@ namespace {
 
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
+using ::testing::Pair;
+using ::testing::UnorderedElementsAre;
 
 namespace {
 
@@ -101,6 +104,26 @@ TEST(DataBagTest, ExtractRemovedValues) {
   // Add elements above the size.
   ds_b_values.insert(ds_b_values.end(), 3, DataItem());
   EXPECT_THAT(allocs[0].values, ElementsAreArray(ds_b_values));
+}
+
+TEST(DataBagTest, ExtractDictRemovedValues) {
+  auto dict = DataItem(AllocateSingleDict());
+
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(db->SetInDict(dict, DataItem(1), DataItem()));
+  ASSERT_OK(db->SetInDict(dict, DataItem(2), DataItem(3)));
+
+  ASSERT_OK_AND_ASSIGN(auto content, db->ExtractContent());
+  const auto& dicts = content.dicts;
+  ASSERT_EQ(dicts.size(), 1);
+  const auto& d = dicts[0];
+  EXPECT_EQ(d.dict_id, dict.value<ObjectId>());
+  ASSERT_THAT(d.keys, UnorderedElementsAre(DataItem(1), DataItem(2)));
+  ASSERT_THAT(d.values, UnorderedElementsAre(DataItem(), DataItem(3)));
+  ASSERT_THAT((std::vector<std::pair<DataItem, DataItem>>{
+                  {d.keys[0], d.values[0]}, {d.keys[1], d.values[1]}}),
+              UnorderedElementsAre(Pair(DataItem(1), DataItem()),
+                                   Pair(DataItem(2), DataItem(3))));
 }
 
 }  // namespace

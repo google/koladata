@@ -434,7 +434,8 @@ TEST(DataBagTest, DelSchemaAttr_Item) {
   EXPECT_THAT(db->GetSchemaAttr(schema, "a"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'a' is missing")));
-  EXPECT_THAT(db->GetSchemaAttrs(schema), IsOkAndHolds(ElementsAre()));
+  EXPECT_THAT(db->GetSchemaAttrs(schema),
+              IsOkAndHolds(ElementsAre(DataItem(arolla::Text("a")))));
 
   // Deleting on an empty object is a no-op.
   ASSERT_OK(db->DelSchemaAttr(DataItem(), "a"));

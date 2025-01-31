@@ -2110,9 +2110,9 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetDictSize(
 }
 
 template <class AllocCheckFn>
-absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
-    const arolla::DenseArray<ObjectId>& dicts,
-    const DataSliceImpl& keys) const {
+absl::Status DataBagImpl::GetFromDictNoFallback(
+    const arolla::DenseArray<ObjectId>& dicts, const DataSliceImpl& keys,
+    SliceBuilder& bldr) const {
   if (dicts.size() != keys.size()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("dicts and keys sizes don't match: %d vs %d",
@@ -2120,12 +2120,12 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
   }
 
   ReadOnlyDictGetter<AllocCheckFn> dict_getter(this);
-  SliceBuilder bldr(dicts.size());
 
   if (keys.is_mixed_dtype()) {
     dicts.ForEachPresent([&](int64_t offset, ObjectId dict_id) {
-      bldr.InsertIfNotSetAndUpdateAllocIds(
-          offset, dict_getter(dict_id).Get(keys[offset]));
+      if (auto val = dict_getter(dict_id).Get(keys[offset]); val.has_value()) {
+        bldr.InsertIfNotSetAndUpdateAllocIds(offset, *val);
+      }
     });
   } else {
     absl::Status status = absl::OkStatus();
@@ -2133,23 +2133,24 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
       using T = typename std::decay_t<decltype(vec)>::base_type;
       status = arolla::DenseArraysForEachPresent(
           [&](int64_t offset, ObjectId dict_id, arolla::view_type_t<T> key) {
-            bldr.InsertIfNotSetAndUpdateAllocIds(
-                offset, dict_getter(dict_id).Get(DataItem::View<T>{key}));
+            if (auto val = dict_getter(dict_id).Get(DataItem::View<T>{key});
+                val.has_value()) {
+              bldr.InsertIfNotSetAndUpdateAllocIds(offset, *val);
+            }
           },
           dicts, vec);
     });
     RETURN_IF_ERROR(status);
   }
 
-  RETURN_IF_ERROR(dict_getter.status());
-  return std::move(bldr).Build();
+  return dict_getter.status();
 }
 
 template <class AllocCheckFn>
-absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
-    const arolla::DenseArray<ObjectId>& dicts, const DataItem& keys) const {
+absl::Status DataBagImpl::GetFromDictNoFallback(
+    const arolla::DenseArray<ObjectId>& dicts, const DataItem& keys,
+    SliceBuilder& bldr) const {
   ReadOnlyDictGetter<AllocCheckFn> dict_getter(this);
-  SliceBuilder bldr(dicts.size());
 
   keys.VisitValue([&](const auto& val) {
     using T = typename std::decay_t<decltype(val)>;
@@ -2159,8 +2160,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictNoFallback(
     });
   });
 
-  RETURN_IF_ERROR(dict_getter.status());
-  return std::move(bldr).Build();
+  return dict_getter.status();
 }
 
 template <class AllocCheckFn, class DataSliceImplT>
@@ -2168,20 +2168,17 @@ inline absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictImpl(
     const DataSliceImpl& dicts, const DataSliceImplT& keys,
     FallbackSpan fallbacks) const {
   const auto& dict_objects = dicts.values<ObjectId>();
-  ASSIGN_OR_RETURN(auto result,
-                   GetFromDictNoFallback<AllocCheckFn>(dict_objects, keys));
-  if (fallbacks.empty()) {
-    return result;
-  }
-
+  SliceBuilder bldr(dicts.size());
+  RETURN_IF_ERROR(
+      GetFromDictNoFallback<AllocCheckFn>(dict_objects, keys, bldr));
   for (const DataBagImpl* fallback : fallbacks) {
-    // TODO: avoid requesting already known objects.
-    ASSIGN_OR_RETURN(
-        auto fb_result,
-        fallback->GetFromDictNoFallback<AllocCheckFn>(dict_objects, keys));
-    ASSIGN_OR_RETURN(result, PresenceOrOp{}(result, fb_result));
+    if (bldr.is_finalized()) {
+      break;
+    }
+    RETURN_IF_ERROR(fallback->GetFromDictNoFallback<AllocCheckFn>(dict_objects,
+                                                                  keys, bldr));
   }
-  return result;
+  return std::move(bldr).Build();
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDict(
@@ -2387,7 +2384,10 @@ ABSL_ATTRIBUTE_ALWAYS_INLINE DataItem
 DataBagImpl::GetFromDictObject(ObjectId dict_id, const Key& key) const {
   AllocationId alloc_id(dict_id);
   if (const auto* dicts = GetConstDictsOrNull(alloc_id); dicts != nullptr) {
-    return (**dicts)[dict_id.Offset()].Get(key);
+    if (auto res_opt = (**dicts)[dict_id.Offset()].Get(key);
+        res_opt.has_value()) {
+      return *res_opt;
+    }
   }
   return DataItem();
 }
@@ -2401,21 +2401,20 @@ DataBagImpl::GetFromDictObjectWithFallbacks(ObjectId dict_id, const Key& key,
   }
   AllocationId alloc_id(dict_id);
   size_t alloc_hash = absl::HashOf(alloc_id);
-  size_t key_hash = DataItem::Hash()(key);
   int64_t offset = dict_id.Offset();
   if (const auto* dicts = GetConstDictsOrNull(alloc_id, alloc_hash);
       dicts != nullptr) {
-    DataItem res = (**dicts)[offset].Get(key, key_hash);
+    auto res = (**dicts)[offset].Get(key);
     if (res.has_value() || fallbacks.empty()) {
-      return res;
+      return *res;
     }
   }
   for (const DataBagImpl* fallback : fallbacks) {
     if (const auto* dicts = fallback->GetConstDictsOrNull(alloc_id, alloc_hash);
         dicts != nullptr) {
-      DataItem res = (**dicts)[offset].Get(key, key_hash);
+      auto res = (**dicts)[offset].Get(key);
       if (res.has_value()) {
-        return res;
+        return *res;
       }
     }
   }
@@ -3177,23 +3176,24 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
         auto& this_dict = this_dicts[i];
         for (const DataItem& key : other_dict.GetKeys()) {
           if (conflict_policy == MergeOptions::kOverwrite) {
-            this_dict.Set(key, other_dict.Get(key));
+            this_dict.Set(key, *other_dict.Get(key));
             continue;
           }
-          const DataItem& other_value = other_dict.Get(key);
+          auto other_value = other_dict.Get(key);
           if (!other_value.has_value()) {
             continue;
           }
-          const DataItem& this_value = this_dict.GetOrAssign(key, other_value);
+          const DataItem& this_value =
+              this_dict.GetOrAssign(key, other_value->get());
           if (conflict_policy == MergeOptions::kRaiseOnConflict &&
-              this_value != other_value) {
+              this_value != other_value->get()) {
             internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
             return internal::WithErrorPayload(
                 absl::FailedPreconditionError(absl::StrCat(
                     "conflicting dict values for ", object_id, " key", key,
-                    ": ", this_value, " vs ", other_value)),
+                    ": ", this_value, " vs ", *other_value)),
                 MakeSchemaOrDictMergeError(object_id, key, this_value,
-                                           other_value));
+                                           *other_value));
           }
         }
       }
@@ -3318,7 +3318,7 @@ void DataBagImpl::AddDictToContent(
   std::vector<DataItem> values;
   values.reserve(keys.size());
   for (size_t ki = 0; ki < keys.size(); ++ki) {
-    values.push_back(dict.Get(keys[ki]));
+    values.push_back(*dict.Get(keys[ki]));
   }
   res.push_back({dict_id, std::move(keys), std::move(values)});
 }

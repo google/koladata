@@ -140,6 +140,32 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
             getattr(values[3], attr),
             getattr(obj_dense_with_fb, attr))
 
+  def test_dict_removed_values(self):
+    db = kd.bag()
+    d = db.dict()
+    fb = db.fork()
+
+    d['a'] = 1
+    d['b'] = None
+    self.assertIsNone(d['b'].to_py())
+    d['c'] = 3
+    del d['c']
+
+    fb_d = d.with_bag(fb)
+    fb_d['a'] = 77
+    fb_d['b'] = 97
+    fb_d['d'] = 57
+
+    d = d.enriched(fb)
+
+    data = kd.dumps(d)
+    actual_d = kd.loads(data)
+
+    self.assertEqual(actual_d['a'].to_py(), 1)
+    self.assertIsNone(actual_d['b'].to_py())
+    self.assertIsNone(actual_d['c'].to_py())
+    self.assertEqual(actual_d['d'].to_py(), 57)
+
   def test_obj_with_databag(self):
     v = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     data = arolla.s11n.dumps(v)

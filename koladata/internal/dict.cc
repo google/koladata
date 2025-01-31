@@ -32,39 +32,28 @@ ABSL_ATTRIBUTE_NOINLINE void Dict::CollectKeysOrValuesFromParentAndFallbacks(
   const auto* orig_data = &data_;
   InternalMap empty_data;
   absl::flat_hash_set<DataItem, DataItem::Hash, DataItem::Eq> used_keys;
-  absl::flat_hash_set<DataItem, DataItem::Hash, DataItem::Eq> removed_keys;
   for (const Dict* dict = parent_; true; dict = dict->parent_) {
     if (dict == nullptr) {
       if (fallbacks.empty()) {
         break;
       }
-      // transfer non removed keys from original data to used_keys,
+      // transfer keys from original data to used_keys,
       // so that fallback not adding it.
       for (const auto& [key, value] : *orig_data) {
-        if (value.has_value()) {
-          used_keys.insert(key);
-        }
+        used_keys.insert(key);
       }
       orig_data = &empty_data;
-      // removed keys are relevant only withing one dict chain
-      removed_keys.clear();
       // moving to the new dict chain
       dict = fallbacks.front();
       fallbacks.remove_prefix(1);
     }
     for (const auto& [key, value] : dict->data_) {
-      if (value.has_value()) {
-        size_t hash = DataItem::Hash()(key);
-        if (orig_data->find(key, hash) == orig_data->end() &&
-            used_keys.find(key, hash) == used_keys.end() &&
-            removed_keys.find(key, hash) == removed_keys.end()) {
-          keys_or_values.push_back(kReturnValues ? value : key);
-          if (dict->parent_ != nullptr || !fallbacks.empty()) {
-            used_keys.insert(key);
-          }
+      if (orig_data->find(key) == orig_data->end() &&
+          used_keys.find(key) == used_keys.end()) {
+        keys_or_values.push_back(kReturnValues ? value : key);
+        if (dict->parent_ != nullptr || !fallbacks.empty()) {
+          used_keys.insert(key);
         }
-      } else if (dict->parent_ != nullptr) {
-        removed_keys.insert(key);
       }
     }
   }
@@ -82,9 +71,7 @@ std::vector<DataItem> Dict::GetKeys(
   std::vector<DataItem> keys;
   keys.reserve(dict->data_.size());
   for (const auto& [key, value] : dict->data_) {
-    if (value.has_value()) {
-      keys.push_back(key);
-    }
+    keys.push_back(key);
   }
   if (dict->parent_ != nullptr || !fallbacks.empty()) {
     dict->CollectKeysOrValuesFromParentAndFallbacks</*kReturnValues=*/false>(
@@ -105,9 +92,7 @@ std::vector<DataItem> Dict::GetValues(
   std::vector<DataItem> values;
   values.reserve(dict->data_.size());
   for (const auto& [key, value] : dict->data_) {
-    if (value.has_value()) {
-      values.push_back(value);
-    }
+    values.push_back(value);
   }
   if (dict->parent_ != nullptr || !fallbacks.empty()) {
     dict->CollectKeysOrValuesFromParentAndFallbacks</*kReturnValues=*/true>(

@@ -1764,8 +1764,8 @@ TEST(DataBagTest, GetStatistics_Dicts) {
                                 {5, 6, 7, 8, std::nullopt}))));
 
     ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
-    EXPECT_EQ(stats.total_non_empty_dicts, 3);
-    EXPECT_EQ(stats.total_items_in_dicts, 3);
+    EXPECT_EQ(stats.total_non_empty_dicts, 4);
+    EXPECT_EQ(stats.total_items_in_dicts, 4);
   }
   {
     DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();
@@ -1780,8 +1780,8 @@ TEST(DataBagTest, GetStatistics_Dicts) {
     DataSliceImpl sub_dicts =
         DataSliceImpl::ObjectsFromAllocation(dict_alloc_id, 3);
     ASSERT_OK_AND_ASSIGN(auto stats, db->GetStatistics());
-    EXPECT_EQ(stats.total_non_empty_dicts, 3);
-    EXPECT_EQ(stats.total_items_in_dicts, 3);
+    EXPECT_EQ(stats.total_non_empty_dicts, 4);
+    EXPECT_EQ(stats.total_items_in_dicts, 4);
 
     ASSERT_OK(db->SetInDict(sub_dicts,
                             DataSliceImpl::Create(arolla::CreateDenseArray<int>(
@@ -1789,8 +1789,8 @@ TEST(DataBagTest, GetStatistics_Dicts) {
                             DataSliceImpl::Create(arolla::CreateDenseArray<int>(
                                 {7, 8, std::nullopt}))));
     ASSERT_OK_AND_ASSIGN(stats, db->GetStatistics());
-    EXPECT_EQ(stats.total_non_empty_dicts, 3);
-    EXPECT_EQ(stats.total_items_in_dicts, 4);
+    EXPECT_EQ(stats.total_non_empty_dicts, 4);
+    EXPECT_EQ(stats.total_items_in_dicts, 6);
   }
   {
     DataBagImplPtr db = DataBagImpl::CreateEmptyDatabag();

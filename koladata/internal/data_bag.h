@@ -689,16 +689,18 @@ class DataBagImpl : public arolla::RefcountedBase {
   // `AllocCheckFn` is a customization to provide which allocation type `dicts`
   // ObjectIds belong to (e.g. IsDictsAlloc or IsSchemasAlloc).
   template <class AllocCheckFn>
-  absl::StatusOr<DataSliceImpl> GetFromDictNoFallback(
-    const arolla::DenseArray<ObjectId>& dicts, const DataSliceImpl& keys) const;
+  absl::Status GetFromDictNoFallback(const arolla::DenseArray<ObjectId>& dicts,
+                                     const DataSliceImpl& keys,
+                                     SliceBuilder& bldr) const;
 
   // Lower level utility for batch GetFromDict with a single key without
   // fallbacks support.
   // `AllocCheckFn` is a customization to provide which allocation type `dicts`
   // ObjectIds belong to (e.g. IsDictsAlloc or IsSchemasAlloc).
   template <class AllocCheckFn>
-  absl::StatusOr<DataSliceImpl> GetFromDictNoFallback(
-    const arolla::DenseArray<ObjectId>& dicts, const DataItem& keys) const;
+  absl::Status GetFromDictNoFallback(const arolla::DenseArray<ObjectId>& dicts,
+                                     const DataItem& keys,
+                                     SliceBuilder& bldr) const;
 
   // Implementation of GetFromDict that can be customized with `AllocCheckFn`.
   // Returns one value from each dict. Dicts get be quieried by a single key or

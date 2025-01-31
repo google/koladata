@@ -128,7 +128,8 @@ class DictItemTest(parameterized.TestCase):
     self.assertLen(d, 2)
     d.pop(1)
     self.assertNotIn(1, d)
-    self.assertLen(d, 1)
+    self.assertIsNone(d[1].to_py())
+    self.assertLen(d, 2)
 
     with self.assertRaises(KeyError):
       d.pop(2)
@@ -140,12 +141,12 @@ class DictItemTest(parameterized.TestCase):
 
     del d[1]
     self.assertNotIn(1, d)
-    self.assertLen(d, 1)
+    self.assertLen(d, 2)
 
     self.assertNotIn(2, d)
     del d[2]
     self.assertNotIn(2, d)
-    self.assertLen(d, 1)
+    self.assertLen(d, 3)
 
   def test_assign_none(self):
     db = bag()
@@ -154,17 +155,17 @@ class DictItemTest(parameterized.TestCase):
 
     d[1] = None
     self.assertNotIn(1, d)
-    self.assertLen(d, 1)
+    self.assertLen(d, 2)
 
     self.assertNotIn(2, d)
     d[2] = None
     self.assertNotIn(2, d)
-    self.assertLen(d, 1)
+    self.assertLen(d, 3)
 
   def test_empty_dict(self):
     db = bag()
     d = db.dict({'x': None})
-    self.assertEmpty(d)
+    self.assertLen(d, 1)
 
 
 if __name__ == '__main__':

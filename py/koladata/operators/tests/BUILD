@@ -1600,7 +1600,6 @@ py_test(
     name = "dicts_get_keys_test",
     srcs = ["dicts_get_keys_test.py"],
     deps = [
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -1622,7 +1621,6 @@ py_test(
     name = "dicts_get_values_test",
     srcs = ["dicts_get_values_test.py"],
     deps = [
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",

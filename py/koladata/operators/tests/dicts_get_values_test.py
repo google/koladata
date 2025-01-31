@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
@@ -146,7 +145,7 @@ class DictsGetValuesTest(parameterized.TestCase):
     d3 = d2.fork_bag()
     del d3[1]
     result = eval_op('kd.get_values', d3)
-    testing.assert_unordered_equal(result, ds([4]).with_bag(d3.get_bag()))
+    testing.assert_unordered_equal(result, ds([None, 4]).with_bag(d3.get_bag()))
 
     d4 = d3.fork_bag()
     d4[1] = 1
@@ -167,40 +166,40 @@ class DictsGetValuesTest(parameterized.TestCase):
 
     d4 = d2.enriched(d1.get_bag())
     result = eval_op('kd.get_values', d4)
-    testing.assert_unordered_equal(result, ds([2, 3, 6]).with_bag(d4.get_bag()))
+    testing.assert_unordered_equal(
+        result, ds([None, 3, 6]).with_bag(d4.get_bag())
+    )
 
   def test_errors(self):
     with self.assertRaisesRegex(
         ValueError,
         'cannot get dict values without a DataBag',
     ):
-      expr_eval.eval(kde.get_values(ds([1, 2, 3]).no_bag()))
+      eval_op('kd.get_values', ds([1, 2, 3]).no_bag())
 
     with self.assertRaisesRegex(
         ValueError,
         'cannot get or set attributes',
     ):
-      expr_eval.eval(kde.get_values(ds([1, 2, 3])))
+      eval_op('kd.get_values', ds([1, 2, 3]))
 
     with self.assertRaisesRegex(
         ValueError,
         'getting attributes of primitives is not allowed',
     ):
-      expr_eval.eval(
-          kde.get_values(ds([dict_item, 1], schema_constants.OBJECT))
-      )
+      eval_op('kd.get_values', ds([dict_item, 1], schema_constants.OBJECT))
 
     with self.assertRaisesRegex(
         ValueError,
         re.escape("the attribute '__values__' is missing"),
     ):
-      expr_eval.eval(kde.get_values(db.list([1, 2, 3])))
+      eval_op('kd.get_values', db.list([1, 2, 3]))
 
     with self.assertRaisesRegex(
         ValueError,
         'the schema for dict keys is missing',
     ):
-      expr_eval.eval(kde.get_values(db.list([1, 2, 3]), ds([0, 1])))
+      eval_op('kd.get_values', db.list([1, 2, 3]), ds([0, 1]))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
