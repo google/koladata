@@ -1323,6 +1323,25 @@ def set_get_multiple_attrs_10000_entity_via_fallback(state):
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['size', 'fallback_count'])
+@google_benchmark.option.ranges([(1, 10000), (0, 16)])
+def get_from_dict(state):
+  """Benchmark for setting and getting dict key with fallback."""
+  size = state.range(0)
+  fallback_count = state.range(1)
+  ds = kd.dict_shaped(kd.shapes.new([size]))
+  for fb_id in range(fallback_count):
+    ds = ds.with_dict_update(
+        kd.slice([
+            'abc' if i % fallback_count == fb_id else None for i in range(size)
+        ]),
+        kd.slice([fb_id] * size),
+    )
+  while state:
+    _ = ds['abc']
+
+
+@google_benchmark.register
 @google_benchmark.option.arg_names(['nvars'])
 @google_benchmark.option.args([1])
 @google_benchmark.option.args([10])
