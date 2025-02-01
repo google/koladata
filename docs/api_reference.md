@@ -10056,6 +10056,22 @@ Returns:
   The DataSlice with this DataBag (including adopted data) attached.
 ```
 
+### `DataBag.adopt_stub(slice, /)` {#DataBag.adopt_stub}
+
+``` {.no-copy}
+Copies the given DataSlice's schema stub into this DataBag.
+
+The "schema stub" of a DataSlice is a subset of its schema (including embedded
+schemas) that contains just enough information to support direct updates to
+that DataSlice. See kd.stub() for more details.
+
+Args:
+  slice: DataSlice to extract the schema stub from.
+
+Returns:
+  The "stub" with this DataBag attached.
+```
+
 ### `DataBag.concat_lists(self, /, *lists)` {#DataBag.concat_lists}
 
 ``` {.no-copy}
