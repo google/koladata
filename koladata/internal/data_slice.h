@@ -388,19 +388,12 @@ bool VerifyNonIntersectingIds(const arolla::DenseArray<T>& main_values,
 }
 
 template <class T>
-bool VerifyAllocIds(const AllocationIdSet& alloc_ids,
+bool VerifyAllocIds(AllocationIdSet alloc_ids,
                     const arolla::DenseArray<T>& values) {
   if constexpr (std::is_same_v<T, ObjectId>) {
     bool res = true;
     values.ForEachPresent([&](int64_t /*id*/, ObjectId obj_id) {
-      if (!obj_id.IsSmallAlloc()) {
-        for (AllocationId alloc_id : alloc_ids.ids()) {
-          if (alloc_id.Contains(obj_id)) return;
-        }
-        res = false;
-      } else if (!alloc_ids.contains_small_allocation_id()) {
-        res = false;
-      }
+      res = res && !alloc_ids.Insert(AllocationId(obj_id));
     });
     return res;
   } else {
