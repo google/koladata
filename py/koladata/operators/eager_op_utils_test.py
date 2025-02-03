@@ -123,6 +123,10 @@ class EagerOpUtilsTest(parameterized.TestCase):
     self.assertTrue(hasattr(kd, 'added_later_op'))
     testing.assert_equal(kd.added_later_op(self.x, self.y), self.y)
 
+  def test_operator_container_nested_access(self):
+    kd = eager_op_utils.operators_container('test')
+    self.assertEqual(kd.namespace_1.op_1(1, 2), 1)
+
   def test_non_existent_operator(self):
     kd = eager_op_utils.operators_container('test')
     with self.assertRaisesRegex(AttributeError, 'non_existent'):

@@ -104,9 +104,7 @@ class _OperatorsContainer:
 
   # NOTE: Adding an operator / container to __dict__, causes __getattr__ to not
   # be invoked the next time by Python runtime.
-  def __getattr__(
-      self, op_or_container_name: str
-  ) -> _OperatorsContainer | Callable[..., Any]:
+  def __getattr__(self, op_or_container_name: str) -> Any:
     ret = None
     if self._overrides is not None and not op_or_container_name.startswith('_'):
       ret = getattr(self._overrides, op_or_container_name, None)
