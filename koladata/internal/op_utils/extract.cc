@@ -371,7 +371,7 @@ class CopyingProcessor {
       ASSIGN_OR_RETURN(old_schema_item, objects_tracker_->GetAttr(
                                             schema_item, kMappingAttrName));
       if (!old_schema_item.has_value()) {
-        return std::make_pair(schema_item, false);
+        return std::make_pair(DataItem(), false);
       }
     } else {
       old_schema_item = schema_item;
@@ -388,6 +388,10 @@ class CopyingProcessor {
             schema_item, attr_name, copied_schema, attr_schema));
       }
       return std::make_pair(std::move(attr_schema), false);
+    }
+    if (attr_name == schema::kSchemaNameAttr &&
+        old_schema_item != schema_item) {
+      return std::make_pair(DataItem(), false);
     }
     RETURN_IF_ERROR(
         new_databag_->SetSchemaAttr(schema_item, attr_name, attr_schema));

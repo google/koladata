@@ -252,6 +252,15 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equal(res.b.c.no_bag(), ds(5))
     testing.assert_equal(res.d.no_bag(), ds(4))
 
+  def test_named_schema(self):
+    db = data_bag.DataBag.empty()
+    s = db.named_schema('s', x=schema_constants.INT32, y=schema_constants.INT32)
+    result = expr_eval.eval(kde.clone(s))
+    expected_bag = data_bag.DataBag.empty()
+    result.with_bag(expected_bag).set_attr('x', schema_constants.INT32)
+    result.with_bag(expected_bag).set_attr('y', schema_constants.INT32)
+    testing.assert_equivalent(result.get_bag(), expected_bag)
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.clone(I.x)))
 

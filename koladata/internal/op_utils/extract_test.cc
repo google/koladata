@@ -838,12 +838,8 @@ TEST_P(ShallowCloneTest, NamedSchemaSlice) {
   EXPECT_NE(result_slice[0], s1);
   EXPECT_NE(result_slice[1], s2);
   TriplesT expected_schema_triples = {
-      {result_slice[0],
-       {{"x", DataItem(schema::kInt32)},
-        {schema::kSchemaNameAttr, DataItem(arolla::Text("s1"))}}},
-      {result_slice[1],
-       {{"a", DataItem(schema::kString)},
-        {schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))}}},
+      {result_slice[0], {{"x", DataItem(schema::kInt32)}}},
+      {result_slice[1], {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*expected_db, expected_schema_triples);
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
