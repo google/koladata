@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/data_bag.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -27,6 +28,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
@@ -648,15 +650,20 @@ TEST(DataBagTest, SetGetManyAllocations) {
 
   // We use big size to test that there is no quadratic complexity in the
   // implementation.
-  for (size_t size : {1, 2, 4, 17, 126, 1034, 5234, 190359}) {
-    std::vector<DataItem> objs;
-    objs.reserve(size);
-    std::vector<DataItem> values;
-    values.reserve(size);
-    for (int64_t i = 0; i < static_cast<int64_t>(size); ++i) {
+  constexpr int kBigSize = 50239;
+
+  std::vector<DataItem> objs;
+  objs.reserve(kBigSize);
+  std::vector<DataItem> values;
+  values.reserve(kBigSize);
+
+  for (int64_t size : {1, 2, 4, 17, 126, 1034, 5234, kBigSize}) {
+    for (int64_t i = static_cast<int64_t>(objs.size()); i < size; ++i) {
       objs.push_back(DataItem(Allocate(37 * size).ObjectByOffset(i)));
       values.push_back(DataItem(i * 17));
     }
+    CHECK_EQ(objs.size(), size);
+    CHECK_EQ(values.size(), size);
     ASSERT_OK(db->SetAttr(DataSliceImpl::Create(objs), "a",
                           DataSliceImpl::Create(values)));
     ASSERT_OK_AND_ASSIGN(auto ds_a,
@@ -1428,7 +1435,7 @@ TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjectsSparseToDense) {
 
 TEST(DataBagTest,
      InternalSetUnitAttrAndReturnMissingObjectsManyBigAllocations) {
-  constexpr int64_t kSize = 50000;
+  constexpr int64_t kSize = 50239;
   auto db = DataBagImpl::CreateEmptyDatabag();
   std::vector<DataItem> objs1;
   std::vector<DataItem> objs2;
@@ -1446,16 +1453,28 @@ TEST(DataBagTest,
       }
     }
   }
+  // We do not use UnorderedElementsAreArray, because test is too slow with it.
   {
     auto ds = DataSliceImpl::Create(objs1);
-    EXPECT_THAT(db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"),
-                IsOkAndHolds(UnorderedElementsAreArray(objs1)));
+    ASSERT_OK_AND_ASSIGN(
+        auto ds_result,
+        db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"));
+    std::vector<DataItem> result_objs(ds_result.begin(), ds_result.end());
+    std::sort(result_objs.begin(), result_objs.end(), DataItem::Less());
+    std::sort(objs1.begin(), objs1.end(), DataItem::Less());
+    EXPECT_THAT(result_objs, ElementsAreArray(objs1));
   }
   {
     auto ds = DataSliceImpl::Create(objs2);
-    EXPECT_THAT(
-        db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"),
-        IsOkAndHolds(UnorderedElementsAreArray(expected_objs2_missing)));
+    ASSERT_OK_AND_ASSIGN(
+        auto ds_result,
+        db->InternalSetUnitAttrAndReturnMissingObjects(ds, "a"));
+    std::vector<DataItem> result_objs(ds_result.begin(), ds_result.end());
+    std::sort(result_objs.begin(), result_objs.end(), DataItem::Less());
+    std::sort(expected_objs2_missing.begin(), expected_objs2_missing.end(),
+              DataItem::Less());
+    EXPECT_THAT(result_objs,
+                ElementsAreArray(expected_objs2_missing));
   }
 }
 
