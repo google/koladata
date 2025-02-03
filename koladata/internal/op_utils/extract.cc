@@ -29,6 +29,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -116,6 +117,29 @@ class CopyingProcessor {
   }
 
  private:
+  absl::Status ValidatePrimitiveTypes(const QueuedSlice& slice) {
+    if (slice.slice.is_empty_and_unknown()) {
+      return absl::OkStatus();
+    }
+    DCHECK(slice.schema.value<schema::DType>().is_primitive());
+    auto dtype = slice.slice.dtype();
+    if (auto schema_dtype = slice.schema.value<schema::DType>();
+      schema_dtype.qtype() != dtype) {
+      auto slice_qtype_or = schema::DType::FromQType(dtype);
+      if (!slice_qtype_or.ok()) {
+        return absl::InvalidArgumentError(absl::StrCat(
+            "during extract/clone, got a slice with primitive type ",
+            schema_dtype,
+            " while the actual content is mixed or not a primitive"));
+      }
+      return absl::InvalidArgumentError(
+          absl::StrCat("during extract/clone, got a slice with primitive type ",
+                       schema_dtype, " while the actual content has type ",
+                       slice_qtype_or->name()));
+    }
+    return absl::OkStatus();
+  }
+
   DataSliceImpl FilterToObjects(const DataSliceImpl& ds) {
     DataSliceImpl res = DataSliceImpl::CreateEmptyAndUnknownType(ds.size());
     ds.VisitValues([&](const auto& array) {
@@ -211,8 +235,10 @@ class CopyingProcessor {
           return absl::InternalError(
               "clone/extract not supported for kAny schema");
           }
+      } else if (slice.schema.value<schema::DType>().is_primitive()) {
+        RETURN_IF_ERROR(ValidatePrimitiveTypes(slice));
       }
-      // Primitive types, Any and ItemId need no processing.
+      // Any and ItemId need no processing.
     } else {
       return absl::InternalError("unsupported schema type");
     }

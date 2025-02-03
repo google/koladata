@@ -1024,7 +1024,7 @@ TEST_P(ExtractTest, DataSliceEntity) {
 TEST_P(ExtractTest, DataSliceEntityRemovedValues) {
   for (int64_t size : {1, 3, 17, 1034}) {
     auto obj_ids = AllocateEmptyObjects(size);
-    auto int_dtype = DataItem(schema::kInt32);
+    auto int_dtype = DataItem(schema::kInt64);
     auto schema = AllocateSchema();
 
     TriplesT schema_triples = {{schema, {{"x", int_dtype}, {"y", int_dtype}}}};
@@ -1414,7 +1414,7 @@ TEST_P(ExtractTest, MaxDepth) {
   };
   const TriplesT schema_triples_level1 = {
       {dict_level1_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
         {schema::kDictValuesSchemaAttr, dict_level2_schema}}},
       {list_of_lists_level1_schema,
        {{schema::kListItemsSchemaAttr, list_level2_schema}}},
@@ -1422,7 +1422,7 @@ TEST_P(ExtractTest, MaxDepth) {
   };
   const TriplesT schema_triples_level2 = {
       {dict_level2_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}},
       {list_level2_schema,
        {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
@@ -1790,7 +1790,7 @@ TEST_P(ExtractTest, DataSliceDictsPrimitives) {
   auto dict_schema = AllocateSchema();
   TriplesT schema_triples = {
       {dict_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -1840,7 +1840,7 @@ TEST_P(ExtractTest, DataSliceDictsObjectIds) {
   TriplesT schema_triples = {
       {key_schema,
        {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
-      {value_schema, {{"val", DataItem(schema::kFloat32)}}},
+      {value_schema, {{"val", DataItem(schema::kFloat64)}}},
       {dict_schema,
        {{schema::kDictKeysSchemaAttr, key_schema},
         {schema::kDictValuesSchemaAttr, value_schema}}}};
@@ -1899,7 +1899,7 @@ TEST_P(ExtractTest, DataSliceDictsObjectIdsObjectSchema) {
   TriplesT schema_triples = {
       {key_schema,
        {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
-      {value_schema, {{"val", DataItem(schema::kFloat32)}}},
+      {value_schema, {{"val", DataItem(schema::kFloat64)}}},
       {dict_schema,
        {{schema::kDictKeysSchemaAttr, DataItem(schema::kObject)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kObject)}}}};
@@ -1942,7 +1942,7 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema) {
   };
   auto key_schema = AllocateSchema();
   auto dict_schema = AllocateSchema();
-  TriplesT schema_triples = {{key_schema, {{"x", DataItem(schema::kInt64)}}},
+  TriplesT schema_triples = {{key_schema, {{"x", DataItem(schema::kInt32)}}},
                              {dict_schema,
                               {{schema::kDictKeysSchemaAttr, key_schema},
                                {schema::kDictValuesSchemaAttr, dict_schema}}}};
@@ -2749,7 +2749,7 @@ TEST_P(ExtractTest, NamedSchemaObjects) {
   TriplesT data_triples = {
       {a1, {{schema::kSchemaAttr, s1}, {"x", a2}}},
       {a2, {{schema::kSchemaAttr, s1}, {"x", a0}}},
-      {a0, {{schema::kSchemaAttr, s2}, {"a", DataItem("foo")}}}};
+      {a0, {{schema::kSchemaAttr, s2}, {"a", DataItem(arolla::Text("foo"))}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -2850,7 +2850,7 @@ TEST_P(ExtractTest, AnySchemaForOneAttribute) {
         *db, {{schema, {{absl::StrCat("x", i), DataItem(schema::kInt32)}}}});
   }
   for (int i = 0; i < 30; ++i) {
-    SetDataTriples(*db, {{obj_ids[0], {{absl::StrCat("x", i), obj_ids[1]}}}});
+    SetDataTriples(*db, {{obj_ids[0], {{absl::StrCat("x", i), DataItem(1)}}}});
   }
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -2890,6 +2890,47 @@ TEST_P(ExtractTest, AnySchemaTypeInside) {
                                  {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(absl::StatusCode::kInternal,
                "clone/extract not supported for kAny schema"));
+}
+
+TEST_P(ExtractTest, InvalidPrimitiveType) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem(arolla::Text("foo"))}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "during extract/clone, got a slice with primitive type INT32 "
+               "while the actual content has type STRING"));
+}
+
+TEST_P(ExtractTest, InvalidPrimitiveTypeObject) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(2);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {{a0, {{"x", a1}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "during extract/clone, got a slice with primitive type INT32 "
+               "while the actual content is mixed or not a primitive"));
 }
 
 }  // namespace

@@ -195,6 +195,17 @@ class CoreExtractTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.extract(o))
 
+  def test_primitives_mismatch(self):
+    db = data_bag.DataBag.empty()
+    o = db.obj(x=ds([1, 2, 3]))
+    schema = db.new_schema(x=schema_constants.STRING)
+    with self.assertRaisesRegex(
+        ValueError,
+        'during extract/clone, got a slice with primitive type STRING while the'
+        ' actual content has type INT32',
+    ):
+      expr_eval.eval(kde.extract(o, schema))
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
