@@ -177,16 +177,16 @@ ObjectId AllocateSingleObject() {
 }
 
 bool AllocationIdSet::InsertBigAllocationSlow(AllocationId id) {
-  auto sorted_end = ids_.size() >= kMaxSortedSize
+  auto sorted_end = ids_.size() > kMaxSortedSize
                         ? ids_.begin() + kMaxSortedSize
                         : ids_.end();
   auto sorted_it = std::lower_bound(ids_.begin(), sorted_end, id);
   if (sorted_it != sorted_end && *sorted_it == id) {
     return false;
   }
-  if (ids_.size() < kMaxSortedSize) {
+  if (ids_.size() <= kMaxSortedSize) {
     ids_.insert(sorted_it, id);
-    if (ids_.size() >= kMaxSortedSize) {
+    if (ids_.size() > kMaxSortedSize) {
       unsorted_ids_.emplace();
       // Last element is outside of the sorted range.
       unsorted_ids_->insert(ids_.back());
@@ -218,7 +218,7 @@ void AllocationIdSet::Insert(const AllocationIdSet& new_ids) {
   ids_.insert(ids_.end(), new_ids.ids_.begin() + offset, new_ids.ids_.end());
   // We may have many ids here, but after duplicate removal we may stay in the
   // small mode.
-  if (ids_.size() < kMaxSortedSize) {
+  if (ids_.size() <= kMaxSortedSize) {
     std::inplace_merge(ids_.begin() + offset,
                        ids_.end() - (new_ids.size() - offset), ids_.end());
     ids_.erase(std::unique(ids_.begin() + offset, ids_.end()), ids_.end());
@@ -227,7 +227,7 @@ void AllocationIdSet::Insert(const AllocationIdSet& new_ids) {
     ids_.erase(std::unique(ids_.begin(), ids_.end()), ids_.end());
   }
   // Check whether we are in big mode after duplicate removal.
-  if (ids_.size() >= kMaxSortedSize) {
+  if (ids_.size() > kMaxSortedSize) {
     if (!unsorted_ids_.has_value()) {
       unsorted_ids_.emplace();
     }
@@ -247,8 +247,8 @@ bool operator==(const AllocationIdSet& lhs, const AllocationIdSet& rhs) {
     return false;
   }
   DCHECK(lhs.ids_.size() == rhs.ids_.size());
-  if (lhs.ids_.size() >= AllocationIdSet::kMaxSortedSize) {
-    DCHECK_GE(rhs.ids_.size(), AllocationIdSet::kMaxSortedSize);
+  if (lhs.ids_.size() > AllocationIdSet::kMaxSortedSize) {
+    DCHECK_GT(rhs.ids_.size(), AllocationIdSet::kMaxSortedSize);
     absl::flat_hash_set<AllocationId> lhs_set(*lhs.unsorted_ids_);
     for (size_t i = 0; i != AllocationIdSet::kMaxSortedSize; ++i) {
       lhs_set.insert(lhs.ids_[i]);
@@ -260,7 +260,7 @@ bool operator==(const AllocationIdSet& lhs, const AllocationIdSet& rhs) {
     }
     return true;
   } else {
-    DCHECK_LT(rhs.ids_.size(), AllocationIdSet::kMaxSortedSize);
+    DCHECK_LE(rhs.ids_.size(), AllocationIdSet::kMaxSortedSize);
     return lhs.ids_ == rhs.ids_;
   }
 }
