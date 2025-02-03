@@ -220,8 +220,14 @@ class CoreDeepCloneTest(parameterized.TestCase):
     self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equal(res.x.no_bag(), ds(42))
     testing.assert_equal(res.z.no_bag(), ds(12))
-    with self.assertRaisesRegex(ValueError, 'attribute \'y\' is missing'):
+    with self.assertRaisesRegex(ValueError, "attribute 'y' is missing"):
       _ = res.y
+
+  def test_with_named_schema(self):
+    schema = bag().named_schema('foo', x=schema_constants.INT32)
+    s = schema(x=ds([1, 2, 3]))
+    res = expr_eval.eval(kde.core.deep_clone(s))
+    testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
 
   def test_non_determinism(self):
     x = bag().new(y=bag().new(a=1))

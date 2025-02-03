@@ -148,6 +148,9 @@ class DeepCloneVisitor : AbstractVisitor {
         auto attr_name = attr_names[i].value;
         const DataItem& value = attr_values[i].value;
         if (schema == schema::kSchema) {
+          if (object != new_object && attr_name == schema::kSchemaNameAttr) {
+            continue;
+          }
           RETURN_IF_ERROR(
               new_databag_->SetSchemaAttr(new_object, attr_name, value));
         } else {

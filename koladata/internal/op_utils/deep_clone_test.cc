@@ -36,6 +36,7 @@
 #include "arolla/dense_array/edge.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
 
 namespace koladata::internal {
 namespace {
@@ -249,8 +250,12 @@ TEST_P(DeepCloneTest, DeepEntitySliceBigAlloc) {
                            {b0, {{"self", b0}}},
                            {b1, {{"self", b1}}},
                            {b2, {{"self", b2}}}};
-  TriplesT schema_triples = {{schema_a, {{"self", schema_a}, {"b", schema_b}}},
-                             {schema_b, {{"self", schema_b}}}};
+  TriplesT schema_triples = {
+      {schema_a,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("schema_a"))},
+        {"self", schema_a},
+        {"b", schema_b}}},
+      {schema_b, {{"self", schema_b}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -284,12 +289,8 @@ TEST_P(DeepCloneTest, DeepEntitySliceBigAlloc) {
       {result_b[1], {{"self", result_b[1]}}},
       {result_b[2], {{"self", result_b[2]}}},
   };
-  TriplesT expected_schema_triples = {
-      {result_schema, {{"self", result_schema}, {"b", result_b_schema}}},
-      {result_b_schema, {{"self", result_b_schema}}},
-  };
   SetDataTriples(*expected_db, expected_data_triples);
-  SetSchemaTriples(*expected_db, expected_schema_triples);
+  SetSchemaTriples(*expected_db, schema_triples);
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(expected_db));
 
@@ -923,6 +924,88 @@ TEST_P(DeepCloneTest, SchemaSlice) {
        {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
   };
   SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto ds = DataSliceImpl::Create(
+      CreateDenseArray<DataItem>({s1, s2, implicit_schema0, implicit_schema1}));
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      (auto [result_slice, result_schema]),
+      DeepCloneOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_NE(result_db.get(), db.get());
+  EXPECT_NE(result_slice[0], s1);
+  EXPECT_NE(result_slice[1], s2);
+  EXPECT_FALSE(result_slice[2].is_implicit_schema());
+  EXPECT_FALSE(result_slice[3].is_implicit_schema());
+  EXPECT_NE(result_slice[3], result_slice[2]);
+  ASSERT_OK_AND_ASSIGN(auto result_s3,
+                       result_db->GetSchemaAttr(result_slice[0], "y"));
+  ASSERT_OK_AND_ASSIGN(auto nofollow_result_s4,
+                       result_db->GetSchemaAttr(result_slice[0], "4"));
+  EXPECT_TRUE(nofollow_result_s4.value<ObjectId>().IsNoFollowSchema());
+  auto nofollow_result_s3 =
+      DataItem(CreateNoFollowWithMainObject(result_s3.value<ObjectId>()));
+
+  TriplesT expected_schema_triples = {
+      {result_slice[0],
+       {{"x", DataItem(schema::kInt32)},
+        {"y", result_s3},
+        {"4", nofollow_result_s4}}},
+      {result_slice[1],
+       {{"a", DataItem(schema::kString)}, {"y", nofollow_result_s3}}},
+      {result_s3, {{"self", result_s3}, {"implicit", result_slice[2]}}},
+      {result_slice[2],
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+      {result_slice[3],
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+  };
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(DeepCloneTest, NamedSchemaSlice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto s1 = AllocateSchema();
+  auto s2 = AllocateSchema();
+  auto s3 = AllocateSchema();
+  auto s4 = AllocateSchema();
+  auto nofollow_s3 =
+    DataItem(CreateNoFollowWithMainObject(s3.value<ObjectId>()));
+  auto nofollow_s4 =
+    DataItem(CreateNoFollowWithMainObject(s4.value<ObjectId>()));
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  ASSERT_OK_AND_ASSIGN(
+      auto implicit_schema_ids,
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          obj_ids, schema::kImplicitSchemaSeed));
+  auto implicit_schema0 = implicit_schema_ids[0];
+  auto implicit_schema1 = implicit_schema_ids[1];
+
+  TriplesT schema_triples = {
+      {s1, {{"x", DataItem(schema::kInt32)}, {"y", s3}, {"4", nofollow_s4}}},
+      {s2, {{"a", DataItem(schema::kString)}, {"y", nofollow_s3}}},
+      {s3, {{"self", s3}, {"implicit", implicit_schema0}}},
+      {s4, {{"a", DataItem(schema::kString)}}},
+      {implicit_schema0,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+      {implicit_schema1,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kInt32)}}},
+  };
+  TriplesT schemaname_triples = {
+      {s1, {{schema::kSchemaNameAttr, DataItem(arolla::Text("s1"))}}},
+      {s2, {{schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))}}},
+      {s3, {{schema::kSchemaNameAttr, DataItem(arolla::Text("s3"))}}},
+      {s4, {{schema::kSchemaNameAttr, DataItem(arolla::Text("s4"))}}},
+      {implicit_schema0,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("implicit_s0"))}}},
+      {implicit_schema1,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("implicit_s1"))}}},
+  };
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, schemaname_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
 
