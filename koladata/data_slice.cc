@@ -408,19 +408,12 @@ absl::Status AttrOnPrimitiveError(const internal::DataSliceImpl& slice,
       *DataSlice::CreateWithFlatShape(slice, schema), attr_name, action);
 }
 
-// Calls DataBagImpl::GetAttr on the specific implementation (DataSliceImpl or
-// DataItem). Returns DataSliceImpl / DataItem data and fills `res_schema` with
-// schema of the resulting DataSlice as side output.
-// * In case `allow_missing_schema` is false, it is strict and returns an
-//   error on missing attributes.
-// * Otherwise, it allows missing. In case the schema is missing, the returned
-//   DataSlice with have `ANY` schema.
+// Validates that attr lookup is possible on the values of `impl`. If OK(),
+// `impl` is guaranteed to contain only Items and `db != nullptr`.
 template <typename ImplT>
-absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
-                                  const internal::DataItem& schema,
-                                  absl::string_view attr_name,
-                                  internal::DataItem& res_schema,
-                                  bool allow_missing_schema) {
+absl::Status ValidateAttrLookupAllowed(const DataBagPtr& db, const ImplT& impl,
+                                       const internal::DataItem& schema,
+                                       absl::string_view attr_name) {
   if (schema.is_primitive_schema() || impl.ContainsAnyPrimitives()) {
     return AttrOnPrimitiveError(impl, schema, attr_name, "get");
   }
@@ -434,6 +427,22 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
         "failed to get '%s' attribute; the DataSlice is a reference without a "
         "bag", attr_name));
   }
+  return absl::OkStatus();
+}
+
+// Calls DataBagImpl::GetAttr on the specific implementation (DataSliceImpl or
+// DataItem). Returns DataSliceImpl / DataItem data and fills `res_schema` with
+// schema of the resulting DataSlice as side output.
+// * In case `allow_missing_schema` is false, it is strict and returns an
+//   error on missing attributes.
+// * Otherwise, it allows missing.
+template <typename ImplT>
+absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
+                                  const internal::DataItem& schema,
+                                  absl::string_view attr_name,
+                                  internal::DataItem& res_schema,
+                                  bool allow_missing_schema) {
+  RETURN_IF_ERROR(ValidateAttrLookupAllowed(db, impl, schema, attr_name));
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
@@ -454,6 +463,25 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
                                     allow_missing_schema));
   }
   return db_impl.GetAttr(impl, attr_name, fallbacks);
+}
+
+template <typename ImplT>
+absl::StatusOr<ImplT> HasAttrImpl(const DataBagPtr& db, const ImplT& impl,
+                                  const internal::DataItem& schema,
+                                  absl::string_view attr_name) {
+  RETURN_IF_ERROR(ValidateAttrLookupAllowed(db, impl, schema, attr_name));
+  const auto& db_impl = db->GetImpl();
+  FlattenFallbackFinder fb_finder(*db);
+  auto fallbacks = fb_finder.GetFlattenFallbacks();
+  auto get_attr = [&]() {
+    if (schema == schema::kSchema) {
+      return db_impl.GetSchemaAttrAllowMissing(impl, attr_name, fallbacks);
+    } else {
+      return db_impl.GetAttr(impl, attr_name, fallbacks);
+    }
+  };
+  ASSIGN_OR_RETURN(auto attrs, get_attr());
+  return internal::HasOp()(attrs);
 }
 
 // Function for `this.GetAttr(attr_name) | (default_value & has(this))`.
@@ -1254,6 +1282,17 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
         CoalesceWithFiltered(impl, result_or_missing.impl<T>(),
                              expanded_default.impl<T>()),
         GetShape(), std::move(result_schema), std::move(result_db));
+  });
+}
+
+absl::StatusOr<DataSlice> DataSlice::HasAttr(
+    absl::string_view attr_name) const {
+  return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto res,
+                     HasAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name),
+                     AssembleErrorMessage(_, {.ds = *this}));
+    return DataSlice::Create(std::move(res), GetShape(),
+                             internal::DataItem(schema::kMask));
   });
 }
 

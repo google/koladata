@@ -18,7 +18,6 @@ from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
-from koladata.operators import masking
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
@@ -103,14 +102,14 @@ def maybe(x, attr_name):
 
 
 @optools.add_to_registry(aliases=['kd.has_attr'])
-@optools.as_lambda_operator(
+@optools.as_backend_operator(
     'kd.core.has_attr',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
     ],
 )
-def has_attr(x, attr_name):
+def has_attr(x, attr_name):  # pylint: disable=unused-argument
   """Indicates whether the items in `x` DataSlice have the given attribute.
 
   This function checks for attributes based on data rather than "schema" and may
@@ -124,14 +123,7 @@ def has_attr(x, attr_name):
     A MASK DataSlice with the same shape as `x` that contains present if the
     attribute exists for the corresponding item.
   """
-  return masking.has(
-      maybe(x & (x.get_schema() == schema_constants.SCHEMA), attr_name)
-  ) | masking.has(
-      maybe(
-          (x & (x.get_schema() != schema_constants.SCHEMA)).as_any(),
-          attr_name,
-      )
-  )
+  return NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kd.has_primitive'])

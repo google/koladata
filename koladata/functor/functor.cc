@@ -101,13 +101,12 @@ absl::StatusOr<bool> IsFunctor(const DataSlice& slice) {
   if (slice.item().dtype() != arolla::GetQType<internal::ObjectId>()) {
     return false;
   }
-  // TODO: use HasAttr when it is implemented.
-  ASSIGN_OR_RETURN(auto returns, slice.GetAttrOrMissing(kReturnsAttrName));
-  if (!returns.present_count()) {
+  ASSIGN_OR_RETURN(auto returns, slice.HasAttr(kReturnsAttrName));
+  if (returns.IsEmpty()) {
     return false;
   }
-  ASSIGN_OR_RETURN(auto signature, slice.GetAttrOrMissing(kSignatureAttrName));
-  if (!signature.present_count()) {
+  ASSIGN_OR_RETURN(auto signature, slice.HasAttr(kSignatureAttrName));
+  if (signature.IsEmpty()) {
     return false;
   }
   return true;

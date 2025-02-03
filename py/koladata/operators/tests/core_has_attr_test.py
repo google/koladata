@@ -121,6 +121,13 @@ class CoreHasAttrTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.core.has_attr(43, 'a'))
 
+  def test_nested_attr(self):
+    # NOTE: Regression test for cl/721839583.
+    db = data_bag.DataBag.empty()
+    obj = db.obj(x=db.obj(y=1))
+    res = expr_eval.eval(kde.core.has_attr(obj, 'x'))
+    testing.assert_equal(res, ds(present))
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(

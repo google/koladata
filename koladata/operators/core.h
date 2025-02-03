@@ -72,6 +72,10 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
                                              const DataSlice& attr_name,
                                              const DataSlice& default_value);
 
+// kd.core.has_attr.
+absl::StatusOr<DataSlice> HasAttr(const DataSlice& obj,
+                                  const DataSlice& attr_name);
+
 // kd.core._stub.
 absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& keep_attrs);
 

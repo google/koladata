@@ -54,6 +54,7 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 
 namespace koladata {
 namespace {
@@ -3290,6 +3291,152 @@ TEST(DataSliceTest, GetAttrOrMissing_ImplicitCasting_Entity) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
                          "that contains only primitives of FLOAT32")));
+}
+
+TEST(DataSliceTest, HasAttr_Primitives_EntityCreator) {
+  auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
+  auto db = DataBag::Empty();
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
+  ASSERT_OK(ds.SetAttr("a", ds_primitive));
+
+  // Present attr (for some).
+  ASSERT_OK_AND_ASSIGN(auto mask, ds.HasAttr("a"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {arolla::Unit(), std::nullopt, arolla::Unit()})));
+
+  // Missing attr.
+  ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr("b"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {std::nullopt, std::nullopt, std::nullopt})));
+}
+
+TEST(DataSliceTest, HasAttr_Primitives_EntityCreator_DataItem) {
+  auto ds_primitive = test::DataItem(1, schema::kInt32);
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {}, {}));
+  ASSERT_OK(ds.SetAttr("a", ds_primitive));
+
+  // Present attr.
+  ASSERT_OK_AND_ASSIGN(auto mask, ds.HasAttr("a"));
+  EXPECT_THAT(mask,
+              IsEquivalentTo(test::DataItem(arolla::Unit(), schema::kMask)));
+
+  // Missing attr.
+  ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr("b"));
+  EXPECT_THAT(mask,
+              IsEquivalentTo(test::DataItem(std::nullopt, schema::kMask)));
+}
+
+TEST(DataSliceTest, HasAttr_Objects_EntityCreator) {
+  auto db = DataBag::Empty();
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
+  auto object_id_1 = internal::AllocateSingleObject();
+  auto object_id_2 = internal::AllocateSingleObject();
+  auto explicit_schema = internal::AllocateExplicitSchema();
+  auto ds_object = test::DataSlice<ObjectId>(
+      {object_id_1, std::nullopt, object_id_2}, explicit_schema, ds.GetBag());
+  ASSERT_OK(ds.SetAttr("a", ds_object));
+
+  // Present attr (for some).
+  ASSERT_OK_AND_ASSIGN(auto mask, ds.HasAttr("a"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {arolla::Unit(), std::nullopt, arolla::Unit()})));
+
+  // Missing attr.
+  ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr("b"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {std::nullopt, std::nullopt, std::nullopt})));
+}
+
+TEST(DataSliceTest, HasAttr_mix_ObjectCreator) {
+  auto db = DataBag::Empty();
+  auto a = test::DataItem(1, schema::kInt32);
+  auto b_attr = test::DataItem(2, schema::kInt32);
+  ASSERT_OK_AND_ASSIGN(
+      auto b, EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                                    {"foo"}, {b_attr}));
+  ASSERT_OK_AND_ASSIGN(
+      auto obj_1, ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                                        {"a", "b"}, {a, b}));
+  ASSERT_OK_AND_ASSIGN(
+      auto obj_2, ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
+                                        {"a", "b"}, {b, a}));
+  // Doing objs.GetAttr("a") fails due to no common schema. We test that this
+  // still works for HasAttr.
+  auto ds =
+      test::DataSlice<ObjectId>({obj_1.item().value<ObjectId>(), std::nullopt,
+                                 obj_2.item().value<ObjectId>()},
+                                schema::kObject, db);
+
+  // Sanity check.
+  EXPECT_THAT(ds.GetAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument));
+
+  // Present attr (for some).
+  ASSERT_OK_AND_ASSIGN(auto mask, ds.HasAttr("a"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {arolla::Unit(), std::nullopt, arolla::Unit()})));
+
+  // Missing attr.
+  ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr("c"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {std::nullopt, std::nullopt, std::nullopt})));
+}
+
+TEST(DataSliceTest, HasAttr_SchemaSlice) {
+  ASSERT_OK_AND_ASSIGN(auto entity,
+                       EntityCreator::FromAttrs(DataBag::Empty(), {}, {}));
+  auto entity_schema = entity.GetSchema();
+  ASSERT_OK_AND_ASSIGN(auto schema,
+                       CreateEntitySchema(DataBag::Empty(), {"a", "b"},
+                                          {test::Schema(schema::kInt32),
+                                           test::Schema(schema::kFloat32)}));
+
+  // Present attr.
+  ASSERT_OK_AND_ASSIGN(auto mask, schema.HasAttr("a"));
+  EXPECT_THAT(mask,
+              IsEquivalentTo(test::DataItem(arolla::Unit())));
+
+  // Missing attr.
+  ASSERT_OK_AND_ASSIGN(mask, schema.HasAttr("c"));
+  EXPECT_THAT(mask,
+              IsEquivalentTo(test::DataItem(std::nullopt, schema::kMask)));
+}
+
+
+TEST(DataSliceTest, HasAttr_Errors) {
+  {
+    // Primitive data.
+    auto ds = test::MixedDataSlice<internal::ObjectId, int>(
+        {internal::AllocateSingleObject(), std::nullopt}, {std::nullopt, 1},
+        schema::kObject, DataBag::Empty());
+    EXPECT_THAT(ds.HasAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
+                                          HasSubstr("primitive")));
+
+    // Primitive schema.
+    ds = test::DataSlice<int>({std::nullopt}, schema::kInt32, DataBag::Empty());
+    EXPECT_THAT(ds.HasAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
+                                          HasSubstr("primitive")));
+  }
+  {
+    // No bag.
+    ASSERT_OK_AND_ASSIGN(
+        auto ds,
+        EntityCreator::Shaped(DataBag::Empty(),
+                              DataSlice::JaggedShape::FlatFromSize(3), {}, {}));
+    EXPECT_THAT(ds.WithBag(nullptr).HasAttr("a"),
+                StatusIs(absl::StatusCode::kInvalidArgument, HasSubstr("bag")));
+  }
+  {
+    // ItemId.
+    auto ds = test::DataSlice<internal::ObjectId>(
+        {std::nullopt}, schema::kItemId, DataBag::Empty());
+    EXPECT_THAT(ds.HasAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
+                                          HasSubstr("ITEMID")));
+  }
 }
 
 TEST(DataSliceTest, DelAttr_EntityCreator) {

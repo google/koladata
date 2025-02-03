@@ -28,7 +28,6 @@
 #include "koladata/expr/constants.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
-#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"

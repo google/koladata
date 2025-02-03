@@ -284,6 +284,11 @@ class DataSlice {
   absl::StatusOr<DataSlice> GetAttrWithDefault(
       absl::string_view attr_name, const DataSlice& default_value) const;
 
+  // Returns a MASK DataSlice indicating the presence of the given attribute per
+  // item. Note that this function checks for attributes based on data rather
+  // than the schema and may be slow in some cases.
+  absl::StatusOr<DataSlice> HasAttr(absl::string_view attr_name) const;
+
   // Sets an attribute `attr_name` of this object to `values`. Possible only if
   // it contains a reference to a DataBag. If `update_schema` is true, schemas
   // will also be updated, otherwise incompatible schema errors will be raised

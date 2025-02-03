@@ -331,6 +331,13 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
   return obj.GetAttrWithDefault(attr_name_str, default_value);
 }
 
+absl::StatusOr<DataSlice> HasAttr(const DataSlice& obj,
+                                  const DataSlice& attr_name) {
+  ASSIGN_OR_RETURN(auto attr_name_str,
+                   GetStringArgument(attr_name, "attr_name"));
+  return obj.HasAttr(attr_name_str);
+}
+
 absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& attrs) {
   // TODO: Implement.
   if (!attrs.IsEmpty()) {

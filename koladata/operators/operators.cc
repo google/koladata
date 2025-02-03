@@ -113,6 +113,7 @@ OPERATOR_FAMILY("kd.core.enriched",
 OPERATOR("kd.core.follow", Follow);
 OPERATOR("kd.core.freeze_bag", Freeze<DataSlice>);
 OPERATOR("kd.core.get_bag", GetBag);
+OPERATOR("kd.core.has_attr", HasAttr);
 OPERATOR("kd.core.has_entity", HasEntity);
 OPERATOR("kd.core.has_primitive", HasPrimitive);
 OPERATOR("kd.core.is_entity", IsEntity);
