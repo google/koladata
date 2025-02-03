@@ -2148,6 +2148,140 @@ JSON serialization operators.
 
 **Operators**
 
+### `kd.json.from_json(x, /, schema=DataItem(OBJECT, schema: SCHEMA), default_number_schema=DataItem(OBJECT, schema: SCHEMA), *, on_invalid=DataSlice([], schema: NONE, ndims: 1, size: 0), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.json.from_json}
+Aliases:
+
+- [kd.from_json](#kd.from_json)
+
+``` {.no-copy}
+Parses a DataSlice `x` of JSON strings.
+
+The result will have the same shape as `x`, and missing items in `x` will be
+missing in the result. The result will use a new immutable DataBag.
+
+If `schema` is OBJECT (the default), the schema is inferred from the JSON
+data, and the result will have an OBJECT schema. The decoded data will only
+have BOOLEAN, numeric, STRING, LIST[OBJECT], and entity schemas, corresponding
+to JSON primitives, arrays, and objects.
+
+If `default_number_schema` is OBJECT (the default), then the inferred schema
+of each JSON number will be INT32, INT64, or FLOAT32, depending on its value
+and on whether it contains a decimal point or exponent, matching the combined
+behavior of python json and `kd.from_py`. Otherwise, `default_number_schema`
+must be a numeric schema, and the inferred schema of all JSON numbers will be
+that schema.
+
+For example:
+
+  kd.from_json(None) -> kd.obj(None)
+  kd.from_json('null') -> kd.obj(None)
+  kd.from_json('true') -> kd.obj(True)
+  kd.from_json('[true, false, null]') -> kd.obj([True, False, None])
+  kd.from_json('[1, 2.0]') -> kd.obj([1, 2.0])
+  kd.from_json('[1, 2.0]', kd.OBJECT, kd.FLOAT64)
+    -> kd.obj([kd.float64(1.0), kd.float64(2.0)])
+
+JSON objects parsed using an OBJECT schema will record the object key order on
+the attribute specified by `keys_attr` as a LIST[STRING], and also redundantly
+record a copy of the object values as a parallel LIST on the attribute
+specified by `values_attr`. If there are duplicate keys, the last value is the
+one stored on the Koda object attribute. If a key conflicts with `keys_attr`
+or `values_attr`, it is only available in the `values_attr` list. These
+behaviors can be disabled by setting `keys_attr` and/or `values_attr` to None.
+
+For example:
+
+  kd.from_json('{"a": 1, "b": "y", "c": null}') ->
+      kd.obj(a=1.0, b='y', c=None,
+             json_object_keys=kd.list(['a', 'b', 'c']),
+             json_object_values=kd.list([1.0, 'y', None]))
+  kd.from_json('{"a": 1, "b": "y", "c": null}',
+               keys_attr=None, values_attr=None) ->
+      kd.obj(a=1.0, b='y', c=None)
+  kd.from_json('{"a": 1, "b": "y", "c": null}',
+               keys_attr='my_keys', values_attr='my_values') ->
+      kd.obj(a=1.0, b='y', c=None,
+             my_keys=kd.list(['a', 'b', 'c']),
+             my_values=kd.list([1.0, 'y', None]))
+  kd.from_json('{"a": 1, "a": 2", "a": 3}') ->
+      kd.obj(a=3.0,
+             json_object_keys=kd.list(['a', 'a', 'a']),
+             json_object_values=kd.list([1.0, 2.0, 3.0]))
+  kd.from_json('{"json_object_keys": ["x", "y"]}') ->
+      kd.obj(json_object_keys=kd.list(['json_object_keys']),
+             json_object_values=kd.list([["x", "y"]]))
+
+If `schema` is explicitly specified, it is used to validate the JSON data,
+and the result DataSlice will have `schema` as its schema.
+
+OBJECT schemas inside subtrees of `schema` are allowed, and will use the
+inference behavior described above.
+
+Primitive schemas in `schema` will attempt to cast any JSON primitives using
+normal Koda explicit casting rules.
+
+If entity schemas in `schema` have attributes matching `keys_attr` and/or
+`values_attr`, then the object key and/or value order (respectively) will be
+recorded as lists on those attributes, similar to the behavior for OBJECT
+described above. These attributes must have schemas LIST[STRING] and
+LIST[T] (for a T compatible with the contained values) if present.
+
+For example:
+
+  kd.from_json('null', kd.MASK) -> kd.missing
+  kd.from_json('null', kd.STRING) -> kd.str(None)
+  kd.from_json('123', kd.INT32) -> kd.int32(123)
+  kd.from_json('123', kd.FLOAT32) -> kd.int32(123.0)
+  kd.from_json('"123"', kd.STRING) -> kd.string('123')
+  kd.from_json('"123"', kd.INT32) -> kd.int32(123)
+  kd.from_json('"123"', kd.FLOAT32) -> kd.float32(123.0)
+  kd.from_json('"inf"', kd.FLOAT32) -> kd.float32(float('inf'))
+  kd.from_json('"1e100"', kd.FLOAT32) -> kd.float32(float('inf'))
+  kd.from_json('[1, 2, 3]', kd.list_schema(kd.INT32)) -> kd.list([1, 2, 3])
+  kd.from_json('{"a": 1}', kd.schema.new_schema(a=kd.INT32)) -> kd.new(a=1)
+  kd.from_json('{"a": 1}', kd.dict_schema(kd.STRING, kd.INT32)
+    -> kd.dict({"a": 1})
+
+  kd.from_json('{"b": 1, "a": 2}',
+               kd.new_schema(
+                   a=kd.INT32, json_object_keys=kd.list_schema(kd.STRING))) ->
+    kd.new(a=1, json_object_keys=kd.list(['b', 'a', 'c']))
+  kd.from_json('{"b": 1, "a": 2, "c": 3}',
+               kd.new_schema(a=kd.INT32,
+                             json_object_keys=kd.list_schema(kd.STRING),
+                             json_object_values=kd.list_schema(kd.OBJECT))) ->
+    kd.new(a=1, c=3.0,
+           json_object_keys=kd.list(['b', 'a', 'c']),
+           json_object_values=kd.list([1, 2.0, 3.0]))
+
+In general:
+
+  `kd.to_json(kd.from_json(x))` is equivalent to `x`, ignoring differences in
+  JSON number formatting and padding.
+
+  `kd.from_json(kd.to_json(x), kd.get_schema(x))` is equivalent to `x` if `x`
+  has a concrete (no OBJECT) schema, ignoring differences in Koda itemids.
+  In other words, `to_json` doesn't capture the full information of `x`, but
+  the original schema of `x` has enough additional information to recover it.
+
+Args:
+  x: A DataSlice of STRING containing JSON strings to parse.
+  schema: A SCHEMA DataItem containing the desired result schema. Defaults to
+    kd.OBJECT.
+  default_number_schema: A SCHEMA DataItem containing a numeric schema, or
+    None to infer all number schemas using python-boxing-like rules.
+  on_invalid: If specified, a DataItem to use in the result wherever the
+    corresponding JSON string in `x` was invalid. If unspecified, any invalid
+    JSON strings in `x` will cause an operator error.
+  keys_attr: A STRING DataItem that controls which entity attribute is used to
+    record json object key order, if it is present on the schema.
+  values_attr: A STRING DataItem that controls which entity attribute is used
+    to record json object values, if it is present on the schema.
+
+Returns:
+  A DataSlice with the same shape as `x` and schema `schema`.
+```
+
 ### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.json.to_json}
 Aliases:
 
@@ -7341,6 +7475,10 @@ Alias for [kd.core.freeze](#kd.core.freeze) operator.
 ### `kd.freeze_bag(x)` {#kd.freeze_bag}
 
 Alias for [kd.core.freeze_bag](#kd.core.freeze_bag) operator.
+
+### `kd.from_json(x, /, schema=DataItem(OBJECT, schema: SCHEMA), default_number_schema=DataItem(OBJECT, schema: SCHEMA), *, on_invalid=DataSlice([], schema: NONE, ndims: 1, size: 0), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.from_json}
+
+Alias for [kd.json.from_json](#kd.json.from_json) operator.
 
 ### `kd.from_proto(messages, /, *, extensions=None, itemid=None, schema=None, db=None)` {#kd.from_proto}
 
