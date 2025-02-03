@@ -333,7 +333,7 @@ a = kd.slice([kd.list([1, 2, 3]), kd.list([4, 5])])
 a[1]  # [2, 5] == [list0[1], list1[1]]
 
 # "Explosion": add another dimension to the DataSlice
-# That is, 1-dim DataSlice of lists becomess 2-dim DataSlice
+# That is, a 1-dim DataSlice of lists becomes a 2-dim DataSlice
 a[:]  # [[1, 2, 3],[4, 5]]
 
 # "Explosion" of the first two items in each list
