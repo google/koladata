@@ -73,7 +73,6 @@ using ::koladata::internal::testing::DataItemWith;
 using ::koladata::schema::DType;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::AllOf;
-using ::testing::ContainsRegex;
 using ::testing::DoubleNear;
 using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
