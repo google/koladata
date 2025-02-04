@@ -112,6 +112,433 @@ The following table highlights the differences between objects and non-objects:
 :                       : workflows               : non-performance-critical :
 :                       :                         : workflows                :
 
+## Koda List vs DataSlice vs DataSlice of Lists
+
+On the high level, here is a quick summary:
+
+-   **Koda list**: represents a single, ordered sequence of items (similar to a
+    Python list). It is similar to a Python list or a repeated proto field.
+-   **Koda DataSlice**: represents a multi-dimensional array (potentially
+    jagged) of Koda items. It's the fundamental data structure for vectorized
+    operations. It is similar to a Panda DataFrame.
+-   **DataSlice of lists**: a specific type of DataSlice where each item is a
+    Koda list. It is an unique concept in Koda and used for vectorized
+    operations on lists items.
+
+Dimensions (or structures) in a Python list are represented by nested list
+structures. In Koda, dimensions can be captured by nested Koda lists, DataSlice
+jagged shape or a combination of them.
+
+### Creating a Koda List or a DataSlice from a Python List
+
+To create a Koda list from a Python list, we use `kd.list(py_list)`. To create a
+DataSlice, we use `kd.slice(py_list)`.
+
+Note: All Koda items including lists are accessed via DataSlice interface. A
+Koda list is also a DataItem containing a single list.
+
+Let's look at a simple example where `py_list` is a one-dimensional Python list.
+
+```py
+l1 = kd.list([1, 2, 3])  # DataItem(List[1, 2, 3])
+assert kd.is_slice(l1)
+assert kd.is_item(l1)
+l1.get_ndim()  # 0
+l1.get_schema()  # LIST[INT32]
+
+ds1 = kd.slice([1, 2, 3])  # DataSlice([1, 2, 3])
+assert kd.is_slice(ds1)
+assert not kd.is_item(ds1)
+ds1.get_ndim()  # 1
+ds1.get_schema()  # INT32
+```
+
+When `py_list` is a nested Python list, `kd.list(py_list)` creates Koda lists
+for corresponding Python lists recursively and the final result is a DataItem
+containing a Koda list. On the other hand, `kd.slice(py_list)` converts the
+nested Python list structure into a jagged shape for the resulting DataSlice.
+
+```py
+l2 = kd.list([[1, 2], [3, 4, 5]])  # DataItem(List[List[1, 2], List[3, 4, 5]])
+l2.get_ndim()  # 0
+l2.get_schema()  # LIST[LIST[INT32]]
+
+ds2 = kd.slice([[1, 2], [3, 4, 5]])  # DataSlice([[1, 2], [3, 4, 5]])
+ds2.get_ndim()  # 2
+ds2.get_schema()  # INT32
+```
+
+TIP: To check what type of items a DataSlice contains, we can get its schema
+using `kd.get_schema()`. The schema is also part of the DataSlice `repr`. In the
+examples above, we can easily tell if items are lists or integers.
+
+TIP: In the DataSlice `repr`, the jagged shape of a DataSlice is represented by
+nested square brackets (i.e. `[]`). By counting the number of adjacent opening
+brackets (i.e. `[`), we can easily know the `ndim` of a DataSlice. By looking at
+the part right after the opening brackets, we can see the first item of the
+DataSlice. For example, `DataSlice([[1, 2], [3, 4, 5]])` has two dimensions
+because we see`[[` before the first item, which is `1`.
+
+TIP: In the DataSlice `repr`, a list item is shown as `List[e1, e2, ...]`.
+Similar to a Python list, elements of a list item can be lists as well. For
+example, `List[List[1, 2], List[3, 4, 5]]`.
+
+What if `py_list` is a Python list containing Koda lists rather than primitives?
+Koda lists are treated as individual items similar to primitive items and only
+the Python list dimensions are converted to Koda lists or DataSlice jagged
+shape.
+
+```py
+l3 = kd.list([kd.list([1, 2]), kd.list([3, 4, 5])])  # DataItem(List[List[1, 2], List[3, 4, 5]])
+l3.get_ndim()  # 0
+l3.get_size()  # 1
+l3.get_schema()  # LIST[LIST[INT32]]
+
+ds3 = kd.slice([kd.list([1, 2]), kd.list([3, 4, 5])])  # DataSlice([List[1, 2], List[3, 4, 5]])
+ds3.get_ndim()  # 1
+ds3.get_size()  # 2
+# Note items of `ds3` are 2 Koda lists of INT32s.
+ds3.get_schema()  # LIST[INT32]
+```
+
+Now we can summarize how `kd.list` and `kd.slice` work.
+
+-   `kd.list(py_list)` converts the Python list structure to corresponding Koda
+    list structure and the result is a list DataItem.
+-   `kd.slice(py_list)` converts the Python list structure to the jagged shape
+    of the result DataSlice.
+
+What if we want to control what gets converted to Koda lists and what gets
+converted to a jagged shape? `kd.from_py(py_list, from_dim=)` allows us to do
+that. The first `from_dim` dimensions of `py_list` get converted to DataSlice
+jagged shape while remaining dimensions get converted to Koda lists.
+
+```py
+py_list = [[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]]
+
+ds1 = kd.from_py(py_list, from_ndim=0)
+# -> DataItem(List[List[List[1, 2], List[3, 4, 5]], List[List[7], List[], List[8, 9]]])
+# same as kd.list(py_list)
+ds1.get_ndim()  # 0
+ds1.get_size()  # 1
+ds1.get_schema()  # LIST[LIST[LIST[INT32]]]
+
+ds2 = kd.from_py(py_list, from_ndim=1)
+# -> DataSlice([List[List[1, 2], List[3, 4, 5]], List[List[7], List[], List[8, 9]]])
+ds2.get_ndim()  # 1
+ds2.get_size()  # 2
+ds2.get_schema()  # LIST[LIST[INT32]]
+
+ds3 = kd.from_py(py_list, from_ndim=2)
+# -> DataSlice([[List[1, 2], List[3, 4, 5]], [List[7], List[], List[8, 9]]])
+ds3.get_ndim()  # 2
+ds3.get_size()  # 5
+ds3.get_schema()  # LIST[INT32]
+
+ds4 = kd.from_py(py_list, from_ndim=3)
+# -> DataSlice([[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]])
+# same as kd.slice(py_list)
+ds4.get_ndim()  # 3
+ds4.get_size()  # 8
+ds4.get_schema()  # INT32
+```
+
+<section class='zippy'>
+
+Optional: Why does Koda have two ways to represent list-like data?
+
+The two core Koda features are the ability of expressing complex data
+relationship and vectorized operations on both primitives and data with complex
+structures.
+
+In order to support expressing complex data relationship, Koda has a native list
+type along with dict and entity. A Koda list is similar to a Python list or a
+repeated proto field. It is used to express the logic like "a query entity has a
+list of doc entities".
+
+Koda DataSlice is used to support vectorization for both primitives and data
+with complex structures including lists. In order to support hierarchical
+structure (i.e. jagged shape) of vectorized items, Koda DataSlices need to have
+a jagged shape.
+
+It is worth noting that Python does not support vectorization natively. In order
+to perform operations on a nested Python list, we use nested for-loops. At each
+iteration of the nested loop, it is clear whether the current object is a list
+in the intermedia dimensions or a value in the last dimension.
+
+```py
+py_list = [[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]]
+# Top level: pylist
+# Lists in the first dimension: pylist[0], pylist[1]
+# Lists in the second dimension: pylist[0][0], pylist[0][1], pylist[1][0], pylist[1][1], pylist[1][2]
+# Integer values in the third dimension: 1, 2, 3, 4, 5, 7, 8, 9
+
+for l1 in py_list:
+  for l2 in l1:
+    for v in l2:
+      # We can access l1, l2, v here
+
+# DataSlice of integers
+int_ds = kd.slice(py_list)
+
+# DataSlice of l2 lists
+l2_ds = kd.slice([[kd.list([1, 2]), kd.list([3, 4, 5])],
+                  [kd.list([7]), kd.list([], item_schema=kd.INT32), kd.list([8, 9])]])
+
+# DataSlice of l1 lists
+l1_ds = kd.slice([kd.list([[1, 2], [3, 4, 5]]),
+                  kd.list([[7], [], [8, 9]])])
+
+# DataItem of the top level list
+top_l_ds = kd.list([[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]])
+
+# Find the max value across the last dimension
+kd.agg_max(ind_ds)  # DataSlice([[2, 5], [7, None, 9]])
+# Find the max value across all dimensions
+kd.max(int_ds)  # DataItem(9)
+
+# Find list sizes
+kd.list_size(l2_ds)  # DataSlice([[2, 3], [1, 0, 2]])
+kd.list_size(l1_ds)  # DataSlice([2, 3])
+kd.list_size(top_l_ds)  # DataItem(2)
+
+# Below is a more complex example of creating pairs by expanding l2_ds
+# to int_ds then explode lists to create cross-product
+# Create pairs across the last dimension
+kd.obj(a=l2_ds.expand_to(int_ds)[:], b=int_ds).flatten(-2)
+# DataSlice([
+#  [
+#    [Obj(a=1, b=1), Obj(a=2, b=1), Obj(a=1, b=2), Obj(a=2, b=2)],
+#    [Obj(a=3, b=3), Obj(a=4, b=3), Obj(a=5, b=3), Obj(a=3, b=4),
+#     Obj(a=4, b=4), Obj(a=5, b=4), Obj(a=3, b=5), Obj(a=4, b=5), Obj(a=5, b=5)],
+#  ],
+#  [
+#    [Obj(a=7, b=7)],
+#    [],
+#    [Obj(a=8, b=8), Obj(a=9, b=8), Obj(a=8, b=9), Obj(a=9, b=9)]
+#  ],
+# ])
+
+# If it is too hard to understand, you can run the following
+# code line by line in Colab and check the results
+expanded_l2_ds = l2_ds.expand_to(int_ds)
+a = expanded_l2_ds[:]
+b = int_ds.expand_to(a)
+pairs = kd.obj(a=a, b=b)
+pairs = pairs.flatten(-2)  # remove the last extra dimension
+```
+
+</section>
+
+### Converting a Non-homogeneous Python List to Koda
+
+`py_list` passed to `kd.slice` or `kd.list` must be homogeneous. A Python nested
+list is considered homogeneous if it adheres to the following structure:
+
+-   Leaf Level Consistency: All elements at the deepest level (the "leaves")
+    must be non-list data types (e.g. primitives or Koda DataItems).
+-   Non-Leaf Level Consistency: All elements at any level above the leaf level
+    must be lists.
+
+Here are some examples:
+
+-   `[1, [2, 3]]` is not Homogeneous, because 1 is a primitive at a level that
+    should contain lists, or `[2, 3]` is a list at a level should contain
+    primitives
+-   `[[1, 2], [[3], [4]]]` is not Homogeneous, because `1`, and `2` are
+    primitives leaves, but at the same level we also find the lists `[3]` and
+    `[4]`.
+-   `[1, 2, 3]` is homogeneous, because all elements at the (only) leaf level
+    are integer primitives.
+-   `[[1], [2, 3]]` is homogeneous, because all leaf elements (`1`, `2`, `3`)
+    are integer primitives and all elements at other levels are lists.
+-   `[[[1], [2]], [[3], [4]]]` is homogeneous, because All leaf elements (`1`,
+    `2`, `3`, `4`) are integer primitives and all elements at other levels are
+    lists.
+
+```py
+# The following all fail
+# kd.list([1, [2, 3]])
+# kd.slice([1, [2, 3]])
+# kd.list([[1, 2], [[3], [4]]])
+# kd.slice([[1, 2], [[3], [4]]])
+```
+
+However, it is possible to represent such non-homogeneous structures in Koda
+because primitives and Koda lists can be Koda objects. To use `kd.slice` or
+`kd.list`, we need to wrap Python lists at the leaf level into Koda list objects
+using `kd.obj(py_list)` so that all elements at the leaf level are only contains
+primitives or Koda list objects. Alternatively, we can use
+`kd.from_py(non_homogeneous_py_list)` which performs the conversion
+automatically.
+
+```py
+kd.list([1, kd.obj([2, 3])])  # DataItem(List[1, List[2, 3]], schema: LIST[OBJECT])
+kd.from_py([1, [2, 3]])  # same as above
+
+kd.slice([1, kd.obj([2, 3])])  # DataSlice([1, List[2, 3]], schema: OBJECT)
+kd.from_py([1, [2, 3]], from_dim=1)  # same as above
+```
+
+### Koda List Slicing vs DataSlice Sub-slicing vs DataSlice Python-like Slicing
+
+To slice Koda lists, we use `[]` similar to Python lists. However, it differs
+from Python list slicing in two ways. First, it is a vectorized operation
+applying to each list item of a DataSlice. Second, the resulting DataSlice has
+one more dimension. That is why we call `list_ds[:]` list explosion to emphasize
+the creation of an extra dimension.
+
+```py
+# A DataSlice of two lists: List[1, 2], List[3, 4, 5]
+l = kd.slice([kd.list([1, 2]), kd.list([3, 4, 5])])
+l.get_ndim()  # 1
+l.get_size()  # 2
+
+# Get all items for each list
+ds1 = l[:]  # DataSlice([[1, 2], [3, 4, 5]])
+ds1.get_ndim()  # 2
+ds1.get_size()  # 5
+
+# Get all items from the second to the end for each list
+ds2 = l[1:]  # DataSlice([[2], [4, 5]])
+ds2.get_ndim()  # 2
+ds2.get_size()  # 3
+```
+
+List explosion adds an extra dimension because it selects multiple elements per
+list. List indexing (i.e. `list_ds[idx]`) returns a DataSlice of the same shape
+because it selects one element per list.
+
+```py
+l[0]  # DataSlice([1, 3])
+l[2]  # DataSlice([None, 5])
+```
+
+DataSlice sub-slicing (i.e. `ds.S[*args]`) selects items in the DataSlice and
+supports slicing multiple dimensions at the same time.
+
+```py
+ds = kd.slice([[1, 2], [3, 4, 5]])
+
+# Only subslice the last dimension
+ds.S[1]  # DataSlice([2, 4])
+# Get the first item in the first dimension and get all items in the second dimension
+ds.S[1, :]  # DataSlice([3, 4, 5])
+# Select everything, no-op
+ds.S[:, :]
+ds.S[:]  # same as above, select everything
+
+# Fails because ds does not have lists
+# ds[:]
+# ds[1]
+```
+
+IMPORTANT: List slicing selects elements within lists of a DataSlice whereas
+DataSlice sub-slicing selects items in the DataSlice.
+
+```py
+# A DataSlice of two list items
+l = kd.slice([kd.list([1, 2]), kd.list([3, 4, 5])])
+
+# Select the first element of each list
+l[0]   # DataSlice([1, 3])
+# Select the first list item in the DataSlice
+l.S[0]  # DataItem(List[1, 2])
+# Select the first list item then select the second list element
+l.S[0][1]  # DataItem(2)
+```
+
+To make it possible for a DataSlice to be sliced like a nested Python list (i.e.
+`py_list[idx1][idx2]`), Koda support `ds.L` syntax to slice the outermost
+DataSlice dimension. That is, `ds.L[idx1].L[idx2]` is equivalent to `ds.S[idx1,
+idx2]` assuming `ds` has two dimensions. It is also possible to use `ds.L` in a
+Python for-loop to iterate over items in the first dimension.
+
+```py
+ds = kd.slice([[1, 2], [3, 4, 5]])
+
+ds.L[0]  # DataSlice([1, 2])
+# Note ds.L[:] is no-op
+ds.L[:].L[0]  # DataSlice([1, 2])
+
+# Note that l is a 1D DataSlice and i is INT32 DataItem
+for l in ds.L:
+  print(repr(l))
+  for i in l.L:
+    print(repr(i))
+
+# The result is
+# DataSlice([1, 2], schema: INT32, ndims: 1, size: 2)
+# DataItem(1, schema: INT32)
+# DataItem(2, schema: INT32)
+# DataSlice([3, 4, 5], schema: INT32, ndims: 1, size: 3)
+# DataItem(3, schema: INT32)
+# DataItem(4, schema: INT32)
+# DataItem(5, schema: INT32)
+
+# This is similar to Python
+
+py_list = [[1, 2], [3, 4, 5]]
+py_list[0]  # [1, 2]
+py_list[:][0]  # [1, 2]
+
+for l in py_list:
+  print(repr(l))
+  for i in l:
+    print(repr(i))
+
+# The result is
+# [1, 2]
+# 1
+# 2
+# [3, 4, 5]
+# 3
+# 4
+# 5
+```
+
+### List Explosion and Implosion
+
+List explosion is an operation of getting list items from list(s) in a
+DataSlice. It adds an additional dimension to the resulting DataSlice. List
+implosion is the opposite operation of folding items of a DataSlice to list(s)
+over the last dimension. Since it collapses the last dimension, the resulting
+DataSlice has one fewer dimension.
+
+It is possible to perform list explosion or implosion multiple time in a single
+operation by setting `ndim=` argument in `ds.explode(ndim=)` or
+`ds.implode(ndim=)`. When setting `ndim` to a positive number, it
+explodes/implodes `ndim` times. When setting `ndim=-1` for
+`ds.explode(ndim=-1)`, it explodes the nested lists until the resulting
+DataSlice is not a list DataSlice anymore. When setting `ndim=-1` for
+`ds.implode(ndim=-1)`, it implodes all the dimensions of `ds` into a single list
+DataItem.
+
+```py
+l = kd.list([[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]])
+
+l.explode(ndim=1)  # DataSlice([List[List[1, 2], List[3, 4, 5]], List[List[7], List[], List[8, 9]]])
+l.explode()  # the same as above
+l[:]  # the same as above
+
+l.explode(ndim=2)  # DataSlice([[List[1, 2], List[3, 4, 5]], [List[7], List[], List[8, 9]]])
+l[:][:]  # the same as above
+
+l.explode(ndim=3)  # DataSlice([[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]])
+l.explode(ndim=-1)  # the same as above
+l[:][:][:]  # the same as above
+
+ds = kd.slice([[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]])
+
+ds.implode(ndim=1)  # DataSlice([[List[1, 2], List[3, 4, 5]], [List[7], List[], List[8, 9]]])
+ds.implode()  # the same as above
+
+ds.implode(ndim=2)  # DataSlice([List[List[1, 2], List[3, 4, 5]], List[List[7], List[], List[8, 9]]])
+
+ds.implode(ndim=3)  # DataItem(List([[[1, 2], [3, 4, 5]], [[7], [], [8, 9]]]))
+ds.implode(ndim=-1)  # the same as above
+```
+
 ## Koda Schema Categorization
 
 Schemas can be further categorized as follows:
