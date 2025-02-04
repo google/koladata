@@ -14,6 +14,8 @@
 //
 #include "py/koladata/types/data_item.h"
 
+#include <Python.h>
+
 #include <cstdint>
 #include <optional>
 #include <utility>

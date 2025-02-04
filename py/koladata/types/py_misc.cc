@@ -16,7 +16,6 @@
 
 #include <Python.h>  // IWYU pragma: keep
 
-#include <memory>
 #include <utility>
 
 #include "absl/base/nullability.h"
