@@ -64,8 +64,6 @@ using ::arolla::MakeTuple;
 using ::arolla::Text;
 using ::arolla::TypedRef;
 using ::arolla::TypedValue;
-using ::arolla::expr::ExprAttributes;
-using ::arolla::expr::ExprNode;
 using ::arolla::expr::ExprNodePtr;
 using ::arolla::expr::ExprOperatorSignature;
 using ::arolla::expr::Leaf;
@@ -85,7 +83,6 @@ using ::arolla::python::Signature;
 using ::arolla::python::UnsafeUnwrapPyExpr;
 using ::arolla::python::UnsafeUnwrapPyQValue;
 using ::koladata::expr::kNonDeterministicTokenLeafKey;
-using ::koladata::expr::LiteralOperator;
 
 // Extracts and stores the `<options>` part of the `aux_policy` string for the
 // unified binding into the output parameter `result`. If the function is
