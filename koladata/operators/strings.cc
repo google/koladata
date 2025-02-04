@@ -124,7 +124,7 @@ class FormatOperator : public arolla::QExprOperator {
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
     auto named_tuple_slot = input_slots[1];
-    auto attr_names = GetAttrNames(named_tuple_slot);
+    auto attr_names = GetFieldNames(named_tuple_slot);
     ASSIGN_OR_RETURN(
         auto arg_names_slice,
         DataSlice::Create(

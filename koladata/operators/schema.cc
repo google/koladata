@@ -63,7 +63,7 @@ class NewSchemaOperator : public arolla::QExprOperator {
             arolla::EvaluationContext* ctx,
             arolla::FramePtr frame) -> absl::Status {
           auto attr_names =
-              GetAttrNames(named_tuple_slot);
+              GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result, CreateSchema(db, attr_names, values));
@@ -92,7 +92,7 @@ class UuSchemaOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
                            GetStringArgument(frame.Get(seed_slot), "seed"));
-          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result,
@@ -122,7 +122,7 @@ class NamedSchemaOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view name,
                            GetStringArgument(frame.Get(name_slot), "name"));
-          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result,

@@ -79,7 +79,7 @@ class NewOperator final : public arolla::QExprOperator {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
           }
           const std::vector<absl::string_view> attr_names =
-              GetAttrNames(named_tuple_slot);
+              GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::Empty();
@@ -124,7 +124,7 @@ class NewShapedOperator : public arolla::QExprOperator {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
           }
           const std::vector<absl::string_view> attr_names =
-              GetAttrNames(named_tuple_slot);
+              GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::Empty();
@@ -170,7 +170,7 @@ class NewLikeOperator : public arolla::QExprOperator {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
           }
           const std::vector<absl::string_view> attr_names =
-              GetAttrNames(named_tuple_slot);
+              GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::Empty();
@@ -214,7 +214,7 @@ class UuOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(
               bool update_schema,
               GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
-          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result, CreateUu(db, seed, attr_names, values,

@@ -69,7 +69,7 @@ bool IsDataSliceOrUnspecified(arolla::QTypePtr type) {
          type == arolla::GetUnspecifiedQType();
 }
 
-std::vector<absl::string_view> GetAttrNames(
+std::vector<absl::string_view> GetFieldNames(
     arolla::TypedSlot named_tuple_slot) {
   auto qtype = named_tuple_slot.GetType();
   std::vector<absl::string_view> attr_names;

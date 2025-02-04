@@ -112,6 +112,7 @@ OPERATOR_FAMILY("kd.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
 OPERATOR("kd.core.follow", Follow);
 OPERATOR("kd.core.freeze_bag", Freeze<DataSlice>);
+OPERATOR("kd.core.get_attr_names", GetAttrNames);
 OPERATOR("kd.core.get_bag", GetBag);
 OPERATOR("kd.core.has_attr", HasAttr);
 OPERATOR("kd.core.has_entity", HasEntity);

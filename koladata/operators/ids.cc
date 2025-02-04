@@ -80,7 +80,7 @@ class UuidOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
                            GetStringArgument(frame.Get(seed_slot), "seed"));
-          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result, koladata::CreateUuidFromFields(
                                             seed, attr_names, values));
@@ -108,7 +108,7 @@ class UuidForListOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
                            GetStringArgument(frame.Get(seed_slot), "seed"));
-          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result, koladata::CreateListUuidFromFields(
                                             seed, attr_names, values));
@@ -136,7 +136,7 @@ class UuidForDictOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
                            GetStringArgument(frame.Get(seed_slot), "seed"));
-          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result, koladata::CreateDictUuidFromFields(
                                             seed, attr_names, values));

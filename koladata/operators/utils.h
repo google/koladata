@@ -35,9 +35,9 @@ absl::Status VerifyIsNonDeterministicToken(arolla::QTypePtr qtype);
 // Returns true if the qtype is either DataSlice or Unspecified.
 bool IsDataSliceOrUnspecified(arolla::QTypePtr type);
 
-// Returns the names of attributes associated with an already validated
-// named tuple slot.
-std::vector<absl::string_view> GetAttrNames(
+// Returns the names of fields associated with an already validated named tuple
+// slot.
+std::vector<absl::string_view> GetFieldNames(
     arolla::TypedSlot named_tuple_slot);
 
 // Returns the values of an already validated named tuple slot which has all

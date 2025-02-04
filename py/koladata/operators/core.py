@@ -126,6 +126,29 @@ def has_attr(x, attr_name):  # pylint: disable=unused-argument
   return NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kd.get_attr_names'])
+@optools.as_backend_operator(
+    'kd.core.get_attr_names',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.intersection),
+    ],
+)
+def get_attr_names(x, intersection):  # pylint: disable=unused-argument
+  """Returns a DataSlice with sorted unique attribute names of `x`.
+
+  In case of OBJECT schema, attribute names are fetched from the `__schema__`
+  attribute. In case of Entity schema, the attribute names are fetched from the
+  schema. In case of primitives, an empty list is returned.
+
+  Args:
+    x: A DataSlice.
+    intersection: If True, the intersection of all object attributes is
+      returned. Otherwise, the union is returned.
+  """
+  return NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kd.has_primitive'])
 @optools.as_backend_operator(
     'kd.core.has_primitive',

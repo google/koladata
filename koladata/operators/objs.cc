@@ -85,7 +85,7 @@ class ObjOperator final : public arolla::QExprOperator {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
           }
           const std::vector<absl::string_view> attr_names =
-              GetAttrNames(named_tuple_slot);
+              GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::Empty();
@@ -135,7 +135,7 @@ class ObjShapedOperator : public arolla::QExprOperator {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
           }
           const std::vector<absl::string_view> attr_names =
-              GetAttrNames(named_tuple_slot);
+              GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::Empty();
@@ -171,7 +171,7 @@ class ObjLikeOperator : public arolla::QExprOperator {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
           }
           const std::vector<absl::string_view> attr_names =
-              GetAttrNames(named_tuple_slot);
+              GetFieldNames(named_tuple_slot);
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::Empty();
@@ -203,7 +203,7 @@ class UuObjOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           ASSIGN_OR_RETURN(absl::string_view seed,
                            GetStringArgument(frame.Get(seed_slot), "seed"));
-          auto attr_names = GetAttrNames(named_tuple_slot);
+          auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result,

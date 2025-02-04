@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -45,6 +46,7 @@
 #include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/slice_builder.h"
 #include "koladata/operators/utils.h"
 #include "koladata/repr_utils.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -57,6 +59,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
+#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
@@ -149,7 +152,7 @@ class AttrsOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(
               bool update_schema,
               GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
-          const auto& attr_names = GetAttrNames(named_tuple_slot);
+          const auto& attr_names = GetFieldNames(named_tuple_slot);
           const auto& values =
               GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result,
@@ -193,7 +196,7 @@ class WithAttrsOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(
               bool update_schema,
               GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
-          const auto& attr_names = GetAttrNames(named_tuple_slot);
+          const auto& attr_names = GetFieldNames(named_tuple_slot);
           const auto& values =
               GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result,
@@ -336,6 +339,23 @@ absl::StatusOr<DataSlice> HasAttr(const DataSlice& obj,
   ASSIGN_OR_RETURN(auto attr_name_str,
                    GetStringArgument(attr_name, "attr_name"));
   return obj.HasAttr(attr_name_str);
+}
+
+absl::StatusOr<DataSlice> GetAttrNames(const DataSlice& ds,
+                                       const DataSlice& intersection) {
+  ASSIGN_OR_RETURN(bool intersection_arg,
+                   GetBoolArgument(intersection, "intersection"));
+  ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names_set,
+                   ds.GetAttrNames(/*union_object_attrs=*/!intersection_arg));
+  internal::SliceBuilder builder(attr_names_set.size());
+  auto typed_builder = builder.typed<arolla::Text>();
+  int64_t id = 0;
+  for (absl::string_view attr_name : attr_names_set) {
+    typed_builder.InsertIfNotSet(id, attr_name);
+    ++id;
+  }
+  return DataSlice::CreateWithFlatShape(std::move(builder).Build(),
+                                        internal::DataItem(schema::kString));
 }
 
 absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& attrs) {
