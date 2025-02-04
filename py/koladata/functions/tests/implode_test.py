@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import re
 
 from absl.testing import absltest
@@ -29,6 +30,7 @@ ds = lambda vals: data_slice.DataSlice.from_vals(vals).with_bag(db)
 
 OBJ1 = db.obj()
 OBJ2 = db.obj()
+OBJ3 = db.obj(a=math.nan)
 
 
 class ImplodeTest(parameterized.TestCase):
@@ -94,6 +96,7 @@ class ImplodeTest(parameterized.TestCase):
           -1,
           db.list([[OBJ1, None, OBJ2], [3, 4]]),
       ),
+      (ds([OBJ3]), 1, db.list([OBJ3])),
   )
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
 import re
 
 from absl.testing import absltest
@@ -38,6 +39,7 @@ bag = data_bag.DataBag.empty
 db = bag()
 OBJ1 = db.obj()
 OBJ2 = db.obj()
+OBJ3 = db.obj(a=math.nan)
 
 
 QTYPE_SIGNATURES = frozenset([
@@ -109,6 +111,7 @@ class ListLikeTest(parameterized.TestCase):
           -1,
           db.list([[OBJ1, None, OBJ2], [3, 4]]),
       ),
+      (ds([OBJ3]), 1, db.list([OBJ3])),
   )
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.

@@ -1052,7 +1052,8 @@ absl::StatusOr<DataSlice> Implode(
                         ndim, rank));
   }
 
-  // Adopt `values` into `db`.
+  // Adopt `values` into `db`. This covers the case when ndim == 0 when
+  // CreateListsFromLastDimension is not invoked.
   AdoptionQueue adoption_queue;
   adoption_queue.Add(values);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db)).With([&](auto&& status) {
@@ -1068,7 +1069,8 @@ absl::StatusOr<DataSlice> Implode(
     }
     return values.WithBag(db);
   }
-  std::optional<DataSlice> result = values;
+  // Changing the `db`, because CreateListsFromLastDimension also adopts.
+  std::optional<DataSlice> result = values.WithBag(db);
   for (int i = 1; i < ndim; ++i) {
     // TODO: When itemid is provided by the user, a proper nested /
     // child itemid should be created.
