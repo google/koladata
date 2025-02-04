@@ -331,6 +331,33 @@ absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
   }
 }
 
+// Returns a "collapsed" schema from all present schemas stored as an attribute
+// `attr_name` of this->GetAttr("__schema__"). "Collapsed" means that if all
+// schemas are compatible, the most common is returned (see
+// schema::CommonSchema for more details).
+// * In case such common schema does not exist, an error is returned.
+// * Otherwise, the common schema along with a mask indicating the presence of
+//   the attribute `attr_name` in each schema is returned. If all empty, OBJECT
+//   is used as a common schema.
+template <typename ImplT>
+absl::StatusOr<std::pair<internal::DataItem, ImplT>>
+GetObjCommonSchemaAttrWithPerItemMask(
+    const internal::DataBagImpl& db_impl, const ImplT& impl,
+    absl::string_view attr_name,
+    internal::DataBagImpl::FallbackSpan fallbacks) {
+  ASSIGN_OR_RETURN(auto schema_attr, db_impl.GetObjSchemaAttr(impl, fallbacks));
+  ASSIGN_OR_RETURN(ImplT per_item_types,
+                   GetSchemaAttrImpl(db_impl, schema_attr, attr_name, fallbacks,
+                                     /*allow_missing=*/true));
+  ASSIGN_OR_RETURN(auto attr_mask, internal::HasOp()(per_item_types));
+  if (per_item_types.present_count() != 0) {
+    ASSIGN_OR_RETURN(auto common_schema, schema::CommonSchema(per_item_types));
+    return {{std::move(common_schema), std::move(attr_mask)}};
+  } else {
+    return {{internal::DataItem(), std::move(attr_mask)}};
+  }
+}
+
 // Deduces result attribute schema for "GetAttr-like" operations.
 //
 // * If `schema` is ANY returns ANY.
@@ -435,7 +462,7 @@ absl::Status ValidateAttrLookupAllowed(const DataBagPtr& db, const ImplT& impl,
 // schema of the resulting DataSlice as side output.
 // * In case `allow_missing_schema` is false, it is strict and returns an
 //   error on missing attributes.
-// * Otherwise, it allows missing.
+// * Otherwise, it allows missing attributes.
 template <typename ImplT>
 absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
                                   const internal::DataItem& schema,
@@ -455,14 +482,39 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
     return GetSchemaAttrImpl(db_impl, impl, attr_name, fallbacks,
                              allow_missing_schema);
   }
+  std::optional<ImplT> attr_mask;
   if (attr_name == schema::kSchemaAttr) {
     res_schema = internal::DataItem(schema::kSchema);
+  } else if (allow_missing_schema && schema == schema::kObject) {
+    // If some __schema__ values do not contain the `attr_name` attribute, we
+    // should avoid looking them up as data. Otherwise, we may still have data
+    // but no corresponding schema which result in the data and schema being
+    // incompatible.
+    ASSIGN_OR_RETURN(std::tie(res_schema, attr_mask),
+                     GetObjCommonSchemaAttrWithPerItemMask(
+                         db_impl, impl, attr_name, fallbacks));
   } else {
     ASSIGN_OR_RETURN(
         res_schema, GetResultSchema(db_impl, impl, schema, attr_name, fallbacks,
                                     allow_missing_schema));
   }
-  return db_impl.GetAttr(impl, attr_name, fallbacks);
+  if (!res_schema.has_value()) {
+    // Then the schema indicates that the result is empty (even though there
+    // may be values at db_impl.GetAttr(...)).
+    res_schema = internal::DataItem(schema::kNone);
+    if constexpr (std::is_same_v<ImplT, internal::DataSliceImpl>) {
+      return internal::DataSliceImpl::CreateEmptyAndUnknownType(impl.size());
+    } else {
+      return internal::DataItem();
+    }
+  }
+  if (attr_mask.has_value()) {
+    ASSIGN_OR_RETURN(auto impl_filtered,
+                     internal::PresenceAndOp()(impl, *attr_mask));
+    return db_impl.GetAttr(impl_filtered, attr_name, fallbacks);
+  } else {
+    return db_impl.GetAttr(impl, attr_name, fallbacks);
+  }
 }
 
 template <typename ImplT>
@@ -1251,15 +1303,6 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrOrMissing(
         GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
                     /*allow_missing_schema=*/true),
         AssembleErrorMessage(_, {.ds = *this}));
-    if (!res_schema.has_value()) {
-      res_schema = internal::DataItem(schema::kAny);
-      if (res.present_count() == 0 && GetSchemaImpl() != schema::kAny) {
-        res_schema = internal::DataItem(schema::kNone);
-      } else if (res.dtype() != arolla::GetNothingQType()) {
-        ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(res.dtype()));
-        res_schema = internal::DataItem(dtype);
-      }
-    }
     ASSIGN_OR_RETURN(
         res, AlignDataWithSchema(std::move(res), GetSchemaImpl(), res_schema));
     return DataSlice::Create(std::move(res), GetShape(), std::move(res_schema),

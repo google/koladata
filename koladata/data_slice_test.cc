@@ -3166,11 +3166,14 @@ TEST(DataSliceTest, GetAttrWithDefault_AnyNoSchema) {
   ASSERT_OK_AND_ASSIGN(auto ds_any, ds.WithSchema(test::Schema(schema::kAny)));
   ASSERT_OK(ds_any.SetAttr("a", test::DataSlice<int>({1, std::nullopt, 3})));
 
+  // Getting on `ds` without ANY schema - the schema is missing the attributes
+  // `a` so an empty slice is returned, filled with default values.
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
                        ds.GetAttrWithDefault("a", test::DataItem(4)));
-  EXPECT_THAT(ds_primitive_get.slice(), ElementsAre(1, 4, std::nullopt));
+  EXPECT_THAT(ds_primitive_get.slice(), ElementsAre(4, 4, std::nullopt));
   EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kInt32);
 
+  // Getting on `ds_any` with ANY schema - the actual values are returned.
   ASSERT_OK_AND_ASSIGN(ds_primitive_get,
                        ds_any.GetAttrWithDefault("a", test::DataItem("abc")));
   EXPECT_THAT(ds_primitive_get.slice(),
@@ -3186,21 +3189,14 @@ TEST(DataSliceTest, GetAttrWithDefault_AnyNoSchema) {
       ElementsAre(arolla::Text("abc"), arolla::Text("abc"), std::nullopt));
   EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kString);
 
-  // Schema from getattr is inferred to be INT32 and then combined with STRING,
-  // returns OBJECT.
+  // For `ds`, the schema from getattr is inferred to be NONE and then combined
+  // with STRING, returning STRING.
   ASSERT_OK_AND_ASSIGN(ds_primitive_get,
                        ds.GetAttrWithDefault("a", test::DataItem("abc")));
-  EXPECT_THAT(ds_primitive_get.slice(),
-              ElementsAre(1, arolla::Text("abc"), std::nullopt));
-  EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kObject);
-
-  // Mixed, no schema.
-  ASSERT_OK(ds_any.SetAttr("mixed", ds_primitive_get));
-  ASSERT_OK_AND_ASSIGN(ds_primitive_get,
-                       ds.GetAttrWithDefault("mixed", test::DataItem("abc")));
-  EXPECT_THAT(ds_primitive_get.slice(),
-              ElementsAre(1, arolla::Text("abc"), std::nullopt));
-  EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kAny);
+  EXPECT_THAT(
+      ds_primitive_get.slice(),
+      ElementsAre(arolla::Text("abc"), arolla::Text("abc"), std::nullopt));
+  EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kString);
 }
 
 TEST(DataSliceTest, GetAttrOrMissing_Primitives_EntityCreator) {
@@ -3293,6 +3289,51 @@ TEST(DataSliceTest, GetAttrOrMissing_ImplicitCasting_Entity) {
                          "that contains only primitives of FLOAT32")));
 }
 
+TEST(DataSliceTest, GetAttrOrMissing_NoAttrOnSchema_Entity) {
+  auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
+  auto db = DataBag::Empty();
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
+  ASSERT_OK(ds.SetAttr("a", ds_primitive));
+
+  // Assign a new schema without the attr, then lookup. It should return
+  // nothing.
+  ASSERT_OK_AND_ASSIGN(
+      ds, ds.WithSchema(test::Schema(internal::AllocateExplicitSchema())));
+  ASSERT_OK_AND_ASSIGN(auto result, ds.GetAttrOrMissing("a"));
+  EXPECT_THAT(result,
+              IsEquivalentTo(test::EmptyDataSlice(3, schema::kNone, db)));
+}
+
+TEST(DataSliceTest, GetAttrOrMissing_NoAttrOnSomeSchema_Object) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto obj_1, ObjectCreator::Shaped(
+                                     db, DataSlice::JaggedShape::Empty(), {"a"},
+                                     {test::DataItem(1, schema::kInt32)}));
+  // Create a second _empty_ object (which populates the __schema__ attr to be
+  // empty). We then convert it to an entity and write an non-int attribute to
+  // it (which keeps __schema__ empty)
+  ASSERT_OK_AND_ASSIGN(
+      auto obj_2,
+      ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {}, {}));
+  ASSERT_OK_AND_ASSIGN(
+      auto obj_2_as_entity,
+      obj_2.WithSchema(test::Schema(internal::AllocateExplicitSchema())));
+  ASSERT_OK(obj_2_as_entity.SetAttr(
+      "a", test::DataItem(arolla::Text("abc"), schema::kString)));
+
+  // obj_2's __schema__ attr indicates that 'a' is missing, so we return nothing
+  // for the attribute.
+  auto ds =
+      test::DataSlice<ObjectId>({obj_1.item().value<ObjectId>(), std::nullopt,
+                                 obj_2.item().value<ObjectId>()},
+                                schema::kObject, db);
+  ASSERT_OK_AND_ASSIGN(auto result, ds.GetAttrOrMissing("a"));
+  EXPECT_THAT(result,
+              IsEquivalentTo(test::DataSlice<int>(
+                  {1, std::nullopt, std::nullopt}, schema::kInt32, db)));
+}
+
 TEST(DataSliceTest, HasAttr_Primitives_EntityCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
   auto db = DataBag::Empty();
@@ -3352,7 +3393,7 @@ TEST(DataSliceTest, HasAttr_Objects_EntityCreator) {
                         {std::nullopt, std::nullopt, std::nullopt})));
 }
 
-TEST(DataSliceTest, HasAttr_mix_ObjectCreator) {
+TEST(DataSliceTest, HasAttr_Mix_ObjectCreator) {
   auto db = DataBag::Empty();
   auto a = test::DataItem(1, schema::kInt32);
   auto b_attr = test::DataItem(2, schema::kInt32);
