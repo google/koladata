@@ -691,6 +691,21 @@ Returns:
   DataSlice
 ```
 
+### `kd.core.get_attr_names(x, intersection)` {#kd.core.get_attr_names}
+
+``` {.no-copy}
+Returns a DataSlice with sorted unique attribute names of `x`.
+
+In case of OBJECT schema, attribute names are fetched from the `__schema__`
+attribute. In case of Entity schema, the attribute names are fetched from the
+schema. In case of primitives, an empty list is returned.
+
+Args:
+  x: A DataSlice.
+  intersection: If True, the intersection of all object attributes is
+    returned. Otherwise, the union is returned.
+```
+
 ### `kd.core.get_bag(ds)` {#kd.core.get_bag}
 Aliases:
 
