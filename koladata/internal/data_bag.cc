@@ -564,8 +564,12 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
         if (bldr->IsSet(i)) {
           continue;
         }
-        if (auto item = db->LookupAttrInDataSourcesMap(objs_span[i], attr);
-            item.has_value()) {
+        const auto& object_id = objs_span[i];
+        AllocationId alloc_id(object_id);
+        auto item = alloc_id.IsSmall()
+                        ? db->LookupAttrInDataItemMap(object_id, attr)
+                        : db->LookupAttrInDataSourcesMap(object_id, attr);
+        if (item.has_value()) {
           bldr->InsertIfNotSetAndUpdateAllocIds(i, std::move(*item));
         }
       }
