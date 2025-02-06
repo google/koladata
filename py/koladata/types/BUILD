@@ -709,3 +709,15 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
+
+py_test(
+    name = "merge_test",
+    srcs = ["merge_test.py"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)

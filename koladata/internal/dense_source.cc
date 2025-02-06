@@ -314,11 +314,12 @@ class MultitypeDenseSource : public DenseSource {
 
   absl::Status MergeImpl(const DataSliceImpl& values,
                          const ConflictHandlingOption& option) final {
-    if (values.size() > size_) {
-      return absl::FailedPreconditionError(absl::StrFormat(
-          "MergeImpl: source size exceeds destination size: %d vs %d",
-          values.size(), size_));
-    }
+    // Sizes can be different if one of the source was created with known
+    // real allocation size.
+    DCHECK(values.size() == size_ ||
+           values.size() == obj_allocation_id_.Capacity() ||
+           size_ == obj_allocation_id_.Capacity());
+    int64_t real_size = std::min(static_cast<int64_t>(values.size()), size_);
     absl::Status status = absl::OkStatus();
     if (values.is_empty_and_unknown()) {
       return status;
@@ -331,7 +332,7 @@ class MultitypeDenseSource : public DenseSource {
         values.types_buffer().size() == 0
             ? nullptr
             : values.types_buffer().id_to_typeidx.data();
-    for (int64_t offset = 0; offset < values.size(); ++offset) {
+    for (int64_t offset = 0; offset < real_size; ++offset) {
       if (val_id_to_tidx && val_id_to_tidx[offset] != TypesBuffer::kRemoved) {
         continue;
       }

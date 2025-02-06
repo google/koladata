@@ -749,6 +749,60 @@ TEST(DenseSourceTest, Merge) {
   }
 }
 
+TEST(DenseSourceTest, MergeDifferentSizes) {
+  AllocationId alloc = Allocate(4);
+  {  // same type source readonly
+    ASSERT_OK_AND_ASSIGN(
+        auto dst, DenseSource::CreateMutable(
+                      alloc, 4, /*main_type=*/arolla::GetQType<int>()));
+    ASSERT_OK(dst->Set(alloc.ObjectByOffset(0), DataItem(int{1})));
+    ASSERT_OK_AND_ASSIGN(
+        auto src, DenseSource::CreateReadonly(
+                      alloc, DataSliceImpl::Create(
+                          arolla::CreateDenseArray<int>({0, 1, 2}))));
+    ASSERT_OK(
+        dst->Merge(*src,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
+    EXPECT_THAT(dst->Get(alloc.ObjectByOffset(0)), DataItem(int{0}));
+    EXPECT_THAT(dst->Get(alloc.ObjectByOffset(1)), DataItem(int{1}));
+    EXPECT_THAT(dst->Get(alloc.ObjectByOffset(2)), DataItem(int{2}));
+  }
+  {  // same type both mutable
+    ASSERT_OK_AND_ASSIGN(
+        auto dst, DenseSource::CreateMutable(
+                      alloc, 3, /*main_type=*/arolla::GetQType<int>()));
+    ASSERT_OK(dst->Set(alloc.ObjectByOffset(0), DataItem(int{1})));
+    ASSERT_OK_AND_ASSIGN(
+        auto src, DenseSource::CreateMutable(
+                      alloc, 4, /*main_type=*/arolla::GetQType<int>()));
+    ASSERT_OK(src->Set(alloc.ObjectByOffset(0), DataItem(int{0})));
+    ASSERT_OK(src->Set(alloc.ObjectByOffset(1), DataItem(int{1})));
+    ASSERT_OK(
+        dst->Merge(*src,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
+    EXPECT_THAT(dst->Get(alloc.ObjectByOffset(0)), DataItem(int{0}));
+    EXPECT_THAT(dst->Get(alloc.ObjectByOffset(1)), DataItem(int{1}));
+    EXPECT_THAT(dst->Get(alloc.ObjectByOffset(2)), std::nullopt);
+  }
+  {  // multitype
+    ASSERT_OK_AND_ASSIGN(
+        auto dst, DenseSource::CreateMutable(
+                      alloc, 3, /*main_type=*/arolla::GetQType<int>()));
+    ASSERT_OK(dst->Set(alloc.ObjectByOffset(0), DataItem(int{1})));
+    ASSERT_OK_AND_ASSIGN(
+        auto src, DenseSource::CreateMutable(
+                      alloc, 4, /*main_type=*/arolla::GetQType<float>()));
+    ASSERT_OK(src->Set(alloc.ObjectByOffset(0), DataItem(float{0})));
+    ASSERT_OK(src->Set(alloc.ObjectByOffset(1), DataItem(float{1})));
+    ASSERT_OK(
+        dst->Merge(*src,
+                   {DenseSource::ConflictHandlingOption::kOverwrite}));
+    EXPECT_THAT(dst->Get(alloc.ObjectByOffset(0)), DataItem(float{0}));
+    EXPECT_THAT(dst->Get(alloc.ObjectByOffset(1)), DataItem(float{1}));
+    EXPECT_THAT(dst->Get(alloc.ObjectByOffset(2)), std::nullopt);
+  }
+}
+
 TEST(DenseSourceTest, MergeUnit) {
   int size = 7;
   AllocationId alloc = Allocate(size);
