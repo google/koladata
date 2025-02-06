@@ -3371,6 +3371,25 @@ py_test(
 )
 
 py_test(
+    name = "lists_with_list_append_update_test",
+    srcs = ["lists_with_list_append_update_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
+py_test(
     name = "slices_subslice_test",
     srcs = ["slices_subslice_test.py"],
     deps = [

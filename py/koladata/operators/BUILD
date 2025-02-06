@@ -365,6 +365,7 @@ py_library(
     srcs = ["lists.py"],
     deps = [
         ":arolla_bridge",
+        ":core",
         ":jagged_shape",
         ":koda_internal",
         ":optools",

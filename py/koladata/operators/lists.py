@@ -19,6 +19,7 @@ import types as py_types
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
+from koladata.operators import core as core_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import koda_internal as _
 from koladata.operators import optools
@@ -442,6 +443,35 @@ def list_update(x, append):
     A new immutable DataBag containing the list with the appended items.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.with_list_append_update'])
+@optools.as_lambda_operator(
+    'kd.lists.with_list_append_update',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.append),
+    ],
+)
+def with_list_append_update(x, append):
+  """Returns a DataSlice with a new DataBag containing updated appended lists.
+
+  The updated lists are the lists in `x` with the specified items appended at
+  the end.
+
+  `x` and `append` must have compatible shapes.
+
+  The resulting lists maintain the same ItemIds. Also see kd.appended_list()
+  which works similarly but resulting lists have new ItemIds.
+
+  Args:
+    x: DataSlice of lists.
+    append: DataSlice of values to append to each list in `x`.
+
+  Returns:
+    A DataSlice of lists in a new immutable DataBag.
+  """
+  return core_ops.updated(x, list_update(x, append))
 
 
 def _select_items_bind_args(ds, fltr):
