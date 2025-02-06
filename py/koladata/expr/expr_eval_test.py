@@ -27,6 +27,7 @@ from koladata.expr import view as _
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators as _
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import ellipsis
@@ -273,6 +274,29 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     with self.assertRaisesRegex(ValueError, re.escape('interrupt')):
       # this computation takes approximately 3-15 seconds, unless interrupted
       expr_eval.eval(expr, x=x)
+
+  def test_freeze_input_data_slice(self):
+    db = data_bag.DataBag.empty()
+    x = ds([1, 2, 3]).with_bag(db)
+    result = expr_eval.eval(I.x, x=x)
+    self.assertTrue(x.get_bag().is_mutable())
+    self.assertFalse(result.get_bag().is_mutable())
+
+    x = ds([1, 2, 3]).with_bag(db.freeze())
+    result = expr_eval.eval(I.x, x=x)
+    testing.assert_equal(x.get_bag(), result.get_bag())
+    self.assertFalse(result.get_bag().is_mutable())
+
+  def test_freeze_input_databag(self):
+    db = data_bag.DataBag.empty()
+    result = expr_eval.eval(I.x, x=db)
+    self.assertTrue(db.is_mutable())
+    self.assertFalse(result.is_mutable())
+
+    frozen_db = db.freeze()
+    result = expr_eval.eval(I.x, x=frozen_db)
+    testing.assert_equal(frozen_db, result)
+    self.assertFalse(result.is_mutable())
 
 
 if __name__ == '__main__':

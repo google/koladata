@@ -19,6 +19,8 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -28,13 +30,13 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
-
+eager = eager_op_utils.operators_container('kd')
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
 db = data_bag.DataBag.empty()
-ds = lambda *arg: data_slice.DataSlice.from_vals(*arg).with_bag(db)
+ds = data_slice.DataSlice.from_vals
 
 list_item = db.list([1, 2, 3])
 list_item2 = db.list([4, 5, 6, 7])
@@ -42,7 +44,7 @@ list_slice = ds([list_item, list_item2])
 nested_list_item = db.list([list_item, list_item2])
 dict_item = db.dict({1: 2, 3: 4})
 dict_item2 = db.dict({3: 5})
-dict_slice = ds([dict_item, dict_item2])
+dict_slice = ds([dict_item, dict_item2]).with_bag(db)
 
 
 class CoreGetItemTest(parameterized.TestCase):
@@ -119,29 +121,38 @@ class CoreGetItemTest(parameterized.TestCase):
           ds(4, schema_constants.ANY),
       ),
       # Empty and unknown
-      (ds(None, schema_constants.OBJECT), 1, ds(None, schema_constants.OBJECT)),
       (
+          ds(None, schema_constants.OBJECT).with_bag(db),
+          1,
           ds(None, schema_constants.OBJECT),
+      ),
+      (
+          ds(None, schema_constants.OBJECT).with_bag(db),
           ds([1, 2]),
           ds([None, None], schema_constants.OBJECT),
       ),
-      (ds(None, schema_constants.ANY), 1, ds(None, schema_constants.ANY)),
       (
+          ds(None, schema_constants.ANY).with_bag(db),
+          1,
           ds(None, schema_constants.ANY),
+      ),
+      (
+          ds(None, schema_constants.ANY).with_bag(db),
           ds([1, 2]),
           ds([None, None], schema_constants.ANY),
       ),
   )
   def test_slice_eval(self, x, keys_or_indices, expected):
-    result = eval_op('kd.get_item', x, keys_or_indices)
+    result = eager.core.get_item(x, keys_or_indices)
     view_result = eval_op('koda_internal.view.get_item', x, keys_or_indices)
     testing.assert_equal(result, expected.with_bag(x.get_bag()))
     testing.assert_equal(view_result, expected.with_bag(x.get_bag()))
 
   def test_slice_expr(self):
     expr = kde.get_item(I.x, arolla.M.core.make_slice(I.start, I.end))
-    result = expr_eval.eval(expr, x=list_item, start=0, end=-1)
-    testing.assert_equal(result, ds([1, 2]))
+    li = fns.list([1, 2, 3])
+    result = expr_eval.eval(expr, x=li, start=0, end=-1)
+    testing.assert_equal(result, ds([1, 2]).with_bag(li.get_bag()))
 
   def test_invalid_qtype_error(self):
     with self.assertRaisesRegex(
@@ -155,7 +166,7 @@ class CoreGetItemTest(parameterized.TestCase):
         ValueError,
         'kd.core.get_item: slice with step != 1 is not supported',
     ):
-      expr_eval.eval(kde.get_item(ds([1, 2, 3]), slice(3, 5, 2)))
+      eager.core.get_item(ds([1, 2, 3]), slice(3, 5, 2))
 
   def test_repr(self):
     self.assertEqual(

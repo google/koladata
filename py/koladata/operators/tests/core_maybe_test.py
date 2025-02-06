@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -27,6 +28,7 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
+eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -43,8 +45,8 @@ class CoreGetAttrTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     self.db = data_bag.DataBag.empty()
-    self.entity = self.db.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
-    self.object = self.db.obj(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
+    self.entity = eager.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
+    self.object = eager.obj(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
 
   @parameterized.parameters(
       (kde.maybe(I.x, 'a'), ds([1, 2, 3])),
@@ -73,10 +75,12 @@ class CoreGetAttrTest(parameterized.TestCase):
   )
   def test_eval(self, expr, expected):
     testing.assert_equal(
-        expr_eval.eval(expr, x=self.entity), expected.with_bag(self.db)
+        expr_eval.eval(expr, x=self.entity),
+        expected.with_bag(self.entity.get_bag()),
     )
     testing.assert_equal(
-        expr_eval.eval(expr, x=self.object), expected.with_bag(self.db)
+        expr_eval.eval(expr, x=self.object),
+        expected.with_bag(self.object.get_bag()),
     )
 
   def test_attr_name_error(self):
@@ -85,7 +89,7 @@ class CoreGetAttrTest(parameterized.TestCase):
         'argument `attr_name` must be an item holding STRING, got an item of'
         ' INT32',
     ):
-      expr_eval.eval(kde.core.maybe(self.entity, 42))
+      eager.core.maybe(self.entity, 42)
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

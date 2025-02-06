@@ -71,6 +71,8 @@ py_library(
     deps = [
         ":input_container",
         ":py_expr_eval_py_ext",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
@@ -180,6 +182,7 @@ py_test(
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:ellipsis",

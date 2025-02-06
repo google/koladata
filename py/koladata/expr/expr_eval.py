@@ -19,10 +19,22 @@ from typing import Any
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
+from koladata.types import data_bag
+from koladata.types import data_slice
 from koladata.types import py_boxing
 
 I = input_container.InputContainer('I')
 UNSPECIFIED_SELF_INPUT = _py_expr_eval_py_ext.unspecified_self_input()
+
+
+def freeze_data_slice_or_databag(x: Any) -> Any:
+  """Freezes object if it is a DataSlice or DataBag."""
+  if isinstance(x, data_slice.DataSlice):
+    return x.freeze_bag()
+  elif isinstance(x, data_bag.DataBag):
+    return x.freeze()
+  else:
+    return x
 
 
 def eval_(
@@ -45,7 +57,8 @@ def eval_(
       be DataSlices or convertible to DataSlices.
   """
   data_slice_values = {
-      k: py_boxing.as_qvalue(v) for k, v in input_values.items()
+      k: py_boxing.as_qvalue(freeze_data_slice_or_databag(v))
+      for k, v in input_values.items()
   }
   if 'self' in data_slice_values:
     raise ValueError(

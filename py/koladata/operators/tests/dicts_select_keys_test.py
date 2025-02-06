@@ -15,11 +15,11 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.functor import functor_factories
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -29,6 +29,7 @@ from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import qtypes
 
+eager = eager_op_utils.operators_container('kd')
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -84,7 +85,7 @@ class DictsSelectKeysTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, value, fltr, expected):
-    result = eval_op('kd.dicts.select_keys', value, fltr)
+    result = eager.dicts.select_keys(value, fltr)
     testing.assert_equal(result, expected)
 
   @parameterized.parameters(
@@ -92,10 +93,10 @@ class DictsSelectKeysTest(parameterized.TestCase):
       (functor_factories.expr_fn(I.self >= 2),),
   )
   def test_eval_with_expr_input(self, fltr):
-    result = expr_eval.eval(
-        kde.dicts.select_keys(I.x, fltr), x=db.dict({1: 4, 2: 5, 3: 6})
+    result = eager.dicts.select_keys(db.dict({1: 4, 2: 5, 3: 6}), fltr)
+    testing.assert_unordered_equal(
+        result, ds([2, 3]).with_bag(result.get_bag())
     )
-    testing.assert_unordered_equal(result, ds([2, 3]).with_bag(db))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

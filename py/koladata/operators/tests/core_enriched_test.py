@@ -12,15 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.core.enriched."""
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import functions as fns
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -30,6 +27,7 @@ from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
+eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -50,7 +48,7 @@ class CoreEnrichedTest(parameterized.TestCase):
   def test_eval_no_bag(self):
     x = ds([1, 2, 3])
     db1 = bag()
-    result = expr_eval.eval(kde.core.enriched(I.x, I.y), x=x, y=db1)
+    result = eager.core.enriched(x, db1)
     testing.assert_equal(x, result.no_bag())
     testing.assert_equal(result.get_bag().get_fallbacks()[0], db1)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
@@ -59,14 +57,14 @@ class CoreEnrichedTest(parameterized.TestCase):
   def test_eval_same_bag(self):
     db1 = bag()
     x = ds([1, 2, 3]).with_bag(db1)
-    result = expr_eval.eval(kde.core.enriched(I.x, I.y), x=x, y=db1)
+    result = eager.core.enriched(x, db1)
     testing.assert_equal(x.no_bag(), result.no_bag())
     testing.assert_equal(result.get_bag().get_fallbacks()[0], db1)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())
 
   def test_eval_attr_conflict(self):
-    schema = fns.schema.new_schema(
+    schema = eager.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.INT32
     )
     db1 = bag()
@@ -79,7 +77,7 @@ class CoreEnrichedTest(parameterized.TestCase):
     obj1.with_bag(db3).a = 7
     x = ds([obj1, obj2]).with_bag(db3)
 
-    result = expr_eval.eval(kde.core.enriched(I.x, I.y, I.z), x=x, y=db2, z=db1)
+    result = eager.core.enriched(x, db2, db1)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertNotEqual(result.get_bag().fingerprint, db2.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())
