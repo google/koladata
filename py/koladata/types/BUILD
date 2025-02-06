@@ -719,5 +719,6 @@ py_test(
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )

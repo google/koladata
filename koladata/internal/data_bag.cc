@@ -2986,7 +2986,7 @@ absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
       auto process_other_source = [&](const SparseSource* other_source,
                                       auto skip_object_id) -> absl::Status {
         for (const auto& [obj_id, other_item] : other_source->GetAll()) {
-          if (!other_item.has_value() || skip_object_id(obj_id)) {
+          if (skip_object_id(obj_id)) {
             continue;
           }
           std::optional<DataItem> this_value;

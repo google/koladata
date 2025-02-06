@@ -1355,5 +1355,16 @@ TYPED_TEST(DataBagNaNMergeTest, NaNs) {
   }
 }
 
+TEST(DataBagTest, DataBagSmallRemoveOverwriteTest) {
+  auto b = DataItem(AllocateSingleObject());
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(db->SetAttr(b, "a", DataItem(1)));
+  auto db2 = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(db2->SetAttr(b, "a", DataItem()));
+  ASSERT_OK(db->MergeInplace(
+      *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
+  EXPECT_THAT(db->GetAttr(b, "a"), IsOkAndHolds(DataItem()));
+}
+
 }  // namespace
 }  // namespace koladata::internal
