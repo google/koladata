@@ -659,5 +659,16 @@ TEST(DataItemTest, TestRepr) {
                          {.unbounded_type_max_len = -1}), "b'aaaaaaaaaa'");
 }
 
+TEST(DataItemTest, IsNan) {
+  EXPECT_TRUE(DataItem(std::numeric_limits<double>::quiet_NaN()).is_nan());
+  EXPECT_TRUE(DataItem(std::numeric_limits<float>::quiet_NaN()).is_nan());
+  EXPECT_TRUE(DataItem(std::numeric_limits<double>::signaling_NaN()).is_nan());
+  EXPECT_TRUE(DataItem(std::numeric_limits<float>::signaling_NaN()).is_nan());
+  EXPECT_FALSE(DataItem(std::numeric_limits<double>::infinity()).is_nan());
+  EXPECT_FALSE(DataItem(0.0).is_nan());
+  EXPECT_FALSE(DataItem().is_nan());
+  EXPECT_FALSE(DataItem("nan").is_nan());
+}
+
 }  // namespace
 }  // namespace koladata::internal

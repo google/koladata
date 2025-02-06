@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <limits>
 #include <optional>
 #include <string>
 #include <tuple>
@@ -1180,6 +1181,177 @@ TEST(DataBagTest, MergeImplicitSchemas) {
     EXPECT_THAT(
         res->MergeInplace(*db2, MergeOptions()),
         StatusIs(absl::StatusCode::kFailedPrecondition, HasSubstr("conflict")));
+  }
+}
+
+template <typename ItemSet>
+struct DataBagNaNMergeTest : public ::testing::Test {
+  DataItem BaseItem() { return ItemSet().BaseItem(); }
+  DataItem OtherItem() { return ItemSet().OtherItem(); }
+  void Verify(const absl::Status& status) {
+    if (ItemSet().IsConflict()) {
+      ASSERT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
+                                   HasSubstr("conflict")));
+      std::optional<Error> error = GetErrorPayload(status);
+      ASSERT_TRUE(error.has_value());
+      EXPECT_TRUE(error->has_data_bag_merge_conflict());
+    } else {
+      ASSERT_OK(status);
+    }
+  }
+};
+
+struct TwoNaNsDoubleSet {
+  DataItem BaseItem() {
+    return DataItem(std::numeric_limits<double>::quiet_NaN());
+  }
+  DataItem OtherItem() {
+    return DataItem(std::numeric_limits<double>::signaling_NaN());
+  }
+  bool IsConflict() { return false; }
+};
+
+struct NaNVsZeroDoubleSet {
+  DataItem BaseItem() {
+    return DataItem(std::numeric_limits<double>::quiet_NaN());
+  }
+  DataItem OtherItem() { return DataItem(0.0); }
+  bool IsConflict() { return true; }
+};
+
+struct ZeroVsNaNDoubleSet {
+  DataItem BaseItem() { return DataItem(0.0); }
+  DataItem OtherItem() {
+    return DataItem(std::numeric_limits<double>::quiet_NaN());
+  }
+  bool IsConflict() { return true; }
+};
+
+struct TwoNaNsFloatSet {
+  DataItem BaseItem() {
+    return DataItem(std::numeric_limits<float>::quiet_NaN());
+  }
+  DataItem OtherItem() {
+    return DataItem(std::numeric_limits<float>::signaling_NaN());
+  }
+  bool IsConflict() { return false; }
+};
+
+// Currently a float vs double is a conflict in dense mode, but not a conflict
+// in sparse mode. Assuming it is considered undefined behavior, not testing
+// it for now.
+// struct TwoNaNsMixedSet {
+//   DataItem BaseItem() {
+//     return DataItem(std::numeric_limits<double>::quiet_NaN());
+//   }
+//   DataItem OtherItem() {
+//     return DataItem(std::numeric_limits<float>::signaling_NaN());
+//   }
+//   bool IsConflict() { return false; }
+// };
+
+using ItemSets = ::testing::Types<TwoNaNsDoubleSet, NaNVsZeroDoubleSet,
+                                  ZeroVsNaNDoubleSet, TwoNaNsFloatSet>;
+TYPED_TEST_SUITE(DataBagNaNMergeTest, ItemSets);
+
+TYPED_TEST(DataBagNaNMergeTest, NaNs) {
+  constexpr int64_t kSize = 179;
+  auto a = DataSliceImpl::AllocateEmptyObjects(kSize);
+  auto base_value = DataSliceImpl::Create(kSize, this->BaseItem());
+  auto other_value = DataSliceImpl::Create(kSize, this->OtherItem());
+  auto other_type_value = DataSliceImpl::Create(kSize, DataItem("foo"));
+
+  {
+    SCOPED_TRACE("merge sparse with sparse");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(a[5], "a", base_value[5]));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db2->SetAttr(a[5], "a", other_value[5]));
+    this->Verify(db->MergeInplace(*db2));
+    this->Verify(db2->MergeInplace(*db));
+  }
+  {
+    SCOPED_TRACE("merge dense with sparse");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(a, "a", base_value));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db2->SetAttr(a[5], "a", other_value[5]));
+    this->Verify(db->MergeInplace(*db2));
+    this->Verify(db2->MergeInplace(*db));
+  }
+  {
+    SCOPED_TRACE("merge dense with dense");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(a, "a", base_value));
+    ASSERT_OK(db2->SetAttr(a, "a", base_value));
+    ASSERT_OK(db2->SetAttr(a[0], "a", other_value[0]));
+    this->Verify(db->MergeInplace(*db2));
+    this->Verify(db2->MergeInplace(*db));
+  }
+  {
+    SCOPED_TRACE("merge multitype dense with dense");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(a, "a", base_value));
+    ASSERT_OK(db2->SetAttr(a, "a", other_value));
+    ASSERT_OK(db->SetAttr(a[5], "a", other_type_value[5]));
+    ASSERT_OK(db2->SetAttr(a[5], "a", other_type_value[5]));
+    this->Verify(db->MergeInplace(*db2));
+    this->Verify(db2->MergeInplace(*db));
+  }
+  {
+    SCOPED_TRACE("merge multitype dense with dense");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(a, "a", base_value));
+    ASSERT_OK(db2->SetAttr(a, "a", base_value));
+    ASSERT_OK(db->SetAttr(a[5], "a", other_type_value[5]));
+    ASSERT_OK(db2->SetAttr(a[5], "a", other_type_value[5]));
+    ASSERT_OK(db2->SetAttr(a[0], "a", other_value[0]));
+    this->Verify(db->MergeInplace(*db2));
+    this->Verify(db2->MergeInplace(*db));
+  }
+  {
+    SCOPED_TRACE("merge dense with dense+sparse");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(a, "a", base_value));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db2->SetAttr(a, "a", base_value));
+    auto db3 = db2->PartiallyPersistentFork();
+    ASSERT_OK(db3->SetAttr(a[5], "a", other_value[5]));
+    this->Verify(db->MergeInplace(*db3));
+    this->Verify(db3->MergeInplace(*db));
+  }
+  {
+    SCOPED_TRACE("merge small with small");
+    auto b = DataItem(AllocateSingleObject());
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetAttr(b, "a", base_value[0]));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db2->SetAttr(b, "a", other_value[0]));
+    this->Verify(db->MergeInplace(*db2));
+    this->Verify(db2->MergeInplace(*db));
+  }
+  {
+    SCOPED_TRACE("merge lists");
+    auto b = DataItem(AllocateSingleList());
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->AppendToList(b, base_value[0]));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db2->AppendToList(b, other_value[0]));
+    this->Verify(db->MergeInplace(*db2));
+    this->Verify(db2->MergeInplace(*db));
+  }
+  {
+    SCOPED_TRACE("merge dicts");
+    auto b = DataItem(AllocateSingleDict());
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db->SetInDict(b, DataItem(0), base_value[0]));
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(db2->SetInDict(b, DataItem(0), other_value[0]));
+    this->Verify(db->MergeInplace(*db2));
+    this->Verify(db2->MergeInplace(*db));
   }
 }
 

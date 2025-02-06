@@ -15,6 +15,7 @@
 #ifndef KOLADATA_INTERNAL_DATA_ITEM_H_
 #define KOLADATA_INTERNAL_DATA_ITEM_H_
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -153,6 +154,18 @@ class DataItem {
 
   bool is_implicit_schema() const {
     return holds_value<ObjectId>() && value<ObjectId>().IsImplicitSchema();
+  }
+
+  bool is_nan() const {
+    return std::visit(
+        []<class T>(const T& v) {
+          if constexpr (std::is_floating_point_v<T>) {
+            return std::isnan(v);
+          } else {
+            return false;
+          }
+        },
+        data_);
   }
 
   // Returns value of given type. Has no type check. Check the value with

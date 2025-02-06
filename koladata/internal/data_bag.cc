@@ -187,6 +187,14 @@ absl::Status VerifyIsSchema(const DataItem& item) {
       item.DebugString()));
 }
 
+// Compares if two values are different for the purposes of merge conflict
+// resolution. Here we treat NaN as just another value (different from other
+// values, not different from itself). Different flavors of NaN are not
+// considered different.
+bool ValuesAreDifferent(const DataItem& a, const DataItem& b) {
+  return !(a == b || (a.is_nan() && b.is_nan()));
+}
+
 // Merges the given sources ordered by priority into a mutable sparse source.
 std::shared_ptr<SparseSource> MergeToMutableSparseSource(
     absl::Span<const SparseSource* const> sources) {
@@ -269,7 +277,7 @@ absl::Status MergeToMutableDenseSourceOnlySparse(
         RETURN_IF_ERROR(result.Set(key, item));
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
-                 *this_result != item) {
+                 ValuesAreDifferent(*this_result, item)) {
         return internal::WithErrorPayload(
             absl::FailedPreconditionError(absl::StrCat(
                 "conflict ", key, ": ", *this_result, " vs ", item)),
@@ -302,7 +310,7 @@ absl::Status MergeToMutableSparseSourceOnlySparse(
         result.Set(key, item);
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
-                 *this_result != item) {
+                 ValuesAreDifferent(*this_result, item)) {
         return internal::WithErrorPayload(
             absl::FailedPreconditionError(absl::StrCat(
                 "conflict ", key, ": ", *this_result, " vs ", item)),
@@ -365,7 +373,7 @@ absl::Status MergeToMutableDenseSource(
       RETURN_IF_ERROR(result.Set(obj_id, other_item));
     } else {
       if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict &&
-          *this_result != other_item) {
+          ValuesAreDifferent(*this_result, other_item)) {
         return internal::WithErrorPayload(
             absl::FailedPreconditionError(absl::StrCat(
                 "conflict ", obj_id, ": ", *this_result, " vs ", other_item)),
@@ -2989,7 +2997,7 @@ absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
           if (this_value.has_value()) {
             if (options.data_conflict_policy ==
                     MergeOptions::kRaiseOnConflict &&
-                *this_value != other_item) {
+                ValuesAreDifferent(*this_value, other_item)) {
               return WithErrorPayload(
                   absl::FailedPreconditionError(absl::StrCat(
                       "conflicting values for ", attr_name, " for ", obj_id,
@@ -3154,7 +3162,7 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
                                    DataItem()));
           }
           for (size_t j = 0; j < other_list.size(); ++j) {
-            if (this_list[j] != other_list[j]) {
+            if (ValuesAreDifferent(this_list[j], other_list[j])) {
               return internal::WithErrorPayload(
                   absl::FailedPreconditionError(absl::StrCat(
                       "conflicting list values for ", alloc_id, "at index ", j,
@@ -3199,7 +3207,7 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
           const DataItem& this_value =
               this_dict.GetOrAssign(key, other_value->get());
           if (conflict_policy == MergeOptions::kRaiseOnConflict &&
-              this_value != other_value->get()) {
+              ValuesAreDifferent(this_value, other_value->get())) {
             internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
             return internal::WithErrorPayload(
                 absl::FailedPreconditionError(absl::StrCat(

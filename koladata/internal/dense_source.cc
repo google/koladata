@@ -15,6 +15,7 @@
 #include "koladata/internal/dense_source.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -68,6 +69,28 @@ namespace {
 using ::arolla::DenseArray;
 using ::arolla::OptionalValue;
 using ::arolla::view_type_t;
+
+// Compares if two values are different for the purposes of merge conflict
+// resolution. Here we treat NaN as just another value (different from other
+// values, not different from itself). Different flavors of NaN are not
+// considered different.
+template <class T>
+bool ValuesAreDifferent(const T& a, const T& b) {
+  if constexpr (std::is_floating_point_v<T>) {
+    return !(a == b || (std::isnan(a) && std::isnan(b)));
+  } else {
+    return a != b;
+  }
+}
+
+template <class T>
+bool ValuesAreDifferent(const arolla::OptionalValue<T>& a,
+                        const arolla::OptionalValue<T>& b) {
+  if (a.present && b.present) {
+    return ValuesAreDifferent(a.value, b.value);
+  }
+  return a.present != b.present;
+}
 
 ABSL_ATTRIBUTE_NOINLINE void UpdateMergeConflictStatusWithDataItem(
     absl::Status& status, const DataItem& value, const DataItem& other_value,
@@ -420,7 +443,9 @@ class MultitypeDenseSource : public DenseSource {
         if (tidx == TypesBuffer::kUnset) {
           tidx = typeidx;
           dst_vals[offset] = T(v);
-        } else if (status.ok() && (tidx != typeidx || dst_vals[offset] != v)) {
+        } else if (status.ok() &&
+                   (tidx != typeidx ||
+                    ValuesAreDifferent<view_type_t<T>>(dst_vals[offset], v))) {
           internal::ObjectId obj_id = obj_allocation_id_.ObjectByOffset(offset);
           UpdateMergeConflictStatusWithDataItem(
               status, DataItem(T(v)), Get(obj_id).value_or(DataItem()), [&]() {
@@ -768,7 +793,7 @@ class TypedDenseSource final : public DenseSource {
             } else {
               auto this_v = values_.Get(id);
               arolla::OptionalValue<view_type_t<T>> other_v(present, v);
-              if (this_v != other_v) {
+              if (ValuesAreDifferent(this_v, other_v)) {
                 UpdateMergeConflictStatus<T>(status, this_v, other_v, [&]() {
                   if (option.on_conflict_callback) {
                     option.on_conflict_callback(
