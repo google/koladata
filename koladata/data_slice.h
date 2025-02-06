@@ -555,7 +555,7 @@ class DataSlice {
     // constructed.
     bool is_whole_if_db_unmodified = false;
 
-    Internal() : shape(JaggedShape::Empty()), schema(schema::kAny) {}
+    Internal() : shape(JaggedShape::Empty()), schema(schema::kNone) {}
 
     Internal(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
              DataBagPtr db = nullptr, bool is_whole_if_db_unmodified = false)
