@@ -489,6 +489,7 @@ std::optional<DataItem> DataBagImpl::LookupAttrInDataSourcesMap(
     ObjectId object_id, absl::string_view attr) const {
   const DataBagImpl* cur_data_bag = this;
   AllocationId alloc_id(object_id);
+  DCHECK(!alloc_id.IsSmall());
   SourceKeyView search_key{alloc_id, attr};
   size_t search_hash = absl::HashOf(search_key);
   while (cur_data_bag != nullptr) {
@@ -558,17 +559,29 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
   }
 
   for (const DataBagImpl* db = this; db != nullptr; db = next_fallback()) {
+    ConstSparseSourceArray sparse_sources;
+    if (objects.allocation_ids().contains_small_allocation_id()) {
+      db->GetSmallAllocDataSources(attr, sparse_sources);
+    }
     if (has_too_many_allocs) {
       DCHECK(bldr.has_value());
+      // Process small allocations.
+      for (const SparseSource* source : sparse_sources) {
+        source->Get(objs_span, *bldr);
+        if (bldr->is_finalized()) {
+          break;
+        }
+      }
+      // Process big allocations.
       for (size_t i = 0; i < objs_span.size(); ++i) {
         if (bldr->IsSet(i)) {
           continue;
         }
         const auto& object_id = objs_span[i];
-        AllocationId alloc_id(object_id);
-        auto item = alloc_id.IsSmall()
-                        ? db->LookupAttrInDataItemMap(object_id, attr)
-                        : db->LookupAttrInDataSourcesMap(object_id, attr);
+        if (object_id.IsSmallAlloc()) {
+          continue;
+        }
+        auto item = db->LookupAttrInDataSourcesMap(object_id, attr);
         if (item.has_value()) {
           bldr->InsertIfNotSetAndUpdateAllocIds(i, std::move(*item));
         }
@@ -580,10 +593,6 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
     }
 
     ConstDenseSourceArray dense_sources;
-    ConstSparseSourceArray sparse_sources;
-    if (objects.allocation_ids().contains_small_allocation_id()) {
-      db->GetSmallAllocDataSources(attr, sparse_sources);
-    }
     for (AllocationId alloc_id : objects.allocation_ids()) {
       db->GetAttributeDataSources(alloc_id, attr, dense_sources,
                                   sparse_sources);

@@ -33,6 +33,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/hash/hash.h"
+#include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -646,10 +647,10 @@ class DataBagImpl : public arolla::RefcountedBase {
   // including parents.
   ABSL_ATTRIBUTE_ALWAYS_INLINE std::optional<DataItem>
   LookupAttrInDataItemMap(ObjectId object_id, absl::string_view attr) const {
-    size_t attr_hash = absl::HashOf(attr);
+    DCHECK(object_id.IsSmallAlloc());
     for (const DataBagImpl* db = this; db != nullptr;
          db = db->parent_data_bag_.get()) {
-      if (auto attr_it = db->small_alloc_sources_.find(attr, attr_hash);
+      if (auto attr_it = db->small_alloc_sources_.find(attr);
           attr_it != db->small_alloc_sources_.end()) {
         const auto& obj2item = attr_it->second;
         if (auto item = obj2item.Get(object_id); item.has_value()) {

@@ -29,6 +29,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/log/check.h"
+#include "absl/random/random.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
@@ -1379,6 +1380,35 @@ TEST(DataBagTest, SmallBigAllocMixSetGet) {
   ASSERT_OK(db->SetAttr(ds, "a", ds));
   ASSERT_OK_AND_ASSIGN(DataSliceImpl ds_get, db->GetAttr(ds, "a"));
   EXPECT_THAT(ds_get, IsEquivalentTo(ds));
+}
+
+TEST(DataBagTest, SmallBigAllocMixSetGetTooManyAllocations) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  std::vector<DataItem> objs;
+  for (int64_t i = 0; i < 1000; ++i) {
+    objs.push_back(i % 10 == 0 ? DataItem(AllocateSingleObject())
+                               : DataItem(Allocate(1000).ObjectByOffset(i)));
+  }
+  auto ds = DataSliceImpl::Create(objs);
+
+  ASSERT_OK(db->SetAttr(ds, "a", ds));
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl ds_get, db->GetAttr(ds, "a"));
+  EXPECT_THAT(ds_get, IsEquivalentTo(ds));
+
+  // Add more objects to check that we work fine when some elements are
+  // missing.
+  std::shuffle(objs.begin(), objs.end(), absl::BitGen());
+  auto expected_objs = objs;
+  for (int64_t i = 0; i < 100; ++i) {
+    int64_t insert_idx = (i * 157) % objs.size();
+    auto obj = i % 10 == 0 ? DataItem(AllocateSingleObject())
+                           : DataItem(Allocate(1000).ObjectByOffset(i));
+    objs.insert(objs.begin() + insert_idx, obj);
+    expected_objs.insert(expected_objs.begin() + insert_idx, DataItem());
+  }
+  ds = DataSliceImpl::Create(objs);
+  ASSERT_OK_AND_ASSIGN(ds_get, db->GetAttr(ds, "a"));
+  EXPECT_THAT(ds_get, ElementsAreArray(expected_objs));
 }
 
 TEST(DataBagTest, InternalSetUnitAttrAndReturnMissingObjects) {
