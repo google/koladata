@@ -14,11 +14,10 @@
 //
 #include "koladata/internal/dict.h"
 
-#include <cstddef>
 #include <vector>
 
-#include "absl/base/no_destructor.h"
 #include "absl/base/attributes.h"
+#include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_item.h"
