@@ -46,6 +46,22 @@ class DataclassesPyUtilTest(absltest.TestCase):
     self.assertEqual(obj, expected)
     self.assertEqual(expected, obj)
 
+  def test_fields_names_and_values(self):
+    @dataclasses.dataclass
+    class Obj:
+      x: int
+      y: float
+      z: str
+
+    obj = Obj(1, 2.0, 'abc')
+    self.assertEqual(
+        dataclasses_util.fields_names_and_values(obj),
+        [('x', 1), ('y', 2.0), ('z', 'abc')],
+    )
+
+  def test_fields_names_and_values_non_dataclass(self):
+    self.assertIsNone(dataclasses_util.fields_names_and_values(3.14))
+
 
 if __name__ == '__main__':
   absltest.main()

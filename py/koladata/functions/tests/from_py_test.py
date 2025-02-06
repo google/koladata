@@ -637,9 +637,12 @@ class FromPyTest(absltest.TestCase):
 
   def test_dataclasses_errors(self):
     with mock.patch.object(dataclasses, 'fields', return_value=[1, 2]):
-      with self.assertRaisesRegex(ValueError, 'expected to return a tuple'):
+      with self.assertRaisesRegex(
+          AttributeError, "'int' object has no attribute 'name'"
+      ):
         fns.from_py(TestKlassInternals(42, 3.14))
-    with mock.patch.object(dataclasses, 'fields', raises=ValueError('fields')):
+    with mock.patch.object(dataclasses, 'fields') as fields_mock:
+      fields_mock.side_effect = ValueError('fields')
       with self.assertRaisesRegex(ValueError, 'fields'):
         fns.from_py(TestKlassInternals(42, 3.14))
     with mock.patch.object(dataclasses, 'fields', return_value=(1, 2)):
@@ -677,7 +680,9 @@ class FromPyTest(absltest.TestCase):
     with mock.patch.object(
         dataclasses, 'fields', return_value=(TestField(42), TestField(3.14))
     ):
-      with self.assertRaisesRegex(ValueError, 'invalid unicode object'):
+      with self.assertRaisesRegex(
+          TypeError, "attribute name must be string, not 'bytes'"
+      ):
         fns.from_py(TestKlassInternals(42, 3.14))
 
   def test_item_id(self):

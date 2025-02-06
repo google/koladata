@@ -36,3 +36,13 @@ def make_dataclass(attr_names):
   )
   obj_class.__eq__ = _eq
   return obj_class
+
+
+def fields_names_and_values(py_obj):
+  """Returns list of (attribute name, value) for a dataclass."""
+  if not dataclasses.is_dataclass(py_obj):
+    return None
+  return [
+      (field.name, getattr(py_obj, field.name))
+      for field in dataclasses.fields(py_obj)
+  ]

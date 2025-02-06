@@ -20,6 +20,7 @@ from typing import Any
 import warnings
 
 from arolla import arolla
+import koladata.base.py_conversions.dataclasses_util as _  # used in to_py.
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_bag_py_ext as _data_bag_py_ext
 from koladata.types import data_slice_py_ext as _data_slice_py_ext

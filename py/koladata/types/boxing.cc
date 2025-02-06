@@ -61,7 +61,7 @@
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/types/py_attr_provider.h"
+#include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "arolla/array/qtype/types.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
@@ -1062,7 +1062,7 @@ class UniversalConverter {
   // dataclass) `py_obj`, and arranges the appropriate commands on the stack to
   // create Object / Entity.
   absl::Status ParsePyAttrProvider(
-      PyObject* py_obj, const AttrProvider::AttrResult& attr_result,
+      PyObject* py_obj, const DataClassesUtil::AttrResult& attr_result,
       const std::optional<DataSlice>& schema,
       const std::optional<DataSlice>& parent_itemid = std::nullopt,
       const ChildItemIdAttrsDescriptor& attr_descriptor = {}) {
@@ -1208,7 +1208,7 @@ class UniversalConverter {
       return status;
     }
     ASSIGN_OR_RETURN(auto attr_result,
-                     attr_provider_.GetAttrNamesAndValues(py_obj));
+                     dataclasses_util_.GetAttrNamesAndValues(py_obj));
     if (attr_result) {
       MaybeCreateEmptyBag();
       return ParsePyAttrProvider(py_obj, *attr_result, schema, parent_itemid,
@@ -1313,7 +1313,7 @@ class UniversalConverter {
 
   AdoptionQueue& adoption_queue_;
   bool dict_as_obj_;
-  AttrProvider attr_provider_;
+  DataClassesUtil dataclasses_util_;
 
   using Cmd = std::function<absl::Status()>;
   std::stack<Cmd> cmd_stack_;

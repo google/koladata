@@ -55,23 +55,10 @@ py_test(
 )
 
 cc_library(
-    name = "py_attr_provider",
-    srcs = ["py_attr_provider.cc"],
-    hdrs = ["py_attr_provider.h"],
-    deps = [
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_arolla//py/arolla/py_utils",
-    ],
-)
-
-cc_library(
     name = "boxing",
     srcs = ["boxing.cc"],
     hdrs = ["boxing.h"],
     deps = [
-        ":py_attr_provider",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -85,6 +72,7 @@ cc_library(
         "//koladata/internal:missing_value",
         "//koladata/internal:schema_utils",
         "//koladata/internal:types",
+        "//py/koladata/base/py_conversions:dataclasses_util",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -243,6 +231,7 @@ py_library(
         ":general_eager_ops",
         ":jagged_shape",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py/koladata/base/py_conversions:dataclasses_py_util",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
