@@ -50,19 +50,24 @@ absl::Nullable<PyObject*> CreateKodaException(const absl::Cord& payload) {
   return PyObject_CallOneArg(exception_factory->get(), py_bytes.release());
 }
 
-void HandleKodaPyErrStatus(absl::Cord payload, const absl::Status& status) {
+bool HandleKodaPyErrStatus(const absl::Status& status) {
+  auto payload = status.GetPayload(internal::kErrorUrl);
+  if (!payload.has_value()) {
+    return false;
+  }
   if (exception_factory->get() == nullptr) {
     PyErr_SetString(PyExc_AssertionError, "Koda exception factory is not set");
-    return;
+    return true;
   }
-  PyObject* py_exception = CreateKodaException(payload);
+  PyObject* py_exception = CreateKodaException(*payload);
   if (Py_IsNone(py_exception)) {
     arolla::python::DefaultSetPyErrFromStatus(status);
-    return;
+    return true;
   }
   if (py_exception != nullptr) {
     PyErr_SetObject((PyObject*)Py_TYPE(py_exception), py_exception);
   }
+  return true;
 }
 
 }  // namespace
@@ -76,8 +81,7 @@ absl::Nullable<PyObject*> PyRegisterExceptionFactory(PyObject* /*module*/,
 }
 
 AROLLA_INITIALIZER(.init_fn = []() -> absl::Status {
-  return arolla::python::RegisterStatusHandler(internal::kErrorUrl,
-                                               HandleKodaPyErrStatus);
+  return arolla::python::RegisterStatusHandler(HandleKodaPyErrStatus);
 })
 
 }  // namespace koladata::python
