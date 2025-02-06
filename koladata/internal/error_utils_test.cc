@@ -39,7 +39,6 @@ namespace {
 using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::arolla::testing::EqualsProto;
 using ::koladata::schema::AnyDType;
 using ::koladata::schema::DType;
 using ::koladata::schema::GetDType;
@@ -49,7 +48,6 @@ using ::koladata::schema::SchemaDType;
 using ::testing::Eq;
 using ::testing::HasSubstr;
 using ::testing::StrEq;
-using ::testing::Optional;
 
 TEST(ErrorUtilsTest, TestEncodeDataItem) {
   std::vector<DataItem> items{DataItem(1),
