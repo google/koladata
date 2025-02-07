@@ -171,19 +171,35 @@ void SliceBuilder::UnsetCurrentType() {
   current_type_id_ = ScalarTypeId<MissingValue>();
 }
 
-void SliceBuilder::InsertIfNotSet(int64_t id, const DataItem& v) {
-  v.VisitValue([&](const auto& v) { InsertIfNotSet(id, v); });
+void SliceBuilder::InsertGuaranteedNotSet(int64_t id, const DataItem& v) {
+  DCHECK(!IsSet(id));
+  v.VisitValue([&](const auto& v) { InsertGuaranteedNotSet(id, v); });
 }
 
-// It calls InsertIfNotSet and updates allocation ids if `v` is an ObjectId.
-void SliceBuilder::InsertIfNotSetAndUpdateAllocIds(int64_t id,
-                                                   const DataItem& v) {
+void SliceBuilder::InsertIfNotSet(int64_t id, const DataItem& v) {
+  if (IsSet(id)) {
+    return;
+  }
+  InsertGuaranteedNotSet(id, v);
+}
+
+void SliceBuilder::InsertGuaranteedNotSetAndUpdateAllocIds(int64_t id,
+                                                           const DataItem& v) {
+  DCHECK(!IsSet(id));
   v.VisitValue([&]<typename T>(const T& v) {
-    InsertIfNotSet(id, v);
+    InsertGuaranteedNotSet(id, v);
     if constexpr (std::is_same_v<T, ObjectId>) {
       GetMutableAllocationIds().Insert(AllocationId(v));
     }
   });
+}
+
+void SliceBuilder::InsertIfNotSetAndUpdateAllocIds(int64_t id,
+                                                   const DataItem& v) {
+  if (IsSet(id)) {
+    return;
+  }
+  InsertGuaranteedNotSetAndUpdateAllocIds(id, v);
 }
 
 }  // namespace koladata::internal

@@ -2148,7 +2148,7 @@ absl::Status DataBagImpl::GetFromDictNoFallback(
         return;
       }
       if (auto val = dict_getter(dict_id).Get(keys[offset]); val.has_value()) {
-        bldr.InsertIfNotSetAndUpdateAllocIds(offset, *val);
+        bldr.InsertGuaranteedNotSetAndUpdateAllocIds(offset, *val);
       }
     });
   } else {
@@ -2162,7 +2162,7 @@ absl::Status DataBagImpl::GetFromDictNoFallback(
             }
             if (auto val = dict_getter(dict_id).Get(DataItem::View<T>{key});
                 val.has_value()) {
-              bldr.InsertIfNotSetAndUpdateAllocIds(offset, *val);
+              bldr.InsertGuaranteedNotSetAndUpdateAllocIds(offset, *val);
             }
           },
           dicts, vec);
@@ -2185,7 +2185,7 @@ absl::Status DataBagImpl::GetFromDictNoFallback(
       if (bldr.IsSet(offset)) {
         return;
       }
-      bldr.InsertIfNotSetAndUpdateAllocIds(
+      bldr.InsertGuaranteedNotSetAndUpdateAllocIds(
           offset, dict_getter(dict_id).Get(DataItem::View<T>{val}));
     });
   });

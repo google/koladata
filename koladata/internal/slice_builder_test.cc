@@ -22,6 +22,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
@@ -151,6 +152,33 @@ TEST(SliceBuilderTest, ScalarInsertIfNotSet) {
                               DataItem(arolla::Bytes("bytes"))));
 }
 
+TEST(SliceBuilderTest, ScalarInsertGuaranteedNotSet) {
+  SliceBuilder bldr(10);
+  bldr.InsertGuaranteedNotSet(1, 5);
+  bldr.InsertGuaranteedNotSet(3, DataItem(5));
+  bldr.InsertGuaranteedNotSet(9, arolla::Bytes("bytes"));
+  bldr.InsertGuaranteedNotSet(8, DataItem::View<arolla::Bytes>("bytes_view"));
+  bldr.InsertGuaranteedNotSet(2, std::nullopt);
+  bldr.InsertGuaranteedNotSet(4, DataItem());
+  auto typed = bldr.typed<float>();
+  typed.InsertGuaranteedNotSet(6, 3.0f);
+
+  EXPECT_THAT(bldr.types_buffer().ToBitmap(TypesBuffer::kUnset),
+              ElementsAre(0b0010100001));
+  EXPECT_THAT(bldr.types_buffer().ToBitmap(TypesBuffer::kRemoved),
+              ElementsAre(0b0000010100));
+  EXPECT_FALSE(bldr.is_finalized());
+
+  DataSliceImpl ds = std::move(bldr).Build();
+
+  EXPECT_EQ(ds.size(), 10);
+  EXPECT_EQ(ds.dtype(), arolla::GetNothingQType());
+  EXPECT_THAT(ds, ElementsAre(DataItem(), DataItem(5), DataItem(), DataItem(5),
+                              DataItem(), DataItem(), DataItem(3.0f),
+                              DataItem(), DataItem(arolla::Bytes("bytes_view")),
+                              DataItem(arolla::Bytes("bytes"))));
+}
+
 TEST(SliceBuilderTest, SingleType) {
   constexpr int kSize = 100;
   SliceBuilder bldr(kSize);
@@ -176,27 +204,70 @@ TEST(SliceBuilderTest, SingleType) {
 }
 
 TEST(SliceBuilderTest, AllocationIds) {
-  {
-    AllocationId alloc_id = Allocate(50);
-    for (int type_count = 1; type_count <= 2; ++type_count) {
-      SliceBuilder bldr(3);
-      bldr.GetMutableAllocationIds().Insert(alloc_id);
-      bldr.InsertIfNotSet(0, alloc_id.ObjectByOffset(0));
-      if (type_count > 1) {
-        // Add an int to have different code path in SliceBuilder::Build.
-        bldr.InsertIfNotSetAndUpdateAllocIds(1, DataItem(5));
+  for (bool use_guaranteed_not_set : {true, false}) {
+    SCOPED_TRACE(absl::StrCat("use_guaranteed_not_set: ",
+                              use_guaranteed_not_set ? "true" : "false"));
+    auto insert_fn = [&](SliceBuilder& bldr, int64_t id, const auto& v) {
+      if (use_guaranteed_not_set) {
+        bldr.InsertGuaranteedNotSet(id, v);
+      } else {
+        bldr.InsertIfNotSet(id, v);
       }
+    };
+    auto insert_and_update_alloc_ids_fn = [&](SliceBuilder& bldr, int64_t id,
+                                              const auto& v) {
+      if (use_guaranteed_not_set) {
+        bldr.InsertGuaranteedNotSetAndUpdateAllocIds(id, v);
+      } else {
+        bldr.InsertIfNotSetAndUpdateAllocIds(id, v);
+      }
+    };
+    {
+      AllocationId alloc_id = Allocate(50);
+      for (int type_count = 1; type_count <= 2; ++type_count) {
+        SliceBuilder bldr(3);
+        bldr.GetMutableAllocationIds().Insert(alloc_id);
+        insert_fn(bldr, 0, alloc_id.ObjectByOffset(0));
+        if (type_count > 1) {
+          // Add an int to have different code path in SliceBuilder::Build.
+          insert_and_update_alloc_ids_fn(bldr, 1, DataItem(5));
+        }
+        DataSliceImpl res = std::move(bldr).Build();
+        EXPECT_FALSE(res.allocation_ids().contains_small_allocation_id());
+        EXPECT_THAT(res.allocation_ids().ids(), ElementsAre(alloc_id));
+      }
+    }
+    {
+      ObjectId obj_id = AllocateSingleObject();
+      SliceBuilder bldr(3);
+      insert_and_update_alloc_ids_fn(bldr, 2, DataItem(obj_id));
       DataSliceImpl res = std::move(bldr).Build();
-      EXPECT_FALSE(res.allocation_ids().contains_small_allocation_id());
-      EXPECT_THAT(res.allocation_ids().ids(), ElementsAre(alloc_id));
+      EXPECT_TRUE(res.allocation_ids().contains_small_allocation_id());
     }
   }
+}
+
+TEST(SliceBuilderTest, AllocationIdsIgnoredObject) {
   {
-    ObjectId obj_id = AllocateSingleObject();
+    ObjectId obj_id = Allocate(57).ObjectByOffset(0);
     SliceBuilder bldr(3);
+    bldr.InsertIfNotSetAndUpdateAllocIds(2, DataItem());
+    // ignored
     bldr.InsertIfNotSetAndUpdateAllocIds(2, DataItem(obj_id));
     DataSliceImpl res = std::move(bldr).Build();
-    EXPECT_TRUE(res.allocation_ids().contains_small_allocation_id());
+    EXPECT_FALSE(res.allocation_ids().contains_small_allocation_id());
+    EXPECT_TRUE(res.allocation_ids().empty());
+  }
+  {
+    ObjectId obj_id1 = Allocate(57).ObjectByOffset(0);
+    ObjectId obj_id2 = Allocate(57).ObjectByOffset(0);
+    SliceBuilder bldr(3);
+    bldr.InsertIfNotSetAndUpdateAllocIds(2, DataItem(obj_id1));
+    // ignored
+    bldr.InsertIfNotSetAndUpdateAllocIds(2, DataItem(obj_id2));
+    DataSliceImpl res = std::move(bldr).Build();
+    EXPECT_FALSE(res.allocation_ids().contains_small_allocation_id());
+    EXPECT_THAT(res.allocation_ids(), ElementsAre(AllocationId(obj_id1)));
   }
 }
 

@@ -91,14 +91,25 @@ class SliceBuilder {
 
   // Set value with given id to `v`. Value can be DataItem, DataItem::View, any
   // type that can be stored in DataItem, or OptionalValue of such type. Each id
-  // can be inserted only once. Does nothing if was previously called with the
-  // same id (even if the value was missing).
+  // can be inserted only once.
+  // Fails if was previously called with the same id
+  // (even if the value was missing).
   // AllocationIdSet (relevant only when adding ObjectId) must be updated
   // separately using GetMutableAllocationIds().
+  // It is handy to use this function, when `IsSet` was verified separately.
+  template <typename OptionalOrT>
+  void InsertGuaranteedNotSet(int64_t id, const OptionalOrT& v);
+  void InsertGuaranteedNotSet(int64_t id, const DataItem& v);
+
+  // The same as above, but does nothing if was previously called with the
+  // same id (even if the value was missing).
   template <typename OptionalOrT>
   void InsertIfNotSet(int64_t id, const OptionalOrT& v);
   void InsertIfNotSet(int64_t id, const DataItem& v);
 
+  // It calls InsertGuaranteedNotSet and updates allocation ids if `v` is an
+  // ObjectId.
+  void InsertGuaranteedNotSetAndUpdateAllocIds(int64_t id, const DataItem& v);
   // It calls InsertIfNotSet and updates allocation ids if `v` is an ObjectId.
   void InsertIfNotSetAndUpdateAllocIds(int64_t id, const DataItem& v);
 
@@ -127,6 +138,8 @@ class SliceBuilder {
 
     template <typename ValueT>  // T, or optional of T, or nullopt
     void InsertIfNotSet(int64_t id, const ValueT& v);
+    template <typename ValueT>  // T, or optional of T, or nullopt
+    void InsertGuaranteedNotSet(int64_t id, const ValueT& v);
 
    private:
     friend class SliceBuilder;
@@ -343,11 +356,9 @@ SliceBuilder::GetBufferBuilderWithTypeChange() {
 }
 
 template <typename T>
-void SliceBuilder::InsertIfNotSet(int64_t id, const T& v) {
+void SliceBuilder::InsertGuaranteedNotSet(int64_t id, const T& v) {
   static_assert(!std::is_same_v<T, DataItem>);
-  if (IsSet(id)) {
-    return;
-  }
+  DCHECK(!IsSet(id));
   unset_count_--;
   if (SliceBuilder::IsMissing(v)) {
     types_buffer_.id_to_typeidx[id] = TypesBuffer::kRemoved;
@@ -369,12 +380,19 @@ void SliceBuilder::InsertIfNotSet(int64_t id, const T& v) {
 }
 
 template <typename T>
-template <typename OptionalOrT>
-void SliceBuilder::TypedBuilder<T>::InsertIfNotSet(int64_t id,
-                                                   const OptionalOrT& v) {
+void SliceBuilder::InsertIfNotSet(int64_t id, const T& v) {
+  static_assert(!std::is_same_v<T, DataItem>);
   if (IsSet(id)) {
     return;
   }
+  InsertGuaranteedNotSet(id, v);
+}
+
+template <typename T>
+template <typename OptionalOrT>
+void SliceBuilder::TypedBuilder<T>::InsertGuaranteedNotSet(
+    int64_t id, const OptionalOrT& v) {
+  DCHECK(!IsSet(id));
   base_.unset_count_--;
   if (SliceBuilder::IsMissing(v)) {
     id_to_typeidx_[id] = TypesBuffer::kRemoved;
@@ -399,6 +417,16 @@ void SliceBuilder::TypedBuilder<T>::InsertIfNotSet(int64_t id,
     LOG(FATAL) << "Unexpected missing value";
   }
   id_to_typeidx_[id] = typeidx_;
+}
+
+template <typename T>
+template <typename OptionalOrT>
+void SliceBuilder::TypedBuilder<T>::InsertIfNotSet(int64_t id,
+                                                   const OptionalOrT& v) {
+  if (IsSet(id)) {
+    return;
+  }
+  InsertGuaranteedNotSet(id, v);
 }
 
 template <typename Fn>

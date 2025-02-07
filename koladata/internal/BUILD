@@ -461,6 +461,7 @@ cc_test(
         ":object_id",
         ":types_buffer",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qtype",
