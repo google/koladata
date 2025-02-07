@@ -2144,6 +2144,9 @@ absl::Status DataBagImpl::GetFromDictNoFallback(
 
   if (keys.is_mixed_dtype()) {
     dicts.ForEachPresent([&](int64_t offset, ObjectId dict_id) {
+      if (bldr.IsSet(offset)) {
+        return;
+      }
       if (auto val = dict_getter(dict_id).Get(keys[offset]); val.has_value()) {
         bldr.InsertIfNotSetAndUpdateAllocIds(offset, *val);
       }
@@ -2154,6 +2157,9 @@ absl::Status DataBagImpl::GetFromDictNoFallback(
       using T = typename std::decay_t<decltype(vec)>::base_type;
       status = arolla::DenseArraysForEachPresent(
           [&](int64_t offset, ObjectId dict_id, arolla::view_type_t<T> key) {
+            if (bldr.IsSet(offset)) {
+              return;
+            }
             if (auto val = dict_getter(dict_id).Get(DataItem::View<T>{key});
                 val.has_value()) {
               bldr.InsertIfNotSetAndUpdateAllocIds(offset, *val);
@@ -2176,6 +2182,9 @@ absl::Status DataBagImpl::GetFromDictNoFallback(
   keys.VisitValue([&](const auto& val) {
     using T = typename std::decay_t<decltype(val)>;
     dicts.ForEachPresent([&](int64_t offset, ObjectId dict_id) {
+      if (bldr.IsSet(offset)) {
+        return;
+      }
       bldr.InsertIfNotSetAndUpdateAllocIds(
           offset, dict_getter(dict_id).Get(DataItem::View<T>{val}));
     });
