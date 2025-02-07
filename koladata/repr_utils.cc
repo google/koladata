@@ -401,9 +401,9 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
     return WithErrorPayload(status, std::move(error));
   }
   if (cause->has_data_bag_merge_conflict()) {
-    ASSIGN_OR_RETURN(Error error,
-                     SetDataBagMergeError(*std::move(cause), data.db,
-                                                data.to_be_merged_db));
+    ASSIGN_OR_RETURN(
+        Error error,
+        SetDataBagMergeError(*std::move(cause), data.db, data.to_be_merged_db));
     return WithErrorPayload(status, std::move(error));
   }
   return status;
@@ -411,7 +411,7 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
 
 absl::Status CreateItemCreationError(const absl::Status& status,
                                      const std::optional<DataSlice>& schema) {
-  internal::Error error;
+  std::string error_message;
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     std::string schema_str;
@@ -420,18 +420,12 @@ absl::Status CreateItemCreationError(const absl::Status& status,
     } else {
       schema_str = schema->item().DebugString();
     }
-    error.set_error_message(absl::StrFormat(
-        "cannot create Item(s) with the provided schema: %s", schema_str));
+    error_message = absl::StrFormat(
+        "cannot create Item(s) with the provided schema: %s", schema_str);
   } else {
-    error.set_error_message(absl::StrFormat("cannot create Item(s)"));
+    error_message = absl::StrFormat("cannot create Item(s)");
   }
-  std::optional<internal::Error> cause = internal::GetErrorPayload(status);
-  if (cause) {
-    *error.mutable_cause() = *std::move(cause);
-  } else {
-    error.mutable_cause()->set_error_message(status.message());
-  }
-  return internal::WithErrorPayload(status, error);
+  return internal::KodaErrorFromCause(std::move(error_message), status);
 }
 
 }  // namespace koladata

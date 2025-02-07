@@ -14,8 +14,6 @@
 
 """koladata exceptions."""
 
-from typing import Self
-
 from koladata.exceptions import error_pb2
 from koladata.exceptions import py_exceptions_py_ext as _py_exceptions_py_ext
 
@@ -29,13 +27,12 @@ _VERBOSE_ERRORS_ENABLED = False
 class KodaError(ValueError):
   """Koda exception."""
 
-  def __init__(self, err: error_pb2.Error, cause: Self | None = None):
+  def __init__(self, err: error_pb2.Error):
     self.err = err
-    self._cause = cause
 
   def __str__(self):
-    if self._cause:
-      return f'{self.err.error_message}\n\nThe cause is: {self._cause}'
+    if self.__cause__ is not None:
+      return f'{self.err.error_message}\n\nThe cause is: {self.__cause__}'
     if _VERBOSE_ERRORS_ENABLED:
       return f'{self.err.error_message}{self._format_source_locations()}'
     return f'{self.err.error_message}'
@@ -53,11 +50,6 @@ def _create_koda_error(error: error_pb2.Error) -> KodaError | None:
   """Creates the KodaError from the given proto."""
   if not error.error_message:
     return None
-  if error.HasField('cause'):
-    cause = _create_koda_error(error.cause)
-    if cause is None:
-      return None
-    return KodaError(error, cause)
   return KodaError(error)
 
 

@@ -27,6 +27,7 @@
 #include "absl/strings/str_format.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "arolla/util/status.h"
 
 namespace koladata::internal {
 namespace {
@@ -36,6 +37,10 @@ using ::absl_testing::StatusIs;
 using ::testing::AllOf;
 using ::testing::Eq;
 using ::testing::Field;
+using ::testing::IsNull;
+using ::testing::Pointee;
+using ::testing::Property;
+using ::testing::ResultOf;
 
 TEST(OperatorEvalError, NoCause) {
   absl::Status status = OperatorEvalError("op_name", "error_message");
@@ -45,7 +50,7 @@ TEST(OperatorEvalError, NoCause) {
       internal::GetErrorPayload(status);
   ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: error_message"));
-  EXPECT_FALSE(payload->has_cause());
+  EXPECT_THAT(arolla::GetCause(status), IsNull());
 }
 
 TEST(OperatorEvalError, WithStatus) {
@@ -57,7 +62,7 @@ TEST(OperatorEvalError, WithStatus) {
       internal::GetErrorPayload(new_status);
   ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: Test error"));
-  EXPECT_THAT(payload->cause().error_message(), Eq(""));
+  EXPECT_THAT(arolla::GetCause(new_status), IsNull());
 }
 
 TEST(OperatorEvalError, EmptyOperatorName) {
@@ -77,28 +82,37 @@ TEST(OperatorEvalError, WithStatusAndErrorMessage) {
       OperatorEvalError(status, "op_name", "error_message");
   EXPECT_THAT(new_status,
               StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
-  std::optional<internal::Error> payload =
-      internal::GetErrorPayload(new_status);
-  ASSERT_TRUE(payload.has_value());
-  EXPECT_THAT(payload->error_message(), Eq("op_name: error_message"));
-  EXPECT_THAT(payload->cause().error_message(), Eq("Test error"));
+  EXPECT_THAT(
+      arolla::GetPayload<internal::Error>(new_status),
+      Property(&internal::Error::error_message, Eq("op_name: error_message")));
+  EXPECT_THAT(
+      arolla::GetCause(new_status),
+      Pointee(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "Test error"),
+                    ResultOf(&arolla::GetPayload<internal::Error>,
+                             Property(&internal::Error::error_message,
+                                      Eq("Test error"))))));
 }
 
 TEST(OperatorEvalError, WithStatusContainingCause) {
   internal::Error error;
   error.set_error_message("cause");
-  absl::Status status = absl::InvalidArgumentError("Test error");
-  status = internal::WithErrorPayload(status, error);
+  absl::Status cause = absl::InvalidArgumentError("cause");
+  absl::Status status =
+      arolla::WithCause(absl::InvalidArgumentError("error"), cause);
 
   absl::Status new_status =
       OperatorEvalError(status, "op_name", "error_message");
   EXPECT_THAT(new_status,
-              StatusIs(absl::StatusCode::kInvalidArgument, "Test error"));
+              StatusIs(absl::StatusCode::kInvalidArgument, "error"));
   std::optional<internal::Error> payload =
       internal::GetErrorPayload(new_status);
   ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: error_message"));
-  EXPECT_THAT(payload->cause().error_message(), Eq("cause"));
+  auto got_cause = arolla::GetCause(new_status);
+  ASSERT_THAT(got_cause,
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "error")));
+  EXPECT_THAT(arolla::GetCause(*got_cause),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "cause")));
 }
 
 TEST(OperatorEvalError, SubsequentCalls) {
@@ -109,7 +123,7 @@ TEST(OperatorEvalError, SubsequentCalls) {
   std::optional<internal::Error> payload = internal::GetErrorPayload(status);
   ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: error_message"));
-  EXPECT_FALSE(payload->has_cause());
+  EXPECT_THAT(arolla::GetCause(status), IsNull());
 }
 
 absl::StatusOr<int> ReturnsErrorOr(int x, int y) {
@@ -124,7 +138,7 @@ TEST(ReturnsOperatorEvalError, WrapsStatusOr) {
   std::optional<internal::Error> payload = internal::GetErrorPayload(status);
   ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: test error 57"));
-  EXPECT_FALSE(payload->has_cause());
+  EXPECT_THAT(arolla::GetCause(status), IsNull());
 }
 
 absl::Status ReturnsError(int x, int y) {
@@ -139,7 +153,7 @@ TEST(ReturnsOperatorEvalError, WrapsStatus) {
   std::optional<internal::Error> payload = internal::GetErrorPayload(status);
   ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: test error 57"));
-  EXPECT_FALSE(payload->has_cause());
+  EXPECT_THAT(arolla::GetCause(status), IsNull());
 }
 
 TEST(ReturnsOperatorEvalError, WithLambda) {
@@ -153,7 +167,7 @@ TEST(ReturnsOperatorEvalError, WithLambda) {
   std::optional<internal::Error> payload = internal::GetErrorPayload(status);
   ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: test error 57"));
-  EXPECT_FALSE(payload->has_cause());
+  EXPECT_THAT(arolla::GetCause(status), IsNull());
 }
 
 // Counts the number of times the object is copied or moved.
@@ -228,11 +242,9 @@ TEST(ReturnsOperatorEvalError, NoExtraInputCopies) {
     auto wrapped_fn = ReturnsOperatorEvalError("op_name", AcceptsCopyCounters);
     auto status =
         wrapped_fn(counter1, counter2, std::move(counter3), counter4).status();
-    EXPECT_THAT(
-        status,
-        StatusIs(
-            absl::StatusCode::kInvalidArgument,
-            "by_value: 1/1, by_const_ref: 0/0, by_rvalue: 0/0, by_ref: 0/0"));
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
+                                 "by_value: 1/1, by_const_ref: 0/0, "
+                                 "by_rvalue: 0/0, by_ref: 0/0"));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     ASSERT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),

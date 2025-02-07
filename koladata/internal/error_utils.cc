@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/error_utils.h"
 
+#include <any>
 #include <optional>
 #include <string>
 #include <utility>
@@ -28,6 +29,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serialization/encode.h"
 #include "arolla/serialization/utils.h"
+#include "arolla/util/status.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
@@ -35,22 +37,21 @@ namespace koladata::internal {
 using arolla::TypedValue;
 using arolla::serialization_base::ContainerProto;
 
+// TODO: b/374841918 - Consider removing this function in favor of
+// arolla::GetPayload<Error>.
 std::optional<Error> GetErrorPayload(const absl::Status& status) {
-  auto error_payload = status.GetPayload(kErrorUrl);
-  if (!error_payload) {
-    return std::nullopt;
+  const Error* error = arolla::GetPayload<Error>(status);
+  if (error != nullptr) {
+    return *error;
   }
-  Error error;
-  error.ParsePartialFromCord(*error_payload);
-  return error;
+  return std::nullopt;
 }
 
 absl::Status WithErrorPayload(absl::Status status, Error error) {
   if (status.ok()) {
     return status;
   }
-  status.SetPayload(kErrorUrl, error.SerializePartialAsCord());
-  return status;
+  return arolla::WithPayload(std::move(status), std::move(error));
 }
 
 absl::Status WithErrorPayload(absl::Status status,
@@ -108,10 +109,10 @@ absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause) {
   cause = AsKodaError(std::move(cause));
   internal::Error error;
   error.set_error_message(msg);
-  std::optional<internal::Error> cause_error = internal::GetErrorPayload(cause);
-  DCHECK(cause_error.has_value());  // Guaranteed by AsKodaError.
-  *error.mutable_cause() = *std::move(cause_error);
-  return internal::WithErrorPayload(std::move(cause), std::move(error));
+  return arolla::WithCause(
+      // TODO: b/374841918 - It is strange that we use message from the cause
+      // instead `msg`.
+      internal::WithErrorPayload(cause, std::move(error)), cause);
 }
 
 }  // namespace koladata::internal

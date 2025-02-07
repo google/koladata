@@ -42,6 +42,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -219,9 +220,16 @@ TEST(ArollaEval, SimplePointwiseEval) {
     EXPECT_THAT(payload->error_message(),
                 Eq("cannot align inputs to a common shape"));
     EXPECT_THAT(
-        payload->cause().error_message(),
-        HasSubstr(
-            "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)"));
+        arolla::GetCause(status),
+        Pointee(AllOf(
+            StatusIs(
+                absl::StatusCode::kInvalidArgument,
+                "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)"),
+            ResultOf(
+                &arolla::GetPayload<internal::Error>,
+                Property(&internal::Error::error_message,
+                         HasSubstr("shapes are not compatible: JaggedShape(1) "
+                                   "vs JaggedShape(3)"))))));
   }
   {
     // Incompatible shapes for all missing inputs.
@@ -238,9 +246,16 @@ TEST(ArollaEval, SimplePointwiseEval) {
     EXPECT_THAT(payload->error_message(),
                 Eq("cannot align inputs to a common shape"));
     EXPECT_THAT(
-        payload->cause().error_message(),
-        HasSubstr(
-            "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)"));
+        arolla::GetCause(status),
+        Pointee(AllOf(
+            StatusIs(
+                absl::StatusCode::kInvalidArgument,
+                "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)"),
+            ResultOf(
+                &arolla::GetPayload<internal::Error>,
+                Property(&internal::Error::error_message,
+                         HasSubstr("shapes are not compatible: JaggedShape(1) "
+                                   "vs JaggedShape(3)"))))));
   }
   {
     // Arolla op compilation error.

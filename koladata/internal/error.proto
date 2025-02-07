@@ -77,7 +77,6 @@ message SourceLocation {
 // Koda error message transportation proto.
 message Error {
   optional string error_message = 1;
-  optional Error cause = 2;
   oneof error {
     NoCommonSchema no_common_schema = 3;
     MissingObjectSchema missing_object_schema = 4;
@@ -85,5 +84,6 @@ message Error {
     DataBagMergeConflict data_bag_merge_conflict = 6;
   }
 
+  reserved 2;
   repeated SourceLocation source_location = 100;
 }

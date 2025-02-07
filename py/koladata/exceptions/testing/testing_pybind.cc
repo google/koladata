@@ -26,6 +26,7 @@
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "arolla/util/init_arolla.h"
+#include "arolla/util/status.h"
 
 namespace koladata::python {
 
@@ -64,12 +65,19 @@ PYBIND11_MODULE(testing_pybind, m) {
           throw pybind11::error_already_set();
         });
 
-  m.def("create_koda_exception_raises", [](absl::string_view message) {
-    absl::Status status = absl::InternalError(message);
-    status.SetPayload(internal::kErrorUrl, absl::Cord("malformed message"));
-    SetPyErrFromStatus(status);
-    throw pybind11::error_already_set();
-  });
+  m.def("raise_from_status_with_serialized_payload_and_cause",
+        [](absl::string_view message, absl::string_view serialized_payload,
+           absl::string_view cause_message) {
+          Error error;
+          error.ParseFromString(serialized_payload);
+          Error cause_error;
+          cause_error.set_error_message(cause_message);
+          SetPyErrFromStatus(arolla::WithPayloadAndCause(
+              absl::InternalError(message), std::move(error),
+              arolla::WithPayload(absl::InternalError(cause_message),
+                                  std::move(cause_error))));
+          throw pybind11::error_already_set();
+        });
 
   m.def("create_error_from_cause",
         [](absl::string_view message, absl::string_view cause_message) {

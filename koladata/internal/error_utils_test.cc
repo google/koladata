@@ -29,7 +29,7 @@
 #include "koladata/s11n/codec.pb.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/meta.h"
-#include "arolla/util/testing/equals_proto.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -47,6 +47,7 @@ using ::koladata::schema::ObjectDType;
 using ::koladata::schema::SchemaDType;
 using ::testing::Eq;
 using ::testing::HasSubstr;
+using ::testing::Property;
 using ::testing::StrEq;
 
 TEST(ErrorUtilsTest, TestEncodeDataItem) {
@@ -130,10 +131,14 @@ TEST(ErrorUtilsTest, KodaErrorFromCause) {
   absl::Status koda_status = KodaErrorFromCause("got an error", status);
 
   EXPECT_THAT(koda_status.message(), Eq(status.message()));
-  auto error_payload = GetErrorPayload(koda_status);
-  ASSERT_TRUE(error_payload.has_value());
-  EXPECT_THAT(error_payload->error_message(), StrEq("got an error"));
-  EXPECT_THAT(error_payload->cause().error_message(), StrEq("test error"));
+  EXPECT_THAT(arolla::GetPayload<internal::Error>(koda_status),
+              Property(&internal::Error::error_message, StrEq("got an error")));
+  EXPECT_THAT(
+      arolla::GetCause(koda_status),
+      Pointee(AllOf(StatusIs(absl::StatusCode::kUnimplemented, "test error"),
+                    ResultOf(&arolla::GetPayload<internal::Error>,
+                             Property(&internal::Error::error_message,
+                                      StrEq("test error"))))));
 }
 
 TEST(ErrorUtilsTest, KodaErrorFromCause_OkStatus) {

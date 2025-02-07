@@ -30,6 +30,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
+#include "arolla/util/status.h"
 
 namespace koladata {
 namespace {
@@ -37,6 +38,7 @@ namespace {
 using ::absl_testing::StatusIs;
 using ::koladata::internal::Error;
 using ::testing::MatchesRegex;
+using ::testing::Property;
 using ::testing::StrEq;
 
 TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
@@ -194,8 +196,12 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
   EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(),
               StrEq("cannot create Item(s) with the provided schema: INT32"));
-  EXPECT_THAT(payload->cause().error_message(), ::testing::StrEq("error"));
-
+  EXPECT_THAT(
+      arolla::GetCause(status),
+      Pointee(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
+                    ResultOf(&arolla::GetPayload<internal::Error>,
+                             Property(&internal::Error::error_message,
+                                      StrEq("error"))))));
   Error error;
   error.set_error_message("cause");
   status = CreateItemCreationError(
@@ -206,7 +212,12 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
   EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(),
               StrEq("cannot create Item(s) with the provided schema: INT32"));
-  EXPECT_THAT(payload->cause().error_message(), ::testing::StrEq("cause"));
+  EXPECT_THAT(
+      arolla::GetCause(status),
+      Pointee(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
+                    ResultOf(&arolla::GetPayload<internal::Error>,
+                             Property(&internal::Error::error_message,
+                                      StrEq("cause"))))));
 
   status = CreateItemCreationError(
       internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),

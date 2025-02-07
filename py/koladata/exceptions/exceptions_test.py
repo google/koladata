@@ -40,21 +40,13 @@ class ExceptionsTest(absltest.TestCase):
         '[INTERNAL] test error'
     )
 
-  def test_create_koda_exception_raises(self):
-    with self.assertRaises(Exception) as cm:
-      testing_pybind.create_koda_exception_raises('test error')
-    self.assertIn(
-        'Truncated message',
-        str(cm.exception),
-    )
-
   def test_nested_koda_error(self):
     err_proto = error_pb2.Error(error_message='test error')
-    err_proto.cause.error_message = 'cause error'
     with self.assertRaises(exceptions.KodaError) as cm:
-      testing_pybind.raise_from_status_with_serialized_payload(
+      testing_pybind.raise_from_status_with_serialized_payload_and_cause(
           'test error',
-          err_proto.SerializeToString()
+          err_proto.SerializeToString(),
+          'cause error',
       )
     self.assertRegex(
         str(cm.exception),
@@ -64,12 +56,10 @@ The cause is: cause error""",
     )
 
   def test_koda_error_create_fail(self):
-    err_proto = error_pb2.Error(error_message='message from payload')
-    err_proto.cause.error_message = ''
     with self.assertRaises(ValueError) as cm:
       testing_pybind.raise_from_status_with_serialized_payload(
           'message from status',
-          err_proto.SerializeToString()
+          b'malformed proto',
       )
     self.assertRegex(str(cm.exception), 'message from status')
 

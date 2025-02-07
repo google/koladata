@@ -16,21 +16,18 @@
 
 #include <Python.h>
 
-#include <algorithm>
+#include <string>
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
-#include "absl/strings/cord.h"
-#include "absl/strings/str_format.h"
-#include "absl/strings/string_view.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/error.pb.h"
-#include "koladata/internal/error_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/arolla/py_utils/status_payload_handler_registry.h"
 #include "arolla/util/init_arolla.h"
+#include "arolla/util/status.h"
 
 namespace koladata::python {
 
@@ -40,33 +37,30 @@ using ::arolla::python::PyObjectPtr;
 
 absl::NoDestructor<arolla::python::PyObjectPtr> exception_factory;
 
-absl::Nullable<PyObject*> CreateKodaException(const absl::Cord& payload) {
-  PyObjectPtr py_bytes =
-      PyObjectPtr::Own(PyBytes_FromStringAndSize(nullptr, payload.size()));
-  auto dest = PyBytes_AS_STRING(py_bytes.get());
-  for (const absl::string_view chunk : payload.Chunks()) {
-    dest = std::copy_n(chunk.data(), chunk.size(), dest);
-  }
-  return PyObject_CallOneArg(exception_factory->get(), py_bytes.release());
+absl::Nullable<PyObject*> CreateKodaException(const internal::Error& error) {
+  std::string serialized_error;
+  // TODO: b/374841918 - Avoid serialization.
+  error.SerializeToString(&serialized_error);
+  PyObjectPtr py_serialized_error = PyObjectPtr::Own(PyBytes_FromStringAndSize(
+      serialized_error.data(), serialized_error.size()));
+  return PyObject_CallOneArg(exception_factory->get(),
+                             py_serialized_error.release());
 }
 
 bool HandleKodaPyErrStatus(const absl::Status& status) {
-  auto payload = status.GetPayload(internal::kErrorUrl);
-  if (!payload.has_value()) {
+  const auto* error = arolla::GetPayload<internal::Error>(status);
+  if (error == nullptr) {
     return false;
   }
   if (exception_factory->get() == nullptr) {
     PyErr_SetString(PyExc_AssertionError, "Koda exception factory is not set");
     return true;
   }
-  PyObject* py_exception = CreateKodaException(*payload);
-  if (Py_IsNone(py_exception)) {
-    arolla::python::DefaultSetPyErrFromStatus(status);
-    return true;
+  PyObject* py_exception = CreateKodaException(*error);
+  if (py_exception == nullptr || Py_IsNone(py_exception)) {
+    return false;
   }
-  if (py_exception != nullptr) {
-    PyErr_SetObject((PyObject*)Py_TYPE(py_exception), py_exception);
-  }
+  PyErr_SetObject((PyObject*)Py_TYPE(py_exception), py_exception);
   return true;
 }
 
