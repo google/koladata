@@ -164,7 +164,7 @@ TEST(DataBagTest, SetGet) {
               ElementsAreArray(ds_a.values<ObjectId>()));
 }
 
-TEST(DataBagTest, GetAttrWithRemoved) {
+TEST(DataBagTest, GetAttrWithRemovedSlice) {
   for (int64_t size : {1, 3, 7, 13, 1023}) {
     SCOPED_TRACE(absl::StrCat("size: ", size));
     auto db = DataBagImpl::CreateEmptyDatabag();
@@ -210,6 +210,47 @@ TEST(DataBagTest, GetAttrWithRemoved) {
                                     : TypesBuffer::kUnset;
         ASSERT_EQ(ds_a_get.types_buffer().id_to_typeidx[i], expected_typeidx)
             << i;
+      }
+    }
+  }
+}
+
+TEST(DataBagTest, GetAttrWithRemovedItem) {
+  for (int64_t size : {1, 3, 27, 56, 64, 111}) {
+    SCOPED_TRACE(absl::StrCat("size: ", size));
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    std::vector<DataItem> objects;
+    std::vector<ObjectId> object_ids;
+    for (int64_t i = 0; i < size; ++i) {
+      auto obj_id = size % 7 == 0 ? AllocateSingleObject()
+                                  : Allocate(987).ObjectByOffset(i);
+      objects.push_back(i % 3 == 2 ? DataItem() : DataItem(obj_id));
+      object_ids.push_back(obj_id);
+    }
+    std::vector<DataItem> items;
+    for (int64_t i = 0; i < size; ++i) {
+      items.push_back(i % 2 == 1 ? DataItem(i) : DataItem());
+    }
+
+    ASSERT_OK(db->SetAttr(DataSliceImpl::Create(objects), "a",
+                          DataSliceImpl::Create(items)));
+
+    for (int64_t i = 0; i < size; ++i) {
+      SCOPED_TRACE(absl::StrCat("i: ", i));
+      ObjectId object_id = object_ids[i];
+      std::optional<DataItem> item = db->GetAttrWithRemoved(object_id, "a");
+      bool is_set = i % 3 != 2;
+      bool is_removed = i % 2 == 0;
+      if (is_set) {
+        EXPECT_TRUE(item.has_value());
+        if (is_removed) {
+          EXPECT_FALSE(item->has_value());
+        } else {
+          EXPECT_TRUE(item->has_value());
+          EXPECT_EQ(item.value(), DataItem(i));
+        }
+      } else {
+        EXPECT_FALSE(item.has_value());
       }
     }
   }
@@ -342,6 +383,7 @@ TEST(DataBagTest, GetSchemaAttrs) {
                 UnorderedElementsAre("value", "self"));
   }
   for (size_t size : {kSmallAllocMaxCapacity, kSmallAllocMaxCapacity + 1}) {
+    SCOPED_TRACE(absl::StrCat("size: ", size));
     // Multiple schemas allocations.
     auto db = DataBagImpl::CreateEmptyDatabag();
     auto schema_ds = DataSliceImpl::ObjectsFromAllocation(
@@ -354,8 +396,10 @@ TEST(DataBagTest, GetSchemaAttrs) {
     for (size_t i = 0; i < size; ++i) {
       ASSERT_OK_AND_ASSIGN(DataSliceImpl schema_attrs,
                            db->GetSchemaAttrs(schema_ds[i]));
-      EXPECT_THAT(schema_attrs.values<arolla::Text>(),
-                  UnorderedElementsAre("a" + std::to_string(i), "self"));
+      EXPECT_THAT(
+          schema_attrs,
+          UnorderedElementsAre(DataItem(arolla::Text("a" + std::to_string(i))),
+                               DataItem(arolla::Text("self"))));
     }
   }
 }

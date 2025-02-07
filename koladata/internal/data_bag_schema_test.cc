@@ -467,7 +467,8 @@ TEST(DataBagTest, DelSchemaAttr_Slice) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'a' is missing")));
   for (int i = 0; i < schema.size(); ++i) {
-    EXPECT_THAT(db->GetSchemaAttrs(schema[i]), IsOkAndHolds(ElementsAre()));
+    EXPECT_THAT(db->GetSchemaAttrs(schema[i]),
+                IsOkAndHolds(ElementsAre(DataItem(arolla::Text("a")))));
   }
 
   // Deleting on an empty slice is a no-op.

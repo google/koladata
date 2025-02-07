@@ -170,11 +170,6 @@ class DataBagImpl : public arolla::RefcountedBase {
       absl::string_view attr,
       FallbackSpan fallbacks = {}) const;
 
-  absl::StatusOr<DataItem> GetAttr(
-      const DataItem& object,
-      absl::string_view attr,
-      FallbackSpan fallbacks = {}) const;
-
   // Returns DataSliceImpl with attribute for every object.
   // Resulting DataSliceImpl contains types_buffer to distinguish
   // removed and unset values. If types_buffer is empty, then all values are
@@ -183,6 +178,18 @@ class DataBagImpl : public arolla::RefcountedBase {
   // Missing (not removed) values are looked up in the fallback databags.
   absl::StatusOr<DataSliceImpl> GetAttrWithRemoved(
       const DataSliceImpl& objects,
+      absl::string_view attr,
+      FallbackSpan fallbacks = {}) const;
+
+  absl::StatusOr<DataItem> GetAttr(
+      const DataItem& object,
+      absl::string_view attr,
+      FallbackSpan fallbacks = {}) const;
+
+  // Returns DataItem if value is set or removed.
+  // Returns std::nullopt if value is not set.
+  std::optional<DataItem> GetAttrWithRemoved(
+      ObjectId object_id,
       absl::string_view attr,
       FallbackSpan fallbacks = {}) const;
 

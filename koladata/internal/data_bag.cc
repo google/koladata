@@ -662,6 +662,32 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrWithRemoved(
   return GetAttrImpl(objects, attr, fallbacks, /*with_removed=*/true);
 }
 
+std::optional<DataItem> DataBagImpl::GetAttrWithRemoved(
+    ObjectId object_id, absl::string_view attr, FallbackSpan fallbacks) const {
+  auto lookup = [&](auto lookup_one_bag) -> std::optional<DataItem> {
+    std::optional<DataItem> result = lookup_one_bag(*this);
+    if (result.has_value()) {
+      return std::move(*result);
+    }
+    for (const DataBagImpl* fallback : fallbacks) {
+      if (auto item = lookup_one_bag(*fallback);
+          item.has_value()) {
+        return std::move(*item);
+      }
+    }
+    return std::nullopt;
+  };
+  AllocationId alloc_id(object_id);
+  if (alloc_id.IsSmall()) {
+    return lookup([&](const DataBagImpl& db) {
+      return db.LookupAttrInDataItemMap(object_id, attr);
+    });
+  }
+  return lookup([&](const DataBagImpl& db) {
+    return db.LookupAttrInDataSourcesMap(object_id, attr);
+  });
+}
+
 absl::StatusOr<DataItem> DataBagImpl::GetAttr(const DataItem& object,
                                               absl::string_view attr,
                                               FallbackSpan fallbacks) const {
@@ -674,32 +700,7 @@ absl::StatusOr<DataItem> DataBagImpl::GetAttr(const DataItem& object,
     }
   }
   ObjectId object_id = object.value<ObjectId>();
-  AllocationId alloc_id(object_id);
-  if (alloc_id.IsSmall()) {
-    std::optional<DataItem> result = LookupAttrInDataItemMap(object_id, attr);
-    if (result.has_value()) {
-      return std::move(*result);
-    }
-    for (const DataBagImpl* fallback : fallbacks) {
-      if (auto item = fallback->LookupAttrInDataItemMap(object_id, attr);
-          item.has_value()) {
-        return std::move(*item);
-      }
-    }
-    return DataItem();
-  }
-
-  std::optional<DataItem> result = LookupAttrInDataSourcesMap(object_id, attr);
-  if (result.has_value()) {
-    return std::move(*result);
-  }
-  for (const DataBagImpl* fallback : fallbacks) {
-    if (auto item = fallback->LookupAttrInDataSourcesMap(object_id, attr);
-        item.has_value()) {
-      return std::move(*item);
-    }
-  }
-  return DataItem();
+  return GetAttrWithRemoved(object_id, attr, fallbacks).value_or(DataItem());
 }
 
 absl::StatusOr<DataItem> DataBagImpl::GetObjSchemaAttr(
@@ -2520,9 +2521,8 @@ absl::StatusOr<std::vector<DataItem>> DataBagImpl::GetSchemaAttrsAsVector(
   result.reserve(attr_names.size());
   for (const auto& attr_name : attr_names) {
     DCHECK(attr_name.holds_value<arolla::Text>());
-    ASSIGN_OR_RETURN(
-        auto attr_schema,
-        GetAttr(schema_item, attr_name.value<arolla::Text>(), fallbacks));
+    auto attr_schema = GetAttrWithRemoved(
+        schema_id, attr_name.value<arolla::Text>(), fallbacks);
     if (attr_schema.has_value()) {
       result.push_back(DataItem(attr_name));
     }
