@@ -397,6 +397,7 @@ def select_items(ds, fltr):
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.append),
     ],
+    deterministic=False,
 )
 def appended_list(x, append):
   """Appends items in `append` to the end of each list in `x`.

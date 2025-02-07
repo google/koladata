@@ -70,7 +70,8 @@ absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists);
 
 // kd.appended_list operator.
 absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
-                                       const DataSlice& append);
+                                       const DataSlice& append,
+                                       internal::NonDeterministicToken);
 
 // kd.lists.append_update operator.
 absl::StatusOr<DataBagPtr> ListAppendUpdate(const DataSlice& x,

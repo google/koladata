@@ -174,7 +174,8 @@ absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists) {
 }
 
 absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
-                                       const DataSlice& append) {
+                                       const DataSlice& append,
+                                       internal::NonDeterministicToken) {
   if (x.GetBag() == nullptr) {
     return absl::InvalidArgumentError(
         "cannot update a DataSlice of lists; "

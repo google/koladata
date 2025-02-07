@@ -18,6 +18,7 @@ from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
@@ -25,6 +26,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
+eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
@@ -80,7 +82,7 @@ class KodaAppendedListTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, x, append, expected):
-    result = expr_eval.eval(kde.lists.appended_list(x, append))
+    result = eager.lists.appended_list(x, append)
     testing.assert_nested_lists_equal(result, expected)
     self.assertFalse(result.is_mutable())
 
@@ -94,6 +96,29 @@ class KodaAppendedListTest(parameterized.TestCase):
 
     testing.assert_equal(result[0].a, ds(1).with_bag(result.get_bag()))
     testing.assert_equal(result[1].a, ds(2).with_bag(result.get_bag()))
+
+  def test_non_determinism(self):
+    # Evaluating different identical exprs.
+    x = db.list([1, 2])
+    append = ds([3])
+    expr = kde.make_tuple(
+        kde.lists.appended_list(x, append),
+        kde.lists.appended_list(x, append),
+    )
+    self.assertNotEqual(
+        expr.node_deps[0].fingerprint, expr.node_deps[1].fingerprint
+    )
+    res = expr_eval.eval(expr)
+    self.assertNotEqual(res[0].no_bag(), res[1].no_bag())
+
+    # Evaluating same expr twice.
+    expr = kde.lists.appended_list(x, append)
+    res_1 = expr_eval.eval(expr)
+    res_2 = expr_eval.eval(expr)
+    self.assertNotEqual(
+        res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
+    )
+    testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
 
   @parameterized.parameters(
       (
@@ -136,7 +161,7 @@ class KodaAppendedListTest(parameterized.TestCase):
         exceptions.KodaError,
         err_regex,
     ):
-      _ = expr_eval.eval(kde.lists.appended_list(x, append))
+      _ = eager.lists.appended_list(x, append)
 
   def test_merge_error(self):
     lst = bag().list([bag().uu(a=1)])
@@ -150,7 +175,7 @@ The conflicting entities in the both DataBags: Entity\(\):\#[0-9a-zA-Z]{22}
 
 The cause is the values of attribute 'a' are different: 1 vs 2""",
     ):
-      _ = expr_eval.eval(kde.lists.appended_list(lst, e))
+      _ = eager.lists.appended_list(lst, e)
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.lists.appended_list(I.x, I.append)))
