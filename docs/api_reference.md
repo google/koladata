@@ -2709,6 +2709,30 @@ Aliases:
 Returns size of a List.
 ```
 
+### `kd.lists.with_list_append_update(x, append)` {#kd.lists.with_list_append_update}
+Aliases:
+
+- [kd.with_list_append_update](#kd.with_list_append_update)
+
+``` {.no-copy}
+Returns a DataSlice with a new DataBag containing updated appended lists.
+
+The updated lists are the lists in `x` with the specified items appended at
+the end.
+
+`x` and `append` must have compatible shapes.
+
+The resulting lists maintain the same ItemIds. Also see kd.appended_list()
+which works similarly but resulting lists have new ItemIds.
+
+Args:
+  x: DataSlice of lists.
+  append: DataSlice of values to append to each list in `x`.
+
+Returns:
+  A DataSlice of lists in a new immutable DataBag.
+```
+
 </section>
 
 ### kd.masking {#kd.masking}
@@ -8464,6 +8488,10 @@ Alias for [kd.core.with_bag](#kd.core.with_bag) operator.
 ### `kd.with_dict_update(x, keys, values=unspecified)` {#kd.with_dict_update}
 
 Alias for [kd.dicts.with_dict_update](#kd.dicts.with_dict_update) operator.
+
+### `kd.with_list_append_update(x, append)` {#kd.with_list_append_update}
+
+Alias for [kd.lists.with_list_append_update](#kd.lists.with_list_append_update) operator.
 
 ### `kd.with_merged_bag(ds)` {#kd.with_merged_bag}
 
