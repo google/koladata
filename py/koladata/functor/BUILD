@@ -126,8 +126,10 @@ py_library(
     deps = [
         ":functor_factories",
         "//py/koladata/expr:tracing_mode",
+        "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
+        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -141,6 +143,7 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/functions",
+        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",

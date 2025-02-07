@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import dataclasses
 import inspect
 import re
 import types
+from typing import Any, ClassVar
 
 from absl.testing import absltest
 from arolla import arolla
@@ -30,6 +32,33 @@ I = kd.I
 V = kd.V
 S = kd.S
 kdf = kd.functor
+
+
+class TuplePairTracingConfig(kd.functor.TypeTracingConfig):
+  """A type tracing config for Pair using tuples."""
+
+  def return_type_as(self, cls: type['PairWithTupleTracing']) -> Any:
+    return kd.types.DataSlice, kd.types.DataSlice
+
+  def to_kd(
+      self, cls: type['PairWithTupleTracing'], value: 'PairWithTupleTracing'
+  ) -> Any:
+    return value.x, value.y
+
+  def from_kd(
+      self, cls: type['PairWithTupleTracing'], value: Any
+  ) -> 'PairWithTupleTracing':
+    return cls(x=value[0], y=value[1])
+
+
+@dataclasses.dataclass(frozen=True)
+class PairWithTupleTracing:
+  x: kd.types.DataSlice | kd.types.Expr
+  y: kd.types.DataSlice | kd.types.Expr
+
+  _koladata_type_tracing_config_: ClassVar[type[TuplePairTracingConfig]] = (
+      TuplePairTracingConfig
+  )
 
 
 class KdTest(absltest.TestCase):
@@ -406,6 +435,30 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_non_deterministic_exprs_equal(
         kd.expr.unpack_expr(fn.f.returns), I.x + 1
     )
+
+  def test_type_tracing_config(self):
+
+    @kd.trace_as_fn()
+    def swap(a: PairWithTupleTracing) -> PairWithTupleTracing:
+      return PairWithTupleTracing(x=a.y, y=a.x)
+
+    def f(o):
+      p = PairWithTupleTracing(x=o.x, y=o.y[:])
+      p = swap(p)
+      return kd.obj(x=kd.implode(p.x), y=p.y)
+
+    res = f(
+        kd.obj(x=kd.slice([1, 2, 3]), y=kd.implode(kd.slice([[4, 5], [], [6]])))
+    )
+    kd.testing.assert_equal(res.x[:].no_bag(), kd.slice([[4, 5], [], [6]]))
+    kd.testing.assert_equal(res.y.no_bag(), kd.slice([1, 2, 3]))
+
+    fn = kd.fn(f)
+    res = fn(
+        kd.obj(x=kd.slice([1, 2, 3]), y=kd.implode(kd.slice([[4, 5], [], [6]])))
+    )
+    kd.testing.assert_equal(res.x[:].no_bag(), kd.slice([[4, 5], [], [6]]))
+    kd.testing.assert_equal(res.y.no_bag(), kd.slice([1, 2, 3]))
 
   def test_call_with_kd_types_return_type(self):
     fn = kdf.expr_fn(returns=I.x.get_bag())
