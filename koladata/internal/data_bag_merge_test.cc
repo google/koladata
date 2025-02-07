@@ -559,7 +559,7 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
                 IsOkAndHolds(ElementsAreArray(a_value_expected)));
   }
   {
-    SCOPED_TRACE("merge dense with dense overwrite nothing");
+    SCOPED_TRACE("merge dense with dense overwrite all removed");
     auto db = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db->SetAttr(a, "a", a_value));
     auto db2 = DataBagImpl::CreateEmptyDatabag();
@@ -568,7 +568,9 @@ TEST(DataBagTest, MergeObjectsOverwriteOnlyDenseSources) {
         db2->SetAttr(a, "a", DataSliceImpl::CreateEmptyAndUnknownType(kSize)));
     ASSERT_OK(db->MergeInplace(
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
-    EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+    EXPECT_THAT(db->GetAttr(a, "a"),
+                IsOkAndHolds(ElementsAreArray(
+                    std::vector<DataItem>(kSize, DataItem()))));
   }
 }
 
