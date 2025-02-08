@@ -1591,6 +1591,12 @@ Operators to create and call functors.
 
 **Operators**
 
+### `kd.functor.TypeTracingConfig()` {#kd.functor.TypeTracingConfig}
+
+``` {.no-copy}
+Describes handling a given user Python type as input/output when tracing.
+```
+
 ### `kd.functor.allow_arbitrary_unused_inputs(fn_def)` {#kd.functor.allow_arbitrary_unused_inputs}
 
 ``` {.no-copy}
@@ -1910,7 +1916,7 @@ Returns a Koda functor wrapping a python function.
     A DataItem representing the functor.
 ```
 
-### `kd.functor.trace_as_fn(*, name=None, py_fn=False, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, wrapper=None)` {#kd.functor.trace_as_fn}
+### `kd.functor.trace_as_fn(*, name=None, py_fn=False, return_type_as=None, wrapper=None)` {#kd.functor.trace_as_fn}
 Aliases:
 
 - [kd.trace_as_fn](#kd.trace_as_fn)
@@ -1943,11 +1949,24 @@ A decorator to customize the tracing behavior for a particular function.
   because it will try to auto-box the class instance into an expr, which is
   likely not supported.
 
+  If the function accepts or returns a type that is not supported by Koda
+  natively, the corresponding argument/return value must be annotated with a
+  type that has a _koladata_type_tracing_config_() classmethod that returns an
+  instance of TypeTracingConfig to describe how to convert the value to/from
+  Koda.
+
+  Note that for _koladata_type_tracing_config_ to work, the file must _not_
+  do "from __future__ import annotations", as that makes the type annotations
+  unresolved at the decoration time.
+
   When executing the resulting function in eager mode, we will evaluate the
   underlying function directly instead of evaluating the functor, to have
   nicer stack traces in case of an exception. However, we will still apply
   the boxing rules on the returned value (for example, convert Python primitives
-  to DataItems), to better emulate what will happen in tracing mode.
+  to DataItems), and the to/from Koda conversions defined by
+  _koladata_type_tracing_config_, if any, to better emulate what will happen in
+  tracing
+  mode.
 ```
 
 ### `kd.functor.trace_py_fn(f, *, auto_variables=True, **defaults)` {#kd.functor.trace_py_fn}
@@ -8399,7 +8418,7 @@ Alias for [kd.schema.to_schema](#kd.schema.to_schema) operator.
 
 Alias for [kd.schema.to_str](#kd.schema.to_str) operator.
 
-### `kd.trace_as_fn(*, name=None, py_fn=False, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, wrapper=None)` {#kd.trace_as_fn}
+### `kd.trace_as_fn(*, name=None, py_fn=False, return_type_as=None, wrapper=None)` {#kd.trace_as_fn}
 
 Alias for [kd.functor.trace_as_fn](#kd.functor.trace_as_fn) operator.
 
