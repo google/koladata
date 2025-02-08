@@ -154,7 +154,7 @@ def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:
   This method supports the following Python types / type annotations
   recursively:
   - Primitive types: int, float, bool, str, bytes.
-  - Collections: list[...], dict[...].
+  - Collections: list[...], dict[...], Sequence[...], Mapping[...], ect.
   - Unions: only "smth | None" or "Optional[smth]" is supported.
   - Dataclasses.
 
@@ -179,10 +179,14 @@ def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:
       tpe: type[Any], db: data_bag.DataBag
   ) -> data_slice.DataSlice:
     if origin_tpe := typing.get_origin(tpe):
-      if isinstance(origin_tpe, type) and issubclass(origin_tpe, list):
+      if isinstance(origin_tpe, type) and issubclass(
+          origin_tpe, typing.Sequence
+      ):
         (item_tpe,) = typing.get_args(tpe)
         return db.list_schema(schema_from_py_impl(item_tpe, db))
-      if isinstance(origin_tpe, type) and issubclass(origin_tpe, dict):
+      if isinstance(origin_tpe, type) and issubclass(
+          origin_tpe, typing.Mapping
+      ):
         key_tpe, value_tpe = typing.get_args(tpe)
         return db.dict_schema(
             schema_from_py_impl(key_tpe, db), schema_from_py_impl(value_tpe, db)

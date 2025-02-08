@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import dataclasses
-from typing import Optional
+from typing import Mapping, Optional, Sequence
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
@@ -76,13 +76,20 @@ class SchemaFromPyTest(absltest.TestCase):
 
     @dataclasses.dataclass
     class Bar:
-      z: list[IntStrPair]
+      x: list[int]
+      y: dict[str, int]
+      z: Sequence[IntStrPair]
       t: str | None
       s: Optional[str]
-      u: dict[str, IntStrPair]
+      u: Mapping[str, IntStrPair]
 
     bar_schema = fns.schema_from_py(Bar)
     int_str_pair_schema = fns.schema_from_py(IntStrPair)
+    self.assertEqual(bar_schema.x, fns.list_schema(schema_constants.INT64))
+    self.assertEqual(
+        bar_schema.y,
+        fns.dict_schema(schema_constants.STRING, schema_constants.INT64),
+    )
     self.assertEqual(bar_schema.z, fns.list_schema(int_str_pair_schema))
     self.assertEqual(bar_schema.t, schema_constants.STRING)
     self.assertEqual(bar_schema.s, schema_constants.STRING)
@@ -90,7 +97,7 @@ class SchemaFromPyTest(absltest.TestCase):
         bar_schema.u,
         fns.dict_schema(schema_constants.STRING, int_str_pair_schema)
     )
-    self.assertCountEqual(fns.dir(bar_schema), ['s', 'u', 't', 'z'])
+    self.assertCountEqual(fns.dir(bar_schema), ['s', 'u', 't', 'x', 'y', 'z'])
     self.assertEqual(int_str_pair_schema.x, schema_constants.INT64)
     self.assertEqual(int_str_pair_schema.y, schema_constants.STRING)
     self.assertCountEqual(fns.dir(int_str_pair_schema), ['x', 'y'])
@@ -109,8 +116,6 @@ class SchemaFromPyTest(absltest.TestCase):
     self.assertNotEqual(global_int_str_pair_schema, local_int_str_pair_schema)
 
   def test_errors(self):
-    with self.assertRaisesRegex(TypeError, 'unsupported.*tuple'):
-      _ = fns.schema_from_py(tuple[int, int])
     with self.assertRaisesRegex(TypeError, 'expects a Python type, got 57'):
       _ = fns.schema_from_py(57)  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(TypeError, 'unsupported union type'):
