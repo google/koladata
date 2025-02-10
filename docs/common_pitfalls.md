@@ -1204,8 +1204,11 @@ assert l1.get_itemid() != l6.get_itemid()
 
 ## Multiple Versions of Entities/Lists/Dicts with the Same ItemIds
 
-Using multiple versions of entities/lists/dicts with the same ItemIds but
-different data can lead to **unexpected overrides**.
+Immutable APIs (e.g. `with_attrs`, `with_dict_update`,
+`with_list_append_update`) create new versions of entities/lists/dicts with the
+same ItemIds. Using multiple versions of entities/lists/dicts with the same
+ItemIds but different data can lead to **unexpected overrides** or **merge
+conflicts**.
 
 The following example uses entities but the same applies to lists and dicts.
 
@@ -1239,24 +1242,50 @@ a = a.with_attrs(new_b=new_b)
 a  # Entity(b=Entity(c=1), new_b=Entity(c=2))
 ```
 
-Sometimes, it can lead to **conflicts** rather than implicit overrides.
+When the same entities are updated in different ways, then merge conflicts can
+arise when the updated results are merged at a later point. The reason is that
+different values are assigned to the same attribute of entities with the same
+ItemIds. To fix this, we can use `kd.clone` or `kd.deep_clone` to create clones
+of entities with distinct ItemIds.
 
 ```py
-a = kd.new(b=kd.new(c=1))
-new_b1 = a.b.with_attrs(c=2)
-new_b2 = a.b.with_attrs(c=3)
-# It fails with conflicting values for c: 2 vs 3
-# a.with_attrs(new_b1=new_b1, new_b2=new_b2)
+query = kd.obj(text='q')
+
+def run_eval(q, v):
+  return q.with_attrs(res=v)
+
+# kd.new(run1=run_eval(query, 1), run2=run_eval(query, 2))
+# raises KodaError: cannot create Item(s)
+# The cause is: cannot merge DataBags due to an exception encountered when merging entities.
+# The conflicting entities in the both DataBags: Entity():$001Crlf4JV2iJcqMJA8CyR
+# The cause is the values of attribute 'res' are different: 1 vs 2
+
+# The fix is to use clone()
+kd.obj(run1=run_eval(query.clone(), 1), run2=run_eval(query.clone(), 2))
+# Obj(run1=Obj(res=1, text='q'), run2=Obj(res=2, text='q'))
 ```
 
-To fix this, we can use `kd.clone` or `kd.deep_clone`.
+Sometimes, the updates are applied to nested attributes. In such cases,
+`kd.clone` is not sufficient and we need to use `kd.deep_clone` which creates
+clones of entities with distinct ItemIds recursively.
 
 ```py
-a = kd.new(b=kd.new(c=1))
-new_b1 = a.b.clone().with_attrs(c=2)
-new_b2 = a.b.clone().with_attrs(c=3)
-a = a.with_attrs(new_b1=new_b1, new_b2=new_b2)
-a  # Entity(b=Entity(c=1), new_b1=Entity(c=2), new_b2=Entity(c=3))
+query_set = kd.obj(query=kd.list([kd.obj(text='q1'), kd.obj(text='q2')]))
+
+def run_eval(qs, v):
+  return qs.query[:].with_attrs(res=v)
+
+# kd.obj(run1=run_eval(query_set.clone(), 1), run2=run_eval(query_set.clone(), 2))
+# raises KodaError: cannot create Item(s)
+# The cause is: cannot merge DataBags due to an exception encountered when merging entities.
+# The conflicting entities in the both DataBags: Entity():$001Crlf4JV2iJcqMJA8Cyd
+# The cause is the values of attribute 'res' are different: 1 vs 2
+
+# The fix is to use deep_clone()
+kd.obj(run1=run_eval(query_set.deep_clone(), 1),
+       run2=run_eval(query_set.deep_clone(), 2))
+# [Obj(run1=Obj(res=1, text='q1'), run2=Obj(res=2, text='q1')),
+#  Obj(run1=Obj(res=1, text='q2'), run2=Obj(res=2, text='q2'))]
 ```
 
 ## Broadcasting DataSlices of Entities/Lists/Dicts Replicates ItemIds
