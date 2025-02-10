@@ -19,9 +19,11 @@
 #include <cstdint>
 #include <string>
 
+#include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "arolla/util/repr.h"
+#include "koladata/internal/data_item.h"
 
 namespace koladata {
 
@@ -54,6 +56,20 @@ struct ReprOption {
 // Returns the string for python __str__.
 absl::StatusOr<std::string> DataSliceToStr(
     const DataSlice& ds, const ReprOption& option = ReprOption{});
+
+// Returns a string representation of the provided `data_item`. `schema` is
+// allowed to be empty, and `db` is allowed to be nullptr. If this is the case,
+// a best effort representation is created.
+//
+// Prefer `DataSliceToStr` when possible. `DataItemToStr` is mainly intended for
+// the case when the schema is unknown.
+//
+// Note that it's the responsibility of the caller to ensure that the `schema`
+// aligns with the provided `data_item`.
+absl::StatusOr<std::string> DataItemToStr(
+    const internal::DataItem& data_item, const internal::DataItem& schema,
+    absl::Nullable<const DataBagPtr>& db,
+    const ReprOption& option = ReprOption{});
 
 // Returns the string for python __repr__ and arolla::Repr.
 std::string DataSliceRepr(const DataSlice& ds,

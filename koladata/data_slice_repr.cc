@@ -21,9 +21,11 @@
 #include <numeric>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
@@ -260,18 +262,19 @@ std::string PrettyFormatStr(const std::vector<std::string>& parts,
 
 // Returns the string representation for the DataSlice. It requires the
 // DataSlice contains only DataItem.
-absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
+absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
+                                          const DataItem& schema,
+                                          absl::Nullable<const DataBagPtr>& db,
                                           const ReprOption& option,
                                           WrappingBehavior& wrapping);
-
-// A helper function to convert low-level DataItem to string.
-absl::StatusOr<std::string> DataItemToStr(const DataItem& item,
-                                          const DataItem& schema,
-                                          const DataBagPtr& bag,
+// Helper function for calling above function. Requires `item` to hold a
+// DataItem.
+absl::StatusOr<std::string> DataItemToStr(const DataSlice& item,
                                           const ReprOption& option,
                                           WrappingBehavior& wrapping) {
-  ASSIGN_OR_RETURN(DataSlice item_slice, DataSlice::Create(item, schema, bag));
-  return DataItemToStr(item_slice, option, wrapping);
+  DCHECK(item.is_item());
+  return DataItemToStr(item.item(), item.GetSchemaImpl(), item.GetBag(),
+                       option, wrapping);
 }
 
 std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
@@ -449,16 +452,34 @@ absl::StatusOr<std::string> DictSchemaStr(const DataSlice& schema,
 }
 
 // Returns the string representation of list item.
-absl::StatusOr<std::string> ListToStr(const DataSlice& ds,
+absl::StatusOr<std::string> ListToStr(const DataItem& item,
+                                      const DataItem& schema,
+                                      const DataBagPtr& db,
                                       const ReprOption& option,
                                       WrappingBehavior& wrapping) {
-  ASSIGN_OR_RETURN(const DataSlice list, ds.ExplodeList(0, std::nullopt));
+  DCHECK(db != nullptr);
+  auto get_list_and_schema =
+      [&]() -> absl::StatusOr<std::pair<internal::DataSliceImpl, DataItem>> {
+    if (schema.has_value()) {
+      ASSIGN_OR_RETURN(auto ds, DataSlice::Create(item, schema, db));
+      ASSIGN_OR_RETURN(auto items, ds.ExplodeList(0, std::nullopt));
+      auto item_schema = items.GetSchemaImpl();
+      return {{std::move(items).slice(), std::move(item_schema)}};
+    } else {
+      FlattenFallbackFinder fb_finder(*db);
+      ASSIGN_OR_RETURN(
+          auto list,
+          db->GetImpl().ExplodeList(
+              item, internal::DataBagImpl::ListRange(0, std::nullopt),
+              fb_finder.GetFlattenFallbacks()));
+      return {{std::move(list), internal::DataItem()}};
+    }
+  };
 
-  auto stringfy_list_items =
-      [&option, &list, &wrapping](const internal::DataSliceImpl& list_impl)
-      -> absl::StatusOr<std::string> {
+  auto stringfy_list_items = [&]() -> absl::StatusOr<std::string> {
     size_t initial_html_char_count = wrapping.html_char_count;
 
+    ASSIGN_OR_RETURN((auto [list_impl, item_schema]), get_list_and_schema());
     std::vector<std::string> elements;
     elements.reserve(list_impl.size());
     size_t item_count = 0;
@@ -468,12 +489,8 @@ absl::StatusOr<std::string> ListToStr(const DataSlice& ds,
         elements.emplace_back(kEllipsis);
         break;
       }
-      auto item_schema = list.GetSchema();
-      ASSIGN_OR_RETURN(
-          DataSlice item_slice,
-          DataSlice::Create(item, item_schema.item(), list.GetBag()));
       ASSIGN_OR_RETURN(std::string item_str,
-                       DataItemToStr(item_slice, option, wrapping));
+                       DataItemToStr(item, item_schema, db, option, wrapping));
       elements.emplace_back(
           wrapping.MaybeAnnotateListIndex(std::move(item_str), i));
       ++item_count;
@@ -482,38 +499,61 @@ absl::StatusOr<std::string> ListToStr(const DataSlice& ds,
         elements, {.prefix = "[", .suffix = "]"},
         wrapping.html_char_count - initial_html_char_count);
   };
-  ASSIGN_OR_RETURN(const std::string str, stringfy_list_items(list.slice()));
+  ASSIGN_OR_RETURN(const std::string str, stringfy_list_items());
   return absl::StrCat("List", str);
 }
 
 // Returns the string representation of dict item.
-absl::StatusOr<std::string> DictToStr(const DataSlice& ds,
+absl::StatusOr<std::string> DictToStr(const DataItem& item,
+                                      const DataItem& schema,
+                                      const DataBagPtr& db,
                                       const ReprOption& option,
                                       WrappingBehavior& wrapping) {
-  ASSIGN_OR_RETURN(const DataSlice keys, ds.GetDictKeys());
-  const internal::DataSliceImpl& key_slice = keys.slice();
+  DCHECK(db != nullptr);
+  auto get_keys_values_and_schemas =
+      [&]() -> absl::StatusOr<
+                std::tuple<internal::DataSliceImpl, internal::DataSliceImpl,
+                           DataItem, DataItem>> {
+    if (schema.has_value()) {
+      ASSIGN_OR_RETURN(auto ds, DataSlice::Create(item, schema, db));
+      ASSIGN_OR_RETURN(auto keys, ds.GetDictKeys());
+      ASSIGN_OR_RETURN(auto values, ds.GetDictValues());
+      auto key_schema = keys.GetSchemaImpl();
+      auto value_schema = values.GetSchemaImpl();
+      return {{std::move(keys).slice(), std::move(values).slice(),
+               std::move(key_schema), std::move(value_schema)}};
+    } else {
+      const auto& db_impl = db->GetImpl();
+      FlattenFallbackFinder fb_finder(*db);
+      auto fallbacks = fb_finder.GetFlattenFallbacks();
+      ASSIGN_OR_RETURN((auto [keys, _]), db_impl.GetDictKeys(item, fallbacks));
+      ASSIGN_OR_RETURN((auto [values, _unused]),
+                       db_impl.GetDictValues(item, fallbacks));
+      return {{std::move(keys), std::move(values), internal::DataItem(),
+               internal::DataItem()}};
+    }
+  };
+  ASSIGN_OR_RETURN((auto [keys_impl, values_impl, key_schema, value_schema]),
+                   get_keys_values_and_schemas());
   std::vector<std::string> elements;
-  elements.reserve(key_slice.size());
+  elements.reserve(keys_impl.size());
   size_t initial_html_char_count = wrapping.html_char_count;
   size_t item_count = 0;
 
   ReprOption key_option = option;
   key_option.depth = 0;
 
-  for (size_t i = 0; i < key_slice.size(); ++i) {
-    const DataItem& item = key_slice[i];
+  for (size_t i = 0; i < keys_impl.size(); ++i) {
     if (item_count >= option.item_limit) {
       elements.emplace_back(kEllipsis);
       break;
     }
-    ASSIGN_OR_RETURN(
-        DataSlice key,
-        DataSlice::Create(item, keys.GetSchemaImpl(), ds.GetBag()));
-    ASSIGN_OR_RETURN(DataSlice value, ds.GetFromDict(key));
+    const DataItem& key = keys_impl[i];
+    const DataItem& value = values_impl[i];
     ASSIGN_OR_RETURN(std::string key_str,
-                     DataItemToStr(key, key_option, wrapping));
+                     DataItemToStr(key, key_schema, db, key_option, wrapping));
     ASSIGN_OR_RETURN(std::string value_str,
-                     DataItemToStr(value, option, wrapping));
+                     DataItemToStr(value, value_schema, db, option, wrapping));
 
     elements.emplace_back(absl::StrCat(
         wrapping.MaybeAnnotateDictKeyIndex(std::move(key_str), i),
@@ -530,9 +570,15 @@ absl::StatusOr<std::string> DictToStr(const DataSlice& ds,
 
 // Returns the string representation of schema items or objects.
 absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
-    const DataSlice& ds,
+    const DataItem& item,
+    const DataItem& schema,
+    const DataBagPtr& db,
     const ReprOption& option,
     WrappingBehavior& wrapping) {
+  if (!schema.has_value()) {
+    return std::vector<std::string>();
+  }
+  ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db));
   ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names, ds.GetAttrNames());
   std::vector<std::string> parts;
   parts.reserve(attr_names.size());
@@ -545,7 +591,8 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
     }
     ASSIGN_OR_RETURN(DataSlice value, ds.GetAttr(attr_name));
     ASSIGN_OR_RETURN(std::string value_str,
-                     DataItemToStr(value, option, wrapping));
+                     DataItemToStr(value.item(), value.GetSchemaImpl(), db,
+                                   option, wrapping));
     parts.emplace_back(wrapping.FormatSchemaAttrAndValue(
         attr_name, value_str, value.item().is_list()));
     ++item_count;
@@ -553,7 +600,6 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
 
   return parts;
 }
-
 
 // Returns the schema name from __schema_name__ attribute. The schema must hold
 // an ObjectId with schema flag and bag must not be null.
@@ -574,7 +620,9 @@ std::string GetSchemaNameOrEmpty(const DataBagPtr& bag,
   return std::string(schema_name.value<arolla::Text>().view());
 }
 
-absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
+absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
+                                          const DataItem& schema,
+                                          absl::Nullable<const DataBagPtr>& db,
                                           const ReprOption& option,
                                           WrappingBehavior& wrapping) {
   // Helper that applies the wrapping to DataItemRepr to be used when
@@ -586,8 +634,6 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
               .unbounded_type_max_len = option.unbounded_type_max_len})));
   };
 
-  const DataItem& schema = ds.GetSchemaImpl();
-  const DataItem& data_item = ds.item();
   if (!data_item.has_value()) {
     return DataItemRepr(data_item, {.show_missing = (schema == schema::kMask)});
   }
@@ -601,13 +647,14 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
   --next_option.depth;
 
   // When DataSlice holds a schema DataItem.
-  if (schema.is_schema_schema()) {
+  if (schema == schema::kSchema ||
+      (data_item.is_schema() && !schema.has_value())) {
     if (data_item.holds_value<schema::DType>()) {
       return absl::StrCat(data_item.value<schema::DType>());
     }
     DCHECK(data_item.holds_value<ObjectId>());
     const ObjectId& obj = data_item.value<ObjectId>();
-    if (ds.GetBag() == nullptr) {
+    if (db == nullptr) {
       return ObjectIdStr(obj);
     }
     if (obj.IsNoFollowSchema()) {
@@ -617,6 +664,9 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
       const ObjectId original = internal::GetOriginalFromNoFollow(obj);
       return absl::StrCat("NOFOLLOW(", ObjectIdStr(original), ")");
     }
+    ASSIGN_OR_RETURN(
+        auto ds,
+        DataSlice::Create(data_item, internal::DataItem(schema::kSchema), db));
     if (ds.IsListSchema()) {
       return ListSchemaStr(ds, next_option, wrapping);
     }
@@ -624,7 +674,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
       return DictSchemaStr(ds, next_option, wrapping);
     }
     std::string prefix = "";
-    std::string schema_name = GetSchemaNameOrEmpty(ds.GetBag(), data_item);
+    std::string schema_name = GetSchemaNameOrEmpty(db, data_item);
     if (!schema_name.empty()) {
       absl::StrAppend(&prefix, schema_name, "(");
     } else if (obj.IsExplicitSchema()) {
@@ -633,8 +683,10 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
       absl::StrAppend(&prefix, "IMPLICIT_SCHEMA(");
     }
     size_t initial_html_char_count = wrapping.html_char_count;
-    ASSIGN_OR_RETURN(std::vector<std::string> schema_parts,
-                     AttrsToStrParts(ds, next_option, wrapping));
+    ASSIGN_OR_RETURN(
+        std::vector<std::string> schema_parts,
+        AttrsToStrParts(data_item, internal::DataItem(schema::kSchema), db,
+                        next_option, wrapping));
     return PrettyFormatStr(
       schema_parts, {.prefix = prefix, .suffix = ")"},
       wrapping.html_char_count - initial_html_char_count);
@@ -651,7 +703,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
   if (data_item.holds_value<ObjectId>()) {
     // STRING items inside Lists and Dicts are quoted.
     next_option.strip_quotes = false;
-    if (ds.GetBag() == nullptr) {
+    if (db == nullptr) {
       return repr_with_wrapping(data_item);
     }
 
@@ -662,16 +714,17 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
                           ObjectIdStr(obj, /*show_flag_prefix=*/true), ")");
     }
     if (obj.IsList()) {
-      return ListToStr(ds, next_option, wrapping);
+      return ListToStr(data_item, schema, db, next_option, wrapping);
     }
     if (obj.IsDict()) {
-      return DictToStr(ds, next_option, wrapping);
+      return DictToStr(data_item, schema, db, next_option, wrapping);
     }
 
     absl::string_view prefix = (schema == schema::kObject) ? "Obj(" : "Entity(";
     size_t initial_html_char_count = wrapping.html_char_count;
-    ASSIGN_OR_RETURN(std::vector<std::string> attr_parts,
-                     AttrsToStrParts(ds, next_option, wrapping));
+    ASSIGN_OR_RETURN(
+        std::vector<std::string> attr_parts,
+        AttrsToStrParts(data_item, schema, db, next_option, wrapping));
     // Append ItemId if there is no attribute
     if (attr_parts.empty()) {
       return absl::StrCat(prefix, "):", ObjectIdStr(obj));
@@ -689,6 +742,15 @@ absl::StatusOr<std::string> DataItemToStr(const DataSlice& ds,
 }
 
 }  // namespace
+
+absl::StatusOr<std::string> DataItemToStr(const internal::DataItem& data_item,
+                                          const internal::DataItem& schema,
+                                          absl::Nullable<const DataBagPtr>& db,
+                                          const ReprOption& option) {
+  DCHECK_GE(option.depth, 0);
+  WrappingBehavior wrapping{.format_html = option.format_html};
+  return DataItemToStr(data_item, schema, db, option, wrapping);
+}
 
 absl::StatusOr<std::string> DataSliceToStr(const DataSlice& ds,
                                            const ReprOption& option) {

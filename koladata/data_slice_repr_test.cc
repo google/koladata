@@ -64,7 +64,7 @@ absl::StatusOr<DenseArrayEdge> EdgeFromSplitPoints(
       CreateDenseArray<int64_t>(split_points));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_Primitives) {
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_Primitives) {
   DataSlice item = test::DataItem(1);
   EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("1"));
 
@@ -76,6 +76,18 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_Primitives) {
 
   DataSlice item4 = test::DataItem(arolla::Text("foo"));
   EXPECT_THAT(DataSliceToStr(item4), IsOkAndHolds("'foo'"));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(item4.item(), item4.GetSchemaImpl(), item4.GetBag()),
+      IsOkAndHolds("'foo'"));
+  EXPECT_THAT(DataItemToStr(item4.item(), /*schema=*/internal::DataItem(),
+                            /*db=*/nullptr),
+              IsOkAndHolds("'foo'"));
+  // With ReprOptions.
+  EXPECT_THAT(DataItemToStr(item4.item(), item4.GetSchemaImpl(), item4.GetBag(),
+                            {.strip_quotes = true}),
+              IsOkAndHolds("foo"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
@@ -90,6 +102,21 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
   ASSERT_OK(data_slice.SetInDict(keys, values));
 
   EXPECT_THAT(DataSliceToStr(data_slice),
+              IsOkAndHolds(MatchesRegex(
+                  R"regexp(Dict\{('x'=4, 'a'=1|'a'=1, 'x'=4)\})regexp")));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            data_slice.GetBag()),
+              IsOkAndHolds(MatchesRegex(
+                  R"regexp(Dict\{('x'=4, 'a'=1|'a'=1, 'x'=4)\})regexp")));
+  EXPECT_THAT(
+      DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                    /*db=*/nullptr),
+      IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(
+      DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                    data_slice.GetBag()),
               IsOkAndHolds(MatchesRegex(
                   R"regexp(Dict\{('x'=4, 'a'=1|'a'=1, 'x'=4)\})regexp")));
 }
@@ -107,9 +134,25 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict_Text) {
       DataSliceToStr(data_slice),
       IsOkAndHolds(MatchesRegex(
           R"regexp(Dict\{('x'='4', 'a'='a'|'a'='a', 'x'='4')\})regexp")));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                    data_slice.GetBag()),
+      IsOkAndHolds(MatchesRegex(
+          R"regexp(Dict\{('x'='4', 'a'='a'|'a'='a', 'x'='4')\})regexp")));
+  EXPECT_THAT(
+      DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                    /*db=*/nullptr),
+      IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(
+      DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                    data_slice.GetBag()),
+      IsOkAndHolds(MatchesRegex(
+          R"regexp(Dict\{('x'='4', 'a'='a'|'a'='a', 'x'='4')\})regexp")));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_NestedDict) {
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedDict) {
   DataBagPtr bag = DataBag::Empty();
   ObjectId dict_id = internal::AllocateSingleDict();
 
@@ -124,6 +167,17 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_NestedDict) {
   ASSERT_OK(second_dict.SetInDict(second_key, dict));
 
   EXPECT_THAT(DataSliceToStr(second_dict),
+              IsOkAndHolds("Dict{'x'=Dict{'a'=1}}"));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(second_dict.item(), second_dict.GetSchemaImpl(),
+                            second_dict.GetBag()),
+              IsOkAndHolds("Dict{'x'=Dict{'a'=1}}"));
+  EXPECT_THAT(DataItemToStr(second_dict.item(), second_dict.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(second_dict.item(), second_dict.GetSchemaImpl(),
+                            second_dict.GetBag()),
               IsOkAndHolds("Dict{'x'=Dict{'a'=1}}"));
 }
 
@@ -146,6 +200,21 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictMultiline) {
           absl::StrFormat(
               "Dict\\{(\n  '%s'=1,\n  '%s'=1|\n  '%s'=1,\n  '%s'=1),\n\\}",
               large_key0, large_key1, large_key1, large_key0))));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            data_slice.GetBag()),
+              IsOkAndHolds(MatchesRegex(absl::StrFormat(
+                  "Dict\\{(\n  '%s'=1,\n  '%s'=1|\n  '%s'=1,\n  '%s'=1),\n\\}",
+                  large_key0, large_key1, large_key1, large_key0))));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                            data_slice.GetBag()),
+              IsOkAndHolds(MatchesRegex(absl::StrFormat(
+                  "Dict\\{(\n  '%s'=1,\n  '%s'=1|\n  '%s'=1,\n  '%s'=1),\n\\}",
+                  large_key0, large_key1, large_key1, large_key0))));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_List) {
@@ -160,6 +229,17 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List) {
       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
                        /*schema=*/std::nullopt, test::Schema(schema::kAny)));
   EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds("List[1, 2, 3]"));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            data_slice.GetBag()),
+              IsOkAndHolds("List[1, 2, 3]"));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                            data_slice.GetBag()),
+              IsOkAndHolds("List[1, 2, 3]"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_List_Text) {
@@ -173,9 +253,20 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List_Text) {
       CreateNestedList(bag, test::DataSlice<arolla::Text>({"a", "b", "c"}),
                        /*schema=*/std::nullopt, test::Schema(schema::kAny)));
   EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds("List['a', 'b', 'c']"));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            data_slice.GetBag()),
+              IsOkAndHolds("List['a', 'b', 'c']"));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                            data_slice.GetBag()),
+              IsOkAndHolds("List['a', 'b', 'c']"));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_NestedList) {
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedList) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
@@ -194,6 +285,17 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_NestedList) {
       CreateNestedList(bag, std::move(nested_list),
                        /*schema=*/std::nullopt, test::Schema(schema::kAny)));
   EXPECT_THAT(DataSliceToStr(data_slice),
+              IsOkAndHolds("List[List[1], List[2, 3]]"));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            data_slice.GetBag()),
+              IsOkAndHolds("List[List[1], List[2, 3]]"));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                            data_slice.GetBag()),
               IsOkAndHolds("List[List[1], List[2, 3]]"));
 }
 
@@ -225,6 +327,17 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictInList) {
                        test::Schema(schema::kAny)));
   EXPECT_THAT(DataSliceToStr(data_slice),
               IsOkAndHolds("List[Dict{'a'=1}, Dict{'a'=1}, Dict{'a'=1}]"));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            data_slice.GetBag()),
+              IsOkAndHolds("List[Dict{'a'=1}, Dict{'a'=1}, Dict{'a'=1}]"));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                            data_slice.GetBag()),
+              IsOkAndHolds("List[Dict{'a'=1}, Dict{'a'=1}, Dict{'a'=1}]"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_ObjectsInList) {
@@ -241,6 +354,19 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ObjectsInList) {
   ASSERT_OK_AND_ASSIGN(DataSlice data_slice, CreateNestedList(bag, obj));
   EXPECT_THAT(DataSliceToStr(data_slice),
               IsOkAndHolds("List[Obj(a=1), Obj(a=2)]"));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            data_slice.GetBag()),
+              IsOkAndHolds("List[Obj(a=1), Obj(a=2)]"));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(
+      DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                    data_slice.GetBag()),
+      IsOkAndHolds(MatchesRegex(
+          R"regexp(List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\])regexp")));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_EntitiesInList) {
@@ -257,6 +383,18 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_EntitiesInList) {
   ASSERT_OK_AND_ASSIGN(DataSlice data_slice, CreateNestedList(bag, obj));
   EXPECT_THAT(DataSliceToStr(data_slice),
               IsOkAndHolds("List[Entity(a=1), Entity(a=2)]"));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            data_slice.GetBag()),
+              IsOkAndHolds("List[Entity(a=1), Entity(a=2)]"));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                            data_slice.GetBag()),
+      IsOkAndHolds(MatchesRegex(
+          R"regexp(List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\])regexp")));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Object) {
@@ -274,6 +412,17 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Object) {
   ASSERT_OK_AND_ASSIGN(DataSlice obj, ObjectCreator::FromAttrs(
                                           bag, {"a", "b"}, {value_1, value_2}));
   EXPECT_THAT(DataSliceToStr(obj), IsOkAndHolds("Obj(a=1, b='b')"));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(obj.item(), obj.GetSchemaImpl(), obj.GetBag()),
+              IsOkAndHolds("Obj(a=1, b='b')"));
+  EXPECT_THAT(DataItemToStr(obj.item(), obj.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(
+      DataItemToStr(obj.item(), /*schema=*/internal::DataItem(), obj.GetBag()),
+      IsOkAndHolds(
+          MatchesRegex(R"regexp(Entity\(\):\$[0-9a-zA-Z]{22})regexp")));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Entity) {
@@ -292,9 +441,21 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Entity) {
       DataSlice entity,
       EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
   EXPECT_THAT(DataSliceToStr(entity), IsOkAndHolds("Entity(a=1, b='b')"));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(entity.item(), entity.GetSchemaImpl(), entity.GetBag()),
+      IsOkAndHolds("Entity(a=1, b='b')"));
+  EXPECT_THAT(DataItemToStr(entity.item(), entity.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(entity.item(), /*schema=*/internal::DataItem(),
+                            entity.GetBag()),
+      IsOkAndHolds(
+          MatchesRegex(R"regexp(Entity\(\):\$[0-9a-zA-Z]{22})regexp")));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_ListSchema) {
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_ListSchema) {
   DataBagPtr bag = DataBag::Empty();
 
   DataSlice list_item = test::DataItem(1);
@@ -309,11 +470,22 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ListSchema) {
       DataSlice list_of_list,
       CreateListShaped(bag, DataSlice::JaggedShape::Empty(), list));
 
-  EXPECT_THAT(DataSliceToStr(list_of_list.GetSchema()),
+  const auto& schema = list_of_list.GetSchema();
+  EXPECT_THAT(DataSliceToStr(schema), IsOkAndHolds("LIST[LIST[INT32]]"));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(schema.item(), schema.GetSchemaImpl(), schema.GetBag()),
+      IsOkAndHolds("LIST[LIST[INT32]]"));
+  EXPECT_THAT(DataItemToStr(schema.item(), schema.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\#[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
+                            schema.GetBag()),
               IsOkAndHolds("LIST[LIST[INT32]]"));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_DictSchema) {
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictSchema) {
   DataBagPtr bag = DataBag::Empty();
 
   DataSlice key_item = test::DataItem(1);
@@ -337,11 +509,23 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_DictSchema) {
                        CreateDictShaped(bag, DataSlice::JaggedShape::Empty(),
                                         dict, second_dict));
 
-  EXPECT_THAT(DataSliceToStr(nested_dict.GetSchema()),
+  const auto& schema = nested_dict.GetSchema();
+  EXPECT_THAT(DataSliceToStr(schema),
+              IsOkAndHolds("DICT{DICT{INT32, STRING}, DICT{STRING, OBJECT}}"));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(schema.item(), schema.GetSchemaImpl(), schema.GetBag()),
+      IsOkAndHolds("DICT{DICT{INT32, STRING}, DICT{STRING, OBJECT}}"));
+  EXPECT_THAT(DataItemToStr(schema.item(), schema.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\#[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
+                            schema.GetBag()),
               IsOkAndHolds("DICT{DICT{INT32, STRING}, DICT{STRING, OBJECT}}"));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_ExplicitSchema) {
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_ExplicitSchema) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_entity,
@@ -355,11 +539,24 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ExplicitSchema) {
   ASSERT_OK_AND_ASSIGN(
       DataSlice entity,
       EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
-  EXPECT_THAT(DataSliceToStr(entity.GetSchema()),
+  const auto& schema = entity.GetSchema();
+  EXPECT_THAT(DataSliceToStr(schema),
+              IsOkAndHolds("SCHEMA(a=INT32, b=STRING)"));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(schema.item(), schema.GetSchemaImpl(), schema.GetBag()),
+      IsOkAndHolds("SCHEMA(a=INT32, b=STRING)"));
+  EXPECT_THAT(DataItemToStr(schema.item(), schema.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
+                            schema.GetBag()),
               IsOkAndHolds("SCHEMA(a=INT32, b=STRING)"));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_ExplicitSchema_Nested) {
+TEST(DataSliceReprTest,
+     TestDataItemStringRepresentation_ExplicitSchema_Nested) {
   DataBagPtr bag = DataBag::Empty();
 
   DataSlice key_item = test::DataItem(1);
@@ -370,11 +567,23 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ExplicitSchema_Nested) {
 
   ASSERT_OK_AND_ASSIGN(DataSlice entity,
                        EntityCreator::FromAttrs(bag, {"a"}, {dict}));
-  EXPECT_THAT(DataSliceToStr(entity.GetSchema()),
+  const auto& schema = entity.GetSchema();
+  EXPECT_THAT(DataSliceToStr(schema),
+              IsOkAndHolds("SCHEMA(a=DICT{INT32, STRING})"));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(schema.item(), schema.GetSchemaImpl(), schema.GetBag()),
+      IsOkAndHolds("SCHEMA(a=DICT{INT32, STRING})"));
+  EXPECT_THAT(DataItemToStr(schema.item(), schema.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
+                            schema.GetBag()),
               IsOkAndHolds("SCHEMA(a=DICT{INT32, STRING})"));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_ImplicitSchema) {
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_ImplicitSchema) {
   DataBagPtr bag = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_obj,
@@ -392,18 +601,40 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_ImplicitSchema) {
   ASSERT_OK_AND_ASSIGN(schema, obj.GetAttr(schema::kSchemaAttr));
   EXPECT_THAT(DataSliceToStr(schema),
               IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=STRING)"));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(schema.item(), schema.GetSchemaImpl(), schema.GetBag()),
+      IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=STRING)"));
+  EXPECT_THAT(DataItemToStr(schema.item(), schema.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\#[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
+                            schema.GetBag()),
+              IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=STRING)"));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_SchemaName) {
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaName) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice schema,
                        CreateNamedSchema(bag, "foo", {"a", "b"},
                                          {test::DataItem(schema::kInt64),
                                           test::DataItem(schema::kString)}));
   EXPECT_THAT(DataSliceToStr(schema), IsOkAndHolds("foo(a=INT64, b=STRING)"));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(schema.item(), schema.GetSchemaImpl(), schema.GetBag()),
+      IsOkAndHolds("foo(a=INT64, b=STRING)"));
+  EXPECT_THAT(DataItemToStr(schema.item(), schema.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\#[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
+                            schema.GetBag()),
+              IsOkAndHolds("foo(a=INT64, b=STRING)"));
 }
 
-TEST(DataSliceReprTest, TestItemStringRepresentation_NoBag) {
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_NoBag) {
   DataBagPtr bag = DataBag::Empty();
 
   DataSlice value_1 = test::DataItem(1);
@@ -419,9 +650,18 @@ TEST(DataSliceReprTest, TestItemStringRepresentation_NoBag) {
               IsOkAndHolds(MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex")));
   EXPECT_THAT(DataSliceToStr(entity.GetSchema()),
               IsOkAndHolds(MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex")));
+
+  // Low level api.
+  EXPECT_THAT(
+      DataItemToStr(entity.item(), entity.GetSchemaImpl(), entity.GetBag()),
+      IsOkAndHolds(MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex")));
+  EXPECT_THAT(
+      DataItemToStr(entity.GetSchemaImpl(), entity.GetSchema().GetSchemaImpl(),
+                    entity.GetBag()),
+      IsOkAndHolds(MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex")));
 }
 
-TEST(DataSliceReprTest, TestItemStringReprWithFallbackDB) {
+TEST(DataSliceReprTest, TestDataItemStringReprWithFallbackDB) {
   DataSlice ds_a = test::DataItem(1);
 
   DataBagPtr db = DataBag::Empty();
@@ -441,6 +681,10 @@ TEST(DataSliceReprTest, TestItemStringReprWithFallbackDB) {
   EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("Entity(a=1, b=2)"));
   EXPECT_THAT(DataSliceToStr(ds.GetSchema()),
               IsOkAndHolds(("SCHEMA(a=ANY, b=ANY)")));
+
+  // Low level api.
+  EXPECT_THAT(DataItemToStr(ds.item(), ds.GetSchemaImpl(), ds.GetBag()),
+              IsOkAndHolds("Entity(a=1, b=2)"));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_Primitives) {
@@ -1082,6 +1326,14 @@ TEST(DataSliceReprTest, FormatHtml_AttrSpan) {
 
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(obj, {.format_html = true}));
+  EXPECT_THAT(result, HasSubstr("<span class=\"attr\">a</span>=1"));
+  EXPECT_THAT(result, HasSubstr(
+      "<span class=\"attr\">b</span>=List[]"));
+
+  // Sanity check that the low level api works.
+  ASSERT_OK_AND_ASSIGN(
+      result, DataItemToStr(obj.item(), obj.GetSchemaImpl(), obj.GetBag(),
+                            {.format_html = true}));
   EXPECT_THAT(result, HasSubstr("<span class=\"attr\">a</span>=1"));
   EXPECT_THAT(result, HasSubstr(
       "<span class=\"attr\">b</span>=List[]"));

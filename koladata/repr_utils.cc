@@ -27,6 +27,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
@@ -43,6 +44,18 @@ using DataItemProto = ::koladata::s11n::KodaV1Proto::DataItemProto;
 using ::koladata::internal::DecodeDataItem;
 using ::koladata::internal::Error;
 using ::koladata::internal::GetErrorPayload;
+
+// Returns the attr at `attr_name` for the provided `item` and `db` pair.
+absl::StatusOr<internal::DataItem> GetAttr(const internal::DataItem& item,
+                                           const DataBagPtr& db,
+                                           absl::string_view attr_name) {
+  if (db == nullptr) {
+    return absl::InvalidArgumentError("missing DataBag");
+  }
+  FlattenFallbackFinder fb_finder(*db);
+  return db->GetImpl().GetAttr(item, attr_name,
+                               fb_finder.GetFlattenFallbacks());
+}
 
 absl::StatusOr<Error> SetNoCommonSchemaError(
     Error cause, absl::Nullable<const DataBagPtr>& db) {
@@ -238,32 +251,24 @@ absl::StatusOr<std::string> SetSchemaOrDictErrorMessage(
   ASSIGN_OR_RETURN(internal::DataItem object_item,
                    DecodeDataItem(conflict.object_id()));
   ASSIGN_OR_RETURN(internal::DataItem key_item, DecodeDataItem(conflict.key()));
-  internal::DataItem schema = internal::DataItem(
-      object_item.is_schema() ? schema::kSchema : schema::kAny);
-  ASSIGN_OR_RETURN(
-      DataSlice expected_value,
-      DataSlice::Create(DecodeDataItem(conflict.expected_value()),
-                        DataSlice::JaggedShape::Empty(), schema, db1));
-  ASSIGN_OR_RETURN(
-      DataSlice assigned_value,
-      DataSlice::Create(DecodeDataItem(conflict.assigned_value()),
-                        DataSlice::JaggedShape::Empty(), schema, db2));
-  ASSIGN_OR_RETURN(
-      DataSlice item,
-      DataSlice::Create(object_item, schema, db1));
-  ASSIGN_OR_RETURN(
-      DataSlice conflicting_item,
-      DataSlice::Create(object_item, std::move(schema), db2));
-
+  ASSIGN_OR_RETURN(auto expected_value,
+                   DecodeDataItem(conflict.expected_value()));
+  ASSIGN_OR_RETURN(auto assigned_value,
+                   DecodeDataItem(conflict.assigned_value()));
   std::string key_str =
       internal::DataItemRepr(key_item, {.strip_quotes = false});
-  ASSIGN_OR_RETURN(std::string item_str, DataSliceToStr(item));
-  ASSIGN_OR_RETURN(std::string conflicting_item_str,
-                   DataSliceToStr(conflicting_item));
-  ASSIGN_OR_RETURN(std::string expected_value_str,
-                   DataSliceToStr(expected_value));
-  ASSIGN_OR_RETURN(std::string assigned_value_str,
-                   DataSliceToStr(assigned_value));
+  ASSIGN_OR_RETURN(
+      std::string item_str,
+      DataItemToStr(object_item, /*schema=*/internal::DataItem(), db1));
+  ASSIGN_OR_RETURN(
+      std::string conflicting_item_str,
+      DataItemToStr(object_item, /*schema=*/internal::DataItem(), db2));
+  ASSIGN_OR_RETURN(
+      std::string expected_value_str,
+      DataItemToStr(expected_value, /*schema=*/internal::DataItem(), db1));
+  ASSIGN_OR_RETURN(
+      std::string assigned_value_str,
+      DataItemToStr(assigned_value, /*schema=*/internal::DataItem(), db2));
   return object_item.is_schema()
              ? absl::StrFormat(kDataBagMergeErrorSchemaConflict, item_str,
                                conflicting_item_str, key_str,
@@ -284,17 +289,17 @@ absl::StatusOr<std::string> SetEntityOrObjectErrorMessage(
     const DataBagPtr& db1, const DataBagPtr& db2) {
   ASSIGN_OR_RETURN(internal::DataItem object_item,
                    DecodeDataItem(conflict.object_id()));
+  ASSIGN_OR_RETURN(internal::DataItem a,
+                   GetAttr(object_item, db1, conflict.attr_name()));
+  ASSIGN_OR_RETURN(internal::DataItem b,
+                   GetAttr(object_item, db2, conflict.attr_name()));
   ASSIGN_OR_RETURN(
-      DataSlice item,
-      DataSlice::Create(object_item, internal::DataItem(schema::kAny), db1));
-  ASSIGN_OR_RETURN(
-      DataSlice conflicting_item,
-      DataSlice::Create(object_item, internal::DataItem(schema::kAny), db2));
-  ASSIGN_OR_RETURN(std::string item_str, DataSliceToStr(item));
-  ASSIGN_OR_RETURN(DataSlice a, item.GetAttr(conflict.attr_name()));
-  ASSIGN_OR_RETURN(DataSlice b, conflicting_item.GetAttr(conflict.attr_name()));
-  ASSIGN_OR_RETURN(std::string a_str, DataSliceToStr(a));
-  ASSIGN_OR_RETURN(std::string b_str, DataSliceToStr(b));
+      std::string item_str,
+      DataItemToStr(object_item, /*schema=*/internal::DataItem(), db1));
+  ASSIGN_OR_RETURN(std::string a_str,
+                   DataItemToStr(a, /*schema=*/internal::DataItem(), db1));
+  ASSIGN_OR_RETURN(std::string b_str,
+                   DataItemToStr(b, /*schema=*/internal::DataItem(), db2));
   return absl::StrFormat(kDataBagMergeErrorTripleConflict, item_str,
                          conflict.attr_name(), a_str, b_str);
 }
@@ -318,30 +323,23 @@ absl::StatusOr<std::string> SetListErrorMessage(
     const DataBagPtr& db1, const DataBagPtr& db2) {
   ASSIGN_OR_RETURN(internal::DataItem list_item,
                    DecodeDataItem(conflict.list_object_id()));
-  ASSIGN_OR_RETURN(DataSlice list,
-                   DataSlice::Create(list_item, DataSlice::JaggedShape::Empty(),
-                                     internal::DataItem(schema::kAny), db1));
-  ASSIGN_OR_RETURN(DataSlice conflicting_list,
-                   DataSlice::Create(list_item, DataSlice::JaggedShape::Empty(),
-                                     internal::DataItem(schema::kAny), db2));
-  ASSIGN_OR_RETURN(std::string list_str, DataSliceToStr(list));
-  ASSIGN_OR_RETURN(std::string conflicting_list_str,
-                   DataSliceToStr(conflicting_list));
+  ASSIGN_OR_RETURN(
+      std::string list_str,
+      DataItemToStr(list_item, /*schema=*/internal::DataItem(), db1));
+  ASSIGN_OR_RETURN(
+      std::string conflicting_list_str,
+      DataItemToStr(list_item, /*schema=*/internal::DataItem(), db2));
   if (conflict.has_list_item_conflict_index()) {
-    ASSIGN_OR_RETURN(
-        DataSlice first_conflicting_item,
-        DataSlice::Create(DecodeDataItem(conflict.first_conflicting_item()),
-                          DataSlice::JaggedShape::Empty(),
-                          internal::DataItem(schema::kAny), db1));
-    ASSIGN_OR_RETURN(
-        DataSlice second_conflicting_item,
-        DataSlice::Create(DecodeDataItem(conflict.second_conflicting_item()),
-                          DataSlice::JaggedShape::Empty(),
-                          internal::DataItem(schema::kAny), db2));
+    ASSIGN_OR_RETURN(auto first_conflicting_item,
+                     DecodeDataItem(conflict.first_conflicting_item()));
+    ASSIGN_OR_RETURN(auto second_conflicting_item,
+                     DecodeDataItem(conflict.second_conflicting_item()));
     ASSIGN_OR_RETURN(std::string first_conflicting_item_str,
-                     DataSliceToStr(first_conflicting_item));
+                     DataItemToStr(first_conflicting_item,
+                                   /*schema=*/internal::DataItem(), db1));
     ASSIGN_OR_RETURN(std::string second_conflicting_item_str,
-                     DataSliceToStr(second_conflicting_item));
+                     DataItemToStr(second_conflicting_item,
+                                   /*schema=*/internal::DataItem(), db2));
     return absl::StrFormat(
         kDataBagMergeErrorListItemConflict, list_str, conflicting_list_str,
         conflict.list_item_conflict_index(), first_conflicting_item_str,
