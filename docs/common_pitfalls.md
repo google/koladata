@@ -712,7 +712,7 @@ obj = obj.with_attrs(b='2')
 obj.get_obj_schema()  # IMPLICIT_SCHEMA(a=INT32, b=STRING)
 ```
 
-## `kd.obj(**kwargs_in_ds)` and `kd.obj(kd.new(**kwargs_in_ds))` Are Different
+## `kd.obj(**kwargs_in_ds)` and `kd.obj(kd.new(**kwargs_in_ds))` Are Different {#kd_obj_vs_kd_obj_kd_new}
 
 `kd.obj(**kwargs_in_ds)` is not equivalent to `kd.obj(kd.new(**kwargs_in_ds))`.
 `kd.new(**kwargs_in_ds)` creates entities with the same schema and
