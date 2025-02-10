@@ -28,6 +28,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/edge.h"
 
 namespace koladata::internal::debug {
@@ -68,12 +69,15 @@ void Triples::CollectAttr(const std::string& attr_name,
                           const DataBagContent::AttrContent& attr_content,
                           std::vector<AttrTriple>& attributes) {
   for (const DataBagContent::AttrAllocContent& ac : attr_content.allocs) {
+    const bool has_types_buffer = ac.values.types_buffer().size() > 0;
     for (size_t i = 0; i < ac.values.size(); ++i) {
-      DataItem v = ac.values[i];
-      if (v.has_value()) {
-        attributes.push_back(
-            {ac.alloc_id.ObjectByOffset(i), attr_name, std::move(v)});
+      if (has_types_buffer &&
+          ac.values.types_buffer().id_to_typeidx[i] == TypesBuffer::kUnset) {
+        continue;
       }
+      DataItem v = ac.values[i];
+      attributes.push_back(
+          {ac.alloc_id.ObjectByOffset(i), attr_name, std::move(v)});
     }
   }
   for (const DataBagContent::AttrItemContent& ic : attr_content.items) {

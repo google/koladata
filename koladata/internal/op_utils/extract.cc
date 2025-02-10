@@ -27,6 +27,7 @@
 
 #include "absl/base/nullability.h"
 #include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -259,6 +260,25 @@ class CopyingProcessor {
     return VisitImpl(slice);
   }
 
+  // Sets attribute to the new_data_bag_ that are not unset in the `attr_ds`.
+  // It is useful utility to copy attributes from one DataBag to another.
+  // Use GetAttrWithRemoved to get `attr_ds`.
+  absl::Status SetAttrToNewDatabagSkipUnset(DataSliceImpl ds,
+                                            const std::string_view attr_name,
+                                            const DataSliceImpl& attr_ds) {
+    if (attr_ds.types_buffer().size() != 0) {
+      auto set_mask =
+          attr_ds.types_buffer().ToInvertedBitmap(TypesBuffer::kUnset);
+      if (!arolla::bitmap::AreAllBitsSet(set_mask.begin(), ds.size())) {
+        const auto& objects_array = ds.values<ObjectId>();
+        ds = DataSliceImpl::CreateWithAllocIds(
+            ds.allocation_ids(),
+            ObjectIdArray{objects_array.values, std::move(set_mask)});
+      }
+    }
+    return new_databag_->SetAttr(ds, attr_name, attr_ds);
+  }
+
   absl::Status ProcessAttribute(const QueuedSlice& slice,
                                 const std::string_view attr_name,
                                 const DataItem& attr_schema) {
@@ -271,21 +291,12 @@ class CopyingProcessor {
     }
     ASSIGN_OR_RETURN(auto attr_ds, databag_.GetAttrWithRemoved(
                                        old_ds, attr_name, fallbacks_));
-    if (attr_ds.types_buffer().size() != 0) {
-      auto set_mask =
-          attr_ds.types_buffer().ToInvertedBitmap(TypesBuffer::kUnset);
-      if (!arolla::bitmap::AreAllBitsSet(set_mask.begin(), ds.size())) {
-        const auto& objects_array = ds.values<ObjectId>();
-        ds = DataSliceImpl::CreateWithAllocIds(
-            ds.allocation_ids(),
-            ObjectIdArray{objects_array.values, std::move(set_mask)});
-      }
-    }
     if (max_depth_ == -1 || slice.depth < max_depth_) {
-      RETURN_IF_ERROR(new_databag_->SetAttr(ds, attr_name, attr_ds));
+      RETURN_IF_ERROR(
+          SetAttrToNewDatabagSkipUnset(std::move(ds), attr_name, attr_ds));
     }
-    RETURN_IF_ERROR(
-        Visit({std::move(attr_ds), attr_schema, slice.schema_source}));
+    RETURN_IF_ERROR(Visit(
+        {std::move(attr_ds), attr_schema, slice.schema_source, slice.depth}));
     return absl::OkStatus();
   }
 
@@ -862,22 +873,28 @@ class CopyingProcessor {
     } else {
       old_ds = ds.slice;
     }
-    ASSIGN_OR_RETURN(auto old_schemas,
-                     databag_.GetAttr(old_ds, schema::kSchemaAttr, fallbacks_));
-    if (old_schemas.is_empty_and_unknown()) {
-      return absl::OkStatus();
-    }
-    if (old_schemas.dtype() != arolla::GetQType<ObjectId>()) {
+    ASSIGN_OR_RETURN(
+        auto old_schemas,
+        databag_.GetAttrWithRemoved(old_ds, schema::kSchemaAttr, fallbacks_));
+    bool has_schemas = !old_schemas.is_empty_and_unknown();
+    if (has_schemas && old_schemas.dtype() != arolla::GetQType<ObjectId>()) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "unsupported schema found during extract/clone among %v in "
           "__schema__ attribute of slice %v",
           old_schemas, old_ds));
     }
     if (!is_shallow_clone_) {
-      RETURN_IF_ERROR(
-          new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, old_schemas));
+      RETURN_IF_ERROR(SetAttrToNewDatabagSkipUnset(
+          ds.slice, schema::kSchemaAttr, old_schemas));
+      if (!has_schemas) {
+        return absl::OkStatus();
+      }
       return ProcessObjectsWithSchemas(ds.slice, old_schemas, old_schemas,
                                        ds.depth);
+    }
+    // TODO: what do we do with removed schemas in shallow clone?
+    if (!has_schemas) {
+      return absl::OkStatus();
     }
     // Create new implicit schemas and keep allocated explicit schemas unchanged
     arolla::DenseArrayBuilder<arolla::Unit> implicit_mask_bldr(ds.slice.size());

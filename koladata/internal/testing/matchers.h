@@ -141,7 +141,9 @@ class DataBagEqual {
  public:
   using is_gtest_matcher = void;
 
+  // NOLINTNEXTLINE(google-explicit-constructor)
   DataBagEqual(const DataBagImpl& db) : expected_db_(db) {}
+  // NOLINTNEXTLINE(google-explicit-constructor)
   DataBagEqual(const DataBagImplPtr& db) : expected_db_(*db) {}
 
   bool MatchAndExplain(const DataBagImplPtr& db, std::ostream* stream) const {

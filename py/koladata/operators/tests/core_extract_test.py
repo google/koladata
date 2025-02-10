@@ -87,15 +87,15 @@ class CoreExtractTest(parameterized.TestCase):
   )
   def test_eval_with_schema_partial(self, noise_positioned_in_front):
     db = data_bag.DataBag.empty()
-    a_slice = db.obj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
     b_list = db.implode(
         db.new(u=ds([[1, 2], [], [3]]), v=ds([[4, 5], [], [6]]))
     )
+    expected_bag = db.fork()
+    a_slice = db.obj(b=ds([1, None, 2]), c=ds(['foo', 'bar', 'baz']))
     o = db.new(
         a=a_slice,
         b=b_list,
     )
-    expected_bag = db.fork()
     o.a.set_attr('d', ds([1, 2, 3]))
     a_schema = (
         data_bag.DataBag.empty()
@@ -117,6 +117,17 @@ class CoreExtractTest(parameterized.TestCase):
     schema.b.get_attr('__items__').v = (
         o.b.get_schema().get_attr('__items__').v.no_bag()
     )
+    a_slice_exp = expected_bag.new(
+        b=ds([1, None, 2]),
+        c=ds(['foo', 'bar', 'baz']),
+        itemid=a_slice.get_itemid(),
+        schema=a_schema.no_bag())
+    o_exp = expected_bag.new(
+        a=a_slice_exp,
+        b=b_list,
+        itemid=o.get_itemid(),
+        schema=schema.no_bag())
+    del o_exp
     fb_noise = data_bag.DataBag.empty()
     noise = fb_noise.obj(a=[1, 2, 3])
     if noise_positioned_in_front:
@@ -127,15 +138,7 @@ class CoreExtractTest(parameterized.TestCase):
     result = expr_eval.eval(kde.extract(o_fb, schema))
 
     self.assertFalse(result.get_bag().is_mutable())
-    expected_bag = schema.enriched(expected_bag).get_bag().merge_fallbacks()
-    del (
-        o.a.with_bag(expected_bag).get_attr('__schema__').b,
-        o.a.with_bag(expected_bag).get_attr('__schema__').c,
-    )
     self.assertEqual(result.a.get_attr('__schema__').get_present_count(), 0)
-    o.a.with_bag(expected_bag).set_attr(
-        '__schema__', result.a.get_attr('__schema__').no_bag()
-    )
     testing.assert_equivalent(result.get_bag(), expected_bag)
 
   def test_eval_nofollow(self):

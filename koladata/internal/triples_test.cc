@@ -14,8 +14,11 @@
 //
 #include "koladata/internal/triples.h"
 
+#include <cstdint>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -114,64 +117,72 @@ TEST(TriplesTest, SimpleList) {
 }
 
 TEST(TriplesTest, Attributes) {
-  auto ds = DataSliceImpl::AllocateEmptyObjects(15);
-  auto ds_a1 = DataSliceImpl::AllocateEmptyObjects(15);
-  auto ds_a2 = DataSliceImpl::AllocateEmptyObjects(15);
-  auto ds_sliced = DataSliceImpl::Create(ds.values<ObjectId>().Slice(0, 14));
-  auto ds_a1_sliced =
-      DataSliceImpl::Create(ds_a1.values<ObjectId>().Slice(0, 14));
+  for (int64_t size : {2, 3, 16, 37, 128, 512, 1034}) {
+    SCOPED_TRACE(absl::StrCat("size: ", size));
+    auto ds = DataSliceImpl::AllocateEmptyObjects(size);
+    auto ds_a1 = DataSliceImpl::AllocateEmptyObjects(size);
+    auto ds_a2 = DataSliceImpl::AllocateEmptyObjects(size);
+    auto ds_sliced =
+        DataSliceImpl::Create(ds.values<ObjectId>().Slice(0, size - 1));
+    auto ds_a1_sliced =
+        DataSliceImpl::Create(ds_a1.values<ObjectId>().Slice(0, size - 1));
 
-  auto db1 = DataBagImpl::CreateEmptyDatabag();
-  auto db2 = DataBagImpl::CreateEmptyDatabag();
-  auto db3 = DataBagImpl::CreateEmptyDatabag();
-  auto db4 = DataBagImpl::CreateEmptyDatabag();
-  auto db5 = DataBagImpl::CreateEmptyDatabag();
+    auto db1 = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    auto db3 = DataBagImpl::CreateEmptyDatabag();
+    auto db4 = DataBagImpl::CreateEmptyDatabag();
+    auto db5 = DataBagImpl::CreateEmptyDatabag();
 
-  ASSERT_OK(db1->SetAttr(ds, "a", ds_a1));
-  ASSERT_OK(db2->SetAttr(ds, "a", ds_a1));                // equal to db1
-  ASSERT_OK(db3->SetAttr(ds, "a", ds_a2));                // different values
-  ASSERT_OK(db4->SetAttr(ds_sliced, "a", ds_a1_sliced));  // not all values
-  ASSERT_OK(db5->SetAttr(ds, "b", ds_a1));  // same values, different attr
+    ASSERT_OK(db1->SetAttr(ds, "a", ds_a1));
+    ASSERT_OK(db2->SetAttr(ds, "a", ds_a1));                // equal to db1
+    ASSERT_OK(db3->SetAttr(ds, "a", ds_a2));                // different values
+    ASSERT_OK(db4->SetAttr(ds_sliced, "a", ds_a1_sliced));  // not all values
+    ASSERT_OK(db5->SetAttr(ds, "b", ds_a1));  // same values, different attr
 
-  // Matcher (implemented as Triples comparison)
-  EXPECT_THAT(db1, DataBagEqual(db2));
-  EXPECT_THAT(db1, Not(DataBagEqual(db3)));
-  EXPECT_THAT(db1, Not(DataBagEqual(db4)));
-  EXPECT_THAT(db1, Not(DataBagEqual(db5)));
+    // Matcher (implemented as Triples comparison)
+    EXPECT_THAT(db1, DataBagEqual(db2));
+    EXPECT_THAT(db1, Not(DataBagEqual(db3)));
+    EXPECT_THAT(db1, Not(DataBagEqual(db4)));
+    EXPECT_THAT(db1, Not(DataBagEqual(db5)));
 
-  // Forks
+    // Forks
 
-  auto db6 = db1->PartiallyPersistentFork();
+    auto db6 = db1->PartiallyPersistentFork();
 
-  EXPECT_THAT(db1, DataBagEqual(db6));
+    EXPECT_THAT(db1, DataBagEqual(db6));
 
-  ASSERT_OK(db6->SetAttr(ds_sliced, "a", ds_a1_sliced));
+    ASSERT_OK(db6->SetAttr(ds_sliced, "a", ds_a1_sliced));
 
-  EXPECT_THAT(db1, DataBagEqual(db6));
+    EXPECT_THAT(db1, DataBagEqual(db6));
 
-  ASSERT_OK(db6->SetAttr(ds, "a", ds_a2));
+    ASSERT_OK(db6->SetAttr(ds, "a", ds_a2));
 
-  EXPECT_THAT(db1, Not(DataBagEqual(db6)));
-  EXPECT_THAT(db3, DataBagEqual(db6));
+    EXPECT_THAT(db1, Not(DataBagEqual(db6)));
+    EXPECT_THAT(db3, DataBagEqual(db6));
 
-  auto db7 = db4->PartiallyPersistentFork();
+    auto db7 = db4->PartiallyPersistentFork();
 
-  EXPECT_THAT(db1, Not(DataBagEqual(db7)));
+    EXPECT_THAT(db1, Not(DataBagEqual(db7)));
 
-  ASSERT_OK(db7->SetAttr(ds[14], "a", ds_a1[14]));
+    ASSERT_OK(db7->SetAttr(ds[size - 1], "a", ds_a1[size - 1]));
 
-  EXPECT_THAT(db1, DataBagEqual(db7));
+    EXPECT_THAT(db1, DataBagEqual(db7));
 
-  auto db8 = db5->PartiallyPersistentFork();
+    auto db8 = db5->PartiallyPersistentFork();
 
-  ASSERT_OK(db8->SetAttr(ds, "a", ds_a1));
+    ASSERT_OK(db8->SetAttr(ds, "a", ds_a1));
 
-  EXPECT_THAT(db1, Not(DataBagEqual(db8)));
+    EXPECT_THAT(db1, Not(DataBagEqual(db8)));
 
-  ASSERT_OK(
-      db8->SetAttr(ds, "b", DataSliceImpl::CreateEmptyAndUnknownType(15)));
+    ASSERT_OK(
+        db8->SetAttr(ds, "b", DataSliceImpl::CreateEmptyAndUnknownType(size)));
+    // Removed values are different from not set.
+    EXPECT_THAT(db1, Not(DataBagEqual(db8)));
+    ASSERT_OK(
+        db1->SetAttr(ds, "b", DataSliceImpl::CreateEmptyAndUnknownType(size)));
 
-  EXPECT_THAT(db1, DataBagEqual(db8));
+    EXPECT_THAT(db1, DataBagEqual(db8));
+  }
 }
 
 TEST(TriplesTest, DictAndListWithParent) {
