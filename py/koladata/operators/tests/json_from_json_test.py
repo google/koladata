@@ -634,6 +634,18 @@ class JsonFromJsonTest(parameterized.TestCase):
     py_result = fns.to_pytree(result, max_depth=-1)
     self.assertEqual(py_result, expected_py_result)
 
+  def test_eval_dataslice(self):
+    json_input = ds(['{"a": 1}', '{"a": 2}'])
+    result = expr_eval.eval(kde.json.from_json(json_input))
+    testing.assert_equal(result.a.no_bag(), ds([1, 2], schema_constants.OBJECT))
+
+    result = expr_eval.eval(
+        kde.json.from_json(
+            json_input, schema=fns.schema.new_schema(a=schema_constants.INT32)
+        )
+    )
+    testing.assert_equal(result.a.no_bag(), ds([1, 2]))
+
   def test_values_attr_causes_schema_embed(self):
     # If values_attr is present on a schema, then it should cause all
     # non-primitive values to have embedded schemas, even if they have

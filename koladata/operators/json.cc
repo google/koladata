@@ -817,7 +817,8 @@ absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
             if (status.ok()) {
               auto result_item = item_from_json(value);
               if (result_item.ok()) {
-                result_builder.InsertIfNotSet(i, result_item.value());
+                result_builder.InsertGuaranteedNotSetAndUpdateAllocIds(
+                    i, result_item.value());
               } else {
                 status = std::move(result_item).status();
               }
