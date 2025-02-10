@@ -236,7 +236,7 @@ l2 = kd.list([[1, 2], [3], [4, 5]])
 
 # Create multiple lists by imploding
 # the last dimension of a DataSlice
-l3 = kd.list(kd.slice([[1, 2], [3], [4, 5]]))
+l3 = kd.implode(kd.slice([[1, 2], [3], [4, 5]]))
 
 # l2 and l3 are different
 kd.is_item(l2)
@@ -273,11 +273,31 @@ kd.explode(l2, ndim=-1)
 l6 = kd.list([1, 2, None, 4])
 l6.select_items(lambda x: x >= 2) # [2, 4]
 
+# Append a single item
+kd.with_list_append_update(l1, 4)
+# Append multiple items
+kd.with_list_append_update(l1, kd.slice([4, 5]))
+
+# Note that list update does not support
+# updating/removing existing items
+
+# Create an update and apply it separately
+upd = kd.list_append_update(l1, 5)
+l1.updated(upd)
+
+# Accumulating updates is not supported
+# The last update overrides previous ones
+# Note 5 is not appended
+l1.updated(kd.list_append_update(l1, 5),
+           kd.list_append_update(l1, kd.slice([6, 7])))
+# List[1, 2, 3, 6, 7]
+
 # Returns a list with a different ItemId and items
 # concatenated from the list items of arguments
 kd.concat_lists(kd.list([1, 2]), kd.list([3, 4]))
 
-# Return a list with appended items
+# Return a list with a different ItemId and
+# appended items
 kd.appended_list(kd.list([1, 2]), 3)
 kd.appended_list(kd.list([1, 2]), kd.slice([3, 4]))
 ```

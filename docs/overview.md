@@ -553,19 +553,19 @@ Koda's data structures are **immutable**. However, Koda offers various efficient
 ways to create modified copies of your data, including complex edits and joins.
 These copies share the same underlying memory whenever possible, and many
 operations, such as edits and joins, are performed in O(1) time. Immutability
-means that modifying an object or entity does *not* automatically update the
-original objects or entities, even if they share the same ItemId.
+means that modifying an entity/list/dict does *not* automatically modify the
+original entity/list/dict, even if they share the same ItemId.
 
 NOTE: Mutable APIs is available only in advanced, high-performance workflows,
 but with trade-offs. They require a deeper understanding of Koda data model and
 it is easier to make mistakes which can be hard to debug.
 
 ```py
-a = kd.obj(x=2, y=kd.obj(z=3))
+a = kd.new(x=2, y=kd.new(z=3))
 # update existing attribute and add a new attribute
-a1 = a.with_attrs(x=4, u=5)  # Obj(u=5, x=4, y=Obj(z=3))
+a1 = a.with_attrs(x=4, u=5)  # Entity(u=5, x=4, y=Entity(z=3))
 # a stays the same as it is immutable
-a # Obj(x=2, y=Obj(z=3))
+a # Entity(x=2, y=Entity(z=3))
 
 b = kd.dict({'a': 1, 'b': 2})
 # update with a new key/value pair
@@ -576,9 +576,9 @@ b2 = b.with_dict_update(kd.dict({'a': 3, 'c': 4})) # Dict{'c'=4, 'a'=3, 'b'=2}
 b # Dict{'a'=1, 'b'=2}
 
 c = kd.list([1, 2, 3])
-# Create a new list by concatenating two lists
+# Create a new list with a distinct ItemId by concatenating two lists
 c1 = kd.concat_lists(c, kd.list([4, 5]))  # List[1, 2, 3, 4, 5]
-# Or create a new list by appending a DataSlice
+# Or create a new list with a distinct ItemId by appending a DataSlice
 c2 = kd.appended_list(c, kd.slice([4, 5]))  # List[1, 2, 3, 4, 5]
 # c stays the same as it is immutable
 c # List[1, 2, 3]

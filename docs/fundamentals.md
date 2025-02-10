@@ -431,8 +431,8 @@ IMPORTANT: slicing operators over lists (e.g. `a[1:]`) do not return lists, but
 DataSlices with plus-one dimension (explosion operation which is discussed in
 the [DataSlice of Structured Data](#structured_data) section later).
 
-Lists can be also looked up with python lists or DataSlices. Use `kd.implode` to
-convert DataSlices (their last dimension) back into lists.
+Lists can be also looked up with DataSlices. Use `kd.implode` to convert
+DataSlices (their last dimension) back into lists.
 
 ```py
 a = kd.list([1, 2, 3, 4])
@@ -446,7 +446,9 @@ kd.implode(a[:])  # == a
 kd.implode(a[1:])  # == kd.list([2,3,4])
 ```
 
-Lists are immutable by default, and need to be recreated to append/extend.
+Lists are immutable by default. But we can easily create new a list by
+concatenating lists or appending elements to the original list. These new lists
+have different ItemIds rather than the same ItemId as the original lists.
 
 ```py
 x = kd.list([1, 2, 3, 4])
@@ -464,28 +466,42 @@ x = x.with_attrs(a=kd.concat_lists(x.y, x.z))
 x = x.with_attrs(b=kd.appended_list(x.y, x.u))  # append one value
 ```
 
+Alternatively, lists can be updated. Updated lists share the same ItemId with
+the original lists. Using list updates can be tricky and see the
+[Immutable Workflows](#immutable-workflows) section for details.
+
+```py
+l = kd.list([1, 2, 3])
+l1 = kd.with_list_append_update(l, 4)  # List[1, 2, 3, 4]
+l2 = kd.with_list_append_update(l, kd.slice([5, 6]))  # List[1, 2, 3, 5, 6]
+# l stays the same as it is immutable
+l  # List[1, 2, 3]
+```
+
 **Dicts** can be created in a way similar to lists, and are immutable by
 default.
 
 ```py
 # Multiple ways to achieve the same
-d = kd.dict({'a':1, 'b':2, 'c':4})
-d = kd.from_py({'a':1, 'b':2, 'c':4})
+d = kd.dict({'a': 1, 'b': 2, 'c': 4})
+d = kd.from_py({'a': 1, 'b': 2, 'c': 4})
 kd.is_primitive(d)  # no
 kd.is_dict(d)  # yes
 
-kd.dict(kd.slice(['a', 'b', 'c']), kd.slice([1, 2, 4]))
-kd.dict({'a':1, 'b':2}).with_dict_update('c', 4)
-kd.dict().with_dict_update(kd.dict({'a':1, 'b':2, 'c':4}))
-kd.dict({'a':1}).with_dict_update(kd.slice(['b', 'c']), kd.slice([2, 4]))
+d1 = kd.dict(kd.slice(['a', 'b']), kd.slice([1, 2]))
+d2 = d1.with_dict_update('c', 4)  # Dict{'c'=4, 'a'=1, 'b'=2}
+d3 = d1.with_dict_update(kd.dict({'c': 4, 'd': 6}))  # Dict{'d'=6, 'c'=4, 'b'=2, 'a'=1}
+d4 = d1.with_dict_update(kd.slice(['c', 'd']), kd.slice([4, 6]))  # Dict{'d'=6, 'c'=4, 'b'=2, 'a'=1}
+# d1 stays the same as it is immutable
+d1  # Dict{'a'=1, 'b'=2}
 
 # dict updates can be created separately and applied later
-d = kd.dict({'a':1})
+d = kd.dict({'a': 1})
 upd1 = kd.dict_update(d, 'b', 2)  # need to specify d
 upd2 = kd.dict_update(d, 'c', 4)
 d.updated(upd1, upd2)  # == kd.dict({'a':1, 'b':2, 'c':4})
 
-upd = kd.dict_update(d, kd.dict({'b':2, 'c':4}))
+upd = kd.dict_update(d, kd.dict({'b': 2, 'c': 4}))
 d.updated(upd)
 ```
 
@@ -1050,8 +1066,8 @@ kd.explode(ds)  # the same as above
 ds[:2]   # kd.slice([[20, 30], [40, 50]])
 
 # Explode twice a nested list
-x = kd.list([[1, 2, 3],[4, 5, 6],[7, 8]])  # Nested list
-x[:][:]  # kd.slice([[1, 2, 3],[4, 5, 6],[7, 8]])
+x = kd.list([[1, 2, 3], [4, 5, 6], [7, 8]])  # Nested list
+x[:][:]  # kd.slice([[1, 2, 3], [4, 5, 6], [7, 8]])
 kd.explode(kd.explode(x))  # The same as above
 kd.explode(x, ndim=2)  # The same as above
 # Explodes nested lists all the way
@@ -2251,7 +2267,7 @@ Schemas also stored as mapping triples, just values are schemas.
 In addition, each object has an extra mapping triple which associate the object
 with its schema (the main difference between `kd.new` and `kd.obj`).
 
-```python
+```py
 x = kd.new(a=1, b=kd.new(c=2, d='hello'))   # auto-allocated schemas
 db = x.get_bag()  # bag of attributes containing all the triples of x
 
@@ -2291,7 +2307,7 @@ db.schema_triples_repr()  # 3 schema triples
 
 `kd.bag` and `kd.attrs` are used to create bags.
 
-```python
+```py
 kd.bag()  # empty bag
 
 # Create a bag of attributes for 'x'.
@@ -2315,7 +2331,7 @@ fallbacks.
 When necessary (e.g. too many fallbacks accumulated), it's possible to merge
 everything into one bag without fallbacks.
 
-```python
+```py
 x = kd.new()
 # the same as kd.attrs(x, a=1, b=3), but through merging two bags
 kd.updated_bag(kd.attrs(x, a=1), kd.attrs(x, b=3))
@@ -2357,7 +2373,7 @@ how too many fallback bags affect performance.
 `kd.updated_bag(db1, db2)` creates a new empty bag with `db1` and `db2` as
 fallbacks.
 
-```python
+```py
 a = kd.new()
 attr_bag1 = kd.bag()
 upd1 = kd.attrs(a, x=1)
@@ -2402,7 +2418,7 @@ the same itemid-attribute pairs.
 
 Note: `with_attrs` is implemented through `updated`.
 
-```python
+```py
 x = kd.obj(a=1)
 upd = kd.attrs(x, a=10, b=20)
 x.updated(upd)  # Obj(a=10, b=20)
@@ -2458,7 +2474,7 @@ Lists and dicts are used when itemid-attribute pair can have multiple values.
 Individual list elements cannot be changed, but lists can be only changed as
 whole. Individual dict key/value pairs can be updated.
 
-```python
+```py
 x = kd.new()
 kd.attrs(x, a=kd.list([1,2,3]))  # x.a[:] => [1, 2, 3]
 # x.d['a'] => 1, x.d['b'] => 2, ...
@@ -2498,7 +2514,7 @@ d1.with_dict_update(d2)  # the same as above
 
 The complexity of this operation is O(resulting bag size).
 
-```python
+```py
 a = kd.new(x=kd.new(y=1, z=kd.new(u=2)), v=3)
 # All attributes are linked to the same bag.
 # a.x.z.get_bag() == a.get_bag()
@@ -2512,7 +2528,7 @@ a.x.z.extract().get_bag().get_approx_size()  # 2
 To avoid following certain attributes during extraction, use `kd.nofollow` to
 mark them.
 
-```python
+```py
 a = kd.new(x=kd.implode(kd.new(v=kd.slice([[1, 2], [3, 4]]))),
            y=kd.slice([5, 6]))
 a.x[:].v  # [[1, 2], [3, 4]]
@@ -2548,7 +2564,7 @@ itemid, but with a bag that doesn't contain attributes (or dict values).
 That is, `stub` helps to create a minimum-size copy that can be updated with
 attributes and later merged with original data.
 
-```python
+```py
 a = kd.new(x=kd.new(y=1, z=kd.new(u=2)), v=3)
 a.get_bag()  # 5 attrs
 a1 = a.stub()
@@ -2581,7 +2597,7 @@ a.updated(a1.get_bag() >> a2.get_bag() >> a3.get_bag())
 
 To work with min-version of cloned item, use `shallow_clone` instead of `stub`.
 
-```python
+```py
 # Shallow clone allocates new itemid, but keeps attributes
 # (but only immediate attributes).
 a = kd.new(u=kd.new(v=1), x=kd.new(y=2))
@@ -2601,7 +2617,7 @@ O(resulting bag size).
 In some situations, it is beneficial to use `x.stub` or `x.shallow_clone` to
 avoid unnecessary copying.
 
-```python
+```py
 x = kd.new(a=kd.list([1,2,3]), b=kd.new(t=4, u=5))
 y = kd.new()
 kd.attrs(y, x=x)  # 6 attrs, and proportional running time
@@ -2631,7 +2647,7 @@ b.enriched(a.get_bag()).x.z.u  # 2
 To quickly check if two DataSlices use the same bag of attributes, one can use
 bags' fingerprint.
 
-```python
+```py
 t = kd.obj(x=kd.obj(a=1, b=2), y=kd.obj(c=3, d=4))
 t.x.get_bag().fingerprint == t.y.get_bag().fingerprint  # True
 
@@ -2650,10 +2666,11 @@ x2.get_bag().fingerprint == y2.get_bag().fingerprint  # True
 By default, Koda data structures are immutable, but its APIs make it easy to
 work with mutable data as well, with comparable performance characteristics.
 
-There are multiple ways to edit entities/objects and their attributes (or deep
-attributes).
+There are multiple ways to edit entities and their attributes (or deep
+attributes). The cost of entity updates is O(N) where N is the number of updated
+attributes.
 
-```python
+```py
 t = kd.new(x=1, schema='MySchema')
 t = t.with_attrs(y=2)
 t = t.with_attrs(x='hello', update_schema=True)  # Change the schema
@@ -2671,18 +2688,34 @@ t = t.updated(t.d.dict_update('c', 3))  # update the dict with c=>3
 t = t.updated(kd.dict_update(t.d, kd.dict({'c': 4, 'd': 5})))
 ```
 
-Dicts can be updated in the same way as entities.
+Dicts can be updated in the same way as entities. The cost of dict updates is
+O(N) where N is the number of updated key/value pairs.
 
-```python
+```py
 t = kd.dict({'a': 1, 'b': 2})
 t = t.updated(kd.dict_update(t, 'c', 3))
 t = t.with_dict_update('d', 4)
-t = t.updated(kd.dict_update(t, 'e', 5))
 ```
 
-Alternatively we can accumulate updates which can be stored separately.
+Lists work differently than entities and dicts. Entity attributes and dict
+key/value pairs have no order and are stored internally in a hashmap-like data
+structure. Entity/dict updates only contain updated attributes or key/value
+pairs. In contrast to that, list elements are ordered and lists cannot be
+updated as efficiently as entities/dicts. Updating a list requires copying all
+elements in the original list. Thus, the cost of list updates is O(M + N) where
+M is the number of elements in the original list and N is the number of appended
+elements.
 
-```python
+```py
+t = kd.list([1, 2, 3])
+t = t.updated(kd.list_append_update(t, 3))
+t = kd.with_list_append_update(t, kd.slice([4, 5]))
+```
+
+Alternatively we can accumulate entity/dict updates which can be stored
+separately.
+
+```py
 t = kd.obj(x=1)
 upd = kd.bag()
 upd <<= kd.attrs(t, y=2)
@@ -2698,10 +2731,25 @@ upd <<= kd.attrs(t, u=kd.list([1, 2, 3]))
 t.updated(upd)  # fully updated version
 ```
 
+List updates cannot be accumulated and the last update override all previous
+updates. Because of this, it is recommended to create new lists with distinct
+ItemIds using `kd.concat_lists` or `kd.appended_list` when we do not need
+updated lists to have the same ItemIds as the original lists.
+
+```py
+t = kd.list([1, 2, 3])
+upd = kd.bag()
+upd <<= kd.list_append_update(t, 4)
+upd <<= kd.list_append_update(t, kd.slice([5, 6]))
+
+# Note that 4 is not appended to the list
+t.updated(upd)  # List[1, 2, 3, 5, 6]
+```
+
 Remember that `foo.updated(bar)` is O(1), which allows tracking the updates
 separately while also having both original and updated versions.
 
-```python
+```py
 def foo1(x): return kd.attrs(x, c=x.a+x.b)
 def foo2(x): return kd.attrs(x, d=x.c*x.a)
 def foo3(x): return kd.attrs(x, d=x.d+x.b)
@@ -2720,7 +2768,7 @@ t.updated(upd)  # Obj(a=3, b=4, c=7, d=25)
 
 The same APIs work for DataSlices of objects/entities.
 
-```python
+```py
 a = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 a.with_attrs(z=kd.slice([7, 8, 9]))  # add z attribute to 3 entities
 a.updated(kd.attrs(a, x=kd.slice([10, 11, 12])))  # update attribute
@@ -2739,7 +2787,7 @@ Use `clone` or `deep_clone`, when truly different entities/objects are needed.
 
 But remember, the complexity of `clone` is O(resulting bag size).
 
-```python
+```py
 x = kd.obj(a=1, b=2)
 x1 = x.with_attrs(c=3)
 x2 = x.with_attrs(c=4)
@@ -2783,7 +2831,7 @@ Remember that data updates are not eagerly merged, which means that it's
 possible to have multiple versions of the same expensive data simultaneously
 without duplicating it in memory.
 
-```python
+```py
 t = kd.obj(x=kd.slice(list(range(1000))))
 kd.size(t)  # 1000
 t1 = t.updated(kd.attrs(t.S[99], x=0)) # O(1)
@@ -2795,7 +2843,7 @@ print(kd.sum(t.x), kd.sum(t1.x), kd.sum(t2.x), kd.sum(t3.x))
 It is possible to make data updates smaller and more efficient by using `stub`
 or `shallow_clone` which would avoid copying all the data.
 
-```python
+```py
 x = kd.obj(a=kd.obj(u=3, v=4), b=kd.obj(u=5, v=6))
 upd1 = kd.attrs(x, a=x.b, b=x.a)  # contains x.a and x.b attributes
 upd2 = kd.attrs(x, a=x.b.stub(), b=x.a.stub())
@@ -2828,7 +2876,7 @@ extract and return immutable pieces.
 Note: mutable workflows are not supported in tracing and have more limited
 options for productionalization.
 
-```python
+```py
 # Modify the same dict many times
 d_original = kd.dict()  # immutable
 d = d_original.fork_bag()  # mutable
@@ -2862,7 +2910,7 @@ a.x.clone().get_itemid() != a.x.get_itemid()  # yes
 `fork_bag` can be also used to quickly (for O(1)) create a copy of the data and
 work on it.
 
-```python
+```py
 d = kd.dict(kd.range(1000), kd.range(1000, 2000))
 d1 = d.fork_bag()  # create mutable version for O(1)
 d1[123] = 79
@@ -2876,7 +2924,7 @@ d2[123]  # 549 - another forked version
 Note: mutable workflows are not thread-safe, and careful treatment is needed if
 they are used in multi-thread settings.
 
-```python
+```py
 import threading
 mylock = threading.RLock()
 my_dict = kd.dict().fork_bag()
@@ -2894,7 +2942,7 @@ with mylock: # Needed only if read in multi-threading settings
 
 It's possible to serialize DataSlices and bags into bytes.
 
-```python
+```py
 # Serialize DataSlices.
 a = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
 foo = kd.dumps(a) # bytes
@@ -2926,7 +2974,7 @@ separately manipulated or served in production.
 `kd.py_fn` just wraps python function as-is (meaning, it can be used only in the
 interactive environment, and cannot be edited).
 
-```python
+```py
 # Functors: Koda objects that can be executed.
 kd.fn(lambda x: x + 1)  # "functor" with tracing
 kd.fn(lambda x: x + 1, use_tracing=False)  # no tracing
@@ -2969,7 +3017,7 @@ like `print()` cannot be natively traced (they will be simply executed).
 Use `use_tracing=False` or `kd.py_fn` in those cases, especially when there is
 no need for serving.
 
-```python
+```py
 # Normally, tracing is enough.
 fn = kd.fn(lambda x: x - kd.agg_min(x))
 a = kd.slice([[1, 2, 3], [4, 5, 6]])
@@ -2996,7 +3044,7 @@ If using `py_fn=True`, entire python functions will be wrapped as whole (no
 tracing is used), which is especially useful for debugging or quick
 experimentation.
 
-```python
+```py
 @kd.trace_as_fn()  # traced versiong
 def mult_xy(x, y):
   return x * y
@@ -3024,7 +3072,7 @@ fn1(4, 5)  # 13 = (4 + 5) + 4
 Tracing generates computation graphs (ASTs), which can be edited and manipulated
 with their own set of tools.
 
-```python
+```py
 def fn1(a, b):
   x = a + 1
   y = b + 2
@@ -3058,7 +3106,7 @@ fn2_fn.with_attrs(x=kd.fn(lambda a, b: a * b).returns)(4, 6)  # 35 = (4*6) + (6+
 
 This allows mixing eager and lazy modes:
 
-```python
+```py
 x = kd.obj(q=kd.slice([[0.3, 0.4, 0.5], [0.6, 0.7, 0.8]]),
            t=kd.slice([[0.7, 0.8, 0.9], [0.8, 0.9, 1.0]]))
 
@@ -3091,7 +3139,7 @@ score_fns.fn1(x), score_fns.fn2(x)
 Converting python functions into functors allows avoiding python overhead for
 complex operations.
 
-```python
+```py
 a = list(range(100))
 
 # Pure python.
@@ -3122,7 +3170,7 @@ ds_a = kd.slice(a)
 
 It's possible to execute different functors on different objects:
 
-```python
+```py
 fn1 = kd.fn(lambda x: x+1)
 fn2 = kd.fn(lambda x: x-1)
 x = kd.slice([1, 2, 3, 4])
