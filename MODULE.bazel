@@ -45,3 +45,10 @@ http_archive(
     strip_prefix = "double-conversion-3.3.0",
     url = "https://github.com/google/double-conversion/archive/refs/tags/v3.3.0.tar.gz",
 )
+
+http_archive(
+    name = "icu4c",
+    build_file = "external/BUILD.icu4c",
+    integrity = "sha256-TLp7es0dPELES7DBS+ZjcJjH+vKzMM6Ha8XzuRXQl0U=",
+    url = "https://github.com/unicode-org/icu/releases/download/release-69-1/icu4c-69_1-src.tgz",
+)
