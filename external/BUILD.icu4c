@@ -1,0 +1,29 @@
+# BUILD file for https://github.com/unicode-org/icu
+licenses(["notice"])  # BSD
+exports_files(["LICENSE"])
+
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "icu4c",
+    srcs = glob(
+        [
+            "icu/source/common/*.h",
+            "icu/source/common/*.cpp",
+            "icu/source/stubdata/*.cpp",
+        ],
+    ),
+    hdrs = glob([
+        "icu/source/common/unicode/*.h",
+    ]),
+    strip_include_prefix = "icu/source/common",
+    copts = [
+        "-DU_COMMON_IMPLEMENTATION",
+        "-Wno-deprecated-declarations",
+    ],
+    linkopts = [
+        "-ldl",
+    ],
+)
