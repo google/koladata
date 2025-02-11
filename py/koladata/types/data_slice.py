@@ -656,12 +656,33 @@ def _to_py_impl(
   return py_obj
 
 
+@functools.cache
+def _get_vis_module():
+  """Returns the vis module if dependency exists, None otherwise."""
+  try:
+    # pylint: disable=g-import-not-at-top
+    # pytype: disable=import-error
+    from koladata.ext import vis
+    return vis
+  except ImportError:
+    vis_path = 'koladata.ext.vis'
+    warnings.warn(
+        f'please include {vis_path} in your BUILD '
+        'dependency or run the kernel with that dependency'
+    )
+  return None
+
+
 @add_method(DataSlice, 'display')
 def _display(
     self,
+    options: Any | None = None,
 ) -> None:
-  """Prints a DataSlice repr."""
-  print(repr(self))
+  """Visualizes a DataSlice as an html widget."""
+  if (vis := _get_vis_module()) is not None:
+    vis.visualize_slice(self, options=options)
+  else:
+    print(repr(self))
 
 
 ##### DataSlice Magic methods. #####

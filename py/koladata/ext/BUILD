@@ -149,6 +149,32 @@ py_test(
     ],
 )
 
+py_library(
+    name = "vis",
+    srcs = ["vis.py"],
+    data = [
+        "//ts:data_slice_webcomponents",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        requirement("ipython"),
+        "//py/koladata:kd",
+        "@com_google_arolla//py/arolla",
+        "@rules_python//python/runfiles",
+    ],
+)
+
+py_test(
+    name = "vis_test",
+    srcs = ["vis_test.py"],
+    deps = [
+        ":vis",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+    ],
+)
+
 py_test(
     name = "benchmarks",
     srcs = ["benchmarks.py"],

@@ -3857,7 +3857,8 @@ class DataSliceListSlicingTest(parameterized.TestCase):
       with mock.patch.object(warnings, 'warn') as mock_warn:
         _ = ds([1, 2]).display()
         self.assertEqual(mock_stdout.getvalue(), repr(ds([1, 2])) + '\n')
-        mock_warn.assert_not_called()
+        _ = ds([1, 2]).display()  # to make sure importing is tried only once.
+        mock_warn.assert_called_once()
 
 
 if __name__ == '__main__':
