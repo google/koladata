@@ -20,6 +20,7 @@ import typing as _typing
 
 from arolla import arolla as _arolla
 from koladata.exceptions import exceptions as _exceptions
+from koladata.expr import expr_container as _expr_container
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
@@ -183,6 +184,7 @@ clear_eval_cache = _eager_only(_py_expr_eval_py_ext.clear_eval_cache)
 lazy = _eager_only(_kde_operators.kde)
 # TODO: Remove this alias once the migration is done.
 kde = _eager_only(_kde_operators.kde)
+named_container = _same_when_tracing(_expr_container.NamedContainer)
 
 expr = _eager_only(_py_types.ModuleType('expr'))
 expr.literal = _literal_operator.literal

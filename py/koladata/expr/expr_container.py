@@ -15,8 +15,8 @@
 """Containers for Exprs."""
 
 from typing import Any, Iterator
-from koladata import kd
 from koladata.expr import tracing_mode
+from koladata.functions import functions
 from koladata.operators import kde_operators
 
 kde = kde_operators.kde
@@ -60,7 +60,7 @@ class NamedContainer:
           ' that start or end with an underscore are reserved for class'
           ' methods.'
       )
-    if kd.eager.is_expr(value):
+    if functions.is_expr(value):
       value = value.with_name(key)
     elif tracing_mode.is_tracing_enabled():
       value = kde.with_name(value, key)

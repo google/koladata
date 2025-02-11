@@ -29,7 +29,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":tracing_mode",
-        "//py/koladata:kd",
+        "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
     ],
 )

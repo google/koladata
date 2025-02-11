@@ -264,6 +264,24 @@ class KdTest(absltest.TestCase):
     self.assertEqual(kd.expr.get_input_names(expr), ['x', 'y'])
     self.assertEqual(kd.expr.get_input_names(expr, container=V), ['z'])
 
+  def test_named_container(self):
+    c = kd.named_container()
+    c.x = I.x
+    c.y = 2
+    c.z = c.x * c.y
+    self.assertEqual(kd.eval(c.z, x=2), 4)
+
+  def test_named_container_tracing_mode(self):
+    def f(x):
+      c = kd.named_container()
+      c.x = x
+      c.y = 2
+      c.z = c.x * c.y
+      return c.z
+
+    self.assertEqual(f(2), 4)
+    self.assertEqual(kd.fn(f)(x=2), 4)
+
   def test_sub_inputs(self):
     expr = I.x + I.y + V.x
     kd.testing.assert_equal(kd.expr.sub_inputs(expr, x=I.w), I.w + I.y + V.x)

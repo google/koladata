@@ -92,6 +92,16 @@ class ExprContainerTest(absltest.TestCase):
         introspection.unpack_expr(fn.original), I.x
     )
 
+  def test_tracing_with_attrs_returns(self):
+    def f(x):
+      c = expr_container.NamedContainer()
+      c.original = x
+      c.updated = c.original + 2
+      return c.updated
+
+    fn = kdf.trace_py_fn(f)
+    self.assertEqual(fn.with_attrs(returns=fn.original)(x=5), 5)
+
   def test_delete_attr(self):
     c = expr_container.NamedContainer()
     c.x = 1
