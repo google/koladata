@@ -18,6 +18,7 @@ import dataclasses
 import inspect
 import types
 from typing import Any, Callable, Collection
+import warnings
 
 from arolla import arolla
 from koladata.expr import input_container
@@ -282,6 +283,7 @@ def as_lambda_operator(
     *,
     qtype_constraints: arolla.types.QTypeConstraints = (),
     deterministic: bool | None = None,
+    suppress_unused_parameter_warning: bool = False,
 ) -> Callable[
     [types.FunctionType],
     arolla.types.LambdaOperator | arolla.types.RestrictedLambdaOperator,
@@ -300,6 +302,8 @@ def as_lambda_operator(
       only use deterministic operators. If False, the operator will be declared
       non-deterministic. By default, the decorator attempts to detect the
       operator's determinism.
+    suppress_unused_parameter_warning: If True, unused parameters will not cause
+      a warning.
 
   Returns:
     A decorator that constructs a lambda operator by tracing a Python function.
@@ -341,6 +345,21 @@ def as_lambda_operator(
               )
           },
       )
+    if not suppress_unused_parameter_warning:
+      unused_parameters = set(
+          param.name
+          for param in op_sig.parameters
+          if not param.name.startswith('unused')
+          and not param.name.startswith('_')
+      )
+      unused_parameters -= set(arolla.abc.get_placeholder_keys(op_expr))
+      if unused_parameters:
+        warnings.warn(
+            f'kd.optools.as_lambda_operator({name!r}, ...) a lambda operator'
+            ' not using some of its parameters: '
+            + ', '.join(sorted(unused_parameters)),
+            category=arolla.optools.LambdaUnusedParameterWarning,
+        )
     return arolla.optools.make_lambda(
         op_sig,
         op_expr,

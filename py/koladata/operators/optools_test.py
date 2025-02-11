@@ -14,6 +14,7 @@
 
 import inspect
 import re
+import warnings
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -805,6 +806,27 @@ class OptoolsTest(parameterized.TestCase):
     self.assertEqual(dir(container.foo.bar), ['baz'])
     testing.assert_equal(container.foo.bar.baz, op)
     self.assertEqual(dir(container.foo.baz), [])
+
+  def test_as_lambda_operator_unused_parameter_warning(self):
+    def fn(_a, z, y, *unused_b, **x):  # pylint: disable=invalid-name
+      del _a, z, unused_b, x
+      return y
+
+    with self.assertWarnsRegex(
+        arolla.optools.LambdaUnusedParameterWarning,
+        re.escape(
+            "kd.optools.as_lambda_operator('test.op', ...) a lambda"
+            ' operator not using some of its parameters: x, z'
+        ),
+    ):
+      optools.as_lambda_operator('test.op')(fn)
+
+    with warnings.catch_warnings():
+      warnings.simplefilter('error')
+      optools.as_lambda_operator(
+          'test.op', suppress_unused_parameter_warning=True
+      )(fn)
+      # ok if no errors
 
 
 if __name__ == '__main__':
