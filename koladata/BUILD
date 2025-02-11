@@ -191,6 +191,7 @@ cc_library(
         "//koladata/internal:schema_utils",
         "//koladata/internal/op_utils:expand",
         "//koladata/internal/op_utils:extract",
+        "//koladata/internal/op_utils:group_by_utils",
         "//koladata/internal/op_utils:has",
         "//koladata/internal/op_utils:presence_and",
         "//koladata/internal/op_utils:presence_or",
