@@ -53,6 +53,10 @@ class SlicesUniqueTest(parameterized.TestCase):
           ds([1, 3, 2, 1, 2, 3, 1, 3]),
           ds([1, 3, 2]),
       ),
+      (
+          ds([1.0, float('inf'), 1.0, 3.0, float('nan'), 2.0, float('nan')]),
+          ds([1.0, float('inf'), 3.0, float('nan'), 2.0]),
+      ),
       # Missing values
       (
           ds([1, 3, 2, 1, None, 3, 1, None]),
@@ -90,6 +94,10 @@ class SlicesUniqueTest(parameterized.TestCase):
           ds([1, 3, 2, 1, 2, 3, 1, 3]),
           ds([1, 2, 3]),
       ),
+      (
+          ds([1.0, float('inf'), 1.0, float('nan'), 3.0, float('nan'), 2.0]),
+          ds([1.0, 2.0, 3.0, float('inf'), float('nan')]),
+      ),
       # Missing values
       (
           ds([1, 3, 2, 1, None, 3, 1, None]),
@@ -99,6 +107,16 @@ class SlicesUniqueTest(parameterized.TestCase):
       (
           ds([[1, 3, 2, 1, 3, 1, 3], [1, 3, 1]]),
           ds([[1, 2, 3], [1, 3]]),
+      ),
+      (
+          ds([
+              [1.0, float('inf'), 1.0, float('nan'), 3.0, float('nan'), 2.0],
+              [1.0, float('inf'), 1.0, 3.0, 2.0],
+          ]),
+          ds([
+              [1.0, 2.0, 3.0, float('inf'), float('nan')],
+              [1.0, 2.0, 3.0, float('inf')],
+          ]),
       ),
   )
   def test_eval_one_input_sort(self, x, expected):

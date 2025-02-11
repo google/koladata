@@ -118,13 +118,6 @@ class AbstractVisitor {
       const DataItem& item, const DataItem& schema, bool is_object_schema,
       const arolla::DenseArray<arolla::Text>& attr_names,
       const arolla::DenseArray<DataItem>& attr_schema) = 0;
-
-  // Call for each reachable primitive.
-  // Args:
-  // - item: contains primitive.
-  // - schema: contains schema.
-  virtual absl::Status VisitPrimitive(const DataItem& item,
-                                      const DataItem& schema) = 0;
 };
 
 template <typename VisitorT>
@@ -176,7 +169,7 @@ class Traverser {
   };
 
   absl::Status Previsit(const ItemWithSchema& item) {
-    if (item.item.has_value()) {
+    if (item.item.has_value() && !item.item.ContainsAnyPrimitives()) {
       previsit_stack_.push({.item = item.item, .schema = item.schema});
     }
     return visitor_->VisitorT::Previsit(item.item, item.schema);
@@ -365,6 +358,10 @@ class Traverser {
       previsit_stack_.pop();
       if (!used_items.contains(item.item)) {
         objects_on_stack.emplace(previsit_stack_.size(), item);
+        // Please note that we cannot insert NaN values into the set (see
+        // b/395020189); one way to avoid this is not to insert primitives at
+        // all, but we do check for that in Previsit.
+
         used_items.insert(item.item);
         if (item.item != DataItem(schema::kSchema) ||
             item.schema != DataItem(schema::kSchema)) {
@@ -505,7 +502,7 @@ class Traverser {
       }
       return VisitSchema(item.item, attr_names);
     }
-    return VisitPrimitive(item);
+    return absl::OkStatus();
   }
 
   absl::Status VisitEntity(const ItemWithSchema& item, bool is_object) {
@@ -590,12 +587,8 @@ class Traverser {
   }
 
   absl::Status VisitObject(const ItemWithSchema& item) {
-    if (!item.item.has_value()) {
+    if (!item.item.has_value() || !item.item.template holds_value<ObjectId>()) {
       return absl::OkStatus();
-    }
-    if (!item.item.template holds_value<ObjectId>()) {
-      ASSIGN_OR_RETURN(auto dtype, schema::DType::FromQType(item.item.dtype()));
-      return VisitPrimitive({.item = item.item, .schema = DataItem(dtype)});
     }
     ASSIGN_OR_RETURN(
         auto schema,
@@ -606,10 +599,6 @@ class Traverser {
           item.item, schema::kSchemaAttr, schema));
     }
     return VisitEntity({item.item, schema}, /*is_object=*/true);
-  }
-
-  absl::Status VisitPrimitive(const ItemWithSchema& item) {
-    return visitor_->VisitorT::VisitPrimitive(item.item, item.schema);
   }
 
   absl::Status VisitInPostOrder() {
@@ -623,8 +612,6 @@ class Traverser {
           RETURN_IF_ERROR(VisitObject(item));
         } else if (item.schema == schema::kSchema) {
           RETURN_IF_ERROR(VisitSchemaItem(item));
-        } else {
-          RETURN_IF_ERROR(VisitPrimitive(item));
         }
       }
     }

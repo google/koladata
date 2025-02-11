@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <initializer_list>
+#include <limits>
 #include <memory>
 #include <string_view>
 #include <utility>
@@ -49,6 +50,8 @@ using ::arolla::CreateDenseArray;
 
 using TriplesT = std::vector<
     std::pair<DataItem, std::vector<std::pair<std::string_view, DataItem>>>>;
+
+constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
 DataItem AllocateSchema() {
   return DataItem(internal::AllocateExplicitSchema());
@@ -193,11 +196,6 @@ class NoOpVisitor : AbstractVisitor {
                        attr_schema);
   }
 
-  absl::Status VisitPrimitive(const DataItem& item,
-                              const DataItem& schema) override {
-    return absl::OkStatus();
-  }
-
  private:
   absl::Status CheckValues(const DataSliceImpl& items) {
     for (int i = 0; i < items.size(); ++i) {
@@ -271,11 +269,6 @@ class ObjectVisitor : AbstractVisitor {
       const DataItem& item, const DataItem& schema, bool is_object_schema,
       const arolla::DenseArray<arolla::Text>& attr_names,
       const arolla::DenseArray<DataItem>& attr_schema) override {
-    return absl::OkStatus();
-  }
-
-  absl::Status VisitPrimitive(const DataItem& item,
-                              const DataItem& schema) override {
     return absl::OkStatus();
   }
 
@@ -630,6 +623,31 @@ TEST_P(ObjectsTraverserTest, ObjectsSlice) {
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {a0, a1, DataItem(), DataItem(3), DataItem("a"), dicts[0], dicts[1],
        lists[0], lists[1]}));
+  EXPECT_OK(TraverseSliceCheckObjectPrevisits(ds, DataItem(schema::kObject),
+                                              *GetMainDb(db),
+                                              {GetFallbackDb(db).get()}));
+}
+
+TEST_P(ObjectsTraverserTest, MixedSliceWithNaN) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto item_schema = AllocateSchema();
+  TriplesT data_triples = {
+      {a0, {{schema::kSchemaAttr, item_schema}, {"x", DataItem(NaN)}}},
+      {a1, {{schema::kSchemaAttr, item_schema}, {"x", DataItem(2)}}},
+  };
+  TriplesT schema_triples = {
+      {item_schema, {{"x", DataItem(schema::kFloat32)}}},
+  };
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+
+  auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
+      {a0, a1, DataItem(), DataItem(3), DataItem("a")}));
   EXPECT_OK(TraverseSliceCheckObjectPrevisits(ds, DataItem(schema::kObject),
                                               *GetMainDb(db),
                                               {GetFallbackDb(db).get()}));

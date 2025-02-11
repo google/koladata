@@ -132,11 +132,6 @@ class DeepUuidVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitPrimitive(const DataItem& item,
-                              const DataItem& schema) override {
-    return absl::OkStatus();
-  }
-
  private:
   absl::string_view seed_;
   absl::flat_hash_map<DataItem, DataItem, DataItem::Hash> object_tracker_;

@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <tuple>
@@ -87,6 +88,20 @@
 
 namespace koladata::ops {
 namespace {
+
+template <typename T>
+bool IsNan(const T& item) {
+  if constexpr (std::numeric_limits<T>::has_quiet_NaN) {
+    if constexpr (std::is_same_v<T, internal::DataItem>) {
+      return item.is_nan();
+    } else if constexpr (std::is_same_v<T, float>) {
+      return std::isnan(item);
+    } else if constexpr (std::is_same_v<T, double>) {
+      return std::isnan(item);
+    }
+  }
+  return false;
+}
 
 class AlignOperator : public arolla::QExprOperator {
  public:
@@ -782,6 +797,7 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
     map.reserve(values.size());
 
     for (size_t split_id = 1; split_id < split_points.size(); ++split_id) {
+      std::optional<arolla::view_type_t<T>> nan_value;
       size_t begin = split_points[split_id - 1];
       size_t end = split_points[split_id];
       size_t unique_values_group_begin = unique_values.size();
@@ -789,23 +805,37 @@ absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
         if (!values.present(i)) {
           continue;
         }
-        // We reuse the map to minimize amount of successful inserts.
-        auto [it, inserted] = map.emplace(values.values[i], split_id);
-        if (inserted || it->second != split_id) {
-          unique_values.push_back(values.values[i]);
-          it->second = split_id;
+        const auto& value = values.values[i];
+        if (IsNan(value)) {
+          if (!nan_value.has_value()) {
+            nan_value = value;
+            if (!sort_bool) {
+              unique_values.push_back(value);
+            }
+          }
+        } else {
+          // We reuse the map to minimize amount of successful inserts.
+          auto [it, inserted] = map.emplace(value, split_id);
+
+          if (inserted || it->second != split_id) {
+            unique_values.push_back(value);
+            it->second = split_id;
+          }
         }
       }
-      split_points_builder.Set(split_id, unique_values.size());
       if (sort_bool) {
         if constexpr (internal::IsKodaScalarSortable<T>()) {
           std::sort(unique_values.begin() + unique_values_group_begin,
                     unique_values.end());
+          if (nan_value.has_value()) {
+            unique_values.push_back(*std::move(nan_value));
+          }
         } else {
           return absl::FailedPreconditionError(absl::StrCat(
               "sort is not supported for ", arolla::GetQType<T>()->name()));
         }
       }
+      split_points_builder.Set(split_id, unique_values.size());
     }
     internal::SliceBuilder builder(unique_values.size());
     for (size_t i = 0; i < unique_values.size(); ++i) {

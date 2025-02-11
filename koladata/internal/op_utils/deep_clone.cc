@@ -169,11 +169,6 @@ class DeepCloneVisitor : AbstractVisitor {
                        attr_schema);
   }
 
-  absl::Status VisitPrimitive(const DataItem& item,
-                              const DataItem& schema) override {
-    return absl::OkStatus();
-  }
-
  private:
   absl::Status PrevisitObject(const DataItem& item) {
     if (!item.holds_value<ObjectId>()) {

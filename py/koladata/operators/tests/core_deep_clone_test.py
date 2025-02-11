@@ -32,6 +32,12 @@ ds = data_slice.DataSlice.from_vals
 
 class CoreDeepCloneTest(parameterized.TestCase):
 
+  def test_primitives(self):
+    db = data_bag.DataBag.empty()
+    x = db.new(y=ds([1.0, float('inf'), float('-inf'), float('nan')]))
+    res = expr_eval.eval(kde.core.deep_clone(x))
+    testing.assert_equal(res.y.no_bag(), x.y.no_bag())
+
   @parameterized.product(
       pass_schema=[True, False],
   )
