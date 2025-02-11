@@ -160,12 +160,16 @@ class DataBagEqual {
       if (stream) {
         *stream << "\nEXPECTED: " << expected_triples.DebugString()
                 << "\nACTUAL: " << triples.DebugString();
+        *stream << "\n\nPRESENT BUT NOT EXPECTED: "
+                << triples.Subtract(expected_triples).DebugString();
+        *stream << "\n\nEXPECTED BUT NOT PRESENT: "
+                << expected_triples.Subtract(triples).DebugString();
       }
       return false;
     }
   }
 
-  void DescribeTo(std::ostream* os) const { *os << "data bags are  equal"; }
+  void DescribeTo(std::ostream* os) const { *os << "data bags are equal"; }
   void DescribeNegationTo(std::ostream* os) const {
     *os << "data bags are not equal";
   }

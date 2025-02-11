@@ -15,6 +15,7 @@
 #ifndef KOLADATA_INTERNAL_TRIPLES_H_
 #define KOLADATA_INTERNAL_TRIPLES_H_
 
+#include <algorithm>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -59,6 +60,16 @@ struct DictItemTriple {
   std::string DebugString() const { return absl::StrCat(*this); }
 };
 
+inline bool operator==(const AttrTriple& lhs, const AttrTriple& rhs) {
+  return std::tie(lhs.object, lhs.attribute, lhs.value) ==
+         std::tie(rhs.object, rhs.attribute, rhs.value);
+}
+
+inline bool operator==(const DictItemTriple& lhs, const DictItemTriple& rhs) {
+  return std::tie(lhs.object, lhs.key, lhs.value) ==
+         std::tie(rhs.object, rhs.key, rhs.value);
+}
+
 // Converting DataBag to Triples is slow. Intended for tests and debug.
 class Triples {
  public:
@@ -97,6 +108,29 @@ class Triples {
     sink.Append("}");
   }
 
+  Triples Subtract(const Triples& rhs) const {
+    Triples result;
+    for (const AttrTriple& attr_triple : attributes_) {
+      if (std::find(rhs.attributes().begin(), rhs.attributes().end(),
+                    attr_triple) == rhs.attributes().end()) {
+        result.attributes_.push_back(attr_triple);
+      }
+    }
+    for (const DictItemTriple& dict_triple : dicts_) {
+      if (std::find(rhs.dicts().begin(), rhs.dicts().end(), dict_triple) ==
+          rhs.dicts().end()) {
+        result.dicts_.push_back(dict_triple);
+      }
+    }
+    for (const auto& [list_id, values] : lists_) {
+      const auto it = rhs.lists().find(list_id);
+      if (it == rhs.lists().end() || it->second != values) {
+        result.lists_[list_id] = values;
+      }
+    }
+    return result;
+  }
+
  private:
   using AttrTripleKey = std::tuple<ObjectId, std::string>;
 
@@ -112,20 +146,12 @@ class Triples {
                           const DataBagContent::AttrContent& attr_content,
                           std::vector<AttrTriple>& attributes);
 
+  Triples() = default;
+
   std::vector<AttrTriple> attributes_;
   std::vector<DictItemTriple> dicts_;
   absl::btree_map<ObjectId, std::vector<DataItem>> lists_;
 };
-
-inline bool operator==(const AttrTriple& lhs, const AttrTriple& rhs) {
-  return std::tie(lhs.object, lhs.attribute, lhs.value) ==
-         std::tie(rhs.object, rhs.attribute, rhs.value);
-}
-
-inline bool operator==(const DictItemTriple& lhs, const DictItemTriple& rhs) {
-  return std::tie(lhs.object, lhs.key, lhs.value) ==
-         std::tie(rhs.object, rhs.key, rhs.value);
-}
 
 inline bool operator==(const Triples& lhs, const Triples& rhs) {
   return lhs.attributes() == rhs.attributes() && lhs.lists() == rhs.lists() &&

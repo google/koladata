@@ -16,9 +16,13 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "arolla/dense_array/dense_array.h"
@@ -39,6 +43,17 @@ std::string Explain(const MatcherType& m, const Value& x) {
   StringMatchResultListener listener;
   ExplainMatchResult(m, x, &listener);
   return listener.str();
+}
+
+using TriplesT = std::vector<
+    std::pair<DataItem, std::vector<std::pair<std::string_view, DataItem>>>>;
+
+void SetDataTriples(DataBagImpl& db, const TriplesT& data_triples) {
+  for (const auto& [item, attrs] : data_triples) {
+    for (const auto& [attr_name, attr_data] : attrs) {
+      EXPECT_OK(db.SetAttr(item, attr_name, attr_data));
+    }
+  }
 }
 
 TEST(MatchersTest, DataItemWith) {
@@ -101,6 +116,33 @@ TEST(MatchersTest, IsEquivalentTo_DataSliceImpl) {
               Eq("is not equivalent to [1, 2, 3]"));
   EXPECT_THAT(Explain(m, ds1), Eq("which is equivalent"));
   EXPECT_THAT(Explain(m, ds2), Eq("which is not equivalent"));
+}
+
+TEST(DataBagEqual, SameDataBags) {
+  DataBagImplPtr db1 = DataBagImpl::CreateEmptyDatabag();
+  DataBagImplPtr db2 = DataBagImpl::CreateEmptyDatabag();
+
+  const DataSliceImpl obj_ids = DataSliceImpl::AllocateEmptyObjects(1);
+  const DataItem obj = obj_ids[0];
+
+  const TriplesT data_triples = {
+      {obj, {{"x", DataItem(123)}}},
+  };
+
+  SetDataTriples(*db1, data_triples);
+
+  auto m = testing::DataBagEqual(*db2);
+  EXPECT_THAT(::testing::DescribeMatcher<DataBagImplPtr>(m),
+              Eq("data bags are equal"));
+  EXPECT_THAT(::testing::DescribeMatcher<DataBagImplPtr>(m, /*negation=*/true),
+              Eq("data bags are not equal"));
+  EXPECT_THAT(
+      Explain(m, db1),
+      ::testing::ContainsRegex(
+          R"regexp(EXPECTED: DataBag \{\s\}\sACTUAL: DataBag \{\s+ObjectId=.+ attr=x value=123\s\}\s+PRESENT BUT NOT EXPECTED: DataBag \{\s+ObjectId=.+ attr=x value=123\s\}\s+EXPECTED BUT NOT PRESENT: DataBag \{\s\})regexp"));
+
+  SetDataTriples(*db2, data_triples);
+  EXPECT_THAT(Explain(m, db1), Eq(""));
 }
 
 }  // namespace koladata::internal

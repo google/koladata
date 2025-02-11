@@ -40,6 +40,7 @@ cc_test(
     srcs = ["matchers_test.cc"],
     deps = [
         ":matchers",
+        "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "@com_google_arolla//arolla/dense_array",
