@@ -269,6 +269,11 @@ class KodaView(arolla.abc.ExprView):
         'kd.with_dict_update', self, keys=keys, values=values
     )
 
+  def with_list_append_update(self, append: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kd.with_list_append_update', self, append=append
+    )
+
   def follow(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.follow', self)
 

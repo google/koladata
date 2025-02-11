@@ -2311,7 +2311,7 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     testing.assert_equal(d.S[0].dict_size(), ds(1, schema_constants.INT64))
     testing.assert_equal(d.S[1].dict_size(), ds(2, schema_constants.INT64))
 
-  # More comprehensive tests are in core_dict_update_test.py.
+  # More comprehensive tests are in dicts_dict_update_test.py.
   def test_dict_update(self):
     x1 = bag().dict(ds([1, 2]), ds([3, 4]))
     testing.assert_dicts_equal(
@@ -2323,12 +2323,23 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
         bag().dict(ds([1, 3]), ds([5, 6])),
     )
 
-  # More comprehensive tests are in core_with_dict_update_test.py.
+  # More comprehensive tests are in dicts_with_dict_update_test.py.
   def test_with_dict_update(self):
     x1 = bag().dict(ds([1, 2]), ds([3, 4]))
     testing.assert_dicts_equal(
         x1.with_dict_update(fns.dict({1: 5, 3: 6})),
         bag().dict(ds([1, 2, 3]), ds([5, 4, 6])),
+    )
+
+  # More comprehensive tests are in lists_appended_list_test.py
+  def test_with_list_append_update(self):
+    x = ds([fns.list([1, 2]), fns.list([3, 4])])
+    append = ds([5, 6])
+    result = x.with_list_append_update(append)
+
+    testing.assert_nested_lists_equal(
+        result,
+        ds([fns.list([1, 2, 5]), fns.list([3, 4, 6])]),
     )
 
   def test_list_slice(self):

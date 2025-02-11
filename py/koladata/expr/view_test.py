@@ -333,6 +333,12 @@ class KodaViewTest(parameterized.TestCase):
         kde.with_dict_update(C.x, C.keys, C.values),
     )
 
+  def test_with_list_append_update(self):
+    testing.assert_equal(
+        C.x.with_list_append_update(C.append),
+        kde.with_list_append_update(C.x, C.append),
+    )
+
   def test_follow(self):
     testing.assert_equal(C.x.follow(), kde.follow(C.x))
 

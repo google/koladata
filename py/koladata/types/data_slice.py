@@ -244,6 +244,15 @@ def _with_dict_update(
   return _eval_op('kd.with_dict_update', self, keys=keys, values=values)
 
 
+@add_method(
+    DataSlice,
+    'with_list_append_update',
+    docstring_from='kd.with_list_append_update',
+)
+def _with_list_append_update(self, append: Any) -> DataSlice:
+  return _eval_op('kd.with_list_append_update', x=self, append=append)
+
+
 @add_method(DataSlice, 'follow', docstring_from='kd.follow')
 def _follow(self) -> DataSlice:
   return _eval_op('kd.follow', self)
