@@ -4574,7 +4574,7 @@ Creates a Koda entity schema corresponding to the given Python type.
   This method supports the following Python types / type annotations
   recursively:
   - Primitive types: int, float, bool, str, bytes.
-  - Collections: list[...], dict[...].
+  - Collections: list[...], dict[...], Sequence[...], Mapping[...], ect.
   - Unions: only "smth | None" or "Optional[smth]" is supported.
   - Dataclasses.
 
