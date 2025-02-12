@@ -13,6 +13,7 @@
 # limitations under the License.
 
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_pybind_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -50,5 +51,30 @@ cc_library(
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/py_utils",
+    ],
+)
+
+koladata_pybind_extension(
+    name = "testing_clib",
+    testonly = True,
+    srcs = ["testing_clib.cc"],
+    deps = [
+        ":dataclasses_util",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//py/arolla/abc:pybind11_utils",
+        "@com_google_arolla//py/arolla/py_utils",
+        "@pybind11_abseil//pybind11_abseil:absl_casters",
+    ],
+)
+
+py_test(
+    name = "dataclasses_util_test",
+    srcs = ["dataclasses_util_test.py"],
+    deps = [
+        ":testing_clib",
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
