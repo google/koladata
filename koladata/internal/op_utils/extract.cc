@@ -279,6 +279,19 @@ class CopyingProcessor {
     return new_databag_->SetAttr(ds, attr_name, attr_ds);
   }
 
+  absl::Status SetSchemaAttrToNewDatabagSkipMissing(
+      DataSliceImpl ds, const std::string_view attr_name,
+      const DataSliceImpl& attr_ds) {
+    // TODO: We need to differentiate between removed and unset
+    // schema attributes, and to set them accordingly in the new_databag_.
+    // For now we assume that all of them are unset.
+    if (attr_ds.present_count() < ds.present_count()) {
+      ASSIGN_OR_RETURN(auto mask, HasOp()(attr_ds));
+      ASSIGN_OR_RETURN(ds, PresenceAndOp()(ds, mask));
+    }
+    return new_databag_->SetSchemaAttr(ds, attr_name, attr_ds);
+  }
+
   absl::Status ProcessAttribute(const QueuedSlice& slice,
                                 const std::string_view attr_name,
                                 const DataItem& attr_schema) {
@@ -414,8 +427,7 @@ class CopyingProcessor {
   // Returns copied schemas and a boolean value indicating if the `new_databag_`
   // was changed.
   absl::StatusOr<std::pair<DataSliceImpl, bool>> CopyAttrSchemas(
-      const DataSliceImpl& new_schemas,
-      const DataSliceImpl& old_schemas,
+      const DataSliceImpl& new_schemas, const DataSliceImpl& old_schemas,
       const std::string_view attr_name) {
     ASSIGN_OR_RETURN(
         DataSliceImpl attr_schemas,
@@ -427,8 +439,8 @@ class CopyingProcessor {
         DataSliceImpl copied_schemas,
         new_databag_->GetSchemaAttrAllowMissing(new_schemas, attr_name));
     if (copied_schemas.is_empty_and_unknown()) {
-      RETURN_IF_ERROR(
-          new_databag_->SetSchemaAttr(new_schemas, attr_name, attr_schemas));
+      RETURN_IF_ERROR(SetSchemaAttrToNewDatabagSkipMissing(
+          new_schemas, attr_name, attr_schemas));
       return std::make_pair(std::move(attr_schemas), true);
     }
     ASSIGN_OR_RETURN(auto eq_schemas, EqualOp()(copied_schemas, attr_schemas));
@@ -436,13 +448,13 @@ class CopyingProcessor {
       return std::make_pair(std::move(attr_schemas), false);
     }
     if (eq_schemas.present_count() == copied_schemas.present_count()) {
-      RETURN_IF_ERROR(
-          new_databag_->SetSchemaAttr(new_schemas, attr_name, attr_schemas));
+      RETURN_IF_ERROR(SetSchemaAttrToNewDatabagSkipMissing(
+          new_schemas, attr_name, attr_schemas));
       return std::make_pair(std::move(attr_schemas), true);
     }
     ASSIGN_OR_RETURN(auto attr_schemas_mask, HasOp()(attr_schemas));
     ASSIGN_OR_RETURN(auto schemas_overwritten,
-                      PresenceAndOp()(copied_schemas, attr_schemas_mask));
+                     PresenceAndOp()(copied_schemas, attr_schemas_mask));
     if (eq_schemas.present_count() != schemas_overwritten.present_count()) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "conflicting values for some of schemas %v attribute %s: %v != "
@@ -452,9 +464,9 @@ class CopyingProcessor {
     // If there are previously set attributes, that are missing in
     // attr_schemas, we shouldn't overwrite them.
     ASSIGN_OR_RETURN(auto new_schemas_overwrite,
-                      PresenceAndOp()(new_schemas, attr_schemas_mask));
-    RETURN_IF_ERROR(new_databag_->SetSchemaAttr(new_schemas_overwrite,
-                                                attr_name, attr_schemas));
+                     PresenceAndOp()(new_schemas, attr_schemas_mask));
+    RETURN_IF_ERROR(SetSchemaAttrToNewDatabagSkipMissing(
+        std::move(new_schemas_overwrite), attr_name, attr_schemas));
     return std::make_pair(std::move(attr_schemas), true);
   }
 
@@ -826,7 +838,7 @@ class CopyingProcessor {
           if (!schema.IsSmallAlloc()) {
             schema_repr = AllocationId(schema).ObjectByOffset(0);
           }
-          schema_allocs_bldr.Set(idx, schema);
+          schema_allocs_bldr.Set(idx, schema_repr);
           if (schema_alloc.has_value()) {
             is_single_allocation &= *schema_alloc == schema_repr;
           } else {
