@@ -1177,9 +1177,9 @@ but it makes accesses much slower. Koda chose not to do so.
 
 ```py
 l1 = kd.list([1, 2, 3])
-l2 = kd.with_list_append_update(l1, 4)  # List[1, 2, 3, 4]
+l2 = l1.with_list_append_update(4)  # List[1, 2, 3, 4]
 assert l1.get_itemid() == l2.get_itemid()
-l3 = kd.with_list_append_update(l1, kd.slice([4, 5]))  # List[1, 2, 3, 4, 5]
+l3 = l1.with_list_append_update(kd.slice([4, 5]))  # List[1, 2, 3, 4, 5]
 assert l2.get_itemid() == l3.get_itemid()
 ```
 

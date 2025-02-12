@@ -472,8 +472,8 @@ the original lists. Using list updates can be tricky and see the
 
 ```py
 l = kd.list([1, 2, 3])
-l1 = kd.with_list_append_update(l, 4)  # List[1, 2, 3, 4]
-l2 = kd.with_list_append_update(l, kd.slice([5, 6]))  # List[1, 2, 3, 5, 6]
+l1 = l.with_list_append_update(4)  # List[1, 2, 3, 4]
+l2 = l.with_list_append_update(kd.slice([5, 6]))  # List[1, 2, 3, 5, 6]
 # l stays the same as it is immutable
 l  # List[1, 2, 3]
 ```
@@ -2709,7 +2709,7 @@ elements.
 ```py
 t = kd.list([1, 2, 3])
 t = t.updated(kd.list_append_update(t, 3))
-t = kd.with_list_append_update(t, kd.slice([4, 5]))
+t = t.with_list_append_update(kd.slice([4, 5]))
 ```
 
 Alternatively we can accumulate entity/dict updates which can be stored
