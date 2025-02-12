@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
+from koladata.types import qtypes
 
 P = arolla.P
 
@@ -26,9 +27,16 @@ P = arolla.P
 @optools.as_backend_operator(
     'kd.functor.call',
     qtype_inference_expr=P.return_type_as,
+    qtype_constraints=[(
+        P.fn == qtypes.DATA_SLICE,
+        (
+            'expected a functor DATA_SLICE, got'
+            f' {arolla.optools.constraints.name_type_msg(P.fn)}'
+        ),
+    )],
     deterministic=False,
 )
-def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):
+def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):  # pylint: disable=unused-argument
   """Calls a functor.
 
   See the docstring of `kd.fn` on how to create a functor.
@@ -62,14 +70,20 @@ def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):
 @optools.as_backend_operator(
     'kd.functor.map',
     qtype_constraints=[
-        qtype_utils.expect_data_slice(P.fn),
+        (
+            P.fn == qtypes.DATA_SLICE,
+            (
+                'expected a functor DATA_SLICE, got'
+                f' {arolla.optools.constraints.name_type_msg(P.fn)}'
+            ),
+        ),
         qtype_utils.expect_data_slice_args(P.args),
         qtype_utils.expect_data_slice(P.include_missing),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
     deterministic=False,
 )
-def map_(fn, *args, include_missing=False, **kwargs):
+def map_(fn, *args, include_missing=False, **kwargs):  # pylint: disable=unused-argument
   """Aligns fn and args/kwargs and calls corresponding fn on corresponding arg.
 
   If certain items of `fn` are missing, the corresponding items of the result

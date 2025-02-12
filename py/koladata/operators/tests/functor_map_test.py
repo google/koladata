@@ -19,6 +19,7 @@ import time
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -182,9 +183,9 @@ class MapTest(parameterized.TestCase):
     y = ds(1)
     testing.assert_equal(
         expr_eval.eval(
-            kde.functor.map(I.fn, x=I.x, y=I.y),
-            fn=ds([fn1, fn2]), x=x, y=y),
-        ds([[2, None, 4], [3, 4, 5]])
+            kde.functor.map(I.fn, x=I.x, y=I.y), fn=ds([fn1, fn2]), x=x, y=y
+        ),
+        ds([[2, None, 4], [3, 4, 5]]),
     )
 
     testing.assert_equal(
@@ -291,6 +292,12 @@ class MapTest(parameterized.TestCase):
       # with a different error unless the interruption is handled by
       # the operator.
       expr_eval.eval(expr, x=x)
+
+  def test_non_functor_input_error(self):
+    with self.assertRaisesRegex(
+        ValueError, 'expected a functor DATA_SLICE, got fn: INT32'
+    ):
+      kde.functor.map(arolla.int32(1))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.functor.map(I.fn, I.x, I.y)))

@@ -272,6 +272,12 @@ class FunctorCallTest(absltest.TestCase):
       # the operator.
       expr_eval.eval(expr, x=x)
 
+  def test_non_functor_input_error(self):
+    with self.assertRaisesRegex(
+        ValueError, 'expected a functor DATA_SLICE, got fn: INT32'
+    ):
+      kde.functor.call(arolla.int32(1))
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.call(I.fn)))
 

@@ -587,6 +587,7 @@ py_library(
         ":qtype_utils",
         "//koladata/functor:operators",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
