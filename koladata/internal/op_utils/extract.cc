@@ -269,7 +269,8 @@ class CopyingProcessor {
     if (attr_ds.types_buffer().size() != 0) {
       auto set_mask =
           attr_ds.types_buffer().ToInvertedBitmap(TypesBuffer::kUnset);
-      if (!arolla::bitmap::AreAllBitsSet(set_mask.begin(), ds.size())) {
+      if (!set_mask.empty() &&
+          !arolla::bitmap::AreAllBitsSet(set_mask.begin(), ds.size())) {
         const auto& objects_array = ds.values<ObjectId>();
         ds = DataSliceImpl::CreateWithAllocIds(
             ds.allocation_ids(),

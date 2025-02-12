@@ -58,7 +58,8 @@ SliceBuilder::BuildDataSliceVariant(StorageVariant& sv) {
           using T = arolla::meta::strip_template_t<TypedStorage, TS>;
           uint8_t ti = ts.type_index;
           auto bitmap = types_buffer_.ToBitmap(ti);
-          if (arolla::bitmap::AreAllBitsUnset(bitmap.begin(), size())) {
+          if (!size() || (!bitmap.empty() && arolla::bitmap::AreAllBitsUnset(
+                                                 bitmap.begin(), size()))) {
             return Res{false, ti, DataSliceImpl::Variant()};
           }
           return Res{

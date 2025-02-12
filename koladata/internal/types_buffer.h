@@ -83,19 +83,24 @@ struct TypesBuffer {
   }
 
   // Creates bitmap of (id_to_typeidx[i] == type_idx) per element.
+  // NOTE: Empty bitmap means that all values are present.
   arolla::bitmap::Bitmap ToBitmap(uint8_t type_idx) const;
 
   // Creates bitmap of (id_to_typeidx[i] != type_idx) per element.
+  // NOTE: Empty bitmap means that all values are present.
   arolla::bitmap::Bitmap ToInvertedBitmap(uint8_t type_idx) const;
 
   // Creates bitmap of (id_to_typeidx[i] not in [kUnset, kRemoved]) per element.
+  // NOTE: Empty bitmap means that all values are present.
   arolla::bitmap::Bitmap ToPresenceBitmap() const;
 
   // Creates bitmap of (id_to_typeidx[i] != kRemoved) per element.
+  // NOTE: Empty bitmap means that all values are present.
   arolla::bitmap::Bitmap ToNotRemovedBitmap() const {
     return ToInvertedBitmap(kRemoved);
   }
   // Creates bitmap of (id_to_typeidx[i] != kUnset) per element.
+  // NOTE: Empty bitmap means that all values are present.
   arolla::bitmap::Bitmap ToSetBitmap() const {
     return ToInvertedBitmap(kUnset);
   }
