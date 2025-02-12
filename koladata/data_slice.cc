@@ -24,6 +24,7 @@
 #include <variant>
 
 #include "absl/base/nullability.h"
+#include "absl/container/btree_set.h"
 #include "absl/functional/overload.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -46,6 +47,7 @@
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/expand.h"
+#include "koladata/internal/op_utils/group_by_utils.h"
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/op_utils/presence_or.h"
@@ -226,6 +228,32 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataItem(
   return GetAttrsFromSchemaItem(schema_item, db_impl, fallbacks);
 }
 
+absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
+    internal::ObjectId schema_alloc, const internal::DataSliceImpl& slice,
+    const internal::DataSliceImpl& schemas,
+    const internal::DataBagImpl& db_impl,
+    internal::DataBagImpl::FallbackSpan fallbacks, bool union_object_attrs) {
+  if (internal::AllocationId(schema_alloc).IsSmall()) {
+    return GetAttrsFromSchemaItem(internal::DataItem(schema_alloc), db_impl,
+                                  fallbacks);
+  }
+  auto attr_names = db_impl.GetSchemaAttrsForBigAllocationAsVector(
+      internal::AllocationId(schema_alloc), fallbacks);
+  auto result = DataSlice::AttrNamesSet();
+  for (const auto& attr_name : attr_names) {
+    const auto& attr_name_view = attr_name.value<arolla::Text>();
+    ASSIGN_OR_RETURN(auto attr, db_impl.GetSchemaAttrAllowMissing(
+                                    slice, attr_name_view, fallbacks));
+    bool need_insert = !attr.is_empty_and_unknown();
+    need_insert &=
+        union_object_attrs || (attr.present_count() == slice.present_count());
+    if (need_insert) {
+      result.insert(std::string(attr_name_view));
+    }
+  }
+  return result;
+}
+
 absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
     const internal::DataSliceImpl& slice, const internal::DataItem& ds_schema,
     const internal::DataBagImpl& db_impl,
@@ -254,35 +282,74 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
     // Empty set.
     return DataSlice::AttrNamesSet();
   }
-  RETURN_IF_ERROR(
-      schemas->VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
-        absl::Status status = absl::OkStatus();
-        if constexpr (std::is_same_v<T, internal::ObjectId>) {
-          array.ForEachPresent([&](int64_t id, T schema_item) {
-            if (!status.ok() || (result && result->empty())) {
-              return;
-            }
-            auto attrs_or = GetAttrsFromSchemaItem(
-                internal::DataItem(schema_item), db_impl, fallbacks);
-            if (!attrs_or.ok()) {
-              status = attrs_or.status();
-              return;
-            }
-            if (!result) {
-              result = *std::move(attrs_or);
-              return;
-            }
-            const auto& attrs = *attrs_or;
-            if (union_object_attrs) {
-              result->insert(attrs.begin(), attrs.end());
-            } else {
-              absl::erase_if(*result,
-                             [&](auto a) { return !attrs.contains(a); });
-            }
-          });
+  arolla::DenseArrayBuilder<internal::ObjectId> schema_allocs_bldr(
+      schemas->size());
+  bool is_single_allocation = true;
+  std::optional<internal::ObjectId> first_schema_alloc = std::nullopt;
+  schemas->VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
+    absl::Status status = absl::OkStatus();
+    if constexpr (std::is_same_v<T, internal::ObjectId>) {
+      array.ForEachPresent([&](size_t idx, const internal::ObjectId& schema) {
+        if (schema.IsNoFollowSchema()) {
+          return;
         }
-        return status;
-      }));
+        internal::ObjectId schema_repr = schema;
+        if (!schema.IsSmallAlloc()) {
+          schema_repr = internal::AllocationId(schema).ObjectByOffset(0);
+        }
+        schema_allocs_bldr.Set(idx, schema_repr);
+        if (first_schema_alloc.has_value()) {
+          is_single_allocation &= *first_schema_alloc == schema_repr;
+        } else {
+          first_schema_alloc = schema_repr;
+        }
+      });
+    }
+  });
+  if (!first_schema_alloc.has_value()) {
+    return DataSlice::AttrNamesSet();
+  }
+  if (is_single_allocation) {
+    return GetAttrsFromDataSliceInSingleAllocation(*first_schema_alloc, slice,
+                                                   *schemas, db_impl, fallbacks,
+                                                   union_object_attrs);
+  }
+  auto group_by = internal::ObjectsGroupBy();
+  const auto schema_allocs = std::move(schema_allocs_bldr).Build();
+  ASSIGN_OR_RETURN(auto edge, group_by.EdgeFromSchemasArray(schema_allocs));
+  ASSIGN_OR_RETURN(auto group_schema_allocs,
+                   group_by.CollapseByEdge(edge, schema_allocs));
+  ASSIGN_OR_RETURN(auto slice_grouped,
+                   group_by.ByEdge(edge, slice.values<internal::ObjectId>()));
+  ASSIGN_OR_RETURN(
+      auto schemas_grouped,
+      group_by.ByEdge(edge, schemas->values<internal::ObjectId>()));
+  auto status = absl::OkStatus();
+  group_schema_allocs.ForEachPresent(
+      [&](size_t idx, internal::ObjectId schema_alloc) {
+        if (!status.ok()) {
+          return;
+        }
+        auto attrs_or = GetAttrsFromDataSliceInSingleAllocation(
+            schema_alloc,
+            internal::DataSliceImpl::Create(std::move(slice_grouped[idx])),
+            internal::DataSliceImpl::Create(std::move(schemas_grouped[idx])),
+            db_impl, fallbacks, union_object_attrs);
+        if (!attrs_or.ok()) {
+          status = attrs_or.status();
+          return;
+        }
+        if (!result) {
+          result = *std::move(attrs_or);
+          return;
+        }
+        const auto& attrs = *attrs_or;
+        if (union_object_attrs) {
+          result->insert(attrs.begin(), attrs.end());
+        } else {
+          absl::erase_if(*result, [&](auto a) { return !attrs.contains(a); });
+        }
+      });
   return result.value_or(DataSlice::AttrNamesSet());
 }
 

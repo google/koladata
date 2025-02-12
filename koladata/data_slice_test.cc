@@ -1192,6 +1192,103 @@ TEST(DataSliceTest, GetAttrNames_NoFollow) {
               IsOkAndHolds(ElementsAre()));
 }
 
+TEST(DataSliceTest, GetAttrNames_IntersectionInOneAllocation) {
+  auto db = DataBag::Empty();
+  auto items = DataSliceImpl::AllocateEmptyObjects(3);
+  auto shape = DataSlice::JaggedShape::FlatFromSize(1);
+  ASSERT_OK_AND_ASSIGN(
+      auto item1,
+      DataSlice::Create(items[0], shape, DataItem(schema::kItemId)));
+  ASSERT_OK_AND_ASSIGN(
+      auto item2,
+      DataSlice::Create(items[1], shape, DataItem(schema::kItemId)));
+  ASSERT_OK_AND_ASSIGN(
+      auto item3,
+      DataSlice::Create(items[2], shape, DataItem(schema::kItemId)));
+  ASSERT_OK_AND_ASSIGN(
+      item1, ObjectCreator::FromAttrs(db, {"a", "b"},
+                                      {test::DataSlice<int>({1}),
+                                       test::DataSlice<arolla::Text>({"a"})},
+                                      /*itemid=*/{item1}));
+  ASSERT_OK_AND_ASSIGN(
+      item2, ObjectCreator::FromAttrs(
+                 db, {"a", "c"},
+                 {test::DataSlice<int>({2}), test::DataSlice<float>({3.14})},
+                 /*itemid=*/{item2}));
+  ASSERT_OK_AND_ASSIGN(
+      item3, ObjectCreator::FromAttrs(db, {"a"}, {test::DataSlice<int>({3})},
+                                      /*itemid=*/{item3}));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, DataSlice::Create(items, DataSlice::JaggedShape::FlatFromSize(3),
+                                 DataItem(schema::kObject), db));
+  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a")));
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/ true),
+              IsOkAndHolds(ElementsAre("a", "b", "c")));
+}
+
+TEST(DataSliceTest, GetAttrNames_MultipleAllocations) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
+  auto schemas_a = DataSliceImpl::ObjectsFromAllocation(
+      internal::AllocateExplicitSchemas(5), 5);
+  auto schemas_b = DataSliceImpl::ObjectsFromAllocation(
+      internal::AllocateExplicitSchemas(3), 3);
+  auto schema = DataItem(internal::AllocateExplicitSchema());
+  ASSERT_OK(
+      db_impl.get().SetSchemaAttr(schemas_a, "a", DataItem(schema::kInt32)));
+  ASSERT_OK(
+      db_impl.get().SetSchemaAttr(schemas_a, "b", DataItem(schema::kString)));
+  ASSERT_OK(
+      db_impl.get().SetSchemaAttr(schemas_b, "a", DataItem(schema::kString)));
+  ASSERT_OK(
+      db_impl.get().SetSchemaAttr(schema, "a", DataItem(schema::kFloat32)));
+  ASSERT_OK(
+      db_impl.get().SetSchemaAttr(schema, "c", DataItem(schema::kFloat32)));
+  ASSERT_OK(
+      db_impl.get().SetSchemaAttr(schemas_a[2], "d", DataItem(schema::kInt32)));
+  ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::Create(
+      DataSliceImpl::Create({schemas_a[0], schemas_a[1], schemas_a[2],
+                             schemas_b[0], schemas_b[1], schemas_b[2], schema,
+                             schemas_a[3], schemas_a[4]}),
+      DataSlice::JaggedShape::FlatFromSize(9), DataItem(schema::kSchema), db));
+  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a")));
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/ true),
+              IsOkAndHolds(ElementsAre("a", "b", "c", "d")));
+}
+
+TEST(DataSliceTest, GetAttrNames_MultipleAllocationsWithFallback) {
+  auto db = DataBag::Empty();
+  auto fallback_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto db_impl, db->GetMutableImpl());
+  ASSERT_OK_AND_ASSIGN(auto fallback_db_impl, fallback_db->GetMutableImpl());
+  auto schemas_a = DataSliceImpl::ObjectsFromAllocation(
+      internal::AllocateExplicitSchemas(5), 5);
+  auto schemas_b = DataSliceImpl::ObjectsFromAllocation(
+      internal::AllocateExplicitSchemas(3), 3);
+  auto schema = DataItem(internal::AllocateExplicitSchema());
+  ASSERT_OK(
+      db_impl.get().SetSchemaAttr(schemas_a, "a", DataItem(schema::kInt32)));
+  ASSERT_OK(fallback_db_impl.get().SetSchemaAttr(schemas_a, "b",
+                                                 DataItem(schema::kString)));
+  ASSERT_OK(fallback_db_impl.get().SetSchemaAttr(schemas_b, "a",
+                                                 DataItem(schema::kString)));
+  ASSERT_OK(
+      db_impl.get().SetSchemaAttr(schema, "a", DataItem(schema::kFloat32)));
+  ASSERT_OK(fallback_db_impl.get().SetSchemaAttr(schema, "c",
+                                                 DataItem(schema::kFloat32)));
+  ASSERT_OK(
+      db_impl.get().SetSchemaAttr(schemas_a[2], "d", DataItem(schema::kInt32)));
+  db = DataBag::ImmutableEmptyWithFallbacks({db, fallback_db});
+  ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::Create(
+      DataSliceImpl::Create({schemas_a[0], schemas_a[1], schemas_a[2],
+                             schemas_b[0], schemas_b[1], schemas_b[2], schema,
+                             schemas_a[3], schemas_a[4]}),
+      DataSlice::JaggedShape::FlatFromSize(9), DataItem(schema::kSchema), db));
+  EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a")));
+  EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs =*/ true),
+              IsOkAndHolds(ElementsAre("a", "b", "c", "d")));
+}
+
 TEST(DataSliceTest, GetAttrNames_Primitives) {
   auto ds = test::DataSlice<int>({1});
   EXPECT_THAT(ds.GetAttrNames(), StatusIs(absl::StatusCode::kInvalidArgument,
