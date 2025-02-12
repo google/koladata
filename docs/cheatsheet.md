@@ -276,7 +276,7 @@ l6.select_items(lambda x: x >= 2) # [2, 4]
 # Append a single item
 l7 = l1.with_list_append_update(4)
 # Append multiple items
-l8 = l1.with_list_append_update( [4, 5])
+l8 = l1.with_list_append_update(kd.slice([4, 5]))
 
 # Note that list update does not support
 # updating/removing existing items
