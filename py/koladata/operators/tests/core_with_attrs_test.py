@@ -81,6 +81,15 @@ class CoreWithAttrsTest(absltest.TestCase):
     o = kde.core.with_attrs(o, x=1).eval()
     self.assertEqual(o.x.no_bag(), ds(1))
 
+  def test_none_works(self):
+    x = ds(None).with_bag(bag())
+    x = kde.core.with_attrs(x, x=1).eval()
+    testing.assert_equal(x.no_bag(), ds(None))
+
+    # Also works when update_schema=True.
+    x = kde.core.with_attrs(x, update_schema=True, x=1).eval()
+    testing.assert_equal(x.no_bag(), ds(None))
+
   def test_schema_works(self):
     o = bag().new_schema()
     o = kde.core.with_attrs(o, x=schema_constants.INT32).eval()

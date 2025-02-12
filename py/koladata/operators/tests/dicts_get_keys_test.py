@@ -58,10 +58,8 @@ class DictsGetKeysTest(parameterized.TestCase):
           ds(None).with_schema(dict_item.get_schema()),
           ds([], schema_constants.INT32),
       ),
-      (
-          ds(None).with_schema(schema_constants.OBJECT),
-          ds([], schema_constants.OBJECT),
-      ),
+      (ds(None), ds([])),
+      (ds(None).with_schema(schema_constants.OBJECT), ds([])),
       (
           ds(None).with_schema(schema_constants.ANY),
           ds([], schema_constants.ANY),

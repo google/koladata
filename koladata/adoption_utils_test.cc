@@ -18,12 +18,16 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
@@ -32,6 +36,9 @@ namespace koladata {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
+using ::koladata::internal::testing::DataBagEqual;
+using ::testing::HasSubstr;
 using ::testing::UnorderedElementsAre;
 
 TEST(AdoptionQueueTest, Empty) {
@@ -41,7 +48,7 @@ TEST(AdoptionQueueTest, Empty) {
   auto db1 = DataBag::Empty();
   auto db2 = DataBag::Empty();
   EXPECT_OK(q.AdoptInto(*db1));
-  EXPECT_THAT(db1->GetImpl(), internal::testing::DataBagEqual(db2->GetImpl()));
+  EXPECT_THAT(db1->GetImpl(), DataBagEqual(db2->GetImpl()));
 }
 
 TEST(AdoptionQueueTest, Single) {
@@ -242,6 +249,224 @@ TEST(AdoptionQueueTest, Extraction) {
   EXPECT_THAT(db3->GetImpl().GetAttr(obj22, "a"),
               IsOkAndHolds(internal::DataItem()));  // Not extracted.
 }
+
+TEST(AdoptStubTest, Enity) {
+  {
+    // Holding primitives.
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice schema,
+        CreateEntitySchema(db1, {"a"}, {test::Schema(schema::kInt32)}));
+    auto& db1_impl = db1->GetMutableImpl()->get();
+    internal::DataItem obj(internal::AllocateSingleObject());
+    ASSERT_OK(db1_impl.SetAttr(obj, "a", internal::DataItem(1)));
+    DataSlice item = test::DataItem(obj, schema.item(), db1);
+    auto db2 = DataBag::Empty();
+    // Nothing is adopted.
+    ASSERT_OK(AdoptStub(db2, item));
+    EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
+  }
+  {
+    // Holding lists.
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(DataSlice list_schema,
+                         CreateListSchema(db1, test::Schema(schema::kInt32)));
+    ASSERT_OK_AND_ASSIGN(DataSlice schema,
+                         CreateEntitySchema(db1, {"a"}, {list_schema}));
+    auto& db1_impl = db1->GetMutableImpl()->get();
+    internal::DataItem obj(internal::AllocateSingleObject());
+    ASSERT_OK_AND_ASSIGN(auto list,
+                         CreateEmptyList(db1, /*schema=*/list_schema));
+    ASSERT_OK(db1_impl.SetAttr(obj, "a", list.item()));
+    DataSlice item = test::DataItem(obj, schema.item(), db1);
+    auto db2 = DataBag::Empty();
+    // Nothing is adopted.
+    ASSERT_OK(AdoptStub(db2, item));
+    EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
+  }
+}
+
+TEST(AdoptStubTest, Object) {
+  {
+    // Holding primitives.
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice schema,
+        CreateEntitySchema(db1, {"a"}, {test::Schema(schema::kInt32)}));
+    auto& db1_impl = db1->GetMutableImpl()->get();
+    internal::DataItem obj(internal::AllocateSingleObject());
+    ASSERT_OK(db1_impl.SetAttr(obj, "a", internal::DataItem(1)));
+    DataSlice item = test::DataItem(obj, schema::kObject, db1);
+    ASSERT_OK(item.SetAttr(schema::kSchemaAttr, schema));
+    auto db2 = DataBag::Empty();
+    // The __schema__ is adopted.
+    ASSERT_OK(AdoptStub(db2, item));
+    auto expected_db = DataBag::Empty();
+    ASSERT_OK(expected_db->GetMutableImpl()->get().SetAttr(
+        obj, schema::kSchemaAttr, schema.item()));
+    EXPECT_THAT(db2->GetImpl(), DataBagEqual(expected_db->GetImpl()));
+  }
+}
+
+TEST(AdoptStubTest, List) {
+  {
+    // Holding primitives.
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(DataSlice schema,
+                         CreateListSchema(db1, test::Schema(schema::kInt32)));
+    ASSERT_OK_AND_ASSIGN(auto list, CreateEmptyList(db1, /*schema=*/schema));
+    auto db2 = DataBag::Empty();
+    // The list schema is adopted.
+    ASSERT_OK(AdoptStub(db2, list));
+    auto expected_db = DataBag::Empty();
+    ASSERT_OK(schema.WithBag(expected_db)
+                  .SetAttr(schema::kListItemsSchemaAttr,
+                           test::Schema(schema::kInt32)));
+    // Write a list-item as well for recursion.
+    ASSERT_OK(expected_db->GetMutableImpl()->get().ReplaceInList(
+        list.item(), internal::DataBagImpl::ListRange(0),
+        internal::DataSliceImpl::CreateEmptyAndUnknownType(0)));
+    EXPECT_THAT(db2->GetImpl(), DataBagEqual(expected_db->GetImpl()));
+  }
+  {
+    // Recursive lists.
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(DataSlice list_schema,
+                         CreateListSchema(db1, test::Schema(schema::kInt32)));
+    ASSERT_OK_AND_ASSIGN(DataSlice nested_list_schema,
+                         CreateListSchema(db1, list_schema));
+
+    ASSERT_OK_AND_ASSIGN(auto l1, CreateEmptyList(db1, /*schema=*/list_schema));
+    ASSERT_OK_AND_ASSIGN(auto l2, CreateEmptyList(db1, /*schema=*/list_schema));
+    auto lists = test::DataSlice<internal::ObjectId>(
+        {l1.item().value<internal::ObjectId>(),
+         l2.item().value<internal::ObjectId>()},
+        list_schema.item().value<internal::ObjectId>(), db1);
+    ASSERT_OK_AND_ASSIGN(auto nested_list,
+                         CreateNestedList(db1, lists, nested_list_schema));
+    auto db2 = DataBag::Empty();
+    // The list schema is adopted.
+    ASSERT_OK(AdoptStub(db2, nested_list));
+    auto expected_db = DataBag::Empty();
+    ASSERT_OK(nested_list_schema.WithBag(expected_db)
+                  .SetAttr(schema::kListItemsSchemaAttr, list_schema));
+    ASSERT_OK(list_schema.WithBag(expected_db)
+                  .SetAttr(schema::kListItemsSchemaAttr,
+                           test::Schema(schema::kInt32)));
+    // Write list-items as well for recursion.
+    ASSERT_OK(expected_db->GetMutableImpl()->get().ReplaceInList(
+        nested_list.item(), internal::DataBagImpl::ListRange(0),
+        lists.slice()));
+    ASSERT_OK(expected_db->GetMutableImpl()->get().ReplaceInList(
+        l1.item(), internal::DataBagImpl::ListRange(0),
+        internal::DataSliceImpl::CreateEmptyAndUnknownType(0)));
+    ASSERT_OK(expected_db->GetMutableImpl()->get().ReplaceInList(
+        l2.item(), internal::DataBagImpl::ListRange(0),
+        internal::DataSliceImpl::CreateEmptyAndUnknownType(0)));
+    EXPECT_THAT(db2->GetImpl(), DataBagEqual(expected_db->GetImpl()));
+  }
+}
+
+TEST(AdoptStubTest, Dict) {
+  {
+    // Holding primitives.
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(DataSlice schema,
+                         CreateDictSchema(db1, test::Schema(schema::kInt32),
+                                          test::Schema(schema::kFloat32)));
+    ASSERT_OK_AND_ASSIGN(
+        auto dict,
+        CreateDictShaped(db1, DataSlice::JaggedShape::Empty(),
+                         /*keys=*/std::nullopt, /*values=*/std::nullopt,
+                         /*schema=*/schema));
+    auto db2 = DataBag::Empty();
+    // The dict schema is adopted.
+    ASSERT_OK(AdoptStub(db2, dict));
+    auto expected_db = DataBag::Empty();
+    ASSERT_OK(schema.WithBag(expected_db)
+                  .SetAttr(schema::kDictKeysSchemaAttr,
+                           test::Schema(schema::kInt32)));
+    ASSERT_OK(schema.WithBag(expected_db)
+                  .SetAttr(schema::kDictValuesSchemaAttr,
+                           test::Schema(schema::kFloat32)));
+  }
+  {
+    // Recursive dicts.
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(DataSlice schema,
+                         CreateDictSchema(db1, test::Schema(schema::kInt32),
+                                          test::Schema(schema::kFloat32)));
+    ASSERT_OK_AND_ASSIGN(
+        DataSlice nested_schema,
+        CreateDictSchema(db1, test::Schema(schema::kInt32), schema));
+
+    ASSERT_OK_AND_ASSIGN(
+        auto dict,
+        CreateDictShaped(db1, DataSlice::JaggedShape::Empty(),
+                         /*keys=*/std::nullopt, /*values=*/std::nullopt,
+                         /*schema=*/schema));
+    ASSERT_OK_AND_ASSIGN(
+        auto nested_dict,
+        CreateDictShaped(db1, DataSlice::JaggedShape::Empty(),
+                         /*keys=*/test::DataItem(1), /*values=*/dict,
+                         /*schema=*/nested_schema));
+
+    auto db2 = DataBag::Empty();
+    // The dict schemas are adopted.
+    ASSERT_OK(AdoptStub(db2, nested_dict));
+    auto expected_db = DataBag::Empty();
+    // Inner schema.
+    ASSERT_OK(expected_db->GetMutableImpl()->get().SetSchemaAttr(
+        schema.item(), schema::kDictKeysSchemaAttr,
+        internal::DataItem(schema::kInt32)));
+    ASSERT_OK(expected_db->GetMutableImpl()->get().SetSchemaAttr(
+        schema.item(), schema::kDictValuesSchemaAttr,
+        internal::DataItem(schema::kInt32)));
+    // Outer schema.
+    ASSERT_OK(expected_db->GetMutableImpl()->get().SetSchemaAttr(
+        nested_schema.item(), schema::kDictKeysSchemaAttr,
+        internal::DataItem(schema::kInt32)));
+    ASSERT_OK(expected_db->GetMutableImpl()->get().SetSchemaAttr(
+        nested_schema.item(), schema::kDictValuesSchemaAttr, schema.item()));
+  }
+}
+
+TEST(AdoptStubTest, ImmutableError) {
+    auto db1 = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(DataSlice schema,
+                         CreateListSchema(db1, test::Schema(schema::kInt32)));
+    ASSERT_OK_AND_ASSIGN(auto list, CreateEmptyList(db1, /*schema=*/schema));
+    ASSERT_OK_AND_ASSIGN(auto db2, DataBag::Empty()->Fork(/*immutable=*/true));
+    EXPECT_THAT(AdoptStub(db2, list),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("immutable DataBag")));
+}
+
+TEST(AdoptStubTest, EmptyAndUnknown) {
+  // Checks that the evaluation halts (and succeeds) for slices that can be
+  // interpreted as lists (item.IsList());
+  {
+    // OBJECT.
+    auto db1 = DataBag::Empty();
+    DataSlice item = test::DataItem(std::nullopt, schema::kObject, db1);
+    auto db2 = DataBag::Empty();
+    ASSERT_TRUE(item.IsList());
+    // Nothing is adopted.
+    ASSERT_OK(AdoptStub(db2, item));
+    EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
+  }
+  {
+    // NONE.
+    auto db1 = DataBag::Empty();
+    DataSlice item = test::DataItem(std::nullopt, schema::kNone, db1);
+    auto db2 = DataBag::Empty();
+    ASSERT_TRUE(item.IsList());
+    // Nothing is adopted.
+    ASSERT_OK(AdoptStub(db2, item));
+    EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
+  }
+}
+
 
 }  // namespace
 }  // namespace koladata

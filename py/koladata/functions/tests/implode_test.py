@@ -97,6 +97,7 @@ class ImplodeTest(parameterized.TestCase):
           db.list([[OBJ1, None, OBJ2], [3, 4]]),
       ),
       (ds([OBJ3]), 1, db.list([OBJ3])),
+      (ds([None]), 1, db.list([None])),
   )
   def test_eval(self, x, ndim, expected):
     # Test behavior with explicit existing DataBag.

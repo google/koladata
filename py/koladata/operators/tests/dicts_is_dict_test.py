@@ -64,6 +64,8 @@ class DictsIsDictTest(parameterized.TestCase):
       (bag().dict() & None,),
       (ds(None, schema_constants.OBJECT),),
       (ds(None, schema_constants.ANY),),
+      (ds(None),),
+      (ds([None, None]),),
       (bag().obj(a=1) & None,),
   )
   def test_is_dict(self, x):
@@ -82,9 +84,7 @@ class DictsIsDictTest(parameterized.TestCase):
       # Mixed
       (ds([bag().list([1, 2]).embed_schema(), None, 1]),),
       # Missing
-      (ds(None),),
       (ds(None, schema_constants.INT32),),
-      (ds([None, None]),),
       (ds([None, None], schema_constants.INT32),),
       (bag().new(a=1) & None,),
       (bag().list([1, 2]) & None,),

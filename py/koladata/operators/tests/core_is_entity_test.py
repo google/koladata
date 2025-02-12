@@ -70,6 +70,8 @@ class DictsIsEntityTest(parameterized.TestCase):
       (bag().new() & None,),
       (ds(None, schema_constants.OBJECT),),
       (ds(None, schema_constants.ANY),),
+      (ds(None),),
+      (ds([None, None]),),
       (bag().obj(a=1) & None,),
   )
   def test_is_entity(self, x):
@@ -88,9 +90,7 @@ class DictsIsEntityTest(parameterized.TestCase):
       # Mixed
       (ds([bag().list([1, 2]).embed_schema(), None, 1]),),
       # Missing
-      (ds(None),),
       (ds(None, schema_constants.INT32),),
-      (ds([None, None]),),
       (ds([None, None], schema_constants.INT32),),
       (bag().dict({1: 2}) & None,),
       (bag().list([1, 2]) & None,),

@@ -117,10 +117,8 @@ class ListsExplodeTest(parameterized.TestCase):
       ),
       # NONE
       (di(None), 0, di(None)),
-      (di(None), -1, di(None)),
       # LIST[NONE]
       (db.list([None]), 1, ds([None])),
-      (db.list([None]), -1, ds([None]))
   )
   def test_eval(self, x, ndim, expected):
     result = eval_op("kd.lists.explode", x, ndim)
@@ -173,6 +171,21 @@ class ListsExplodeTest(parameterized.TestCase):
       expr_eval.eval(
           kde.lists.explode(db.list([di(None).with_schema(ITEMID)]), -1)
       )
+
+  def test_expand_fully_none_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape("cannot fully explode 'x' with NONE schema"),
+    ):
+      # DataItem(List[None], schema: NONE)
+      expr_eval.eval(kde.lists.explode(db.list([]), -1))
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape("cannot fully explode 'x' with NONE schema"),
+    ):
+      # DataItem(List[None], schema: LIST[NONE])
+      expr_eval.eval(kde.lists.explode(db.list([di(None)]), -1))
 
   def test_expand_fully_object_error(self):
     with self.assertRaisesRegex(

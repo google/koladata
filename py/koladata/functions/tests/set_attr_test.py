@@ -103,6 +103,18 @@ class SetAttrTest(absltest.TestCase):
           update_schema=True,
       )
 
+  def test_none(self):
+    db = fns.bag()
+    x = ds(None).with_bag(db)
+
+    fns.set_attr(x, 'xyz', b'12')
+    testing.assert_equal(x, ds(None).with_bag(db))
+    testing.assert_equal(x.xyz, ds(None).with_bag(db))
+
+    fns.set_attr(x, 'xyz', b'12', update_schema=True)
+    testing.assert_equal(x, ds(None).with_bag(db))
+    testing.assert_equal(x.xyz, ds(None).with_bag(db))
+
   def test_objects_with_explicit_schema(self):
     db = fns.bag()
     x = db.obj(x=ds([1, 2]))

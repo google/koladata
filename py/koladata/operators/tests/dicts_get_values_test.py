@@ -63,10 +63,8 @@ class DictsGetValuesTest(parameterized.TestCase):
           ds(None).with_schema(dict_item.get_schema()),
           ds([], schema_constants.INT32),
       ),
-      (
-          ds(None).with_schema(schema_constants.OBJECT),
-          ds([], schema_constants.OBJECT),
-      ),
+      (ds(None), ds([])),
+      (ds(None).with_schema(schema_constants.OBJECT), ds([])),
       (
           ds(None).with_schema(schema_constants.ANY),
           ds([], schema_constants.ANY),
@@ -101,7 +99,7 @@ class DictsGetValuesTest(parameterized.TestCase):
       (
           ds(None).with_schema(schema_constants.OBJECT),
           ds([3, 1]),
-          ds([None, None], schema_constants.OBJECT),
+          ds([None, None]),
       ),
       (
           ds(None).with_schema(schema_constants.ANY),

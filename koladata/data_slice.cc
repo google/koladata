@@ -309,7 +309,7 @@ absl::StatusOr<ImplT> GetSchemaAttrImpl(
 // * In case such common schema does not exist and `allow_missing` is false, an
 //   error is returned.
 // * Otherwise, if "__schema__" attribute is missing for some objects (or all)
-//   they are used for inferring the common schema. If all are missing, `OBJECT`
+//   they are used for inferring the common schema. If all are missing, `NONE`
 //   is used.
 template <typename ImplT>
 absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
@@ -327,7 +327,7 @@ absl::StatusOr<internal::DataItem> GetObjCommonSchemaAttr(
     if (common_schema.has_value()) {
       return common_schema;
     }
-    return internal::DataItem(schema::kObject);
+    return internal::DataItem(schema::kNone);
   }
 }
 
@@ -599,7 +599,8 @@ class RhsHandler {
                          db_impl.GetObjSchemaAttr(impl, fallbacks));
         return this->ProcessSchemaObjectAttr(obj_schema, db_impl, fallbacks);
       });
-    } else if (lhs.GetSchemaImpl() != schema::kAny) {
+    } else if (lhs.GetSchemaImpl() != schema::kAny &&
+               lhs.GetSchemaImpl() != schema::kNone) {
       status = ProcessSchemaObjectAttr(lhs.GetSchemaImpl(), db_impl, fallbacks);
     }
     if (!status.ok()) {
@@ -1440,6 +1441,9 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
   if (GetSchemaImpl().is_primitive_schema() || ContainsAnyPrimitives()) {
     return AttrOnPrimitiveError(*this, attr_name, "delete");
   }
+  if (GetSchemaImpl() == schema::kNone) {
+    return absl::OkStatus();
+  }
   if (GetSchemaImpl().is_itemid_schema()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "failed to delete '%s' attribute; ITEMIDs do not allow attribute "
@@ -1513,7 +1517,8 @@ bool DataSlice::ShouldApplyListOp() const {
 }
 
 bool DataSlice::IsList() const {
-  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny) {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny ||
+      GetSchemaImpl() == schema::kNone) {
     return VisitImpl([]<typename T>(const T& impl) -> bool {
       return impl.ContainsOnlyLists();
     });
@@ -1523,7 +1528,8 @@ bool DataSlice::IsList() const {
 }
 
 bool DataSlice::IsDict() const {
-  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny) {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny ||
+      GetSchemaImpl() == schema::kNone) {
     return VisitImpl([]<typename T>(const T& impl) -> bool {
       return impl.ContainsOnlyDicts();
     });
@@ -1533,7 +1539,8 @@ bool DataSlice::IsDict() const {
 }
 
 bool DataSlice::IsEntity() const {
-  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny) {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny ||
+      GetSchemaImpl() == schema::kNone) {
     return VisitImpl([]<typename T>(const T& impl) -> bool {
       return impl.ContainsOnlyEntities();
     });

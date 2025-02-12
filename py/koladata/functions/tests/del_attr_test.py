@@ -22,7 +22,7 @@ from koladata.types import data_slice
 ds = data_slice.DataSlice.from_vals
 
 
-class SetAttrTest(absltest.TestCase):
+class DelAttrTest(absltest.TestCase):
 
   def test_entity(self):
     db = fns.bag()
@@ -35,6 +35,12 @@ class SetAttrTest(absltest.TestCase):
     db = fns.bag()
     x = db.obj(xyz=3.14)
     self.assertTrue(x.has_attr('xyz'))
+    fns.del_attr(x, 'xyz')
+    self.assertFalse(x.has_attr('xyz'))
+
+  def test_none(self):
+    db = fns.bag()
+    x = ds(None).with_bag(db)
     fns.del_attr(x, 'xyz')
     self.assertFalse(x.has_attr('xyz'))
 

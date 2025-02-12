@@ -89,6 +89,7 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
 
   if (!update_schema && obj.GetBag() != nullptr &&
       obj.GetSchemaImpl() != schema::kAny &&
+      obj.GetSchemaImpl() != schema::kNone &&
       obj.GetSchemaImpl() != schema::kSchema) {
     // When update_schema is false, we copy the attributes from the source,
     // if they exist, so that SetAttrs can raise on conflict.
@@ -126,7 +127,6 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
                         .ds = obj,
                     });
       });
-  ;
   result_db->UnsafeMakeImmutable();
   return result_db;
 }

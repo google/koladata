@@ -1367,13 +1367,9 @@ foo.get_obj_schema().x = <desired_schema>"""),
 
   def test_set_get_attr_empty_object(self):
     x = bag().obj(a=1) & ds(None)
-    testing.assert_equal(
-        x.a, ds(None, schema_constants.OBJECT).with_bag(x.get_bag())
-    )
+    testing.assert_equal(x.a, ds(None).with_bag(x.get_bag()))
     x = bag().obj_shaped(jagged_shape.create_shape([2]), a=1) & ds(None)
-    testing.assert_equal(
-        x.a, ds([None, None], schema_constants.OBJECT).with_bag(x.get_bag())
-    )
+    testing.assert_equal(x.a, ds([None, None]).with_bag(x.get_bag()))
 
   def test_get_attr_object_mixed_data_implicit_cast(self):
     db = bag()
@@ -2744,8 +2740,7 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
         ds([None, None]).as_any().with_bag(db),
     )
     testing.assert_equal(
-        (db.obj(db.dict()) & ds(None))[0],
-        ds(None, schema_constants.OBJECT).with_bag(db),
+        (db.obj(db.dict()) & ds(None))[0], ds(None).with_bag(db)
     )
 
     ds(None).with_bag(db).as_any()[0] = 42

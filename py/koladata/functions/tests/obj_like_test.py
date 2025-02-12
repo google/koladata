@@ -58,9 +58,7 @@ class ObjLikeTest(absltest.TestCase):
     testing.assert_equal(
         kde.has(x).eval().no_bag(), ds(None, schema_constants.MASK)
     )
-    testing.assert_equal(
-        x.a, ds(None, schema_constants.OBJECT).with_bag(x.get_bag())
-    )
+    testing.assert_equal(x.a, ds(None).with_bag(x.get_bag()))
 
   def test_slice(self):
     x = fns.obj_like(
@@ -101,9 +99,7 @@ class ObjLikeTest(absltest.TestCase):
     testing.assert_equal(
         kde.has(x).eval().no_bag(), ds([None, None], schema_constants.MASK)
     )
-    testing.assert_equal(
-        x.a, ds([None, None], schema_constants.OBJECT).with_bag(x.get_bag())
-    )
+    testing.assert_equal(x.a, ds([None, None]).with_bag(x.get_bag()))
 
   def test_adopt_bag(self):
     x = fns.obj_like(ds(1)).fork_bag()

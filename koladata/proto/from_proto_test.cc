@@ -283,7 +283,7 @@ TEST(FromProtoTest, EmptyMessage_ExplicitSchema) {
                       *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
                       *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 0),
                   }),
-                  internal::DataItem(schema::kObject), db))));
+                  internal::DataItem(schema::kNone), db))));
 
   // Verify schema.
   EXPECT_THAT(result.GetSchema(), IsEquivalentTo(schema));

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for set_attrs."""
-
 import re
 
 from absl.testing import absltest
@@ -36,7 +34,7 @@ class SetAttrsTest(absltest.TestCase):
     )
     testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
 
-  def test_incomaptible_schema_entity(self):
+  def test_incompatible_schema_entity(self):
     x = fns.new(a=1, b='a').fork_bag()
     with self.assertRaisesRegex(
         exceptions.KodaError,
@@ -61,6 +59,14 @@ schema.b = <desired_schema>"""),
     fns.set_attrs(x, a=2, b='abc')
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
+
+  def test_none(self):
+    db = fns.bag()
+    x = ds(None).with_bag(db)
+    fns.set_attrs(x, a=2, b='abc')
+    testing.assert_equal(x, ds(None).with_bag(db))
+    testing.assert_equal(x.a, ds(None).with_bag(db))
+    testing.assert_equal(x.b, ds(None).with_bag(db))
 
   def test_incomaptible_schema_object(self):
     x_schema = fns.new(a=1, b='a').get_schema()

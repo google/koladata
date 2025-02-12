@@ -230,6 +230,10 @@ class CoreStubTest(parameterized.TestCase):
     obj_stub = kde.core.stub(obj).eval()
     testing.assert_equivalent(obj_stub, obj)
 
+    obj = ds(None).with_bag(bag())
+    obj_stub = kde.core.stub(obj).eval()
+    testing.assert_equivalent(obj_stub, obj)
+
   def test_object_wrapping_empty_list_of_lists(self):
     lst = kde.implode(
         kde.list_shaped_as(ds([]), item_schema=schema_constants.INT32)

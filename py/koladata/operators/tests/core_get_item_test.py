@@ -121,15 +121,11 @@ class CoreGetItemTest(parameterized.TestCase):
           ds(4, schema_constants.ANY),
       ),
       # Empty and unknown
-      (
-          ds(None, schema_constants.OBJECT).with_bag(db),
-          1,
-          ds(None, schema_constants.OBJECT),
-      ),
+      (ds(None, schema_constants.OBJECT).with_bag(db), 1, ds(None)),
       (
           ds(None, schema_constants.OBJECT).with_bag(db),
           ds([1, 2]),
-          ds([None, None], schema_constants.OBJECT),
+          ds([None, None]),
       ),
       (
           ds(None, schema_constants.ANY).with_bag(db),
@@ -141,6 +137,8 @@ class CoreGetItemTest(parameterized.TestCase):
           ds([1, 2]),
           ds([None, None], schema_constants.ANY),
       ),
+      (ds([]).with_bag(db), 0, ds([])),
+      (ds(None).with_bag(db), 0, ds(None)),
   )
   def test_slice_eval(self, x, keys_or_indices, expected):
     result = eager.core.get_item(x, keys_or_indices)
