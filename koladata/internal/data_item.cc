@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/data_item.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -27,6 +28,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "unicode/utf8.h"
 #include "koladata/internal/expr_quote_utils.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
@@ -122,7 +124,9 @@ namespace {
     if (max_len < 0 || str.length() <= max_len) {
       return std::string(str);
     }
-    return absl::StrCat(str.substr(0, max_len), "...");
+    size_t limit = 0;
+    U8_FWD_N(str.data(), limit, str.length(), max_len);
+    return absl::StrCat(str.substr(0, limit), "...");
   }
 }  // namespace
 
@@ -137,6 +141,7 @@ std::string DataItemRepr(const DataItem& item,
         } else if constexpr (std::is_same_v<T, arolla::Text>) {
           std::string truncated = Truncate(absl::string_view(val),
                                            option.unbounded_type_max_len);
+          // TODO: Escape text with Utf8SafeCHexEscape.
           return option.strip_quotes
               ? truncated :absl::StrCat("'", truncated, "'");
         } else if constexpr (std::is_same_v<T, arolla::Bytes>) {

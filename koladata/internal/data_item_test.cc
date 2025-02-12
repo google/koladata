@@ -653,6 +653,9 @@ TEST(DataItemTest, TestRepr) {
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("aaaaaaaaaa")),
                          {.strip_quotes = true,
                           .unbounded_type_max_len = 3}), "aaa...");
+  // Check unicode characters are not broken by truncation.
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("⽥⇠ⲇ▚☡")),
+                      {.unbounded_type_max_len = 3}), "'⽥⇠ⲇ...'");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("aaaaaaaaaa")),
                          {.unbounded_type_max_len = 3}), "b'aaa...'");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("aaaaaaaaaa")),
