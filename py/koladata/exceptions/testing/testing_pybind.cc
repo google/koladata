@@ -17,7 +17,6 @@
 #include <utility>
 
 #include "absl/status/status.h"
-#include "absl/strings/cord.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
