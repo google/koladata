@@ -14,10 +14,10 @@
 
 """LiteralOperator QValue specialization."""
 
-from typing import Self
-
 from arolla import arolla
 from koladata.types import py_misc_py_ext as _py_misc_py_ext
+
+literal = _py_misc_py_ext.literal
 
 
 class LiteralOperator(arolla.abc.Operator):
@@ -25,14 +25,7 @@ class LiteralOperator(arolla.abc.Operator):
 
   __slots__ = ()
 
-  def __new__(cls, value: arolla.QValue) -> Self:
-    """Constructs an operator holds a literal value."""
-    return _py_misc_py_ext.make_literal_operator(value)
-
 
 arolla.abc.register_qvalue_specialization(
     '::koladata::expr::LiteralOperator', LiteralOperator
 )
-
-
-literal = _py_misc_py_ext.literal

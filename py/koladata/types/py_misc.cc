@@ -14,9 +14,7 @@
 //
 #include "py/koladata/types/py_misc.h"
 
-#include <Python.h>  // IWYU pragma: keep
-
-#include <utility>
+#include <Python.h>
 
 #include "absl/base/nullability.h"
 #include "koladata/data_slice.h"
@@ -35,50 +33,33 @@
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
-
-absl::Nullable<PyObject*> PyMakeLiteralOperator(PyObject* /*module*/,
-                                                PyObject* value) {
-  arolla::python::DCheckPyGIL();
-  if (!arolla::python::IsPyQValueInstance(value)) {
-    PyErr_Format(PyExc_TypeError,
-                 "`value` must be a QValue to be wrapped into a "
-                 "LiteralOperator, got: %s",
-                 Py_TYPE(value)->tp_name);
-    return nullptr;
-  }
-  return arolla::python::WrapAsPyQValue(
-      arolla::TypedValue::FromValue(arolla::expr::ExprOperatorPtr(
-          koladata::expr::LiteralOperator::MakeLiteralOperator(
-              arolla::python::UnsafeUnwrapPyQValue(value)))));
-}
+namespace {
 
 // NOTE: kd.literal does not do any implicit boxing of Python values into
 // QValues. In future, implicit boxing that matches that of auto-boxing applied
 // during Koda Expr evaluation may be added.
-absl::Nullable<PyObject*> PyMakeLiteralExpr(PyObject* /*module*/,
-                                            PyObject* value) {
+absl::Nullable<PyObject*> PyLiteral(PyObject* /*module*/, PyObject* value) {
   arolla::python::DCheckPyGIL();
   if (!arolla::python::IsPyQValueInstance(value)) {
-    PyErr_Format(PyExc_TypeError,
-                 "`value` must be a QValue to be wrapped into a "
-                 "LiteralExpr, got: %s",
-                 Py_TYPE(value)->tp_name);
-    return nullptr;
+    return PyErr_Format(
+        PyExc_TypeError,
+        "`value` must be a QValue to be wrapped into a literal, got: %s",
+        Py_TYPE(value)->tp_name);
   }
-  return arolla::python::WrapAsPyExpr(koladata::expr::MakeLiteral(
-      arolla::python::UnsafeUnwrapPyQValue(value)));
+  return arolla::python::WrapAsPyExpr(
+      koladata::expr::MakeLiteral(arolla::python::UnsafeUnwrapPyQValue(value)));
 }
 
 absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m, PyObject*) {
   arolla::python::DCheckPyGIL();
   for (const auto& schema_const : SupportedSchemas()) {
-    PyObject* py_schema_const = WrapPyDataSlice(DataSlice(schema_const));
+    auto py_schema_const = arolla::python::PyObjectPtr::Own(
+        WrapPyDataSlice(DataSlice(schema_const)));
     if (py_schema_const == nullptr) {
       return nullptr;
     }
-    // Takes ownership of py_schema_const.
-    if (PyModule_AddObject(m, schema_const.item().DebugString().c_str(),
-                           py_schema_const) < 0) {
+    if (PyModule_AddObjectRef(m, schema_const.item().DebugString().c_str(),
+                              py_schema_const.get()) < 0) {
       return nullptr;
     }
   }
@@ -99,5 +80,20 @@ absl::Nullable<PyObject*> PyFlattenPyList(PyObject* /*module*/,
           arolla::TypedValue::FromValue(std::move(shape))));
   return PyTuple_Pack(2, py_list.release(), py_shape.release());
 }
+
+}  // namespace
+
+const PyMethodDef kDefPyLiteral = {
+    "literal", PyLiteral, METH_O,
+    "Constructs an expr with a LiteralOperator wrapping the provided QValue."};
+
+const PyMethodDef kDefPyAddSchemaConstants = {
+    "add_schema_constants", PyModule_AddSchemaConstants, METH_NOARGS,
+    "Creates schema constants and adds them to the module."};
+
+const PyMethodDef kDefPyFlattenPyList = {
+    "flatten_py_list", PyFlattenPyList, METH_O,
+    "Converts a Python nested list/tuple into a tuple of flat list and "
+    "shape."};
 
 }  // namespace koladata::python

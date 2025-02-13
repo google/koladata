@@ -21,31 +21,23 @@ namespace {
 
 constexpr const char* kThisModuleName = "koladata.types.py_misc";
 
-PyMethodDef kPyMiscModule_methods[] = {
-    {"make_literal_operator", PyMakeLiteralOperator, METH_O,
-     "Constructs an operator holding the provided QValue."},
-    {"literal", PyMakeLiteralExpr, METH_O,
-     "Constructs an expr with a LiteralOperator wrapping the provided QValue."},
-    {"flatten_py_list", PyFlattenPyList, METH_O,
-     "Converts a Python nested list/tuple into a tuple of flat list and "
-     "shape."},
-    {"add_schema_constants", PyModule_AddSchemaConstants, METH_NOARGS,
-     "Creates schema constants and adds them to the module."},
-    {nullptr} /* sentinel */
-};
-
-struct PyModuleDef py_misc_module = {
-    PyModuleDef_HEAD_INIT,
-    kThisModuleName,
-    /*module docstring=*/"Miscellaneous Python utilities.",
-    -1,
-    /*methods=*/kPyMiscModule_methods,
-};
-
 // NOTE: This PyInit function must be named this way
 // (PyInit_{py_extension.name}). Otherwise it does not get initialized.
 PyMODINIT_FUNC PyInit_py_misc_py_ext(void) {
-  return PyModule_Create(&py_misc_module);
+  static PyMethodDef py_methods[] = {
+      kDefPyLiteral,
+      kDefPyAddSchemaConstants,
+      kDefPyFlattenPyList,
+      {nullptr} /* sentinel */
+  };
+  static PyModuleDef py_module = {
+      .m_base = PyModuleDef_HEAD_INIT,
+      .m_name = kThisModuleName,
+      .m_doc = "Miscellaneous Python utilities.",
+      .m_size = -1,
+      .m_methods = py_methods,
+  };
+  return PyModule_Create(&py_module);
 }
 
 }  // namespace

@@ -132,16 +132,10 @@ class LiteralOperatorTest(parameterized.TestCase):
   def test_literal_expr_non_qvalue_error(self, non_qvalue):
     with self.assertRaisesRegex(
         TypeError,
-        '`value` must be a QValue to be wrapped into a LiteralExpr,'
-        rf' got: .*{type(non_qvalue).__name__}',
+        r'`value` must be a QValue to be wrapped into a literal, got:'
+        rf' .*{type(non_qvalue).__name__}',
     ):
       literal_operator.literal(non_qvalue)
-
-  def test_literal_operator_init(self):
-    op = literal_operator.LiteralOperator(arolla.int32(1))
-    arolla.testing.assert_qvalue_equal_by_fingerprint(
-        arolla.eval(op()), arolla.int32(1)
-    )
 
   def test_op_binding_debug_string(self):
     # This uses a debug repr which avoids pretty printing. This ensures that we
@@ -152,21 +146,6 @@ class LiteralOperatorTest(parameterized.TestCase):
         ValueError, re.escape('koda_internal.literal[1]():INT32')
     ):
       arolla.M.annotation.qtype(x, arolla.FLOAT32)
-
-  @parameterized.parameters(
-      (arolla.L.x,),
-      (1,),
-      ([1, 2, 3],),
-      (slice(0, 5),),
-      (...,),
-  )
-  def test_literal_operator_non_qvalue_error(self, non_qvalue):
-    with self.assertRaisesRegex(
-        TypeError,
-        '`value` must be a QValue to be wrapped into a LiteralOperator,'
-        rf' got: .*{type(non_qvalue).__name__}',
-    ):
-      literal_operator.LiteralOperator(non_qvalue)  # pytype: disable=wrong-arg-types
 
 
 if __name__ == '__main__':

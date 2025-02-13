@@ -57,13 +57,13 @@ class LiteralOperatorS11NTest(codec_test_case.S11nCodecTestCase):
         output_value_index: 3
       }
     """
-    op = literal_operator.LiteralOperator(arolla.unspecified())
+    op = literal_operator.literal(arolla.unspecified()).op
     self.assertDumpsEqual(op, text)
     self.assertLoadsEqual(text, op)
 
   def test_not_serializable_value_error(self):
     dummy_value = arolla.types.PyObject(object())
-    op = literal_operator.LiteralOperator(dummy_value)
+    op = literal_operator.literal(dummy_value).op
     with self.assertRaisesRegex(
         ValueError,
         re.escape('EncodeValue(op->value()); value=LITERAL_OPERATOR'),

@@ -17,25 +17,16 @@
 
 #include <Python.h>
 
-#include "absl/base/nullability.h"
-
 namespace koladata::python {
 
-// Constructs an operator holding the provided QValue.
-absl::Nullable<PyObject*> PyMakeLiteralOperator(PyObject* /*module*/,
-                                                PyObject* value);
+// def literal(...)
+extern const PyMethodDef kDefPyLiteral;
 
-// Constructs an ExprNode with a LiteralOperator wrapping value.
-absl::Nullable<PyObject*> PyMakeLiteralExpr(PyObject* /*module*/,
-                                            PyObject* value);
+// def add_schema_constants(...)
+extern const PyMethodDef kDefPyAddSchemaConstants;
 
-// Converts a Python nested list/tuple into a tuple of flat list and shape.
-absl::Nullable<PyObject*> PyFlattenPyList(PyObject* /*module*/,
-                                          PyObject* py_obj);
-
-// Registers all Schema Constants as Python objects into module `m`. Returns
-// Py_None, but raises Error on failure.
-absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m, PyObject*);
+// def flatten_py_list(...)
+extern const PyMethodDef kDefPyFlattenPyList;
 
 }  // namespace koladata::python
 
