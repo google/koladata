@@ -40,22 +40,24 @@ kde = kde_operators.kde
 class TuplePairTracingConfig(tracing_decorator.TypeTracingConfig):
   """A type tracing config for Pair using tuples."""
 
-  def return_type_as(self, cls: type['PairWithTupleTracing']) -> Any:
+  def return_type_as(self, annotation: type['PairWithTupleTracing']) -> Any:
     # This is never called in tracing mode, but using user_facing_kd here
     # to emulate what will happen in real user code.
     # This is auto-boxed to a Koda tuple.
     return data_slice.DataSlice, data_slice.DataSlice
 
   def to_kd(
-      self, cls: type['PairWithTupleTracing'], value: 'PairWithTupleTracing'
+      self,
+      annotation: type['PairWithTupleTracing'],
+      value: 'PairWithTupleTracing',
   ) -> Any:
     # This is auto-boxed to a Koda tuple.
     return value.x, value.y
 
   def from_kd(
-      self, cls: type['PairWithTupleTracing'], value: Any
+      self, annotation: type['PairWithTupleTracing'], value: Any
   ) -> 'PairWithTupleTracing':
-    return cls(x=value[0], y=value[1])
+    return annotation(x=value[0], y=value[1])
 
 
 # We demonstrate two main ways to define custom tracing behavior for composite
@@ -79,11 +81,13 @@ class PairWithTupleTracing:
 class EntityPairTracingConfig(tracing_decorator.TypeTracingConfig):
   """A type tracing config for Pair using entities."""
 
-  def return_type_as(self, cls: type['PairWithEntityTracing']) -> Any:
+  def return_type_as(self, annotation: type['PairWithEntityTracing']) -> Any:
     return data_slice.DataSlice
 
   def to_kd(
-      self, cls: type['PairWithEntityTracing'], value: 'PairWithEntityTracing'
+      self,
+      annotation: type['PairWithEntityTracing'],
+      value: 'PairWithEntityTracing',
   ) -> Any:
     return user_facing_kd.new(
         x=user_facing_kd.implode(value.x, ndim=value.x.get_ndim()),
@@ -94,9 +98,9 @@ class EntityPairTracingConfig(tracing_decorator.TypeTracingConfig):
     )
 
   def from_kd(
-      self, cls: type['PairWithEntityTracing'], value: Any
+      self, annotation: type['PairWithEntityTracing'], value: Any
   ) -> 'PairWithEntityTracing':
-    return cls(
+    return annotation(
         x=user_facing_kd.explode(value.x, ndim=value.x_ndim),
         y=user_facing_kd.explode(value.y, ndim=value.y_ndim),
     )

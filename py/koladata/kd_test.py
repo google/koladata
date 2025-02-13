@@ -37,18 +37,20 @@ kdf = kd.functor
 class TuplePairTracingConfig(kd.functor.TypeTracingConfig):
   """A type tracing config for Pair using tuples."""
 
-  def return_type_as(self, cls: type['PairWithTupleTracing']) -> Any:
+  def return_type_as(self, annotation: type['PairWithTupleTracing']) -> Any:
     return kd.types.DataSlice, kd.types.DataSlice
 
   def to_kd(
-      self, cls: type['PairWithTupleTracing'], value: 'PairWithTupleTracing'
+      self,
+      annotation: type['PairWithTupleTracing'],
+      value: 'PairWithTupleTracing',
   ) -> Any:
     return value.x, value.y
 
   def from_kd(
-      self, cls: type['PairWithTupleTracing'], value: Any
+      self, annotation: type['PairWithTupleTracing'], value: Any
   ) -> 'PairWithTupleTracing':
-    return cls(x=value[0], y=value[1])
+    return annotation(x=value[0], y=value[1])
 
 
 @dataclasses.dataclass(frozen=True)
