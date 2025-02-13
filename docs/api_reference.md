@@ -7986,6 +7986,23 @@ Alias for [kd.math.min](#kd.math.min) operator.
 
 Alias for [kd.math.minimum](#kd.math.minimum) operator.
 
+### `kd.named_container()` {#kd.named_container}
+
+``` {.no-copy}
+Container that automatically names Exprs.
+
+  For non-expr inputs, in tracing mode it will be converted to an Expr,
+  while in non-tracing mode it will be stored as is. This allows to use
+  NamedContainer eager code that will later be traced.
+
+  For example:
+    c = kd.ext.expr_container.NamedContainer()
+    c.x_plus_y = I.x + I.y
+    c.x_plus_y  # Returns (I.x + I.y).with_name('x_plus_y')
+    c.foo = 5
+    c.foo  # Returns 5
+```
+
 ### `kd.named_schema(name, *, db=None, **attrs)` {#kd.named_schema}
 
 Alias for [kd.schema.named_schema](#kd.schema.named_schema) operator.
@@ -10172,6 +10189,30 @@ Args:
   values: A DataSlice of values, or unspecified if `keys` contains dicts.
 ```
 
+### `DataSlice.with_list_append_update(self, append)` {#DataSlice.with_list_append_update}
+Aliases:
+
+- [DataItem.with_list_append_update](#DataItem.with_list_append_update)
+
+``` {.no-copy}
+Returns a DataSlice with a new DataBag containing updated appended lists.
+
+The updated lists are the lists in `x` with the specified items appended at
+the end.
+
+`x` and `append` must have compatible shapes.
+
+The resulting lists maintain the same ItemIds. Also see kd.appended_list()
+which works similarly but resulting lists have new ItemIds.
+
+Args:
+  x: DataSlice of lists.
+  append: DataSlice of values to append to each list in `x`.
+
+Returns:
+  A DataSlice of lists in a new immutable DataBag.
+```
+
 ### `DataSlice.with_merged_bag(self)` {#DataSlice.with_merged_bag}
 Aliases:
 
@@ -11215,6 +11256,10 @@ Alias for [DataSlice.with_bag](#DataSlice.with_bag) operator.
 ### `DataItem.with_dict_update(self, keys, values=unspecified)` {#DataItem.with_dict_update}
 
 Alias for [DataSlice.with_dict_update](#DataSlice.with_dict_update) operator.
+
+### `DataItem.with_list_append_update(self, append)` {#DataItem.with_list_append_update}
+
+Alias for [DataSlice.with_list_append_update](#DataSlice.with_list_append_update) operator.
 
 ### `DataItem.with_merged_bag(self)` {#DataItem.with_merged_bag}
 
