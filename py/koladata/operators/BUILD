@@ -75,49 +75,14 @@ arolla_cc_operator_package(
 arolla_operator_package_snapshot(
     name = "operator_package.pb2",
     imports = [
-        "koladata.operators.allocation",
-        "koladata.operators.annotation",
-        "koladata.operators.arolla_bridge",
-        "koladata.operators.assertion",
-        "koladata.operators.bags",
-        "koladata.operators.comparison",
-        "koladata.operators.core",
-        "koladata.operators.dicts",
-        "koladata.operators.entities",
-        "koladata.operators.ids",
-        "koladata.operators.jagged_shape",
-        "koladata.operators.lists",
-        "koladata.operators.masking",
-        "koladata.operators.math",
-        "koladata.operators.objs",
-        "koladata.operators.random",
-        "koladata.operators.slices",
-        "koladata.operators.strings",
+        "koladata.operators.servable_operators",
     ],
     preimports = [
         "arolla.jagged_shape.jagged_shape",
         "koladata.types.data_slice",
     ],
     deps = [
-        ":allocation",
-        ":annotation",
-        ":assertion",
-        ":bags",
-        ":comparison",
-        ":core",
-        ":dicts",
-        ":entities",
-        ":ids",
-        ":jagged_shape",
-        ":lists",
-        ":masking",
-        ":math",
-        ":objs",
-        ":random",
-        ":schema",
-        ":slices",
-        ":strings",
-        ":tuple",
+        ":servable_operators",
     ],
 )
 
@@ -509,8 +474,8 @@ py_library(
 )
 
 py_library(
-    name = "kde_operators",
-    srcs = ["kde_operators.py"],
+    name = "servable_operators",
+    srcs = ["servable_operators.py"],
     deps = [
         ":allocation",
         ":annotation",
@@ -529,13 +494,22 @@ py_library(
         ":masking",
         ":math",
         ":objs",
-        ":optools",
-        ":py",
         ":random",
         ":schema",
         ":slices",
         ":strings",
         ":tuple",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "kde_operators",
+    srcs = ["kde_operators.py"],
+    deps = [
+        ":optools",
+        ":py",
+        ":servable_operators",
         "@com_google_arolla//py/arolla",
     ],
 )

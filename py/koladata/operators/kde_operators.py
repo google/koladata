@@ -14,30 +14,9 @@
 
 """Initializes Koda operators."""
 
-from koladata.operators import allocation as _
-from koladata.operators import annotation as _
-from koladata.operators import assertion as _
-from koladata.operators import bags as _
-from koladata.operators import comparison as _
-from koladata.operators import core as _
-from koladata.operators import dicts as _
-from koladata.operators import entities as _
-from koladata.operators import functor as _
-from koladata.operators import ids as _
-from koladata.operators import jagged_shape as _
-from koladata.operators import json as _
-from koladata.operators import koda_internal as _
-from koladata.operators import lists as _
-from koladata.operators import masking as _
-from koladata.operators import math as _
-from koladata.operators import objs as _
 from koladata.operators import optools
 from koladata.operators import py as _
-from koladata.operators import random as _
-from koladata.operators import schema as _
-from koladata.operators import slices as _
-from koladata.operators import strings as _
-from koladata.operators import tuple as _
+from koladata.operators import servable_operators as _
 
 
 def get_namespaces() -> list[str]:
