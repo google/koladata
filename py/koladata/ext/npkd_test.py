@@ -178,6 +178,14 @@ class NpkdTest(parameterized.TestCase):
       res = npkd.reshape_based_on_indices(ds, indices)
       self.assertEqual(res.internal_as_py(), [[1, 2], [], [3, 4]])
 
+    with self.subTest('2d non-primitive'):
+      schema = kd.schema.new_schema(x=kd.INT32)
+      indices = [np.array([0, 0, 2, 2]), np.array([0, 1, 0, 1])]
+      x1, x2, x3, x4 = schema(x=1), schema(x=2), schema(x=3), schema(x=4)
+      ds = kd.slice([x1, x2, x3, x4])
+      res = npkd.reshape_based_on_indices(ds, indices)
+      self.assertEqual(res.internal_as_py(), [[x1, x2], [], [x3, x4]])
+
     with self.subTest('3d'):
       indices = [
           np.array([0, 0, 1, 1]),

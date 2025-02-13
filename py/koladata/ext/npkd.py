@@ -155,20 +155,26 @@ def reshape_based_on_indices(
 
   # Let's make this more efficient when/if necessary.
   # For now we create a system of nested dicts:
-  # {index0 -> {index1 -> {... -> {'value' -> value}}}}
-  lookup = kdi.bag().dict(key_schema=kdi.ANY, value_schema=kdi.ANY)
+  # {index_0 -> {index_1 -> {... -> {index_n -> value}}}}
+  db = kdi.bag()
+  dict_schema = ds.get_schema().no_bag()
+  for _ in indices:
+    dict_schema = db.dict_schema(kdi.INT64, dict_schema)
+  lookup = db.dict(schema=dict_schema)
   cur_lookup = lookup.repeat(ds.get_size())
 
-  for index in indices:
+  for index in indices[:-1]:
     # This creates some unused dicts as only the last dict assigned to
     # a particular value will stay, which is fine for now.
-    cur_lookup[index] = lookup.get_bag().dict_like(cur_lookup)
+    schema = cur_lookup.get_schema().get_value_schema()
+    cur_lookup[index] = db.dict_like(cur_lookup, schema=schema)
     cur_lookup = cur_lookup[index]
-  cur_lookup['ds'] = ds
+  # Drop the bag to avoid potentially expensive extraction.
+  cur_lookup[indices[-1]] = ds.no_bag()
 
   prefix = lookup
   for _ in range(len(indices)):
     num_children = (kdi.agg_max(prefix.get_keys()) + 1) | 0
     prefix = prefix.repeat(num_children)
     prefix = prefix[kdi.index(prefix)]
-  return prefix['ds'].with_bag(ds.get_bag()).with_schema(ds.get_schema())
+  return prefix.with_bag(ds.get_bag()).with_schema(ds.get_schema())
