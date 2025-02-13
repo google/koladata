@@ -50,7 +50,6 @@ class SchemaIsPrimitiveSchemaTest(parameterized.TestCase):
       (schema_constants.EXPR, mask_constants.present),
       # Non-primitives.
       (schema_constants.NONE, mask_constants.missing),
-      (schema_constants.ANY, mask_constants.missing),
       (schema_constants.OBJECT, mask_constants.missing),
       (schema_constants.ITEMID, mask_constants.missing),
       (bag.new_schema(x=schema_constants.INT32), mask_constants.missing),

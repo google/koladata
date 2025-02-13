@@ -82,13 +82,6 @@ class SlicesTranslateGroupTest(parameterized.TestCase):
           ds(['1', 2, 3, '4', '5', 6]),
           ds([['1', '5'], [2, '4'], [], [], [6]]),
       ),
-      # ANY schema
-      (
-          ds(['a', 2, None, 'd', 'e'], schema_constants.ANY),
-          ds(['a', 2, 'b', 2, 'a', 'e'], schema_constants.ANY),
-          ds(['1', 2, 3, '4', '5', 6], schema_constants.ANY),
-          ds([['1', '5'], [2, '4'], [], [], [6]], schema_constants.ANY),
-      ),
       # Entities as keys
       (
           ds([entity1, entity3, None, entity4, entity5]),

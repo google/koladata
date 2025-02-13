@@ -59,12 +59,9 @@ class ListsIsListTest(parameterized.TestCase):
               bag().list([3, 4]).embed_schema(),
           ]),
       ),
-      # ANY
-      (ds([bag().list([1, 2]), None, bag().list([3, 4])]).as_any(),),
-      #
+      # Missing
       (bag().list() & None,),
       (ds(None, schema_constants.OBJECT),),
-      (ds(None, schema_constants.ANY),),
       (ds(None),),
       (ds([None, None]),),
       (bag().obj(a=1) & None,),

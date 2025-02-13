@@ -56,13 +56,9 @@ class LogicalAggAnyTest(parameterized.TestCase):
           ds([[arolla.present(), arolla.present()], [None]]),
           ds([arolla.present(), arolla.missing()]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([[arolla.present(), None], [None]], schema_constants.OBJECT),
-          ds([arolla.present(), None], schema_constants.MASK),
-      ),
-      (
-          ds([[arolla.present(), None], [None]], schema_constants.ANY),
           ds([arolla.present(), None], schema_constants.MASK),
       ),
       # Empty and unknown inputs.
@@ -76,10 +72,6 @@ class LogicalAggAnyTest(parameterized.TestCase):
       ),
       (
           ds([[None, None], [None]], schema_constants.MASK),
-          ds([None, None], schema_constants.MASK),
-      ),
-      (
-          ds([[None, None], [None]], schema_constants.ANY),
           ds([None, None], schema_constants.MASK),
       ),
       (
@@ -107,7 +99,6 @@ class LogicalAggAnyTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds([1, 2, 3])),
-      (ds([1, 2, 3], schema_constants.ANY)),
       (ds([1, 2, 3], schema_constants.OBJECT)),
       (data_bag.DataBag.empty().new(x=ds([1, 2, 3]))),
   )

@@ -45,11 +45,9 @@ class SchemaToNoneTest(parameterized.TestCase):
       (ds(None), ds(None)),
       (ds(None, schema_constants.INT32), ds(None)),
       (ds(None, schema_constants.OBJECT), ds(None)),
-      (ds(None, schema_constants.ANY), ds(None)),
       (ds([None]), ds([None])),
       (ds([None], schema_constants.INT32), ds([None])),
       (ds([None], schema_constants.OBJECT), ds([None])),
-      (ds([None], schema_constants.ANY), ds([None])),
   )
   def test_eval(self, x, expected):
     res = expr_eval.eval(kde.schema.to_none(x))

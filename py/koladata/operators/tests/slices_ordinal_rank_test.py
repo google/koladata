@@ -110,15 +110,9 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
           ds(1),
           ds([0, 1, None, 2], schema=INT64),
       ),
-      # OBJECT, ANY schemas
+      # OBJECT schemas
       (
           ds([0, 3, None, 6], schema_constants.OBJECT),
-          False,
-          1,
-          ds([0, 1, None, 2], schema=INT64),
-      ),
-      (
-          ds([0, 3, None, 6]).as_any(),
           False,
           1,
           ds([0, 1, None, 2], schema=INT64),
@@ -185,12 +179,6 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
           1,
           ds([[None, None], [None]], schema_constants.INT64),
       ),
-      (
-          ds([[None, None], [None]], schema_constants.ANY),
-          False,
-          1,
-          ds([[None, None], [None]], schema_constants.INT64),
-      ),
   )
   def test_eval_without_tie_breaker(self, x, descending, ndim, expected):
     result = expr_eval.eval(
@@ -238,7 +226,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
           2,
           ds([[0, 1, 2, 7], [6, 3, 4, 5]], schema=INT64),
       ),
-      # INT64, OBJECT, ANY schemas
+      # INT64, OBJECT schemas
       (
           ds([1, 1, 1, 6], schema=INT64),
           ds([2, 2, 0, 6], schema=INT64),
@@ -248,12 +236,6 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       (
           ds([1, 1, 1, 6], schema_constants.OBJECT),
           ds([2, 2, 0, 6], schema_constants.OBJECT),
-          1,
-          ds([1, 2, 0, 3], schema=INT64),
-      ),
-      (
-          ds([1, 1, 1, 6]).as_any(),
-          ds([2, 2, 0, 6]).as_any(),
           1,
           ds([1, 2, 0, 3], schema=INT64),
       ),
@@ -272,12 +254,12 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       ),
       (
           ds([[None, None], [None]]),
-          ds([[None, None], [None]], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
           1,
           ds([[None, None], [None]], schema_constants.INT64),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
           ds([[None, None], [None]]),
           1,
           ds([[None, None], [None]], schema_constants.INT64),

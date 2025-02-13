@@ -63,7 +63,6 @@ class SchemaGetPrimitiveSchemaTest(parameterized.TestCase):
       (ds(['1', '2', '3']), schema_constants.STRING),
       (ds([True, False, True]), schema_constants.BOOLEAN),
       (ds([1, 2, 3], schema_constants.OBJECT), schema_constants.INT32),
-      (ds([1, 2, 3]).as_any(), schema_constants.INT32),
       (ds([None, None, None], schema_constants.INT32), schema_constants.INT32),
   )
   def test_eval(self, x, expected):

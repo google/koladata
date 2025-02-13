@@ -62,7 +62,7 @@ class StringsSplitTest(parameterized.TestCase):
               [['Goodbye', 'world!'], ['Farewell', 'world!']],
           ]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([['a b'], [None]], schema_constants.OBJECT),
           ds([[['a', 'b']], [[]]], schema_constants.OBJECT),
@@ -92,10 +92,6 @@ class StringsSplitTest(parameterized.TestCase):
           ds([[None, None], [None]], schema_constants.BYTES),
           ds([[[], []], [[]]], schema_constants.BYTES),
       ),
-      (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds([[[], []], [[]]], schema_constants.ANY),
-      ),
   )
   def test_eval_one_arg(self, x, expected_value):
     actual_value = expr_eval.eval(kde.strings.split(x))
@@ -117,26 +113,16 @@ class StringsSplitTest(parameterized.TestCase):
           ds('s'),
           ds([['', 'plit', ' ', 'even ', 'yllable', ' by `', '`']]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([['a b', 'b c'], [None]], schema_constants.OBJECT),
           ds(' '),
           ds([[['a', 'b'], ['b', 'c']], [[]]], schema_constants.OBJECT),
       ),
       (
-          ds([[b'a b', b'b c'], [None]], schema_constants.ANY),
-          ds(b' '),
-          ds([[[b'a', b'b'], [b'b', b'c']], [[]]], schema_constants.ANY),
-      ),
-      (
           ds([['a b', 'b c'], [None]]),
           ds(' ', schema_constants.OBJECT),
           ds([[['a', 'b'], ['b', 'c']], [[]]], schema_constants.OBJECT),
-      ),
-      (
-          ds([[b'a b', b'b c'], [None]]),
-          ds(b' ', schema_constants.ANY),
-          ds([[[b'a', b'b'], [b'b', b'c']], [[]]], schema_constants.ANY),
       ),
       # Empty and unknown inputs.
       (
@@ -158,16 +144,6 @@ class StringsSplitTest(parameterized.TestCase):
           ds([[None, None], [None]], schema_constants.BYTES),
           ds(b' ', schema_constants.OBJECT),
           ds([[[], []], [[]]], schema_constants.OBJECT),
-      ),
-      (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds(' ', schema_constants.OBJECT),
-          ds([[[], []], [[]]], schema_constants.ANY),
-      ),
-      (
-          ds([[None, None], [None]], schema_constants.OBJECT),
-          ds(None, schema_constants.ANY),
-          ds([[[], []], [[]]], schema_constants.ANY),
       ),
   )
   def test_eval_two_args(self, x, sep, expected_value):

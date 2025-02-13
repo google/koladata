@@ -57,9 +57,8 @@ class RandomSampleTest(parameterized.TestCase):
       # x.ndim = 2
       (ds([[7, 2], [6, 3], [None, 4, 1], [8]]),),
       (ds([7, 2, 6, 3, None, 4, 1, 8], schema_constants.INT64),),
-      # OBJECT/ANY schema
+      # OBJECT schema
       (ds([7, 2, 6, 3, None, 4, 1, 8], schema_constants.OBJECT),),
-      (ds([7, 2, 6, 3, None, 4, 1, 8], schema_constants.ANY),),
       # mixed
       (ds([7, 2.0, 6, 3.0, None, True, 1, 8]),),
       # Lists

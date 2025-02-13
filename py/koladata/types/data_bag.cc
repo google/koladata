@@ -1426,8 +1426,6 @@ Args:
   arg: optional Python object to be converted to an Entity.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-    schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -1448,8 +1446,6 @@ Args:
   shape: JaggedShape that the returned DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-    schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -1469,8 +1465,6 @@ Args:
     DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-    schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.

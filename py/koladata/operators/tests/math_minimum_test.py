@@ -68,11 +68,11 @@ class MathMinimumTest(parameterized.TestCase):
           ds(2.0),
           ds([1.0, None, 2.0]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([1, None, 5], schema_constants.OBJECT),
-          ds([4, 1, 0], schema_constants.ANY),
-          ds([1, None, 0], schema_constants.ANY),
+          ds([4, 1, 0]),
+          ds([1, None, 0], schema_constants.OBJECT),
       ),
       # Empty and unknown inputs.
       (
@@ -96,9 +96,9 @@ class MathMinimumTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.FLOAT32),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([None, None, None], schema_constants.FLOAT32),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
       (
           ds([None, None, None]),
@@ -106,9 +106,9 @@ class MathMinimumTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.INT32),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([4, 1, 0]),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
   )
   def test_eval(self, x, y, expected):

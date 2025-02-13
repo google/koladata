@@ -46,8 +46,6 @@ class KodaToArollaDenseArrayInt64Test(parameterized.TestCase):
       (ds([1], INT64), arolla.dense_array_int64([1])),
       (ds([None], INT32), arolla.dense_array_int64([None])),
       (ds([None], INT64), arolla.dense_array_int64([None])),
-      (ds([1], INT32).as_any(), arolla.dense_array_int64([1])),
-      (ds([1], INT64).as_any(), arolla.dense_array_int64([1])),
       (ds([1], INT32).with_schema(OBJECT), arolla.dense_array_int64([1])),
       (ds([1], INT64).with_schema(OBJECT), arolla.dense_array_int64([1])),
       # Empty and unknown.
@@ -60,8 +58,6 @@ class KodaToArollaDenseArrayInt64Test(parameterized.TestCase):
       (ds(None, INT32), arolla.dense_array_int64([None])),
       (ds(1, INT32), arolla.dense_array_int64([1])),
       (ds(1, INT64), arolla.dense_array_int64([1])),
-      (ds(1, INT32).as_any(), arolla.dense_array_int64([1])),
-      (ds(1, INT64).as_any(), arolla.dense_array_int64([1])),
       (ds(1, INT32).with_schema(OBJECT), arolla.dense_array_int64([1])),
       (ds(1, INT64).with_schema(OBJECT), arolla.dense_array_int64([1])),
       (ds(None).with_schema(INT64), arolla.dense_array_int64([None])),
@@ -71,14 +67,6 @@ class KodaToArollaDenseArrayInt64Test(parameterized.TestCase):
       (ds([[1], [2]], INT64), arolla.dense_array_int64([1, 2])),
       (ds([[None], [None]], INT32), arolla.dense_array_int64([None, None])),
       (ds([[None], [None]], INT64), arolla.dense_array_int64([None, None])),
-      (
-          ds([[1], [2]], INT32).as_any(),
-          arolla.dense_array_int64([1, 2]),
-      ),
-      (
-          ds([[1], [2]], INT64).as_any(),
-          arolla.dense_array_int64([1, 2]),
-      ),
       (
           ds([[1], [2]], INT32).with_schema(OBJECT),
           arolla.dense_array_int64([1, 2]),

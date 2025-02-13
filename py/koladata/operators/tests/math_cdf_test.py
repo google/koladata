@@ -107,14 +107,10 @@ class MathCdfTest(parameterized.TestCase):
           ds([[[1, None], [3, 4, 5]], [[None, None]]]),
           ds([[[1.0, None], [1 / 3, 2 / 3, 1.0]], [[None, None]]]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([[2, None], [None]], schema_constants.OBJECT),
           ds([[1.0, None], [None]], schema_constants.OBJECT),
-      ),
-      (
-          ds([[2, None], [None]], schema_constants.ANY),
-          ds([[1.0, None], [None]], schema_constants.ANY),
       ),
       # Empty and unknown inputs.
       (
@@ -128,10 +124,6 @@ class MathCdfTest(parameterized.TestCase):
       (
           ds([[None, None], [None]], schema_constants.FLOAT32),
           ds([[None, None], [None]], schema_constants.FLOAT32),
-      ),
-      (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds([[None, None], [None]], schema_constants.ANY),
       ),
   )
   def test_eval(self, *args_and_expected):

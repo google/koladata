@@ -74,7 +74,11 @@ class SlicesSubsliceTest(parameterized.TestCase):
       ),
       (
           ds([1, 2, 3]),
-          [slice(ds(0, schema_constants.OBJECT), ds(2, schema_constants.ANY))],
+          [
+              slice(
+                  ds(0, schema_constants.OBJECT), ds(2, schema_constants.OBJECT)
+              )
+          ],
           ds([1, 2]),
       ),
       (ds([1, 2, 3]), [...], ds([1, 2, 3])),

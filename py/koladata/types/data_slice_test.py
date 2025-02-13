@@ -191,7 +191,7 @@ class DataSliceTest(parameterized.TestCase):
 
     # NOTE: with_schema() invokes `PyDataSlice_Type()` C Python function and
     # this verifies there are no leaking references.
-    ds(1).as_any()
+    ds(1).with_schema(schema_constants.OBJECT)
     self.assertEqual(sys.getrefcount(data_slice.DataSlice), base_count)
 
     items = []
@@ -264,11 +264,6 @@ class DataSliceTest(parameterized.TestCase):
           'DataSlice([1, 2], schema: INT64, shape: JaggedShape(2))',
       ),
       (
-          'int64_as_any',
-          ds([1, 2], schema_constants.INT64).as_any(),
-          'DataSlice([int64{1}, int64{2}], schema: ANY, shape: JaggedShape(2))',
-      ),
-      (
           'int64_as_object',
           bag().obj(ds([1, 2], schema_constants.INT64)).no_bag(),
           (
@@ -296,19 +291,6 @@ class DataSliceTest(parameterized.TestCase):
           bag().obj(ds([1.0, 1.5], schema_constants.FLOAT64)).no_bag(),
           (
               'DataSlice([float64{1.0}, float64{1.5}], schema: OBJECT, shape:'
-              ' JaggedShape(2))'
-          ),
-      ),
-      (
-          'float32_as_any',
-          ds([1.0, 1.5], schema_constants.FLOAT32).as_any(),
-          'DataSlice([1.0, 1.5], schema: ANY, shape: JaggedShape(2))',
-      ),
-      (
-          'float64_as_any',
-          ds([1.0, 1.5], schema_constants.FLOAT64).as_any(),
-          (
-              'DataSlice([float64{1.0}, float64{1.5}], schema: ANY, shape:'
               ' JaggedShape(2))'
           ),
       ),
@@ -353,11 +335,6 @@ class DataSliceTest(parameterized.TestCase):
           'bytes',
           ds([b'a', b'b']),
           "DataSlice([b'a', b'b'], schema: BYTES, shape: JaggedShape(2))",
-      ),
-      (
-          'int32_with_any',
-          ds([1, 2]).as_any(),
-          'DataSlice([1, 2], schema: ANY, shape: JaggedShape(2))',
       ),
       (
           'int32_with_object',
@@ -500,12 +477,6 @@ class DataSliceTest(parameterized.TestCase):
           '[1, 2]',
       ),
       (
-          'int64_as_any',
-          ds([1, 2], schema_constants.INT64).as_any(),
-          'DataSlice([int64{1}, int64{2}], schema: ANY, ndims: 1, size: 2)',
-          '[int64{1}, int64{2}]',
-      ),
-      (
           'int64_as_object',
           bag().obj(ds([1, 2], schema_constants.INT64)).no_bag(),
           'DataSlice([int64{1}, int64{2}], schema: OBJECT, ndims: 1, size: 2)',
@@ -535,21 +506,6 @@ class DataSliceTest(parameterized.TestCase):
           (
               'DataSlice([float64{1.0}, float64{1.5}], schema: OBJECT, ndims:'
               ' 1, size: 2)'
-          ),
-          '[float64{1.0}, float64{1.5}]',
-      ),
-      (
-          'float32_as_any',
-          ds([1.0, 1.5], schema_constants.FLOAT32).as_any(),
-          'DataSlice([1.0, 1.5], schema: ANY, ndims: 1, size: 2)',
-          '[1.0, 1.5]',
-      ),
-      (
-          'float64_as_any',
-          ds([1.0, 1.5], schema_constants.FLOAT64).as_any(),
-          (
-              'DataSlice([float64{1.0}, float64{1.5}], schema: ANY, ndims: 1,'
-              ' size: 2)'
           ),
           '[float64{1.0}, float64{1.5}]',
       ),
@@ -602,12 +558,6 @@ class DataSliceTest(parameterized.TestCase):
           ds([b'a', b'b']),
           "DataSlice([b'a', b'b'], schema: BYTES, ndims: 1, size: 2)",
           "[b'a', b'b']",
-      ),
-      (
-          'int32_with_any',
-          ds([1, 2]).as_any(),
-          'DataSlice([1, 2], schema: ANY, ndims: 1, size: 2)',
-          '[1, 2]',
       ),
       (
           'int32_with_object',
@@ -1135,15 +1085,6 @@ class DataSliceTest(parameterized.TestCase):
     testing.assert_equal(x.xyz, ds([12], schema_constants.INT64).with_bag(db))
     testing.assert_equal(
         x.xyz.get_schema(), schema_constants.INT64.with_bag(db)
-    )
-
-  def test_as_any(self):
-    testing.assert_equal(
-        ds([1, 2, 3]).as_any(), ds([1, 2, 3]).with_schema(schema_constants.ANY)
-    )
-    o = bag().obj(x=ds([1, 2, 3]))
-    testing.assert_equal(
-        o.as_any(), o.with_schema(schema_constants.ANY)
     )
 
   def test_get_itemid(self):
@@ -2607,60 +2548,48 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
     db = bag()
     x = ds([db.list([1, 2]), db.list([3, 4])])
     self.assertTrue(x.is_list())
-    self.assertTrue(x.as_any().is_list())
     self.assertTrue(db.obj(x).is_list())
     self.assertFalse(ds([db.obj(db.list()), db.obj(db.dict())]).is_list())
     x = ds([db.dict({1: 2}), db.dict({3: 4})])
     self.assertFalse(x.is_list())
-    self.assertFalse(x.as_any().is_list())
     self.assertFalse(db.obj(x).is_list())
     x = ds([1.0, 2.0])
     self.assertFalse(x.is_list())
-    self.assertFalse(x.as_any().is_list())
     self.assertFalse(db.obj(x).is_list())
     x = ds([db.list([1, 2]).embed_schema(), 1.0])
     self.assertFalse(x.is_list())
-    self.assertFalse(x.as_any().is_list())
     self.assertFalse(db.obj(x).is_list())
 
   def test_is_dict(self):
     db = bag()
     x = ds([db.dict({1: 2}), db.dict({3: 4})])
     self.assertTrue(x.is_dict())
-    self.assertTrue(x.as_any().is_dict())
     self.assertTrue(db.obj(x).is_dict())
     self.assertFalse(ds([db.obj(db.list()), db.obj(db.dict())]).is_dict())
     x = ds([db.list([1, 2]), db.list([3, 4])])
     self.assertFalse(x.is_dict())
-    self.assertFalse(x.as_any().is_dict())
     self.assertFalse(db.obj(x).is_dict())
     x = ds([1.0, 2.0])
     self.assertFalse(x.is_dict())
-    self.assertFalse(x.as_any().is_dict())
     self.assertFalse(db.obj(x).is_dict())
     x = ds([db.dict({1: 2}).embed_schema(), 1.0])
     self.assertFalse(x.is_dict())
-    self.assertFalse(x.as_any().is_dict())
     self.assertFalse(db.obj(x).is_dict())
 
   def test_is_entity(self):
     db = bag()
     x = db.new(a=ds([1, 2]))
     self.assertTrue(x.is_entity())
-    self.assertTrue(x.as_any().is_entity())
     self.assertTrue(db.obj(x).is_entity())
     self.assertFalse(ds([db.obj(a=1), db.obj(db.dict())]).is_entity())
     x = ds([db.dict({1: 2}), db.dict({3: 4})])
     self.assertFalse(x.is_entity())
-    self.assertFalse(x.as_any().is_entity())
     self.assertFalse(db.obj(x).is_entity())
     x = ds([1.0, 2.0])
     self.assertFalse(x.is_entity())
-    self.assertFalse(x.as_any().is_entity())
     self.assertFalse(db.obj(x).is_entity())
     x = ds([db.obj(a=1), 1.0])
     self.assertFalse(x.is_entity())
-    self.assertFalse(x.as_any().is_entity())
     self.assertFalse(db.obj(x).is_entity())
 
   def test_is_schema(self):
@@ -2685,12 +2614,10 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
 
   def test_empty_subscript_method_slice(self):
     db = bag()
+    testing.assert_equal(ds(None).with_bag(db)[:], ds([]).with_bag(db))
     testing.assert_equal(
-        ds(None).as_any().with_bag(db)[:], ds([]).as_any().with_bag(db)
-    )
-    testing.assert_equal(
-        ds([None, None]).as_any().with_bag(db)[:],
-        ds([[], []]).as_any().with_bag(db),
+        ds([None, None]).with_bag(db)[:],
+        ds([[], []]).with_bag(db),
     )
 
   def test_empty_subscript_method_slice_dict(self):
@@ -2700,16 +2627,18 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
         db.dict(ds([1, 2]), ds([3, 4]))[:], ds([3, 4]).with_bag(db)
     )
 
-    ds(None).with_bag(db).as_any()[:] = ds([42])
+    ds(None, schema_constants.OBJECT).with_bag(db)[:] = ds([42])
     (db.list() & ds(None))[:] = ds([42])
 
     testing.assert_equal(
         (db.dict() & ds(None))[:], ds([], schema_constants.OBJECT).with_bag(db)
     )
-    testing.assert_equal(db.dict().as_any()[:], ds([]).as_any().with_bag(db))
     testing.assert_equal(
-        db.dict_shaped(jagged_shape.create_shape([3])).as_any()[:],
-        ds([[], [], []]).as_any().with_bag(db),
+        db.dict()[:], ds([], schema_constants.OBJECT).with_bag(db)
+    )
+    testing.assert_equal(
+        db.dict_shaped(jagged_shape.create_shape([3]))[:],
+        ds([[], [], []], schema_constants.OBJECT).with_bag(db),
     )
 
     with self.assertRaisesRegex(
@@ -2733,17 +2662,17 @@ Assigned schema for List item: SCHEMA(a=STRING)"""),
   def test_empty_subscript_method_int(self):
     db = bag()
     testing.assert_equal(
-        ds(None).as_any().with_bag(db)[0], ds(None).as_any().with_bag(db)
+        ds(None, schema_constants.OBJECT).with_bag(db)[0], ds(None).with_bag(db)
     )
     testing.assert_equal(
-        ds([None, None]).as_any().with_bag(db)[0],
-        ds([None, None]).as_any().with_bag(db),
+        ds([None, None], schema_constants.OBJECT).with_bag(db)[0],
+        ds([None, None]).with_bag(db),
     )
     testing.assert_equal(
         (db.obj(db.dict()) & ds(None))[0], ds(None).with_bag(db)
     )
 
-    ds(None).with_bag(db).as_any()[0] = 42
+    ds(None, schema_constants.OBJECT).with_bag(db)[0] = 42
     (db.list() & ds(None))[0] = 42
     (db.dict() & ds(None))['abc'] = 42
 
@@ -3268,9 +3197,7 @@ class DataSliceMergingTest(parameterized.TestCase):
         dct['obj']['b'], ds(5, schema_constants.OBJECT).with_bag(db)
     )
 
-    ds([dct.as_any(), dct['obj'].as_any()])['c'] = ds(
-        [db2.obj(a=1), db2.obj(a=2)]
-    )
+    ds([dct.embed_schema(), dct['obj']])['c'] = ds([db2.obj(a=1), db2.obj(a=2)])
     testing.assert_equal(dct['c'].a, ds(1).with_bag(db))
     testing.assert_equal(dct['obj']['c'].a, ds(2).with_bag(db))
 
@@ -3358,18 +3285,14 @@ class DataSliceMergingTest(parameterized.TestCase):
 
   def test_append_list_single(self):
     db = bag()
-    lst = db.list(
-        # TODO: Assigning schema to OBJECT breaks the [:]
-        # operator below.
-        item_schema=schema_constants.ANY
-    )
+    lst = db.list(item_schema=schema_constants.OBJECT)
     lst2 = bag().list([5])
     lst3 = bag().list([6])
     lst.append(lst2)
     lst.append(ds([lst3]))
 
-    testing.assert_equal(lst[0][0], ds(5).as_any().with_bag(db))
-    testing.assert_equal(lst[1][0], ds(6).as_any().with_bag(db))
+    testing.assert_equal(lst[0][0], ds(5).with_bag(db))
+    testing.assert_equal(lst[1][0], ds(6).with_bag(db))
 
   def test_replace_in_list_single(self):
     db = bag()
@@ -3464,14 +3387,13 @@ class DataSliceFallbackTest(parameterized.TestCase):
 
     # update new DataBag
     new_bag = bag()
-    new_x = x.with_bag(new_bag).as_any()
+    new_x = x.with_bag(new_bag)
     new_x.xyz = ds([None, 3.14], schema_constants.FLOAT64)
     # Note: new_x.S[0].xyz is REMOVED
     merged_x = new_x.enriched(db, fb_bag)
     testing.assert_allclose(
         merged_x.xyz,
         ds([None, 3.14], schema_constants.FLOAT64)
-        .as_any()
         .with_bag(merged_x.get_bag()),
     )
     testing.assert_allclose(
@@ -3483,14 +3405,13 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_allclose(
         merged_x.xyz,
         ds([None, 3.14], schema_constants.FLOAT64)
-        .as_any()
         .with_bag(merged_x.get_bag()),
     )
 
   def test_get_attr_mixed_type(self):
     db = bag()
-    x = db.new(abc=ds([314, None])).as_any()
-    x.S[0].xyz = 315
+    x = db.new(abc=ds([314, None]))
+    x.S[0].xyz = ds(315, schema_constants.OBJECT)
     # Note: x.S[1].abc is REMOVED, x.S[1].xyz is UNSET
 
     fb_bag = bag()
@@ -3502,11 +3423,11 @@ class DataSliceFallbackTest(parameterized.TestCase):
 
     testing.assert_equal(
         merged_x.abc,
-        ds([314, None]).as_any().with_bag(merged_x.get_bag()),
+        ds([314, None]).with_bag(merged_x.get_bag()),
     )
     testing.assert_equal(
         merged_x.xyz,
-        ds([315, '3.17']).as_any().with_bag(merged_x.get_bag()),
+        ds([315, '3.17']).with_bag(merged_x.get_bag()),
     )
 
   def test_dict(self):

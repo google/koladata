@@ -59,8 +59,8 @@ class StringsFormatTest(parameterized.TestCase):
       ([ds('%s %v'), ds('bar'), ds(1)], ds('bar 1')),
       ([ds(['+%s', '-%s']), ds('bar')], ds(['+bar', '-bar'])),
       (
-          [ds(['+%s', '-%s'], schema_constants.ANY), ds('bar')],
-          ds(['+bar', '-bar'], schema_constants.ANY),
+          [ds(['+%s', '-%s'], schema_constants.OBJECT), ds('bar')],
+          ds(['+bar', '-bar'], schema_constants.OBJECT),
       ),
       (
           [ds('%v + %v'), ds([1, 2]), ds([[4, 5], [6]])],

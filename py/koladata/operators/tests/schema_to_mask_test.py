@@ -45,12 +45,10 @@ class SchemaToMaskTest(parameterized.TestCase):
       (ds(None, schema_constants.OBJECT), ds(None, schema_constants.MASK)),
       (ds(arolla.present()), ds(arolla.present())),
       (ds(arolla.missing()), ds(arolla.missing())),
-      (ds(arolla.present(), schema_constants.ANY), ds(arolla.present())),
       (ds(arolla.present(), schema_constants.OBJECT), ds(arolla.present())),
       (ds([None], schema_constants.OBJECT), ds([None], schema_constants.MASK)),
       (ds([arolla.present()]), ds([arolla.present()])),
       (ds([arolla.missing()]), ds([arolla.missing()])),
-      (ds([arolla.present()], schema_constants.ANY), ds([arolla.present()])),
       (
           ds([arolla.present(), None], schema_constants.OBJECT),
           ds([arolla.present(), None]),

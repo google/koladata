@@ -150,14 +150,10 @@ class MathAggStdTest(parameterized.TestCase):
               schema_constants.FLOAT32,
           ),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([[2, None], [None]], schema_constants.OBJECT),
           ds([None, None], schema_constants.OBJECT),
-      ),
-      (
-          ds([[2, None], [None]], schema_constants.ANY),
-          ds([None, None], schema_constants.ANY),
       ),
       # Empty and unknown inputs.
       (
@@ -173,16 +169,16 @@ class MathAggStdTest(parameterized.TestCase):
           ds([None, None], schema_constants.FLOAT32),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds([None, None], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
+          ds([None, None], schema_constants.OBJECT),
       ),
       (
           ds([None, None, None]),
           ds(None, schema_constants.NONE),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
-          ds(None, schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
+          ds(None, schema_constants.OBJECT),
       ),
   )
   def test_eval(self, *args_and_expected):

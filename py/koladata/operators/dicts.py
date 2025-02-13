@@ -366,7 +366,7 @@ def is_dict(x):  # pylint: disable=unused-argument
 
   `x` is a Dict DataSlice if it meets one of the following conditions:
     1) it has a Dict schema
-    2) it has OBJECT/ANY schema and only has Dict items
+    2) it has OBJECT schema and only has Dict items
 
   Also see `kd.has_dict` for a pointwise version. But note that
   `kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For

@@ -49,17 +49,12 @@ class SchemaToItemidTest(parameterized.TestCase):
       (ds(None, schema_constants.OBJECT), ds(None, schema_constants.ITEMID)),
       (OBJ, OBJ.with_schema(schema_constants.ITEMID)),
       (ENTITY, ENTITY.with_schema(schema_constants.ITEMID)),
-      (ds(OBJ, schema_constants.ANY), OBJ.with_schema(schema_constants.ITEMID)),
       (
           ds([None], schema_constants.OBJECT),
           ds([None], schema_constants.ITEMID),
       ),
       (ds([OBJ]), ds([OBJ.with_schema(schema_constants.ITEMID)])),
       (ds([ENTITY]), ds([ENTITY.with_schema(schema_constants.ITEMID)])),
-      (
-          ds([OBJ], schema_constants.ANY),
-          ds([OBJ.with_schema(schema_constants.ITEMID)]),
-      ),
   )
   def test_eval(self, x, expected):
     res = eval_op("kd.schema.to_itemid", x)

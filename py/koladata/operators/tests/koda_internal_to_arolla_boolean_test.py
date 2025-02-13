@@ -37,7 +37,6 @@ class KodaToArollaBooleanTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds(arolla.boolean(True)), arolla.boolean(True)),
       (ds(arolla.boolean(False)), arolla.boolean(False)),
-      (ds(arolla.boolean(True)).as_any(), arolla.boolean(True)),
       (ds(arolla.boolean(True), schema_constants.OBJECT), arolla.boolean(True)),
   )
   def test_eval(self, x, expected):

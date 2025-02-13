@@ -56,26 +56,14 @@ class DictsGetValuesTest(parameterized.TestCase):
       (dict_item, ds([2, 4])),
       (dict_item.embed_schema(), ds([2, 4])),
       (
-          dict_item.with_schema(schema_constants.ANY),
-          ds([2, 4], schema_constants.ANY),
-      ),
-      (
           ds(None).with_schema(dict_item.get_schema()),
           ds([], schema_constants.INT32),
       ),
       (ds(None), ds([])),
       (ds(None).with_schema(schema_constants.OBJECT), ds([])),
-      (
-          ds(None).with_schema(schema_constants.ANY),
-          ds([], schema_constants.ANY),
-      ),
       # Dict DataSlice
       (dict_slice, ds([[2, 4], [], [5]])),
       (dict_slice.embed_schema(), ds([[2, 4], [], [5]])),
-      (
-          dict_slice.with_schema(schema_constants.ANY),
-          ds([[2, 4], [], [5]], schema_constants.ANY),
-      ),
   )
   def test_eval(self, dict_ds, expected):
     result = eval_op('kd.get_values', dict_ds)
@@ -87,11 +75,6 @@ class DictsGetValuesTest(parameterized.TestCase):
       (dict_item, ds([3, 1]), ds([4, 2])),
       (dict_item.embed_schema(), ds([3, 1]), ds([4, 2])),
       (
-          dict_item.with_schema(schema_constants.ANY),
-          ds([3, 1]),
-          ds([4, 2], schema_constants.ANY),
-      ),
-      (
           ds(None).with_schema(dict_item.get_schema()),
           ds([3, 1]),
           ds([None, None], schema_constants.INT32),
@@ -101,22 +84,12 @@ class DictsGetValuesTest(parameterized.TestCase):
           ds([3, 1]),
           ds([None, None]),
       ),
-      (
-          ds(None).with_schema(schema_constants.ANY),
-          ds([3, 1]),
-          ds([None, None], schema_constants.ANY),
-      ),
       # Dict DataSlice
       (dict_slice, ds([[3, 1], [1], [3]]), ds([[4, 2], [None], [5]])),
       (
           dict_slice.embed_schema(),
           ds([[3, 1], [1], [3]]),
           ds([[4, 2], [None], [5]]),
-      ),
-      (
-          dict_slice.with_schema(schema_constants.ANY),
-          ds([[3, 1], [1], [3]]),
-          ds([[4, 2], [None], [5]], schema_constants.ANY),
       ),
   )
   def test_eval_with_key(self, dict_ds, key_ds, expected):

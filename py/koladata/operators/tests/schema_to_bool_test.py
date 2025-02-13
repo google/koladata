@@ -45,7 +45,6 @@ class SchemaToBoolTest(parameterized.TestCase):
       (ds(None, schema_constants.OBJECT), ds(None, schema_constants.BOOLEAN)),
       (ds(True), ds(True)),
       (ds(False), ds(False)),
-      (ds(True, schema_constants.ANY), ds(True)),
       (ds(True, schema_constants.OBJECT), ds(True)),
       (
           ds([None], schema_constants.OBJECT),
@@ -53,7 +52,6 @@ class SchemaToBoolTest(parameterized.TestCase):
       ),
       (ds([True]), ds([True])),
       (ds([False]), ds([False])),
-      (ds([True], schema_constants.ANY), ds([True])),
       (ds([True, None], schema_constants.OBJECT), ds([True, None])),
   )
   def test_eval(self, x, expected):

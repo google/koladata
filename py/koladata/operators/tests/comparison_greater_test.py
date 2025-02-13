@@ -66,10 +66,10 @@ class ComparisonGreaterTest(parameterized.TestCase):
           ds([[0, 1, 2], [1, 2, 3], [2, 3, 4]]),
           ds([[arolla.present(), None, None]] * 3),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([1, None, 5], schema_constants.OBJECT),
-          ds([4, 1, 0], schema_constants.ANY),
+          ds([4, 1, 0]),
           ds([None, None, arolla.present()]),
       ),
       # Empty and unknown inputs.
@@ -94,7 +94,7 @@ class ComparisonGreaterTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.MASK),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([None, None, None], schema_constants.FLOAT32),
           ds([None, None, None], schema_constants.MASK),
       ),
@@ -104,7 +104,7 @@ class ComparisonGreaterTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.MASK),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([4, 1, 0]),
           ds([None, None, None], schema_constants.MASK),
       ),

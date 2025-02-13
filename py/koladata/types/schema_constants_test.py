@@ -32,7 +32,6 @@ class SchemaConstantsTest(parameterized.TestCase):
       (schema_constants.BYTES, 'DataItem(BYTES, schema: SCHEMA)'),
       (schema_constants.STRING, 'DataItem(STRING, schema: SCHEMA)'),
       (schema_constants.EXPR, 'DataItem(EXPR, schema: SCHEMA)'),
-      (schema_constants.ANY, 'DataItem(ANY, schema: SCHEMA)'),
       (schema_constants.ITEMID, 'DataItem(ITEMID, schema: SCHEMA)'),
       (schema_constants.OBJECT, 'DataItem(OBJECT, schema: SCHEMA)'),
       (schema_constants.SCHEMA, 'DataItem(SCHEMA, schema: SCHEMA)'),

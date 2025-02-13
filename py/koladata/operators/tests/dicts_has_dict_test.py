@@ -47,7 +47,6 @@ class KodaHasDictTest(parameterized.TestCase):
       (bag().dict(), present),
       (bag().dict({1: 2}), present),
       (bag().dict({1: 2}).embed_schema(), present),
-      (bag().dict({1: 2}).as_any(), present),
       (ds('hello'), missing),
       (bag().new(), missing),
       (bag().obj(), missing),
@@ -61,7 +60,6 @@ class KodaHasDictTest(parameterized.TestCase):
       (ds([None, None]), ds([missing, missing])),
       (ds([None, None], schema_constants.INT32), ds([missing, missing])),
       (ds([None, None], schema_constants.OBJECT), ds([missing, missing])),
-      (ds([None, None], schema_constants.ANY), ds([missing, missing])),
       # Mixed types.
       (
           ds([bag().dict({1: 2}).embed_schema(), None, 'world', bag().obj()]),

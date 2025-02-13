@@ -239,16 +239,15 @@ class CoreDeepCloneTest(parameterized.TestCase):
     x = bag().new(y=bag().new(a=1))
     res_1 = expr_eval.eval(kde.core.deep_clone(x))
     res_2 = expr_eval.eval(kde.core.deep_clone(x))
-    # TODO: Remove .as_any() when deep_clone preserves schema.
-    self.assertNotEqual(res_1.as_any().no_bag(), res_2.as_any().no_bag())
-    self.assertNotEqual(res_1.y.as_any().no_bag(), res_2.y.as_any().no_bag())
+    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
+    self.assertNotEqual(res_1.y.no_bag(), res_2.y.no_bag())
     testing.assert_equal(res_1.y.a.no_bag(), res_2.y.a.no_bag())
 
     expr = kde.core.deep_clone(x)
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
-    self.assertNotEqual(res_1.as_any().no_bag(), res_2.as_any().no_bag())
-    self.assertNotEqual(res_1.y.as_any().no_bag(), res_2.y.as_any().no_bag())
+    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
+    self.assertNotEqual(res_1.y.no_bag(), res_2.y.no_bag())
     testing.assert_equal(res_1.y.a.no_bag(), res_2.y.a.no_bag())
 
   def test_view(self):

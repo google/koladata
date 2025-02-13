@@ -91,13 +91,8 @@ class CoreGetItemTest(parameterized.TestCase):
           ds([None, None]),
           ds([None, None], schema_constants.INT32),
       ),
-      # OBJECT/ANY List
+      # OBJECT List
       (list_item.embed_schema(), 1, ds(2)),
-      (
-          list_item.with_schema(schema_constants.ANY),
-          1,
-          ds(2, schema_constants.ANY),
-      ),
       # Dict DataItem
       (dict_item, 3, ds(4)),
       (dict_item, ds(None), ds(None, schema_constants.INT32)),
@@ -113,29 +108,14 @@ class CoreGetItemTest(parameterized.TestCase):
           ds([None, None]),
           ds([None, None], schema_constants.INT32),
       ),
-      # OBJECT/ANY Dict
+      # OBJECT Dict
       (dict_item.embed_schema(), 3, ds(4)),
-      (
-          dict_item.with_schema(schema_constants.ANY),
-          3,
-          ds(4, schema_constants.ANY),
-      ),
       # Empty and unknown
       (ds(None, schema_constants.OBJECT).with_bag(db), 1, ds(None)),
       (
           ds(None, schema_constants.OBJECT).with_bag(db),
           ds([1, 2]),
           ds([None, None]),
-      ),
-      (
-          ds(None, schema_constants.ANY).with_bag(db),
-          1,
-          ds(None, schema_constants.ANY),
-      ),
-      (
-          ds(None, schema_constants.ANY).with_bag(db),
-          ds([1, 2]),
-          ds([None, None], schema_constants.ANY),
       ),
       (ds([]).with_bag(db), 0, ds([])),
       (ds(None).with_bag(db), 0, ds(None)),

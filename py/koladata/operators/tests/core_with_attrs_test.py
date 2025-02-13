@@ -76,11 +76,6 @@ class CoreWithAttrsTest(absltest.TestCase):
     ):
       _ = kde.core.with_attrs(o, x=1).eval()
 
-  def test_any_works(self):
-    o = bag().new().as_any()
-    o = kde.core.with_attrs(o, x=1).eval()
-    self.assertEqual(o.x.no_bag(), ds(1))
-
   def test_none_works(self):
     x = ds(None).with_bag(bag())
     x = kde.core.with_attrs(x, x=1).eval()

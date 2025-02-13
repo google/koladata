@@ -48,11 +48,9 @@ class KodaIsPrimitiveTest(parameterized.TestCase):
       # Missing
       (ds(None, schema_constants.INT32),),
       (ds(None, schema_constants.OBJECT),),
-      (ds(None, schema_constants.ANY),),
       (ds(None, schema_constants.SCHEMA),),
       (ds([None, None], schema_constants.INT32),),
       (ds([None, None], schema_constants.OBJECT),),
-      (ds([None, None], schema_constants.ANY),),
       (ds([None, None], schema_constants.SCHEMA),),
   )
   def test_is_primitive(self, param):

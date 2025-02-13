@@ -47,7 +47,6 @@ class KodaHasEntityTest(parameterized.TestCase):
       (bag().new(), present),
       (bag().new(a=1), present),
       (bag().obj(a=1), present),
-      (bag().new(a=1).as_any(), present),
       (ds('hello'), missing),
       (bag().dict(), missing),
       (bag().dict().embed_schema(), missing),
@@ -65,7 +64,6 @@ class KodaHasEntityTest(parameterized.TestCase):
       (ds([None, None]), ds([missing, missing])),
       (ds([None, None], schema_constants.INT32), ds([missing, missing])),
       (ds([None, None], schema_constants.OBJECT), ds([missing, missing])),
-      (ds([None, None], schema_constants.ANY), ds([missing, missing])),
       # Mixed types.
       (
           ds([bag().obj(a=1), None, 'world', bag().dict().embed_schema()]),

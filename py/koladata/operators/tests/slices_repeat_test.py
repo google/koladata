@@ -78,7 +78,6 @@ class SlicesRepeatTest(parameterized.TestCase):
           ],
           [
               schema_constants.OBJECT,
-              schema_constants.ANY,
               schema_constants.INT64,
               schema_constants.INT32,
           ],

@@ -38,7 +38,6 @@ class KodaToArollaOptionalUnitTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds(mask_constants.present), arolla.present()),
       (ds(mask_constants.missing), arolla.missing()),
-      (ds(mask_constants.present, schema_constants.ANY), arolla.present()),
       (ds(mask_constants.present, schema_constants.OBJECT), arolla.present()),
       (ds(None), arolla.missing()),
   )

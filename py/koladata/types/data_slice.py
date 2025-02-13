@@ -555,13 +555,6 @@ def _to_py_impl(
   schema = ds.get_schema()
 
   # TODO: Move to_py() out of data_slice.py, remove
-  # internal_is_any_schema, and use schema == ANY instead.
-  if schema.internal_is_any_schema():
-    raise ValueError(
-        f'cannot convert a DataSlice with ANY schema to Python: {ds}'
-    )
-
-  # TODO: Move to_py() out of data_slice.py, remove
   # internal_is_itemid_schema, and use schema == ITEMID instead.
   if (
       max_depth >= 0 and depth >= max_depth

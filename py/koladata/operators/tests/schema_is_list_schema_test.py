@@ -43,7 +43,6 @@ class SchemaIsListSchemaTest(parameterized.TestCase):
           bag.dict_schema(schema_constants.INT32, schema_constants.STRING),
           mask_constants.missing,
       ),
-      (schema_constants.ANY, mask_constants.missing),
       (schema_constants.OBJECT, mask_constants.missing),
       (
           bag.list_schema(schema_constants.INT32).repeat(2),

@@ -45,10 +45,6 @@ class KodaToArollaDenseArrayUnitTest(parameterized.TestCase):
       (ds([None]), arolla.dense_array_unit([None])),
       (ds([None], MASK), arolla.dense_array_unit([None])),
       (
-          ds([arolla.unit()], MASK).as_any(),
-          arolla.dense_array_unit([True]),
-      ),
-      (
           ds([arolla.unit()], MASK).with_schema(OBJECT),
           arolla.dense_array_unit([True]),
       ),
@@ -57,10 +53,6 @@ class KodaToArollaDenseArrayUnitTest(parameterized.TestCase):
       # Scalars.
       (ds(None, MASK), arolla.dense_array_unit([None])),
       (ds(arolla.unit(), MASK), arolla.dense_array_unit([True])),
-      (
-          ds(arolla.unit(), MASK).as_any(),
-          arolla.dense_array_unit([True]),
-      ),
       (
           ds(arolla.unit(), MASK).with_schema(OBJECT),
           arolla.dense_array_unit([True]),
@@ -73,10 +65,6 @@ class KodaToArollaDenseArrayUnitTest(parameterized.TestCase):
           arolla.dense_array_unit([True, None]),
       ),
       (ds([[None], [None]], MASK), arolla.dense_array_unit([None, None])),
-      (
-          ds([[arolla.unit()], [None]], MASK).as_any(),
-          arolla.dense_array_unit([True, None]),
-      ),
       (
           ds([[arolla.unit()], [None]], MASK).with_schema(OBJECT),
           arolla.dense_array_unit([True, None]),

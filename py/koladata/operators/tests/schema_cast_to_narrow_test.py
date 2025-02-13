@@ -49,8 +49,8 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
       (ds(None), schema_constants.FLOAT32, ds(None, schema_constants.FLOAT32)),
       (
           ds([1, "a"], schema_constants.OBJECT),
-          schema_constants.ANY,
-          ds([1, "a"], schema_constants.ANY),
+          schema_constants.OBJECT,
+          ds([1, "a"], schema_constants.OBJECT),
       ),
       (ds(1), schema_constants.OBJECT, ds(1, schema_constants.OBJECT)),
       # Narrowing.
@@ -61,7 +61,7 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
       ),
       (ds(1, schema_constants.OBJECT), schema_constants.FLOAT32, ds(1.0)),
       (
-          ds(1, schema_constants.ANY),
+          ds(1, schema_constants.OBJECT),
           schema_constants.INT64,
           ds(1, schema_constants.INT64),
       ),

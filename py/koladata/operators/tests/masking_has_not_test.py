@@ -58,7 +58,7 @@ class LogicalHasNotTest(parameterized.TestCase):
           ds([db.obj(), None, db.obj()]),
           ds([None, arolla.present(), None]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([1, None, 5], schema_constants.OBJECT),
           ds([None, arolla.present(), None]),
@@ -74,10 +74,6 @@ class LogicalHasNotTest(parameterized.TestCase):
       ),
       (
           ds([None, None, None]),
-          ds([arolla.present(), arolla.present(), arolla.present()]),
-      ),
-      (
-          ds([None, None, None], schema_constants.ANY),
           ds([arolla.present(), arolla.present(), arolla.present()]),
       ),
       (

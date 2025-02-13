@@ -67,7 +67,7 @@ class StringsRfindTest(parameterized.TestCase):
           ds(None, schema_constants.INT64),
       ),
       (
-          ds(['foo'], schema_constants.ANY),
+          ds(['foo'], schema_constants.OBJECT),
           ds('foo'),
           ds([0], schema_constants.INT64),
       ),
@@ -159,7 +159,7 @@ class StringsRfindTest(parameterized.TestCase):
           ds(2, schema_constants.INT64),
       ),
       (
-          ds(['foo'], schema_constants.ANY),
+          ds(['foo'], schema_constants.OBJECT),
           ds('foo'),
           ds(1),
           ds([None], schema_constants.INT64),

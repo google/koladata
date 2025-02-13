@@ -32,7 +32,6 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
-ANY = schema_constants.ANY
 DATA_SLICE = qtypes.DATA_SLICE
 
 
@@ -168,17 +167,10 @@ class CoreExtractTest(parameterized.TestCase):
     o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_bag())
     testing.assert_equivalent(result.get_bag(), db)
 
-  def test_any_schema_in_data(self):
-    db = data_bag.DataBag.empty()
-    s = db.new_schema(x=schema_constants.ANY)
-    result = expr_eval.eval(kde.extract(s))
-    self.assertFalse(result.get_bag().is_mutable())
-    testing.assert_equivalent(result.get_bag(), db)
-
   def test_invalid_object_dtype_schema(self):
     db = data_bag.DataBag.empty()
     o = db.obj(x=1)
-    o.as_any().set_attr('__schema__', schema_constants.INT32)
+    o.set_attr('__schema__', schema_constants.INT32)
     with self.assertRaisesRegex(
         ValueError,
         'unsupported schema found during extract/clone',

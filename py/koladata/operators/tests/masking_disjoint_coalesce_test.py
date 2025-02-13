@@ -118,9 +118,9 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
           ),
       ),
       (
-          ds([[1, 2], [None, None, None], [None]]).as_any(),
+          ds([[1, 2], [None, None, None], [None]], schema_constants.OBJECT),
           ds([[None, None], ['a', None, 'c'], ['d']]),
-          ds([[1, 2], ['a', None, 'c'], ['d']]).as_any(),
+          ds([[1, 2], ['a', None, 'c'], ['d']], schema_constants.OBJECT),
       ),
   )
   def test_eval(self, x, y, expected):

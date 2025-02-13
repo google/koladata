@@ -50,7 +50,6 @@ class SchemaToStrTest(parameterized.TestCase):
       (ds(1.5), ds('1.5')),
       (ds(1.5, schema_constants.FLOAT64), ds('1.5')),
       (ds('αβγ'.encode('utf-8')), ds("b'αβγ'")),
-      (ds(b'foo', schema_constants.ANY), ds("b'foo'")),
       (ds(b'foo', schema_constants.OBJECT), ds("b'foo'")),
       (ds([None], schema_constants.BYTES), ds([None], schema_constants.STRING)),
       (ds([b'foo']), ds(["b'foo'"])),
@@ -59,8 +58,8 @@ class SchemaToStrTest(parameterized.TestCase):
       (ds([1], schema_constants.INT64), ds(['1'])),
       (ds([1.5]), ds(['1.5'])),
       (ds([1.5], schema_constants.FLOAT64), ds(['1.5'])),
-      (ds([b'foo'], schema_constants.ANY), ds(["b'foo'"])),
-      (ds([b'foo', 'bar'], schema_constants.ANY), ds(["b'foo'", 'bar'])),
+      (ds([b'foo'], schema_constants.OBJECT), ds(["b'foo'"])),
+      (ds([b'foo', 'bar'], schema_constants.OBJECT), ds(["b'foo'", 'bar'])),
   )
   def test_eval(self, x, expected):
     res = expr_eval.eval(kde.schema.to_str(x))

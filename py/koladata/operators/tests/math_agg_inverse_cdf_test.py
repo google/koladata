@@ -112,16 +112,11 @@ class MathAggInverseCdfTest(parameterized.TestCase):
           ds(0.1),
           ds([[1, 3], [None]]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([[2, None], [None]], schema_constants.OBJECT),
           ds(0.1, schema_constants.OBJECT),
           ds([2, None], schema_constants.OBJECT),
-      ),
-      (
-          ds([[2, None], [None]], schema_constants.ANY),
-          ds(0.1, schema_constants.ANY),
-          ds([2, None], schema_constants.ANY),
       ),
       # Empty and unknown inputs.
       (
@@ -138,11 +133,6 @@ class MathAggInverseCdfTest(parameterized.TestCase):
           ds([[None, None], [None]], schema_constants.FLOAT32),
           ds(0.1),
           ds([None, None], schema_constants.FLOAT32),
-      ),
-      (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds(0.1),
-          ds([None, None], schema_constants.ANY),
       ),
   )
   def test_eval(self, x, cdf_arg, expected_value):

@@ -35,7 +35,6 @@ eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer("I")
 kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
-ANY = schema_constants.ANY
 ITEMID = schema_constants.ITEMID
 
 
@@ -87,34 +86,6 @@ class ListsExplodeTest(parameterized.TestCase):
       (LIST4, 0, LIST4),
       (LIST4, 1, ds([LIST4[0], LIST4[1]])),
       (LIST4, 2, ds([[LIST4[0][0]], [LIST4[1][0], LIST4[1][1]]])),
-      # ANY DataItem/DataSlice containing lists
-      (ds(LIST1).with_schema(ANY), 1, ds([1, 2, 3]).with_schema(ANY)),
-      (ds([LIST1]).with_schema(ANY), 1, ds([[1, 2, 3]]).with_schema(ANY)),
-      (
-          ds([LIST1.with_schema(ANY), LIST2.with_schema(ANY)]),
-          1,
-          ds([
-              [
-                  data_item.DataItem.from_vals(1).with_schema(ANY),
-                  data_item.DataItem.from_vals(2).with_schema(ANY),
-                  data_item.DataItem.from_vals(3).with_schema(ANY),
-              ],
-              [
-                  LIST2[0].with_schema(ANY),
-                  LIST2[1].with_schema(ANY),
-              ],
-          ]),
-      ),
-      (
-          ds([LIST3]).with_schema(ANY),
-          2,
-          ds([[[None], [None, None]]]).with_schema(ANY),
-      ),
-      (
-          ds([LIST3]).with_schema(ANY),
-          3,
-          ds([[[[]], [[], []]]]).with_schema(ANY),
-      ),
       # NONE
       (di(None), 0, di(None)),
       # LIST[NONE]
@@ -137,23 +108,6 @@ class ListsExplodeTest(parameterized.TestCase):
         ),
     ):
       expr_eval.eval(kde.lists.explode(LIST1, 2))
-
-  def test_expand_fully_any_error(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape("cannot fully explode 'x' with ANY schema"),
-    ):
-      # DataItem(List[None], schema: ANY)
-      expr_eval.eval(kde.lists.explode(db.list([]).with_schema(ANY), -1))
-
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape("cannot fully explode 'x' with ANY schema"),
-    ):
-      # DataItem(List[None], schema: LIST[ANY])
-      expr_eval.eval(
-          kde.lists.explode(db.list([di(None).with_schema(ANY)]), -1)
-      )
 
   def test_expand_fully_itemid_error(self):
     with self.assertRaisesRegex(

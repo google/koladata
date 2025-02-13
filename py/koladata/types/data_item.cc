@@ -58,8 +58,8 @@ int PyDataItem_bool(PyObject* self) {
     return error();
   }
   if (auto dtype = ds.GetSchemaImpl().value<schema::DType>();
-      dtype != schema::kMask && dtype != schema::kAny &&
-      dtype != schema::kObject && dtype != schema::kNone) {
+      dtype != schema::kMask && dtype != schema::kObject &&
+      dtype != schema::kNone) {
     return error();
   }
   if (ds.item().holds_value<arolla::Unit>() || !ds.item().has_value()) {

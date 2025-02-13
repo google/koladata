@@ -47,9 +47,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
   @parameterized.parameters(
       # Scalar primitive schema
       (ds(None), schema_constants.INT32, ds(None, schema_constants.INT32)),
-      (ds(1), schema_constants.ANY, ds(1, schema_constants.ANY)),
       (ds(1), schema_constants.OBJECT, ds(1, schema_constants.OBJECT)),
-      (ds(1, schema_constants.ANY), schema_constants.INT32, ds(1)),
       (ds(1, schema_constants.OBJECT), schema_constants.INT32, ds(1)),
       # 1D primitive schema
       (
@@ -57,20 +55,12 @@ class SchemaWithSchemaTest(parameterized.TestCase):
           schema_constants.INT32,
           ds([None, None], schema_constants.INT32),
       ),
-      (ds([1, 2]), schema_constants.ANY, ds([1, 2], schema_constants.ANY)),
       (
           ds([1, 2]),
           schema_constants.OBJECT,
           ds([1, 2], schema_constants.OBJECT),
       ),
-      (ds([1, 2], schema_constants.ANY), schema_constants.INT32, ds([1, 2])),
       (ds([1, 2], schema_constants.OBJECT), schema_constants.INT32, ds([1, 2])),
-      # mixed
-      (
-          ds([1, '2'], schema_constants.OBJECT),
-          schema_constants.ANY,
-          ds([1, '2'], schema_constants.ANY),
-      ),
   )
   def test_primitives(self, x, schema, expected):
     res = expr_eval.eval(kde.schema.with_schema(x, schema))
@@ -81,15 +71,10 @@ class SchemaWithSchemaTest(parameterized.TestCase):
       (entity1, s1),
       # Entity schema -> different entity schema
       (entity1, s2),
-      # Entity schema -> OBJECT/ANY
+      # Entity schema -> OBJECT
       (entity1, schema_constants.OBJECT),
-      (entity1, schema_constants.ANY),
       # OBJECT -> Entity schema
       (ds([obj1, obj2]), s2),
-      # OBJECT -> ANY
-      (ds([obj1, obj2]), schema_constants.ANY),
-      # mixed OBJECT -> ANY
-      (ds([obj1, 2]), schema_constants.ANY),
   )
   def test_entities_and_objects(self, x, schema):
     res = expr_eval.eval(kde.schema.with_schema(x, schema))

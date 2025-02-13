@@ -58,12 +58,9 @@ class DictsIsDictTest(parameterized.TestCase):
               bag().dict({3: 4}).embed_schema(),
           ]),
       ),
-      # ANY
-      (ds([bag().dict({1: 2}), None, bag().dict({3: 4})]).as_any(),),
-      #
+      # Missing
       (bag().dict() & None,),
       (ds(None, schema_constants.OBJECT),),
-      (ds(None, schema_constants.ANY),),
       (ds(None),),
       (ds([None, None]),),
       (bag().obj(a=1) & None,),

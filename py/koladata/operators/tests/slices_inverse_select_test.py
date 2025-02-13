@@ -67,14 +67,6 @@ class SlicesInverseSelectTest(parameterized.TestCase):
           ),
           ds([[None], [2], [3]]),
       ),
-      # ANY filter
-      (
-          ds([[], [2], [3]]),
-          ds(
-              [[None], [arolla.present()], [arolla.present()]],
-          ).as_any(),
-          ds([[None], [2], [3]]),
-      ),
       # Empty ds
       (
           ds([[], [], []]),
@@ -135,7 +127,11 @@ class SlicesInverseSelectTest(parameterized.TestCase):
         'kd.slices.inverse_select: fltr argument must have all items of MASK'
         ' dtype',
     ):
-      expr_eval.eval(kde.slices.inverse_select(ds([1]), ds([1, 2]).as_any()))
+      expr_eval.eval(
+          kde.slices.inverse_select(
+              ds([1]), ds([1, 2], schema_constants.OBJECT)
+          )
+      )
 
   def test_invalid_shape_error(self):
     with self.assertRaisesRegex(

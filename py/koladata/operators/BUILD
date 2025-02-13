@@ -258,6 +258,7 @@ py_library(
         ":qtype_utils",
         ":schema",
         "//koladata/operators",
+        "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
     ],
 )

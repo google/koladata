@@ -74,7 +74,7 @@ def _with_schema(x, schema):  # pylint: disable=unused-argument
   non-primitive schema, it does not check the underlying data matches the
   schema. For example,
 
-    kd.with_schema(kd.ds([1, 2, 3], schema=kd.ANY), kd.INT32) ->
+    kd.with_schema(kd.ds([1, 2, 3], schema=kd.OBJECT), kd.INT32) ->
         kd.ds([1, 2, 3])
     kd.with_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
 

@@ -99,15 +99,9 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
           ds(1),
           ds([0, 1, None, 1, 2], schema=INT64),
       ),
-      # OBJECT, ANY schemas
+      # OBJECT schemas
       (
           ds([0, 3, None, 3, 6], schema_constants.OBJECT),
-          False,
-          1,
-          ds([0, 1, None, 1, 2], schema=INT64),
-      ),
-      (
-          ds([0, 3, None, 3, 6]).as_any(),
           False,
           1,
           ds([0, 1, None, 1, 2], schema=INT64),
@@ -170,12 +164,6 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
       ),
       (
           ds([[None, None], [None]]),
-          False,
-          1,
-          ds([[None, None], [None]], schema_constants.INT64),
-      ),
-      (
-          ds([[None, None], [None]], schema_constants.ANY),
           False,
           1,
           ds([[None, None], [None]], schema_constants.INT64),

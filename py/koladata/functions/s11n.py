@@ -50,7 +50,7 @@ def dumps(
     try:
       x = x.extract()
     except ValueError:
-      pass  # ANY, no Bag, ...
+      pass  # no Bag, ...
   return arolla.s11n.riegeli_dumps(x, riegeli_options=riegeli_options)
 
 

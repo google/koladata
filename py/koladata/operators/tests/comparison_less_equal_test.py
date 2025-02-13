@@ -69,10 +69,10 @@ class ComparisonLessEqualTest(parameterized.TestCase):
           ds([[0, 1, 2], [1, 2, 3], [2, 3, 4]]),
           ds([[None, arolla.present(), arolla.present()]] * 3),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([1, None, 5], schema_constants.OBJECT),
-          ds([4, 1, 0], schema_constants.ANY),
+          ds([4, 1, 0]),
           ds([arolla.present(), None, None]),
       ),
       # Empty and unknown inputs.
@@ -97,7 +97,7 @@ class ComparisonLessEqualTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.MASK),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([None, None, None], schema_constants.FLOAT32),
           ds([None, None, None], schema_constants.MASK),
       ),
@@ -107,7 +107,7 @@ class ComparisonLessEqualTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.MASK),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([4, 1, 0]),
           ds([None, None, None], schema_constants.MASK),
       ),

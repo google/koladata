@@ -55,13 +55,9 @@ class StringsUpperTest(parameterized.TestCase):
           ds([['ABC', None], ['', 'EF']]),
       ),
       (ds('你好'), ds('你好')),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds(['abc', None, '', 'ef'], schema_constants.OBJECT),
-          ds(['ABC', None, '', 'EF']),
-      ),
-      (
-          ds(['abc', None, '', 'ef'], schema_constants.ANY),
           ds(['ABC', None, '', 'EF']),
       ),
       # Empty and unknown inputs.
@@ -71,10 +67,6 @@ class StringsUpperTest(parameterized.TestCase):
       ),
       (
           ds([None, None, None]),
-          ds([None, None, None], schema_constants.STRING),
-      ),
-      (
-          ds([None, None, None], schema_constants.ANY),
           ds([None, None, None], schema_constants.STRING),
       ),
       (

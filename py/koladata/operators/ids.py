@@ -20,6 +20,7 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema as schema_ops
+from koladata.types import schema_constants
 
 
 M = arolla.M
@@ -172,7 +173,12 @@ def agg_uuid(x, ndim=arolla.unspecified()):
     shape[:-ndim]`.
   """
   x = jagged_shape_ops.flatten_last_ndim(x, ndim)
-  x = schema_ops.to_any(x) | _AGG_UUID_MISSING_VALUE_REPLACEMENT
+  x = (
+      # OBJECT allows us to have mixed data. Only the raw data is used for the
+      # _agg_uuid computation, so we're not required to embed Entity schemas.
+      schema_ops.with_schema(x, schema_constants.OBJECT)
+      | _AGG_UUID_MISSING_VALUE_REPLACEMENT
+  )
   return _agg_uuid(x)
 
 

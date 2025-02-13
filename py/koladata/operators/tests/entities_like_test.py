@@ -310,7 +310,7 @@ class EntitiesLikeTest(absltest.TestCase):
     ):
       kde.entities.like(
           shape_and_mask_from,
-          schema=schema_constants.ANY,
+          schema=schema_constants.INT32,
           update_schema=42,
       ).eval()
 

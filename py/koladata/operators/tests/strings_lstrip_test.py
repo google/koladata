@@ -52,7 +52,10 @@ class StringsLstripTest(parameterized.TestCase):
           ds([[' foo', 'bzoo '], ['  bari  \t']]),
           ds([['foo', 'bzoo '], ['bari  \t']]),
       ),
-      (ds([' foo '], schema_constants.ANY), ds(['foo '], schema_constants.ANY)),
+      (
+          ds([' foo '], schema_constants.OBJECT),
+          ds(['foo '], schema_constants.OBJECT),
+      ),
       (ds(['   spacious   ', '\t text \n']), ds(['spacious   ', 'text \n'])),
       # Empty and unknown.
       (ds([None, None]), ds([None, None])),
@@ -67,10 +70,6 @@ class StringsLstripTest(parameterized.TestCase):
       (
           ds([None, None], schema_constants.OBJECT),
           ds([None, None], schema_constants.OBJECT),
-      ),
-      (
-          ds([None, None], schema_constants.ANY),
-          ds([None, None], schema_constants.ANY),
       ),
   )
   def test_one_arg(self, s, expected):
@@ -106,9 +105,9 @@ class StringsLstripTest(parameterized.TestCase):
           ds([['f', 'bz'], ['bari']]),
       ),
       (
-          ds(['foo'], schema_constants.ANY),
+          ds(['foo'], schema_constants.OBJECT),
           ds('f'),
-          ds(['oo'], schema_constants.ANY),
+          ds(['oo'], schema_constants.OBJECT),
       ),
       (ds(['www.example.com']), ds(['cmowz.']), ds(['example.com'])),
       (

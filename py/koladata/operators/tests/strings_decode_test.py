@@ -45,13 +45,12 @@ class StringsDecodeTest(parameterized.TestCase):
       (ds(b'foo'), ds('foo')),
       (ds('foo'), ds('foo')),
       (ds('αβγ'.encode('utf-8')), ds('αβγ')),
-      (ds(b'foo', schema_constants.ANY), ds('foo')),
       (ds(b'foo', schema_constants.OBJECT), ds('foo')),
       (ds([None], schema_constants.BYTES), ds([None], schema_constants.STRING)),
       (ds([b'foo']), ds(['foo'])),
       (ds(['foo']), ds(['foo'])),
-      (ds([b'foo'], schema_constants.ANY), ds(['foo'])),
-      (ds([b'foo', 'bar'], schema_constants.ANY), ds(['foo', 'bar'])),
+      (ds([b'foo'], schema_constants.OBJECT), ds(['foo'])),
+      (ds([b'foo', 'bar'], schema_constants.OBJECT), ds(['foo', 'bar'])),
   )
   def test_eval(self, x, expected):
     res = expr_eval.eval(kde.strings.decode(x))

@@ -64,7 +64,7 @@ class LogicalMaskAndTest(parameterized.TestCase):
       ),
       (
           ds([present, present, missing, missing], schema_constants.OBJECT),
-          ds([present, missing, present, missing], schema_constants.ANY),
+          ds([present, missing, present, missing]),
           ds([present, missing, missing, missing]),
       ),
   )

@@ -35,7 +35,6 @@ STRING = _py_misc_py_ext.STRING
 EXPR = _py_misc_py_ext.EXPR
 
 # Special purpose schemas.
-ANY = _py_misc_py_ext.ANY
 ITEMID = _py_misc_py_ext.ITEMID
 OBJECT = _py_misc_py_ext.OBJECT
 SCHEMA = _py_misc_py_ext.SCHEMA

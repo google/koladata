@@ -57,17 +57,12 @@ class StringsRegexExtractTest(parameterized.TestCase):
           ds([['l', ''], [None, 'at']]),
       ),
       (
-          ds(['foo'], schema_constants.ANY),
+          ds(['foo'], schema_constants.OBJECT),
           ds('(.o)'),
-          ds(['fo'], schema_constants.ANY),
+          ds(['fo'], schema_constants.OBJECT),
       ),
       (ds(['abcd', None, '']), ds('b(.*)'), ds(['cd', None, None])),
       # Empty and unknown.
-      (
-          ds([None, None], schema_constants.ANY),
-          ds('abc'),
-          ds([None, None], schema_constants.ANY),
-      ),
       (
           ds([None, None], schema_constants.OBJECT),
           ds('abc'),

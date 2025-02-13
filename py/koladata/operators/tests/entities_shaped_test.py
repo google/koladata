@@ -187,7 +187,7 @@ class EntitiesShapedTest(absltest.TestCase):
     ):
       kde.entities.shaped(
           jagged_shape.create_shape(),
-          schema=schema_constants.ANY,
+          schema=schema_constants.INT32,
           update_schema=42,
       ).eval()
 

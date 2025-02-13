@@ -58,18 +58,9 @@ class DictsIsEntityTest(parameterized.TestCase):
       ),
       # OBJECT
       (ds([bag().obj(a=1), None, bag().obj(a=2)]),),
-      # ANY
-      (
-          ds([
-              bag().new(a=1, schema='test'),
-              None,
-              bag().new(a=2, schema='test'),
-          ]).as_any(),
-      ),
       # Missing
       (bag().new() & None,),
       (ds(None, schema_constants.OBJECT),),
-      (ds(None, schema_constants.ANY),),
       (ds(None),),
       (ds([None, None]),),
       (bag().obj(a=1) & None,),

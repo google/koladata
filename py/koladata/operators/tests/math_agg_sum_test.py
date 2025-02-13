@@ -87,14 +87,10 @@ class MathAggSumTest(parameterized.TestCase):
           ds(0),
           ds([[1, 0, 0], [3, 4], [0, 0]]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([[2, None], [None]], schema_constants.OBJECT),
           ds([2, 0], schema_constants.OBJECT),
-      ),
-      (
-          ds([[2, None], [None]], schema_constants.ANY),
-          ds([2, 0], schema_constants.ANY),
       ),
       # Empty and unknown inputs.
       (
@@ -111,16 +107,16 @@ class MathAggSumTest(parameterized.TestCase):
           ds([0.0, 0.0], schema_constants.FLOAT32),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds([0, 0], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
+          ds([0, 0], schema_constants.OBJECT),
       ),
       (
           ds([None, None, None]),
           ds(0),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
-          ds(0, schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
+          ds(0, schema_constants.OBJECT),
       ),
   )
   def test_eval(self, *args_and_expected):

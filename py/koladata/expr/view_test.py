@@ -354,9 +354,6 @@ class KodaViewTest(parameterized.TestCase):
   def test_get_itemid(self):
     testing.assert_equal(C.x.get_itemid(), kde.get_itemid(C.x))
 
-  def test_as_any(self):
-    testing.assert_equal(C.x.as_any(), kde.as_any(C.x))
-
   def test_get_obj_schema(self):
     testing.assert_equal(C.x.get_obj_schema(), kde.get_obj_schema(C.x))
 
@@ -621,7 +618,6 @@ class KodaViewTest(parameterized.TestCase):
         'internal_as_arolla_value',
         'internal_as_dense_array',
         'internal_as_py',
-        'internal_is_any_schema',
         'internal_is_itemid_schema',
         'is_mutable',
         'qtype',

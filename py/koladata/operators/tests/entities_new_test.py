@@ -181,19 +181,6 @@ class EntitiesNewTest(absltest.TestCase):
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
-  def test_schema_arg_any(self):
-    x = kde.entities.new(a=1, b='a', schema=schema_constants.ANY).eval()
-    self.assertEqual(x.get_attr_names(intersection=True), [])
-    testing.assert_equal(x.get_schema().no_bag(), schema_constants.ANY)
-    testing.assert_equal(x.a, ds(1).as_any().with_bag(x.get_bag()))
-    testing.assert_equal(x.b, ds('a').as_any().with_bag(x.get_bag()))
-
-  def test_schema_contains_any(self):
-    schema = bag().new_schema(x=schema_constants.ANY)
-    entity = kde.entities.new().eval()
-    x = kde.entities.new(x=entity, schema=schema).eval()
-    testing.assert_equal(x.x.no_bag(), entity.no_bag().as_any())
-
   def test_schema_arg_embed_schema(self):
     schema = bag().new_schema(a=schema_constants.OBJECT)
     x = kde.entities.new(

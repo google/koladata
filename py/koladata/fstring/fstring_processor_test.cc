@@ -105,7 +105,7 @@ TEST(FStringProcessorTest, SingleErrorAtToDataSlicePlaceholder) {
       auto fstring,
       fstring::ToDataSlicePlaceholder(
           DataSlice::Create(DataItem(internal::AllocateSingleObject()),
-                            DataItem(schema::kAny))
+                            DataItem(schema::kObject))
               .value(),
           "s"));
   EXPECT_THAT(EvalFString(fstring).status(),

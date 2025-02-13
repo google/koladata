@@ -65,7 +65,8 @@ def set_schema(
   non-primitive schema, it does not check the underlying data matches the
   schema. For example,
 
-    kd.set_schema(kd.ds([1, 2, 3], schema=kd.ANY), kd.INT32) -> kd.ds([1, 2, 3])
+    kd.set_schema(kd.ds([1, 2, 3], schema=kd.OBJECT), kd.INT32)
+      -> kd.ds([1, 2, 3])
     kd.set_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
     kd.set_schema(kd.ds(1).with_bag(kd.bag()), kd.schema.new_schema(x=kd.INT32))
     ->
@@ -133,7 +134,7 @@ def get_attr_names(x: data_slice.DataSlice, *, intersection: bool) -> list[str]:
 
   In case of OBJECT schema, attribute names are fetched from the `__schema__`
   attribute. In case of Entity schema, the attribute names are fetched from the
-  schema. In case of ANY (or primitives), an empty list is returned.
+  schema. In case of primitives, an empty list is returned.
 
   Args:
     x: A DataSlice.
@@ -154,7 +155,7 @@ def dir_(x: data_slice.DataSlice) -> list[str]:
 
   In case of OBJECT schema, attribute names are fetched from the `__schema__`
   attribute. In case of Entity schema, the attribute names are fetched from the
-  schema. In case of ANY (or primitives), an empty list is returned.
+  schema. In case of primitives, an empty list is returned.
 
   Args:
     x: A DataSlice.

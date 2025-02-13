@@ -51,13 +51,9 @@ class StringsLowerTest(parameterized.TestCase):
       ),
       (ds('你好'), ds('你好')),
       (ds('Война и Мир.'), ds('война и мир.')),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds(['ABC', None, '', 'EF'], schema_constants.OBJECT),
-          ds(['abc', None, '', 'ef']),
-      ),
-      (
-          ds(['ABC', None, '', 'EF'], schema_constants.ANY),
           ds(['abc', None, '', 'ef']),
       ),
       # Empty and unknown inputs.
@@ -67,10 +63,6 @@ class StringsLowerTest(parameterized.TestCase):
       ),
       (
           ds([None, None, None]),
-          ds([None, None, None], schema_constants.STRING),
-      ),
-      (
-          ds([None, None, None], schema_constants.ANY),
           ds([None, None, None], schema_constants.STRING),
       ),
       (

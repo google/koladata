@@ -133,7 +133,6 @@ class ListTest(parameterized.TestCase):
       # Schema, but no list items provided.
       (None, schema_constants.OBJECT, None, schema_constants.OBJECT),
       (None, schema_constants.INT64, None, schema_constants.INT64),
-      (None, schema_constants.ANY, None, schema_constants.ANY),
       # Deduce schema from list items.
       ([1, 2, 3], None, None, schema_constants.INT32),
       ([1, 'foo'], None, None, schema_constants.OBJECT),
@@ -145,7 +144,6 @@ class ListTest(parameterized.TestCase):
       ),
       # Both schema and list items provided.
       ([1, 2, 3], schema_constants.INT64, None, schema_constants.INT64),
-      ([1, 2, 3], schema_constants.ANY, None, schema_constants.ANY),
       ([1, 2, 3], schema_constants.OBJECT, None, schema_constants.OBJECT),
       (
           None,

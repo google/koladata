@@ -88,14 +88,10 @@ class MathAggMaxTest(parameterized.TestCase):
           ds(0),
           ds([[1, None, None], [3, 4], [None, None]]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([[2, None], [None]], schema_constants.OBJECT),
           ds([2, None], schema_constants.OBJECT),
-      ),
-      (
-          ds([[2, None], [None]], schema_constants.ANY),
-          ds([2, None], schema_constants.ANY),
       ),
       # Empty and unknown inputs.
       (
@@ -111,16 +107,16 @@ class MathAggMaxTest(parameterized.TestCase):
           ds([None, None], schema_constants.FLOAT32),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds([None, None], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
+          ds([None, None], schema_constants.OBJECT),
       ),
       (
           ds([None, None, None]),
           ds(None),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
-          ds(None, schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
+          ds(None, schema_constants.OBJECT),
       ),
   )
   def test_eval(self, *args_and_expected):

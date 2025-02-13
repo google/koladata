@@ -175,11 +175,9 @@ class DataItemTest(parameterized.TestCase):
 
   def test_bool(self):
     self.assertTrue(ds(arolla.unit()))
-    self.assertTrue(ds(arolla.unit(), schema_constants.ANY))
     self.assertTrue(ds(arolla.unit(), schema_constants.OBJECT))
     self.assertFalse(ds(None))
     self.assertFalse(ds(None, schema_constants.MASK))
-    self.assertFalse(ds(None, schema_constants.ANY))
     self.assertFalse(ds(None, schema_constants.OBJECT))
 
     with self.assertRaisesRegex(
@@ -252,7 +250,6 @@ class DataItemTest(parameterized.TestCase):
       ('present_mask', ds(arolla.unit()), 'DataItem(present, schema: MASK)'),
       ('text', ds('a'), "DataItem('a', schema: STRING)"),
       ('bytes', ds(b'a'), "DataItem(b'a', schema: BYTES)"),
-      ('int32_with_any', ds(12).as_any(), 'DataItem(12, schema: ANY)'),
       (
           'int32_with_object',
           ds(12).with_schema(schema_constants.OBJECT),

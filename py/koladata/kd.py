@@ -214,7 +214,6 @@ STRING = _same_when_tracing(_schema_constants.STRING)
 EXPR = _same_when_tracing(_schema_constants.EXPR)
 
 # Special purpose schemas.
-ANY = _same_when_tracing(_schema_constants.ANY)
 ITEMID = _same_when_tracing(_schema_constants.ITEMID)
 OBJECT = _same_when_tracing(_schema_constants.OBJECT)
 SCHEMA = _same_when_tracing(_schema_constants.SCHEMA)

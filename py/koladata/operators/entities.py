@@ -65,8 +65,6 @@ def new(
     arg: should keep the default arolla.unspecified() value.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
-      kd.ANY schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -119,8 +117,6 @@ def shaped(
     shape: JaggedShape that the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
-      kd.ANY schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -165,8 +161,6 @@ def shaped_as(
     shape_from: DataSlice, whose shape the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
-      kd.ANY schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -218,8 +212,6 @@ def like(
       DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a DataSlice with
-      kd.ANY schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting entities.

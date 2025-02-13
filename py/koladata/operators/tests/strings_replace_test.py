@@ -69,10 +69,10 @@ class StringsReplaceTest(parameterized.TestCase):
           ds(None, schema_constants.STRING),
       ),
       (
-          ds(['foo'], schema_constants.ANY),
+          ds(['foo'], schema_constants.OBJECT),
           ds('f'),
           ds('z'),
-          ds(['zoo'], schema_constants.ANY),
+          ds(['zoo'], schema_constants.OBJECT),
       ),
       # Empty and unknown.
       (
@@ -171,11 +171,11 @@ class StringsReplaceTest(parameterized.TestCase):
           ds([None, None], schema_constants.OBJECT),
       ),
       (
-          ds([None, None], schema_constants.ANY),
-          ds(None, schema_constants.ANY),
-          ds(None, schema_constants.ANY),
+          ds([None, None], schema_constants.OBJECT),
+          ds(None, schema_constants.OBJECT),
+          ds(None, schema_constants.OBJECT),
           ds(None, schema_constants.INT32),
-          ds([None, None], schema_constants.ANY),
+          ds([None, None], schema_constants.OBJECT),
       ),
       (
           ds([None, None]),

@@ -78,7 +78,7 @@ def to_dataframe(
   columns corresponding to each dimension.
 
   When `cols` is not specified, DataFrame columns are inferred from `ds`.
-    1) If `ds` has primitives, lists, dicts or ITEMID/ANY schema, a single
+    1) If `ds` has primitives, lists, dicts or ITEMID schema, a single
        column named 'self_' is used and items themselves are extracted.
     2) If `ds` has entity schema, all attributes from `ds` are extracted as
        columns.
@@ -140,7 +140,7 @@ def to_dataframe(
       be extracted.
     include_self: whether to include the 'self_' column. 'self_' column is
       always included if `cols` is None and `ds` contains primitives/lists/dicts
-      or it has ITEMID/ANY schema.
+      or it has ITEMID schema.
 
   Returns:
     DataFrame with columns from DataSlice fields.

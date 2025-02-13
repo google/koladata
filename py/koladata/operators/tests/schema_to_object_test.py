@@ -51,11 +51,9 @@ class SchemaToObjectTest(parameterized.TestCase):
       (ds(None, schema_constants.INT32), ds(None, schema_constants.OBJECT)),
       (ds(1), ds(1, schema_constants.OBJECT)),
       (OBJ, OBJ),
-      (ds(OBJ, schema_constants.ANY), OBJ),
       (ds([None], schema_constants.INT32), ds([None], schema_constants.OBJECT)),
       (ds([1]), ds([1], schema_constants.OBJECT)),
       (ds([OBJ]), ds([OBJ])),
-      (ds([OBJ], schema_constants.ANY), ds([OBJ])),
   )
   def test_eval(self, x, expected):
     res = eval_op("kd.schema.to_object", x)

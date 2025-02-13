@@ -72,7 +72,7 @@ class LogicalAggHasTest(parameterized.TestCase):
           arolla.unspecified(),
           ds([arolla.present(), arolla.present(), None]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([[2, None], [None]], schema_constants.OBJECT),
           ds([arolla.present(), None], schema_constants.MASK),
@@ -88,10 +88,6 @@ class LogicalAggHasTest(parameterized.TestCase):
       ),
       (
           ds([[None, None], [None]], schema_constants.FLOAT32),
-          ds([None, None], schema_constants.MASK),
-      ),
-      (
-          ds([[None, None], [None]], schema_constants.ANY),
           ds([None, None], schema_constants.MASK),
       ),
       (

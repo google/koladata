@@ -44,11 +44,9 @@ class SchemaToExprTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds(None, schema_constants.OBJECT), ds(None, schema_constants.EXPR)),
       (ds(arolla.quote(I.x)), ds(arolla.quote(I.x))),
-      (ds(arolla.quote(I.x), schema_constants.ANY), ds(arolla.quote(I.x))),
       (ds(arolla.quote(I.x), schema_constants.OBJECT), ds(arolla.quote(I.x))),
       (ds([None], schema_constants.OBJECT), ds([None], schema_constants.EXPR)),
       (ds([arolla.quote(I.x)]), ds([arolla.quote(I.x)])),
-      (ds([arolla.quote(I.x)], schema_constants.ANY), ds([arolla.quote(I.x)])),
       (
           ds([arolla.quote(I.x), None], schema_constants.OBJECT),
           ds([arolla.quote(I.x), None]),

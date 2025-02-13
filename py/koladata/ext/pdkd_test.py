@@ -101,12 +101,6 @@ class NpkdTest(parameterized.TestCase):
       self.assertCountEqual(df.columns, ['self_'])
       self.assertCountEqual(df['self_'], [1, 2, 3])
 
-    with self.subTest('int ds as ANY schema'):
-      ds = kd.slice([1, 2, 3]).as_any()
-      df = pdkd.to_dataframe(ds)
-      self.assertCountEqual(df.columns, ['self_'])
-      self.assertCountEqual(df['self_'], [1, 2, 3])
-
     with self.subTest('int DataItem'):
       ds = kd.item(1)
       df = pdkd.to_dataframe(ds)

@@ -56,13 +56,9 @@ class StringsLengthTest(parameterized.TestCase):
           ds([3, None, 0, 2], schema_constants.INT64),
       ),
       (ds('你好'.encode()), ds(6, schema_constants.INT64)),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds(['abc', None, '', 'ef'], schema_constants.OBJECT),
-          ds([3, None, 0, 2], schema_constants.INT64),
-      ),
-      (
-          ds(['abc', None, '', 'ef'], schema_constants.ANY),
           ds([3, None, 0, 2], schema_constants.INT64),
       ),
       # Empty and unknown inputs.
@@ -72,10 +68,6 @@ class StringsLengthTest(parameterized.TestCase):
       ),
       (
           ds([None, None, None]),
-          ds([None, None, None], schema_constants.INT64),
-      ),
-      (
-          ds([None, None, None], schema_constants.ANY),
           ds([None, None, None], schema_constants.INT64),
       ),
       (

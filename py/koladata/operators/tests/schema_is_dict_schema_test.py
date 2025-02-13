@@ -43,7 +43,6 @@ class SchemaIsDictSchemaTest(parameterized.TestCase):
           mask_constants.present,
       ),
       (bag.list_schema(schema_constants.INT32), mask_constants.missing),
-      (schema_constants.ANY, mask_constants.missing),
       (schema_constants.OBJECT, mask_constants.missing),
       (
           bag.dict_schema(

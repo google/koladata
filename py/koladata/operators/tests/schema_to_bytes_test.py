@@ -44,12 +44,10 @@ class SchemaToBytesTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds(None, schema_constants.BYTES), ds(None, schema_constants.BYTES)),
       (ds(b'foo'), ds(b'foo')),
-      (ds(b'foo', schema_constants.ANY), ds(b'foo')),
       (ds(b'foo', schema_constants.OBJECT), ds(b'foo')),
       (ds([None], schema_constants.BYTES), ds([None], schema_constants.BYTES)),
       (ds([b'foo']), ds([b'foo'])),
       (ds([b'foo'], schema_constants.OBJECT), ds([b'foo'])),
-      (ds([b'foo'], schema_constants.ANY), ds([b'foo'])),
   )
   def test_eval(self, x, expected):
     res = expr_eval.eval(kde.schema.to_bytes(x))

@@ -52,7 +52,7 @@ def to_arolla_float64(x):  # pylint: disable=unused-argument
 
   Note that `x` must adhere to the following requirements:
   * `rank = 0`.
-  * Have one of the following schemas: NONE, FLOAT32, FLOAT64, OBJECT, ANY.
+  * Have one of the following schemas: NONE, FLOAT32, FLOAT64, OBJECT.
   * Have a present value with type FLOAT32 or FLOAT64.
 
   In all other cases, an exception is raised.
@@ -74,7 +74,7 @@ def to_arolla_boolean(x):  # pylint: disable=unused-argument
 
   Note that `x` must adhere to the following requirements:
   * `rank = 0`.
-  * Have one of the following schemas: NONE, BOOLEAN, OBJECT, ANY.
+  * Have one of the following schemas: NONE, BOOLEAN, OBJECT.
   * Have a present value with type BOOLEAN.
 
   In all other cases, an exception is raised.
@@ -96,7 +96,7 @@ def to_arolla_optional_unit(x):  # pylint: disable=unused-argument
 
   Note that `x` must adhere to the following requirements:
   * `rank = 0`.
-  * Have one of the following schemas: NONE, MASK, OBJECT, ANY.
+  * Have one of the following schemas: NONE, MASK, OBJECT.
   * Have a present value with type UNIT, or be missing.
 
   In all other cases, an exception is raised.
@@ -118,7 +118,7 @@ def to_arolla_dense_array_int64(x):  # pylint: disable=unused-argument
 
   Note that `x` must adhere to the following requirements:
   * Have any rank, as it will be flattened before conversion.
-  * Have one of the following schemas: NONE, INT32, INT64, OBJECT, ANY.
+  * Have one of the following schemas: NONE, INT32, INT64, OBJECT.
   * Have values of a single type - either INT32 or INT64. Missing values of
     unknown type are treated as missing INT64 values.
 
@@ -141,7 +141,7 @@ def to_arolla_dense_array_unit(x):  # pylint: disable=unused-argument
 
   Note that `x` must adhere to the following requirements:
   * Have any rank, as it will be flattened before conversion.
-  * Have one of the following schemas: NONE, MASK, OBJECT, ANY.
+  * Have one of the following schemas: NONE, MASK, OBJECT.
   * Have values of a single type - UNIT. Missing values of unknown type are
     treated as missing UNIT values.
 
@@ -164,7 +164,7 @@ def to_arolla_dense_array_text(x):  # pylint: disable=unused-argument
 
   Note that `x` must adhere to the following requirements:
   * Have any rank, as it will be flattened before conversion.
-  * Have one of the following schemas: NONE, STRING, OBJECT, ANY.
+  * Have one of the following schemas: NONE, STRING, OBJECT.
   * Have values of a single type - STRING. Missing values of unknown type are
     treated as missing STRING values.
 

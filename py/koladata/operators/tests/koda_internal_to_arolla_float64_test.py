@@ -42,7 +42,6 @@ class KodaToArollaFloat64Test(parameterized.TestCase):
       (ds(arolla.int64(1)), arolla.float64(1.0)),
       (ds(arolla.float32(1.0)), arolla.float64(1.0)),
       (ds(arolla.float64(1.0)), arolla.float64(1.0)),
-      (ds(arolla.float32(1.0)).as_any(), arolla.float64(1.0)),
       (ds(arolla.float32(1.0), schema_constants.OBJECT), arolla.float64(1.0)),
   )
   def test_eval(self, x, expected):

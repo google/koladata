@@ -259,10 +259,10 @@ class DictLikeTest(parameterized.TestCase):
           keys=None,
           values=None,
           key_schema=schema_constants.INT32,
-          value_schema=schema_constants.ANY,
+          value_schema=schema_constants.OBJECT,
           schema=None,
           expected_key_schema=schema_constants.INT32,
-          expected_value_schema=schema_constants.ANY,
+          expected_value_schema=schema_constants.OBJECT,
       ),
       # Deduce schema from keys and values.
       dict(
@@ -276,12 +276,12 @@ class DictLikeTest(parameterized.TestCase):
       ),
       dict(
           keys=ds([[1, 'foo'], [3]]),
-          values=ds([[1, 'foo'], [3]]).as_any(),
+          values=ds([[1, 'foo'], [3]]),
           key_schema=None,
           value_schema=None,
           schema=None,
           expected_key_schema=schema_constants.OBJECT,
-          expected_value_schema=schema_constants.ANY,
+          expected_value_schema=schema_constants.OBJECT,
       ),
       # Both schema and keys / values provided, do casting.
       dict(
@@ -300,10 +300,10 @@ class DictLikeTest(parameterized.TestCase):
           value_schema=None,
           schema=fns.dict_schema(
               key_schema=schema_constants.INT32,
-              value_schema=schema_constants.ANY,
+              value_schema=schema_constants.OBJECT,
           ),
           expected_key_schema=schema_constants.INT32,
-          expected_value_schema=schema_constants.ANY,
+          expected_value_schema=schema_constants.OBJECT,
       ),
       # Both schema and keys / values provided, do casting.
       dict(

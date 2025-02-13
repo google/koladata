@@ -40,10 +40,6 @@ class KodaToArollaInt64Test(parameterized.TestCase):
       (data_slice.DataSlice.from_vals(arolla.int32(1)), arolla.int64(1)),
       (data_slice.DataSlice.from_vals(arolla.int64(1)), arolla.int64(1)),
       (
-          data_slice.DataSlice.from_vals(arolla.int32(1)).as_any(),
-          arolla.int64(1),
-      ),
-      (
           data_slice.DataSlice.from_vals(
               arolla.int32(1), schema_constants.OBJECT
           ),

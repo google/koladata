@@ -76,11 +76,6 @@ class ToProtoTest(absltest.TestCase):
     expected_message = test_pb2.MessageC(int32_field=1)
     self.assertEqual(message, expected_message)
 
-  def test_single_message_any(self):
-    message = fns.to_proto(fns.new(int32_field=1).as_any(), test_pb2.MessageC)
-    expected_message = test_pb2.MessageC(int32_field=1)
-    self.assertEqual(message, expected_message)
-
   def test_multiple_messages(self):
     messages = fns.to_proto(
         ds([

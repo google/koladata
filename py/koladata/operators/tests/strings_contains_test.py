@@ -71,7 +71,7 @@ class StringsContainsTest(parameterized.TestCase):
           ds(missing),
       ),
       (
-          ds(['foo'], schema_constants.ANY),
+          ds(['foo'], schema_constants.OBJECT),
           ds('foo'),
           ds([present]),
       ),

@@ -62,8 +62,8 @@ class StringsJoinTest(parameterized.TestCase):
           ds(None, schema_constants.OBJECT),
       ),
       (
-          [ds(['foo'], schema_constants.ANY), ds('bar')],
-          ds(['foobar'], schema_constants.ANY),
+          [ds(['foo'], schema_constants.OBJECT), ds('bar')],
+          ds(['foobar'], schema_constants.OBJECT),
       ),
       # Empty and unknown.
       ([ds([None, None])], ds([None, None])),

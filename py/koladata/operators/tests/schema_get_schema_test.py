@@ -55,7 +55,7 @@ class SchemaGetSchemaTest(parameterized.TestCase):
           entity.with_schema(schema_constants.ITEMID),
           schema_constants.ITEMID.with_bag(db),
       ),
-      (schema_constants.ANY, schema_constants.SCHEMA),
+      (schema_constants.INT32, schema_constants.SCHEMA),
   )
   def test_eval(self, x, expected):
     res = eval_op("kd.schema.get_schema", x)

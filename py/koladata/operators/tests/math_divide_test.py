@@ -72,13 +72,11 @@ class MathDivideTest(parameterized.TestCase):
           ds(2.0),
           ds([1.0, None, 3.0], schema_constants.FLOAT64),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([8, None, 0], schema_constants.OBJECT),
-          ds([4, 1, 3], schema_constants.INT64).with_schema(
-              schema_constants.ANY
-          ),
-          ds([2.0, None, 0.0]).with_schema(schema_constants.ANY),
+          ds([4, 1, 3], schema_constants.INT64),
+          ds([2.0, None, 0.0]).with_schema(schema_constants.OBJECT),
       ),
       # Empty and unknown inputs.
       (
@@ -102,9 +100,9 @@ class MathDivideTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.FLOAT32),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([None, None, None], schema_constants.FLOAT32),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
       (
           ds([None, None, None]),
@@ -112,9 +110,9 @@ class MathDivideTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.FLOAT32),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([4, 1, 0]),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
   )
   def test_eval(self, x, y, expected):

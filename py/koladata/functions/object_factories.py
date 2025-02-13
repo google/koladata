@@ -462,8 +462,7 @@ def new(
     arg: optional Python object to be converted to an Entity.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
+      You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
@@ -506,8 +505,7 @@ def new_shaped(
     shape: JaggedShape that the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
+      You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
@@ -549,8 +547,7 @@ def new_shaped_as(
     shape_from: DataSlice, whose shape the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
+      You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
@@ -590,8 +587,7 @@ def new_like(
       DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
+      You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
@@ -768,8 +764,6 @@ def uu(
     seed: string to seed the uuid computation with.
     schema: optional DataSlice schema. If not specified, a UuSchema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     db: optional DataBag where entities are created.

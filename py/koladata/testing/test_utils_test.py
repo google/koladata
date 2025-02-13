@@ -22,6 +22,7 @@ from koladata.testing import test_utils
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import ellipsis
+from koladata.types import schema_constants
 
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
@@ -210,7 +211,9 @@ class TestUtilsTest(parameterized.TestCase):
     ):
       test_utils.assert_allclose(ds([3.14, 'abc']), ds([3.14, 'abc']))
     with self.assertRaisesRegex(AssertionError, 'have different schemas'):
-      test_utils.assert_allclose(ds([2.71, 2.71]), ds([2.71, 2.71]).as_any())
+      test_utils.assert_allclose(
+          ds([2.71, 2.71]), ds([2.71, 2.71], schema_constants.OBJECT)
+      )
     with self.assertRaisesRegex(AssertionError, 'have different DataBags'):
       test_utils.assert_allclose(
           ds([[2.71], [2.71]]).with_bag(bag()),
@@ -351,7 +354,7 @@ class TestUtilsTest(parameterized.TestCase):
     ):
       test_utils.assert_unordered_equal(ds([[1, 2], [3]]), ds([[1, 3], [2]]))
     with self.assertRaisesRegex(AssertionError, 'have different schemas'):  # pylint: disable=g-error-prone-assert-raises
-      test_utils.assert_unordered_equal(ds(1), ds(1).as_any())
+      test_utils.assert_unordered_equal(ds(1), ds(1, schema_constants.OBJECT))
     with self.assertRaisesRegex(AssertionError, 'have different DataBags'):  # pylint: disable=g-error-prone-assert-raises
       test_utils.assert_unordered_equal(
           ds(1).with_bag(bag()),

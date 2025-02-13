@@ -171,17 +171,6 @@ class ToPyTest(absltest.TestCase):
 
     self.assertIsNone(fns.to_py(x, include_missing_attrs=False)[1].y)
 
-  def test_any_schema(self):
-    x = fns.list([1, 2, 3]).as_any()
-    with self.assertRaisesRegex(
-        ValueError, 'cannot convert a DataSlice with ANY schema to Python'):
-      fns.to_py(x)
-
-  def test_any_primitvies(self):
-    x = fns.new(a=fns.new(x=1, y='abc'), b=ds(2).as_any())
-    self.assertEqual(fns.to_py(x, obj_as_dict=True),
-                     {'a': {'x': 1, 'y': 'abc'}, 'b': 2})
-
   def test_missing(self):
     x = ds(None)
     self.assertIsNone(fns.to_py(x), None)

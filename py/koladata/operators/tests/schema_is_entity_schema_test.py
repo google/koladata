@@ -56,7 +56,6 @@ class SchemaIsEntitySchemaTest(parameterized.TestCase):
           ),
           mask_constants.present,
       ),
-      (schema_constants.ANY, mask_constants.missing),
       (schema_constants.OBJECT, mask_constants.missing),
       (
           bag.new_schema(x=schema_constants.INT32).repeat(2),

@@ -45,7 +45,6 @@ class StringsDecodeBase64Test(parameterized.TestCase):
   @parameterized.parameters(
       (ds(None, schema_constants.STRING), ds(None, schema_constants.BYTES)),
       (ds(None, schema_constants.BYTES), ds(None, schema_constants.BYTES)),
-      (ds(None, schema_constants.ANY), ds(None, schema_constants.BYTES)),
       (ds(None, schema_constants.OBJECT), ds(None, schema_constants.BYTES)),
       (ds(''), ds(b'')),
       (ds(b''), ds(b'')),
@@ -57,12 +56,11 @@ class StringsDecodeBase64Test(parameterized.TestCase):
       (ds('YWFhYQ..'), ds(b'aaaa')),
       (ds('YWF hYQ'), ds(b'aaaa')),
       (ds('YWF\nhYQ'), ds(b'aaaa')),
-      (ds(b'Zm9v', schema_constants.ANY), ds(b'foo')),
       (ds(b'Zm9v', schema_constants.OBJECT), ds(b'foo')),
       (ds([None], schema_constants.STRING), ds([None], schema_constants.BYTES)),
       (ds(['Zm9v']), ds([b'foo'])),
-      (ds(['Zm9v'], schema_constants.ANY), ds([b'foo'])),
-      (ds(['Zm9v', 'YmFy'], schema_constants.ANY), ds([b'foo', b'bar'])),
+      (ds(['Zm9v'], schema_constants.OBJECT), ds([b'foo'])),
+      (ds(['Zm9v', 'YmFy'], schema_constants.OBJECT), ds([b'foo', b'bar'])),
       # Invalid converted to missing because of on_invalid=None
       (ds('???'), ds(None, schema_constants.BYTES)),
       (ds('_'), ds(None, schema_constants.BYTES)),

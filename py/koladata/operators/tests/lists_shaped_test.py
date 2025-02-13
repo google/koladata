@@ -64,25 +64,10 @@ class ListShapedTest(parameterized.TestCase):
           [jagged_shape.create_shape([2])],
           dict(item_schema=schema_constants.INT64),
       ),
-      (
-          [jagged_shape.create_shape([2])],
-          dict(item_schema=schema_constants.ANY),
-      ),
       ([jagged_shape.create_shape([2])], dict(items=ds([[1, 2], [3]]))),
       (
           [jagged_shape.create_shape([2])],
           dict(items=ds([[1, 'foo'], [3]])),
-      ),
-      (
-          [jagged_shape.create_shape([2])],
-          dict(items=ds([[1, 'foo'], [3]], schema=schema_constants.ANY)),
-      ),
-      (
-          [jagged_shape.create_shape([2])],
-          dict(
-              items=ds([[1, 'foo'], [3]], schema=schema_constants.OBJECT),
-              item_schema=schema_constants.ANY,
-          ),
       ),
       (
           [jagged_shape.create_shape([2])],

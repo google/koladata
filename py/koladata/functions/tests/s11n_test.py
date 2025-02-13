@@ -38,12 +38,11 @@ DS_DATA = (
     (ds([1.0, 2.0, None, 3.0])),
     (ds([float('-inf'), float('inf'), float('nan')])),
     (ds([[1, 2], [3, 4]])),
-    # Object/Any
+    # Object
     (ds([2, None, 3], schema_constants.OBJECT)),
-    (ds([4, 1, 0], schema_constants.INT64).with_schema(schema_constants.ANY)),
     (
         ds([8, None, 0], schema_constants.INT64).with_schema(
-            schema_constants.ANY
+            schema_constants.OBJECT
         )
     ),
     # Empty and unknown inputs
@@ -51,7 +50,6 @@ DS_DATA = (
     (ds([None, None, None])),
     (ds([None, None, None], schema_constants.INT32)),
     (ds([None, None, None], schema_constants.FLOAT32)),
-    (ds([None, None, None], schema_constants.ANY)),
     # Text
     (ds(['foo', 'bar', 'baz'])),
 )
@@ -105,9 +103,9 @@ class DumpsLoadsTest(parameterized.TestCase):
     loaded_a = s11n.loads(s11n.dumps(nested.a))
     testing.assert_equivalent(loaded_a.get_bag(), nested.a.extract().get_bag())
 
-  def test_dumps_any_with_bag(self):
+  def test_dumps_no_bag(self):
     bag = kd.bag()
-    e = bag.new(x=1).with_schema(schema_constants.ANY)
+    e = bag.new(x=1).no_bag()
     loaded_e = s11n.loads(s11n.dumps(e))
     testing.assert_equivalent(e, loaded_e)
 

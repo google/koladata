@@ -270,7 +270,7 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
       }
       adoption_queue.Add(ds);
       schema_agg.Add(ds.GetSchemaImpl());
-      // If casting to e.g. ANY, it does not need to be embedded.
+      // It only needs to be embedded in some cases.
       if (ds.GetSchemaImpl().is_struct_schema() &&
           explicit_schema == schema::kObject) {
         RETURN_IF_ERROR(embedding_db.EmbedSchema(ds));

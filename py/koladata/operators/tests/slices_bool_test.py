@@ -39,7 +39,7 @@ class SlicesBoolTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds(None, schema_constants.OBJECT), ds(None, schema_constants.BOOLEAN)),
       (ds(True), ds(True)),
-      (ds(True, schema_constants.ANY), ds(True)),
+      (ds(True, schema_constants.OBJECT), ds(True)),
       ([False, True, None], ds([False, True, None])),
       (
           [False, literal_operator.literal(ds(True)), None],

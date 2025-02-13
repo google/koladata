@@ -39,7 +39,6 @@ class KodaToArollaTextTest(parameterized.TestCase):
   @parameterized.parameters(
       (ds('abc'), arolla.text('abc')),
       (ds('abc', schema_constants.OBJECT), arolla.text('abc')),
-      (ds('abc', schema_constants.ANY), arolla.text('abc')),
   )
   def test_eval(self, x, expected):
     testing.assert_equal(

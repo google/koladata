@@ -67,11 +67,11 @@ class MathSubtractTest(parameterized.TestCase):
           ds(0.0),
           ds([1.0, None, 3.0]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([1, None, 3], schema_constants.OBJECT),
-          ds([4, 1, 0], schema_constants.ANY),
-          ds([-3, None, 3], schema_constants.ANY),
+          ds([4, 1, 0]),
+          ds([-3, None, 3], schema_constants.OBJECT),
       ),
       # Empty and unknown inputs.
       (
@@ -95,9 +95,9 @@ class MathSubtractTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.FLOAT32),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([None, None, None], schema_constants.FLOAT32),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
       (
           ds([None, None, None]),
@@ -105,9 +105,9 @@ class MathSubtractTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.INT32),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([4, 1, 0]),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
   )
   def test_eval(self, x, y, expected):

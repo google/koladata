@@ -50,10 +50,6 @@ class SchemaToSchemaTest(parameterized.TestCase):
       (schema_constants.INT32, schema_constants.INT32),
       (ENTITY_SCHEMA, ENTITY_SCHEMA),
       (
-          ds(schema_constants.INT32, schema_constants.ANY),
-          schema_constants.INT32,
-      ),
-      (
           ds(schema_constants.INT32, schema_constants.OBJECT),
           schema_constants.INT32,
       ),
@@ -63,10 +59,6 @@ class SchemaToSchemaTest(parameterized.TestCase):
       ),
       (ds([schema_constants.INT32]), ds([schema_constants.INT32])),
       (ds([ENTITY_SCHEMA]), ds([ENTITY_SCHEMA])),
-      (
-          ds([schema_constants.INT32], schema_constants.ANY),
-          ds([schema_constants.INT32]),
-      ),
       (
           ds([schema_constants.INT32, ENTITY_SCHEMA], schema_constants.OBJECT),
           ds([schema_constants.INT32, ENTITY_SCHEMA]),

@@ -58,20 +58,8 @@ class ListLikeTest(parameterized.TestCase):
       ([ds([[1, None], [3]])], dict()),
       ([ds([[1, None], [3]])], dict(item_schema=schema_constants.OBJECT)),
       ([ds([[1, None], [3]])], dict(item_schema=schema_constants.INT64)),
-      ([ds([[1, None], [3]])], dict(item_schema=schema_constants.ANY)),
       ([ds([[1, None], [3]])], dict(items=ds([[1, 2], [3]]))),
       ([ds([[1, None], [3]])], dict(items=ds([[1, 'foo'], [3]]))),
-      (
-          [ds([[1, None], [3]])],
-          dict(items=ds([[1, 'foo'], [3]], schema=schema_constants.ANY)),
-      ),
-      (
-          [ds([[1, None], [3]])],
-          dict(
-              items=ds([[1, 'foo'], [3]], schema=schema_constants.OBJECT),
-              item_schema=schema_constants.ANY,
-          ),
-      ),
       (
           [ds([[1, None], [3]])],
           dict(

@@ -55,16 +55,11 @@ class SlicesInverseMappingTest(parameterized.TestCase):
       (ds([[1, 2, 0], [3, None]]), 2, ds([[2, 0, 1], [3, None]])),
       # descending and ndim as DataItems
       (ds([0, 2, None, 1]), ds(1), ds([0, 3, 1, None])),
-      # OBJECT, ANY schemas
+      # OBJECT
       (
           ds([0, 2, None, 1], schema_constants.OBJECT),
           1,
           ds([0, 3, 1, None], schema_constants.OBJECT),
-      ),
-      (
-          ds([0, 2, None, 1], schema_constants.ANY),
-          1,
-          ds([0, 3, 1, None], schema_constants.ANY),
       ),
       # INT64
       (
@@ -89,11 +84,6 @@ class SlicesInverseMappingTest(parameterized.TestCase):
           ds([[None, None], [None]], schema_constants.INT64),
           1,
           ds([[None, None], [None]], schema_constants.INT64),
-      ),
-      (
-          ds([[None, None], [None]], schema_constants.ANY),
-          1,
-          ds([[None, None], [None]], schema_constants.ANY),
       ),
   )
   def test_eval(self, x, ndim, expected):

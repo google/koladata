@@ -47,7 +47,6 @@ class KodaHasListTest(parameterized.TestCase):
       (bag().list(), present),
       (bag().list([1, 2]), present),
       (bag().list([1, 2]).embed_schema(), present),
-      (bag().list([1, 2]).as_any(), present),
       (ds('hello'), missing),
       (bag().new(), missing),
       (bag().obj(), missing),
@@ -61,7 +60,6 @@ class KodaHasListTest(parameterized.TestCase):
       (ds([None, None]), ds([missing, missing])),
       (ds([None, None], schema_constants.INT32), ds([missing, missing])),
       (ds([None, None], schema_constants.OBJECT), ds([missing, missing])),
-      (ds([None, None], schema_constants.ANY), ds([missing, missing])),
       # Mixed types.
       (
           ds([bag().list([1, 2]).embed_schema(), None, 'world', bag().obj()]),

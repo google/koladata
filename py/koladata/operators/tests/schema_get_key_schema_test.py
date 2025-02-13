@@ -61,7 +61,7 @@ class SchemaGetKeySchemaTest(parameterized.TestCase):
         ValueError,
         "expected Dict schema for get_key_schema",
     ):
-      expr_eval.eval(kde.schema.get_key_schema(schema_constants.ANY))
+      expr_eval.eval(kde.schema.get_key_schema(schema_constants.INT32))
 
     with self.assertRaisesRegex(
         ValueError,

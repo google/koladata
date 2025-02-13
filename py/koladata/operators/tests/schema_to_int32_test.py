@@ -46,7 +46,6 @@ class SchemaToInt32Test(parameterized.TestCase):
       (ds(1), ds(1)),
       (ds(1, schema_constants.INT64), ds(1)),
       (ds(1.5), ds(1)),
-      (ds(1.5, schema_constants.ANY), ds(1)),
       (ds(1.5, schema_constants.OBJECT), ds(1)),
       (ds(True), ds(1)),
       (ds("1"), ds(1)),

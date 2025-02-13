@@ -346,7 +346,7 @@ def is_list(x):  # pylint: disable=unused-argument
 
   `x` is a List DataSlice if it meets one of the following conditions:
     1) it has a List schema
-    2) it has OBJECT/ANY schema and only has List items
+    2) it has OBJECT schema and only has List items
 
   Also see `kd.has_list` for a pointwise version. But note that
   `kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For

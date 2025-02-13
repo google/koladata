@@ -63,13 +63,12 @@ class SlicesSortTest(parameterized.TestCase):
       ),
       # descending as DataItem
       (ds([0, 3, None, 6]), ds(True), ds([6, 3, 0, None])),
-      # OBJECT, ANY schemas
+      # OBJECT schemas
       (
           ds([0, 3, None, 6], schema_constants.OBJECT),
           True,
           ds([6, 3, 0, None], schema_constants.OBJECT),
       ),
-      (ds([0, 3, None, 6]).as_any(), True, ds([6, 3, 0, None]).as_any()),
       # BOOLEAN
       (
           ds([True, False, None, True]),

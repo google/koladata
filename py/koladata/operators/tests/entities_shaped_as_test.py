@@ -175,7 +175,7 @@ class EntitiesShapedAsTest(absltest.TestCase):
     ):
       kde.entities.shaped_as(
           shape_from,
-          schema=schema_constants.ANY,
+          schema=schema_constants.INT32,
           update_schema=42,
       ).eval()
 

@@ -201,7 +201,7 @@ class NewShapedTest(absltest.TestCase):
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
       fns.new_shaped(
-          jagged_shape.create_shape(), schema=schema_constants.ANY,
+          jagged_shape.create_shape(), schema=schema_constants.INT32,
           update_schema=42
       )  # pytype: disable=wrong-arg-types
 
@@ -214,17 +214,6 @@ class NewShapedTest(absltest.TestCase):
         update_schema=True,
     )
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
-
-  def test_schema_arg_any(self):
-    x = fns.new_shaped(
-        jagged_shape.create_shape([2]),
-        a=1, b='a',
-        schema=schema_constants.ANY
-    )
-    self.assertEqual(fns.dir(x), [])
-    testing.assert_equal(x.get_schema().no_bag(), schema_constants.ANY)
-    testing.assert_equal(x.a, ds([1, 1]).as_any().with_bag(x.get_bag()))
-    testing.assert_equal(x.b, ds(['a', 'a']).as_any().with_bag(x.get_bag()))
 
   def test_schema_arg_embed_schema(self):
     schema = fns.schema.new_schema(a=schema_constants.OBJECT)

@@ -324,9 +324,6 @@ class KodaView(arolla.abc.ExprView):
   def get_itemid(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.get_itemid', self)
 
-  def as_any(self) -> arolla.Expr:
-    return arolla.abc.aux_bind_op('kd.as_any', self)
-
   def get_item_schema(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.get_item_schema', self)
 

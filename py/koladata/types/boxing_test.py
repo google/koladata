@@ -39,7 +39,6 @@ STRING = schema_constants.STRING
 EXPR = schema_constants.EXPR
 OBJECT = schema_constants.OBJECT
 SCHEMA = schema_constants.SCHEMA
-ANY = schema_constants.ANY
 NONE = schema_constants.NONE
 
 ds = data_slice.DataSlice.from_vals
@@ -240,7 +239,7 @@ class BoxingTest(parameterized.TestCase):
       ds([1, 2, 3], INT64, schema=INT32)
 
   def test_roundtrip_for_schema(self):
-    inputs = [INT32, STRING, ANY]
+    inputs = [INT32, STRING, OBJECT]
     x = ds(inputs)
     self.assertIsInstance(x, data_slice.DataSlice)
     testing.assert_equal(x.get_schema(), SCHEMA)
@@ -391,8 +390,6 @@ The cause is the values of attribute '__schema__' are different: SCHEMA\(\) vs S
     self.assertIsInstance(x.internal_as_py()[0], data_item.DataItem)
     testing.assert_equal(x.internal_as_py()[0].get_bag(), x.get_bag())
     testing.assert_equal(x.internal_as_py()[0].get_schema(), x.get_schema())
-    x = x.as_any()
-    testing.assert_equal(x.internal_as_py()[0].get_schema(), ANY.with_bag(db))
 
   def test_scalars_overflow_handling(self):
     with self.subTest('int'):
@@ -434,9 +431,9 @@ The cause is the values of attribute '__schema__' are different: SCHEMA\(\) vs S
       self.assertIsNone(schema.internal_as_py())
       testing.assert_equal(schema.get_schema(), SCHEMA)
 
-      x = ds([None, None], ANY)
+      x = ds([None, None], OBJECT)
       self.assertEqual(x.internal_as_py(), [None, None])
-      testing.assert_equal(x.get_schema(), ANY)
+      testing.assert_equal(x.get_schema(), OBJECT)
 
     with self.subTest('schema provided'):
       x = ds([None, None, None], INT32)

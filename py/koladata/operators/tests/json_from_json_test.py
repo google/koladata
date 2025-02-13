@@ -335,27 +335,6 @@ class JsonFromJsonTest(parameterized.TestCase):
           {'schema': schema_constants.INT64},
           ds(18446744073709551615, schema_constants.INT64),
       ),
-      # ANY schema
-      (
-          ds('null'),
-          {'schema': schema_constants.ANY},
-          ds(None, schema_constants.ANY),
-      ),
-      (
-          ds('false'),
-          {'schema': schema_constants.ANY},
-          ds(False, schema_constants.ANY),
-      ),
-      (
-          ds('0'),
-          {'schema': schema_constants.ANY},
-          ds(0, schema_constants.INT64).as_any(),
-      ),
-      (
-          ds('""'),
-          {'schema': schema_constants.ANY},
-          ds('', schema_constants.ANY),
-      ),
       # on_invalid
       (ds('not valid json'), {'on_invalid': None}, ds(None, OBJECT)),
       (ds('not valid json'), {'on_invalid': 'ERROR'}, ds('ERROR', OBJECT)),

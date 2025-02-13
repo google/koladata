@@ -51,26 +51,14 @@ class DictsGetKeysTest(parameterized.TestCase):
       (dict_item, ds([1, 3])),
       (dict_item.embed_schema(), ds([1, 3])),
       (
-          dict_item.with_schema(schema_constants.ANY),
-          ds([1, 3], schema_constants.ANY),
-      ),
-      (
           ds(None).with_schema(dict_item.get_schema()),
           ds([], schema_constants.INT32),
       ),
       (ds(None), ds([])),
       (ds(None).with_schema(schema_constants.OBJECT), ds([])),
-      (
-          ds(None).with_schema(schema_constants.ANY),
-          ds([], schema_constants.ANY),
-      ),
       # Dict DataSlice
       (dict_slice, ds([[1, 3], [], [3]])),
       (dict_slice.embed_schema(), ds([[1, 3], [], [3]])),
-      (
-          dict_slice.with_schema(schema_constants.ANY),
-          ds([[1, 3], [], [3]], schema_constants.ANY),
-      ),
   )
   def test_eval(self, dict_ds, expected):
     result = eval_op('kd.get_keys', dict_ds)

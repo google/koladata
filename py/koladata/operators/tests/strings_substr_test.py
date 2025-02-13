@@ -74,8 +74,8 @@ class StringsSubstrTest(parameterized.TestCase):
           ds([[None, None], [None]], schema_constants.STRING),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds([[None, None], [None]], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
+          ds([[None, None], [None]], schema_constants.OBJECT),
       ),
   )
   def test_eval_one_arg(self, x, expected_value):
@@ -134,9 +134,9 @@ class StringsSubstrTest(parameterized.TestCase):
           ds([[None, None], [None]]),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
           ds([1, 2]),
-          ds([[None, None], [None]], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
       ),
   )
   def test_eval_two_args(self, x, start, expected_value):
@@ -213,7 +213,7 @@ class StringsSubstrTest(parameterized.TestCase):
       (
           ds([[b'Hello World!', b'Ciao bella'], [None]]),
           ds([None, None], schema_constants.OBJECT),
-          ds([None, None], schema_constants.ANY),
+          ds([None, None], schema_constants.OBJECT),
           ds([[b'Hello World!', b'Ciao bella'], [None]]),
       ),
       (
@@ -223,10 +223,10 @@ class StringsSubstrTest(parameterized.TestCase):
           ds([[None, None], [None]]),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
           ds([1, 2]),
           ds([3, 4]),
-          ds([[None, None], [None]], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
       ),
       (
           ds([[None, None], [None]]),

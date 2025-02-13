@@ -42,7 +42,6 @@ class CoreRefTest(parameterized.TestCase):
       bag().list([1, 2, 3]),
       bag().new(a=1),
       ds([bag().obj(a=1)]),
-      ds(bag().obj(), schema_constants.ANY),
       ds(bag().obj(), schema_constants.ITEMID),
       ds(None).with_bag(bag()),
       bag().uu_schema(a=schema_constants.INT32),

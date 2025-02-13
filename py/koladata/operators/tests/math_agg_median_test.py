@@ -91,14 +91,10 @@ class MathAggMedianTest(parameterized.TestCase):
           ds([1, 2]),
           ds(1),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([[2, None], [None]], schema_constants.OBJECT),
           ds([2, None], schema_constants.OBJECT),
-      ),
-      (
-          ds([[2, None], [None]], schema_constants.ANY),
-          ds([2, None], schema_constants.ANY),
       ),
       # Empty and unknown inputs.
       (
@@ -114,16 +110,12 @@ class MathAggMedianTest(parameterized.TestCase):
           ds([None, None], schema_constants.FLOAT32),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds([None, None], schema_constants.ANY),
-      ),
-      (
           ds([None, None, None]),
           ds(None),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
-          ds(None, schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
+          ds(None, schema_constants.OBJECT),
       ),
   )
   def test_eval(self, *args_and_expected):

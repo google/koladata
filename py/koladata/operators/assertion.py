@@ -81,22 +81,19 @@ def assert_ds_has_primitives_of(ds, primitive_schema, message):  # pylint: disab
   """Returns `ds` if it matches `primitive_schema`, or raises an exception.
 
   It raises an exception if:
-    1) `ds`'s schema is not primitive_schema, OBJECT or ANY
+    1) `ds`'s schema is not primitive_schema or OBJECT
     2) `ds` has present items and not all of them match `primitive_schema`
 
   The following examples will pass:
     assert_ds_has_primitives_of(kd.present, kd.MASK, '')
     assert_ds_has_primitives_of(kd.slice([kd.present, kd.missing]), kd.MASK, '')
     assert_ds_has_primitives_of(kd.slice(None, schema=kd.OBJECT), kd.MASK, '')
-    assert_ds_has_primitives_of(kd.slice(None, schema=kd.ANY), kd.MASK, '')
     assert_ds_has_primitives_of(kd.slice([], schema=kd.OBJECT), kd.MASK, '')
-    assert_ds_has_primitives_of(kd.slice([], schema=kd.ANY), kd.MASK, '')
 
   The following examples will fail:
     assert_ds_has_primitives_of(1, kd.MASK, '')
     assert_ds_has_primitives_of(kd.slice([kd.present, 1]), kd.MASK, '')
     assert_ds_has_primitives_of(kd.slice(1, schema=kd.OBJECT), kd.MASK, '')
-    assert_ds_has_primitives_of(kd.slice(1, schema=kd.ANY), kd.MASK, '')
 
   Args:
     ds: DataSlice to assert the dtype of.

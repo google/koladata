@@ -202,9 +202,9 @@ def cast_to(x, schema):  # pylint: disable=unused-argument
 def cast_to_narrow(x, schema):  # pylint: disable=unused-argument
   """Returns `x` casted to the provided `schema`.
 
-  Allows for schema narrowing, where OBJECT and ANY types can be casted to
-  primitive schemas as long as the data is implicitly castable to the schema.
-  Follows the casting rules of `kd.cast_to_implicit` for the narrowed schema.
+  Allows for schema narrowing, where OBJECT types can be casted to primitive
+  schemas as long as the data is implicitly castable to the schema. Follows the
+  casting rules of `kd.cast_to_implicit` for the narrowed schema.
 
   Args:
     x: DataSlice to cast.
@@ -335,19 +335,6 @@ def to_object(x):
   return cast_to(x, schema_constants.OBJECT)
 
 
-@optools.add_to_registry(
-    aliases=[
-        'kd.to_any',
-        'kd.schema.as_any',
-        'kd.as_any',
-    ]
-)
-@optools.as_lambda_operator('kd.schema.to_any')
-def to_any(x):
-  """Casts `x` to ANY using explicit (permissive) casting rules."""
-  return cast_to(x, schema_constants.ANY)
-
-
 @optools.add_to_registry(aliases=['kd.to_none'])
 @optools.as_lambda_operator('kd.schema.to_none')
 def to_none(x):
@@ -380,7 +367,7 @@ def get_primitive_schema(ds):  # pylint: disable=unused-argument
   """Returns a primitive schema representing the underlying items' dtype.
 
   If `ds` has a primitive schema, this returns that primitive schema, even if
-  all items in `ds` are missing. If `ds` has an OBJECT/ANY schema but contains
+  all items in `ds` are missing. If `ds` has an OBJECT schema but contains
   primitive values of a single dtype, it returns the schema for that primitive
   dtype.
 
@@ -391,7 +378,6 @@ def get_primitive_schema(ds):  # pylint: disable=unused-argument
     kd.get_primitive_schema(kd.slice([1, 2, 3])) -> kd.INT32
     kd.get_primitive_schema(kd.slice([None, None, None], kd.INT32)) -> kd.INT32
     kd.get_primitive_schema(kd.slice([1, 2, 3], kd.OBJECT)) -> kd.INT32
-    kd.get_primitive_schema(kd.slice([1, 2, 3], kd.ANY)) -> kd.INT32
     kd.get_primitive_schema(kd.slice([1, 'a', 3], kd.OBJECT)) -> missing schema
     kd.get_primitive_schema(kd.obj())) -> missing schema
 
@@ -616,7 +602,7 @@ def nofollow_schema(schema):  # pylint: disable=unused-argument
   `nofollow_schema` is reversible with `get_actual_schema`.
 
   `nofollow_schema` can only be called on implicit and explicit schemas and
-  OBJECT. It raises an Error if called on ANY, primitive schemas, ITEMID, etc.
+  OBJECT. It raises an Error if called on primitive schemas, ITEMID, etc.
 
   Args:
     schema: Schema DataSlice to wrap.

@@ -180,12 +180,12 @@ class StringsFstrTest(parameterized.TestCase):
       expr_eval.eval(kde.strings.fstr(f'{kde.uuid():s}'))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'cannot format argument `x` of type ANY containing non-primitive'
+        'cannot format argument `x` of type OBJECT containing non-primitive'
         ' values',
     ):
       expr_eval.eval(
           kde.strings.fstr(
-              f'{kde.with_schema(kde.uuid(), schema_constants.ANY):s}'
+              f'{kde.with_schema(kde.uuid(), schema_constants.OBJECT):s}'
           )
       )
     with self.assertRaisesRegex(

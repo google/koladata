@@ -47,9 +47,9 @@ class EmbedSchemaTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         'schema embedding is only supported for a DataSlice with primitive, '
-        'entity, list or dict schemas, got ANY',
+        'entity, list or dict schemas, got ITEMID',
     ):
-      fns.embed_schema(ds([1, 'a']).as_any())
+      fns.embed_schema(ds([None], schema_constants.ITEMID))
 
 
 if __name__ == '__main__':

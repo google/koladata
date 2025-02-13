@@ -42,17 +42,15 @@ class StringsEncodeBase64Test(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(None, schema_constants.BYTES), ds(None, schema_constants.STRING)),
-      (ds(None, schema_constants.ANY), ds(None, schema_constants.STRING)),
       (ds(None, schema_constants.OBJECT), ds(None, schema_constants.STRING)),
       (ds(b''), ds('')),
       (ds(b'foo'), ds('Zm9v')),
       (ds(b'aaaa'), ds('YWFhYQ==')),
-      (ds(b'foo', schema_constants.ANY), ds('Zm9v')),
       (ds(b'foo', schema_constants.OBJECT), ds('Zm9v')),
       (ds([None], schema_constants.BYTES), ds([None], schema_constants.STRING)),
       (ds([b'foo']), ds(['Zm9v'])),
-      (ds([b'foo'], schema_constants.ANY), ds(['Zm9v'])),
-      (ds([b'foo', b'bar'], schema_constants.ANY), ds(['Zm9v', 'YmFy'])),
+      (ds([b'foo'], schema_constants.OBJECT), ds(['Zm9v'])),
+      (ds([b'foo', b'bar'], schema_constants.OBJECT), ds(['Zm9v', 'YmFy'])),
   )
   def test_eval(self, x, expected):
     res = expr_eval.eval(kde.strings.encode_base64(x))

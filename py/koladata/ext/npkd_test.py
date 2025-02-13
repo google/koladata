@@ -90,13 +90,6 @@ class NpkdTest(parameterized.TestCase):
       self.assertEqual(res_py[0], True)
       self.assertEqual(res_py[1], False)
 
-    with self.subTest('int ds any schema'):
-      x = kd.slice([1, 2, 3]).as_any()
-      expected_x = kd.slice([1, 2, 3])
-      res_np = npkd.to_array(x)
-      res_ds = npkd.from_array(res_np)
-      kd.testing.assert_equal(res_ds, expected_x)
-
     with self.subTest('int ds object schema'):
       x = kd.slice([1, 2, 3]).with_schema(kd.OBJECT)
       expected_x = kd.slice([1, 2, 3])

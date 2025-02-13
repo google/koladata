@@ -104,14 +104,12 @@ class MathAddTest(parameterized.TestCase):
           ds([['a', 'b'], ['c', 'd'], ['e', 'f']]),
           ds([['aa', 'ab'], ['bc', 'bd'], ['ce', 'cf']]),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([2, None, 3], schema_constants.OBJECT),
-          ds([4, 1, 0], schema_constants.INT64).with_schema(
-              schema_constants.ANY
-          ),
+          ds([4, 1, 0], schema_constants.INT64),
           ds([6, None, 3], schema_constants.INT64).with_schema(
-              schema_constants.ANY
+              schema_constants.OBJECT
           ),
       ),
       # Empty and unknown inputs.
@@ -152,14 +150,14 @@ class MathAddTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.INT32),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([None, None, None], schema_constants.FLOAT32),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([4, 1, 0]),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
       # Empty and unknown inputs - strings.join.
       (
@@ -188,14 +186,14 @@ class MathAddTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.STRING),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([None, None, None], schema_constants.STRING),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds(['foo', 'bar', 'baz']),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
   )
   def test_eval(self, x, y, expected):

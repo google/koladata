@@ -177,8 +177,8 @@ class PyMapPyTest(parameterized.TestCase):
     def my_func_dynamic_schema(x):
       return functions.new(u=x, v=x + 1)
 
-    def my_func_any_schema(x):
-      return functions.new(u=x, v=x + 1, schema=schema_constants.ANY)
+    def my_func_obj_schema(x):
+      return functions.new(u=x, v=x + 1, schema=schema_constants.OBJECT)
 
     def my_func_correct_schema(x):
       return functions.new(u=x, v=x + 1, schema=schema)
@@ -224,10 +224,10 @@ class PyMapPyTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        'the schema is incompatible.*assigned ANY',
+        re.escape('cannot create Item(s) with the provided schema: OBJECT')
     ):
       _ = expr_eval.eval(
-          kde.py.map_py(my_func_any_schema, ds([1, 2]), schema=schema)
+          kde.py.map_py(my_func_obj_schema, ds([1, 2]), schema=schema)
       )
 
     with self.assertRaisesWithLiteralMatch(

@@ -94,16 +94,16 @@ class StringsFormatTest(parameterized.TestCase):
           dict(v=ds([[[[b'bar', b'foo']]]])),
           ds([[[[b'=bar', b'=foo']]]]),
       ),
-      # slice of formats with ANY
+      # slice of formats with OBJECT
       (
-          ds(['+{v}', '-{v}'], schema_constants.ANY),
+          ds(['+{v}', '-{v}'], schema_constants.OBJECT),
           dict(v=ds('bar')),
-          ds(['+bar', '-bar'], schema_constants.ANY),
+          ds(['+bar', '-bar'], schema_constants.OBJECT),
       ),
       (
-          ds([b'+{v}', b'-{v}'], schema_constants.ANY),
+          ds([b'+{v}', b'-{v}'], schema_constants.OBJECT),
           dict(v=ds(b'bar')),
-          ds([b'+bar', b'-bar'], schema_constants.ANY),
+          ds([b'+bar', b'-bar'], schema_constants.OBJECT),
       ),
       # Large arity.
       (ds('{x0}'), {f'x{i}': ds(f'foo{i}') for i in range(30)}, ds('foo0')),
@@ -208,12 +208,12 @@ class StringsFormatTest(parameterized.TestCase):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=kde.uuid()))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.strings.format: cannot format argument `v` of type ANY containing'
-        ' non-primitive values',
+        'kd.strings.format: cannot format argument `v` of type OBJECT'
+        ' containing non-primitive values',
     ):
       expr_eval.eval(
           kde.strings.format(
-              ds('{v}'), v=kde.with_schema(kde.uuid(), schema_constants.ANY)
+              ds('{v}'), v=kde.with_schema(kde.uuid(), schema_constants.OBJECT)
           )
       )
     with self.assertRaisesRegex(

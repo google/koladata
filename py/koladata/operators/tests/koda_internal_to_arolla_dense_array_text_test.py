@@ -33,7 +33,6 @@ I = input_container.InputContainer('I')
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 OBJECT = schema_constants.OBJECT
-ANY = schema_constants.ANY
 STRING = schema_constants.STRING
 
 
@@ -46,19 +45,16 @@ class KodaToArollaDenseArrayTextTest(parameterized.TestCase):
       (ds([None], STRING), arolla.dense_array_text([None])),
       (ds([None], OBJECT), arolla.dense_array_text([None])),
       (ds(['foo']), arolla.dense_array_text(['foo'])),
-      (ds(['foo'], ANY), arolla.dense_array_text(['foo'])),
       (ds(['foo'], OBJECT), arolla.dense_array_text(['foo'])),
       # Scalars.
       (ds(None, STRING), arolla.dense_array_text([None])),
       (ds(None, OBJECT), arolla.dense_array_text([None])),
       (ds('foo'), arolla.dense_array_text(['foo'])),
-      (ds('foo', ANY), arolla.dense_array_text(['foo'])),
       (ds('foo', OBJECT), arolla.dense_array_text(['foo'])),
       # Multidim values.
       (ds([[], []], STRING), arolla.dense_array_text([])),
       (ds([['foo'], [None]]), arolla.dense_array_text(['foo', None])),
       (ds([[None], [None]], STRING), arolla.dense_array_text([None, None])),
-      (ds([['foo'], [None]], ANY), arolla.dense_array_text(['foo', None])),
       (ds([['foo'], [None]], OBJECT), arolla.dense_array_text(['foo', None])),
       (ds([[None], [None]], OBJECT), arolla.dense_array_text([None, None])),
   )

@@ -56,14 +56,14 @@ class StringsAggJoinTest(parameterized.TestCase):
           ds([[b'el', b'psy', b'congroo'], [b'a', b'c']]),
           ds([b'elpsycongroo', b'ac']),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([['a', 'b'], [None]], schema_constants.OBJECT),
           ds(['ab', None], schema_constants.OBJECT),
       ),
       (
-          ds([[b'a', b'b'], [None]], schema_constants.ANY),
-          ds([b'ab', None], schema_constants.ANY),
+          ds([[b'a', b'b'], [None]], schema_constants.OBJECT),
+          ds([b'ab', None], schema_constants.OBJECT),
       ),
       # Empty and unknown inputs.
       (
@@ -83,8 +83,8 @@ class StringsAggJoinTest(parameterized.TestCase):
           ds([None, None], schema_constants.BYTES),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
-          ds([None, None], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
+          ds([None, None], schema_constants.OBJECT),
       ),
   )
   def test_eval_one_arg(self, x, expected):
@@ -103,16 +103,16 @@ class StringsAggJoinTest(parameterized.TestCase):
           ds(b' '),
           ds([b'el psy congroo', b'a c']),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([['a', 'b'], [None]], schema_constants.OBJECT),
           ds(' '),
           ds(['a b', None], schema_constants.OBJECT),
       ),
       (
-          ds([[b'a', b'b'], [None]], schema_constants.ANY),
+          ds([[b'a', b'b'], [None]], schema_constants.OBJECT),
           ds(b' '),
-          ds([b'a b', None], schema_constants.ANY),
+          ds([b'a b', None], schema_constants.OBJECT),
       ),
       (
           ds([['a', 'b'], [None]]),
@@ -121,8 +121,8 @@ class StringsAggJoinTest(parameterized.TestCase):
       ),
       (
           ds([[b'a', b'b'], [None]]),
-          ds(b' ', schema_constants.ANY),
-          ds([b'a b', None], schema_constants.ANY),
+          ds(b' ', schema_constants.OBJECT),
+          ds([b'a b', None], schema_constants.OBJECT),
       ),
       # Empty and unknown inputs.
       (
@@ -146,14 +146,14 @@ class StringsAggJoinTest(parameterized.TestCase):
           ds([None, None], schema_constants.OBJECT),
       ),
       (
-          ds([[None, None], [None]], schema_constants.ANY),
+          ds([[None, None], [None]], schema_constants.OBJECT),
           ds(' ', schema_constants.OBJECT),
-          ds([None, None], schema_constants.ANY),
+          ds([None, None], schema_constants.OBJECT),
       ),
       (
           ds([[None, None], [None]], schema_constants.OBJECT),
-          ds(None, schema_constants.ANY),
-          ds([None, None], schema_constants.ANY),
+          ds(None, schema_constants.OBJECT),
+          ds([None, None], schema_constants.OBJECT),
       ),
   )
   def test_eval_two_args(self, x, sep, expected):

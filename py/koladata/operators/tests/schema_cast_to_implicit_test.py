@@ -48,8 +48,8 @@ class SchemaCastToImplicitTest(parameterized.TestCase):
       (ds(None), schema_constants.FLOAT32, ds(None, schema_constants.FLOAT32)),
       (
           ds([1, "a"], schema_constants.OBJECT),
-          schema_constants.ANY,
-          ds([1, "a"], schema_constants.ANY),
+          schema_constants.OBJECT,
+          ds([1, "a"], schema_constants.OBJECT),
       ),
       (ds(1), schema_constants.OBJECT, ds(1, schema_constants.OBJECT)),
   )

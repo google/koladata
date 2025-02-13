@@ -256,7 +256,7 @@ class NewLikeTest(absltest.TestCase):
 
   def test_schema_arg_update_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
-      fns.new_like(ds(1), schema=schema_constants.ANY, update_schema=42)  # pytype: disable=wrong-arg-types
+      fns.new_like(ds(1), schema=schema_constants.INT32, update_schema=42)  # pytype: disable=wrong-arg-types
 
   def test_schema_arg_update_schema_error_overwriting(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)

@@ -76,7 +76,7 @@ class SlicesSelectTest(parameterized.TestCase):
       ),
       (
           ds([[1], [None], [3]]),
-          ds([[None], [None], [None]]).as_any(),
+          ds([[None], [None], [None]], schema_constants.OBJECT),
           ds([[], [], []], schema_constants.INT32),
       ),
       # Mixed types
@@ -284,24 +284,24 @@ class SlicesSelectTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
-          ds(1).as_any(),
-          ds(1).as_any(),
+          ds(1, schema_constants.OBJECT),
+          ds(1, schema_constants.OBJECT),
           (
               '`fltr` DataSlice must have all items of MASK dtype or can be'
               ' evaluated to such items (i.e. Python function or Koda Functor)'
           ),
       ),
       (
-          ds([1, 2, None, 4]).as_any(),
-          ds(1).as_any(),
+          ds([1, 2, None, 4], schema_constants.OBJECT),
+          ds(1, schema_constants.OBJECT),
           (
               '`fltr` DataSlice must have all items of MASK dtype or can be'
               ' evaluated to such items (i.e. Python function or Koda Functor)'
           ),
       ),
       (
-          ds([1, 2, None, 4]).as_any(),
-          ds([1, 2, None, 4]).as_any(),
+          ds([1, 2, None, 4], schema_constants.OBJECT),
+          ds([1, 2, None, 4], schema_constants.OBJECT),
           (
               '`fltr` DataSlice must have all items of MASK dtype or can be'
               ' evaluated to such items (i.e. Python function or Koda Functor)'

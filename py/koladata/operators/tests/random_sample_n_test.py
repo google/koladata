@@ -62,9 +62,8 @@ class RandomSampleNTest(parameterized.TestCase):
       (ds([[7, 2], [6, 3], [None, 4, 1], [8]]), 2, 7),
       (ds([[7, 2], [6, 3], [None, 4, 1], [8]]), ds([1, 2, 3, 4]), 7),
       (ds([7, 2, 6, 3, None, 4, 1, 8], schema_constants.INT64), 2, 2),
-      # OBJECT/ANY schema
+      # OBJECT schema
       (ds([7, 2, 6, 3, None, 4, 1, 8], schema_constants.OBJECT), 2, 2),
-      (ds([7, 2, 6, 3, None, 4, 1, 8], schema_constants.ANY), 2, 2),
       # mixed
       (ds([7, 2.0, 6, 3.0, None, True, 1, 8]), 2, 2),
       # Lists

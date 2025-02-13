@@ -72,14 +72,12 @@ class MathModTest(parameterized.TestCase):
           ds(2.0),
           ds([0.0, None, 1.0], schema_constants.FLOAT64),
       ),
-      # OBJECT/ANY
+      # OBJECT
       (
           ds([5, None, -5], schema_constants.OBJECT),
-          ds([2, 1, 2], schema_constants.INT64).with_schema(
-              schema_constants.ANY
-          ),
+          ds([2, 1, 2], schema_constants.INT64),
           ds([1, None, 1], schema_constants.INT64).with_schema(
-              schema_constants.ANY
+              schema_constants.OBJECT
           ),
       ),
       # Empty and unknown inputs.
@@ -104,9 +102,9 @@ class MathModTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.FLOAT32),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([None, None, None], schema_constants.FLOAT32),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
       (
           ds([None, None, None]),
@@ -114,9 +112,9 @@ class MathModTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.INT32),
       ),
       (
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
           ds([4, 1, 0]),
-          ds([None, None, None], schema_constants.ANY),
+          ds([None, None, None], schema_constants.OBJECT),
       ),
   )
   def test_eval(self, x, y, expected):

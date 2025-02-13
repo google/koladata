@@ -42,10 +42,6 @@ class SchemaItemTest(absltest.TestCase):
     self.assertTrue(issubclass(schema_item.SchemaItem, data_item.DataItem))
     self.assertIsInstance(schema_constants.INT32, schema_item.SchemaItem)
     self.assertIsInstance(schema_constants.INT32, schema_item.SchemaItem)
-    self.assertNotIsInstance(
-        schema_constants.INT32.as_any(),
-        schema_item.SchemaItem,
-    )
     self.assertIsInstance(bag().new().get_schema(), schema_item.SchemaItem)
 
   def test_hash(self):
@@ -53,7 +49,7 @@ class SchemaItemTest(absltest.TestCase):
     schema_2 = bag().new().get_schema()
     schema_3 = schema_1.no_bag()
     schema_4 = schema_constants.INT32
-    schema_5 = schema_constants.ANY
+    schema_5 = schema_constants.OBJECT
     for s_1, s_2 in itertools.combinations(
         [schema_1, schema_2, schema_3, schema_4, schema_5], 2
     ):
@@ -68,7 +64,7 @@ class SchemaItemTest(absltest.TestCase):
         bag().new().get_schema().get_shape(), jagged_shape.create_shape()
     )
     testing.assert_equal(
-        schema_constants.ANY.get_shape(), jagged_shape.create_shape()
+        schema_constants.OBJECT.get_shape(), jagged_shape.create_shape()
     )
 
   def test_new_schema_self_ref(self):
@@ -180,20 +176,6 @@ class SchemaItemTest(absltest.TestCase):
     self.assertTrue(ds('a').get_schema().is_primitive_schema())
     self.assertFalse(fns.list([1, 2]).get_schema().is_primitive_schema())
     self.assertFalse(fns.new(a=1).get_schema().is_primitive_schema())
-
-  def test_internal_is_any_schema(self):
-    with self.subTest('item'):
-      a = bag().obj(x=1)
-      self.assertFalse(a.internal_is_any_schema())
-      self.assertFalse(a.get_schema().internal_is_any_schema())
-      self.assertTrue(a.as_any().get_schema().internal_is_any_schema())
-
-    with self.subTest('slice'):
-      db = bag()
-      a = ds([db.obj(x=1), db.obj(x=2)])
-      self.assertFalse(a.internal_is_any_schema())
-      self.assertFalse(a.get_schema().internal_is_any_schema())
-      self.assertTrue(a.as_any().get_schema().internal_is_any_schema())
 
   def test_internal_is_itemid_schema(self):
     with self.subTest('item'):

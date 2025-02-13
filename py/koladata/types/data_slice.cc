@@ -797,13 +797,6 @@ absl::Nullable<PyObject*> PyDataSlice_is_primitive_schema(PyObject* self,
   return WrapPyDataSlice(AsMask(ds.IsPrimitiveSchema()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_internal_is_any_schema(PyObject* self,
-                                                             PyObject*) {
-  arolla::python::DCheckPyGIL();
-  const auto& ds = UnsafeDataSliceRef(self);
-  return WrapPyDataSlice(AsMask(ds.IsAnySchema()));
-}
-
 absl::Nullable<PyObject*> PyDataSlice_internal_is_itemid_schema(PyObject* self,
                                                                 PyObject*) {
   arolla::python::DCheckPyGIL();
@@ -853,15 +846,6 @@ absl::Nullable<PyObject*> PyDataSlice_set_schema(PyObject* self,
   }
   ASSIGN_OR_RETURN(auto res, ds.SetSchema(*schema_ds),
                    arolla::python::SetPyErrFromStatus(_));
-  return WrapPyDataSlice(std::move(res));
-}
-
-absl::Nullable<PyObject*> PyDataSlice_as_any(PyObject* self, PyObject*) {
-  arolla::python::DCheckPyGIL();
-  ASSIGN_OR_RETURN(
-      auto res,
-      UnsafeDataSliceRef(self).WithSchema(internal::DataItem(schema::kAny)),
-      arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
 
@@ -1052,10 +1036,6 @@ Returns:
      "is_primitive_schema()\n"
      "--\n\n"
      "Returns present iff this DataSlice is a primitive (scalar) Schema."},
-    {"internal_is_any_schema", PyDataSlice_internal_is_any_schema, METH_NOARGS,
-     "internal_is_any_schema()\n"
-     "--\n\n"
-     "Returns present iff this DataSlice is ANY Schema."},
     {"internal_is_itemid_schema", PyDataSlice_internal_is_itemid_schema,
      METH_NOARGS,
      "internal_is_itemid_schema()\n"
@@ -1100,10 +1080,6 @@ Args:
 Returns:
   DataSlice with the provided `schema`.
 )"""},
-    {"as_any", PyDataSlice_as_any, METH_NOARGS,
-     "as_any()\n"
-     "--\n\n"
-     "Returns a DataSlice with ANY schema."},
     {"get_keys", PyDataSlice_get_keys, METH_NOARGS,
      "get_keys()\n"
      "--\n\n"
@@ -1168,7 +1144,7 @@ Args:
 
 In case of OBJECT schema, attribute names are fetched from the `__schema__`
 attribute. In case of Entity schema, the attribute names are fetched from the
-schema. In case of ANY (or primitives), an empty list is returned.
+schema. In case of primitives, an empty list is returned.
 
 Args:
   intersection: If True, the intersection of all object attributes is returned.

@@ -121,13 +121,6 @@ class CoreAttrTest(parameterized.TestCase):
     ):
       _ = kde.core.attr(o, 'x', 1).eval()
 
-  def test_any_works(self):
-    o = bag().new().as_any()
-    db = kde.core.attr(o, 'x', 1).eval()
-    self.assertEqual(o.with_bag(db).x.no_bag(), ds(1))
-    db = kde.core.attr(o, 'x', 1, update_schema=True).eval()
-    self.assertEqual(o.with_bag(db).x.no_bag(), ds(1))
-
   def test_schema_works(self):
     o = bag().new_schema()
     db = kde.core.attr(o, 'x', schema_constants.INT32).eval()

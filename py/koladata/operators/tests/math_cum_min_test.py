@@ -176,10 +176,6 @@ class MathCumMinTest(parameterized.TestCase):
           ds([None, None, None], schema_constants.INT32),
           ds([None, None, None], schema_constants.INT32),
       ),
-      (
-          ds([None, None, None], schema_constants.ANY),
-          ds([None, None, None], schema_constants.ANY),
-      ),
   )
   def test_eval_non_numeric(self, x, expected):
     result = expr_eval.eval(kde.math.cum_min(I.x), x=x)

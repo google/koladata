@@ -64,7 +64,10 @@ class CoreNofollowTest(parameterized.TestCase):
     nofollow_x = eval_op('kd.nofollow', x)
     nofollow_schema = eval_op('kd.nofollow_schema', (schema))
     # Same data contents.
-    testing.assert_equal(nofollow_x.as_any(), x.as_any())
+    testing.assert_equal(
+        nofollow_x.with_schema(schema_constants.OBJECT),
+        x.with_schema(schema_constants.OBJECT),
+    )
     # nofollow's schema <=> nofollow_schema.
     testing.assert_equal(nofollow_x.get_schema(), nofollow_schema)
     # get_nofollowed_schema <=> original schema.
@@ -78,10 +81,6 @@ class CoreNofollowTest(parameterized.TestCase):
         ValueError, 'calling nofollow on INT32 slice is not allowed'
     ):
       expr_eval.eval(kde.nofollow(ds(1)))
-    with self.assertRaisesRegex(
-        ValueError, 'calling nofollow on ANY slice is not allowed'
-    ):
-      expr_eval.eval(kde.nofollow(bag().new().as_any()))
     with self.assertRaisesRegex(
         ValueError, 'calling nofollow on STRING slice is not allowed'
     ):
@@ -112,7 +111,7 @@ class CoreNofollowTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
       expr_eval.eval(kde.follow(ds([1, 2, 3])))
     with self.assertRaisesRegex(ValueError, 'a nofollow schema is required'):
-      expr_eval.eval(kde.follow(ds([1, 2, 3]).as_any()))
+      expr_eval.eval(kde.follow(ds([1, 2, 3], schema_constants.OBJECT)))
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.nofollow(I.x)))

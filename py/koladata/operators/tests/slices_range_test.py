@@ -73,16 +73,7 @@ class SlicesRangeTest(parameterized.TestCase):
           ds([[0], [0, 1], [], [0, 1, 2]], INT64),
       ),
       (
-          ds([1, 2, None, 3], schema_constants.ANY),
-          ds([[0], [0, 1], [], [0, 1, 2]], INT64),
-      ),
-      (
           ds([1, 2, None, 3], schema_constants.OBJECT),
-          ds(3),
-          ds([[1, 2], [2], [], []], INT64),
-      ),
-      (
-          ds([1, 2, None, 3], schema_constants.ANY),
           ds(3),
           ds([[1, 2], [2], [], []], INT64),
       ),

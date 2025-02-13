@@ -110,14 +110,6 @@ class FromPyTest(absltest.TestCase):
     self.assertNotEqual(e1.get_bag().fingerprint, res.get_bag().fingerprint)
     self.assertFalse(res.get_bag().is_mutable())
 
-  def test_any_schema(self):
-    db = fns.bag()
-    e1 = db.new(a=42, schema='S')
-    e2 = db.new(a=12, schema='S')
-    lst = [e1, e2]
-    res = fns.from_py(lst, schema=schema_constants.ANY.with_bag(fns.bag()))
-    self.assertNotEqual(e1.get_bag().fingerprint, res.get_bag().fingerprint)
-
   def test_can_use_frozen_input_bag(self):
     db = fns.bag()
     e = db.new(a=12, schema='S').freeze_bag()
@@ -421,15 +413,6 @@ class FromPyTest(absltest.TestCase):
     # NOTE: Schema bag is unchanged and treated similar to other inputs.
     testing.assert_equal(item, entity)
 
-  def test_any_to_entity_casting_error(self):
-    with self.assertRaisesRegex(
-        ValueError, 'the schema is incompatible: expected .*, assigned ANY'
-    ):
-      fns.from_py(
-          [fns.new(x=42).as_any(), fns.new(x=12).as_any()],
-          from_dim=1, schema=fns.uu_schema(x=schema_constants.INT32)
-      )
-
   def test_dict_as_obj_if_schema_provided(self):
     schema = fns.named_schema('foo', a=schema_constants.INT32)
     d = fns.from_py({'a': 2}, schema=schema)
@@ -533,7 +516,7 @@ class FromPyTest(absltest.TestCase):
     testing.assert_equal(obj.a.no_bag(), ds(42))
     # Entity - non STRING schema with STRING item.
     entity = fns.from_py(
-        {ds('a').as_any(): 42},
+        {ds('a', schema_constants.OBJECT): 42},
         dict_as_obj=True,
         schema=fns.schema.new_schema(a=schema_constants.INT32),
     )

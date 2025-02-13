@@ -57,7 +57,7 @@ class StringsRegexMatchTest(parameterized.TestCase):
           ds([[present, present], [missing, present]]),
       ),
       (
-          ds(['foo'], schema_constants.ANY),
+          ds(['foo'], schema_constants.OBJECT),
           ds('foo'),
           ds([present]),
       ),
