@@ -151,13 +151,12 @@ class FunctorFactoriesTest(absltest.TestCase):
     testing.assert_equal(fn5.foo[:][:].no_bag(), ds([[1, 2], [3]]))
     self.assertNotIn('aux_0', kdi.dir(fn5))
 
-    # TODO: Make this work.
-    # fn6 = functor_factories.expr_fn(
-    #     kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True
-    # )
-    # testing.assert_equal(fn6(), ds([1, 2, 3]))
-    # testing.assert_equal(fn6.foo[:][:].no_bag(), ds([1, 2, 3]))
-    # self.assertNotIn('aux_0', kdi.dir(fn6))
+    fn6 = functor_factories.expr_fn(
+        kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True
+    )
+    testing.assert_equal(fn6().no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(fn6.foo[:].no_bag(), ds([1, 2, 3]))
+    self.assertNotIn('aux_0', kdi.dir(fn6))
 
   def test_auto_variables_nested_names(self):
     x = kde.with_name(kde.with_name(I.x, 'foo'), 'bar')
@@ -173,8 +172,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     shared = kde.with_name(x, 'foo')
     fn = functor_factories.expr_fn(
         shared + kde.with_name(y, 'foo') + V.foo,
-        # TODO: Make V.foo_1[:] work.
-        foo=kde.explode(V.foo_1) + shared,
+        foo=V.foo_1[:] + shared,
         foo_1=fns.list([4, 5, -1, 7]),
         auto_variables=True,
     )
@@ -194,12 +192,17 @@ class FunctorFactoriesTest(absltest.TestCase):
     # noise.
     testing.assert_equal(introspection.unpack_expr(fn.returns), I.x + ds(None))
 
+  def test_auto_variables_does_not_lose_cast(self):
+    fn = functor_factories.expr_fn(
+        kde.slice(kdi.slice([1, 2, 3]), schema_constants.INT64),
+        auto_variables=True,
+    )
+    testing.assert_equal(fn().no_bag(), ds([1, 2, 3], schema_constants.INT64))
+
   def test_trace_py_fn(self):
 
     def my_model(x):
-      # TODO: Make this work with
-      # kd.slice([1.0, 0.5, 1.5]).with_name('weights')
-      weights = user_facing_kd.with_name(kdi.slice([1.0, 0.5, 1.5]), 'weights')
+      weights = user_facing_kd.slice([1.0, 0.5, 1.5]).with_name('weights')
       return user_facing_kd.agg_sum(
           user_facing_kd.stack(x.a, x.b, x.c) * weights
       )

@@ -50,16 +50,16 @@ class TracingTest(absltest.TestCase):
     e = tracing.trace(lambda x: kd.fstr(f'{x:s}'))  # pylint: disable=unnecessary-lambda
     testing.assert_equal(e, kde.fstr(f'{I.x:s}'))
 
-  # TODO: reenable this when we have kde.slice.
-  # def test_kd_constants_in_slice(self):
-  #   e = tracing.trace(lambda: kd.slice([1, 2], kd.FLOAT32))
-  #   self.assertIsInstance(e, arolla.Expr)
-  #   self.assertEqual(e.eval().get_schema(), kd.FLOAT32)
+  def test_kd_constants_in_slice(self):
+    e = tracing.trace(lambda: kd.slice([1, 2], kd.FLOAT32))
+    self.assertIsInstance(e, arolla.Expr)
+    self.assertEqual(e.eval().get_schema(), kd.FLOAT32)
 
-  # TODO: reenable this when we have kde.obj.
+  # TODO: Make this work.
   # def test_obj_from_dict_with_itemid(self):
   #   o = kd.new()
-  #   e = tracing.trace(lambda: kd.obj({1: 2}, itemid=kd.get_itemid(o)))
+  #   e = tracing.trace(
+  #       lambda: kd.obj(kd.dict({1: 2}, itemid=kd.get_itemid(o))))
   #   self.assertIsInstance(e, arolla.Expr)
   #   self.assertEqual(e.eval(x=o)[1], 2)
   #   self.assertEqual(e.eval(x=o).get_schema(), kd.OBJECT)
@@ -124,42 +124,40 @@ class TracingTest(absltest.TestCase):
     )
     self.assertEqual(tracing.trace(lambda a, b: fn(x=a, y=b)).eval(a=1, b=2), 3)
 
-  # TODO: reenable this when we have kde.attrs and kde.enrich.
-  # def test_databag_methods(self):
-  #   x = kd.obj(z=1)
+  def test_databag_methods(self):
+    x = kd.obj(z=1)
 
-  #   def get_update(a):
-  #     upd = kd.bag()
-  #     upd |= kd.attrs(a, y=2)
-  #     return upd
+    def get_update(a):
+      upd = kd.bag()
+      upd <<= kd.attrs(a, y=2)
+      return upd
 
-  #   self.assertEqual(x.updated(get_update(x)).y, 2)
-  #   self.assertEqual(x.updated(tracing.trace(get_update).eval(a=x)).y, 2)
+    self.assertEqual(x.updated(get_update(x)).y, 2)
+    self.assertEqual(x.updated(tracing.trace(get_update).eval(a=x)).y, 2)
 
-  #   def apply_update(a):
-  #     upd = kd.bag()
-  #     upd |= kd.attrs(a, y=2)
-  #     return upd.enrich(a)
+    def apply_update(a):
+      upd = kd.bag()
+      upd <<= kd.attrs(a, y=2)
+      return a.enriched(upd)
 
-  #   self.assertEqual(apply_update(x).y, 2)
-  #   self.assertEqual(tracing.trace(apply_update).eval(a=x).y, 2)
+    self.assertEqual(apply_update(x).y, 2)
+    self.assertEqual(tracing.trace(apply_update).eval(a=x).y, 2)
 
-  # TODO: reenable this when we have kde.strings.fstr.
-  # def test_fstr(self):
+  def test_fstr_eval(self):
 
-  #   def format_greeting(x):
-  #     return kd.strings.fstr('{o.greeting} {kd.strings.upper(o.name)}', o=x)
+    def format_greeting(x):
+      return kd.fstr(f'{x.greeting:s} {kd.strings.upper(x.name):s}')
 
-  #   self.assertEqual(
-  #       format_greeting(x=kd.obj(greeting='Hello', name='World')).to_py(),
-  #       'Hello WORLD',
-  #   )
-  #   self.assertEqual(
-  #       tracing.trace(format_greeting)
-  #       .eval(x=kd.obj(greeting='Hello', name='World'))
-  #       .to_py(),
-  #       'Hello WORLD',
-  #   )
+    self.assertEqual(
+        format_greeting(x=kd.obj(greeting='Hello', name='World')).to_py(),
+        'Hello WORLD',
+    )
+    self.assertEqual(
+        tracing.trace(format_greeting)
+        .eval(x=kd.obj(greeting='Hello', name='World'))
+        .to_py(),
+        'Hello WORLD',
+    )
 
 
 if __name__ == '__main__':

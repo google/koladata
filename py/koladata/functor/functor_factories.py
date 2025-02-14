@@ -57,6 +57,8 @@ def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
   variables = dict(variables)
   aux_variable_fingerprints = set()
   prefix_to_counter = {}
+  # Cache this operator for the checks below.
+  kde_slice = kde.slice
 
   def create_unique_variable(prefix: str) -> str:
     if prefix not in prefix_to_counter:
@@ -67,8 +69,13 @@ def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
       if var_name not in variables:
         return var_name
 
+  def is_literal(node: arolla.Expr):
+    return node.is_literal or isinstance(
+        node.op, literal_operator.LiteralOperator
+    )
+
   def transform_node(node: arolla.Expr) -> arolla.Expr:
-    if node.is_literal or isinstance(node.op, literal_operator.LiteralOperator):
+    if is_literal(node):
       val = typing.cast(arolla.QValue, node.qvalue)
       if val.qtype == qtypes.DATA_SLICE:
         val = typing.cast(data_slice.DataSlice, val)
@@ -92,6 +99,19 @@ def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
         variables[var_name] = val
         aux_variable_fingerprints.add(var.fingerprint)
         return var
+
+    if node.op is not None and optools.equiv_to_op(node.op, kde_slice):
+      # Our binding policy for kd.slice produces kd.slice(<literal slice>).
+      # When that is named we want the name to be used instead of aux_,
+      # so we remove the unnecessary slice() wrapper in that case.
+      val, schema = node.node_deps
+      if (
+          val.fingerprint in aux_variable_fingerprints
+          and is_literal(schema)
+          and typing.cast(arolla.QValue, schema.qvalue).qtype
+          == arolla.UNSPECIFIED
+      ):
+        return val
 
     if (expr_name := introspection.get_name(node)) is not None:
       name = (
