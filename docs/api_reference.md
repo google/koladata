@@ -222,22 +222,19 @@ Operators that assert properties of DataSlices.
 Returns `ds` if it matches `primitive_schema`, or raises an exception.
 
 It raises an exception if:
-  1) `ds`'s schema is not primitive_schema, OBJECT or ANY
+  1) `ds`'s schema is not primitive_schema or OBJECT
   2) `ds` has present items and not all of them match `primitive_schema`
 
 The following examples will pass:
   assert_ds_has_primitives_of(kd.present, kd.MASK, '')
   assert_ds_has_primitives_of(kd.slice([kd.present, kd.missing]), kd.MASK, '')
   assert_ds_has_primitives_of(kd.slice(None, schema=kd.OBJECT), kd.MASK, '')
-  assert_ds_has_primitives_of(kd.slice(None, schema=kd.ANY), kd.MASK, '')
   assert_ds_has_primitives_of(kd.slice([], schema=kd.OBJECT), kd.MASK, '')
-  assert_ds_has_primitives_of(kd.slice([], schema=kd.ANY), kd.MASK, '')
 
 The following examples will fail:
   assert_ds_has_primitives_of(1, kd.MASK, '')
   assert_ds_has_primitives_of(kd.slice([kd.present, 1]), kd.MASK, '')
   assert_ds_has_primitives_of(kd.slice(1, schema=kd.OBJECT), kd.MASK, '')
-  assert_ds_has_primitives_of(kd.slice(1, schema=kd.ANY), kd.MASK, '')
 
 Args:
   ds: DataSlice to assert the dtype of.
@@ -836,7 +833,7 @@ Returns whether x is an Entity DataSlice.
 
 `x` is an Entity DataSlice if it meets one of the following conditions:
   1) it has an Entity schema
-  2) it has OBJECT/ANY schema and only has Entity items
+  2) it has OBJECT schema and only has Entity items
 
 Also see `kd.has_entity` for a pointwise version. But note that
 `kd.all(kd.has_entity(x))` is not always equivalent to
@@ -864,7 +861,7 @@ Returns whether x is a primitive DataSlice.
 
 `x` is a primitive DataSlice if it meets one of the following conditions:
   1) it has a primitive schema
-  2) it has OBJECT/ANY/SCHEMA schema and only has primitives
+  2) it has OBJECT/SCHEMA schema and only has primitives
 
 Also see `kd.has_primitive` for a pointwise version. But note that
 `kd.all(kd.has_primitive(x))` is not always equivalent to
@@ -1107,8 +1104,7 @@ Creates new Entities with the shape and sparsity from shape_and_mask_from.
       DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
+      You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
@@ -1134,8 +1130,7 @@ Creates Entities with given attrs.
     arg: optional Python object to be converted to an Entity.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
+      You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
@@ -1163,8 +1158,7 @@ Creates new Entities with the given shape.
     shape: JaggedShape that the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
+      You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
@@ -1190,8 +1184,7 @@ Creates new Koda entities with shape of the given DataSlice.
     shape_from: DataSlice, whose shape the returned DataSlice will have.
     schema: optional DataSlice schema. If not specified, a new explicit schema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead. You can also pass schema='name' as a shortcut for
+      You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
@@ -1217,8 +1210,6 @@ Creates UuEntities with given attrs.
     seed: string to seed the uuid computation with.
     schema: optional DataSlice schema. If not specified, a UuSchema
       will be automatically created based on the schemas of the passed **attrs.
-      Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-      schema instead.
     update_schema: if schema attribute is missing and the attribute is being set
       through `attrs`, schema is successfully updated.
     db: optional DataBag where entities are created.
@@ -1342,7 +1333,7 @@ Returns whether x is a Dict DataSlice.
 
 `x` is a Dict DataSlice if it meets one of the following conditions:
   1) it has a Dict schema
-  2) it has OBJECT/ANY schema and only has Dict items
+  2) it has OBJECT schema and only has Dict items
 
 Also see `kd.has_dict` for a pointwise version. But note that
 `kd.all(kd.has_dict(x))` is not always equivalent to `kd.is_dict(x)`. For
@@ -2581,7 +2572,7 @@ Returns whether x is a List DataSlice.
 
 `x` is a List DataSlice if it meets one of the following conditions:
   1) it has a List schema
-  2) it has OBJECT/ANY schema and only has List items
+  2) it has OBJECT schema and only has List items
 
 Also see `kd.has_list` for a pointwise version. But note that
 `kd.all(kd.has_list(x))` is not always equivalent to `kd.is_list(x)`. For
@@ -4223,19 +4214,6 @@ Args:
   ndim: The number of last dimensions to aggregate over.
 ```
 
-### `kd.schema.as_any(x)` {#kd.schema.as_any}
-Aliases:
-
-- [kd.schema.to_any](#kd.schema.to_any)
-
-- [kd.as_any](#kd.as_any)
-
-- [kd.to_any](#kd.to_any)
-
-``` {.no-copy}
-Casts `x` to ANY using explicit (permissive) casting rules.
-```
-
 ### `kd.schema.cast_to(x, schema)` {#kd.schema.cast_to}
 Aliases:
 
@@ -4270,9 +4248,9 @@ Args:
 ``` {.no-copy}
 Returns `x` casted to the provided `schema`.
 
-Allows for schema narrowing, where OBJECT and ANY types can be casted to
-primitive schemas as long as the data is implicitly castable to the schema.
-Follows the casting rules of `kd.cast_to_implicit` for the narrowed schema.
+Allows for schema narrowing, where OBJECT types can be casted to primitive
+schemas as long as the data is implicitly castable to the schema. Follows the
+casting rules of `kd.cast_to_implicit` for the narrowed schema.
 
 Args:
   x: DataSlice to cast.
@@ -4323,7 +4301,7 @@ Aliases:
 Returns a primitive schema representing the underlying items' dtype.
 
 If `ds` has a primitive schema, this returns that primitive schema, even if
-all items in `ds` are missing. If `ds` has an OBJECT/ANY schema but contains
+all items in `ds` are missing. If `ds` has an OBJECT schema but contains
 primitive values of a single dtype, it returns the schema for that primitive
 dtype.
 
@@ -4334,7 +4312,6 @@ Examples:
   kd.get_primitive_schema(kd.slice([1, 2, 3])) -> kd.INT32
   kd.get_primitive_schema(kd.slice([None, None, None], kd.INT32)) -> kd.INT32
   kd.get_primitive_schema(kd.slice([1, 2, 3], kd.OBJECT)) -> kd.INT32
-  kd.get_primitive_schema(kd.slice([1, 2, 3], kd.ANY)) -> kd.INT32
   kd.get_primitive_schema(kd.slice([1, 'a', 3], kd.OBJECT)) -> missing schema
   kd.get_primitive_schema(kd.obj())) -> missing schema
 
@@ -4557,7 +4534,7 @@ Returns a NoFollow schema of the provided schema.
 `nofollow_schema` is reversible with `get_actual_schema`.
 
 `nofollow_schema` can only be called on implicit and explicit schemas and
-OBJECT. It raises an Error if called on ANY, primitive schemas, ITEMID, etc.
+OBJECT. It raises an Error if called on primitive schemas, ITEMID, etc.
 
 Args:
   schema: Schema DataSlice to wrap.
@@ -4594,10 +4571,6 @@ Creates a Koda entity schema corresponding to the given Python type.
     the same input. For dataclasses, we use the module name and the class name
     to derive the itemid for the uu-schema.
 ```
-
-### `kd.schema.to_any(x)` {#kd.schema.to_any}
-
-Alias for [kd.schema.as_any](#kd.schema.as_any) operator.
 
 ### `kd.schema.to_bool(x)` {#kd.schema.to_bool}
 Aliases:
@@ -4754,7 +4727,7 @@ items and schema are compatible. When items are ItemIds and `schema` is a
 non-primitive schema, it does not check the underlying data matches the
 schema. For example,
 
-  kd.with_schema(kd.ds([1, 2, 3], schema=kd.ANY), kd.INT32) ->
+  kd.with_schema(kd.ds([1, 2, 3], schema=kd.OBJECT), kd.INT32) ->
       kd.ds([1, 2, 3])
   kd.with_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
 
@@ -7243,10 +7216,6 @@ Alias for [kd.py.apply_py_on_cond](#kd.py.apply_py_on_cond) operator.
 
 Alias for [kd.py.apply_py_on_selected](#kd.py.apply_py_on_selected) operator.
 
-### `kd.as_any(x)` {#kd.as_any}
-
-Alias for [kd.schema.as_any](#kd.schema.as_any) operator.
-
 ### `kd.at(x, indices)` {#kd.at}
 
 Alias for [kd.slices.at](#kd.slices.at) operator.
@@ -7389,7 +7358,7 @@ Returns a sorted list of unique attribute names of the given DataSlice.
 
   In case of OBJECT schema, attribute names are fetched from the `__schema__`
   attribute. In case of Entity schema, the attribute names are fetched from the
-  schema. In case of ANY (or primitives), an empty list is returned.
+  schema. In case of primitives, an empty list is returned.
 
   Args:
     x: A DataSlice.
@@ -7657,7 +7626,7 @@ Returns a sorted list of unique attribute names of the given DataSlice.
 
   In case of OBJECT schema, attribute names are fetched from the `__schema__`
   attribute. In case of Entity schema, the attribute names are fetched from the
-  schema. In case of ANY (or primitives), an empty list is returned.
+  schema. In case of primitives, an empty list is returned.
 
   Args:
     x: A DataSlice.
@@ -8272,7 +8241,8 @@ Returns a copy of `x` with the provided `schema`.
   non-primitive schema, it does not check the underlying data matches the
   schema. For example,
 
-    kd.set_schema(kd.ds([1, 2, 3], schema=kd.ANY), kd.INT32) -> kd.ds([1, 2, 3])
+    kd.set_schema(kd.ds([1, 2, 3], schema=kd.OBJECT), kd.INT32)
+      -> kd.ds([1, 2, 3])
     kd.set_schema(kd.ds([1, 2, 3]), kd.INT64) -> fail
     kd.set_schema(kd.ds(1).with_bag(kd.bag()), kd.schema.new_schema(x=kd.INT32))
     ->
@@ -8331,10 +8301,6 @@ Alias for [kd.slices.at](#kd.slices.at) operator.
 ### `kd.tile(x, shape)` {#kd.tile}
 
 Alias for [kd.slices.tile](#kd.slices.tile) operator.
-
-### `kd.to_any(x)` {#kd.to_any}
-
-Alias for [kd.schema.as_any](#kd.schema.as_any) operator.
 
 ### `kd.to_bool(x)` {#kd.to_bool}
 
@@ -8762,7 +8728,7 @@ Creates a pandas DataFrame from the given DataSlice.
   columns corresponding to each dimension.
 
   When `cols` is not specified, DataFrame columns are inferred from `ds`.
-    1) If `ds` has primitives, lists, dicts or ITEMID/ANY schema, a single
+    1) If `ds` has primitives, lists, dicts or ITEMID schema, a single
        column named 'self_' is used and items themselves are extracted.
     2) If `ds` has entity schema, all attributes from `ds` are extracted as
        columns.
@@ -8824,7 +8790,7 @@ Creates a pandas DataFrame from the given DataSlice.
       be extracted.
     include_self: whether to include the 'self_' column. 'self_' column is
       always included if `cols` is None and `ds` contains primitives/lists/dicts
-      or it has ITEMID/ANY schema.
+      or it has ITEMID schema.
 
   Returns:
     DataFrame with columns from DataSlice fields.
@@ -8888,15 +8854,6 @@ Aliases:
 
 ``` {.no-copy}
 Append a value to each list in this DataSlice
-```
-
-### `DataSlice.as_any()` {#DataSlice.as_any}
-Aliases:
-
-- [DataItem.as_any](#DataItem.as_any)
-
-``` {.no-copy}
-Returns a DataSlice with ANY schema.
 ```
 
 ### `DataSlice.clear()` {#DataSlice.clear}
@@ -9307,7 +9264,7 @@ Returns a sorted list of unique attribute names of this DataSlice.
 
 In case of OBJECT schema, attribute names are fetched from the `__schema__`
 attribute. In case of Entity schema, the attribute names are fetched from the
-schema. In case of ANY (or primitives), an empty list is returned.
+schema. In case of primitives, an empty list is returned.
 
 Args:
   intersection: If True, the intersection of all object attributes is returned.
@@ -9335,7 +9292,7 @@ Aliases:
 Returns a primitive schema representing the underlying items' dtype.
 
 If `ds` has a primitive schema, this returns that primitive schema, even if
-all items in `ds` are missing. If `ds` has an OBJECT/ANY schema but contains
+all items in `ds` are missing. If `ds` has an OBJECT schema but contains
 primitive values of a single dtype, it returns the schema for that primitive
 dtype.
 
@@ -9346,7 +9303,6 @@ Examples:
   kd.get_primitive_schema(kd.slice([1, 2, 3])) -> kd.INT32
   kd.get_primitive_schema(kd.slice([None, None, None], kd.INT32)) -> kd.INT32
   kd.get_primitive_schema(kd.slice([1, 2, 3], kd.OBJECT)) -> kd.INT32
-  kd.get_primitive_schema(kd.slice([1, 2, 3], kd.ANY)) -> kd.INT32
   kd.get_primitive_schema(kd.slice([1, 'a', 3], kd.OBJECT)) -> missing schema
   kd.get_primitive_schema(kd.obj())) -> missing schema
 
@@ -9568,15 +9524,6 @@ If the values in this DataSlice represent objects, then the returned python
 structure will contain DataItems.
 ```
 
-### `DataSlice.internal_is_any_schema()` {#DataSlice.internal_is_any_schema}
-Aliases:
-
-- [DataItem.internal_is_any_schema](#DataItem.internal_is_any_schema)
-
-``` {.no-copy}
-Returns present iff this DataSlice is ANY Schema.
-```
-
 ### `DataSlice.internal_is_itemid_schema()` {#DataSlice.internal_is_itemid_schema}
 Aliases:
 
@@ -9673,7 +9620,7 @@ Returns whether x is a primitive DataSlice.
 
 `x` is a primitive DataSlice if it meets one of the following conditions:
   1) it has a primitive schema
-  2) it has OBJECT/ANY/SCHEMA schema and only has primitives
+  2) it has OBJECT/SCHEMA schema and only has primitives
 
 Also see `kd.has_primitive` for a pointwise version. But note that
 `kd.all(kd.has_primitive(x))` is not always equivalent to
@@ -10658,8 +10605,6 @@ Args:
   arg: optional Python object to be converted to an Entity.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-    schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -10681,8 +10626,6 @@ Args:
     DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-    schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -10707,8 +10650,6 @@ Args:
   shape: JaggedShape that the returned DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-    Pass schema=kd.ANY to avoid creating a schema and get a slice with kd.ANY
-    schema instead.
   update_schema: if schema attribute is missing and the attribute is being set
     through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
@@ -10890,10 +10831,6 @@ Slicing helper for DataSlice.
 ### `DataItem.append(value, /)` {#DataItem.append}
 
 Alias for [DataSlice.append](#DataSlice.append) operator.
-
-### `DataItem.as_any()` {#DataItem.as_any}
-
-Alias for [DataSlice.as_any](#DataSlice.as_any) operator.
 
 ### `DataItem.bind(self, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs)` {#DataItem.bind}
 
@@ -11102,10 +11039,6 @@ Alias for [DataSlice.internal_as_dense_array](#DataSlice.internal_as_dense_array
 ### `DataItem.internal_as_py()` {#DataItem.internal_as_py}
 
 Alias for [DataSlice.internal_as_py](#DataSlice.internal_as_py) operator.
-
-### `DataItem.internal_is_any_schema()` {#DataItem.internal_is_any_schema}
-
-Alias for [DataSlice.internal_is_any_schema](#DataSlice.internal_is_any_schema) operator.
 
 ### `DataItem.internal_is_itemid_schema()` {#DataItem.internal_is_itemid_schema}
 
