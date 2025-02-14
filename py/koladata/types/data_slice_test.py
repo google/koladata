@@ -1220,26 +1220,28 @@ class DataSliceTest(parameterized.TestCase):
     db2 = bag()
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape("""the schema for attribute 'x' is incompatible.
+        re.escape(
+            """the schema for attribute 'x' is incompatible.
 
 Expected schema for 'x': SCHEMA(c=INT32)
 Assigned schema for 'x': SCHEMA(b=STRING)
 
-To fix this, explicitly override schema of 'x' in the original schema. For example,
-schema.x = <desired_schema>"""),
+To fix this, explicitly override schema of 'x' in the original schema by passing update_schema=True."""
+        ),
     ):
       db.new(x=db.new(c=1)).x = db2.new(b='a')
 
     o = db.new(x='a').embed_schema()
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape("""the schema for attribute 'x' is incompatible.
+        re.escape(
+            """the schema for attribute 'x' is incompatible.
 
 Expected schema for 'x': STRING
 Assigned schema for 'x': INT32
 
-To fix this, explicitly override schema of 'x' in the Object schema. For example,
-foo.get_obj_schema().x = <desired_schema>"""),
+To fix this, explicitly override schema of 'x' in the Object schema by passing update_schema=True."""
+        ),
     ):
       o.x = 1
 
@@ -1248,13 +1250,14 @@ foo.get_obj_schema().x = <desired_schema>"""),
     o = ds([o1, o2])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape("""the schema for attribute 'x' is incompatible.
+        re.escape(
+            """the schema for attribute 'x' is incompatible.
 
 Expected schema for 'x': FLOAT32
 Assigned schema for 'x': INT32
 
-To fix this, explicitly override schema of 'x' in the Object schema. For example,
-foo.get_obj_schema().x = <desired_schema>"""),
+To fix this, explicitly override schema of 'x' in the Object schema by passing update_schema=True."""
+        ),
     ):
       o.x = 1
 

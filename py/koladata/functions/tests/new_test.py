@@ -305,8 +305,7 @@ The cause is: the schema for attribute 'a' is incompatible.
 Expected schema for 'a': INT32
 Assigned schema for 'a': STRING
 
-To fix this, explicitly override schema of 'a' in the original schema. For example,
-schema.a = <desired_schema>"""
+To fix this, explicitly override schema of 'a' in the original schema by passing update_schema=True."""
         ),
     ):
       fns.new(a='xyz', schema=schema)
@@ -322,8 +321,7 @@ The cause is: the schema for attribute 'b' is incompatible.
 Expected schema for 'b': SCHEMA\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
 Assigned schema for 'b': SCHEMA\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
 
-To fix this, explicitly override schema of 'b' in the original schema. For example,
-schema.b = <desired_schema>""",
+To fix this, explicitly override schema of 'b' in the original schema by passing update_schema=True.""",
     ):
       fns.new(b=db.new(a=123), schema=nested_schema)
 

@@ -157,8 +157,12 @@ class CoreAttrsTest(absltest.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            "Expected schema for 'x': SCHEMA(y=INT32)\nAssigned schema for 'x':"
-            ' SCHEMA(z=INT32)'
+            """kd.core.attrs: the schema for attribute 'x' is incompatible.
+
+Expected schema for 'x': SCHEMA(y=INT32)
+Assigned schema for 'x': SCHEMA(z=INT32)
+
+To fix this, explicitly override schema of 'x' in the original schema by passing update_schema=True."""
         ),
     ):
       _ = kde.core.attrs(o, x=bag().new(z=3)).eval()

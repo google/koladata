@@ -38,13 +38,14 @@ class SetAttrsTest(absltest.TestCase):
     x = fns.new(a=1, b='a').fork_bag()
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for attribute 'b' is incompatible.
+        re.escape(
+            r"""the schema for attribute 'b' is incompatible.
 
 Expected schema for 'b': STRING
 Assigned schema for 'b': BYTES
 
-To fix this, explicitly override schema of 'b' in the original schema. For example,
-schema.b = <desired_schema>"""),
+To fix this, explicitly override schema of 'b' in the original schema by passing update_schema=True."""
+        ),
     ):
       fns.set_attrs(x, a=2, b=b'abc')
 
@@ -74,13 +75,14 @@ schema.b = <desired_schema>"""),
     x.set_attr('__schema__', x_schema)
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for attribute 'b' is incompatible.
+        re.escape(
+            r"""the schema for attribute 'b' is incompatible.
 
 Expected schema for 'b': STRING
 Assigned schema for 'b': BYTES
 
-To fix this, explicitly override schema of 'b' in the Object schema. For example,
-foo.get_obj_schema().b = <desired_schema>"""),
+To fix this, explicitly override schema of 'b' in the Object schema by passing update_schema=True."""
+        ),
     ):
       fns.set_attrs(x, a=2, b=b'abc')
 

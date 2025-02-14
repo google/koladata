@@ -2432,9 +2432,9 @@ TEST(DataSliceTest, SetAttr_ObjectWithExplicitSchema_Incompatible) {
   std::optional<internal::Error> error = internal::GetErrorPayload(status);
   ASSERT_TRUE(error.has_value());
   EXPECT_TRUE(error->has_incompatible_schema());
-  EXPECT_THAT(
-      error->error_message(),
-      HasSubstr("explicitly override schema of 'a' in the Object schema."));
+  EXPECT_THAT(error->error_message(),
+              HasSubstr("explicitly override schema of 'a' in the Object "
+                        "schema by passing update_schema=True."));
 }
 
 TEST(DataSliceTest, SetAttrWithUpdateSchema_EntityCreator) {
