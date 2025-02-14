@@ -190,7 +190,11 @@ TEST(DataItemTest, DebugString) {
   EXPECT_EQ(DataItem(static_cast<double>(3.14)).DebugString(), "3.14");
   EXPECT_EQ(DataItem(arolla::Text("abc")).DebugString(), "'abc'");
   EXPECT_EQ(DataItem(arolla::Text("a'b\"c with \" quotes")).DebugString(),
-            "'a'b\"c with \" quotes'");
+            "'a\\'b\"c with \" quotes'");
+  EXPECT_EQ(DataItem(arolla::Text("\01\02\b")).DebugString(),
+            "'\\x01\\x02\\x08'");
+  EXPECT_EQ(DataItem(arolla::Text("\n\t?\\")).DebugString(),
+            "'\\n\\t?\\\\'");
   EXPECT_EQ(DataItem(arolla::Bytes("abc")).DebugString(), "b'abc'");
   EXPECT_EQ(DataItem(arolla::Bytes("\010\011\012\013\014\015")).DebugString(),
             "b'\\x08\\t\\n\\x0b\\x0c\\r'");
@@ -248,7 +252,11 @@ TEST(DataItemTest, AbslStringify) {
   EXPECT_EQ(absl::StrCat(DataItem(static_cast<double>(3.14))), "3.14");
   EXPECT_EQ(absl::StrCat(DataItem(arolla::Text("abc"))), "'abc'");
   EXPECT_EQ(absl::StrCat(DataItem(arolla::Text("a'b\"c with \" quotes"))),
-            "'a'b\"c with \" quotes'");
+            "'a\\'b\"c with \" quotes'");
+  EXPECT_EQ(absl::StrCat(DataItem(arolla::Text("\01\02\b"))),
+            "'\\x01\\x02\\x08'");
+  EXPECT_EQ(absl::StrCat(DataItem(arolla::Text("\n\t?\\"))),
+            "'\\n\\t?\\\\'");
   EXPECT_EQ(absl::StrCat(DataItem(arolla::Bytes("abc"))), "b'abc'");
   EXPECT_EQ(absl::StrCat(DataItem(arolla::Bytes("\010\011\012\013\014\015"))),
             "b'\\x08\\t\\n\\x0b\\x0c\\r'");
@@ -634,8 +642,8 @@ TEST(DataItemTest, ArollaFingerprint) {
 TEST(DataItemTest, TestRepr) {
   EXPECT_EQ(DataItemRepr(DataItem(0)), "0");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("a"))), "'a'");
-  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("a")), {.strip_quotes = true}),
-            "a");
+  EXPECT_EQ(DataItemRepr(
+      DataItem(arolla::Text("a\n'\"")), {.strip_quotes = true}), "a\n'\"");
   EXPECT_THAT(DataItemRepr(DataItem(AllocateSingleObject())),
               MatchesRegex(R"regex(\$[0-9a-zA-Z]{22})regex"));
   EXPECT_THAT(DataItemRepr(DataItem(CreateUuidObject(

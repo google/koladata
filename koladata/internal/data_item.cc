@@ -27,6 +27,7 @@
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
 #include "unicode/utf8.h"
 #include "koladata/internal/expr_quote_utils.h"
@@ -141,9 +142,21 @@ std::string DataItemRepr(const DataItem& item,
         } else if constexpr (std::is_same_v<T, arolla::Text>) {
           std::string truncated = Truncate(absl::string_view(val),
                                            option.unbounded_type_max_len);
-          // TODO: Escape text with Utf8SafeCHexEscape.
-          return option.strip_quotes
-              ? truncated :absl::StrCat("'", truncated, "'");
+
+          // When we strip quotes, we do not escape to preserve all the of the
+          // original content of the string.
+          if (option.strip_quotes) {
+            return truncated;
+          }
+
+          // When we keep quotes, generally escape, but unescape double quotes
+          // since they are valid in a single quoted string. Although unescaping
+          // the double quotes is not necessary, it improves readability.
+          return absl::StrCat(
+              "'",
+              absl::StrReplaceAll(
+                  absl::Utf8SafeCHexEscape(truncated), {{"\\\"", "\""}}),
+              "'");
         } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
           std::string truncated = Truncate(
               absl::string_view(val), option.unbounded_type_max_len);

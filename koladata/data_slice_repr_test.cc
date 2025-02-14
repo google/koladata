@@ -1432,7 +1432,7 @@ TEST(DataSliceReprTest, FormatHtml_Dict) {
   ObjectId dict_id = internal::AllocateSingleDict();
 
   DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
-  DataSlice keys = test::DataSlice<arolla::Text>({"<>&\""});
+  DataSlice keys = test::DataSlice<arolla::Text>({"\n\t<>&\""});
   DataSlice values = test::DataSlice<int>({1});
   ASSERT_OK(data_slice.SetInDict(keys, values));
 
@@ -1440,7 +1440,7 @@ TEST(DataSliceReprTest, FormatHtml_Dict) {
     std::string result, DataSliceToStr(data_slice, {.format_html = true}));
   EXPECT_EQ(result,
             "Dict{"
-            "<span dict-key-index=\"0\">'&lt;&gt;&amp;&quot;'</span>="
+            "<span dict-key-index=\"0\">'\\n\\t&lt;&gt;&amp;&quot;'</span>="
             "<span dict-value-index=\"0\">1</span>}");
 }
 

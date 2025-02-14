@@ -181,6 +181,11 @@ def _format_data_item(
       format_html=True,
       depth=2,
       unbounded_type_max_len=unbounded_type_max_len)
+
+  # Unescape whitespace for easier viewing in the detail pane.
+  if dtype == kd.STRING:
+    detail_pane_str = detail_pane_str.replace('\\n', '\n').replace('\\t', '\t')
+
   result = f'<div class="detail-pane">{detail_pane_str}</div>'
 
   # Wrap with any necessary additional accesses.
