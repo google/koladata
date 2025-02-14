@@ -443,17 +443,6 @@ def _take(self, indices: Any) -> DataSlice:
   return _eval_op('kd.take', self, indices)
 
 
-# TODO: Remove this method once the migration is complete.
-@add_method(DataSlice, 'freeze')
-def _freeze(self) -> DataSlice:
-  """Deprecated. Use freeze_bag() instead."""
-  warnings.warn(
-      'ds.freeze() is deprecated. Use ds.freeze_bag() instead.',
-      RuntimeWarning,
-  )
-  return self.freeze_bag()
-
-
 @add_method(DataSlice, 'implode', docstring_from='kd.implode')
 def _implode(
     self,
