@@ -23,6 +23,31 @@ package(default_visibility = [
 
 licenses(["notice"])
 
+py_library(
+    name = "expr_container",
+    srcs = ["expr_container.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//py/koladata/expr:tracing_mode",
+        "//py/koladata/functions",
+        "//py/koladata/functor:tracing_decorator",
+        "//py/koladata/operators:kde_operators",
+    ],
+)
+
+py_test(
+    name = "expr_container_test",
+    srcs = ["expr_container_test.py"],
+    deps = [
+        ":expr_container",
+        "//py/koladata:kd",
+        "//py/koladata/expr:introspection",
+        "//py/koladata/expr:tracing_mode",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 cc_library(
     name = "py_functors_cc_lib",
     srcs = ["py_functors.cc"],

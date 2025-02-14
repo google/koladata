@@ -20,13 +20,13 @@ import typing as _typing
 
 from arolla import arolla as _arolla
 from koladata.exceptions import exceptions as _exceptions
-from koladata.expr import expr_container as _expr_container
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.functions import functions as _functions
+from koladata.functor import expr_container as _expr_container
 from koladata.functor import functions as _functor_functions
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators as _kde_operators

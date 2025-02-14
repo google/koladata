@@ -15,9 +15,9 @@
 from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
-from koladata.expr import expr_container
 from koladata.expr import introspection
 from koladata.expr import tracing_mode
+from koladata.functor import expr_container
 
 kde = kd.lazy
 I = kd.I
@@ -83,7 +83,7 @@ class ExprContainerTest(absltest.TestCase):
       c.updated = c.original + 2
       return c.updated
 
-    fn = kdf.trace_py_fn(f)
+    fn = kdf.fn(f)
     self.assertEqual(fn(5), 7)
     arolla.testing.assert_expr_equal_by_fingerprint(
         introspection.unpack_expr(fn.get_attr('updated')), V.original + 2
@@ -99,8 +99,37 @@ class ExprContainerTest(absltest.TestCase):
       c.updated = c.original + 2
       return c.updated
 
-    fn = kdf.trace_py_fn(f)
+    fn = kdf.fn(f)
     self.assertEqual(fn.with_attrs(returns=fn.original)(x=5), 5)
+
+  def test_lambda_tracing(self):
+    def f(x):
+      c = expr_container.NamedContainer()
+      c.original = x
+      c.update = lambda x: x + 2
+      return c.update(c.original + 1)
+
+    fn = kdf.fn(f)
+    self.assertEqual(fn(5), 8)
+    self.assertEqual(fn.update(5), 7)
+
+  def test_renamed_lambda_tracing(self):
+    def f(x):
+      c = expr_container.NamedContainer()
+      c.original = x
+      c.update = lambda x: x + 2
+      c.update_renamed = c.update
+      return c.update_renamed(c.original + 1)
+
+    fn = kdf.fn(f)
+    self.assertEqual(fn(5), 8)
+    self.assertEqual(fn.update_renamed(5), 7)
+
+  def test_lambda_no_tracing(self):
+    c = expr_container.NamedContainer()
+    c.x = 5
+    c.update = lambda x: x + 2
+    self.assertEqual(c.update(c.x), 7)
 
   def test_delete_attr(self):
     c = expr_container.NamedContainer()

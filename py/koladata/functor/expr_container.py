@@ -14,9 +14,11 @@
 
 """Containers for Exprs."""
 
+import types as py_types
 from typing import Any, Iterator
 from koladata.expr import tracing_mode
 from koladata.functions import functions
+from koladata.functor import tracing_decorator
 from koladata.operators import kde_operators
 
 kde = kde_operators.kde
@@ -35,6 +37,18 @@ class NamedContainer:
     c.x_plus_y  # Returns (I.x + I.y).with_name('x_plus_y')
     c.foo = 5
     c.foo  # Returns 5
+
+  Functions and lambdas are automatically traced in tracing mode.
+
+  For example:
+    def foo(x):
+      c = kd.ext.expr_container.NamedContainer()
+      c.x = x
+      c.update = lambda x: x + 1
+      return c.update(c.x)
+
+    fn = kd.fn(foo)
+    fn(x=5)  # Returns 6
   """
 
   def __init__(self):
@@ -62,6 +76,8 @@ class NamedContainer:
       )
     if functions.is_expr(value):
       value = value.with_name(key)
+    elif isinstance(value, py_types.FunctionType):
+      value = tracing_decorator.TraceAsFnDecorator(name=key)(value)
     elif tracing_mode.is_tracing_enabled():
       value = kde.with_name(value, key)
     self._container[key] = value  # pytype: disable=attribute-error
