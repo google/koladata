@@ -37,11 +37,15 @@ cc_library(
         "//koladata/internal:object_id",
         "//py/koladata/types:wrap_utils",
         "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
     ],
@@ -54,8 +58,10 @@ koladata_pybind_extension(
     deps = [
         ":to_py_object",
         "//koladata:data_slice",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//py/arolla/abc:pybind11_utils",
+        "@com_google_arolla//py/arolla/py_utils",
     ],
 )
 

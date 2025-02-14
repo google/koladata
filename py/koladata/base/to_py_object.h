@@ -21,6 +21,7 @@
 
 #include <functional>
 
+#include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -29,18 +30,18 @@
 namespace koladata::python {
 
 using ItemToPyConverter =
-    std::function<arolla::python::PyObjectPtr(const internal::DataItem& item)>;
-
+    std::function<absl::StatusOr<arolla::python::PyObjectPtr>(
+        const internal::DataItem& item)>;
 // Returns a new reference to a Python object, equivalent to the value stored in
-// a `internal::DataItem`.
-arolla::python::PyObjectPtr PyObjectFromDataItem(
+// a `internal::DataItem`. Ensures that the returned value is not nullptr.
+absl::StatusOr<arolla::python::PyObjectPtr> PyObjectFromDataItem(
     const internal::DataItem& item, const internal::DataItem& schema,
     const DataBagPtr& db);
 
 // Converts a DataSlice `ds` to an equivalent Python value. In case of presence
 // of multiple dimensions, a nested list of items is returned. Returns a new
-// reference to a Python object.
-arolla::python::PyObjectPtr PyObjectFromDataSlice(
+// reference to a Python object. Ensures that the returned value is not nullptr.
+absl::StatusOr<arolla::python::PyObjectPtr> PyObjectFromDataSlice(
     const DataSlice& ds, const ItemToPyConverter& optional_converter = nullptr);
 
 }  // namespace koladata::python

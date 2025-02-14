@@ -169,7 +169,12 @@ absl::Nullable<PyObject*> PyDataSlice_internal_as_py(PyObject* self,
                                                      PyObject*) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
-  return PyObjectFromDataSlice(ds).release();
+  absl::StatusOr<arolla::python::PyObjectPtr> res = PyObjectFromDataSlice(ds);
+  if (!res.ok()) {
+    arolla::python::SetPyErrFromStatus(res.status());
+    return nullptr;
+  }
+  return res->release();
 }
 
 absl::Nullable<PyObject*> PyDataSlice_internal_as_arolla_value(PyObject* self,

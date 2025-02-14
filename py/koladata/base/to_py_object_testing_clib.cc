@@ -16,6 +16,7 @@
 
 #include "koladata/data_slice.h"
 #include "py/arolla/abc/pybind11_utils.h"
+#include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/to_py_object.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
@@ -27,16 +28,21 @@ namespace {
 namespace py = pybind11;
 
 PYBIND11_MODULE(to_py_object_testing_clib, m) {
-  m.def("py_object_from_data_item", [](const arolla::TypedValue& qvalue_item) {
-    const DataSlice& ds = qvalue_item.UnsafeAs<DataSlice>();
-    return py::reinterpret_steal<py::object>(
-        PyObjectFromDataItem(ds.item(), ds.GetSchema().item(), ds.GetBag())
-            .release());
-  });
+  m.def("py_object_from_data_item",
+        [](const arolla::TypedValue& qvalue_item) -> py::object {
+          const DataSlice& ds = qvalue_item.UnsafeAs<DataSlice>();
+          return py::reinterpret_steal<py::object>(
+              arolla::python::pybind11_unstatus_or(
+                  PyObjectFromDataItem(ds.item(), ds.GetSchema().item(),
+                                       ds.GetBag()))
+                  .release());
+        });
 
   m.def("py_object_from_data_slice", [](const arolla::TypedValue& qvalue_item) {
     return py::reinterpret_steal<py::object>(
-        PyObjectFromDataSlice(qvalue_item.UnsafeAs<DataSlice>()).release());
+        arolla::python::pybind11_unstatus_or(
+            PyObjectFromDataSlice(qvalue_item.UnsafeAs<DataSlice>()))
+            .release());
   });
 }
 

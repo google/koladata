@@ -21,6 +21,8 @@
 #include <utility>
 
 #include "absl/log/check.h"
+#include "absl/status/status.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -38,6 +40,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {
@@ -107,25 +110,34 @@ ItemToPyConverter GetDataItemConverter(const DataSlice& ds) {
 
 // Returns a new reference to a Python object, equivalent to the value stored in
 // a `internal::DataItem`.
-PyObjectPtr PyObjectFromDataItem(const internal::DataItem& item,
-                                 const internal::DataItem& schema,
-                                 const DataBagPtr& db) {
-  return PyObjectPtr::Own(item.VisitValue([&](const auto& value) {
+absl::StatusOr<PyObjectPtr> PyObjectFromDataItem(
+    const internal::DataItem& item, const internal::DataItem& schema,
+    const DataBagPtr& db) {
+  return item.VisitValue([&](const auto& value) -> absl::StatusOr<PyObjectPtr> {
     using T = std::decay_t<decltype(value)>;
+    PyObjectPtr res;
     if constexpr (std::is_same_v<T, internal::ObjectId>) {
-      auto ds_or = DataSlice::Create(internal::DataItem(value), schema, db);
+      ASSIGN_OR_RETURN(
+          DataSlice ds,
+          DataSlice::Create(internal::DataItem(value), schema, db));
       // NOTE: `schema` is already consistent with `value` as otherwise
       // DataSlice would not even be created.
-      DCHECK_OK(ds_or);
-      return WrapPyDataSlice(*std::move(ds_or));
+      res = PyObjectPtr::Own(WrapPyDataSlice(std::move(ds)));
     } else {
-      return PyObjectFromValue(value);
+      res = PyObjectPtr::Own(PyObjectFromValue(value));
     }
-  }));
+    if (res == nullptr) {
+      return arolla::python::StatusWithRawPyErr(
+          absl::StatusCode::kInternal,
+          absl::StrFormat("could not create a Python object from DataItem: %v",
+                          item));
+    }
+    return res;
+  });
 }
 
-PyObjectPtr PyObjectFromDataSlice(const DataSlice& ds,
-                                  const ItemToPyConverter& optional_converter) {
+absl::StatusOr<PyObjectPtr> PyObjectFromDataSlice(
+    const DataSlice& ds, const ItemToPyConverter& optional_converter) {
   arolla::python::DCheckPyGIL();
 
   const ItemToPyConverter item_to_py_converter = optional_converter == nullptr
@@ -139,14 +151,13 @@ PyObjectPtr PyObjectFromDataSlice(const DataSlice& ds,
   // Starting from a flat list of PyObject* equivalent to DataItems.
   PyObjectPtr py_list = PyObjectPtr::Own(PyList_New(/*len=*/ds.size()));
   if (py_list == nullptr) {
-    return py_list;
+    return arolla::python::StatusWithRawPyErr(
+        absl::StatusCode::kInternal,
+        absl::StrFormat("could not create a list of size %d", ds.size()));
   }
   const auto& ds_impl = ds.slice();
   for (int64_t i = 0; i < ds.size(); ++i) {
-    PyObjectPtr val = item_to_py_converter(ds_impl[i]);
-    if (val == nullptr) {
-      return val;
-    }
+    ASSIGN_OR_RETURN(PyObjectPtr val, item_to_py_converter(ds_impl[i]));
     PyList_SET_ITEM(py_list.get(), i, val.release());
   }
   // Nesting the flat list by iterating through JaggedShape in reverse. The last
@@ -158,17 +169,26 @@ PyObjectPtr PyObjectFromDataSlice(const DataSlice& ds,
     PyObjectPtr new_list =
         PyObjectPtr::Own(PyList_New(/*len=*/edge.parent_size()));
     if (new_list == nullptr) {
-      return new_list;
+      return arolla::python::StatusWithRawPyErr(
+          absl::StatusCode::kInternal,
+          absl::StrFormat("could not create a list of size %d",
+                          edge.parent_size()));
     }
     int64_t offset = 0;
-    bool error_happened = false;
+    absl::Status status;
     edge.edge_values()
         .Slice(1, edge.parent_size())
         .ForEach([&](int64_t id, bool present, int64_t pt) {
+          if (!status.ok()) {
+            return;
+          }
           DCHECK(present);
           PyObject* sub_list = PyList_New(/*len=*/pt - offset);
           if (sub_list == nullptr) {
-            error_happened = true;
+            status = arolla::python::StatusWithRawPyErr(
+                absl::StatusCode::kInternal,
+                absl::StrFormat("could not create a list of size %d",
+                                pt - offset));
             return;
           }
           for (int64_t i = 0; i < pt - offset; ++i) {
@@ -179,8 +199,8 @@ PyObjectPtr PyObjectFromDataSlice(const DataSlice& ds,
           PyList_SET_ITEM(new_list.get(), id, sub_list);
           offset = pt;
         });
-    if (error_happened) {
-      return PyObjectPtr();
+    if (!status.ok()) {
+      return status;
     }
     py_list = std::move(new_list);
   }

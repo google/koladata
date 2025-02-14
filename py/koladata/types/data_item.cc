@@ -93,10 +93,9 @@ absl::Nullable<PyObject*> PyDataItem_int(PyObject* self) {
         "int() argument cannot be a DataItem that holds an ItemId, got %s",
         arolla::Repr(ds).c_str());
   }
-  const arolla::python::PyObjectPtr py_obj = PyObjectFromDataSlice(ds);
-  if (py_obj == nullptr) {
-    return nullptr;
-  }
+  ASSIGN_OR_RETURN(arolla::python::PyObjectPtr py_obj,
+                   PyObjectFromDataSlice(ds),
+                   arolla::python::SetPyErrFromStatus(_));
   return PyNumber_Long(py_obj.get());
 }
 
@@ -110,10 +109,9 @@ absl::Nullable<PyObject*> PyDataItem_float(PyObject* self) {
         "float() argument cannot be a DataItem that holds an ItemId, got %s",
         arolla::Repr(ds).c_str());
   }
-  const arolla::python::PyObjectPtr py_obj = PyObjectFromDataSlice(ds);
-  if (py_obj == nullptr) {
-    return nullptr;
-  }
+  ASSIGN_OR_RETURN(arolla::python::PyObjectPtr py_obj,
+                   PyObjectFromDataSlice(ds),
+                   arolla::python::SetPyErrFromStatus(_));
   return PyNumber_Float(py_obj.get());
 }
 
