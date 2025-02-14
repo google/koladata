@@ -14,9 +14,9 @@
 
 """Initializes Koda operators."""
 
+from koladata.operators import cc_operators as _
 from koladata.operators import optools
 from koladata.operators import py as _
-from koladata.operators import servable_operators as _
 
 
 def get_namespaces() -> list[str]:

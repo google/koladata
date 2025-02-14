@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Initializes Koda operators for serving."""
+"""Initializes Koda operators that are available in C++."""
 
 from koladata.operators import allocation as _
 from koladata.operators import annotation as _

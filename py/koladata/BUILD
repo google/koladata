@@ -138,7 +138,7 @@ cc_test(
         "//koladata/internal:dtype",
         "//koladata/operators",
         "//koladata/s11n",
-        "//py/koladata/operators",
+        "//py/koladata/operators:cc_operators",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/dense_array",

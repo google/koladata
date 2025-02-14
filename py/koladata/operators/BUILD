@@ -30,6 +30,88 @@ package(default_visibility = default_visibility)
 
 licenses(["notice"])
 
+# Koda Expr operators available in C++.
+#
+# Depending on this target will make the operators available to call and evaluate, but will not give
+# Python-specific addons like custom repr. You need to also depend on their QExpr implementations in
+# //koladata/operators:operators.
+#
+# In Python use `import kde_operators` instead.
+arolla_cc_operator_package(
+    name = "cc_operators",
+    arolla_initializer = {
+        "deps": [
+            "arolla_operators/jagged_shape",
+            "arolla_operators/koda_internal",
+        ],
+    },
+    snapshot = ":operator_package.pb2",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//koladata/expr:init",
+        "@com_google_arolla//arolla/jagged_shape/expr",
+    ],
+)
+
+# All Koda Expr operators, including the Python-specific ones.
+# (You need to also depend on their QExpr implementations in //koladata/operators:operators.)
+py_library(
+    name = "kde_operators",
+    srcs = ["kde_operators.py"],
+    deps = [
+        ":cc_operators_lib",
+        ":optools",
+        ":py",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+arolla_operator_package_snapshot(
+    name = "operator_package.pb2",
+    imports = [
+        "koladata.operators.cc_operators",
+    ],
+    preimports = [
+        "arolla.jagged_shape.jagged_shape",
+        "koladata.types.data_slice",
+    ],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":cc_operators_lib",
+    ],
+)
+
+py_library(
+    name = "cc_operators_lib",
+    srcs = ["cc_operators.py"],
+    visibility = ["//visibility:private"],
+    deps = [
+        ":allocation",
+        ":annotation",
+        ":assertion",
+        ":bags",
+        ":comparison",
+        ":core",
+        ":dicts",
+        ":entities",
+        ":functor",
+        ":ids",
+        ":jagged_shape",
+        ":json",
+        ":koda_internal",
+        ":lists",
+        ":masking",
+        ":math",
+        ":objs",
+        ":random",
+        ":schema",
+        ":slices",
+        ":strings",
+        ":tuple",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 koladata_py_extension(
     name = "py_optools_py_ext",
     srcs = [
@@ -53,36 +135,6 @@ koladata_py_extension(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
-    ],
-)
-
-# The package allows to use operators defined in Python from C++.
-arolla_cc_operator_package(
-    name = "operators",
-    arolla_initializer = {
-        "deps": [
-            "arolla_operators/jagged_shape",
-            "arolla_operators/koda_internal",
-        ],
-    },
-    snapshot = ":operator_package.pb2",
-    deps = [
-        "//koladata/expr:init",
-        "@com_google_arolla//arolla/jagged_shape/expr",
-    ],
-)
-
-arolla_operator_package_snapshot(
-    name = "operator_package.pb2",
-    imports = [
-        "koladata.operators.servable_operators",
-    ],
-    preimports = [
-        "arolla.jagged_shape.jagged_shape",
-        "koladata.types.data_slice",
-    ],
-    deps = [
-        ":servable_operators",
     ],
 )
 
@@ -470,47 +522,6 @@ py_library(
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
-    ],
-)
-
-py_library(
-    name = "servable_operators",
-    srcs = ["servable_operators.py"],
-    deps = [
-        ":allocation",
-        ":annotation",
-        ":assertion",
-        ":bags",
-        ":comparison",
-        ":core",
-        ":dicts",
-        ":entities",
-        ":functor",
-        ":ids",
-        ":jagged_shape",
-        ":json",
-        ":koda_internal",
-        ":lists",
-        ":masking",
-        ":math",
-        ":objs",
-        ":random",
-        ":schema",
-        ":slices",
-        ":strings",
-        ":tuple",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_library(
-    name = "kde_operators",
-    srcs = ["kde_operators.py"],
-    deps = [
-        ":optools",
-        ":py",
-        ":servable_operators",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
