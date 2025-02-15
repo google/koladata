@@ -7970,6 +7970,18 @@ Container that automatically names Exprs.
     c.x_plus_y  # Returns (I.x + I.y).with_name('x_plus_y')
     c.foo = 5
     c.foo  # Returns 5
+
+  Functions and lambdas are automatically traced in tracing mode.
+
+  For example:
+    def foo(x):
+      c = kd.ext.expr_container.NamedContainer()
+      c.x = x
+      c.update = lambda x: x + 1
+      return c.update(c.x)
+
+    fn = kd.fn(foo)
+    fn(x=5)  # Returns 6
 ```
 
 ### `kd.named_schema(name, *, db=None, **attrs)` {#kd.named_schema}
