@@ -645,6 +645,8 @@ def _get_vis_module():
     # pylint: disable=g-import-not-at-top
     # pytype: disable=import-error
     from koladata.ext import vis
+    # pylint: enable=g-import-not-at-top
+    # pytype: enable=import-error
     return vis
   except ImportError:
     vis_path = 'koladata.ext.vis'
