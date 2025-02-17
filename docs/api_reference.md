@@ -9230,15 +9230,6 @@ Aliases:
 Returns a copy of the DataSlice with a forked mutable DataBag.
 ```
 
-### `DataSlice.freeze(self)` {#DataSlice.freeze}
-Aliases:
-
-- [DataItem.freeze](#DataItem.freeze)
-
-``` {.no-copy}
-Deprecated. Use freeze_bag() instead.
-```
-
 ### `DataSlice.freeze_bag()` {#DataSlice.freeze_bag}
 Aliases:
 
@@ -10955,10 +10946,6 @@ Alias for [DataSlice.follow](#DataSlice.follow) operator.
 ### `DataItem.fork_bag(self)` {#DataItem.fork_bag}
 
 Alias for [DataSlice.fork_bag](#DataSlice.fork_bag) operator.
-
-### `DataItem.freeze(self)` {#DataItem.freeze}
-
-Alias for [DataSlice.freeze](#DataSlice.freeze) operator.
 
 ### `DataItem.freeze_bag()` {#DataItem.freeze_bag}
 
