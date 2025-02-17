@@ -1782,9 +1782,9 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
           ds([1.5], schema_constants.OBJECT),
       ),
       # Test case for kd.present.
-      (ds(1), ds(arolla.present()), ds(1)),
+      (ds([1]), ds(arolla.present()), ds([1])),
       # Test case for kd.missing.
-      (ds(1), ds(arolla.missing()), ds(None, schema_constants.INT32)),
+      (ds([1]), ds(arolla.missing()), ds([], schema_constants.INT32)),
   )
   def test_select(self, x, filter_input, expected_output):
     testing.assert_equal(x.select(filter_input), expected_output)
@@ -1815,8 +1815,8 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
           ds([[1, 2, None, 4], [None, None], [7, 8, 9]]),
           ds([[1, 2, 4], [], [7, 8, 9]]),
       ),
-      (ds(1), ds(1)),
-      (ds(arolla.missing()), ds(None, schema_constants.MASK)),
+      (ds([1]), ds([1])),
+      (ds([arolla.missing()]), ds([], schema_constants.MASK)),
   )
   def test_select_present(self, x, expected_output):
     testing.assert_equal(x.select_present(), expected_output)

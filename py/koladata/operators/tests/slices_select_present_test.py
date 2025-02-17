@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -46,12 +49,21 @@ class SlicesSelectPresentTest(parameterized.TestCase):
       ),
       (ds([[[[None, 1]]]]), ds([[[[1]]]])),
       (ds([[[[1]]]]), ds([[[[1]]]])),
-      (1, ds(1)),
-      (ds(arolla.missing()), ds(arolla.missing())),
   )
   def test_eval(self, values, expected):
     result = expr_eval.eval(kde.slices.select_present(values))
     testing.assert_equal(result, expected)
+
+  def test_select_on_data_item_error(self):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'kd.slices.select: cannot select from DataItem because its size is'
+            ' always 1. Consider calling .flatten() beforehand'
+            ' to convert it to a 1-dimensional DataSlice'
+        ),
+    ):
+      expr_eval.eval(kde.slices.select_present(ds(1)))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

@@ -492,41 +492,6 @@ TEST(SelectTest, TypeMismatch) {
                        HasSubstr("must have all items of MASK dtype")));
 }
 
-TEST(SelectTest, DataItemObjectId_PresentFilter) {
-  auto item = DataItem(AllocateSingleObject());
-  auto obj_id = item.value<ObjectId>();
-  auto mask = DataItem(arolla::Unit());
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-  ASSERT_OK_AND_ASSIGN((auto [res, res_shape]),
-                       SelectOp()(item, shape, mask, shape));
-  EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
-  EXPECT_EQ(res.value<ObjectId>(), obj_id);
-  EXPECT_EQ(res_shape.size(), 1);
-  EXPECT_EQ(res_shape.rank(), 0);
-}
-
-TEST(SelectTest, DataItemObjectId_EmptyFilter_EmptyObject) {
-  auto item = DataItem();
-  auto mask = DataItem(arolla::Unit());
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-  ASSERT_OK_AND_ASSIGN((auto [res, res_shape]),
-                       SelectOp()(item, shape, mask, shape));
-  EXPECT_FALSE(res.has_value());
-  EXPECT_EQ(res_shape.size(), 1);
-  EXPECT_EQ(res_shape.rank(), 0);
-}
-
-TEST(SelectTest, DataItemObjectId_EmptyFilter_ObjectItem) {
-  auto item = DataItem(AllocateSingleObject());
-  auto mask = DataItem();
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-  ASSERT_OK_AND_ASSIGN((auto [res, res_shape]),
-                       SelectOp()(item, shape, mask, shape));
-  EXPECT_FALSE(res.has_value());
-  EXPECT_EQ(res_shape.size(), 1);
-  EXPECT_EQ(res_shape.rank(), 0);
-}
-
 TEST(SelectTest, DataSliceAndDataItemObjectId_NonEmptyFilter) {
   auto obj_id_1 = AllocateSingleObject();
   auto obj_id_2 = AllocateSingleObject();
@@ -621,37 +586,6 @@ TEST(SelectTest,
   EXPECT_EQ(res.size(), 1);
   EXPECT_EQ(res_shape.size(), 1);
   EXPECT_EQ(res_shape.rank(), 0);
-}
-
-TEST(SelectTest, DataItemTypeMismatch) {
-  auto item = DataItem(AllocateSingleObject());
-  auto filter = DataItem(AllocateSingleObject());
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-
-  EXPECT_THAT(SelectOp()(item, shape, filter, shape),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("must have all items of MASK dtype")));
-
-  auto ds = DataSliceImpl::Create(CreateDenseArray<int>({1, std::nullopt, 4}));
-  arolla::JaggedDenseArrayShape ds_shape =
-      JaggedDenseArrayShape::FlatFromSize(3);
-
-  EXPECT_THAT(SelectOp()(ds, ds_shape, filter, shape),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("must have all items of MASK dtype")));
-}
-
-TEST(SelectTest, InvalidCase) {
-  auto item = DataItem();
-  JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
-  auto filter = DataSliceImpl::Create(
-      CreateDenseArray<Unit>({kPresent, kPresent, kMissing}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(auto filter_shape,
-                       JaggedDenseArrayShape::FromEdges({std::move(edge1)}));
-
-  EXPECT_THAT(SelectOp()(item, shape, filter, filter_shape),
-              StatusIs(absl::StatusCode::kInternal, "invalid case"));
 }
 
 }  // namespace

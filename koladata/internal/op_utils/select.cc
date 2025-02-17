@@ -188,24 +188,4 @@ absl::StatusOr<SelectOp::Result<DataSliceImpl>> SelectOp::operator()(
   return SelectOp::Result<DataSliceImpl>({ds_impl, ds_shape});
 }
 
-absl::StatusOr<SelectOp::Result<DataItem>> SelectOp::operator()(
-    const DataItem& ds_impl, const JaggedDenseArrayShape& ds_shape,
-    const DataItem& filter, const JaggedDenseArrayShape& filter_shape) const {
-  if (!filter.has_value()) {
-    return SelectOp::Result<DataItem>(
-        {DataItem(), JaggedDenseArrayShape::Empty()});
-  }
-  if (!filter.holds_value<arolla::Unit>()) {
-    return OperatorEvalError(kSelectOpName, kNonMaskError);
-  }
-  return SelectOp::Result<DataItem>({ds_impl, ds_shape});
-}
-
-absl::StatusOr<SelectOp::Result<DataItem>> SelectOp::operator()(
-    const DataItem& ds_impl, const JaggedDenseArrayShape& ds_shape,
-    const DataSliceImpl& filter,
-    const JaggedDenseArrayShape& filter_shape) const {
-  return absl::InternalError("invalid case");
-}
-
 }  // namespace koladata::internal

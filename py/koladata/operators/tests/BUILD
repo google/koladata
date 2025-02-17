@@ -1831,6 +1831,7 @@ py_test(
     name = "slices_select_present_test",
     srcs = ["slices_select_present_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

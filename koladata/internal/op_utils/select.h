@@ -44,16 +44,6 @@ struct SelectOp {
       const DataSliceImpl& ds_impl,
       const arolla::JaggedDenseArrayShape& ds_shape, const DataItem& filter,
       const arolla::JaggedDenseArrayShape& filter_size) const;
-
-  absl::StatusOr<Result<DataItem>> operator()(
-      const DataItem& ds_impl, const arolla::JaggedDenseArrayShape& ds_shape,
-      const DataItem& filter,
-      const arolla::JaggedDenseArrayShape& filter_shape) const;
-
-  absl::StatusOr<Result<DataItem>> operator()(
-      const DataItem& ds_impl, const arolla::JaggedDenseArrayShape& ds_shape,
-      const DataSliceImpl& filter,
-      const arolla::JaggedDenseArrayShape& filter_shape) const;
 };
 
 }  // namespace koladata::internal

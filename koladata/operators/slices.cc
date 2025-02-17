@@ -896,8 +896,13 @@ absl::StatusOr<DataSlice> Reverse(const DataSlice& obj) {
 
 absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
                                  const bool expand_filter) {
+  if (ds.is_item()) {
+    return absl::InvalidArgumentError(
+        "cannot select from DataItem because its size is always 1. "
+        "Consider calling .flatten() beforehand to convert it "
+        "to a 1-dimensional DataSlice");
+  }
   const internal::DataItem& schema = filter.GetSchemaImpl();
-
   if (schema != schema::kAny && schema != schema::kObject &&
       schema != schema::kMask) {
     return absl::InvalidArgumentError(
@@ -910,17 +915,15 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
   ASSIGN_OR_RETURN(auto fltr, BroadcastToShape(filter, fltr_shape),
                    internal::KodaErrorFromCause(
                        "failed to broadcast `fltr` to `ds`", std::move(_)));
-  return ds.VisitImpl([&](const auto& ds_impl) {
-    return fltr.VisitImpl(
-        [&](const auto& filter_impl) -> absl::StatusOr<DataSlice> {
-          ASSIGN_OR_RETURN((auto [result_ds, result_shape]),
-                           internal::SelectOp()(ds_impl, ds.GetShape(),
-                                                filter_impl, fltr.GetShape()));
-          return DataSlice::Create(std::move(result_ds),
-                                   std::move(result_shape), ds.GetSchemaImpl(),
-                                   ds.GetBag());
-        });
-  });
+
+  return fltr.VisitImpl(
+      [&](const auto& filter_impl) -> absl::StatusOr<DataSlice> {
+        ASSIGN_OR_RETURN((auto [result_ds, result_shape]),
+                         internal::SelectOp()(ds.slice(), ds.GetShape(),
+                                              filter_impl, fltr.GetShape()));
+        return DataSlice::Create(std::move(result_ds), std::move(result_shape),
+                                 ds.GetSchemaImpl(), ds.GetBag());
+      });
 }
 
 absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,

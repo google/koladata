@@ -129,14 +129,6 @@ class SlicesSelectTest(parameterized.TestCase):
           lambda x: x >= 2,
           ds([2, 3]),
       ),
-      # Two scalar input, scalar output.
-      (ds(1), ds(arolla.present()), ds(1)),
-      (ds(1), ds(arolla.missing()), ds(None, schema_constants.INT32)),
-      (
-          ds(1),
-          functor_factories.expr_fn(I.self > 1),
-          ds(None, schema_constants.INT32),
-      ),
   )
   def test_eval(self, values, filter_arr, expected):
     result = expr_eval.eval(kde.slices.select(values, filter_arr))
@@ -197,8 +189,6 @@ class SlicesSelectTest(parameterized.TestCase):
           True,
           ds([[], [], []], schema_constants.INT32),
       ),
-      (ds(1), ds(arolla.present()), True, ds(1)),
-      (ds(1), ds(arolla.missing()), True, ds(None, schema_constants.INT32)),
       # disable expand filter
       (
           ds([[1], [2], [3]]),
@@ -245,8 +235,6 @@ class SlicesSelectTest(parameterized.TestCase):
           False,
           ds(None, schema_constants.INT32),
       ),
-      (ds(1), ds(arolla.present()), False, ds(1)),
-      (ds(1), ds(arolla.missing()), False, ds(None, schema_constants.INT32)),
   )
   def test_eval_with_expand_filter(
       self,
@@ -284,8 +272,8 @@ class SlicesSelectTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
-          ds(1, schema_constants.OBJECT),
-          ds(1, schema_constants.OBJECT),
+          ds([1], schema_constants.OBJECT),
+          ds([1], schema_constants.OBJECT),
           (
               '`fltr` DataSlice must have all items of MASK dtype or can be'
               ' evaluated to such items (i.e. Python function or Koda Functor)'
@@ -331,6 +319,17 @@ class SlicesSelectTest(parameterized.TestCase):
         re.escape(expected),
     ):
       expr_eval.eval(kde.slices.select(values, fltr))
+
+  def test_select_on_data_item_error(self):
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'kd.slices.select: cannot select from DataItem because its size is'
+            ' always 1. Consider calling .flatten() beforehand'
+            ' to convert it to a 1-dimensional DataSlice'
+        ),
+    ):
+      expr_eval.eval(kde.slices.select(ds(1), ds(arolla.present())))
 
   def test_select_expr_filter(self):
     kd_select = eager_op_utils.EagerOperator(kde.slices.select)

@@ -1249,6 +1249,8 @@ def _select(ds, fltr, expand_filter):  # pylint: disable=unused-argument
 def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
   """Creates a new DataSlice by filtering out missing items in fltr.
 
+  It is not supported for DataItems because their sizes are always 1.
+
   The dimensions of `fltr` needs to be compatible with the dimensions of `ds`.
   By default, `fltr` is expanded to 'ds' and items in `ds` corresponding
   missing items in `fltr` are removed. The last dimension of the resulting
@@ -1268,7 +1270,7 @@ def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
     kd.select(val, fltr, expand_filter=False) -> [[1, None, 4], [None]]
 
   Args:
-    ds: DataSlice to be filtered
+    ds: DataSlice with ndim > 0 to be filtered.
     fltr: filter DataSlice with dtype as kd.MASK.
     expand_filter: flag indicating if the 'filter' should be expanded to 'ds'
 
@@ -1308,7 +1310,20 @@ arolla.abc.register_adhoc_aux_binding_policy(
     ],
 )
 def select_present(ds):
-  """Creates a new DataSlice by removing missing items."""
+  """Creates a new DataSlice by removing missing items.
+
+  It is not supported for DataItems because their sizes are always 1.
+
+  Example:
+    val = kd.slice([[1, None, 4], [None], [2, 8]])
+    kd.select_present(val) -> [[1, 4], [], [2, 8]]
+
+  Args:
+    ds: DataSlice with ndim > 0 to be filtered.
+
+  Returns:
+    Filtered DataSlice.
+  """
   return select(ds=ds, fltr=masking.has(ds))
 
 
