@@ -5974,6 +5974,8 @@ Aliases:
 ``` {.no-copy}
 Creates a new DataSlice by filtering out missing items in fltr.
 
+It is not supported for DataItems because their sizes are always 1.
+
 The dimensions of `fltr` needs to be compatible with the dimensions of `ds`.
 By default, `fltr` is expanded to 'ds' and items in `ds` corresponding
 missing items in `fltr` are removed. The last dimension of the resulting
@@ -5993,7 +5995,7 @@ Example:
   kd.select(val, fltr, expand_filter=False) -> [[1, None, 4], [None]]
 
 Args:
-  ds: DataSlice to be filtered
+  ds: DataSlice with ndim > 0 to be filtered.
   fltr: filter DataSlice with dtype as kd.MASK.
   expand_filter: flag indicating if the 'filter' should be expanded to 'ds'
 
@@ -6008,6 +6010,18 @@ Aliases:
 
 ``` {.no-copy}
 Creates a new DataSlice by removing missing items.
+
+It is not supported for DataItems because their sizes are always 1.
+
+Example:
+  val = kd.slice([[1, None, 4], [None], [2, 8]])
+  kd.select_present(val) -> [[1, 4], [], [2, 8]]
+
+Args:
+  ds: DataSlice with ndim > 0 to be filtered.
+
+Returns:
+  Filtered DataSlice.
 ```
 
 ### `kd.slices.size(x)` {#kd.slices.size}
@@ -9787,6 +9801,8 @@ Aliases:
 ``` {.no-copy}
 Creates a new DataSlice by filtering out missing items in fltr.
 
+It is not supported for DataItems because their sizes are always 1.
+
 The dimensions of `fltr` needs to be compatible with the dimensions of `ds`.
 By default, `fltr` is expanded to 'ds' and items in `ds` corresponding
 missing items in `fltr` are removed. The last dimension of the resulting
@@ -9806,7 +9822,7 @@ Example:
   kd.select(val, fltr, expand_filter=False) -> [[1, None, 4], [None]]
 
 Args:
-  ds: DataSlice to be filtered
+  ds: DataSlice with ndim > 0 to be filtered.
   fltr: filter DataSlice with dtype as kd.MASK.
   expand_filter: flag indicating if the 'filter' should be expanded to 'ds'
 
@@ -9859,6 +9875,18 @@ Aliases:
 
 ``` {.no-copy}
 Creates a new DataSlice by removing missing items.
+
+It is not supported for DataItems because their sizes are always 1.
+
+Example:
+  val = kd.slice([[1, None, 4], [None], [2, 8]])
+  kd.select_present(val) -> [[1, 4], [], [2, 8]]
+
+Args:
+  ds: DataSlice with ndim > 0 to be filtered.
+
+Returns:
+  Filtered DataSlice.
 ```
 
 ### `DataSlice.select_values(self, fltr)` {#DataSlice.select_values}
