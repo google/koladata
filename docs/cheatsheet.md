@@ -2251,7 +2251,127 @@ kd.to_proto(q, test_pb2.Query) # q
 
 ### From/To Json
 
-WIP and will be available soon.
+```py
+# Parse any JSON primitive or container, or a
+# mixture. Uses OBJECT schema by default.
+kd.from_json('null')  # -> None
+kd.from_json('true')  # -> True
+kd.from_json('false')  # -> False
+kd.from_json('1')  # -> 1
+kd.from_json('1.1')  # -> 1.1
+kd.from_json('"a"')  # -> 'a'
+kd.from_json('"\u2728"')  # -> '✨'
+kd.from_json('["x", "y"]')  # -> List['x', 'y']
+
+# The input can be a DataSlice of strings.
+# The output will be a DataSlice of the same
+# shape.
+kd.from_json(kd.slice(['1', '"a"']))
+# -> [1, 'a']
+
+# Use an explicit schema to validate, filter, and
+# convert while parsing.
+kd.from_json('1', schema=kd.FLOAT32)  # -> 1.0
+kd.from_json('1', schema=kd.STRING)  # -> '1'
+kd.from_json('false', schema=kd.MASK)
+# -> missing
+kd.from_json(
+    '{"x": 1}',
+    schema=kd.dict_schema(kd.STRING, kd.INT32)
+)
+# -> Dict{'x'=1}
+kd.from_json(
+    '{"x": 1}',
+    schema=kd.schema.new_schema(x=kd.INT32)
+)
+# -> Entity(x=1)
+
+# JSON objects' key order is recorded by default.
+kd.from_json('{"x": 1, "a": 2, "y": 3}')
+# -> Obj(a=2, x=1, y=3,
+#        json_object_keys=List['x', 'a', 'y'],
+#        json_object_values=List[1, 2, 3])
+
+# Handle invalid inputs instead of throwing
+# exceptions.
+kd.from_json('not valid', on_invalid=':(')
+# -> ':('
+kd.from_json('1', schema=kd.MASK, on_invalid='?')
+# -> '?'
+
+# Round-trip Koda -> JSON -> Koda. Schema must
+# be preserved separately.
+a = kd.new(x=1, y=kd.list([2, 3]))
+b = kd.from_json(kd.to_json(a),
+                 schema=a.get_schema())
+assert a.to_py() == b.to_py()
+```
+
+```py
+# Format any JSON-compatible Koda value.
+kd.to_json(None)  # -> 'null'
+kd.to_json(kd.present)  # -> 'true'
+kd.to_json(kd.missing)  # -> 'false'
+kd.to_json(True)  # -> 'true'
+kd.to_json(False)  # -> 'false'
+kd.to_json(123)  # -> '123'
+kd.to_json(1.23)  # -> '1.23'
+kd.to_json(float('inf'))  # -> '"inf"'
+kd.to_json('foo')  # -> '"foo"'
+kd.to_json('✨')  # -> '"\u2728"'
+kd.to_json(kd.list([1, 2, 3]))  # -> '[1, 2, 3]'
+kd.to_json(
+    kd.implode(kd.slice([[1], [2, 3]]), -1)
+)
+# -> '[[1], [2, 3]]'
+kd.to_json(kd.dict({'x': 1, 'y': 2}))
+# -> '{"x": 1, "y": 2}'
+kd.to_json(kd.new(x=1, y=2))
+# -> '{"x": 1, "y": 2}'
+
+# The input can be a DataSlice.
+# The output will be a DataSlice of strings
+# with the same shape.
+kd.to_json(kd.slice([[1], [2, 3]]))
+# -> [['1'], ['2', '3']]
+
+# Control indentation and padding.
+value = kd.new(x=1, y=2, z=kd.dict({'a': 'b'}))
+kd.to_json(value, indent=0)
+# -> '{"x":1,"y":2,"z":{"a":"b"}}'
+kd.to_json(value, indent=2)
+# ->
+# '{
+#   "x": 1,
+#   "y": 2,
+#   "z": {
+#     "a": "b"
+#   }
+# }'
+
+# Control unicode escaping.
+kd.to_json('✨')  # -> '"\u2728"'
+kd.to_json('✨', ensure_ascii=False)  # -> '"✨"'
+
+# Precisely control JSON object keys and values.
+kd.to_json(kd.new(
+    x=1,
+    y=2,
+    json_object_keys=kd.list(['y', 'x'])
+))
+# -> '{"y": 2, "x": 1}'
+kd.to_json(kd.new(
+    json_object_keys=kd.list(['y', 'x', 'y'])
+    json_object_values=kd.list([1, 2, 3]),
+))
+# -> '{"y": 1, "x": 2, "y": 3}'
+
+# Round-trip JSON -> Koda -> JSON. Padding and
+# number formatting differences are lost.
+a = kd.str('{"x": 1, "z": {"a": "b"}, "y": 2}')
+b = kd.to_json(kd.from_json(a))
+assert a.to_py() == b.to_py()
+```
 
 </section>
 
