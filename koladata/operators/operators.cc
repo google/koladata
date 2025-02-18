@@ -238,7 +238,6 @@ OPERATOR("kd.schema.get_obj_schema", GetObjSchema);
 OPERATOR("kd.schema.get_primitive_schema", GetPrimitiveSchema);
 OPERATOR("kd.schema.get_schema", GetSchema);
 OPERATOR("kd.schema.get_value_schema", GetValueSchema);
-OPERATOR("kd.schema.is_any_schema", IsAnySchema);
 OPERATOR("kd.schema.is_dict_schema", IsDictSchema);
 OPERATOR("kd.schema.is_entity_schema", IsEntitySchema);
 OPERATOR("kd.schema.is_itemid_schema", IsItemIdSchema);

@@ -47,10 +47,10 @@ TEST(TestUtils, DataItem_Int) {
       DataSlice::Create(DataItem(42), DataItem(schema::kInt32)));
   EXPECT_THAT(item, IsEquivalentTo(expected_item));
 
-  item = test::DataItem(42, schema::kAny);
+  item = test::DataItem(42, schema::kObject);
   ASSERT_OK_AND_ASSIGN(
       expected_item,
-      DataSlice::Create(DataItem(42), DataItem(schema::kAny)));
+      DataSlice::Create(DataItem(42), DataItem(schema::kObject)));
   EXPECT_THAT(item, IsEquivalentTo(expected_item));
 }
 
@@ -61,10 +61,10 @@ TEST(TestUtils, DataItem_Text) {
       DataSlice::Create(DataItem(Text("abc")), DataItem(schema::kString)));
   EXPECT_THAT(item, IsEquivalentTo(expected_item));
 
-  item = test::DataItem("abc", schema::kAny);
+  item = test::DataItem("abc", schema::kObject);
   ASSERT_OK_AND_ASSIGN(
       expected_item,
-      DataSlice::Create(DataItem(Text("abc")), DataItem(schema::kAny)));
+      DataSlice::Create(DataItem(Text("abc")), DataItem(schema::kObject)));
   EXPECT_THAT(item, IsEquivalentTo(expected_item));
 }
 
@@ -75,10 +75,10 @@ TEST(TestUtils, DataItem_Bytes) {
       DataSlice::Create(DataItem(Bytes("abc")), DataItem(schema::kBytes)));
   EXPECT_THAT(item, IsEquivalentTo(expected_item));
 
-  item = test::DataItem(Bytes("abc"), schema::kAny);
+  item = test::DataItem(Bytes("abc"), schema::kObject);
   ASSERT_OK_AND_ASSIGN(
       expected_item,
-      DataSlice::Create(DataItem(Bytes("abc")), DataItem(schema::kAny)));
+      DataSlice::Create(DataItem(Bytes("abc")), DataItem(schema::kObject)));
   EXPECT_THAT(item, IsEquivalentTo(expected_item));
 }
 
@@ -135,13 +135,13 @@ TEST(TestUtils, DataSlice_SpanInt) {
           DataItem(schema::kInt32)));
   EXPECT_THAT(ds, IsEquivalentTo(expected_ds));
 
-  ds = test::DataSlice<int>({42, std::nullopt, 12}, schema::kAny);
+  ds = test::DataSlice<int>({42, std::nullopt, 12}, schema::kObject);
   ASSERT_OK_AND_ASSIGN(
       expected_ds,
       DataSlice::Create(
           DataSliceImpl::Create(CreateDenseArray<int>({42, std::nullopt, 12})),
           DataSlice::JaggedShape::FlatFromSize(3),
-          DataItem(schema::kAny)));
+          DataItem(schema::kObject)));
   EXPECT_THAT(ds, IsEquivalentTo(expected_ds));
 }
 
@@ -219,7 +219,7 @@ TEST(TestUtils, DataSlice_Mixed) {
   auto ds = test::MixedDataSlice<int, Text>(
       {42, std::nullopt, std::nullopt},
       {std::nullopt, "abc", std::nullopt},
-      schema::kAny);
+      schema::kObject);
   ASSERT_OK_AND_ASSIGN(
       auto expected_ds,
       DataSlice::Create(
@@ -228,7 +228,7 @@ TEST(TestUtils, DataSlice_Mixed) {
               CreateDenseArray<Text>({std::nullopt, Text("abc"),
                                       std::nullopt})),
           DataSlice::JaggedShape::FlatFromSize(3),
-          DataItem(schema::kAny)));
+          DataItem(schema::kObject)));
   EXPECT_THAT(ds, IsEquivalentTo(expected_ds));
 
   ds = test::MixedDataSlice<int, Text, Bytes>(

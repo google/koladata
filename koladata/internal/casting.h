@@ -355,7 +355,7 @@ class ToObject {
         db_impl_(std::move(db_impl)) {}
 
   // Empty DataItem is used to represent a slice without Entity schema, i.e.
-  // primitive, ANY, OBJECT, etc.
+  // primitive, OBJECT, etc.
   internal::DataItem entity_schema_;
   bool validate_schema_;
   absl::Nullable<internal::DataBagImpl*> db_impl_;

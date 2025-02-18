@@ -1632,7 +1632,6 @@ schemas:
 -   **OBJECT** used to indicate the schema is stored as data
 -   **ITEMID** used to indicate the content should be interpreted as opaque
     ItemIds rather than the data those ItemIds refer to
--   **ANY** used to indicate unknown/mixed schema
 
 Schema is used to specify the behaviors for:
 
@@ -1650,7 +1649,7 @@ dtypes are embedded in their values.
 **DataSlice Schema** refers to schemas attached to DataSlices. **Embedded
 Schema** refers schemas embedded inside Koda Objects as `__schema__` attribute
 or dtypes for primitives. DataSlice Schema can be primitive schema, Entity
-schema, OBJECT, ITEMID, or ANY. Embedded Schema cannot be ITEMID or ANY.
+schema, OBJECT, or ITEMID. Embedded Schema cannot be ITEMID.
 
 Entity schemas can be either **explicit** or **implicit**. Explicit schemas are
 created using `kd.schema.new_schema/list_schema/dict_schema()` while implicit
@@ -1668,7 +1667,7 @@ schema.
 Point = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
 
 # Attribute 'end' can be anything
-Line = kd.named_schema('Line', start=Point, end=kd.ANY)
+Line = kd.named_schema('Line', start=Point, end=kd.OBJECT)
 
 # Get the attribute start's schema
 Line.start
@@ -1739,7 +1738,7 @@ equivalent to `kd.new(..., schema=schema)`.
 
 ```py
 Point = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
-Line = kd.named_schema('Line', start=Point, end=kd.ANY)
+Line = kd.named_schema('Line', start=Point, end=kd.OBJECT)
 
 i1 = Point(x=1, y=2.3)
 # which is equivalent to

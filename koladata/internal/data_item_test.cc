@@ -417,7 +417,6 @@ TEST(DataItemTest, IsEntity) {
 
 TEST(DataItemTest, IsSchema) {
   EXPECT_TRUE(DataItem(AllocateExplicitSchema()).is_schema());
-  EXPECT_TRUE(DataItem(schema::kAny).is_schema());
   EXPECT_TRUE(DataItem(schema::kExpr).is_schema());
   EXPECT_FALSE(DataItem(AllocateSingleObject()).is_schema());
   EXPECT_FALSE(DataItem(0).is_schema());
@@ -429,7 +428,6 @@ TEST(DataItemTest, IsPrimitiveSchema) {
   EXPECT_TRUE(DataItem(schema::kInt32).is_primitive_schema());
   EXPECT_TRUE(DataItem(schema::kExpr).is_primitive_schema());
   EXPECT_FALSE(DataItem(AllocateExplicitSchema()).is_primitive_schema());
-  EXPECT_FALSE(DataItem(schema::kAny).is_primitive_schema());
   EXPECT_FALSE(DataItem(AllocateSingleObject()).is_primitive_schema());
   EXPECT_FALSE(DataItem(0).is_primitive_schema());
   EXPECT_FALSE(DataItem(4.f).is_primitive_schema());
@@ -438,7 +436,6 @@ TEST(DataItemTest, IsPrimitiveSchema) {
 TEST(DataItemTest, IsStructSchema) {
   EXPECT_FALSE(DataItem(schema::kMask).is_struct_schema());
   EXPECT_FALSE(DataItem(schema::kObject).is_struct_schema());
-  EXPECT_FALSE(DataItem(schema::kAny).is_struct_schema());
   EXPECT_FALSE(DataItem(AllocateSingleObject()).is_struct_schema());
   EXPECT_FALSE(DataItem(0).is_struct_schema());
   EXPECT_FALSE(DataItem(4.f).is_struct_schema());
@@ -456,7 +453,6 @@ TEST(DataItemTest, IsStructSchema) {
 TEST(DataItemTest, IsImplicitSchema) {
   EXPECT_FALSE(DataItem(schema::kMask).is_implicit_schema());
   EXPECT_FALSE(DataItem(schema::kObject).is_implicit_schema());
-  EXPECT_FALSE(DataItem(schema::kAny).is_implicit_schema());
   EXPECT_FALSE(DataItem(AllocateSingleObject()).is_implicit_schema());
   EXPECT_FALSE(DataItem(0).is_implicit_schema());
   EXPECT_FALSE(DataItem(4.f).is_implicit_schema());
@@ -471,20 +467,8 @@ TEST(DataItemTest, IsImplicitSchema) {
           .is_implicit_schema());
 }
 
-TEST(DataItemTest, IsAnySchema) {
-  EXPECT_FALSE(DataItem(schema::kMask).is_any_schema());
-  EXPECT_FALSE(DataItem(schema::kObject).is_any_schema());
-  EXPECT_FALSE(DataItem(schema::kItemId).is_any_schema());
-  EXPECT_FALSE(DataItem(AllocateSingleObject()).is_any_schema());
-  EXPECT_FALSE(DataItem(0).is_any_schema());
-  EXPECT_FALSE(DataItem(4.f).is_any_schema());
-  EXPECT_FALSE(DataItem(AllocateExplicitSchema()).is_any_schema());
-  EXPECT_TRUE(DataItem(schema::kAny).is_any_schema());
-}
-
 TEST(DataItemTest, IsObjectSchema) {
   EXPECT_FALSE(DataItem(schema::kMask).is_object_schema());
-  EXPECT_FALSE(DataItem(schema::kAny).is_object_schema());
   EXPECT_FALSE(DataItem(schema::kItemId).is_object_schema());
   EXPECT_FALSE(DataItem(AllocateSingleObject()).is_object_schema());
   EXPECT_FALSE(DataItem(0).is_object_schema());
@@ -507,7 +491,6 @@ TEST(DataItemTest, IsSchemaSchema) {
 TEST(DataItemTest, IsItemIdSchema) {
   EXPECT_FALSE(DataItem(schema::kMask).is_itemid_schema());
   EXPECT_FALSE(DataItem(schema::kObject).is_itemid_schema());
-  EXPECT_FALSE(DataItem(schema::kAny).is_itemid_schema());
   EXPECT_FALSE(DataItem(AllocateSingleObject()).is_itemid_schema());
   EXPECT_FALSE(DataItem(0).is_itemid_schema());
   EXPECT_FALSE(DataItem(4.f).is_itemid_schema());

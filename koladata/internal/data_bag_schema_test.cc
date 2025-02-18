@@ -50,9 +50,11 @@ using ::testing::MatchesRegex;
 using ::testing::Not;
 using ::testing::UnorderedElementsAre;
 
-const internal::DataItem& GetAnySchema() {
-  static const absl::NoDestructor<internal::DataItem> kAnySchema(schema::kAny);
-  return *kAnySchema;
+
+const internal::DataItem& GetObjSchema() {
+  static const absl::NoDestructor<internal::DataItem> kObjSchema(
+      schema::kObject);
+  return *kObjSchema;
 }
 
 const internal::DataItem& GetIntSchema() {
@@ -262,8 +264,8 @@ TEST(DataBagTest, SetSchemaAttrOverwrite_Item) {
   ASSERT_OK(db->SetSchemaAttr(schema, "a", GetIntSchema()));
   EXPECT_THAT(db->GetSchemaAttr(schema, "a"), IsOkAndHolds(GetIntSchema()));
 
-  ASSERT_OK(db->SetSchemaAttr(schema, "a", GetAnySchema()));
-  EXPECT_THAT(db->GetSchemaAttr(schema, "a"), IsOkAndHolds(GetAnySchema()));
+  ASSERT_OK(db->SetSchemaAttr(schema, "a", GetObjSchema()));
+  EXPECT_THAT(db->GetSchemaAttr(schema, "a"), IsOkAndHolds(GetObjSchema()));
 
   ASSERT_OK_AND_ASSIGN(auto ds_impl, db->GetSchemaAttrs(schema));
   EXPECT_THAT(ds_impl, UnorderedElementsAre(arolla::Text("a")));
@@ -287,10 +289,10 @@ TEST(DataBagTest, SetSchemaAttrOverwrite_Slice) {
   EXPECT_THAT(schema_get_a, IsEquivalentTo(values));
 
   ASSERT_OK(
-      db->SetSchemaAttr(schema, "a", DataSliceImpl::Create(3, GetAnySchema())));
+      db->SetSchemaAttr(schema, "a", DataSliceImpl::Create(3, GetObjSchema())));
   ASSERT_OK_AND_ASSIGN(schema_get_a, db->GetSchemaAttr(schema, "a"));
   EXPECT_THAT(schema_get_a,
-              ElementsAre(GetAnySchema(), GetAnySchema(), GetAnySchema()));
+              ElementsAre(GetObjSchema(), GetObjSchema(), GetObjSchema()));
 
   for (int i = 0; i < schema.size(); ++i) {
     EXPECT_THAT(db->GetSchemaAttrs(schema[i]),
@@ -324,9 +326,9 @@ TEST(DataBagTest, SetSchemaAttrErrors_Item) {
                                  " schemas, got: ")));
 
   EXPECT_THAT(
-      db->GetSchemaAttr(GetAnySchema(), "any_attr"),
+      db->GetSchemaAttr(GetObjSchema(), "any_attr"),
       StatusIs(absl::StatusCode::kFailedPrecondition,
-               HasSubstr("cannot get or set attributes on schema: ANY")));
+               HasSubstr("cannot get or set attributes on schema: OBJECT")));
   EXPECT_THAT(
       db->SetSchemaAttr(GetIntSchema(), "any_attr", GetIntSchema()),
       StatusIs(absl::StatusCode::kFailedPrecondition,

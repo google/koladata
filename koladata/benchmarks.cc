@@ -109,7 +109,7 @@ absl::Status Create1DListDataBag(DataBagPtr bag, int64_t size, int64_t dim) {
   for (int i = 0; i < size; ++i) {
     // Creates one list at a time.
     ASSIGN_OR_RETURN(auto _, CreateListsFromLastDimension(
-        bag, values, /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+        bag, values, /*schema=*/std::nullopt, test::Schema(schema::kInt64)));
   }
   return absl::OkStatus();
 }
@@ -126,7 +126,7 @@ absl::Status Create2DListDataBag(DataBagPtr bag, int64_t first_dim,
       std::move(shape)));
 
   ASSIGN_OR_RETURN(DataSlice list, CreateListsFromLastDimension(
-      bag, values, /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+      bag, values, /*schema=*/std::nullopt, test::Schema(schema::kInt64)));
   return absl::OkStatus();
 }
 
@@ -185,10 +185,10 @@ void BM_Align(benchmark::State& state) {
   auto ds =
       *DataSlice::Create(internal::DataSliceImpl::AllocateEmptyObjects(size),
                          DataSlice::JaggedShape::FlatFromSize(size),
-                         internal::DataItem(schema::kAny));
+                         internal::DataItem(schema::kObject));
   auto item =
       *DataSlice::Create(internal::DataItem(internal::AllocateSingleObject()),
-                         internal::DataItem(schema::kAny));
+                         internal::DataItem(schema::kObject));
   std::vector<DataSlice> inputs({ds, item});
   for (auto _ : state) {
     benchmark::DoNotOptimize(inputs);
@@ -352,8 +352,7 @@ void BM_ExplodeLists(benchmark::State& state) {
   auto o = *EntityCreator::Shaped(
       db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}), {}, {});
 
-  auto list = *CreateListsFromLastDimension(db, o, /*schema=*/std::nullopt,
-                                            test::Schema(schema::kAny));
+  auto list = *CreateListsFromLastDimension(db, o);
 
   for (auto _ : state) {
     benchmark::DoNotOptimize(list);
@@ -384,7 +383,7 @@ void BM_GetFromList(benchmark::State& state) {
   auto o = *EntityCreator::Shaped(
       db, *DataSlice::JaggedShape::FromEdges({edge_1, edge_2}), {}, {});
 
-  auto list = *CreateListsFromLastDimension(db, o, test::Schema(schema::kAny));
+  auto list = *CreateListsFromLastDimension(db, o);
   auto index = *DataSlice::Create(internal::DataItem(int64_t{0}),
                                   internal::DataItem(schema::kInt64));
   if (should_broadcast_index) {
@@ -589,12 +588,12 @@ void BM_CreateEntityWithSchemaAndCasting(benchmark::State& state) {
 BENCHMARK(BM_CreateEntityWithSchemaAndCasting)->Arg(1)->Arg(10)->Arg(10000);
 
 
-void BM_ToInt32_Int32Data_AnySchema(benchmark::State& state) {
+void BM_ToInt32_Int32Data_ObjectSchema(benchmark::State& state) {
   int64_t size = state.range(0);
   auto values = arolla::CreateFullDenseArray(std::vector<int>(size, 12));
   auto ds = *DataSlice::Create(DataSliceImpl::Create(values),
                                DataSlice::JaggedShape::FlatFromSize(size),
-                               internal::DataItem(schema::kAny));
+                               internal::DataItem(schema::kObject));
   for (auto _ : state) {
     benchmark::DoNotOptimize(ds);
     auto res = *ToInt32(ds);
@@ -602,14 +601,14 @@ void BM_ToInt32_Int32Data_AnySchema(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_ToInt32_Int32Data_AnySchema)->Arg(1)->Arg(10)->Arg(10000);
+BENCHMARK(BM_ToInt32_Int32Data_ObjectSchema)->Arg(1)->Arg(10)->Arg(10000);
 
-void BM_ToInt32_Float32Data_AnySchema(benchmark::State& state) {
+void BM_ToInt32_Float32Data_ObjectSchema(benchmark::State& state) {
   int64_t size = state.range(0);
   auto values = arolla::CreateFullDenseArray(std::vector<float>(size, 12.0));
   auto ds = *DataSlice::Create(DataSliceImpl::Create(values),
                                DataSlice::JaggedShape::FlatFromSize(size),
-                               internal::DataItem(schema::kAny));
+                               internal::DataItem(schema::kObject));
   for (auto _ : state) {
     benchmark::DoNotOptimize(ds);
     auto res = *ToInt32(ds);
@@ -617,7 +616,7 @@ void BM_ToInt32_Float32Data_AnySchema(benchmark::State& state) {
   }
 }
 
-BENCHMARK(BM_ToInt32_Float32Data_AnySchema)->Arg(1)->Arg(10)->Arg(10000);
+BENCHMARK(BM_ToInt32_Float32Data_ObjectSchema)->Arg(1)->Arg(10)->Arg(10000);
 
 void BM_DataSliceRepr_Int32(benchmark::State& state) {
   int64_t rank = state.range(0);

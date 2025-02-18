@@ -722,12 +722,12 @@ TEST(DataBagReprTest, TestDataBagStatistics_NestedList) {
       JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
   ASSERT_OK_AND_ASSIGN(DataSlice nested_list,
                        DataSlice::Create(std::move(ds), std::move(ds_shape),
-                                         internal::DataItem(schema::kAny)));
+                                         internal::DataItem(schema::kObject)));
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
       CreateNestedList(bag, std::move(nested_list),
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+                       /*schema=*/std::nullopt, test::Schema(schema::kObject)));
 
   EXPECT_THAT(
       DataBagStatistics(bag),

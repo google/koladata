@@ -431,15 +431,15 @@ absl::StatusOr<DataSlice> CreateEmptyShaped(const DataSlice::JaggedShape& shape,
                                             absl::Nullable<DataBagPtr> db);
 
 // Creates a NoFollow schema from `target_schema`. `target_schema` must be a
-// valid schema slice. If `target_schema` is NoFollow, primitive, ITEMID or ANY
+// valid schema slice. If `target_schema` is NoFollow, primitive or ITEMID
 // schema, the error is returned.
 //
 // CreateNoFollowSchema is reversible with `ds.GetActualSchema()`.
 absl::StatusOr<DataSlice> CreateNoFollowSchema(const DataSlice& target_schema);
 
 // Returns a new DataSlice with same contents as `target`, but with NoFollow
-// schema created from `target.GetSchema()` slice. NoFollow, Primitive, ITEMID
-// and ANY slices are not accepted and the appropriate error is returned.
+// schema created from `target.GetSchema()` slice. NoFollow, Primitive and
+// ITEMID slices are not accepted and the appropriate error is returned.
 absl::StatusOr<DataSlice> NoFollow(const DataSlice& target);
 
 

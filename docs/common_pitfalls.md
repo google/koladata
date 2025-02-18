@@ -556,7 +556,6 @@ digraph {
   "Structured Data Schema" -> "Dict Schema"
   "Special Schema" -> OBJECT
   "Special Schema" -> ITEMID
-  "Special Schema" -> ANY
   "Special Schema" -> NONE
 }
 ```
@@ -571,7 +570,6 @@ List Schema       | `kd.list_schema`
 Dict Schema       | `kd.dict_schema`
 OBJECT Schema     | `kd.OBJECT`
 ITEMID Schema     | `kd.ITEMID`
-ANY Schema        | `kd.ANY`
 NONE Schema       | `kd.NONE`
 
 ## List/Dict/Named schemas are Uu Schemas

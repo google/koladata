@@ -95,7 +95,6 @@ std::vector<DType> SupportedDTypes() {
           GetDType<arolla::Bytes>(),
           GetDType<arolla::Text>(),
           GetDType<arolla::expr::ExprQuote>(),
-          GetDType<AnyDType>(),
           GetDType<ItemIdDType>(),
           GetDType<ObjectDType>(),
           GetDType<SchemaDType>(),
@@ -115,7 +114,7 @@ TEST(DType, TypesCoverage) {
 }
 
 TEST(DType, DefaultDType) {
-  EXPECT_EQ(DType(), kAny);
+  EXPECT_EQ(DType(), kNone);
 }
 
 TEST(DType, VerifyQTypeSupported) {
@@ -168,6 +167,13 @@ TEST(DType, FromId) {
                          absl::StrFormat("unsupported DType.type_id(): %v",
                                          kNextDTypeId)));
   }
+  {
+    // Deprecated DTypes.
+    EXPECT_THAT(
+        DType::FromId(9),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "unsupported DType: ANY - deprecated in cl/715818351"));
+  }
 }
 
 TEST(DType, UnsafeFromId) {
@@ -192,7 +198,6 @@ TEST(DType, IsPrimitive) {
   EXPECT_TRUE(kExpr.is_primitive());
 
   // Non-primitives
-  EXPECT_FALSE(kAny.is_primitive());
   EXPECT_FALSE(kObject.is_primitive());
   EXPECT_FALSE(kSchema.is_primitive());
   EXPECT_FALSE(kItemId.is_primitive());
@@ -233,7 +238,6 @@ TEST(DType, FromQType) {
   EXPECT_THAT(DType::FromQType(arolla::GetQType<arolla::DenseArray<int>>()),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("unsupported QType: DENSE_ARRAY_INT32")));
-  EXPECT_EQ(GetDType<AnyDType>().qtype(), arolla::GetNothingQType());
   EXPECT_EQ(GetDType<ItemIdDType>().qtype(), arolla::GetNothingQType());
   EXPECT_EQ(GetDType<ObjectDType>().qtype(), arolla::GetNothingQType());
   EXPECT_EQ(GetDType<SchemaDType>().qtype(), arolla::GetNothingQType());
@@ -271,14 +275,14 @@ TEST(DType, AbslHash) {
 }
 
 TEST(DType, DenseArray) {
-  auto array = CreateDenseArray<DType>({kInt32, std::nullopt, kAny});
+  auto array = CreateDenseArray<DType>({kInt32, std::nullopt, kObject});
 
   EXPECT_TRUE(array[0].present);
   EXPECT_FALSE(array[1].present);
   EXPECT_TRUE(array[2].present);
 
   EXPECT_EQ(array[0].value.qtype(), arolla::GetQType<int>());
-  EXPECT_EQ(array[2].value, kAny);
+  EXPECT_EQ(array[2].value, kObject);
 }
 
 TEST(DType, name) {
@@ -294,7 +298,6 @@ TEST(DType, name) {
   EXPECT_EQ(kExpr.name(), "EXPR");
 
   // Special meaning - Schema types
-  EXPECT_EQ(kAny.name(), "ANY");
   EXPECT_EQ(kObject.name(), "OBJECT");
   EXPECT_EQ(kSchema.name(), "SCHEMA");
   EXPECT_EQ(kItemId.name(), "ITEMID");

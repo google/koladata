@@ -481,21 +481,6 @@ absl::Status FillProtoMessage(
         slice.dtype()->name()));
   }
 
-  // ANY schema doesn't give us a way to list attrs on the slice, so iterate
-  // over the descriptor fields instead.
-  if (slice.GetSchemaImpl() == schema::kAny) {
-    for (int64_t i_field = 0; i_field < message_descriptor.field_count();
-         ++i_field) {
-      const auto& field = *message_descriptor.field(i_field);
-      ASSIGN_OR_RETURN(const auto& attr_slice,
-                       slice.GetAttrOrMissing(field.name()));
-      if (!attr_slice.IsEmpty()) {
-        RETURN_IF_ERROR(FillProtoField(attr_slice, field, messages, executor));
-      }
-    }
-    return absl::OkStatus();
-  }
-
   ASSIGN_OR_RETURN(const auto& attr_names,
                    slice.GetAttrNames(/*union_object_attrs=*/true));
   for (const auto& attr_name : attr_names) {

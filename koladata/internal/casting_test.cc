@@ -1301,8 +1301,6 @@ TEST(Casting, CastDataTo_CastingTest) {
                        "cannot cast INT32 to SCHEMA"));
   EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kObject)),
               IsOkAndHolds(IsEquivalentTo(DataItem(1))));  // No diff.
-  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kAny)),
-              IsOkAndHolds(IsEquivalentTo(DataItem(1))));  // No diff.
   auto schema = internal::DataItem(internal::AllocateExplicitSchema());
   EXPECT_THAT(CastDataTo(obj, schema), IsOkAndHolds(IsEquivalentTo(obj)));
   EXPECT_THAT(CastDataTo(DataItem(1), schema),

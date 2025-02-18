@@ -226,20 +226,10 @@ class CopyingProcessor {
     } else if (slice.schema.holds_value<schema::DType>()) {
       if (slice.schema == schema::kObject || slice.schema == schema::kSchema) {
         return VisitObjects(slice);
-      } else if (slice.schema == schema::kAny) {
-        // We don't return an error in case of empty slice, because we want to
-        // support the case when ANY is reached as data. And we don't
-        // distinguish between that case and the case when ANY is reached as
-        // schema with empty slice.
-        // TODO: remove condition.
-        if (!slice.slice.is_empty_and_unknown()) {
-          return absl::InternalError(
-              "clone/extract not supported for kAny schema");
-          }
       } else if (slice.schema.value<schema::DType>().is_primitive()) {
         RETURN_IF_ERROR(ValidatePrimitiveTypes(slice));
       }
-      // Any and ItemId need no processing.
+      // ItemId need no processing.
     } else {
       return absl::InternalError("unsupported schema type");
     }
@@ -951,12 +941,6 @@ class CopyingProcessor {
         if (slice.schema == schema::kObject) {
           // Object schema.
           RETURN_IF_ERROR(ProcessObjectSlice(slice));
-        } else if (slice.schema == schema::kAny) {
-        // TODO: remove condition.
-          if (!slice.slice.is_empty_and_unknown()) {
-            return absl::InternalError(
-                "clone/extract not supported for kAny schema");
-          }
         } else if (slice.schema == schema::kSchema) {
           RETURN_IF_ERROR(ProcessSchemaSlice(slice));
         }

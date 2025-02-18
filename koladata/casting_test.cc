@@ -126,7 +126,6 @@ using CastingDecodeTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingEncodeTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToMaskTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToBoolTest = ::testing::TestWithParam<CastingTestCase>;
-using CastingToAnyTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToItemIdTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToEntityTest = ::testing::TestWithParam<CastingTestCase>;
 using CastingToSchemaTest = ::testing::TestWithParam<CastingTestCase>;
@@ -165,8 +164,6 @@ INSTANTIATE_TEST_SUITE_P(
            int32_slice},
           {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kObject),
            int32_slice},
-          {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kAny),
-           int32_slice},
           {test::MixedDataSlice<int, int64_t>({1, std::nullopt, std::nullopt},
                                               {std::nullopt, 2, std::nullopt}),
            int32_slice},
@@ -189,7 +186,6 @@ INSTANTIATE_TEST_SUITE_P(
            test::DataItem(1, schema::kInt32)},
           {test::DataItem(1, schema::kObject),
            test::DataItem(1, schema::kInt32)},
-          {test::DataItem(1, schema::kAny), test::DataItem(1, schema::kInt32)},
       };
       AssertLowerBoundDTypesAreTested(schema::kInt32, test_cases);
       return test_cases;
@@ -248,8 +244,6 @@ INSTANTIATE_TEST_SUITE_P(
            int64_slice},
           {test::DataSlice<int>({1, 2, std::nullopt}, schema::kObject),
            int64_slice},
-          {test::DataSlice<int>({1, 2, std::nullopt}, schema::kAny),
-           int64_slice},
           {test::MixedDataSlice<int, int64_t>({1, std::nullopt, std::nullopt},
                                               {std::nullopt, 2, std::nullopt}),
            int64_slice},
@@ -271,8 +265,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(arolla::Bytes("1"), schema::kBytes),
            test::DataItem(int64_t{1}, schema::kInt64)},
           {test::DataItem(1, schema::kObject),
-           test::DataItem(int64_t{1}, schema::kInt64)},
-          {test::DataItem(1, schema::kAny),
            test::DataItem(int64_t{1}, schema::kInt64)},
       };
       AssertLowerBoundDTypesAreTested(schema::kInt64, test_cases);
@@ -333,8 +325,6 @@ INSTANTIATE_TEST_SUITE_P(
            float32_slice},
           {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kObject),
            float32_slice},
-          {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kAny),
-           float32_slice},
           {test::MixedDataSlice<int, float>({1, std::nullopt, std::nullopt},
                                             {std::nullopt, 2.0f, std::nullopt}),
            float32_slice},
@@ -356,8 +346,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(arolla::Bytes("1.0"), schema::kBytes),
            test::DataItem(1.0f, schema::kFloat32)},
           {test::DataItem(1, schema::kObject),
-           test::DataItem(1.0f, schema::kFloat32)},
-          {test::DataItem(1, schema::kAny),
            test::DataItem(1.0f, schema::kFloat32)},
       };
       AssertLowerBoundDTypesAreTested(schema::kFloat32, test_cases);
@@ -417,8 +405,6 @@ INSTANTIATE_TEST_SUITE_P(
            float64_slice},
           {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kObject),
            float64_slice},
-          {test::DataSlice<int64_t>({1, 2, std::nullopt}, schema::kAny),
-           float64_slice},
           {test::MixedDataSlice<int, double>({1, std::nullopt, std::nullopt},
                                              {std::nullopt, 2.0, std::nullopt}),
            float64_slice},
@@ -440,8 +426,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(arolla::Bytes("1.0"), schema::kBytes),
            test::DataItem(1.0, schema::kFloat64)},
           {test::DataItem(1, schema::kObject),
-           test::DataItem(1.0, schema::kFloat64)},
-          {test::DataItem(1, schema::kAny),
            test::DataItem(1.0, schema::kFloat64)},
       };
       AssertLowerBoundDTypesAreTested(schema::kFloat64, test_cases);
@@ -495,7 +479,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::EmptyDataSlice(3, schema::kBytes), none_slice},
           {test::EmptyDataSlice(3, schema::kString), none_slice},
           {test::EmptyDataSlice(3, schema::kExpr), none_slice},
-          {test::EmptyDataSlice(3, schema::kAny), none_slice},
           {test::EmptyDataSlice(3, internal::AllocateExplicitSchema()),
            none_slice},
           // DataItem cases.
@@ -512,7 +495,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(std::nullopt, schema::kBytes), none_item},
           {test::DataItem(std::nullopt, schema::kString), none_item},
           {test::DataItem(std::nullopt, schema::kExpr), none_item},
-          {test::DataItem(std::nullopt, schema::kAny), none_item},
           {test::DataItem(std::nullopt, internal::AllocateExplicitSchema()),
            none_item},
       };
@@ -550,16 +532,12 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataSlice<arolla::expr::ExprQuote>({x, std::nullopt},
                                                     schema::kObject),
            expr_slice},
-          {test::DataSlice<arolla::expr::ExprQuote>({x, std::nullopt},
-                                                    schema::kAny),
-           expr_slice},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kExpr)},
           {test::DataItem(x, schema::kExpr), test::DataItem(x, schema::kExpr)},
           {test::DataItem(x, schema::kObject),
            test::DataItem(x, schema::kExpr)},
-          {test::DataItem(x, schema::kAny), test::DataItem(x, schema::kExpr)},
       };
       AssertLowerBoundDTypesAreTested(schema::kExpr, test_cases);
       return test_cases;
@@ -625,10 +603,6 @@ INSTANTIATE_TEST_SUITE_P(
                                           schema::kObject),
            test::DataSlice<arolla::Text>({"b'fo'", "b'bar'", std::nullopt},
                                          schema::kString)},
-          {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
-                                          schema::kAny),
-           test::DataSlice<arolla::Text>({"b'fo'", "b'bar'", std::nullopt},
-                                         schema::kString)},
           {test::MixedDataSlice<arolla::Text, arolla::Bytes>(
                {"fo\0o", std::nullopt, std::nullopt},
                {std::nullopt, "bar", std::nullopt}),
@@ -652,8 +626,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(true, schema::kBool),
            test::DataItem("true", schema::kString)},
           {test::DataItem("fo\0o", schema::kObject),
-           test::DataItem("fo\0o", schema::kString)},
-          {test::DataItem("fo\0o", schema::kAny),
            test::DataItem("fo\0o", schema::kString)},
       };
       AssertLowerBoundDTypesAreTested(schema::kString, test_cases);
@@ -699,17 +671,12 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
                                           schema::kObject),
            bytes_slice},
-          {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
-                                          schema::kAny),
-           bytes_slice},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kBytes)},
           {test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes),
            test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes)},
           {test::DataItem(arolla::Bytes("fo\0o"), schema::kObject),
-           test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes)},
-          {test::DataItem(arolla::Bytes("fo\0o"), schema::kAny),
            test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes)},
       };
       AssertLowerBoundDTypesAreTested(schema::kBytes, test_cases);
@@ -756,9 +723,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
                                           schema::kObject),
            text_slice},
-          {test::DataSlice<arolla::Bytes>({"fo\0o", "bar", std::nullopt},
-                                          schema::kAny),
-           text_slice},
           {test::MixedDataSlice<arolla::Text, arolla::Bytes>(
                {"fo\0o", std::nullopt, std::nullopt},
                {std::nullopt, "bar", std::nullopt}),
@@ -769,8 +733,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem("fo\0o", schema::kString),
            test::DataItem("fo\0o", schema::kString)},
           {test::DataItem("fo\0o", schema::kObject),
-           test::DataItem("fo\0o", schema::kString)},
-          {test::DataItem("fo\0o", schema::kAny),
            test::DataItem("fo\0o", schema::kString)},
       };
       AssertLowerBoundDTypesAreTested(schema::kString, test_cases);
@@ -826,9 +788,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
                                          schema::kObject),
            bytes_slice},
-          {test::DataSlice<arolla::Text>({"fo\0o", "bar", std::nullopt},
-                                         schema::kAny),
-           bytes_slice},
           {test::MixedDataSlice<arolla::Bytes, arolla::Text>(
                {"fo\0o", std::nullopt, std::nullopt},
                {std::nullopt, "bar", std::nullopt}),
@@ -839,8 +798,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes),
            test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes)},
           {test::DataItem(arolla::Bytes("fo\0o"), schema::kObject),
-           test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes)},
-          {test::DataItem(arolla::Bytes("fo\0o"), schema::kAny),
            test::DataItem(arolla::Bytes("fo\0o"), schema::kBytes)},
       };
       AssertLowerBoundDTypesAreTested(schema::kBytes, test_cases);
@@ -884,17 +841,12 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                          schema::kObject),
            mask_slice},
-          {test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
-                                         schema::kAny),
-           mask_slice},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kMask)},
           {test::DataItem(arolla::kUnit, schema::kMask),
            test::DataItem(arolla::kUnit, schema::kMask)},
           {test::DataItem(arolla::kUnit, schema::kObject),
-           test::DataItem(arolla::kUnit, schema::kMask)},
-          {test::DataItem(arolla::kUnit, schema::kAny),
            test::DataItem(arolla::kUnit, schema::kMask)},
       };
       AssertLowerBoundDTypesAreTested(schema::kMask, test_cases);
@@ -945,8 +897,6 @@ INSTANTIATE_TEST_SUITE_P(
            bool_slice},
           {test::DataSlice<bool>({true, false, std::nullopt}, schema::kObject),
            bool_slice},
-          {test::DataSlice<bool>({true, false, std::nullopt}, schema::kAny),
-           bool_slice},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kBool)},
@@ -961,8 +911,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(1.0, schema::kFloat64),
            test::DataItem(true, schema::kBool)},
           {test::DataItem(true, schema::kObject),
-           test::DataItem(true, schema::kBool)},
-          {test::DataItem(true, schema::kAny),
            test::DataItem(true, schema::kBool)},
       };
       AssertLowerBoundDTypesAreTested(schema::kBool, test_cases);
@@ -986,105 +934,6 @@ TEST(Casting, BoolErrors) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast STRING to BOOLEAN"));
 }
-
-TEST_P(CastingToAnyTest, Casting) {
-  const auto& input = GetParam().input;
-  const auto& output = GetParam().output;
-  ASSERT_OK_AND_ASSIGN(auto any_slice, ToAny(input));
-  EXPECT_THAT(any_slice, IsEquivalentTo(output));
-}
-
-INSTANTIATE_TEST_SUITE_P(
-    CastingToAnyTestSuite, CastingToAnyTest, ::testing::ValuesIn([] {
-      auto empty_objects = internal::DataSliceImpl::AllocateEmptyObjects(3);
-      std::vector<CastingTestCase> test_cases = {
-          // DataSliceImpl cases.
-          {test::EmptyDataSlice(3, schema::kNone),
-           test::EmptyDataSlice(3, schema::kAny)},
-          {test::DataSlice<int>({1, std::nullopt}, schema::kInt32),
-           test::DataSlice<int>({1, std::nullopt}, schema::kAny)},
-          {test::DataSlice<int64_t>({1, std::nullopt}, schema::kInt64),
-           test::DataSlice<int64_t>({1, std::nullopt}, schema::kAny)},
-          {test::DataSlice<float>({1.0f, std::nullopt}, schema::kFloat32),
-           test::DataSlice<float>({1.0f, std::nullopt}, schema::kAny)},
-          {test::DataSlice<double>({1.0, std::nullopt}, schema::kFloat64),
-           test::DataSlice<double>({1.0, std::nullopt}, schema::kAny)},
-          {test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
-                                         schema::kMask),
-           test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
-                                         schema::kAny)},
-          {test::DataSlice<bool>({true, std::nullopt}, schema::kBool),
-           test::DataSlice<bool>({true, std::nullopt}, schema::kAny)},
-          {test::DataSlice<arolla::Bytes>({"foo", std::nullopt},
-                                          schema::kBytes),
-           test::DataSlice<arolla::Bytes>({"foo", std::nullopt}, schema::kAny)},
-          {test::DataSlice<arolla::Text>({"foo", std::nullopt},
-                                         schema::kString),
-           test::DataSlice<arolla::Text>({"foo", std::nullopt}, schema::kAny)},
-          {test::DataSlice<arolla::expr::ExprQuote>(
-               {arolla::expr::ExprQuote(arolla::expr::Leaf("x")), std::nullopt},
-               schema::kExpr),
-           test::DataSlice<arolla::expr::ExprQuote>(
-               {arolla::expr::ExprQuote(arolla::expr::Leaf("x")), std::nullopt},
-               schema::kAny)},
-          {test::DataSlice<schema::DType>({schema::kInt32, std::nullopt},
-                                          schema::kSchema),
-           test::DataSlice<schema::DType>({schema::kInt32, std::nullopt},
-                                          schema::kAny)},
-          {*DataSlice::Create(empty_objects,
-                              DataSlice::JaggedShape::FlatFromSize(3),
-                              internal::DataItem(schema::kItemId)),
-           *DataSlice::Create(empty_objects,
-                              DataSlice::JaggedShape::FlatFromSize(3),
-                              internal::DataItem(schema::kAny))},
-          {test::MixedDataSlice<int, arolla::Text>(
-               {1, std::nullopt, std::nullopt},
-               {std::nullopt, "bar", std::nullopt}),
-           test::MixedDataSlice<int, arolla::Text>(
-               {1, std::nullopt, std::nullopt},
-               {std::nullopt, "bar", std::nullopt}, schema::kAny)},
-          {test::DataSlice<int>({1, std::nullopt}, schema::kAny),
-           test::DataSlice<int>({1, std::nullopt}, schema::kAny)},
-          {*DataSlice::Create(
-               empty_objects, DataSlice::JaggedShape::FlatFromSize(3),
-               internal::DataItem(internal::AllocateExplicitSchema())),
-           *DataSlice::Create(empty_objects,
-                              DataSlice::JaggedShape::FlatFromSize(3),
-                              internal::DataItem(schema::kAny))},
-          // DataItem cases.
-          {test::DataItem(std::nullopt, schema::kNone),
-           test::DataItem(std::nullopt, schema::kAny)},
-          {test::DataItem(1, schema::kInt32), test::DataItem(1, schema::kAny)},
-          {test::DataItem(int64_t{1}, schema::kInt64),
-           test::DataItem(int64_t{1}, schema::kAny)},
-          {test::DataItem(1.0f, schema::kFloat32),
-           test::DataItem(1.0f, schema::kAny)},
-          {test::DataItem(1.0, schema::kFloat64),
-           test::DataItem(1.0, schema::kAny)},
-          {test::DataItem(arolla::kUnit, schema::kMask),
-           test::DataItem(arolla::kUnit, schema::kAny)},
-          {test::DataItem(true, schema::kBool),
-           test::DataItem(true, schema::kAny)},
-          {test::DataItem(arolla::Bytes("foo"), schema::kBytes),
-           test::DataItem(arolla::Bytes("foo"), schema::kAny)},
-          {test::DataItem(arolla::Text("foo"), schema::kString),
-           test::DataItem(arolla::Text("foo"), schema::kAny)},
-          {test::DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x")),
-                          schema::kExpr),
-           test::DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x")),
-                          schema::kAny)},
-          {test::DataItem(schema::kInt32, schema::kSchema),
-           test::DataItem(schema::kInt32, schema::kAny)},
-          {test::DataItem(empty_objects[0], schema::kItemId),
-           test::DataItem(empty_objects[0], schema::kAny)},
-          {test::DataItem(1, schema::kObject), test::DataItem(1, schema::kAny)},
-          {test::DataItem(empty_objects[0], internal::AllocateExplicitSchema()),
-           test::DataItem(empty_objects[0], schema::kAny)},
-          {test::DataItem(1, schema::kAny), test::DataItem(1, schema::kAny)},
-      };
-      AssertLowerBoundDTypesAreTested(schema::kAny, test_cases);
-      return test_cases;
-    }()));
 
 TEST_P(CastingToItemIdTest, Casting) {
   const auto& input = GetParam().input;
@@ -1112,10 +961,6 @@ INSTANTIATE_TEST_SUITE_P(
                               DataSlice::JaggedShape::FlatFromSize(3),
                               internal::DataItem(schema::kObject)),
            item_id_slice},
-          {*DataSlice::Create(empty_objects,
-                              DataSlice::JaggedShape::FlatFromSize(3),
-                              internal::DataItem(schema::kAny)),
-           item_id_slice},
           {*DataSlice::Create(
                empty_objects, DataSlice::JaggedShape::FlatFromSize(3),
                internal::DataItem(internal::AllocateExplicitSchema())),
@@ -1132,8 +977,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(empty_objects[0], schema::kItemId),
            test::DataItem(empty_objects[0], schema::kItemId)},
           {test::DataItem(empty_objects[0], schema::kObject),
-           test::DataItem(empty_objects[0], schema::kItemId)},
-          {test::DataItem(empty_objects[0], schema::kAny),
            test::DataItem(empty_objects[0], schema::kItemId)},
           {test::DataItem(empty_objects[0], internal::AllocateExplicitSchema()),
            test::DataItem(empty_objects[0], schema::kItemId)},
@@ -1198,10 +1041,6 @@ INSTANTIATE_TEST_SUITE_P(
                                           schema::kObject),
            test::DataSlice<schema::DType>({schema::kInt32, std::nullopt},
                                           schema::kSchema)},
-          {test::DataSlice<schema::DType>({schema::kInt32, std::nullopt},
-                                          schema::kAny),
-           test::DataSlice<schema::DType>({schema::kInt32, std::nullopt},
-                                          schema::kSchema)},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kSchema)},
@@ -1210,8 +1049,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(schema_obj, schema::kSchema),
            test::DataItem(schema_obj, schema::kSchema)},
           {test::DataItem(schema::kInt32, schema::kObject),
-           test::DataItem(schema::kInt32, schema::kSchema)},
-          {test::DataItem(schema::kInt32, schema::kAny),
            test::DataItem(schema::kInt32, schema::kSchema)},
       };
       AssertLowerBoundDTypesAreTested(schema::kSchema, test_cases);
@@ -1390,14 +1227,6 @@ INSTANTIATE_TEST_SUITE_P(
            test::MixedDataSlice<int, arolla::Text>(
                {1, std::nullopt, std::nullopt},
                {std::nullopt, "bar", std::nullopt}, schema::kObject)},
-          {test::DataSlice<int>({1, std::nullopt}, schema::kAny),
-           test::DataSlice<int>({1, std::nullopt}, schema::kObject)},
-          {*DataSlice::Create(object_slice,
-                              DataSlice::JaggedShape::FlatFromSize(3),
-                              internal::DataItem(schema::kAny), db),
-           *DataSlice::Create(object_slice,
-                              DataSlice::JaggedShape::FlatFromSize(3),
-                              internal::DataItem(schema::kObject), db)},
           {*DataSlice::Create(object_slice,
                               DataSlice::JaggedShape::FlatFromSize(3),
                               schema_slice[0], db),
@@ -1434,9 +1263,6 @@ INSTANTIATE_TEST_SUITE_P(
           {test::DataItem(1, schema::kObject),
            test::DataItem(1, schema::kObject)},
           {test::DataItem(object_slice[0], schema_slice[0], db),
-           test::DataItem(object_slice[0], schema::kObject, db)},
-          {test::DataItem(1, schema::kAny), test::DataItem(1, schema::kObject)},
-          {test::DataItem(object_slice[0], schema::kAny, db),
            test::DataItem(object_slice[0], schema::kObject, db)},
       };
       AssertLowerBoundDTypesAreTested(schema::kObject, test_cases);
@@ -1549,18 +1375,18 @@ TEST(Casting, ToObjectErrors) {
                      schema_slice[0], schema_2)));
   }
   {
-    // Missing schema for e.g. ANY.
+    // Missing schema for e.g. OBJECT.
     auto db = DataBag::Empty();
 
     // Slice.
     ASSERT_OK_AND_ASSIGN(
         auto slice,
         DataSlice::Create(object_slice, DataSlice::JaggedShape::FlatFromSize(3),
-                          internal::DataItem(schema::kAny), db));
+                          internal::DataItem(schema::kObject), db));
     EXPECT_THAT(ToObject(slice), StatusIs(absl::StatusCode::kInvalidArgument,
                                           "missing schema for some objects"));
     // Item.
-    auto item = test::DataItem(object_slice[0], schema::kAny, db);
+    auto item = test::DataItem(object_slice[0], schema::kObject, db);
     EXPECT_THAT(
         ToObject(item),
         StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1572,14 +1398,14 @@ TEST(Casting, ToObjectErrors) {
     ASSERT_OK_AND_ASSIGN(
         auto slice,
         DataSlice::Create(object_slice, DataSlice::JaggedShape::FlatFromSize(3),
-                          internal::DataItem(schema::kAny)));
+                          internal::DataItem(schema::kObject)));
     EXPECT_THAT(
         ToObject(slice),
         StatusIs(
             absl::StatusCode::kInvalidArgument,
             HasSubstr("cannot embed object schema without a mutable DataBag")));
     // Item.
-    auto item = test::DataItem(object_slice[0], schema::kAny);
+    auto item = test::DataItem(object_slice[0], schema::kObject);
     EXPECT_THAT(
         ToObject(item),
         StatusIs(

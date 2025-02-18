@@ -118,7 +118,7 @@ class SlicesInverseSelectTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         'kd.slices.inverse_select: the schema of the fltr DataSlice should only'
-        ' be Any, Object or Mask',
+        ' be Object or Mask',
     ):
       expr_eval.eval(kde.slices.inverse_select(ds([1]), ds([1, 2])))
 

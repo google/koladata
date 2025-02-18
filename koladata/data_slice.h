@@ -175,9 +175,6 @@ class DataSlice {
   // Returns true, if this DataSlice represents a primitive schema.
   bool IsPrimitiveSchema() const;
 
-  // Returns true, if this DataSlice represents an ANY schema.
-  bool IsAnySchema() const;
-
   // Returns true, if this DataSlice represents an ITEMID schema.
   bool IsItemIdSchema() const;
 
@@ -257,8 +254,8 @@ class DataSlice {
   // Returns all attribute names that are defined on this DataSlice. In case of
   // OBJECT schema, attribute names are fetched from `__schema__` attribute, and
   // the intersection of all object attributes is returned by default or the
-  // union of these attributes if `union_object_attrs` is true. For ANY schemas,
-  // an empty set of attributes is returned.
+  // union of these attributes if `union_object_attrs` is true. For primitive
+  // schemas, an empty set of attributes is returned.
   absl::StatusOr<AttrNamesSet> GetAttrNames(
       bool union_object_attrs = false) const;
 
@@ -315,16 +312,16 @@ class DataSlice {
   bool ShouldApplyListOp() const;
 
   // Returns true iff the schema of this slice is LIST[T], or the schema of this
-  // slice is ANY or OBJECT and all present items in this slice are lists.
+  // slice is OBJECT and all present items in this slice are lists.
   bool IsList() const;
 
   // Returns true iff the schema of this slice is DICT{K, V}, or the schema of
-  // this slice is ANY or OBJECT and all present items in this slice are dicts.
+  // this slice is OBJECT and all present items in this slice are dicts.
   bool IsDict() const;
 
   // Returns true iff the schema of this slice is non-list/dict entity schema,
-  // or the schema of this slice is ANY or OBJECT and all present items in this
-  // slice are entities (i.e. no primitives, lists, dicts).
+  // or the schema of this slice is OBJECT and all present items in this slice
+  // are entities (i.e. no primitives, lists, dicts).
   bool IsEntity() const;
 
   // Gets a value from each dict in this slice (it must be slice of dicts) using
@@ -543,8 +540,7 @@ class DataSlice {
     // * ObjectId (allocated or UUID) for complex schemas, where it
     // represents a
     //   pointer to a start of schema definition in a DataBag.
-    // * Special meaning DType. E.g. ANY, OBJECT, ITEM_ID, IMPLICIT,
-    // EXPLICIT,
+    // * Special meaning DType. E.g. OBJECT, ITEM_ID, IMPLICIT, EXPLICIT,
     //   etc. Please see go/kola-schema for details.
     internal::DataItem schema;
     // Can be shared between multiple DataSlice(s) and underlying storage

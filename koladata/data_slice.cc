@@ -427,7 +427,6 @@ GetObjCommonSchemaAttrWithPerItemMask(
 
 // Deduces result attribute schema for "GetAttr-like" operations.
 //
-// * If `schema` is ANY returns ANY.
 // * If `schema` is NONE returns NONE.
 // * If `schema` is OBJECT, returns the common value of `attr_name` attribute of
 //   all the element schemas in `impl`.
@@ -437,9 +436,6 @@ absl::StatusOr<internal::DataItem> GetResultSchema(
     const internal::DataBagImpl& db_impl, const ImplT& impl,
     const internal::DataItem& schema, absl::string_view attr_name,
     internal::DataBagImpl::FallbackSpan fallbacks, bool allow_missing) {
-  if (schema == schema::kAny) {
-    return internal::DataItem(schema::kAny);
-  }
   // TODO: Change after adding OBJECT_WITH_SCHEMA.
   if (schema == schema::kNone) {
     return internal::DataItem(schema::kNone);
@@ -666,8 +662,7 @@ class RhsHandler {
                          db_impl.GetObjSchemaAttr(impl, fallbacks));
         return this->ProcessSchemaObjectAttr(obj_schema, db_impl, fallbacks);
       });
-    } else if (lhs.GetSchemaImpl() != schema::kAny &&
-               lhs.GetSchemaImpl() != schema::kNone) {
+    } else if (lhs.GetSchemaImpl() != schema::kNone) {
       status = ProcessSchemaObjectAttr(lhs.GetSchemaImpl(), db_impl, fallbacks);
     }
     if (!status.ok()) {
@@ -831,7 +826,7 @@ class RhsHandler {
   absl::Status CastRhsTo(const internal::DataItem& cast_to,
                          DataBagImplT& db_impl) {
     const internal::DataItem& value_schema = rhs_.GetSchemaImpl();
-    if (cast_to == value_schema || cast_to == schema::kAny) {
+    if (cast_to == value_schema) {
       return absl::OkStatus();
     }
     // NOTE: primitives -> OBJECT casting is handled by generic code at a later
@@ -1171,11 +1166,6 @@ bool DataSlice::IsPrimitiveSchema() const {
          item().is_primitive_schema();
 }
 
-bool DataSlice::IsAnySchema() const {
-  return (GetSchemaImpl() == schema::kSchema) && is_item() &&
-         item().is_any_schema();
-}
-
 bool DataSlice::IsItemIdSchema() const {
   return (GetSchemaImpl() == schema::kSchema) && is_item() &&
          item().is_itemid_schema();
@@ -1254,7 +1244,7 @@ absl::Status DataSlice::VerifyIsPrimitiveSchema() const {
 }
 
 absl::Status DataSlice::VerifyIsListSchema() const {
-  if (IsListSchema() || (is_item() && item() == schema::kAny)) {
+  if (IsListSchema()) {
     return absl::OkStatus();
   }
   RETURN_IF_ERROR(VerifyIsSchema());
@@ -1263,7 +1253,7 @@ absl::Status DataSlice::VerifyIsListSchema() const {
 }
 
 absl::Status DataSlice::VerifyIsDictSchema() const {
-  if (IsDictSchema() || (is_item() && item() == schema::kAny)) {
+  if (IsDictSchema()) {
     return absl::OkStatus();
   }
   RETURN_IF_ERROR(VerifyIsSchema());
@@ -1536,7 +1526,7 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
       // Entity schema.
       RETURN_IF_ERROR(
           DelSchemaAttrItem(GetSchemaImpl(), attr_name, db_mutable_impl));
-    } else if (GetSchemaImpl() != schema::kAny) {
+    } else {
       return absl::InvalidArgumentError(absl::StrFormat(
           "failed to delete '%s' attribute; cannot delete on a DataSlice with "
           "%v schema", attr_name, GetSchemaImpl()));
@@ -1584,8 +1574,7 @@ bool DataSlice::ShouldApplyListOp() const {
 }
 
 bool DataSlice::IsList() const {
-  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny ||
-      GetSchemaImpl() == schema::kNone) {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kNone) {
     return VisitImpl([]<typename T>(const T& impl) -> bool {
       return impl.ContainsOnlyLists();
     });
@@ -1595,8 +1584,7 @@ bool DataSlice::IsList() const {
 }
 
 bool DataSlice::IsDict() const {
-  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny ||
-      GetSchemaImpl() == schema::kNone) {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kNone) {
     return VisitImpl([]<typename T>(const T& impl) -> bool {
       return impl.ContainsOnlyDicts();
     });
@@ -1606,8 +1594,7 @@ bool DataSlice::IsDict() const {
 }
 
 bool DataSlice::IsEntity() const {
-  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kAny ||
-      GetSchemaImpl() == schema::kNone) {
+  if (GetSchemaImpl() == schema::kObject || GetSchemaImpl() == schema::kNone) {
     return VisitImpl([]<typename T>(const T& impl) -> bool {
       return impl.ContainsOnlyEntities();
     });
@@ -1698,7 +1685,7 @@ absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
     return absl::InvalidArgumentError("cannot get dict keys without a DataBag");
   }
   FlattenFallbackFinder fb_finder(*GetBag());
-  internal::DataItem res_schema(schema::kAny);
+  internal::DataItem res_schema(schema::kObject);
   return VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto res_schema,
                      GetResultSchema(GetBag()->GetImpl(), impl, GetSchemaImpl(),
@@ -2129,7 +2116,7 @@ absl::Status DataSlice::VerifySchemaConsistency(
     return absl::OkStatus();
   }
   // In case of OBJECT, each item has its own schema or is a primitive.
-  if (schema == schema::kAny || schema == schema::kObject) {
+  if (schema == schema::kObject) {
     return absl::OkStatus();
   }
   if (schema == schema::kSchema) {

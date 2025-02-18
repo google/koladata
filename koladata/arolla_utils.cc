@@ -60,7 +60,7 @@ absl::StatusOr<arolla::TypedValue> DataSliceToArollaValue(
   // The following code creates empty Arolla value with appropriate type if
   // possible. Otherwise returns appropriate error.
   //
-  // NONE, OBJECT, ANY need to get a primitive schema.
+  // NONE, OBJECT need to get a primitive schema.
   auto schema_item = ds.GetSchemaImpl();
   if (!schema_item.is_struct_schema() && !schema_item.is_primitive_schema()) {
     schema_item = fallback_schema;

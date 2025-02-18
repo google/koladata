@@ -571,17 +571,6 @@ TEST(EntityCreatorTest, SchemaArg_NoBag) {
               IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
 }
 
-TEST(EntityCreatorTest, SchemaArg_Any) {
-  auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto entity,
-                       EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)},
-                                                test::Schema(schema::kAny)));
-
-  EXPECT_THAT(entity.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(
-                  test::DataItem(42, schema::kAny).WithBag(db))));
-}
-
 TEST(EntityCreatorTest, PrimitiveToEntity) {
   auto db = DataBag::Empty();
   auto db_val = DataBag::Empty();
@@ -828,17 +817,6 @@ TEST(CreateUuTest, SchemaArg_UpdateSchema) {
               IsOkAndHolds(IsEquivalentTo(test::DataItem("xyz").WithBag(db))));
 }
 
-TEST(CreateUuTest, SchemaArg_Any) {
-  auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto entity,
-                       CreateUu(db, "", {"a"}, {test::DataItem(42)},
-                                test::Schema(schema::kAny)));
-
-  EXPECT_THAT(entity.GetAttr("a"),
-              IsOkAndHolds(IsEquivalentTo(
-                  test::DataItem(42, schema::kAny).WithBag(db))));
-}
-
 TEST(CreateUuTest, DatabagAdoption) {
   auto db_nested = DataBag::Empty();
   auto ds_a = test::DataItem(42);
@@ -1052,7 +1030,7 @@ TEST(ObjectCreatorTest, DatabagAdoption) {
 TEST(ObjectCreatorTest, InvalidSchemaArg) {
   auto db = DataBag::Empty();
   auto ds_a = test::DataItem(42);
-  auto entity_schema = test::Schema(schema::kAny);
+  auto entity_schema = test::Schema(schema::kObject);
   EXPECT_THAT(
       ObjectCreator::FromAttrs(db, {"a", "schema"}, {ds_a, entity_schema}),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1140,11 +1118,11 @@ TEST(ObjectCreatorTest, ObjectConverterError) {
   auto db = DataBag::Empty();
   EXPECT_THAT(
       ObjectCreator::ConvertWithoutAdopt(
-          db, test::DataSlice<int>({1}, schema::kAny)),
+          db, test::AllocateDataSlice(1, schema::kItemId, db)),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "schema embedding is only supported for a DataSlice with primitive, "
-          "entity, list or dict schemas, got ANY"));
+          "entity, list or dict schemas, got ITEMID"));
 }
 
 TEST(UuObjectCreatorTest, DataSlice) {
@@ -1768,11 +1746,11 @@ TEST(ObjectFactoriesTest, CreateEmptyList_ItemId_Error) {
 
   itemid = *DataSlice::Create(
       internal::DataItem(internal::AllocateSingleList()),
-      internal::DataItem(schema::kAny), db);
+      internal::DataItem(schema::kObject), db);
   EXPECT_THAT(CreateEmptyList(db, /*schema=*/std::nullopt,
                               /*item_schema=*/std::nullopt, itemid),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("expected ITEMID schema, got ANY")));
+                       HasSubstr("expected ITEMID schema, got OBJECT")));
 
   auto list_id = internal::AllocateSingleList();
   itemid = *DataSlice::Create(
@@ -2293,20 +2271,6 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchema_Adopt) {
   }
 }
 
-TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaAny) {
-  auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       CreateListShaped(db, DataSlice::JaggedShape::Empty(),
-                                        /*values=*/test::DataSlice<int>({1, 2}),
-                                        /*schema=*/test::Schema(schema::kAny)));
-  EXPECT_THAT(ds.item(),
-              DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
-
-  ASSERT_OK_AND_ASSIGN(auto list_items_ds, ds.ExplodeList(0, std::nullopt));
-  EXPECT_EQ(list_items_ds.GetSchemaImpl(), schema::kAny);
-  EXPECT_THAT(list_items_ds.slice(), ElementsAre(1, 2));
-}
-
 TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaError) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::Empty();
@@ -2745,27 +2709,6 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchema_Adopt) {
   }
 }
 
-TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaAny) {
-  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto db = DataBag::Empty();
-
-  auto keys = test::DataSlice<arolla::Text>({"a", "b", "c"});
-  ASSERT_OK_AND_ASSIGN(
-      auto ds, CreateDictShaped(db, shape,
-                                /*keys=*/keys,
-                                /*values=*/test::DataSlice<int>({1, 2, 3}),
-                                test::Schema(schema::kAny)));
-  EXPECT_THAT(
-      ds.slice(),
-      ElementsAre(
-          DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
-          DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue())),
-          DataItemWith<ObjectId>(Property(&ObjectId::IsDict, IsTrue()))));
-  EXPECT_THAT(ds.GetFromDict(keys),
-              // Casting applied.
-              IsOkAndHolds(Property(&DataSlice::GetSchemaImpl, schema::kAny)));
-}
-
 TEST(ObjectFactoriesTest, CreateDictShaped_ItemId) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   auto db = DataBag::Empty();
@@ -2956,14 +2899,14 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Errors) {
   auto itemid_wrong_schema = *DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(
           internal::AllocateDicts(3), 3), shape,
-      internal::DataItem(schema::kAny));
+      internal::DataItem(schema::kObject));
   EXPECT_THAT(CreateDictShaped(db, shape, /*keys=*/std::nullopt,
                                /*values=*/std::nullopt, /*schema=*/std::nullopt,
                                /*key_schema=*/std::nullopt,
                                /*value_schema=*/std::nullopt,
                                itemid_wrong_schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("expected ITEMID schema, got ANY")));
+                       HasSubstr("expected ITEMID schema, got OBJECT")));
 }
 
 TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
@@ -2977,7 +2920,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
 
   EXPECT_THAT(CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
                                /*keys=*/std::nullopt, /*values=*/std::nullopt,
-                               /*schema=*/test::Schema(schema::kAny),
+                               /*schema=*/test::Schema(schema::kObject),
                                /*key_schema=*/test::Schema(schema::kInt32)),
               StatusIs(
                   absl::StatusCode::kInvalidArgument,
@@ -2987,7 +2930,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
   ASSERT_OK_AND_ASSIGN(
       auto dict_schema,
       CreateDictSchema(schema_db, test::Schema(schema::kInt32),
-                       test::Schema(schema::kAny)));
+                       test::Schema(schema::kObject)));
 
   EXPECT_THAT(CreateDictShaped(db, DataSlice::JaggedShape::Empty(),
                                test::DataSlice<arolla::Text>({"abc", "xyz"}),
@@ -3200,7 +3143,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_DictSchema_Adopt) {
 
 TEST(ObjectFactoriesTest, CreateDictLike_DataItem) {
   auto db = DataBag::Empty();
-  auto shape_and_mask_from = test::DataItem(57, schema::kAny, db);
+  auto shape_and_mask_from = test::DataItem(57, schema::kObject, db);
 
   ASSERT_OK_AND_ASSIGN(
       auto ds, CreateDictLike(db, shape_and_mask_from, /*keys=*/std::nullopt,
@@ -3218,7 +3161,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_DataItem) {
 TEST(ObjectFactoriesTest, CreateDictLike_MissingDataItem) {
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::DataItem(
-      internal::DataItem(), schema::kAny, db);
+      internal::DataItem(), schema::kObject, db);
 
   ASSERT_OK_AND_ASSIGN(
       auto ds, CreateDictLike(db, shape_and_mask_from, /*keys=*/std::nullopt,
@@ -3351,7 +3294,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_ItemId_Overwrite) {
 TEST(ObjectFactoriesTest, CreateDictLike_Errors) {
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::DataItem(
-      internal::DataItem(), schema::kAny, db);
+      internal::DataItem(), schema::kObject, db);
 
   EXPECT_THAT(
       CreateDictLike(db, shape_and_mask_from,
@@ -3407,17 +3350,17 @@ TEST(ObjectFactoriesTest, CreateDictLike_ItemId_Errors) {
                        HasSubstr("itemid argument to dict creation, requires "
                                  "Dict ItemIds")));
 
-  auto itemid_wrong_schema = *DataSlice::Create(
-      internal::DataSliceImpl::ObjectsFromAllocation(
-          internal::AllocateDicts(3), 3), shape,
-      internal::DataItem(schema::kAny));
+  auto itemid_wrong_schema =
+      *DataSlice::Create(internal::DataSliceImpl::ObjectsFromAllocation(
+                             internal::AllocateDicts(3), 3),
+                         shape, internal::DataItem(schema::kObject));
   EXPECT_THAT(CreateDictLike(db, shape_and_mask_from, /*keys=*/std::nullopt,
                              /*values=*/std::nullopt, /*schema=*/std::nullopt,
                              /*key_schema=*/std::nullopt,
                              /*value_schema=*/std::nullopt,
                              itemid_wrong_schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("expected ITEMID schema, got ANY")));
+                       HasSubstr("expected ITEMID schema, got OBJECT")));
 }
 
 TEST(ObjectFactoriesTest, CreateListLike) {
@@ -3605,21 +3548,6 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema_Adopt) {
   }
 }
 
-TEST(ObjectFactoriesTest, CreateListLike_ListSchemaAny) {
-  auto db = DataBag::Empty();
-  auto shape_and_mask_from = test::DataItem(57);
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       CreateListLike(db, shape_and_mask_from,
-                                      /*values=*/test::DataSlice<int>({1, 2}),
-                                      /*schema=*/test::Schema(schema::kAny)));
-  EXPECT_THAT(ds.item(),
-              DataItemWith<ObjectId>(Property(&ObjectId::IsList, IsTrue())));
-
-  ASSERT_OK_AND_ASSIGN(auto list_items_ds, ds.ExplodeList(0, std::nullopt));
-  EXPECT_EQ(list_items_ds.GetSchemaImpl(), schema::kAny);
-  EXPECT_THAT(list_items_ds.slice(), ElementsAre(1, 2));
-}
-
 TEST(ObjectFactoriesTest, CreateListLike_ItemId) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
@@ -3712,9 +3640,10 @@ TEST(ObjectFactoriesTest, CreateListLike_ItemId_Overwrite) {
   EXPECT_EQ(ds_like.slice()[0], itemid.slice()[0]);
   EXPECT_EQ(ds_like.slice()[1], itemid.slice()[1]);
   // For the list that was not overwritten, we still expect the original values.
-  ASSERT_OK_AND_ASSIGN(auto ds_any,
-                       ds.WithSchema(test::DataItem(schema::kAny)));
-  EXPECT_THAT(ds_any.ExplodeList(0, std::nullopt),
+  ASSERT_OK_AND_ASSIGN(auto list_schema,
+                       CreateListSchema(db, test::Schema(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(auto ds_obj, ds.WithSchema(list_schema));
+  EXPECT_THAT(ds_obj.ExplodeList(0, std::nullopt),
               IsOkAndHolds(Property(
                   &DataSlice::slice,
                   ElementsAre(arolla::Text("abc"), arolla::Text("abc"), 42))));
@@ -3730,7 +3659,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchemaError) {
                        HasSubstr("expected List schema, got INT32")));
 
   EXPECT_THAT(CreateListLike(db, shape_and_mask_from, /*values=*/std::nullopt,
-                             /*schema=*/test::Schema(schema::kAny),
+                             /*schema=*/test::Schema(schema::kObject),
                              /*item_schema=*/test::Schema(schema::kInt32)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("list schema or item schema, but not both")));
@@ -3780,13 +3709,13 @@ TEST(ObjectFactoriesTest, CreateListLike_ItemId_Errors) {
   auto itemid_wrong_schema = *DataSlice::Create(
       internal::DataSliceImpl::ObjectsFromAllocation(
           internal::AllocateLists(3), 3), shape,
-      internal::DataItem(schema::kAny));
+      internal::DataItem(schema::kObject));
   EXPECT_THAT(CreateListLike(db, shape_and_mask_from, /*values=*/std::nullopt,
                              /*schema=*/std::nullopt,
                              /*item_schema=*/std::nullopt,
                              itemid_wrong_schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("expected ITEMID schema, got ANY")));
+                       HasSubstr("expected ITEMID schema, got OBJECT")));
 }
 
 TEST(ObjectFactoriesTest, CreateNoFollowSchema_EntitySchema) {
@@ -3823,14 +3752,6 @@ TEST(ObjectFactoriesTest, CreateNoFollowSchema_PrimitiveSchema) {
       CreateNoFollowSchema(test::Schema(schema::kInt32)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("calling nofollow on INT32 slice is not allowed")));
-}
-
-TEST(ObjectFactoriesTest, CreateNoFollowSchema_AnySchema) {
-  auto db = DataBag::Empty();
-  EXPECT_THAT(
-      CreateNoFollowSchema(test::Schema(schema::kAny)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("calling nofollow on ANY slice is not allowed")));
 }
 
 TEST(ObjectFactoriesTest, CreateNoFollowSchema_ItemIdSchema) {
@@ -3893,18 +3814,6 @@ TEST(ObjectFactoriesTest, NoFollow_Primitives) {
       NoFollow(ds),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("calling nofollow on INT32 slice is not allowed")));
-}
-
-TEST(ObjectFactoriesTest, NoFollow_Any) {
-  auto db = DataBag::Empty();
-  auto ds_primitives = test::DataSlice<int>({1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       ObjectCreator::FromAttrs(db, {"a"}, {ds_primitives}));
-  ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(test::Schema(schema::kAny)));
-  EXPECT_THAT(
-      NoFollow(ds),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("calling nofollow on ANY slice is not allowed")));
 }
 
 }  // namespace

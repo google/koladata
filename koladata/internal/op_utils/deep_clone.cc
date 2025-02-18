@@ -60,10 +60,6 @@ class DeepCloneVisitor : AbstractVisitor {
     } else if (schema.holds_value<schema::DType>()) {
       if (schema == schema::kObject) {
         return PrevisitObject(item);
-      } else if (schema == schema::kAny) {
-        return absl::InternalError(absl::StrFormat(
-            "deep_clone does not support %v schema; encountered for object %v",
-            schema, item));
       } else if (schema == schema::kSchema) {
         return PrevisitSchema(item);
       }

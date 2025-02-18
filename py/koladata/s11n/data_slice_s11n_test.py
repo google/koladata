@@ -543,12 +543,12 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
           text % '11',
           data_slice.DataSlice.from_vals(1, schema_constants.OBJECT),
       )
-    with self.subTest('ANY'):
+    with self.subTest('ANY deprecation'):
       container_proto = text_format.Parse(
           text % '9', arolla.s11n.ContainerProto()
       )
-      result = arolla.s11n.loads(container_proto.SerializeToString())
-      self.assertEqual(repr(result), 'DataItem(1, schema: ANY)')
+      with self.assertRaisesRegex(ValueError, 'unsupported DType: ANY'):
+        arolla.s11n.loads(container_proto.SerializeToString())
 
 
 if __name__ == '__main__':

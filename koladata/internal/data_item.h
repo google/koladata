@@ -206,10 +206,6 @@ class DataItem {
     return !(*this == other);
   }
 
-  bool is_any_schema() const {
-    return holds_value<schema::DType>() && (*this) == schema::kAny;
-  }
-
   bool is_object_schema() const {
     return holds_value<schema::DType>() && (*this) == schema::kObject;
   }

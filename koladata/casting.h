@@ -27,28 +27,28 @@ namespace koladata {
 // Casts the given slice to INT32.
 //
 // The following schemas are supported: {NONE, BOOL, INT32, INT64, FLOAT32,
-// FLOAT64, STRING, BYTES, OBJECT, ANY}. Slices with non-primitive schemas are
+// FLOAT64, STRING, BYTES, OBJECT}. Slices with non-primitive schemas are
 // required to contain only supported primitive values.
 absl::StatusOr<DataSlice> ToInt32(const DataSlice& slice);
 
 // Casts the given slice to INT64.
 //
 // The following schemas are supported: {NONE, BOOL, INT32, INT64, FLOAT32,
-// FLOAT64, STRING, BYTES, OBJECT, ANY}. Slices with non-primitive schemas are
+// FLOAT64, STRING, BYTES, OBJECT}. Slices with non-primitive schemas are
 // required to contain only supported primitive values.
 absl::StatusOr<DataSlice> ToInt64(const DataSlice& slice);
 
 // Casts the given slice to FLOAT32.
 //
 // The following schemas are supported: {NONE, BOOL, INT32, INT64, FLOAT32,
-// FLOAT64, STRING, BYTES, OBJECT, ANY}. Slices with non-primitive schemas are
+// FLOAT64, STRING, BYTES, OBJECT}. Slices with non-primitive schemas are
 // required to contain only supported primitive values.
 absl::StatusOr<DataSlice> ToFloat32(const DataSlice& slice);
 
 // Casts the given slice to FLOAT64.
 //
 // The following schemas are supported: {NONE, BOOL, INT32, INT64, FLOAT32,
-// FLOAT64, STRING, BYTES, OBJECT, ANY}. Slices with non-primitive schemas are
+// FLOAT64, STRING, BYTES, OBJECT}. Slices with non-primitive schemas are
 // required to contain only supported primitive values.
 absl::StatusOr<DataSlice> ToFloat64(const DataSlice& slice);
 
@@ -59,14 +59,14 @@ absl::StatusOr<DataSlice> ToNone(const DataSlice& slice);
 
 // Casts the given slice to EXPR.
 //
-// The following schemas are supported: {NONE, EXPR, OBJECT, ANY}. Slices with
+// The following schemas are supported: {NONE, EXPR, OBJECT}. Slices with
 // non-primitive schemas are required to only contain ExprQuote values.
 absl::StatusOr<DataSlice> ToExpr(const DataSlice& slice);
 
 // Casts the given slice to STRING.
 //
 // The following schemas are supported: {NONE, STRING, BYTES, MASK, BOOL, INT32,
-// INT64, FLOAT32, FLOAT64, OBJECT, ANY}. Slices with non-primitive schemas are
+// INT64, FLOAT32, FLOAT64, OBJECT}. Slices with non-primitive schemas are
 // required to only contain the previously listed values. Note that Bytes values
 // are converted through b'foo' -> "b'foo'". Use `Decode` to decode BYTES to
 // STRING using the UTF-8 encoding.
@@ -74,58 +74,53 @@ absl::StatusOr<DataSlice> ToStr(const DataSlice& slice);
 
 // Casts the given slice to BYTES.
 //
-// The following schemas are supported: {NONE, BYTES, OBJECT, ANY}.
+// The following schemas are supported: {NONE, BYTES, OBJECT}.
 // Slices with non-primitive schemas are required to only contain Bytes values.
 // Use `Encode` to encode STRING to BYTES using the UTF-8 encoding.
 absl::StatusOr<DataSlice> ToBytes(const DataSlice& slice);
 
 // Converts the given slice to STRING using UTF-8 decoding.
 //
-// The following schemas are supported: {NONE, STRING, BYTES, OBJECT, ANY}.
+// The following schemas are supported: {NONE, STRING, BYTES, OBJECT}.
 // Slices with non-primitive schemas are required to only contain the previously
 // listed values.
 absl::StatusOr<DataSlice> Decode(const DataSlice& slice);
 
 // Converts the given slice to BYTES using UTF-8 encoding.
 //
-// The following schemas are supported: {NONE, STRING, BYTES, OBJECT, ANY}.
+// The following schemas are supported: {NONE, STRING, BYTES, OBJECT}.
 // Slices with non-primitive schemas are required to only contain the previously
 // listed values.
 absl::StatusOr<DataSlice> Encode(const DataSlice& slice);
 
 // Casts the given slice to MASK.
 //
-// The following schemas are supported: {NONE, MASK, OBJECT, ANY}. Slices with
+// The following schemas are supported: {NONE, MASK, OBJECT}. Slices with
 // non-primitive schemas are required to only contain Unit values.
 absl::StatusOr<DataSlice> ToMask(const DataSlice& slice);
 
 // Casts the given slice to BOOL.
 //
 // The following schemas are supported: {NONE, BOOL, INT32, INT64, FLOAT32,
-// FLOAT64, OBJECT, ANY}. Slices with non-primitive schemas are required to only
+// FLOAT64, OBJECT}. Slices with non-primitive schemas are required to only
 // contain previously listed primitive values.
 absl::StatusOr<DataSlice> ToBool(const DataSlice& slice);
 
-// Casts the given slice to ANY.
-//
-// All input schemas are supported.
-absl::StatusOr<DataSlice> ToAny(const DataSlice& slice);
-
 // Casts the given slice to ITEMID.
 //
-// The following schemas are supported: {NONE, ITEMID, OBJECT, ANY} as well as
+// The following schemas are supported: {NONE, ITEMID, OBJECT} as well as
 // entity schemas. Present values are required to be ObjectIds.
 absl::StatusOr<DataSlice> ToItemId(const DataSlice& slice);
 
 // Casts the given slice to SCHEMA.
 //
-// The following schemas are supported: {NONE, SCHEMA, OBJECT, ANY}. Slices with
+// The following schemas are supported: {NONE, SCHEMA, OBJECT}. Slices with
 // non-primitive schemas are required to only contain Schema values.
 absl::StatusOr<DataSlice> ToSchema(const DataSlice& slice);
 
 // Casts the given slice to the provided entity schema.
 //
-// The following schemas are supported: {NONE, ITEMID, OBJECT, ANY} as well as
+// The following schemas are supported: {NONE, ITEMID, OBJECT} as well as
 // entity schemas. Note that the provided entity schema is not validated to
 // match any existing schema attributes in the slice's DataBag.
 absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,

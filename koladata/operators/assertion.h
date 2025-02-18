@@ -30,8 +30,7 @@ inline absl::StatusOr<DataSlice> AssertDsHasPrimitivesOf(
     const DataSlice& ds, const DataSlice& dtype, const arolla::Text& message) {
   RETURN_IF_ERROR(dtype.VerifyIsPrimitiveSchema());
   const auto& ds_schema = ds.GetSchemaImpl();
-  if (ds_schema != schema::kAny && ds_schema != schema::kObject &&
-      ds_schema != dtype.item()) {
+  if (ds_schema != schema::kObject && ds_schema != dtype.item()) {
     return absl::FailedPreconditionError(message.view());
   }
   if (ds.present_count() > 0 &&

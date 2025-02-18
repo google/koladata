@@ -74,7 +74,7 @@ TEST(AdoptionQueueTest, Single) {
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice slice,
-      DataSlice::Create(obj, internal::DataItem(schema::kAny), db2));
+      DataSlice::Create(obj, internal::DataItem(schema::kObject), db2));
   ASSERT_OK_AND_ASSIGN(slice, slice.SetSchema(schema));
 
   AdoptionQueue q;
@@ -116,11 +116,11 @@ TEST(AdoptionQueueTest, GetCommonOrMergedDb) {
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice slice1,
-      DataSlice::Create(obj, internal::DataItem(schema::kAny), db1));
+      DataSlice::Create(obj, internal::DataItem(schema::kObject), db1));
   ASSERT_OK_AND_ASSIGN(slice1, slice1.SetSchema(schema));
   ASSERT_OK_AND_ASSIGN(
       DataSlice slice2,
-      DataSlice::Create(obj, internal::DataItem(schema::kAny), db2));
+      DataSlice::Create(obj, internal::DataItem(schema::kObject), db2));
   ASSERT_OK_AND_ASSIGN(slice2, slice2.SetSchema(schema));
 
   AdoptionQueue q;
@@ -162,11 +162,12 @@ TEST(AdoptionQueueTest, WithFallbacks) {
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice slice1,
-      DataSlice::Create(obj, internal::DataItem(schema::kAny), db1));
+      DataSlice::Create(obj, internal::DataItem(schema::kObject), db1));
   ASSERT_OK_AND_ASSIGN(slice1, slice1.SetSchema(schema));
-  ASSERT_OK_AND_ASSIGN(DataSlice slice2,
-                       DataSlice::Create(obj, internal::DataItem(schema::kAny),
-                                         db_with_fallbacks));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice slice2,
+      DataSlice::Create(obj, internal::DataItem(schema::kObject),
+                        db_with_fallbacks));
   ASSERT_OK_AND_ASSIGN(slice2,
                        slice2.WithSchema(schema.WithBag(db_with_fallbacks)));
 

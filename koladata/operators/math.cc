@@ -200,7 +200,7 @@ absl::StatusOr<DataSlice> AggSum(const DataSlice& x) {
   ASSIGN_OR_RETURN(auto primitive_schema, GetPrimitiveArollaSchema(x),
                    internal::OperatorEvalError(std::move(_), "kd.math.agg_sum",
                                                "invalid inputs"));
-  // The input has primitive schema or OBJECT/ANY schema with a single primitive
+  // The input has primitive schema or OBJECT schema with a single primitive
   // dtype.
   if (primitive_schema.has_value()) {
     return SimpleAggIntoEval("math.sum", {x});

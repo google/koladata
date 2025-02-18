@@ -33,7 +33,7 @@ TEST(SchemaConstants, Schemas) {
                                schema::kInt32, schema::kInt64, schema::kFloat32,
                                schema::kFloat64, schema::kBool, schema::kMask,
                                schema::kBytes, schema::kString, schema::kExpr,
-                               schema::kAny, schema::kItemId, schema::kObject,
+                               schema::kItemId, schema::kObject,
                                schema::kSchema, schema::kNone));
 }
 

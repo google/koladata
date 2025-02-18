@@ -83,13 +83,13 @@ TEST(ArollaEval, SimplePointwiseEval) {
                     {int64_t{4}, int64_t{-2}, std::nullopt, std::nullopt},
                     y_shape, schema::kObject)));
     // With output schema set.
-    ASSERT_OK_AND_ASSIGN(result,
-                         SimplePointwiseEval("math.add", {x, y},
-                                             internal::DataItem(schema::kAny)));
+    ASSERT_OK_AND_ASSIGN(
+        result, SimplePointwiseEval("math.add", {x, y},
+                                    internal::DataItem(schema::kInt64)));
     EXPECT_THAT(result,
                 IsEquivalentTo(test::DataSlice<int64_t>(
                     {int64_t{4}, int64_t{-2}, std::nullopt, std::nullopt},
-                    y_shape, schema::kAny)));
+                    y_shape, schema::kInt64)));
   }
   {
     // One empty and unknown slice.
@@ -130,12 +130,12 @@ TEST(ArollaEval, SimplePointwiseEval) {
         IsEquivalentTo(
             *test::EmptyDataSlice(4, schema::kObject).Reshape(y_shape)));
     // With output schema set.
-    ASSERT_OK_AND_ASSIGN(result,
-                         SimplePointwiseEval("math.add", {x, y},
-                                             internal::DataItem(schema::kAny)));
+    ASSERT_OK_AND_ASSIGN(
+        result, SimplePointwiseEval("math.add", {x, y},
+                                    internal::DataItem(schema::kNone)));
     EXPECT_THAT(result,
                 IsEquivalentTo(
-                    *test::EmptyDataSlice(4, schema::kAny).Reshape(y_shape)));
+                    *test::EmptyDataSlice(4, schema::kNone).Reshape(y_shape)));
   }
   {
     // Schema derived from Arolla output is different from inputs' schemas.
@@ -151,12 +151,12 @@ TEST(ArollaEval, SimplePointwiseEval) {
                             {3.0, 2.0, std::nullopt, std::nullopt}, y_shape,
                             schema::kFloat32)));
     // With output schema set.
-    ASSERT_OK_AND_ASSIGN(result,
-                         SimplePointwiseEval("math.divide", {x, y},
-                                             internal::DataItem(schema::kAny)));
+    ASSERT_OK_AND_ASSIGN(
+        result, SimplePointwiseEval("math.divide", {x, y},
+                                    internal::DataItem(schema::kFloat32)));
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<float>(
                             {3.0, 2.0, std::nullopt, std::nullopt}, y_shape,
-                            schema::kAny)));
+                            schema::kFloat32)));
   }
   {
     // Large arity.
@@ -328,7 +328,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
     DataSlice start = test::DataSlice<int>({1, 2, 0}, schema::kInt32);
     // This schema is unknown:
     DataSlice end = test::DataSlice<int>(
-        {std::nullopt, std::nullopt, std::nullopt}, schema::kAny);
+        {std::nullopt, std::nullopt, std::nullopt}, schema::kObject);
     EXPECT_THAT(SimplePointwiseEval(
                     "strings.find", {x, substr, start, end},
                     /*output_schema=*/internal::DataItem(schema::kInt64),
@@ -372,9 +372,9 @@ TEST(ArollaEval, SimpleAggIntoEval) {
     // With output schema set.
     ASSERT_OK_AND_ASSIGN(
         result,
-        SimpleAggIntoEval("math.sum", {x}, internal::DataItem(schema::kAny)));
+        SimpleAggIntoEval("math.sum", {x}, internal::DataItem(schema::kInt32)));
     EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int>(
-                            {3, 3, 0}, shape.RemoveDims(1), schema::kAny)));
+                            {3, 3, 0}, shape.RemoveDims(1), schema::kInt32)));
   }
   {
     // Computes common schema for input and output
@@ -527,9 +527,10 @@ TEST(ArollaEval, SimpleAggOverEval) {
     // With output schema set.
     ASSERT_OK_AND_ASSIGN(result,
                          SimpleAggOverEval("array.inverse_mapping", {x},
-                                           internal::DataItem(schema::kAny)));
-    EXPECT_THAT(result, IsEquivalentTo(test::DataSlice<int>(
-                            {2, 0, 1, std::nullopt, 0}, shape, schema::kAny)));
+                                           internal::DataItem(schema::kInt32)));
+    EXPECT_THAT(result,
+                IsEquivalentTo(test::DataSlice<int>({2, 0, 1, std::nullopt, 0},
+                                                    shape, schema::kInt32)));
   }
   {
     // Empty and unknown slice.
@@ -543,9 +544,9 @@ TEST(ArollaEval, SimpleAggOverEval) {
     // With output schema set.
     ASSERT_OK_AND_ASSIGN(result,
                          SimpleAggOverEval("array.inverse_mapping", {x},
-                                           internal::DataItem(schema::kAny)));
+                                           internal::DataItem(schema::kNone)));
     EXPECT_THAT(result, IsEquivalentTo(
-                            *x.WithSchema(internal::DataItem(schema::kAny))));
+                            *x.WithSchema(internal::DataItem(schema::kNone))));
   }
   {
     // Scalar input error.
@@ -694,9 +695,6 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataItem) {
     EXPECT_THAT(
         GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kObject)),
         IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
-    EXPECT_THAT(
-        GetPrimitiveArollaSchema(test::DataItem(std::nullopt, schema::kAny)),
-        IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
   }
   {
     // Missing with primitive schema.
@@ -708,14 +706,10 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataItem) {
         IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
-    // Present values with OBJECT / ANY schema.
+    // Present values with OBJECT schema.
     EXPECT_THAT(
         GetPrimitiveArollaSchema(test::DataItem(1, schema::kObject)),
         IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
-    EXPECT_THAT(
-        GetPrimitiveArollaSchema(
-            test::DataItem(arolla::Text("foo"), schema::kAny)),
-        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
     // Present values with corresponding schema schema.
@@ -753,8 +747,6 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataSlice) {
     EXPECT_THAT(
         GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kObject)),
         IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
-    EXPECT_THAT(GetPrimitiveArollaSchema(test::EmptyDataSlice(3, schema::kAny)),
-                IsOkAndHolds(IsEquivalentTo(internal::DataItem())));
   }
   {
     // Missing with primitive schema.
@@ -766,14 +758,10 @@ TEST(PrimitiveArollaSchemaTest, PrimitiveSchema_DataSlice) {
         IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
-    // Present values with OBJECT / ANY schema.
+    // Present values with OBJECT schema.
     EXPECT_THAT(
         GetPrimitiveArollaSchema(test::DataSlice<int>({1}, schema::kObject)),
         IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kInt32))));
-    EXPECT_THAT(
-        GetPrimitiveArollaSchema(
-            test::DataSlice<arolla::Text>({"foo"}, schema::kAny)),
-        IsOkAndHolds(IsEquivalentTo(internal::DataItem(schema::kString))));
   }
   {
     // Present values with corresponding schema schema.

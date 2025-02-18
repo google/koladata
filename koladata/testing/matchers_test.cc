@@ -22,6 +22,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata {
 namespace {
@@ -41,9 +42,10 @@ std::string Explain(const MatcherType& m, const Value& x) {
 TEST(MatchersTest, IsEquivalentTo) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   auto objects = internal::DataSliceImpl::AllocateEmptyObjects(shape.size());
+  auto explicit_schema = internal::AllocateExplicitSchema();
   ASSERT_OK_AND_ASSIGN(
       auto ds_1,
-      DataSlice::Create(objects, shape, internal::DataItem(schema::kAny)));
+      DataSlice::Create(objects, shape, internal::DataItem(explicit_schema)));
   ASSERT_OK_AND_ASSIGN(
       auto ds_2,
       DataSlice::Create(objects, shape, internal::DataItem(schema::kObject)));
@@ -74,7 +76,7 @@ TEST(MatchersTest, Printing) {
   auto objects = internal::DataSliceImpl::AllocateEmptyObjects(shape.size());
   ASSERT_OK_AND_ASSIGN(
       auto ds_1,
-      DataSlice::Create(objects, shape, internal::DataItem(schema::kAny)));
+      DataSlice::Create(objects, shape, internal::DataItem(schema::kObject)));
   EXPECT_THAT(::testing::PrintToString(ds_1),
               MatchesRegex(R"(DataSlice\(.*schema.*shape.*\))"));
 }

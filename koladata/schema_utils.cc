@@ -69,8 +69,8 @@ absl::Status ExpectNoneOr(schema::DType dtype, absl::string_view arg_name,
   return absl::OkStatus();
 }
 
-// Returns a simple description of the slice schema. Note that OBJECT and ANY
-// schemas are opaque and the contents (e.g. __schema__) are _not_ included.
+// Returns a simple description of the slice schema. Note that OBJECT schemas
+// are opaque and the contents (e.g. __schema__) are _not_ included.
 std::string SimpleDescribeSliceSchema(const DataSlice& slice) {
   absl::StatusOr<std::string> schema_str = DataSliceToStr(slice.GetSchema());
   // NOTE: schema_str might be always ok(). I don't know a breaking
@@ -85,7 +85,7 @@ std::string SimpleDescribeSliceSchema(const DataSlice& slice) {
 
 internal::DataItem GetNarrowedSchema(const DataSlice& slice) {
   const auto& schema = slice.GetSchemaImpl();
-  if (schema == schema::kObject || schema == schema::kAny) {
+  if (schema == schema::kObject) {
     return slice.VisitImpl([&](const auto& impl) {
       if (auto data_schema = schema::GetDataSchema(impl);
           data_schema.has_value()) {
@@ -193,8 +193,7 @@ absl::Status ExpectPresentScalar(absl::string_view arg_name,
 }
 
 std::string DescribeSliceSchema(const DataSlice& slice) {
-  if (slice.GetSchemaImpl() == schema::kObject ||
-      slice.GetSchemaImpl() == schema::kAny) {
+  if (slice.GetSchemaImpl() == schema::kObject) {
     std::string result = absl::StrCat(slice.GetSchemaImpl(), " containing ");
     slice.VisitImpl(absl::Overload(
         [&](const internal::DataItem& impl) {
@@ -297,8 +296,7 @@ absl::Status ExpectHaveCommonPrimitiveSchema(
   auto lhs_narrowed = GetNarrowedSchema(lhs);
   auto rhs_narrowed = GetNarrowedSchema(rhs);
   if (auto common_schema = schema::CommonSchema(lhs_narrowed, rhs_narrowed);
-      common_schema.ok() && *common_schema != schema::kObject &&
-      *common_schema != schema::kAny) {
+      common_schema.ok() && *common_schema != schema::kObject) {
     return absl::OkStatus();
   }
   return absl::InvalidArgumentError(

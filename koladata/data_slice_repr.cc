@@ -310,12 +310,11 @@ std::string DataSliceItemRepr(const DataItem& item, const DataItem& schema,
     return absl::StrCat(item_prefix,
                         wrapping.MaybeWrapObjectId(item, DataItemRepr(item)));
   }
-  bool is_obj_or_any_schema =
-      schema == schema::kObject || schema == schema::kAny;
+  bool is_obj_schema = schema == schema::kObject;
   bool is_mask_schema = schema == schema::kMask;
   return wrapping.MaybeEscape(DataItemRepr(
       item,
-      {.show_dtype = is_obj_or_any_schema,
+      {.show_dtype = is_obj_schema,
         .show_missing = is_mask_schema,
         .unbounded_type_max_len = option.unbounded_type_max_len}));
 }
@@ -732,12 +731,11 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
     return PrettyFormatStr(attr_parts, {.prefix = prefix, .suffix = ")"},
                            wrapping.html_char_count - initial_html_char_count);
   }
-  bool is_obj_or_any_schema =
-      schema == schema::kObject || schema == schema::kAny;
+  bool is_obj_schema = schema == schema::kObject;
   return wrapping.MaybeEscape(
       DataItemRepr(data_item, {
         .strip_quotes = option.strip_quotes,
-        .show_dtype = is_obj_or_any_schema,
+        .show_dtype = is_obj_schema,
         .unbounded_type_max_len = option.unbounded_type_max_len}));
 }
 
@@ -777,10 +775,8 @@ std::string AttrNamesOrEmpty(const DataSlice& ds) {
 std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   std::string result;
   absl::StrAppend(&result, ds.is_item() ? "DataItem(" : "DataSlice(");
-  const DataItem& schema = ds.GetSchemaImpl();
-  bool only_print_attr_names = ds.size() >= option.item_limit &&
-                               option.show_attributes &&
-                               !schema.is_any_schema() && ds.IsEntity();
+  bool only_print_attr_names =
+      ds.size() >= option.item_limit && option.show_attributes && ds.IsEntity();
   // If the data slice is too large, we will not print the
   // whole data slice.
   if (only_print_attr_names) {

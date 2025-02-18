@@ -68,8 +68,6 @@ using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
 
-internal::DataItem kAnySchema(schema::kAny);
-
 DataSliceEdge EdgeFromSizes(absl::Span<const int64_t> sizes) {
   std::vector<arolla::OptionalValue<int64_t>> split_points;
   split_points.reserve(sizes.size() + 1);
@@ -146,14 +144,18 @@ TEST(DataSliceUtils, ToArollaValueEmptyMultidimSlice) {
   EXPECT_THAT(arolla_val.UnsafeAs<DenseArray<float>>(),
               ElementsAre(std::nullopt, std::nullopt, std::nullopt));
 
-  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(ds_impl, shape, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      ds,
+      DataSlice::Create(ds_impl, shape, internal::DataItem(schema::kObject)));
   EXPECT_THAT(DataSliceToArollaValue(ds),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("empty slices can be converted to Arolla value"
                                  " only if they have primitive schema")));
 
   // We can pass a fallback schema.
-  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(ds_impl, shape, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      ds,
+      DataSlice::Create(ds_impl, shape, internal::DataItem(schema::kObject)));
   ASSERT_OK_AND_ASSIGN(
       arolla_val,
       DataSliceToArollaValue(
@@ -162,8 +164,11 @@ TEST(DataSliceUtils, ToArollaValueEmptyMultidimSlice) {
               ElementsAre(std::nullopt, std::nullopt, std::nullopt));
 
   // The fallback schema must be a primitive schema.
-  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(ds_impl, shape, kAnySchema));
-  EXPECT_THAT(DataSliceToArollaValue(ds, /*fallback_schema=*/kAnySchema),
+  ASSERT_OK_AND_ASSIGN(
+      ds,
+      DataSlice::Create(ds_impl, shape, internal::DataItem(schema::kObject)));
+  EXPECT_THAT(DataSliceToArollaValue(
+                  ds, /*fallback_schema=*/internal::DataItem(schema::kObject)),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("empty slices can be converted to Arolla value"
                                  " only if they have primitive schema")));
@@ -186,7 +191,7 @@ TEST(DataSliceUtils, ToArollaValueMixedSlice) {
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       DataSlice::Create(internal::DataSliceImpl::Create(values_1, values_2),
-                        shape, kAnySchema));
+                        shape, internal::DataItem(schema::kObject)));
 
   EXPECT_THAT(DataSliceToArollaValue(ds),
               StatusIs(absl::StatusCode::kFailedPrecondition,
@@ -239,14 +244,18 @@ TEST(DataSliceUtils, ToArollaValueScalar) {
             arolla::OptionalValue<int>{});
 
   // Error - empty, untyped, without primitive Schema.
-  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(internal::DataItem(), kAnySchema));
+  ASSERT_OK_AND_ASSIGN(ds,
+                       DataSlice::Create(internal::DataItem(),
+                                         internal::DataItem(schema::kObject)));
   EXPECT_THAT(DataSliceToArollaValue(ds),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("empty slices can be converted to Arolla value"
                                  " only if they have primitive schema")));
 
   // Optional - empty, untyped, without primitive Schema, but with fallback.
-  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(internal::DataItem(), kAnySchema));
+  ASSERT_OK_AND_ASSIGN(ds,
+                       DataSlice::Create(internal::DataItem(),
+                                         internal::DataItem(schema::kObject)));
   ASSERT_OK_AND_ASSIGN(
       arolla_val,
       DataSliceToArollaValue(
@@ -277,8 +286,9 @@ TEST(DataSliceUtils, ToArollaOwnedRef) {
   {
     // With fallback - making it owned.
     std::vector<arolla::TypedValue> typed_value_holder;
-    ASSERT_OK_AND_ASSIGN(ds,
-                         DataSlice::Create(internal::DataItem(), kAnySchema));
+    ASSERT_OK_AND_ASSIGN(
+        ds, DataSlice::Create(internal::DataItem(),
+                              internal::DataItem(schema::kObject)));
     ASSERT_OK_AND_ASSIGN(
         auto ref, DataSliceToOwnedArollaRef(
                       ds, typed_value_holder,
@@ -291,8 +301,9 @@ TEST(DataSliceUtils, ToArollaOwnedRef) {
   {
     // Without fallback - error.
     std::vector<arolla::TypedValue> typed_value_holder;
-    ASSERT_OK_AND_ASSIGN(ds,
-                         DataSlice::Create(internal::DataItem(), kAnySchema));
+    ASSERT_OK_AND_ASSIGN(
+        ds, DataSlice::Create(internal::DataItem(),
+                              internal::DataItem(schema::kObject)));
     EXPECT_THAT(
         DataSliceToOwnedArollaRef(ds, typed_value_holder),
         StatusIs(absl::StatusCode::kFailedPrecondition,
@@ -448,7 +459,7 @@ TEST(DataSliceUtils, ToDenseArrayError) {
   ASSERT_OK_AND_ASSIGN(
       auto ds,
       DataSlice::Create(internal::DataSliceImpl::Create(values_1, values_2),
-                        shape, kAnySchema));
+                        shape, internal::DataItem(schema::kObject)));
 
   EXPECT_THAT(DataSliceToDenseArray(ds),
               StatusIs(absl::StatusCode::kFailedPrecondition,
@@ -458,16 +469,16 @@ TEST(DataSliceUtils, ToDenseArrayError) {
 
   ASSERT_OK_AND_ASSIGN(
       ds, DataSlice::Create(internal::DataSliceImpl::AllocateEmptyObjects(3),
-                            shape, kAnySchema));
+                            shape, internal::DataItem(schema::kObject)));
   EXPECT_THAT(DataSliceToDenseArray(ds),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("unsupported dtype for conversions to "
-                                 "Arolla value: ANY")));
+                                 "Arolla value: OBJECT")));
 
-  // Empty with ANY schema.
+  // Empty with OBJECT schema.
   ASSERT_OK_AND_ASSIGN(
       ds, DataSlice::Create(internal::SliceBuilder(3).Build(),
-                            shape, kAnySchema));
+                            shape, internal::DataItem(schema::kObject)));
   EXPECT_THAT(DataSliceToDenseArray(ds),
               StatusIs(absl::StatusCode::kFailedPrecondition,
                        HasSubstr("empty slices can be converted to Arolla value"

@@ -42,12 +42,6 @@
 
 namespace koladata::schema {
 
-// Additional types definitions to augment DTypeTraits.
-//
-// Used as schema for DataSlices that can contain any value, including ObjectIds
-// and mixed primitive values.
-struct AnyDType {};
-
 // Used as schema for DataSlices that can contain ObjectId(s) with various
 // schemas, but cannot contain primitives. UUID slices by default have ITEMID
 // schemas.
@@ -73,7 +67,7 @@ using supported_primitive_dtypes =
                             arolla::expr::ExprQuote>;
 using supported_dtype_values = arolla::meta::concat_t<
     supported_primitive_dtypes,
-    arolla::meta::type_list<AnyDType, ItemIdDType, ObjectDType, SchemaDType,
+    arolla::meta::type_list<ItemIdDType, ObjectDType, SchemaDType,
                             internal::MissingValue>>;
 
 using DTypeId = int8_t;
@@ -102,8 +96,7 @@ static constexpr DTypeId GetDTypeId() {
     return 7;
   } else if constexpr (std::is_same_v<arolla::expr::ExprQuote, T>) {
     return 8;
-  } else if constexpr (std::is_same_v<AnyDType, T>) {
-    return 9;
+  // ANY -> 9 is deprecated.
   } else if constexpr (std::is_same_v<ItemIdDType, T>) {
     return 10;
   } else if constexpr (std::is_same_v<ObjectDType, T>) {
@@ -124,7 +117,7 @@ constexpr int8_t kNextDTypeId = 14;
 // here means that it has no further attributes and practically means that a
 // DataSlice is either:
 // * a primitive;
-// * mixed, e.g. dtype == ANY;
+// * mixed, e.g. dtype == OBJECT;
 // * is still an object, but schema should be looked-up in data itself.
 //
 // In other instances, DataSlice's schema will contain an ObjectId, which means
@@ -141,6 +134,10 @@ class DType {
   // Initializes a new DType with the provided type_id. Validates that the
   // `type_id()` represents a valid DType. Returns an error otherwise.
   static absl::StatusOr<DType> FromId(DTypeId type_id) {
+    if (type_id == 9) {
+      return absl::InvalidArgumentError(
+          "unsupported DType: ANY - deprecated in cl/715818351");
+    }
     if (type_id < 0 || type_id >= kNextDTypeId) {
       return absl::InvalidArgumentError(
           absl::StrFormat("unsupported DType.type_id(): %v", type_id));
@@ -228,7 +225,7 @@ class DType {
     hasher->Combine(absl::StrCat("::sc\0hema::D\0Type::", type_id()));
   }
 
-  DTypeId type_id_ = GetDTypeId<AnyDType>();
+  DTypeId type_id_ = GetDTypeId<internal::MissingValue>();
 
   static constexpr std::array<bool, kNextDTypeId> kSupportedPrimitiveDTypeIds =
       [] {
@@ -251,7 +248,6 @@ class DType {
         res[GetDTypeId<arolla::Bytes>()] = "BYTES";
         res[GetDTypeId<arolla::Text>()] = "STRING";
         res[GetDTypeId<arolla::expr::ExprQuote>()] = "EXPR";
-        res[GetDTypeId<AnyDType>()] = "ANY";
         res[GetDTypeId<ItemIdDType>()] = "ITEMID";
         res[GetDTypeId<ObjectDType>()] = "OBJECT";
         res[GetDTypeId<SchemaDType>()] = "SCHEMA";
@@ -281,7 +277,6 @@ constexpr DType kString = GetDType<arolla::Text>();
 constexpr DType kExpr = GetDType<arolla::expr::ExprQuote>();
 
 // Special meaning DTypes.
-constexpr DType kAny = GetDType<schema::AnyDType>();
 constexpr DType kObject = GetDType<schema::ObjectDType>();
 constexpr DType kSchema = GetDType<schema::SchemaDType>();
 constexpr DType kItemId = GetDType<schema::ItemIdDType>();

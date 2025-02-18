@@ -408,7 +408,7 @@ absl::StatusOr<DataSlice> CreateDictImpl(
     }
     RETURN_IF_ERROR(schema->VerifyIsDictSchema());
     dict_schema = schema->item();
-    if (dict_schema != schema::kAny && schema->GetBag() != db) {
+    if (schema->GetBag() != db) {
       schema_adoption_queue.Add(*schema);
     }
   } else {
@@ -418,12 +418,10 @@ absl::StatusOr<DataSlice> CreateDictImpl(
                      DeduceItemSchema(values, value_schema));
     ASSIGN_OR_RETURN(dict_schema, CreateDictSchemaItem(db, deduced_key_schema,
                                                        deduced_value_schema));
-    if (key_schema && key_schema->item() != schema::kAny &&
-        key_schema->GetBag() != db) {
+    if (key_schema && key_schema->GetBag() != db) {
       schema_adoption_queue.Add(*key_schema);
     }
-    if (value_schema && value_schema->item() != schema::kAny &&
-        value_schema->GetBag() != db) {
+    if (value_schema && value_schema->GetBag() != db) {
       schema_adoption_queue.Add(*value_schema);
     }
   }
@@ -466,18 +464,16 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     schema_item = schema->item();
-    if (!schema_item.is_struct_schema() && schema_item != schema::kAny) {
+    if (!schema_item.is_struct_schema()) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "processing Entity attributes requires Entity schema, got %v",
           schema_item));
     }
-    if (schema_item != schema::kAny) {
-      // Copy schema into db before setting attributes for proper casting /
-      // error reporting.
-      AdoptionQueue schema_adoption_queue;
-      schema_adoption_queue.Add(*schema);
-      RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
-    }
+    // Copy schema into db before setting attributes for proper casting /
+    // error reporting.
+    AdoptionQueue schema_adoption_queue;
+    schema_adoption_queue.Add(*schema);
+    RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
   } else {
     schema_item = internal::DataItem(internal::AllocateExplicitSchema());
     // New schema is allocated, so attributes should be written to it
@@ -546,18 +542,16 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     schema_item = schema->item();
-    if (!schema_item.is_struct_schema() && schema_item != schema::kAny) {
+    if (!schema_item.is_struct_schema()) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "processing Entity attributes requires Entity schema, got %v",
           schema_item));
     }
-    if (schema_item != schema::kAny) {
-      // Copy schema into db before setting attributes for proper casting /
-      // error reporting.
-      AdoptionQueue schema_adoption_queue;
-      schema_adoption_queue.Add(*schema);
-      RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
-    }
+    // Copy schema into db before setting attributes for proper casting /
+    // error reporting.
+    AdoptionQueue schema_adoption_queue;
+    schema_adoption_queue.Add(*schema);
+    RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
   }
   if (values.empty()) {
     if (!schema_item.has_value()) {
@@ -567,7 +561,7 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
         internal::DataItem(internal::AllocateSingleObject()),
         std::move(schema_item), db);
   }
-  if (schema_item.has_value() && schema_item != schema::kAny) {
+  if (schema_item.has_value()) {
     std::vector<DataSlice> casted_values;
     casted_values.reserve(values.size());
     for (int i = 0; i < values.size(); ++i) {
@@ -739,18 +733,16 @@ absl::StatusOr<DataSlice> CreateUu(
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
     schema_item = schema->item();
-    if (!schema_item.is_struct_schema() && schema_item != schema::kAny) {
+    if (!schema_item.is_struct_schema()) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "processing Entity attributes requires Entity schema, got %v",
           schema_item));
     }
-    if (schema_item != schema::kAny) {
-      // Copy schema into db before setting attributes for proper casting /
-      // error reporting.
-      AdoptionQueue schema_adoption_queue;
-      schema_adoption_queue.Add(*schema);
-      RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
-    }
+    // Copy schema into db before setting attributes for proper casting /
+    // error reporting.
+    AdoptionQueue schema_adoption_queue;
+    schema_adoption_queue.Add(*schema);
+    RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
   }
   if (!schema_item.has_value()) {
     // Construct schema_item from values.
@@ -1160,7 +1152,7 @@ absl::StatusOr<DataSlice> CreateListShaped(
     }
     RETURN_IF_ERROR(schema->VerifyIsListSchema());
     list_schema = schema->item();
-    if (list_schema != schema::kAny && schema->GetBag() != db) {
+    if (schema->GetBag() != db) {
       schema_adoption_queue.Add(*schema);
     }
   } else {
@@ -1168,8 +1160,7 @@ absl::StatusOr<DataSlice> CreateListShaped(
                      DeduceItemSchema(values, item_schema));
     ASSIGN_OR_RETURN(list_schema,
                      CreateListSchemaItem(db, deduced_item_schema));
-    if (item_schema && item_schema->item() != schema::kAny &&
-        item_schema->GetBag() != db) {
+    if (item_schema && item_schema->GetBag() != db) {
       schema_adoption_queue.Add(*item_schema);
     }
   }
@@ -1201,7 +1192,7 @@ absl::StatusOr<DataSlice> CreateListLike(
     }
     RETURN_IF_ERROR(schema->VerifyIsListSchema());
     list_schema = schema->item();
-    if (list_schema != schema::kAny && schema->GetBag() != db) {
+    if (schema->GetBag() != db) {
       schema_adoption_queue.Add(*schema);
     }
   } else {
@@ -1209,8 +1200,7 @@ absl::StatusOr<DataSlice> CreateListLike(
                      DeduceItemSchema(values, item_schema));
     ASSIGN_OR_RETURN(list_schema,
                      CreateListSchemaItem(db, deduced_item_schema));
-    if (item_schema && item_schema->item() != schema::kAny &&
-        item_schema->GetBag() != db) {
+    if (item_schema && item_schema->GetBag() != db) {
       schema_adoption_queue.Add(*item_schema);
     }
   }

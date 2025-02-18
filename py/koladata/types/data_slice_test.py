@@ -1795,7 +1795,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         exceptions.KodaError,
         re.escape(
             'kd.slices.select: the schema of the `fltr` DataSlice should only'
-            ' be ANY, OBJECT or MASK or can be evaluated to such DataSlice'
+            ' be OBJECT or MASK or can be evaluated to such DataSlice'
             ' (i.e. Python function or Koda Functor)'
         ),
     ):

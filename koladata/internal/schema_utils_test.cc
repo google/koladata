@@ -184,8 +184,8 @@ TEST(SchemaUtilsTest, CommonSchemaUnary) {
     // Simple.
     EXPECT_THAT(CommonSchema(DataItem(schema::kInt32)),
                 IsOkAndHolds(schema::kInt32));
-    EXPECT_THAT(CommonSchema(DataItem(schema::kAny)),
-                IsOkAndHolds(schema::kAny));
+    EXPECT_THAT(CommonSchema(DataItem(schema::kObject)),
+                IsOkAndHolds(schema::kObject));
     auto explicit_schema = DataItem(internal::AllocateExplicitSchema());
     EXPECT_THAT(CommonSchema(DataItem(explicit_schema)),
                 IsOkAndHolds(explicit_schema));
@@ -391,7 +391,7 @@ TEST(SchemaUtilsTest, CommonSchema_ObjectId) {
 
 TEST(SchemaUtilsTest, CommonSchema_InvalidInput) {
   auto schemas = DataSliceImpl::Create(
-      CreateDenseArray<schema::DType>({schema::kAny, std::nullopt}),
+      CreateDenseArray<schema::DType>({schema::kObject, std::nullopt}),
       CreateDenseArray<int>({std::nullopt, 42}));
   EXPECT_THAT(CommonSchema(schemas),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -439,7 +439,6 @@ TEST(SchemaUtilsTest, IsImplicitlyCastableTo) {
     // ObjectId -> DType.
     auto schema = DataItem(internal::AllocateExplicitSchema());
     EXPECT_FALSE(IsImplicitlyCastableTo(schema, DataItem(schema::kObject)));
-    EXPECT_FALSE(IsImplicitlyCastableTo(schema, DataItem(schema::kAny)));
   }
   {
     // DType -> ObjectId.
@@ -447,7 +446,6 @@ TEST(SchemaUtilsTest, IsImplicitlyCastableTo) {
     // NONE casts to everything.
     EXPECT_TRUE(IsImplicitlyCastableTo(DataItem(schema::kNone), schema));
     EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kObject), schema));
-    EXPECT_FALSE(IsImplicitlyCastableTo(DataItem(schema::kAny), schema));
   }
 }
 
@@ -477,10 +475,6 @@ TEST(SchemaUtilsTest, NoFollowSchemaItem_Errors) {
           absl::StatusCode::kInvalidArgument,
           HasSubstr("calling nofollow on a nofollow slice is not allowed")));
   EXPECT_THAT(
-      NoFollowSchemaItem(DataItem(schema::kAny)),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("calling nofollow on ANY slice is not allowed")));
-  EXPECT_THAT(
       NoFollowSchemaItem(DataItem(schema::kInt32)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("calling nofollow on INT32 slice is not allowed")));
@@ -499,7 +493,6 @@ TEST(SchemaUtilsTest, GetNoFollowedSchemaItem_Errors) {
 }
 
 TEST(SchemaUtilsTest, VerifySchemaForItemIds) {
-  EXPECT_TRUE(VerifySchemaForItemIds(DataItem(schema::kAny)));
   EXPECT_TRUE(VerifySchemaForItemIds(DataItem(schema::kObject)));
   EXPECT_TRUE(VerifySchemaForItemIds(DataItem(schema::kItemId)));
 

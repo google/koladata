@@ -55,7 +55,6 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
     // Explode until items are no longer lists.
     while (true) {
       if (result.GetSchemaImpl() == schema::kNone ||
-          result.GetSchemaImpl() == schema::kAny ||
           result.GetSchemaImpl() == schema::kItemId) {
         return absl::InvalidArgumentError(absl::StrFormat(
             "cannot fully explode 'x' with %v schema", result.GetSchemaImpl()));

@@ -903,11 +903,11 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
         "to a 1-dimensional DataSlice");
   }
   const internal::DataItem& schema = filter.GetSchemaImpl();
-  if (schema != schema::kAny && schema != schema::kObject &&
-      schema != schema::kMask) {
+
+  if (schema != schema::kObject && schema != schema::kMask) {
     return absl::InvalidArgumentError(
-        "the schema of the `fltr` DataSlice should only be ANY, OBJECT or "
-        "MASK or can be evaluated to such DataSlice (i.e. Python function or "
+        "the schema of the `fltr` DataSlice should only be OBJECT or MASK or "
+        "can be evaluated to such DataSlice (i.e. Python function or "
         "Koda Functor)");
   }
   const DataSlice::JaggedShape& fltr_shape =
@@ -930,10 +930,9 @@ absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,
                                         const DataSlice& filter) {
   const internal::DataItem& schema = filter.GetSchemaImpl();
 
-  if (schema != schema::kAny && schema != schema::kObject &&
-      schema != schema::kMask) {
+  if (schema != schema::kObject && schema != schema::kMask) {
     return absl::InvalidArgumentError(
-        "the schema of the fltr DataSlice should only be Any, Object or Mask");
+        "the schema of the fltr DataSlice should only be Object or Mask");
   }
   auto ds_shape = ds.GetShape();
   auto filter_shape = filter.GetShape();

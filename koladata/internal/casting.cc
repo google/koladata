@@ -100,8 +100,6 @@ absl::StatusOr<ImplT> CastDataToImpl(const ImplT& value,
       RETURN_IF_ERROR(to_object(value));
       return value;
     }
-    case schema::kAny.type_id():
-      return value;
   }
   ABSL_UNREACHABLE();
 }

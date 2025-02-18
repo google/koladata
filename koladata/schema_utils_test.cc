@@ -67,9 +67,6 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Item) {
                     internal::AllocateSingleObject(), schema::kObject)),
                 IsEquivalentTo(internal::DataItem(schema::kObject)));
     EXPECT_THAT(GetNarrowedSchema(test::DataItem(
-                    internal::AllocateSingleObject(), schema::kAny)),
-                IsEquivalentTo(internal::DataItem(schema::kAny)));
-    EXPECT_THAT(GetNarrowedSchema(test::DataItem(
                     internal::AllocateSingleObject(), schema::kItemId)),
                 IsEquivalentTo(internal::DataItem(schema::kItemId)));
     internal::DataItem entity_schema(internal::AllocateExplicitSchema());
@@ -103,8 +100,6 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Slice) {
     // Object ids.
     EXPECT_THAT(GetNarrowedSchema(test::AllocateDataSlice(3, schema::kObject)),
                 IsEquivalentTo(internal::DataItem(schema::kObject)));
-    EXPECT_THAT(GetNarrowedSchema(test::AllocateDataSlice(3, schema::kAny)),
-                IsEquivalentTo(internal::DataItem(schema::kAny)));
     EXPECT_THAT(GetNarrowedSchema(test::AllocateDataSlice(3, schema::kItemId)),
                 IsEquivalentTo(internal::DataItem(schema::kItemId)));
     internal::DataItem entity_schema(internal::AllocateExplicitSchema());
@@ -118,17 +113,14 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Slice) {
     EXPECT_THAT(GetNarrowedSchema(test::MixedDataSlice<int, float>(
                     {1, std::nullopt}, {std::nullopt, 2.0f}, schema::kObject)),
                 IsEquivalentTo(internal::DataItem(schema::kFloat32)));
-    EXPECT_THAT(GetNarrowedSchema(test::MixedDataSlice<int, float>(
-                    {1, std::nullopt}, {std::nullopt, 2.0f}, schema::kAny)),
-                IsEquivalentTo(internal::DataItem(schema::kFloat32)));
     EXPECT_THAT(GetNarrowedSchema(test::MixedDataSlice<int, arolla::Text>(
-                    {1, std::nullopt}, {std::nullopt, "foo"}, schema::kAny)),
+                    {1, std::nullopt}, {std::nullopt, "foo"}, schema::kObject)),
                 IsEquivalentTo(internal::DataItem(schema::kObject)));
     // No common schema, fallback to original schema.
-    EXPECT_THAT(
-        GetNarrowedSchema(test::MixedDataSlice<int, schema::DType>(
-            {1, std::nullopt}, {std::nullopt, schema::kInt32}, schema::kAny)),
-        IsEquivalentTo(internal::DataItem(schema::kAny)));
+    EXPECT_THAT(GetNarrowedSchema(test::MixedDataSlice<int, schema::DType>(
+                    {1, std::nullopt}, {std::nullopt, schema::kInt32},
+                    schema::kObject)),
+                IsEquivalentTo(internal::DataItem(schema::kObject)));
   }
 }
 
@@ -142,11 +134,11 @@ TEST(SchemaUtilsTest, DescribeSliceSchema) {
             "STRING");
   EXPECT_EQ(DescribeSliceSchema(test::DataItem(57, schema::kObject)),
             "OBJECT containing INT32 values");
-  EXPECT_EQ(DescribeSliceSchema(test::DataItem(std::nullopt, schema::kAny)),
-            "ANY containing NONE values");
+  EXPECT_EQ(DescribeSliceSchema(test::DataItem(std::nullopt, schema::kObject)),
+            "OBJECT containing NONE values");
   EXPECT_EQ(DescribeSliceSchema(test::DataSlice<internal::ObjectId>(
-                {std::nullopt}, schema::kAny)),
-            "ANY containing NONE values");
+                {std::nullopt}, schema::kObject)),
+            "OBJECT containing NONE values");
   EXPECT_EQ(DescribeSliceSchema(test::DataSlice<arolla::Text>(
                 {"a", "b", std::nullopt}, schema::kObject)),
             "OBJECT containing STRING values");
@@ -205,9 +197,6 @@ TEST(SchemaUtilsTest, ExpectNumeric) {
       ExpectNumeric("foo", test::DataSlice<float>({1., 2., std::nullopt},
                                                   schema::kObject)),
       IsOk());
-  EXPECT_THAT(ExpectNumeric("foo", test::DataSlice<int>({1, 2, std::nullopt},
-                                                        schema::kAny)),
-              IsOk());
   EXPECT_THAT(ExpectNumeric("foo", test::MixedDataSlice<int, float>(
                                        {1, std::nullopt, std::nullopt},
                                        {std::nullopt, 2.0f, std::nullopt})),
@@ -256,9 +245,6 @@ TEST(SchemaUtilsTest, ExpectInteger) {
               IsOk());
   EXPECT_THAT(ExpectInteger("foo", test::DataSlice<int>({1, 2, std::nullopt},
                                                         schema::kObject)),
-              IsOk());
-  EXPECT_THAT(ExpectInteger("foo", test::DataSlice<int>({1, 2, std::nullopt},
-                                                        schema::kAny)),
               IsOk());
   EXPECT_THAT(ExpectInteger("foo", test::MixedDataSlice<int, int64_t>(
                                        {1, std::nullopt, std::nullopt},
@@ -361,11 +347,12 @@ TEST(SchemaUtilsTest, ExpectString) {
       ExpectString("foo", test::DataSlice<arolla::Text>(
                               {"a", "b", std::nullopt}, schema::kObject)),
       IsOk());
-  EXPECT_THAT(ExpectString("foo", test::DataSlice<std::string>(
-                                      {"a", "b", std::nullopt}, schema::kAny)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "argument `foo` must be a slice of STRING, got a slice "
-                       "of ANY containing BYTES values"));
+  EXPECT_THAT(
+      ExpectString("foo", test::DataSlice<std::string>({"a", "b", std::nullopt},
+                                                       schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of STRING, got a slice "
+               "of OBJECT containing BYTES values"));
 }
 
 TEST(SchemaUtilsTest, ExpectBytes) {
@@ -378,11 +365,12 @@ TEST(SchemaUtilsTest, ExpectBytes) {
       ExpectBytes("foo", test::DataSlice<std::string>({"a", "b", std::nullopt},
                                                       schema::kObject)),
       IsOk());
-  EXPECT_THAT(ExpectBytes("foo", test::DataSlice<arolla::Text>(
-                                     {"a", "b", std::nullopt}, schema::kAny)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "argument `foo` must be a slice of BYTES, got a slice "
-                       "of ANY containing STRING values"));
+  EXPECT_THAT(
+      ExpectBytes("foo", test::DataSlice<arolla::Text>({"a", "b", std::nullopt},
+                                                       schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of BYTES, got a slice "
+               "of OBJECT containing STRING values"));
 }
 
 TEST(SchemaUtilsTest, ExpectSchema) {
@@ -405,10 +393,10 @@ TEST(SchemaUtilsTest, ExpectSchema) {
               IsOk());
   EXPECT_THAT(
       ExpectSchema("foo", test::DataSlice<arolla::Text>(
-                              {"a", "b", std::nullopt}, schema::kAny)),
+                              {"a", "b", std::nullopt}, schema::kObject)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "argument `foo` must be a slice of SCHEMA, got a slice "
-               "of ANY containing STRING values"));
+               "of OBJECT containing STRING values"));
 }
 
 TEST(SchemaUtilsTest, ExpectMask) {
@@ -421,13 +409,13 @@ TEST(SchemaUtilsTest, ExpectMask) {
               IsOk());
   EXPECT_THAT(
       ExpectMask("foo", test::DataSlice<arolla::Unit>(
-                            {std::nullopt, arolla::kPresent}, schema::kAny)),
+                            {std::nullopt, arolla::kPresent}, schema::kObject)),
       IsOk());
   EXPECT_THAT(ExpectMask("foo", test::DataSlice<arolla::Text>(
-                                    {"a", "b", std::nullopt}, schema::kAny)),
+                                    {"a", "b", std::nullopt}, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "argument `foo` must be a slice of MASK, got a slice "
-                       "of ANY containing STRING values"));
+                       "of OBJECT containing STRING values"));
 }
 
 TEST(SchemaUtilsTest, ExpectPresentScalar) {
@@ -441,7 +429,7 @@ TEST(SchemaUtilsTest, ExpectPresentScalar) {
   EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem(true, schema::kObject),
                                   schema::kBool),
               IsOk());
-  EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem(true, schema::kAny),
+  EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem(true, schema::kObject),
                                   schema::kBool),
               IsOk());
   EXPECT_THAT(ExpectPresentScalar(
@@ -456,19 +444,20 @@ TEST(SchemaUtilsTest, ExpectPresentScalar) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                "argument `foo` must be an item holding BOOLEAN, got an "
                "item of OBJECT containing NONE values"));
-  EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem("true", schema::kAny),
-                                  schema::kBool),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "argument `foo` must be an item holding BOOLEAN, "
-                       "got an item of ANY containing STRING values"));
+  EXPECT_THAT(
+      ExpectPresentScalar("foo", test::DataItem("true", schema::kObject),
+                          schema::kBool),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be an item holding BOOLEAN, "
+               "got an item of OBJECT containing STRING values"));
 }
 
 TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
   auto empty_and_unknown = test::DataItem(std::nullopt, schema::kObject);
   auto integer = test::DataSlice<int>({1, 2, std::nullopt});
   auto bytes = test::DataSlice<std::string>({"a", "b", std::nullopt});
-  auto bytes_any =
-      test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kAny);
+  auto bytes_obj =
+      test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kObject);
   auto str = test::DataSlice<arolla::Text>({"a", "b", std::nullopt});
   auto str_obj =
       test::DataSlice<arolla::Text>({"a", "b", std::nullopt}, schema::kObject);
@@ -479,14 +468,14 @@ TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, empty_and_unknown),
               IsOk());
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, bytes), IsOk());
-  EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, bytes_any), IsOk());
+  EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, bytes_obj), IsOk());
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, str), IsOk());
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo"}, str_obj), IsOk());
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo", "bar", "baz"}, str,
                                             empty_and_unknown, str_obj),
               IsOk());
   EXPECT_THAT(ExpectConsistentStringOrBytes({"foo", "bar", "baz"}, bytes,
-                                            empty_and_unknown, bytes_any),
+                                            empty_and_unknown, bytes_obj),
               IsOk());
 
   // Unexpected type of one argument.
@@ -542,8 +531,8 @@ TEST(SchemaUtilsTest, ExpectHaveCommonSchema) {
   auto integer = test::DataSlice<int>({1, 2, std::nullopt});
   auto floating = test::DataSlice<float>({1, 2, std::nullopt});
   auto bytes = test::DataSlice<std::string>({"a", "b", std::nullopt});
-  auto bytes_any =
-      test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kAny);
+  auto bytes_obj =
+      test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kObject);
   auto schema = test::DataItem(std::nullopt, schema::kSchema);
   auto integer_object = test::DataSlice<int>({1}, schema::kObject);
   auto entity = test::AllocateDataSlice(1, internal::AllocateExplicitSchema(),
@@ -551,7 +540,7 @@ TEST(SchemaUtilsTest, ExpectHaveCommonSchema) {
 
   EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, bytes, empty_and_unknown),
               IsOk());
-  EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, bytes, bytes_any), IsOk());
+  EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, bytes, bytes_obj), IsOk());
   EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, integer, bytes), IsOk());
   EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, integer, schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -569,8 +558,8 @@ TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
   auto integer = test::DataSlice<int>({1, 2, std::nullopt});
   auto floating = test::DataSlice<float>({1, 2, std::nullopt});
   auto bytes = test::DataSlice<std::string>({"a", "b", std::nullopt});
-  auto bytes_any =
-      test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kAny);
+  auto bytes_obj =
+      test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kObject);
 
   EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, empty_and_unknown,
                                               empty_and_unknown),
@@ -578,7 +567,7 @@ TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
   EXPECT_THAT(
       ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, bytes, empty_and_unknown),
       IsOk());
-  EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, bytes, bytes_any),
+  EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, bytes, bytes_obj),
               IsOk());
   EXPECT_THAT(
       ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, floating),
@@ -589,11 +578,11 @@ TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
                        "arguments `foo` and `bar` must contain values castable "
                        "to a common primitive type, got INT32 and BYTES"));
   EXPECT_THAT(
-      ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, bytes_any),
+      ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, bytes_obj),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "arguments `foo` and `bar` must contain values castable to a common "
-          "primitive type, got INT32 and ANY containing BYTES values"));
+          "primitive type, got INT32 and OBJECT containing BYTES values"));
 }
 
 }  // namespace

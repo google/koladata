@@ -88,7 +88,6 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
   RETURN_IF_ERROR(AdoptStub(result_db, obj));
 
   if (!update_schema && obj.GetBag() != nullptr &&
-      obj.GetSchemaImpl() != schema::kAny &&
       obj.GetSchemaImpl() != schema::kNone &&
       obj.GetSchemaImpl() != schema::kSchema) {
     // When update_schema is false, we copy the attributes from the source,

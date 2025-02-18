@@ -147,8 +147,7 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
     DataSlice schema = slice.GetSchema();
 
     if (slice.IsEmpty() &&
-        (schema.item() == schema::kObject || schema.item() == schema::kAny ||
-         schema.item() == schema::kNone)) {
+        (schema.item() == schema::kObject || schema.item() == schema::kNone)) {
       // Nothing to do here, but the code below would run infinitely since it
       // looks like a list.
       break;

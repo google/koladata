@@ -336,7 +336,7 @@ without changing items inside the DataSlice. For example, `[[1, 2, 3], [4, 5]]
 
 **Schema** is a Koda [DataItem](#dataitem) representing a type of DataSlice
 items. There are different types of schemas: primitive schema (e.g. INT32),
-Entity schema, List schema, Dict schema, OBJECT, ITEMID and ANY schema.
+Entity schema, List schema, Dict schema, OBJECT and ITEMID schema.
 
 #### Serialization {#serialization}
 

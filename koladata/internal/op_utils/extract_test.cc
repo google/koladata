@@ -2656,28 +2656,6 @@ TEST_P(ExtractTest, SchemaAsData) {
                    "unsupported schema found during extract/clone")));
 }
 
-TEST_P(ExtractTest, AnySchemaAsData) {
-  auto db = DataBagImpl::CreateEmptyDatabag();
-  auto any_schema = DataItem(schema::kAny);
-  auto schema_dtype = DataItem(schema::kSchema);
-  auto schema = AllocateSchema();
-
-  TriplesT schema_triples = {{schema, {{"x", any_schema}}}};
-  SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
-
-  auto expected_db = DataBagImpl::CreateEmptyDatabag();
-  SetSchemaTriples(*expected_db, schema_triples);
-
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(result_db.get())(schema, schema_dtype, *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}, nullptr, {}));
-
-  EXPECT_NE(result_db.get(), db.get());
-  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
-}
-
 TEST_P(ExtractTest, SchemaSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto s1 = AllocateSchema();
@@ -2853,77 +2831,6 @@ TEST_P(ExtractTest, InvalidSchemaType) {
       ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
                                  {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(absl::StatusCode::kInternal, "unsupported schema type"));
-}
-
-TEST_P(ExtractTest, AnySchemaType) {
-  auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = AllocateEmptyObjects(3);
-  auto schema = DataItem(schema::kAny);
-
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(
-      ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}, nullptr, {}),
-      StatusIs(absl::StatusCode::kInternal,
-               "clone/extract not supported for kAny schema"));
-}
-
-TEST_P(ExtractTest, AnySchemaForOneAttribute) {
-  auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = AllocateEmptyObjects(3);
-  auto schema = AllocateSchema();
-
-  for (int i = 0; i < 15; ++i) {
-    SetSchemaTriples(
-        *db, {{schema, {{absl::StrCat("x", i), DataItem(schema::kInt32)}}}});
-  }
-  SetSchemaTriples(
-      *db, {{schema, {{absl::StrCat("x", 15), DataItem(schema::kAny)}}}});
-  for (int i = 0; i < 15; ++i) {
-    SetSchemaTriples(
-        *db, {{schema, {{absl::StrCat("x", i), DataItem(schema::kInt32)}}}});
-  }
-  for (int i = 0; i < 30; ++i) {
-    SetDataTriples(*db, {{obj_ids[0], {{absl::StrCat("x", i), DataItem(1)}}}});
-  }
-
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(
-      ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}, nullptr, {}),
-      StatusIs(absl::StatusCode::kInternal,
-               "clone/extract not supported for kAny schema"));
-}
-
-TEST_P(ExtractTest, AnySchemaTypeEmptySlice) {
-  // TODO: expect error in test.
-  auto db = DataBagImpl::CreateEmptyDatabag();
-  auto ds = DataSliceImpl::CreateEmptyAndUnknownType(5);
-
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kAny),
-                                       *GetMainDb(db),
-                                       {GetFallbackDb(db).get()}, nullptr, {}));
-}
-
-TEST_P(ExtractTest, AnySchemaTypeInside) {
-  auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = AllocateEmptyObjects(2);
-  auto a0 = obj_ids[0];
-  auto a1 = obj_ids[1];
-  auto schema1 = AllocateSchema();
-
-  TriplesT schema_triples = {{schema1, {{"next", DataItem(schema::kAny)}}}};
-  TriplesT data_triples = {{a0, {{"next", a1}}}};
-  SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, schema_triples);
-
-  auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(
-      ExtractOp(result_db.get())(a0, schema1, *GetMainDb(db),
-                                 {GetFallbackDb(db).get()}, nullptr, {}),
-      StatusIs(absl::StatusCode::kInternal,
-               "clone/extract not supported for kAny schema"));
 }
 
 TEST_P(ExtractTest, InvalidPrimitiveType) {

@@ -92,9 +92,12 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Primitives) {
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kInt32)));
   ObjectId dict_id = internal::AllocateSingleDict();
 
-  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice data_slice = test::DataItem(dict_id, dict_schema.item(), bag);
   EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds("Dict{}"));
 
   DataSlice keys = test::DataSlice<arolla::Text>({"a", "x"});
@@ -123,9 +126,12 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict_Text) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kString)));
   ObjectId dict_id = internal::AllocateSingleDict();
 
-  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice data_slice = test::DataItem(dict_id, dict_schema.item(), bag);
   DataSlice keys = test::DataSlice<arolla::Text>({"a", "x"});
   DataSlice values = test::DataSlice<arolla::Text>({"a", "4"});
   ASSERT_OK(data_slice.SetInDict(keys, values));
@@ -154,16 +160,23 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict_Text) {
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedDict) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kInt32)));
   ObjectId dict_id = internal::AllocateSingleDict();
 
-  DataSlice dict = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice dict = test::DataItem(dict_id, dict_schema.item(), bag);
   DataSlice key = test::DataSlice<arolla::Text>({"a"});
   DataSlice value = test::DataSlice<int>({1});
   ASSERT_OK(dict.SetInDict(key, value));
 
+  ASSERT_OK_AND_ASSIGN(
+      auto second_dict_schema,
+      CreateDictSchema(bag, test::Schema(schema::kString), dict_schema));
   ObjectId second_dict_id = internal::AllocateSingleDict();
   DataSlice second_key = test::DataSlice<arolla::Text>({"x"});
-  DataSlice second_dict = test::DataItem(second_dict_id, schema::kAny, bag);
+  DataSlice second_dict =
+      test::DataItem(second_dict_id, second_dict_schema.item(), bag);
   ASSERT_OK(second_dict.SetInDict(second_key, dict));
 
   EXPECT_THAT(DataSliceToStr(second_dict),
@@ -183,6 +196,9 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedDict) {
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictMultiline) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kInt32)));
   ObjectId dict_id = internal::AllocateSingleDict();
 
   std::string large_key0(50, 'a');
@@ -191,7 +207,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictMultiline) {
       {large_key0.c_str(), large_key1.c_str()});
   DataSlice values = test::DataSlice<int>({1, 1});
 
-  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice data_slice = test::DataItem(dict_id, dict_schema.item(), bag);
   ASSERT_OK(data_slice.SetInDict(keys, values));
 
   EXPECT_THAT(
@@ -222,12 +238,12 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List) {
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
-                                       test::Schema(schema::kAny)));
+                                       test::Schema(schema::kObject)));
   EXPECT_THAT(DataSliceToStr(empty_list), IsOkAndHolds("List[]"));
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+                       /*schema=*/std::nullopt, test::Schema(schema::kObject)));
   EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds("List[1, 2, 3]"));
 
   // Low level api.
@@ -247,11 +263,11 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List_Text) {
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
-                                       test::Schema(schema::kAny)));
+                                       test::Schema(schema::kObject)));
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
       CreateNestedList(bag, test::DataSlice<arolla::Text>({"a", "b", "c"}),
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+                       /*schema=*/std::nullopt, test::Schema(schema::kObject)));
   EXPECT_THAT(DataSliceToStr(data_slice), IsOkAndHolds("List['a', 'b', 'c']"));
 
   // Low level api.
@@ -278,12 +294,12 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedList) {
       JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
   ASSERT_OK_AND_ASSIGN(DataSlice nested_list,
                        DataSlice::Create(std::move(ds), std::move(ds_shape),
-                                         internal::DataItem(schema::kAny)));
+                                         internal::DataItem(schema::kObject)));
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
       CreateNestedList(bag, std::move(nested_list),
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+                       /*schema=*/std::nullopt, test::Schema(schema::kObject)));
   EXPECT_THAT(DataSliceToStr(data_slice),
               IsOkAndHolds("List[List[1], List[2, 3]]"));
 
@@ -301,6 +317,9 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedList) {
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictInList) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kInt32)));
 
   internal::DataSliceImpl dict_slice_impl =
       internal::DataSliceImpl::ObjectsFromAllocation(internal::AllocateDicts(3),
@@ -309,7 +328,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictInList) {
       DataSlice dict_slice,
       DataSlice::Create(std::move(dict_slice_impl),
                         JaggedDenseArrayShape::FlatFromSize(3),
-                        internal::DataItem(schema::kAny), bag));
+                        dict_schema.item(), bag));
 
   DataSlice keys = test::DataItem("a");
   DataSlice values = test::DataItem(1);
@@ -324,7 +343,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictInList) {
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
       CreateNestedList(bag, std::move(dict_slice), /*schema=*/std::nullopt,
-                       test::Schema(schema::kAny)));
+                       test::Schema(schema::kObject)));
   EXPECT_THAT(DataSliceToStr(data_slice),
               IsOkAndHolds("List[Dict{'a'=1}, Dict{'a'=1}, Dict{'a'=1}]"));
 
@@ -345,7 +364,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ObjectsInList) {
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
-                                       test::Schema(schema::kAny)));
+                                       test::Schema(schema::kObject)));
 
   DataSlice value_1 = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(DataSlice obj,
@@ -374,7 +393,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_EntitiesInList) {
 
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
-                                       test::Schema(schema::kAny)));
+                                       test::Schema(schema::kObject)));
 
   DataSlice value_1 = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(DataSlice obj,
@@ -666,12 +685,12 @@ TEST(DataSliceReprTest, TestDataItemStringReprWithFallbackDB) {
 
   DataBagPtr db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice ds, EntityCreator::FromAttrs(db, {}, {}));
-  ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
+  ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
   ASSERT_OK(ds.SetAttr("a", ds_a));
 
   DataBagPtr db2 = DataBag::Empty();
   ds = ds.WithBag(db2);
-  ASSERT_OK(ds.GetSchema().SetAttr("b", test::Schema(schema::kAny)));
+  ASSERT_OK(ds.GetSchema().SetAttr("b", test::Schema(schema::kObject)));
   DataSlice ds_b = test::DataItem(2);
   ASSERT_OK(ds.SetAttr("b", ds_b));
 
@@ -680,7 +699,7 @@ TEST(DataSliceReprTest, TestDataItemStringReprWithFallbackDB) {
 
   EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("Entity(a=1, b=2)"));
   EXPECT_THAT(DataSliceToStr(ds.GetSchema()),
-              IsOkAndHolds(("SCHEMA(a=ANY, b=ANY)")));
+              IsOkAndHolds(("SCHEMA(a=OBJECT, b=OBJECT)")));
 
   // Low level api.
   EXPECT_THAT(DataItemToStr(ds.item(), ds.GetSchemaImpl(), ds.GetBag()),
@@ -1021,11 +1040,8 @@ TEST(DataSliceReprTest, TestStringRepresentation_NoFollow) {
       IsOkAndHolds(MatchesRegex(R"regex(NOFOLLOW\(#[0-9a-zA-Z]{22}\))regex")));
 }
 
-TEST(DataSliceReprTest, TestStringRepresentation_ShowDtypeOnAnyAndObject) {
+TEST(DataSliceReprTest, TestStringRepresentation_ShowDtypeOnObject) {
   DataSlice item = test::DataItem<int64_t>(1, schema::kObject);
-  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("int64{1}"));
-
-  item = test::DataItem<int64_t>(1, schema::kAny);
   EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("int64{1}"));
 
   item = test::DataItem<int64_t>(1, schema::kInt64);
@@ -1034,17 +1050,10 @@ TEST(DataSliceReprTest, TestStringRepresentation_ShowDtypeOnAnyAndObject) {
   item = test::DataItem<double>(double{1.234}, schema::kObject);
   EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("float64{1.234}"));
 
-  item = test::DataItem<double>(double{1.234}, schema::kAny);
-  EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("float64{1.234}"));
-
   item = test::DataItem<double>(double{1.234}, schema::kFloat64);
   EXPECT_THAT(DataSliceToStr(item), IsOkAndHolds("1.234"));
 
   DataSlice slice = test::DataSlice<int64_t>({1, 2, 3}, schema::kObject);
-  EXPECT_THAT(DataSliceToStr(slice),
-              IsOkAndHolds("[int64{1}, int64{2}, int64{3}]"));
-
-  slice = test::DataSlice<int64_t>({1, 2, 3}, schema::kAny);
   EXPECT_THAT(DataSliceToStr(slice),
               IsOkAndHolds("[int64{1}, int64{2}, int64{3}]"));
 
@@ -1057,23 +1066,12 @@ TEST(DataSliceReprTest, TestStringRepresentation_ShowDtypeOnAnyAndObject) {
               IsOkAndHolds("[float64{1.234}, float64{1.234}, float64{1.234}]"));
 
   slice = test::DataSlice<double>({double{1.234}, double{1.234}, double{1.234}},
-                                  schema::kAny);
-  EXPECT_THAT(DataSliceToStr(slice),
-              IsOkAndHolds("[float64{1.234}, float64{1.234}, float64{1.234}]"));
-
-  slice = test::DataSlice<double>({double{1.234}, double{1.234}, double{1.234}},
                                   schema::kFloat64);
   EXPECT_THAT(DataSliceToStr(slice), IsOkAndHolds("[1.234, 1.234, 1.234]"));
 
   slice = test::MixedDataSlice<double, int64_t>({double{1.234}, std::nullopt},
                                                 {std::nullopt, int64_t{123}},
                                                 schema::kObject);
-  EXPECT_THAT(DataSliceToStr(slice),
-              IsOkAndHolds("[float64{1.234}, int64{123}]"));
-
-  slice = test::MixedDataSlice<double, int64_t>({double{1.234}, std::nullopt},
-                                                {std::nullopt, int64_t{123}},
-                                                schema::kAny);
   EXPECT_THAT(DataSliceToStr(slice),
               IsOkAndHolds("[float64{1.234}, int64{123}]"));
 }
@@ -1317,7 +1315,7 @@ TEST(DataSliceReprTest, FormatHtml_AttrSpan) {
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
       CreateNestedList(bag, test::DataSlice<int>({}),
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+                       /*schema=*/std::nullopt, test::Schema(schema::kObject)));
 
   std::vector<DataSlice> attr_values = {test::DataItem(1), data_slice};
   ASSERT_OK_AND_ASSIGN(
@@ -1362,17 +1360,18 @@ TEST(DataSliceReprTest, FormatHtml_ListIndices) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
-                                       test::Schema(schema::kAny)));
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice list_item,
-      CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+                                       test::Schema(schema::kInt32)));
+  ASSERT_OK_AND_ASSIGN(DataSlice list_item,
+                       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
+                                        empty_list.GetSchema()));
   ASSERT_OK_AND_ASSIGN(
       DataSlice ds,
-      CreateNestedList(bag, test::DataSlice<ObjectId>({
-        empty_list.item().value<ObjectId>(),
-        list_item.item().value<ObjectId>()
-      }), /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+      CreateNestedList(bag,
+                       test::DataSlice<ObjectId>(
+                           {empty_list.item().value<ObjectId>(),
+                            list_item.item().value<ObjectId>()},
+                           DataSlice::JaggedShape::FlatFromSize(2),
+                           list_item.GetSchema().item().value<ObjectId>())));
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(ds, {.format_html = true}));
   EXPECT_EQ(result,
@@ -1390,11 +1389,11 @@ TEST(DataSliceReprTest, FormatHtml_ListSchema) {
   ASSERT_OK_AND_ASSIGN(
       DataSlice list_item,
       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+                       /*schema=*/std::nullopt, test::Schema(schema::kObject)));
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(
         list_item.GetSchema(), {.format_html = true}));
-  EXPECT_EQ(result, "LIST[<span item-schema=\"\">ANY</span>]");
+  EXPECT_EQ(result, "LIST[<span item-schema=\"\">OBJECT</span>]");
 }
 
 TEST(DataSliceReprTest, FormatHtml_ObjEntity) {
@@ -1429,9 +1428,12 @@ TEST(DataSliceReprTest, FormatHtml_ObjEntity_NoMultiLineForKeyNearLimit) {
 
 TEST(DataSliceReprTest, FormatHtml_Dict) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kInt32)));
   ObjectId dict_id = internal::AllocateSingleDict();
 
-  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice data_slice = test::DataItem(dict_id, dict_schema.item(), bag);
   DataSlice keys = test::DataSlice<arolla::Text>({"\n\t<>&\""});
   DataSlice values = test::DataSlice<int>({1});
   ASSERT_OK(data_slice.SetInDict(keys, values));
@@ -1446,11 +1448,14 @@ TEST(DataSliceReprTest, FormatHtml_Dict) {
 
 TEST(DataSliceReprTest, FormatHtml_DictLongStrings) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kString)));
   ObjectId dict_id = internal::AllocateSingleDict();
 
   std::string long_string_a(20, 'a');
   std::string long_string_b(20, 'b');
-  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice data_slice = test::DataItem(dict_id, dict_schema.item(), bag);
   DataSlice keys = test::DataSlice<arolla::Text>({long_string_a.c_str()});
   DataSlice values = test::DataSlice<arolla::Text>({long_string_b.c_str()});
   ASSERT_OK(data_slice.SetInDict(keys, values));
@@ -1464,14 +1469,22 @@ TEST(DataSliceReprTest, FormatHtml_DictLongStrings) {
 
 TEST(DataSliceReprTest, FormatHtml_DictObjectIdKey) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_key_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kInt32),
+                                        test::Schema(schema::kInt32)));
+  ASSERT_OK_AND_ASSIGN(
+      auto dict_schema,
+      CreateDictSchema(bag, dict_key_schema, test::Schema(schema::kInt32)));
   ObjectId dict_id = internal::AllocateSingleDict();
 
   ObjectId dict_as_key = internal::AllocateSingleDict();
-  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice data_slice = test::DataItem(dict_id, dict_schema.item(), bag);
   DataSlice values = test::DataSlice<int>({1});
 
   ASSERT_OK(data_slice.SetInDict(
-      test::DataSlice<ObjectId>({dict_as_key}), values));
+      test::DataSlice<ObjectId>({dict_as_key},
+                                dict_key_schema.item().value<ObjectId>(), bag),
+      values));
   EXPECT_THAT(
       DataSliceToStr(data_slice, {.format_html = true}),
       IsOkAndHolds(absl::StrFormat(
@@ -1484,9 +1497,12 @@ TEST(DataSliceReprTest, FormatHtml_DictObjectIdKey) {
 
 TEST(DataSliceReprTest, FormatHtml_Dict_NoMultiLineForKeyNearLimit) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kInt32)));
   std::string lots_of_amps(80, '&');
   ObjectId dict_id = internal::AllocateSingleDict();
-  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice data_slice = test::DataItem(dict_id, dict_schema.item(), bag);
   DataSlice keys = test::DataSlice<arolla::Text>({lots_of_amps.c_str()});
   DataSlice values = test::DataSlice<int>({1});
   ASSERT_OK(data_slice.SetInDict(keys, values));
@@ -1515,9 +1531,12 @@ TEST(DataSliceReprTest, FormatHtml_DictSchema) {
 
 TEST(DataSliceReprTest, FormatHtml_ByteValues) {
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kInt32),
+                                        test::Schema(schema::kBytes)));
   ObjectId dict_id = internal::AllocateSingleDict();
 
-  DataSlice data_slice = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice data_slice = test::DataItem(dict_id, dict_schema.item(), bag);
   char bytes[] = {16, 127, '<', 0};
   DataSlice keys = test::DataSlice<int>({1});
   DataSlice values = test::DataSlice<arolla::Bytes>({bytes});
@@ -1543,7 +1562,7 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_MaxDepth) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice empty_list,
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
-                                       test::Schema(schema::kAny)));
+                                       test::Schema(schema::kObject)));
   ASSERT_OK_AND_ASSIGN(
       std::string result, DataSliceToStr(
           empty_list, {.depth = 0, .format_html = true}));
@@ -1596,10 +1615,13 @@ TEST(DataSliceReprTest, UnboundedTypeMaxLength) {
   // DataItemRepr do not need this param. In those other call sites, we know
   // the DataItem does not contain an unbounded type.
   DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kString)));
   ObjectId dict_id = internal::AllocateSingleDict();
 
   std::string large_str(50, 'a');
-  DataSlice dict = test::DataItem(dict_id, schema::kAny, bag);
+  DataSlice dict = test::DataItem(dict_id, dict_schema.item(), bag);
   DataSlice key = test::DataSlice<arolla::Text>({large_str.c_str()});
   DataSlice value = test::DataSlice<arolla::Text>({large_str.c_str()});
   ASSERT_OK(dict.SetInDict(key, value));
@@ -1724,26 +1746,6 @@ TEST(DataSliceReprTest, DataSliceRepr_DoNotShowAttrNamesOnLargeDataSlice) {
                                          .show_shape = false}),
                 Eq("DataSlice([42, Obj(a=1, b=1), ...], schema: OBJECT, ndims: "
                    "1, size: 4)"));
-  }
-  {
-    // Entities with ANY schema.
-    auto db = DataBag::Empty();
-    auto value_1 = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
-    ASSERT_OK_AND_ASSIGN(
-        DataSlice entity,
-        EntityCreator::FromAttrs(db, {"a", "b"}, {value_1, value_1}));
-    ASSERT_OK_AND_ASSIGN(auto entity_any_schema,
-                         entity.WithSchema(test::Schema(schema::kAny)));
-    EXPECT_THAT(
-        DataSliceRepr(entity_any_schema, {.item_limit = 2,
-                                          .item_limit_per_dimension = 2,
-                                          .show_attributes = true,
-                                          .show_databag_id = false,
-                                          .show_shape = false}),
-        MatchesRegex(
-            R"regex(DataSlice\(\[Entity\(\):\$[0-9a-zA-Z]{22}, )regex"
-            R"regex(Entity\(\):\$[0-9a-zA-Z]{22}, ...\], schema: ANY, )regex"
-            R"regex(ndims: 1, size: 10\))regex"));
   }
 }
 

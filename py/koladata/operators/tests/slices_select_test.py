@@ -265,7 +265,7 @@ class SlicesSelectTest(parameterized.TestCase):
         exceptions.KodaError,
         re.escape(
             'kd.slices.select: the schema of the `fltr` DataSlice should only'
-            ' be ANY, OBJECT or MASK'
+            ' be OBJECT or MASK'
         ),
     ):
       expr_eval.eval(kde.slices.select(val, val))
@@ -307,7 +307,7 @@ class SlicesSelectTest(parameterized.TestCase):
           ds([1, 2, None, 4]),
           functor_factories.expr_fn(I.self),
           (
-              'the schema of the `fltr` DataSlice should only be ANY, OBJECT or'
+              'the schema of the `fltr` DataSlice should only be OBJECT or'
               ' MASK or can be evaluated to such DataSlice (i.e. Python'
               ' function or Koda Functor)'
           ),

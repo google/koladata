@@ -140,11 +140,10 @@ absl::StatusOr<DataSlice> HasPrimitive(const DataSlice& x) {
   if (schema.is_primitive_schema()) {
     return Has(x);
   }
-  // Derive from the data for OBJECT, ANY and SCHEMA schemas. Note that
-  // primitive schemas (e.g. INT32, SCHEMA) are stored as DTypes and considered
-  // as primitives.
-  if (schema.is_any_schema() || schema.is_object_schema() ||
-      schema.is_schema_schema()) {
+  // Derive from the data for OBJECT and SCHEMA schemas. Note that primitive
+  // schemas (e.g. INT32, SCHEMA) are stored as DTypes and considered as
+  // primitives.
+  if (schema.is_object_schema() || schema.is_schema_schema()) {
     return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
       ASSIGN_OR_RETURN(auto res, HasPrimitiveImpl(impl));
       return DataSlice::Create(std::move(res), x.GetShape(),
@@ -162,8 +161,8 @@ absl::StatusOr<DataSlice> HasEntity(const DataSlice& x) {
   if (x.GetSchema().IsEntitySchema()) {
     return Has(x);
   }
-  // Derive from the data for OBJECT and ANY schemas.
-  if (schema.is_any_schema() || schema.is_object_schema()) {
+  // Derive from the data for OBJECT schemas.
+  if (schema.is_object_schema()) {
     return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
       ASSIGN_OR_RETURN(auto res, HasEntityImpl(impl));
       return DataSlice::Create(std::move(res), x.GetShape(),
@@ -181,8 +180,8 @@ absl::StatusOr<DataSlice> HasList(const DataSlice& x) {
   if (x.GetSchema().IsListSchema()) {
     return Has(x);
   }
-  // Derive from the data for OBJECT and ANY schemas.
-  if (schema.is_any_schema() || schema.is_object_schema()) {
+  // Derive from the data for OBJECT schemas.
+  if (schema.is_object_schema()) {
     return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
       ASSIGN_OR_RETURN(auto res, HasListImpl(impl));
       return DataSlice::Create(std::move(res), x.GetShape(),
@@ -200,8 +199,8 @@ absl::StatusOr<DataSlice> HasDict(const DataSlice& x) {
   if (x.GetSchema().IsDictSchema()) {
     return Has(x);
   }
-  // Derive from the data for OBJECT and ANY schemas.
-  if (schema.is_any_schema() || schema.is_object_schema()) {
+  // Derive from the data for OBJECT schemas.
+  if (schema.is_object_schema()) {
     return x.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
       ASSIGN_OR_RETURN(auto res, HasDictImpl(impl));
       return DataSlice::Create(std::move(res), x.GetShape(),
@@ -220,13 +219,12 @@ absl::StatusOr<DataSlice> IsPrimitive(const DataSlice& x) {
     return AsMask(true);
   }
   // For non-primitive schemas which cannot contain primitives, return missing.
-  if (!schema.is_any_schema() && !schema.is_object_schema() &&
-      !schema.is_schema_schema()) {
+  if (!schema.is_object_schema() && !schema.is_schema_schema()) {
     return AsMask(false);
   }
-  // Derive from the data for OBJECT, ANY and SCHEMA schemas. Note that
-  // primitive schemas (e.g. INT32, SCHEMA) are stored as DTypes and considered
-  // as primitives.
+  // Derive from the data for OBJECT and SCHEMA schemas. Note that primitive
+  // schemas (e.g. INT32, SCHEMA) are stored as DTypes and considered as
+  // primitives.
   bool contains_only_primitives = x.VisitImpl(absl::Overload(
       [](const internal::DataItem& item) {
         return item.VisitValue([]<class T>(const T& value) {

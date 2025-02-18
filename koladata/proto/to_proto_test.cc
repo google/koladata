@@ -69,7 +69,7 @@ MakeEmptyMessages(size_t num_messages) {
 }
 
 TEST(ToProtoTest, ZeroMessages) {
-  auto slice = test::EmptyDataSlice(0, internal::DataItem(schema::kAny));
+  auto slice = test::EmptyDataSlice(0, internal::DataItem(schema::kObject));
   EXPECT_OK(ToProto(slice, {}));
 }
 
@@ -462,7 +462,7 @@ TEST(ToProtoTest, InvalidInputNdim) {
 }
 
 TEST(ToProtoTest, InvalidInputNumMessages) {
-  auto slice = test::EmptyDataSlice(1, internal::DataItem(schema::kAny));
+  auto slice = test::EmptyDataSlice(1, internal::DataItem(schema::kObject));
   std::vector<::google::protobuf::Message*> message_ptrs;
   EXPECT_THAT(
       ToProto(slice, message_ptrs),
@@ -472,7 +472,7 @@ TEST(ToProtoTest, InvalidInputNumMessages) {
 }
 
 TEST(ToProtoTest, InvalidInputMultipleDescriptors) {
-  auto slice = test::EmptyDataSlice(2, internal::DataItem(schema::kAny));
+  auto slice = test::EmptyDataSlice(2, internal::DataItem(schema::kObject));
   testing::ExampleMessage message1;
   testing::ExampleMessage2 message2;
   EXPECT_THAT(ToProto(slice, {&message1, &message2}),

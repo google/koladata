@@ -31,7 +31,7 @@ absl::Span<const DataSlice> SupportedSchemas() {
     std::vector<DataSlice> schemas;
     schemas.reserve(std::tuple_size_v<schema::supported_dtype_values::tuple>);
     // Iterates through all dtypes T for which DType(GetQType<T>()) is defined
-    // (int, int64_t, ..., AnyDType, ObjectDType, ...).
+    // (int, int64_t, ..., ObjectDType, ...).
     arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
       using T = typename decltype(tpe)::type;
       schemas.push_back(

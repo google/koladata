@@ -142,11 +142,6 @@ inline absl::StatusOr<DataSlice> GetValueSchema(const DataSlice& dict_schema) {
   return dict_schema.GetAttr(schema::kDictValuesSchemaAttr);
 }
 
-// kd.schema.is_any_schema operator.
-inline DataSlice IsAnySchema(const DataSlice& schema) {
-  return AsMask(schema.IsAnySchema());
-}
-
 // kd.schema.is_dict_schema operator.
 inline DataSlice IsDictSchema(const DataSlice& schema) {
   return AsMask(schema.IsDictSchema());

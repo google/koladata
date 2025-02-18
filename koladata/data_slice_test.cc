@@ -83,8 +83,6 @@ using ::testing::MatchesRegex;
 using ::testing::Not;
 using ::testing::Property;
 
-internal::DataItem kAnySchema(schema::kAny);
-
 DataSlice::JaggedShape::Edge CreateEdge(
     std::initializer_list<int64_t> split_points) {
   return *DataSlice::JaggedShape::Edge::FromSplitPoints(
@@ -290,8 +288,8 @@ TEST(DataSliceTest, CreateWithSchemaFromData) {
     EXPECT_EQ(ds.GetSchemaImpl(), internal::DataItem(schema::kInt32));
   }
   {
-    auto ds_impl = DataSliceImpl::Create(
-        CreateDenseArray<DType>({schema::kInt32, std::nullopt, schema::kAny}));
+    auto ds_impl = DataSliceImpl::Create(CreateDenseArray<DType>(
+        {schema::kInt32, std::nullopt, schema::kObject}));
     ASSERT_OK_AND_ASSIGN(
         auto ds, DataSlice::CreateWithSchemaFromData(ds_impl, shape, db));
 
@@ -530,13 +528,15 @@ TEST(DataSliceTest, ForkErrors) {
 TEST(DataSliceTest, IsEquivalentTo) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   auto objects = DataSliceImpl::AllocateEmptyObjects(shape.size());
-  ASSERT_OK_AND_ASSIGN(auto ds_1,
-                       DataSlice::Create(objects, shape, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_1,
+      DataSlice::Create(objects, shape, internal::DataItem(schema::kObject)));
   // Same DataSlice instance.
   EXPECT_TRUE(ds_1.IsEquivalentTo(ds_1));
 
-  ASSERT_OK_AND_ASSIGN(auto ds_2,
-                       DataSlice::Create(objects, shape, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_2,
+      DataSlice::Create(objects, shape, internal::DataItem(schema::kObject)));
   // Different, but equal instances.
   EXPECT_TRUE(ds_1.IsEquivalentTo(ds_2));
   // Different and same DataBags.
@@ -551,7 +551,7 @@ TEST(DataSliceTest, IsEquivalentTo) {
   EXPECT_FALSE(ds_1.IsEquivalentTo(ds_2));
 
   // Different items.
-  ds_2 = test::AllocateDataSlice(shape, schema::kAny);
+  ds_2 = test::AllocateDataSlice(shape, schema::kObject);
   EXPECT_FALSE(ds_1.IsEquivalentTo(ds_2));
 
   // Same items in different order - slices are equivalent.
@@ -562,16 +562,18 @@ TEST(DataSliceTest, IsEquivalentTo) {
       DataSliceImpl::Create(CreateDenseArray<float>({std::nullopt, 0}),
                             CreateDenseArray<int>({0, std::nullopt}));
   ASSERT_OK_AND_ASSIGN(ds_1,
-                       DataSlice::Create(mix1_int_float, shape, kAnySchema));
+                       DataSlice::Create(mix1_int_float, shape,
+                                         internal::DataItem(schema::kObject)));
   ASSERT_OK_AND_ASSIGN(ds_2,
-                       DataSlice::Create(mix2_int_float, shape, kAnySchema));
+                       DataSlice::Create(mix2_int_float, shape,
+                                         internal::DataItem(schema::kObject)));
   EXPECT_TRUE(ds_1.IsEquivalentTo(ds_2));
 
   // Same shape, but not same shape object.
   auto same_shape_different_ptr = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(
-      ds_2,
-      DataSlice::Create(mix2_int_float, same_shape_different_ptr, kAnySchema));
+      ds_2, DataSlice::Create(mix2_int_float, same_shape_different_ptr,
+                              internal::DataItem(schema::kObject)));
   EXPECT_TRUE(ds_1.IsEquivalentTo(ds_2));
 
   // Broadcasted shapes.
@@ -588,24 +590,31 @@ TEST(DataSliceTest, IsEquivalentTo) {
 TEST(DataSliceTest, ImplOwnsValue) {
   auto ds_impl = DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3}));
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::Create(ds_impl, shape, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      DataSlice::Create(ds_impl, shape, internal::DataItem(schema::kObject)));
   EXPECT_TRUE(ds.impl_owns_value());
 
   ds_impl = DataSliceImpl::Create(
       CreateDenseArray<int>({1, std::nullopt, std::nullopt}),
       CreateDenseArray<float>({std::nullopt, std::nullopt, 2.71}));
-  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(ds_impl, shape, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      ds,
+      DataSlice::Create(ds_impl, shape, internal::DataItem(schema::kObject)));
   EXPECT_TRUE(ds.impl_owns_value());
 
   internal::SliceBuilder bldr(3);
-  ASSERT_OK_AND_ASSIGN(
-      ds, DataSlice::Create(std::move(bldr).Build(), shape, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(ds,
+                       DataSlice::Create(std::move(bldr).Build(), shape,
+                                         internal::DataItem(schema::kObject)));
   EXPECT_FALSE(ds.impl_owns_value());
 
-  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(DataItem(42), kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      ds, DataSlice::Create(DataItem(42), internal::DataItem(schema::kObject)));
   EXPECT_TRUE(ds.impl_owns_value());
 
-  ASSERT_OK_AND_ASSIGN(ds, DataSlice::Create(DataItem(), kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      ds, DataSlice::Create(DataItem(), internal::DataItem(schema::kObject)));
   EXPECT_FALSE(ds.impl_owns_value());
 }
 
@@ -618,9 +627,9 @@ TEST(DataSliceTest, IsStructSchema) {
   EXPECT_TRUE(list_schema.IsStructSchema());
   auto dict_schema = *CreateDictSchema(db, int_s, int_s);
   EXPECT_TRUE(dict_schema.IsStructSchema());
-  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kObject, schema::kInt32})
                    .IsStructSchema());
-  EXPECT_FALSE(test::Schema(schema::kAny).IsStructSchema());
+  EXPECT_FALSE(test::Schema(schema::kObject).IsStructSchema());
   EXPECT_FALSE(test::DataItem(42).IsStructSchema());
 }
 
@@ -633,9 +642,9 @@ TEST(DataSliceTest, IsEntitySchema) {
   EXPECT_FALSE(list_schema.IsEntitySchema());
   auto dict_schema = *CreateDictSchema(db, int_s, int_s);
   EXPECT_FALSE(dict_schema.IsEntitySchema());
-  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kObject, schema::kInt32})
                    .IsEntitySchema());
-  EXPECT_FALSE(test::Schema(schema::kAny).IsEntitySchema());
+  EXPECT_FALSE(test::Schema(schema::kObject).IsEntitySchema());
   EXPECT_FALSE(test::DataItem(42).IsEntitySchema());
 }
 
@@ -649,9 +658,9 @@ TEST(DataSliceTest, IsListSchema) {
   EXPECT_FALSE(list_schema.WithBag(nullptr).IsListSchema());
   auto entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
   EXPECT_FALSE(entity_schema.IsListSchema());
-  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kObject, schema::kInt32})
                    .IsListSchema());
-  EXPECT_FALSE(test::Schema(schema::kAny).IsListSchema());
+  EXPECT_FALSE(test::Schema(schema::kObject).IsListSchema());
   EXPECT_FALSE(test::DataItem(42).IsListSchema());
 }
 
@@ -667,9 +676,9 @@ TEST(DataSliceTest, IsDictSchema) {
   EXPECT_FALSE(entity_schema.IsDictSchema());
   entity_schema = *CreateEntitySchema(db, {"__keys__"}, {int_s});
   EXPECT_FALSE(entity_schema.IsDictSchema());
-  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kAny, schema::kInt32})
+  EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kObject, schema::kInt32})
                    .IsDictSchema());
-  EXPECT_FALSE(test::Schema(schema::kAny).IsDictSchema());
+  EXPECT_FALSE(test::Schema(schema::kObject).IsDictSchema());
   EXPECT_FALSE(test::DataItem(42).IsDictSchema());
 }
 
@@ -684,7 +693,7 @@ TEST(DataSliceTest, IsPrimitiveSchema) {
   EXPECT_FALSE(entity_schema.IsPrimitiveSchema());
   EXPECT_FALSE(test::DataSlice<schema::DType>({schema::kInt64, schema::kInt32})
                    .IsPrimitiveSchema());
-  EXPECT_FALSE(test::Schema(schema::kAny).IsPrimitiveSchema());
+  EXPECT_FALSE(test::Schema(schema::kObject).IsPrimitiveSchema());
   EXPECT_FALSE(test::DataItem(42).IsPrimitiveSchema());
 }
 
@@ -711,7 +720,7 @@ TEST(DataSliceTest, IsEmpty) {
 }
 
 TEST(DataSliceTest, VerifyIsSchema) {
-  EXPECT_THAT(test::Schema(schema::kAny).VerifyIsSchema(), IsOk());
+  EXPECT_THAT(test::Schema(schema::kObject).VerifyIsSchema(), IsOk());
 
   EXPECT_THAT(
       test::DataItem(1).VerifyIsSchema(),
@@ -764,8 +773,6 @@ TEST(DataSliceTest, VerifyIsListSchema) {
               ->VerifyIsListSchema(),
               IsOk());
 
-  EXPECT_THAT(test::Schema(schema::kAny).VerifyIsListSchema(), IsOk());
-
   EXPECT_THAT(test::Schema(schema::kInt32).VerifyIsListSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected List schema, got INT32")));
@@ -786,8 +793,6 @@ TEST(DataSliceTest, VerifyIsDictSchema) {
               ->VerifyIsDictSchema(),
               IsOk());
 
-  EXPECT_THAT(test::Schema(schema::kAny).VerifyIsDictSchema(), IsOk());
-
   EXPECT_THAT(test::Schema(schema::kObject).VerifyIsDictSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected Dict schema, got OBJECT")));
@@ -805,22 +810,15 @@ TEST(DataSliceTest, VerifyIsDictSchema) {
 // functionality that is used in other places as well, but as an invariant (i.e.
 // DCHECK).
 TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
-  auto any_schema = test::Schema(schema::kAny);
   auto object_schema = test::Schema(schema::kObject);
   auto type_schema = test::Schema(schema::kSchema);
   auto none_schema = test::Schema(schema::kNone);
-  EXPECT_THAT(any_schema.GetSchema(), IsEquivalentTo(type_schema));
   EXPECT_THAT(type_schema.GetSchema(), IsEquivalentTo(type_schema));
   EXPECT_THAT(type_schema.GetSchema().GetSchema(), IsEquivalentTo(type_schema));
   {
     // Schema slice consistency - multidim schema.
     auto ds = test::DataSlice<DType>(
         {schema::kInt32, std::nullopt, schema::kFloat32});
-
-    // Any schema can be assigned to a schema slice.
-    ASSERT_OK_AND_ASSIGN(auto ds_any_schema, ds.WithSchema(any_schema));
-    EXPECT_THAT(ds_any_schema.GetSchema(), IsEquivalentTo(any_schema));
-    EXPECT_THAT(ds_any_schema.slice(), IsEquivalentTo(ds.slice()));
 
     // Schema schema can be assigned to a schema slice.
     ASSERT_OK_AND_ASSIGN(auto ds_schema, ds.WithSchema(type_schema));
@@ -833,18 +831,18 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
                          HasSubstr("schema can only be 0-rank schema slice, "
                                    "got: rank(1)")));
 
-    ASSERT_OK_AND_ASSIGN(auto any_any, any_schema.WithSchema(any_schema));
+    ASSERT_OK_AND_ASSIGN(auto obj_obj, object_schema.WithSchema(object_schema));
     EXPECT_THAT(
-        ds.WithSchema(any_any),
+        ds.WithSchema(obj_obj),
         StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("schema's schema must be SCHEMA, got: ANY")));
+                 HasSubstr("schema's schema must be SCHEMA, got: OBJECT")));
   }
   {
     // Entity slice consistency.
     ASSERT_OK_AND_ASSIGN(
         auto entity_schema,
         CreateSchema(DataBag::Empty(), {"a"}, {test::Schema(schema::kInt32)}));
-    auto entity = test::AllocateDataSlice(3, schema::kAny);
+    auto entity = test::AllocateDataSlice(3, schema::kObject);
 
     ASSERT_OK_AND_ASSIGN(auto res, entity.WithSchema(entity_schema));
     EXPECT_THAT(res.GetBag(), Not(Eq(entity_schema.GetBag())));
@@ -918,10 +916,6 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
                                    "DataSlice that contains only primitives of "
                                    "INT32")));
 
-    // Mixed with `kd.ANY`.
-    ASSERT_OK_AND_ASSIGN(mixed_ds, mixed_ds.WithSchema(any_schema));
-    EXPECT_THAT(mixed_ds.GetSchema(), IsEquivalentTo(any_schema));
-
     // Mixed with `kd.OBJECT`.
     ASSERT_OK_AND_ASSIGN(mixed_ds, mixed_ds.WithSchema(object_schema));
     EXPECT_THAT(mixed_ds.GetSchema(), IsEquivalentTo(object_schema));
@@ -941,7 +935,7 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
   }
   {
     // All-empty slice.
-    auto ds = test::EmptyDataSlice(3, schema::kAny);
+    auto ds = test::EmptyDataSlice(3, schema::kObject);
     ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(type_schema));
     EXPECT_THAT(ds.GetSchema(), IsEquivalentTo(type_schema));
     ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(object_schema));
@@ -958,7 +952,7 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
     auto schema_schema = test::Schema(schema::kSchema);
     auto ds = test::MixedDataSlice<DType, ObjectId>(
         {schema::kInt32, std::nullopt},
-        {std::nullopt, internal::AllocateExplicitSchema()}, schema::kAny);
+        {std::nullopt, internal::AllocateExplicitSchema()}, schema::kObject);
     EXPECT_OK(ds.WithSchema(schema_schema));
   }
   {
@@ -983,7 +977,7 @@ TEST(DataSliceTest, SetSchema) {
   auto entity_schema2 =
       test::Schema(internal::AllocateExplicitSchema()).WithBag(db2);
   auto schema_without_db = test::Schema(internal::AllocateExplicitSchema());
-  auto entity_ds = test::AllocateDataSlice(3, schema::kAny);
+  auto entity_ds = test::AllocateDataSlice(3, schema::kObject);
   auto int_schema = test::Schema(schema::kInt32);
   auto primitive_ds = test::DataSlice<int>({1, std::nullopt, 5});
 
@@ -1349,13 +1343,13 @@ TEST(DataSliceTest, GetAttrErrors) {
   }
   {  // Primitive data - item.
     auto db = DataBag::Empty();
-    auto x = test::DataItem(1, schema::kAny, db);
+    auto x = test::DataItem(1, schema::kObject, db);
     EXPECT_THAT(
         x.GetAttr("a"),
         StatusIs(
             absl::StatusCode::kInvalidArgument,
             "failed to get 'a' attribute; primitives do not have attributes, "
-            "got ANY DataItem with primitive 1"));
+            "got OBJECT DataItem with primitive 1"));
   }
 }
 
@@ -1437,7 +1431,7 @@ TEST(DataSliceTest, GetNoFollowedSchema) {
 }
 
 TEST(DataSliceTest, DbRef) {
-  auto ds_obj = test::AllocateDataSlice(3, schema::kAny);
+  auto ds_obj = test::AllocateDataSlice(3, schema::kObject);
   EXPECT_EQ(ds_obj.GetBag(), nullptr);
 
   auto db = DataBag::Empty();
@@ -1446,23 +1440,23 @@ TEST(DataSliceTest, DbRef) {
 }
 
 TEST(DataSliceTest, DataSliceQType) {
-  auto ds_obj = test::AllocateDataSlice(3, schema::kAny);
+  auto ds_obj = test::AllocateDataSlice(3, schema::kObject);
   EXPECT_EQ(TypedValue::FromValue(ds_obj).GetType(), GetQType<DataSlice>());
 }
 
 TEST(DataSliceTest, PyQValueSpecializationKey) {
-  auto ds_obj = test::AllocateDataSlice(3, schema::kAny);
+  auto ds_obj = test::AllocateDataSlice(3, schema::kObject);
   EXPECT_EQ(ds_obj.py_qvalue_specialization_key(),
             kDataSliceQValueSpecializationKey);
 
   auto shape = DataSlice::JaggedShape::Empty();
-  ds_obj = test::AllocateDataSlice(shape, schema::kAny);
+  ds_obj = test::AllocateDataSlice(shape, schema::kObject);
   EXPECT_EQ(ds_obj.py_qvalue_specialization_key(),
             kDataItemQValueSpecializationKey);
 
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(ds_obj, CreateEmptyList(db, /*schema=*/std::nullopt,
-                                               test::Schema(schema::kAny)));
+                                               test::Schema(schema::kObject)));
   EXPECT_EQ(ds_obj.py_qvalue_specialization_key(),
             kListItemQValueSpecializationKey);
 
@@ -1484,10 +1478,12 @@ TEST(DataSliceTest, Fingerprint) {
   ASSERT_OK_AND_ASSIGN(auto shape_2,
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_1_2}));
   auto ds_impl = DataSliceImpl::AllocateEmptyObjects(3);
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       DataSlice::Create(ds_impl, shape_1, kAnySchema));
-  ASSERT_OK_AND_ASSIGN(auto ds_eq,
-                       DataSlice::Create(ds_impl, shape_1, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      DataSlice::Create(ds_impl, shape_1, internal::DataItem(schema::kObject)));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_eq,
+      DataSlice::Create(ds_impl, shape_1, internal::DataItem(schema::kObject)));
 
   EXPECT_EQ(arolla::FingerprintHasher("salt").Combine(ds).Finish(),
             arolla::FingerprintHasher("salt").Combine(ds_eq).Finish());
@@ -1495,13 +1491,15 @@ TEST(DataSliceTest, Fingerprint) {
   // Different DataSliceImpl.
   auto ds_impl_diff = DataSliceImpl::AllocateEmptyObjects(3);
   ASSERT_OK_AND_ASSIGN(auto ds_diff_impl,
-                       DataSlice::Create(ds_impl_diff, shape_1, kAnySchema));
+                       DataSlice::Create(ds_impl_diff, shape_1,
+                                         internal::DataItem(schema::kObject)));
   EXPECT_NE(arolla::FingerprintHasher("salt").Combine(ds).Finish(),
             arolla::FingerprintHasher("salt").Combine(ds_diff_impl).Finish());
 
   // Different shape.
-  ASSERT_OK_AND_ASSIGN(auto ds_diff_shape,
-                       DataSlice::Create(ds_impl, shape_2, kAnySchema));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds_diff_shape,
+      DataSlice::Create(ds_impl, shape_2, internal::DataItem(schema::kObject)));
   EXPECT_NE(arolla::FingerprintHasher("salt").Combine(ds).Finish(),
             arolla::FingerprintHasher("salt").Combine(ds_diff_shape).Finish());
 
@@ -1529,7 +1527,7 @@ TEST(DataSliceTest, FromToArray) {
   EXPECT_EQ(ds.slice().allocation_ids().size(), 0);
   EXPECT_THAT(ds.slice(), ElementsAre(1, 2, 3));
 
-  auto ds_obj = test::AllocateDataSlice(3, schema::kAny);
+  auto ds_obj = test::AllocateDataSlice(3, schema::kObject);
   EXPECT_EQ(ds_obj.dtype(), GetQType<ObjectId>());
   EXPECT_THAT(ds_obj.GetShape(), IsEquivalentTo(shape));
 }
@@ -1636,13 +1634,13 @@ TEST(DataSliceTest, EmbedSchema_ObjectNoDataBag) {
 TEST(DataSliceTest, EmbedSchema_MixedNotAllowed) {
   auto values = test::MixedDataSlice<int, ObjectId>(
       {1, std::nullopt}, {std::nullopt, internal::AllocateSingleObject()},
-      schema::kAny);
+      schema::kObject);
   EXPECT_THAT(
       values.EmbedSchema(),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "schema embedding is only supported for a DataSlice with primitive, "
-          "entity, list or dict schemas, got ANY"));
+          "entity, list or dict schemas, got OBJECT"));
 }
 
 TEST(DataSliceTest, EmbedSchema_Object_Errors) {
@@ -1749,7 +1747,7 @@ TEST(DataSliceTest, EmbedSchema_NotAllowed_On_NoFollowSlice) {
 TEST(DataSliceTest, ContainsAnyPrimitives) {
   EXPECT_TRUE(test::DataSlice<int64_t>({42, 12}).ContainsAnyPrimitives());
   EXPECT_TRUE(test::DataItem(42).ContainsAnyPrimitives());
-  EXPECT_FALSE(test::AllocateDataSlice(/*size=*/2, schema::kAny)
+  EXPECT_FALSE(test::AllocateDataSlice(/*size=*/2, schema::kObject)
                .ContainsAnyPrimitives());
   EXPECT_FALSE(test::DataItem(internal::ObjectId()).ContainsAnyPrimitives());
   EXPECT_FALSE(test::DataItem(internal::DataItem()).ContainsAnyPrimitives());
@@ -1760,23 +1758,13 @@ TEST(DataSliceTest, IsList_Empty) {
   EXPECT_FALSE(test::DataSlice<int64_t>({}).IsList());
   EXPECT_FALSE(test::DataSlice<int64_t>({std::nullopt}).IsList());
 
-  // schema ANY (type-erased INT64)
+  // schema OBJECT (type-erased INT64)
   EXPECT_TRUE(test::DataSlice<int64_t>({})
-                  .WithSchema(test::DataItem(schema::kAny))
+                  .WithSchema(test::DataItem(schema::kObject))
                   .value()
                   .IsList());
   EXPECT_TRUE(test::DataSlice<int64_t>({std::nullopt})
-                  .WithSchema(test::DataItem(schema::kAny))
-                  .value()
-                  .IsList());
-
-  // schema ANY (type-erased ObjectId)
-  EXPECT_TRUE(test::DataSlice<ObjectId>({})
-                  .WithSchema(test::DataItem(schema::kAny))
-                  .value()
-                  .IsList());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt})
-                  .WithSchema(test::DataItem(schema::kAny))
+                  .WithSchema(test::DataItem(schema::kObject))
                   .value()
                   .IsList());
 
@@ -1811,9 +1799,6 @@ TEST(DataSliceTest, IsList_NonEmpty) {
                   .WithSchema(list_schema)
                   ->IsList());
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
-                  .WithSchema(test::DataItem(schema::kAny))
-                  ->IsList());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleList()}, db)
                   .WithSchema(test::DataItem(schema::kObject))
                   ->IsList());
 
@@ -1823,9 +1808,6 @@ TEST(DataSliceTest, IsList_NonEmpty) {
                   .WithSchema(list_schema)
                   ->IsList());
 
-  EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
-                   .WithSchema(test::DataItem(schema::kAny))
-                   ->IsList());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kObject))
                    ->IsList());
@@ -1843,23 +1825,13 @@ TEST(DataSliceTest, IsDict_Empty) {
   EXPECT_FALSE(test::DataSlice<int64_t>({}).IsDict());
   EXPECT_FALSE(test::DataSlice<int64_t>({std::nullopt}).IsDict());
 
-  // schema ANY (type-erased INT64)
+  // schema OBJECT (type-erased INT64)
   EXPECT_TRUE(test::DataSlice<int64_t>({})
-                  .WithSchema(test::DataItem(schema::kAny))
+                  .WithSchema(test::DataItem(schema::kObject))
                   .value()
                   .IsDict());
   EXPECT_TRUE(test::DataSlice<int64_t>({std::nullopt})
-                  .WithSchema(test::DataItem(schema::kAny))
-                  .value()
-                  .IsDict());
-
-  // schema ANY (type-erased ObjectId)
-  EXPECT_TRUE(test::DataSlice<ObjectId>({})
-                  .WithSchema(test::DataItem(schema::kAny))
-                  .value()
-                  .IsDict());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt})
-                  .WithSchema(test::DataItem(schema::kAny))
+                  .WithSchema(test::DataItem(schema::kObject))
                   .value()
                   .IsDict());
 
@@ -1896,9 +1868,6 @@ TEST(DataSliceTest, IsDict_NonEmpty) {
                   .WithSchema(dict_schema)
                   ->IsDict());
   EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
-                  .WithSchema(test::DataItem(schema::kAny))
-                  ->IsDict());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                   .WithSchema(test::DataItem(schema::kObject))
                   ->IsDict());
 
@@ -1908,9 +1877,6 @@ TEST(DataSliceTest, IsDict_NonEmpty) {
                   .WithSchema(dict_schema)
                   ->IsDict());
 
-  EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
-                   .WithSchema(test::DataItem(schema::kAny))
-                   ->IsDict());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleObject()}, db)
                    .WithSchema(test::DataItem(schema::kObject))
                    ->IsDict());
@@ -1928,23 +1894,13 @@ TEST(DataSliceTest, IsEntity_Empty) {
   EXPECT_FALSE(test::DataSlice<int64_t>({}).IsEntity());
   EXPECT_FALSE(test::DataSlice<int64_t>({std::nullopt}).IsEntity());
 
-  // schema ANY (type-erased INT64)
+  // schema OBJECT (type-erased INT64)
   EXPECT_TRUE(test::DataSlice<int64_t>({})
-                  .WithSchema(test::DataItem(schema::kAny))
+                  .WithSchema(test::DataItem(schema::kObject))
                   .value()
                   .IsEntity());
   EXPECT_TRUE(test::DataSlice<int64_t>({std::nullopt})
-                  .WithSchema(test::DataItem(schema::kAny))
-                  .value()
-                  .IsEntity());
-
-  // schema ANY (type-erased ObjectId)
-  EXPECT_TRUE(test::DataSlice<ObjectId>({})
-                  .WithSchema(test::DataItem(schema::kAny))
-                  .value()
-                  .IsEntity());
-  EXPECT_TRUE(test::DataSlice<ObjectId>({std::nullopt})
-                  .WithSchema(test::DataItem(schema::kAny))
+                  .WithSchema(test::DataItem(schema::kObject))
                   .value()
                   .IsEntity());
 
@@ -1998,10 +1954,6 @@ TEST(DataSliceTest, IsEntity_NonEmpty) {
                   ->IsEntity());
   EXPECT_TRUE(test::DataSlice<ObjectId>(
                   {internal::AllocateSingleObject(), std::nullopt}, db)
-                  .WithSchema(test::DataItem(schema::kAny))
-                  ->IsEntity());
-  EXPECT_TRUE(test::DataSlice<ObjectId>(
-                  {internal::AllocateSingleObject(), std::nullopt}, db)
                   .WithSchema(test::DataItem(schema::kObject))
                   ->IsEntity());
 
@@ -2012,9 +1964,6 @@ TEST(DataSliceTest, IsEntity_NonEmpty) {
                   .WithSchema(entity_schema)
                   ->IsEntity());
 
-  EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
-                   .WithSchema(test::DataItem(schema::kAny))
-                   ->IsEntity());
   EXPECT_FALSE(test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, db)
                    .WithSchema(test::DataItem(schema::kObject))
                    ->IsEntity());
@@ -2267,7 +2216,7 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
   ASSERT_OK_AND_ASSIGN(
       DataSlice list,
       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
+                       /*schema=*/std::nullopt, test::Schema(schema::kObject)));
   ASSERT_OK_AND_ASSIGN(DataSlice obj,
                        list.WithSchema(test::Schema(schema::kObject)));
 
@@ -2492,19 +2441,6 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectsWithExplicitSchema) {
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
 }
 
-TEST(DataSliceTest, SetAttrWithUpdateSchema_AnySlice) {
-  auto db = DataBag::Empty();
-  auto ds_primitive = test::DataSlice<int>({1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
-  ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(test::Schema(schema::kAny)));
-  auto ds_int64_primitive = test::DataSlice<int64_t>({12, 42, 97});
-  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*update_schema=*/true));
-  ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
-  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kAny);
-  EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
-}
-
 TEST(DataSliceTest, SetAttrWithUpdateSchema_SchemaSlice) {
   auto db = DataBag::Empty();
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
@@ -2644,12 +2580,6 @@ TEST(DataSliceTest, SetGetSchemaSlice) {
   EXPECT_EQ(schema_a_get.GetSchemaImpl(), schema::kSchema);
   EXPECT_THAT(schema_a_get.slice(),
               ElementsAre(schema::kInt32, schema::kFloat32));
-
-  ASSERT_OK_AND_ASSIGN(schema_ds,
-                       schema_ds.WithSchema(test::Schema(schema::kAny)));
-  ASSERT_OK_AND_ASSIGN(schema_a_get, schema_ds.GetAttr("a"));
-  EXPECT_EQ(schema_a_get.GetSchemaImpl(), schema::kAny);
-  EXPECT_THAT(schema_a_get.slice(), ElementsAre(DataItem(), DataItem()));
 }
 
 TEST(DataSliceTest, SetGetObjectAttributesSameDb) {
@@ -2657,10 +2587,11 @@ TEST(DataSliceTest, SetGetObjectAttributesSameDb) {
   auto db = DataBag::Empty();
 
   for (auto other_db : {db, DataBagPtr(nullptr)}) {
-    auto ds_a = test::AllocateDataSlice(shape.size(), schema::kAny, other_db);
+    auto ds_a =
+        test::AllocateDataSlice(shape.size(), schema::kObject, other_db);
 
     ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
-    ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
+    ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
     ASSERT_OK(ds.SetAttr("a", ds_a));
     ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
     EXPECT_EQ(ds_a_get.GetBag(), db);
@@ -2670,7 +2601,7 @@ TEST(DataSliceTest, SetGetObjectAttributesSameDb) {
     EXPECT_THAT(ds_a_get.slice().allocation_ids(),
                 ElementsAreArray(ds_a.slice().allocation_ids()));
     EXPECT_THAT(ds_a_get.slice(), ElementsAreArray(ds_a.slice()));
-    EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kAny);
+    EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kObject);
     EXPECT_EQ(ds_a_get.dtype(), GetQType<ObjectId>());
   }
 }
@@ -2687,7 +2618,7 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDb_EntityCreator) {
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
-  ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
+  ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
   ASSERT_OK(ds.SetAttr("a", ds_a));
 
   AdoptionQueue adoption_queue;
@@ -2703,7 +2634,7 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDb_EntityCreator) {
   EXPECT_EQ(ds_x_get.GetBag(), db);
   EXPECT_THAT(ds_x_get.slice(), ElementsAreArray(ds_x.slice()));
   // Merging copy schemas.
-  EXPECT_EQ(ds_x_get.GetSchemaImpl(), schema::kAny);
+  EXPECT_EQ(ds_x_get.GetSchemaImpl(), schema::kItemId);
   EXPECT_EQ(ds_x_get.dtype(), GetQType<ObjectId>());
 }
 
@@ -2714,13 +2645,16 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDbConflict) {
   auto ds_a_schema =
       test::EntitySchema({"x"}, {test::Schema(schema::kItemId)}, db2);
   auto ds_a = test::AllocateDataSlice(3, ds_a_schema.item(), db2);
-  auto ds_a_conflict_schema =
-      test::EntitySchema({"x"}, {test::Schema(schema::kItemId)}, db);
-  auto ds_a_conflict = test::DataItem(ds_a.slice()[1], schema::kAny, db);
   auto ds_x = test::AllocateDataSlice(3, schema::kItemId);
   ASSERT_OK(ds_a.SetAttr("x", ds_x));
+
   // Adding a conflict as self reference.
-  ASSERT_OK(ds_a_conflict.SetAttr("x", ds_a_conflict));
+  auto ds_a_conflict_schema =
+      test::EntitySchema({"x"}, {test::Schema(schema::kItemId)}, db);
+  auto ds_a_conflict = test::DataItem(ds_a.slice()[1], schema::kObject, db);
+  ASSERT_OK(ds_a_conflict.SetAttr(schema::kSchemaAttr, ds_a_conflict_schema));
+  ASSERT_OK(ds_a_conflict.SetAttr(
+      "x", *ds_a_conflict.WithSchema(test::Schema(schema::kItemId))));
 
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
@@ -2733,12 +2667,12 @@ TEST(DataSliceTest, SetGetObjectAttributesOtherDbConflict) {
 }
 
 TEST(DataSliceTest, SetGetObjectAttributesWithFallback) {
-  auto ds_a = test::AllocateDataSlice(3, schema::kAny);
+  auto ds_a = test::AllocateDataSlice(3, schema::kObject);
 
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
-  ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
+  ASSERT_OK(ds.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
   ASSERT_OK(ds.SetAttr("a", ds_a));
   db = DataBag::ImmutableEmptyWithFallbacks({db});
   ds = ds.WithBag(db);
@@ -2750,7 +2684,7 @@ TEST(DataSliceTest, SetGetObjectAttributesWithFallback) {
   EXPECT_THAT(ds_a_get.slice().allocation_ids(),
               ElementsAreArray(ds_a.slice().allocation_ids()));
   EXPECT_THAT(ds_a_get.slice(), ElementsAreArray(ds_a.slice()));
-  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kAny);
+  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kObject);
   EXPECT_EQ(ds_a_get.dtype(), GetQType<ObjectId>());
 }
 
@@ -2866,10 +2800,10 @@ TEST(DataSliceTest, OverwriteSchemaAndAttributes_ObjectCreator) {
 
   // Overwrite schema even when some schema items is missing (1st).
   ASSERT_OK_AND_ASSIGN(ds_a_prim,
-                       ds_a_prim.WithSchema(test::Schema(schema::kAny)));
+                       ds_a_prim.WithSchema(test::Schema(schema::kObject)));
   ASSERT_OK(ds.SetAttr("a", ds_a_prim));
   ASSERT_OK_AND_ASSIGN(ds_a_get, ds.GetAttr("a"));
-  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kAny);
+  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kObject);
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(4, 5, 6));
 }
 
@@ -3032,8 +2966,8 @@ TEST(DataSliceTest, SetAttr_BroadcastingError) {
 }
 
 TEST(DataSliceTest, SetGetError) {
-  auto ds = test::AllocateDataSlice(3, schema::kAny);
-  auto ds_a = test::AllocateDataSlice(2, schema::kAny);
+  auto ds = test::AllocateDataSlice(3, schema::kObject);
+  auto ds_a = test::AllocateDataSlice(2, schema::kObject);
   EXPECT_THAT(ds.SetAttr("QQQ", ds_a),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        AllOf(HasSubstr("failed to set 'QQQ' attribute;"),
@@ -3056,14 +2990,6 @@ TEST(DataSliceTest, SetGetError) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("only schemas can be assigned to the '__schema__' "
                          "attribute, got INT32")));
-
-  // ds has kd.ANY schema, thus missing lookups are allowed.
-  ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
-  EXPECT_EQ(ds_a_get.slice().size(), 3);
-  // Basically missing.
-  EXPECT_EQ(ds_a_get.slice().present_count(), 0);
-  EXPECT_FALSE(ds_a_get.impl_owns_value());
-  EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kAny);
 
   auto allocated_schema = test::Schema(internal::AllocateExplicitSchema());
   ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(allocated_schema));
@@ -3308,29 +3234,24 @@ TEST(DataSliceTest, GetAttrWithDefault_SchemaSlice) {
   EXPECT_EQ(schema_attr.GetSchemaImpl(), schema::kSchema);
 }
 
-TEST(DataSliceTest, GetAttrWithDefault_AnyNoSchema) {
+TEST(DataSliceTest, GetAttrWithDefault_EmptySchema) {
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
-  auto explicit_schema = internal::AllocateExplicitSchema();
+  auto explicit_schema_1 = internal::AllocateExplicitSchema();
+  auto explicit_schema_2 = internal::AllocateExplicitSchema();
   auto ds = test::DataSlice<ObjectId>(
       {internal::AllocateSingleObject(), internal::AllocateSingleObject(),
-       std::nullopt}, explicit_schema, db);
-  ASSERT_OK_AND_ASSIGN(auto ds_any, ds.WithSchema(test::Schema(schema::kAny)));
-  ASSERT_OK(ds_any.SetAttr("a", test::DataSlice<int>({1, std::nullopt, 3})));
+       std::nullopt}, explicit_schema_1, db);
+  ASSERT_OK(ds.SetAttr("a", test::DataSlice<int>({1, std::nullopt, 3})));
+  // Overwrite with empty schema.
+  ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(test::Schema(explicit_schema_2)));
 
-  // Getting on `ds` without ANY schema - the schema is missing the attributes
-  // `a` so an empty slice is returned, filled with default values.
+  // The schema is missing the attributes `a` so an empty slice is returned,
+  // filled with default values.
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
                        ds.GetAttrWithDefault("a", test::DataItem(4)));
   EXPECT_THAT(ds_primitive_get.slice(), ElementsAre(4, 4, std::nullopt));
   EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kInt32);
-
-  // Getting on `ds_any` with ANY schema - the actual values are returned.
-  ASSERT_OK_AND_ASSIGN(ds_primitive_get,
-                       ds_any.GetAttrWithDefault("a", test::DataItem("abc")));
-  EXPECT_THAT(ds_primitive_get.slice(),
-              ElementsAre(1, arolla::Text("abc"), std::nullopt));
-  EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kAny);
 
   // Missing data, missing schema.
   ASSERT_OK_AND_ASSIGN(
@@ -3721,21 +3642,6 @@ TEST(DataSliceTest, DelAttr_Object_ExplicitSchema) {
                        HasSubstr("the attribute 'b' is missing")));
 }
 
-TEST(DataSliceTest, DelAttr_Any) {
-  auto db = DataBag::Empty();
-  auto ds_primitive = test::DataSlice<int>({1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto ds,
-                       EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
-  ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(test::Schema(schema::kAny)));
-  ASSERT_OK(ds.DelAttr("a"));
-  ASSERT_OK_AND_ASSIGN(auto ds_primitive_get, ds.GetAttr("a"));
-  EXPECT_THAT(ds_primitive_get.GetShape(), IsEquivalentTo(ds.GetShape()));
-  EXPECT_TRUE(ds_primitive_get.impl_empty_and_unknown());
-  EXPECT_EQ(ds_primitive_get.slice().allocation_ids().size(), 0);
-  EXPECT_EQ(ds_primitive_get.slice().present_count(), 0);
-  EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kAny);
-}
-
 TEST(DataSliceTest, DelAttr_None) {
   auto db = DataBag::Empty();
   auto ds = test::EmptyDataSlice(3, schema::kNone, db);
@@ -3802,7 +3708,7 @@ TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaDTypeMatch) {
   auto implicit_schema_id = GenerateImplicitSchema();
   auto schema_a = test::MixedDataSlice<ObjectId, schema::DType>(
       {implicit_schema_id, std::nullopt}, {std::nullopt, schema::kInt32},
-      schema::kAny);
+      schema::kObject);
   auto db = DataBag::Empty();
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
@@ -3828,7 +3734,7 @@ TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaObjectIdMatch) {
   EXPECT_TRUE(ds_a.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
   auto schema_a = test::MixedDataSlice<ObjectId, schema::DType>(
       {ds_a.GetSchemaImpl().value<ObjectId>(), std::nullopt},
-      {std::nullopt, schema::kInt32}, schema::kAny);
+      {std::nullopt, schema::kInt32}, schema::kObject);
   ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
   auto implicit_schema_id = GenerateImplicitSchema();
   auto mixed_implicit_explicit_schema = test::DataSlice<ObjectId>(
@@ -3853,11 +3759,13 @@ TEST(DataSliceTest, GetFromList) {
 
   auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
   auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto list_schema,
+                       CreateListSchema(db, test::Schema(schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       DataSlice::Create(
           DataSliceImpl::ObjectsFromAllocation(internal::AllocateLists(2), 2),
-          items.GetShape().RemoveDims(1), DataItem(schema::kAny), db));
+          items.GetShape().RemoveDims(1), list_schema.item(), db));
 
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, items));
 
@@ -3870,7 +3778,7 @@ TEST(DataSliceTest, GetFromList) {
                                             schema::kInt64);
     ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(42, 42, 13, DataItem(), 13));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt32));
   }
   {
     // Normal GetFromList: INT32 -> INT64 casting
@@ -3878,14 +3786,14 @@ TEST(DataSliceTest, GetFromList) {
                                         schema::kInt32);
     ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(42, 42, 13, DataItem(), 13));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt32));
   }
   {
     // Empty DataItem
     auto indices = test::DataItem(internal::DataItem(), schema::kInt32);
     ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem()));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt32));
   }
   {
     // Empty indices
@@ -3895,7 +3803,7 @@ TEST(DataSliceTest, GetFromList) {
     ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem(),
                                            DataItem(), DataItem()));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt32));
 
     indices = test::DataSlice<int>(
         {std::nullopt, std::nullopt, std::nullopt, std::nullopt, std::nullopt},
@@ -3903,31 +3811,31 @@ TEST(DataSliceTest, GetFromList) {
     ASSERT_OK_AND_ASSIGN(items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem(),
                                            DataItem(), DataItem()));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt32));
   }
   {
     // Empty indices INT64 / INT32
     auto indices = test::EmptyDataSlice(shape, schema::kInt64);
     ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt32));
 
     indices = test::EmptyDataSlice(shape, schema::kInt32);
     ASSERT_OK_AND_ASSIGN(items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt32));
   }
   {
     // Narrowing is supported.
     auto indices = test::EmptyDataSlice(shape, schema::kObject);
     ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt32));
 
-    indices = test::EmptyDataSlice(shape, schema::kAny);
+    indices = test::EmptyDataSlice(shape, schema::kObject);
     ASSERT_OK_AND_ASSIGN(items, lists.GetFromList(indices));
     EXPECT_THAT(items.slice(), ElementsAre(DataItem(), DataItem(), DataItem()));
-    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
+    EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt32));
   }
   {
     // Errors - float64 -> int64 is not supported.
@@ -3965,34 +3873,6 @@ TEST(DataSliceTest, GetFromList_Int64Schema) {
   EXPECT_THAT(items.slice(),
               ElementsAre(DataItemWith<int64_t>(42), 42, 13, DataItem(), 13));
   EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kInt64));
-}
-
-TEST(DataSliceTest, GetFromList_AnySchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-
-  auto list_items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
-  auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto lists,
-      CreateListShaped(db, list_items.GetShape().RemoveDims(1),
-                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
-                       test::Schema(schema::kAny)));
-
-  ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
-
-  auto edge_2_1 = CreateEdge({0, 2, 5});
-  ASSERT_OK_AND_ASSIGN(auto shape_2,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2_1}));
-
-  auto indices = test::DataSlice<int64_t>({0, 0, 1, std::nullopt, 1}, shape_2,
-                                          schema::kInt64);
-  ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
-  EXPECT_THAT(items.slice(),
-              ElementsAre(DataItemWith<int>(42), 42, 13, DataItem(), 13));
-  EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
 }
 
 TEST(DataSliceTest, GetFromList_ObjectSchema) {
@@ -4103,40 +3983,6 @@ TEST(DataSliceTest, PopFromList_Int64Schema) {
               IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(12))));
 }
 
-TEST(DataSliceTest, PopFromList_AnySchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-
-  auto list_items = test::MixedDataSlice<int, int64_t>(
-      {42, std::nullopt, std::nullopt}, {std::nullopt, 12, 13}, shape,
-      schema::kObject);
-  auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto lists,
-      CreateListShaped(db, list_items.GetShape().RemoveDims(1),
-                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
-                       test::Schema(schema::kAny)));
-
-  ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
-
-  auto edge_2_1 = CreateEdge({0, 2, 5});
-  ASSERT_OK_AND_ASSIGN(auto shape_2,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2_1}));
-
-  auto indices = test::DataSlice<int64_t>({0, 0, 1, std::nullopt, 1}, shape_2,
-                                          schema::kInt64);
-  ASSERT_OK_AND_ASSIGN(auto items, lists.PopFromList(indices));
-  EXPECT_THAT(items.slice(),
-              ElementsAre(DataItemWith<int>(42), DataItem(),
-                          DataItemWith<int64_t>(13), DataItem(), DataItem()));
-  EXPECT_THAT(items.GetSchemaImpl(), Eq(schema::kAny));
-  // The only remaining element.
-  EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
-              IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(12))));
-}
-
 TEST(DataSliceTest, PopFromList_ObjectSchema) {
   auto edge_1 = CreateEdge({0, 2});
   auto edge_2 = CreateEdge({0, 1, 3});
@@ -4237,26 +4083,6 @@ TEST(DataSliceTest, ExplodeList_Int32Schema) {
   ASSERT_OK_AND_ASSIGN(auto exploded_lists, lists.ExplodeList(0, std::nullopt));
   EXPECT_THAT(exploded_lists.slice(), ElementsAre(42, 12, 13));
   EXPECT_THAT(exploded_lists.GetSchemaImpl(), Eq(schema::kInt32));
-}
-
-TEST(DataSliceTest, ExplodeList_AnySchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  auto edge_3 = CreateEdge({0, 1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(
-      auto shape, DataSlice::JaggedShape::FromEdges({edge_1, edge_2, edge_3}));
-
-  auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
-  auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto lists,
-      DataSlice::Create(
-          DataSliceImpl::ObjectsFromAllocation(internal::AllocateLists(3), 3),
-          items.GetShape().RemoveDims(2), DataItem(schema::kAny), db));
-  ASSERT_OK(lists.AppendToList(items));
-  ASSERT_OK_AND_ASSIGN(auto exploded_lists, lists.ExplodeList(0, std::nullopt));
-  EXPECT_THAT(exploded_lists.slice(), ElementsAre(42, 12, 13));
-  EXPECT_THAT(exploded_lists.GetSchemaImpl(), Eq(schema::kAny));
 }
 
 TEST(DataSliceTest, ExplodeList_ObjectSchema) {
@@ -4413,11 +4239,13 @@ TEST(DataSliceTest, ReplaceInList) {
 
   auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
   auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto list_schema,
+                      CreateListSchema(db, test::Schema(schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(
       auto lists,
       DataSlice::Create(
           DataSliceImpl::ObjectsFromAllocation(internal::AllocateLists(3), 3),
-          items.GetShape().RemoveDims(2), DataItem(schema::kAny), db));
+          items.GetShape().RemoveDims(2), list_schema.item(), db));
 
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, items));
   ASSERT_OK_AND_ASSIGN(auto res_items, lists.ExplodeList(0, std::nullopt));
@@ -4441,45 +4269,6 @@ TEST(DataSliceTest, ReplaceInList) {
   EXPECT_THAT(lists.ReplaceInList(0, std::nullopt, incompatible_items2),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("cannot be expanded to")));
-}
-
-TEST(DataSliceTest, ReplaceInList_AnySchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-  auto db = DataBag::Empty();
-
-  ASSERT_OK_AND_ASSIGN(
-      auto lists,
-      CreateListShaped(db, shape, /*values=*/std::nullopt,
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
-  auto initial_values =
-      test::DataSlice<int>({0, 0, 0}, shape, schema::kInt32);
-  ASSERT_OK(lists.AppendToList(initial_values));
-  ASSERT_OK(lists.AppendToList(initial_values));
-  ASSERT_OK(lists.AppendToList(initial_values));
-  EXPECT_THAT(lists.ExplodeList(0, std::nullopt)->GetSchemaImpl(),
-              Eq(schema::kAny));
-  EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
-              IsOkAndHolds(Property(&DataSlice::slice,
-                                    ElementsAre(0, 0, 0, 0, 0, 0, 0, 0, 0))));
-
-  ASSERT_OK_AND_ASSIGN(auto subshape,
-                       DataSlice::JaggedShape::FromEdges(
-                           {edge_1, edge_2, CreateEdge({0, 1, 2, 3})}));
-  ASSERT_OK(lists.ReplaceInList(
-      1, 2,
-      test::DataSlice<arolla::Text>({"foo", "bar", "baz"}, subshape,
-                                    schema::kString)));
-  EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
-              IsOkAndHolds(
-                  Property(&DataSlice::slice,
-                           // Mixing types is allowed.
-                           ElementsAre(DataItemWith<int>(0),
-                                       DataItemWith<arolla::Text>("foo"), 0, 0,
-                                       DataItemWith<arolla::Text>("bar"), 0, 0,
-                                       DataItemWith<arolla::Text>("baz"), 0))));
 }
 
 TEST(DataSliceTest, ReplaceInList_NoneSchema) {
@@ -4563,50 +4352,6 @@ TEST(DataSliceTest, SetInList_NoBag) {
                        HasSubstr("cannot set list items without a DataBag")));
 }
 
-TEST(DataSliceTest, SetInList_AnySchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-  auto db = DataBag::Empty();
-
-  ASSERT_OK_AND_ASSIGN(
-      auto lists,
-      CreateListShaped(db, shape, /*values=*/std::nullopt,
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
-
-  auto initial_values =
-      test::DataSlice<int64_t>({0, 0, 0}, shape, schema::kInt64);
-  ASSERT_OK(lists.AppendToList(initial_values));
-  ASSERT_OK(lists.AppendToList(initial_values));
-  ASSERT_OK(lists.AppendToList(initial_values));
-  EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
-              IsOkAndHolds(Property(&DataSlice::slice,
-                                    ElementsAre(0, 0, 0, 0, 0, 0, 0, 0, 0))));
-
-  auto ids = test::DataSlice<int>({0, 2, 57}, shape, schema::kInt32);
-  auto values = test::DataSlice<int>({57, 7, -2}, shape, schema::kInt32);
-
-  ASSERT_OK(lists.SetInList(ids, values));
-  EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
-              IsOkAndHolds(Property(&DataSlice::slice,
-                                    ElementsAre(
-                                        // int32 values remain as int32.
-                                        DataItemWith<int>(57),
-                                        // And int64 values remain as int64.
-                                        DataItemWith<int64_t>(0), 0, 0, 0,
-                                        DataItemWith<int>(7), 0, 0, 0))));
-
-  auto text_values = test::DataSlice<arolla::Text>({"foo", "bar", "baz"}, shape,
-                                                   schema::kString);
-  ASSERT_OK(lists.SetInList(ids, text_values));
-  EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
-              IsOkAndHolds(Property(
-                  &DataSlice::slice,
-                  ElementsAre(DataItemWith<arolla::Text>("foo"), 0, 0, 0, 0,
-                              DataItemWith<arolla::Text>("bar"), 0, 0, 0))));
-}
-
 TEST(DataSliceTest, SetInList_NoneSchema) {
   auto db = DataBag::Empty();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
@@ -4667,38 +4412,6 @@ TEST(DataSliceTest, SetInList_Int64Schema) {
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
               IsOkAndHolds(Property(&DataSlice::slice,
                                     ElementsAre(57, 0, 0, 0, 0, 7, 0, 0, 0))));
-}
-
-TEST(DataSliceTest, AppendToList_AnySchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-  auto db = DataBag::Empty();
-
-  ASSERT_OK_AND_ASSIGN(
-      auto lists,
-      CreateListShaped(db, shape, /*values=*/std::nullopt,
-                       /*schema=*/std::nullopt, test::Schema(schema::kAny)));
-
-  ASSERT_OK(lists.AppendToList(
-      test::DataSlice<int64_t>({1, 2, 3}, shape, schema::kInt64)));
-  EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
-              IsOkAndHolds(Property(&DataSlice::slice,
-                                    ElementsAre(DataItemWith<int64_t>(1),
-                                                DataItemWith<int64_t>(2),
-                                                DataItemWith<int64_t>(3)))));
-
-  // Mixing types is allowed.
-  ASSERT_OK(lists.AppendToList(
-      test::DataSlice<float>({5, 6, 7}, shape, schema::kFloat32)));
-  EXPECT_THAT(
-      lists.ExplodeList(0, std::nullopt),
-      IsOkAndHolds(Property(
-          &DataSlice::slice,
-          ElementsAre(DataItemWith<int64_t>(1), DataItemWith<float>(5),
-                      DataItemWith<int64_t>(2), DataItemWith<float>(6.),
-                      DataItemWith<int64_t>(3), DataItemWith<float>(7.)))));
 }
 
 TEST(DataSliceTest, AppendToList_NoneSchema) {
@@ -4913,63 +4626,6 @@ TEST(DataSliceTest, DictErrors) {
                        HasSubstr("without a DataBag")));
 }
 
-TEST(DataSliceTest, SetInDict_GetFromDict_AnySchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-  ASSERT_OK_AND_ASSIGN(auto edge_3,
-                       DataSlice::JaggedShape::Edge::FromUniformGroups(3, 1));
-  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({edge_3}));
-  auto db = DataBag::Empty();
-
-  ASSERT_OK_AND_ASSIGN(
-      auto dicts,
-      CreateDictShaped(db, shape, /*keys=*/std::nullopt,
-                       /*values=*/std::nullopt, /*schema=*/std::nullopt,
-                       /*key_schema=*/test::Schema(schema::kAny),
-                       /*value_schema=*/test::Schema(schema::kAny)));
-
-  ASSERT_OK(dicts.SetInDict(
-      test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
-      test::MixedDataSlice<int, arolla::Bytes>(
-          {4, 5, std::nullopt}, {std::nullopt, std::nullopt, "six"}, keys_shape,
-          schema::kObject)));
-
-  auto immutable_dicts = dicts.FreezeBag();
-
-  ASSERT_OK_AND_ASSIGN(auto keys, immutable_dicts.GetDictKeys());
-  EXPECT_THAT(keys.slice(), ElementsAre(DataItemWith<int>(1), 2, 3));
-  EXPECT_THAT(keys.GetShape(), IsEquivalentTo(keys_shape));
-  EXPECT_THAT(keys.GetSchemaImpl(), Eq(schema::kAny));
-
-  ASSERT_OK_AND_ASSIGN(auto values, immutable_dicts.GetDictValues());
-  EXPECT_THAT(values.slice(),
-              ElementsAre(DataItemWith<int>(4), DataItemWith<int>(5),
-                          DataItemWith<arolla::Bytes>("six")));
-  EXPECT_THAT(values.GetShape(), IsEquivalentTo(keys_shape));
-  EXPECT_THAT(values.GetSchemaImpl(), Eq(schema::kAny));
-  ASSERT_OK_AND_ASSIGN(auto expected_values, immutable_dicts.GetFromDict(keys));
-  EXPECT_THAT(values, IsEquivalentTo(expected_values));
-
-  ASSERT_OK_AND_ASSIGN(values, immutable_dicts.GetFromDict(keys));
-  EXPECT_THAT(values.slice(),
-              ElementsAre(DataItemWith<int>(4), DataItemWith<int>(5),
-                          DataItemWith<arolla::Bytes>("six")));
-  EXPECT_THAT(values.GetShape(), IsEquivalentTo(keys_shape));
-  EXPECT_THAT(values.GetSchemaImpl(), Eq(schema::kAny));
-
-  ASSERT_OK_AND_ASSIGN(auto typed_keys,
-                       keys.WithSchema(test::Schema(schema::kInt32)));
-  EXPECT_THAT(immutable_dicts.GetFromDict(typed_keys),
-              IsOkAndHolds(IsEquivalentTo(values)));
-
-  ASSERT_OK_AND_ASSIGN(auto object_type_keys,
-                       keys.WithSchema(test::Schema(schema::kObject)));
-  EXPECT_THAT(immutable_dicts.GetFromDict(object_type_keys),
-              IsOkAndHolds(IsEquivalentTo(values)));
-}
-
 TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges({}));
   ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({CreateEdge({0, 3})}));
@@ -5019,9 +4675,9 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
               IsOkAndHolds(IsEquivalentTo(values)));
 
   // Narrowing is supported.
-  ASSERT_OK_AND_ASSIGN(auto any_type_keys,
-                       keys.WithSchema(test::Schema(schema::kAny)));
-  EXPECT_THAT(immutable_dicts.GetFromDict(any_type_keys),
+  ASSERT_OK_AND_ASSIGN(auto obj_type_keys,
+                       keys.WithSchema(test::Schema(schema::kObject)));
+  EXPECT_THAT(immutable_dicts.GetFromDict(obj_type_keys),
               IsOkAndHolds(IsEquivalentTo(values)));
 
   auto itemid_keys = test::DataSlice<internal::ObjectId>(
@@ -5095,9 +4751,9 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
               IsOkAndHolds(IsEquivalentTo(values)));
 
   // Narrowing is supported.
-  ASSERT_OK_AND_ASSIGN(auto any_type_keys,
-                       keys.WithSchema(test::Schema(schema::kAny)));
-  EXPECT_THAT(immutable_dicts.GetFromDict(any_type_keys),
+  ASSERT_OK_AND_ASSIGN(auto obj_type_keys,
+                       keys.WithSchema(test::Schema(schema::kObject)));
+  EXPECT_THAT(immutable_dicts.GetFromDict(obj_type_keys),
               IsOkAndHolds(IsEquivalentTo(values)));
 
   auto itemid_keys = test::DataSlice<internal::ObjectId>(
@@ -5504,16 +5160,14 @@ TEST(DataSliceTest, ShouldApplyListOp_DataItem) {
   EXPECT_TRUE(list.ShouldApplyListOp());
   EXPECT_TRUE(test::DataItem(internal::DataItem(), list.GetSchemaImpl(), db)
               .ShouldApplyListOp());
-  ASSERT_OK_AND_ASSIGN(auto list_any,
-                       list.WithSchema(test::Schema(schema::kAny)));
-  EXPECT_TRUE(list_any.ShouldApplyListOp());
+  ASSERT_OK_AND_ASSIGN(auto list_obj,
+                       list.WithSchema(test::Schema(schema::kObject)));
+  EXPECT_TRUE(list_obj.ShouldApplyListOp());
 
   ASSERT_OK_AND_ASSIGN(auto list_embedded, list.EmbedSchema());
   EXPECT_TRUE(list_embedded.ShouldApplyListOp());
 
   EXPECT_FALSE(test::DataItem(internal::DataItem(), schema::kObject, db)
-               .ShouldApplyListOp());
-  EXPECT_FALSE(test::DataItem(internal::DataItem(), schema::kAny, db)
                .ShouldApplyListOp());
 
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
@@ -5546,16 +5200,15 @@ TEST(DataSliceTest, ShouldApplyListOp_DataSlice) {
   EXPECT_TRUE(lists.ShouldApplyListOp());
   EXPECT_TRUE(test::EmptyDataSlice(lists.GetShape(), lists.GetSchemaImpl(), db)
               .ShouldApplyListOp());
-  ASSERT_OK_AND_ASSIGN(auto lists_any,
-                       lists.WithSchema(test::Schema(schema::kAny)));
-  EXPECT_TRUE(lists_any.ShouldApplyListOp());
+  ASSERT_OK_AND_ASSIGN(auto lists_obj,
+                       lists.WithSchema(test::Schema(schema::kObject)));
+  EXPECT_TRUE(lists_obj.ShouldApplyListOp());
 
   ASSERT_OK_AND_ASSIGN(auto lists_embedded, lists.EmbedSchema());
   EXPECT_TRUE(lists_embedded.ShouldApplyListOp());
 
   EXPECT_FALSE(test::EmptyDataSlice(3, schema::kObject, db)
                .ShouldApplyListOp());
-  EXPECT_FALSE(test::EmptyDataSlice(3, schema::kAny, db).ShouldApplyListOp());
 
   ASSERT_OK_AND_ASSIGN(
       auto entities,
@@ -5677,19 +5330,19 @@ TEST(DataSliceTest, SchemaSlice) {
           AllOf(HasSubstr("failed to set 'not_allowed' attribute;"),
                 HasSubstr("SCHEMA DataItem with primitive INT32"))));
 
-  auto any_schema = test::DataItem(schema::kAny, schema::kSchema, db);
+  auto object_schema = test::DataItem(schema::kObject, schema::kSchema, db);
   EXPECT_THAT(
-      any_schema.GetAttr("not_allowed"),
+      object_schema.GetAttr("not_allowed"),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           AllOf(HasSubstr("failed to get 'not_allowed' attribute;"),
-                HasSubstr("SCHEMA DataItem with primitive ANY"))));
+                HasSubstr("SCHEMA DataItem with primitive OBJECT"))));
   EXPECT_THAT(
-      any_schema.SetAttr("not_allowed", schema),
+      object_schema.SetAttr("not_allowed", schema),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           AllOf(HasSubstr("failed to set 'not_allowed' attribute;"),
-                HasSubstr("SCHEMA DataItem with primitive ANY"))));
+                HasSubstr("SCHEMA DataItem with primitive OBJECT"))));
 
   // Setting a non-schema as a schema attribute.
   EXPECT_THAT(y_schema.SetAttr("non_schema", x),
@@ -5868,8 +5521,8 @@ TEST(DataSliceCastingTest, EmptyToOther_Entity) {
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kString)));
 
   // Narrowing is allowed.
-  auto empty_values_any = test::EmptyDataSlice(shape, schema::kAny);
-  ASSERT_OK(entity.SetAttr("a", empty_values_any));
+  auto empty_values_obj = test::EmptyDataSlice(shape, schema::kObject);
+  ASSERT_OK(entity.SetAttr("a", empty_values_obj));
 
   auto empty_values_itemid = test::EmptyDataSlice(shape, schema::kItemId);
   EXPECT_THAT(entity.SetAttr("a", empty_values_itemid),
@@ -5888,8 +5541,8 @@ TEST(DataSliceCastingTest, EmptyToOther_Object) {
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
   // Narrowing is allowed.
-  auto empty_values_any = test::EmptyDataSlice(shape, schema::kAny);
-  ASSERT_OK(objects.SetAttr("a", empty_values_any));
+  auto empty_values_obj = test::EmptyDataSlice(shape, schema::kObject);
+  ASSERT_OK(objects.SetAttr("a", empty_values_obj));
 
   auto empty_values_itemid = test::EmptyDataSlice(shape, schema::kItemId);
   EXPECT_THAT(objects.SetAttr("a", empty_values_itemid),
@@ -5905,9 +5558,9 @@ TEST(DataSliceCastingTest, SameUnderlying_Entity) {
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kString)));
 
   // Narrowing is allowed.
-  auto values_any_text =
-      test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kAny);
-  ASSERT_OK(entity.SetAttr("a", values_any_text));
+  auto values_obj_text =
+      test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kObject);
+  ASSERT_OK(entity.SetAttr("a", values_obj_text));
 
   auto empty_values_itemid = test::EmptyDataSlice(shape, schema::kItemId);
   EXPECT_THAT(entity.SetAttr("a", empty_values_itemid),
@@ -5933,9 +5586,9 @@ TEST(DataSliceCastingTest, SameUnderlying_Object) {
   ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
 
   // Narrowing is allowed.
-  auto values_any_text =
-      test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kAny);
-  ASSERT_OK(objects.SetAttr("a", values_any_text));
+  auto values_obj_text =
+      test::DataSlice<arolla::Text>({"abc", std::nullopt}, schema::kObject);
+  ASSERT_OK(objects.SetAttr("a", values_obj_text));
 
   auto empty_values_itemid = test::EmptyDataSlice(shape, schema::kItemId);
   EXPECT_THAT(objects.SetAttr("a", empty_values_itemid),
@@ -5948,35 +5601,6 @@ TEST(DataSliceCastingTest, SameUnderlying_Object) {
   ASSERT_OK(objects.SetAttr("a", values_text));
   ASSERT_OK_AND_ASSIGN(auto ds_a, objects.GetAttr("a"));
   EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kString);
-  EXPECT_THAT(ds_a.slice(), ElementsAre(arolla::Text("abc"), std::nullopt));
-}
-
-TEST(DataSliceCastingTest, ToAny_Entity) {
-  auto db = DataBag::Empty();
-  auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
-  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kAny)));
-
-  auto values_text = test::DataSlice<arolla::Text>({"abc", std::nullopt});
-  ASSERT_OK(entity.SetAttr("a", values_text));
-  ASSERT_OK_AND_ASSIGN(auto ds_a, entity.GetAttr("a"));
-  EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kAny);
-  EXPECT_THAT(ds_a.slice(), ElementsAre(arolla::Text("abc"), std::nullopt));
-}
-
-TEST(DataSliceCastingTest, ToAny_Object) {
-  auto db = DataBag::Empty();
-  auto explicit_schema = test::Schema(internal::AllocateExplicitSchema(), db);
-  ASSERT_OK(explicit_schema.SetAttr("a", test::Schema(schema::kAny)));
-
-  auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto objects, ObjectCreator::Shaped(db, shape, {}, {}));
-  ASSERT_OK(objects.SetAttr(schema::kSchemaAttr, explicit_schema));
-
-  auto values_text = test::DataSlice<arolla::Text>({"abc", std::nullopt});
-  ASSERT_OK(objects.SetAttr("a", values_text));
-  ASSERT_OK_AND_ASSIGN(auto ds_a, objects.GetAttr("a"));
-  EXPECT_EQ(ds_a.GetSchemaImpl(), schema::kAny);
   EXPECT_THAT(ds_a.slice(), ElementsAre(arolla::Text("abc"), std::nullopt));
 }
 
@@ -6043,8 +5667,8 @@ TEST(DataSliceCastingTest, SchemaToObject) {
   ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
 
-  auto schema_item = test::Schema(schema::kAny);
-  EXPECT_THAT(entity.SetAttr("a", test::Schema(schema::kAny)),
+  auto schema_item = test::Schema(schema::kInt32);
+  EXPECT_THAT(entity.SetAttr("a", test::Schema(schema::kInt32)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the schema for attribute 'a' is incompatible: expected "
                        "OBJECT, assigned SCHEMA"));
@@ -6109,18 +5733,6 @@ TEST(DataSliceCastingTest, ToObject_NoEmbed_Object) {
   ASSERT_OK_AND_ASSIGN(ds_a, entity.GetAttr("a"));
   EXPECT_THAT(ds_a.slice(), IsEquivalentTo(values_int32_obj.slice()));
 }
-
-TEST(DataSliceCastingTest, ToObject_Any) {
-  auto db = DataBag::Empty();
-  auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::Shaped(db, shape, {}, {}));
-  ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kObject)));
-
-  // Narrowing is allowed.
-  auto values_int32_any = test::DataSlice<int>({42, 12}, schema::kAny);
-  ASSERT_OK(entity.SetAttr("a", values_int32_any));
-}
-
 
 TEST(DataSliceCastingTest, Implicit_And_Explicit_CastingAndSchemaUpdate) {
   auto db = DataBag::Empty();

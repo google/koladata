@@ -39,7 +39,6 @@ namespace {
 using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::koladata::schema::AnyDType;
 using ::koladata::schema::DType;
 using ::koladata::schema::GetDType;
 using ::koladata::schema::ItemIdDType;

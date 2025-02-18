@@ -21,28 +21,28 @@
 namespace koladata::ops {
 
 // Returns true if the DataSlice has a primitive schema or only contains
-// primitives if the schema is OBJECT, ANY or SCHEMA.
+// primitives if the schema is OBJECT or SCHEMA.
 absl::StatusOr<DataSlice> IsPrimitive(const DataSlice& x);
 
 // Returns a MASK DataSlice with present for each item in `x` that is primitive.
 absl::StatusOr<DataSlice> HasPrimitive(const DataSlice& x);
 
 // Returns true if the DataSlice has an Entity schema or only contains entities
-// if the schema is OBJECT or ANY.
+// if the schema is OBJECT.
 absl::StatusOr<DataSlice> IsEntity(const DataSlice& x);
 
 // Returns a MASK DataSlice with present for each item in `x` that is an Entity.
 absl::StatusOr<DataSlice> HasEntity(const DataSlice& x);
 
 // Returns true if the DataSlice has a List schema or only contains lists if the
-// schema is OBJECT or ANY.
+// schema is OBJECT.
 absl::StatusOr<DataSlice> IsList(const DataSlice& x);
 
 // Returns a MASK DataSlice with present for each item in `x` that is a List.
 absl::StatusOr<DataSlice> HasList(const DataSlice& x);
 
 // Returns true if the DataSlice has a Dict schema or only contains dicts if the
-// schema is OBJECT or ANY.
+// schema is OBJECT.
 absl::StatusOr<DataSlice> IsDict(const DataSlice& x);
 
 // Returns a MASK DataSlice with present for each item in `x` that is a Dict.

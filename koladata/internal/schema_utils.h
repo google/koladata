@@ -154,7 +154,7 @@ absl::StatusOr<internal::DataItem> NoFollowSchemaItem(
 absl::StatusOr<internal::DataItem> GetNoFollowedSchemaItem(
     const internal::DataItem& nofollow_schema_item);
 
-// Returns true if the schema_item are entity, OBJECT, ANY or ITEMID.
+// Returns true if the schema_item are entity, OBJECT or ITEMID.
 bool VerifySchemaForItemIds(const internal::DataItem& schema_item);
 
 // Validates that the given schema can be used for dict keys. The caller must

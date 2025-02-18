@@ -35,8 +35,8 @@ const std::array<arolla::QTypePtr, kNextDTypeId>& DType::type_id_to_qtype() {
         arolla::meta::foreach_type(
             schema::supported_dtype_values(), [&](auto tpe) {
               using T = typename decltype(tpe)::type;
-              // NOTE: ANY, ITEMID, OBJECT, SCHEMA and NONE all return NOTHING
-              // as a QType.
+              // NOTE: ITEMID, OBJECT, SCHEMA and NONE all return NOTHING as a
+              // QType.
               res[GetDTypeId<T>()] = arolla::GetNothingQType();
             });
         arolla::meta::foreach_type(

@@ -65,8 +65,7 @@ const schema_internal::DTypeLattice& schema_internal::GetDTypeLattice() {
       {kBytes, {kObject}},
       {kString, {kObject}},
       {kExpr, {kObject}},
-      {kObject, {kAny}},
-      {kAny, {}},
+      {kObject, {}},
   });
   return *lattice;
 }
@@ -291,7 +290,7 @@ absl::StatusOr<internal::DataItem> NoFollowSchemaItem(
     const internal::DataItem& schema_item) {
   if (schema_item.holds_value<DType>()) {
     if (schema_item.value<DType>() != kObject) {
-      // Raises on ANY, primitives and ITEMID.
+      // Raises on primitives and ITEMID.
       return absl::InvalidArgumentError(absl::StrFormat(
           "calling nofollow on %v slice is not allowed", schema_item));
     }
@@ -336,7 +335,7 @@ bool VerifySchemaForItemIds(const internal::DataItem& schema_item) {
     return false;
   }
   const DType& dtype = schema_item.value<DType>();
-  return dtype == kAny || dtype == kItemId || dtype == kObject;
+  return dtype == kItemId || dtype == kObject;
 }
 
 absl::Status VerifyDictKeySchema(const internal::DataItem& schema_item) {
