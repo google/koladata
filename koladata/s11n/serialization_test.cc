@@ -18,10 +18,13 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/testing/matchers.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
@@ -29,15 +32,18 @@
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/encode.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
 namespace koladata {
 namespace {
 
+using ::absl_testing::StatusIs;
 using arolla::TypedValue;
 using internal::DataItem;
 using internal::DataSliceImpl;
+using internal::testing::IsEquivalentTo;
 
 TEST(SerializationTest, DataItem) {
   std::vector<DataItem> items{
@@ -67,6 +73,65 @@ TEST(SerializationTest, DataItem) {
     ASSERT_OK_AND_ASSIGN(DataItem res_item,
                          decode_result.values[i].As<DataItem>());
     EXPECT_EQ(res_item, items[i]);
+  }
+}
+
+TEST(SerializationTest, DTypes_DataItem) {
+  // Ensures that all DTypes are supported during DataItem serialization.
+  arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
+    using T = typename decltype(tpe)::type;
+    schema::DType schema = schema::GetDType<T>();
+    internal::DataItem schema_item(schema);
+    ASSERT_OK_AND_ASSIGN(auto proto,
+                         arolla::serialization::Encode(
+                             {TypedValue::FromValue(schema_item)}, {}));
+    ASSERT_OK_AND_ASSIGN(auto decode_result,
+                         arolla::serialization::Decode(proto));
+    ASSERT_EQ(decode_result.exprs.size(), 0);
+    ASSERT_EQ(decode_result.values.size(), 1);
+    ASSERT_OK_AND_ASSIGN(DataItem res_item,
+                         decode_result.values[0].As<DataItem>());
+    EXPECT_THAT(res_item, IsEquivalentTo(schema_item));
+  });
+}
+
+TEST(SerializationTest, DTypes_DataSliceImpl) {
+  // Ensures that all DTypes are supported during DataSliceImpl serialization.
+  arolla::meta::foreach_type(schema::supported_dtype_values(), [&](auto tpe) {
+    using T = typename decltype(tpe)::type;
+    schema::DType schema = schema::GetDType<T>();
+    auto slice = DataSliceImpl::Create({DataItem(schema)});
+    ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                         {TypedValue::FromValue(slice)}, {}));
+    ASSERT_OK_AND_ASSIGN(auto decode_result,
+                         arolla::serialization::Decode(proto));
+    ASSERT_EQ(decode_result.exprs.size(), 0);
+    ASSERT_EQ(decode_result.values.size(), 1);
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl res,
+                         decode_result.values[0].As<DataSliceImpl>());
+    EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
+  });
+}
+
+TEST(SerializationTest, DTypes_Validation) {
+  {
+    // DataItem.
+    internal::DataItem invalid_schema(schema::DType::UnsafeFromId(-1));
+    ASSERT_OK_AND_ASSIGN(auto proto,
+                         arolla::serialization::Encode(
+                             {TypedValue::FromValue(invalid_schema)}, {}));
+    EXPECT_THAT(arolla::serialization::Decode(proto),
+                StatusIs(absl::StatusCode::kInvalidArgument));
+  }
+  {
+    // DataSliceImpl.
+    auto invalid_schemas =
+        DataSliceImpl::Create({DataItem(schema::DType::UnsafeFromId(-1))});
+    ASSERT_OK_AND_ASSIGN(auto proto,
+                         arolla::serialization::Encode(
+                             {TypedValue::FromValue(invalid_schemas)}, {}));
+    EXPECT_THAT(arolla::serialization::Decode(proto),
+                StatusIs(absl::StatusCode::kInvalidArgument));
   }
 }
 

@@ -101,8 +101,11 @@ absl::StatusOr<internal::DataItem> DecodeDataItemProto(
       return internal::DataItem(item_proto.boolean());
     case KodaV1Proto::DataItemProto::kBytesData:
       return internal::DataItem(arolla::Bytes(item_proto.bytes_data()));
-    case KodaV1Proto::DataItemProto::kDtype:
-      return internal::DataItem(schema::DType(item_proto.dtype()));
+    case KodaV1Proto::DataItemProto::kDtype: {
+      ASSIGN_OR_RETURN(schema::DType dtype,
+                       schema::DType::FromId(item_proto.dtype()));
+      return internal::DataItem(dtype);
+    }
     case KodaV1Proto::DataItemProto::kExprQuote: {
       if (input_values.empty()) {
         return absl::InvalidArgumentError(
@@ -306,6 +309,10 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
           typed_bldr.InsertIfNotSet(cur, object_id);
           bldr.GetMutableAllocationIds().Insert(
               internal::AllocationId(object_id));
+        } else if constexpr (std::is_same_v<T, schema::DType>) {
+          ASSIGN_OR_RETURN(schema::DType dtype,
+                           schema::DType::FromId(values[last_id]));
+          typed_bldr.InsertIfNotSet(cur, dtype);
         } else {
           typed_bldr.InsertIfNotSet(
               cur, internal::DataItem::View<T>(

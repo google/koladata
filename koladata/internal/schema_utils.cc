@@ -142,8 +142,8 @@ class DTypeMatrix {
             return i;
           }
         }
-        LOG(FATAL) << DType(static_cast<DTypeId>(a)) << " and "
-                   << DType(static_cast<DTypeId>(b))
+        LOG(FATAL) << DType::UnsafeFromId(static_cast<DTypeId>(a)) << " and "
+                   << DType::UnsafeFromId(static_cast<DTypeId>(b))
                    << " do not have a unique upper bound DType "
                       "- the DType lattice is malformed";
       };
@@ -171,7 +171,7 @@ std::optional<DType> schema_internal::CommonDTypeAggregator::Get(
   for (auto mask = seen_dtypes_; true;) {
     mask &= (mask - 1);  // remove the least significant bit.
     if (mask == 0) {
-      return DType(res_dtype_id);
+      return DType::UnsafeFromId(res_dtype_id);
     }
     DTypeId i = absl::countr_zero(mask);
     DTypeId common_dtype_id = DTypeMatrix::CommonDType(res_dtype_id, i);
@@ -179,8 +179,10 @@ std::optional<DType> schema_internal::CommonDTypeAggregator::Get(
       status = internal::WithErrorPayload(
           absl::InvalidArgumentError("no common schema"),
           CreateNoCommonSchemaError(
-              /*common_schema=*/internal::DataItem(DType(res_dtype_id)),
-              /*conflicting_schema=*/internal::DataItem(DType(i))));
+              /*common_schema=*/internal::DataItem(
+                  DType::UnsafeFromId(res_dtype_id)),
+              /*conflicting_schema=*/internal::DataItem(
+                  DType::UnsafeFromId(i))));
       return std::nullopt;
     }
     res_dtype_id = common_dtype_id;

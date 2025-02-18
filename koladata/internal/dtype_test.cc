@@ -20,10 +20,12 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/hash/hash_testing.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/stable_fingerprint.h"
 #include "koladata/internal/types.h"
@@ -133,6 +135,51 @@ TEST(DType, VerifyQTypeSupported) {
       arolla::GetQType<arolla::OptionalValue<float>>()));
 }
 
+TEST(DType, FromId) {
+  {
+    // Supported -> valid.
+    arolla::meta::foreach_type(supported_dtype_values(), [&](auto tpe) {
+      using T = typename decltype(tpe)::type;
+      ASSERT_OK_AND_ASSIGN(auto dtype, DType::FromId(GetDType<T>().type_id()));
+      EXPECT_EQ(dtype, GetDType<T>());
+    });
+  }
+  {
+    // Valid -> supported.
+    absl::flat_hash_set<DTypeId> supported_ids;
+    arolla::meta::foreach_type(supported_dtype_values(), [&](auto tpe) {
+      using T = typename decltype(tpe)::type;
+      supported_ids.insert(GetDType<T>().type_id());
+    });
+    for (int i = -10; i < kNextDTypeId + 10; ++i) {
+      if (supported_ids.contains(i)) {
+        continue;
+      }
+      EXPECT_THAT(DType::FromId(i),
+                  StatusIs(absl::StatusCode::kInvalidArgument));
+    }
+  }
+  {
+    // OOB ids.
+    EXPECT_THAT(DType::FromId(-1), StatusIs(absl::StatusCode::kInvalidArgument,
+                                            "unsupported DType.type_id(): -1"));
+    EXPECT_THAT(DType::FromId(kNextDTypeId),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         absl::StrFormat("unsupported DType.type_id(): %v",
+                                         kNextDTypeId)));
+  }
+}
+
+TEST(DType, UnsafeFromId) {
+  // Supported types.
+  arolla::meta::foreach_type(supported_dtype_values(), [&](auto tpe) {
+    using T = typename decltype(tpe)::type;
+    EXPECT_EQ(DType::UnsafeFromId(GetDType<T>().type_id()), GetDType<T>());
+  });
+  // Unsupported types.
+  EXPECT_EQ(DType::UnsafeFromId(-1).type_id(), -1);
+}
+
 TEST(DType, IsPrimitive) {
   EXPECT_TRUE(kInt32.is_primitive());
   EXPECT_TRUE(kInt64.is_primitive());
@@ -196,7 +243,7 @@ TEST(DType, FromQType) {
 
 TEST(DType, TypeId) {
   for (const auto& dtype : SupportedDTypes()) {
-    EXPECT_EQ(DType(dtype.type_id()), dtype);
+    EXPECT_EQ(DType::UnsafeFromId(dtype.type_id()), dtype);
     EXPECT_GE(static_cast<int>(dtype.type_id()), 0);
     EXPECT_LT(static_cast<int>(dtype.type_id()), kNextDTypeId);
   }

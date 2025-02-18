@@ -46,6 +46,7 @@ py_test(
         "@com_google_arolla//arolla/serialization_codecs/dense_array:dense_array_codec_py_proto",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/s11n/testing:codec_test_case",
+        "@com_google_protobuf//:protobuf_python",
     ],
 )
 

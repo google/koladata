@@ -17,13 +17,13 @@
 
 #include <array>
 #include <cstdint>
-#include <tuple>
 #include <type_traits>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/stable_fingerprint.h"
@@ -63,8 +63,9 @@ struct ObjectDType {};
 struct SchemaDType {};
 
 // When supporting a new type U, update either `supported_primitives_dtypes` or
-// `supported_dtype_values` (depending on what kind of type U is being added)
-// and add its name to `DType::kDTypeNames` at `TypeId<U>()` position. E.g.:
+// `supported_dtype_values` (depending on what kind of type U is being added),
+// add it to `GetDTypeId`, and add its name to `DType::kDTypeNames` at
+// `TypeId<U>()` position. E.g.:
 //   res[TypeId<U>] = "NAME_FOR_U";
 using supported_primitive_dtypes =
     arolla::meta::type_list<int64_t, int32_t, float, double, bool, arolla::Unit,
@@ -78,21 +79,46 @@ using supported_dtype_values = arolla::meta::concat_t<
 using DTypeId = int8_t;
 
 // GetDTypeId<T>() returns a type id for type T that can be wrapped into DType.
-template <typename T, DTypeId index = 0>
+//
+// WARNING: The DTypeIds are required to be (long-term) stable, and the internal
+// order should never change.
+template <typename T>
 static constexpr DTypeId GetDTypeId() {
-  using dtypes = supported_dtype_values::tuple;
-  static_assert(std::tuple_size_v<dtypes> > index,
-                "unsupported type for DType");
-  if constexpr (std::is_same_v<std::tuple_element_t<index, dtypes>, T>) {
-    return index;
+  if constexpr (std::is_same_v<int64_t, T>) {
+    return 0;
+  } else if constexpr (std::is_same_v<int32_t, T>) {
+    return 1;
+  } else if constexpr (std::is_same_v<float, T>) {
+    return 2;
+  } else if constexpr (std::is_same_v<double, T>) {
+    return 3;
+  } else if constexpr (std::is_same_v<bool, T>) {
+    return 4;
+  } else if constexpr (std::is_same_v<arolla::Unit, T>) {
+    return 5;
+  } else if constexpr (std::is_same_v<arolla::Bytes, T>) {
+    return 6;
+  } else if constexpr (std::is_same_v<arolla::Text, T>) {
+    return 7;
+  } else if constexpr (std::is_same_v<arolla::expr::ExprQuote, T>) {
+    return 8;
+  } else if constexpr (std::is_same_v<AnyDType, T>) {
+    return 9;
+  } else if constexpr (std::is_same_v<ItemIdDType, T>) {
+    return 10;
+  } else if constexpr (std::is_same_v<ObjectDType, T>) {
+    return 11;
+  } else if constexpr (std::is_same_v<SchemaDType, T>) {
+    return 12;
+  } else if constexpr (std::is_same_v<internal::MissingValue, T>) {
+    return 13;
   } else {
-    return GetDTypeId<T, index + 1>();
+    static_assert(false, "unsupported type for DType");
   }
 }
 
 // Maximal possible int value DType can be initialized with (exclusive).
-constexpr int8_t kNextDTypeId =
-    std::tuple_size_v<supported_dtype_values::tuple>;
+constexpr int8_t kNextDTypeId = 14;
 
 // Used to represent a terminal value of Schema within DataSlice. The "terminal"
 // here means that it has no further attributes and practically means that a
@@ -106,10 +132,22 @@ constexpr int8_t kNextDTypeId =
 class DType {
  public:
   constexpr DType() = default;
-  constexpr explicit DType(DTypeId type_id) : type_id_(type_id) {
-    DCHECK_GE(type_id, 0);
-    DCHECK_LT(type_id, kNextDTypeId);
+
+  // Initializes a new DType with the provided type_id without validation.
+  static constexpr DType UnsafeFromId(DTypeId type_id) {
+    return DType(type_id);
   }
+
+  // Initializes a new DType with the provided type_id. Validates that the
+  // `type_id()` represents a valid DType. Returns an error otherwise.
+  static absl::StatusOr<DType> FromId(DTypeId type_id) {
+    if (type_id < 0 || type_id >= kNextDTypeId) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("unsupported DType.type_id(): %v", type_id));
+    }
+    return DType(type_id);
+  }
+
   // Creates a DType from QTypePtr `qtype` if it represents a primitive QType
   // (INT32, STRING, etc.).
   static absl::StatusOr<DType> FromQType(arolla::QTypePtr qtype) {
@@ -180,6 +218,8 @@ class DType {
   };
 
  private:
+  constexpr explicit DType(DTypeId type_id) : type_id_(type_id) {}
+
   template <class Hasher>
   void Fingerprint(Hasher* hasher) const {
     // NOTE: This must be stable and not rely on QType pointer, but its name.
@@ -226,7 +266,7 @@ class DType {
 
 template <typename T>
 constexpr DType GetDType() {
-  return DType(GetDTypeId<T>());
+  return DType::UnsafeFromId(GetDTypeId<T>());
 }
 
 // Primitive dtypes.

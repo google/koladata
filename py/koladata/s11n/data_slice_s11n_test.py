@@ -18,6 +18,7 @@ import re
 from absl.testing import absltest
 from arolla import arolla
 from arolla.s11n.testing import codec_test_case
+from google.protobuf import text_format
 from koladata import kd
 from koladata.testing import testing as kd_testing
 from koladata.types import data_slice
@@ -481,6 +482,73 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
             }
           }
           """)
+
+  def test_dtype(self):
+    text = """
+      version: 2
+      decoding_steps {
+        codec {
+          name: "koladata.s11n"
+        }
+      }
+      decoding_steps {
+        value {
+          codec_index: 0
+          [koladata.s11n.KodaV1Proto.extension] {
+            internal_data_item_value {
+              i32: 1
+            }
+          }
+        }
+      }
+      decoding_steps {
+        codec {
+          name: "arolla.serialization_codecs.JaggedDenseArrayShapeV1Proto.extension"
+        }
+      }
+      decoding_steps {
+        value {
+          codec_index: 2
+          [arolla.serialization_codecs.JaggedDenseArrayShapeV1Proto.extension] {
+            jagged_dense_array_shape_value: true
+          }
+        }
+      }
+      decoding_steps {
+        value {
+          codec_index: 0
+          [koladata.s11n.KodaV1Proto.extension] {
+            internal_data_item_value {
+              dtype: %s
+            }
+          }
+        }
+      }
+      decoding_steps {
+        value {
+          input_value_indices: 1
+          input_value_indices: 3
+          input_value_indices: 4
+          codec_index: 0
+          [koladata.s11n.KodaV1Proto.extension] {
+            data_slice_value: true
+          }
+        }
+      }
+      decoding_steps {
+        output_value_index: 5
+      }"""
+    with self.subTest('OBJECT loads correctly'):
+      self.assertLoadsEqual(
+          text % '11',
+          data_slice.DataSlice.from_vals(1, schema_constants.OBJECT),
+      )
+    with self.subTest('ANY'):
+      container_proto = text_format.Parse(
+          text % '9', arolla.s11n.ContainerProto()
+      )
+      result = arolla.s11n.loads(container_proto.SerializeToString())
+      self.assertEqual(repr(result), 'DataItem(1, schema: ANY)')
 
 
 if __name__ == '__main__':
