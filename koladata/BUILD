@@ -77,6 +77,7 @@ cc_library(
         "//koladata/internal:schema_utils",
         "//koladata/internal:triples",
         "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/cleanup",
         "@com_google_absl//absl/container:btree",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",

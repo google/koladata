@@ -14,11 +14,14 @@
 //
 #include "koladata/data_bag.h"
 
+#include <cstddef>
+#include <deque>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/base/no_destructor.h"
+#include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
@@ -231,6 +234,48 @@ std::string GetBagIdRepr(const DataBagPtr& db) {
   // Use 4 hex digits as a compromise between simplicity and risk of conflicts,
   // which results in ~2^8 DataBags needed for 50% probability of a clash.
   return absl::StrCat("$", absl::string_view(fp_hex).substr(fp_hex.size() - 4));
+}
+
+// Non-recursive destruction to avoid stack overflows on deep fallbacks.
+DataBag::~DataBag() {
+  if (fallbacks_.empty()) {
+    return;
+  }
+  constexpr size_t kMaxDepth = 32;
+
+  // Array for postponing removing fallbacks.
+  //
+  // NOTE(b/343432263): NoDestructor is used to avoid issues with the
+  // destruction order of globals vs thread_locals.
+  thread_local absl::NoDestructor<std::deque<std::vector<DataBagPtr>>>
+      fallbacks;
+
+  // The first destructed node will perform clean up of postponed removals.
+  thread_local size_t destructor_depth = 0;
+
+  if (destructor_depth > kMaxDepth) {
+    // Postpone removing to avoid deep recursion.
+    fallbacks->push_back(std::move(fallbacks_));
+    return;
+  }
+
+  destructor_depth++;
+  absl::Cleanup decrease_depth = [&] { --destructor_depth; };
+  // Will cause calling ~DataBag for fallbacks_ with increased destructor_depth.
+  fallbacks_.clear();
+
+  if (destructor_depth == 1 && !fallbacks->empty()) {
+    while (!fallbacks->empty()) {
+      // Move out the first element of `fallbacks`.
+      // Destructor may cause adding more elements to `fallbacks`.
+      auto tmp = std::move(fallbacks->back());
+      // `pop_back` will remove empty vector, so
+      // `pop_back` will *not* cause any DataBag destructions.
+      fallbacks->pop_back();
+    }
+    // Avoid holding heap memory for standby threads.
+    fallbacks->shrink_to_fit();
+  }
 }
 
 }  // namespace koladata

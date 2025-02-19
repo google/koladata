@@ -60,6 +60,7 @@ class DataBag : public arolla::RefcountedBase {
 
   DataBag() : DataBag(/*is_mutable=*/true) {}
   explicit DataBag(immutable_t) : DataBag(/*is_mutable=*/false) {}
+  ~DataBag() noexcept;
 
   bool IsMutable() const { return is_mutable_; }
 

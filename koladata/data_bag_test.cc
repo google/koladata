@@ -426,5 +426,12 @@ TEST(DataBagTest, UnsafeMakeImmutable) {
   EXPECT_FALSE(db1.IsMutable());
 }
 
+TEST(DataBagTest, DeepFallbackChainNoStackOverflow) {
+  auto db = DataBag::Empty();
+  for (int i = 0; i < 1000'000; ++i) {
+    db = DataBag::ImmutableEmptyWithFallbacks({db});
+  }
+}
+
 }  // namespace
 }  // namespace koladata
