@@ -1674,8 +1674,6 @@ def translate(keys_to, keys_from, values_from):  # pylint: disable=unused-argume
   of `keys_from` and `keys_to` must be the same. The resulting DataSlice has the
   same shape as `keys_to` and the same DataBag as `values_from`.
 
-  `keys_from` and `keys_to` must have the same schema.
-
   Missing items or items with no matching keys in `keys_from` result in missing
   items in the resulting DataSlice.
 
@@ -1720,8 +1718,6 @@ def translate_group(keys_to, keys_from, values_from):
   dimensions of `keys_from` and `keys_to` must be the same. The shape of
   resulting DataSlice is the combination of the shape of `keys_to` and an
   injected group_by dimension.
-
-  `keys_from` and `keys_to` must have the same schema.
 
   Missing items or items with no matching keys in `keys_from` result in empty
   groups in the resulting DataSlice.
