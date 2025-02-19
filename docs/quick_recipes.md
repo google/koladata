@@ -360,3 +360,160 @@ kd.agg_sum(x.S[:kd.index(x) + 1]) & kd.has(x)  # [[1, 3], [3, None, 8], [6, None
 # We can also customize the behavior for missing items
 kd.agg_sum(x.S[:kd.index(x | 0) + 1])  # [[1, 3], [3, 3, 8], [6, 6, 6, 15]]
 ```
+
+## Changing the shape of DataSlices
+
+Koda provides several ways to change the shape of existing DataSlices without
+modifying their content. The two most common ones are `kd.flatten` (merges
+adjacent dimensions) and `kd.reshape` (attaches a new JaggedShape without
+changing the number of items). These operators work by modifying the DataSlice
+shapes rather than the data.
+
+Suppose we have a DataSlice with a given shape of ndim `R` and wish to
+merge `N` dimensions to create a DataSlice with ndim `R-N+1`, then `kd.flatten`
+can be used:
+
+```py
+# By default, `kd.flatten` returns a 1-dimensional DataSlice - even for scalars.
+kd.flatten(kd.slice([[1, 2], [3]]))  # [1, 2, 3]
+kd.slice([[1, 2], [3]]).flatten()  # [1, 2, 3]
+kd.item(0).flatten()  # [0]
+
+# One can optionally provide `from_dim` and `to_dim` parameters to specify which
+# consecutive dimensions should be merged.
+kd.slice([[[1, 2], [3]], [[4], [5, 6]]]).flatten(1, 3)  # [[1, 2, 3], [4, 5, 6]]
+
+# Alternatively, we can use negative values to specify that that last two
+# dimension should be merged.
+kd.slice([[[1, 2], [3]], [[4], [5, 6]]]).flatten(-2)  # [[1, 2, 3], [4, 5, 6]]
+
+# If `from == to`, a size-1 dimension is inserted at `from_dim`.
+kd.slice([1, 2, 3]).flatten(1, 1)  # [[1], [2], [3]]
+
+# This ensures that:
+#   `kd.flatten(ds, from, to).get_ndim() == ds.get_ndim() - (to - from) + 1`
+# (assuming 0 <= from <= to <= ds.get_ndim()).
+```
+
+While `kd.flatten` operates on DataSlices, it's possible to use it in
+combination with List implosions and explosions to flatten nested Lists:
+
+```py
+list_item = kd.list([[1, 2], [3]])
+list_item[:][:].flatten().implode()  # kd.list([1, 2, 3])
+```
+
+Suppose instead that we have a DataSlice of size `N` (with arbitrary
+dimensionality) that we wish to change the shape of, either by providing a
+new JaggedShape (with the same size), or by providing a tuple of per-dimension
+sizes. In such cases, `kd.reshape` can be used:
+
+```py
+ds = kd.slice([[1, 2], [3]])
+
+# Providing a shape directly.
+kd.reshape(ds), kd.shapes.new(3))  # [1, 2, 3]
+ds.reshape(kd.shapes.new(3))  # [1, 2, 3]
+
+# Providing a tuple of sizes. Each dimension size can either be a scalar (each
+# row has the same number of elements), or a DataSlice if the dimension is
+# Jagged.
+ds.reshape((3,))  # [1, 2, 3]
+ds.reshape((2, kd.slice([1, 2])))  # [[1], [2, 3]]
+
+# One of the dimensions is also allowed to be `-1`, indicating that it should
+# resolve to a uniform size (represented by a scalar) inferred from remaining
+# dimensions and the size of the input.
+ds.reshape((-1, kd.slice([1, 2])))  # [[1], [2, 3]]
+kd.slice([1, 2, 3, 4, 5, 6]).reshape((2, kd.slice([1, 2]), -1))  # [[[1, 2]], [[3, 4], [5, 6]]]
+
+# `kd.reshape_as` is a helper operator to reshape one DataSlice to the shape
+# of another.
+kd.reshape_as(ds, kd.slice([0, 0, 0]))  # [1, 2, 3]
+# This is equivalent to
+ds.reshape(kd.slice([0, 0, 0]).get_shape())  # [1, 2, 3]
+```
+
+NOTE: the old and new shapes must have the same size.
+
+## Broadcasting DataSlices through `kd.expand_to`
+
+Koda has well-defined broadcasting rules
+(go/koda-fundamentals#broadcasting-and-aligning) where one DataSlice can be
+broadcasted to the shape of another if its shape is a prefix of the other shape.
+Most of the time, broadcasting is done automatically and allows e.g. the
+following to succeed without manual broadcasting:
+
+```py
+kd.slice([1, 2]) + kd.slice([[3, 4], [5]])  # [[4, 5], [7]]
+```
+
+In some cases, it's useful to perform manual broadcasting which allows for more
+fine-grained behavior:
+
+```py
+# Expanding to another slice using normal broadcasting rules.
+kd.slice([1, 2]).expand_to(kd.slice([[0, 0], [0]]))  # [[1, 1], [2]]
+
+# By providing `ndim`, we implode the last `ndim` dimensions, expand and then
+# explode again. This allows us to implement e.g. cross-products, pairs and
+# more:
+x = kd.slice([1, 2, 3])
+x_expanded = x.expand_to(x, ndim=1)  # [[1, 2, 3], [1, 2, 3], [1, 2, 3]]
+kd.zip(x, x_expanded).flatten(0, 2)  # [[1, 1], [1, 2], ..., [3, 2], [3, 3]]
+```
+
+## Concatenating DataSlices of different ranks
+
+Koda supports DataSlice concatenation of variable number of inputs through
+`kd.concat` (and stacking through `kd.stack`). Due to the ambiguity explained
+below, it is required that all inputs have the same rank and it's up to the
+caller to ensure that this is the case.
+
+Suppose we have the following inputs:
+
+```py
+a = kd.slice([[[1, 2], [3]], [[5], [7, 8]]])
+b = kd.slice([['a', 'b'], ['c', 'd']])
+```
+
+If we call `kd.concat(a, b)`, we may have a couple of different expectations of
+what will happen. For example:
+
+```py
+1) -> [[[1, 2, 'a', 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd', 'd']]]
+2) -> [[[1, 2, 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd']]]
+3) -> [[[1, 2, 'a', 'b'], [3, 'a', 'b']], [[5, 'c', 'd'], [7, 8, 'c', 'd']]]
+```
+
+To achieve these outcomes, we mainly have two tools at our disposal:
+
+*   Aligning all inputs using Koda's standard broadcasting rules.
+*   Adding dimensions by repeating data or by reshaping the input.
+
+Expected outcome (1) uses the standard Koda broadcasting rules. `b` is
+broadcasted to the shape of `a`, and data is repeated as needed. Here, we can
+either use `kd.align` to align all inputs, or `kd.expand_to` directly on
+specific inputs:
+
+```py
+b_expanded = b.expand_to(a)  # [[['a', 'a'], ['b']], [['c'], ['d', 'd']]]
+kd.concat(a, b_expanded)  # [[[1, 2, 'a', 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd', 'd']]]
+# Same as `kd.concat(*kd.align(a, b))`
+```
+
+Expected outcome (2) adds a unit dimension to ensure that the ranks are the same
+without duplicating data.
+
+```py
+b_repeated = b.repeat(1)  # [[['a'], ['b']], [['c'], ['d']]]
+kd.concat(a, b_repeated)  # [[[1, 2, 'a'], [3, 'b']], [[5, 'c'], [7, 8, 'd']]]
+```
+
+Expected outcome (3) repeats each inner row of `b` once per element in `b`
+before concatenating. This can be achieved through `kd.expand_to`:
+
+```py
+b_expanded = b.expand_to(b, ndim=1)  # [[['a', 'b'], ['a', 'b']], [['c', 'd'], ['c', 'd']]]
+kd.concat(a, b_expanded)  # [[[1, 2, 'a', 'b'], [3, 'a', 'b']], [[5, 'c', 'd'], [7, 8, 'c', 'd']]]
+```
