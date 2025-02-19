@@ -606,12 +606,15 @@ py_test(
     name = "to_py_test",
     srcs = ["to_py_test.py"],
     deps = [
+        "//py/koladata/base/py_conversions:dataclasses_py_util",
         "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
     ],
 )
