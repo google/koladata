@@ -413,7 +413,7 @@ absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
                                                PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/2, /*parse_kwargs=*/false, "update_schema");
+      /*pos_only_n=*/2, /*parse_kwargs=*/false, "overwrite_schema");
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -430,18 +430,18 @@ absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
       auto value_ds,
       AssignmentRhsFromPyValue(self_ds, py_args[1], adoption_queue),
       arolla::python::SetPyErrFromStatus(_));
-  bool update_schema = false;
-  if (PyObject* py_update_schema = args.pos_kw_values[0];
-      py_update_schema != nullptr) {
-    if (!PyBool_Check(py_update_schema)) {
+  bool overwrite_schema = false;
+  if (PyObject* py_overwrite_schema = args.pos_kw_values[0];
+      py_overwrite_schema != nullptr) {
+    if (!PyBool_Check(py_overwrite_schema)) {
       PyErr_Format(PyExc_TypeError,
-                   "expected bool for `update_schema`, got: %s",
-                   Py_TYPE(py_update_schema)->tp_name);
+                   "expected bool for `overwrite_schema`, got: %s",
+                   Py_TYPE(py_overwrite_schema)->tp_name);
       return nullptr;
     }
-    update_schema = PyObject_IsTrue(py_update_schema);
+    overwrite_schema = PyObject_IsTrue(py_overwrite_schema);
   }
-  RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds, update_schema))
+  RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds, overwrite_schema))
       .With(arolla::python::SetPyErrFromStatus);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
       .With(arolla::python::SetPyErrFromStatus);
@@ -455,14 +455,14 @@ absl::Nullable<PyObject*> PyDataSlice_set_attrs(PyObject* self,
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor parser(
       FastcallArgParser(/*pos_only_n=*/0, /*parse_kwargs=*/true,
-                        /*kw_only_arg_names=*/{"update_schema"}));
+                        /*kw_only_arg_names=*/{"overwrite_schema"}));
 
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
-  bool update_schema = false;
-  if (!ParseBoolArg(args, "update_schema", update_schema)) {
+  bool overwrite_schema = false;
+  if (!ParseBoolArg(args, "overwrite_schema", overwrite_schema)) {
     return nullptr;
   }
   AdoptionQueue adoption_queue;
@@ -471,7 +471,7 @@ absl::Nullable<PyObject*> PyDataSlice_set_attrs(PyObject* self,
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(self_ds.GetBag(), args.kw_values, adoption_queue),
       arolla::python::SetPyErrFromStatus(_));
-  RETURN_IF_ERROR(self_ds.SetAttrs(args.kw_names, values, update_schema))
+  RETURN_IF_ERROR(self_ds.SetAttrs(args.kw_names, values, overwrite_schema))
       .With(arolla::python::SetPyErrFromStatus);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
       .With(arolla::python::SetPyErrFromStatus);
@@ -1105,19 +1105,19 @@ Returns:
      "           Note that this value can be fully omitted."},
     // TODO: Add proper docstring when the rest of functionality in
     // terms of dicts and lists is done.
-    {"set_attr", (PyCFunction)PyDataSlice_set_attr,
+    {"_set_attr", (PyCFunction)PyDataSlice_set_attr,
      METH_FASTCALL | METH_KEYWORDS,
-     "set_attr(attr_name, value, /, update_schema=False)\n"
+     "_set_attr(attr_name, value, /, overwrite_schema=False)\n"
      "--\n\n"
      "Sets an attribute `attr_name` to `value`."},
-    {"set_attrs", (PyCFunction)PyDataSlice_set_attrs,
+    {"_set_attrs", (PyCFunction)PyDataSlice_set_attrs,
      METH_FASTCALL | METH_KEYWORDS,
-     "set_attrs(*, update_schema=False, **attrs)\n"
+     "set_attrs(*, overwrite_schema=False, **attrs)\n"
      "--\n\n"
      R"""(Sets multiple attributes on an object / entity.
 
 Args:
-  update_schema: (bool) overwrite schema if attribute schema is missing or
+  overwrite_schema: (bool) overwrite schema if attribute schema is missing or
     incompatible.
   **attrs: attribute values that are converted to DataSlices with DataBag
     adoption.

@@ -323,7 +323,7 @@ The cause is: the schema for attribute 'a' is incompatible.
 Expected schema for 'a': INT32
 Assigned schema for 'a': STRING
 
-To fix this, explicitly override schema of 'a' in the original schema by passing update_schema=True."""
+To fix this, explicitly override schema of 'a' in the original schema by passing overwrite_schema=True."""
         ),
     ):
       fns.new_like(ds([1, 2, 3]), a=ds(['a', 'b', 'c']), schema=schema)

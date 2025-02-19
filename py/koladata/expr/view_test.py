@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest import mock
+import warnings
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -719,6 +722,35 @@ class KodaViewTest(parameterized.TestCase):
     signature_test_utils.check_method_function_signature_compatibility(
         self, *args, **kwargs
     )
+
+  def test_with_attrs_update_schema(self):
+    entity = kde.new(x=1)
+
+    with self.subTest('with_attrs'):
+      with mock.patch.object(warnings, 'warn') as mock_warn:
+        testing.assert_equal(
+            entity.with_attrs(x='2', overwrite_schema=True).x.eval().no_bag(),
+            ds('2')
+        )
+        mock_warn.assert_not_called()
+        testing.assert_equal(
+            entity.with_attrs(x='2', update_schema=True).x.eval().no_bag(),
+            ds('2')
+        )
+        mock_warn.assert_called_once()
+
+    with self.subTest('with_attr'):
+      with mock.patch.object(warnings, 'warn') as mock_warn:
+        testing.assert_equal(
+            entity.with_attr('x', '2', overwrite_schema=True).x.eval().no_bag(),
+            ds('2')
+        )
+        mock_warn.assert_not_called()
+        testing.assert_equal(
+            entity.with_attr('x', '2', update_schema=True).x.eval().no_bag(),
+            ds('2')
+        )
+        mock_warn.assert_called_once()
 
 
 if __name__ == '__main__':

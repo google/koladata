@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import re
+from unittest import mock
+import warnings
 
 from absl.testing import absltest
 from koladata.exceptions import exceptions
@@ -25,6 +27,28 @@ ds = data_slice.DataSlice.from_vals
 
 
 class SetAttrsTest(absltest.TestCase):
+
+  def test_warning(self):
+    x = fns.new().fork_bag()
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      fns.set_attrs(x, xyz='12', update_schema=True)
+      testing.assert_equal(x.xyz.no_bag(), ds('12'))
+      mock_warn.assert_called_once()
+
+  def test_update_and_overwrite_schema_combo(self):
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+
+    x = fns.new(schema=schema).fork_bag()
+    fns.set_attrs(x, a=42, update_schema=True, overwrite_schema=True)
+    testing.assert_equal(x.a.no_bag(), ds(42))
+
+    x = fns.new(schema=schema).fork_bag()
+    fns.set_attrs(x, a=42, update_schema=False, overwrite_schema=True)
+    testing.assert_equal(x.a.no_bag(), ds(42))
+
+    x = fns.new(schema=schema).fork_bag()
+    fns.set_attrs(x, a=42, update_schema=False, overwrite_schema=False)
+    testing.assert_equal(x.a.no_bag(), ds(42.))
 
   def test_entity(self):
     x = fns.new(a=ds(1, schema_constants.INT64), b='a').fork_bag()
@@ -44,14 +68,14 @@ class SetAttrsTest(absltest.TestCase):
 Expected schema for 'b': STRING
 Assigned schema for 'b': BYTES
 
-To fix this, explicitly override schema of 'b' in the original schema by passing update_schema=True."""
+To fix this, explicitly override schema of 'b' in the original schema by passing overwrite_schema=True."""
         ),
     ):
       fns.set_attrs(x, a=2, b=b'abc')
 
-  def test_update_schema_entity(self):
+  def test_overwrite_schema_entity(self):
     x = fns.new(a=1, b='a').fork_bag()
-    fns.set_attrs(x, a=2, b=b'abc', update_schema=True)
+    fns.set_attrs(x, a=2, b=b'abc', overwrite_schema=True)
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds(b'abc').with_bag(x.get_bag()))
 
@@ -81,16 +105,16 @@ To fix this, explicitly override schema of 'b' in the original schema by passing
 Expected schema for 'b': STRING
 Assigned schema for 'b': BYTES
 
-To fix this, explicitly override schema of 'b' in the Object schema by passing update_schema=True."""
+To fix this, explicitly override schema of 'b' in the Object schema by passing overwrite_schema=True."""
         ),
     ):
       fns.set_attrs(x, a=2, b=b'abc')
 
-  def test_update_schema_object(self):
+  def test_overwrite_schema_object(self):
     x_schema = fns.new(a=1, b='a').get_schema()
     x = fns.obj().fork_bag()
     x.set_attr('__schema__', x_schema)
-    fns.set_attrs(x, a=2, b=b'abc', update_schema=True)
+    fns.set_attrs(x, a=2, b=b'abc', overwrite_schema=True)
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds(b'abc').with_bag(x.get_bag()))
 

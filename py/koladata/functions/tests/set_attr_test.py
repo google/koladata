@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import re
+from unittest import mock
+import warnings
 
 from absl.testing import absltest
 from koladata.exceptions import exceptions
@@ -28,24 +30,46 @@ ds = data_slice.DataSlice.from_vals
 
 class SetAttrTest(absltest.TestCase):
 
+  def test_warning(self):
+    x = fns.new().fork_bag()
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      fns.set_attr(x, 'xyz', '12', update_schema=True)
+      testing.assert_equal(x.xyz.no_bag(), ds('12'))
+      mock_warn.assert_called_once()
+
+  def test_update_and_overwrite_schema_combo(self):
+    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+
+    x = fns.new(schema=schema).fork_bag()
+    fns.set_attr(x, 'a', 42, update_schema=True, overwrite_schema=True)
+    testing.assert_equal(x.a.no_bag(), ds(42))
+
+    x = fns.new(schema=schema).fork_bag()
+    fns.set_attr(x, 'a', 42, update_schema=False, overwrite_schema=True)
+    testing.assert_equal(x.a.no_bag(), ds(42))
+
+    x = fns.new(schema=schema).fork_bag()
+    fns.set_attr(x, 'a', 42, update_schema=False, overwrite_schema=False)
+    testing.assert_equal(x.a.no_bag(), ds(42.))
+
   def test_entity(self):
     db = fns.bag()
     x = db.new()
 
-    fns.set_attr(x, 'xyz', '12', update_schema=False)
+    fns.set_attr(x, 'xyz', '12', overwrite_schema=False)
     testing.assert_equal(x.xyz, ds('12').with_bag(db))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
         r'the schema for attribute \'xyz\' is incompatible',
     ):
-      fns.set_attr(x, 'xyz', 12, update_schema=False)
+      fns.set_attr(x, 'xyz', 12, overwrite_schema=False)
 
     fns.set_attr(
         x,
         'xyz',
         ds(2.71, schema_constants.FLOAT64),
-        update_schema=True,
+        overwrite_schema=True,
     )
     testing.assert_allclose(
         x.xyz, ds(2.71, schema_constants.FLOAT64).with_bag(db)
@@ -60,28 +84,28 @@ class SetAttrTest(absltest.TestCase):
     db = fns.bag()
     x = db.obj()
 
-    fns.set_attr(x, 'xyz', b'12', update_schema=True)
+    fns.set_attr(x, 'xyz', b'12', overwrite_schema=True)
     testing.assert_equal(x.xyz, ds(b'12').with_bag(db))
 
     # Still updated for implicit schemas.
-    fns.set_attr(x, 'xyz', '12', update_schema=False)
+    fns.set_attr(x, 'xyz', '12', overwrite_schema=False)
     testing.assert_equal(x.xyz, ds('12').with_bag(db))
 
   def test_primitives(self):
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes'
     ):
-      fns.set_attr(ds(1), 'xyz', 2, update_schema=False)
+      fns.set_attr(ds(1), 'xyz', 2, overwrite_schema=False)
 
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes'
     ):
-      fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, update_schema=False)
+      fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, overwrite_schema=False)
 
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes'
     ):
-      fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, update_schema=True)
+      fns.set_attr(ds(1).with_bag(fns.bag()), 'xyz', 2, overwrite_schema=True)
 
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes'
@@ -90,7 +114,7 @@ class SetAttrTest(absltest.TestCase):
           ds(1, schema_constants.OBJECT).with_bag(fns.bag()),
           'xyz',
           2,
-          update_schema=False,
+          overwrite_schema=False,
       )
 
     with self.assertRaisesRegex(
@@ -100,7 +124,7 @@ class SetAttrTest(absltest.TestCase):
           ds(1, schema_constants.OBJECT).with_bag(fns.bag()),
           'xyz',
           2,
-          update_schema=True,
+          overwrite_schema=True,
       )
 
   def test_none(self):
@@ -111,7 +135,7 @@ class SetAttrTest(absltest.TestCase):
     testing.assert_equal(x, ds(None).with_bag(db))
     testing.assert_equal(x.xyz, ds(None).with_bag(db))
 
-    fns.set_attr(x, 'xyz', b'12', update_schema=True)
+    fns.set_attr(x, 'xyz', b'12', overwrite_schema=True)
     testing.assert_equal(x, ds(None).with_bag(db))
     testing.assert_equal(x.xyz, ds(None).with_bag(db))
 
@@ -128,7 +152,7 @@ class SetAttrTest(absltest.TestCase):
 Expected schema for 'xyz': INT32
 Assigned schema for 'xyz': BYTES"""),
     ):
-      fns.set_attr(x, 'xyz', ds([b'x', b'y']), update_schema=False)
+      fns.set_attr(x, 'xyz', ds([b'x', b'y']), overwrite_schema=False)
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
@@ -141,11 +165,11 @@ Assigned schema for 'xyz': STRING"""),
           x,
           'xyz',
           ds(['foo', 'bar'], schema_constants.STRING),
-          update_schema=False,
+          overwrite_schema=False,
       )
 
     # Overwrite with overwriting schema.
-    x.set_attr('abc', ds([b'x', b'y']), update_schema=True)
+    x.set_attr('abc', ds([b'x', b'y']), overwrite_schema=True)
     testing.assert_equal(x.abc, ds([b'x', b'y']).with_bag(db))
     testing.assert_equal(
         x.get_attr('__schema__').abc,

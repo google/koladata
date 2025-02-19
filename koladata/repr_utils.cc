@@ -214,14 +214,14 @@ absl::StatusOr<Error> SetIncompatibleSchemaError(
           &error_str,
           absl::StrFormat("\n\nTo fix this, explicitly override schema of '%s' "
                           "in the Object "
-                          "schema by passing update_schema=True.",
+                          "schema by passing overwrite_schema=True.",
                           attr_str));
     } else {
       absl::StrAppend(
           &error_str,
           absl::StrFormat(
               "\n\nTo fix this, explicitly override schema of '%s' in the "
-              "original schema by passing update_schema=True.",
+              "original schema by passing overwrite_schema=True.",
               attr_str));
     }
     cause.set_error_message(std::move(error_str));

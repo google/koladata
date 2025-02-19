@@ -39,6 +39,19 @@ def _get_docstring(op_name: str) -> str | None:
   return op.getdoc()
 
 
+# TODO: Remove after `update_schema` is fully deprecated.
+def get_overwrite_schema(update_schema: bool | None) -> bool:
+  """Helper function to convert update_schema argument to overwrite_schema."""
+  if update_schema is not None:
+    warnings.warn(
+        'update_schema argument is deprecated, please use overwrite_schema, '
+        'instead',
+        RuntimeWarning,
+    )
+    return update_schema
+  return False
+
+
 def add_method(cls, method_name: str, docstring_from: str | None = None):
   """Returns a callable / decorator to put it as a cls's method.
 
@@ -422,10 +435,14 @@ def _stub(self, attrs: DataSlice = DataSlice.from_vals([])) -> DataSlice:
 def _with_attrs(
     self,
     *,
-    update_schema: bool | DataSlice = DataSlice.from_vals(False),
+    update_schema: bool | None = None,
+    overwrite_schema: bool | DataSlice = DataSlice.from_vals(False),
     **attrs,
 ) -> DataSlice:
-  return _eval_op('kd.with_attrs', self, update_schema=update_schema, **attrs)
+  return _eval_op(
+      'kd.with_attrs', self, update_schema=update_schema,
+      overwrite_schema=overwrite_schema, **attrs
+  )
 
 
 @add_method(DataSlice, 'with_attr', docstring_from='kd.with_attr')
@@ -433,9 +450,13 @@ def _with_attr(
     self,
     attr_name: str | DataSlice,
     value: Any,
-    update_schema: bool | DataSlice = DataSlice.from_vals(False),
+    update_schema: bool | None = None,
+    overwrite_schema: bool | DataSlice = DataSlice.from_vals(False),
 ) -> DataSlice:
-  return _eval_op('kd.with_attr', self, attr_name, value, update_schema)
+  return _eval_op(
+      'kd.with_attr', self, attr_name, value,
+      update_schema=update_schema, overwrite_schema=overwrite_schema
+  )
 
 
 @add_method(DataSlice, 'take', docstring_from='kd.take')
@@ -667,6 +688,46 @@ def _display(
     vis.visualize_slice(self, options=options)
   else:
     print(repr(self))
+
+
+# TODO: Remove these methods after update_schema has been
+# deprecated. Bring back only the C++ ones with the proper argument names. This
+# has a temporary performance regression.
+@add_method(DataSlice, 'set_attr')
+def _set_attr(
+    self,
+    attr_name: str,
+    value: Any,
+    /,
+    update_schema: bool | None = None,
+    overwrite_schema: bool = False,
+) -> DataSlice:
+  """Sets an attribute `attr_name` to `value`."""
+  overwrite_schema = get_overwrite_schema(update_schema) or overwrite_schema
+  self._set_attr(attr_name, value, overwrite_schema)  # pylint: disable=protected-access
+
+
+@add_method(DataSlice, 'set_attrs')
+def _set_attrs(
+    self,
+    *,
+    update_schema: bool | None = None,
+    overwrite_schema: bool = False,
+    **attrs,
+) -> DataSlice:
+  """Sets multiple attributes on an object / entity.
+
+  Args:
+    self: DataSlice.
+    update_schema: DEPRECATED. whether to update the schema before setting an
+      attribute.
+    overwrite_schema: whether to overwrite the schema before setting an
+      attribute.
+    **attrs: attribute values that are converted to DataSlices with DataBag
+      adoption.
+  """
+  overwrite_schema = get_overwrite_schema(update_schema) or overwrite_schema
+  self._set_attrs(overwrite_schema=overwrite_schema, **attrs)  # pylint: disable=protected-access
 
 
 ##### DataSlice Magic methods. #####

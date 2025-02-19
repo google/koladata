@@ -93,7 +93,7 @@ absl::Status AssignmentError(absl::Status status, size_t lhs_rank,
   if (rhs_rank > lhs_rank) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "trying to assign a slice with %d dimensions to a slice with only %d "
-        "dimensions. To wrap the last dimension into a list, use kd.list()",
+        "dimensions. To wrap the last dimension into a list, use kd.implode()",
         rhs_rank, lhs_rank));
   }
   return status;

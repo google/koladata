@@ -151,6 +151,11 @@ class DataSliceMethodsTest(parameterized.TestCase):
               'S',  # Has different meanings between method and function.
               'get_values',  # TODO: fix this.
               'implode',  # method lacks db= argument for consistency with view
+              # TODO: Remove these 4 methods from skipped methods.
+              'set_attr',
+              'set_attrs',
+              'with_attr',
+              'with_attrs',
           },
           skip_params=[
               ('with_bag', 0),  # bag is positional-only in C++
@@ -1130,9 +1135,9 @@ class DataSliceTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           exceptions.KodaError, r'schema for attribute \'xyz\' is incompatible'
       ):
-        x.set_attr('xyz', ds([12]), update_schema=False)
+        x.set_attr('xyz', ds([12]), overwrite_schema=False)
 
-      x.set_attr('xyz', ds([12]), update_schema=True)
+      x.set_attr('xyz', ds([12]), overwrite_schema=True)
       testing.assert_equal(x.get_attr('xyz'), ds([12]).with_bag(db))
       testing.assert_equal(
           x.get_attr('xyz').get_schema(), schema_constants.INT32.with_bag(db)
@@ -1147,11 +1152,11 @@ class DataSliceTest(parameterized.TestCase):
           x.get_attr('abc').get_schema(), schema_constants.INT64.with_bag(db)
       )
 
-      for attr, val, update_schema, res_schema in [
+      for attr, val, overwrite_schema, res_schema in [
           ('xyz', ds([b'12']), True, schema_constants.BYTES),
           ('pqr', ds(['123']), False, schema_constants.STRING),
       ]:
-        x.set_attr(attr, val, update_schema=update_schema)
+        x.set_attr(attr, val, overwrite_schema=overwrite_schema)
         testing.assert_equal(x.get_attr(attr), val.with_bag(db))
         testing.assert_equal(
             x.get_attr(attr).get_schema(), res_schema.with_bag(db)
@@ -1190,9 +1195,9 @@ class DataSliceTest(parameterized.TestCase):
           exceptions.KodaError,
           r'the schema for attribute \'abc\' is incompatible',
       ):
-        x.set_attr('abc', ds([b'x', b'y']), update_schema=False)
+        x.set_attr('abc', ds([b'x', b'y']), overwrite_schema=False)
       # Overwrite with overwriting schema.
-      x.set_attr('abc', ds([b'x', b'y']), update_schema=True)
+      x.set_attr('abc', ds([b'x', b'y']), overwrite_schema=True)
       testing.assert_equal(x.get_attr('abc'), ds([b'x', b'y']).with_bag(db))
       testing.assert_equal(
           x.get_attr('abc').get_schema(), schema_constants.BYTES.with_bag(db)
@@ -1209,11 +1214,11 @@ class DataSliceTest(parameterized.TestCase):
       with self.assertRaises(ValueError):
         x.set_attr('invalid__val', ValueError)
       with self.assertRaisesRegex(TypeError, 'expected bool'):
-        x.set_attr('invalid__update_schema_type', 1, update_schema=42)
+        x.set_attr('invalid__overwrite_schema_type', 1, overwrite_schema=42)
       with self.assertRaisesRegex(
-          TypeError, 'accepts 2 to 3 positional arguments'
+          TypeError, 'expected bool for `overwrite_schema`, got: int'
       ):
-        x.set_attr('invalid__update_schema_type', 1, False, 42)
+        x.set_attr('invalid__overwrite_schema_type', 1, False, 42)
 
   def test_set_attr_incompatible_schema(self):
     db = bag()
@@ -1226,7 +1231,7 @@ class DataSliceTest(parameterized.TestCase):
 Expected schema for 'x': SCHEMA(c=INT32)
 Assigned schema for 'x': SCHEMA(b=STRING)
 
-To fix this, explicitly override schema of 'x' in the original schema by passing update_schema=True."""
+To fix this, explicitly override schema of 'x' in the original schema by passing overwrite_schema=True."""
         ),
     ):
       db.new(x=db.new(c=1)).x = db2.new(b='a')
@@ -1240,7 +1245,7 @@ To fix this, explicitly override schema of 'x' in the original schema by passing
 Expected schema for 'x': STRING
 Assigned schema for 'x': INT32
 
-To fix this, explicitly override schema of 'x' in the Object schema by passing update_schema=True."""
+To fix this, explicitly override schema of 'x' in the Object schema by passing overwrite_schema=True."""
         ),
     ):
       o.x = 1
@@ -1256,7 +1261,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing u
 Expected schema for 'x': FLOAT32
 Assigned schema for 'x': INT32
 
-To fix this, explicitly override schema of 'x' in the Object schema by passing update_schema=True."""
+To fix this, explicitly override schema of 'x' in the Object schema by passing overwrite_schema=True."""
         ),
     ):
       o.x = 1
@@ -1526,7 +1531,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing u
     ):
       x.set_attrs(a=2, b=b'abc')
 
-    x.set_attrs(a=2, b=b'abc', update_schema=True)
+    x.set_attrs(a=2, b=b'abc', overwrite_schema=True)
     testing.assert_equal(x.a, ds(2).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds(b'abc').with_bag(x.get_bag()))
 
@@ -1544,12 +1549,12 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing u
     testing.assert_dicts_equal(o.d, bag().dict({'a': 42}))
     testing.assert_equal(o.l[:], ds([1, 2, 3]).with_bag(o.get_bag()))
 
-  def test_set_multiple_attrs_wrong_update_schema_type(self):
+  def test_set_multiple_attrs_wrong_overwrite_schema_type(self):
     o = bag().obj()
     with self.assertRaisesRegex(
-        TypeError, 'expected bool for update_schema, got int'
+        TypeError, 'expected bool for overwrite_schema, got int'
     ):
-      o.set_attrs(update_schema=42)
+      o.set_attrs(overwrite_schema=42)
 
   def test_del_attr(self):
     db = bag()
@@ -3573,6 +3578,32 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(obj2.x.no_bag(), ds(3))
     testing.assert_equal(obj2.y.no_bag(), ds(2))
     testing.assert_equal(obj2.z.no_bag(), ds(4))
+
+  def test_with_attrs_update_schema(self):
+    entity = bag().new(x=1)
+
+    with self.subTest('with_attrs'):
+      with mock.patch.object(warnings, 'warn') as mock_warn:
+        testing.assert_equal(
+            entity.with_attrs(x='2', overwrite_schema=True).x.no_bag(), ds('2')
+        )
+        mock_warn.assert_not_called()
+        testing.assert_equal(
+            entity.with_attrs(x='2', update_schema=True).x.no_bag(), ds('2')
+        )
+        mock_warn.assert_called_once()
+
+    with self.subTest('with_attr'):
+      with mock.patch.object(warnings, 'warn') as mock_warn:
+        testing.assert_equal(
+            entity.with_attr('x', '2', overwrite_schema=True).x.no_bag(),
+            ds('2')
+        )
+        mock_warn.assert_not_called()
+        testing.assert_equal(
+            entity.with_attr('x', '2', update_schema=True).x.no_bag(), ds('2')
+        )
+        mock_warn.assert_called_once()
 
   # More comprehensive tests are in the test_core_subslice.py.
   @parameterized.parameters(

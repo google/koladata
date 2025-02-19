@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest import mock
+import warnings
+
 from absl.testing import absltest
 from arolla import arolla
 from koladata.exceptions import exceptions
@@ -46,6 +49,17 @@ QTYPES = frozenset([
 
 class CoreWithAttrsTest(absltest.TestCase):
 
+  def test_warning(self):
+    o = kde.new(x=1, y=10).eval()
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      o2 = kde.core.with_attrs(o, x=b'2', update_schema=True).eval()
+      mock_warn.assert_called_once()
+    testing.assert_equal(o2.x.no_bag(), ds(b'2'))
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      o2 = kde.core.with_attrs(o, x=b'2', overwrite_schema=True).eval()
+      mock_warn.assert_not_called()
+    testing.assert_equal(o2.x.no_bag(), ds(b'2'))
+
   def test_multi_attr_update(self):
     o = bag().new(x=1, y='q')
     with self.assertRaisesRegex(
@@ -62,6 +76,33 @@ class CoreWithAttrsTest(absltest.TestCase):
     testing.assert_equal(o1.a.no_bag(), ds(1))
     testing.assert_equal(o1.b.no_bag(), ds('p'))
     testing.assert_equal(o1.c[:].no_bag(), ds([1, 2]))
+
+  # NOTE: Other combinations are tested in other test cases.
+  def test_update_and_overwrite_schema_combo(self):
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
+    x = kde.core.with_attrs(
+        kde.new(schema=schema),
+        a=42,
+        update_schema=True,
+        overwrite_schema=True,
+    ).eval()
+    testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
+
+    x = kde.core.with_attrs(
+        kde.new(schema=schema),
+        a=42,
+        update_schema=ds(False),
+        overwrite_schema=True,
+    ).eval()
+    testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
+
+    x = kde.core.with_attrs(
+        kde.new(schema=schema),
+        a=42,
+        update_schema=False,
+        overwrite_schema=False,
+    ).eval()
+    testing.assert_equal(x.a, ds(42.).with_bag(x.get_bag()))
 
   def test_error_primitives(self):
     with self.assertRaisesRegex(
@@ -106,7 +147,7 @@ class CoreWithAttrsTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.with_attrs(I.x, a=I.y)),
-        'kd.core.with_attrs(I.x, update_schema=DataItem(False, schema:'
+        'kd.core.with_attrs(I.x, overwrite_schema=DataItem(False, schema:'
         ' BOOLEAN), a=I.y)',
     )
 

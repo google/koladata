@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import re
+from unittest import mock
+import warnings
 
 from absl.testing import absltest
 from arolla import arolla
@@ -49,14 +51,25 @@ QTYPES = frozenset([
 
 class CoreAttrsTest(absltest.TestCase):
 
-  def test_multi_attr_update(self):
+  def test_warning(self):
+    o = kde.new(x=1, y=10).eval()
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      db2 = kde.core.attrs(o, x=b'2', update_schema=True).eval()
+      mock_warn.assert_called_once()
+    testing.assert_equal(o.updated(db2).x.no_bag(), ds(b'2'))
+    with mock.patch.object(warnings, 'warn') as mock_warn:
+      db2 = kde.core.attrs(o, x=b'2', overwrite_schema=True).eval()
+      mock_warn.assert_not_called()
+    testing.assert_equal(o.updated(db2).x.no_bag(), ds(b'2'))
+
+  def test_multi_attr_overwrite(self):
     o = bag().new(x=1, y=10)
     with self.assertRaisesRegex(
         exceptions.KodaError, "the schema for attribute 'x' is incompatible."
     ):
       _ = kde.core.attrs(o, x='2').eval()
     db2 = kde.core.attrs(
-        o, x='2', a=1, b='p', c=bag().list([1, 2]), update_schema=True
+        o, x='2', a=1, b='p', c=bag().list([1, 2]), overwrite_schema=True
     ).eval()
     self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
 
@@ -80,7 +93,7 @@ class CoreAttrsTest(absltest.TestCase):
         ['x', 'a', 'b', 'c'],
     )
 
-  def test_multi_attr_update_object_schema(self):
+  def test_multi_attr_overwrite_object_schema(self):
     o = bag().obj(x=1, y=10)
     db2 = kde.core.attrs(o, x='2', a=1, b='p', c=bag().list([1, 2])).eval()
     self.assertNotEqual(o.get_bag().fingerprint, db2.fingerprint)
@@ -114,8 +127,36 @@ class CoreAttrsTest(absltest.TestCase):
         "kd.core.attrs: the schema for attribute 'x' is incompatible.",
     ):
       _ = kde.core.attrs(o, x='2').eval()
-    db2 = kde.core.attrs(o, x='2', update_schema=True).eval()
+    db2 = kde.core.attrs(o, x='2', overwrite_schema=True).eval()
     testing.assert_equal(o.updated(db2).x.no_bag(), ds(['2', '2']))
+
+  # NOTE: Other combinations are tested in other test cases.
+  def test_update_and_overwrite_schema_combo(self):
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
+    x = kde.new(schema=schema).eval()
+    db = kde.core.attrs(
+        x,
+        a=42,
+        update_schema=True,
+        overwrite_schema=True,
+    ).eval()
+    testing.assert_equal(x.updated(db).a.no_bag(), ds(42))
+
+    db = kde.core.attrs(
+        x,
+        a=42,
+        update_schema=ds(False),
+        overwrite_schema=True,
+    ).eval()
+    testing.assert_equal(x.updated(db).a.no_bag(), ds(42))
+
+    db = kde.core.attrs(
+        x,
+        a=42,
+        update_schema=False,
+        overwrite_schema=False,
+    ).eval()
+    testing.assert_equal(x.updated(db).a.no_bag(), ds(42.))
 
   def test_empty_slice(self):
     entity = kde.new_like(ds([])).eval()
@@ -137,20 +178,20 @@ class CoreAttrsTest(absltest.TestCase):
     db = kde.core.attrs(kde.obj_like(ds(None)), x=42).eval()
     testing.assert_equivalent(db, bag())
 
-  def test_non_bool_update_schema(self):
+  def test_non_bool_overwrite_schema(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.core.attrs: argument `update_schema` must be an item holding'
-        ' BOOLEAN, got an item of INT32',
+        'kd.core.attrs: argument `overwrite_schema` must be an item holding'
+        ' BOOLEAN, got an item of OBJECT containing INT32 values',
     ):
-      kde.core.attrs(o, x=2, update_schema=1).eval()
+      kde.core.attrs(o, x=2, overwrite_schema=1).eval()
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.core.attrs: argument `update_schema` must be an item holding'
+        'kd.core.attrs: argument `overwrite_schema` must be an item holding'
         ' BOOLEAN, got a slice of rank 1 > 0',
     ):
-      kde.core.attrs(o, x=2, update_schema=ds([True])).eval()
+      kde.core.attrs(o, x=2, overwrite_schema=ds([True])).eval()
 
   def test_complex_type_conflict_error_message(self):
     o = bag().new(x=bag().new(y=2))
@@ -162,7 +203,7 @@ class CoreAttrsTest(absltest.TestCase):
 Expected schema for 'x': SCHEMA(y=INT32)
 Assigned schema for 'x': SCHEMA(z=INT32)
 
-To fix this, explicitly override schema of 'x' in the original schema by passing update_schema=True."""
+To fix this, explicitly override schema of 'x' in the original schema by passing overwrite_schema=True."""
         ),
     ):
       _ = kde.core.attrs(o, x=bag().new(z=3)).eval()
@@ -190,7 +231,9 @@ To fix this, explicitly override schema of 'x' in the original schema by passing
     o = bag().new_schema()
     db = kde.core.attrs(o, x=schema_constants.INT32).eval()
     self.assertEqual(o.with_bag(db).x.no_bag(), schema_constants.INT32)
-    db = kde.core.attrs(o, x=schema_constants.INT32, update_schema=True).eval()
+    db = kde.core.attrs(
+        o, x=schema_constants.INT32, overwrite_schema=True
+    ).eval()
     self.assertEqual(o.with_bag(db).x.no_bag(), schema_constants.INT32)
 
   def test_qtype_signatures(self):
@@ -209,7 +252,7 @@ To fix this, explicitly override schema of 'x' in the original schema by passing
   def test_repr(self):
     self.assertEqual(
         repr(kde.core.attrs(I.x, a=I.y)),
-        'kd.core.attrs(I.x, update_schema=DataItem(False, schema: BOOLEAN),'
+        'kd.core.attrs(I.x, overwrite_schema=DataItem(False, schema: BOOLEAN),'
         ' a=I.y)',
     )
 

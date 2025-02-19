@@ -65,7 +65,7 @@
 namespace koladata::ops {
 namespace {
 
-absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
+absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool overwrite_schema,
                                  absl::Span<const absl::string_view> attr_names,
                                  absl::Span<const DataSlice> attr_values) {
   DCHECK_EQ(attr_names.size(), attr_values.size());
@@ -87,10 +87,10 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
   DataBagPtr result_db = DataBag::Empty();
   RETURN_IF_ERROR(AdoptStub(result_db, obj));
 
-  if (!update_schema && obj.GetBag() != nullptr &&
+  if (!overwrite_schema && obj.GetBag() != nullptr &&
       obj.GetSchemaImpl() != schema::kNone &&
       obj.GetSchemaImpl() != schema::kSchema) {
-    // When update_schema is false, we copy the attributes from the source,
+    // When overwrite_schema is false, we copy the attributes from the source,
     // if they exist, so that SetAttrs can raise on conflict.
     bool object_mode = obj.GetSchemaImpl() == schema::kObject;
     ASSIGN_OR_RETURN(auto src_schema,
@@ -115,7 +115,8 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool update_schema,
   }
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
   RETURN_IF_ERROR(
-      obj.WithBag(result_db).SetAttrs(attr_names, attr_values, update_schema))
+      obj.WithBag(result_db).SetAttrs(attr_names, attr_values,
+                                      overwrite_schema))
       .With([&](const absl::Status& status) {
         // We add obj.GetBag() to the error message context so that we can
         // properly print the old schema.
@@ -149,13 +150,14 @@ class AttrsOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           const auto& slice = frame.Get(slice_slot);
           ASSIGN_OR_RETURN(
-              bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
+              bool overwrite_schema,
+              GetBoolArgument(frame.Get(update_schema_slot),
+                              "overwrite_schema"));
           const auto& attr_names = GetFieldNames(named_tuple_slot);
           const auto& values =
               GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result,
-                           Attrs(slice, update_schema, attr_names, values));
+                           Attrs(slice, overwrite_schema, attr_names, values));
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
         });
@@ -163,11 +165,11 @@ class AttrsOperator : public arolla::QExprOperator {
 };
 
 absl::StatusOr<DataSlice> WithAttrs(
-    const DataSlice& obj, bool update_schema,
+    const DataSlice& obj, bool overwrite_schema,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> attr_values) {
   ASSIGN_OR_RETURN(DataBagPtr attrs_db,
-                   Attrs(obj, update_schema, attr_names, attr_values));
+                   Attrs(obj, overwrite_schema, attr_names, attr_values));
   return obj.WithBag(
       DataBag::CommonDataBag({std::move(attrs_db), obj.GetBag()}));
 }
@@ -193,13 +195,15 @@ class WithAttrsOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           const auto& slice = frame.Get(slice_slot);
           ASSIGN_OR_RETURN(
-              bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
+              bool overwrite_schema,
+              GetBoolArgument(frame.Get(update_schema_slot),
+                              "overwrite_schema"));
           const auto& attr_names = GetFieldNames(named_tuple_slot);
           const auto& values =
               GetValueDataSlices(named_tuple_slot, frame);
-          ASSIGN_OR_RETURN(auto result,
-                           WithAttrs(slice, update_schema, attr_names, values));
+          ASSIGN_OR_RETURN(
+              auto result,
+              WithAttrs(slice, overwrite_schema, attr_names, values));
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
         });
@@ -391,11 +395,11 @@ absl::StatusOr<arolla::OperatorPtr> AttrsOperatorFamily::DoGetOperator(
 absl::StatusOr<DataBagPtr> Attr(const DataSlice& x,
                                 const DataSlice& attr_name,
                                 const DataSlice& value,
-                                const DataSlice& update_schema) {
+                                const DataSlice& overwrite_schema) {
   ASSIGN_OR_RETURN(absl::string_view attr_name_view,
                    GetStringArgument(attr_name, "attr_name"));
   ASSIGN_OR_RETURN(bool update_schema_arg,
-                   GetBoolArgument(update_schema, "update_schema"));
+                   GetBoolArgument(overwrite_schema, "overwrite_schema"));
   return Attrs(x, update_schema_arg, {attr_name_view}, {value});
 }
 
@@ -422,11 +426,11 @@ absl::StatusOr<arolla::OperatorPtr> WithAttrsOperatorFamily::DoGetOperator(
 absl::StatusOr<DataSlice> WithAttr(const DataSlice& x,
                                    const DataSlice& attr_name,
                                    const DataSlice& value,
-                                   const DataSlice& update_schema) {
+                                   const DataSlice& overwrite_schema) {
   ASSIGN_OR_RETURN(absl::string_view attr_name_view,
                    GetStringArgument(attr_name, "attr_name"));
   ASSIGN_OR_RETURN(bool update_schema_arg,
-                   GetBoolArgument(update_schema, "update_schema"));
+                   GetBoolArgument(overwrite_schema, "overwrite_schema"));
   return WithAttrs(x, update_schema_arg, {attr_name_view}, {value});
 }
 
