@@ -94,9 +94,11 @@ class ToPyTest(parameterized.TestCase):
   def test_same_list(self):
     lst = fns.list([1, 2, 3])
     obj = fns.obj(a=lst, b=lst)
+    res = obj.to_py(obj_as_dict=True)
     self.assertEqual(
-        obj.to_py(obj_as_dict=True), {'a': [1, 2, 3], 'b': [1, 2, 3]}
+        res, {'a': [1, 2, 3], 'b': [1, 2, 3]}
     )
+    self.assertEqual(id(res['a']), id(res['b']))
 
   def test_dict(self):
     root = fns.container()
@@ -266,45 +268,39 @@ class ToPyTest(parameterized.TestCase):
         e=fns.list([[1, 2], [3, 4]]),
         f=fns.new(g=fns.new(h=17)),
     )
+    b = x.get_bag()
 
-    self.assertEqual(fns.to_py(x, max_depth=0), x)
+    # TODO: check that the bag of the result is the same as of x.
+    testing.assert_equal(fns.to_py(x, max_depth=0).with_bag(b), x)
 
     res = fns.to_py(x, max_depth=1)
-    self.assertEqual(res.a, x.a)
-    self.assertEqual(res.a.x, x.a.x)
-    self.assertEqual(res.a.x.y, x.a.x.y)
-    self.assertEqual(res.b, x.b)
-    # TODO: check that the bag of the result is the same as of x.
-    testing.assert_equal(res.b[:].no_bag(), ds([12, 13]).no_bag())
-    self.assertEqual(res.c, x.c)
-    testing.assert_equal(res.c.get_keys().no_bag(), ds([14]).no_bag())
-    testing.assert_equal(res.c.get_values().no_bag(), ds([15]).no_bag())
+    testing.assert_equal(res.a.with_bag(b), x.a)
+    testing.assert_equal(res.b.with_bag(b), x.b)
+    testing.assert_equal(res.c.with_bag(b), x.c)
     self.assertEqual(res.d, 11)
-    self.assertEqual(res.e, x.e)
-    self.assertEqual(res.f, x.f)
-    self.assertEqual(res.f.g, x.f.g)
-    self.assertEqual(res.f.g.h, x.f.g.h)
+    testing.assert_equal(res.e.with_bag(b), x.e)
+    testing.assert_equal(res.f.with_bag(b), x.f)
 
     res = fns.to_py(x, max_depth=2)
-    self.assertEqual(res.a.x, x.a.x)
+    testing.assert_equal(res.a.x.with_bag(b), x.a.x)
     self.assertEqual(res.b, [12, 13])
     self.assertEqual(res.c, {14: 15})
     self.assertEqual(res.d, 11)
-    self.assertEqual(res.e, [x.e[0], x.e[1]])
+    testing.assert_equal(res.e[0].with_bag(b), x.e[0])
+    testing.assert_equal(res.e[1].with_bag(b), x.e[1])
     self.assertEqual(
         res.f, dataclasses.make_dataclass('Obj', [('g', Any)])(g=x.f.g)
     )
-    self.assertEqual(res.f.g, x.f.g)
-    self.assertEqual(res.f.g.h, x.f.g.h)
+    testing.assert_equal(res.f.g.with_bag(b), x.f.g)
 
     res = fns.to_py(x, max_depth=2, obj_as_dict=True)
-    self.assertEqual(res['a']['x'], x.a.x)
+    testing.assert_equal(res['a']['x'].with_bag(b), x.a.x)
     self.assertEqual(res['b'], [12, 13])
     self.assertEqual(res['c'], {14: 15})
     self.assertEqual(res['d'], 11)
-    self.assertEqual(res['e'][0], x.e[0])
-    self.assertEqual(res['e'][1], x.e[1])
-    self.assertEqual(res['f']['g'], x.f.g)
+    testing.assert_equal(res['e'][0].with_bag(b), x.e[0])
+    testing.assert_equal(res['e'][1].with_bag(b), x.e[1])
+    testing.assert_equal(res['f']['g'].with_bag(b), x.f.g)
 
     res = fns.to_py(x, max_depth=3)
     self.assertEqual(
