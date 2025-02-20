@@ -472,7 +472,7 @@ Core operators that are not part of other categories.
 
 **Operators**
 
-### `kd.core.attr(x, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.attr}
+### `kd.core.attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.core.attr}
 Aliases:
 
 - [kd.attr](#kd.attr)
@@ -481,7 +481,7 @@ Aliases:
 Returns a new DataBag containing attribute `attr_name` update for `x`.
 ```
 
-### `kd.core.attrs(x, /, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.core.attrs}
+### `kd.core.attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.core.attrs}
 Aliases:
 
 - [kd.attrs](#kd.attrs)
@@ -1030,7 +1030,7 @@ Returns:
   DataSlice with additional fallbacks.
 ```
 
-### `kd.core.with_attr(x, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.with_attr}
+### `kd.core.with_attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.core.with_attr}
 Aliases:
 
 - [kd.with_attr](#kd.with_attr)
@@ -1039,7 +1039,7 @@ Aliases:
 Returns a DataSlice with a new DataBag containing a single updated attribute.
 ```
 
-### `kd.core.with_attrs(x, /, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.core.with_attrs}
+### `kd.core.with_attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.core.with_attrs}
 Aliases:
 
 - [kd.with_attrs](#kd.with_attrs)
@@ -6318,8 +6318,6 @@ each group of the last dimension. Also see kd.translate_group.
 of `keys_from` and `keys_to` must be the same. The resulting DataSlice has the
 same shape as `keys_to` and the same DataBag as `values_from`.
 
-`keys_from` and `keys_to` must have the same schema.
-
 Missing items or items with no matching keys in `keys_from` result in missing
 items in the resulting DataSlice.
 
@@ -6358,8 +6356,6 @@ dimension.
 dimensions of `keys_from` and `keys_to` must be the same. The shape of
 resulting DataSlice is the combination of the shape of `keys_to` and an
 injected group_by dimension.
-
-`keys_from` and `keys_to` must have the same schema.
 
 Missing items or items with no matching keys in `keys_from` result in empty
 groups in the resulting DataSlice.
@@ -7234,11 +7230,11 @@ Alias for [kd.py.apply_py_on_selected](#kd.py.apply_py_on_selected) operator.
 
 Alias for [kd.slices.at](#kd.slices.at) operator.
 
-### `kd.attr(x, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#kd.attr}
+### `kd.attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.attr}
 
 Alias for [kd.core.attr](#kd.core.attr) operator.
 
-### `kd.attrs(x, /, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.attrs}
+### `kd.attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.attrs}
 
 Alias for [kd.core.attrs](#kd.core.attrs) operator.
 
@@ -8217,7 +8213,7 @@ Alias for [kd.slices.select_present](#kd.slices.select_present) operator.
 
 Alias for [kd.dicts.select_values](#kd.dicts.select_values) operator.
 
-### `kd.set_attr(x, attr_name, value, update_schema=False)` {#kd.set_attr}
+### `kd.set_attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.set_attr}
 
 ``` {.no-copy}
 Sets an attribute `attr_name` to `value`.
@@ -8231,18 +8227,23 @@ Sets an attribute `attr_name` to `value`.
     attr_name: attribute name
     value: a DataSlice or convertible to a DataSlice that will be assigned as an
       attribute.
-    update_schema: whether to update the schema before setting an attribute.
+    update_schema: DEPRECATED. whether to update the schema before setting an
+      attribute.
+    overwrite_schema: whether to overwrite the schema before setting an
+      attribute.
 ```
 
-### `kd.set_attrs(x, *, update_schema=False, **attrs)` {#kd.set_attrs}
+### `kd.set_attrs(x, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.set_attrs}
 
 ``` {.no-copy}
 Sets multiple attributes on an object / entity.
 
   Args:
     x: a DataSlice on which attributes are set. Must have DataBag attached.
-    update_schema: (bool) overwrite schema if attribute schema is missing or
-      incompatible.
+    update_schema: DEPRECATED. whether to overwrite the schema before setting an
+      attribute.
+    overwrite_schema: whether to overwrite the schema before setting an
+      attribute.
     **attrs: attribute values that are converted to DataSlices with DataBag
       adoption.
 ```
@@ -8501,11 +8502,11 @@ Alias for [kd.slices.val_shaped](#kd.slices.val_shaped) operator.
 
 Alias for [kd.slices.val_shaped_as](#kd.slices.val_shaped_as) operator.
 
-### `kd.with_attr(x, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#kd.with_attr}
+### `kd.with_attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.with_attr}
 
 Alias for [kd.core.with_attr](#kd.core.with_attr) operator.
 
-### `kd.with_attrs(x, /, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.with_attrs}
+### `kd.with_attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.with_attrs}
 
 Alias for [kd.core.with_attrs](#kd.core.with_attrs) operator.
 
@@ -9908,7 +9909,7 @@ Returns:
   Filtered DataSlice.
 ```
 
-### `DataSlice.set_attr(attr_name, value, /, update_schema=False)` {#DataSlice.set_attr}
+### `DataSlice.set_attr(self, attr_name, value, /, update_schema=None, overwrite_schema=False)` {#DataSlice.set_attr}
 Aliases:
 
 - [DataItem.set_attr](#DataItem.set_attr)
@@ -9917,7 +9918,7 @@ Aliases:
 Sets an attribute `attr_name` to `value`.
 ```
 
-### `DataSlice.set_attrs(*, update_schema=False, **attrs)` {#DataSlice.set_attrs}
+### `DataSlice.set_attrs(self, *, update_schema=None, overwrite_schema=False, **attrs)` {#DataSlice.set_attrs}
 Aliases:
 
 - [DataItem.set_attrs](#DataItem.set_attrs)
@@ -9925,11 +9926,14 @@ Aliases:
 ``` {.no-copy}
 Sets multiple attributes on an object / entity.
 
-Args:
-  update_schema: (bool) overwrite schema if attribute schema is missing or
-    incompatible.
-  **attrs: attribute values that are converted to DataSlices with DataBag
-    adoption.
+  Args:
+    self: DataSlice.
+    update_schema: DEPRECATED. whether to update the schema before setting an
+      attribute.
+    overwrite_schema: whether to overwrite the schema before setting an
+      attribute.
+    **attrs: attribute values that are converted to DataSlices with DataBag
+      adoption.
 ```
 
 ### `DataSlice.set_schema(schema, /)` {#DataSlice.set_schema}
@@ -10117,7 +10121,7 @@ Returns:
   DataSlice with additional fallbacks.
 ```
 
-### `DataSlice.with_attr(self, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#DataSlice.with_attr}
+### `DataSlice.with_attr(self, attr_name, value, update_schema=None, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#DataSlice.with_attr}
 Aliases:
 
 - [DataItem.with_attr](#DataItem.with_attr)
@@ -10126,7 +10130,7 @@ Aliases:
 Returns a DataSlice with a new DataBag containing a single updated attribute.
 ```
 
-### `DataSlice.with_attrs(self, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataSlice.with_attrs}
+### `DataSlice.with_attrs(self, *, update_schema=None, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataSlice.with_attrs}
 Aliases:
 
 - [DataItem.with_attrs](#DataItem.with_attrs)
@@ -11165,11 +11169,11 @@ Alias for [DataSlice.select_present](#DataSlice.select_present) operator.
 
 Alias for [DataSlice.select_values](#DataSlice.select_values) operator.
 
-### `DataItem.set_attr(attr_name, value, /, update_schema=False)` {#DataItem.set_attr}
+### `DataItem.set_attr(self, attr_name, value, /, update_schema=None, overwrite_schema=False)` {#DataItem.set_attr}
 
 Alias for [DataSlice.set_attr](#DataSlice.set_attr) operator.
 
-### `DataItem.set_attrs(*, update_schema=False, **attrs)` {#DataItem.set_attrs}
+### `DataItem.set_attrs(self, *, update_schema=None, overwrite_schema=False, **attrs)` {#DataItem.set_attrs}
 
 Alias for [DataSlice.set_attrs](#DataSlice.set_attrs) operator.
 
@@ -11201,11 +11205,11 @@ Alias for [DataSlice.to_pytree](#DataSlice.to_pytree) operator.
 
 Alias for [DataSlice.updated](#DataSlice.updated) operator.
 
-### `DataItem.with_attr(self, attr_name, value, update_schema=DataItem(False, schema: BOOLEAN))` {#DataItem.with_attr}
+### `DataItem.with_attr(self, attr_name, value, update_schema=None, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#DataItem.with_attr}
 
 Alias for [DataSlice.with_attr](#DataSlice.with_attr) operator.
 
-### `DataItem.with_attrs(self, *, update_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataItem.with_attrs}
+### `DataItem.with_attrs(self, *, update_schema=None, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataItem.with_attrs}
 
 Alias for [DataSlice.with_attrs](#DataSlice.with_attrs) operator.
 
