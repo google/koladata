@@ -96,6 +96,27 @@ class PyMapPyTest(parameterized.TestCase):
         res.no_bag(), ds([[None], [None, None], [None, None, None]])
     )
 
+  def test_map_py_return_none_on_exception(self):
+    def return_none_on_exception(x, y):
+      try:
+        return x // y
+      except:  # pylint: disable=bare-except
+        return None
+
+    x = ds([[1], [None, 3], [None, 8, 9]])
+    y = ds([[1], [None, 0], [7, None, 3]])
+    expected = ds([[1], [None, None], [None, None, 3]])
+
+    with self.subTest('flat'):
+      res = expr_eval.eval(
+          kde.py.map_py(return_none_on_exception, x=x.flatten(), y=y.flatten())
+      )
+      testing.assert_equal(res.no_bag(), expected.flatten())
+
+    with self.subTest('nested'):
+      res = expr_eval.eval(kde.py.map_py(return_none_on_exception, x=x, y=y))
+      testing.assert_equal(res.no_bag(), expected)
+
   def test_map_py_single_thread(self):
     thread_idents = {threading.get_ident()}
 
