@@ -966,7 +966,7 @@ absl::Status FromProtoMessage(
                                      /*attr_names=*/std::move(value_attr_names),
                                      /*values=*/std::move(values),
                                      /*schema=*/vars->schema,
-                                     /*update_schema=*/false,
+                                     /*overwrite_schema=*/false,
                                      /*itemid=*/vars->itemid));
       }
     } else {  // schema == nullopt
@@ -977,7 +977,7 @@ absl::Status FromProtoMessage(
                                    /*attr_names=*/std::move(value_attr_names),
                                    /*values=*/std::move(values),
                                    /*schema=*/std::move(bare_schema),
-                                   /*update_schema=*/true,
+                                   /*overwrite_schema=*/true,
                                    /*itemid=*/vars->itemid));
     }
     return absl::OkStatus();

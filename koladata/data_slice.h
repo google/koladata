@@ -287,19 +287,19 @@ class DataSlice {
   absl::StatusOr<DataSlice> HasAttr(absl::string_view attr_name) const;
 
   // Sets an attribute `attr_name` of this object to `values`. Possible only if
-  // it contains a reference to a DataBag. If `update_schema` is true, schemas
-  // will also be updated, otherwise incompatible schema errors will be raised
-  // on conflict.
+  // it contains a reference to a DataBag. If `overwrite_schema` is true,
+  // schemas will also be updated, otherwise incompatible schema errors will be
+  // raised on conflict.
   absl::Status SetAttr(absl::string_view attr_name, const DataSlice& values,
-                       bool update_schema = false) const;
+                       bool overwrite_schema = false) const;
 
   // Sets multiple attributes at the same time. Attributes `attr_names` of
-  // Object / Entity are set to `values`. If `update_schema` is true, schemas
+  // Object / Entity are set to `values`. If `overwrite_schema` is true, schemas
   // will also be updated, otherwise incompatible schema errors can be raised.
   // Possible only if it contains a reference to a DataBag.
   absl::Status SetAttrs(absl::Span<const absl::string_view> attr_names,
                         absl::Span<const DataSlice> values,
-                        bool update_schema = false) const;
+                        bool overwrite_schema = false) const;
 
   // Removes an attribute `attr_name` of this object. Entity Schema is not
   // updated, while Object Schema is. If attribute is being deleted on Schema
@@ -603,12 +603,12 @@ inline absl::StatusOr<DataSlice> BroadcastToShape(
 // Returns a new DataSlice which is a copy of the current value or casted
 // according to the type of attribute `attr_name` of schema `lhs_schema`. If
 // `attr_name` schema attribute is missing from `lhs_schema`, it will be added.
-// In case of conflicts, an error is returned if update_schema=False, otherwise
-// we overwrite the schema.
+// In case of conflicts, an error is returned if overwrite_schema=False,
+// otherwise we overwrite the schema.
 // In case of unsupported casting, an error is returned.
 absl::StatusOr<DataSlice> CastOrUpdateSchema(
     const DataSlice& value, const internal::DataItem& lhs_schema,
-    absl::string_view attr_name, bool update_schema,
+    absl::string_view attr_name, bool overwrite_schema,
     internal::DataBagImpl& db_impl);
 
 // NOTE: See how this can be used for List / Dict access as well.

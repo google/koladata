@@ -432,7 +432,7 @@ void BM_SetMultipleAttrs(benchmark::State& state) {
     benchmark::DoNotOptimize(db);
     benchmark::DoNotOptimize(attr_names);
     benchmark::DoNotOptimize(values);
-    CHECK_OK(entity.SetAttrs(attr_names, values, /*update_schema=*/true));
+    CHECK_OK(entity.SetAttrs(attr_names, values, /*overwrite_schema=*/true));
     benchmark::DoNotOptimize(entity);
   }
 }

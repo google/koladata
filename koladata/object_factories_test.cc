@@ -297,7 +297,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
     ASSERT_OK_AND_ASSIGN(
         auto ds,
         EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(42)}, alt_schema,
-                                /*update_schema=*/true));
+                                /*overwrite_schema=*/true));
     EXPECT_THAT(ds.GetAttr("a"),
                 IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
@@ -323,7 +323,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
     ASSERT_OK_AND_ASSIGN(auto ds,
                          EntityCreator::Like(db, shape_and_mask_from, {"a"},
                                              {test::DataItem(42)}, alt_schema,
-                                             /*update_schema=*/true));
+                                             /*overwrite_schema=*/true));
     EXPECT_THAT(ds.GetAttr("a"),
                 IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
@@ -350,7 +350,7 @@ TEST(EntityCreatorTest, DatabagAdoption_WithSchema) {
         auto ds,
         EntityCreator::Shaped(db, DataSlice::JaggedShape::FlatFromSize(3),
                               {"a"}, {test::DataItem(42)}, alt_schema,
-                              /*update_schema=*/true));
+                              /*overwrite_schema=*/true));
     EXPECT_THAT(ds.GetAttr("a"),
                 IsOkAndHolds(IsEquivalentTo(
                     test::DataSlice<int>({42, 42, 42}).WithBag(db))));
@@ -468,7 +468,7 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
       auto entity,
       EntityCreator::FromAttrs(db, {"a", "b"},
                                {test::DataItem(42), test::DataItem("xyz")},
-                               entity_schema, /*update_schema=*/true));
+                               entity_schema, /*overwrite_schema=*/true));
 
   EXPECT_THAT(entity.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
@@ -502,7 +502,7 @@ TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
       EntityCreator::Shaped(db, DataSlice::JaggedShape::Empty(),
                             {"a", "b"},
                             {test::DataItem(42), test::DataItem("xyz")},
-                            entity_schema, /*update_schema=*/true));
+                            entity_schema, /*overwrite_schema=*/true));
 
   EXPECT_THAT(entity.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
@@ -538,7 +538,7 @@ TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
       EntityCreator::Like(db, shape_and_mask_from,
                           {"a", "b"},
                           {test::DataItem(42), test::DataItem("xyz")},
-                          entity_schema, /*update_schema=*/true));
+                          entity_schema, /*overwrite_schema=*/true));
 
   EXPECT_THAT(entity.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(
@@ -809,7 +809,7 @@ TEST(CreateUuTest, SchemaArg_UpdateSchema) {
   ASSERT_OK_AND_ASSIGN(
       auto entity,
       CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
-               entity_schema, /*update_schema=*/true));
+               entity_schema, /*overwrite_schema=*/true));
 
   EXPECT_THAT(entity.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
@@ -857,7 +857,7 @@ TEST(CreateUuTest, DatabagAdoption_WithSchema) {
         *CreateEntitySchema(schema_db, {"a"}, {test::Schema(schema::kFloat32)});
     ASSERT_OK_AND_ASSIGN(
         auto ds, CreateUu(db, "", {"a"}, {test::DataItem(42)}, alt_schema,
-                          /*update_schema=*/true));
+                          /*overwrite_schema=*/true));
     EXPECT_THAT(ds.GetAttr("a"),
                 IsOkAndHolds(IsEquivalentTo(test::DataItem(42).WithBag(db))));
   }
@@ -1339,7 +1339,7 @@ TYPED_TEST(CreatorTest, FromAttrs_ItemId) {
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::FromAttrs(
         db, {std::string("a"), std::string("b")}, {ds_a, ds_b},
-        /*schema=*/std::nullopt, /*update_schema=*/false, itemid));
+        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid));
   } else {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::FromAttrs(
         db, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
@@ -1401,7 +1401,7 @@ TYPED_TEST(CreatorTest, Shaped_ItemId) {
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
         db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b},
-        /*schema=*/std::nullopt, /*update_schema=*/false, itemid));
+        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid));
   } else {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
         db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
@@ -1430,7 +1430,7 @@ TYPED_TEST(CreatorTest, Shaped_ItemId_Overwrite) {
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
         db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b},
-        /*schema=*/std::nullopt, /*update_schema=*/false, itemid));
+        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid));
   } else {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
         db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
@@ -1442,7 +1442,7 @@ TYPED_TEST(CreatorTest, Shaped_ItemId_Overwrite) {
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
         db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b},
-        /*schema=*/std::nullopt, /*update_schema=*/false, itemid));
+        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid));
   } else {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
         db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
@@ -1471,7 +1471,7 @@ TYPED_TEST(CreatorTest, Shaped_ItemId_Error) {
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     res_or = CreatorT::Shaped(
         db, shape, {std::string("a")}, {test::DataItem(42)},
-        /*schema=*/std::nullopt, /*update_schema=*/false, itemid);
+        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid);
   } else {
     res_or = CreatorT::Shaped(
         db, shape, {std::string("a")}, {test::DataItem(42)}, itemid);
@@ -1564,7 +1564,7 @@ TYPED_TEST(CreatorTest, Like_ItemId) {
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
         db, shape_and_mask_from, {std::string("a"), std::string("b")},
-        {ds_a, ds_b}, /*schema=*/std::nullopt, /*update_schema=*/false,
+        {ds_a, ds_b}, /*schema=*/std::nullopt, /*overwrite_schema=*/false,
         itemid));
   } else {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
@@ -1604,7 +1604,7 @@ TYPED_TEST(CreatorTest, Like_ItemId_Overwrite) {
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
         db, shape_and_mask_from, {std::string("a"), std::string("b")},
-        {ds_a, ds_b}, /*schema=*/std::nullopt, /*update_schema=*/false,
+        {ds_a, ds_b}, /*schema=*/std::nullopt, /*overwrite_schema=*/false,
         itemid));
   } else {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
@@ -1618,7 +1618,7 @@ TYPED_TEST(CreatorTest, Like_ItemId_Overwrite) {
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
         db, shape_and_mask_from, {std::string("a"), std::string("b")},
-        {ds_a, ds_b}, /*schema=*/std::nullopt, /*update_schema=*/false,
+        {ds_a, ds_b}, /*schema=*/std::nullopt, /*overwrite_schema=*/false,
         itemid));
   } else {
     ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
@@ -1655,7 +1655,7 @@ TYPED_TEST(CreatorTest, Like_ItemId_Error) {
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     res_or = CreatorT::Like(
         db, shape_and_mask_from, {std::string("a")}, {test::DataItem(42)},
-        /*schema=*/std::nullopt, /*update_schema=*/false, itemid);
+        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid);
   } else {
     res_or = CreatorT::Like(
         db, shape_and_mask_from, {std::string("a")}, {test::DataItem(42)},

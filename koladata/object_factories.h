@@ -52,9 +52,10 @@ struct EntityCreator {
   //
   // The returned Entity has an explicit schema whose attributes `attr_names`
   // are set to schemas of `values`. If `schema` is provided, attributes are
-  // cast to `schema` attributes. In case some schema attribute is missing,
-  // error is returned, unless `update_schema` is provided in which case, the
-  // schema attribute is set from attribute's value.
+  // cast to `schema` attributes. In case some schema attribute is incompatible
+  // with the provided value the error is returned, unless `overwrite_schema` is
+  // provided in which case, the schema attribute is overwritten from
+  // attribute's value.
   //
   // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
   // allocating them.
@@ -65,7 +66,7 @@ struct EntityCreator {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema = std::nullopt,
-      bool update_schema = false,
+      bool overwrite_schema = false,
       const std::optional<DataSlice>& itemid = std::nullopt);
 
   // Implements kd.new_shaped function / operator.
@@ -77,9 +78,10 @@ struct EntityCreator {
   //
   // The returned Entity has an explicit schema whose attributes `attr_names`
   // are set to schemas of `values`. If `schema` is provided, attributes are
-  // cast to `schema` attributes. In case some schema attribute is missing,
-  // error is returned, unless `update_schema` is provided in which case, the
-  // schema attribute is set from attribute's value.
+  // cast to `schema` attributes. In case some schema attribute is incompatible
+  // with the provided value the error is returned, unless `overwrite_schema` is
+  // provided in which case, the schema attribute is overwritten from
+  // attribute's value.
   //
   // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
   // allocating them.
@@ -91,7 +93,7 @@ struct EntityCreator {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema = std::nullopt,
-      bool update_schema = false,
+      bool overwrite_schema = false,
       const std::optional<DataSlice>& itemid = std::nullopt);
 
   // Implements kd.new_like function / operator.
@@ -104,9 +106,10 @@ struct EntityCreator {
   //
   // The returned Entity has an explicit schema whose attributes `attr_names`
   // are set to schemas of `values`. If `schema` is provided, attributes are
-  // cast to `schema` attributes. In case some schema attribute is missing,
-  // error is returned, unless `update_schema` is provided in which case, the
-  // schema attribute is set from attribute's value.
+  // cast to `schema` attributes. In case some schema attribute is incompatible
+  // with the provided value the error is returned, unless `overwrite_schema` is
+  // provided in which case, the schema attribute is overwritten from
+  // attribute's value.
   //
   // `itemid` can optionally accept ITEMID DataSlice used as ItemIds, instead of
   // allocating them.
@@ -118,7 +121,7 @@ struct EntityCreator {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema = std::nullopt,
-      bool update_schema = false,
+      bool overwrite_schema = false,
       const std::optional<DataSlice>& itemid = std::nullopt);
 
   // This method, together with ObjectCreator::Convert provides a uniform method
@@ -229,9 +232,9 @@ struct ObjectCreator {
 // Also supports the following arguments:
 // - `seed` for uuid computation.
 // - `schema`, the schema for the entity. If missing, it will be inferred from
-// the argument values.
-// - `update_schema`, if true, will overwrite schema attributes in the schema's
-// corresponding db from the argument values.
+//   the argument values.
+// - `overwrite_schema`, if true, will overwrite schema attributes in the
+//   schema's corresponding db from the argument values.
 //
 // The schema of the entities is stored on the returned DataSlice.
 //
@@ -242,7 +245,7 @@ absl::StatusOr<DataSlice> CreateUu(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema = std::nullopt,
-    bool update_schema = false);
+    bool overwrite_schema = false);
 
 // Returns a UuObject (DataSlice of UuIds generated as row-wise fingerprints
 // from attribute names and values) with a reference to `db`) and attributes

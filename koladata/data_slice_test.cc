@@ -853,7 +853,7 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
         entity,
         EntityCreator::FromAttrs(DataBag::Empty(), {"b"}, {test::DataItem(42)},
                                  entity_schema.WithBag(nullptr),
-                                 /*update_schema=*/true));
+                                 /*overwrite_schema=*/true));
     ASSERT_OK_AND_ASSIGN(res, entity.WithSchema(entity_schema));
     internal::DataItem missing;
     EXPECT_THAT(
@@ -2321,8 +2321,8 @@ TEST(DataSliceTest, SetAttr_None) {
   ASSERT_OK_AND_ASSIGN(auto ds_get, ds.GetAttr("a"));
   EXPECT_THAT(ds_get, IsEquivalentTo(ds));
 
-  // update_schema.
-  ASSERT_OK(ds.SetAttr("a", values, /*update_schema=*/true));  // No-op.
+  // overwrite_schema.
+  ASSERT_OK(ds.SetAttr("a", values, /*overwrite_schema=*/true));  // No-op.
   ASSERT_OK_AND_ASSIGN(ds_get, ds.GetAttr("a"));
   EXPECT_THAT(ds_get, IsEquivalentTo(ds));
 }
@@ -2335,7 +2335,7 @@ TEST(DataSliceTest, SetAttrs_None) {
   ASSERT_OK_AND_ASSIGN(auto ds_get, ds.GetAttr("a"));
   EXPECT_THAT(ds_get, IsEquivalentTo(ds));
 
-  // update_schema.
+  // overwrite_schema.
   ASSERT_OK(ds.SetAttrs({"a"}, {values}));  // No-op.
   ASSERT_OK_AND_ASSIGN(ds_get, ds.GetAttr("a"));
   EXPECT_THAT(ds_get, IsEquivalentTo(ds));
@@ -2399,7 +2399,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_EntityCreator) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("INT32"), HasSubstr("INT64"))));
-  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*update_schema=*/true));
+  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*overwrite_schema=*/true));
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
   EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kInt64);
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
@@ -2411,10 +2411,10 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectCreator) {
   ASSERT_OK_AND_ASSIGN(auto ds,
                        ObjectCreator::FromAttrs(db, {"a"}, {ds_primitive}));
 
-  // update_schema=True works the same way as update_schema=False on objects
-  // with implicit schema.
+  // overwrite_schema=True works the same way as overwrite_schema=False on
+  // objects with implicit schema.
   auto ds_int64_primitive = test::DataSlice<int64_t>({12, 42, 97});
-  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*update_schema=*/true));
+  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*overwrite_schema=*/true));
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
   EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kInt64);
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
@@ -2435,7 +2435,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_ObjectsWithExplicitSchema) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("INT32"), HasSubstr("INT64"))));
-  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*update_schema=*/true));
+  ASSERT_OK(ds.SetAttr("a", ds_int64_primitive, /*overwrite_schema=*/true));
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
   EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kInt64);
   EXPECT_THAT(ds_a_get.slice(), ElementsAre(12, 42, 97));
@@ -2448,7 +2448,7 @@ TEST(DataSliceTest, SetAttrWithUpdateSchema_SchemaSlice) {
                        EntityCreator::FromAttrs(db, {"a"}, {ds_primitive}));
   auto schema_ds = ds.GetSchema();
   ASSERT_OK(schema_ds.SetAttr("a", test::Schema(schema::kFloat32),
-                              /*update_schema=*/true));
+                              /*overwrite_schema=*/true));
   EXPECT_THAT(
       schema_ds.GetAttr("a"),
       IsOkAndHolds(IsEquivalentTo(test::Schema(schema::kFloat32).WithBag(db))));
@@ -2526,7 +2526,7 @@ TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Entity) {
                HasSubstr("the schema for attribute 'a' is incompatible: "
                          "expected STRING, assigned INT32")));
 
-  ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}, /*update_schema=*/true));
+  ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}, /*overwrite_schema=*/true));
   EXPECT_THAT(ds.GetAttr("a"),
               IsOkAndHolds(Property(&DataSlice::item, Eq(42))));
   EXPECT_THAT(
@@ -2549,7 +2549,7 @@ TEST(DataSliceTest, SetMultipleAttrs_UpdateSchema_Object) {
                HasSubstr("the schema for attribute 'a' is incompatible: "
                          "expected STRING, assigned INT32")));
 
-  ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}, /*update_schema=*/true));
+  ASSERT_OK(ds.SetAttrs({"a", "b"}, {ds_a, ds_b}, /*overwrite_schema=*/true));
   EXPECT_THAT(ds.GetAttr("a"),
               IsOkAndHolds(Property(&DataSlice::item, Eq(42))));
   EXPECT_THAT(
@@ -2821,7 +2821,8 @@ TEST(DataSliceTest, SetAttr_NoFollowSchema_Entity) {
           HasSubstr(
               "cannot set an attribute on an entity with a no-follow schema")));
   EXPECT_THAT(
-      ds.SetAttr("a", test::DataSlice<int>({1, 2, 3}), /*update_schema=*/true),
+      ds.SetAttr("a", test::DataSlice<int>({1, 2, 3}),
+                 /*overwrite_schema=*/true),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr(
@@ -2845,7 +2846,8 @@ TEST(DataSliceTest, SetAttr_NoFollowSchema_Object) {
           HasSubstr(
               "cannot set an attribute on an entity with a no-follow schema")));
   EXPECT_THAT(
-      ds.SetAttr("a", test::DataSlice<int>({1, 2, 3}), /*update_schema=*/true),
+      ds.SetAttr("a", test::DataSlice<int>({1, 2, 3}),
+                 /*overwrite_schema=*/true),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr(
@@ -5850,7 +5852,7 @@ TEST(CastOrUpdateSchema, SimpleTest) {
                        db->GetMutableImpl());
   EXPECT_THAT(
       CastOrUpdateSchema(test::DataItem(42), entity_schema.item(), "a",
-                         /*update_schema=*/false, db_mutable_impl),
+                         /*overwrite_schema=*/false, db_mutable_impl),
       IsOkAndHolds(IsEquivalentTo(test::DataItem(42.0f))));
 }
 

@@ -459,7 +459,7 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema,
-    bool update_schema) {
+    bool overwrite_schema) {
   internal::DataItem schema_item;
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
@@ -475,13 +475,12 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
     schema_adoption_queue.Add(*schema);
     RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
   } else {
+    // New schema is allocated, but `SetAttrs` updates empty schema based on
+    // attribute schemas.
     schema_item = internal::DataItem(internal::AllocateExplicitSchema());
-    // New schema is allocated, so attributes should be written to it
-    // successfully below.
-    update_schema = true;
   }
   ASSIGN_OR_RETURN(DataSlice res, create_entities_fn(schema_item));
-  RETURN_IF_ERROR(res.SetAttrs(attr_names, values, update_schema));
+  RETURN_IF_ERROR(res.SetAttrs(attr_names, values, overwrite_schema));
   // Adopt into the databag only at the end to avoid garbage in the databag in
   // case of error.
   // NOTE: This will cause 2 merges of the same DataBag, if schema comes from
@@ -528,11 +527,11 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema,
-    bool update_schema,
+    bool overwrite_schema,
     const std::optional<DataSlice>& itemid) {
   if (itemid) {
     return EntityCreator::Shaped(db, itemid->GetShape(), attr_names, values,
-                                 schema, update_schema, itemid);
+                                 schema, overwrite_schema, itemid);
   }
   DCHECK_EQ(attr_names.size(), values.size());
   internal::DataItem schema_item;
@@ -568,7 +567,7 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
       ASSIGN_OR_RETURN(
           casted_values.emplace_back(),
           CastOrUpdateSchema(values[i], schema_item, attr_names[i],
-                             update_schema, db_mutable_impl),
+                             overwrite_schema, db_mutable_impl),
           // Adds the db from schema to assemble readable error message.
           AssembleErrorMessage(_, {.db = DataBag::ImmutableEmptyWithFallbacks(
                                        {schema ? schema->GetBag() : nullptr,
@@ -612,7 +611,7 @@ absl::StatusOr<DataSlice> EntityCreator::Shaped(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema,
-    bool update_schema,
+    bool overwrite_schema,
     const std::optional<DataSlice>& itemid) {
   return CreateEntitiesImpl(
       db,
@@ -623,7 +622,7 @@ absl::StatusOr<DataSlice> EntityCreator::Shaped(
                             itemid,
                             DefaultInitItemIdType);
       },
-      attr_names, values, schema, update_schema);
+      attr_names, values, schema, overwrite_schema);
 }
 
 absl::StatusOr<DataSlice> EntityCreator::Like(
@@ -631,7 +630,7 @@ absl::StatusOr<DataSlice> EntityCreator::Like(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
     const std::optional<DataSlice>& schema,
-    bool update_schema,
+    bool overwrite_schema,
     const std::optional<DataSlice>& itemid) {
   return CreateEntitiesImpl(
       db,
@@ -641,7 +640,7 @@ absl::StatusOr<DataSlice> EntityCreator::Like(
                           internal::Allocate,
                           itemid,
                           DefaultInitItemIdType);
-      }, attr_names, values, schema, update_schema);
+      }, attr_names, values, schema, overwrite_schema);
 }
 
 // TODO: When DataSlice::SetAttrs is fast enough keep only -Shaped
@@ -725,7 +724,7 @@ absl::StatusOr<DataSlice> CreateUu(
     const DataBagPtr& db, absl::string_view seed,
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> values,
-    const std::optional<DataSlice>& schema, bool update_schema) {
+    const std::optional<DataSlice>& schema, bool overwrite_schema) {
   DCHECK_EQ(attr_names.size(), values.size());
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    db->GetMutableImpl());
@@ -785,7 +784,7 @@ absl::StatusOr<DataSlice> CreateUu(
                                   impl_res.value(),
                                   aligned_values.begin()->GetShape(),
                                   std::move(schema_item), db));
-    RETURN_IF_ERROR(ds.SetAttrs(attr_names, aligned_values, update_schema));
+    RETURN_IF_ERROR(ds.SetAttrs(attr_names, aligned_values, overwrite_schema));
     // Adopt into the databag only at the end to avoid garbage in the databag in
     // case of error.
     // NOTE: This will cause 2 merges of the same DataBag, if schema comes from
@@ -910,7 +909,8 @@ absl::StatusOr<DataSlice> CreateNamedSchema(
   RETURN_IF_ERROR(db_mutable_impl.SetSchemaAttr(
       res.item(), schema::kSchemaNameAttr, DataItem(arolla::Text(name))));
 
-  RETURN_IF_ERROR(res.SetAttrs(attr_names, schemas, /*update_schema=*/false));
+  RETURN_IF_ERROR(res.SetAttrs(attr_names, schemas,
+                               /*overwrite_schema=*/false));
   RETURN_IF_ERROR(AdoptValuesInto(schemas, *db));
   return res;
 }
