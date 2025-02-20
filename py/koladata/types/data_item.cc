@@ -50,7 +50,7 @@ int PyDataItem_bool(PyObject* self) {
     PyErr_SetString(PyExc_ValueError,
                     "cannot cast a non-MASK DataItem to bool. For BOOLEAN, "
                     "explicit conversion to MASK (e.g. ds == True) is needed. "
-                    "See go/koda-basics#mask_vs_bool.");
+                    "See go/koda-common-pitfalls#masks-vs-booleans.");
     return -1;
   };
   const auto& ds = UnsafeDataSliceRef(self);
