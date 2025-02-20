@@ -198,6 +198,7 @@ cc_library(
         "//koladata/proto:to_proto",
         "//koladata/s11n",
         "//py/koladata/base:to_py_object",
+        "//py/koladata/base/py_conversions:to_py",
         "//py/koladata/fstring:fstring_processor",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",

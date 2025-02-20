@@ -72,17 +72,30 @@ def to_py(
     obj_as_dict: bool = False,
     include_missing_attrs: bool = True,
 ) -> Any:
-  return ds.to_py(
-      max_depth=max_depth,
-      obj_as_dict=obj_as_dict,
-      include_missing_attrs=include_missing_attrs,
+  """Returns a readable python object from a DataSlice.
+
+  Attributes, lists, and dicts are recursively converted to Python objects.
+
+  Args:
+    ds: A DataSlice
+    max_depth: Maximum depth for recursive conversion. Each attribute, list item
+      and dict keys / values access represent 1 depth increment. Use -1 for
+      unlimited depth.
+    obj_as_dict: Whether to convert objects to python dicts. By default objects
+      are converted to automatically constructed 'Obj' dataclass instances.
+    include_missing_attrs: whether to include attributes with None value in
+      objects.
+  """
+  return ds._to_py_impl(  # pylint: disable=protected-access
+      max_depth, obj_as_dict, include_missing_attrs
   )
 
 
 def to_pytree(
     ds: data_slice.DataSlice,
     max_depth: int = 2,
-    include_missing_attrs: bool = True) -> Any:
+    include_missing_attrs: bool = True,
+) -> Any:
   return ds.to_pytree(
       max_depth=max_depth, include_missing_attrs=include_missing_attrs
   )

@@ -48,6 +48,7 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/base/py_conversions/to_py.h"
 #include "py/koladata/base/to_py_object.h"
 #include "py/koladata/fstring/fstring_processor.h"
 #include "py/koladata/types/boxing.h"
@@ -973,6 +974,11 @@ Args:
      "_unspecified()\n"
      "--\n\n"
      "Returns an UNSPECIFIED with DataSlice QType."},
+    {"_to_py_impl", (PyCFunction)PyDataSlice_to_py, METH_FASTCALL,
+     "_to_py_impl(ds, /, max_depth=-1, obj_as_dict=False, "
+     "include_missing_attrs=True)\n"
+     "--\n\n"
+     "Returns a Python object equivalent to this DataSlice.\n"},
     {"internal_as_py", PyDataSlice_internal_as_py, METH_NOARGS,
      "internal_as_py()\n"
      "--\n\n"

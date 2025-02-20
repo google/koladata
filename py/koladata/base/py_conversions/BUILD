@@ -21,6 +21,41 @@ package(default_visibility = [
 
 licenses(["notice"])
 
+cc_library(
+    name = "to_py",
+    srcs = ["to_py.cc"],
+    hdrs = ["to_py.h"],
+    deps = [
+        ":dataclasses_util",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:schema_utils",
+        "//koladata/internal/op_utils:extract",
+        "//koladata/internal/op_utils:traverser",
+        "//py/koladata/base:to_py_object",
+        "//py/koladata/types:wrap_utils",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_arolla//py/arolla/py_utils",
+    ],
+)
+
 py_library(
     name = "dataclasses_py_util",
     srcs = ["dataclasses_util.py"],

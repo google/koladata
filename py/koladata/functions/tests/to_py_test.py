@@ -14,7 +14,9 @@
 
 import dataclasses
 import gc
+import importlib
 import math
+import sys
 from typing import Any
 
 from absl.testing import absltest
@@ -99,6 +101,22 @@ class ToPyTest(parameterized.TestCase):
         res, {'a': [1, 2, 3], 'b': [1, 2, 3]}
     )
     self.assertEqual(id(res['a']), id(res['b']))
+    res = fns.to_py(obj)
+    self.assertEqual(id(res.a), id(res.b))
+
+  def test_same_objects_are_cached(self):
+    obj = fns.obj(x=123)
+    lst = fns.list([1, 2, 3])
+    d = fns.dict({'a': 1, 'b': 2})
+    primitive = 'abc'
+    obj = fns.obj(
+        o1=obj, o2=obj, l1=lst, l2=lst, d1=d, d2=d, p1=primitive, p2=primitive
+    )
+    res = fns.to_py(obj)
+    self.assertEqual(id(res.o1), id(res.o2))
+    self.assertEqual(id(res.l1), id(res.l2))
+    self.assertEqual(id(res.d1), id(res.d2))
+    self.assertEqual(id(res.p1), id(res.p2))
 
   def test_dict(self):
     root = fns.container()
@@ -125,10 +143,49 @@ class ToPyTest(parameterized.TestCase):
   def test_dict_with_obj_keys(self):
     root = fns.container()
     root.dict_value = fns.dict()
-    k = fns.obj(a=1)
-    root.dict_value[k] = 1
+    k1 = fns.obj(a=1)
+    k2 = fns.list([1, 2])
+    k3 = fns.new(b=2)
+    k4 = fns.dict({'c': 3})
+    root.dict_value[k1] = 1
+    root.dict_value[k2] = 2
+    root.dict_value[k3] = 3
+    root.dict_value[k4] = 4
     py_obj = fns.to_py(root, max_depth=4)
-    self.assertEqual(py_obj.dict_value[k.no_bag()], 1)
+
+    root_keys = root.dict_value.get_keys()
+    py_obj_keys = ds(list(py_obj.dict_value.keys())).with_bag(root.get_bag())
+    testing.assert_equal(root_keys, py_obj_keys)
+
+    self.assertEqual(py_obj.dict_value[k1.no_bag()], 1)
+    self.assertEqual(
+        py_obj.dict_value[k2.no_bag().with_schema(schema_constants.OBJECT)], 2
+    )
+    self.assertEqual(
+        py_obj.dict_value[k3.no_bag().with_schema(schema_constants.OBJECT)], 3
+    )
+    self.assertEqual(
+        py_obj.dict_value[k4.no_bag().with_schema(schema_constants.OBJECT)], 4
+    )
+
+  def test_dict_with_obj_keys_with_schema(self):
+    root = fns.container()
+    schema = root.get_bag().new_schema(a=schema_constants.INT32)
+
+    k1 = fns.new(a=1, schema=schema)
+    k2 = fns.new(a=2, schema=schema)
+    root.dict_value = fns.dict(key_schema=k1.get_schema())
+
+    root.dict_value[k1] = 1
+    root.dict_value[k2] = 2
+    py_obj = fns.to_py(root, max_depth=4)
+
+    root_keys = root.dict_value.get_keys()
+    py_obj_keys = ds(list(py_obj.dict_value.keys())).with_bag(root.get_bag())
+    testing.assert_equal(root_keys, py_obj_keys)
+
+    self.assertEqual(py_obj.dict_value[k1.no_bag()], 1)
+    self.assertEqual(py_obj.dict_value[k2.no_bag()], 2)
 
   def test_dict_with_zero_code_key(self):
     root = fns.obj(**{'a\0b': 1})
@@ -194,13 +251,12 @@ class ToPyTest(parameterized.TestCase):
       py_obj = fns.to_py(root, obj_as_dict=True)
       self.assertEqual(id(py_obj['a']['b']), id(py_obj))
 
-    # TODO: make this test pass.
-    # with self.subTest('in_list'):
-    #   root = fns.dict().fork_bag()
-    #   root['a'] = fns.list()
-    #   root['a'].append(root)
-    #   py_obj = fns.to_py(root)
-    #   self.assertEqual(id(py_obj['a'][0]), id(py_obj))
+    with self.subTest('in_list'):
+      root = fns.dict().fork_bag()
+      root['a'] = fns.list()
+      root['a'].append(root)
+      py_obj = fns.to_py(root)
+      self.assertEqual(id(py_obj['a'][0]), id(py_obj))
 
     with self.subTest('in_dict'):
       root = fns.dict().fork_bag()
@@ -268,39 +324,37 @@ class ToPyTest(parameterized.TestCase):
         e=fns.list([[1, 2], [3, 4]]),
         f=fns.new(g=fns.new(h=17)),
     )
-    b = x.get_bag()
 
-    # TODO: check that the bag of the result is the same as of x.
-    testing.assert_equal(fns.to_py(x, max_depth=0).with_bag(b), x)
+    testing.assert_equal(fns.to_py(x, max_depth=0), x)
 
     res = fns.to_py(x, max_depth=1)
-    testing.assert_equal(res.a.with_bag(b), x.a)
-    testing.assert_equal(res.b.with_bag(b), x.b)
-    testing.assert_equal(res.c.with_bag(b), x.c)
+    testing.assert_equal(res.a, x.a)
+    testing.assert_equal(res.b, x.b)
+    testing.assert_equal(res.c, x.c)
     self.assertEqual(res.d, 11)
-    testing.assert_equal(res.e.with_bag(b), x.e)
-    testing.assert_equal(res.f.with_bag(b), x.f)
+    testing.assert_equal(res.e, x.e)
+    testing.assert_equal(res.f, x.f)
 
     res = fns.to_py(x, max_depth=2)
-    testing.assert_equal(res.a.x.with_bag(b), x.a.x)
+    testing.assert_equal(res.a.x, x.a.x)
     self.assertEqual(res.b, [12, 13])
     self.assertEqual(res.c, {14: 15})
     self.assertEqual(res.d, 11)
-    testing.assert_equal(res.e[0].with_bag(b), x.e[0])
-    testing.assert_equal(res.e[1].with_bag(b), x.e[1])
+    testing.assert_equal(res.e[0], x.e[0])
+    testing.assert_equal(res.e[1], x.e[1])
     self.assertEqual(
         res.f, dataclasses.make_dataclass('Obj', [('g', Any)])(g=x.f.g)
     )
-    testing.assert_equal(res.f.g.with_bag(b), x.f.g)
+    testing.assert_equal(res.f.g, x.f.g)
 
     res = fns.to_py(x, max_depth=2, obj_as_dict=True)
-    testing.assert_equal(res['a']['x'].with_bag(b), x.a.x)
+    testing.assert_equal(res['a']['x'], x.a.x)
     self.assertEqual(res['b'], [12, 13])
     self.assertEqual(res['c'], {14: 15})
     self.assertEqual(res['d'], 11)
-    testing.assert_equal(res['e'][0].with_bag(b), x.e[0])
-    testing.assert_equal(res['e'][1].with_bag(b), x.e[1])
-    testing.assert_equal(res['f']['g'].with_bag(b), x.f.g)
+    testing.assert_equal(res['e'][0], x.e[0])
+    testing.assert_equal(res['e'][1], x.e[1])
+    testing.assert_equal(res['f']['g'], x.f.g)
 
     res = fns.to_py(x, max_depth=3)
     self.assertEqual(
@@ -440,10 +494,34 @@ class ToPyTest(parameterized.TestCase):
         ],
     )
 
+  def test_itemid_list(self):
+    with self.subTest('list_of_entities'):
+      a = fns.new(x=1).get_itemid()
+      b = fns.new(x=2).get_itemid()
+      x = fns.list([a, b], item_schema=schema_constants.ITEMID)
+      self.assertEqual(fns.to_py(x), [a, b])
+
+    with self.subTest('list_of_objects'):
+      a = fns.obj(x=1).get_itemid()
+      b = fns.obj(x=2).get_itemid()
+      x = fns.list([a, b], item_schema=schema_constants.ITEMID)
+      self.assertEqual(fns.to_py(x), [a, b])
+
+    with self.subTest('list_of_lists'):
+      a = fns.list([1, 2]).get_itemid()
+      b = fns.list([3, 4]).get_itemid()
+      x = fns.list([a, b], item_schema=schema_constants.ITEMID)
+      self.assertEqual(fns.to_py(x), [a, b])
+
+    with self.subTest('list_of_dicts'):
+      a = fns.dict({'a': 1}).get_itemid()
+      b = fns.dict({'b': 2}).get_itemid()
+      x = fns.list([a, b], item_schema=schema_constants.ITEMID)
+      self.assertEqual(fns.to_py(x), [a, b])
+
   def test_no_bag(self):
     x = fns.list([1, 2]).no_bag()
-    # TODO: this should be x.get_itemid().
-    self.assertEqual(fns.to_py(x), {})
+    testing.assert_equal(fns.to_py(x), x)
 
   def test_missing(self):
     x = ds(None)
@@ -463,6 +541,19 @@ class ToPyTest(parameterized.TestCase):
 
     x = fns.new(x=1).get_itemid() & None
     self.assertIsNone(fns.to_py(x), None)
+
+  def test_missing_import(self):
+    x = fns.obj(x=1)
+    del sys.modules['koladata.base.py_conversions.dataclasses_util']
+    with self.assertRaisesRegex(
+        ValueError,
+        'could not import module koladata.base.py_conversions.dataclasses_util',
+    ):
+      _ = fns.to_py(x)
+    import koladata.base.py_conversions.dataclasses_util  # pylint: disable=g-import-not-at-top
+
+    importlib.reload(koladata.base.py_conversions.dataclasses_util)
+    _ = fns.to_py(x)
 
 
 class ToPytreeTest(absltest.TestCase):
