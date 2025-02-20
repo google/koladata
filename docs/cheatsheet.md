@@ -200,14 +200,14 @@ e = kd.new(x=1, y=2, schema='Point')
 e1 = e.with_attr('x', 3)
 e1 = e.with_attr('z', 4)
 # Also override schema
-e1 = e.with_attr('y', 'a', update_schema=True)
+e1 = e.with_attr('y', 'a', overwrite_schema=True)
 # Remove a single attribute
 e1 = e.with_attr('x', None)
 
 # Update/remove multiple attributes
 e2 = e.with_attrs(z=4, x=None)
 # Also override schema for 'y'
-e2 = e.with_attrs(z=4, y='a', update_schema=True)
+e2 = e.with_attrs(z=4, y='a', overwrite_schema=True)
 
 # Create an update and apply it separately
 upd = kd.attrs(e, z=4, y=10)
@@ -369,12 +369,12 @@ d7 = d1.updated(d1.dict_update('c', 5),
 
 ### Objects
 
-Objects can be thought of as Python objects. They directly store their own schema
-as **schema** attribute similar to how Python objects store **class** attribute.
-This allows objects in a DataSlice to have different schemas. Entities, Lists,
-Dicts and primitives can be objects. Entities, Lists and Dicts store their own
-schema as an internal `__schema__` attribute while primitives' schema is
-determined by the type of their value.
+Objects can be thought of as Python objects. They directly store their own
+schema as **schema** attribute similar to how Python objects store **class**
+attribute. This allows objects in a DataSlice to have different schemas.
+Entities, Lists, Dicts and primitives can be objects. Entities, Lists and Dicts
+store their own schema as an internal `__schema__` attribute while primitives'
+schema is determined by the type of their value.
 
 ```py
 # Entity objects
@@ -422,7 +422,7 @@ o = kd.obj(x=1, y=2)
 o1 = o.with_attr('x', 3)
 o1 = o.with_attr('z', 4)
 # Also override schema
-# no update_schema=True is needed
+# no overwrite_schema=True is needed
 o1 = o.with_attr('y', 'a')
 # Remove a single attribute
 o1 = o.with_attr('x', None)

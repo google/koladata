@@ -654,14 +654,14 @@ implicitly as a by-product of `kd.obj(**kwargs)` are called implicit schemas.
 
 Explicit entity schemas and implicit entity schemas differ by how they handle
 schema conflicts during assignment. Attributes of an explicit entity schema
-cannot be overridden unless `update_schema=True` is set while attributes of an
-implicit entity schema can be overridden by default.
+cannot be overridden unless `overwrite_schema=True` is set while attributes of
+an implicit entity schema can be overridden by default.
 
 ```py
 entity = kd.new(a=1)
 # Fail as schemas are not compatible
 # entity.with_attrs(a='2')
-entity = entity.with_attrs(a='2', update_schema=True)
+entity = entity.with_attrs(a='2', overwrite_schema=True)
 entity.get_schema()  # SCHEMA(a=STRING)
 
 obj = kd.obj(a=1)
@@ -671,15 +671,15 @@ obj.get_obj_schema()  # IMPLICIT_SCHEMA(a=STRING)
 
 The motivation behind this is that an explicit entity schema can be used by
 multiple entities while an implicit schema cannot. Thus overriding schema
-attributes of an explicit schema without `update_schema=True` is dangerous. For
-example,
+attributes of an explicit schema without `overwrite_schema=True` is dangerous.
+For example,
 
 ```py
 entities = kd.new(a=kd.slice([1, 2]))
 # Only update the first item
 # We want to assign it to '3' rather than 3 by mistake
-# Imagine the following line succeeds without update_schema=True
-upd = kd.attrs(entities.S[0], a='3', update_schema=True)
+# Imagine the following line succeeds without overwrite_schema=True
+upd = kd.attrs(entities.S[0], a='3', overwrite_schema=True)
 entities = entities.updated(upd)
 # Fails because one value is 2 but schema is STRING
 entities.a

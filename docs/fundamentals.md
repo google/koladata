@@ -604,12 +604,12 @@ r.with_attr('@!^', 7).get_attr('@!^')  # == 7
 
 # Note, if some values already exist, newly assigned values must have the same
 # schema.
-# Use update_schema if need to override schema
+# Use overwrite_schema if need to overwrite schema
 r = kd.new(x=1, y=2)
 # r.with_attrs(y='hello') - fails
-r.with_attrs(y='hello', update_schema=True)  # works
+r.with_attrs(y='hello', overwrite_schema=True)  # works
 # r.updated(kd.attrs(r, y='hello')) - fails
-r.updated(kd.attrs(r, y='hello', update_schema=True))  # works
+r.updated(kd.attrs(r, y='hello', overwrite_schema=True))  # works
 ```
 
 You need to clone or deep-clone entities in order to create copies with
@@ -731,7 +731,7 @@ python objects.
 a = kd.obj(x=1, y=kd.obj(u=2, v=3))  # Obj(x=1, y=Obj(u=2, v=3))
 a = a.with_attrs(x=None, z=4)  # Obj(x=None, y=Obj(u=2, v=3), z=4)
 a = a.updated(kd.attrs(a.y, v=None, w=5)) # Obj(x=None, y=Obj(u=2, v=None, w=5), z=4)
-# Note no need to set update_schema=True
+# Note no need to set overwrite_schema=True
 a = a.with_attrs(x='hello')  # Obj(x='hello', y=Obj(u=2, v=None, w=5), z=4)
 ```
 
@@ -2433,12 +2433,12 @@ x.updated(kd.attrs(x, a=10)).updated(kd.attrs(x, b=20))
 x.updated(kd.attrs(x, a=10), kd.attrs(x, b=20))
 x.updated(kd.attrs(x, a=10) >> kd.attrs(x, b=20))
 
-# Don't forget about update_schema when making explicit schema changes
+# Don't forget about overwrite_schema when making explicit schema changes
 x = kd.obj(a=1)
 upd = kd.attrs(x, a='hello', b='world')  # works - x is object
 x = kd.new(a=1)
 # upd = kd.attrs(x, a='hello', b='world')  # fails - x is entity
-upd = kd.attrs(x, a='hello', b='world', update_schema=True)
+upd = kd.attrs(x, a='hello', b='world', overwrite_schema=True)
 ```
 
 Besides adding new attributes or modifying existing attributes, it is also
@@ -2673,7 +2673,7 @@ attributes.
 ```py
 t = kd.new(x=1, schema='MySchema')
 t = t.with_attrs(y=2)
-t = t.with_attrs(x='hello', update_schema=True)  # Change the schema
+t = t.with_attrs(x='hello', overwrite_schema=True)  # Change the schema
 t = t.updated(kd.attrs(t, z=3)) # alternative to the above
 t = t.updated(kd.attrs(x, y=20), kd.attrs(t, z=30)) # multiple updates
 t = t.with_attrs(a=kd.obj(u=5))
