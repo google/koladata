@@ -613,6 +613,7 @@ py_test(
         ":jagged_shape",
         ":schema_constants",
         "//py/koladata/exceptions",
+        "//py/koladata/functions/tests:test_py_pb2",
         "//py/koladata/operators:comparison",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",

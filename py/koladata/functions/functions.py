@@ -152,6 +152,7 @@ to_pytree = _py_conversions.to_pytree
 py_reference = _py_conversions.py_reference
 
 from_proto = _proto_conversions.from_proto
+schema_from_proto = _proto_conversions.schema_from_proto
 to_proto = _proto_conversions.to_proto
 
 dumps = _s11n.dumps

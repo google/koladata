@@ -22,6 +22,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
 from koladata.exceptions import exceptions
+from koladata.functions.tests import test_pb2
 from koladata.operators import comparison as _  # pylint: disable=unused-import
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -2020,10 +2021,10 @@ The cause is the list sizes are incompatible: 2 vs 1
 
     with self.assertRaisesRegex(
         ValueError,
-        'expected extension to be bytes, got str',
+        'expected extension to be str, got bytes',
     ):
       db = bag()
-      _ = db._from_proto([], ['x.y.z'], None, None)
+      _ = db._from_proto([], [b'x.y.z'], None, None)
 
     with self.assertRaisesRegex(
         TypeError,
@@ -2038,6 +2039,36 @@ The cause is the list sizes are incompatible: 2 vs 1
     ):
       db = bag()
       _ = db._from_proto([], [], None, 'foo')
+
+  def test_schema_from_proto_minimal(self):
+    # NOTE: more tests for schema_from_proto in
+    # //py/koladata/functions/tests/schema_from_proto_test.py
+
+    db = bag()
+    x = db._schema_from_proto(test_pb2.MessageA(), [])
+    self.assertEqual(x.get_bag().fingerprint, db.fingerprint)
+
+  def test_schema_from_proto_errors(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataBag._schema_from_proto accepts exactly 2 arguments, got 1',
+    ):
+      db = bag()
+      _ = db._schema_from_proto(test_pb2.MessageA())
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'DataBag._schema_from_proto expects extensions to be a list, got tuple',
+    ):
+      db = bag()
+      _ = db._schema_from_proto(test_pb2.MessageA(), ())
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'expected extension to be str, got bytes'
+    ):
+      db = bag()
+      _ = db._schema_from_proto(test_pb2.MessageA(), [b'x.y.z'])
 
   def test_signatures(self):
     # Tests that all methods have an inspectable signature. This is not added

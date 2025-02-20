@@ -1356,29 +1356,37 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
                         internal::DataItem(schema::kMask)),
       arolla::python::SetPyErrFromStatus(_));
 
-  if (!PyList_CheckExact(py_extensions_list)) {
-    PyErr_Format(PyExc_ValueError,
-                 "DataBag._from_proto expects extensions to be a list, got %s",
-                 Py_TYPE(py_extensions_list)->tp_name);
-    return nullptr;
-  }
-  const Py_ssize_t extensions_len = PyList_Size(py_extensions_list);
-
   std::vector<absl::string_view> extensions;
-  extensions.reserve(extensions_len);
-  for (Py_ssize_t i = 0; i < extensions_len; ++i) {
-    PyObject* py_extension_bytes =
-        PyList_GetItem(py_extensions_list, i);  // Borrowed.
-    if (!py_extension_bytes) {
-      return nullptr;
+  {
+    // None is interpreted as empty list.
+    if (!Py_IsNone(py_extensions_list)) {
+      if (!PyList_CheckExact(py_extensions_list)) {
+        PyErr_Format(PyExc_ValueError,
+                     "DataBag._from_proto expects extensions to be a "
+                     "list, got %s",
+                     Py_TYPE(py_extensions_list)->tp_name);
+        return nullptr;
+      }
+      const Py_ssize_t extensions_len = PyList_Size(py_extensions_list);
+      extensions.reserve(extensions_len);
+      for (Py_ssize_t i = 0; i < extensions_len; ++i) {
+        PyObject* py_extension_str =
+            PyList_GetItem(py_extensions_list, i);  // Borrowed.
+        if (!py_extension_str) {
+          return nullptr;
+        }
+        if (!PyUnicode_CheckExact(py_extension_str)) {
+          PyErr_Format(PyExc_ValueError,
+                       "expected extension to be str, got %s",
+                       Py_TYPE(py_extension_str)->tp_name);
+          return nullptr;
+        }
+        Py_ssize_t extension_str_size = 0;
+        const char* extension_str =
+            PyUnicode_AsUTF8AndSize(py_extension_str, &extension_str_size);
+        extensions.emplace_back(extension_str, extension_str_size);
+      }
     }
-    if (!PyBytes_CheckExact(py_extension_bytes)) {
-      PyErr_Format(PyExc_ValueError, "expected extension to be bytes, got %s",
-                   Py_TYPE(py_extension_bytes)->tp_name);
-      return nullptr;
-    }
-    extensions.emplace_back(PyBytes_AsString(py_extension_bytes),
-                            PyBytes_Size(py_extension_bytes));
   }
 
   std::optional<DataSlice> itemid;
@@ -1395,6 +1403,67 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
                    ops::InverseSelect(dense_result, message_mask),
                    arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
+}
+
+absl::Nullable<PyObject*> PyDataBag_schema_from_proto(PyObject* self,
+                                                      PyObject* const* args,
+                                                      Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  const DataBagPtr db = UnsafeDataBagPtr(self);
+  if (nargs != 2) {
+    PyErr_Format(
+        PyExc_ValueError,
+        "DataBag._schema_from_proto accepts exactly 2 arguments, got %d",
+        nargs);
+    return nullptr;
+  }
+  PyObject* py_message = args[0];          // Borrowed.
+  PyObject* py_extensions_list = args[1];  // Borrowed.
+
+  ASSIGN_OR_RETURN((auto [message_ptr, message_owner]),
+                  UnwrapPyProtoMessage(py_message),
+                  arolla::python::SetPyErrFromStatus(_));
+  const auto* message_descriptor = message_ptr->GetDescriptor();
+  DCHECK(message_descriptor != nullptr);
+
+  std::vector<absl::string_view> extensions;
+  {
+    // None is interpreted as empty list.
+    if (!Py_IsNone(py_extensions_list)) {
+      if (!PyList_CheckExact(py_extensions_list)) {
+        PyErr_Format(PyExc_ValueError,
+                     "DataBag._schema_from_proto expects extensions to be a "
+                     "list, got %s",
+                     Py_TYPE(py_extensions_list)->tp_name);
+        return nullptr;
+      }
+      const Py_ssize_t extensions_len = PyList_Size(py_extensions_list);
+      extensions.reserve(extensions_len);
+      for (Py_ssize_t i = 0; i < extensions_len; ++i) {
+        PyObject* py_extension_str =
+            PyList_GetItem(py_extensions_list, i);  // Borrowed.
+        if (!py_extension_str) {
+          return nullptr;
+        }
+        if (!PyUnicode_CheckExact(py_extension_str)) {
+          PyErr_Format(PyExc_ValueError,
+                       "expected extension to be str, got %s",
+                       Py_TYPE(py_extension_str)->tp_name);
+          return nullptr;
+        }
+        Py_ssize_t extension_str_size = 0;
+        const char* extension_str =
+            PyUnicode_AsUTF8AndSize(py_extension_str, &extension_str_size);
+        extensions.emplace_back(extension_str, extension_str_size);
+      }
+    }
+  }
+
+  ASSIGN_OR_RETURN(
+      DataSlice schema,
+      SchemaFromProto(db, message_ptr->GetDescriptor(), extensions),
+      arolla::python::SetPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(schema));
 }
 
 absl::Nullable<PyObject*> PyDataBag_get_approx_size(PyObject* self, PyObject*) {
@@ -1712,6 +1781,11 @@ The list will be empty if the DataBag does not have fallbacks.)"""},
      "_from_proto(message_list, extensions_list, itemid, schema, /)\n"
      "--\n\n"
      "Returns a DataSlice converted from a list of proto messages."},
+    {"_schema_from_proto", (PyCFunction)PyDataBag_schema_from_proto,
+     METH_FASTCALL,
+     "_schema_from_proto(message_class, extensions, /)\n"
+     "--\n\n"
+     "Returns a schema DataItem converted from a proto message class."},
     {"get_approx_size", PyDataBag_get_approx_size, METH_NOARGS,
      "get_approx_size()\n"
      "--\n\n"

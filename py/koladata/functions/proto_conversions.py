@@ -18,7 +18,7 @@ from typing import Type
 
 from google.protobuf import message
 from koladata.types import data_bag
-from koladata.types import data_item as _  # pylint: disable=unused-import
+from koladata.types import data_item
 from koladata.types import data_slice
 
 
@@ -106,11 +106,6 @@ def from_proto(
     raise ValueError(
         f'messages must be Message or list of Message, got {messages}'
     )
-  if extensions is None:
-    extensions = []
-
-  # Convert to utf-8 bytes to simplify C++ use.
-  extensions = [ext.encode('utf-8') for ext in extensions]
 
   if itemid is not None:
     if result_is_item:
@@ -132,6 +127,46 @@ def from_proto(
   if result_is_item:
     result = result.S[0]
   return result
+
+
+def schema_from_proto(
+    message_class: Type[message.Message],
+    /,
+    *,
+    extensions: list[str] | None = None,
+    db: data_bag.DataBag | None = None,
+) -> data_item.DataItem:
+  """Returns a Koda schema representing a proto message class.
+
+  This is similar to `from_proto(x).get_schema()` when `x` is an instance of
+  `message_class`, except that it eagerly adds all non-extension fields to the
+  schema instead of only adding fields that have data populated in `x`.
+
+  The returned schema is a uuschema whose itemid is a function of the proto
+  message class' fully qualified name, and any child message classes' schemas
+  are also uuschemas derived in the same way. The returned schema has the same
+  itemid as `from_proto(message_class()).get_schema()`.
+
+  The format of each extension specified in `extensions` is a dot-separated
+  sequence of field names and/or extension names, where extension names are
+  fully-qualified extension paths surrounded by parentheses. For example:
+
+    "path.to.field.(package_name.some_extension)"
+    "path.to.repeated_field.(package_name.some_extension)"
+    "path.to.map_field.values.(package_name.some_extension)"
+    "path.(package_name.some_extension).(package_name2.nested_extension)"
+
+  Args:
+    message_class: A proto message class to convert.
+    extensions: List of proto extension paths.
+    db: The DataBag to use for the result, or None to use a new DataBag.
+
+  Returns:
+    A DataItem containing the converted schema.
+  """
+  if db is None:
+    db = data_bag.DataBag.empty()
+  return db._schema_from_proto(message_class(), extensions)  # pylint: disable=protected-access
 
 
 def to_proto(
