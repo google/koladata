@@ -32,6 +32,9 @@ class NpkdTest(parameterized.TestCase):
       ('byte ds', kd.slice([b'a', b'b', b'c', None])),
       ('object ds', kd.obj(x=kd.slice([1, 2, 3]))),
       ('mixed ds', kd.slice([kd.obj(), kd.obj(kd.list()), 1, '2'])),
+      ('multi-dim uniform ds', kd.slice([[1, 2, 3], [4, 5, 6]])),
+      ('scalar int ds', kd.slice(123)),
+      ('scalar float ds', kd.slice(3.14)),
   )
   def test_numpy_roundtrip(self, ds):
     res_np = npkd.to_array(ds)
@@ -49,6 +52,19 @@ class NpkdTest(parameterized.TestCase):
     kd.testing.assert_equal(
         res_ds, ds.with_schema(kd.OBJECT).with_bag(res_ds.get_bag())
     )
+
+  def test_numpy_multi_dim(self):
+    s = kd.slice([[1, 2], [3, 4], [5, 6]])
+    np_s = npkd.to_array(s)
+    self.assertEqual(np_s.shape, (3, 2))
+
+    s = kd.slice([]).reshape((0, 0))
+    np_s = npkd.to_array(s)
+    self.assertEqual(np_s.shape, (0, 0))
+
+    s = kd.slice([[1, 2, 3], [4, 5], [6]])
+    with self.assertRaisesRegex(ValueError, 'DataSlice has non-uniform shape.'):
+      _ = npkd.to_array(s)
 
   # Cases that need special checks rather than equality match.
   def test_numpy_roundtrip_special_cases(self):

@@ -211,10 +211,9 @@ x = kd.range(24).reshape(kd.shapes.new(3, 4, 2))
 #  [[8, 9], [10, 11], [12, 13], [14, 15]],
 #  [[16, 17], [18, 19], [20, 21], [22, 23]]]
 
-# TODO: remove reshape once to_array supports multi-dim array
-arr = kd_ext.npkd.to_array(x).reshape(3, 4, 2)
+arr = kd_ext.npkd.to_array(x)
 transposed_arr = np.transpose(arr, (2, 1, 0))
-transposed_x = kd_ext.npkd.from_array(transposed_arr.flatten()).reshape_as(x)
+transposed_x = kd_ext.npkd.from_array(transposed_arr)
 # [[[0, 8, 16], [2, 10, 18], [4, 12, 20], [6, 14, 22]],
 #  [[1, 9, 17], [3, 11, 19], [5, 13, 21], [7, 15, 23]]]
 ```

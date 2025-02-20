@@ -24,12 +24,33 @@ kdi = kd.eager
 _DATA_SLICE_ONE = kd.item(1)
 
 
+# TODO: Use `shape.sizes()` once it's available.
+def _get_uniform_shape(ds: kd.types.DataSlice) -> list[int] | None:
+  shape = ds.get_shape()
+  shape_py = []
+  for d in range(shape.rank()):
+    dim_size = kd.shapes.dim_sizes(shape, d)
+    collapsed_dim_size = (
+        0 if dim_size.get_size() == 0 else kd.collapse(dim_size).to_py()
+    )
+    if collapsed_dim_size is None:
+      return None
+    shape_py.append(collapsed_dim_size)
+  return shape_py
+
+
 def to_array(ds: kd.types.DataSlice) -> np.ndarray:
   """Converts a DataSlice to a numpy array."""
   if not ds.get_dtype().is_empty():
-    return numpy_conversion.as_numpy_array(ds.internal_as_dense_array())
-
-  return np.array(ds.internal_as_py())
+    res = numpy_conversion.as_numpy_array(ds.internal_as_dense_array())
+  else:
+    res = np.array(ds.internal_as_py())
+  shape_py = _get_uniform_shape(ds)
+  if shape_py is None:
+    raise ValueError(
+        'DataSlice has non-uniform shape. Please flatten it first.'
+    )
+  return np.reshape(res, shape_py)
 
 
 def from_array(arr: np.ndarray) -> kd.types.DataSlice:
@@ -44,7 +65,7 @@ def from_array(arr: np.ndarray) -> kd.types.DataSlice:
     return kdi.from_py(list(arr), from_dim=1)
 
   else:
-    return kd.slice(arolla.dense_array(arr))
+    return kd.slice(arolla.dense_array(arr.flatten())).reshape(arr.shape)
 
 
 # Two following functions get_indices_from_ds and reshape_based_on_indices
