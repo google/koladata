@@ -1108,5 +1108,132 @@ TEST(FromProtoTest, InvalidExtensionPath) {
                "extension not found: \"b.c\""));
 }
 
+TEST(FromProtoTest, SchemaFromProtoNoExtensions) {
+  ASSERT_OK_AND_ASSIGN(
+      auto schema,
+      SchemaFromProto(DataBag::Empty(), testing::ExampleMessage::descriptor()));
+
+  EXPECT_EQ(schema.GetSchemaImpl(), internal::DataItem(schema::kSchema));
+  EXPECT_THAT(*schema.GetAttrNames(),
+              UnorderedElementsAre(
+                  "int32_field", "int64_field", "uint32_field", "uint64_field",
+                  "double_field", "float_field", "bool_field", "enum_field",
+                  "string_field", "bytes_field", "message_field",
+                  "repeated_int32_field", "repeated_int64_field",
+                  "repeated_uint32_field", "repeated_uint64_field",
+                  "repeated_double_field", "repeated_float_field",
+                  "repeated_bool_field", "repeated_enum_field",
+                  "repeated_string_field", "repeated_bytes_field",
+                  "repeated_message_field", "map_int32_int32_field",
+                  "map_string_string_field", "map_int32_message_field"));
+
+  EXPECT_EQ(schema.GetAttr("int32_field")->item(),
+            internal::DataItem(schema::kInt32));
+  EXPECT_EQ(schema.GetAttr("int64_field")->item(),
+            internal::DataItem(schema::kInt64));
+  EXPECT_EQ(schema.GetAttr("uint32_field")->item(),
+            internal::DataItem(schema::kInt64));
+  EXPECT_EQ(schema.GetAttr("uint64_field")->item(),
+            internal::DataItem(schema::kInt64));
+  EXPECT_EQ(schema.GetAttr("double_field")->item(),
+            internal::DataItem(schema::kFloat64));
+  EXPECT_EQ(schema.GetAttr("float_field")->item(),
+            internal::DataItem(schema::kFloat32));
+  EXPECT_EQ(schema.GetAttr("bool_field")->item(),
+            internal::DataItem(schema::kBool));
+  EXPECT_EQ(schema.GetAttr("enum_field")->item(),
+            internal::DataItem(schema::kInt32));
+  EXPECT_EQ(schema.GetAttr("string_field")->item(),
+            internal::DataItem(schema::kString));
+  EXPECT_EQ(schema.GetAttr("bytes_field")->item(),
+            internal::DataItem(schema::kBytes));
+  EXPECT_EQ(schema.GetAttr("message_field")->item(), schema.item());
+
+  const auto& get_list_schema_item =
+      [&](schema::DType dtype) -> internal::DataItem {
+    return CreateListSchema(
+               DataBag::Empty(),
+               *DataSlice::Create(internal::DataItem(dtype),
+                                  internal::DataItem(schema::kSchema)))
+        ->item();
+  };
+
+  EXPECT_EQ(schema.GetAttr("repeated_int32_field")->item(),
+            get_list_schema_item(schema::kInt32));
+  EXPECT_EQ(schema.GetAttr("repeated_int64_field")->item(),
+            get_list_schema_item(schema::kInt64));
+  EXPECT_EQ(schema.GetAttr("repeated_uint32_field")->item(),
+            get_list_schema_item(schema::kInt64));
+  EXPECT_EQ(schema.GetAttr("repeated_uint64_field")->item(),
+            get_list_schema_item(schema::kInt64));
+  EXPECT_EQ(schema.GetAttr("repeated_double_field")->item(),
+            get_list_schema_item(schema::kFloat64));
+  EXPECT_EQ(schema.GetAttr("repeated_float_field")->item(),
+            get_list_schema_item(schema::kFloat32));
+  EXPECT_EQ(schema.GetAttr("repeated_bool_field")->item(),
+            get_list_schema_item(schema::kBool));
+  EXPECT_EQ(schema.GetAttr("repeated_enum_field")->item(),
+            get_list_schema_item(schema::kInt32));
+  EXPECT_EQ(schema.GetAttr("repeated_string_field")->item(),
+            get_list_schema_item(schema::kString));
+  EXPECT_EQ(schema.GetAttr("repeated_bytes_field")->item(),
+            get_list_schema_item(schema::kBytes));
+  EXPECT_EQ(schema.GetAttr("repeated_message_field")->item(),
+            CreateListSchema(DataBag::Empty(), schema)->item());
+
+  EXPECT_EQ(schema.GetAttr("map_int32_int32_field")->item(),
+            CreateDictSchema(DataBag::Empty(), test::Schema(schema::kInt32),
+                             test::Schema(schema::kInt32))
+                ->item());
+  EXPECT_EQ(schema.GetAttr("map_string_string_field")->item(),
+            CreateDictSchema(DataBag::Empty(), test::Schema(schema::kString),
+                             test::Schema(schema::kString))
+                ->item());
+  EXPECT_EQ(
+      schema.GetAttr("map_int32_message_field")->item(),
+      CreateDictSchema(DataBag::Empty(), test::Schema(schema::kInt32), schema)
+          ->item());
+}
+
+TEST(FromProtoTest, SchemaFromProtoWithExtensions) {
+  ASSERT_OK_AND_ASSIGN(
+      auto schema,
+      SchemaFromProto(DataBag::Empty(), testing::ExampleMessage2::descriptor(),
+                      {
+                          "(koladata.testing.m2_bool_extension_field)",
+                          "(koladata.testing.m2_message2_extension_field)",
+                      }));
+
+  EXPECT_EQ(schema.GetSchemaImpl(), internal::DataItem(schema::kSchema));
+  EXPECT_THAT(
+      *schema.GetAttrNames(),
+      UnorderedElementsAre("(koladata.testing.m2_bool_extension_field)",
+                           "(koladata.testing.m2_message2_extension_field)"));
+
+  EXPECT_EQ(
+      schema.GetAttr("(koladata.testing.m2_bool_extension_field)")->item(),
+      internal::DataItem(schema::kBool));
+  EXPECT_EQ(
+      schema.GetAttr("(koladata.testing.m2_message2_extension_field)")->item(),
+      schema.item());
+}
+
+TEST(FromProtoTest, SchemaFromProtoWithNestedExtension) {
+  ASSERT_OK_AND_ASSIGN(
+      auto schema,
+      SchemaFromProto(DataBag::Empty(), testing::ExampleMessage::descriptor(),
+                      {
+                          "(koladata.testing.message_extension_field)",
+                          "(koladata.testing.message_extension_field)."
+                          "(koladata.testing.m2_bool_extension_field)",
+                      }));
+
+  EXPECT_EQ(schema.GetSchemaImpl(), internal::DataItem(schema::kSchema));
+  EXPECT_EQ(schema.GetAttr("(koladata.testing.message_extension_field)")
+                ->GetAttr("(koladata.testing.m2_bool_extension_field)")
+                ->item(),
+            internal::DataItem(schema::kBool));
+}
+
 }  // namespace
 }  // namespace koladata

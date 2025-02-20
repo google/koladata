@@ -21,11 +21,13 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -33,6 +35,7 @@
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
@@ -1040,6 +1043,248 @@ absl::StatusOr<DataSlice> FromProto(
                             &extension_map, executor, result);
   }));
   return std::move(*result);
+}
+
+namespace {
+
+using DescriptorWithExtensionMap =
+    std::tuple<const Descriptor*, const ExtensionMap*>;
+
+absl::StatusOr<DataSlice> SchemaFromProtoPrimitiveField(
+    const FieldDescriptor& field_descriptor) {
+  DCHECK(field_descriptor.message_type() == nullptr);
+  internal::DataItem schema_item;
+  switch (field_descriptor.cpp_type()) {
+    case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
+    case google::protobuf::FieldDescriptor::CPPTYPE_ENUM:
+      schema_item = internal::DataItem(schema::kInt32);
+      break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_INT64:
+    case google::protobuf::FieldDescriptor::CPPTYPE_UINT32:
+    case google::protobuf::FieldDescriptor::CPPTYPE_UINT64:
+      schema_item = internal::DataItem(schema::kInt64);
+      break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
+      schema_item = internal::DataItem(schema::kFloat64);
+      break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_FLOAT:
+      schema_item = internal::DataItem(schema::kFloat32);
+      break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_BOOL:
+      schema_item = internal::DataItem(schema::kBool);
+      break;
+    case google::protobuf::FieldDescriptor::CPPTYPE_STRING:
+      if (field_descriptor.type() == google::protobuf::FieldDescriptor::TYPE_BYTES) {
+        schema_item = internal::DataItem(schema::kBytes);
+      } else {
+        schema_item = internal::DataItem(schema::kString);
+      }
+      break;
+    default:
+      DCHECK(false);
+      return absl::InvalidArgumentError(
+          absl::StrFormat("expected primitive proto field, got %v",
+                          field_descriptor.DebugString()));
+  }
+  return DataSlice::Create(schema_item, internal::DataItem(schema::kSchema));
+}
+
+// Forward declaration for recursion.
+absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptorBreakRecursion(
+    const absl::Nonnull<DataBagPtr>& bag, const Descriptor& message_descriptor,
+    absl::Nullable<const ExtensionMap*> extension_map,
+    absl::flat_hash_set<DescriptorWithExtensionMap>&
+        converted_message_descriptors,
+    internal::TrampolineExecutor& executor);
+
+// Sets parent_message_schema.<attr_name> to a dict schema for the given proto
+// map field. Child fields are populated asynchronously using `executor`.
+absl::Status FillDictSchemaFromProtoMapFieldDescriptor(
+    const DataSlice& parent_message_schema, absl::string_view attr_name,
+    const FieldDescriptor& field_descriptor,
+    absl::Nullable<const ExtensionMap*> parent_extension_map,
+    absl::flat_hash_set<DescriptorWithExtensionMap>&
+        converted_message_descriptors,
+    internal::TrampolineExecutor& executor) {
+  const DataBagPtr& bag = parent_message_schema.GetBag();
+  DCHECK(bag != nullptr);
+  ASSIGN_OR_RETURN(auto key_schema,
+                   SchemaFromProtoPrimitiveField(
+                       *field_descriptor.message_type()->map_key()));
+  ASSIGN_OR_RETURN(auto value_schema, [&]() -> absl::StatusOr<DataSlice> {
+    const auto& map_value = *field_descriptor.message_type()->map_value();
+    if (map_value.message_type() == nullptr) {
+      // Optimization: handle scalar primitive here instead of using the full
+      // SchemaFromProtoMessageDescriptorBreakRecursion.
+      return SchemaFromProtoPrimitiveField(map_value);
+    } else {
+      const auto* extension_map =
+          GetChildExtensionMap(parent_extension_map, attr_name);
+      return SchemaFromProtoMessageDescriptorBreakRecursion(
+          bag, *map_value.message_type(), extension_map,
+          converted_message_descriptors, executor);
+    }
+  }());
+  ASSIGN_OR_RETURN(auto dict_schema,
+                   CreateDictSchema(bag, key_schema, value_schema));
+  RETURN_IF_ERROR(parent_message_schema.SetAttr(attr_name, dict_schema));
+  return absl::OkStatus();
+}
+
+// Sets parent_message_schema.<attr_name> to a list schema for the given proto
+// repeated message field. Child fields are populated asynchronously using
+// `executor`.
+absl::Status FillListSchemaFromProtoRepeatedMessageFieldDescriptor(
+    const DataSlice& parent_message_schema, absl::string_view attr_name,
+    const FieldDescriptor& field_descriptor,
+    absl::Nullable<const ExtensionMap*> parent_extension_map,
+    absl::flat_hash_set<DescriptorWithExtensionMap>&
+        converted_message_descriptors,
+    internal::TrampolineExecutor& executor) {
+  DCHECK(field_descriptor.message_type() != nullptr);
+  const DataBagPtr& bag = parent_message_schema.GetBag();
+  DCHECK(bag != nullptr);
+  const auto* extension_map =
+      GetChildExtensionMap(parent_extension_map, attr_name);
+  ASSIGN_OR_RETURN(auto item_schema,
+                   SchemaFromProtoMessageDescriptorBreakRecursion(
+                       bag, *field_descriptor.message_type(), extension_map,
+                       converted_message_descriptors, executor));
+  ASSIGN_OR_RETURN(auto list_schema, CreateListSchema(bag, item_schema));
+  RETURN_IF_ERROR(parent_message_schema.SetAttr(attr_name, list_schema));
+  return absl::OkStatus();
+}
+
+// Sets parent_message_schema.<attr_name> to a schema for the given proto
+// message field. Child fields are populated asynchronously using `executor`.
+absl::Status FillSchemaFromProtoMessageFieldDescriptor(
+    const DataSlice& parent_message_schema, absl::string_view attr_name,
+    const FieldDescriptor& field_descriptor,
+    absl::Nullable<const ExtensionMap*> parent_extension_map,
+    absl::flat_hash_set<DescriptorWithExtensionMap>&
+        converted_message_descriptors,
+    internal::TrampolineExecutor& executor) {
+  DCHECK(field_descriptor.message_type() != nullptr);
+  const DataBagPtr& bag = parent_message_schema.GetBag();
+  DCHECK(bag != nullptr);
+  const auto* extension_map =
+      GetChildExtensionMap(parent_extension_map, attr_name);
+  ASSIGN_OR_RETURN(auto schema,
+                   SchemaFromProtoMessageDescriptorBreakRecursion(
+                       bag, *field_descriptor.message_type(), extension_map,
+                       converted_message_descriptors, executor));
+  RETURN_IF_ERROR(parent_message_schema.SetAttr(attr_name, schema));
+  return absl::OkStatus();
+}
+
+// Sets parent_message_schema.<attr_name> to a schema for the given proto field.
+// Child fields are populated asynchronously using `executor`.
+absl::Status FillSchemaFromProtoFieldDescriptor(
+    const DataSlice& parent_message_schema, absl::string_view attr_name,
+    const FieldDescriptor& field_descriptor,
+    absl::Nullable<const ExtensionMap*> parent_extension_map,
+    absl::flat_hash_set<DescriptorWithExtensionMap>&
+        converted_message_descriptors,
+    internal::TrampolineExecutor& executor) {
+  if (field_descriptor.message_type() == nullptr) {
+    // Primitive field (scalar or repeated).
+    const DataBagPtr& bag = parent_message_schema.GetBag();
+    DCHECK(bag != nullptr);
+    ASSIGN_OR_RETURN(auto schema,
+                     SchemaFromProtoPrimitiveField(field_descriptor));
+    if (field_descriptor.is_repeated()) {
+      ASSIGN_OR_RETURN(schema, CreateListSchema(bag, std::move(schema)));
+    }
+    RETURN_IF_ERROR(parent_message_schema.SetAttr(attr_name, schema));
+    return absl::OkStatus();
+  }
+
+  if (field_descriptor.is_map()) {
+    return FillDictSchemaFromProtoMapFieldDescriptor(
+        parent_message_schema, attr_name, field_descriptor,
+        parent_extension_map, converted_message_descriptors, executor);
+  } else if (field_descriptor.is_repeated()) {
+    return FillListSchemaFromProtoRepeatedMessageFieldDescriptor(
+        parent_message_schema, attr_name, field_descriptor,
+        parent_extension_map, converted_message_descriptors, executor);
+  } else {
+    return FillSchemaFromProtoMessageFieldDescriptor(
+        parent_message_schema, attr_name, field_descriptor,
+        parent_extension_map, converted_message_descriptors, executor);
+  }
+}
+
+// Populates fields on `schema` for the given proto message.
+absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptor(
+    const absl::Nonnull<DataBagPtr>& bag, const Descriptor& message_descriptor,
+    absl::Nullable<const ExtensionMap*> extension_map,
+    absl::flat_hash_set<DescriptorWithExtensionMap>&
+        converted_message_descriptors,
+    internal::TrampolineExecutor& executor) {
+  ASSIGN_OR_RETURN(auto schema,
+                   CreateBareProtoUuSchema(bag, message_descriptor));
+  if (converted_message_descriptors.contains(
+          std::make_tuple(&message_descriptor, extension_map))) {
+    return schema;  // Prevent infinite recursion.
+  }
+  for (int i_field = 0; i_field < message_descriptor.field_count(); ++i_field) {
+    const auto* field = message_descriptor.field(i_field);
+    RETURN_IF_ERROR(FillSchemaFromProtoFieldDescriptor(
+        schema, field->name(), *field, extension_map,
+        converted_message_descriptors, executor));
+  }
+  if (extension_map != nullptr) {
+    for (const auto& [attr_name, field] : extension_map->extension_fields) {
+      RETURN_IF_ERROR(FillSchemaFromProtoFieldDescriptor(
+          schema, attr_name, *field, extension_map,
+          converted_message_descriptors, executor));
+    }
+  }
+  converted_message_descriptors.emplace(&message_descriptor, extension_map);
+  return schema;
+}
+
+absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptorBreakRecursion(
+    const absl::Nonnull<DataBagPtr>& bag, const Descriptor& message_descriptor,
+    absl::Nullable<const ExtensionMap*> extension_map,
+    absl::flat_hash_set<DescriptorWithExtensionMap>&
+        converted_message_descriptors,
+    internal::TrampolineExecutor& executor) {
+  // This schema is just a function of `bag` and `message_descriptor`, so we
+  // can compute and return it synchronously before the queued implementation
+  // runs.
+  ASSIGN_OR_RETURN(auto schema,
+                   CreateBareProtoUuSchema(bag, message_descriptor));
+  executor.Enqueue([bag = bag, message_descriptor = &message_descriptor,
+                    extension_map, &converted_message_descriptors,
+                    &executor]() -> absl::Status {
+    ASSIGN_OR_RETURN(auto unused_schema,
+                     SchemaFromProtoMessageDescriptor(
+                         bag, *message_descriptor, extension_map,
+                         converted_message_descriptors, executor));
+    return absl::OkStatus();
+  });
+  return schema;
+}
+
+}  // namespace
+
+absl::StatusOr<DataSlice> SchemaFromProto(
+    const absl::Nonnull<DataBagPtr>& db,
+    absl::Nonnull<const ::google::protobuf::Descriptor*> descriptor,
+    absl::Span<const std::string_view> extensions) {
+  ASSIGN_OR_RETURN(const ExtensionMap extension_map,
+                   ParseExtensions(extensions, *descriptor->file()->pool()));
+  absl::flat_hash_set<DescriptorWithExtensionMap> converted_descriptors;
+  absl::StatusOr<DataSlice> result = absl::InternalError("");
+  RETURN_IF_ERROR(
+      internal::TrampolineExecutor::Run([&](auto& executor) -> absl::Status {
+        ASSIGN_OR_RETURN(result, SchemaFromProtoMessageDescriptor(
+                                     db, *descriptor, &extension_map,
+                                     converted_descriptors, executor));
+        return absl::OkStatus();
+      }));
+  return result;
 }
 
 }  // namespace koladata

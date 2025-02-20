@@ -23,6 +23,7 @@
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
 
 namespace koladata {
@@ -85,6 +86,22 @@ absl::StatusOr<DataSlice> FromProto(
     absl::Span<const std::string_view> extensions = {},
     const std::optional<DataSlice>& itemids = std::nullopt,
     const std::optional<DataSlice>& schema = std::nullopt);
+
+// Converts a proto descriptor to an entity schema.
+//
+// This is similar to the schema of the result of FromProto when FromProto is
+// called with a nullopt schema, but includes schemas for all message fields
+// unconditionally instead of only fields with populated data.
+//
+// The DataBag `db` must be mutable, and the converted schema is added to it.
+// The result DataSlice will use `db` as its DataBag. If this method returns a
+// non-OK status, the contents of `db` are unspecified.
+//
+// TODO: Add a way to filter fields by name.
+absl::StatusOr<DataSlice> SchemaFromProto(
+    const absl::Nonnull<DataBagPtr>& db,
+    absl::Nonnull<const ::google::protobuf::Descriptor*> descriptor,
+    absl::Span<const std::string_view> extensions = {});
 
 }  // namespace koladata
 
