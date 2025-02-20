@@ -312,7 +312,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (auto it = cache_.find(fp); it != cache_.end()) {
       return it->second;
     }
-    return PyObjectPtr();
+    return nullptr;
   }
   absl::StatusOr<PyObjectPtr> GetOrCreatePyObject(const DataItem& item) {
     const arolla::Fingerprint fp = item.StableFingerprint();

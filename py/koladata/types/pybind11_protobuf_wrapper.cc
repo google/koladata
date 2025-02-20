@@ -13,6 +13,7 @@
 // limitations under the License.
 //
 #include "py/koladata/types/pybind11_protobuf_wrapper.h"
+
 #include <Python.h>
 
 #include <any>
@@ -77,8 +78,7 @@ bool IsFastCppPyProtoMessage(absl::Nonnull<PyObject*> py_object) {
 }
 
 arolla::python::PyObjectPtr WrapProtoMessage(
-    std::unique_ptr<::google::protobuf::Message> message,
-    PyObject* py_message_class,
+    std::unique_ptr<::google::protobuf::Message> message, PyObject* py_message_class,
     bool using_fast_cpp_proto) {
   arolla::python::DCheckPyGIL();
 
@@ -104,21 +104,21 @@ arolla::python::PyObjectPtr WrapProtoMessage(
   auto py_message =
       arolla::python::PyObjectPtr::Own(PyObject_CallNoArgs(py_message_class));
   if (py_message == nullptr) {
-    return arolla::python::PyObjectPtr{};
+    return nullptr;
   }
 
   auto bytes = message->SerializePartialAsString();
   auto py_bytes = arolla::python::PyObjectPtr::Own(
       PyBytes_FromStringAndSize(bytes.data(), bytes.size()));
   if (py_bytes == nullptr) {
-    return arolla::python::PyObjectPtr{};
+    return nullptr;
   }
   bytes.clear();
 
   auto py_parse_result = arolla::python::PyObjectPtr::Own(PyObject_CallMethod(
       py_message.get(), "ParseFromString", "O", py_bytes.get()));
   if (py_parse_result == nullptr) {
-    return arolla::python::PyObjectPtr{};
+    return nullptr;
   }
 
   return py_message;

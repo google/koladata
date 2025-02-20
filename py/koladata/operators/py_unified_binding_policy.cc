@@ -67,7 +67,6 @@ using ::arolla::TypedValue;
 using ::arolla::expr::ExprNodePtr;
 using ::arolla::expr::ExprOperatorSignature;
 using ::arolla::expr::Leaf;
-using ::arolla::expr::Literal;
 using ::arolla::expr::MakeOpNode;
 using ::arolla::expr::RegisteredOperator;
 using ::arolla::python::AuxBindingPolicy;
@@ -349,7 +348,7 @@ absl::StatusOr<ExprNodePtr> GenNonDeterministicToken() {
   static absl::NoDestructor<absl::BitGen> bitgen;
   auto seed = absl::Uniform<int64_t>(absl::IntervalClosed, *bitgen, 0,
                                      std::numeric_limits<int64_t>::max());
-  return MakeOpNode(*op, {*leaf, Literal(seed)});
+  return MakeOpNode(*op, {*leaf, arolla::expr::Literal(seed)});
 }
 
 // Returns a Python function `koladata.types.py_boxing.as_qvalue_or_expr` if
@@ -362,7 +361,7 @@ PyObjectPtr GetPyCallableAsQValueOrExprFn() {
 
   auto py_module_dict = PyObjectPtr::NewRef(PyImport_GetModuleDict());
   if (py_module_dict == nullptr) {
-    return PyObjectPtr{};
+    return nullptr;
   }
   auto py_module = PyObjectPtr::NewRef(
       PyDict_GetItemWithError(py_module_dict.get(), module_name));
@@ -371,7 +370,7 @@ PyObjectPtr GetPyCallableAsQValueOrExprFn() {
       PyErr_SetString(PyExc_ImportError,
                       "`koladata.types.py_boxing` is not imported yet");
     }
-    return PyObjectPtr{};
+    return nullptr;
   }
   return PyObjectPtr::Own(PyObject_GetAttr(py_module.get(), function_name));
 }
@@ -466,7 +465,7 @@ std::optional<QValueOrExpr> AsQValueOrExprVarArgs(
     if (auto* expr = std::get_if<ExprNodePtr>(&arg)) {
       node_deps.push_back(std::move(*expr));
     } else {
-      node_deps.push_back(expr::MakeLiteral(
+      node_deps.push_back(koladata::expr::MakeLiteral(
           std::move(*std::get_if<TypedValue>(&arg))));
     }
   }
@@ -539,11 +538,11 @@ std::optional<QValueOrExpr> AsQValueOrExprVarKwArgs(
     if (auto* expr = std::get_if<ExprNodePtr>(&args[i])) {
       node_deps.push_back(std::move(*expr));
     } else {
-      node_deps.push_back(expr::MakeLiteral(
+      node_deps.push_back(koladata::expr::MakeLiteral(
           std::move(*std::get_if<TypedValue>(&args[i]))));
     }
   }
-  node_deps[0] = Literal(Text(std::move(field_names)));
+  node_deps[0] = arolla::expr::Literal(Text(std::move(field_names)));
   static const absl::NoDestructor make_namedtuple_op(
       std::make_shared<RegisteredOperator>("namedtuple.make"));
   ASSIGN_OR_RETURN(auto result,
@@ -652,8 +651,7 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
 
   // (See the base class.)
   absl::Nullable<ExprNodePtr> MakeLiteral(TypedValue&& value) const final {
-    DCheckPyGIL();
-    return expr::MakeLiteral(std::move(value));
+    return koladata::expr::MakeLiteral(std::move(value));
   }
 };
 
