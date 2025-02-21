@@ -29,6 +29,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "arolla/expr/eval/eval.h"
 #include "arolla/expr/eval/invoke.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
@@ -178,7 +179,9 @@ absl::StatusOr<arolla::TypedValue> EvaluateFStringDataSlice(
   ASSIGN_OR_RETURN(
       auto expr, CreateFStringExprImpl(fstring, FStringParserMode::kDataSlice));
   // TODO: benefit from compilation cache be using leaves in expr.
-  return arolla::expr::Invoke(expr, {});
+  return arolla::expr::Invoke(expr, {},
+                              arolla::expr::DynamicEvaluationEngineOptions{
+                                  .enable_expr_stack_trace = false});
 }
 
 }  // namespace koladata::python::fstring
