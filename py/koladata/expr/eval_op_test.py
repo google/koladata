@@ -24,6 +24,7 @@ from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import kde_operators as _
 from koladata.operators import optools
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 
 I = input_container.InputContainer('I')
@@ -94,6 +95,29 @@ class EvalOpTest(absltest.TestCase):
         arolla.tuple(arolla.unit(), arolla.unit()),
     )
     self.assertEqual(counter, 2)
+
+  def test_does_not_freeze_inputs(self):
+    @optools.as_lambda_operator('op')
+    def op(x):
+      return x
+
+    with self.subTest('bag'):
+      db = data_bag.DataBag.empty()
+      testing.assert_equal(eval_op(op, db), db)
+      self.assertTrue(db.is_mutable())
+
+      db = db.freeze()
+      testing.assert_equal(eval_op(op, db), db)
+      self.assertFalse(db.is_mutable())
+
+    with self.subTest('slice'):
+      x = data_bag.DataBag.empty().new()
+      testing.assert_equal(eval_op(op, x), x)
+      self.assertTrue(x.is_mutable())
+
+      x = x.freeze_bag()
+      testing.assert_equal(eval_op(op, x), x)
+      self.assertFalse(x.is_mutable())
 
   def test_error_wrong_arg_count(self):
     with self.assertRaisesWithLiteralMatch(
