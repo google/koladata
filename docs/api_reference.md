@@ -8189,6 +8189,38 @@ Alias for [kd.random.sample](#kd.random.sample) operator.
 
 Alias for [kd.random.sample_n](#kd.random.sample_n) operator.
 
+### `kd.schema_from_proto(message_class, /, *, extensions=None, db=None)` {#kd.schema_from_proto}
+
+``` {.no-copy}
+Returns a Koda schema representing a proto message class.
+
+  This is similar to `from_proto(x).get_schema()` when `x` is an instance of
+  `message_class`, except that it eagerly adds all non-extension fields to the
+  schema instead of only adding fields that have data populated in `x`.
+
+  The returned schema is a uuschema whose itemid is a function of the proto
+  message class' fully qualified name, and any child message classes' schemas
+  are also uuschemas derived in the same way. The returned schema has the same
+  itemid as `from_proto(message_class()).get_schema()`.
+
+  The format of each extension specified in `extensions` is a dot-separated
+  sequence of field names and/or extension names, where extension names are
+  fully-qualified extension paths surrounded by parentheses. For example:
+
+    "path.to.field.(package_name.some_extension)"
+    "path.to.repeated_field.(package_name.some_extension)"
+    "path.to.map_field.values.(package_name.some_extension)"
+    "path.(package_name.some_extension).(package_name2.nested_extension)"
+
+  Args:
+    message_class: A proto message class to convert.
+    extensions: List of proto extension paths.
+    db: The DataBag to use for the result, or None to use a new DataBag.
+
+  Returns:
+    A DataItem containing the converted schema.
+```
+
 ### `kd.schema_from_py(tpe)` {#kd.schema_from_py}
 
 Alias for [kd.schema.schema_from_py](#kd.schema.schema_from_py) operator.
@@ -8409,7 +8441,22 @@ Converts a DataSlice or DataItem to one or more proto messages.
 ```
 
 ### `kd.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True)` {#kd.to_py}
-*No description*
+
+``` {.no-copy}
+Returns a readable python object from a DataSlice.
+
+  Attributes, lists, and dicts are recursively converted to Python objects.
+
+  Args:
+    ds: A DataSlice
+    max_depth: Maximum depth for recursive conversion. Each attribute, list item
+      and dict keys / values access represent 1 depth increment. Use -1 for
+      unlimited depth.
+    obj_as_dict: Whether to convert objects to python dicts. By default objects
+      are converted to automatically constructed 'Obj' dataclass instances.
+    include_missing_attrs: whether to include attributes with None value in
+      objects.
+```
 
 ### `kd.to_pylist(x)` {#kd.to_pylist}
 
