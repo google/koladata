@@ -9,13 +9,15 @@ This guide covers a comprehensive list of useful recipes for common tasks.
 
 ## Use `kd.from_py` as a universal convertor
 
-`kd.from_py` can be used as a universal convertor to create all types of objects
-including primitives, entities, lists and dicts.
+[`kd.from_py`](api_reference.md#kd.from_py) can be used as a universal convertor
+to create all types of objects including primitives, entities, lists and dicts.
 
-When inputs are Python primitives, `kd.from_py` works the same as `kd.item` and
-creates corresponding Koda items. When inputs are lists, dicts or dataclass
-instances, `kd.from_py` works similar to `kd.list`, `kd.dict` or `kd.new` but
-creates objects.
+When inputs are Python primitives, `kd.from_py` works the same as
+[`kd.item`](api_reference.md#kd.slices.item) and creates corresponding Koda
+items. When inputs are lists, dicts or dataclass instances, `kd.from_py` works
+similar to [`kd.list`](api_reference.md#kd.list),
+[`kd.dict`](api_reference.md#kd.dicts.new) or
+[`kd.new`](api_reference.md#kd.entities.new) but creates objects.
 
 ```py
 # TODO: update this when from_py returns OBJECT schema by default
@@ -49,7 +51,8 @@ kd.from_py(kd.dict({'a': 1, 'b': 2}))  # DataItem(Dict{'a'=1, 'b'=2}, schema: OB
 ```
 
 NOTE: Objects created through the schema embedding share the same schema whereas
-objects created directly from `kd.obj()` have different embedded schemas. See
+objects created directly from [`kd.obj()`](api_reference.md#kd.objs.new) have
+different embedded schemas. See
 [link](common_pitfalls.md#kd_obj_vs_kd_obj_kd_new) for details.
 
 When inputs are Koda objects, `kd.from_py` is a no-op.
@@ -95,12 +98,14 @@ kd.slice([kd.obj(a=1), kd.from_py([1, 2]), kd.from_py({1: 3})])
 
 ## Use `kd.from_py(py_list, from_dim=)` to convert py_list dimensions to DataSlice dimensions
 
-`kd.list(py_list)` converts the Python list structure to corresponding Koda list
-structure and the result is a list DataItem. `kd.slice(py_list)` converts the
+[`kd.list(py_list)`](api_reference.md#kd.list) converts the Python list
+structure to corresponding Koda list structure and the result is a list
+DataItem. [`kd.slice(py_list)`](api_reference.md#kd.slices.slice) converts the
 Python list structure to the jagged shape of the result DataSlice.
 
 What if we want to control what gets converted to Koda lists and what gets
-converted to a jagged shape? `kd.from_py(py_list, from_dim=)` allows us to do
+converted to a jagged shape?
+[`kd.from_py(py_list, from_dim=)`](api_reference.md#kd.from_py) allows us to do
 that. The first `from_dim` dimensions of `py_list` get converted to DataSlice
 jagged shape while remaining dimensions get converted to Koda lists.
 
@@ -331,9 +336,12 @@ x.S[:kd.index(kd.present_shaped_as(x)) + 1]
 
 ## Implement cumulative operators using aggregational operators
 
-Koda provides native cumulative operators (e.g. `kd.cum_sum`, `kd.cum_count`)
-for common operations. However, Koda does not provide a corresponding cumulative
-version for every aggregational operators (e.g. `kd.strings.agg_join`).
+Koda provides native cumulative operators (e.g.
+[`kd.math.cum_sum`](api_reference.md#kd.math.cum_sum),
+[`kd.math.cum_count`](api_reference.md#kd.slices.cum_count)) for common
+operations. However, Koda does not provide a corresponding cumulative version
+for every aggregational operators (e.g.
+[`kd.strings.agg_join`](api_reference.md#kd.strings.agg_join)).
 
 Support we want to implement a cumulative operator using an aggregational
 operator. We can do it in two steps. First, add a new dimension by accumulating
@@ -363,14 +371,15 @@ kd.agg_sum(x.S[:kd.index(x | 0) + 1])  # [[1, 3], [3, 3, 8], [6, 6, 6, 15]]
 ## Changing the shape of DataSlices
 
 Koda provides several ways to change the shape of existing DataSlices without
-modifying their content. The two most common ones are `kd.flatten` (merges
-adjacent dimensions) and `kd.reshape` (attaches a new JaggedShape without
-changing the number of items). These operators work by modifying the DataSlice
-shapes rather than the data.
+modifying their content. The two most common ones are
+[`kd.flatten`](api_reference.md#kd.shapes.flatten) (merges adjacent dimensions)
+and [`kd.reshape`](api_reference.md#kd.shapes.reshape) (attaches a new
+JaggedShape without changing the number of items). These operators work by
+modifying the DataSlice shapes rather than the data.
 
-Suppose we have a DataSlice with a given shape of ndim `R` and wish to
-merge `N` dimensions to create a DataSlice with ndim `R-N+1`, then `kd.flatten`
-can be used:
+Suppose we have a DataSlice with a given shape of ndim `R` and wish to merge `N`
+dimensions to create a DataSlice with ndim `R-N+1`, then `kd.flatten` can be
+used:
 
 ```py
 # By default, `kd.flatten` returns a 1-dimensional DataSlice - even for scalars.
@@ -403,8 +412,8 @@ list_item[:][:].flatten().implode()  # kd.list([1, 2, 3])
 ```
 
 Suppose instead that we have a DataSlice of size `N` (with arbitrary
-dimensionality) that we wish to change the shape of, either by providing a
-new JaggedShape (with the same size), or by providing a tuple of per-dimension
+dimensionality) that we wish to change the shape of, either by providing a new
+JaggedShape (with the same size), or by providing a tuple of per-dimension
 sizes. In such cases, `kd.reshape` can be used:
 
 ```py
@@ -435,7 +444,7 @@ ds.reshape(kd.slice([0, 0, 0]).get_shape())  # [1, 2, 3]
 
 NOTE: the old and new shapes must have the same size.
 
-## Broadcasting DataSlices through `kd.expand_to`
+## Manual broadcasting of DataSlices
 
 Koda has well-defined broadcasting rules
 (go/koda-fundamentals#broadcasting-and-aligning) where one DataSlice can be
@@ -447,12 +456,20 @@ following to succeed without manual broadcasting:
 kd.slice([1, 2]) + kd.slice([[3, 4], [5]])  # [[4, 5], [7]]
 ```
 
-In some cases, it's useful to perform manual broadcasting which allows for more
+In some cases, it's useful to perform manual broadcasting through
+[`kd.expand_to`](api_reference.md#kd.slices.expand_to) or
+[`kd.align`](api_reference.md#kd.slices.align) which allows for more
 fine-grained behavior:
 
 ```py
 # Expanding to another slice using normal broadcasting rules.
 kd.slice([1, 2]).expand_to(kd.slice([[0, 0], [0]]))  # [[1, 1], [2]]
+
+# Aligning to the "common shape"
+a, b, c = kd.align(kd.item(1), kd.slice([['a', 'b'], ['c']]), kd.slice([1.0, 2.0]))
+# a: kd.slice([[1, 1], [1]])
+# b: kd.slice([['a', 'b'], ['c']])
+# c: kd.slice([[1.0, 1.0], [2.0]])
 
 # By providing `ndim`, we implode the last `ndim` dimensions, expand and then
 # explode again. This allows us to implement e.g. cross-products, pairs and
@@ -465,7 +482,8 @@ kd.zip(x, x_expanded).flatten(0, 2)  # [[1, 1], [1, 2], ..., [3, 2], [3, 3]]
 ## Concatenating DataSlices of different ranks
 
 Koda supports DataSlice concatenation of variable number of inputs through
-`kd.concat` (and stacking through `kd.stack`). Due to the ambiguity explained
+[`kd.concat`](api_reference.md#kd.slices.concat) (and stacking through
+[`kd.stack`](api_reference.md#kd.slices.stack)). Due to the ambiguity explained
 below, it is required that all inputs have the same rank and it's up to the
 caller to ensure that this is the case.
 
@@ -492,8 +510,9 @@ To achieve these outcomes, we mainly have two tools at our disposal:
 
 Expected outcome (1) uses the standard Koda broadcasting rules. `b` is
 broadcasted to the shape of `a`, and data is repeated as needed. Here, we can
-either use `kd.align` to align all inputs, or `kd.expand_to` directly on
-specific inputs:
+either use [`kd.align`]((api_reference.md#kd.slices.align) to align all inputs,
+or [`kd.expand_to`](api_reference.md#kd.slices.expand_to) directly on specific
+inputs:
 
 ```py
 b_expanded = b.expand_to(a)  # [[['a', 'a'], ['b']], [['c'], ['d', 'd']]]
@@ -515,4 +534,125 @@ before concatenating. This can be achieved through `kd.expand_to`:
 ```py
 b_expanded = b.expand_to(b, ndim=1)  # [[['a', 'b'], ['a', 'b']], [['c', 'd'], ['c', 'd']]]
 kd.concat(a, b_expanded)  # [[[1, 2, 'a', 'b'], [3, 'a', 'b']], [[5, 'c', 'd'], [7, 8, 'c', 'd']]]
+```
+
+## Grouping by keys and computing statistics
+
+The [`kd.group_by`](api_reference.md#kd.slices.group_by) operator is a highly
+versatile operator intended to group values based on some identifier, be it a
+single one or multiple ones, and facilitate computing statistics, creating
+hierarchical data, and can be combined with operators such as
+[`kd.translate`](api_reference.md#kd.slices.translate) to perform translations
+on groups rather than individual items.
+
+Suppose we wish to find the unique values of a DataSlice, or to obtain a
+representative value in one DataSlice for each group of some other Dataslice.
+Then `kd.group_by` can be used:
+
+```py
+# Finding unique values.
+grouped = kd.group_by(kd.slice([1, 2, 3, 1, None, 2]))  # [[1, 1], [2, 2], [3]]
+grouped.S[0]  # [1, 2, 3]
+# Equivalent to:
+kd.unique(kd.slice([1, 2, 3, 1, None, 2]))  # [1, 2, 3]
+
+# Multi-dimensional DataSlices are grouped by the final dimension.
+kd.group_by(kd.slice([[1, 2, 1], [3, 1]])).S[0]  # [[1, 2], [3, 1]]
+
+# Finding representative values based on ids of another slice.
+values = kd.slice(['a', 'b', 'c', 'd', 'e'])
+ids = kd.slice([1, 1, 2, 3, 2])
+# `values` are grouped by `ids`.
+grouped = kd.group_by(values, ids)  # [['a', 'b'], ['c', 'e'], ['d']]
+grouped.S[0]  # ['a', 'c', 'd']
+
+# Finding representative values based on several ids.
+values = kd.slice(['a', 'b', 'c', 'd', 'e'])
+ids_1 = kd.slice([1, 1, 2, 3, 2])
+ids_2 = kd.slice([1, 1, 3, 3, 2])
+# `values` are grouped by pairs of `ids_1` and `ids_2`.
+grouped = kd.group_by(values, ids_1, ids_2)  # [['a', 'b'], ['c'], ['d'], ['e']]
+```
+
+NOTE: [`kd.unique(ds)`](api_reference.md#kd.slices.unique) is a faster and
+clearer alternative to `kd.group_by(ds).S[0]` and should be preferred for
+computing unique values.
+
+Suppose instead we have a DataSlice of `Books` containing, among other things,
+the attributes `year` (specifying the year the book was written) and `pages`
+(specifying the number of pages in the book):
+
+```py
+Book = kd.named_schema('Book')
+books = Book(
+  year=kd.slice([1997, 2001, 1928, 1928, 2001]),
+  pages=kd.slice([212, 918, 331, 512, 331]),
+  ...
+)
+```
+
+`kd.group_by` allows us to compute statistics based on these attributes, or to
+create hierarchical data:
+
+```py
+# Group by year
+grouped_books = kd.group_by(books, books.year)
+# [
+#   [Book(pages=212, year=1997)],
+#   [Book(pages=918, year=2001), Book(pages=331, year=2001)],
+#   [Book(pages=331, year=1928), Book(pages=512, year=1928)],
+# ]
+
+# Computing the average page count per year
+kd.math.agg_mean(grouped_books.pages)  # [212.0, 624.5, 421.5]
+```
+
+## Translating values through key-value mappings
+
+Suppose we have two DataSlices `docs` (representing some document with `id`,
+`visits` and `domain`) and a DataSlice `doc_ids` (representing documents of
+interest), and we wish to find the visits per document.
+[`kd.translate`](api_reference.md#kd.slices.translate) can then be useful:
+
+```py
+Doc = kd.named_schema('Doc')
+docs = Doc(
+  id=kd.slice([0, 1, 2, 3, 4]),
+  visits=kd.slice([11, 212, 99, 123, 44]),
+  domain=kd.slice(['a', 'b', 'a', 'c', 'd']),
+)
+doc_ids = kd.slice([1, 9, 0])
+kd.translate(doc_ids, docs.id, docs.visits)  # [212, None, 11]
+```
+
+Note that this requires `docs.id` to be unique within the final dimension.
+
+If, on the other hand, the keys are not unique, we may still wish to perform a
+translation. Suppose, for example, that we are interested in the number of
+visits for all documents of a selection of `domains`. Multiple documents may
+have the same domain, so `kd.translate` is not appropriate. Instead,
+[`kd.translate_group`](api_reference.md#kd.slices.translate_group) can be used:
+
+```py
+domains = kd.slice(['a', 'b', 'f'])
+visits = kd.translate_group(domains, docs.domain, docs.visits)  # [[11, 99], [212], []]
+kd.agg_sum(visits)  # [110, 212, 0]
+```
+
+`kd.translate_group` can also be mimicked through a combination of
+`kd.translate` and [`kd.group_by`](api_reference.md#kd.slices.group_by), which
+is a powerful combination that can be tweaked for more advanced transformations:
+
+```py
+groups = kd.group_by(docs, docs.domain)
+# [
+#   [Doc(domain='a', id=0, visits=11), Doc(domain='a', id=2, visits=99)],
+#   [Doc(domain='b', id=1, visits=212)],
+#   [Doc(domain='c', id=3, visits=123)],
+#   [Doc(domain='d', id=4, visits=44)],
+# ]
+keys_from = groups.S[0].domain  # ['a', 'b', 'c', 'd']
+values_from = groups.visits.implode()  # [List[11, 99], List[212], List[123], List[44]]
+visits = kd.translate(domains, keys_from, values_from)  # [List[11, 99], List[212], None]
+kd.agg_sum(visits[:])  # [110, 212, 0]
 ```
