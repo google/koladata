@@ -60,6 +60,17 @@ class ListTest(parameterized.TestCase):
         fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1)), db=db),
     )
 
+  def test_list_preserves_mixed_types(self):
+    db = fns.bag()
+
+    testing.assert_equal(
+        fns.list([1, 2.0], item_schema=schema_constants.OBJECT, db=db)[:],
+        kd.implode(
+            data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT),
+            db=db,
+        )[:],
+    )
+
   def test_item_with_values(self):
     l = fns.list([1, 2, 3])
     self.assertIsInstance(l, list_item.ListItem)
@@ -209,6 +220,12 @@ Assigned schema for List item: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""
       db.list(
           [db.new(x=1)], item_schema=db.new_schema(x=schema_constants.INT32)
       )
+
+    with self.assertRaisesRegex(
+        ValueError,
+        r"""schema can only be 0-rank schema slice, got: rank\(1\)""",
+    ):
+      _ = fns.list([1, 3.14], item_schema=kd.slice([kd.OBJECT]))
 
 
 if __name__ == '__main__':

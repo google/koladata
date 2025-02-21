@@ -914,8 +914,22 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
       return nullptr;
     }
     AdoptionQueue adoption_queue;
+    // NOTE: We only pass OBJECT schemas as the 3rd parameter, so that we do
+    // not trigger the (explicit) casting logic in boxing.cc, and leave casting
+    // to object_factories.cc which has more constrained (implicit) casting
+    // logic and better error messages.
+    if (item_schema.has_value()) {
+      RETURN_IF_ERROR(item_schema->VerifyIsSchema())
+          .With(arolla::python::SetPyErrFromStatus);
+    }
     ASSIGN_OR_RETURN(auto values,
-                     DataSliceFromPyValue(py_values, adoption_queue),
+                     DataSliceFromPyValue(
+                         py_values, adoption_queue,
+                         /*schema=*/
+                         (item_schema.has_value() &&
+                          item_schema->item().is_object_schema())
+                             ? item_schema
+                             : std::nullopt),
                      arolla::python::SetPyErrFromStatus(_));
     // Replacing the DataBag to avoid double adoption.
     values = values.WithBag(self_db);
