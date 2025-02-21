@@ -753,8 +753,10 @@ Assigned schema for 'a': SCHEMA(b=STRING)"""),
       db.named_schema('name', a=ds(1.0))
     with self.assertRaisesRegex(
         ValueError,
-        'trying to assign a slice with 1 dimensions to a slice with only 0'
-        ' dimensions',
+        re.escape(
+            'must have the same or less number of dimensions as foo, got ' +
+            'foo.get_ndim(): 0 < values.get_ndim(): 1'
+        )
     ):
       db.named_schema('name', a=ds([schema_constants.INT32]))
 

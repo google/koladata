@@ -17,6 +17,7 @@
 Currently container operation is just an alias for obj, so this test contains
 only one basic check to avoid duplicating all the tests for obj.
 """
+import re
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
@@ -60,8 +61,10 @@ class ContainerTest(absltest.TestCase):
   def test_non_data_item(self):
     with self.assertRaisesRegex(
         ValueError,
-        'trying to assign a slice with 1 dimensions to a slice with only 0 '
-        'dimensions'
+        re.escape(
+            'must have the same or less number of dimensions as foo, got ' +
+            'foo.get_ndim(): 0 < values.get_ndim(): 1'
+        )
     ):
       fns.container(a=ds([1, 2]))
 

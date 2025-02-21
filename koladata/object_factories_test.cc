@@ -1383,7 +1383,8 @@ TYPED_TEST(CreatorTest, Shaped_NoAutoPacking) {
   EXPECT_THAT(
       CreatorT::Shaped(db, DataSlice::JaggedShape::Empty(), {"a"}, {ds_a}),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("trying to assign a slice with 1 dim")));
+               HasSubstr("must have the same or less number of dimensions as "
+                         "foo, got foo.get_ndim(): 0 < values.get_ndim(): 1")));
 }
 
 TYPED_TEST(CreatorTest, Shaped_ItemId) {
@@ -1542,7 +1543,9 @@ TYPED_TEST(CreatorTest, Like_NoAutoPacking) {
 
   EXPECT_THAT(CreatorT::Like(db, test::DataItem(42), {"a"}, {ds_a}),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("trying to assign a slice with 1 dim")));
+                       HasSubstr("must have the same or less number of "
+                                 "dimensions as foo, got foo.get_ndim(): 0 < "
+                                 "values.get_ndim(): 1")));
 }
 
 TYPED_TEST(CreatorTest, Like_ItemId) {

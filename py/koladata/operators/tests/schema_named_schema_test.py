@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -112,8 +114,10 @@ class KodaNamedSchemaTest(parameterized.TestCase):
       kde.schema.named_schema('name', a=ds(1.0)).eval()
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        'kd.schema.named_schema: trying to assign a slice with 1 dimensions to'
-        ' a slice with only 0 dimensions',
+        re.escape(
+            'must have the same or less number of dimensions as foo, got ' +
+            'foo.get_ndim(): 0 < values.get_ndim(): 1'
+        )
     ):
       kde.schema.named_schema('name', a=ds([schema_constants.INT32])).eval()
 

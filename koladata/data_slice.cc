@@ -88,13 +88,61 @@ absl::StatusOr<internal::DataItem> UnwrapIfNoFollowSchema(
   return schema_item;
 }
 
-absl::Status AssignmentError(absl::Status status, size_t lhs_rank,
-                             size_t rhs_rank) {
+absl::Status AttrAssignmentError(absl::Status status, size_t lhs_rank,
+                                 size_t rhs_rank) {
+  constexpr absl::string_view kAttrAssignmentError =
+      "attribute values being assigned in\n\n"
+      "foo.with_attrs(attr=value) or foo.attr = values or "
+      "entity / object creation kd.new_shape_as(foo, ...), "
+      "kd.obj_like(foo, ...), etc.\n\n"
+      "must have the same or less number of dimensions as foo, got "
+      "foo.get_ndim(): %d < values.get_ndim(): %d;\n"
+      "consider wrapping the last %d dimensions into lists using "
+      "kd.implode(values, ndim=%d)";
+
   if (rhs_rank > lhs_rank) {
     return absl::InvalidArgumentError(absl::StrFormat(
-        "trying to assign a slice with %d dimensions to a slice with only %d "
-        "dimensions. To wrap the last dimension into a list, use kd.implode()",
-        rhs_rank, lhs_rank));
+        kAttrAssignmentError,
+        lhs_rank, rhs_rank, rhs_rank - lhs_rank, rhs_rank - lhs_rank));
+  }
+  return status;
+}
+
+absl::Status ListAssignmentError(absl::Status status, size_t lhs_rank,
+                                 size_t rhs_rank) {
+  constexpr absl::string_view kListAssignmentError =
+      "list items being assigned in\n\n"
+      "kd.list_append_update(lst, items) or lst[indices] = items\n\n"
+      "must have the same or less number of dimensions as lst (or indices if "
+      "larger), got "
+      "max(lst.get_ndim(), indices.get_ndim(): %d < items.get_ndim(): %d;\n"
+      "consider wrapping the last %d dimensions into lists using "
+      "kd.implode(items, ndim=%d)";
+
+  if (rhs_rank > lhs_rank) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        kListAssignmentError,
+        lhs_rank, rhs_rank, rhs_rank - lhs_rank, rhs_rank - lhs_rank));
+  }
+  return status;
+}
+
+absl::Status DictAssignmentError(absl::Status status, size_t lhs_rank,
+                                 size_t rhs_rank) {
+  constexpr absl::string_view kDictAssignmentError =
+      "dict values being assigned in\n\n"
+      "kd.dict_update(dct, keys, values) or dct[keys] = values or "
+      "kd.dict(keys, values)\n\n"
+      "must have the same or less number of dimensions as dct (or keys if "
+      "larger), got "
+      "max(dct.get_ndim(), keys.get_ndim(): %d < values.get_ndim(): %d;\n"
+      "consider wrapping the last %d dimensions into lists using "
+      "kd.implode(values, ndim=%d)";
+
+  if (rhs_rank > lhs_rank) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        kDictAssignmentError,
+        lhs_rank, rhs_rank, rhs_rank - lhs_rank, rhs_rank - lhs_rank));
   }
   return status;
 }
@@ -1426,9 +1474,9 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
   }
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, GetShape()),
                    _.With([&](auto status) {
-                     return AssignmentError(std::move(status),
-                                            GetShape().rank(),
-                                            values.GetShape().rank());
+                     return AttrAssignmentError(std::move(status),
+                                                GetShape().rank(),
+                                                values.GetShape().rank());
                    }));
   if (GetSchemaImpl() == schema::kSchema) {
     return SetSchemaAttr(attr_name, expanded_values);
@@ -1653,8 +1701,8 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
   ASSIGN_OR_RETURN(auto expanded_keys, BroadcastToShape(keys, shape));
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape),
                    _.With([&](auto status) {
-                     return AssignmentError(std::move(status), shape.rank(),
-                                            values.GetShape().rank());
+                     return DictAssignmentError(std::move(status), shape.rank(),
+                                                values.GetShape().rank());
                    }));
 
   AdoptionQueue adoption_queue;
@@ -1946,8 +1994,8 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, shape),
                    _.With([&](absl::Status status) {
-                     return AssignmentError(std::move(status), shape.rank(),
-                                            values.GetShape().rank());
+                     return ListAssignmentError(std::move(status), shape.rank(),
+                                                values.GetShape().rank());
                    }));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());

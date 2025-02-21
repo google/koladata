@@ -2964,7 +2964,9 @@ TEST(DataSliceTest, SetAttr_BroadcastingError) {
           db, DataSlice::JaggedShape::FlatFromSize(3), {}, {}));
   EXPECT_THAT(ds.SetAttr("a", ds_primitive),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("trying to assign a slice with 2 dim")));
+                       HasSubstr("must have the same or less number of "
+                                 "dimensions as foo, got foo.get_ndim(): 1 < "
+                                 "values.get_ndim(): 2")));
 }
 
 TEST(DataSliceTest, SetGetError) {
