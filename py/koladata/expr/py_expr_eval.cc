@@ -46,6 +46,7 @@
 #include "arolla/expr/expr_debug_string.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator_signature.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -54,6 +55,7 @@
 
 namespace koladata::python {
 
+using ::arolla::EvaluationOptions;
 using ::arolla::TypedRef;
 using ::arolla::TypedValue;
 using ::arolla::expr::ExprNodePtr;
@@ -117,7 +119,7 @@ absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
     // Set up a mechanism to check if the computation has been interrupted by
     // the Python interpreter.
     PyCancellationContext cancellation_context;
-    koladata::expr::EvalOptions eval_options{
+    EvaluationOptions eval_options{
         .cancellation_context = &cancellation_context,
     };
     result_or_error = koladata::expr::EvalExprWithCompilationCache(

@@ -34,6 +34,7 @@
 #include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
 #include "arolla/expr/quote.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"
@@ -108,7 +109,7 @@ absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames,
-    const expr::EvalOptions& eval_options) {
+    const arolla::EvaluationOptions& eval_options) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
   if (!is_functor) {
     return absl::InvalidArgumentError(

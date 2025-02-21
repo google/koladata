@@ -27,7 +27,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
-#include "koladata/expr/expr_eval.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
@@ -36,6 +35,7 @@
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/quote.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation_context.h"
@@ -257,7 +257,9 @@ TEST(CallTest, Cancellation) {
                          CreateFunctor(returns_expr, koda_signature, {}));
     auto cancel_ctx = arolla::CancellationContext::Make(
         /*no cooldown period*/ {}, [] { return absl::CancelledError(""); });
-    expr::EvalOptions eval_options{.cancellation_context = cancel_ctx.get()};
+    arolla::EvaluationOptions eval_options{
+        .cancellation_context = cancel_ctx.get(),
+    };
     EXPECT_THAT(CallFunctorWithCompilationCache(
                     fn, /*args=*/{arolla::TypedRef::FromValue(1)},
                     /*kwnames=*/{}, eval_options),
@@ -270,7 +272,9 @@ TEST(CallTest, Cancellation) {
                          CreateFunctor(returns_expr, koda_signature, {}));
     auto cancel_ctx = arolla::CancellationContext::Make(
         /*no cooldown period*/ {}, [] { return absl::CancelledError(""); });
-    expr::EvalOptions eval_options{.cancellation_context = cancel_ctx.get()};
+    arolla::EvaluationOptions eval_options{
+        .cancellation_context = cancel_ctx.get(),
+    };
     ASSERT_OK_AND_ASSIGN(auto result,
                          CallFunctorWithCompilationCache(
                              fn, /*args=*/{arolla::TypedRef::FromValue(1)},

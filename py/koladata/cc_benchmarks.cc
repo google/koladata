@@ -35,6 +35,7 @@
 #include "arolla/expr/quote.h"
 #include "arolla/io/tuple_input_loader.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/serving/expr_compiler.h"
 #include "arolla/util/init_arolla.h"
@@ -283,7 +284,7 @@ void BM_AddViaFunctor(benchmark::State& state) {
           .value();
   auto functor = functor::CreateFunctor(expr_slice, std::nullopt, {}).value();
 
-  expr::EvalOptions eval_options;
+  arolla::EvaluationOptions eval_options;
 
   auto fn = [&functor, &eval_options](const auto& ds) {
     return functor::CallFunctorWithCompilationCache(

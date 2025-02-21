@@ -104,6 +104,7 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/io",
+        "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/serving",
         "@com_google_arolla//arolla/util",

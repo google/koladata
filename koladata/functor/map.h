@@ -21,7 +21,7 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
-#include "koladata/expr/expr_eval.h"
+#include "arolla/qexpr/eval_context.h"
 
 namespace koladata::functor {
 
@@ -42,7 +42,7 @@ namespace koladata::functor {
 absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
     const DataSlice& functors, std::vector<DataSlice> args,
     absl::Span<const std::string> kwnames, bool include_missing,
-    const expr::EvalOptions& eval_options);
+    const arolla::EvaluationOptions& eval_options);
 
 }  // namespace koladata::functor
 

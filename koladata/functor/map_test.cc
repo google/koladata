@@ -31,7 +31,6 @@
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "koladata/expr/expr_eval.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
@@ -47,6 +46,7 @@
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/quote.h"
 #include "arolla/jagged_shape/testing/matchers.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/util/cancellation_context.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
@@ -183,7 +183,9 @@ TEST(MapTest, Cancellation) {
           internal::DataItem(schema::GetDType<int>())));
   auto cancel_ctx = arolla::CancellationContext::Make(
       /*no cooldown*/ {}, [] { return absl::CancelledError(""); });
-  expr::EvalOptions eval_options{.cancellation_context = cancel_ctx.get()};
+  arolla::EvaluationOptions eval_options{
+      .cancellation_context = cancel_ctx.get(),
+  };
   EXPECT_THAT(MapFunctorWithCompilationCache(
                   fn, /*args=*/{test_slice},
                   /*kwnames=*/{}, /*include_missing=*/false, eval_options),

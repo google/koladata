@@ -16,12 +16,11 @@
 #define KOLADATA_FUNCTOR_CALL_H_
 
 #include <string>
-#include <utility>
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
-#include "koladata/expr/expr_eval.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 
@@ -46,7 +45,7 @@ namespace koladata::functor {
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames,
-    const expr::EvalOptions& eval_options);
+    const arolla::EvaluationOptions& eval_options);
 
 }  // namespace koladata::functor
 

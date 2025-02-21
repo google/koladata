@@ -27,12 +27,12 @@
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/expr/expr_eval.h"
 #include "koladata/functor/call.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/operators/slices.h"
 #include "koladata/shape_utils.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/repr.h"
@@ -43,7 +43,7 @@ namespace koladata::functor {
 absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
     const DataSlice& functors, std::vector<DataSlice> args,
     absl::Span<const std::string> kwnames, bool include_missing,
-    const expr::EvalOptions& eval_options) {
+    const arolla::EvaluationOptions& eval_options) {
   args.push_back(functors);
   ASSIGN_OR_RETURN(auto aligned_args, shape::Align(std::move(args)));
   DataSlice aligned_functors = std::move(aligned_args.back());

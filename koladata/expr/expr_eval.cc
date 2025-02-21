@@ -43,6 +43,7 @@
 #include "arolla/expr/expr_visitor.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/io/typed_refs_input_loader.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -191,7 +192,7 @@ absl::StatusOr<TransformedExprPtr> TransformExprForEval(
 }
 
 using CompiledExpr = std::function<absl::StatusOr<arolla::TypedValue>(
-    EvalOptions, absl::Span<const arolla::TypedRef>)>;
+    arolla::EvaluationOptions, absl::Span<const arolla::TypedRef>)>;
 
 using Compiler = arolla::ExprCompiler<absl::Span<const arolla::TypedRef>,
                                       arolla::TypedValue>;
@@ -283,7 +284,7 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
     const arolla::expr::ExprNodePtr& expr,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> inputs,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> variables,
-    const EvalOptions& eval_options) {
+    const arolla::EvaluationOptions& eval_options) {
   ASSIGN_OR_RETURN(auto transformed_expr, TransformExprForEval(expr));
   const auto& expr_info = transformed_expr->info;
 

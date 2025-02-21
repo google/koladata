@@ -151,6 +151,7 @@ cc_test(
         "@com_google_arolla//arolla/jagged_shape/expr",
         "@com_google_arolla//arolla/jagged_shape/qexpr",
         "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qexpr/operators/all",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/serialization_codecs:all_decoders",
