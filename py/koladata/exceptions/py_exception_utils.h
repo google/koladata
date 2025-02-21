@@ -27,10 +27,6 @@ namespace koladata::python {
 absl::Nullable<PyObject*> PyRegisterExceptionFactory(PyObject* /*module*/,
                                                      PyObject* factory);
 
-// Sets the KodaError config in C++
-absl::Nullable<PyObject*> PySetErrorConfig(PyObject* /*module*/,
-                                           PyObject* enable_verbose_errors);
-
 }  // namespace koladata::python
 
 #endif  // THIRD_PARTY_PY_KOLADATA_TYPES_PY_EXCEPTION_UTILS_H_
