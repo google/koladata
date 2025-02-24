@@ -33,6 +33,17 @@ message MissingObjectSchema {
   optional arolla.serialization_base.ContainerProto missing_schema_item = 1;
 }
 
+message MissingCollectionItemSchemaError {
+  enum CollectionType {
+    UNKNOWN = 0;
+    LIST = 1;
+    DICT = 2;
+  }
+  optional arolla.serialization_base.ContainerProto missing_schema_item = 1;
+  optional CollectionType collection_type = 2;
+  optional int64 item_index = 3;
+}
+
 // Error when the assigned value has a different schema than the expected one.
 message IncompatibleSchema {
   optional string attr = 1;
@@ -82,6 +93,7 @@ message Error {
     MissingObjectSchema missing_object_schema = 4;
     IncompatibleSchema incompatible_schema = 5;
     DataBagMergeConflict data_bag_merge_conflict = 6;
+    MissingCollectionItemSchemaError missing_collection_item_schema = 7;
   }
 
   reserved 2;

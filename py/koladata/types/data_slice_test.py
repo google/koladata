@@ -2152,7 +2152,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
 
   def test_dict_ops_errors(self):
     db = bag()
-    non_dicts = db.new_shaped(jagged_shape.create_shape([3]))
+    non_dicts = db.new_shaped(jagged_shape.create_shape([3]), x=1)
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
       non_dicts[set()] = 'b'
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
@@ -2160,11 +2160,11 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
       non_dicts['a'] = ValueError
     with self.assertRaisesRegex(
-        ValueError, 'the schema for dict keys is missing'
+        exceptions.KodaError, re.escape('dict(s) expected, got SCHEMA(x=INT32)')
     ):
       non_dicts['a'] = 'b'
     with self.assertRaisesRegex(
-        ValueError, 'the schema for dict keys is missing'
+        exceptions.KodaError, re.escape('dict(s) expected, got SCHEMA(x=INT32)')
     ):
       _ = non_dicts['a']
     with self.assertRaisesRegex(
@@ -2176,6 +2176,18 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         )
     ):
       db.dict()[1] = ds([1, 2, 3])
+
+    o1 = db.obj(x=1)
+    o2 = db.obj(db.dict({1: 2}))
+    s = ds([o1, o2]).fork_bag()
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'dict(s) expected, got an OBJECT DataSlice with the first non-dict'
+            ' schema at ds.flatten().S[0] IMPLICIT_SCHEMA(x=INT32)'
+        ),
+    ):
+      s['a'] = 1
 
   def test_dict_op_schema_errors(self):
     db = bag()
@@ -2539,6 +2551,27 @@ Expected schema for List item: SCHEMA(x=INT32)
 Assigned schema for List item: SCHEMA(a=STRING)"""),
     ):
       l2[0] = bag().new(a='x')
+
+  def test_list_op_error(self):
+    db = bag()
+    l = db.new(x=1).fork_bag()
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape('list(s) expected, got SCHEMA(x=INT32)'),
+    ):
+      l.append(1)
+
+    o1 = db.obj(x=1)
+    o2 = db.obj(db.list([1]))
+    s = ds([o1, o2]).fork_bag()
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'list(s) expected, got an OBJECT DataSlice with the first non-list'
+            ' schema at ds.flatten().S[0] IMPLICIT_SCHEMA(x=INT32)'
+        ),
+    ):
+      s.append(1)
 
   def test_list_size(self):
     db = bag()

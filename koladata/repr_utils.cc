@@ -373,6 +373,49 @@ absl::StatusOr<Error> SetDataBagMergeError(Error cause, const DataBagPtr& db1,
   cause.set_error_message(std::move(error_str));
   return cause;
 }
+
+absl::StatusOr<internal::Error> SetMissingCollectionItemSchemaError(
+    internal::Error error, const DataBagPtr& db) {
+  const internal::MissingCollectionItemSchemaError& missing_schema_error =
+      error.missing_collection_item_schema();
+  ASSIGN_OR_RETURN(internal::DataItem schema_item,
+                   DecodeDataItem(missing_schema_error.missing_schema_item()));
+  ASSIGN_OR_RETURN(
+      DataSlice schema,
+      DataSlice::Create(schema_item, DataSlice::JaggedShape::Empty(),
+                        internal::DataItem(schema::kSchema), db));
+  ASSIGN_OR_RETURN(std::string schema_str, DataSliceToStr(schema));
+
+  std::string error_str;
+  if (missing_schema_error.has_item_index()) {
+    if (missing_schema_error.collection_type() ==
+        internal::MissingCollectionItemSchemaError::LIST) {
+      error_str = absl::StrCat(
+          "list(s) expected, got an OBJECT DataSlice with the first non-list "
+          "schema at ds.flatten().S[",
+          missing_schema_error.item_index(), "] ", schema_str);
+    }
+    if (missing_schema_error.collection_type() ==
+        internal::MissingCollectionItemSchemaError::DICT) {
+      error_str = absl::StrCat(
+          "dict(s) expected, got an OBJECT DataSlice with the first non-dict "
+          "schema at ds.flatten().S[",
+          missing_schema_error.item_index(), "] ", schema_str);
+    }
+  } else {
+    if (missing_schema_error.collection_type() ==
+        internal::MissingCollectionItemSchemaError::LIST) {
+      error_str = absl::StrCat("list(s) expected, got ", schema_str);
+    }
+    if (missing_schema_error.collection_type() ==
+        internal::MissingCollectionItemSchemaError::DICT) {
+      error_str = absl::StrCat("dict(s) expected, got ", schema_str);
+    }
+  }
+  error.set_error_message(std::move(error_str));
+  return error;
+}
+
 }  // namespace
 
 absl::Status AssembleErrorMessage(const absl::Status& status,
@@ -400,6 +443,11 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
     ASSIGN_OR_RETURN(
         Error error,
         SetDataBagMergeError(*std::move(cause), data.db, data.to_be_merged_db));
+    return WithErrorPayload(status, std::move(error));
+  }
+  if (cause->has_missing_collection_item_schema()) {
+    ASSIGN_OR_RETURN(Error error, SetMissingCollectionItemSchemaError(
+                                      *std::move(cause), data.db));
     return WithErrorPayload(status, std::move(error));
   }
   return status;

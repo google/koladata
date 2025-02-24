@@ -763,7 +763,7 @@ class RhsHandler {
     }
     if (!attr_stored_schema.has_value()) {
       // This can happen only for lists and dicts.
-      return AttrSchemaMissingErrorStatus();
+      return AttrSchemaMissingErrorStatus(lhs_schema);
     }
     return CastRhsTo(attr_stored_schema, db_impl);
   }
@@ -799,7 +799,7 @@ class RhsHandler {
         if (context_ == RhsHandlerContext::kAttr) {
           should_overwrite_schema = true;
         } else {
-          return AttrSchemaMissingErrorStatus();
+          return AttrSchemaMissingErrorStatus(lhs_schema, attr_stored_schemas);
         }
       }
       RETURN_IF_ERROR(attr_stored_schemas.VisitValues(
@@ -934,20 +934,57 @@ class RhsHandler {
                             MakeIncompatibleSchemaError(attr_stored_schema));
   }
 
-  absl::Status AttrSchemaMissingErrorStatus() const {
+  absl::Status AttrSchemaMissingErrorStatus(
+      const internal::DataItem& lhs_schema,
+      std::optional<int64_t> item_index = std::nullopt) const {
+    internal::Error error;
+    internal::MissingCollectionItemSchemaError* missing_schema_error =
+        error.mutable_missing_collection_item_schema();
+    ASSIGN_OR_RETURN(*missing_schema_error->mutable_missing_schema_item(),
+                     internal::EncodeDataItem(lhs_schema));
+    if (item_index.has_value()) {
+      missing_schema_error->set_item_index(*item_index);
+    }
     switch (context_) {
       case RhsHandlerContext::kAttr:
         return absl::InternalError(
             "we should have never raised for missing attr schema");
       case RhsHandlerContext::kListItem:
-        return absl::InvalidArgumentError(
-            absl::StrFormat("the schema for list items is missing"));
+        missing_schema_error->set_collection_type(
+            internal::MissingCollectionItemSchemaError::LIST);
+        return internal::WithErrorPayload(
+            absl::InvalidArgumentError("the schema for list items is missing"),
+            std::move(error));
       case RhsHandlerContext::kDict:
+        missing_schema_error->set_collection_type(
+            internal::MissingCollectionItemSchemaError::DICT);
         absl::string_view dict_attr =
             attr_name_ == schema::kDictKeysSchemaAttr ? "keys" : "values";
-        return absl::InvalidArgumentError(
-            absl::StrFormat("the schema for dict %s is missing", dict_attr));
+        return internal::WithErrorPayload(
+            absl::InvalidArgumentError(absl::StrFormat(
+                "the schema for dict %s is missing", dict_attr)),
+            std::move(error));
     }
+  }
+
+  absl::Status AttrSchemaMissingErrorStatus(
+      const internal::DataSliceImpl& lhs_schema,
+      const internal::DataSliceImpl& attr_stored_schemas) const {
+    std::optional<uint64_t> first_missing_schema_index;
+    std::optional<internal::DataItem> first_missing_schema_item;
+    RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
+        [&first_missing_schema_index, &first_missing_schema_item](
+            int64_t index, internal::DataItem schema_item,
+            arolla::OptionalValue<internal::DataItem> attr_stored_schema) {
+          if (!attr_stored_schema.present) {
+            first_missing_schema_item = std::move(schema_item);
+            first_missing_schema_index = index;
+          }
+        },
+        lhs_schema.AsDataItemDenseArray(),
+        attr_stored_schemas.AsDataItemDenseArray()));
+    return AttrSchemaMissingErrorStatus(first_missing_schema_item.value(),
+                                        first_missing_schema_index);
   }
 
   absl::Status CannotSetAttrOnNoFollowSchemaErrorStatus() const {
