@@ -137,7 +137,7 @@ class DeepUuidVisitor : AbstractVisitor {
   absl::flat_hash_map<DataItem, DataItem, DataItem::Hash> object_tracker_;
 };
 
-};  // namespace
+}  // namespace
 
 absl::StatusOr<DataSliceImpl> DeepUuidOp::operator()(
     const DataItem& seed, const DataSliceImpl& ds, const DataItem& schema,

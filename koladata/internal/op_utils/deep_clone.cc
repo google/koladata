@@ -86,8 +86,7 @@ class DeepCloneVisitor : AbstractVisitor {
       return DataItem(
           CreateNoFollowWithMainObject(original_item_clone.value<ObjectId>()));
     }
-    auto it =
-        allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
+    auto it = allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
     if (it == allocation_tracker_.end()) {
       if (item.is_implicit_schema()) {
         // No object with implicit schema in `item`'s AllocationId was cloned.
@@ -161,8 +160,7 @@ class DeepCloneVisitor : AbstractVisitor {
       const DataItem& item, const DataItem& schema, bool is_object_schema,
       const arolla::DenseArray<arolla::Text>& attr_names,
       const arolla::DenseArray<DataItem>& attr_schema) override {
-    return VisitObject(item, schema, is_object_schema, attr_names,
-                       attr_schema);
+    return VisitObject(item, schema, is_object_schema, attr_names, attr_schema);
   }
 
  private:
@@ -238,7 +236,7 @@ class DeepCloneVisitor : AbstractVisitor {
   absl::flat_hash_map<AllocationId, AllocationId> allocation_tracker_;
 };
 
-};  // namespace
+}  // namespace
 
 absl::StatusOr<std::pair<DataSliceImpl, DataItem>> DeepCloneOp::operator()(
     const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
