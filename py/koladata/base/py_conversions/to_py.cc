@@ -97,11 +97,11 @@ absl::StatusOr<PyObjectPtr> AttrNamePyFromString(
 class ToPyVisitor : internal::AbstractVisitor {
  public:
   ToPyVisitor(bool obj_as_dict, bool include_missing_attrs,
-              const absl::flat_hash_set<DataItem>& leaf_ids, DataBagPtr db,
-              internal::DataBagImpl::FallbackSpan fallback_span)
+              const absl::flat_hash_set<ObjectId>& objects_not_to_convert,
+              DataBagPtr db, internal::DataBagImpl::FallbackSpan fallback_span)
       : obj_as_dict_(obj_as_dict),
         include_missing_attrs_(include_missing_attrs),
-        leaf_ids_(leaf_ids),
+        objects_not_to_convert_(objects_not_to_convert),
         db_(std::move(db)),
         fallback_span_(fallback_span) {}
 
@@ -138,7 +138,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       return absl::OkStatus();
     }
 
-    if (leaf_ids_.contains(item)) {
+    if (ShouldNotBeConverted(item)) {
       ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db_));
       ASSIGN_OR_RETURN(object_cache_[object_id],
                        WrapDataSliceWithErrorCheck(std::move(ds)));
@@ -206,7 +206,7 @@ class ToPyVisitor : internal::AbstractVisitor {
   absl::Status VisitList(const DataItem& list, const DataItem& schema,
                          bool is_object_schema,
                          const internal::DataSliceImpl& items) final {
-    if (leaf_ids_.contains(list)) {
+    if (ShouldNotBeConverted(list)) {
       return absl::OkStatus();
     }
     ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(list));
@@ -225,7 +225,7 @@ class ToPyVisitor : internal::AbstractVisitor {
   absl::Status VisitDict(const DataItem& dict, const DataItem& schema,
                          bool is_object_schema, const DataSliceImpl& keys,
                          const DataSliceImpl& values) final {
-    if (leaf_ids_.contains(dict)) {
+    if (ShouldNotBeConverted(dict)) {
       return absl::OkStatus();
     }
     ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(dict));
@@ -262,7 +262,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       const arolla::DenseArray<arolla::Text>& attr_names,
       const arolla::DenseArray<DataItem>& attr_values) final {
     DCHECK_EQ(attr_names.size(), attr_values.size());
-    if (leaf_ids_.contains(object)) {
+    if (ShouldNotBeConverted(object)) {
       return absl::OkStatus();
     }
     if (obj_as_dict_ || attr_names.empty()) {
@@ -366,13 +366,18 @@ class ToPyVisitor : internal::AbstractVisitor {
     return absl::OkStatus();
   }
 
+  bool ShouldNotBeConverted(const DataItem& item) {
+    return item.holds_value<ObjectId>() &&
+           objects_not_to_convert_.contains(item.value<ObjectId>());
+  }
+
   absl::flat_hash_map<ObjectId, arolla::python::PyObjectPtr> object_cache_;
 
   bool obj_as_dict_ = false;
   bool include_missing_attrs_ = false;
   // Ids of leaf DataItems, which will remain as DataItems and not be converted
   // to Python objects.
-  const absl::flat_hash_set<DataItem>& leaf_ids_;
+  const absl::flat_hash_set<ObjectId>& objects_not_to_convert_;
 
   DataClassesUtil dataclasses_util_;
   DataBagPtr db_;
@@ -381,7 +386,7 @@ class ToPyVisitor : internal::AbstractVisitor {
 
 absl::Nullable<PyObject*> ToPyImplInternal(
     const DataSlice& ds, DataBagPtr bag, bool obj_as_dict,
-    bool include_missing_attrs, const absl::flat_hash_set<DataItem>& leaf_ids) {
+    bool include_missing_attrs, const absl::flat_hash_set<ObjectId>& leaf_ids) {
   if (ds.IsEmpty() || bag == nullptr ||
       GetNarrowedSchema(ds).is_primitive_schema()) {
     ASSIGN_OR_RETURN(PyObjectPtr res, PyObjectFromDataSlice(ds),
@@ -422,11 +427,12 @@ absl::Nullable<PyObject*> ToPyImpl(const DataSlice& ds, DataBagPtr bag,
   // When `max_depth != -1`, we want objects/dicts/lists at `max_depth`
   // to be kept as DataItems and not converted to Python objects.
   // To do that, we extract a DataSlice, and keep track of the leaf DataItems.
-  absl::flat_hash_set<DataItem> leaf_ids;
+  absl::flat_hash_set<ObjectId> objects_not_to_convert;
   internal::LeafCallback leaf_callback = [&](const DataSliceImpl& slice,
                                              const DataItem& schema) {
     for (const DataItem& item : slice) {
-      leaf_ids.insert(item);
+      if (item.holds_value<ObjectId>())
+        objects_not_to_convert.insert(item.value<ObjectId>());
     }
     return absl::OkStatus();
   };
@@ -438,10 +444,10 @@ absl::Nullable<PyObject*> ToPyImpl(const DataSlice& ds, DataBagPtr bag,
             ds, ds.GetSchema(), max_depth, std::move(leaf_callback)),
         arolla::python::SetPyErrFromStatus(_));
     return ToPyImplInternal(extracted_ds, ds.GetBag(), obj_as_dict,
-                            include_missing_attrs, leaf_ids);
+                            include_missing_attrs, objects_not_to_convert);
   }
   return ToPyImplInternal(ds, nullptr, obj_as_dict, include_missing_attrs,
-                          leaf_ids);
+                          objects_not_to_convert);
 }
 
 }  // namespace
