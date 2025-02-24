@@ -25,6 +25,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/operators/utils.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/util/repr.h"
@@ -77,18 +78,22 @@ absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
     const DataSlice& name_or_schema);
 
 // kd.schema.cast_to operator.
-absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema);
+absl::StatusOr<DataSlice> CastTo(arolla::EvaluationContext* ctx,
+                                 const DataSlice& x, const DataSlice& schema);
 
 // kd.schema.cast_to_implicit operator.
-absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
+absl::StatusOr<DataSlice> CastToImplicit(arolla::EvaluationContext* ctx,
+                                         const DataSlice& x,
                                          const DataSlice& schema);
 
 // kd.schema.cast_to_narrow operator.
-absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
+absl::StatusOr<DataSlice> CastToNarrow(arolla::EvaluationContext* ctx,
+                                       const DataSlice& x,
                                        const DataSlice& schema);
 
 // kd.schema._unsafe_cast_to operator.
-absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
+absl::StatusOr<DataSlice> UnsafeCastTo(arolla::EvaluationContext* ctx,
+                                       const DataSlice& x,
                                        const DataSlice& schema);
 
 // kd.schema.list_schema operator.
@@ -115,9 +120,9 @@ inline absl::StatusOr<DataSlice> GetObjSchema(const DataSlice& ds) {
 // kd.schema.get_item_schema operator.
 inline absl::StatusOr<DataSlice> GetItemSchema(const DataSlice& list_schema) {
   if (!list_schema.IsListSchema()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "expected List schema for get_item_schema, got ",
-        arolla::Repr(list_schema)));
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected List schema for get_item_schema, got ",
+                     arolla::Repr(list_schema)));
   }
   return list_schema.GetAttr(schema::kListItemsSchemaAttr);
 }
@@ -125,9 +130,9 @@ inline absl::StatusOr<DataSlice> GetItemSchema(const DataSlice& list_schema) {
 // kd.schema.get_key_schema operator.
 inline absl::StatusOr<DataSlice> GetKeySchema(const DataSlice& dict_schema) {
   if (!dict_schema.IsDictSchema()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "expected Dict schema for get_key_schema, got ",
-        arolla::Repr(dict_schema)));
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected Dict schema for get_key_schema, got ",
+                     arolla::Repr(dict_schema)));
   }
   return dict_schema.GetAttr(schema::kDictKeysSchemaAttr);
 }
@@ -135,9 +140,9 @@ inline absl::StatusOr<DataSlice> GetKeySchema(const DataSlice& dict_schema) {
 // kd.schema.get_value_schema operator.
 inline absl::StatusOr<DataSlice> GetValueSchema(const DataSlice& dict_schema) {
   if (!dict_schema.IsDictSchema()) {
-    return absl::InvalidArgumentError(absl::StrCat(
-        "expected Dict schema for get_value_schema, got ",
-        arolla::Repr(dict_schema)));
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected Dict schema for get_value_schema, got ",
+                     arolla::Repr(dict_schema)));
   }
   return dict_schema.GetAttr(schema::kDictValuesSchemaAttr);
 }

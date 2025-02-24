@@ -24,13 +24,15 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/op_utils/extract.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace extract_utils_internal {
 
 absl::StatusOr<DataSlice> ExtractWithSchema(
-    const DataSlice& ds, const DataSlice& schema, int max_depth,
+    const arolla::EvaluationOptions& eval_options, const DataSlice& ds,
+    const DataSlice& schema, int max_depth,
     const std::optional<internal::LeafCallback>& leaf_callback) {
   const auto& db = ds.GetBag();
   if (db == nullptr) {
@@ -44,7 +46,7 @@ absl::StatusOr<DataSlice> ExtractWithSchema(
   return ds.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     auto result_db = DataBag::Empty();
     ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
-    internal::ExtractOp extract_op(&result_db_impl.get());
+    internal::ExtractOp extract_op(eval_options, &result_db_impl.get());
     if (schema_db != nullptr && schema_db != db) {
       FlattenFallbackFinder schema_fb_finder(*schema_db);
       auto schema_fallbacks = schema_fb_finder.GetFlattenFallbacks();
@@ -64,8 +66,9 @@ absl::StatusOr<DataSlice> ExtractWithSchema(
   });
 }
 
-absl::StatusOr<DataSlice> Extract(const DataSlice& ds) {
-  return ExtractWithSchema(ds, ds.GetSchema());
+absl::StatusOr<DataSlice> Extract(const arolla::EvaluationOptions& eval_options,
+                                  const DataSlice& ds) {
+  return ExtractWithSchema(eval_options, ds, ds.GetSchema());
 }
 
 }  // namespace extract_utils_internal

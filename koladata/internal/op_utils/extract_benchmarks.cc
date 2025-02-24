@@ -21,7 +21,9 @@
 #include "gmock/gmock.h"
 #include "absl/random/distributions.h"
 #include "absl/random/random.h"
+#include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "absl/time/time.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -33,7 +35,9 @@
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/base_types.h"
+#include "arolla/util/cancellation_context.h"
 #include "arolla/util/unit.h"
 
 namespace koladata::internal {
@@ -63,8 +67,9 @@ constexpr auto kLayersBenchmarkFn = [](auto* b) {
       ->Args({20, 100, 10, 10});
 };
 
-void RunBenchmarks(benchmark::State& state, DataSliceImpl& ds, DataItem &schema,
-                   DataBagImplPtr& databag,
+void RunBenchmarks(benchmark::State& state,
+                   const arolla::EvaluationOptions& eval_options,
+                   DataSliceImpl& ds, DataItem& schema, DataBagImplPtr& databag,
                    DataBagImpl::FallbackSpan fallbacks = {}) {
   while (state.KeepRunning()) {
     benchmark::DoNotOptimize(ds);
@@ -72,7 +77,8 @@ void RunBenchmarks(benchmark::State& state, DataSliceImpl& ds, DataItem &schema,
     benchmark::DoNotOptimize(databag);
     benchmark::DoNotOptimize(fallbacks);
     auto result_db = DataBagImpl::CreateEmptyDatabag();
-    ExtractOp(result_db.get())(ds, schema, *databag, fallbacks, nullptr, {})
+    ExtractOp(eval_options, result_db.get())(ds, schema, *databag, fallbacks,
+                                             nullptr, {})
         .IgnoreError();
     benchmark::DoNotOptimize(result_db);
   }
@@ -114,6 +120,11 @@ void BM_DisjointChains(benchmark::State& state) {
   int64_t schema_depth = state.range(0);
   int64_t ds_size = state.range(1);
 
+  auto cancellation_context = arolla::CancellationContext::Make(
+      absl::Milliseconds(10), [] { return absl::OkStatus(); });
+  arolla::EvaluationOptions eval_options{
+      .cancellation_context = cancellation_context.get(),
+  };
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto root_schema = DataItem(internal::AllocateExplicitSchema());
@@ -128,7 +139,7 @@ void BM_DisjointChains(benchmark::State& state) {
     ds = std::move(child_ds);
     schema = child_schema;
   }
-  RunBenchmarks(state, root_ds, root_schema, db);
+  RunBenchmarks(state, eval_options, root_ds, root_schema, db);
 }
 
 BENCHMARK(BM_DisjointChains)->Apply(kBenchmarkFn);
@@ -137,6 +148,11 @@ void BM_DisjointChainsObjects(benchmark::State& state) {
   int64_t schema_depth = state.range(0);
   int64_t ds_size = state.range(1);
 
+  auto cancellation_context = arolla::CancellationContext::Make(
+      absl::Milliseconds(10), [] { return absl::OkStatus(); });
+  arolla::EvaluationOptions eval_options{
+      .cancellation_context = cancellation_context.get(),
+  };
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto ds = root_ds;
@@ -154,7 +170,7 @@ void BM_DisjointChainsObjects(benchmark::State& state) {
     EXPECT_OK(db->SetAttr(ds, "child", child_ds));
     ds = std::move(child_ds);
   }
-  RunBenchmarks(state, root_ds, kObjectSchema, db);
+  RunBenchmarks(state, eval_options, root_ds, kObjectSchema, db);
 }
 
 BENCHMARK(BM_DisjointChainsObjects)->Apply(kBenchmarkFn);
@@ -166,6 +182,11 @@ void BM_DAG(benchmark::State& state) {
   int64_t ds_size = state.range(3);
   absl::BitGen gen;
 
+  auto cancellation_context = arolla::CancellationContext::Make(
+      absl::Milliseconds(10), [] { return absl::OkStatus(); });
+  arolla::EvaluationOptions eval_options{
+      .cancellation_context = cancellation_context.get(),
+  };
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto root_schema = DataItem(internal::AllocateExplicitSchema());
@@ -184,7 +205,7 @@ void BM_DAG(benchmark::State& state) {
     ds = std::move(child_ds);
     schema = child_schema;
   }
-  RunBenchmarks(state, root_ds, root_schema, db);
+  RunBenchmarks(state, eval_options, root_ds, root_schema, db);
 }
 
 BENCHMARK(BM_DAG)->Apply(kLayersBenchmarkFn);
@@ -196,6 +217,11 @@ void BM_DAGObjects(benchmark::State& state) {
   int64_t ds_size = state.range(3);
   absl::BitGen gen;
 
+  auto cancellation_context = arolla::CancellationContext::Make(
+      absl::Milliseconds(10), [] { return absl::OkStatus(); });
+  arolla::EvaluationOptions eval_options{
+      .cancellation_context = cancellation_context.get(),
+  };
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto ds = root_ds;
@@ -219,7 +245,7 @@ void BM_DAGObjects(benchmark::State& state) {
     }
     ds = std::move(child_ds);
   }
-  RunBenchmarks(state, root_ds, kObjectSchema, db);
+  RunBenchmarks(state, eval_options, root_ds, kObjectSchema, db);
 }
 
 BENCHMARK(BM_DAGObjects)->Apply(kLayersBenchmarkFn);

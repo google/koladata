@@ -222,15 +222,12 @@ TEST(AdoptionQueueTest, Extraction) {
   ASSERT_OK(db2_impl.SetAttr(obj21, "a", internal::DataItem(21)));
   ASSERT_OK(db2_impl.SetAttr(obj22, "a", internal::DataItem(22)));
 
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice slice11,
-      DataSlice::Create(obj11, schema1.item(), db1));
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice slice13,
-      DataSlice::Create(obj13, schema1.item(), db1));
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice slice21,
-      DataSlice::Create(obj21, schema2.item(), db2));
+  ASSERT_OK_AND_ASSIGN(DataSlice slice11,
+                       DataSlice::Create(obj11, schema1.item(), db1));
+  ASSERT_OK_AND_ASSIGN(DataSlice slice13,
+                       DataSlice::Create(obj13, schema1.item(), db1));
+  ASSERT_OK_AND_ASSIGN(DataSlice slice21,
+                       DataSlice::Create(obj21, schema2.item(), db2));
 
   AdoptionQueue adoption_queue;
   adoption_queue.Add(slice11);
@@ -433,14 +430,13 @@ TEST(AdoptStubTest, Dict) {
 }
 
 TEST(AdoptStubTest, ImmutableError) {
-    auto db1 = DataBag::Empty();
-    ASSERT_OK_AND_ASSIGN(DataSlice schema,
-                         CreateListSchema(db1, test::Schema(schema::kInt32)));
-    ASSERT_OK_AND_ASSIGN(auto list, CreateEmptyList(db1, /*schema=*/schema));
-    ASSERT_OK_AND_ASSIGN(auto db2, DataBag::Empty()->Fork(/*immutable=*/true));
-    EXPECT_THAT(AdoptStub(db2, list),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("immutable DataBag")));
+  auto db1 = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(DataSlice schema,
+                       CreateListSchema(db1, test::Schema(schema::kInt32)));
+  ASSERT_OK_AND_ASSIGN(auto list, CreateEmptyList(db1, /*schema=*/schema));
+  ASSERT_OK_AND_ASSIGN(auto db2, DataBag::Empty()->Fork(/*immutable=*/true));
+  EXPECT_THAT(AdoptStub(db2, list), StatusIs(absl::StatusCode::kInvalidArgument,
+                                             HasSubstr("immutable DataBag")));
 }
 
 TEST(AdoptStubTest, EmptyAndUnknown) {
@@ -467,7 +463,6 @@ TEST(AdoptStubTest, EmptyAndUnknown) {
     EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
   }
 }
-
 
 }  // namespace
 }  // namespace koladata

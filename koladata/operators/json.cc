@@ -54,6 +54,7 @@
 #include "koladata/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
@@ -593,9 +594,8 @@ class JsonSaxParser final : public nlohmann::json::json_sax_t {
           key_schema.item() != schema::kFloat32 &&
           key_schema.item() != schema::kFloat64 &&
           key_schema.item() != schema::kObject) {
-        return absl::InvalidArgumentError(
-            absl::StrFormat("json object invalid for schema %v",
-                            DataSliceRepr(schema)));
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "json object invalid for schema %v", DataSliceRepr(schema)));
       }
       ASSIGN_OR_RETURN(auto value_schema,
                        schema.GetAttr(schema::kDictValuesSchemaAttr));
@@ -709,7 +709,8 @@ class JsonSaxParser final : public nlohmann::json::json_sax_t {
 
 }  // namespace
 
-absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
+absl::StatusOr<DataSlice> FromJson(arolla::EvaluationContext* ctx, DataSlice x,
+                                   DataSlice schema,
                                    DataSlice default_number_schema,
                                    DataSlice on_invalid, DataSlice keys_attr,
                                    DataSlice values_attr,
@@ -738,8 +739,7 @@ absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
   } else if (on_invalid.size() == 0) {
     // Special marker value.
   } else {
-    return absl::InvalidArgumentError(
-        "on_invalid must be a DataItem");
+    return absl::InvalidArgumentError("on_invalid must be a DataItem");
   }
 
   // Validate `keys_attr` and `values_attr`.
@@ -768,7 +768,7 @@ absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
 
   DataBagPtr bag = DataBag::Empty();
   {
-    AdoptionQueue adoption_queue;
+    AdoptionQueue adoption_queue(ctx->options());
     adoption_queue.Add(schema);
     // `default_number_schema` is a primitive schema, so no need to adopt.
     adoption_queue.Add(on_invalid);

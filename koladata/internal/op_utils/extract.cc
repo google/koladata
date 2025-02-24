@@ -54,6 +54,7 @@
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/cancellation_context.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
@@ -87,13 +88,14 @@ struct QueuedSlice {
 class CopyingProcessor {
  public:
   CopyingProcessor(
-      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
+      const arolla::EvaluationOptions& eval_options, const DataBagImpl& databag,
+      DataBagImpl::FallbackSpan fallbacks,
       absl::Nullable<const DataBagImpl*> schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks,
       const DataBagImplPtr& new_databag, bool is_shallow_clone = false,
       int max_depth = -1,
       const std::optional<LeafCallback>& leaf_callback = std::nullopt)
-      : ctx_(),
+      : ctx_(eval_options),
         group_by_(),
         queued_slices_(),
         databag_(databag),
@@ -125,7 +127,7 @@ class CopyingProcessor {
     DCHECK(slice.schema.value<schema::DType>().is_primitive());
     auto dtype = slice.slice.dtype();
     if (auto schema_dtype = slice.schema.value<schema::DType>();
-      schema_dtype.qtype() != dtype) {
+        schema_dtype.qtype() != dtype) {
       auto slice_qtype_or = schema::DType::FromQType(dtype);
       if (!slice_qtype_or.ok()) {
         return absl::InvalidArgumentError(absl::StrCat(
@@ -528,7 +530,7 @@ class CopyingProcessor {
         continue;
       }
       ASSIGN_OR_RETURN((auto [attr_schema, was_schema_updated]),
-        CopyAttrSchema(ds.schema, db, fallbacks, attr_name));
+                       CopyAttrSchema(ds.schema, db, fallbacks, attr_name));
       if (attr_name == schema::kSchemaNameAttr) {
         continue;
       }
@@ -621,7 +623,7 @@ class CopyingProcessor {
                               std::move(*single_schema));
     }
     ASSIGN_OR_RETURN((auto [group_schemas, new_ds_grouped]),
-                      group_by_.BySchemas(items_schemas, new_ds));
+                     group_by_.BySchemas(items_schemas, new_ds));
     auto status = absl::OkStatus();
     group_schemas.VisitValues(
         [&]<class T>(const arolla::DenseArray<T>& groups_schemas_T) {
@@ -910,7 +912,7 @@ class CopyingProcessor {
     ASSIGN_OR_RETURN(
         auto implicit_slice,
         PresenceAndOp()(ds.slice, DataSliceImpl::Create(
-                                    std::move(implicit_mask_bldr).Build())));
+                                      std::move(implicit_mask_bldr).Build())));
     ASSIGN_OR_RETURN(
         auto new_implicit_schemas,
         CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
@@ -926,6 +928,7 @@ class CopyingProcessor {
 
   absl::Status ProcessQueue() {
     while (!queued_slices_.empty()) {
+      RETURN_IF_ERROR(ShouldCancel(ctx_.options().cancellation_context));
       QueuedSlice slice = std::move(queued_slices_.front());
       queued_slices_.pop();
       if (max_depth_ >= 0 && slice.depth > max_depth_) {
@@ -1047,10 +1050,10 @@ absl::Status ExtractOp::operator()(
                            .schema = schema,
                            .schema_source = schema_source,
                            .depth = -1};
-  auto processor = CopyingProcessor(databag, std::move(fallbacks),
-                                    schema_databag, std::move(schema_fallbacks),
-                                    DataBagImplPtr::NewRef(new_databag_), false,
-                                    max_depth, leaf_callback);
+  auto processor = CopyingProcessor(
+      eval_options_, databag, std::move(fallbacks), schema_databag,
+      std::move(schema_fallbacks), DataBagImplPtr::NewRef(new_databag_), false,
+      max_depth, leaf_callback);
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
   return absl::OkStatus();
 }
@@ -1081,10 +1084,10 @@ absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
   // API instead.
   ASSIGN_OR_RETURN(auto filtered_itemid,
                    ValidateCompatibilityAndFilterItemid(ds, itemid));
-  auto processor = CopyingProcessor(databag, std::move(fallbacks),
-                                    schema_databag, std::move(schema_fallbacks),
-                                    DataBagImplPtr::NewRef(new_databag_),
-                                    /*is_shallow_clone=*/true);
+  auto processor = CopyingProcessor(
+      eval_options_, databag, std::move(fallbacks), schema_databag,
+      std::move(schema_fallbacks), DataBagImplPtr::NewRef(new_databag_),
+      /*is_shallow_clone=*/true);
   RETURN_IF_ERROR(processor.SetMappingToInitialIds(filtered_itemid, ds));
   if (schema.holds_value<ObjectId>()) {
     RETURN_IF_ERROR(processor.SetMappingToInitialIds(schema, schema));
@@ -1107,7 +1110,7 @@ absl::StatusOr<std::pair<DataItem, DataItem>> ShallowCloneOp::operator()(
     const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
     absl::Nullable<const DataBagImpl*> schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks) const {
-  internal::ShallowCloneOp clone_op(new_databag_);
+  internal::ShallowCloneOp clone_op(eval_options_, new_databag_);
   ASSIGN_OR_RETURN((auto [result_slice_impl, result_schema_impl]),
                    clone_op(/*size=*/DataSliceImpl::Create(1, item),
                             DataSliceImpl::Create(/*size=*/1, itemid), schema,

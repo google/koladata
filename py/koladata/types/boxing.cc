@@ -58,6 +58,7 @@
 #include "koladata/repr_utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/uuid_utils.h"
+#include "py/arolla/abc/py_cancellation_context.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -69,6 +70,7 @@
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
@@ -91,8 +93,7 @@ using ::koladata::internal::DataItem;
 
 // Creates a DataSlice and optionally casts data according to `schema`
 // argument.
-absl::StatusOr<DataSlice> CreateWithSchema(DataItem impl,
-                                           DataItem schema) {
+absl::StatusOr<DataSlice> CreateWithSchema(DataItem impl, DataItem schema) {
   // NOTE: CastDataTo does not do schema validation or schema embedding (in case
   // schema is OBJECT).
   ASSIGN_OR_RETURN(impl, schema::CastDataTo(impl, schema));
@@ -105,8 +106,8 @@ absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
   // NOTE: CastDataTo does not do schema validation or schema embedding (in case
   // schema is OBJECT).
   ASSIGN_OR_RETURN(impl, schema::CastDataTo(impl, schema));
-  return DataSlice::Create(
-      std::move(impl), std::move(shape), std::move(schema));
+  return DataSlice::Create(std::move(impl), std::move(shape),
+                           std::move(schema));
 }
 
 // Returns an Error with incompatible schema information during narrow casting.
@@ -266,7 +267,8 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
       if (!ds.is_item()) {
         return absl::InvalidArgumentError(absl::StrFormat(
             "python object can only contain DataItems, got DataSlice with shape"
-            " %s", arolla::Repr(ds.GetShape())));
+            " %s",
+            arolla::Repr(ds.GetShape())));
       }
       adoption_queue.Add(ds);
       schema_agg.Add(ds.GetSchemaImpl());
@@ -279,8 +281,8 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
       return absl::OkStatus();
     }
   }
-  std::string error_msg = absl::StrFormat(
-      "object with unsupported type: %s", Py_TYPE(py_obj)->tp_name);
+  std::string error_msg = absl::StrFormat("object with unsupported type: %s",
+                                          Py_TYPE(py_obj)->tp_name);
   if (arolla::python::IsPyExprInstance(py_obj)) {
     absl::StrAppend(
         &error_msg,
@@ -539,7 +541,10 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(
 
 absl::StatusOr<DataSlice> DataItemFromPyValue(
     PyObject* py_obj, const std::optional<DataSlice>& schema) {
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   internal::DataItem res_item;
   internal::DataItem schema_item;
   auto to_data_item_fn = [&res_item]<class T>(T&& value) {
@@ -567,9 +572,8 @@ absl::StatusOr<DataSlice> DataItemFromPyValue(
     DCHECK_EQ(unused_embedding_db.GetBag(), nullptr);
     ASSIGN_OR_RETURN(schema_item, std::move(schema_agg).Get());
   }
-  ASSIGN_OR_RETURN(
-      DataSlice res,
-      CreateWithSchema(std::move(res_item), std::move(schema_item)));
+  ASSIGN_OR_RETURN(DataSlice res, CreateWithSchema(std::move(res_item),
+                                                   std::move(schema_item)));
   if (adoption_queue.empty()) {
     return res;
   }
@@ -579,7 +583,10 @@ absl::StatusOr<DataSlice> DataItemFromPyValue(
 
 absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
     PyObject* py_obj, const std::optional<DataSlice>& schema) {
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   ASSIGN_OR_RETURN(DataSlice res_no_db,
                    DataSliceFromPyValue(py_obj, adoption_queue, schema));
   ASSIGN_OR_RETURN(auto db, adoption_queue.GetCommonOrMergedDb());
@@ -607,7 +614,8 @@ absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key) {
       if (!ds.is_item()) {
         return absl::InvalidArgumentError(absl::StrFormat(
             "python dict keys can only be DataItems, got DataSlice with shape "
-            "%s", arolla::Repr(ds.GetShape())));
+            "%s",
+            arolla::Repr(ds.GetShape())));
       }
       if (ds.item().holds_value<arolla::Text>()) {
         return ds.item().value<arolla::Text>().view();
@@ -616,10 +624,9 @@ absl::StatusOr<absl::string_view> PyDictKeyAsStringView(PyObject* py_key) {
           "dict keys cannot be non-STRING DataItems, got %v", ds.item()));
     }
   }
-  return absl::InvalidArgumentError(
-      absl::StrFormat(
-          "dict_as_obj requires keys to be valid unicode objects, got %s",
-          Py_TYPE(py_key)->tp_name));
+  return absl::InvalidArgumentError(absl::StrFormat(
+      "dict_as_obj requires keys to be valid unicode objects, got %s",
+      Py_TYPE(py_key)->tp_name));
 }
 
 constexpr static absl::string_view kChildItemIdSeed = "__from_py_child__";
@@ -969,8 +976,7 @@ class UniversalConverter {
     for (size_t i = 0, id = 0; i < py_values.size(); ++i) {
       std::optional<DataSlice> value_schema;
       if (schema) {
-        ASSIGN_OR_RETURN(value_schema,
-                         schema->GetAttr(attr_names[id++].value));
+        ASSIGN_OR_RETURN(value_schema, schema->GetAttr(attr_names[id++].value));
       }
       cmd_stack_.push([this, py_val = py_values[i],
                        value_schema = std::move(value_schema), itemid = itemid,
@@ -1179,8 +1185,8 @@ class UniversalConverter {
           UniversalConverter<ObjectCreator>(db_, adoption_queue_, dict_as_obj_)
               .Convert(py_obj, /*schema=*/std::nullopt, /*from_dim=*/0,
                        parent_itemid, attr_descriptor));
-        computed_.insert_or_assign(MakeCacheKey(py_obj, schema),
-                                   value_stack_.top());
+      computed_.insert_or_assign(MakeCacheKey(py_obj, schema),
+                                 value_stack_.top());
       return absl::OkStatus();
     }
     if (PyDict_CheckExact(py_obj)) {
@@ -1236,8 +1242,8 @@ class UniversalConverter {
     // elements and dict created from those keys and values).
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
-      computed_.insert_or_assign(MakeCacheKey(py_obj, dict_schema),
-                                 value_stack_.top());
+    computed_.insert_or_assign(MakeCacheKey(py_obj, dict_schema),
+                               value_stack_.top());
     return absl::OkStatus();
   }
 
@@ -1255,8 +1261,8 @@ class UniversalConverter {
                          list_schema, /*item_schema=*/std::nullopt, itemid));
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
-      computed_.insert_or_assign(MakeCacheKey(py_obj, list_schema),
-                                 value_stack_.top());
+    computed_.insert_or_assign(MakeCacheKey(py_obj, list_schema),
+                               value_stack_.top());
     return absl::OkStatus();
   }
 
@@ -1295,8 +1301,8 @@ class UniversalConverter {
       ASSIGN_OR_RETURN(value_stack_.emplace(),
                        Factory::FromAttrs(db_, attr_names, values, itemid));
     }
-      computed_.insert_or_assign(MakeCacheKey(py_obj, entity_schema),
-                                 value_stack_.top());
+    computed_.insert_or_assign(MakeCacheKey(py_obj, entity_schema),
+                               value_stack_.top());
     return absl::OkStatus();
   }
 
@@ -1326,8 +1332,8 @@ class UniversalConverter {
   // visited, but not computed, the stored value is `std::nullopt`).
   using CacheKey = std::pair<PyObject*, arolla::Fingerprint>;
 
-  static CacheKey MakeCacheKey(
-      PyObject* py_obj, const std::optional<DataSlice>& schema) {
+  static CacheKey MakeCacheKey(PyObject* py_obj,
+                               const std::optional<DataSlice>& schema) {
     return CacheKey(py_obj,
                     (schema ? schema->item() : DataItem()).StableFingerprint());
   }
@@ -1340,16 +1346,14 @@ class UniversalConverter {
 absl::StatusOr<DataSlice> EntitiesFromPyObject(PyObject* py_obj,
                                                const DataBagPtr& db,
                                                AdoptionQueue& adoption_queue) {
-  return EntitiesFromPyObject(
-      py_obj, /*schema=*/std::nullopt, /*itemid=*/std::nullopt, db,
-      adoption_queue);
+  return EntitiesFromPyObject(py_obj, /*schema=*/std::nullopt,
+                              /*itemid=*/std::nullopt, db, adoption_queue);
 }
 
 absl::StatusOr<DataSlice> EntitiesFromPyObject(
-    PyObject* py_obj,
-    const std::optional<DataSlice>& schema,
-    const std::optional<DataSlice>& itemid,
-    const DataBagPtr& db, AdoptionQueue& adoption_queue) {
+    PyObject* py_obj, const std::optional<DataSlice>& schema,
+    const std::optional<DataSlice>& itemid, const DataBagPtr& db,
+    AdoptionQueue& adoption_queue) {
   // NOTE: UniversalConverter does not allow converting multi-dimensional
   // DataSlices, so we are processing it before invoking the UniversalConverter.
   if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
@@ -1362,10 +1366,8 @@ absl::StatusOr<DataSlice> EntitiesFromPyObject(
 }
 
 absl::StatusOr<DataSlice> ObjectsFromPyObject(
-    PyObject* py_obj,
-    const std::optional<DataSlice>& itemid,
-    const DataBagPtr& db,
-    AdoptionQueue& adoption_queue) {
+    PyObject* py_obj, const std::optional<DataSlice>& itemid,
+    const DataBagPtr& db, AdoptionQueue& adoption_queue) {
   // NOTE: UniversalConverter does not allow converting multi-dimensional
   // DataSlices, so we are processing it before invoking the UniversalConverter.
   if (arolla::python::IsPyQValueInstance(py_obj) && !itemid.has_value()) {
@@ -1387,7 +1389,10 @@ absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
 absl::StatusOr<DataSlice> GenericFromPyObject(
     PyObject* py_obj, bool dict_as_obj, const std::optional<DataSlice>& schema,
     size_t from_dim, const std::optional<DataSlice>& itemid) {
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   DataSlice res_slice;
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());

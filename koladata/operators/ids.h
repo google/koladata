@@ -18,14 +18,15 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
 namespace koladata::ops {
 
 // kd.ids._deep_uuid
-absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
-                                   const DataSlice& schema,
+absl::StatusOr<DataSlice> DeepUuid(arolla::EvaluationContext* ctx,
+                                   const DataSlice& ds, const DataSlice& schema,
                                    const DataSlice& seed);
 
 // kd.ids.agg_uuid operator.

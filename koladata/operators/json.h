@@ -19,20 +19,23 @@
 #include <optional>
 #include <string>
 #include <vector>
+
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "arolla/qexpr/eval_context.h"
 
 namespace koladata::ops {
 
 // kde.json.from_json
-absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
+absl::StatusOr<DataSlice> FromJson(arolla::EvaluationContext* ctx, DataSlice x,
+                                   DataSlice schema,
                                    DataSlice default_number_schema,
-                                   DataSlice on_invalid,
-                                   DataSlice keys_attr, DataSlice values_attr,
+                                   DataSlice on_invalid, DataSlice keys_attr,
+                                   DataSlice values_attr,
                                    internal::NonDeterministicToken);
 
 // kde.json.to_json
@@ -72,8 +75,7 @@ absl::StatusOr<internal::DataItem> JsonStringToDataItem(
 absl::StatusOr<internal::DataItem> JsonArrayToList(
     std::vector<internal::DataItem> json_array_values,
     const internal::DataItem& schema_impl,
-    const internal::DataItem& value_schema_impl,
-    bool embed_schema,
+    const internal::DataItem& value_schema_impl, bool embed_schema,
     const DataBagPtr& bag);
 
 // Creates and returns a Koda entity DataItem from a pair of parallel vectors

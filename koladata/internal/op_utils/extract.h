@@ -25,6 +25,7 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "arolla/qexpr/eval_context.h"
 
 namespace koladata::internal {
 
@@ -34,7 +35,9 @@ using LeafCallback = std::function<absl::Status(const DataSliceImpl& item,
 // Extracts DataSliceImpl / DataItem.
 class ExtractOp {
  public:
-  explicit ExtractOp(DataBagImpl* new_databag) : new_databag_(new_databag) {}
+  ExtractOp(const arolla::EvaluationOptions& eval_options,
+            DataBagImpl* new_databag)
+      : eval_options_(eval_options), new_databag_(new_databag) {}
 
   absl::Status operator()(
       const DataSliceImpl& ds, const DataItem& schema,
@@ -51,6 +54,7 @@ class ExtractOp {
       const std::optional<LeafCallback>& leaf_callback = std::nullopt) const;
 
  private:
+  const arolla::EvaluationOptions& eval_options_;
   DataBagImpl* new_databag_;
 };
 
@@ -61,8 +65,9 @@ class ExtractOp {
 // Returns a tuple of (new DataBag, new DataSlice, new schema).
 class ShallowCloneOp {
  public:
-  explicit ShallowCloneOp(DataBagImpl* new_databag)
-      : new_databag_(new_databag) {}
+  ShallowCloneOp(const arolla::EvaluationOptions& eval_options,
+                 DataBagImpl* new_databag)
+      : eval_options_(eval_options), new_databag_(new_databag) {}
 
   absl::StatusOr<std::pair<DataSliceImpl, DataItem>> operator()(
       const DataSliceImpl& ds, const DataSliceImpl& itemid,
@@ -78,6 +83,7 @@ class ShallowCloneOp {
       DataBagImpl::FallbackSpan schema_fallbacks) const;
 
  private:
+  const arolla::EvaluationOptions& eval_options_;
   DataBagImpl* new_databag_;
 };
 

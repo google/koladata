@@ -26,9 +26,10 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/extract_utils.h"
-#include "koladata/repr_utils.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/repr_utils.h"
+#include "arolla/util/cancellation_context.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -54,11 +55,13 @@ absl::Status AdoptionQueue::AdoptInto(DataBag& db) const {
       continue;
     }
     ASSIGN_OR_RETURN(DataSlice extracted_slice,
-                     extract_utils_internal::Extract(slice));
+                     extract_utils_internal::Extract(eval_options_, slice));
     const auto& extracted_db = extracted_slice.GetBag();
     if (extracted_db == nullptr) {
       continue;
     }
+    // NOTE: Consider moving the cancellation check into db.MergeInplace().
+    RETURN_IF_ERROR(ShouldCancel(eval_options_.cancellation_context));
     RETURN_IF_ERROR(db.MergeInplace(extracted_db, /*overwrite=*/false,
                                     /*allow_data_conflicts=*/false,
                                     /*allow_schema_conflicts=*/false))

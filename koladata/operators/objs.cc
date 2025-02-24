@@ -49,10 +49,11 @@
 
 namespace koladata::ops {
 
-absl::StatusOr<DataSlice> ConvertWithAdoption(const DataBagPtr& db,
-                                              const DataSlice& value) {
+absl::StatusOr<DataSlice> ConvertWithAdoption(
+    const arolla::EvaluationOptions& eval_options, const DataBagPtr& db,
+    const DataSlice& value) {
   if (value.GetBag() != nullptr && value.GetBag() != db) {
-    AdoptionQueue adoption_queue;
+    AdoptionQueue adoption_queue(eval_options);
     adoption_queue.Add(value);
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
   }
@@ -99,8 +100,9 @@ class ObjOperator final : public arolla::QExprOperator {
               return absl::InvalidArgumentError(
                   "cannot set extra attributes when converting to object");
             }
-            ASSIGN_OR_RETURN(result,
-                             ConvertWithAdoption(result_db, *first_arg));
+            ASSIGN_OR_RETURN(
+                result,
+                ConvertWithAdoption(ctx->options(), result_db, *first_arg));
           } else {
             ASSIGN_OR_RETURN(result,
                              ObjectCreator::FromAttrs(result_db, attr_names,
@@ -233,8 +235,7 @@ absl::StatusOr<arolla::OperatorPtr> ObjOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[2]));
   RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[3]));
   return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<ObjOperator>(input_types), input_types,
-      output_type);
+      std::make_shared<ObjOperator>(input_types), input_types, output_type);
 }
 
 absl::StatusOr<arolla::OperatorPtr> ObjShapedOperatorFamily::DoGetOperator(

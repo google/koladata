@@ -45,6 +45,7 @@
 #include "koladata/proto/to_proto.h"
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/message.h"
+#include "py/arolla/abc/py_cancellation_context.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -57,6 +58,7 @@
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/unit.h"
@@ -286,9 +288,8 @@ absl::Nullable<PyObject*> PyDataSlice_to_proto(PyObject* self,
       PyList_SET_ITEM(py_result_list.get(), i, Py_None);
       continue;
     }
-    auto py_message =
-        WrapProtoMessage(std::move(messages[i_message]), py_message_class,
-                          using_fast_cpp_proto);
+    auto py_message = WrapProtoMessage(std::move(messages[i_message]),
+                                       py_message_class, using_fast_cpp_proto);
     ++i_message;
     if (py_message == nullptr) {
       return nullptr;
@@ -393,7 +394,10 @@ int PyDataSlice_setattro(PyObject* self, PyObject* attr_name, PyObject* value) {
     }
     return 0;
   }
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   ASSIGN_OR_RETURN(auto value_ds,
                    AssignmentRhsFromPyValue(self_ds, value, adoption_queue),
                    (arolla::python::SetPyErrFromStatus(_), -1));
@@ -426,7 +430,10 @@ absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
   }
   auto attr_name_view = absl::string_view(attr_name_ptr, size);
   const auto& self_ds = UnsafeDataSliceRef(self);
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   ASSIGN_OR_RETURN(
       auto value_ds,
       AssignmentRhsFromPyValue(self_ds, py_args[1], adoption_queue),
@@ -466,7 +473,10 @@ absl::Nullable<PyObject*> PyDataSlice_set_attrs(PyObject* self,
   if (!ParseBoolArg(args, "overwrite_schema", overwrite_schema)) {
     return nullptr;
   }
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
@@ -537,7 +547,10 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
   arolla::python::DCheckPyGIL();
   std::optional<DataSlice> value_ds;
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   if (value) {
     ASSIGN_OR_RETURN(value_ds,
                      AssignmentRhsFromPyValue(self_ds, value, adoption_queue),
@@ -596,8 +609,8 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
   return 0;
 }
 
-PyObject* PyDataSlice_str_with_options(
-    PyObject* self, const ReprOption& option) {
+PyObject* PyDataSlice_str_with_options(PyObject* self,
+                                       const ReprOption& option) {
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
   std::string result;
   absl::StatusOr<std::string> item_str = DataSliceToStr(self_ds, option);
@@ -616,15 +629,13 @@ PyObject* PyDataSlice_str(PyObject* self) {
       self, ReprOption{.strip_quotes = true, .show_attributes = true});
 }
 
-PyObject* PyDataSlice_repr_with_params(
-    PyObject* self, PyObject *const *py_args,
-    Py_ssize_t nargs, PyObject *py_kwnames) {
+PyObject* PyDataSlice_repr_with_params(PyObject* self, PyObject* const* py_args,
+                                       Py_ssize_t nargs, PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
 
   static const absl::NoDestructor parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/false, /*kw_only_arg_names=*/ {
-        "depth", "unbounded_type_max_len", "format_html"
-  }));
+      /*pos_only_n=*/0, /*parse_kwargs=*/false, /*kw_only_arg_names=*/
+      {"depth", "unbounded_type_max_len", "format_html"}));
 
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
@@ -654,7 +665,7 @@ PyObject* PyDataSlice_repr_with_params(
   }
 
   bool format_html = false;
-  PyObject *py_format_html = args.kw_only_args["format_html"];
+  PyObject* py_format_html = args.kw_only_args["format_html"];
   if (py_format_html != nullptr) {
     if (!PyBool_Check(py_format_html)) {
       PyErr_SetString(PyExc_TypeError, "format_html must be a boolean");
@@ -664,12 +675,10 @@ PyObject* PyDataSlice_repr_with_params(
   }
 
   return PyDataSlice_str_with_options(
-      self,
-      ReprOption{
-        .depth = depth,
-        .strip_quotes = false,
-        .format_html = format_html,
-        .unbounded_type_max_len = unbounded_type_max_len});
+      self, ReprOption{.depth = depth,
+                       .strip_quotes = false,
+                       .format_html = format_html,
+                       .unbounded_type_max_len = unbounded_type_max_len});
 }
 
 absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {
@@ -699,7 +708,10 @@ absl::Nullable<PyObject*> PyDataSlice_append(PyObject* self,
     return nullptr;
   }
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   ASSIGN_OR_RETURN(auto items,
                    AssignmentRhsFromPyValue(self_ds, args[0], adoption_queue),
                    arolla::python::SetPyErrFromStatus(_));

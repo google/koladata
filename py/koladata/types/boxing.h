@@ -22,12 +22,13 @@
 #include <utility>
 #include <vector>
 
-#include "absl/base/nullability.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "py/arolla/abc/py_cancellation_context.h"
+#include "arolla/qexpr/eval_context.h"
 
 namespace koladata::python {
 
@@ -61,7 +62,10 @@ absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
 // If `py_obj` is a python list of DataItems, ignores their DataBags.
 inline absl::StatusOr<DataSlice> DataSliceFromPyValueNoAdoption(
     PyObject* py_obj, const std::optional<DataSlice>& schema = std::nullopt) {
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   return DataSliceFromPyValue(py_obj, adoption_queue, schema);
 }
 
@@ -80,16 +84,16 @@ absl::StatusOr<DataSlice> DataItemFromPyValue(
 // `db` and `adoption_queue` are side outputs. `db` is used to create Koda
 // objects found under `py_obj`, while `adoption_queue` is used to collect
 // DataBag(s) of DataSlice(s) from nested `py_obj`.
-absl::StatusOr<DataSlice> EntitiesFromPyObject(
-    PyObject* py_obj, const DataBagPtr& db, AdoptionQueue& adoption_queue);
+absl::StatusOr<DataSlice> EntitiesFromPyObject(PyObject* py_obj,
+                                               const DataBagPtr& db,
+                                               AdoptionQueue& adoption_queue);
 
 // Same as above, but allows specifying the schemas of Lists / Dicts. When
 // schema == OBJECT, the behavior is the same as `ObjectFromPyObject`.
 absl::StatusOr<DataSlice> EntitiesFromPyObject(
-    PyObject* py_obj,
-    const std::optional<DataSlice>& schema,
-    const std::optional<DataSlice>& itemid,
-    const DataBagPtr& db, AdoptionQueue& adoption_queue);
+    PyObject* py_obj, const std::optional<DataSlice>& schema,
+    const std::optional<DataSlice>& itemid, const DataBagPtr& db,
+    AdoptionQueue& adoption_queue);
 
 // Converts Python objects into DataSlices and converts them into appropriate
 // Koda Objects. The conversion is deep, such that all nested structures (e.g.

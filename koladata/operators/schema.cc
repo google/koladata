@@ -62,8 +62,7 @@ class NewSchemaOperator : public arolla::QExprOperator {
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx,
             arolla::FramePtr frame) -> absl::Status {
-          auto attr_names =
-              GetFieldNames(named_tuple_slot);
+          auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result, CreateSchema(db, attr_names, values));
@@ -134,13 +133,14 @@ class NamedSchemaOperator : public arolla::QExprOperator {
   }
 };
 
-absl::StatusOr<DataSlice> WithAdoptedSchema(const DataSlice& x,
-                                            const DataSlice& schema) {
+absl::StatusOr<DataSlice> WithAdoptedSchema(
+    const arolla::EvaluationOptions& eval_options, const DataSlice& x,
+    const DataSlice& schema) {
   DataBagPtr schema_bag = nullptr;
   if (schema.IsStructSchema() && schema.GetBag() != nullptr &&
       schema.GetBag() != x.GetBag()) {
     schema_bag = DataBag::Empty();
-    AdoptionQueue adoption_queue;
+    AdoptionQueue adoption_queue(eval_options);
     adoption_queue.Add(schema);
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*schema_bag));
   }
@@ -159,8 +159,8 @@ absl::StatusOr<arolla::OperatorPtr> NewSchemaOperatorFamily::DoGetOperator(
   // input_types[-1] is a _hidden_seed_ argument used for non-determinism.
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[0]));
   return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<NewSchemaOperator>(input_types),
-      input_types, output_type);
+      std::make_shared<NewSchemaOperator>(input_types), input_types,
+      output_type);
 }
 
 absl::StatusOr<arolla::OperatorPtr> UuSchemaOperatorFamily::DoGetOperator(
@@ -211,7 +211,8 @@ absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
   }
 }
 
-absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
+absl::StatusOr<DataSlice> CastTo(arolla::EvaluationContext* ctx,
+                                 const DataSlice& x, const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item() == schema::kObject &&
       x.GetSchemaImpl().is_struct_schema()) {
@@ -219,30 +220,36 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
         "entity to object casting is unsupported - consider using `kd.obj(x)` "
         "instead");
   }
-  ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
+  ASSIGN_OR_RETURN(auto x_with_bag,
+                   WithAdoptedSchema(ctx->options(), x, schema));
   return ::koladata::CastToExplicit(x_with_bag, schema.item());
 }
 
-absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
+absl::StatusOr<DataSlice> CastToImplicit(arolla::EvaluationContext* ctx,
+                                         const DataSlice& x,
                                          const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
+  ASSIGN_OR_RETURN(auto x_with_bag,
+                   WithAdoptedSchema(ctx->options(), x, schema));
   return ::koladata::CastToImplicit(x_with_bag, schema.item());
 }
 
-absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
+absl::StatusOr<DataSlice> CastToNarrow(arolla::EvaluationContext* ctx,
+                                       const DataSlice& x,
                                        const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
+  ASSIGN_OR_RETURN(auto x_with_bag,
+                   WithAdoptedSchema(ctx->options(), x, schema));
   return ::koladata::CastToNarrow(x_with_bag, schema.item());
 }
 
-absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
+absl::StatusOr<DataSlice> UnsafeCastTo(arolla::EvaluationContext* ctx,
+                                       const DataSlice& x,
                                        const DataSlice& schema) {
   if (schema.IsStructSchema()) {
     return x.WithSchema(schema);
   } else {
-    return CastTo(x, schema);
+    return CastTo(ctx, x, schema);
   }
 }
 

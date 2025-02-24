@@ -148,8 +148,8 @@ class UuidForDictOperator : public arolla::QExprOperator {
 
 }  // namespace
 
-absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
-                                   const DataSlice& schema,
+absl::StatusOr<DataSlice> DeepUuid(arolla::EvaluationContext* ctx,
+                                   const DataSlice& ds, const DataSlice& schema,
                                    const DataSlice& seed) {
   absl::Nullable<DataBagPtr> db = ds.GetBag();
   if (db == nullptr) {
@@ -161,8 +161,9 @@ absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
   }
   const auto& schema_db = schema.GetBag();
   if (schema_db != nullptr && schema_db != db) {
-    ASSIGN_OR_RETURN(auto extracted_ds, Extract(ds, schema));
-    return DeepUuid(extracted_ds, schema.WithBag(extracted_ds.GetBag()), seed);
+    ASSIGN_OR_RETURN(auto extracted_ds, Extract(ctx, ds, schema));
+    return DeepUuid(ctx, extracted_ds, schema.WithBag(extracted_ds.GetBag()),
+                    seed);
   }
   if (seed.GetShape().rank() != 0) {
     return absl::InvalidArgumentError(
@@ -187,14 +188,14 @@ absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds,
 absl::StatusOr<DataSlice> AggUuid(const DataSlice& x) {
   auto rank = x.GetShape().rank();
   if (rank == 0) {
-      return absl::InvalidArgumentError("Can't take agg_uuid over a DataItem");
+    return absl::InvalidArgumentError("Can't take agg_uuid over a DataItem");
   }
   internal::DataItem schema(schema::kItemId);
   auto shape = x.GetShape();
   ASSIGN_OR_RETURN(auto res, internal::AggUuidOp(x.slice(), shape));
-  return DataSlice::Create(
-      std::move(res), shape.RemoveDims(rank - 1), std::move(schema),
-      /*db=*/nullptr);
+  return DataSlice::Create(std::move(res), shape.RemoveDims(rank - 1),
+                           std::move(schema),
+                           /*db=*/nullptr);
 }
 
 absl::StatusOr<arolla::OperatorPtr> UuidOperatorFamily::DoGetOperator(

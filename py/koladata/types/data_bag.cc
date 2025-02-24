@@ -48,6 +48,7 @@
 #include "koladata/proto/from_proto.h"
 #include "koladata/repr_utils.h"
 #include "google/protobuf/message.h"
+#include "py/arolla/abc/py_cancellation_context.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -55,6 +56,7 @@
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/pybind11_protobuf_wrapper.h"
 #include "py/koladata/types/wrap_utils.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/qtype/unspecified_qtype.h"
@@ -112,8 +114,7 @@ struct EntityCreatorHelper {
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values,
       const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
-      const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db) {
+      const std::optional<DataSlice>& itemid, const DataBagPtr& db) {
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return EntityCreator::FromAttrs(db, attr_names, adopted_values, schema_arg,
@@ -125,8 +126,7 @@ struct EntityCreatorHelper {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
-      const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db) {
+      const std::optional<DataSlice>& itemid, const DataBagPtr& db) {
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return EntityCreator::Shaped(db, std::move(shape), attr_names,
@@ -139,8 +139,7 @@ struct EntityCreatorHelper {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
-      const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db) {
+      const std::optional<DataSlice>& itemid, const DataBagPtr& db) {
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return EntityCreator::Like(db, shape_and_mask_from, attr_names,
@@ -150,11 +149,11 @@ struct EntityCreatorHelper {
 
   static absl::StatusOr<DataSlice> FromPyObject(
       PyObject* py_obj, const std::optional<DataSlice>& schema_arg,
-      const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db, AdoptionQueue& adoption_queue) {
-    ASSIGN_OR_RETURN(DataSlice res,
-                     EntitiesFromPyObject(py_obj, schema_arg, itemid, db,
-                                          adoption_queue));
+      const std::optional<DataSlice>& itemid, const DataBagPtr& db,
+      AdoptionQueue& adoption_queue) {
+    ASSIGN_OR_RETURN(
+        DataSlice res,
+        EntitiesFromPyObject(py_obj, schema_arg, itemid, db, adoption_queue));
     return res.WithBag(db);
   }
 };
@@ -166,8 +165,7 @@ struct ObjectCreatorHelper {
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values,
       const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
-      const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db) {
+      const std::optional<DataSlice>& itemid, const DataBagPtr& db) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
@@ -183,8 +181,7 @@ struct ObjectCreatorHelper {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
-      const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db) {
+      const std::optional<DataSlice>& itemid, const DataBagPtr& db) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
@@ -201,8 +198,7 @@ struct ObjectCreatorHelper {
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
       const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
-      const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db) {
+      const std::optional<DataSlice>& itemid, const DataBagPtr& db) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
@@ -216,8 +212,8 @@ struct ObjectCreatorHelper {
 
   static absl::StatusOr<DataSlice> FromPyObject(
       PyObject* py_obj, const std::optional<DataSlice>& schema_arg,
-      const std::optional<DataSlice>& itemid,
-      const DataBagPtr& db, AdoptionQueue& adoption_queue) {
+      const std::optional<DataSlice>& itemid, const DataBagPtr& db,
+      AdoptionQueue& adoption_queue) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
@@ -267,11 +263,14 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
               .c_str());
       return nullptr;
     }
-    AdoptionQueue adoption_queue;
+    arolla::python::PyCancellationContext cancellation_context;
+    AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+        .cancellation_context = &cancellation_context,
+    });
     ASSIGN_OR_RETURN(
         res,
-        FactoryHelperT::FromPyObject(
-            args.pos_only_args[0], schema_arg, itemid, db, adoption_queue),
+        FactoryHelperT::FromPyObject(args.pos_only_args[0], schema_arg, itemid,
+                                     db, adoption_queue),
         arolla::python::SetPyErrFromStatus(_));
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
         .With([&](const absl::Status& status) {
@@ -279,7 +278,10 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
               CreateItemCreationError(status, schema_arg));
         });
   } else {
-    AdoptionQueue adoption_queue;
+    arolla::python::PyCancellationContext cancellation_context;
+    AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+        .cancellation_context = &cancellation_context,
+    });
     ASSIGN_OR_RETURN(
         std::vector<DataSlice> values,
         ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
@@ -376,7 +378,11 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
   if (!ParseDataSliceArg(args, "itemid", itemid)) {
     return nullptr;
   }
-  AdoptionQueue adoption_queue;
+
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
 
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
@@ -470,7 +476,10 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
   if (!ParseDataSliceArg(args, "itemid", itemid)) {
     return nullptr;
   }
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(db,
@@ -514,8 +523,8 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_like(PyObject* self,
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
-  return ProcessObjectLikeCreation<EntityCreatorHelper>(
-      UnsafeDataBagPtr(self), args);
+  return ProcessObjectLikeCreation<EntityCreatorHelper>(UnsafeDataBagPtr(self),
+                                                        args);
 }
 
 // Returns a DataSlice that represents an Ontity with the given DataBag
@@ -535,17 +544,18 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_like(PyObject* self,
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
-  return ProcessObjectLikeCreation<ObjectCreatorHelper>(
-      UnsafeDataBagPtr(self), args);
+  return ProcessObjectLikeCreation<ObjectCreatorHelper>(UnsafeDataBagPtr(self),
+                                                        args);
 }
 
 // Returns a DataSlice that represents an allocated Entity Schema.
 //
 // `kwargs` are traversed and key-value pairs are extracted and added as Schema
 // attributes of the newly created Schema.
-absl::Nullable<PyObject*> PyDataBag_schema_factory(
-    PyObject* self, PyObject* const* py_args, Py_ssize_t nargs,
-    PyObject* py_kwnames) {
+absl::Nullable<PyObject*> PyDataBag_schema_factory(PyObject* self,
+                                                   PyObject* const* py_args,
+                                                   Py_ssize_t nargs,
+                                                   PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/true);
@@ -642,7 +652,10 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
     return nullptr;
   }
   auto db = UnsafeDataBagPtr(self);
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
@@ -691,7 +704,10 @@ absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
     return nullptr;
   }
   auto db = UnsafeDataBagPtr(self);
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
@@ -788,7 +804,10 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
   if (shape == nullptr) {
     return nullptr;
   }
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   std::optional<DataSlice> keys;
   std::optional<DataSlice> values;
   if (!NormalizeDictKeysAndValues(py_items_or_keys, py_values,
@@ -843,7 +862,10 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
   if (shape_and_mask_from == nullptr) {
     return nullptr;
   }
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   std::optional<DataSlice> keys;
   std::optional<DataSlice> values;
   if (!NormalizeDictKeysAndValues(py_items_or_keys, py_values,
@@ -867,9 +889,8 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
   auto [adopted_keys, adopted_values] = FewWithBag(self_db, keys, values);
   ASSIGN_OR_RETURN(
       auto res,
-      CreateDictLike(UnsafeDataBagPtr(self), *shape_and_mask_from,
-                     adopted_keys, adopted_values,
-                     schema, key_schema, value_schema, itemid),
+      CreateDictLike(UnsafeDataBagPtr(self), *shape_and_mask_from, adopted_keys,
+                     adopted_values, schema, key_schema, value_schema, itemid),
       arolla::python::SetPyErrFromStatus(_));
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_db))
       .With(arolla::python::SetPyErrFromStatus);
@@ -906,14 +927,17 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
   } else {
     if (arolla::python::IsPyQValueInstance(py_values) &&
         arolla::python::UnsafeUnwrapPyQValue(py_values).GetType() ==
-        arolla::GetQType<DataSlice>()) {
+            arolla::GetQType<DataSlice>()) {
       PyErr_SetString(
           PyExc_TypeError,
           "kd.list does not accept DataSlice as an input, please use "
           "kd.implode");
       return nullptr;
     }
-    AdoptionQueue adoption_queue;
+    arolla::python::PyCancellationContext cancellation_context;
+    AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+        .cancellation_context = &cancellation_context,
+    });
     // NOTE: We only pass OBJECT schemas as the 3rd parameter, so that we do
     // not trigger the (explicit) casting logic in boxing.cc, and leave casting
     // to object_factories.cc which has more constrained (implicit) casting
@@ -922,15 +946,15 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
       RETURN_IF_ERROR(item_schema->VerifyIsSchema())
           .With(arolla::python::SetPyErrFromStatus);
     }
-    ASSIGN_OR_RETURN(auto values,
-                     DataSliceFromPyValue(
-                         py_values, adoption_queue,
-                         /*schema=*/
-                         (item_schema.has_value() &&
-                          item_schema->item().is_object_schema())
-                             ? item_schema
-                             : std::nullopt),
-                     arolla::python::SetPyErrFromStatus(_));
+    ASSIGN_OR_RETURN(
+        auto values,
+        DataSliceFromPyValue(
+            py_values, adoption_queue,
+            /*schema=*/
+            (item_schema.has_value() && item_schema->item().is_object_schema())
+                ? item_schema
+                : std::nullopt),
+        arolla::python::SetPyErrFromStatus(_));
     // Replacing the DataBag to avoid double adoption.
     values = values.WithBag(self_db);
     ASSIGN_OR_RETURN(
@@ -942,9 +966,10 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
   return WrapPyDataSlice(*std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_list_schema(
-    PyObject* self, PyObject* const* py_args, Py_ssize_t nargs,
-    PyObject* py_kwnames) {
+absl::Nullable<PyObject*> PyDataBag_list_schema(PyObject* self,
+                                                PyObject* const* py_args,
+                                                Py_ssize_t nargs,
+                                                PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
 
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -1035,7 +1060,10 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
     return nullptr;
   }
 
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   std::optional<DataSlice> values;
   if (!Py_IsNone(py_values)) {
     ASSIGN_OR_RETURN(values, DataSliceFromPyValue(py_values, adoption_queue),
@@ -1079,7 +1107,10 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
   PyObject* const py_schema = args[3];
   PyObject* const py_itemid = args[4];
 
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
 
   auto shape_and_mask_from =
       UnwrapDataSlice(py_shape_and_mask_from, "shape_and_mask_from");
@@ -1229,7 +1260,10 @@ absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self, PyObject* ds) {
     return nullptr;
   }
 
-  AdoptionQueue adoption_queue;
+  arolla::python::PyCancellationContext cancellation_context;
+  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
+      .cancellation_context = &cancellation_context,
+  });
   adoption_queue.Add(*slice);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With(arolla::python::SetPyErrFromStatus);
@@ -1357,8 +1391,8 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
     if (py_message != Py_None) {
       typed_message_mask_builder.InsertIfNotSet(i, arolla::kUnit);
       ASSIGN_OR_RETURN((auto [message_ptr, message_owner]),
-                      UnwrapPyProtoMessage(py_message),
-                      arolla::python::SetPyErrFromStatus(_));
+                       UnwrapPyProtoMessage(py_message),
+                       arolla::python::SetPyErrFromStatus(_));
       message_owners.push_back(std::move(message_owner));
       message_ptrs.push_back(message_ptr);
     }
@@ -1390,8 +1424,7 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
           return nullptr;
         }
         if (!PyUnicode_CheckExact(py_extension_str)) {
-          PyErr_Format(PyExc_ValueError,
-                       "expected extension to be str, got %s",
+          PyErr_Format(PyExc_ValueError, "expected extension to be str, got %s",
                        Py_TYPE(py_extension_str)->tp_name);
           return nullptr;
         }
@@ -1435,8 +1468,8 @@ absl::Nullable<PyObject*> PyDataBag_schema_from_proto(PyObject* self,
   PyObject* py_extensions_list = args[1];  // Borrowed.
 
   ASSIGN_OR_RETURN((auto [message_ptr, message_owner]),
-                  UnwrapPyProtoMessage(py_message),
-                  arolla::python::SetPyErrFromStatus(_));
+                   UnwrapPyProtoMessage(py_message),
+                   arolla::python::SetPyErrFromStatus(_));
   const auto* message_descriptor = message_ptr->GetDescriptor();
   DCHECK(message_descriptor != nullptr);
 
@@ -1460,8 +1493,7 @@ absl::Nullable<PyObject*> PyDataBag_schema_from_proto(PyObject* self,
           return nullptr;
         }
         if (!PyUnicode_CheckExact(py_extension_str)) {
-          PyErr_Format(PyExc_ValueError,
-                       "expected extension to be str, got %s",
+          PyErr_Format(PyExc_ValueError, "expected extension to be str, got %s",
                        Py_TYPE(py_extension_str)->tp_name);
           return nullptr;
         }
