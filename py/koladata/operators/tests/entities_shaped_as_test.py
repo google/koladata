@@ -150,7 +150,7 @@ class EntitiesShapedAsTest(absltest.TestCase):
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
-  def test_update_schema_arg(self):
+  def test_overwrite_schema_arg(self):
     shape_from = ds([6, 7])
     schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
     x = kde.entities.shaped_as(
@@ -158,7 +158,7 @@ class EntitiesShapedAsTest(absltest.TestCase):
         a=42,
         b='xyz',
         schema=schema,
-        update_schema=True,
+        overwrite_schema=True,
     ).eval()
     self.assertEqual(x.get_attr_names(intersection=True), ['a', 'b'])
     testing.assert_equal(x.a, ds([42, 42]).with_bag(x.get_bag()))
@@ -166,17 +166,17 @@ class EntitiesShapedAsTest(absltest.TestCase):
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
-  def test_update_schema_arg_error(self):
+  def test_overwrite_schema_arg_error(self):
     shape_from = ds([6, 7])
     with self.assertRaisesRegex(
         ValueError,
-        'argument `update_schema` must be an item holding BOOLEAN, got an item'
-        ' of INT32',
+        'argument `overwrite_schema` must be an item holding BOOLEAN, got an '
+        'item of INT32',
     ):
       kde.entities.shaped_as(
           shape_from,
           schema=schema_constants.INT32,
-          update_schema=42,
+          overwrite_schema=42,
       ).eval()
 
   def test_fails_without_shape(self):
@@ -231,8 +231,9 @@ class EntitiesShapedAsTest(absltest.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(kde.entities.shaped_as(I.x, a=I.y)),
-        'kd.entities.shaped_as(I.x, schema=unspecified, update_schema=DataItem'
-        '(False, schema: BOOLEAN), itemid=unspecified, a=I.y)',
+        'kd.entities.shaped_as(I.x, schema=unspecified, '
+        'overwrite_schema=DataItem(False, schema: BOOLEAN), '
+        'itemid=unspecified, a=I.y)',
     )
 
 

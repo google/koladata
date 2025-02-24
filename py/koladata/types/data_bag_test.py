@@ -567,11 +567,11 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
         x.a, ds([3.14], schema_constants.FLOAT64).with_bag(db), atol=1e-6
     )
 
-    # update_schema arg
+    # overwrite_schema arg
     x = db.uu(
         a=ds([3.14], schema_constants.FLOAT32),
         schema=db.uu_schema(a=schema_constants.FLOAT64),
-        update_schema=True,
+        overwrite_schema=True,
     )
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT32.with_bag(db)

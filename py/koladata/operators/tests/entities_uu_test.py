@@ -158,14 +158,14 @@ class EntitiesUuTest(parameterized.TestCase):
         atol=1e-6,
     )
 
-  def test_update_schema_arg(self):
+  def test_overwrite_schema_arg(self):
     db = data_bag.DataBag.empty()
     uu = expr_eval.eval(
         kde.entities.uu(
             seed='',
             a=ds([3.14], schema_constants.FLOAT32),
             schema=db.uu_schema(a=schema_constants.FLOAT64),
-            update_schema=True,
+            overwrite_schema=True,
         )
     )
     testing.assert_equal(
@@ -237,19 +237,20 @@ class EntitiesUuTest(parameterized.TestCase):
           0,
           dict(a=ds([1, 2, 3]), b=ds([1, 2, 3])),
           (
-              'kd.entities.uu: argument `update_schema` must be an item holding'
-              ' BOOLEAN, got an item of INT32'
+              'kd.entities.uu: argument `overwrite_schema` must be an item '
+              'holding BOOLEAN, got an item of INT32'
           ),
       ),
   )
-  def test_error(self, seed, schema, update_schema, kwargs, err_regex):
+  def test_error(self, seed, schema, overwrite_schema, kwargs, err_regex):
     with self.assertRaisesRegex(
         exceptions.KodaError,
         err_regex,
     ):
       _ = expr_eval.eval(
           kde.entities.uu(
-              seed=seed, schema=schema, update_schema=update_schema, **kwargs
+              seed=seed, schema=schema, overwrite_schema=overwrite_schema,
+              **kwargs
           )
       )
 
@@ -263,12 +264,12 @@ class EntitiesUuTest(parameterized.TestCase):
     self.assertEqual(
         repr(kde.entities.uu(a=I.z, seed=I.seed)),
         'kd.entities.uu(I.seed, schema=unspecified,'
-        ' update_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
+        ' overwrite_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
     )
     self.assertEqual(
         repr(kde.entities.uu(I.seed, a=I.z)),
         'kd.entities.uu(I.seed, schema=unspecified,'
-        ' update_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
+        ' overwrite_schema=DataItem(False, schema: BOOLEAN), a=I.z)',
     )
 
 

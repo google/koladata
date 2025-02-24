@@ -111,26 +111,26 @@ struct EntityCreatorHelper {
   static absl::StatusOr<DataSlice> FromAttributes(
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values,
-      const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
       const std::optional<DataSlice>& itemid,
       const DataBagPtr& db) {
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return EntityCreator::FromAttrs(db, attr_names, adopted_values, schema_arg,
-                                    update_schema, itemid);
+                                    overwrite_schema, itemid);
   }
 
   static absl::StatusOr<DataSlice> Shaped(
       DataSlice::JaggedShape shape,
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
-      const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
       const std::optional<DataSlice>& itemid,
       const DataBagPtr& db) {
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return EntityCreator::Shaped(db, std::move(shape), attr_names,
-                                 adopted_values, schema_arg, update_schema,
+                                 adopted_values, schema_arg, overwrite_schema,
                                  itemid);
   }
 
@@ -138,13 +138,13 @@ struct EntityCreatorHelper {
       const DataSlice& shape_and_mask_from,
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
-      const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
       const std::optional<DataSlice>& itemid,
       const DataBagPtr& db) {
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return EntityCreator::Like(db, shape_and_mask_from, attr_names,
-                               adopted_values, schema_arg, update_schema,
+                               adopted_values, schema_arg, overwrite_schema,
                                itemid);
   }
 
@@ -165,14 +165,14 @@ struct ObjectCreatorHelper {
   static absl::StatusOr<DataSlice> FromAttributes(
       const std::vector<absl::string_view>& attr_names,
       const std::vector<DataSlice>& values,
-      const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
       const std::optional<DataSlice>& itemid,
       const DataBagPtr& db) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
-    DCHECK(!update_schema) << "unused and not filled";
+    DCHECK(!overwrite_schema) << "unused and not filled";
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return ObjectCreator::FromAttrs(db, attr_names, adopted_values, itemid);
@@ -182,14 +182,14 @@ struct ObjectCreatorHelper {
       DataSlice::JaggedShape shape,
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
-      const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
       const std::optional<DataSlice>& itemid,
       const DataBagPtr& db) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
-    DCHECK(!update_schema) << "unused and not filled";
+    DCHECK(!overwrite_schema) << "unused and not filled";
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return ObjectCreator::Shaped(db, std::move(shape), attr_names, values,
@@ -200,14 +200,14 @@ struct ObjectCreatorHelper {
       const DataSlice& shape_and_mask_from,
       absl::Span<const absl::string_view> attr_names,
       absl::Span<const DataSlice> values,
-      const std::optional<DataSlice>& schema_arg, bool update_schema,
+      const std::optional<DataSlice>& schema_arg, bool overwrite_schema,
       const std::optional<DataSlice>& itemid,
       const DataBagPtr& db) {
     // Given that "schema" is not listed as a positional-keyword argument, it
     // will never be passed here. However, attr_names can contain "schema"
     // argument and will cause an Error to be returned.
     DCHECK(!schema_arg) << "guaranteed by FastcallArgParser set-up";
-    DCHECK(!update_schema) << "unused and not filled";
+    DCHECK(!overwrite_schema) << "unused and not filled";
     // Add `db` to each DataSlice value to avoid double adoption work.
     auto adopted_values = ManyWithBag(values, db);
     return ObjectCreator::Like(db, shape_and_mask_from, attr_names, values,
@@ -249,8 +249,8 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
       std::optional<DataSlice> schema_arg,
       ParseSchemaArgWithStringToNamedSchemaConversion(args, "schema"),
       arolla::python::SetPyErrFromStatus(_));
-  bool update_schema = false;
-  if (!ParseBoolArg(args, "update_schema", update_schema)) {
+  bool overwrite_schema = false;
+  if (!ParseBoolArg(args, "overwrite_schema", overwrite_schema)) {
     return nullptr;
   }
   std::optional<DataSlice> itemid;
@@ -296,7 +296,7 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
     ASSIGN_OR_RETURN(
         res,
         FactoryHelperT::FromAttributes(args.kw_names, values, schema_arg,
-                                       update_schema, itemid, db),
+                                       overwrite_schema, itemid, db),
         arolla::python::SetPyErrFromStatus(
             CreateItemCreationError(_, schema_arg)));
   }
@@ -318,7 +318,7 @@ absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/1, /*optional_positional_only=*/true,
-      /*parse_kwargs=*/true, {"schema", "update_schema", "itemid"}));
+      /*parse_kwargs=*/true, {"schema", "overwrite_schema", "itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -368,8 +368,8 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
       std::optional<DataSlice> schema_arg,
       ParseSchemaArgWithStringToNamedSchemaConversion(args, "schema"),
       arolla::python::SetPyErrFromStatus(_));
-  bool update_schema = false;
-  if (!ParseBoolArg(args, "update_schema", update_schema)) {
+  bool overwrite_schema = false;
+  if (!ParseBoolArg(args, "overwrite_schema", overwrite_schema)) {
     return nullptr;
   }
   std::optional<DataSlice> itemid;
@@ -396,7 +396,7 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
   ASSIGN_OR_RETURN(
       res,
       FactoryHelperT::Shaped(*std::move(shape), args.kw_names, values,
-                             schema_arg, update_schema, itemid, db),
+                             schema_arg, overwrite_schema, itemid, db),
       arolla::python::SetPyErrFromStatus(
           CreateItemCreationError(_, schema_arg)));
   return WrapPyDataSlice(*std::move(res));
@@ -415,7 +415,7 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_shaped(PyObject* self,
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/1, /*parse_kwargs=*/true,
-      {"schema", "update_schema", "itemid"}));
+      {"schema", "overwrite_schema", "itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -462,8 +462,8 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
       std::optional<DataSlice> schema_arg,
       ParseSchemaArgWithStringToNamedSchemaConversion(args, "schema"),
       arolla::python::SetPyErrFromStatus(_));
-  bool update_schema = false;
-  if (!ParseBoolArg(args, "update_schema", update_schema)) {
+  bool overwrite_schema = false;
+  if (!ParseBoolArg(args, "overwrite_schema", overwrite_schema)) {
     return nullptr;
   }
   std::optional<DataSlice> itemid;
@@ -490,7 +490,7 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
   ASSIGN_OR_RETURN(
       res,
       FactoryHelperT::Like(*shape_and_mask_from, args.kw_names, values,
-                           schema_arg, update_schema, itemid, db),
+                           schema_arg, overwrite_schema, itemid, db),
       arolla::python::SetPyErrFromStatus(
           CreateItemCreationError(_, schema_arg)));
   return WrapPyDataSlice(*std::move(res));
@@ -509,7 +509,7 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_like(PyObject* self,
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/1, /*parse_kwargs=*/true,
-      {"schema", "update_schema", "itemid"}));
+      {"schema", "overwrite_schema", "itemid"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -635,7 +635,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
                                                       PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "update_schema"},
+      /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "overwrite_schema"},
       /*pos_kw_args=*/"seed"));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
@@ -655,8 +655,8 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
   if (!ParseDataSliceArg(args, "schema", schema_arg)) {
     return nullptr;
   }
-  bool update_schema = false;
-  if (!ParseBoolArg(args, "update_schema", update_schema)) {
+  bool overwrite_schema = false;
+  if (!ParseBoolArg(args, "overwrite_schema", overwrite_schema)) {
     return nullptr;
   }
   // Add `db` to each DataSlice value to avoid double adoption work.
@@ -669,7 +669,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
       .With(arolla::python::SetPyErrFromStatus);
   ASSIGN_OR_RETURN(res,
                    CreateUu(db, seed_arg, args.kw_names, adopted_values,
-                            schema_arg, update_schema),
+                            schema_arg, overwrite_schema),
                    arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(res));
 }
@@ -1501,7 +1501,7 @@ PyMethodDef kPyDataBag_methods[] = {
      "--\n\n"
      "Returns an empty DataBag."},
     {"new", (PyCFunction)PyDataBag_new_factory, METH_FASTCALL | METH_KEYWORDS,
-     "new(arg, *, schema=None, update_schema=False, itemid=None, **attrs)\n"
+     "new(arg, *, schema=None, overwrite_schema=False, itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates Entities with given attrs.
 
@@ -1509,8 +1509,8 @@ Args:
   arg: optional Python object to be converted to an Entity.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
+  overwrite_schema: if schema attribute is missing and the attribute is being
+    set through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     itemid will only be set when the args is not a primitive or primitive slice
     if args present.
@@ -1520,7 +1520,7 @@ Returns:
   data_slice.DataSlice with the given attrs.)"""},
     {"new_shaped", (PyCFunction)PyDataBag_new_factory_shaped,
      METH_FASTCALL | METH_KEYWORDS,
-     "new_shaped(shape, *, schema=None, update_schema=False, itemid=None, "
+     "new_shaped(shape, *, schema=None, overwrite_schema=False, itemid=None, "
      "**attrs)\n"
      "--\n\n"
      R"""(Creates new Entities with the given shape.
@@ -1529,8 +1529,8 @@ Args:
   shape: JaggedShape that the returned DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
+  overwrite_schema: if schema attribute is missing and the attribute is being
+    set through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
@@ -1538,7 +1538,7 @@ Returns:
   data_slice.DataSlice with the given attrs.)"""},
     {"new_like", (PyCFunction)PyDataBag_new_factory_like,
      METH_FASTCALL | METH_KEYWORDS,
-     "new_like(shape_and_mask_from, *, schema=None, update_schema=False, "
+     "new_like(shape_and_mask_from, *, schema=None, overwrite_schema=False, "
      "itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates new Entities with the shape and sparsity from shape_and_mask_from.
@@ -1548,8 +1548,8 @@ Args:
     DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
+  overwrite_schema: if schema attribute is missing and the attribute is being
+    set through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
@@ -1605,7 +1605,7 @@ Returns:
   data_slice.DataSlice with the given attrs.)"""},
     {"uu", (PyCFunction)PyDataBag_uu_entity_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "uu(seed, *, schema=None, update_schema=False, **kwargs)\n"
+     "uu(seed, *, schema=None, overwrite_schema=False, **kwargs)\n"
      "--\n\n"
      R"""(Creates an item whose ids are uuid(s) with the set attributes.
 
@@ -1627,7 +1627,7 @@ Args:
   seed: (str) Allows different item(s) to have different ids when created
     from the same inputs.
   schema: schema for the resulting DataSlice
-  update_schema: if true, will overwrite schema attributes in the schema's
+  overwrite_schema: if true, will overwrite schema attributes in the schema's
     corresponding db from the argument values.
   **kwargs: key-value pairs of object attributes where values are DataSlices
     or can be converted to DataSlices using kd.new.

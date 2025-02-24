@@ -62,7 +62,7 @@ class NewOperator final : public arolla::QExprOperator {
     return MakeBoundOperator(
         "kd.entities.new",
         [schema_slot = input_slots[1],
-         update_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         overwrite_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
          item_id_slot = input_slots[3], named_tuple_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx,
@@ -72,8 +72,9 @@ class NewOperator final : public arolla::QExprOperator {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
           ASSIGN_OR_RETURN(
-              bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
+              bool overwrite_schema,
+              GetBoolArgument(frame.Get(overwrite_schema_slot),
+                              "overwrite_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -85,7 +86,7 @@ class NewOperator final : public arolla::QExprOperator {
           DataBagPtr result_db = DataBag::Empty();
           ASSIGN_OR_RETURN(auto result, EntityCreator::FromAttrs(
                                             result_db, attr_names, attr_values,
-                                            schema, update_schema, item_id));
+                                            schema, overwrite_schema, item_id));
           result_db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
@@ -106,7 +107,7 @@ class NewShapedOperator : public arolla::QExprOperator {
         "kd.entities.shaped",
         [shape_slot = input_slots[0].UnsafeToSlot<DataSlice::JaggedShape>(),
          schema_slot = input_slots[1],
-         update_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         overwrite_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
          item_id_slot = input_slots[3], named_tuple_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx,
@@ -117,8 +118,9 @@ class NewShapedOperator : public arolla::QExprOperator {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
           ASSIGN_OR_RETURN(
-              bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
+              bool overwrite_schema,
+              GetBoolArgument(frame.Get(overwrite_schema_slot),
+                              "overwrite_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -131,7 +133,7 @@ class NewShapedOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(
               auto result,
               EntityCreator::Shaped(result_db, shape, attr_names, attr_values,
-                                    schema, update_schema, item_id));
+                                    schema, overwrite_schema, item_id));
           result_db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
@@ -152,7 +154,7 @@ class NewLikeOperator : public arolla::QExprOperator {
         "kd.entities.like",
         [shape_and_mask_from_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          schema_slot = input_slots[1],
-         update_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         overwrite_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
          item_id_slot = input_slots[3], named_tuple_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx,
@@ -163,8 +165,9 @@ class NewLikeOperator : public arolla::QExprOperator {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
           ASSIGN_OR_RETURN(
-              bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
+              bool overwrite_schema,
+              GetBoolArgument(frame.Get(overwrite_schema_slot),
+                              "overwrite_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -176,8 +179,9 @@ class NewLikeOperator : public arolla::QExprOperator {
           DataBagPtr result_db = DataBag::Empty();
           ASSIGN_OR_RETURN(
               auto result,
-              EntityCreator::Like(result_db, shape_and_mask_from, attr_names,
-                                  attr_values, schema, update_schema, item_id));
+              EntityCreator::Like(
+                  result_db, shape_and_mask_from, attr_names, attr_values,
+                  schema, overwrite_schema, item_id));
           result.GetBag()->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
@@ -198,7 +202,7 @@ class UuOperator : public arolla::QExprOperator {
         "kd.entities.uu",
         [seed_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          schema_slot = input_slots[1],
-         update_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         overwrite_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
          named_tuple_slot = input_slots[3],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx,
@@ -212,13 +216,14 @@ class UuOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(absl::string_view seed,
                            GetStringArgument(frame.Get(seed_slot), "seed"));
           ASSIGN_OR_RETURN(
-              bool update_schema,
-              GetBoolArgument(frame.Get(update_schema_slot), "update_schema"));
+              bool overwrite_schema,
+              GetBoolArgument(frame.Get(overwrite_schema_slot),
+                              "overwrite_schema"));
           auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
           ASSIGN_OR_RETURN(auto result, CreateUu(db, seed, attr_names, values,
-                                                 schema, update_schema));
+                                                 schema, overwrite_schema));
           db->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
@@ -245,7 +250,7 @@ absl::StatusOr<arolla::OperatorPtr> UuOperatorFamily::DoGetOperator(
   }
   if (input_types[2] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
-        "requires `update_schema` argument to be DataSlice");
+        "requires `overwrite_schema` argument to be DataSlice");
   }
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[3]));
   return arolla::EnsureOutputQTypeMatches(
@@ -264,7 +269,7 @@ absl::StatusOr<arolla::OperatorPtr> NewOperatorFamily::DoGetOperator(
   }
   if (input_types[2] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
-        "requires update_schema argument to be DataSlice");
+        "requires overwrite_schema argument to be DataSlice");
   }
   if (!IsDataSliceOrUnspecified(input_types[3])) {
     return absl::InvalidArgumentError(
@@ -293,7 +298,7 @@ absl::StatusOr<arolla::OperatorPtr> NewShapedOperatorFamily::DoGetOperator(
   }
   if (input_types[2] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
-        "requires update_schema argument to be DataSlice");
+        "requires overwrite_schema argument to be DataSlice");
   }
   if (!IsDataSliceOrUnspecified(input_types[3])) {
     return absl::InvalidArgumentError(
@@ -322,7 +327,7 @@ absl::StatusOr<arolla::OperatorPtr> NewLikeOperatorFamily::DoGetOperator(
   }
   if (input_types[2] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
-        "requires update_schema argument to be DataSlice");
+        "requires overwrite_schema argument to be DataSlice");
   }
   if (!IsDataSliceOrUnspecified(input_types[3])) {
     return absl::InvalidArgumentError(

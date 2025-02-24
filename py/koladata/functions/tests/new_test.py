@@ -223,22 +223,22 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
 
-  def test_schema_arg_update_schema(self):
+  def test_schema_arg_overwrite_schema(self):
     schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
-    x = fns.new(a=42, b='xyz', schema=schema, update_schema=True)
+    x = fns.new(a=42, b='xyz', schema=schema, overwrite_schema=True)
     self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.INT32)
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
-  def test_schema_arg_update_schema_error(self):
+  def test_schema_arg_overwrite_schema_error(self):
     with self.assertRaisesRegex(TypeError, 'expected bool'):
-      fns.new(a=42, schema=schema_constants.INT32, update_schema=42)  # pytype: disable=wrong-arg-types
+      fns.new(a=42, schema=schema_constants.INT32, overwrite_schema=42)  # pytype: disable=wrong-arg-types
 
-  def test_schema_arg_update_schema_error_overwriting(self):
+  def test_schema_arg_overwrite_schema_error_overwriting(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
-    x = fns.new(a='xyz', schema=schema, update_schema=True)
+    x = fns.new(a='xyz', schema=schema, overwrite_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_embed_schema(self):

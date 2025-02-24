@@ -120,13 +120,13 @@ class UuTest(absltest.TestCase):
         atol=1e-6,
     )
 
-  def test_update_schema_arg(self):
+  def test_overwrite_schema_arg(self):
     db = fns.bag()
     x = fns.uu(
         db=db,
         a=ds([3.14], schema_constants.FLOAT32),
         schema=fns.uu_schema(db=db, a=schema_constants.FLOAT64),
-        update_schema=True,
+        overwrite_schema=True,
     )
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT32.with_bag(x.get_bag())
@@ -135,9 +135,9 @@ class UuTest(absltest.TestCase):
         x.a, ds([3.14], schema_constants.FLOAT32).with_bag(x.get_bag())
     )
 
-  def test_schema_arg_update_schema_overwriting(self):
+  def test_schema_arg_overwrite_schema_overwriting(self):
     schema = fns.uu_schema(a=schema_constants.INT32)
-    x = fns.uu(a='xyz', schema=schema, update_schema=True)
+    x = fns.uu(a='xyz', schema=schema, overwrite_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
   def test_alias(self):

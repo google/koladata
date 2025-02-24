@@ -449,7 +449,7 @@ def new(
     /,
     *,
     schema: data_slice.DataSlice | str | None = None,
-    update_schema: bool = False,
+    overwrite_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
     **attrs: Any,
@@ -464,8 +464,8 @@ def new(
       will be automatically created based on the schemas of the passed **attrs.
       You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
       itemid will only be set when the args is not a primitive or primitive
       slice if args present.
@@ -480,10 +480,12 @@ def new(
     # `freeze_bag`. One alternative is to call `eval_op('new', ...)` however it
     # has different boxing rules.
     return bag().new(
-        arg, schema=schema, update_schema=update_schema, itemid=itemid, **attrs
+        arg, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
+        **attrs
     ).freeze_bag()
   return db.new(
-      arg, schema=schema, update_schema=update_schema, itemid=itemid, **attrs
+      arg, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
+      **attrs
   )
 
 
@@ -492,7 +494,7 @@ def new_shaped(
     /,
     *,
     schema: data_slice.DataSlice | str | None = None,
-    update_schema: bool = False,
+    overwrite_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
     **attrs: Any,
@@ -507,8 +509,8 @@ def new_shaped(
       will be automatically created based on the schemas of the passed **attrs.
       You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
@@ -521,11 +523,12 @@ def new_shaped(
     # `freeze_bag`. One alternative is to call `eval_op('new_shaped', ...)`
     # however it has different boxing rules.
     return bag().new_shaped(
-        shape, schema=schema, update_schema=update_schema, itemid=itemid,
+        shape, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
         **attrs
     ).freeze_bag()
   return db.new_shaped(
-      shape, schema=schema, update_schema=update_schema, itemid=itemid, **attrs
+      shape, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
+      **attrs
   )
 
 
@@ -534,7 +537,7 @@ def new_shaped_as(
     /,
     *,
     schema: data_slice.DataSlice | str | None = None,
-    update_schema: bool = False,
+    overwrite_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
     **attrs: Any,
@@ -549,8 +552,8 @@ def new_shaped_as(
       will be automatically created based on the schemas of the passed **attrs.
       You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
@@ -561,7 +564,7 @@ def new_shaped_as(
   return new_shaped(
       shape_from.get_shape(),
       schema=schema,
-      update_schema=update_schema,
+      overwrite_schema=overwrite_schema,
       itemid=itemid,
       db=db,
       **attrs,
@@ -573,7 +576,7 @@ def new_like(
     /,
     *,
     schema: data_slice.DataSlice | str | None = None,
-    update_schema: bool = False,
+    overwrite_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
     db: data_bag.DataBag | None = None,
     **attrs: Any,
@@ -589,8 +592,8 @@ def new_like(
       will be automatically created based on the schemas of the passed **attrs.
       You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
@@ -603,11 +606,11 @@ def new_like(
     # `freeze_bag`. One alternative is to call `eval_op('new_like', ...)`
     # however it has different boxing rules.
     return bag().new_like(
-        shape_and_mask_from, schema=schema, update_schema=update_schema,
+        shape_and_mask_from, schema=schema, overwrite_schema=overwrite_schema,
         itemid=itemid, **attrs
     ).freeze_bag()
   return db.new_like(
-      shape_and_mask_from, schema=schema, update_schema=update_schema,
+      shape_and_mask_from, schema=schema, overwrite_schema=overwrite_schema,
       itemid=itemid, **attrs
   )
 
@@ -752,7 +755,7 @@ def uu(
     seed: str | None = None,
     *,
     schema: data_slice.DataSlice | None = None,
-    update_schema: bool = False,
+    overwrite_schema: bool = False,
     db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
@@ -764,8 +767,8 @@ def uu(
     seed: string to seed the uuid computation with.
     schema: optional DataSlice schema. If not specified, a UuSchema
       will be automatically created based on the schemas of the passed **attrs.
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -777,9 +780,11 @@ def uu(
     # `freeze_bag`. One alternative is to call `eval_op('uu', ...)` however it
     # has different boxing rules.
     return bag().uu(
-        seed=seed, schema=schema, update_schema=update_schema, **attrs
+        seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs
     ).freeze_bag()
-  return db.uu(seed=seed, schema=schema, update_schema=update_schema, **attrs)
+  return db.uu(
+      seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs
+  )
 
 
 def uuobj(
