@@ -27,7 +27,6 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
