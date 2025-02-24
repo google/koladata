@@ -116,7 +116,7 @@ class ToPyTest(parameterized.TestCase):
     self.assertEqual(id(res.o1), id(res.o2))
     self.assertEqual(id(res.l1), id(res.l2))
     self.assertEqual(id(res.d1), id(res.d2))
-    self.assertEqual(id(res.p1), id(res.p2))
+    self.assertNotEqual(id(res.p1), id(res.p2))
 
   def test_dict(self):
     root = fns.container()

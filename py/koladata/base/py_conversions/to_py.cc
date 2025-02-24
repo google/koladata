@@ -40,7 +40,7 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_utils.h"
@@ -52,7 +52,6 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
@@ -63,6 +62,7 @@ namespace {
 using arolla::python::PyObjectPtr;
 using internal::DataItem;
 using internal::DataSliceImpl;
+using internal::ObjectId;
 
 using OptionalText = arolla::OptionalValue<arolla::view_type_t<arolla::Text>>;
 
@@ -107,11 +107,7 @@ class ToPyVisitor : internal::AbstractVisitor {
 
   ItemToPyConverter GetItemToPyConverter(const DataItem& schema) {
     return [&](const DataItem& item) -> absl::StatusOr<PyObjectPtr> {
-      PyObjectPtr py_item = GetCachedPyObjectOrNull(item);
-      if (py_item != nullptr) {
-        return py_item;
-      }
-      return PyObjectFromDataItem(item, schema, db_);
+      return GetCachedPyObjectOrCreatePrimitive(item);
     };
   }
 
@@ -134,18 +130,23 @@ class ToPyVisitor : internal::AbstractVisitor {
   // populating object attributes in `VisitObject`, `VisitDict` and `VisitList`,
   // we could check that it is an entity and if so, query its attributes.
   absl::Status Previsit(const DataItem& item, const DataItem& schema) final {
-    if (GetCachedPyObjectOrNull(item) != nullptr) {
+    if (!item.holds_value<ObjectId>()) {
+      return absl::OkStatus();
+    }
+    const ObjectId& object_id = item.value<ObjectId>();
+    if (object_cache_.contains(object_id)) {
       return absl::OkStatus();
     }
 
-    const arolla::Fingerprint fp = item.StableFingerprint();
     if (leaf_ids_.contains(item)) {
       ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db_));
-      ASSIGN_OR_RETURN(cache_[fp], WrapDataSliceWithErrorCheck(std::move(ds)));
+      ASSIGN_OR_RETURN(object_cache_[object_id],
+                       WrapDataSliceWithErrorCheck(std::move(ds)));
       return absl::OkStatus();
     }
     if (schema.is_itemid_schema()) {
-      ASSIGN_OR_RETURN(cache_[fp], PyObjectFromDataItem(item, schema, db_));
+      ASSIGN_OR_RETURN(object_cache_[object_id],
+                       PyObjectFromDataItem(item, schema, db_));
       return absl::OkStatus();
     }
 
@@ -158,7 +159,7 @@ class ToPyVisitor : internal::AbstractVisitor {
           return arolla::python::StatusWithRawPyErr(
               absl::StatusCode::kInternal, "could not create a new dict");
         }
-        cache_[fp] = std::move(result);
+        object_cache_[object_id] = std::move(result);
       } else {
         std::vector<absl::string_view> attr_names_vec;
         attr_names_vec.reserve(attr_names.size());
@@ -174,8 +175,9 @@ class ToPyVisitor : internal::AbstractVisitor {
                 attr_names_vec.push_back(attr);
               }
             });
-        ASSIGN_OR_RETURN(cache_[fp], dataclasses_util_.MakeDataClassInstance(
-                                         attr_names_vec));
+        ASSIGN_OR_RETURN(
+            object_cache_[object_id],
+            dataclasses_util_.MakeDataClassInstance(attr_names_vec));
       }
       return absl::OkStatus();
     }
@@ -185,7 +187,8 @@ class ToPyVisitor : internal::AbstractVisitor {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not create a new dict");
       }
-      cache_[fp] = std::move(result);
+      object_cache_[object_id] = std::move(result);
+      return absl::OkStatus();
     }
     if (item.is_list()) {
       PyObjectPtr result = PyObjectPtr::Own(PyList_New(0));
@@ -193,7 +196,8 @@ class ToPyVisitor : internal::AbstractVisitor {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not create a new list");
       }
-      cache_[fp] = std::move(result);
+      object_cache_[object_id] = std::move(result);
+      return absl::OkStatus();
     }
 
     return absl::OkStatus();
@@ -205,15 +209,10 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (leaf_ids_.contains(list)) {
       return absl::OkStatus();
     }
-
-    PyObjectPtr result = GetCachedPyObjectOrNull(list);
-    if (result == nullptr) {
-      return absl::InternalError(
-          "list not found in cache; probably, it was not pre-visited.");
-    }
-
+    ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(list));
     for (const DataItem& item : items) {
-      ASSIGN_OR_RETURN(PyObjectPtr py_item, GetOrCreatePyObject(item));
+      ASSIGN_OR_RETURN(PyObjectPtr py_item,
+                       GetCachedPyObjectOrCreatePrimitive(item));
       if (PyList_Append(result.get(), py_item.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not append an item to a list");
@@ -229,11 +228,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (leaf_ids_.contains(dict)) {
       return absl::OkStatus();
     }
-    PyObjectPtr result = GetCachedPyObjectOrNull(dict);
-    if (result == nullptr) {
-      return absl::InternalError(
-          "dict not found in cache; probably, it was not pre-visited.");
-    }
+    ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(dict));
 
     DCHECK_EQ(keys.size(), values.size());
     for (size_t i = 0; i < keys.size(); ++i) {
@@ -251,8 +246,8 @@ class ToPyVisitor : internal::AbstractVisitor {
                                        fallback_span_));
       ASSIGN_OR_RETURN(PyObjectPtr py_key,
                        PyObjectFromDataItem(keys[i], key_schema, nullptr));
-
-      ASSIGN_OR_RETURN(PyObjectPtr py_value, GetOrCreatePyObject(values[i]));
+      ASSIGN_OR_RETURN(PyObjectPtr py_value,
+                       GetCachedPyObjectOrCreatePrimitive(values[i]));
       if (PyDict_SetItem(result.get(), py_key.get(), py_value.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not set an item in a dict");
@@ -276,15 +271,11 @@ class ToPyVisitor : internal::AbstractVisitor {
       return absl::OkStatus();
     }
 
-    PyObjectPtr result = GetCachedPyObjectOrNull(object);
-    if (result == nullptr) {
-      return absl::InternalError(
-          "object not found in cache; probably, it was not pre-visited.");
-    }
+    ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(object));
     for (size_t i = 0; i < attr_names.size(); ++i) {
       const arolla::OptionalValue<DataItem>& attr_value = attr_values[i];
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetOrCreatePyObject(attr_value.value));
+                       GetCachedPyObjectOrCreatePrimitive(attr_value.value));
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        AttrNamePyFromString(attr_names[i].value));
       if (PyObject_SetAttr(result.get(), attr_name_py.get(), py_value.get()) <
@@ -307,37 +298,37 @@ class ToPyVisitor : internal::AbstractVisitor {
   }
 
  private:
-  PyObjectPtr GetCachedPyObjectOrNull(const DataItem& item) {
-    const arolla::Fingerprint fp = item.StableFingerprint();
-    if (auto it = cache_.find(fp); it != cache_.end()) {
-      return it->second;
+  // Returns a cached Python object for the given `item`.
+  // Returns an error if the `item` does not hold ObjectId, or if the object is
+  // not found in the cache.
+  absl::StatusOr<PyObjectPtr> GetCachedPyObject(const DataItem& item) {
+    DCHECK(item.holds_value<ObjectId>());
+    auto it = object_cache_.find(item.value<ObjectId>());
+    if (it == object_cache_.end()) {
+      return absl::InternalError(
+          "item holds an object id, but it is not found in cache; probably, it "
+          "was not pre-visited.");
     }
-    return nullptr;
+    DCHECK(it->second != nullptr);
+    return it->second;
   }
-  absl::StatusOr<PyObjectPtr> GetOrCreatePyObject(const DataItem& item) {
-    const arolla::Fingerprint fp = item.StableFingerprint();
-    if (auto it = cache_.find(fp); it != cache_.end()) {
-      return it->second;
+
+  // If the given `item` holds ObjectId, returns a cached Python object for the
+  // item (or an error if the object is not found in the cache). Otherwise,
+  // returns a new Python primitive for it.
+  absl::StatusOr<PyObjectPtr> GetCachedPyObjectOrCreatePrimitive(
+      const DataItem& item) {
+    if (!item.holds_value<ObjectId>()) {
+      return PyObjectFromDataItem(item, DataItem(), db_);
     }
-    // Objects were previsited and cached; at this point we should have only
-    // primitives, for which we do not need a schema, or itemids.
-    const DataItem item_schema =
-        item.is_entity() ? DataItem(schema::kItemId) : DataItem();
-    ASSIGN_OR_RETURN(PyObjectPtr result,
-                     PyObjectFromDataItem(item, item_schema, db_));
-    cache_[fp] = result;
-    return result;
+    return GetCachedPyObject(item);
   }
 
   absl::Status CreateDictFromObject(
       const DataItem& object, const DataItem& schema, bool is_object_schema,
       const arolla::DenseArray<arolla::Text>& attr_names,
       const arolla::DenseArray<DataItem>& attr_values) {
-    PyObjectPtr result = GetCachedPyObjectOrNull(object);
-    if (result == nullptr) {
-      return absl::InternalError(
-          "object not found in cache; probably, it was not pre-visited.");
-    }
+    ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(object));
 
     // Sort the attribute names to ensure that the order is deterministic.
     std::vector<absl::string_view> attr_names_vec;
@@ -362,9 +353,8 @@ class ToPyVisitor : internal::AbstractVisitor {
           attr_values[attr_index];
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        AttrNamePyFromString(attr_name_str));
-
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetOrCreatePyObject(attr_value.value));
+                       GetCachedPyObjectOrCreatePrimitive(attr_value.value));
       if (py_value.get() != Py_None || include_missing_attrs_) {
         if (PyDict_SetItem(result.get(), attr_name_py.get(), py_value.get()) <
             0) {
@@ -376,7 +366,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::flat_hash_map<arolla::Fingerprint, arolla::python::PyObjectPtr> cache_;
+  absl::flat_hash_map<ObjectId, arolla::python::PyObjectPtr> object_cache_;
 
   bool obj_as_dict_ = false;
   bool include_missing_attrs_ = false;
@@ -390,7 +380,7 @@ class ToPyVisitor : internal::AbstractVisitor {
 };
 
 absl::Nullable<PyObject*> ToPyImplInternal(
-    const DataSlice& ds, DataBagPtr bag, int max_depth, bool obj_as_dict,
+    const DataSlice& ds, DataBagPtr bag, bool obj_as_dict,
     bool include_missing_attrs, const absl::flat_hash_set<DataItem>& leaf_ids) {
   if (ds.IsEmpty() || bag == nullptr ||
       GetNarrowedSchema(ds).is_primitive_schema()) {
@@ -447,11 +437,11 @@ absl::Nullable<PyObject*> ToPyImpl(const DataSlice& ds, DataBagPtr bag,
         koladata::extract_utils_internal::ExtractWithSchema(
             ds, ds.GetSchema(), max_depth, std::move(leaf_callback)),
         arolla::python::SetPyErrFromStatus(_));
-    return ToPyImplInternal(extracted_ds, ds.GetBag(), max_depth, obj_as_dict,
+    return ToPyImplInternal(extracted_ds, ds.GetBag(), obj_as_dict,
                             include_missing_attrs, leaf_ids);
   }
-  return ToPyImplInternal(ds, nullptr, max_depth, obj_as_dict,
-                          include_missing_attrs, leaf_ids);
+  return ToPyImplInternal(ds, nullptr, obj_as_dict, include_missing_attrs,
+                          leaf_ids);
 }
 
 }  // namespace
