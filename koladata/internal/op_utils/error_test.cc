@@ -38,6 +38,7 @@ using ::testing::AllOf;
 using ::testing::Eq;
 using ::testing::Field;
 using ::testing::IsNull;
+using ::testing::NotNull;
 using ::testing::Pointee;
 using ::testing::Property;
 using ::testing::ResultOf;
@@ -85,12 +86,9 @@ TEST(OperatorEvalError, WithStatusAndErrorMessage) {
   EXPECT_THAT(
       arolla::GetPayload<internal::Error>(new_status),
       Property(&internal::Error::error_message, Eq("op_name: error_message")));
-  EXPECT_THAT(
-      arolla::GetCause(new_status),
-      Pointee(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "Test error"),
-                    ResultOf(&arolla::GetPayload<internal::Error>,
-                             Property(&internal::Error::error_message,
-                                      Eq("Test error"))))));
+  EXPECT_THAT(arolla::GetCause(new_status),
+              Pointee(AllOf(
+                  StatusIs(absl::StatusCode::kInvalidArgument, "Test error"))));
 }
 
 TEST(OperatorEvalError, WithStatusContainingCause) {
@@ -113,6 +111,26 @@ TEST(OperatorEvalError, WithStatusContainingCause) {
               Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "error")));
   EXPECT_THAT(arolla::GetCause(*got_cause),
               Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "cause")));
+}
+
+struct DummyPayload {};
+
+TEST(OperatorEvalError, WithStatusContainingNonKodaPayload) {
+  absl::Status status =
+      arolla::WithPayload(absl::InvalidArgumentError("error"), DummyPayload{});
+
+  absl::Status new_status =
+      OperatorEvalError(status, "op_name", "error_message");
+  EXPECT_THAT(new_status,
+              StatusIs(absl::StatusCode::kInvalidArgument, "error"));
+  std::optional<internal::Error> payload =
+      internal::GetErrorPayload(new_status);
+  ASSERT_TRUE(payload.has_value());
+  EXPECT_THAT(payload->error_message(), Eq("op_name: error_message"));
+  auto got_cause = arolla::GetCause(new_status);
+  ASSERT_THAT(got_cause,
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "error")));
+  EXPECT_THAT(arolla::GetPayload<DummyPayload>(*got_cause), NotNull());
 }
 
 TEST(OperatorEvalError, SubsequentCalls) {

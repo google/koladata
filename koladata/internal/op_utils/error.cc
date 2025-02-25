@@ -14,7 +14,7 @@
 //
 #include "koladata/internal/op_utils/error.h"
 
-#include <optional>
+#include <string>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -23,21 +23,31 @@
 #include "absl/strings/string_view.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "arolla/util/status.h"
 
 namespace koladata::internal {
 
 absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name) {
+  auto previous_koda_error = arolla::GetPayload<internal::Error>(status);
+
+  std::string error_message = (previous_koda_error != nullptr &&
+                               !previous_koda_error->error_message().empty())
+                                  ? previous_koda_error->error_message()
+                                  : std::string(status.message());
+  if (!absl::StartsWith(error_message, operator_name)) {
+    error_message = absl::StrFormat("%s: %s", operator_name, error_message);
+  }
+
+  // To preserve non-Koda payloads we keep the original error as a cause.
+  if (arolla::HasPayload(status) && previous_koda_error == nullptr) {
+    auto result = KodaErrorFromCause(error_message, std::move(status));
+    return result;
+  }
   internal::Error error =
-      internal::GetErrorPayload(status).value_or(internal::Error());
-  if (error.error_message().empty()) {
-    error.set_error_message(status.message());
-  }
-  if (!absl::StartsWith(error.error_message(), operator_name)) {
-    error.set_error_message(
-        absl::StrFormat("%s: %s", operator_name, error.error_message()));
-  }
-  return internal::WithErrorPayload(std::move(status), error);
+      previous_koda_error != nullptr ? *previous_koda_error : internal::Error();
+  error.set_error_message(std::move(error_message));
+  return internal::WithErrorPayload(std::move(status), std::move(error));
 }
 
 absl::Status OperatorEvalError(absl::Status status,

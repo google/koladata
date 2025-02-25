@@ -106,7 +106,6 @@ absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause) {
   if (cause.ok()) {
     return cause;
   }
-  cause = AsKodaError(std::move(cause));
   internal::Error error;
   error.set_error_message(msg);
   return arolla::WithCause(

@@ -46,6 +46,7 @@ using ::koladata::schema::ObjectDType;
 using ::koladata::schema::SchemaDType;
 using ::testing::Eq;
 using ::testing::HasSubstr;
+using ::testing::NotNull;
 using ::testing::Property;
 using ::testing::StrEq;
 
@@ -125,19 +126,20 @@ TEST(ErrorUtilsTest, AsKodaError_OkStatus) {
   EXPECT_THAT(AsKodaError(absl::OkStatus()), IsOk());
 }
 
-TEST(ErrorUtilsTest, KodaErrorFromCause) {
-  absl::Status status = absl::UnimplementedError("test error");
-  absl::Status koda_status = KodaErrorFromCause("got an error", status);
+struct DummyPayload {};
 
-  EXPECT_THAT(koda_status.message(), Eq(status.message()));
+TEST(ErrorUtilsTest, KodaErrorFromCause) {
+  absl::Status cause = arolla::WithPayload(
+      absl::UnimplementedError("test error"), DummyPayload{});
+  absl::Status koda_status = KodaErrorFromCause("got an error", cause);
+
+  EXPECT_THAT(koda_status.message(), Eq(cause.message()));
   EXPECT_THAT(arolla::GetPayload<internal::Error>(koda_status),
               Property(&internal::Error::error_message, StrEq("got an error")));
   EXPECT_THAT(
       arolla::GetCause(koda_status),
       Pointee(AllOf(StatusIs(absl::StatusCode::kUnimplemented, "test error"),
-                    ResultOf(&arolla::GetPayload<internal::Error>,
-                             Property(&internal::Error::error_message,
-                                      StrEq("test error"))))));
+                    ResultOf(&arolla::GetPayload<DummyPayload>, NotNull()))));
 }
 
 TEST(ErrorUtilsTest, KodaErrorFromCause_OkStatus) {

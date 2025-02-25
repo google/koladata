@@ -38,6 +38,7 @@ namespace {
 using ::absl_testing::StatusIs;
 using ::koladata::internal::Error;
 using ::testing::MatchesRegex;
+using ::testing::Pointee;
 using ::testing::Property;
 using ::testing::StrEq;
 
@@ -196,12 +197,8 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
   EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(),
               StrEq("cannot create Item(s) with the provided schema: INT32"));
-  EXPECT_THAT(
-      arolla::GetCause(status),
-      Pointee(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
-                    ResultOf(&arolla::GetPayload<internal::Error>,
-                             Property(&internal::Error::error_message,
-                                      StrEq("error"))))));
+  EXPECT_THAT(arolla::GetCause(status),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "error")));
   Error error;
   error.set_error_message("cause");
   status = CreateItemCreationError(

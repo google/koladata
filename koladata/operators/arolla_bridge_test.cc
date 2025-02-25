@@ -55,6 +55,7 @@ using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::HasSubstr;
+using ::testing::Pointee;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
 
 DataSliceEdge EdgeFromSizes(absl::Span<const int64_t> sizes) {
@@ -221,15 +222,9 @@ TEST(ArollaEval, SimplePointwiseEval) {
                 Eq("cannot align inputs to a common shape"));
     EXPECT_THAT(
         arolla::GetCause(status),
-        Pointee(AllOf(
-            StatusIs(
-                absl::StatusCode::kInvalidArgument,
-                "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)"),
-            ResultOf(
-                &arolla::GetPayload<internal::Error>,
-                Property(&internal::Error::error_message,
-                         HasSubstr("shapes are not compatible: JaggedShape(1) "
-                                   "vs JaggedShape(3)"))))));
+        Pointee(StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)")));
   }
   {
     // Incompatible shapes for all missing inputs.
@@ -247,15 +242,9 @@ TEST(ArollaEval, SimplePointwiseEval) {
                 Eq("cannot align inputs to a common shape"));
     EXPECT_THAT(
         arolla::GetCause(status),
-        Pointee(AllOf(
-            StatusIs(
-                absl::StatusCode::kInvalidArgument,
-                "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)"),
-            ResultOf(
-                &arolla::GetPayload<internal::Error>,
-                Property(&internal::Error::error_message,
-                         HasSubstr("shapes are not compatible: JaggedShape(1) "
-                                   "vs JaggedShape(3)"))))));
+        Pointee(StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)")));
   }
   {
     // Arolla op compilation error.

@@ -26,11 +26,13 @@
 
 namespace koladata::internal {
 
-// Returns a status with a Koda error payload containing the given error message
-// and the given status as the cause.
+// Turns the given `status` into a Koda error and amends the error message with
+// the operator name.
 //
-// By default, the error message is taken from the status, but can be overridden
-// by passing a custom error_message.
+// By default the function does not put the original `status` as a cause, and
+// just amends its error message. However, if `error_message` is provided, or if
+// `status` has a non-Koda payload, it will create an new layer of Koda error,
+// keeping the original `status` as a cause.
 absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name);
 absl::Status OperatorEvalError(absl::Status status,
