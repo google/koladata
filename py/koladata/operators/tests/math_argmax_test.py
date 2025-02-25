@@ -43,7 +43,7 @@ QTYPES = frozenset([
 ])
 
 
-class MathArgminTest(parameterized.TestCase):
+class MathArgmaxTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds([1, 2, None, 3]), ds(3, schema_constants.INT64)),
