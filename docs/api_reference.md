@@ -1089,7 +1089,7 @@ Operators that work solely with entities.
 
 **Operators**
 
-### `kd.entities.like(shape_and_mask_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.like}
+### `kd.entities.like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.like}
 Aliases:
 
 - [kd.new_like](#kd.new_like)
@@ -1106,8 +1106,8 @@ Creates new Entities with the shape and sparsity from shape_and_mask_from.
       will be automatically created based on the schemas of the passed **attrs.
       You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
@@ -1116,7 +1116,7 @@ Creates new Entities with the shape and sparsity from shape_and_mask_from.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.entities.new(arg=unspecified, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.new}
+### `kd.entities.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.new}
 Aliases:
 
 - [kd.new](#kd.new)
@@ -1132,8 +1132,8 @@ Creates Entities with given attrs.
       will be automatically created based on the schemas of the passed **attrs.
       You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
       itemid will only be set when the args is not a primitive or primitive
       slice if args present.
@@ -1144,7 +1144,7 @@ Creates Entities with given attrs.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.entities.shaped(shape, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.shaped}
+### `kd.entities.shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.shaped}
 Aliases:
 
 - [kd.new_shaped](#kd.new_shaped)
@@ -1160,8 +1160,8 @@ Creates new Entities with the given shape.
       will be automatically created based on the schemas of the passed **attrs.
       You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
@@ -1170,7 +1170,7 @@ Creates new Entities with the given shape.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.entities.shaped_as(shape_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.shaped_as}
+### `kd.entities.shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.shaped_as}
 Aliases:
 
 - [kd.new_shaped_as](#kd.new_shaped_as)
@@ -1186,8 +1186,8 @@ Creates new Koda entities with shape of the given DataSlice.
       will be automatically created based on the schemas of the passed **attrs.
       You can also pass schema='name' as a shortcut for
       schema=kd.named_schema('name').
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
@@ -1196,7 +1196,7 @@ Creates new Koda entities with shape of the given DataSlice.
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.entities.uu(seed=None, *, schema=None, update_schema=False, db=None, **attrs)` {#kd.entities.uu}
+### `kd.entities.uu(seed=None, *, schema=None, overwrite_schema=False, db=None, **attrs)` {#kd.entities.uu}
 Aliases:
 
 - [kd.uu](#kd.uu)
@@ -1210,8 +1210,8 @@ Creates UuEntities with given attrs.
     seed: string to seed the uuid computation with.
     schema: optional DataSlice schema. If not specified, a UuSchema
       will be automatically created based on the schemas of the passed **attrs.
-    update_schema: if schema attribute is missing and the attribute is being set
-      through `attrs`, schema is successfully updated.
+    overwrite_schema: if schema attribute is missing and the attribute is being
+      set through `attrs`, schema is successfully updated.
     db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
@@ -7998,7 +7998,7 @@ Container that automatically names Exprs.
 
 Alias for [kd.schema.named_schema](#kd.schema.named_schema) operator.
 
-### `kd.new(arg=unspecified, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.new}
+### `kd.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.new}
 
 Alias for [kd.entities.new](#kd.entities.new) operator.
 
@@ -8034,7 +8034,7 @@ Alias for [kd.allocation.new_itemid_shaped](#kd.allocation.new_itemid_shaped) op
 
 Alias for [kd.allocation.new_itemid_shaped_as](#kd.allocation.new_itemid_shaped_as) operator.
 
-### `kd.new_like(shape_and_mask_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.new_like}
+### `kd.new_like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.new_like}
 
 Alias for [kd.entities.like](#kd.entities.like) operator.
 
@@ -8054,11 +8054,11 @@ Alias for [kd.allocation.new_listid_shaped](#kd.allocation.new_listid_shaped) op
 
 Alias for [kd.allocation.new_listid_shaped_as](#kd.allocation.new_listid_shaped_as) operator.
 
-### `kd.new_shaped(shape, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.new_shaped}
+### `kd.new_shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.new_shaped}
 
 Alias for [kd.entities.shaped](#kd.entities.shaped) operator.
 
-### `kd.new_shaped_as(shape_from, /, *, schema=None, update_schema=False, itemid=None, db=None, **attrs)` {#kd.new_shaped_as}
+### `kd.new_shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.new_shaped_as}
 
 Alias for [kd.entities.shaped_as](#kd.entities.shaped_as) operator.
 
@@ -8509,7 +8509,7 @@ Alias for [kd.core.updated](#kd.core.updated) operator.
 
 Alias for [kd.bags.updated](#kd.bags.updated) operator.
 
-### `kd.uu(seed=None, *, schema=None, update_schema=False, db=None, **attrs)` {#kd.uu}
+### `kd.uu(seed=None, *, schema=None, overwrite_schema=False, db=None, **attrs)` {#kd.uu}
 
 Alias for [kd.entities.uu](#kd.entities.uu) operator.
 
@@ -10678,7 +10678,7 @@ Copies all data from `other_bags` to this DataBag.
 Creates a named schema with ItemId derived only from its name.
 ```
 
-### `DataBag.new(arg, *, schema=None, update_schema=False, itemid=None, **attrs)` {#DataBag.new}
+### `DataBag.new(arg, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#DataBag.new}
 
 ``` {.no-copy}
 Creates Entities with given attrs.
@@ -10687,8 +10687,8 @@ Args:
   arg: optional Python object to be converted to an Entity.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
+  overwrite_schema: if schema attribute is missing and the attribute is being
+    set through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
     itemid will only be set when the args is not a primitive or primitive slice
     if args present.
@@ -10698,7 +10698,7 @@ Returns:
   data_slice.DataSlice with the given attrs.
 ```
 
-### `DataBag.new_like(shape_and_mask_from, *, schema=None, update_schema=False, itemid=None, **attrs)` {#DataBag.new_like}
+### `DataBag.new_like(shape_and_mask_from, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#DataBag.new_like}
 
 ``` {.no-copy}
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
@@ -10708,8 +10708,8 @@ Args:
     DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
+  overwrite_schema: if schema attribute is missing and the attribute is being
+    set through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
@@ -10723,7 +10723,7 @@ Returns:
 Creates new schema object with given types of attrs.
 ```
 
-### `DataBag.new_shaped(shape, *, schema=None, update_schema=False, itemid=None, **attrs)` {#DataBag.new_shaped}
+### `DataBag.new_shaped(shape, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#DataBag.new_shaped}
 
 ``` {.no-copy}
 Creates new Entities with the given shape.
@@ -10732,8 +10732,8 @@ Args:
   shape: JaggedShape that the returned DataSlice will have.
   schema: optional DataSlice schema. If not specified, a new explicit schema
     will be automatically created based on the schemas of the passed **attrs.
-  update_schema: if schema attribute is missing and the attribute is being set
-    through `attrs`, schema is successfully updated.
+  overwrite_schema: if schema attribute is missing and the attribute is being
+    set through `attrs`, schema is successfully updated.
   itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
   **attrs: attrs to set in the returned Entity.
 
@@ -10805,7 +10805,7 @@ QType of the stored value.
 Returns a representation of schema triples in the DataBag.
 ```
 
-### `DataBag.uu(seed, *, schema=None, update_schema=False, **kwargs)` {#DataBag.uu}
+### `DataBag.uu(seed, *, schema=None, overwrite_schema=False, **kwargs)` {#DataBag.uu}
 
 ``` {.no-copy}
 Creates an item whose ids are uuid(s) with the set attributes.
@@ -10828,7 +10828,7 @@ Args:
   seed: (str) Allows different item(s) to have different ids when created
     from the same inputs.
   schema: schema for the resulting DataSlice
-  update_schema: if true, will overwrite schema attributes in the schema's
+  overwrite_schema: if true, will overwrite schema attributes in the schema's
     corresponding db from the argument values.
   **kwargs: key-value pairs of object attributes where values are DataSlices
     or can be converted to DataSlices using kd.new.
