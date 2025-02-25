@@ -585,6 +585,42 @@ def agg_max(x, ndim=arolla.unspecified()):
   return _agg_max(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
+@optools.as_backend_operator('kd.math._argmax')
+def _argmax(x):  # pylint: disable=unused-argument
+  """Returns the index of the maximum of the items."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.argmax'])
+@optools.as_lambda_operator(
+    'kd.math.argmax',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+    ],
+)
+def argmax(x, ndim=arolla.unspecified()):
+  """Returns indices of the maximum of items along the last ndim dimensions.
+
+  The resulting DataSlice has `rank = rank - ndim` and shape: `shape =
+  shape[:-ndim]`.
+
+  Returns the index of NaN in case there is a NaN present.
+
+  Example:
+    ds = kd.slice([[2, None, 1], [3, 4], [None, None], [2, NaN, 1]])
+    kd.argmax(ds)  # -> kd.slice([0, 1, None, 1])
+    kd.argmax(ds, ndim=1)  # -> kd.slice([0, 1, None, 1])
+    kd.argmax(ds, ndim=2)  # -> kd.slice(8) # index of NaN
+
+  Args:
+    x: A DataSlice of numbers.
+    ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
+      <= get_ndim(x).
+  """
+  return _argmax(jagged_shape_ops.flatten_last_ndim(x, ndim))
+
+
 @optools.add_to_registry(aliases=['kd.max'])
 @optools.as_lambda_operator('kd.math.max')
 def _max(x):
@@ -662,6 +698,42 @@ def _min(x):
     x: A DataSlice of numbers.
   """
   return agg_min(jagged_shape_ops.flatten(x))
+
+
+@optools.as_backend_operator('kd.math._argmin')
+def _argmin(x):  # pylint: disable=unused-argument
+  """Returns the index of the minimum of the items."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.argmin'])
+@optools.as_lambda_operator(
+    'kd.math.argmin',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+    ],
+)
+def argmin(x, ndim=arolla.unspecified()):
+  """Returns indices of the minimum of items along the last ndim dimensions.
+
+  The resulting DataSlice has `rank = rank - ndim` and shape: `shape =
+  shape[:-ndim]`.
+
+  Returns the index of NaN in case there is a NaN present.
+
+  Example:
+    ds = kd.slice([[2, None, 1], [3, 4], [None, None], [2, NaN, 1]])
+    kd.argmin(ds)  # -> kd.slice([2, 0, None, 1])
+    kd.argmin(ds, ndim=1)  # -> kd.slice([2, 0, None, 1])
+    kd.argmin(ds, ndim=2)  # -> kd.slice(8) # index of NaN
+
+  Args:
+    x: A DataSlice of numbers.
+    ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
+      <= get_ndim(x).
+  """
+  return _argmin(jagged_shape_ops.flatten_last_ndim(x, ndim))
 
 
 @optools.as_backend_operator('kd.math._cum_min')

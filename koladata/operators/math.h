@@ -123,6 +123,12 @@ absl::StatusOr<DataSlice> AggMax(const DataSlice& x);
 // kd.math._agg_min.
 absl::StatusOr<DataSlice> AggMin(const DataSlice& x);
 
+// kd.math._argmax.
+absl::StatusOr<DataSlice> Argmax(const DataSlice& x);
+
+// kd.math._argmin.
+absl::StatusOr<DataSlice> Argmin(const DataSlice& x);
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_MATH_H_

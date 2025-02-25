@@ -254,9 +254,23 @@ absl::StatusOr<DataSlice> AggMax(const DataSlice& x) {
   return SimpleAggIntoEval("math.max", {x});
 }
 
+absl::StatusOr<DataSlice> Argmax(const DataSlice& x) {
+  RETURN_IF_ERROR(ExpectNumeric("x", x));
+  return SimpleAggIntoEval(
+      "math.argmax", {x},
+      /*output_schema=*/internal::DataItem(schema::kInt64));
+}
+
 absl::StatusOr<DataSlice> AggMin(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectNumeric("x", x));
   return SimpleAggIntoEval("math.min", {x});
+}
+
+absl::StatusOr<DataSlice> Argmin(const DataSlice& x) {
+  RETURN_IF_ERROR(ExpectNumeric("x", x));
+  return SimpleAggIntoEval(
+      "math.argmin", {x},
+      /*output_schema=*/internal::DataItem(schema::kInt64));
 }
 
 }  // namespace koladata::ops

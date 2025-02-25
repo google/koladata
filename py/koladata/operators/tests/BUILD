@@ -14,6 +14,7 @@
 
 # Tests for Koda Expr operators.
 
+load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_test")
 load(
     "//py/koladata/operators/tests/util:koda_operator_test_def.bzl",
@@ -2588,6 +2589,29 @@ py_test(
 )
 
 py_test(
+    name = "math_argmax_test",
+    srcs = ["math_argmax_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        requirement("numpy"),
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "math_agg_min_test",
     srcs = ["math_agg_min_test.py"],
     deps = [
@@ -2603,6 +2627,29 @@ py_test(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "math_argmin_test",
+    srcs = ["math_argmin_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        requirement("numpy"),
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
@@ -6332,6 +6379,17 @@ koda_operator_coverage_test(
 )
 
 koda_operator_coverage_test(
+    name = "kd_math_max_covers_math_argmax_test",
+    arolla_op = "math.argmax",
+    koda_op = "math.argmax",
+    shard_count = 16,  # Huge test.
+    skip_test_patterns = [
+        "(?i).*WEAK_FLOAT.*",
+        ".*uint64.*",
+    ],
+)
+
+koda_operator_coverage_test(
     name = "kd_math_cum_max_covers_math_cum_max_test",
     arolla_op = "math.cum_max",
     koda_op = "math.cum_max",
@@ -6345,6 +6403,17 @@ koda_operator_coverage_test(
     name = "kd_math_min_covers_math_min_test",
     arolla_op = "math.min",
     koda_op = "math.agg_min",
+    shard_count = 16,  # Huge test.
+    skip_test_patterns = [
+        "(?i).*WEAK_FLOAT.*",
+        ".*uint64.*",
+    ],
+)
+
+koda_operator_coverage_test(
+    name = "kd_math_argmin_covers_math_argmin_test",
+    arolla_op = "math.argmin",
+    koda_op = "math.argmin",
     shard_count = 16,  # Huge test.
     skip_test_patterns = [
         "(?i).*WEAK_FLOAT.*",

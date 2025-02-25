@@ -184,6 +184,8 @@ OPERATOR("kd.math._agg_min", AggMin, "kd.math.agg_min");
 OPERATOR("kd.math._agg_std", AggStd, "kd.math.agg_std");
 OPERATOR("kd.math._agg_sum", AggSum, "kd.math.agg_sum");
 OPERATOR("kd.math._agg_var", AggVar, "kd.math.agg_var");
+OPERATOR("kd.math._argmax", Argmax, "kd.math.argmax");
+OPERATOR("kd.math._argmin", Argmin, "kd.math.argmin");
 OPERATOR("kd.math._cdf", Cdf, "kd.math.cdf");
 OPERATOR("kd.math._cum_max", CumMax, "kd.math.cum_max");
 OPERATOR("kd.math._cum_min", CumMin, "kd.math.cum_min");
