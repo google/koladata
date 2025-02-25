@@ -1423,34 +1423,44 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
 
 absl::StatusOr<DataSlice> DataSlice::GetAttr(
     absl::string_view attr_name) const {
-  return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
-    internal::DataItem res_schema;
-    ASSIGN_OR_RETURN(
-        auto res,
-        GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
-                    /*allow_missing_schema=*/false),
-        AssembleErrorMessage(_, {.ds = *this}));
-    ASSIGN_OR_RETURN(
-        res, AlignDataWithSchema(std::move(res), GetSchemaImpl(), res_schema));
-    return DataSlice::Create(std::move(res), GetShape(), std::move(res_schema),
-                             GetBag());
-  });
+  ASSIGN_OR_RETURN(
+      auto result,
+      VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
+        internal::DataItem res_schema;
+        ASSIGN_OR_RETURN(
+            auto res,
+            GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
+                        /*allow_missing_schema=*/false),
+            AssembleErrorMessage(_, {.db = GetBag(), .ds = *this}));
+        ASSIGN_OR_RETURN(res, AlignDataWithSchema(std::move(res),
+                                                  GetSchemaImpl(), res_schema));
+        return DataSlice::Create(std::move(res), GetShape(),
+                                 std::move(res_schema), GetBag());
+      }),
+      internal::KodaErrorFromCause(
+          absl::StrFormat("failed to get attribute '%s'", attr_name), _));
+  return result;
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetAttrOrMissing(
     absl::string_view attr_name) const {
-  return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
-    internal::DataItem res_schema;
-    ASSIGN_OR_RETURN(
-        auto res,
-        GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
-                    /*allow_missing_schema=*/true),
-        AssembleErrorMessage(_, {.ds = *this}));
-    ASSIGN_OR_RETURN(
-        res, AlignDataWithSchema(std::move(res), GetSchemaImpl(), res_schema));
-    return DataSlice::Create(std::move(res), GetShape(), std::move(res_schema),
-                             GetBag());
-  });
+  ASSIGN_OR_RETURN(
+      auto result,
+      VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
+        internal::DataItem res_schema;
+        ASSIGN_OR_RETURN(
+            auto res,
+            GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
+                        /*allow_missing_schema=*/true),
+            AssembleErrorMessage(_, {.db = GetBag(), .ds = *this}));
+        ASSIGN_OR_RETURN(res, AlignDataWithSchema(std::move(res),
+                                                  GetSchemaImpl(), res_schema));
+        return DataSlice::Create(std::move(res), GetShape(),
+                                 std::move(res_schema), GetBag());
+      }),
+      internal::KodaErrorFromCause(
+          absl::StrFormat("failed to get attribute '%s'", attr_name), _));
+  return result;
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
@@ -1459,10 +1469,15 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
                    BroadcastToShape(default_value, GetShape()));
   return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto result_or_missing, GetAttrOrMissing(attr_name));
-    ASSIGN_OR_RETURN(auto result_schema,
-                     schema::CommonSchema(result_or_missing.GetSchemaImpl(),
-                                          default_value.GetSchemaImpl()),
-                     AssembleErrorMessage(_, {.ds = *this}));
+    ASSIGN_OR_RETURN(
+        auto result_schema,
+        schema::CommonSchema(result_or_missing.GetSchemaImpl(),
+                             default_value.GetSchemaImpl()),
+        internal::KodaErrorFromCause(
+            absl::StrFormat("failed to get attribute '%s' due to conflict with "
+                            "the schema from the default value",
+                            attr_name),
+            AssembleErrorMessage(_, {.db = GetBag(), .ds = *this})));
     auto result_db = DataBag::CommonDataBag({GetBag(), default_value.GetBag()});
     return DataSlice::Create(
         CoalesceWithFiltered(impl, result_or_missing.impl<T>(),

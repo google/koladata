@@ -53,6 +53,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -81,6 +82,7 @@ using ::testing::Eq;
 using ::testing::HasSubstr;
 using ::testing::MatchesRegex;
 using ::testing::Not;
+using ::testing::NotNull;
 using ::testing::Property;
 
 DataSlice::JaggedShape::Edge CreateEdge(
@@ -2170,15 +2172,17 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr) {
 
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
+  ASSERT_THAT(arolla::GetCause(result.status()), NotNull());
   std::optional<internal::Error> error =
-      internal::GetErrorPayload(result.status());
+      internal::GetErrorPayload(*arolla::GetCause(result.status()));
   ASSERT_TRUE(error.has_value());
   EXPECT_TRUE(error->has_missing_object_schema());
 
   result = ds_2.GetAttrWithDefault("a", test::DataItem(42));
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(result.status());
+  ASSERT_THAT(arolla::GetCause(result.status()), NotNull());
+  error = internal::GetErrorPayload(*arolla::GetCause(result.status()));
   ASSERT_TRUE(error.has_value());
   EXPECT_TRUE(error->has_missing_object_schema());
 
