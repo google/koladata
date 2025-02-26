@@ -18,7 +18,7 @@ import abc
 import functools
 import inspect
 import types as py_types
-from typing import Any, Callable, Collection, Mapping, Optional
+from typing import Any, Callable
 
 from arolla import arolla
 from koladata.expr import tracing_mode
@@ -179,24 +179,6 @@ def _wrap_with_from_and_to_kd(
   return wrapper
 
 
-def _to_kd_args_kwargs(
-    sig: inspect.Signature,
-    args: Collection[Any],
-    kwargs: Mapping[str, Any],
-) -> tuple[Collection[Any], Mapping[str, Any]]:
-  """Converts the arguments to Koda before calling the function."""
-  bound = sig.bind(*args, **kwargs)
-  # We don't call apply_defaults() here since the default values are
-  # stored in the functor already, which allows the user to edit the functor
-  # to change them if necessary.
-  for param in sig.parameters.values():
-    if param.name in bound.arguments:
-      bound.arguments[param.name] = _to_kd(
-          param.annotation, bound.arguments[param.name]
-      )
-  return bound.args, bound.kwargs
-
-
 class TraceAsFnDecorator:
   """A decorator to customize the tracing behavior for a particular function.
 
@@ -251,7 +233,7 @@ class TraceAsFnDecorator:
       name: str | None = None,
       py_fn: bool = False,
       return_type_as: Any = None,
-      wrapper: Optional[Callable[[py_types.FunctionType], Any]] = None,
+      wrapper: Callable[[py_types.FunctionType], Any] | None = None,
   ):
     """Initializes the decorator.
 
@@ -305,13 +287,29 @@ class TraceAsFnDecorator:
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
       __tracebackhide__ = True  # pylint: disable=invalid-name,unused-variable
-      args, kwargs = _to_kd_args_kwargs(sig, args, kwargs)
+
+      # Converts the arguments to Koda before calling the function.
+      try:
+        bound = sig.bind(*args, **kwargs)
+      except TypeError as ex:
+        ex.__traceback__ = None  # Clear existing traceback
+        raise  # Re-raise, excluding this function from the traceback
+
+      # We don't call apply_defaults() here since the default values are
+      # stored in the functor already, which allows the user to edit the functor
+      # to change them if necessary.
+      for param in sig.parameters.values():
+        if param.name in bound.arguments:
+          bound.arguments[param.name] = _to_kd(
+              param.annotation, bound.arguments[param.name]
+          )
+
       if tracing_mode.is_tracing_enabled():
-        res = to_call(*args, **kwargs, return_type_as=return_type_as).with_name(
-            f'{name}_result'
-        )
+        res = to_call(
+            *bound.args, **bound.kwargs, return_type_as=return_type_as
+        ).with_name(f'{name}_result')
       else:
-        res = kd_fn(*args, **kwargs)
+        res = kd_fn(*bound.args, **bound.kwargs)
         if isinstance(res, arolla.Expr):
           raise ValueError(
               f'The function [{name}] annotated with @kd.trace_as_fn() was'

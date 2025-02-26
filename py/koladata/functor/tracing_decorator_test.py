@@ -443,6 +443,24 @@ class TracingDecoratorTest(parameterized.TestCase):
     ):
       _ = f(5)
 
+  def test_functor_wrong_arg_count_traceback(self):
+    @tracing_decorator.TraceAsFnDecorator()
+    def f(x, y):
+      return x // y
+
+    try:
+      f(0)
+    except (TypeError, exceptions.KodaError) as e:
+      ex = e
+
+    formatted_message = '\n'.join(
+        ultratb.VerboseTB(
+            color_scheme='NoColor', include_vars=False
+        ).structured_traceback(type(ex), ex, ex.__traceback__)
+    )
+    self.assertIn('/tracing_decorator_test.py', formatted_message)
+    self.assertNotIn('/tracing_decorator.py', formatted_message)
+
   def test_functor_call_traceback(self):
     @tracing_decorator.TraceAsFnDecorator()
     def f(x, y):
