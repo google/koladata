@@ -12,9 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import mock
-import warnings
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -402,11 +399,15 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(C.x.stub(), kde.stub(C.x))
 
   def test_with_attrs(self):
-    testing.assert_equal(C.x.with_attrs(a=C.a), kde.with_attrs(C.x, a=C.a))
+    testing.assert_equal(
+        C.x.with_attrs(a=C.a, overwrite_schema=False),
+        kde.with_attrs(C.x, a=C.a, overwrite_schema=False)
+    )
 
   def test_with_attr(self):
     testing.assert_equal(
-        C.x.with_attr('a', C.a, False), kde.with_attr(C.x, 'a', C.a, False)
+        C.x.with_attr('a', C.a, overwrite_schema=False),
+        kde.with_attr(C.x, 'a', C.a, overwrite_schema=False)
     )
 
   def test_take(self):
@@ -727,30 +728,16 @@ class KodaViewTest(parameterized.TestCase):
     entity = kde.new(x=1)
 
     with self.subTest('with_attrs'):
-      with mock.patch.object(warnings, 'warn') as mock_warn:
-        testing.assert_equal(
-            entity.with_attrs(x='2', overwrite_schema=True).x.eval().no_bag(),
-            ds('2')
-        )
-        mock_warn.assert_not_called()
-        testing.assert_equal(
-            entity.with_attrs(x='2', update_schema=True).x.eval().no_bag(),
-            ds('2')
-        )
-        mock_warn.assert_called_once()
+      with self.assertRaisesRegex(
+          ValueError, 'update_schema argument is deprecated'
+      ):
+        entity.with_attrs(x='2', update_schema=True)
 
     with self.subTest('with_attr'):
-      with mock.patch.object(warnings, 'warn') as mock_warn:
-        testing.assert_equal(
-            entity.with_attr('x', '2', overwrite_schema=True).x.eval().no_bag(),
-            ds('2')
-        )
-        mock_warn.assert_not_called()
-        testing.assert_equal(
-            entity.with_attr('x', '2', update_schema=True).x.eval().no_bag(),
-            ds('2')
-        )
-        mock_warn.assert_called_once()
+      with self.assertRaisesRegex(
+          ValueError, 'update_schema argument is deprecated'
+      ):
+        entity.with_attr('x', '2', update_schema=True)
 
 
 if __name__ == '__main__':

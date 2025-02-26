@@ -324,13 +324,6 @@ def attrs_repr(op_impl):
   return repr_fn
 
 
-def fetch_overwrite_schema(update_schema, overwrite_schema):
-  update_schema = data_slice.get_overwrite_schema(update_schema)
-  return update_schema & (
-      update_schema != py_boxing.as_qvalue(False)
-  ) | overwrite_schema
-
-
 def _attrs_op_bind_args(op_impl):
   """Argument binding policy for `kd.core.attrs` and `kd.core.with_attrs`."""
   sig = arolla.abc.get_operator_signature(op_impl)
@@ -342,7 +335,7 @@ def _attrs_op_bind_args(op_impl):
       overwrite_schema=False,
       **attrs,
   ):
-    overwrite_schema = fetch_overwrite_schema(update_schema, overwrite_schema)
+    data_slice.verify_update_schema(update_schema)
     return arolla.abc.aux_bind_arguments(
         sig, x, overwrite_schema=overwrite_schema, **attrs
     )
@@ -401,7 +394,7 @@ def _attr_op_bind_args(op_impl):
       update_schema=None,
       overwrite_schema=False,
   ):
-    overwrite_schema = fetch_overwrite_schema(update_schema, overwrite_schema)
+    data_slice.verify_update_schema(update_schema)
     return arolla.abc.aux_bind_arguments(
         sig, x, attr_name, value, overwrite_schema=overwrite_schema,
     )

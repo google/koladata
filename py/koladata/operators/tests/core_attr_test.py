@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import re
-from unittest import mock
-import warnings
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -47,16 +45,12 @@ QTYPES = frozenset([
 
 class CoreAttrTest(parameterized.TestCase):
 
-  def test_warning(self):
+  def test_update_schema_arg_error(self):
     o = kde.new(x=1, y=10).eval()
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      db2 = kde.core.attr(o, 'x', b'2', update_schema=True).eval()
-      mock_warn.assert_called_once()
-    testing.assert_equal(o.updated(db2).x.no_bag(), ds(b'2'))
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      db2 = kde.core.attr(o, 'x', b'2', overwrite_schema=True).eval()
-      mock_warn.assert_not_called()
-    testing.assert_equal(o.updated(db2).x.no_bag(), ds(b'2'))
+    with self.assertRaisesRegex(
+        ValueError, 'update_schema argument is deprecated'
+    ):
+      _ = kde.core.attr(o, 'x', b'2', update_schema=True)
 
   @parameterized.parameters(
       (bag(), '~3!_3', 42),
@@ -72,31 +66,6 @@ class CoreAttrTest(parameterized.TestCase):
     self.assertNotEqual(res.fingerprint, db.fingerprint)
     testing.assert_equivalent(res, db)
     self.assertFalse(res.is_mutable())
-
-  # NOTE: Other combinations are tested in other test cases.
-  def test_update_and_overwrite_schema_combo(self):
-    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
-    x = kde.new(schema=schema).eval()
-    db = kde.core.attr(
-        x, 'a', 42,
-        update_schema=True,
-        overwrite_schema=True,
-    ).eval()
-    testing.assert_equal(x.updated(db).a.no_bag(), ds(42))
-
-    db = kde.core.attr(
-        x, 'a', 42,
-        update_schema=ds(False),
-        overwrite_schema=True,
-    ).eval()
-    testing.assert_equal(x.updated(db).a.no_bag(), ds(42))
-
-    db = kde.core.attr(
-        x, 'a', 42,
-        update_schema=False,
-        overwrite_schema=False,
-    ).eval()
-    testing.assert_equal(x.updated(db).a.no_bag(), ds(42.))
 
   def test_entity_as_obj_conflict(self):
     o = kde.stack(
@@ -125,7 +94,7 @@ class CoreAttrTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         'argument `overwrite_schema` must be an item holding BOOLEAN, got an '
-        'item of OBJECT containing INT32 values',
+        'item of INT32',
     ):
       kde.core.attr(o, 'x', 2, overwrite_schema=1).eval()
     with self.assertRaisesRegex(

@@ -1218,7 +1218,7 @@ class DataSliceTest(parameterized.TestCase):
       with self.assertRaisesRegex(
           TypeError, 'expected bool for `overwrite_schema`, got: int'
       ):
-        x.set_attr('invalid__overwrite_schema_type', 1, False, 42)
+        x.set_attr('invalid__overwrite_schema_type', 1, None, 42)
 
   def test_set_attr_incompatible_schema(self):
     db = bag()
@@ -3620,31 +3620,20 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(obj2.y.no_bag(), ds(2))
     testing.assert_equal(obj2.z.no_bag(), ds(4))
 
-  def test_with_attrs_update_schema(self):
+  def test_with_attrs_update_schema_arg_error(self):
     entity = bag().new(x=1)
 
     with self.subTest('with_attrs'):
-      with mock.patch.object(warnings, 'warn') as mock_warn:
-        testing.assert_equal(
-            entity.with_attrs(x='2', overwrite_schema=True).x.no_bag(), ds('2')
-        )
-        mock_warn.assert_not_called()
-        testing.assert_equal(
-            entity.with_attrs(x='2', update_schema=True).x.no_bag(), ds('2')
-        )
-        mock_warn.assert_called_once()
+      with self.assertRaisesRegex(
+          ValueError, 'update_schema argument is deprecated'
+      ):
+        entity.with_attrs(x='2', update_schema=True)
 
     with self.subTest('with_attr'):
-      with mock.patch.object(warnings, 'warn') as mock_warn:
-        testing.assert_equal(
-            entity.with_attr('x', '2', overwrite_schema=True).x.no_bag(),
-            ds('2')
-        )
-        mock_warn.assert_not_called()
-        testing.assert_equal(
-            entity.with_attr('x', '2', update_schema=True).x.no_bag(), ds('2')
-        )
-        mock_warn.assert_called_once()
+      with self.assertRaisesRegex(
+          ValueError, 'update_schema argument is deprecated'
+      ):
+        entity.with_attr('x', '2', update_schema=True)
 
   # More comprehensive tests are in the test_core_subslice.py.
   @parameterized.parameters(

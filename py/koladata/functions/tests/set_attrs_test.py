@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import re
-from unittest import mock
-import warnings
 
 from absl.testing import absltest
 from koladata.exceptions import exceptions
@@ -30,25 +28,10 @@ class SetAttrsTest(absltest.TestCase):
 
   def test_warning(self):
     x = fns.new().fork_bag()
-    with mock.patch.object(warnings, 'warn') as mock_warn:
+    with self.assertRaisesRegex(
+        ValueError, 'update_schema argument is deprecated'
+    ):
       fns.set_attrs(x, xyz='12', update_schema=True)
-      testing.assert_equal(x.xyz.no_bag(), ds('12'))
-      mock_warn.assert_called_once()
-
-  def test_update_and_overwrite_schema_combo(self):
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
-
-    x = fns.new(schema=schema).fork_bag()
-    fns.set_attrs(x, a=42, update_schema=True, overwrite_schema=True)
-    testing.assert_equal(x.a.no_bag(), ds(42))
-
-    x = fns.new(schema=schema).fork_bag()
-    fns.set_attrs(x, a=42, update_schema=False, overwrite_schema=True)
-    testing.assert_equal(x.a.no_bag(), ds(42))
-
-    x = fns.new(schema=schema).fork_bag()
-    fns.set_attrs(x, a=42, update_schema=False, overwrite_schema=False)
-    testing.assert_equal(x.a.no_bag(), ds(42.))
 
   def test_entity(self):
     x = fns.new(a=ds(1, schema_constants.INT64), b='a').fork_bag()

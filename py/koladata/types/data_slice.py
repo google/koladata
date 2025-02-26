@@ -39,16 +39,13 @@ def _get_docstring(op_name: str) -> str | None:
 
 
 # TODO: Remove after `update_schema` is fully deprecated.
-def get_overwrite_schema(update_schema: bool | None) -> bool:
-  """Helper function to convert update_schema argument to overwrite_schema."""
+def verify_update_schema(update_schema: bool | None):
+  """Helper function to make sure update_schema argument is not used."""
   if update_schema is not None:
-    warnings.warn(
+    raise ValueError(
         'update_schema argument is deprecated, please use overwrite_schema, '
-        'instead',
-        RuntimeWarning,
+        'instead'
     )
-    return update_schema
-  return False
 
 
 def add_method(cls, method_name: str, docstring_from: str | None = None):
@@ -572,7 +569,7 @@ def _set_attr(
     overwrite_schema: bool = False,
 ) -> DataSlice:
   """Sets an attribute `attr_name` to `value`."""
-  overwrite_schema = get_overwrite_schema(update_schema) or overwrite_schema
+  verify_update_schema(update_schema)
   self._set_attr(attr_name, value, overwrite_schema)  # pylint: disable=protected-access
 
 
@@ -595,7 +592,7 @@ def _set_attrs(
     **attrs: attribute values that are converted to DataSlices with DataBag
       adoption.
   """
-  overwrite_schema = get_overwrite_schema(update_schema) or overwrite_schema
+  verify_update_schema(update_schema)
   self._set_attrs(overwrite_schema=overwrite_schema, **attrs)  # pylint: disable=protected-access
 
 

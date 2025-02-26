@@ -13,8 +13,6 @@
 # limitations under the License.
 
 import re
-from unittest import mock
-import warnings
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -46,16 +44,12 @@ QTYPES = frozenset([
 
 class CoreWithAttrTest(parameterized.TestCase):
 
-  def test_warning(self):
+  def test_update_schema_arg_error(self):
     o = kde.new(x=1, y=10).eval()
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      o2 = kde.core.with_attr(o, 'x', b'2', update_schema=True).eval()
-      mock_warn.assert_called_once()
-    testing.assert_equal(o2.x.no_bag(), ds(b'2'))
-    with mock.patch.object(warnings, 'warn') as mock_warn:
-      o2 = kde.core.with_attr(o, 'x', b'2', overwrite_schema=True).eval()
-      mock_warn.assert_not_called()
-    testing.assert_equal(o2.x.no_bag(), ds(b'2'))
+    with self.assertRaisesRegex(
+        ValueError, 'update_schema argument is deprecated'
+    ):
+      _ = kde.core.with_attr(o, 'x', b'2', update_schema=True)
 
   @parameterized.parameters(
       (bag(), '~3!_3', 42),
@@ -73,30 +67,6 @@ class CoreWithAttrTest(parameterized.TestCase):
     )
     self.assertFalse(res.is_mutable())
 
-  # NOTE: Other combinations are tested in other test cases.
-  def test_update_and_overwrite_schema_combo(self):
-    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
-    x = kde.core.with_attr(
-        kde.new(schema=schema), 'a', 42,
-        update_schema=True,
-        overwrite_schema=True,
-    ).eval()
-    testing.assert_equal(x.a.no_bag(), ds(42))
-
-    x = kde.core.with_attr(
-        kde.new(schema=schema), 'a', 42,
-        update_schema=ds(False),
-        overwrite_schema=True,
-    ).eval()
-    testing.assert_equal(x.a.no_bag(), ds(42))
-
-    x = kde.core.with_attr(
-        kde.new(schema=schema), 'a', 42,
-        update_schema=False,
-        overwrite_schema=False,
-    ).eval()
-    testing.assert_equal(x.a.no_bag(), ds(42.))
-
   def test_entity_as_obj_conflict(self):
     o = kde.stack(
         bag().obj(bag().new(x='1', y=10)), bag().obj(bag().new(x=2, y=20))
@@ -105,7 +75,7 @@ class CoreWithAttrTest(parameterized.TestCase):
         exceptions.KodaError, "the schema for attribute 'x' is incompatible."
     ):
       _ = kde.core.with_attr(o, 'x', '2').eval()
-    o1 = kde.core.with_attr(o, 'x', '2', update_schema=True).eval()
+    o1 = kde.core.with_attr(o, 'x', '2', overwrite_schema=True).eval()
     testing.assert_equal(o1.x.no_bag(), ds(['2', '2']))
 
   def test_invalid_attr_name(self):
@@ -128,7 +98,7 @@ class CoreWithAttrTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         'argument `overwrite_schema` must be an item holding BOOLEAN, got an '
-        'item of OBJECT containing INT32 values',
+        'item of INT32',
     ):
       kde.core.with_attr(o, 'x', 2, overwrite_schema=1).eval()
     with self.assertRaisesRegex(
