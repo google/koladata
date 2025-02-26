@@ -78,6 +78,16 @@ class CoreWithAttrTest(parameterized.TestCase):
     o1 = kde.core.with_attr(o, 'x', '2', overwrite_schema=True).eval()
     testing.assert_equal(o1.x.no_bag(), ds(['2', '2']))
 
+  def test_attr_update_on_objects(self):
+    o = kde.obj(x=3.14).eval()
+    o1 = kde.core.with_attr(o, 'x', '2').eval()
+    testing.assert_equal(o1.x.no_bag(), ds('2'))
+
+  def test_attr_update_implicit_casting(self):
+    o = kde.new(x=3.14).eval()
+    o1 = kde.core.with_attr(o, 'x', 42).eval()
+    testing.assert_equal(o1.x.no_bag(), ds(42.0))
+
   def test_invalid_attr_name(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(

@@ -124,6 +124,11 @@ class CoreAttrsTest(absltest.TestCase):
     db2 = kde.core.attrs(o, x='2', overwrite_schema=True).eval()
     testing.assert_equal(o.updated(db2).x.no_bag(), ds(['2', '2']))
 
+  def test_attr_update_implicit_casting(self):
+    o = kde.new(x=3.14).eval()
+    db = kde.core.attrs(o, x=42).eval()
+    testing.assert_equal(o.updated(db).x.no_bag(), ds(42.0))
+
   def test_empty_slice(self):
     entity = kde.new_like(ds([])).eval()
     db = kde.core.attrs(entity, x=ds([], schema_constants.OBJECT)).eval()

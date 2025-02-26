@@ -371,7 +371,34 @@ def _attrs(
     overwrite_schema=py_boxing.as_qvalue(False),
     attrs=arolla.namedtuple(),
 ):
-  """Returns a new DataBag containing attribute updates for `x`."""
+  """Returns a new DataBag containing attribute updates for `x`.
+
+  Most common usage is to build an update using kd.attrs and than attach it as a
+  DataBag update to the DataSlice.
+
+  Example:
+    x = ...
+    attr_update = kd.attrs(x, foo=..., bar=...)
+    x = x.updated(attr_update)
+
+  In case some attribute "foo" already exists and the update contains "foo",
+  either:
+    1) the schema of "foo" in the update must be implicitly castable to
+       `x.foo.get_schema()`; or
+    2) `x` is an OBJECT, in which case schema for "foo" will be overwritten.
+
+  An exception to (2) is if it was an Entity that was casted to an OBJECT using
+  kd.obj, e.g. then update for "foo" also must be castable to
+  `x.foo.get_schema()`. If this is not the case, an Error is raised.
+
+  This behavior can be overwritten by passing `overwrite=True`, which will cause
+  the schema for attributes to always be updated.
+
+  Args:
+    x: Entity / Object for which the attributes update is being created.
+    overwrite_schema: if True, schema for attributes is always updated.
+    **attrs: attrs to set in the update.
+  """
   return arolla.abc.bind_op(_attrs_impl, x, overwrite_schema, attrs)
 
 
@@ -428,7 +455,21 @@ def _attr_impl(x, attr_name, value, overwrite_schema=False):
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.core.attr]',
 )
 def _attr(x, attr_name, value, overwrite_schema=py_boxing.as_qvalue(False)):
-  """Returns a new DataBag containing attribute `attr_name` update for `x`."""
+  """Returns a new DataBag containing attribute `attr_name` update for `x`.
+
+  This operator is useful if attr_name cannot be used as a key in keyword
+  arguments. E.g.: "123-f", "5", "%#$", etc. It still has to be a valid utf-8
+  unicode.
+
+  See kd.attrs docstring for more details on the rules and regarding `overwrite`
+  argument.
+
+  Args:
+    x: Entity / Object for which the attribute update is being created.
+    attr_name: utf-8 unicode representing the attribute name.
+    value: new value for attribute `attr_name`.
+    overwrite_schema: if True, schema for attribute is always updated.
+  """
   return _attr_impl(x, attr_name, value, overwrite_schema=overwrite_schema)
 
 
@@ -468,7 +509,33 @@ def with_attrs(
     overwrite_schema=py_boxing.as_qvalue(False),
     attrs=arolla.namedtuple(),
 ):
-  """Returns a DataSlice with a new DataBag containing updated attributes."""
+  """Returns a DataSlice with a new DataBag containing updated attrs in `x`.
+
+  This is a shorter version of `x.updated(kd.attrs(x, ...))`.
+
+  Example:
+    x = x.with_attrs(foo=..., bar=...)
+    # Or equivalent:
+    # x = kd.with_attrs(x, foo=..., bar=...)
+
+  In case some attribute "foo" already exists and the update contains "foo",
+  either:
+    1) the schema of "foo" in the update must be implicitly castable to
+       `x.foo.get_schema()`; or
+    2) `x` is an OBJECT, in which case schema for "foo" will be overwritten.
+
+  An exception to (2) is if it was an Entity that was casted to an OBJECT using
+  kd.obj, e.g. then update for "foo" also must be castable to
+  `x.foo.get_schema()`. If this is not the case, an Error is raised.
+
+  This behavior can be overwritten by passing `overwrite=True`, which will cause
+  the schema for attributes to always be updated.
+
+  Args:
+    x: Entity / Object for which the attributes update is being created.
+    overwrite_schema: if True, schema for attributes is always updated.
+    **attrs: attrs to set in the update.
+  """
   return arolla.abc.bind_op(with_attrs_impl, x, overwrite_schema, attrs)
 
 
@@ -506,7 +573,21 @@ def with_attr_impl(x, attr_name, value, overwrite_schema=False):
     experimental_aux_policy='koladata_adhoc_binding_policy[kd.core.with_attr]',
 )
 def with_attr(x, attr_name, value, overwrite_schema=py_boxing.as_qvalue(False)):
-  """Returns a DataSlice with a new DataBag containing a single updated attribute."""
+  """Returns a DataSlice with a new DataBag containing a single updated attribute.
+
+  This operator is useful if attr_name cannot be used as a key in keyword
+  arguments. E.g.: "123-f", "5", "%#$", etc. It still has to be a valid utf-8
+  unicode.
+
+  See kd.with_attrs docstring for more details on the rules and regarding
+  `overwrite` argument.
+
+  Args:
+    x: Entity / Object for which the attribute update is being created.
+    attr_name: utf-8 unicode representing the attribute name.
+    value: new value for attribute `attr_name`.
+    overwrite_schema: if True, schema for attribute is always updated.
+  """
   return with_attr_impl(x, attr_name, value, overwrite_schema=overwrite_schema)
 
 

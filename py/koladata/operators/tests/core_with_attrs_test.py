@@ -70,6 +70,16 @@ class CoreWithAttrsTest(absltest.TestCase):
     testing.assert_equal(o1.b.no_bag(), ds('p'))
     testing.assert_equal(o1.c[:].no_bag(), ds([1, 2]))
 
+  def test_attr_update_on_objects(self):
+    o = kde.obj(x=3.14).eval()
+    o1 = kde.core.with_attrs(o, x='2').eval()
+    testing.assert_equal(o1.x.no_bag(), ds('2'))
+
+  def test_attr_update_implicit_casting(self):
+    o = kde.new(x=3.14).eval()
+    o1 = kde.core.with_attrs(o, x=42).eval()
+    testing.assert_equal(o1.x.no_bag(), ds(42.0))
+
   def test_error_primitives(self):
     with self.assertRaisesRegex(
         ValueError, 'primitives do not have attributes, got INT32'
