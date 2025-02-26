@@ -37,16 +37,6 @@ using ::arolla::python::PyObjectPtr;
 
 absl::NoDestructor<arolla::python::PyObjectPtr> exception_factory;
 
-absl::Nullable<PyObject*> CreateKodaException(const internal::Error& error) {
-  std::string serialized_error;
-  // TODO: b/374841918 - Avoid serialization.
-  error.SerializeToString(&serialized_error);
-  PyObjectPtr py_serialized_error = PyObjectPtr::Own(PyBytes_FromStringAndSize(
-      serialized_error.data(), serialized_error.size()));
-  return PyObject_CallOneArg(exception_factory->get(),
-                             py_serialized_error.release());
-}
-
 bool HandleKodaPyErrStatus(const absl::Status& status) {
   const auto* error = arolla::GetPayload<internal::Error>(status);
   if (error == nullptr) {
@@ -56,11 +46,24 @@ bool HandleKodaPyErrStatus(const absl::Status& status) {
     PyErr_SetString(PyExc_AssertionError, "Koda exception factory is not set");
     return true;
   }
-  PyObject* py_exception = CreateKodaException(*error);
-  if (py_exception == nullptr || Py_IsNone(py_exception)) {
+  // TODO: b/374841918 - Avoid serialization.
+  std::string serialized_error;
+  error->SerializeToString(&serialized_error);
+  auto py_serialized_error = PyObjectPtr::Own(PyBytes_FromStringAndSize(
+      serialized_error.data(), serialized_error.size()));
+  if (py_serialized_error == nullptr) {
+    return true;  // Error already set.
+  }
+  auto py_exception = PyObjectPtr::Own(
+      PyObject_CallOneArg(exception_factory->get(), py_serialized_error.get()));
+  if (py_exception == nullptr) {
+    return true;  // Error already set.
+  }
+  if (Py_IsNone(py_exception.get())) {
     return false;
   }
-  PyErr_SetObject((PyObject*)Py_TYPE(py_exception), py_exception);
+  PyErr_SetObject(reinterpret_cast<PyObject*>(Py_TYPE(py_exception.get())),
+                  py_exception.get());
   return true;
 }
 
@@ -74,7 +77,7 @@ absl::Nullable<PyObject*> PyRegisterExceptionFactory(PyObject* /*module*/,
   Py_RETURN_NONE;
 }
 
-AROLLA_INITIALIZER(.init_fn = []() -> absl::Status {
+AROLLA_INITIALIZER(.init_fn = [] {
   return arolla::python::RegisterStatusHandler(HandleKodaPyErrStatus);
 })
 
