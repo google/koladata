@@ -3349,6 +3349,56 @@ Args:
     <= get_ndim(x).
 ```
 
+### `kd.math.argmax(x, ndim=unspecified)` {#kd.math.argmax}
+Aliases:
+
+- [kd.argmax](#kd.argmax)
+
+``` {.no-copy}
+Returns indices of the maximum of items along the last ndim dimensions.
+
+The resulting DataSlice has `rank = rank - ndim` and shape: `shape =
+shape[:-ndim]`.
+
+Returns the index of NaN in case there is a NaN present.
+
+Example:
+  ds = kd.slice([[2, None, 1], [3, 4], [None, None], [2, NaN, 1]])
+  kd.argmax(ds)  # -> kd.slice([0, 1, None, 1])
+  kd.argmax(ds, ndim=1)  # -> kd.slice([0, 1, None, 1])
+  kd.argmax(ds, ndim=2)  # -> kd.slice(8) # index of NaN
+
+Args:
+  x: A DataSlice of numbers.
+  ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
+    <= get_ndim(x).
+```
+
+### `kd.math.argmin(x, ndim=unspecified)` {#kd.math.argmin}
+Aliases:
+
+- [kd.argmin](#kd.argmin)
+
+``` {.no-copy}
+Returns indices of the minimum of items along the last ndim dimensions.
+
+The resulting DataSlice has `rank = rank - ndim` and shape: `shape =
+shape[:-ndim]`.
+
+Returns the index of NaN in case there is a NaN present.
+
+Example:
+  ds = kd.slice([[2, None, 1], [3, 4], [None, None], [2, NaN, 1]])
+  kd.argmin(ds)  # -> kd.slice([2, 0, None, 1])
+  kd.argmin(ds, ndim=1)  # -> kd.slice([2, 0, None, 1])
+  kd.argmin(ds, ndim=2)  # -> kd.slice(8) # index of NaN
+
+Args:
+  x: A DataSlice of numbers.
+  ndim: The number of dimensions to compute indices over. Requires 0 <= ndim
+    <= get_ndim(x).
+```
+
 ### `kd.math.cdf(x, weights=unspecified, ndim=unspecified)` {#kd.math.cdf}
 
 ``` {.no-copy}
@@ -7225,6 +7275,14 @@ Alias for [kd.py.apply_py_on_cond](#kd.py.apply_py_on_cond) operator.
 ### `kd.apply_py_on_selected(fn, cond, *args, **kwargs)` {#kd.apply_py_on_selected}
 
 Alias for [kd.py.apply_py_on_selected](#kd.py.apply_py_on_selected) operator.
+
+### `kd.argmax(x, ndim=unspecified)` {#kd.argmax}
+
+Alias for [kd.math.argmax](#kd.math.argmax) operator.
+
+### `kd.argmin(x, ndim=unspecified)` {#kd.argmin}
+
+Alias for [kd.math.argmin](#kd.math.argmin) operator.
 
 ### `kd.at(x, indices)` {#kd.at}
 
