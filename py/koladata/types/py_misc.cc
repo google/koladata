@@ -16,6 +16,8 @@
 
 #include <Python.h>
 
+#include <utility>
+
 #include "absl/base/nullability.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
