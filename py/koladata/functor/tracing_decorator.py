@@ -160,6 +160,7 @@ def _wrap_with_from_and_to_kd(
   )
 
   def wrapper(*args: Any, **kwargs: Any) -> Any:
+    __tracebackhide__ = True  # pylint: disable=invalid-name, unused-variable
     if params_with_custom_config:
       bound = wrapper_sig.bind(*args, **kwargs)
       bound.apply_defaults()
@@ -303,6 +304,7 @@ class TraceAsFnDecorator:
 
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
+      __tracebackhide__ = True  # pylint: disable=invalid-name,unused-variable
       args, kwargs = _to_kd_args_kwargs(sig, args, kwargs)
       if tracing_mode.is_tracing_enabled():
         res = to_call(*args, **kwargs, return_type_as=return_type_as).with_name(

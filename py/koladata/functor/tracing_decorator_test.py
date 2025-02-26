@@ -17,7 +17,9 @@ from typing import Any, ClassVar, Self
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from IPython.core import ultratb
 from koladata import kd as user_facing_kd
+from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.functions import functions as fns
@@ -440,6 +442,24 @@ class TracingDecoratorTest(parameterized.TestCase):
         ValueError, 'computation returned an Expr instead'
     ):
       _ = f(5)
+
+  def test_functor_call_traceback(self):
+    @tracing_decorator.TraceAsFnDecorator()
+    def f(x, y):
+      return x // y
+
+    try:
+      f(0, 0)
+    except exceptions.KodaError as e:
+      ex = e
+
+    formatted_message = '\n'.join(
+        ultratb.VerboseTB(
+            color_scheme='NoColor', include_vars=False
+        ).structured_traceback(type(ex), ex, ex.__traceback__)
+    )
+    self.assertIn('/tracing_decorator_test.py', formatted_message)
+    self.assertNotIn('/tracing_decorator.py', formatted_message)
 
 
 if __name__ == '__main__':

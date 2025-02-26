@@ -14,6 +14,7 @@
 
 # Python tools for working with Koda functors.
 
+load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
@@ -164,7 +165,9 @@ py_test(
     deps = [
         ":functor_factories",
         ":tracing_decorator",
+        requirement("ipython"),
         "//py/koladata:kd",
+        "//py/koladata/exceptions",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/functions",
