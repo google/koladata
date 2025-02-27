@@ -938,22 +938,27 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
     AdoptionQueue adoption_queue(arolla::EvaluationOptions{
         .cancellation_context = &cancellation_context,
     });
+    std::optional<DataSlice> item_schema_for_boxing;
+    if (item_schema.has_value()) {
+      RETURN_IF_ERROR(item_schema->VerifyIsSchema())
+          .With(arolla::python::SetPyErrFromStatus);
+      item_schema_for_boxing = item_schema;
+    } else if (schema.has_value()) {
+      ASSIGN_OR_RETURN(item_schema_for_boxing, ops::GetItemSchema(*schema),
+                      arolla::python::SetPyErrFromStatus(_));
+    }
     // NOTE: We only pass OBJECT schemas as the 3rd parameter, so that we do
     // not trigger the (explicit) casting logic in boxing.cc, and leave casting
     // to object_factories.cc which has more constrained (implicit) casting
     // logic and better error messages.
-    if (item_schema.has_value()) {
-      RETURN_IF_ERROR(item_schema->VerifyIsSchema())
-          .With(arolla::python::SetPyErrFromStatus);
+    if (item_schema_for_boxing.has_value() &&
+        !item_schema_for_boxing->item().is_object_schema()) {
+      item_schema_for_boxing = std::nullopt;
     }
     ASSIGN_OR_RETURN(
         auto values,
-        DataSliceFromPyValue(
-            py_values, adoption_queue,
-            /*schema=*/
-            (item_schema.has_value() && item_schema->item().is_object_schema())
-                ? item_schema
-                : std::nullopt),
+        DataSliceFromPyValue(py_values, adoption_queue,
+                             /*schema=*/item_schema_for_boxing),
         arolla::python::SetPyErrFromStatus(_));
     // Replacing the DataBag to avoid double adoption.
     values = values.WithBag(self_db);

@@ -70,6 +70,15 @@ class ListTest(parameterized.TestCase):
             db=db,
         )[:],
     )
+    testing.assert_equal(
+        fns.list(
+            [1, 2.0], schema=fns.list_schema(schema_constants.OBJECT), db=db
+        )[:],
+        kd.implode(
+            data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT),
+            db=db,
+        )[:],
+    )
 
   def test_item_with_values(self):
     l = fns.list([1, 2, 3])
@@ -226,6 +235,12 @@ Assigned schema for List item: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""
         r"""schema can only be 0-rank schema slice, got: rank\(1\)""",
     ):
       _ = fns.list([1, 3.14], item_schema=kd.slice([kd.OBJECT]))
+
+    with self.assertRaisesRegex(
+        ValueError,
+        r"""expected List schema for get_item_schema, got DataItem\(INT32, schema: SCHEMA\)""",
+    ):
+      _ = fns.list([1, 2, 3], schema=schema_constants.INT32)
 
 
 if __name__ == '__main__':
