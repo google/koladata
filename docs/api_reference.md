@@ -479,6 +479,19 @@ Aliases:
 
 ``` {.no-copy}
 Returns a new DataBag containing attribute `attr_name` update for `x`.
+
+This operator is useful if attr_name cannot be used as a key in keyword
+arguments. E.g.: "123-f", "5", "%#$", etc. It still has to be a valid utf-8
+unicode.
+
+See kd.attrs docstring for more details on the rules and regarding `overwrite`
+argument.
+
+Args:
+  x: Entity / Object for which the attribute update is being created.
+  attr_name: utf-8 unicode representing the attribute name.
+  value: new value for attribute `attr_name`.
+  overwrite_schema: if True, schema for attribute is always updated.
 ```
 
 ### `kd.core.attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.core.attrs}
@@ -488,6 +501,32 @@ Aliases:
 
 ``` {.no-copy}
 Returns a new DataBag containing attribute updates for `x`.
+
+Most common usage is to build an update using kd.attrs and than attach it as a
+DataBag update to the DataSlice.
+
+Example:
+  x = ...
+  attr_update = kd.attrs(x, foo=..., bar=...)
+  x = x.updated(attr_update)
+
+In case some attribute "foo" already exists and the update contains "foo",
+either:
+  1) the schema of "foo" in the update must be implicitly castable to
+     `x.foo.get_schema()`; or
+  2) `x` is an OBJECT, in which case schema for "foo" will be overwritten.
+
+An exception to (2) is if it was an Entity that was casted to an OBJECT using
+kd.obj, e.g. then update for "foo" also must be castable to
+`x.foo.get_schema()`. If this is not the case, an Error is raised.
+
+This behavior can be overwritten by passing `overwrite=True`, which will cause
+the schema for attributes to always be updated.
+
+Args:
+  x: Entity / Object for which the attributes update is being created.
+  overwrite_schema: if True, schema for attributes is always updated.
+  **attrs: attrs to set in the update.
 ```
 
 ### `kd.core.clone(x, /, *, itemid=unspecified, schema=unspecified, **overrides)` {#kd.core.clone}
@@ -1037,6 +1076,19 @@ Aliases:
 
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing a single updated attribute.
+
+This operator is useful if attr_name cannot be used as a key in keyword
+arguments. E.g.: "123-f", "5", "%#$", etc. It still has to be a valid utf-8
+unicode.
+
+See kd.with_attrs docstring for more details on the rules and regarding
+`overwrite` argument.
+
+Args:
+  x: Entity / Object for which the attribute update is being created.
+  attr_name: utf-8 unicode representing the attribute name.
+  value: new value for attribute `attr_name`.
+  overwrite_schema: if True, schema for attribute is always updated.
 ```
 
 ### `kd.core.with_attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.core.with_attrs}
@@ -1045,7 +1097,32 @@ Aliases:
 - [kd.with_attrs](#kd.with_attrs)
 
 ``` {.no-copy}
-Returns a DataSlice with a new DataBag containing updated attributes.
+Returns a DataSlice with a new DataBag containing updated attrs in `x`.
+
+This is a shorter version of `x.updated(kd.attrs(x, ...))`.
+
+Example:
+  x = x.with_attrs(foo=..., bar=...)
+  # Or equivalent:
+  # x = kd.with_attrs(x, foo=..., bar=...)
+
+In case some attribute "foo" already exists and the update contains "foo",
+either:
+  1) the schema of "foo" in the update must be implicitly castable to
+     `x.foo.get_schema()`; or
+  2) `x` is an OBJECT, in which case schema for "foo" will be overwritten.
+
+An exception to (2) is if it was an Entity that was casted to an OBJECT using
+kd.obj, e.g. then update for "foo" also must be castable to
+`x.foo.get_schema()`. If this is not the case, an Error is raised.
+
+This behavior can be overwritten by passing `overwrite=True`, which will cause
+the schema for attributes to always be updated.
+
+Args:
+  x: Entity / Object for which the attributes update is being created.
+  overwrite_schema: if True, schema for attributes is always updated.
+  **attrs: attrs to set in the update.
 ```
 
 ### `kd.core.with_bag(ds, bag)` {#kd.core.with_bag}
@@ -10233,6 +10310,19 @@ Aliases:
 
 ``` {.no-copy}
 Returns a DataSlice with a new DataBag containing a single updated attribute.
+
+This operator is useful if attr_name cannot be used as a key in keyword
+arguments. E.g.: "123-f", "5", "%#$", etc. It still has to be a valid utf-8
+unicode.
+
+See kd.with_attrs docstring for more details on the rules and regarding
+`overwrite` argument.
+
+Args:
+  x: Entity / Object for which the attribute update is being created.
+  attr_name: utf-8 unicode representing the attribute name.
+  value: new value for attribute `attr_name`.
+  overwrite_schema: if True, schema for attribute is always updated.
 ```
 
 ### `DataSlice.with_attrs(self, *, update_schema=None, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataSlice.with_attrs}
@@ -10241,7 +10331,32 @@ Aliases:
 - [DataItem.with_attrs](#DataItem.with_attrs)
 
 ``` {.no-copy}
-Returns a DataSlice with a new DataBag containing updated attributes.
+Returns a DataSlice with a new DataBag containing updated attrs in `x`.
+
+This is a shorter version of `x.updated(kd.attrs(x, ...))`.
+
+Example:
+  x = x.with_attrs(foo=..., bar=...)
+  # Or equivalent:
+  # x = kd.with_attrs(x, foo=..., bar=...)
+
+In case some attribute "foo" already exists and the update contains "foo",
+either:
+  1) the schema of "foo" in the update must be implicitly castable to
+     `x.foo.get_schema()`; or
+  2) `x` is an OBJECT, in which case schema for "foo" will be overwritten.
+
+An exception to (2) is if it was an Entity that was casted to an OBJECT using
+kd.obj, e.g. then update for "foo" also must be castable to
+`x.foo.get_schema()`. If this is not the case, an Error is raised.
+
+This behavior can be overwritten by passing `overwrite=True`, which will cause
+the schema for attributes to always be updated.
+
+Args:
+  x: Entity / Object for which the attributes update is being created.
+  overwrite_schema: if True, schema for attributes is always updated.
+  **attrs: attrs to set in the update.
 ```
 
 ### `DataSlice.with_bag(bag, /)` {#DataSlice.with_bag}
