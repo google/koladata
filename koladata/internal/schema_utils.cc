@@ -38,11 +38,12 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
-#include "koladata/internal/error_utils.h"
+#include "koladata/internal/errors.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/status.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::schema {
@@ -175,13 +176,13 @@ std::optional<DType> schema_internal::CommonDTypeAggregator::Get(
     DTypeId i = absl::countr_zero(mask);
     DTypeId common_dtype_id = DTypeMatrix::CommonDType(res_dtype_id, i);
     if (ABSL_PREDICT_FALSE(common_dtype_id == kUnknownDType)) {
-      status = internal::WithErrorPayload(
+      status = arolla::WithPayload(
           absl::InvalidArgumentError("no common schema"),
-          CreateNoCommonSchemaError(
-              /*common_schema=*/internal::DataItem(
-                  DType::UnsafeFromId(res_dtype_id)),
-              /*conflicting_schema=*/internal::DataItem(
-                  DType::UnsafeFromId(i))));
+          internal::NoCommonSchemaError{
+              .common_schema =
+                  internal::DataItem(DType::UnsafeFromId(res_dtype_id)),
+              .conflicting_schema =
+                  internal::DataItem(DType::UnsafeFromId(i))});
       return std::nullopt;
     }
     res_dtype_id = common_dtype_id;
@@ -213,11 +214,11 @@ void CommonSchemaAggregator::Add(internal::ObjectId schema_obj) {
     return;
   }
   if (*res_object_id_ != schema_obj) {
-    status_ = internal::WithErrorPayload(
+    status_ = arolla::WithPayload(
         absl::InvalidArgumentError("no common schema"),
-        CreateNoCommonSchemaError(
-            /*common_schema=*/internal::DataItem(*res_object_id_),
-            /*conflicting_schema=*/internal::DataItem(schema_obj)));
+        internal::NoCommonSchemaError{
+            .common_schema = internal::DataItem(*res_object_id_),
+            .conflicting_schema = internal::DataItem(schema_obj)});
   }
 }
 
@@ -237,11 +238,11 @@ absl::StatusOr<internal::DataItem> CommonSchemaAggregator::Get() && {
     DCHECK(!res_dtype);
     return internal::DataItem();
   }
-  return WithErrorPayload(
+  return arolla::WithPayload(
       absl::InvalidArgumentError("no common schema"),
-      CreateNoCommonSchemaError(
-          /*common_schema=*/internal::DataItem(*res_dtype),
-          /*conflicting_schema=*/internal::DataItem(*res_object_id_)));
+      internal::NoCommonSchemaError{
+          .common_schema = internal::DataItem(*res_dtype),
+          .conflicting_schema = internal::DataItem(*res_object_id_)});
 }
 
 absl::StatusOr<internal::DataItem> CommonSchema(

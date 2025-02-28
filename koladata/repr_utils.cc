@@ -32,9 +32,11 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/s11n/codec.pb.h"
+#include "arolla/util/status.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -57,57 +59,51 @@ absl::StatusOr<internal::DataItem> GetAttr(const internal::DataItem& item,
                                fb_finder.GetFlattenFallbacks());
 }
 
-absl::StatusOr<Error> SetNoCommonSchemaError(
-    Error cause, absl::Nullable<const DataBagPtr>& db) {
-  ASSIGN_OR_RETURN(internal::DataItem common_schema_item,
-                   DecodeDataItem(cause.no_common_schema().common_schema()));
-  ASSIGN_OR_RETURN(
-      internal::DataItem conflict_schema_item,
-      DecodeDataItem(cause.no_common_schema().conflicting_schema()));
-
+absl::StatusOr<std::string> SetNoCommonSchemaError(
+    const internal::NoCommonSchemaError& error,
+    absl::Nullable<const DataBagPtr>& db) {
   if (db != nullptr) {
-    ASSIGN_OR_RETURN(DataSlice common_schema,
-                    DataSlice::Create(common_schema_item,
-                                      internal::DataItem(schema::kSchema), db));
+    ASSIGN_OR_RETURN(
+        DataSlice common_schema,
+        DataSlice::Create(error.common_schema,
+                          internal::DataItem(schema::kSchema), db));
     ASSIGN_OR_RETURN(std::string common_schema_str,
                     DataSliceToStr(common_schema));
     std::string common_schema_id_repr;
-    if (common_schema_item.holds_value<internal::ObjectId>()) {
+    if (error.common_schema.holds_value<internal::ObjectId>()) {
       common_schema_id_repr =
-          ObjectIdStr(common_schema_item.value<internal::ObjectId>(),
+          ObjectIdStr(error.common_schema.value<internal::ObjectId>(),
                       /*show_flag_prefix=*/false);
     } else {
-      common_schema_id_repr = common_schema_item.DebugString();
+      common_schema_id_repr = error.common_schema.DebugString();
     }
-    ASSIGN_OR_RETURN(DataSlice conflict_schema,
-                    DataSlice::Create(conflict_schema_item,
-                                      internal::DataItem(schema::kSchema), db));
+    ASSIGN_OR_RETURN(
+        DataSlice conflict_schema,
+        DataSlice::Create(error.conflicting_schema,
+                          internal::DataItem(schema::kSchema), db));
     ASSIGN_OR_RETURN(std::string conflict_schema_str,
                     DataSliceToStr(conflict_schema));
     std::string conflict_schema_id_repr;
-    if (conflict_schema_item.holds_value<internal::ObjectId>()) {
+    if (error.conflicting_schema.holds_value<internal::ObjectId>()) {
       conflict_schema_id_repr =
-          ObjectIdStr(conflict_schema_item.value<internal::ObjectId>(),
+          ObjectIdStr(error.conflicting_schema.value<internal::ObjectId>(),
                       /*show_flag_prefix=*/false);
     } else {
-      conflict_schema_id_repr = conflict_schema_item.DebugString();
+      conflict_schema_id_repr = error.conflicting_schema.DebugString();
     }
-    cause.set_error_message(
-        absl::StrFormat("cannot find a common schema\n\n"
-                        " the common schema(s) %s: %s\n"
-                        " the first conflicting schema %s: %s",
-                        common_schema_id_repr, common_schema_str,
-                        conflict_schema_id_repr, conflict_schema_str));
-  } else {
-    cause.set_error_message(
-        absl::StrFormat("cannot find a common schema\n\n"
-                        " the common schema(s) %s\n"
-                        " the first conflicting schema %s",
-                        internal::DataItemRepr(common_schema_item),
-                        internal::DataItemRepr(conflict_schema_item)));
+    return absl::StrFormat(
+        "cannot find a common schema\n\n"
+        " the common schema(s) %s: %s\n"
+        " the first conflicting schema %s: %s",
+        common_schema_id_repr, common_schema_str, conflict_schema_id_repr,
+        conflict_schema_str);
   }
-
-  return cause;
+  return absl::StrFormat(
+      "cannot find a common schema\n\n"
+      " the common schema(s) %s\n"
+      " the first conflicting schema %s",
+      internal::DataItemRepr(error.common_schema),
+      internal::DataItemRepr(error.conflicting_schema));
 }
 
 absl::StatusOr<Error> SetMissingObjectAttributeError(
@@ -420,14 +416,20 @@ absl::StatusOr<internal::Error> SetMissingCollectionItemSchemaError(
 
 absl::Status AssembleErrorMessage(const absl::Status& status,
                                   const SupplementalData& data) {
+  if (const internal::NoCommonSchemaError* no_common_schema_error =
+          arolla::GetPayload<internal::NoCommonSchemaError>(status);
+      no_common_schema_error != nullptr) {
+    ASSIGN_OR_RETURN(std::string error_message,
+                     SetNoCommonSchemaError(*no_common_schema_error, data.db));
+    Error error;
+    error.set_error_message(std::move(error_message));
+    return WithErrorPayload(status, std::move(error));
+  }
+
+  // TODO(b/316118021) migrate away from proto based errors.
   std::optional<Error> cause = GetErrorPayload(status);
   if (!cause) {
     return status;
-  }
-  if (cause->has_no_common_schema()) {
-    ASSIGN_OR_RETURN(Error error,
-                     SetNoCommonSchemaError(*std::move(cause), data.db));
-    return WithErrorPayload(status, std::move(error));
   }
   if (cause->has_missing_object_schema()) {
     ASSIGN_OR_RETURN(Error error, SetMissingObjectAttributeError(

@@ -15,6 +15,7 @@
 #include "koladata/repr_utils.h"
 
 #include <optional>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -27,6 +28,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
@@ -53,19 +55,16 @@ TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
       EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
   schema::DType dtype = schema::GetDType<int>();
 
-  Error error;
-  internal::NoCommonSchema* no_common_schema = error.mutable_no_common_schema();
-  ASSERT_OK_AND_ASSIGN(*no_common_schema->mutable_common_schema(),
-                       internal::EncodeDataItem(entity.GetSchemaImpl()));
-  ASSERT_OK_AND_ASSIGN(*no_common_schema->mutable_conflicting_schema(),
-                       internal::EncodeDataItem(internal::DataItem(dtype)));
+  internal::NoCommonSchemaError error = {
+      .common_schema = entity.GetSchemaImpl(),
+      .conflicting_schema = internal::DataItem(dtype)};
 
   absl::Status status = AssembleErrorMessage(
-      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
+      arolla::WithPayload(absl::InvalidArgumentError("error"),
+                          std::move(error)),
       {bag});
   std::optional<Error> payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
-  EXPECT_TRUE(payload->has_no_common_schema());
   EXPECT_THAT(
       payload->error_message(),
       AllOf(
@@ -150,19 +149,17 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
 }
 
 TEST(ReprUtilTest, TestAssembleErrorMissingContextData) {
-  Error error;
-  internal::NoCommonSchema* no_common_schema = error.mutable_no_common_schema();
-  ASSERT_OK_AND_ASSIGN(
-      *no_common_schema->mutable_conflicting_schema(),
-      internal::EncodeDataItem(internal::DataItem(schema::GetDType<int>())));
-  ASSERT_OK_AND_ASSIGN(*no_common_schema->mutable_common_schema(),
-                       internal::EncodeDataItem(internal::DataItem(
-                           internal::AllocateSingleObject())));
+  internal::NoCommonSchemaError error = {
+      .common_schema = internal::DataItem(internal::AllocateSingleObject()),
+      .conflicting_schema = internal::DataItem(schema::GetDType<int>())};
+
   absl::Status status = AssembleErrorMessage(
-          internal::WithErrorPayload(absl::InternalError("error"), error), {});
+      arolla::WithPayload(absl::InvalidArgumentError("error"),
+                          std::move(error)),
+      {});
+
   std::optional<Error> payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
-  EXPECT_TRUE(payload->has_no_common_schema());
   EXPECT_THAT(
       payload->error_message(),
       AllOf(

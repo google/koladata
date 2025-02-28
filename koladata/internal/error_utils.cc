@@ -67,18 +67,6 @@ absl::Status WithErrorPayload(absl::Status status,
   return WithErrorPayload(std::move(status), std::move(error.value()));
 }
 
-absl::StatusOr<Error> CreateNoCommonSchemaError(
-    const internal::DataItem& common_schema,
-    const internal::DataItem& conflicting_schema) {
-  internal::Error error;
-  ASSIGN_OR_RETURN(*error.mutable_no_common_schema()->mutable_common_schema(),
-                   internal::EncodeDataItem(common_schema));
-  ASSIGN_OR_RETURN(
-      *error.mutable_no_common_schema()->mutable_conflicting_schema(),
-      internal::EncodeDataItem(conflicting_schema));
-  return error;
-}
-
 absl::StatusOr<ContainerProto> EncodeDataItem(const DataItem& item) {
   return arolla::serialization::Encode({TypedValue::FromValue(item)}, {});
 }

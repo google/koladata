@@ -29,11 +29,11 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error.pb.h"
-#include "koladata/internal/error_utils.h"
+#include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/meta.h"
+#include "arolla/util/status.h"
 
 namespace koladata::schema {
 namespace {
@@ -41,15 +41,14 @@ namespace {
 using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::koladata::internal::Error;
-using ::testing::Contains;
-using ::testing::HasSubstr;
-using ::testing::Not;
-using ::testing::UnorderedElementsAreArray;
-
 using arolla::CreateDenseArray;
 using internal::DataItem;
 using internal::DataSliceImpl;
+using ::testing::Contains;
+using ::testing::HasSubstr;
+using ::testing::Not;
+using ::testing::NotNull;
+using ::testing::UnorderedElementsAreArray;
 
 TEST(SchemaUtilsTest, DTypeLattice) {
   // Check that the lattice contains all supported dtypes. This ensures that
@@ -237,33 +236,34 @@ TEST(SchemaUtilsTest, CommonSchemaBinary) {
     auto result = CommonSchema(kItemId, kString);
     EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                  "no common schema"));
-    std::optional<Error> error = internal::GetErrorPayload(result.status());
-    EXPECT_TRUE(error.has_value());
-    EXPECT_TRUE(error->has_no_common_schema());
+    EXPECT_THAT(
+        arolla::GetPayload<internal::NoCommonSchemaError>(result.status()),
+        NotNull());
+
     internal::ObjectId obj_id = internal::AllocateExplicitSchema();
     auto explicit_schema = DataItem(obj_id);
 
     result = CommonSchema(DataItem(kItemId), explicit_schema);
     EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                  "no common schema"));
-    error = internal::GetErrorPayload(result.status());
-    EXPECT_TRUE(error.has_value());
-    EXPECT_TRUE(error->has_no_common_schema());
+    EXPECT_THAT(
+        arolla::GetPayload<internal::NoCommonSchemaError>(result.status()),
+        NotNull());
 
     result = CommonSchema(explicit_schema, DataItem(kItemId));
     EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                  "no common schema"));
-    error = internal::GetErrorPayload(result.status());
-    EXPECT_TRUE(error.has_value());
-    EXPECT_TRUE(error->has_no_common_schema());
+    EXPECT_THAT(
+        arolla::GetPayload<internal::NoCommonSchemaError>(result.status()),
+        NotNull());
 
     internal::ObjectId obj_id2 = internal::AllocateExplicitSchema();
     result = CommonSchema(explicit_schema, DataItem(obj_id2));
     EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                  "no common schema"));
-    error = internal::GetErrorPayload(result.status());
-    EXPECT_TRUE(error.has_value());
-    EXPECT_TRUE(error->has_no_common_schema());
+    EXPECT_THAT(
+        arolla::GetPayload<internal::NoCommonSchemaError>(result.status()),
+        NotNull());
   }
 }
 
@@ -328,9 +328,9 @@ TEST(SchemaUtilsTest, CommonSchemaConflict) {
   const auto result = std::move(agg).Get();
   EXPECT_THAT(result,
               StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
-  std::optional<Error> error = internal::GetErrorPayload(result.status());
-  EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_no_common_schema());
+  EXPECT_THAT(
+      arolla::GetPayload<internal::NoCommonSchemaError>(result.status()),
+      NotNull());
 }
 
 TEST(SchemaUtilsTest, CommonSchemaObjectAndPrimitiveNone) {
@@ -349,9 +349,9 @@ TEST(SchemaUtilsTest, CommonSchemaObjectAndPrimitiveConflict) {
   const auto result = std::move(agg).Get();
   EXPECT_THAT(result,
               StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
-  std::optional<Error> error = internal::GetErrorPayload(result.status());
-  EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_no_common_schema());
+  EXPECT_THAT(
+      arolla::GetPayload<internal::NoCommonSchemaError>(result.status()),
+      NotNull());
 }
 
 TEST(SchemaUtilsTest, CommonSchemaPrimitiveConflict) {
@@ -363,9 +363,9 @@ TEST(SchemaUtilsTest, CommonSchemaPrimitiveConflict) {
   const auto result = std::move(agg).Get();
   EXPECT_THAT(result,
               StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
-  std::optional<Error> error = internal::GetErrorPayload(result.status());
-  EXPECT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_no_common_schema());
+  EXPECT_THAT(
+      arolla::GetPayload<internal::NoCommonSchemaError>(result.status()),
+      NotNull());
 }
 
 TEST(SchemaUtilsTest, CommonSchema_DataSliceImpl_DTypes) {

@@ -23,6 +23,12 @@ package(default_visibility = [
 
 licenses(["notice"])
 
+cc_library(
+    name = "errors",
+    hdrs = ["errors.h"],
+    deps = [":data_item"],
+)
+
 proto_library(
     name = "error_proto",
     srcs = ["error.proto"],
@@ -998,7 +1004,7 @@ cc_library(
         ":data_slice",
         ":dtype",
         ":error_cc_proto",
-        ":error_utils",
+        ":errors",
         ":missing_value",
         ":object_id",
         "@com_google_absl//absl/base:core_headers",
@@ -1025,8 +1031,7 @@ cc_test(
         ":data_item",
         ":data_slice",
         ":dtype",
-        ":error_cc_proto",
-        ":error_utils",
+        ":errors",
         ":object_id",
         ":schema_utils",
         "//koladata/s11n",

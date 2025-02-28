@@ -18,15 +18,6 @@ package koladata.internal;
 
 import "arolla/serialization_base/base.proto";
 
-// Error for not finding a common schema when creating DataSlice. This is used
-// for carrying error information and rendering readable error message to user.
-message NoCommonSchema {
-  // The most common schema fund in the input.
-  optional arolla.serialization_base.ContainerProto common_schema = 1;
-  // The conflict schema that cannot be converted to the common schema.
-  optional arolla.serialization_base.ContainerProto conflicting_schema = 2;
-}
-
 // Error for cases when objects with schema OBJECT are missing
 // __schema__ attributes.
 message MissingObjectSchema {
@@ -89,13 +80,12 @@ message SourceLocation {
 message Error {
   optional string error_message = 1;
   oneof error {
-    NoCommonSchema no_common_schema = 3;
     MissingObjectSchema missing_object_schema = 4;
     IncompatibleSchema incompatible_schema = 5;
     DataBagMergeConflict data_bag_merge_conflict = 6;
     MissingCollectionItemSchemaError missing_collection_item_schema = 7;
   }
 
-  reserved 2;
+  reserved 2, 3;
   repeated SourceLocation source_location = 100;
 }
