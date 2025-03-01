@@ -35,7 +35,6 @@
 #include "absl/strings/str_join.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
