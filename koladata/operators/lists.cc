@@ -26,7 +26,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/optional.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
