@@ -199,6 +199,157 @@ class FunctorFactoriesTest(absltest.TestCase):
     )
     testing.assert_equal(fn().no_bag(), ds([1, 2, 3], schema_constants.INT64))
 
+  def test_auto_variables_dont_duplicate_computations(self):
+    eval_count = 0
+
+    def my_op(x):
+      nonlocal eval_count
+      eval_count += 1
+      return x
+
+    base = kde.py.apply_py(my_op, I.x)
+    expr = (base + 1).with_name('foo') + (base + 2).with_name('bar')
+    fn = functor_factories.expr_fn(expr, auto_variables=True)
+    testing.assert_equal(fn(x=1), ds(5))
+    self.assertEqual(eval_count, 1)
+
+  def test_auto_variables_dont_create_spurious_variables(self):
+    base = I.x * I.x
+    expr = (base + 1) + (base + 2)
+    fn = functor_factories.expr_fn(expr, auto_variables=True)
+    testing.assert_equal(fn(x=1), ds(5))
+    # Even though "base" is repeated twice, it should not be extracted as a
+    # variable.
+    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns'])
+
+  def test_auto_variables_dont_create_too_many_variables(self):
+    base = (I.x + 1) * 2
+    expr = (base + 1).with_name('foo') + (base + 2).with_name('bar')
+    fn = functor_factories.expr_fn(expr, auto_variables=True)
+    testing.assert_equal(fn(x=1), ds(11))
+    # This should create just one auxiliary variable, for "base".
+    self.assertCountEqual(
+        fns.dir(fn), ['__signature__', 'returns', 'aux_0', 'foo', 'bar']
+    )
+
+  def test_auto_variables_dont_duplicate_computations_across_existing_variables(
+      self,
+  ):
+    eval_count = 0
+
+    def my_op(x):
+      nonlocal eval_count
+      eval_count += 1
+      return x
+
+    base = kde.py.apply_py(my_op, I.x)
+    fn = functor_factories.expr_fn(
+        V.v1 + V.v2, v1=base + 1, v2=base + 2, auto_variables=True
+    )
+    testing.assert_equal(fn(x=1), ds(5))
+    self.assertEqual(eval_count, 1)
+
+    fn = functor_factories.expr_fn(
+        V.v1 + V.v2, v1=base, v2=base, auto_variables=True
+    )
+    testing.assert_equal(fn(x=1), ds(2))
+    self.assertEqual(eval_count, 2)
+
+  def test_auto_variables_two_names_for_a_literal(self):
+    base = py_boxing.literal(ds([1, 2, 3]))
+    fn = functor_factories.expr_fn(
+        base.with_name('foo') + base.with_name('bar'), auto_variables=True
+    )
+    testing.assert_equal(fn(), ds([2, 4, 6]))
+    # Make sure that only one auxiliary variable for the literal is created.
+    self.assertCountEqual(
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar', 'aux_0']
+    )
+    testing.assert_equal(fn.aux_0[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(
+        introspection.unpack_expr(fn.foo), kde.explode(V.aux_0, ndim=1)
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn.bar), kde.explode(V.aux_0, ndim=1)
+    )
+
+  def test_auto_variables_shared_literal(self):
+    base = py_boxing.literal(ds([1, 2, 3]))
+    fn = functor_factories.expr_fn(
+        (base + 1).with_name('foo') + (base + 2).with_name('bar'),
+        auto_variables=True,
+    )
+    testing.assert_equal(fn(), ds([5, 7, 9]))
+    # Make sure that only one auxiliary variable for the literal is created.
+    self.assertCountEqual(
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar', 'aux_0']
+    )
+    testing.assert_equal(fn.aux_0[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(
+        introspection.unpack_expr(fn.foo), kde.explode(V.aux_0, ndim=1) + 1
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn.bar), kde.explode(V.aux_0, ndim=1) + 2
+    )
+
+  def test_auto_variables_two_uses_of_input(self):
+    fn = functor_factories.expr_fn(
+        V.foo + V.bar,
+        foo=I.x,
+        bar=I.x,
+        auto_variables=True,
+    )
+    testing.assert_equal(fn(x=1), ds(2))
+    self.assertCountEqual(
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar']
+    )
+    testing.assert_equal(introspection.unpack_expr(fn.foo), I.x)
+
+  def test_auto_variables_two_uses_of_number(self):
+    fn = functor_factories.expr_fn(
+        V.foo + V.bar,
+        foo=py_boxing.literal(ds(57)),
+        bar=py_boxing.literal(ds(57)),
+        auto_variables=True,
+    )
+    testing.assert_equal(fn(x=1), ds(114))
+    self.assertCountEqual(
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar']
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn.foo), py_boxing.literal(ds(57))
+    )
+
+  def test_auto_variables_nested_duplicate_computations(self):
+    eval_count = 0
+
+    def my_op(x):
+      nonlocal eval_count
+      eval_count += 1
+      return x
+
+    expr = I.x + 1
+    expr = kde.py.apply_py(my_op, expr)
+    expr = (expr + 1).with_name('foo') + (expr + 2).with_name('bar')
+    expr = kde.py.apply_py(my_op, expr)
+    expr = (expr + 1).with_name('baz') + (expr + 2).with_name('qux')
+    fn = functor_factories.expr_fn(expr, auto_variables=True)
+    testing.assert_equal(fn(x=1), ds(17))
+    self.assertEqual(eval_count, 2)
+    self.assertCountEqual(
+        fns.dir(fn),
+        [
+            '__signature__',
+            'returns',
+            'foo',
+            'bar',
+            'baz',
+            'qux',
+            'aux_0',
+            'aux_1',
+        ],
+    )
+
   def test_trace_py_fn(self):
 
     def my_model(x):
