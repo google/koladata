@@ -62,6 +62,11 @@ bool HandleKodaPyErrStatus(const absl::Status& status) {
   if (Py_IsNone(py_exception.get())) {
     return false;
   }
+  if (auto* cause = arolla::GetCause(status)) {
+    arolla::python::SetPyErrFromStatus(*cause);
+    arolla::python::PyException_SetCauseAndContext(
+        py_exception.get(), arolla::python::PyErr_FetchRaisedException());
+  }
   PyErr_SetObject(reinterpret_cast<PyObject*>(Py_TYPE(py_exception.get())),
                   py_exception.get());
   return true;
