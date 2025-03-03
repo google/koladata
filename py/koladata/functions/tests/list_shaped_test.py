@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from koladata import kd
 from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
@@ -130,6 +131,36 @@ class ListShapedTest(parameterized.TestCase):
 
     testing.assert_equal(
         lst[:].a.no_bag(), ds([[], []], schema_constants.INT32)
+    )
+
+  def test_list_preserves_mixed_types(self):
+    db = fns.bag()
+    shape = jagged_shape.create_shape([2])
+
+    testing.assert_equal(
+        fns.list_shaped(
+            shape, [1, 2.0], item_schema=schema_constants.OBJECT, db=db
+        )[:],
+        kd.implode(
+            data_slice.DataSlice.from_vals(
+                [[1], [2.0]], schema_constants.OBJECT
+            ),
+            db=db,
+        )[:],
+    )
+    testing.assert_equal(
+        fns.list_shaped(
+            shape,
+            [1, 2.0],
+            schema=fns.list_schema(schema_constants.OBJECT),
+            db=db,
+        )[:],
+        kd.implode(
+            data_slice.DataSlice.from_vals(
+                [[1], [2.0]], schema_constants.OBJECT
+            ),
+            db=db,
+        )[:],
     )
 
   def test_bag_arg(self):

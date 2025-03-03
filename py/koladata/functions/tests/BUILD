@@ -105,6 +105,7 @@ py_test(
     name = "list_like_test",
     srcs = ["list_like_test.py"],
     deps = [
+        "//py/koladata:kd",
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
@@ -123,6 +124,7 @@ py_test(
     name = "list_shaped_test",
     srcs = ["list_shaped_test.py"],
     deps = [
+        "//py/koladata:kd",
         "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
@@ -142,6 +144,7 @@ py_test(
     name = "list_shaped_as_test",
     srcs = ["list_shaped_as_test.py"],
     deps = [
+        "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
