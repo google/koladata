@@ -44,6 +44,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/errors.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/expand.h"
@@ -60,6 +61,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
@@ -937,30 +939,25 @@ class RhsHandler {
   absl::Status AttrSchemaMissingErrorStatus(
       const internal::DataItem& lhs_schema,
       std::optional<int64_t> item_index = std::nullopt) const {
-    internal::Error error;
-    internal::MissingCollectionItemSchemaError* missing_schema_error =
-        error.mutable_missing_collection_item_schema();
-    ASSIGN_OR_RETURN(*missing_schema_error->mutable_missing_schema_item(),
-                     internal::EncodeDataItem(lhs_schema));
-    if (item_index.has_value()) {
-      missing_schema_error->set_item_index(*item_index);
-    }
+    internal::MissingCollectionItemSchemaError error = {
+        .missing_schema_item = lhs_schema,
+        .collection_type =
+            internal::MissingCollectionItemSchemaError::CollectionType::kList,
+        .item_index = item_index};
     switch (context_) {
       case RhsHandlerContext::kAttr:
         return absl::InternalError(
             "we should have never raised for missing attr schema");
       case RhsHandlerContext::kListItem:
-        missing_schema_error->set_collection_type(
-            internal::MissingCollectionItemSchemaError::LIST);
-        return internal::WithErrorPayload(
+        return arolla::WithPayload(
             absl::InvalidArgumentError("the schema for list items is missing"),
             std::move(error));
       case RhsHandlerContext::kDict:
-        missing_schema_error->set_collection_type(
-            internal::MissingCollectionItemSchemaError::DICT);
         absl::string_view dict_attr =
             attr_name_ == schema::kDictKeysSchemaAttr ? "keys" : "values";
-        return internal::WithErrorPayload(
+        error.collection_type =
+            internal::MissingCollectionItemSchemaError::CollectionType::kDict;
+        return arolla::WithPayload(
             absl::InvalidArgumentError(absl::StrFormat(
                 "the schema for dict %s is missing", dict_attr)),
             std::move(error));

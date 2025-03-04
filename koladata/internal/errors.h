@@ -16,6 +16,7 @@
 #define KOLADATA_INTERNAL_ERROR_H_
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <variant>
 
@@ -66,6 +67,16 @@ struct DataBagMergeConflictError {
   std::variant<DictConflict, EntityObjectConflict, ListContentConflict,
                ListSizeConflict>
       conflict;
+};
+
+struct MissingCollectionItemSchemaError {
+  enum class CollectionType {
+    kList = 0,
+    kDict = 1,
+  };
+  DataItem missing_schema_item;
+  CollectionType collection_type;
+  std::optional<int64_t> item_index;
 };
 
 }  // namespace koladata::internal
