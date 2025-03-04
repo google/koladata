@@ -96,10 +96,9 @@ absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause) {
   }
   internal::Error error;
   error.set_error_message(msg);
-  return arolla::WithCause(
-      // TODO: b/374841918 - It is strange that we use message from the cause
-      // instead `msg`.
-      internal::WithErrorPayload(cause, std::move(error)), cause);
+  auto status = internal::WithErrorPayload(absl::Status(cause.code(), msg),
+                                           std::move(error));
+  return arolla::WithCause(std::move(status), std::move(cause));
 }
 
 }  // namespace koladata::internal

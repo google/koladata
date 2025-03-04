@@ -157,10 +157,9 @@ TEST(CreateFunctorTest, Non0RankReturns) {
 TEST(CreateFunctorTest, InvalidSignature) {
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   auto slice_57 = test::DataItem(57);
-  EXPECT_THAT(
-      CreateFunctor(returns_expr, slice_57, {}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("primitives do not have attributes")));
+  EXPECT_THAT(CreateFunctor(returns_expr, slice_57, {}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("failed to get attribute 'parameters'")));
 }
 
 TEST(CreateFunctorTest, VariablesWithNon0Rank) {

@@ -214,8 +214,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
     auto status = SimplePointwiseEval("math.add", {x, y}).status();
     EXPECT_THAT(status,
                 StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("shapes are not compatible: JaggedShape(1) "
-                                   "vs JaggedShape(3)")));
+                         HasSubstr("cannot align inputs to a common shape")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     ASSERT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
@@ -234,8 +233,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
     auto status = SimplePointwiseEval("math.add", {x, y}).status();
     EXPECT_THAT(status,
                 StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("shapes are not compatible: JaggedShape(1) "
-                                   "vs JaggedShape(3)")));
+                         HasSubstr("cannot align inputs to a common shape")));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     ASSERT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),

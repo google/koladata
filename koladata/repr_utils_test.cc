@@ -187,7 +187,10 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
   absl::Status status =
       CreateItemCreationError(absl::InvalidArgumentError("error"), value);
 
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument, "error"));
+  EXPECT_THAT(
+      status,
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "cannot create Item(s) with the provided schema: INT32"));
   std::optional<Error> payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(),
@@ -199,7 +202,10 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
   status = CreateItemCreationError(
       internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
       value);
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument, "error"));
+  EXPECT_THAT(
+      status,
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "cannot create Item(s) with the provided schema: INT32"));
   payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(),

@@ -130,15 +130,15 @@ struct DummyPayload {};
 
 TEST(ErrorUtilsTest, KodaErrorFromCause) {
   absl::Status cause = arolla::WithPayload(
-      absl::UnimplementedError("test error"), DummyPayload{});
-  absl::Status koda_status = KodaErrorFromCause("got an error", cause);
+      absl::UnimplementedError("error cause"), DummyPayload{});
+  absl::Status koda_status = KodaErrorFromCause("new error", cause);
 
-  EXPECT_THAT(koda_status.message(), Eq(cause.message()));
+  EXPECT_THAT(koda_status.message(), Eq("new error"));
   EXPECT_THAT(arolla::GetPayload<internal::Error>(koda_status),
-              Property(&internal::Error::error_message, StrEq("got an error")));
+              Property(&internal::Error::error_message, StrEq("new error")));
   EXPECT_THAT(
       arolla::GetCause(koda_status),
-      Pointee(AllOf(StatusIs(absl::StatusCode::kUnimplemented, "test error"),
+      Pointee(AllOf(StatusIs(absl::StatusCode::kUnimplemented, "error cause"),
                     ResultOf(&arolla::GetPayload<DummyPayload>, NotNull()))));
 }
 
