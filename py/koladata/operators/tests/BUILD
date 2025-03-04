@@ -5323,6 +5323,7 @@ py_test(
     srcs = ["py_apply_py_on_cond_test.py"],
     tags = ["cpu:4"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5364,6 +5365,7 @@ py_test(
     name = "py_map_py_on_cond_test",
     srcs = ["py_map_py_on_cond_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5403,6 +5405,7 @@ py_test(
     name = "py_map_py_on_selected_test",
     srcs = ["py_map_py_on_selected_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

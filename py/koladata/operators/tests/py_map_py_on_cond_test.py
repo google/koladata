@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -23,6 +26,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
@@ -129,18 +133,20 @@ class PyMapPyOnCondTest(parameterized.TestCase):
   def test_error_non_mask_cond(self):
     fn = lambda _: None
     val = ds([1])
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'expected a mask, got cond: INT32'
+    with self.assertRaisesRegex(
+        exceptions.KodaError, re.escape('expected a mask, got cond: INT32')
     ):
       expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val, val))
 
   def test_error_higher_dimension_cond(self):
     fn = lambda _: None
     val = ds([1])
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        "'cond' must have the same or smaller dimension than `args` and"
-        ' `kwargs`',
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            "'cond' must have the same or smaller dimension than `args` and"
+            ' `kwargs`'
+        ),
     ):
       expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val.repeat(1) > 2, val))
 

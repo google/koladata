@@ -38,6 +38,8 @@
 #include "absl/types/span.h"
 #include "koladata/expr/expr_operators.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/op_utils/error.h"
+#include "arolla/expr/eval/verbose_runtime_error.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_visitor.h"
@@ -51,6 +53,7 @@
 #include "arolla/util/fast_dynamic_downcast_final.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/lru_cache.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -269,13 +272,23 @@ absl::StatusOr<CompiledExpr> Compile(
             // In such cases the always clone thread safety policy is faster.
             .SetAlwaysCloneThreadSafetyPolicy()
             .SetInputLoader(arolla::CreateTypedRefsInputLoader(args))
-            // TODO: b/374841918 - Provide stack trace information in a
-            // structured way instead of disabling it.
-            .VerboseRuntimeErrors(false)
             .Compile<arolla::ExprCompilerFlags::kEvalWithOptions>(expr));
     fn = CompilationCache::Instance().Put(key, std::move(fn));
   }
   return fn;
+}
+
+// Removes Arolla's ExprEvaluationError layer from the error, and turns its
+// cause into OperatorEvalError.
+absl::Status SimplifyExprEvaluationError(absl::Status status) {
+  const auto* verbose_runtime_error =
+      arolla::GetPayload<arolla::expr::VerboseRuntimeError>(status);
+  const absl::Status* cause = arolla::GetCause(status);
+  if (verbose_runtime_error == nullptr || cause == nullptr) {
+    return status;
+  }
+  return internal::OperatorEvalError(*cause,
+                                     verbose_runtime_error->operator_name);
 }
 
 }  // namespace
@@ -338,8 +351,11 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
 
   ASSIGN_OR_RETURN(
       auto compiled_expr,
-      Compile(transformed_expr->expr, expr_info.leaf_keys, input_qvalues));
-  return compiled_expr(eval_options, input_qvalues);
+      Compile(transformed_expr->expr, expr_info.leaf_keys, input_qvalues),
+      SimplifyExprEvaluationError(std::move(_)));
+  ASSIGN_OR_RETURN(auto result, compiled_expr(eval_options, input_qvalues),
+                   SimplifyExprEvaluationError(std::move(_)));
+  return result;
 }
 
 absl::StatusOr<std::vector<std::string>> GetExprVariables(

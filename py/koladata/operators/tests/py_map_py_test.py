@@ -244,15 +244,15 @@ class PyMapPyTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        ValueError,
-        re.escape('cannot create Item(s) with the provided schema: OBJECT')
+        exceptions.KodaError,
+        re.escape('cannot create Item(s) with the provided schema: OBJECT'),
     ):
       _ = expr_eval.eval(
           kde.py.map_py(my_func_obj_schema, ds([1, 2]), schema=schema)
       )
 
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'expected a schema, got schema=1'
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'expected a schema, got schema=1'
     ):
       _ = expr_eval.eval(kde.py.map_py(my_func_correct_schema, val, schema=1))
 
@@ -467,23 +467,25 @@ class PyMapPyTest(parameterized.TestCase):
     testing.assert_equal(res4.no_bag(), ds([[6, None, 10], [None, 11, 12]]))
 
   def test_map_py_no_inputs(self):
-    with self.assertRaisesWithLiteralMatch(
-        TypeError, 'expected at least one input DataSlice, got none'
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'expected at least one input DataSlice, got none'
     ):
       expr_eval.eval(kde.py.map_py(lambda: None))
 
   def test_map_py_item_invalid_fn(self):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        'expected a python callable, got fn=PyObject{1}',
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape('expected a python callable, got fn=PyObject{1}'),
     ):
       expr_eval.eval(kde.py.map_py(arolla.abc.PyObject(1), ds(list(range(10)))))
 
   def test_map_py_invalid_item_completed_callback(self):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
-        'expected a python callable, got item_completed_callback=DataItem(1,'
-        ' schema: INT32)',
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        re.escape(
+            'expected a python callable, got'
+            ' item_completed_callback=DataItem(1, schema: INT32)'
+        ),
     ):
       expr_eval.eval(
           kde.py.map_py(
@@ -518,18 +520,18 @@ class PyMapPyTest(parameterized.TestCase):
       testing.assert_equal(res.no_bag(), ds(9))
 
     with self.subTest('ndim_invalid'):
-      with self.assertRaisesWithLiteralMatch(
-          ValueError, 'ndim should be between 0 and 3, got ndim=-1'
+      with self.assertRaisesRegex(
+          exceptions.KodaError, 'ndim should be between 0 and 3, got ndim=-1'
       ):
         expr_eval.eval(kde.py.map_py(agg_count, val, ndim=-1))
 
-      with self.assertRaisesWithLiteralMatch(
-          ValueError, 'ndim should be between 0 and 3, got ndim=4'
+      with self.assertRaisesRegex(
+          exceptions.KodaError, 'ndim should be between 0 and 3, got ndim=4'
       ):
         expr_eval.eval(kde.py.map_py(agg_count, val, ndim=4))
 
-      with self.assertRaisesWithLiteralMatch(
-          ValueError, 'expected a scalar integer, got ndim=None'
+      with self.assertRaisesRegex(
+          exceptions.KodaError, 'expected a scalar integer, got ndim=None'
       ):
         expr_eval.eval(kde.py.map_py(agg_count, val, ndim=None))
 
@@ -639,12 +641,13 @@ class PyMapPyTest(parameterized.TestCase):
       testing.assert_equal(res.no_bag(), ds([None, None, 2, None]))
 
   def test_map_py_invalid_include_missing(self):
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, 'expected a scalar boolean, got include_missing=1'
+    with self.assertRaisesRegex(
+        exceptions.KodaError, 'expected a scalar boolean, got include_missing=1'
     ):
       _ = expr_eval.eval(kde.py.map_py(lambda x: x, ds([0]), include_missing=1))
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, '`include_missing=False` can only be used with `ndim=0`'
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
+        '`include_missing=False` can only be used with `ndim=0`',
     ):
       _ = expr_eval.eval(
           kde.py.map_py(lambda x: x, ds([0]), ndim=1, include_missing=False)

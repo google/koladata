@@ -117,6 +117,7 @@ py_test(
         ":functor_factories",
         ":signature_utils",
         "//py/koladata:kd",
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",

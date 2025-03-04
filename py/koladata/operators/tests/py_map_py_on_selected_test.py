@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -23,6 +24,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import schema_constants
+
 
 I = input_container.InputContainer("I")
 ds = data_slice.DataSlice.from_vals
@@ -127,24 +129,24 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
   def test_error_non_mask_cond(self):
     fn = lambda _: None
     val = ds([1])
-    with self.assertRaisesWithLiteralMatch(
-        ValueError, "expected a mask, got cond: INT32"
+    with self.assertRaisesRegex(
+        exceptions.KodaError, "expected a mask, got cond: INT32"
     ):
       expr_eval.eval(kde.py.map_py_on_selected(fn, val, val))
 
   def test_error_no_inputs(self):
     fn = lambda _: None
     cond = ds([None], schema_constants.MASK)
-    with self.assertRaisesWithLiteralMatch(
-        TypeError, "expected at least one input DataSlice, got none"
+    with self.assertRaisesRegex(
+        exceptions.KodaError, "expected at least one input DataSlice, got none"
     ):
       expr_eval.eval(kde.py.map_py_on_selected(fn, cond))
 
   def test_error_higher_dimension_cond(self):
     fn = lambda _: None
     val = ds([[1]])
-    with self.assertRaisesWithLiteralMatch(
-        ValueError,
+    with self.assertRaisesRegex(
+        exceptions.KodaError,
         "'cond' must have the same or smaller dimension than `args` and"
         " `kwargs`",
     ):
