@@ -49,6 +49,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_utils.h"
@@ -64,6 +65,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/refcount_ptr.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
@@ -710,14 +712,10 @@ absl::StatusOr<DataItem> DataBagImpl::GetObjSchemaAttr(
     return schema;
   }
 
-  internal::Error error;
-  ASSIGN_OR_RETURN(
-      *error.mutable_missing_object_schema()->mutable_missing_schema_item(),
-      internal::EncodeDataItem(item));
-  return internal::WithErrorPayload(
+  return arolla::WithPayload(
       absl::InvalidArgumentError(
           absl::StrFormat("object %v is missing __schema__ attribute", item)),
-      std::move(error));
+      internal::MissingObjectSchemaError{.missing_schema_item = item});
 }
 
 absl::StatusOr<DataSliceImpl> DataBagImpl::GetObjSchemaAttr(
@@ -737,15 +735,12 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetObjSchemaAttr(
         }
       },
       slice.AsDataItemDenseArray(), schema.AsDataItemDenseArray()));
-  internal::Error error;
-  ASSIGN_OR_RETURN(
-      *error.mutable_missing_object_schema()->mutable_missing_schema_item(),
-      internal::EncodeDataItem(item_missing_schema));
 
-  return internal::WithErrorPayload(
+  return arolla::WithPayload(
       absl::InvalidArgumentError(
           absl::StrFormat("object %v is missing __schema__ attribute", slice)),
-      std::move(error));
+      internal::MissingObjectSchemaError{.missing_schema_item =
+                                             std::move(item_missing_schema)});
 }
 
 void DataBagImpl::GetSmallAllocDataSources(

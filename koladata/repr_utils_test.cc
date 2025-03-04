@@ -167,14 +167,12 @@ TEST(ReprUtilTest, TestAssembleErrorMissingContextData) {
           MatchesRegex(
               R"regex((.|\n)*the common schema\(s\) \$[0-9a-zA-Z]{22}(.|\n)*)regex")));
 
-  Error error2;
-  ASSERT_OK_AND_ASSIGN(
-      *error2.mutable_missing_object_schema()->mutable_missing_schema_item(),
-      internal::EncodeDataItem(
-          internal::DataItem(internal::AllocateSingleObject())));
+  internal::MissingObjectSchemaError error2 = {
+      .missing_schema_item =
+          internal::DataItem(internal::AllocateSingleObject())};
   EXPECT_THAT(
       AssembleErrorMessage(
-          internal::WithErrorPayload(absl::InternalError("error"), error2), {}),
+          arolla::WithPayload(absl::InternalError("error"), error2), {}),
       StatusIs(absl::StatusCode::kInvalidArgument, "missing data slice"));
 }
 

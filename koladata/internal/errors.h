@@ -29,6 +29,12 @@ struct NoCommonSchemaError {
   DataItem conflicting_schema;
 };
 
+// Error for cases when objects with schema OBJECT are missing
+// __schema__ attributes.
+struct MissingObjectSchemaError {
+  DataItem missing_schema_item;
+};
+
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_ERROR_H_

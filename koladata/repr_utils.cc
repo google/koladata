@@ -106,40 +106,35 @@ absl::StatusOr<std::string> SetNoCommonSchemaError(
       internal::DataItemRepr(error.conflicting_schema));
 }
 
-absl::StatusOr<Error> SetMissingObjectAttributeError(
-    Error cause, std::optional<const DataSlice> ds) {
+absl::StatusOr<std::string> FormatMissingObjectAttributeSchemaError(
+    const internal::MissingObjectSchemaError& error,
+    std::optional<const DataSlice> ds) {
   if (!ds) {
     return absl::InvalidArgumentError("missing data slice");
   }
-  ASSIGN_OR_RETURN(
-      internal::DataItem missing_schema_item,
-      DecodeDataItem(cause.missing_object_schema().missing_schema_item()));
-
-  std::string item_str = internal::DataItemRepr(missing_schema_item);
+  std::string item_str = internal::DataItemRepr(error.missing_schema_item);
 
   if (ds->is_item()) {
-    cause.set_error_message(absl::StrFormat(
+    return absl::StrFormat(
         "object schema is missing for the DataItem whose item is: %s\n\n"
         "  DataItem with the kd.OBJECT schema usually store its schema as an "
         "attribute or implicitly hold the type information when it's a "
         "primitive type. Perhaps, the OBJECT schema is set by mistake with\n"
         "  foo.with_schema(kd.OBJECT) when 'foo' "
         "does not have stored schema attribute.\n",
-        item_str));
-  } else {
-    ASSIGN_OR_RETURN(std::string ds_str, DataSliceToStr(*ds));
-    cause.set_error_message(absl::StrFormat(
-        "object schema(s) are missing for some Object(s) in the DataSlice "
-        "whose items are: %s\n\n "
-        "  objects in the kd.OBJECT DataSlice usually store their schemas as "
-        "an attribute or implicitly hold the type information when they are "
-        "primitive types. Perhaps, the OBJECT schema is set by mistake with\n"
-        "  foo.with_schema(kd.OBJECT) when 'foo' "
-        "does not have stored schema attributes.\n"
-        "The first Object without schema: %s\n",
-        ds_str, item_str));
+        item_str);
   }
-  return cause;
+  ASSIGN_OR_RETURN(std::string ds_str, DataSliceToStr(*ds));
+  return absl::StrFormat(
+      "object schema(s) are missing for some Object(s) in the DataSlice "
+      "whose items are: %s\n\n "
+      "  objects in the kd.OBJECT DataSlice usually store their schemas as "
+      "an attribute or implicitly hold the type information when they are "
+      "primitive types. Perhaps, the OBJECT schema is set by mistake with\n"
+      "  foo.with_schema(kd.OBJECT) when 'foo' "
+      "does not have stored schema attributes.\n"
+      "The first Object without schema: %s\n",
+      ds_str, item_str);
 }
 
 constexpr absl::string_view kExplicitSchemaIncompatibleAttrError =
@@ -426,15 +421,22 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
     return WithErrorPayload(status, std::move(error));
   }
 
+  // TODO(b/316118021) Move into different function.
+  if (const internal::MissingObjectSchemaError* missing_object_schema_error =
+          arolla::GetPayload<internal::MissingObjectSchemaError>(status);
+      missing_object_schema_error != nullptr) {
+    Error error;
+    ASSIGN_OR_RETURN(std::string error_message,
+                     FormatMissingObjectAttributeSchemaError(
+                         *missing_object_schema_error, data.ds));
+    error.set_error_message(std::move(error_message));
+    return WithErrorPayload(status, std::move(error));
+  }
+
   // TODO(b/316118021) migrate away from proto based errors.
   std::optional<Error> cause = GetErrorPayload(status);
   if (!cause) {
     return status;
-  }
-  if (cause->has_missing_object_schema()) {
-    ASSIGN_OR_RETURN(Error error, SetMissingObjectAttributeError(
-                                      *std::move(cause), data.ds));
-    return WithErrorPayload(status, std::move(error));
   }
   if (cause->has_incompatible_schema()) {
     ASSIGN_OR_RETURN(Error error, SetIncompatibleSchemaError(*std::move(cause),

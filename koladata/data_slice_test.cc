@@ -2176,7 +2176,6 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr) {
   std::optional<internal::Error> error =
       internal::GetErrorPayload(*arolla::GetCause(result.status()));
   ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
 
   result = ds_2.GetAttrWithDefault("a", test::DataItem(42));
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
@@ -2184,21 +2183,18 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr) {
   ASSERT_THAT(arolla::GetCause(result.status()), NotNull());
   error = internal::GetErrorPayload(*arolla::GetCause(result.status()));
   ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
 
   result = ds_2.SetAttr("a", test::DataSlice<int>({1, 1, 1}));
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
   error = internal::GetErrorPayload(result.status());
   ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
 
   result = ds_2.DelAttr("a");
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
   error = internal::GetErrorPayload(result.status());
   ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {
@@ -2227,52 +2223,37 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
   absl::StatusOr<DataSlice> result = obj.ExplodeList(0, std::nullopt);
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  std::optional<internal::Error> error =
-      internal::GetErrorPayload(result.status());
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
 
   absl::Status status = obj.SetInList(test::DataItem(1), test::DataItem(1));
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
 
   status = obj.AppendToList(test::DataItem(1));
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
 
   status = obj.ReplaceInList(0, 1, test::DataSlice<int>({1}));
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
 
   status = obj.RemoveInList(test::DataItem(1));
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
 
   status = obj.RemoveInList(0, std::nullopt);
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
 
   result = obj.PopFromList(test::DataItem(1));
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(result.status());
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_Dict) {
@@ -2290,31 +2271,22 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Dict) {
   absl::StatusOr<DataSlice> result = obj.GetFromDict(key_item);
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  std::optional<internal::Error> error =
-      internal::GetErrorPayload(result.status());
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
 
   result = obj.GetDictKeys();
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(result.status());
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
 
   result = obj.GetDictValues();
   EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(result.status());
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
 
   absl::Status status = obj.SetInDict(key_item, value_item);
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("missing __schema__ attribute")));
-  error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_missing_object_schema());
+  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
 }
 
 TEST(DataSliceTest, SetAttr_None) {

@@ -537,6 +537,7 @@ cc_library(
         ":dtype",
         ":error_cc_proto",
         ":error_utils",
+        ":errors",
         ":object_id",
         ":schema_utils",
         ":sparse_source",

@@ -250,6 +250,7 @@ cc_test(
         "//koladata/internal:dtype",
         "//koladata/internal:error_cc_proto",
         "//koladata/internal:error_utils",
+        "//koladata/internal:errors",
         "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
         "//koladata/internal:schema_utils",
