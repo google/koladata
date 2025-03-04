@@ -51,7 +51,7 @@ class SlicesFloat32Test(parameterized.TestCase):
 
   def test_error(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape("unable to parse FLOAT32: foo")
+        ValueError, re.escape("unable to parse FLOAT32: 'foo'")
     ):
       expr_eval.eval(kde.slices.float32(ds("foo")))
 

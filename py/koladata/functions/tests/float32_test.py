@@ -42,8 +42,8 @@ class Float32Test(parameterized.TestCase):
 
   @parameterized.parameters(
       (mask_constants.present, 'unsupported schema: MASK'),
-      ('foo', 'unable to parse FLOAT32: foo'),
-      (b'test', 'unable to parse FLOAT32: test'),
+      ('foo', "unable to parse FLOAT32: 'foo'"),
+      (b'test', "unable to parse FLOAT32: 'test'"),
   )
   def test_float32_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

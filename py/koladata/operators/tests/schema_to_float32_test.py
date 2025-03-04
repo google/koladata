@@ -80,7 +80,7 @@ class SchemaToFloat32Test(parameterized.TestCase):
 
   def test_not_parseable_error(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape("unable to parse FLOAT32: foo")
+        ValueError, re.escape("unable to parse FLOAT32: 'foo'")
     ):
       expr_eval.eval(kde.schema.to_float32(ds("foo")))
 

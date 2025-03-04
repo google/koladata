@@ -36,8 +36,8 @@ class Int32Test(parameterized.TestCase):
 
   @parameterized.parameters(
       (mask_constants.present, 'unsupported schema: MASK'),
-      ('foo', 'unable to parse INT32: foo'),
-      (b'test', 'unable to parse INT32: test'),
+      ('foo', "unable to parse INT32: 'foo'"),
+      (b'test', "unable to parse INT32: 'test'"),
       (2**45, f'cannot cast int64{{{2**45}}} to int32'),
   )
   def test_int32_errors(self, x, expected_error_msg):

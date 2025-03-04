@@ -209,7 +209,7 @@ TEST(Casting, Int32Errors) {
                        "cannot cast MASK to INT32"));
   EXPECT_THAT(ToInt32(test::DataItem(arolla::Text("1.5"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unable to parse INT32: 1.5"));
+                       "unable to parse INT32: '1.5'"));
 }
 
 TEST_P(CastingToInt64Test, Casting) {
@@ -289,7 +289,7 @@ TEST(Casting, Int64Errors) {
                        "cannot cast MASK to INT64"));
   EXPECT_THAT(ToInt64(test::DataItem(arolla::Text("1.5"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unable to parse INT64: 1.5"));
+                       "unable to parse INT64: '1.5'"));
 }
 
 TEST_P(CastingToFloat32Test, Casting) {
@@ -370,7 +370,7 @@ TEST(Casting, Float32Errors) {
                        "cannot cast MASK to FLOAT32"));
   EXPECT_THAT(ToFloat32(test::DataItem(arolla::Text("foo"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unable to parse FLOAT32: foo"));
+                       "unable to parse FLOAT32: 'foo'"));
 }
 
 TEST_P(CastingToFloat64Test, Casting) {
@@ -450,7 +450,7 @@ TEST(Casting, Float64Errors) {
                        "cannot cast MASK to FLOAT64"));
   EXPECT_THAT(ToFloat64(test::DataItem(arolla::Text("foo"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unable to parse FLOAT64: foo"));
+                       "unable to parse FLOAT64: 'foo'"));
 }
 
 TEST_P(CastingToNoneTest, Casting) {

@@ -54,7 +54,7 @@ class SlicesFloat64Test(parameterized.TestCase):
 
   def test_error(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape("unable to parse FLOAT64: foo")
+        ValueError, re.escape("unable to parse FLOAT64: 'foo'")
     ):
       expr_eval.eval(kde.slices.float64(ds("foo")))
 

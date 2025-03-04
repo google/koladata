@@ -75,7 +75,7 @@ class SchemaToInt32Test(parameterized.TestCase):
 
   def test_not_parseable_error(self):
     with self.assertRaisesRegex(
-        ValueError, re.escape("unable to parse INT32: 1.5")
+        ValueError, re.escape("unable to parse INT32: '1.5'")
     ):
       expr_eval.eval(kde.schema.to_int32(ds("1.5")))
 
