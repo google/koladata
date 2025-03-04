@@ -608,6 +608,7 @@ cc_test(
         ":dtype",
         ":error_cc_proto",
         ":error_utils",
+        ":errors",
         ":object_id",
         ":schema_utils",
         ":uuid_object",

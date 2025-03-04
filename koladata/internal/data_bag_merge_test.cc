@@ -39,6 +39,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
@@ -46,6 +47,7 @@
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 
 namespace koladata::internal {
@@ -56,6 +58,7 @@ using ::absl_testing::StatusIs;
 using ::testing::_;
 using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
+using ::testing::NotNull;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
 
@@ -308,8 +311,9 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
     EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                  HasSubstr("conflict")));
     std::optional<Error> error = GetErrorPayload(status);
-    ASSERT_TRUE(error.has_value());
-    EXPECT_TRUE(error->has_data_bag_merge_conflict());
+    EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+                NotNull());
+
     ASSERT_OK(db->MergeInplace(
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
     EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
@@ -341,15 +345,13 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
     absl::Status status = db->MergeInplace(*db2);
     EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                  HasSubstr("conflict")));
-    std::optional<Error> error = GetErrorPayload(status);
-    ASSERT_TRUE(error.has_value());
-    EXPECT_TRUE(error->data_bag_merge_conflict().has_entity_object_conflict());
+    EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+                NotNull());
     status = db2->MergeInplace(*db);
     EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                  HasSubstr("conflict")));
-    error = GetErrorPayload(status);
-    ASSERT_TRUE(error.has_value());
-    EXPECT_TRUE(error->data_bag_merge_conflict().has_entity_object_conflict());
+    EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+                NotNull());
   }
   {
     SCOPED_TRACE("merge dense with dense conflict allowed");
@@ -421,10 +423,9 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
             absl::Status status = db2->MergeInplace(*db, merge_options);
             EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                          HasSubstr("conflict")));
-            auto error = GetErrorPayload(status);
-            ASSERT_TRUE(error.has_value());
-            EXPECT_TRUE(
-                error->data_bag_merge_conflict().has_entity_object_conflict());
+            EXPECT_THAT(
+                arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+                NotNull());
             continue;
           }
           ASSERT_OK(db2->MergeInplace(*db, ReverseMergeOptions(merge_options)));
@@ -628,9 +629,8 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectAttrsOnlyConflicts) {
   absl::Status status = db1->MergeInplace(*db2);
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                HasSubstr("conflict")));
-  std::optional<Error> error = GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_data_bag_merge_conflict());
+  EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+              NotNull());
 
   // the same value is not a conflict
   ASSERT_OK(db2->SetAttr(a, "x", DataItem(57)));
@@ -818,9 +818,9 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
       EXPECT_THAT(status,
                   StatusIs(absl::StatusCode::kFailedPrecondition,
                            HasSubstr("conflict")));
-      std::optional<Error> error = GetErrorPayload(status);
-      ASSERT_TRUE(error.has_value());
-      EXPECT_TRUE(error->data_bag_merge_conflict().has_list_conflict());
+      EXPECT_THAT(
+          arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+          NotNull());
     } else if (merge_options.data_conflict_policy == MergeOptions::kOverwrite) {
       EXPECT_OK(status);
       verify_lists(lists, db.get());
@@ -846,9 +846,9 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
       EXPECT_THAT(status,
                   StatusIs(absl::StatusCode::kFailedPrecondition,
                            HasSubstr("conflict")));
-      std::optional<Error> error = GetErrorPayload(status);
-      ASSERT_TRUE(error.has_value());
-      EXPECT_TRUE(error->data_bag_merge_conflict().has_list_conflict());
+      EXPECT_THAT(
+          arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+          NotNull());
     } else if (merge_options.data_conflict_policy == MergeOptions::kOverwrite) {
       EXPECT_OK(status);
       verify_lists(lists, db.get());
@@ -986,10 +986,9 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
     if (merge_options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
       EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                    HasSubstr("conflict")));
-      std::optional<Error> error = GetErrorPayload(status);
-      ASSERT_TRUE(error.has_value());
-      EXPECT_TRUE(
-          error->data_bag_merge_conflict().has_schema_or_dict_conflict());
+      EXPECT_THAT(
+          arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+          NotNull());
     } else if (merge_options.data_conflict_policy == MergeOptions::kOverwrite) {
       EXPECT_OK(status);
       EXPECT_THAT(db->GetFromDict(a, k), IsOkAndHolds(DataItem(75)));
@@ -1098,9 +1097,9 @@ TEST(DataBagTest, MergeExplicitSchemas) {
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite});
     EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                  HasSubstr("conflict")));
-    std::optional<Error> error = GetErrorPayload(status);
-    ASSERT_TRUE(error.has_value());
-    EXPECT_TRUE(error->data_bag_merge_conflict().has_schema_or_dict_conflict());
+
+    EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+                NotNull());
   }
   {
     SCOPED_TRACE("keep schema");
@@ -1119,9 +1118,8 @@ TEST(DataBagTest, MergeExplicitSchemas) {
         MergeOptions{.data_conflict_policy = MergeOptions::kKeepOriginal});
     EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                  HasSubstr("conflict")));
-    std::optional<Error> error = GetErrorPayload(status);
-    ASSERT_TRUE(error.has_value());
-    EXPECT_TRUE(error->data_bag_merge_conflict().has_schema_or_dict_conflict());
+    EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+                NotNull());
   }
   {
     SCOPED_TRACE("raise on conflict");
@@ -1129,9 +1127,8 @@ TEST(DataBagTest, MergeExplicitSchemas) {
     absl::Status status = res->MergeInplace(*db2, MergeOptions());
     EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                  HasSubstr("conflict")));
-    std::optional<Error> error = GetErrorPayload(status);
-    ASSERT_TRUE(error.has_value());
-    EXPECT_TRUE(error->data_bag_merge_conflict().has_schema_or_dict_conflict());
+    EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+                NotNull());
   }
 }
 
@@ -1194,9 +1191,9 @@ struct DataBagNaNMergeTest : public ::testing::Test {
     if (ItemSet().IsConflict()) {
       ASSERT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
                                    HasSubstr("conflict")));
-      std::optional<Error> error = GetErrorPayload(status);
-      ASSERT_TRUE(error.has_value());
-      EXPECT_TRUE(error->has_data_bag_merge_conflict());
+      EXPECT_THAT(
+          arolla::GetPayload<internal::DataBagMergeConflictError>(status),
+          NotNull());
     } else {
       ASSERT_OK(status);
     }

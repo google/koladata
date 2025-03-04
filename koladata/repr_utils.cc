@@ -17,8 +17,10 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 
 #include "absl/base/nullability.h"
+#include "absl/functional/overload.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
@@ -234,31 +236,24 @@ constexpr const char* kDataBagMergeErrorDictConflict =
     "The conflicting dict in the second DataBag: %s\n\n"
     "The cause is the value of the key %s is incompatible: %s vs %s\n";
 
-absl::StatusOr<std::string> SetSchemaOrDictErrorMessage(
-    const internal::DataBagMergeConflict::SchemaOrDictConflict& conflict,
-    const DataBagPtr& db1, const DataBagPtr& db2) {
-  ASSIGN_OR_RETURN(internal::DataItem object_item,
-                   DecodeDataItem(conflict.object_id()));
-  ASSIGN_OR_RETURN(internal::DataItem key_item, DecodeDataItem(conflict.key()));
-  ASSIGN_OR_RETURN(auto expected_value,
-                   DecodeDataItem(conflict.expected_value()));
-  ASSIGN_OR_RETURN(auto assigned_value,
-                   DecodeDataItem(conflict.assigned_value()));
+absl::StatusOr<std::string> FormatDictErrorMessage(
+    const DataBagPtr& db1, const DataBagPtr& db2,
+    const internal::DataBagMergeConflictError::DictConflict& conflict) {
   std::string key_str =
-      internal::DataItemRepr(key_item, {.strip_quotes = false});
+      internal::DataItemRepr(conflict.key, {.strip_quotes = false});
   ASSIGN_OR_RETURN(
       std::string item_str,
-      DataItemToStr(object_item, /*schema=*/internal::DataItem(), db1));
+      DataItemToStr(conflict.object_id, /*schema=*/internal::DataItem(), db1));
   ASSIGN_OR_RETURN(
       std::string conflicting_item_str,
-      DataItemToStr(object_item, /*schema=*/internal::DataItem(), db2));
-  ASSIGN_OR_RETURN(
-      std::string expected_value_str,
-      DataItemToStr(expected_value, /*schema=*/internal::DataItem(), db1));
-  ASSIGN_OR_RETURN(
-      std::string assigned_value_str,
-      DataItemToStr(assigned_value, /*schema=*/internal::DataItem(), db2));
-  return object_item.is_schema()
+      DataItemToStr(conflict.object_id, /*schema=*/internal::DataItem(), db2));
+  ASSIGN_OR_RETURN(std::string expected_value_str,
+                   DataItemToStr(conflict.expected_value,
+                                 /*schema=*/internal::DataItem(), db1));
+  ASSIGN_OR_RETURN(std::string assigned_value_str,
+                   DataItemToStr(conflict.assigned_value,
+                                 /*schema=*/internal::DataItem(), db2));
+  return conflict.object_id.is_schema()
              ? absl::StrFormat(kDataBagMergeErrorSchemaConflict, item_str,
                                conflicting_item_str, key_str,
                                expected_value_str, assigned_value_str)
@@ -273,24 +268,22 @@ constexpr const char* kDataBagMergeErrorTripleConflict =
     "The conflicting entities in the both DataBags: %s\n\n"
     "The cause is the values of attribute '%s' are different: %s vs %s\n";
 
-absl::StatusOr<std::string> SetEntityOrObjectErrorMessage(
-    const internal::DataBagMergeConflict::EntityObjectConflict& conflict,
-    const DataBagPtr& db1, const DataBagPtr& db2) {
-  ASSIGN_OR_RETURN(internal::DataItem object_item,
-                   DecodeDataItem(conflict.object_id()));
+absl::StatusOr<std::string> FormatEntityOrObjectErrorMessage(
+    const DataBagPtr& db1, const DataBagPtr& db2,
+    const internal::DataBagMergeConflictError::EntityObjectConflict& conflict) {
   ASSIGN_OR_RETURN(internal::DataItem a,
-                   GetAttr(object_item, db1, conflict.attr_name()));
+                   GetAttr(conflict.object_id, db1, conflict.attr_name));
   ASSIGN_OR_RETURN(internal::DataItem b,
-                   GetAttr(object_item, db2, conflict.attr_name()));
+                   GetAttr(conflict.object_id, db2, conflict.attr_name));
   ASSIGN_OR_RETURN(
       std::string item_str,
-      DataItemToStr(object_item, /*schema=*/internal::DataItem(), db1));
+      DataItemToStr(conflict.object_id, /*schema=*/internal::DataItem(), db1));
   ASSIGN_OR_RETURN(std::string a_str,
                    DataItemToStr(a, /*schema=*/internal::DataItem(), db1));
   ASSIGN_OR_RETURN(std::string b_str,
                    DataItemToStr(b, /*schema=*/internal::DataItem(), db2));
   return absl::StrFormat(kDataBagMergeErrorTripleConflict, item_str,
-                         conflict.attr_name(), a_str, b_str);
+                         conflict.attr_name, a_str, b_str);
 }
 
 constexpr const char* kDataBagMergeErrorListSizeConflict =
@@ -307,62 +300,62 @@ constexpr const char* kDataBagMergeErrorListItemConflict =
     "The conflicting list in the second DataBag: %s\n\n"
     "The cause is the value at index %d is incompatible: %s vs %s\n";
 
-absl::StatusOr<std::string> SetListErrorMessage(
-    const internal::DataBagMergeConflict::ListConflict& conflict,
-    const DataBagPtr& db1, const DataBagPtr& db2) {
-  ASSIGN_OR_RETURN(internal::DataItem list_item,
-                   DecodeDataItem(conflict.list_object_id()));
-  ASSIGN_OR_RETURN(
-      std::string list_str,
-      DataItemToStr(list_item, /*schema=*/internal::DataItem(), db1));
-  ASSIGN_OR_RETURN(
-      std::string conflicting_list_str,
-      DataItemToStr(list_item, /*schema=*/internal::DataItem(), db2));
-  if (conflict.has_list_item_conflict_index()) {
-    ASSIGN_OR_RETURN(auto first_conflicting_item,
-                     DecodeDataItem(conflict.first_conflicting_item()));
-    ASSIGN_OR_RETURN(auto second_conflicting_item,
-                     DecodeDataItem(conflict.second_conflicting_item()));
-    ASSIGN_OR_RETURN(std::string first_conflicting_item_str,
-                     DataItemToStr(first_conflicting_item,
-                                   /*schema=*/internal::DataItem(), db1));
-    ASSIGN_OR_RETURN(std::string second_conflicting_item_str,
-                     DataItemToStr(second_conflicting_item,
-                                   /*schema=*/internal::DataItem(), db2));
-    return absl::StrFormat(
-        kDataBagMergeErrorListItemConflict, list_str, conflicting_list_str,
-        conflict.list_item_conflict_index(), first_conflicting_item_str,
-        second_conflicting_item_str);
-  }
+absl::StatusOr<std::string> FormatListSizeErrorMessage(
+    const DataBagPtr& db1, const DataBagPtr& db2,
+    const internal::DataBagMergeConflictError::ListSizeConflict& conflict) {
+  ASSIGN_OR_RETURN(std::string list_str,
+                   DataItemToStr(conflict.list_object_id,
+                                 /*schema=*/internal::DataItem(), db1));
+  ASSIGN_OR_RETURN(std::string conflicting_list_str,
+                   DataItemToStr(conflict.list_object_id,
+                                 /*schema=*/internal::DataItem(), db2));
   return absl::StrFormat(kDataBagMergeErrorListSizeConflict, list_str,
-                         conflicting_list_str, conflict.first_list_size(),
-                         conflict.second_list_size());
+                         conflicting_list_str, conflict.first_list_size,
+                         conflict.second_list_size);
 }
 
-absl::StatusOr<Error> SetDataBagMergeError(Error cause, const DataBagPtr& db1,
-                                           const DataBagPtr& db2) {
-  std::string error_str;
-  if (cause.data_bag_merge_conflict().has_schema_or_dict_conflict()) {
-    ASSIGN_OR_RETURN(
-        error_str,
-        SetSchemaOrDictErrorMessage(
-            cause.data_bag_merge_conflict().schema_or_dict_conflict(), db1,
-            db2));
-  }
-  if (cause.data_bag_merge_conflict().has_list_conflict()) {
-    ASSIGN_OR_RETURN(
-        error_str,
-        SetListErrorMessage(cause.data_bag_merge_conflict().list_conflict(),
-                            db1, db2));
-  }
-  if (cause.data_bag_merge_conflict().has_entity_object_conflict()) {
-    ASSIGN_OR_RETURN(
-        error_str, SetEntityOrObjectErrorMessage(
-                       cause.data_bag_merge_conflict().entity_object_conflict(),
-                       db1, db2));
-  }
-  cause.set_error_message(std::move(error_str));
-  return cause;
+absl::StatusOr<std::string> FormatListContentErrorMessage(
+    const DataBagPtr& db1, const DataBagPtr& db2,
+    const internal::DataBagMergeConflictError::ListContentConflict& conflict) {
+  ASSIGN_OR_RETURN(std::string list_str,
+                   DataItemToStr(conflict.list_object_id,
+                                 /*schema=*/internal::DataItem(), db1));
+  ASSIGN_OR_RETURN(std::string conflicting_list_str,
+                   DataItemToStr(conflict.list_object_id,
+                                 /*schema=*/internal::DataItem(), db2));
+  ASSIGN_OR_RETURN(std::string first_conflicting_item_str,
+                   DataItemToStr(conflict.first_conflicting_item,
+                                 /*schema=*/internal::DataItem(), db1));
+  ASSIGN_OR_RETURN(std::string second_conflicting_item_str,
+                   DataItemToStr(conflict.second_conflicting_item,
+                                 /*schema=*/internal::DataItem(), db2));
+  return absl::StrFormat(
+      kDataBagMergeErrorListItemConflict, list_str, conflicting_list_str,
+      conflict.list_item_conflict_index, first_conflicting_item_str,
+      second_conflicting_item_str);
+}
+
+absl::StatusOr<std::string> FormatDataBagMergeError(
+    const internal::DataBagMergeConflictError& conflict, const DataBagPtr& db1,
+    const DataBagPtr& db2) {
+  return std::visit(
+      absl::Overload(
+          [&](const internal::DataBagMergeConflictError::EntityObjectConflict&
+                  error) {
+            return FormatEntityOrObjectErrorMessage(db1, db2, error);
+          },
+          [&](const internal::DataBagMergeConflictError::DictConflict& error) {
+            return FormatDictErrorMessage(db1, db2, error);
+          },
+          [&](const internal::DataBagMergeConflictError::ListSizeConflict&
+                  error) {
+            return FormatListSizeErrorMessage(db1, db2, error);
+          },
+          [&](const internal::DataBagMergeConflictError::ListContentConflict&
+                  error) {
+            return FormatListContentErrorMessage(db1, db2, error);
+          }),
+      conflict.conflict);
 }
 
 absl::StatusOr<internal::Error> SetMissingCollectionItemSchemaError(
@@ -433,6 +426,17 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
     return WithErrorPayload(status, std::move(error));
   }
 
+  if (const internal::DataBagMergeConflictError* merge_conflict_error =
+          arolla::GetPayload<internal::DataBagMergeConflictError>(status);
+      merge_conflict_error != nullptr) {
+    Error error;
+    ASSIGN_OR_RETURN(std::string error_message,
+                     FormatDataBagMergeError(*merge_conflict_error, data.db,
+                                             data.to_be_merged_db));
+    error.set_error_message(std::move(error_message));
+    return WithErrorPayload(status, std::move(error));
+  }
+
   // TODO(b/316118021) migrate away from proto based errors.
   std::optional<Error> cause = GetErrorPayload(status);
   if (!cause) {
@@ -441,12 +445,6 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
   if (cause->has_incompatible_schema()) {
     ASSIGN_OR_RETURN(Error error, SetIncompatibleSchemaError(*std::move(cause),
                                                              data.db, data.ds));
-    return WithErrorPayload(status, std::move(error));
-  }
-  if (cause->has_data_bag_merge_conflict()) {
-    ASSIGN_OR_RETURN(
-        Error error,
-        SetDataBagMergeError(*std::move(cause), data.db, data.to_be_merged_db));
     return WithErrorPayload(status, std::move(error));
   }
   if (cause->has_missing_collection_item_schema()) {

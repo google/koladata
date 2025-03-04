@@ -246,16 +246,12 @@ absl::Status ProcessSparseSources(
   return absl::OkStatus();
 }
 
-absl::StatusOr<internal::Error> MakeEntityOrObjectMergeError(
+internal::DataBagMergeConflictError MakeEntityOrObjectMergeError(
     const internal::ObjectId& object, absl::string_view attr) {
-  internal::Error error;
-  auto* data_bag_merge_conflict = error.mutable_data_bag_merge_conflict();
-  auto* entity_or_object_conflict =
-      data_bag_merge_conflict->mutable_entity_object_conflict();
-  ASSIGN_OR_RETURN(*entity_or_object_conflict->mutable_object_id(),
-                   internal::EncodeDataItem(internal::DataItem(object)));
-  entity_or_object_conflict->set_attr_name(attr);
-  return error;
+  return {.conflict = internal::DataBagMergeConflictError::EntityObjectConflict{
+              .object_id = internal::DataItem(object),
+              .attr_name = std::string(attr),
+          }};
 }
 
 // Merges the given sparse sources ordered by priority into a mutable dense
@@ -280,7 +276,7 @@ absl::Status MergeToMutableDenseSourceOnlySparse(
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
                  ValuesAreDifferent(*this_result, item)) {
-        return internal::WithErrorPayload(
+        return arolla::WithPayload(
             absl::FailedPreconditionError(absl::StrCat(
                 "conflict ", key, ": ", *this_result, " vs ", item)),
             MakeEntityOrObjectMergeError(key, attr));
@@ -313,7 +309,7 @@ absl::Status MergeToMutableSparseSourceOnlySparse(
       } else if (options.data_conflict_policy ==
                      MergeOptions::kRaiseOnConflict &&
                  ValuesAreDifferent(*this_result, item)) {
-        return internal::WithErrorPayload(
+        return arolla::WithPayload(
             absl::FailedPreconditionError(absl::StrCat(
                 "conflict ", key, ": ", *this_result, " vs ", item)),
             MakeEntityOrObjectMergeError(key, attr));
@@ -335,14 +331,14 @@ absl::Status MergeToMutableDenseSource(
   int64_t size = std::min<int64_t>(result.size(), dense_source.size());
   if (sparse_sources.empty()) {
     DCHECK_EQ(dense_source.allocation_id(), alloc);
-    absl::StatusOr<internal::Error> error;
+    internal::DataBagMergeConflictError error;
     absl::Status status = result.Merge(dense_source,
                      {.option = options.data_conflict_policy,
                       .on_conflict_callback =
                           [attr, &error](const ObjectId& obj_id) mutable {
                             error = MakeEntityOrObjectMergeError(obj_id, attr);
                           }});
-    return internal::WithErrorPayload(std::move(status), std::move(error));
+    return arolla::WithPayload(std::move(status), std::move(error));
   }
 
   auto objects = DataSliceImpl::ObjectsFromAllocation(alloc, size);
@@ -376,7 +372,7 @@ absl::Status MergeToMutableDenseSource(
     } else {
       if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict &&
           ValuesAreDifferent(*this_result, other_item)) {
-        return internal::WithErrorPayload(
+        return arolla::WithPayload(
             absl::FailedPreconditionError(absl::StrCat(
                 "conflict ", obj_id, ": ", *this_result, " vs ", other_item)),
             MakeEntityOrObjectMergeError(obj_id, attr));
@@ -400,55 +396,37 @@ MergeOptions::ConflictHandlingOption ReverseConflictHandlingOption(
   return MergeOptions::kRaiseOnConflict;
 }
 
-absl::StatusOr<internal::Error> MakeSchemaOrDictMergeError(
+internal::DataBagMergeConflictError MakeSchemaOrDictMergeError(
     const internal::ObjectId& object, const DataItem& key,
     const DataItem& expected_value, const DataItem& assigned_value) {
-  internal::Error error;
-  auto* data_bag_merge_conflict = error.mutable_data_bag_merge_conflict();
-  auto* schema_or_dict_conflict =
-      data_bag_merge_conflict->mutable_schema_or_dict_conflict();
-  ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_object_id(),
-                   internal::EncodeDataItem(internal::DataItem(object)));
-  ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_key(),
-                   internal::EncodeDataItem(key));
-  ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_expected_value(),
-                   internal::EncodeDataItem(expected_value));
-  ASSIGN_OR_RETURN(*schema_or_dict_conflict->mutable_assigned_value(),
-                   internal::EncodeDataItem(assigned_value));
-  return error;
+  return {.conflict = internal::DataBagMergeConflictError::DictConflict{
+              .object_id = internal::DataItem(object),
+              .key = key,
+              .expected_value = expected_value,
+              .assigned_value = assigned_value,
+          }};
 }
 
-absl::StatusOr<internal::Error> MakeListMergeError(
+internal::DataBagMergeConflictError MakeListSizeMergeError(
+    const internal::ObjectId& list_object_id, const int64_t first_list_size,
+    const int64_t second_list_size) {
+  return {.conflict = internal::DataBagMergeConflictError::ListSizeConflict{
+              .list_object_id = internal::DataItem(list_object_id),
+              .first_list_size = first_list_size,
+              .second_list_size = second_list_size,
+          }};
+}
+
+internal::DataBagMergeConflictError MakeListItemMergeError(
     const internal::ObjectId& list_object_id,
-    const std::optional<int64_t> first_list_size,
-    const std::optional<int64_t> second_list_size,
-    const std::optional<int64_t> list_item_conflict_index,
-    const DataItem& first_list_item, const DataItem& second_list_item) {
-  DCHECK(list_object_id.IsList());
-  internal::Error error;
-  auto* data_bag_merge_conflict = error.mutable_data_bag_merge_conflict();
-  auto* list_conflict = data_bag_merge_conflict->mutable_list_conflict();
-  ASSIGN_OR_RETURN(
-      *list_conflict->mutable_list_object_id(),
-      internal::EncodeDataItem(internal::DataItem(list_object_id)));
-  if (first_list_size.has_value()) {
-    list_conflict->set_first_list_size(*first_list_size);
-  }
-  if (second_list_size.has_value()) {
-    list_conflict->set_second_list_size(*second_list_size);
-  }
-  if (list_item_conflict_index.has_value()) {
-    list_conflict->set_list_item_conflict_index(*list_item_conflict_index);
-  }
-  if (first_list_item.has_value()) {
-    ASSIGN_OR_RETURN(*list_conflict->mutable_first_conflicting_item(),
-                     internal::EncodeDataItem(first_list_item));
-  }
-  if (second_list_item.has_value()) {
-    ASSIGN_OR_RETURN(*list_conflict->mutable_second_conflicting_item(),
-                     internal::EncodeDataItem(second_list_item));
-  }
-  return error;
+    const int64_t list_item_conflict_index, const DataItem& first_list_item,
+    const DataItem& second_list_item) {
+  return {.conflict = internal::DataBagMergeConflictError::ListContentConflict{
+              .list_object_id = internal::DataItem(list_object_id),
+              .list_item_conflict_index = list_item_conflict_index,
+              .first_conflicting_item = first_list_item,
+              .second_conflicting_item = second_list_item,
+          }};
 }
 }  // namespace
 
@@ -3002,7 +2980,7 @@ absl::Status DataBagImpl::MergeSmallAllocInplace(const DataBagImpl& other,
             if (options.data_conflict_policy ==
                     MergeOptions::kRaiseOnConflict &&
                 ValuesAreDifferent(*this_value, other_item)) {
-              return WithErrorPayload(
+              return arolla::WithPayload(
                   absl::FailedPreconditionError(absl::StrCat(
                       "conflicting values for ", attr_name, " for ", obj_id,
                       ": ", *this_value, " vs ", other_item)),
@@ -3157,23 +3135,21 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
         }
         if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
           if (this_list.size() != other_list.size()) {
-            return internal::WithErrorPayload(
+            return arolla::WithPayload(
                 absl::FailedPreconditionError(
                     absl::StrCat("conflicting list sizes for ", alloc_id, ": ",
                                  this_list.size(), " vs ", other_list.size())),
-                MakeListMergeError(alloc_id.ObjectByOffset(i), this_list.size(),
-                                   other_list.size(), std::nullopt, DataItem(),
-                                   DataItem()));
+                MakeListSizeMergeError(alloc_id.ObjectByOffset(i),
+                                       this_list.size(), other_list.size()));
           }
           for (size_t j = 0; j < other_list.size(); ++j) {
             if (ValuesAreDifferent(this_list[j], other_list[j])) {
-              return internal::WithErrorPayload(
+              return arolla::WithPayload(
                   absl::FailedPreconditionError(absl::StrCat(
                       "conflicting list values for ", alloc_id, "at index ", j,
                       ": ", this_list[j], " vs ", other_list[j])),
-                  MakeListMergeError(alloc_id.ObjectByOffset(i),
-                                     this_list.size(), other_list.size(), j,
-                                     this_list[j], other_list[j]));
+                  MakeListItemMergeError(alloc_id.ObjectByOffset(i), j,
+                                         this_list[j], other_list[j]));
             }
           }
         }
@@ -3213,7 +3189,7 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
           if (conflict_policy == MergeOptions::kRaiseOnConflict &&
               ValuesAreDifferent(this_value, other_value->get())) {
             internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
-            return internal::WithErrorPayload(
+            return arolla::WithPayload(
                 absl::FailedPreconditionError(absl::StrCat(
                     "conflicting dict values for ", object_id, " key", key,
                     ": ", this_value, " vs ", *other_value)),

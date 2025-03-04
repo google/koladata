@@ -15,6 +15,10 @@
 #ifndef KOLADATA_INTERNAL_ERROR_H_
 #define KOLADATA_INTERNAL_ERROR_H_
 
+#include <cstdint>
+#include <string>
+#include <variant>
+
 #include "koladata/internal/data_item.h"
 
 namespace koladata::internal {
@@ -33,6 +37,35 @@ struct NoCommonSchemaError {
 // __schema__ attributes.
 struct MissingObjectSchemaError {
   DataItem missing_schema_item;
+};
+
+// Conflicts when merging two DataBags.
+struct DataBagMergeConflictError {
+  // Conflict in the internal dict structure. It might be a schema conflict.
+  struct DictConflict {
+    DataItem object_id;
+    DataItem key;
+    DataItem expected_value;
+    DataItem assigned_value;
+  };
+  struct EntityObjectConflict {
+    DataItem object_id;
+    std::string attr_name;
+  };
+  struct ListContentConflict {
+    DataItem list_object_id;
+    int64_t list_item_conflict_index;
+    DataItem first_conflicting_item;
+    DataItem second_conflicting_item;
+  };
+  struct ListSizeConflict {
+    DataItem list_object_id;
+    int64_t first_list_size;
+    int64_t second_list_size;
+  };
+  std::variant<DictConflict, EntityObjectConflict, ListContentConflict,
+               ListSizeConflict>
+      conflict;
 };
 
 }  // namespace koladata::internal
