@@ -49,20 +49,19 @@ std::optional<Error> GetErrorPayload(const absl::Status& status) {
 
 absl::Status WithErrorPayload(absl::Status status, Error error) {
   if (status.ok()) {
-    return status;
+    return absl::OkStatus();
   }
   return arolla::WithPayload(std::move(status), std::move(error));
 }
 
 absl::Status WithErrorPayload(absl::Status status,
                               absl::StatusOr<Error> error) {
+  if (status.ok()) {
+    return absl::OkStatus();
+  }
   if (!error.ok()) {
-    std::string annotated;
-    absl::StrAppend(
-        &annotated, status.message(),
-        "; Error when creating KodaError: ", error.status().message());
-    absl::Status ret_status = absl::Status(status.code(), annotated);
-    return ret_status;
+    RETURN_IF_ERROR(std::move(status))
+        << "Error when creating KodaError: " << error.status().message();
   }
   return WithErrorPayload(std::move(status), std::move(error.value()));
 }
@@ -94,7 +93,7 @@ absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause) {
   if (cause.ok()) {
     return cause;
   }
-  internal::Error error;
+  Error error;
   error.set_error_message(msg);
   auto status = internal::WithErrorPayload(absl::Status(cause.code(), msg),
                                            std::move(error));

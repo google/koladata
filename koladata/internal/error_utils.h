@@ -40,10 +40,6 @@ absl::Status WithErrorPayload(absl::Status status, Error error);
 // ok, the error message of `error` will be appended to the `status`.
 absl::Status WithErrorPayload(absl::Status status, absl::StatusOr<Error> error);
 
-// Creates the no common schema error proto from the given schema id and dtype.
-absl::StatusOr<Error> CreateNoCommonSchemaError(
-    const DataItem& common_schema, const DataItem& conflicting_schema);
-
 // Encodes the DataItem to ContainerProto.
 absl::StatusOr<arolla::serialization_base::ContainerProto> EncodeDataItem(
     const DataItem& item);
@@ -58,6 +54,7 @@ absl::Status AsKodaError(absl::Status status);
 
 // Creates KodaError with `msg` from the status and sets the cause to `cause`.
 // The result's status code and .message() are the same as `cause`.
+//
 absl::Status KodaErrorFromCause(absl::string_view msg, absl::Status cause);
 
 }  // namespace koladata::internal

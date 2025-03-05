@@ -25,11 +25,6 @@ message IncompatibleSchema {
   optional arolla.serialization_base.ContainerProto assigned_schema = 3;
 }
 
-message SourceLocation {
-  optional string file_name = 1;
-  optional int32 line_number = 2;
-}
-
 // Koda error message transportation proto.
 message Error {
   optional string error_message = 1;
@@ -37,6 +32,5 @@ message Error {
     IncompatibleSchema incompatible_schema = 5;
   }
 
-  reserved 2, 3, 4, 6, 7;
-  repeated SourceLocation source_location = 100;
+  reserved 2, 3, 4, 6, 7, 100;
 }
