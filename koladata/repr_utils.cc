@@ -429,9 +429,8 @@ KodaErrorCausedByMergeConflictError(const DataBagPtr& lhs_bag,
   };
 }
 
-absl::Status AssembleErrorMessage(const absl::Status& status,
-                                  const SupplementalData& data) {
-  // TODO(b/316118021) Split into different functions.
+absl::Status KodaErrorCausedByMissingCollectionItemSchemaError(
+    absl::Status status, const DataBagPtr& db) {
   if (const internal::MissingCollectionItemSchemaError*
           missing_collection_schema_error =
               arolla::GetPayload<internal::MissingCollectionItemSchemaError>(
@@ -440,7 +439,7 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
     Error error;
     ASSIGN_OR_RETURN(std::string error_message,
                      FormatMissingCollectionItemSchemaError(
-                         *missing_collection_schema_error, data.db));
+                         *missing_collection_schema_error, db));
     error.set_error_message(std::move(error_message));
     return WithErrorPayload(status, std::move(error));
   }

@@ -26,17 +26,10 @@
 
 namespace koladata {
 
-// The additional data collected for assemble a more user friendly error
-// message.
-struct SupplementalData {
-  absl::Nullable<const koladata::DataBagPtr> db;
-  std::optional<const koladata::DataSlice> ds;
-};
-
-// Creates the readable error message and sets it in the payload of Status if
-// the Status is not ok. On OkStatus, returns it unchanged.
-absl::Status AssembleErrorMessage(const absl::Status& status,
-                                  const SupplementalData& data);
+// Returns the KodaError payload and readable error message if the
+// error is caused by missing collection item schema.
+absl::Status KodaErrorCausedByMissingCollectionItemSchemaError(
+    absl::Status status, const DataBagPtr& db);
 
 // Returns the KodaError payload and readable error message if the
 // error is caused by incompatible schema. Otherwise, returns the status
