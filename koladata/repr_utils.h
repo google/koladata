@@ -19,6 +19,7 @@
 
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
+#include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 
@@ -36,6 +37,21 @@ struct SupplementalData {
 // the Status is not ok. On OkStatus, returns it unchanged.
 absl::Status AssembleErrorMessage(const absl::Status& status,
                                   const SupplementalData& data);
+
+// Returns the KodaError payload and readable error message if the
+// error is caused by incompatible schema. Otherwise, returns the status
+// unchanged.
+absl::Status KodaErrorCausedByIncompableSchemaError(absl::Status status,
+                                                    const DataBagPtr& lhs_bag,
+                                                    const DataBagPtr& rhs_bag,
+                                                    const DataSlice& ds);
+
+// Returns the KodaError payload and readable error message if the
+// error is caused by incompatible schema. Otherwise, returns the status
+// unchanged.
+absl::Status KodaErrorCausedByIncompableSchemaError(
+    absl::Status status, const DataBagPtr& lhs_bag,
+    absl::Span<const DataSlice> slices, const DataSlice& ds);
 
 // Creates an KodaError that further explains why creating items fails.
 // If it is caused by another KodaError, the cause is propagated. Otherwise,

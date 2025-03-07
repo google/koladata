@@ -37,6 +37,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
+#include "koladata/internal/errors.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
@@ -2374,12 +2375,8 @@ TEST(DataSliceTest, SetAttr_ObjectWithExplicitSchema_Incompatible) {
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("two different types: FLOAT64 and INT32")));
-  std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_incompatible_schema());
-  EXPECT_THAT(error->error_message(),
-              HasSubstr("explicitly override schema of 'a' in the Object "
-                        "schema by passing overwrite_schema=True."));
+  EXPECT_THAT(arolla::GetPayload<internal::IncompatibleSchemaError>(status),
+              NotNull());
 }
 
 TEST(DataSliceTest, SetAttrWithUpdateSchema_EntityCreator) {
@@ -3080,9 +3077,8 @@ TEST(DataSliceTest, SetGetError_ObjectCreator) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("FLOAT32"), HasSubstr("STRING"))));
-  std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_incompatible_schema());
+  EXPECT_THAT(arolla::GetPayload<internal::IncompatibleSchemaError>(status),
+              NotNull());
 
   // NOTE: If we overwrote IMPLICIT schemas above (regardless of error on
   // EXPLICIT schemas), this would not raise as we would overwrite EXPLICIT
@@ -3095,9 +3091,8 @@ TEST(DataSliceTest, SetGetError_ObjectCreator) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                AllOf(HasSubstr("the schema for attribute 'a' is incompatible"),
                      HasSubstr("FLOAT32"), HasSubstr("STRING"))));
-  error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error.has_value());
-  EXPECT_TRUE(error->has_incompatible_schema());
+  EXPECT_THAT(arolla::GetPayload<internal::IncompatibleSchemaError>(status),
+              NotNull());
 
   // Implicit schema gets overwritten when there are no errors and attr schema
   // is not the same.
@@ -4356,8 +4351,7 @@ TEST(DataSliceTest, ReplaceInList_Int64Schema) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the schema for list items is incompatible")));
   std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error);
-  EXPECT_TRUE(error->has_incompatible_schema());
+  EXPECT_TRUE(error.has_value());
 
   // Lists are not modified.
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
@@ -4440,8 +4434,7 @@ TEST(DataSliceTest, SetInList_Int64Schema) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the schema for list items is incompatible")));
   std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error);
-  EXPECT_TRUE(error->has_incompatible_schema());
+  EXPECT_TRUE(error.has_value());
 
   // The lists were not modified.
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
@@ -4488,9 +4481,8 @@ TEST(DataSliceTest, AppendToList_Int64Schema) {
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the schema for list items is incompatible")));
-  std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error);
-  EXPECT_TRUE(error->has_incompatible_schema());
+  EXPECT_THAT(arolla::GetPayload<internal::IncompatibleSchemaError>(status),
+              NotNull());
 
   // Lists are not modified.
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
@@ -4722,8 +4714,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
                                "the schema for dict keys is incompatible: "
                                "expected OBJECT, assigned ITEMID"));
   std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error);
-  EXPECT_TRUE(error->has_incompatible_schema());
+  EXPECT_TRUE(error.has_value());
 
   EXPECT_THAT(
       immutable_dicts.SetInDict(
@@ -4799,8 +4790,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
                                "the schema for dict keys is incompatible: "
                                "expected OBJECT, assigned ITEMID"));
   std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  ASSERT_TRUE(error);
-  EXPECT_TRUE(error->has_incompatible_schema());
+  EXPECT_TRUE(error.has_value());
 
   EXPECT_THAT(
       immutable_dicts.SetInDict(

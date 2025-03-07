@@ -43,6 +43,7 @@
 #include "koladata/operators/masking.h"
 #include "koladata/operators/slices.h"
 #include "koladata/proto/to_proto.h"
+#include "koladata/repr_utils.h"
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/message.h"
 #include "py/arolla/abc/py_cancellation_context.h"
@@ -406,7 +407,8 @@ int PyDataSlice_setattro(PyObject* self, PyObject* attr_name, PyObject* value) {
     status = adoption_queue.AdoptInto(*self_ds.GetBag());
   }
   if (!status.ok()) {
-    arolla::python::SetPyErrFromStatus(status);
+    arolla::python::SetPyErrFromStatus(KodaErrorCausedByIncompableSchemaError(
+        std::move(status), self_ds.GetBag(), value_ds.GetBag(), self_ds));
     return -1;
   }
   return 0;
@@ -450,7 +452,12 @@ absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
     overwrite_schema = PyObject_IsTrue(py_overwrite_schema);
   }
   RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds, overwrite_schema))
-      .With(arolla::python::SetPyErrFromStatus);
+      .With([&](absl::Status status) {
+        return arolla::python::SetPyErrFromStatus(
+            KodaErrorCausedByIncompableSchemaError(std::move(status),
+                                                   self_ds.GetBag(),
+                                                   value_ds.GetBag(), self_ds));
+      });
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
       .With(arolla::python::SetPyErrFromStatus);
   Py_RETURN_NONE;
@@ -483,7 +490,12 @@ absl::Nullable<PyObject*> PyDataSlice_set_attrs(PyObject* self,
       ConvertArgsToDataSlices(self_ds.GetBag(), args.kw_values, adoption_queue),
       arolla::python::SetPyErrFromStatus(_));
   RETURN_IF_ERROR(self_ds.SetAttrs(args.kw_names, values, overwrite_schema))
-      .With(arolla::python::SetPyErrFromStatus);
+      .With([&](absl::Status status) {
+        // TODO: b/361573497 - Move both adoption and error handling to SetAttr.
+        return arolla::python::SetPyErrFromStatus(
+            KodaErrorCausedByIncompableSchemaError(
+                std::move(status), self_ds.GetBag(), values, self_ds));
+      });
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
       .With(arolla::python::SetPyErrFromStatus);
   Py_RETURN_NONE;
@@ -718,7 +730,11 @@ absl::Nullable<PyObject*> PyDataSlice_append(PyObject* self,
   RETURN_IF_ERROR(TryAdoptInto(adoption_queue, self_ds.GetBag()))
       .With(arolla::python::SetPyErrFromStatus);
   RETURN_IF_ERROR(self_ds.AppendToList(items.WithBag(self_ds.GetBag())))
-      .With(arolla::python::SetPyErrFromStatus);
+      .With([&](absl::Status status) {
+        return arolla::python::SetPyErrFromStatus(
+            KodaErrorCausedByIncompableSchemaError(
+                std::move(status), self_ds.GetBag(), items.GetBag(), self_ds));
+      });
   Py_RETURN_NONE;
 }
 

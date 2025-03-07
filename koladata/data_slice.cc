@@ -403,6 +403,15 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
   return result.value_or(DataSlice::AttrNamesSet());
 }
 
+auto KodaErrorCausedByIncompableSchemaError(const DataBagPtr& lhs_bag,
+                                            const DataBagPtr& rhs_bag,
+                                            const DataSlice& ds) {
+  return [&](auto&& status_like) {
+    return KodaErrorCausedByIncompableSchemaError(
+        std::forward<decltype(status_like)>(status_like), lhs_bag, rhs_bag, ds);
+  };
+}
+
 // Helper method for fetching an attribute as if this DataSlice is a Schema
 // slice (schemas are stored in a dict and not in normal attribute storage).
 // * If `allow_missing` is `false_type` and schema is missing, an error is
@@ -827,7 +836,7 @@ class RhsHandler {
                     if (cast_to.has_value() && cast_to != attr_stored_schema) {
                       // NOTE: If cast_to and attr_stored_schema are different,
                       // but compatible, we are still returning an error.
-                      status = internal::WithErrorPayload(
+                      status = arolla::WithPayload(
                           absl::InvalidArgumentError(absl::StrFormat(
                               "assignment would require to cast values "
                               "to two different "
@@ -932,8 +941,8 @@ class RhsHandler {
             dict_attr, attr_stored_schema, rhs_.GetSchemaImpl()));
         break;
     }
-    return WithErrorPayload(status,
-                            MakeIncompatibleSchemaError(attr_stored_schema));
+    return arolla::WithPayload(std::move(status),
+                               MakeIncompatibleSchemaError(attr_stored_schema));
   }
 
   absl::Status AttrSchemaMissingErrorStatus(
@@ -989,17 +998,13 @@ class RhsHandler {
         "cannot set an attribute on an entity with a no-follow schema");
   }
 
-  absl::StatusOr<internal::Error> MakeIncompatibleSchemaError(
+  internal::IncompatibleSchemaError MakeIncompatibleSchemaError(
       const internal::DataItem& attr_stored_schema) const {
-    internal::Error error;
-    internal::IncompatibleSchema* incompatible_schema =
-        error.mutable_incompatible_schema();
-    incompatible_schema->set_attr(attr_name_);
-    ASSIGN_OR_RETURN(*incompatible_schema->mutable_expected_schema(),
-                     internal::EncodeDataItem(attr_stored_schema));
-    ASSIGN_OR_RETURN(*incompatible_schema->mutable_assigned_schema(),
-                     internal::EncodeDataItem(rhs_.GetSchemaImpl()));
-    return error;
+    return {
+        .attr = std::string(attr_name_),
+        .expected_schema = attr_stored_schema,
+        .assigned_schema = rhs_.GetSchemaImpl(),
+    };
   }
 
   RhsHandlerContext context_;
@@ -1714,7 +1719,9 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
       RhsHandlerContext::kDict, expanded_keys, schema::kDictKeysSchemaAttr,
       /*overwrite_schema=*/false);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, GetBag()->GetImpl(),
-                                             fb_finder.GetFlattenFallbacks()));
+                                             fb_finder.GetFlattenFallbacks()))
+      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), keys.GetBag(),
+                                                   *this));
   ASSIGN_OR_RETURN(auto res_schema, VisitImpl([&](const auto& impl) {
                      return GetResultSchema(GetBag()->GetImpl(), impl,
                                             GetSchemaImpl(),
@@ -1761,12 +1768,16 @@ absl::Status DataSlice::SetInDict(const DataSlice& keys,
       RhsHandlerContext::kDict, expanded_keys, schema::kDictKeysSchemaAttr,
       /*overwrite_schema=*/false);
   RETURN_IF_ERROR(keys_handler.ProcessSchema(*this, db_mutable_impl,
-                                             /*fallbacks=*/{}));
+                                             /*fallbacks=*/{}))
+      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), keys.GetBag(),
+                                                   *this));
   RhsHandler</*is_readonly=*/false> values_handler(
       RhsHandlerContext::kDict, expanded_values, schema::kDictValuesSchemaAttr,
       /*overwrite_schema=*/false);
   RETURN_IF_ERROR(values_handler.ProcessSchema(*this, db_mutable_impl,
-                                               /*fallbacks=*/{}));
+                                               /*fallbacks=*/{}))
+      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), values.GetBag(),
+                                                   *this));
 
   adoption_queue.Add(keys);
   adoption_queue.Add(values);
@@ -2053,7 +2064,9 @@ absl::Status DataSlice::SetInList(const DataSlice& indices,
                                                  schema::kListItemsSchemaAttr,
                                                  /*overwrite_schema=*/false);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
-                                             /*fallbacks=*/{}));
+                                             /*fallbacks=*/{}))
+      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), values.GetBag(),
+                                                   *this));
   if (std::holds_alternative<internal::DataItem>(
           expanded_this.internal_->impl)) {
     int64_t index = expanded_indices.item().value<int64_t>();
@@ -2102,7 +2115,9 @@ absl::Status DataSlice::ReplaceInList(int64_t start,
       RhsHandlerContext::kListItem, values, schema::kListItemsSchemaAttr,
       /*overwrite_schema=*/false);
   RETURN_IF_ERROR(data_handler.ProcessSchema(*this, db_mutable_impl,
-                                             /*fallbacks=*/{}));
+                                             /*fallbacks=*/{}))
+      .With(KodaErrorCausedByIncompableSchemaError(GetBag(), values.GetBag(),
+                                                   *this));
 
   internal::DataBagImpl::ListRange list_range(start, stop);
   return VisitImpl([&]<class T>(const T& impl) -> absl::Status {

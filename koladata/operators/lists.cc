@@ -36,6 +36,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/object_factories.h"
+#include "koladata/repr_utils.h"
 #include "koladata/uuid_utils.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
@@ -190,7 +191,10 @@ absl::StatusOr<DataSlice> ListAppended(const DataSlice& x,
   ASSIGN_OR_RETURN(
       auto result,
       CreateListLike(result_db, x, std::move(list_items), x.GetSchema()));
-  RETURN_IF_ERROR(result.AppendToList(append));
+  RETURN_IF_ERROR(result.AppendToList(append)).With([&](absl::Status status) {
+    return KodaErrorCausedByIncompableSchemaError(std::move(status), x.GetBag(),
+                                                  append.GetBag(), x);
+  });
   result_db->UnsafeMakeImmutable();
   return result;
 }
@@ -210,7 +214,11 @@ absl::StatusOr<DataBagPtr> ListAppendUpdate(const DataSlice& x,
   // Adopt stub already copies the list elements, so we don't need to copy them
   // ourselves.
   RETURN_IF_ERROR(AdoptStub(result_db, x));
-  RETURN_IF_ERROR(x.WithBag(result_db).AppendToList(append));
+  RETURN_IF_ERROR(x.WithBag(result_db).AppendToList(append))
+      .With([&](absl::Status status) {
+        return KodaErrorCausedByIncompableSchemaError(
+            std::move(status), x.GetBag(), append.GetBag(), x);
+      });
   result_db->UnsafeMakeImmutable();
   return result_db;
 }

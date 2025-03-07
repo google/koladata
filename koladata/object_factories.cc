@@ -449,6 +449,25 @@ absl::Status AdoptValuesInto(absl::Span<const DataSlice> values,
   return adoption_queue.AdoptInto(db);
 }
 
+auto KodaErrorCausedByIncompableSchemaError(const DataBagPtr& lhs_bag,
+                                            absl::Span<const DataSlice> slices,
+                                            const DataSlice& result_ds) {
+  return [&lhs_bag, slices, &result_ds](auto&& status_like) {
+    return KodaErrorCausedByIncompableSchemaError(
+        std::forward<decltype(status_like)>(status_like), lhs_bag, slices,
+        result_ds);
+  };
+}
+
+auto KodaErrorCausedByIncompableSchemaError(const DataBagPtr& lhs_bag,
+                                            const DataBagPtr& rhs_bag,
+                                            const DataSlice& ds) {
+  return [&lhs_bag, &rhs_bag, &ds](auto&& status_like) {
+    return KodaErrorCausedByIncompableSchemaError(
+        std::forward<decltype(status_like)>(status_like), lhs_bag, rhs_bag, ds);
+  };
+}
+
 // Implementation of EntityCreator -Shaped and -Like that handles assignment of
 // attributes and provided schema. `create_entities_fn` must create a DataSlice
 // with appropriate shape and sparsity with the provided schema item.
@@ -480,7 +499,8 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
     schema_item = internal::DataItem(internal::AllocateExplicitSchema());
   }
   ASSIGN_OR_RETURN(DataSlice res, create_entities_fn(schema_item));
-  RETURN_IF_ERROR(res.SetAttrs(attr_names, values, overwrite_schema));
+  RETURN_IF_ERROR(res.SetAttrs(attr_names, values, overwrite_schema))
+      .With(KodaErrorCausedByIncompableSchemaError(db, values, res));
   // Adopt into the databag only at the end to avoid garbage in the databag in
   // case of error.
   // NOTE: This will cause 2 merges of the same DataBag, if schema comes from
@@ -511,9 +531,10 @@ absl::StatusOr<DataSlice> CreateObjectsImpl(
         db_mutable_impl.SetAttr(impl, schema::kSchemaAttr, schema_impl));
     return absl::OkStatus();
   }));
-  RETURN_IF_ERROR(res.SetAttrs(attr_names, values));
-  // Adopt into the databag only at the end to avoid garbage in the databag in
-  // case of error.
+  RETURN_IF_ERROR(res.SetAttrs(attr_names, values))
+      .With(KodaErrorCausedByIncompableSchemaError(db, values, res));
+  // Adopt into the databag only at the end to avoid garbage in the databag
+  // in case of error.
   RETURN_IF_ERROR(AdoptValuesInto(values, *db));
   return res;
 }
@@ -569,9 +590,8 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
           CastOrUpdateSchema(values[i], schema_item, attr_names[i],
                              overwrite_schema, db_mutable_impl),
           // Adds the db from schema to assemble readable error message.
-          AssembleErrorMessage(_, {.db = DataBag::ImmutableEmptyWithFallbacks(
-                                       {schema ? schema->GetBag() : nullptr,
-                                        values[i].GetBag()})}));
+          KodaErrorCausedByIncompableSchemaError(_, db, values[i].GetBag(),
+                                                 values[i]));
     }
     ASSIGN_OR_RETURN(aligned_values, shape::Align(std::move(casted_values)));
   } else {
@@ -784,11 +804,11 @@ absl::StatusOr<DataSlice> CreateUu(
                                   impl_res.value(),
                                   aligned_values.begin()->GetShape(),
                                   std::move(schema_item), db));
-    RETURN_IF_ERROR(ds.SetAttrs(attr_names, aligned_values, overwrite_schema));
-    // Adopt into the databag only at the end to avoid garbage in the databag in
-    // case of error.
-    // NOTE: This will cause 2 merges of the same DataBag, if schema comes from
-    // the same DataBag as values.
+    RETURN_IF_ERROR(ds.SetAttrs(attr_names, aligned_values, overwrite_schema))
+        .With(KodaErrorCausedByIncompableSchemaError(ds.GetBag(), values, ds));
+    // Adopt into the databag only at the end to avoid garbage in the
+    // databag in case of error. NOTE: This will cause 2 merges of the
+    // same DataBag, if schema comes from the same DataBag as values.
     RETURN_IF_ERROR(AdoptValuesInto(values, *db));
     return ds;
   });
@@ -1171,7 +1191,9 @@ absl::StatusOr<DataSlice> CreateListShaped(
                                              itemid,
                                              InitItemIdsForLists));
   if (values.has_value()) {
-    RETURN_IF_ERROR(result.AppendToList(*values));
+    RETURN_IF_ERROR(result.AppendToList(*values))
+        .With(KodaErrorCausedByIncompableSchemaError(result.GetBag(),
+                                                     values->GetBag(), result));
   }
   return std::move(result);
 }
@@ -1211,7 +1233,9 @@ absl::StatusOr<DataSlice> CreateListLike(
                                            itemid,
                                            InitItemIdsForLists));
   if (values.has_value()) {
-    RETURN_IF_ERROR(result.AppendToList(*values));
+    RETURN_IF_ERROR(result.AppendToList(*values))
+        .With(KodaErrorCausedByIncompableSchemaError(result.GetBag(),
+                                                     values->GetBag(), result));
   }
   return result;
 }

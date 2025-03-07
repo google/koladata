@@ -79,6 +79,13 @@ struct MissingCollectionItemSchemaError {
   std::optional<int64_t> item_index;
 };
 
+// Error when the assigned value has a different schema than the expected one.
+struct IncompatibleSchemaError {
+  std::string attr;
+  DataItem expected_schema;
+  DataItem assigned_schema;
+};
+
 }  // namespace koladata::internal
 
 #endif  // KOLADATA_INTERNAL_ERROR_H_

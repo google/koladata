@@ -18,19 +18,9 @@ package koladata.internal;
 
 import "arolla/serialization_base/base.proto";
 
-// Error when the assigned value has a different schema than the expected one.
-message IncompatibleSchema {
-  optional string attr = 1;
-  optional arolla.serialization_base.ContainerProto expected_schema = 2;
-  optional arolla.serialization_base.ContainerProto assigned_schema = 3;
-}
-
 // Koda error message transportation proto.
 message Error {
   optional string error_message = 1;
-  oneof error {
-    IncompatibleSchema incompatible_schema = 5;
-  }
 
-  reserved 2, 3, 4, 6, 7, 100;
+  reserved 2, 3, 4, 5, 6, 7, 100;
 }

@@ -117,15 +117,9 @@ absl::StatusOr<DataBagPtr> Attrs(const arolla::EvaluationOptions& eval_options,
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
   RETURN_IF_ERROR(obj.WithBag(result_db).SetAttrs(attr_names, attr_values,
                                                   overwrite_schema))
-      .With([&](const absl::Status& status) {
-        // We add obj.GetBag() to the error message context so that we can
-        // properly print the old schema.
-        return AssembleErrorMessage(
-            status, {
-                        .db = DataBag::ImmutableEmptyWithFallbacks(
-                            {obj.GetBag(), result_db}),
-                        .ds = obj,
-                    });
+      .With([&](absl::Status status) {
+        return KodaErrorCausedByIncompableSchemaError(
+            std::move(status), obj.GetBag(), result_db, obj);
       });
   result_db->UnsafeMakeImmutable();
   return result_db;

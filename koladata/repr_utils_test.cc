@@ -89,21 +89,18 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema) {
       DataSlice schema_2,
       CreateEntitySchema(bag, {"y"}, {test::Schema(schema::kInt64)}));
 
-  Error error;
-  internal::IncompatibleSchema* incompatible_schema =
-      error.mutable_incompatible_schema();
-  incompatible_schema->set_attr("x");
-  ASSERT_OK_AND_ASSIGN(*incompatible_schema->mutable_expected_schema(),
-                       internal::EncodeDataItem(schema_1.item()));
-  ASSERT_OK_AND_ASSIGN(*incompatible_schema->mutable_assigned_schema(),
-                       internal::EncodeDataItem(schema_2.item()));
+  internal::IncompatibleSchemaError error = {
+      .attr = "x",
+      .expected_schema = schema_1.item(),
+      .assigned_schema = schema_2.item(),
+  };
 
-  absl::Status status = AssembleErrorMessage(
-      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
-      {bag});
+  absl::Status status = KodaErrorCausedByIncompableSchemaError(
+      arolla::WithPayload(absl::InvalidArgumentError("error"),
+                          std::move(error)),
+      bag, bag, schema_1);
   std::optional<Error> payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
-  EXPECT_TRUE(payload->has_incompatible_schema());
   EXPECT_THAT(
       payload->error_message(),
       AllOf(
@@ -125,21 +122,18 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
       DataSlice schema_2,
       CreateEntitySchema(bag, {"y"}, {test::Schema(schema::kInt32)}));
 
-  Error error;
-  internal::IncompatibleSchema* incompatible_schema =
-      error.mutable_incompatible_schema();
-  incompatible_schema->set_attr("x");
-  ASSERT_OK_AND_ASSIGN(*incompatible_schema->mutable_expected_schema(),
-                       internal::EncodeDataItem(schema_1.item()));
-  ASSERT_OK_AND_ASSIGN(*incompatible_schema->mutable_assigned_schema(),
-                       internal::EncodeDataItem(schema_2.item()));
+  internal::IncompatibleSchemaError error = {
+      .attr = "x",
+      .expected_schema = schema_1.item(),
+      .assigned_schema = schema_2.item(),
+  };
 
-  absl::Status status = AssembleErrorMessage(
-      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
-      {bag});
+  absl::Status status = KodaErrorCausedByIncompableSchemaError(
+      arolla::WithPayload(absl::InvalidArgumentError("error"),
+                          std::move(error)),
+      bag, bag, schema_1);
   std::optional<Error> payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
-  EXPECT_TRUE(payload->has_incompatible_schema());
   EXPECT_THAT(
       payload->error_message(),
       AllOf(
