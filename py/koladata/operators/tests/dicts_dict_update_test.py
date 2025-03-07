@@ -50,7 +50,7 @@ class DictsDictUpdateTest(parameterized.TestCase):
     x1 = fns.dict(ds([1, 2, 3]), ds([4, 5, 6]))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for Dict key is incompatible.'
+        exceptions.KodaError, 'the schema for keys is incompatible.'
     ):
       # x1 schema is DICT[INT32, INT32]
       _ = expr_eval.eval(
@@ -130,7 +130,7 @@ class DictsDictUpdateTest(parameterized.TestCase):
     x1 = bag().dict(ds([1, 2, 3]), ds([4, 5, 6])).embed_schema()
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for Dict key is incompatible.'
+        exceptions.KodaError, 'the schema for keys is incompatible.'
     ):
       # x1 schema is DICT[INT32, INT32]
       _ = expr_eval.eval(

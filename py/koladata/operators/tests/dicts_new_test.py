@@ -189,10 +189,10 @@ class DictTest(parameterized.TestCase):
   def test_key_schema_errors(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for Dict key is incompatible.
+        r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: INT32
-Assigned schema for Dict key: STRING""",
+Expected schema for keys: INT32
+Assigned schema for keys: STRING""",
     ):
       expr_eval.eval(
           kde.dicts.new(
@@ -205,10 +205,10 @@ Assigned schema for Dict key: STRING""",
   def test_value_schema_errors(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for Dict value is incompatible.
+        r"""the schema for values is incompatible.
 
-Expected schema for Dict value: STRING
-Assigned schema for Dict value: INT32""",
+Expected schema for values: STRING
+Assigned schema for values: INT32""",
     ):
       expr_eval.eval(
           kde.dicts.new(
@@ -221,10 +221,10 @@ Assigned schema for Dict value: INT32""",
   def test_schema_errors(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for Dict key is incompatible.
+        r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: INT64
-Assigned schema for Dict key: STRING""",
+Expected schema for keys: INT64
+Assigned schema for keys: STRING""",
     ):
       expr_eval.eval(
           kde.dicts.new(

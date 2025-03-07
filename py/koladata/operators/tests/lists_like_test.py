@@ -315,10 +315,10 @@ class ListLikeTest(parameterized.TestCase):
   def test_schema_errors(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for List item is incompatible.
+        r"""the schema for list items is incompatible.
 
-Expected schema for List item: BYTES
-Assigned schema for List item: INT32""",
+Expected schema for list items: BYTES
+Assigned schema for list items: INT32""",
     ):
       expr_eval.eval(kde.lists.like(
           ds([[1, None], [3]]),

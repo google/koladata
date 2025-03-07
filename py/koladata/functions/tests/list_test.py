@@ -211,19 +211,19 @@ class ListTest(parameterized.TestCase):
   def test_schema_errors(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for List item is incompatible.
+        r"""the schema for list items is incompatible.
 
-Expected schema for List item: BYTES
-Assigned schema for List item: INT32""",
+Expected schema for list items: BYTES
+Assigned schema for list items: INT32""",
     ):
       fns.list([[1, 2], [3]], item_schema=schema_constants.BYTES)
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for List item is incompatible.
+        r"""the schema for list items is incompatible.
 
-Expected schema for List item: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
-Assigned schema for List item: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
+Expected schema for list items: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for list items: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
       db = fns.bag()
       db.list(

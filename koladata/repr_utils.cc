@@ -139,20 +139,6 @@ absl::StatusOr<std::string> FormatMissingObjectAttributeSchemaError(
       ds_str, item_str);
 }
 
-constexpr absl::string_view kExplicitSchemaIncompatibleAttrError =
-    "the schema for attribute '%s' is incompatible.\n\n"
-    "Expected schema for '%s': %v\n"
-    "Assigned schema for '%s': %v";
-
-constexpr const char* kExplicitSchemaIncompatibleListItemError =
-    "the schema for List item is incompatible.\n\n"
-    "Expected schema for List item: %v\n"
-    "Assigned schema for List item: %v";
-constexpr const char* kExplicitSchemaIncompatibleDictError =
-    "the schema for Dict %s is incompatible.\n\n"
-    "Expected schema for Dict %s: %v\n"
-    "Assigned schema for Dict %s: %v";
-
 absl::StatusOr<Error> SetIncompatibleSchemaError(
     Error cause, absl::Nullable<const DataBagPtr>& db,
     std::optional<const DataSlice> ds) {
@@ -185,23 +171,32 @@ absl::StatusOr<Error> SetIncompatibleSchemaError(
                     DataItemRepr(expected_schema_item));
   }
 
-  std::string attr_str = cause.incompatible_schema().attr();
-  if (attr_str == schema::kListItemsSchemaAttr) {
+  absl::string_view attr_str = cause.incompatible_schema().attr();
+
+  if (attr_str == schema::kDictKeysSchemaAttr) {
     cause.set_error_message(
-        absl::StrFormat(kExplicitSchemaIncompatibleListItemError,
+        absl::StrFormat("the schema for keys is incompatible.\n\n"
+                        "Expected schema for keys: %v\n"
+                        "Assigned schema for keys: %v",
                         expected_schema_str, assigned_schema_str));
-  } else if (attr_str == schema::kDictKeysSchemaAttr) {
-    cause.set_error_message(
-        absl::StrFormat(kExplicitSchemaIncompatibleDictError, "key", "key",
-                        expected_schema_str, "key", assigned_schema_str));
   } else if (attr_str == schema::kDictValuesSchemaAttr) {
     cause.set_error_message(
-        absl::StrFormat(kExplicitSchemaIncompatibleDictError, "value", "value",
-                        expected_schema_str, "value", assigned_schema_str));
+        absl::StrFormat("the schema for values is incompatible.\n\n"
+                        "Expected schema for values: %v\n"
+                        "Assigned schema for values: %v",
+                        expected_schema_str, assigned_schema_str));
+  } else if (attr_str == schema::kListItemsSchemaAttr) {
+    cause.set_error_message(
+        absl::StrFormat("the schema for list items is incompatible.\n\n"
+                        "Expected schema for list items: %v\n"
+                        "Assigned schema for list items: %v",
+                        expected_schema_str, assigned_schema_str));
   } else {
     std::string error_str = absl::StrFormat(
-        kExplicitSchemaIncompatibleAttrError, attr_str, attr_str,
-        expected_schema_str, attr_str, assigned_schema_str);
+        "the schema for attribute '%s' is incompatible.\n\n"
+        "Expected schema for '%s': %v\n"
+        "Assigned schema for '%s': %v",
+        attr_str, attr_str, expected_schema_str, attr_str, assigned_schema_str);
     if (ds && ds->GetSchemaImpl() == schema::kObject) {
       absl::StrAppend(
           &error_str,

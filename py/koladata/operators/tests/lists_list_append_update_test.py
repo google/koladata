@@ -126,9 +126,9 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
           db.list([1, 2]),
           ds('a'),
           (
-              'kd.lists.list_append_update: the schema for List item is'
-              ' incompatible.\n\nExpected schema for List item: INT32\nAssigned'
-              ' schema for List item: STRING'
+              'kd.lists.list_append_update: the schema for list items is'
+              ' incompatible.\n\nExpected schema for list items:'
+              ' INT32\nAssigned schema for list items: STRING'
           ),
       ),
   )

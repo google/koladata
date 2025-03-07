@@ -976,19 +976,19 @@ Assigned schema for 'a': SCHEMA(c=STRING)"""),
     schema = db.dict_schema(schema_constants.STRING, schema_constants.INT32)
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for Dict value is incompatible.
+        r"""the schema for values is incompatible.
 
-Expected schema for Dict value: INT32
-Assigned schema for Dict value: STRING""",
+Expected schema for values: INT32
+Assigned schema for values: STRING""",
     ):
       _ = schema({'a': 'steins;gate'})
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for Dict key is incompatible.
+        r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: STRING
-Assigned schema for Dict key: INT32""",
+Expected schema for keys: STRING
+Assigned schema for keys: INT32""",
     ):
       _ = schema({1: 'steins;gate'})
 

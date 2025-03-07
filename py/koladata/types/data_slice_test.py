@@ -2195,48 +2195,48 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     d = db.dict({'a': 1, 'b': 2})
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict key is incompatible.
+        re.escape(r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: STRING
-Assigned schema for Dict key: INT32"""),
+Expected schema for keys: STRING
+Assigned schema for keys: INT32"""),
     ):
       _ = d[1]
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict value is incompatible.
+        re.escape(r"""the schema for values is incompatible.
 
-Expected schema for Dict value: INT32
-Assigned schema for Dict value: STRING"""),
+Expected schema for values: INT32
+Assigned schema for values: STRING"""),
     ):
       d['a'] = 'a'
 
     d = db.obj(d)
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict value is incompatible.
+        re.escape(r"""the schema for values is incompatible.
 
-Expected schema for Dict value: INT32
-Assigned schema for Dict value: STRING"""),
+Expected schema for values: INT32
+Assigned schema for values: STRING"""),
     ):
       d['a'] = 'a'
 
     d2 = db.dict(db.new(x=ds([1, 2]), y=ds([3, 4])), ds(1))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict key is incompatible.
+        re.escape(r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: SCHEMA(x=INT32, y=INT32)
-Assigned schema for Dict key: SCHEMA(x=FLOAT32, y=INT32)"""),
+Expected schema for keys: SCHEMA(x=INT32, y=INT32)
+Assigned schema for keys: SCHEMA(x=FLOAT32, y=INT32)"""),
     ):
       _ = d2[db.new(x=ds(3.0), y=ds(5))]
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict key is incompatible.
+        re.escape(r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: SCHEMA(x=INT32, y=INT32)
-Assigned schema for Dict key: SCHEMA(x=STRING)"""),
+Expected schema for keys: SCHEMA(x=INT32, y=INT32)
+Assigned schema for keys: SCHEMA(x=STRING)"""),
     ):
       _ = d2[db2.new(x=ds('a'))]
 
@@ -2244,10 +2244,10 @@ Assigned schema for Dict key: SCHEMA(x=STRING)"""),
     d3 = db.dict(e, db.new(x='a'))
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict value is incompatible.
+        re.escape(r"""the schema for values is incompatible.
 
-Expected schema for Dict value: SCHEMA(x=STRING)
-Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
+Expected schema for values: SCHEMA(x=STRING)
+Assigned schema for values: SCHEMA(y=FLOAT32)"""),
     ):
       d3[e] = db.new(y=1.0)
 
@@ -2505,9 +2505,9 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'the schema for List item is incompatible.\n\n'
-            'Expected schema for List item: INT32\n'
-            'Assigned schema for List item: STRING'
+            'the schema for list items is incompatible.\n\n'
+            'Expected schema for list items: INT32\n'
+            'Assigned schema for list items: STRING'
         ),
     ):
       l[:] = ds(['el', 'psy', 'congroo'])
@@ -2516,9 +2516,9 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     with self.assertRaisesRegex(
         exceptions.KodaError,
         re.escape(
-            'the schema for List item is incompatible.\n\n'
-            'Expected schema for List item: INT32\n'
-            'Assigned schema for List item: STRING'
+            'the schema for list items is incompatible.\n\n'
+            'Expected schema for list items: INT32\n'
+            'Assigned schema for list items: STRING'
         ),
     ):
       l[:] = ds(['el', 'psy', 'congroo'])
@@ -2526,29 +2526,29 @@ Assigned schema for Dict value: SCHEMA(y=FLOAT32)"""),
     l = db.list([db.new(x=1)])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for List item is incompatible.
+        re.escape(r"""the schema for list items is incompatible.
 
-Expected schema for List item: SCHEMA(x=INT32)
-Assigned schema for List item: SCHEMA(y=INT32)"""),
+Expected schema for list items: SCHEMA(x=INT32)
+Assigned schema for list items: SCHEMA(y=INT32)"""),
     ):
       l[0] = db.new(y=1)
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for List item is incompatible.
+        re.escape(r"""the schema for list items is incompatible.
 
-Expected schema for List item: SCHEMA(x=INT32)
-Assigned schema for List item: SCHEMA(y=INT32)"""),
+Expected schema for list items: SCHEMA(x=INT32)
+Assigned schema for list items: SCHEMA(y=INT32)"""),
     ):
       l[0] = bag().new(y=1)
 
     l2 = db.list([db.new(x=1)])
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for List item is incompatible.
+        re.escape(r"""the schema for list items is incompatible.
 
-Expected schema for List item: SCHEMA(x=INT32)
-Assigned schema for List item: SCHEMA(a=STRING)"""),
+Expected schema for list items: SCHEMA(x=INT32)
+Assigned schema for list items: SCHEMA(a=STRING)"""),
     ):
       l2[0] = bag().new(a='x')
 
@@ -2741,7 +2741,7 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
         ds(None, schema_constants.INT32).with_bag(db),
     )
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for Dict key is incompatible'
+        exceptions.KodaError, 'the schema for keys is incompatible'
     ):
       _ = (db.dict({'a': 42}) & ds(None))[42]
 

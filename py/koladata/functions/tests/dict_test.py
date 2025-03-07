@@ -295,46 +295,46 @@ class DictTest(parameterized.TestCase):
     )
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict key is incompatible.
+        re.escape(r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: INT64
-Assigned schema for Dict key: STRING"""),
+Expected schema for keys: INT64
+Assigned schema for keys: STRING"""),
     ):
       schema(items_or_keys=ds(['a', 'a']), values=ds([1, 2]))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict value is incompatible.
+        re.escape(r"""the schema for values is incompatible.
 
-Expected schema for Dict value: INT64
-Assigned schema for Dict value: STRING"""),
+Expected schema for values: INT64
+Assigned schema for values: STRING"""),
     ):
       schema(items_or_keys=ds([1, 2]), values=ds(['1', '2']))
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict value is incompatible.
+        re.escape(r"""the schema for values is incompatible.
 
-Expected schema for Dict value: INT64
-Assigned schema for Dict value: STRING"""),
+Expected schema for values: INT64
+Assigned schema for values: STRING"""),
     ):
       fns.dict(items_or_keys={1: 'a', 2: 'b'}, schema=schema)
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict key is incompatible.
+        re.escape(r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: INT64
-Assigned schema for Dict key: STRING"""),
+Expected schema for keys: INT64
+Assigned schema for keys: STRING"""),
     ):
       fns.dict(items_or_keys={'a': 1, 'b': 1}, schema=schema)
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict value is incompatible.
+        re.escape(r"""the schema for values is incompatible.
 
-Expected schema for Dict value: STRING
-Assigned schema for Dict value: INT32"""),
+Expected schema for values: STRING
+Assigned schema for values: INT32"""),
     ):
       fns.dict(
           items_or_keys={'a': 1, 'b': 1},
@@ -344,10 +344,10 @@ Assigned schema for Dict value: INT32"""),
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        re.escape(r"""the schema for Dict key is incompatible.
+        re.escape(r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: INT64
-Assigned schema for Dict key: STRING"""),
+Expected schema for keys: INT64
+Assigned schema for keys: STRING"""),
     ):
       fns.dict(
           items_or_keys={'a': 1, 'b': 1},
@@ -357,10 +357,10 @@ Assigned schema for Dict key: STRING"""),
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for Dict key is incompatible.
+        r"""the schema for keys is incompatible.
 
-Expected schema for Dict key: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
-Assigned schema for Dict key: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
+Expected schema for keys: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for keys: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
       db = fns.bag()
       db.dict(
@@ -371,10 +371,10 @@ Assigned schema for Dict key: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}"""
 
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for Dict value is incompatible.
+        r"""the schema for values is incompatible.
 
-Expected schema for Dict value: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
-Assigned schema for Dict value: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
+Expected schema for values: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for values: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
       db = fns.bag()
       db.dict(

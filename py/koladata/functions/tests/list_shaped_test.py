@@ -257,10 +257,10 @@ class ListShapedTest(parameterized.TestCase):
   def test_schema_errors(self):
     with self.assertRaisesRegex(
         exceptions.KodaError,
-        r"""the schema for List item is incompatible.
+        r"""the schema for list items is incompatible.
 
-Expected schema for List item: BYTES
-Assigned schema for List item: INT32""",
+Expected schema for list items: BYTES
+Assigned schema for list items: INT32""",
     ):
       fns.list_shaped(
           jagged_shape.create_shape([2], [2, 1]),

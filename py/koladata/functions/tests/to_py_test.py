@@ -54,7 +54,7 @@ class ToPyTest(parameterized.TestCase):
     root.none_list_value = []
     root.none_list_value.append(None)
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for List item is incompatible'
+        exceptions.KodaError, 'the schema for list items is incompatible'
     ):
       root.none_list_value.append(1)
 
