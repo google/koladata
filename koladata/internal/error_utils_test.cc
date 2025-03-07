@@ -30,6 +30,7 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/status.h"
+#include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -39,6 +40,7 @@ namespace {
 using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::CausedBy;
 using ::koladata::schema::DType;
 using ::koladata::schema::GetDType;
 using ::koladata::schema::ItemIdDType;
@@ -137,9 +139,9 @@ TEST(ErrorUtilsTest, KodaErrorFromCause) {
   EXPECT_THAT(arolla::GetPayload<internal::Error>(koda_status),
               Property(&internal::Error::error_message, StrEq("new error")));
   EXPECT_THAT(
-      arolla::GetCause(koda_status),
-      Pointee(AllOf(StatusIs(absl::StatusCode::kUnimplemented, "error cause"),
-                    ResultOf(&arolla::GetPayload<DummyPayload>, NotNull()))));
+      koda_status,
+      CausedBy(AllOf(StatusIs(absl::StatusCode::kUnimplemented, "error cause"),
+                     ResultOf(&arolla::GetPayload<DummyPayload>, NotNull()))));
 }
 
 TEST(ErrorUtilsTest, KodaErrorFromCause_OkStatus) {

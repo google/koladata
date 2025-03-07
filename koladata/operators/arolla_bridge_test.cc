@@ -43,6 +43,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/status.h"
+#include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -51,7 +52,9 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::CausedBy;
 using ::koladata::testing::IsEquivalentTo;
+using ::testing::AllOf;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::HasSubstr;
@@ -212,18 +215,17 @@ TEST(ArollaEval, SimplePointwiseEval) {
     DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
     DataSlice y = test::DataSlice<int>({1}, schema::kInt32);
     auto status = SimplePointwiseEval("math.add", {x, y}).status();
-    EXPECT_THAT(status,
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("cannot align inputs to a common shape")));
+    EXPECT_THAT(
+        status,
+        AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("cannot align inputs to a common shape")),
+              CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
+                                "shapes are not compatible: JaggedShape(1) vs "
+                                "JaggedShape(3)"))));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     ASSERT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
                 Eq("cannot align inputs to a common shape"));
-    EXPECT_THAT(
-        arolla::GetCause(status),
-        Pointee(StatusIs(
-            absl::StatusCode::kInvalidArgument,
-            "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)")));
   }
   {
     // Incompatible shapes for all missing inputs.
@@ -231,18 +233,17 @@ TEST(ArollaEval, SimplePointwiseEval) {
         {std::nullopt, std::nullopt, std::nullopt}, schema::kObject);
     DataSlice y = test::DataSlice<int>({std::nullopt}, schema::kObject);
     auto status = SimplePointwiseEval("math.add", {x, y}).status();
-    EXPECT_THAT(status,
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("cannot align inputs to a common shape")));
+    EXPECT_THAT(
+        status,
+        AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("cannot align inputs to a common shape")),
+              CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
+                                "shapes are not compatible: JaggedShape(1) vs "
+                                "JaggedShape(3)"))));
     std::optional<internal::Error> payload = internal::GetErrorPayload(status);
     ASSERT_TRUE(payload.has_value());
     EXPECT_THAT(payload->error_message(),
                 Eq("cannot align inputs to a common shape"));
-    EXPECT_THAT(
-        arolla::GetCause(status),
-        Pointee(StatusIs(
-            absl::StatusCode::kInvalidArgument,
-            "shapes are not compatible: JaggedShape(1) vs JaggedShape(3)")));
   }
   {
     // Arolla op compilation error.

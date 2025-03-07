@@ -33,12 +33,15 @@
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "arolla/util/status.h"
+#include "arolla/util/testing/status_matchers.h"
 
 namespace koladata {
 namespace {
 
 using ::absl_testing::StatusIs;
+using ::arolla::testing::CausedBy;
 using ::koladata::internal::Error;
+using ::testing::AllOf;
 using ::testing::MatchesRegex;
 using ::testing::Pointee;
 using ::testing::Property;
@@ -189,14 +192,14 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
 
   EXPECT_THAT(
       status,
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot create Item(s) with the provided schema: INT32"));
+      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                     "cannot create Item(s) with the provided schema: INT32"),
+            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument, "error"))));
   std::optional<Error> payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(),
               StrEq("cannot create Item(s) with the provided schema: INT32"));
-  EXPECT_THAT(arolla::GetCause(status),
-              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "error")));
+
   Error error;
   error.set_error_message("cause");
   status = CreateItemCreationError(
@@ -204,18 +207,17 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
       value);
   EXPECT_THAT(
       status,
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot create Item(s) with the provided schema: INT32"));
+      AllOf(
+          StatusIs(absl::StatusCode::kInvalidArgument,
+                   "cannot create Item(s) with the provided schema: INT32"),
+          CausedBy(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
+                         ResultOf(&arolla::GetPayload<internal::Error>,
+                                  Property(&internal::Error::error_message,
+                                           StrEq("cause")))))));
   payload = internal::GetErrorPayload(status);
   EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(),
               StrEq("cannot create Item(s) with the provided schema: INT32"));
-  EXPECT_THAT(
-      arolla::GetCause(status),
-      Pointee(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
-                    ResultOf(&arolla::GetPayload<internal::Error>,
-                             Property(&internal::Error::error_message,
-                                      StrEq("cause"))))));
 
   status = CreateItemCreationError(
       internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),

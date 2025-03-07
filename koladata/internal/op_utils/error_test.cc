@@ -28,12 +28,14 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "arolla/util/status.h"
+#include "arolla/util/testing/status_matchers.h"
 
 namespace koladata::internal {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::CausedBy;
 using ::testing::AllOf;
 using ::testing::Eq;
 using ::testing::Field;
@@ -81,14 +83,14 @@ TEST(OperatorEvalError, WithStatusAndErrorMessage) {
   absl::Status status = absl::InvalidArgumentError("error cause");
   absl::Status new_status =
       OperatorEvalError(status, "op_name", "error message");
-  EXPECT_THAT(new_status,
-              StatusIs(absl::StatusCode::kInvalidArgument, "error message"));
+  EXPECT_THAT(
+      new_status,
+      AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error message"),
+            CausedBy(
+                StatusIs(absl::StatusCode::kInvalidArgument, "error cause"))));
   EXPECT_THAT(
       arolla::GetPayload<internal::Error>(new_status),
       Property(&internal::Error::error_message, Eq("op_name: error message")));
-  EXPECT_THAT(arolla::GetCause(new_status),
-              Pointee(AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                                     "error cause"))));
 }
 
 TEST(OperatorEvalError, WithStatusContainingCause) {
@@ -99,17 +101,16 @@ TEST(OperatorEvalError, WithStatusContainingCause) {
       arolla::WithCause(absl::InvalidArgumentError("cause 2"), cause);
 
   absl::Status new_status = OperatorEvalError(status, "op_name", "error");
-  EXPECT_THAT(new_status,
-              StatusIs(absl::StatusCode::kInvalidArgument, "error"));
+  EXPECT_THAT(
+      new_status,
+      AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
+            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument, "cause 2")),
+            CausedBy(CausedBy(
+                StatusIs(absl::StatusCode::kInvalidArgument, "cause 1")))));
   std::optional<internal::Error> payload =
       internal::GetErrorPayload(new_status);
   ASSERT_TRUE(payload.has_value());
   EXPECT_THAT(payload->error_message(), Eq("op_name: error"));
-  auto got_cause = arolla::GetCause(new_status);
-  ASSERT_THAT(got_cause,
-              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "cause 2")));
-  EXPECT_THAT(arolla::GetCause(*got_cause),
-              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "cause 1")));
 }
 
 struct DummyPayload {};
