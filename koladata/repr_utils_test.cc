@@ -222,5 +222,23 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
               ::testing::StrEq("cannot create Item(s)"));
 }
 
+TEST(ReprUtilTest, TestKodaErrorCausedByMergeConflictError) {
+  DataBagPtr bag = DataBag::Empty();
+  DataSlice value_1 = test::DataItem(1);
+  ASSERT_OK_AND_ASSIGN(DataSlice obj,
+                       ObjectCreator::FromAttrs(bag, {"a"}, {value_1}));
+  internal::DataBagMergeConflictError error = {
+      .conflict = internal::DataBagMergeConflictError::EntityObjectConflict{
+          .object_id = obj.item(), .attr_name = "a"}};
+  absl::Status status =
+      KodaErrorCausedByMergeConflictError(bag, bag)(arolla::WithPayload(
+          absl::InvalidArgumentError("error"), std::move(error)));
+  std::optional<Error> payload = internal::GetErrorPayload(status);
+  EXPECT_TRUE(payload.has_value());
+  EXPECT_THAT(payload->error_message(),
+              testing::StartsWith("cannot merge DataBags due to an exception "
+                                  "encountered when merging entities"));
+}
+
 }  // namespace
 }  // namespace koladata

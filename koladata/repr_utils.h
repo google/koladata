@@ -18,6 +18,7 @@
 #include <optional>
 
 #include "absl/base/nullability.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
@@ -30,7 +31,6 @@ namespace koladata {
 struct SupplementalData {
   absl::Nullable<const koladata::DataBagPtr> db;
   std::optional<const koladata::DataSlice> ds;
-  absl::Nullable<const koladata::DataBagPtr> to_be_merged_db;
 };
 
 // Creates the readable error message and sets it in the payload of Status if
@@ -52,6 +52,13 @@ absl::Status KodaErrorCausedByIncompableSchemaError(absl::Status status,
 absl::Status KodaErrorCausedByIncompableSchemaError(
     absl::Status status, const DataBagPtr& lhs_bag,
     absl::Span<const DataSlice> slices, const DataSlice& ds);
+
+// Returns the KodaError payload and readable error message if the
+// error is caused by DataBag merge conflict. Otherwise, returns the status
+// unchanged.
+absl::AnyInvocable<absl::Status(absl::Status)>
+KodaErrorCausedByMergeConflictError(const DataBagPtr& lhs_bag,
+                                    const DataBagPtr& rhs_bag);
 
 // Creates an KodaError that further explains why creating items fails.
 // If it is caused by another KodaError, the cause is propagated. Otherwise,

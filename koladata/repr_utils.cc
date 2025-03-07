@@ -22,6 +22,7 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/base/nullability.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/functional/overload.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -409,6 +410,25 @@ absl::Status KodaErrorCausedByIncompableSchemaError(
       ds);
 }
 
+absl::AnyInvocable<absl::Status(absl::Status)>
+KodaErrorCausedByMergeConflictError(const DataBagPtr& lhs_bag,
+                                    const DataBagPtr& rhs_bag) {
+  return [&](absl::Status status) -> absl::Status {
+    if (const internal::DataBagMergeConflictError* merge_conflict_error =
+            arolla::GetPayload<internal::DataBagMergeConflictError>(status);
+        merge_conflict_error != nullptr) {
+      // TODO(b/316118021) Migrate away from Error proto.
+      Error error;
+      ASSIGN_OR_RETURN(
+          std::string error_message,
+          FormatDataBagMergeError(*merge_conflict_error, lhs_bag, rhs_bag));
+      error.set_error_message(std::move(error_message));
+      return WithErrorPayload(std::move(status), std::move(error));
+    }
+    return status;
+  };
+}
+
 absl::Status AssembleErrorMessage(const absl::Status& status,
                                   const SupplementalData& data) {
   if (const internal::NoCommonSchemaError* no_common_schema_error =
@@ -429,17 +449,6 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
     ASSIGN_OR_RETURN(std::string error_message,
                      FormatMissingObjectAttributeSchemaError(
                          *missing_object_schema_error, data.ds));
-    error.set_error_message(std::move(error_message));
-    return WithErrorPayload(status, std::move(error));
-  }
-
-  if (const internal::DataBagMergeConflictError* merge_conflict_error =
-          arolla::GetPayload<internal::DataBagMergeConflictError>(status);
-      merge_conflict_error != nullptr) {
-    Error error;
-    ASSIGN_OR_RETURN(std::string error_message,
-                     FormatDataBagMergeError(*merge_conflict_error, data.db,
-                                             data.to_be_merged_db));
     error.set_error_message(std::move(error_message));
     return WithErrorPayload(status, std::move(error));
   }

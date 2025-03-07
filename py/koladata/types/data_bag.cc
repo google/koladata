@@ -1266,9 +1266,8 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
     RETURN_IF_ERROR(db->MergeInplace(*other, overwrite, allow_data_conflicts,
                                      allow_schema_conflicts))
         .With([&](const absl::Status& status) {
-          return arolla::python::SetPyErrFromStatus(AssembleErrorMessage(
-              status,
-              {.db = db, .ds = std::nullopt, .to_be_merged_db = *other}));
+          return arolla::python::SetPyErrFromStatus(
+              KodaErrorCausedByMergeConflictError(db, *other)(status));
         });
   }
   Py_RETURN_NONE;

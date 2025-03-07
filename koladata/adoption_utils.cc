@@ -44,11 +44,7 @@ absl::Status AdoptionQueue::AdoptInto(DataBag& db) const {
     RETURN_IF_ERROR(db.MergeInplace(other_db, /*overwrite=*/false,
                                     /*allow_data_conflicts=*/false,
                                     /*allow_schema_conflicts=*/false))
-        .With([&](const absl::Status& status) {
-          return AssembleErrorMessage(status, {.db = db.Freeze(),
-                                               .ds = std::nullopt,
-                                               .to_be_merged_db = other_db});
-        });
+        .With(KodaErrorCausedByMergeConflictError(db.Freeze(), other_db));
   }
   for (const DataSlice& slice : slices_to_merge_) {
     if (visited_bags.contains(slice.GetBag().get())) {
@@ -65,12 +61,7 @@ absl::Status AdoptionQueue::AdoptInto(DataBag& db) const {
     RETURN_IF_ERROR(db.MergeInplace(extracted_db, /*overwrite=*/false,
                                     /*allow_data_conflicts=*/false,
                                     /*allow_schema_conflicts=*/false))
-        .With([&](const absl::Status& status) {
-          return AssembleErrorMessage(status,
-                                      {.db = db.Freeze(),
-                                       .ds = std::nullopt,
-                                       .to_be_merged_db = extracted_db});
-        });
+        .With(KodaErrorCausedByMergeConflictError(db.Freeze(), extracted_db));
   }
   return absl::OkStatus();
 }
