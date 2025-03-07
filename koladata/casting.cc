@@ -301,7 +301,7 @@ absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& slice,
   }
   ASSIGN_OR_RETURN(auto common_schema,
                    schema::CommonSchema(slice.GetSchemaImpl(), schema),
-                   AssembleErrorMessage(_, {.db = slice.GetBag()}));
+                   KodaErrorCausedByNoCommonSchemaError(_, slice.GetBag()));
   if (common_schema != schema) {
     return absl::InvalidArgumentError(
         absl::StrFormat("unsupported implicit cast from %v to %v",
@@ -334,7 +334,7 @@ absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& slice,
   }
   ASSIGN_OR_RETURN(auto common_schema,
                    schema::CommonSchema(GetNarrowedSchema(slice), schema),
-                   AssembleErrorMessage(_, {.db = slice.GetBag()}));
+                   KodaErrorCausedByNoCommonSchemaError(_, slice.GetBag()));
   if (common_schema != schema) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "unsupported narrowing cast to %v for the given %v DataSlice", schema,
@@ -364,8 +364,8 @@ absl::StatusOr<SchemaAlignedSlices> AlignSchemas(
   };
   ASSIGN_OR_RETURN(
       auto common_schema, get_common_schema(),
-      AssembleErrorMessage(
-          _, {.db = DataBag::ImmutableEmptyWithFallbacks(get_fallback_db())}));
+      KodaErrorCausedByNoCommonSchemaError(
+          _, DataBag::ImmutableEmptyWithFallbacks(get_fallback_db())));
   for (auto& slice : slices) {
     // Since we cast to a common schema, we don't need to validate implicit
     // compatibility or validate schema (during casting to OBJECT) as no

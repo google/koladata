@@ -24,6 +24,7 @@
 #include <variant>
 
 #include "absl/base/nullability.h"
+#include "absl/base/optimization.h"
 #include "absl/container/btree_set.h"
 #include "absl/functional/overload.h"
 #include "absl/log/check.h"
@@ -557,6 +558,22 @@ absl::Status AttrOnPrimitiveError(const internal::DataSliceImpl& slice,
       *DataSlice::CreateWithFlatShape(slice, schema), attr_name, action);
 }
 
+auto KodaErrorCausedByMissingObjectSchemaError(const DataSlice& self) {
+  return [&](auto&& status_like) {
+    RETURN_IF_ERROR(KodaErrorCausedByMissingObjectSchemaError(
+        std::forward<decltype(status_like)>(status_like), self));
+    ABSL_UNREACHABLE();
+  };
+}
+
+auto KodaErrorCausedByNoCommonSchemaError(const DataBagPtr& db) {
+  return [&](auto&& status_like) {
+    RETURN_IF_ERROR(KodaErrorCausedByNoCommonSchemaError(
+        std::forward<decltype(status_like)>(status_like), db));
+    ABSL_UNREACHABLE();
+  };
+}
+
 // Validates that attr lookup is possible on the values of `impl`. If OK(),
 // `impl` is guaranteed to contain only Items and `db != nullptr`.
 template <typename ImplT>
@@ -717,8 +734,9 @@ class RhsHandler {
     absl::Status status = absl::OkStatus();
     if (lhs.GetSchemaImpl() == schema::kObject) {
       status = lhs.VisitImpl([&](const auto& impl) -> absl::Status {
-        ASSIGN_OR_RETURN(auto obj_schema,
-                         db_impl.GetObjSchemaAttr(impl, fallbacks));
+        ASSIGN_OR_RETURN(
+            auto obj_schema, db_impl.GetObjSchemaAttr(impl, fallbacks),
+            _.With(KodaErrorCausedByMissingObjectSchemaError(lhs)));
         return this->ProcessSchemaObjectAttr(obj_schema, db_impl, fallbacks);
       });
     } else if (lhs.GetSchemaImpl() != schema::kNone) {
@@ -1021,12 +1039,11 @@ absl::Status VerifyListSchemaValid(const DataSlice& list,
     // Call (and ignore the returned DataItem) to verify that the list has
     // appropriate schema (e.g. in case of OBJECT, all ListIds have __schema__
     // attribute).
-    absl::Status status = GetResultSchema(db_impl, impl, list.GetSchemaImpl(),
-                                          schema::kListItemsSchemaAttr,
-                                          /*fallbacks=*/{},  // mutable db.
-                                          /*allow_missing=*/false)
-                              .status();
-    return AssembleErrorMessage(status, {.ds = list});
+    return GetResultSchema(db_impl, impl, list.GetSchemaImpl(),
+                           schema::kListItemsSchemaAttr,
+                           /*fallbacks=*/{},  // mutable db.
+                           /*allow_missing=*/false)
+        .status();
   });
 }
 
@@ -1418,7 +1435,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> DataSlice::GetAttrNames(
                                      union_object_attrs);
       }));
   if (!result.ok()) {
-    return AssembleErrorMessage(result.status(), {.ds = *this});
+    return KodaErrorCausedByMissingObjectSchemaError(result.status(), *this);
   }
   return result;
 }
@@ -1433,7 +1450,8 @@ absl::StatusOr<DataSlice> DataSlice::GetAttr(
             auto res,
             GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
                         /*allow_missing_schema=*/false),
-            AssembleErrorMessage(_, {.db = GetBag(), .ds = *this}));
+            _.With(KodaErrorCausedByMissingObjectSchemaError(*this))
+                .With(KodaErrorCausedByNoCommonSchemaError(GetBag())));
         ASSIGN_OR_RETURN(res, AlignDataWithSchema(std::move(res),
                                                   GetSchemaImpl(), res_schema));
         return DataSlice::Create(std::move(res), GetShape(),
@@ -1454,7 +1472,8 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrOrMissing(
             auto res,
             GetAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name, res_schema,
                         /*allow_missing_schema=*/true),
-            AssembleErrorMessage(_, {.db = GetBag(), .ds = *this}));
+            _.With(KodaErrorCausedByMissingObjectSchemaError(*this))
+                .With(KodaErrorCausedByNoCommonSchemaError(GetBag())));
         ASSIGN_OR_RETURN(res, AlignDataWithSchema(std::move(res),
                                                   GetSchemaImpl(), res_schema));
         return DataSlice::Create(std::move(res), GetShape(),
@@ -1479,7 +1498,7 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
             absl::StrFormat("failed to get attribute '%s' due to conflict with "
                             "the schema from the default value",
                             attr_name),
-            AssembleErrorMessage(_, {.db = GetBag(), .ds = *this})));
+            KodaErrorCausedByNoCommonSchemaError(_, GetBag())));
     auto result_db = DataBag::CommonDataBag({GetBag(), default_value.GetBag()});
     return DataSlice::Create(
         CoalesceWithFiltered(impl, result_or_missing.impl<T>(),
@@ -1621,9 +1640,7 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
     }
     if (GetSchemaImpl() == schema::kObject) {
       RETURN_IF_ERROR(DelObjSchemaAttr(impl, attr_name, db_mutable_impl))
-          .With([&](const absl::Status& status) {
-            return AssembleErrorMessage(status, {.ds = *this});
-          });
+          .With(KodaErrorCausedByMissingObjectSchemaError(*this));
     } else if (GetSchemaImpl().holds_value<internal::ObjectId>()) {
       // Entity schema.
       RETURN_IF_ERROR(
@@ -1729,7 +1746,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromDict(const DataSlice& keys) const {
                                             fb_finder.GetFlattenFallbacks(),
                                             /*allow_missing=*/false);
                    }),
-                   AssembleErrorMessage(_, {.ds = *this}));
+                   _.With(KodaErrorCausedByMissingObjectSchemaError(*this))
+                       .With(KodaErrorCausedByNoCommonSchemaError(GetBag())));
   return expanded_this.VisitImpl(
       [&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
         ASSIGN_OR_RETURN(auto res_impl,
@@ -1800,7 +1818,8 @@ absl::StatusOr<DataSlice> DataSlice::GetDictKeys() const {
                                      schema::kDictKeysSchemaAttr,
                                      fb_finder.GetFlattenFallbacks(),
                                      /*allow_missing=*/false),
-                     AssembleErrorMessage(_, {.ds = *this}));
+                     _.With(KodaErrorCausedByMissingObjectSchemaError(*this))
+                         .With(KodaErrorCausedByNoCommonSchemaError(GetBag())));
     ASSIGN_OR_RETURN(
         (auto [slice, edge]),
         GetBag()->GetImpl().GetDictKeys(impl, fb_finder.GetFlattenFallbacks()));
@@ -1824,7 +1843,8 @@ absl::StatusOr<DataSlice> DataSlice::GetDictValues() const {
                                      schema::kDictValuesSchemaAttr,
                                      fb_finder.GetFlattenFallbacks(),
                                      /*allow_missing=*/false),
-                     AssembleErrorMessage(_, {.ds = *this}));
+                     _.With(KodaErrorCausedByMissingObjectSchemaError(*this))
+                         .With(KodaErrorCausedByNoCommonSchemaError(GetBag())));
     ASSIGN_OR_RETURN((auto [slice, edge]),
                      GetBag()->GetImpl().GetDictValues(
                          impl, fb_finder.GetFlattenFallbacks()));
@@ -1861,7 +1881,8 @@ absl::StatusOr<DataSlice> DataSlice::GetFromList(
                                             fb_finder.GetFlattenFallbacks(),
                                             /*allow_missing=*/false);
                    }),
-                   AssembleErrorMessage(_, {.ds = *this}));
+                   _.With(KodaErrorCausedByMissingObjectSchemaError(*this))
+                       .With(KodaErrorCausedByNoCommonSchemaError(GetBag())));
   if (expanded_indices.present_count() == 0) {
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetBag());
   }
@@ -1905,7 +1926,8 @@ absl::StatusOr<DataSlice> DataSlice::ExplodeList(
                                      schema::kListItemsSchemaAttr,
                                      fb_finder.GetFlattenFallbacks(),
                                      /*allow_missing=*/false),
-                     AssembleErrorMessage(_, {.ds = *this}));
+                     _.With(KodaErrorCausedByMissingObjectSchemaError(*this))
+                         .With(KodaErrorCausedByNoCommonSchemaError(GetBag())));
     if constexpr (std::is_same_v<T, internal::DataItem>) {
       ASSIGN_OR_RETURN(auto values,
                        GetBag()->GetImpl().ExplodeList(
@@ -1954,7 +1976,8 @@ absl::StatusOr<DataSlice> DataSlice::PopFromList(
                          {},
                          /*allow_missing=*/false);
                    }),
-                   AssembleErrorMessage(_, {.ds = *this}));
+                   _.With(KodaErrorCausedByMissingObjectSchemaError(*this))
+                       .With(KodaErrorCausedByNoCommonSchemaError(GetBag())));
   if (expanded_indices.present_count() == 0) {
     return EmptyLike(expanded_indices.GetShape(), res_schema, GetBag());
   }
@@ -2151,7 +2174,9 @@ absl::Status DataSlice::RemoveInList(const DataSlice& indices) const {
                    BroadcastToShape(std::move(indices_int64), shape));
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
-  RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl));
+  RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl))
+      .With(KodaErrorCausedByMissingObjectSchemaError(*this))
+      .With(KodaErrorCausedByNoCommonSchemaError(GetBag()));
   if (std::holds_alternative<internal::DataItem>(
           expanded_this.internal_->impl)) {
     int64_t index = expanded_indices.item().value<int64_t>();
@@ -2170,7 +2195,9 @@ absl::Status DataSlice::RemoveInList(int64_t start,
                                      std::optional<int64_t> stop) const {
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
-  RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl));
+  RETURN_IF_ERROR(VerifyListSchemaValid(*this, db_mutable_impl))
+      .With(KodaErrorCausedByMissingObjectSchemaError(*this))
+      .With(KodaErrorCausedByNoCommonSchemaError(GetBag()));
   internal::DataBagImpl::ListRange list_range(start, stop);
   return this->VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     return db_mutable_impl.RemoveInList(impl, list_range);

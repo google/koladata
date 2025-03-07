@@ -63,7 +63,7 @@ absl::StatusOr<internal::DataItem> GetAttr(const internal::DataItem& item,
                                fb_finder.GetFlattenFallbacks());
 }
 
-absl::StatusOr<std::string> SetNoCommonSchemaError(
+absl::StatusOr<std::string> FormatNoCommonSchemaError(
     const internal::NoCommonSchemaError& error,
     absl::Nullable<const DataBagPtr>& db) {
   if (db != nullptr) {
@@ -431,28 +431,6 @@ KodaErrorCausedByMergeConflictError(const DataBagPtr& lhs_bag,
 
 absl::Status AssembleErrorMessage(const absl::Status& status,
                                   const SupplementalData& data) {
-  if (const internal::NoCommonSchemaError* no_common_schema_error =
-          arolla::GetPayload<internal::NoCommonSchemaError>(status);
-      no_common_schema_error != nullptr) {
-    ASSIGN_OR_RETURN(std::string error_message,
-                     SetNoCommonSchemaError(*no_common_schema_error, data.db));
-    Error error;
-    error.set_error_message(std::move(error_message));
-    return WithErrorPayload(status, std::move(error));
-  }
-
-  // TODO(b/316118021) Move into different function.
-  if (const internal::MissingObjectSchemaError* missing_object_schema_error =
-          arolla::GetPayload<internal::MissingObjectSchemaError>(status);
-      missing_object_schema_error != nullptr) {
-    Error error;
-    ASSIGN_OR_RETURN(std::string error_message,
-                     FormatMissingObjectAttributeSchemaError(
-                         *missing_object_schema_error, data.ds));
-    error.set_error_message(std::move(error_message));
-    return WithErrorPayload(status, std::move(error));
-  }
-
   // TODO(b/316118021) Split into different functions.
   if (const internal::MissingCollectionItemSchemaError*
           missing_collection_schema_error =
@@ -465,6 +443,37 @@ absl::Status AssembleErrorMessage(const absl::Status& status,
                          *missing_collection_schema_error, data.db));
     error.set_error_message(std::move(error_message));
     return WithErrorPayload(status, std::move(error));
+  }
+  return status;
+}
+
+absl::Status KodaErrorCausedByMissingObjectSchemaError(absl::Status status,
+                                                       const DataSlice& self) {
+  if (const internal::MissingObjectSchemaError* missing_object_schema_error =
+          arolla::GetPayload<internal::MissingObjectSchemaError>(status);
+      missing_object_schema_error != nullptr) {
+    // TODO(b/316118021) Migrate away from Error proto.
+    Error error;
+    ASSIGN_OR_RETURN(std::string error_message,
+                     FormatMissingObjectAttributeSchemaError(
+                         *missing_object_schema_error, self));
+    error.set_error_message(std::move(error_message));
+    return internal::WithErrorPayload(std::move(status), std::move(error));
+  }
+  return status;
+}
+
+absl::Status KodaErrorCausedByNoCommonSchemaError(absl::Status status,
+                                                  const DataBagPtr& db) {
+  if (const internal::NoCommonSchemaError* no_common_schema_error =
+          arolla::GetPayload<internal::NoCommonSchemaError>(status);
+      no_common_schema_error != nullptr) {
+    // TODO(b/316118021) Migrate away from Error proto.
+    Error error;
+    ASSIGN_OR_RETURN(std::string error_message,
+                     FormatNoCommonSchemaError(*no_common_schema_error, db));
+    error.set_error_message(std::move(error_message));
+    return internal::WithErrorPayload(std::move(status), std::move(error));
   }
   return status;
 }

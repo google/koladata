@@ -62,7 +62,7 @@ TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
       .common_schema = entity.GetSchemaImpl(),
       .conflicting_schema = internal::DataItem(dtype)};
 
-  absl::Status status = AssembleErrorMessage(
+  absl::Status status = KodaErrorCausedByNoCommonSchemaError(
       arolla::WithPayload(absl::InvalidArgumentError("error"),
                           std::move(error)),
       {bag});
@@ -145,12 +145,12 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
               R"regex((.|\n)*Assigned schema for 'x': SCHEMA\(y=INT32\) with ItemId \$[0-9a-zA-Z]{22}(.|\n)*)regex")));
 }
 
-TEST(ReprUtilTest, TestAssembleErrorMissingContextData) {
+TEST(ReprUtilTest, TestKodaErrorCausedByNoCommonSchemaErrorMissingContextData) {
   internal::NoCommonSchemaError error = {
       .common_schema = internal::DataItem(internal::AllocateSingleObject()),
       .conflicting_schema = internal::DataItem(schema::GetDType<int>())};
 
-  absl::Status status = AssembleErrorMessage(
+  absl::Status status = KodaErrorCausedByNoCommonSchemaError(
       arolla::WithPayload(absl::InvalidArgumentError("error"),
                           std::move(error)),
       {});
@@ -163,19 +163,12 @@ TEST(ReprUtilTest, TestAssembleErrorMissingContextData) {
           MatchesRegex(R"regex((.|\n)*conflicting schema INT32(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*the common schema\(s\) \$[0-9a-zA-Z]{22}(.|\n)*)regex")));
-
-  internal::MissingObjectSchemaError error2 = {
-      .missing_schema_item =
-          internal::DataItem(internal::AllocateSingleObject())};
-  EXPECT_THAT(
-      AssembleErrorMessage(
-          arolla::WithPayload(absl::InternalError("error"), error2), {}),
-      StatusIs(absl::StatusCode::kInvalidArgument, "missing data slice"));
 }
 
-TEST(ReprUtilTest, TestAssembleErrorNotHandlingOkStatus) {
+TEST(ReprUtilTest, TestKodaErrorCausedByNoCommonSchemaErrorOkStatus) {
   EXPECT_TRUE(
-      AssembleErrorMessage(absl::OkStatus(), {.db = DataBag::Empty()}).ok());
+      KodaErrorCausedByNoCommonSchemaError(absl::OkStatus(), DataBag::Empty())
+          .ok());
 }
 
 TEST(ReprUtilTest, TestCreateItemCreationError) {

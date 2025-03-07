@@ -60,6 +60,18 @@ absl::AnyInvocable<absl::Status(absl::Status)>
 KodaErrorCausedByMergeConflictError(const DataBagPtr& lhs_bag,
                                     const DataBagPtr& rhs_bag);
 
+// Returns the KodaError payload and readable error message if the
+// error is caused by missing object schema. Otherwise, returns the status
+// unchanged.
+absl::Status KodaErrorCausedByMissingObjectSchemaError(absl::Status status,
+                                                       const DataSlice& self);
+
+// Returns the KodaError payload and readable error message if the
+// error is caused by no common schema. Otherwise, returns the status
+// unchanged.
+absl::Status KodaErrorCausedByNoCommonSchemaError(absl::Status status,
+                                                  const DataBagPtr& db);
+
 // Creates an KodaError that further explains why creating items fails.
 // If it is caused by another KodaError, the cause is propagated. Otherwise,
 // the error message of the status is set in the cause.

@@ -58,7 +58,6 @@
 #include "koladata/repr_utils.h"
 #include "koladata/schema_utils.h"
 #include "koladata/uuid_utils.h"
-#include "py/arolla/abc/py_cancellation_context.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -386,8 +385,8 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     }
     if constexpr (!explicit_cast) {
       ASSIGN_OR_RETURN(schema, std::move(schema_agg).Get(),
-                       AssembleErrorMessage(
-                           _, {.db = adoption_queue.GetBagWithFallbacks()}));
+                       KodaErrorCausedByNoCommonSchemaError(
+                           _, adoption_queue.GetBagWithFallbacks()));
     }
     // The slice should be casted explicitly if the schema is provided by the
     // user. If this is gathered from data, it is validated to be implicitly
@@ -862,9 +861,9 @@ class UniversalConverter {
       schema_agg.Add(GetNarrowedSchema(value_stack_.top()));
       value_stack_.pop();
     }
-    ASSIGN_OR_RETURN(
-        DataItem schema_item, std::move(schema_agg).Get(),
-        AssembleErrorMessage(_, {.db = adoption_queue_.GetBagWithFallbacks()}));
+    ASSIGN_OR_RETURN(DataItem schema_item, std::move(schema_agg).Get(),
+                     KodaErrorCausedByNoCommonSchemaError(
+                         _, adoption_queue_.GetBagWithFallbacks()));
     if (input_schema) {
       if (schema_item.has_value() &&
           !schema::IsImplicitlyCastableTo(schema_item, input_schema->item())) {
