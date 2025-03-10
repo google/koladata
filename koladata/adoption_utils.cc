@@ -57,7 +57,7 @@ absl::Status AdoptionQueue::AdoptInto(DataBag& db) const {
       continue;
     }
     // NOTE: Consider moving the cancellation check into db.MergeInplace().
-    RETURN_IF_ERROR(ShouldCancel(eval_options_.cancellation_context));
+    RETURN_IF_ERROR(arolla::CheckCancellation());
     RETURN_IF_ERROR(db.MergeInplace(extracted_db, /*overwrite=*/false,
                                     /*allow_data_conflicts=*/false,
                                     /*allow_schema_conflicts=*/false))

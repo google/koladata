@@ -35,10 +35,9 @@
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/quote.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/cancellation_context.h"
+#include "arolla/util/testing/gmock_cancellation_context.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -48,7 +47,9 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::MockCancellationScope;
 using ::koladata::testing::IsEquivalentTo;
+using ::testing::Return;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
   return arolla::expr::CallOp("koda_internal.input",
@@ -255,34 +256,44 @@ TEST(CallTest, Cancellation) {
     ASSERT_OK_AND_ASSIGN(auto returns_expr, gen_returns_expr(op_count));
     ASSERT_OK_AND_ASSIGN(auto fn,
                          CreateFunctor(returns_expr, koda_signature, {}));
-    auto cancel_ctx = arolla::CancellationContext::Make(
-        /*no cooldown period*/ {}, [] { return absl::CancelledError(""); });
-    arolla::EvaluationOptions eval_options{
-        .cancellation_context = cancel_ctx.get(),
-    };
-    EXPECT_THAT(CallFunctorWithCompilationCache(
-                    fn, /*args=*/{arolla::TypedRef::FromValue(1)},
-                    /*kwnames=*/{}, eval_options),
-                StatusIs(absl::StatusCode::kCancelled));
+    EXPECT_OK(
+        CallFunctorWithCompilationCache(  // Pre-compile to avoid cancellation
+            fn,                           // during compilation.
+            /*args=*/{arolla::TypedRef::FromValue(1)},
+            /*kwnames=*/{}, /*eval_options=*/{})
+            .status());
+    {
+      MockCancellationScope cancellation_scope;
+      EXPECT_CALL(cancellation_scope.context, DoCheck())
+          .WillOnce(Return(absl::CancelledError("")));
+      EXPECT_THAT(CallFunctorWithCompilationCache(
+                      fn, /*args=*/{arolla::TypedRef::FromValue(1)},
+                      /*kwnames=*/{}, /*eval_options=*/{}),
+                  StatusIs(absl::StatusCode::kCancelled));
+    }
   }
   {  // The computation is insufficiently long to detect cancellation.
     const int op_count = 2;
     ASSERT_OK_AND_ASSIGN(auto returns_expr, gen_returns_expr(op_count));
     ASSERT_OK_AND_ASSIGN(auto fn,
                          CreateFunctor(returns_expr, koda_signature, {}));
-    auto cancel_ctx = arolla::CancellationContext::Make(
-        /*no cooldown period*/ {}, [] { return absl::CancelledError(""); });
-    arolla::EvaluationOptions eval_options{
-        .cancellation_context = cancel_ctx.get(),
-    };
-    ASSERT_OK_AND_ASSIGN(auto result,
-                         CallFunctorWithCompilationCache(
-                             fn, /*args=*/{arolla::TypedRef::FromValue(1)},
-                             /*kwnames=*/{}, eval_options));
-    EXPECT_THAT(result.As<int>(), IsOkAndHolds(3));
+    EXPECT_OK(
+        CallFunctorWithCompilationCache(  // Pre-compile to avoid cancellation
+            fn,                           // during compilation.
+            /*args=*/{arolla::TypedRef::FromValue(1)},
+            /*kwnames=*/{}, /*eval_options=*/{})
+            .status());
+    {
+      MockCancellationScope cancellation_scope;
+      EXPECT_CALL(cancellation_scope.context, DoCheck()).Times(0);
+      ASSERT_OK_AND_ASSIGN(auto result,
+                           CallFunctorWithCompilationCache(
+                               fn, /*args=*/{arolla::TypedRef::FromValue(1)},
+                               /*kwnames=*/{}, /*eval_options=*/{}));
+      EXPECT_THAT(result.As<int>(), IsOkAndHolds(3));
+    }
   }
 }
 
 }  // namespace
-
 }  // namespace koladata::functor

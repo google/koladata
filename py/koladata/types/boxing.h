@@ -27,7 +27,6 @@
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "py/arolla/abc/py_cancellation_context.h"
 #include "arolla/qexpr/eval_context.h"
 
 namespace koladata::python {
@@ -62,10 +61,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
 // If `py_obj` is a python list of DataItems, ignores their DataBags.
 inline absl::StatusOr<DataSlice> DataSliceFromPyValueNoAdoption(
     PyObject* py_obj, const std::optional<DataSlice>& schema = std::nullopt) {
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   return DataSliceFromPyValue(py_obj, adoption_queue, schema);
 }
 

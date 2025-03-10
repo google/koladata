@@ -540,10 +540,7 @@ absl::StatusOr<DataSlice> DataSliceFromPyValue(
 
 absl::StatusOr<DataSlice> DataItemFromPyValue(
     PyObject* py_obj, const std::optional<DataSlice>& schema) {
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   internal::DataItem res_item;
   internal::DataItem schema_item;
   auto to_data_item_fn = [&res_item]<class T>(T&& value) {
@@ -582,10 +579,7 @@ absl::StatusOr<DataSlice> DataItemFromPyValue(
 
 absl::StatusOr<DataSlice> DataSliceFromPyValueWithAdoption(
     PyObject* py_obj, const std::optional<DataSlice>& schema) {
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(DataSlice res_no_db,
                    DataSliceFromPyValue(py_obj, adoption_queue, schema));
   ASSIGN_OR_RETURN(auto db, adoption_queue.GetCommonOrMergedDb());
@@ -1368,10 +1362,7 @@ absl::Status ConvertDictKeysAndValues(PyObject* py_obj, const DataBagPtr& db,
 absl::StatusOr<DataSlice> GenericFromPyObject(
     PyObject* py_obj, bool dict_as_obj, const std::optional<DataSlice>& schema,
     size_t from_dim, const std::optional<DataSlice>& itemid) {
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   DataSlice res_slice;
   if (schema) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());

@@ -45,14 +45,12 @@
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/schema_utils.h"
-#include "py/arolla/abc/py_cancellation_context.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "py/koladata/base/to_py_object.h"
 #include "py/koladata/types/wrap_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
 #include "arolla/util/view_types.h"
@@ -426,9 +424,6 @@ absl::Nullable<PyObject*> ToPyImplInternal(
 absl::Nullable<PyObject*> ToPyImpl(const DataSlice& ds, DataBagPtr bag,
                                    int max_depth, bool obj_as_dict,
                                    bool include_missing_attrs) {
-  arolla::python::PyCancellationContext cancel_ctx;
-  arolla::EvaluationOptions eval_options{.cancellation_context = &cancel_ctx};
-
   // When `max_depth != -1`, we want objects/dicts/lists at `max_depth`
   // to be kept as DataItems and not converted to Python objects.
   // To do that, we extract a DataSlice, and keep track of the leaf DataItems.
@@ -443,11 +438,11 @@ absl::Nullable<PyObject*> ToPyImpl(const DataSlice& ds, DataBagPtr bag,
   };
 
   if (ds.GetBag() != nullptr) {
-    ASSIGN_OR_RETURN(const DataSlice extracted_ds,
-                     koladata::extract_utils_internal::ExtractWithSchema(
-                         eval_options, ds, ds.GetSchema(), max_depth,
-                         std::move(leaf_callback)),
-                     arolla::python::SetPyErrFromStatus(_));
+    ASSIGN_OR_RETURN(
+        const DataSlice extracted_ds,
+        koladata::extract_utils_internal::ExtractWithSchema(
+            {}, ds, ds.GetSchema(), max_depth, std::move(leaf_callback)),
+        arolla::python::SetPyErrFromStatus(_));
     return ToPyImplInternal(extracted_ds, ds.GetBag(), obj_as_dict,
                             include_missing_attrs, objects_not_to_convert);
   }
@@ -461,6 +456,7 @@ absl::Nullable<PyObject*> PyDataSlice_to_py(PyObject* self,
                                             PyObject* const* py_args,
                                             Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 3) {
     PyErr_Format(PyExc_ValueError,
                  "DataSlice._to_py_impl accepts exactly 3 arguments, got %d",

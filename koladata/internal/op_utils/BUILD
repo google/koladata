@@ -540,6 +540,7 @@ cc_test(
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util/testing",
         "@com_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest",
     ],

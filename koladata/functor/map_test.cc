@@ -46,8 +46,7 @@
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/quote.h"
 #include "arolla/jagged_shape/testing/matchers.h"
-#include "arolla/qexpr/eval_context.h"
-#include "arolla/util/cancellation_context.h"
+#include "arolla/util/testing/gmock_cancellation_context.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -57,7 +56,9 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::MockCancellationScope;
 using ::koladata::testing::IsEquivalentTo;
+using ::testing::Return;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
   return arolla::expr::CallOp("koda_internal.input",
@@ -181,23 +182,30 @@ TEST(MapTest, Cancellation) {
           internal::DataSliceImpl::Create(arolla::CreateFullDenseArray(items)),
           DataSlice::JaggedShape::FlatFromSize(items.size()),
           internal::DataItem(schema::GetDType<int>())));
-  auto cancel_ctx = arolla::CancellationContext::Make(
-      /*no cooldown*/ {}, [] { return absl::CancelledError(""); });
-  arolla::EvaluationOptions eval_options{
-      .cancellation_context = cancel_ctx.get(),
-  };
-  EXPECT_THAT(MapFunctorWithCompilationCache(
-                  fn, /*args=*/{test_slice},
-                  /*kwnames=*/{}, /*include_missing=*/false, eval_options),
-              StatusIs(absl::StatusCode::kCancelled));
-
-  EXPECT_THAT(
-      MapFunctorWithCompilationCache(fn, /*args=*/{test_slice},
-                                     /*kwnames=*/{}, /*include_missing=*/false,
-                                     /*eval_options=*/{}),
-      IsOkAndHolds(IsEquivalentTo(test_slice)));
+  EXPECT_OK(MapFunctorWithCompilationCache(  // Pre-compile to avoid
+                fn, /*args=*/{test_slice},   // cancellation during compilation.
+                /*kwnames=*/{},
+                /*include_missing=*/false,
+                /*eval_options=*/{})
+                .status());
+  {
+    MockCancellationScope cancellation_scope;
+    EXPECT_CALL(cancellation_scope.context, DoCheck())
+        .WillOnce(Return(absl::CancelledError("")));
+    EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{test_slice},
+                                               /*kwnames=*/{},
+                                               /*include_missing=*/false,
+                                               /*eval_options=*/{}),
+                StatusIs(absl::StatusCode::kCancelled));
+  }
+  {
+    EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{test_slice},
+                                               /*kwnames=*/{},
+                                               /*include_missing=*/false,
+                                               /*eval_options=*/{}),
+                IsOkAndHolds(IsEquivalentTo(test_slice)));
+  }
 }
 
 }  // namespace
-
 }  // namespace koladata::functor

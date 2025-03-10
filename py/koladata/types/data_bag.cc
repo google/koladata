@@ -48,7 +48,6 @@
 #include "koladata/proto/from_proto.h"
 #include "koladata/repr_utils.h"
 #include "google/protobuf/message.h"
-#include "py/arolla/abc/py_cancellation_context.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -56,7 +55,6 @@
 #include "py/koladata/types/py_utils.h"
 #include "py/koladata/types/pybind11_protobuf_wrapper.h"
 #include "py/koladata/types/wrap_utils.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/qtype/unspecified_qtype.h"
@@ -100,7 +98,6 @@ ParseSchemaArgWithStringToNamedSchemaConversion(
                    DataSliceFromPyValueNoAdoption(arg_it->second));
   return ops::InternalMaybeNamedSchema(schema_slice);
 }
-
 
 // Deduce List Item Schema to be passed to boxing.cc logic.
 absl::StatusOr<std::optional<DataSlice>> ListItemSchemaForBoxing(
@@ -286,10 +283,7 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
               .c_str());
       return nullptr;
     }
-    arolla::python::PyCancellationContext cancellation_context;
-    AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-        .cancellation_context = &cancellation_context,
-    });
+    AdoptionQueue adoption_queue;
     ASSIGN_OR_RETURN(
         res,
         FactoryHelperT::FromPyObject(args.pos_only_args[0], schema_arg, itemid,
@@ -301,10 +295,7 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
               CreateItemCreationError(status, schema_arg));
         });
   } else {
-    arolla::python::PyCancellationContext cancellation_context;
-    AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-        .cancellation_context = &cancellation_context,
-    });
+    AdoptionQueue adoption_queue;
     ASSIGN_OR_RETURN(
         std::vector<DataSlice> values,
         ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
@@ -341,6 +332,7 @@ absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
                                                 Py_ssize_t nargs,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/1, /*optional_positional_only=*/true,
       /*parse_kwargs=*/true, {"schema", "overwrite_schema", "itemid"}));
@@ -365,6 +357,7 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory(PyObject* self,
                                                 Py_ssize_t nargs,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/1, /*optional_positional_only=*/true,
       /*parse_kwargs=*/true, {"itemid"}));
@@ -402,11 +395,7 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
     return nullptr;
   }
 
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
-
+  AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(
@@ -442,6 +431,7 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_shaped(PyObject* self,
                                                        Py_ssize_t nargs,
                                                        PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/1, /*parse_kwargs=*/true,
       {"schema", "overwrite_schema", "itemid"}));
@@ -464,6 +454,7 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_shaped(PyObject* self,
                                                        Py_ssize_t nargs,
                                                        PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/1, /*parse_kwargs=*/true, {"itemid"}));
   FastcallArgParser::Args args;
@@ -499,10 +490,7 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
   if (!ParseDataSliceArg(args, "itemid", itemid)) {
     return nullptr;
   }
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(
       std::vector<DataSlice> values,
       ConvertArgsToDataSlices(db,
@@ -539,6 +527,7 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_like(PyObject* self,
                                                      Py_ssize_t nargs,
                                                      PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/1, /*parse_kwargs=*/true,
       {"schema", "overwrite_schema", "itemid"}));
@@ -561,6 +550,7 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_like(PyObject* self,
                                                      Py_ssize_t nargs,
                                                      PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/1, /*parse_kwargs=*/true, {"itemid"}));
   FastcallArgParser::Args args;
@@ -580,6 +570,7 @@ absl::Nullable<PyObject*> PyDataBag_schema_factory(PyObject* self,
                                                    Py_ssize_t nargs,
                                                    PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/true);
   FastcallArgParser::Args args;
@@ -606,6 +597,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
                                                       Py_ssize_t nargs,
                                                       PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/true, "seed");
   FastcallArgParser::Args args;
@@ -632,6 +624,7 @@ absl::Nullable<PyObject*> PyDataBag_named_schema_factory(
     PyObject* self, PyObject* const* py_args, Py_ssize_t nargs,
     PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/true, "name");
   FastcallArgParser::Args args;
@@ -667,6 +660,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
                                                       Py_ssize_t nargs,
                                                       PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/0, /*parse_kwargs=*/true, {"schema", "overwrite_schema"},
       /*pos_kw_args=*/"seed"));
@@ -675,10 +669,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
     return nullptr;
   }
   auto db = UnsafeDataBagPtr(self);
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
@@ -720,6 +711,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
                                                    Py_ssize_t nargs,
                                                    PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/true, "seed");
   FastcallArgParser::Args args;
@@ -727,10 +719,7 @@ absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
     return nullptr;
   }
   auto db = UnsafeDataBagPtr(self);
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   DataSlice res;
   ASSIGN_OR_RETURN(std::vector<DataSlice> values,
                    ConvertArgsToDataSlices(db, args.kw_values, adoption_queue),
@@ -809,6 +798,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
                                                 PyObject* const* args,
                                                 Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 7) {
     PyErr_SetString(PyExc_ValueError,
                     "DataBag.dict_shaped accepts exactly 6 arguments");
@@ -827,10 +817,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
   if (shape == nullptr) {
     return nullptr;
   }
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   std::optional<DataSlice> keys;
   std::optional<DataSlice> values;
   if (!NormalizeDictKeysAndValues(py_items_or_keys, py_values,
@@ -866,6 +853,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
                                               PyObject* const* args,
                                               Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 7) {
     PyErr_SetString(PyExc_ValueError,
                     "DataBag._dict_like accepts exactly 6 arguments");
@@ -885,10 +873,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
   if (shape_and_mask_from == nullptr) {
     return nullptr;
   }
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   std::optional<DataSlice> keys;
   std::optional<DataSlice> values;
   if (!NormalizeDictKeysAndValues(py_items_or_keys, py_values,
@@ -923,6 +908,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
 absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
                                          Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 4) {
     PyErr_Format(PyExc_ValueError,
                  "DataBag._list accepts exactly 4 arguments, got %d", nargs);
@@ -957,18 +943,14 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
           "kd.implode");
       return nullptr;
     }
-    arolla::python::PyCancellationContext cancellation_context;
-    AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-        .cancellation_context = &cancellation_context,
-    });
+    AdoptionQueue adoption_queue;
     ASSIGN_OR_RETURN(auto item_schema_for_boxing,
                      ListItemSchemaForBoxing(item_schema, schema),
                      arolla::python::SetPyErrFromStatus(_));
-    ASSIGN_OR_RETURN(
-        auto values,
-        DataSliceFromPyValue(py_values, adoption_queue,
-                             /*schema=*/item_schema_for_boxing),
-        arolla::python::SetPyErrFromStatus(_));
+    ASSIGN_OR_RETURN(auto values,
+                     DataSliceFromPyValue(py_values, adoption_queue,
+                                          /*schema=*/item_schema_for_boxing),
+                     arolla::python::SetPyErrFromStatus(_));
     // Replacing the DataBag to avoid double adoption.
     values = values.WithBag(self_db);
     ASSIGN_OR_RETURN(
@@ -985,7 +967,7 @@ absl::Nullable<PyObject*> PyDataBag_list_schema(PyObject* self,
                                                 Py_ssize_t nargs,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
-
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/false, "item_schema");
   FastcallArgParser::Args args;
@@ -1015,7 +997,7 @@ absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
                                                 Py_ssize_t nargs,
                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
-
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/false, "key_schema", "value_schema");
   FastcallArgParser::Args args;
@@ -1056,6 +1038,7 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
                                                 PyObject* const* args,
                                                 Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 5) {
     PyErr_Format(PyExc_ValueError,
                  "DataBag._list_shaped accepts exactly 4 arguments, got %d",
@@ -1074,10 +1057,7 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
     return nullptr;
   }
 
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   std::optional<DataSlice> item_schema;
   std::optional<DataSlice> schema;
   std::optional<DataSlice> itemid;
@@ -1091,8 +1071,9 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
                    arolla::python::SetPyErrFromStatus(_));
   std::optional<DataSlice> values;
   if (!Py_IsNone(py_values)) {
-    ASSIGN_OR_RETURN(values, DataSliceFromPyValue(py_values, adoption_queue,
-                     /*schema=*/item_schema_for_boxing),
+    ASSIGN_OR_RETURN(values,
+                     DataSliceFromPyValue(py_values, adoption_queue,
+                                          /*schema=*/item_schema_for_boxing),
                      arolla::python::SetPyErrFromStatus(_));
     // Replacing the DataBag to avoid double adoption.
     values = values->WithBag(self_db);
@@ -1111,6 +1092,7 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
                                               PyObject* const* args,
                                               Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 5) {
     PyErr_Format(PyExc_ValueError,
                  "DataBag._list_like accepts exactly 5 arguments, got %d",
@@ -1123,11 +1105,6 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
   PyObject* const py_item_schema = args[2];
   PyObject* const py_schema = args[3];
   PyObject* const py_itemid = args[4];
-
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
 
   auto shape_and_mask_from =
       UnwrapDataSlice(py_shape_and_mask_from, "shape_and_mask_from");
@@ -1145,13 +1122,13 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
   ASSIGN_OR_RETURN(auto item_schema_for_boxing,
                    ListItemSchemaForBoxing(item_schema, schema),
                    arolla::python::SetPyErrFromStatus(_));
+  AdoptionQueue adoption_queue;
   std::optional<DataSlice> values;
   if (!Py_IsNone(py_values)) {
-    ASSIGN_OR_RETURN(
-        values,
-        DataSliceFromPyValue(py_values, adoption_queue,
-                             /*schema=*/item_schema_for_boxing),
-        arolla::python::SetPyErrFromStatus(_));
+    ASSIGN_OR_RETURN(values,
+                     DataSliceFromPyValue(py_values, adoption_queue,
+                                          /*schema=*/item_schema_for_boxing),
+                     arolla::python::SetPyErrFromStatus(_));
     // Replacing the DataBag to avoid double adoption.
     values = values->WithBag(self_db);
   }
@@ -1168,6 +1145,7 @@ absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
                                             PyObject* const* args,
                                             Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 3) {
     PyErr_Format(PyExc_ValueError,
                  "DataBag._implode accepts exactly 3 arguments, got %d", nargs);
@@ -1201,6 +1179,7 @@ absl::Nullable<PyObject*> PyDataBag_concat_lists(PyObject* self,
                                                  PyObject* const* args,
                                                  Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   const auto& self_db = UnsafeDataBagPtr(self);
 
   std::vector<DataSlice> inputs;
@@ -1221,6 +1200,8 @@ absl::Nullable<PyObject*> PyDataBag_concat_lists(PyObject* self,
 absl::Nullable<PyObject*> PyDataBag_exactly_equal(PyObject* self,
                                                   PyObject* const* args,
                                                   Py_ssize_t nargs) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 1) {
     PyErr_Format(PyExc_ValueError,
                  "DataBag._exactly_equal accepts exactly 1 argument, got %d",
@@ -1241,6 +1222,7 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
                                                   PyObject* const* args,
                                                   Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   if (nargs < 3) {
     PyErr_Format(PyExc_ValueError,
                  "DataBag._inplace_merge accepts at least 3 arguments, got %d",
@@ -1275,16 +1257,14 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
 
 absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self, PyObject* ds) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr& db = UnsafeDataBagPtr(self);
   const DataSlice* slice = UnwrapDataSlice(ds, "slice");
   if (!slice) {
     return nullptr;
   }
 
-  arolla::python::PyCancellationContext cancellation_context;
-  AdoptionQueue adoption_queue(arolla::EvaluationOptions{
-      .cancellation_context = &cancellation_context,
-  });
+  AdoptionQueue adoption_queue;
   adoption_queue.Add(*slice);
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With(arolla::python::SetPyErrFromStatus);
@@ -1294,6 +1274,7 @@ absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self, PyObject* ds) {
 
 absl::Nullable<PyObject*> PyDataBag_adopt_stub(PyObject* self, PyObject* ds) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr& db = UnsafeDataBagPtr(self);
   const DataSlice* slice = UnwrapDataSlice(ds, "slice");
   if (!slice) {
@@ -1306,6 +1287,7 @@ absl::Nullable<PyObject*> PyDataBag_adopt_stub(PyObject* self, PyObject* ds) {
 
 absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   const auto& db = UnsafeDataBagPtr(self);
   ASSIGN_OR_RETURN(auto res, db->MergeFallbacks(),
                    arolla::python::SetPyErrFromStatus(_));
@@ -1317,6 +1299,7 @@ absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self,
                                          Py_ssize_t nargs,
                                          PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/false, "mutable");
   FastcallArgParser::Args args;
@@ -1339,6 +1322,8 @@ absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self,
                                                   PyObject* const* py_args,
                                                   Py_ssize_t nargs,
                                                   PyObject* py_kwnames) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/false,
       std::initializer_list<absl::string_view>{"triple_limit"});
@@ -1362,6 +1347,8 @@ absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self,
 }
 
 absl::Nullable<PyObject*> PyDataBag_get_fallbacks(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr& db = UnsafeDataBagPtr(self);
 
   const std::vector<DataBagPtr>& fallbacks = db->GetFallbacks();
@@ -1378,6 +1365,7 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
                                                PyObject* const* args,
                                                Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr db = UnsafeDataBagPtr(self);
   if (nargs != 4) {
     PyErr_Format(PyExc_ValueError,
@@ -1477,6 +1465,7 @@ absl::Nullable<PyObject*> PyDataBag_schema_from_proto(PyObject* self,
                                                       PyObject* const* args,
                                                       Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr db = UnsafeDataBagPtr(self);
   if (nargs != 2) {
     PyErr_Format(
@@ -1534,6 +1523,8 @@ absl::Nullable<PyObject*> PyDataBag_schema_from_proto(PyObject* self,
 }
 
 absl::Nullable<PyObject*> PyDataBag_get_approx_size(PyObject* self, PyObject*) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr& db = UnsafeDataBagPtr(self);
   FlattenFallbackFinder fallback_finder(*db);
   int64_t size = db->GetImpl().GetApproxTotalSize();
@@ -1902,6 +1893,7 @@ absl::Nullable<PyObject*> PyEmptyShaped(PyObject* /*module*/,
                                         Py_ssize_t nargs,
                                         PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/0, /*parse_kwargs=*/true, "shape", "schema", "db");
   FastcallArgParser::Args args;

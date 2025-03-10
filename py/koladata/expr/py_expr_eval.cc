@@ -35,7 +35,6 @@
 #include "koladata/operators/arolla_bridge.h"
 #include "py/arolla/abc/py_aux_binding_policy.h"
 #include "py/arolla/abc/py_cached_eval.h"
-#include "py/arolla/abc/py_cancellation_context.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_operator.h"
 #include "py/arolla/abc/py_qvalue.h"
@@ -46,7 +45,6 @@
 #include "arolla/expr/expr_debug_string.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator_signature.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -55,7 +53,6 @@
 
 namespace koladata::python {
 
-using ::arolla::EvaluationOptions;
 using ::arolla::TypedRef;
 using ::arolla::TypedValue;
 using ::arolla::expr::ExprNodePtr;
@@ -64,7 +61,7 @@ using ::arolla::python::AuxBindingPolicyPtr;
 using ::arolla::python::DCheckPyGIL;
 using ::arolla::python::InvokeOpWithCompilationCache;
 using ::arolla::python::ParseArgPyOperator;
-using ::arolla::python::PyCancellationContext;
+using ::arolla::python::PyCancellationScope;
 using ::arolla::python::QValueOrExpr;
 using ::arolla::python::ReleasePyGIL;
 using ::arolla::python::SetPyErrFromStatus;
@@ -75,6 +72,7 @@ using ::arolla::python::WrapAsPyQValue;
 absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
                                      Py_ssize_t nargs, PyObject* py_kwnames) {
   DCheckPyGIL();
+  PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/1, /*parse_kwargs=*/true);
   FastcallArgParser::Args args;
@@ -115,15 +113,8 @@ absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
     // otherwise we can get a deadlock between GIL and the C++ locks
     // that are used by the Expr compilation cache.
     ReleasePyGIL guard;
-
-    // Set up a mechanism to check if the computation has been interrupted by
-    // the Python interpreter.
-    PyCancellationContext cancellation_context;
-    EvaluationOptions eval_options{
-        .cancellation_context = &cancellation_context,
-    };
     result_or_error = koladata::expr::EvalExprWithCompilationCache(
-        expr, input_qvalues, {}, eval_options);
+        expr, input_qvalues, {}, {});
   }
   ASSIGN_OR_RETURN(auto result, std::move(result_or_error),
                    SetPyErrFromStatus(_));
@@ -158,6 +149,7 @@ PyObject* PyClearArollaOpCache(PyObject* /*self*/, PyObject* /*py_args*/) {
 absl::Nullable<PyObject*> PyEvalOp(PyObject* /*self*/, PyObject** py_args,
                                    Py_ssize_t nargs, PyObject* py_kwnames) {
   DCheckPyGIL();
+  PyCancellationScope cancellation_scope;
   if (nargs == 0) {
     PyErr_SetString(
         PyExc_TypeError,

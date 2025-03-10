@@ -928,7 +928,7 @@ class CopyingProcessor {
 
   absl::Status ProcessQueue() {
     while (!queued_slices_.empty()) {
-      RETURN_IF_ERROR(ShouldCancel(ctx_.options().cancellation_context));
+      RETURN_IF_ERROR(arolla::CheckCancellation());
       QueuedSlice slice = std::move(queued_slices_.front());
       queued_slices_.pop();
       if (max_depth_ >= 0 && slice.depth > max_depth_) {
