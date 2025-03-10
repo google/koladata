@@ -43,7 +43,6 @@ using ::testing::IsNull;
 using ::testing::NotNull;
 using ::testing::Pointee;
 using ::testing::Property;
-using ::testing::ResultOf;
 
 TEST(OperatorEvalError, NoCause) {
   absl::Status status = OperatorEvalError("op_name", "error_message");
