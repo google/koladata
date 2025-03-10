@@ -97,23 +97,23 @@ TEST(MapTest, Basic) {
   auto a_input = test::DataSlice<int>({1, 2, 3, 4});
   auto b_input = test::DataSlice<int>({5, 6, 7, std::nullopt});
   auto expected1 = test::DataSlice<int>({1, 6, std::nullopt, std::nullopt});
-  EXPECT_THAT(MapFunctorWithCompilationCache(
-                  fn, /*args=*/{a_input, b_input}, /*kwnames=*/{"a", "b"},
-                  /*include_missing=*/false, /*eval_options=*/{}),
+  EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{a_input, b_input},
+                                             /*kwnames=*/{"a", "b"},
+                                             /*include_missing=*/false),
               IsOkAndHolds(IsEquivalentTo(expected1)));
-  EXPECT_THAT(MapFunctorWithCompilationCache(
-                  fn, /*args=*/{a_input, b_input}, /*kwnames=*/{"b"},
-                  /*include_missing=*/false, /*eval_options=*/{}),
+  EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{a_input, b_input},
+                                             /*kwnames=*/{"b"},
+                                             /*include_missing=*/false),
               IsOkAndHolds(IsEquivalentTo(expected1)));
-  EXPECT_THAT(MapFunctorWithCompilationCache(
-                  fn, /*args=*/{a_input, b_input}, /*kwnames=*/{},
-                  /*include_missing=*/false, /*eval_options=*/{}),
+  EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{a_input, b_input},
+                                             /*kwnames=*/{},
+                                             /*include_missing=*/false),
               IsOkAndHolds(IsEquivalentTo(expected1)));
 
   auto expected2 = test::DataSlice<int>({1, 6, std::nullopt, 4});
-  EXPECT_THAT(MapFunctorWithCompilationCache(
-                  fn, /*args=*/{a_input, b_input}, /*kwnames=*/{"b"},
-                  /*include_missing=*/true, /*eval_options=*/{}),
+  EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{a_input, b_input},
+                                             /*kwnames=*/{"b"},
+                                             /*include_missing=*/true),
               IsOkAndHolds(IsEquivalentTo(expected2)));
 }
 
@@ -149,9 +149,9 @@ TEST(MapTest, Alignment) {
   auto a_input = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7}, shape);
   auto b_input = test::DataItem(8);
   auto expected = test::DataSlice<int>({1, 2, 3, 8, 8, 8, 8}, shape);
-  EXPECT_THAT(MapFunctorWithCompilationCache(
-                  fn, /*args=*/{a_input, b_input}, /*kwnames=*/{"b"},
-                  /*include_missing=*/false, /*eval_options=*/{}),
+  EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{a_input, b_input},
+                                             /*kwnames=*/{"b"},
+                                             /*include_missing=*/false),
               IsOkAndHolds(IsEquivalentTo(expected)));
 }
 
@@ -185,8 +185,7 @@ TEST(MapTest, Cancellation) {
   EXPECT_OK(MapFunctorWithCompilationCache(  // Pre-compile to avoid
                 fn, /*args=*/{test_slice},   // cancellation during compilation.
                 /*kwnames=*/{},
-                /*include_missing=*/false,
-                /*eval_options=*/{})
+                /*include_missing=*/false)
                 .status());
   {
     MockCancellationScope cancellation_scope;
@@ -194,15 +193,13 @@ TEST(MapTest, Cancellation) {
         .WillOnce(Return(absl::CancelledError("")));
     EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{test_slice},
                                                /*kwnames=*/{},
-                                               /*include_missing=*/false,
-                                               /*eval_options=*/{}),
+                                               /*include_missing=*/false),
                 StatusIs(absl::StatusCode::kCancelled));
   }
   {
     EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{test_slice},
                                                /*kwnames=*/{},
-                                               /*include_missing=*/false,
-                                               /*eval_options=*/{}),
+                                               /*include_missing=*/false),
                 IsOkAndHolds(IsEquivalentTo(test_slice)));
   }
 }

@@ -45,7 +45,6 @@
 #include "arolla/expr/expr_visitor.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/io/typed_refs_input_loader.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -195,7 +194,7 @@ absl::StatusOr<TransformedExprPtr> TransformExprForEval(
 }
 
 using CompiledExpr = std::function<absl::StatusOr<arolla::TypedValue>(
-    arolla::EvaluationOptions, absl::Span<const arolla::TypedRef>)>;
+    absl::Span<const arolla::TypedRef>)>;
 
 using Compiler = arolla::ExprCompiler<absl::Span<const arolla::TypedRef>,
                                       arolla::TypedValue>;
@@ -272,7 +271,7 @@ absl::StatusOr<CompiledExpr> Compile(
             // In such cases the always clone thread safety policy is faster.
             .SetAlwaysCloneThreadSafetyPolicy()
             .SetInputLoader(arolla::CreateTypedRefsInputLoader(args))
-            .Compile<arolla::ExprCompilerFlags::kEvalWithOptions>(expr));
+            .Compile(expr));
     fn = CompilationCache::Instance().Put(key, std::move(fn));
   }
   return fn;
@@ -296,8 +295,7 @@ absl::Status SimplifyExprEvaluationError(absl::Status status) {
 absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
     const arolla::expr::ExprNodePtr& expr,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> inputs,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> variables,
-    const arolla::EvaluationOptions& eval_options) {
+    absl::Span<const std::pair<std::string, arolla::TypedRef>> variables) {
   ASSIGN_OR_RETURN(auto transformed_expr, TransformExprForEval(expr));
   const auto& expr_info = transformed_expr->info;
 
@@ -353,7 +351,7 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
       auto compiled_expr,
       Compile(transformed_expr->expr, expr_info.leaf_keys, input_qvalues),
       SimplifyExprEvaluationError(std::move(_)));
-  ASSIGN_OR_RETURN(auto result, compiled_expr(eval_options, input_qvalues),
+  ASSIGN_OR_RETURN(auto result, compiled_expr(input_qvalues),
                    SimplifyExprEvaluationError(std::move(_)));
   return result;
 }

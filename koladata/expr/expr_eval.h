@@ -23,7 +23,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr_node.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 
@@ -41,8 +40,7 @@ constexpr absl::string_view kNonDeterministicTokenLeafKey =
 absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
     const arolla::expr::ExprNodePtr& expr,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> inputs,
-    absl::Span<const std::pair<std::string, arolla::TypedRef>> variables,
-    const arolla::EvaluationOptions& eval_options = {});
+    absl::Span<const std::pair<std::string, arolla::TypedRef>> variables);
 
 // Retrieves the list of variables used in the given expression.
 // This reuses the same cache as EvalExprWithCompilationCache, so it is cheap

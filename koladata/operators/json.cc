@@ -54,7 +54,6 @@
 #include "koladata/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
@@ -709,8 +708,7 @@ class JsonSaxParser final : public nlohmann::json::json_sax_t {
 
 }  // namespace
 
-absl::StatusOr<DataSlice> FromJson(arolla::EvaluationContext* ctx, DataSlice x,
-                                   DataSlice schema,
+absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
                                    DataSlice default_number_schema,
                                    DataSlice on_invalid, DataSlice keys_attr,
                                    DataSlice values_attr,
@@ -768,7 +766,7 @@ absl::StatusOr<DataSlice> FromJson(arolla::EvaluationContext* ctx, DataSlice x,
 
   DataBagPtr bag = DataBag::Empty();
   {
-    AdoptionQueue adoption_queue(ctx->options());
+    AdoptionQueue adoption_queue;
     adoption_queue.Add(schema);
     // `default_number_schema` is a primitive schema, so no need to adopt.
     adoption_queue.Add(on_invalid);

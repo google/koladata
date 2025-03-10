@@ -20,25 +20,20 @@
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/op_utils/extract.h"
-#include "arolla/qexpr/eval_context.h"
 
-namespace koladata {
-namespace extract_utils_internal {
+namespace koladata::extract_utils_internal {
 
 // Returns a copy of `ds` that has the schema `schema`, and uses a new DataBag
 // that contains only triples reachable from `ds` (when interpreted as having
 // the schema `schema`) or from `schema`.
 absl::StatusOr<DataSlice> ExtractWithSchema(
-    const arolla::EvaluationOptions& eval_options, const DataSlice& ds,
-    const DataSlice& schema, int max_depth = -1,
+    const DataSlice& ds, const DataSlice& schema, int max_depth = -1,
     const std::optional<internal::LeafCallback>& leaf_callback = std::nullopt);
 
 // Returns a copy of `ds` that uses a new DataBag that contains only triples
 // reachable from `ds`.
-absl::StatusOr<DataSlice> Extract(const arolla::EvaluationOptions& eval_options,
-                                  const DataSlice& ds);
+absl::StatusOr<DataSlice> Extract(const DataSlice& ds);
 
-}  // namespace extract_utils_internal
-}  // namespace koladata
+}  // namespace koladata::extract_utils_internal
 
 #endif  // KOLADATA_EXTRACT_UTILS_H_

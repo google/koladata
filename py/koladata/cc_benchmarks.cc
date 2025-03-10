@@ -21,10 +21,10 @@
 #include "benchmark/benchmark.h"
 #include "absl/log/check.h"
 #include "absl/strings/str_format.h"
+#include "absl/time/time.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/expr/expr_eval.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/functor.h"
 #include "koladata/internal/data_item.h"
@@ -35,10 +35,10 @@
 #include "arolla/expr/quote.h"
 #include "arolla/io/tuple_input_loader.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/serving/expr_compiler.h"
 #include "arolla/util/init_arolla.h"
+#include "arolla/util/testing/gmock_cancellation_context.h"
 #include "arolla/util/text.h"
 
 namespace koladata {
@@ -47,9 +47,11 @@ namespace {
 using ::arolla::expr::CallOp;
 using ::arolla::expr::Leaf;
 using ::arolla::expr::Literal;
+using ::arolla::testing::MockCancellationScope;
 
 void BM_Add(benchmark::State& state) {
   arolla::InitArolla();
+  MockCancellationScope cancellation_scope(absl::Milliseconds(10));
   size_t slice_size = state.range(0);
   size_t num_operators = state.range(1);
   state.SetLabel(absl::StrFormat("slice_size=%d, num_operators=%d", slice_size,
@@ -101,6 +103,7 @@ BENCHMARK(BM_Add)
 
 void BM_AggSum(benchmark::State& state) {
   arolla::InitArolla();
+  MockCancellationScope cancellation_scope(absl::Milliseconds(10));
   const int nrows = state.range(0);
   const int ncols = state.range(1);
   const int ndim = state.range(2);
@@ -147,6 +150,7 @@ BENCHMARK(BM_AggSum)
 
 void BM_Equal_Int32_Int64(benchmark::State& state) {
   arolla::InitArolla();
+  MockCancellationScope cancellation_scope(absl::Milliseconds(10));
   size_t slice_size = state.range(0);
   state.SetLabel(absl::StrFormat("slice_size=%d", slice_size));
 
@@ -197,6 +201,7 @@ BENCHMARK(BM_Equal_Int32_Int64)->Range(1, 1 << 20);
 template <typename X, typename Y>
 void BM_Coalesce(benchmark::State& state) {
   arolla::InitArolla();
+  MockCancellationScope cancellation_scope(absl::Milliseconds(10));
   size_t slice_size = state.range(0);
   state.SetLabel(absl::StrFormat("slice_size=%d", slice_size));
 
@@ -254,6 +259,7 @@ BENCHMARK(BM_Coalesce<int32_t, float>)->Range(1, 1 << 20);
 
 void BM_AddViaFunctor(benchmark::State& state) {
   arolla::InitArolla();
+  MockCancellationScope cancellation_scope(absl::Milliseconds(10));
   size_t slice_size = state.range(0);
   size_t num_operators = state.range(1);
   state.SetLabel(absl::StrFormat("slice_size=%d, num_operators=%d", slice_size,
@@ -284,11 +290,9 @@ void BM_AddViaFunctor(benchmark::State& state) {
           .value();
   auto functor = functor::CreateFunctor(expr_slice, std::nullopt, {}).value();
 
-  arolla::EvaluationOptions eval_options;
-
-  auto fn = [&functor, &eval_options](const auto& ds) {
+  auto fn = [&functor](const auto& ds) {
     return functor::CallFunctorWithCompilationCache(
-        functor, {arolla::TypedRef::FromValue(ds)}, {}, eval_options);
+        functor, {arolla::TypedRef::FromValue(ds)}, {});
   };
 
   {

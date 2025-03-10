@@ -737,6 +737,8 @@ absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
+namespace {
+
 // Converts `py_items_or_keys` and `py_values` into DataSlices `keys` and
 // `values` if present and if possible. On success, returns true. On failure,
 // sets Python error and returns false.
@@ -793,6 +795,8 @@ bool NormalizeDictKeysAndValues(PyObject* py_items_or_keys, PyObject* py_values,
   }
   return true;
 }
+
+}  // namespace
 
 absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
                                                 PyObject* const* args,

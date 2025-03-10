@@ -69,7 +69,6 @@
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"

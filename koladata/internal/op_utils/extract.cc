@@ -88,15 +88,13 @@ struct QueuedSlice {
 class CopyingProcessor {
  public:
   CopyingProcessor(
-      const arolla::EvaluationOptions& eval_options, const DataBagImpl& databag,
-      DataBagImpl::FallbackSpan fallbacks,
+      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
       absl::Nullable<const DataBagImpl*> schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks,
       const DataBagImplPtr& new_databag, bool is_shallow_clone = false,
       int max_depth = -1,
       const std::optional<LeafCallback>& leaf_callback = std::nullopt)
-      : ctx_(eval_options),
-        group_by_(),
+      : group_by_(),
         queued_slices_(),
         databag_(databag),
         fallbacks_(std::move(fallbacks)),
@@ -1050,10 +1048,10 @@ absl::Status ExtractOp::operator()(
                            .schema = schema,
                            .schema_source = schema_source,
                            .depth = -1};
-  auto processor = CopyingProcessor(
-      eval_options_, databag, std::move(fallbacks), schema_databag,
-      std::move(schema_fallbacks), DataBagImplPtr::NewRef(new_databag_), false,
-      max_depth, leaf_callback);
+  auto processor = CopyingProcessor(databag, std::move(fallbacks),
+                                    schema_databag, std::move(schema_fallbacks),
+                                    DataBagImplPtr::NewRef(new_databag_), false,
+                                    max_depth, leaf_callback);
   RETURN_IF_ERROR(processor.ExtractSlice(slice));
   return absl::OkStatus();
 }
@@ -1084,10 +1082,10 @@ absl::StatusOr<std::pair<DataSliceImpl, DataItem>> ShallowCloneOp::operator()(
   // API instead.
   ASSIGN_OR_RETURN(auto filtered_itemid,
                    ValidateCompatibilityAndFilterItemid(ds, itemid));
-  auto processor = CopyingProcessor(
-      eval_options_, databag, std::move(fallbacks), schema_databag,
-      std::move(schema_fallbacks), DataBagImplPtr::NewRef(new_databag_),
-      /*is_shallow_clone=*/true);
+  auto processor = CopyingProcessor(databag, std::move(fallbacks),
+                                    schema_databag, std::move(schema_fallbacks),
+                                    DataBagImplPtr::NewRef(new_databag_),
+                                    /*is_shallow_clone=*/true);
   RETURN_IF_ERROR(processor.SetMappingToInitialIds(filtered_itemid, ds));
   if (schema.holds_value<ObjectId>()) {
     RETURN_IF_ERROR(processor.SetMappingToInitialIds(schema, schema));
@@ -1110,7 +1108,7 @@ absl::StatusOr<std::pair<DataItem, DataItem>> ShallowCloneOp::operator()(
     const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
     absl::Nullable<const DataBagImpl*> schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks) const {
-  internal::ShallowCloneOp clone_op(eval_options_, new_databag_);
+  internal::ShallowCloneOp clone_op(new_databag_);
   ASSIGN_OR_RETURN((auto [result_slice_impl, result_schema_impl]),
                    clone_op(/*size=*/DataSliceImpl::Create(1, item),
                             DataSliceImpl::Create(/*size=*/1, itemid), schema,

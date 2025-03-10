@@ -21,7 +21,6 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
-#include "arolla/qexpr/eval_context.h"
 
 namespace koladata::functor {
 
@@ -35,14 +34,9 @@ namespace koladata::functor {
 //
 // `include_missing` controls whether to call the functors on missing items of
 // `args` and `kwargs`.
-//
-// `eval_options` parameter provides a default buffer factory (typically either
-// the default allocator or an arena allocator) and a cancellation context,
-// which allows the computation to be interrupted midway if needed.
 absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
     const DataSlice& functors, std::vector<DataSlice> args,
-    absl::Span<const std::string> kwnames, bool include_missing,
-    const arolla::EvaluationOptions& eval_options);
+    absl::Span<const std::string> kwnames, bool include_missing);
 
 }  // namespace koladata::functor
 

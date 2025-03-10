@@ -32,7 +32,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/operators/slices.h"
 #include "koladata/shape_utils.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/repr.h"
@@ -42,8 +41,7 @@ namespace koladata::functor {
 
 absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
     const DataSlice& functors, std::vector<DataSlice> args,
-    absl::Span<const std::string> kwnames, bool include_missing,
-    const arolla::EvaluationOptions& eval_options) {
+    absl::Span<const std::string> kwnames, bool include_missing) {
   args.push_back(functors);
   ASSIGN_OR_RETURN(auto aligned_args, shape::Align(std::move(args)));
   DataSlice aligned_functors = std::move(aligned_args.back());
@@ -56,9 +54,9 @@ absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
                    DataSlice::Create(internal::DataItem(std::nullopt),
                                      internal::DataItem(schema::kNone)));
 
-  auto call_on_items = [&kwnames, &missing, &arg_refs, &include_missing,
-                        &eval_options](const DataSlice& functor,
-                                       const std::vector<DataSlice>& arg_slices)
+  auto call_on_items = [&kwnames, &missing, &arg_refs, &include_missing](
+                           const DataSlice& functor,
+                           const std::vector<DataSlice>& arg_slices)
       -> absl::StatusOr<DataSlice> {
     if (!functor.item().has_value()) {
       return missing;
@@ -74,9 +72,8 @@ absl::StatusOr<DataSlice> MapFunctorWithCompilationCache(
     // We can improve the performance a lot if "functor" is the same for many
     // items, as a lot of the work inside CallFunctorWithCompilationCache could
     // be reused between items then.
-    ASSIGN_OR_RETURN(auto result,
-                     CallFunctorWithCompilationCache(functor, arg_refs, kwnames,
-                                                     eval_options));
+    ASSIGN_OR_RETURN(auto result, CallFunctorWithCompilationCache(
+                                      functor, arg_refs, kwnames));
     if (result.GetType() != arolla::GetQType<DataSlice>()) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "the functor is expected to be evaluated to a DataItem"

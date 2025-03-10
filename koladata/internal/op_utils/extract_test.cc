@@ -40,7 +40,6 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 
@@ -257,9 +256,8 @@ TEST_P(ShallowCloneTest, ShallowEntitySlice) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          obj_ids, itemid, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}));
+      ShallowCloneOp(result_db.get())(obj_ids, itemid, schema, *GetMainDb(db),
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   ASSERT_EQ(result_schema, schema);
@@ -309,9 +307,8 @@ TEST_P(ShallowCloneTest, DeepEntitySlice) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          ds, itemid, schema_a, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}));
+      ShallowCloneOp(result_db.get())(ds, itemid, schema_a, *GetMainDb(db),
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, schema_a);
@@ -350,11 +347,10 @@ TEST_P(ShallowCloneTest, ShallowListsSlice) {
   auto itemid = AllocateEmptyLists(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK_AND_ASSIGN(
-      (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          lists, itemid, list_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}));
+  ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
+                       ShallowCloneOp(result_db.get())(
+                           lists, itemid, list_schema, *GetMainDb(db),
+                           {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, list_schema);
@@ -398,11 +394,10 @@ TEST_P(ShallowCloneTest, DeepListsSlice) {
   auto itemid = AllocateEmptyLists(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK_AND_ASSIGN(
-      (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          lists, itemid, list_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}));
+  ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
+                       ShallowCloneOp(result_db.get())(
+                           lists, itemid, list_schema, *GetMainDb(db),
+                           {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, list_schema);
@@ -442,11 +437,10 @@ TEST_P(ShallowCloneTest, ShallowDictsSlice) {
   auto itemid = AllocateEmptyDicts(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK_AND_ASSIGN(
-      (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          dicts, itemid, dict_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}));
+  ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
+                       ShallowCloneOp(result_db.get())(
+                           dicts, itemid, dict_schema, *GetMainDb(db),
+                           {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, dict_schema);
@@ -507,11 +501,10 @@ TEST_P(ShallowCloneTest, DeepDictsSlice) {
   auto itemid = AllocateEmptyDicts(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK_AND_ASSIGN(
-      (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          dicts, itemid, dict_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}));
+  ASSERT_OK_AND_ASSIGN((auto [result_slice, result_schema]),
+                       ShallowCloneOp(result_db.get())(
+                           dicts, itemid, dict_schema, *GetMainDb(db),
+                           {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_EQ(result_slice.size(), 3);
   EXPECT_EQ(result_schema, dict_schema);
@@ -596,9 +589,9 @@ TEST_P(ShallowCloneTest, ObjectsSlice) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          ds, itemid, DataItem(schema::kObject), *GetMainDb(db),
-          {GetFallbackDb(db).get()}, nullptr, {}));
+      ShallowCloneOp(result_db.get())(ds, itemid, DataItem(schema::kObject),
+                                      *GetMainDb(db), {GetFallbackDb(db).get()},
+                                      nullptr, {}));
 
   auto result_a0 = result_slice[0];
   auto result_a1 = result_slice[1];
@@ -682,7 +675,7 @@ TEST_P(ShallowCloneTest, MixedObjectsAndSchemasSlice) {
       {a0, a1, a2, DataItem(), DataItem(3), DataItem("a"), s0, s1}));
   auto itemid = internal::NewIdsLike(ds);
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
+  EXPECT_THAT(ShallowCloneOp(result_db.get())(
                   ds, itemid, DataItem(schema::kObject), *GetMainDb(db),
                   {GetFallbackDb(db).get()}, nullptr, {}),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -735,9 +728,9 @@ TEST_P(ShallowCloneTest, ObjectsWithImplicitAndExplicitSchemas) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          obj_ids, itemid, DataItem(schema::kObject), *GetMainDb(db),
-          {GetFallbackDb(db).get()}, nullptr, {}));
+      ShallowCloneOp(result_db.get())(obj_ids, itemid,
+                                      DataItem(schema::kObject), *GetMainDb(db),
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
   EXPECT_EQ(result_slice.size(), obj_ids.size());
   auto result_a0 = result_slice[0];
   auto result_a1 = result_slice[1];
@@ -797,9 +790,9 @@ TEST_P(ShallowCloneTest, SchemaSlice) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          ds, itemid, DataItem(schema::kSchema), *GetMainDb(db),
-          {GetFallbackDb(db).get()}, nullptr, {}));
+      ShallowCloneOp(result_db.get())(ds, itemid, DataItem(schema::kSchema),
+                                      *GetMainDb(db), {GetFallbackDb(db).get()},
+                                      nullptr, {}));
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_NE(result_db.get(), db.get());
@@ -835,9 +828,9 @@ TEST_P(ShallowCloneTest, NamedSchemaSlice) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          ds, itemid, DataItem(schema::kSchema), *GetMainDb(db),
-          {GetFallbackDb(db).get()}, nullptr, {}));
+      ShallowCloneOp(result_db.get())(ds, itemid, DataItem(schema::kSchema),
+                                      *GetMainDb(db), {GetFallbackDb(db).get()},
+                                      nullptr, {}));
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_NE(result_db.get(), db.get());
@@ -871,9 +864,9 @@ TEST_P(ShallowCloneTest, SchemaUuidSlice) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
       (auto [result_slice, result_schema]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          ds, itemid, DataItem(schema::kSchema), *GetMainDb(db),
-          {GetFallbackDb(db).get()}, nullptr, {}));
+      ShallowCloneOp(result_db.get())(ds, itemid, DataItem(schema::kSchema),
+                                      *GetMainDb(db), {GetFallbackDb(db).get()},
+                                      nullptr, {}));
 
   auto result_s1 = result_slice[0];
   auto result_s2 = result_slice[1];
@@ -916,9 +909,8 @@ TEST_P(ShallowCloneTest, MissingInItemid) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          obj_ids, itemid, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}),
+      ShallowCloneOp(result_db.get())(obj_ids, itemid, schema, *GetMainDb(db),
+                                      {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           ::testing::HasSubstr(
@@ -948,9 +940,8 @@ TEST_P(ShallowCloneTest, ExtraInItemid) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          ds, itemid, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}),
+      ShallowCloneOp(result_db.get())(ds, itemid, schema, *GetMainDb(db),
+                                      {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                ::testing::HasSubstr("itemid must be of the same type as "
                                     "respective ObjectId from ds")));
@@ -986,9 +977,9 @@ TEST_P(ShallowCloneTest, IntersectingItemidWithDsPrimitives) {
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
       (auto [result, _]),
-      ShallowCloneOp(arolla::EvaluationOptions{}, result_db.get())(
-          ds, itemid, DataItem(schema::kObject), *GetMainDb(db),
-          {GetFallbackDb(db).get()}, nullptr, {}));
+      ShallowCloneOp(result_db.get())(ds, itemid, DataItem(schema::kObject),
+                                      *GetMainDb(db), {GetFallbackDb(db).get()},
+                                      nullptr, {}));
   EXPECT_EQ(result[0], itemid[0]);
   EXPECT_EQ(result[1], DataItem(3));
   EXPECT_EQ(result[2], itemid[2]);
@@ -1018,8 +1009,8 @@ TEST_P(ExtractTest, DataSliceEntity) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1070,9 +1061,9 @@ TEST_P(ExtractTest, DataSliceEntityRemovedValues) {
     SetDataTriples(*expected_db, data_triples_expected);
 
     auto result_db = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-        obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-        {}));
+    ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr,
+                                         {}));
 
     ASSERT_NE(result_db.get(), db.get());
     {
@@ -1108,9 +1099,9 @@ TEST_P(ExtractTest, DataSliceEntityAllUnset) {
     SetDataTriples(*expected_db, data_triples);
 
     auto result_db = DataBagImpl::CreateEmptyDatabag();
-    ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-        obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-        {}));
+    ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr,
+                                         {}));
 
     ASSERT_NE(result_db.get(), db.get());
     {
@@ -1195,9 +1186,9 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
     SetListValues(expected_db, list_b, list_b_values);
     {  // default max_depth, i.e. -1
       DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
-      ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-          root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}));
+      ASSERT_OK(ExtractOp(result_db.get())(root_ds, obj_dtype, *GetMainDb(db),
+                                           {GetFallbackDb(db).get()}, nullptr,
+                                           {}));
 
       ASSERT_NE(result_db.get(), db.get());
       EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1206,7 +1197,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
       DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
       LeafCollector leaf_collector;
 
-      ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+      ASSERT_OK(ExtractOp(result_db.get())(
           root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
           nullptr, {}, /*max_depth=*/2, leaf_collector.GetCallback()));
 
@@ -1227,7 +1218,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
 
-    ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+    ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
         {}, /*max_depth=*/1, leaf_collector.GetCallback()));
 
@@ -1245,7 +1236,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
 
-    ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+    ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
         {}, /*max_depth=*/0, leaf_collector.GetCallback()));
 
@@ -1334,9 +1325,9 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
     SetListValues(expected_db, list_b, list_b_values);
     {  // default max_depth, i.e. -1
       DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
-      ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-          root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}));
+      ASSERT_OK(ExtractOp(result_db.get())(root_ds, obj_dtype, *GetMainDb(db),
+                                           {GetFallbackDb(db).get()}, nullptr,
+                                           {}));
 
       ASSERT_NE(result_db.get(), db.get());
       EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1345,7 +1336,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
       DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
       LeafCollector leaf_collector;
 
-      ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+      ASSERT_OK(ExtractOp(result_db.get())(
           root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
           nullptr, {}, /*max_depth=*/2, leaf_collector.GetCallback()));
 
@@ -1366,7 +1357,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
 
-    ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+    ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
         {}, /*max_depth=*/1, leaf_collector.GetCallback()));
 
@@ -1384,7 +1375,7 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
 
-    ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+    ASSERT_OK(ExtractOp(result_db.get())(
         root_ds, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
         {}, /*max_depth=*/0, leaf_collector.GetCallback()));
 
@@ -1506,9 +1497,9 @@ TEST_P(ExtractTest, MaxDepth) {
     {  // default max_depth, i.e. -1
       DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
 
-      ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-          root_obj, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
-          nullptr, {}));
+      ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
+                                           {GetFallbackDb(db).get()}, nullptr,
+                                           {}));
 
       ASSERT_NE(result_db.get(), db.get());
       EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1517,7 +1508,7 @@ TEST_P(ExtractTest, MaxDepth) {
       DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
       LeafCollector leaf_collector;
 
-      ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+      ASSERT_OK(ExtractOp(result_db.get())(
           root_obj, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
           nullptr, {}, /*max_depth=*/3, leaf_collector.GetCallback()));
 
@@ -1540,10 +1531,10 @@ TEST_P(ExtractTest, MaxDepth) {
     SetListValues(expected_db, list_of_lists_level1, lists_level2);
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
-    ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-        root_obj, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-        {},
-        /*max_depth=*/2, leaf_collector.GetCallback()));
+    ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/2,
+                                         leaf_collector.GetCallback()));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1560,10 +1551,10 @@ TEST_P(ExtractTest, MaxDepth) {
     SetDataTriples(*expected_db, data_triples_level1);
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
-    ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-        root_obj, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-        {},
-        /*max_depth=*/1, leaf_collector.GetCallback()));
+    ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/1,
+                                         leaf_collector.GetCallback()));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1578,10 +1569,10 @@ TEST_P(ExtractTest, MaxDepth) {
     SetDataTriples(*expected_db, data_triples_level0);
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
-    ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-        root_obj, obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-        {},
-        /*max_depth=*/0, leaf_collector.GetCallback()));
+    ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/0,
+                                         leaf_collector.GetCallback()));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1611,8 +1602,8 @@ TEST_P(ExtractTest, DataSliceObjectIds) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1647,9 +1638,8 @@ TEST_P(ExtractTest, DataSliceObjectSchema) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      DataItem(a0), obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
-      nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(DataItem(a0), obj_dtype, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1676,9 +1666,8 @@ TEST_P(ExtractTest, DataSliceListsPrimitives) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      lists, list_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(lists, list_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1724,9 +1713,8 @@ TEST_P(ExtractTest, DataSliceListsObjectIds) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      lists, list_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(lists, list_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1776,9 +1764,8 @@ TEST_P(ExtractTest, DataSliceListsObjectIdsObjectSchema) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      lists, list_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(lists, list_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1808,9 +1795,8 @@ TEST_P(ExtractTest, DataSliceDictsPrimitives) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      dicts, dict_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1863,9 +1849,8 @@ TEST_P(ExtractTest, DataSliceDictsObjectIds) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      dicts, dict_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1923,9 +1908,8 @@ TEST_P(ExtractTest, DataSliceDictsObjectIdsObjectSchema) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      dicts, dict_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1967,9 +1951,8 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      dicts[0], dict_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(dicts[0], dict_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1991,9 +1974,8 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema_NoData) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      DataItem(), dict_schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-      nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2017,9 +1999,8 @@ TEST_P(ExtractTest, DataSliceLists_LoopSchema) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      lists[0], list_schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(lists[0], list_schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2033,12 +2014,12 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_MissingKeys) {
        {{schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_triples);
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-                  DataItem(), dict_schema, *GetMainDb(db),
-                  {GetFallbackDb(db).get()}, nullptr, {}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       ::testing::AllOf(
-                           ::testing::HasSubstr("dict schema"),
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::AllOf(::testing::HasSubstr("dict schema"),
                            ::testing::HasSubstr("has unexpected attributes"))));
 }
 
@@ -2052,12 +2033,12 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_MissingValues) {
   SetDataTriples(*db, GenNoiseDataTriples());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-                  DataItem(), dict_schema, *GetMainDb(db),
-                  {GetFallbackDb(db).get()}, nullptr, {}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       ::testing::AllOf(
-                           ::testing::HasSubstr("dict schema"),
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::AllOf(::testing::HasSubstr("dict schema"),
                            ::testing::HasSubstr("has unexpected attributes"))));
 }
 
@@ -2072,12 +2053,12 @@ TEST_P(ExtractTest, DataSliceLists_InvalidSchema) {
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
   SetDataTriples(*db, GenNoiseDataTriples());
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-                  DataItem(), list_schema, *GetMainDb(db),
-                  {GetFallbackDb(db).get()}, nullptr, {}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       ::testing::AllOf(
-                           ::testing::HasSubstr("list schema"),
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(DataItem(), list_schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::AllOf(::testing::HasSubstr("list schema"),
                            ::testing::HasSubstr("has unexpected attributes"))));
 }
 
@@ -2090,12 +2071,12 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_UnexpectedAttr) {
         {"x", DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_triples);
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-                  DataItem(), dict_schema, *GetMainDb(db),
-                  {GetFallbackDb(db).get()}, nullptr, {}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       ::testing::AllOf(
-                           ::testing::HasSubstr("dict schema"),
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::AllOf(::testing::HasSubstr("dict schema"),
                            ::testing::HasSubstr("has unexpected attributes"))));
 
   TriplesT schema_add_triples = {
@@ -2103,12 +2084,12 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_UnexpectedAttr) {
        {{schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_add_triples);
 
-  EXPECT_THAT(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-                  DataItem(), dict_schema, *GetMainDb(db),
-                  {GetFallbackDb(db).get()}, nullptr, {}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       ::testing::AllOf(
-                           ::testing::HasSubstr("dict schema"),
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(DataItem(), dict_schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          ::testing::AllOf(::testing::HasSubstr("dict schema"),
                            ::testing::HasSubstr("has unexpected attributes"))));
 }
 
@@ -2130,9 +2111,8 @@ TEST_P(ExtractTest, ExtractSchemaForEmptySlice) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      obj_ids, schema1, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema1, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2160,8 +2140,8 @@ TEST_P(ExtractTest, RecursiveSchema) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2196,8 +2176,8 @@ TEST_P(ExtractTest, MixedObjectsSlice) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2233,8 +2213,8 @@ TEST_P(ExtractTest, PartialSchema) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      a1, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(a1, schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2278,7 +2258,7 @@ TEST_P(ExtractTest, PartialSchemaWithDifferentDataBag) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+  ASSERT_OK(ExtractOp(result_db.get())(
       a1, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
       &*GetMainDb(schema_db),
       DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})));
@@ -2328,7 +2308,7 @@ TEST_P(ExtractTest, ExtendedSchemaWithDifferentDataBag) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+  ASSERT_OK(ExtractOp(result_db.get())(
       obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
       &*GetMainDb(schema_db),
       DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})));
@@ -2382,7 +2362,7 @@ TEST_P(ExtractTest, NonReducingSchemaWithDifferentDataBag) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+  ASSERT_OK(ExtractOp(result_db.get())(
       obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
       &*GetMainDb(schema_db),
       DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})));
@@ -2422,9 +2402,8 @@ TEST_P(ExtractTest, DifferentSchemasInOneAllocation) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      obj_ids, object_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr,
-      {}));
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, object_dtype, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2465,7 +2444,7 @@ TEST_P(ExtractTest, MergeSchemaFromTwoDatabags) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+  ASSERT_OK(ExtractOp(result_db.get())(
       a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
       &*GetMainDb(schema_db),
       DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})));
@@ -2501,7 +2480,7 @@ TEST_P(ExtractTest, ConflictingSchemasInTwoDatabags) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
-      ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+      ExtractOp(result_db.get())(
           a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
           &*GetMainDb(schema_db),
           DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})),
@@ -2545,7 +2524,7 @@ TEST_P(ExtractTest, ConflictingSchemaNamesInTwoDatabags) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
-      ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+      ExtractOp(result_db.get())(
           a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
           &*GetMainDb(schema_db),
           DataBagImpl::FallbackSpan({GetFallbackDb(schema_db).get()})),
@@ -2593,8 +2572,8 @@ TEST_P(ExtractTest, NoFollowEntitySchema) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      a1, schema1, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(a1, schema1, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2636,9 +2615,8 @@ TEST_P(ExtractTest, NoFollowObjectSchema) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      DataItem(a0), obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()},
-      nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(DataItem(a0), obj_dtype, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   EXPECT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2668,7 +2646,7 @@ TEST_P(ExtractTest, SchemaAsData) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
-      ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+      ExtractOp(result_db.get())(
           DataSliceImpl::Create(CreateDenseArray<DataItem>({a0, a1, schema})),
           obj_dtype, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -2694,9 +2672,9 @@ TEST_P(ExtractTest, SchemaSlice) {
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      ds, DataItem(schema::kSchema), *GetMainDb(db), {GetFallbackDb(db).get()},
-      nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2726,9 +2704,9 @@ TEST_P(ExtractTest, NamedSchemaSlice) {
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2, s3}));
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      ds, DataItem(schema::kSchema), *GetMainDb(db), {GetFallbackDb(db).get()},
-      nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kSchema),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2755,7 +2733,7 @@ TEST_P(ExtractTest, NamedSchemaWithDatabag) {
   SetSchemaTriples(*expected_db, schema_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
+  ASSERT_OK(ExtractOp(result_db.get())(
       DataItem(), s1, *GetMainDb(db), {GetFallbackDb(db).get()},
       &*GetMainDb(schema_db), {GetFallbackDb(schema_db).get()}));
 
@@ -2792,9 +2770,9 @@ TEST_P(ExtractTest, NamedSchemaObjects) {
   SetDataTriples(*expected_db, data_triples);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      a1, DataItem(schema::kObject), *GetMainDb(db), {GetFallbackDb(db).get()},
-      nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(a1, DataItem(schema::kObject),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2814,9 +2792,9 @@ TEST_P(ExtractTest, ObjectSchemaMissing) {
   SetDataTriples(*db, GenNoiseDataTriples());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      obj_ids, DataItem(schema::kObject), *GetMainDb(db),
-      {GetFallbackDb(db).get()}, nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, DataItem(schema::kObject),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2833,9 +2811,9 @@ TEST_P(ExtractTest, ObjectSchemaAllMissing) {
   SetDataTriples(*db, GenNoiseDataTriples());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  ASSERT_OK(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-      obj_ids, DataItem(schema::kObject), *GetMainDb(db),
-      {GetFallbackDb(db).get()}, nullptr, {}));
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, DataItem(schema::kObject),
+                                       *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -2847,10 +2825,10 @@ TEST_P(ExtractTest, InvalidSchemaType) {
   auto schema = DataItem(1);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
-  EXPECT_THAT(ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-                  obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
-                  nullptr, {}),
-              StatusIs(absl::StatusCode::kInternal, "unsupported schema type"));
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(absl::StatusCode::kInternal, "unsupported schema type"));
 }
 
 TEST_P(ExtractTest, InvalidPrimitiveType) {
@@ -2866,8 +2844,8 @@ TEST_P(ExtractTest, InvalidPrimitiveType) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
-      ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-          a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}),
+      ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "during extract/clone, got a slice with primitive type INT32 "
                "while the actual content has type STRING"));
@@ -2887,8 +2865,8 @@ TEST_P(ExtractTest, InvalidPrimitiveTypeObject) {
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
-      ExtractOp(arolla::EvaluationOptions{}, result_db.get())(
-          a0, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, nullptr, {}),
+      ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "during extract/clone, got a slice with primitive type INT32 "
                "while the actual content is mixed or not a primitive"));

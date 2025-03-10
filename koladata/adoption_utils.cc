@@ -51,7 +51,7 @@ absl::Status AdoptionQueue::AdoptInto(DataBag& db) const {
       continue;
     }
     ASSIGN_OR_RETURN(DataSlice extracted_slice,
-                     extract_utils_internal::Extract(eval_options_, slice));
+                     extract_utils_internal::Extract(slice));
     const auto& extracted_db = extracted_slice.GetBag();
     if (extracted_db == nullptr) {
       continue;

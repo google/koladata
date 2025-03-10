@@ -35,7 +35,6 @@
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/util/testing/gmock_cancellation_context.h"
 #include "arolla/util/unit.h"
@@ -78,7 +77,7 @@ void RunBenchmarks(benchmark::State& state, DataSliceImpl& ds, DataItem& schema,
     benchmark::DoNotOptimize(databag);
     benchmark::DoNotOptimize(fallbacks);
     auto result_db = DataBagImpl::CreateEmptyDatabag();
-    ExtractOp({}, result_db.get())(ds, schema, *databag, fallbacks, nullptr, {})
+    ExtractOp(result_db.get())(ds, schema, *databag, fallbacks, nullptr, {})
         .IgnoreError();
     benchmark::DoNotOptimize(result_db);
   }

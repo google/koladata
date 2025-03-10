@@ -118,7 +118,7 @@ TEST(CallTest, VariableRhombus) {
       CallFunctorWithCompilationCache(
           fn,
           /*args=*/{inputs[0].AsRef(), inputs[1].AsRef(), inputs[2].AsRef()},
-          /*kwnames=*/{}, /*eval_options=*/{}));
+          /*kwnames=*/{}));
   EXPECT_THAT(result.As<int32_t>(), IsOkAndHolds(2 * ((3 + 5) + (3 + 4))));
 
   ASSERT_OK_AND_ASSIGN(
@@ -126,8 +126,7 @@ TEST(CallTest, VariableRhombus) {
       CallFunctorWithCompilationCache(
           fn,
           /*args=*/{inputs[0].AsRef(), inputs[1].AsRef(), inputs[2].AsRef()},
-          /*kwnames=*/{"c", "b"},
-          /*eval_options=*/{}));
+          /*kwnames=*/{"c", "b"}));
   EXPECT_THAT(result.As<int32_t>(), IsOkAndHolds(2 * ((4 + 5) + (4 + 3))));
 }
 
@@ -141,8 +140,7 @@ TEST(CallTest, VariableCycle) {
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature,
                                      {{"a", var_a_expr}, {"b", var_b_expr}}));
-  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{},
-                                              /*eval_options=*/{}),
+  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "variable [a] has a dependency cycle"));
 }
@@ -154,9 +152,8 @@ TEST(CallTest, JustLiteral) {
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}));
-  ASSERT_OK_AND_ASSIGN(
-      auto result, CallFunctorWithCompilationCache(
-                       fn, /*args=*/{}, /*kwnames=*/{}, /*eval_options=*/{}));
+  ASSERT_OK_AND_ASSIGN(auto result, CallFunctorWithCompilationCache(
+                                        fn, /*args=*/{}, /*kwnames=*/{}));
   EXPECT_THAT(result.As<int32_t>(), IsOkAndHolds(57));
 }
 
@@ -168,8 +165,7 @@ TEST(CallTest, MustBeScalar) {
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}));
   ASSERT_OK_AND_ASSIGN(fn, fn.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
-  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{},
-                                              /*eval_options=*/{}),
+  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the first argument of kd.call must be a functor"));
 }
@@ -181,11 +177,10 @@ TEST(CallTest, NoBag) {
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}));
-  EXPECT_THAT(
-      CallFunctorWithCompilationCache(fn.WithBag(nullptr), /*args=*/{},
-                                      /*kwnames=*/{}, /*eval_options=*/{}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "the first argument of kd.call must be a functor"));
+  EXPECT_THAT(CallFunctorWithCompilationCache(fn.WithBag(nullptr), /*args=*/{},
+                                              /*kwnames=*/{}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "the first argument of kd.call must be a functor"));
 }
 
 TEST(CallTest, DataSliceVariable) {
@@ -196,9 +191,9 @@ TEST(CallTest, DataSliceVariable) {
   auto var_a = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(
       auto fn, CreateFunctor(returns_expr, koda_signature, {{"a", var_a}}));
-  ASSERT_OK_AND_ASSIGN(auto result, CallFunctorWithCompilationCache(
-                                        fn, /*args=*/{},
-                                        /*kwnames=*/{}, /*eval_options=*/{}));
+  ASSERT_OK_AND_ASSIGN(auto result,
+                       CallFunctorWithCompilationCache(fn, /*args=*/{},
+                                                       /*kwnames=*/{}));
   EXPECT_THAT(result.As<DataSlice>(),
               IsOkAndHolds(IsEquivalentTo(var_a.WithBag(fn.GetBag()))));
 }
@@ -227,7 +222,7 @@ TEST(CallTest, EvalError) {
       CallFunctorWithCompilationCache(
           fn,
           /*args=*/{arolla::TypedRef::FromValue(input)},
-          /*kwnames=*/{}, /*eval_options=*/{}),
+          /*kwnames=*/{}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "expected numerics, got x: DATA_SLICE; while calling math.add "
                "with args {annotation.qtype(L['I.a'], DATA_SLICE), 57}; while "
@@ -260,7 +255,7 @@ TEST(CallTest, Cancellation) {
         CallFunctorWithCompilationCache(  // Pre-compile to avoid cancellation
             fn,                           // during compilation.
             /*args=*/{arolla::TypedRef::FromValue(1)},
-            /*kwnames=*/{}, /*eval_options=*/{})
+            /*kwnames=*/{})
             .status());
     {
       MockCancellationScope cancellation_scope;
@@ -268,7 +263,7 @@ TEST(CallTest, Cancellation) {
           .WillOnce(Return(absl::CancelledError("")));
       EXPECT_THAT(CallFunctorWithCompilationCache(
                       fn, /*args=*/{arolla::TypedRef::FromValue(1)},
-                      /*kwnames=*/{}, /*eval_options=*/{}),
+                      /*kwnames=*/{}),
                   StatusIs(absl::StatusCode::kCancelled));
     }
   }
@@ -281,7 +276,7 @@ TEST(CallTest, Cancellation) {
         CallFunctorWithCompilationCache(  // Pre-compile to avoid cancellation
             fn,                           // during compilation.
             /*args=*/{arolla::TypedRef::FromValue(1)},
-            /*kwnames=*/{}, /*eval_options=*/{})
+            /*kwnames=*/{})
             .status());
     {
       MockCancellationScope cancellation_scope;
@@ -289,7 +284,7 @@ TEST(CallTest, Cancellation) {
       ASSERT_OK_AND_ASSIGN(auto result,
                            CallFunctorWithCompilationCache(
                                fn, /*args=*/{arolla::TypedRef::FromValue(1)},
-                               /*kwnames=*/{}, /*eval_options=*/{}));
+                               /*kwnames=*/{}));
       EXPECT_THAT(result.As<int>(), IsOkAndHolds(3));
     }
   }

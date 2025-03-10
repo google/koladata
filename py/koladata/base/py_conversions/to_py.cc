@@ -441,7 +441,7 @@ absl::Nullable<PyObject*> ToPyImpl(const DataSlice& ds, DataBagPtr bag,
     ASSIGN_OR_RETURN(
         const DataSlice extracted_ds,
         koladata::extract_utils_internal::ExtractWithSchema(
-            {}, ds, ds.GetSchema(), max_depth, std::move(leaf_callback)),
+            ds, ds.GetSchema(), max_depth, std::move(leaf_callback)),
         arolla::python::SetPyErrFromStatus(_));
     return ToPyImplInternal(extracted_ds, ds.GetBag(), obj_as_dict,
                             include_missing_attrs, objects_not_to_convert);

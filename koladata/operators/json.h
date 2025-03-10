@@ -26,13 +26,11 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/non_deterministic_token.h"
-#include "arolla/qexpr/eval_context.h"
 
 namespace koladata::ops {
 
 // kde.json.from_json
-absl::StatusOr<DataSlice> FromJson(arolla::EvaluationContext* ctx, DataSlice x,
-                                   DataSlice schema,
+absl::StatusOr<DataSlice> FromJson(DataSlice x, DataSlice schema,
                                    DataSlice default_number_schema,
                                    DataSlice on_invalid, DataSlice keys_attr,
                                    DataSlice values_attr,

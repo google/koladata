@@ -74,11 +74,10 @@ class CallOperator : public arolla::QExprOperator {
                 arolla::TypedRef::FromSlot(kwargs_slot.SubSlot(i), frame));
           }
           auto kwnames = arolla::GetFieldNames(kwargs_slot.GetType());
-          ASSIGN_OR_RETURN(
-              auto result,
-              functor::CallFunctorWithCompilationCache(fn_data_slice, arg_refs,
-                                                       kwnames, ctx->options()),
-              ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(auto result,
+                           functor::CallFunctorWithCompilationCache(
+                               fn_data_slice, arg_refs, kwnames),
+                           ctx->set_status(std::move(_)));
           if (result.GetType() != output_slot.GetType()) {
             ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
                 "the functor was called with `%s` as the output type, but the"
@@ -127,7 +126,7 @@ absl::StatusOr<DataSlice> MaybeCall(arolla::EvaluationContext* ctx,
     ASSIGN_OR_RETURN(auto result,
                      functor::CallFunctorWithCompilationCache(
                          maybe_fn, /*args=*/{arolla::TypedRef::FromValue(arg)},
-                         /*kwargs=*/{}, /*eval_options=*/ctx->options()));
+                         /*kwargs=*/{}));
     if (result.GetType() != arolla::GetQType<DataSlice>()) {
       return absl::InternalError(absl::StrFormat(
           "the functor is expected to be evaluated to a DataSlice"

@@ -20,7 +20,6 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/non_deterministic_token.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
@@ -61,8 +60,7 @@ class UpdatedOperatorFamily final : public EnrichedOrUpdatedOperatorFamily {
 };
 
 // kd.core._extract
-absl::StatusOr<DataSlice> Extract(arolla::EvaluationContext* ctx,
-                                  const DataSlice& ds, const DataSlice& schema);
+absl::StatusOr<DataSlice> Extract(const DataSlice& ds, const DataSlice& schema);
 
 // kd.core._get_attr.
 absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
@@ -92,8 +90,7 @@ class AttrsOperatorFamily final : public arolla::OperatorFamily {
 };
 
 // kd.core.attr.
-absl::StatusOr<DataBagPtr> Attr(arolla::EvaluationContext* ctx,
-                                const DataSlice& x, const DataSlice& attr_name,
+absl::StatusOr<DataBagPtr> Attr(const DataSlice& x, const DataSlice& attr_name,
                                 const DataSlice& value,
                                 const DataSlice& overwrite_schema);
 
@@ -105,8 +102,7 @@ class WithAttrsOperatorFamily final : public arolla::OperatorFamily {
 };
 
 // kd.core.with_attr.
-absl::StatusOr<DataSlice> WithAttr(arolla::EvaluationContext* ctx,
-                                   const DataSlice& x,
+absl::StatusOr<DataSlice> WithAttr(const DataSlice& x,
                                    const DataSlice& attr_name,
                                    const DataSlice& value,
                                    const DataSlice& overwrite_schema);
@@ -136,21 +132,18 @@ absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
                                      internal::NonDeterministicToken);
 
 // kd.core._clone.
-absl::StatusOr<DataSlice> Clone(arolla::EvaluationContext* ctx,
-                                const DataSlice& ds, const DataSlice& itemid,
+absl::StatusOr<DataSlice> Clone(const DataSlice& ds, const DataSlice& itemid,
                                 const DataSlice& schema,
                                 internal::NonDeterministicToken);
 
 // kd.core._shallow_clone
-absl::StatusOr<DataSlice> ShallowClone(arolla::EvaluationContext* ctx,
-                                       const DataSlice& obj,
+absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
                                        const DataSlice& itemid,
                                        const DataSlice& schema,
                                        internal::NonDeterministicToken = {});
 
 // kd.core._deep_clone
-absl::StatusOr<DataSlice> DeepClone(arolla::EvaluationContext* ctx,
-                                    const DataSlice& ds,
+absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
                                     const DataSlice& schema,
                                     internal::NonDeterministicToken = {});
 

@@ -34,7 +34,6 @@
 #include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
 #include "arolla/expr/quote.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"
@@ -108,8 +107,7 @@ absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
 
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::string> kwnames,
-    const arolla::EvaluationOptions& eval_options) {
+    absl::Span<const std::string> kwnames) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
   if (!is_functor) {
     return absl::InvalidArgumentError(
@@ -144,9 +142,8 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
       // This passes all variables computed so far, even those not used, and
       // EvalExprWithCompilationCache will traverse all provided variables,
       // so this is O(num_variables**2). We can optimize this later if needed.
-      ASSIGN_OR_RETURN(auto variable_value,
-                       expr::EvalExprWithCompilationCache(
-                           expr, inputs, variables, eval_options));
+      ASSIGN_OR_RETURN(auto variable_value, expr::EvalExprWithCompilationCache(
+                                                expr, inputs, variables));
       computed_variable_holder.push_back(std::move(variable_value));
     } else {
       computed_variable_holder.push_back(

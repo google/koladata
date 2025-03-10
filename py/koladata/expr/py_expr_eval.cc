@@ -113,8 +113,8 @@ absl::Nullable<PyObject*> PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
     // otherwise we can get a deadlock between GIL and the C++ locks
     // that are used by the Expr compilation cache.
     ReleasePyGIL guard;
-    result_or_error = koladata::expr::EvalExprWithCompilationCache(
-        expr, input_qvalues, {}, {});
+    result_or_error =
+        koladata::expr::EvalExprWithCompilationCache(expr, input_qvalues, {});
   }
   ASSIGN_OR_RETURN(auto result, std::move(result_or_error),
                    SetPyErrFromStatus(_));

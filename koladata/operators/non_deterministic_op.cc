@@ -22,7 +22,6 @@
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/qtype.h"

@@ -133,14 +133,13 @@ class NamedSchemaOperator : public arolla::QExprOperator {
   }
 };
 
-absl::StatusOr<DataSlice> WithAdoptedSchema(
-    const arolla::EvaluationOptions& eval_options, const DataSlice& x,
-    const DataSlice& schema) {
+absl::StatusOr<DataSlice> WithAdoptedSchema(const DataSlice& x,
+                                            const DataSlice& schema) {
   DataBagPtr schema_bag = nullptr;
   if (schema.IsStructSchema() && schema.GetBag() != nullptr &&
       schema.GetBag() != x.GetBag()) {
     schema_bag = DataBag::Empty();
-    AdoptionQueue adoption_queue(eval_options);
+    AdoptionQueue adoption_queue;
     adoption_queue.Add(schema);
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*schema_bag));
   }
@@ -211,8 +210,7 @@ absl::StatusOr<DataSlice> InternalMaybeNamedSchema(
   }
 }
 
-absl::StatusOr<DataSlice> CastTo(arolla::EvaluationContext* ctx,
-                                 const DataSlice& x, const DataSlice& schema) {
+absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item() == schema::kObject &&
       x.GetSchemaImpl().is_struct_schema()) {
@@ -220,36 +218,30 @@ absl::StatusOr<DataSlice> CastTo(arolla::EvaluationContext* ctx,
         "entity to object casting is unsupported - consider using `kd.obj(x)` "
         "instead");
   }
-  ASSIGN_OR_RETURN(auto x_with_bag,
-                   WithAdoptedSchema(ctx->options(), x, schema));
+  ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
   return ::koladata::CastToExplicit(x_with_bag, schema.item());
 }
 
-absl::StatusOr<DataSlice> CastToImplicit(arolla::EvaluationContext* ctx,
-                                         const DataSlice& x,
+absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
                                          const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  ASSIGN_OR_RETURN(auto x_with_bag,
-                   WithAdoptedSchema(ctx->options(), x, schema));
+  ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
   return ::koladata::CastToImplicit(x_with_bag, schema.item());
 }
 
-absl::StatusOr<DataSlice> CastToNarrow(arolla::EvaluationContext* ctx,
-                                       const DataSlice& x,
+absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
                                        const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  ASSIGN_OR_RETURN(auto x_with_bag,
-                   WithAdoptedSchema(ctx->options(), x, schema));
+  ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
   return ::koladata::CastToNarrow(x_with_bag, schema.item());
 }
 
-absl::StatusOr<DataSlice> UnsafeCastTo(arolla::EvaluationContext* ctx,
-                                       const DataSlice& x,
+absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
                                        const DataSlice& schema) {
   if (schema.IsStructSchema()) {
     return x.WithSchema(schema);
   } else {
-    return CastTo(ctx, x, schema);
+    return CastTo(x, schema);
   }
 }
 

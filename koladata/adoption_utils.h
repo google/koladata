@@ -23,7 +23,6 @@
 #include "absl/status/statusor.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "arolla/qexpr/eval_context.h"
 
 namespace koladata {
 
@@ -32,9 +31,6 @@ namespace koladata {
 class AdoptionQueue {
  public:
   AdoptionQueue() = default;
-
-  explicit AdoptionQueue(const arolla::EvaluationOptions& eval_options)
-      : eval_options_(eval_options) {}
 
   AdoptionQueue(const AdoptionQueue&) = delete;
   AdoptionQueue(AdoptionQueue&&) = delete;
@@ -78,8 +74,6 @@ class AdoptionQueue {
   absl::Nonnull<DataBagPtr> GetBagWithFallbacks() const;
 
  private:
-  // TODO: Consider making this a const reference.
-  arolla::EvaluationOptions eval_options_;
   std::vector<DataSlice> slices_to_merge_;
   std::vector<DataBagPtr> bags_to_merge_;
 };

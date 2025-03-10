@@ -27,7 +27,6 @@
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "arolla/qexpr/eval_context.h"
 
 namespace koladata::python {
 

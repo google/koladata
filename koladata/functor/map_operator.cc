@@ -80,11 +80,11 @@ class MapOperator : public arolla::QExprOperator {
             args.push_back(
                 frame.Get(kwargs_slot.SubSlot(i).UnsafeToSlot<DataSlice>()));
           }
-          ASSIGN_OR_RETURN(auto result,
-                           functor::MapFunctorWithCompilationCache(
-                               fn_data_slice, std::move(args), kwarg_names,
-                               include_missing, ctx->options()),
-                           ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(
+              auto result,
+              functor::MapFunctorWithCompilationCache(
+                  fn_data_slice, std::move(args), kwarg_names, include_missing),
+              ctx->set_status(std::move(_)));
           frame.Set(output_slot, std::move(result));
         });
   }

@@ -148,8 +148,7 @@ class UuidForDictOperator : public arolla::QExprOperator {
 
 }  // namespace
 
-absl::StatusOr<DataSlice> DeepUuid(arolla::EvaluationContext* ctx,
-                                   const DataSlice& ds, const DataSlice& schema,
+absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds, const DataSlice& schema,
                                    const DataSlice& seed) {
   absl::Nullable<DataBagPtr> db = ds.GetBag();
   if (db == nullptr) {
@@ -161,9 +160,8 @@ absl::StatusOr<DataSlice> DeepUuid(arolla::EvaluationContext* ctx,
   }
   const auto& schema_db = schema.GetBag();
   if (schema_db != nullptr && schema_db != db) {
-    ASSIGN_OR_RETURN(auto extracted_ds, Extract(ctx, ds, schema));
-    return DeepUuid(ctx, extracted_ds, schema.WithBag(extracted_ds.GetBag()),
-                    seed);
+    ASSIGN_OR_RETURN(auto extracted_ds, Extract(ds, schema));
+    return DeepUuid(extracted_ds, schema.WithBag(extracted_ds.GetBag()), seed);
   }
   if (seed.GetShape().rank() != 0) {
     return absl::InvalidArgumentError(
