@@ -72,6 +72,7 @@ using ::arolla::CreateFullDenseArray;
 using ::arolla::GetQType;
 using ::arolla::TypedValue;
 using ::arolla::testing::CausedBy;
+using ::arolla::testing::PayloadIs;
 using ::koladata::internal::DataItem;
 using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::testing::DataItemWith;
@@ -2183,34 +2184,29 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr) {
       ds.slice().values<internal::ObjectId>();
 
   auto ds_2 = ds.WithBag(DataBag::Empty());
-  absl::StatusOr<DataSlice> result = ds_2.GetAttr("a");
 
-  ASSERT_THAT(
-      result,
+  EXPECT_THAT(
+      ds_2.GetAttr("a"),
       AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                      "failed to get attribute 'a'"),
             CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("missing __schema__ attribute")))));
-  EXPECT_THAT(arolla::GetPayload<internal::Error>(result.status()), NotNull());
-
-  result = ds_2.GetAttrWithDefault("a", test::DataItem(42));
-  ASSERT_THAT(
-      result,
+                              HasSubstr("missing __schema__ attribute"))),
+            PayloadIs<internal::Error>()));
+  EXPECT_THAT(
+      ds_2.GetAttrWithDefault("a", test::DataItem(42)),
       AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                      "failed to get attribute 'a'"),
             CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("missing __schema__ attribute")))));
-  EXPECT_THAT(arolla::GetPayload<internal::Error>(result.status()), NotNull());
-
-  result = ds_2.SetAttr("a", test::DataSlice<int>({1, 1, 1}));
-  ASSERT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_THAT(arolla::GetPayload<internal::Error>(result.status()), NotNull());
-
-  result = ds_2.DelAttr("a");
-  ASSERT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_THAT(arolla::GetPayload<internal::Error>(result.status()), NotNull());
+                              HasSubstr("missing __schema__ attribute"))),
+            PayloadIs<internal::Error>()));
+  EXPECT_THAT(ds_2.SetAttr("a", test::DataSlice<int>({1, 1, 1})),
+              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                             HasSubstr("missing __schema__ attribute")),
+                    PayloadIs<internal::Error>()));
+  EXPECT_THAT(ds_2.DelAttr("a"),
+              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                             HasSubstr("missing __schema__ attribute")),
+                    PayloadIs<internal::Error>()));
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {

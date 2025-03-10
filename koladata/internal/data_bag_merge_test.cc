@@ -48,6 +48,7 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/status.h"
+#include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
 
 namespace koladata::internal {
@@ -55,7 +56,9 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::PayloadIs;
 using ::testing::_;
+using ::testing::AllOf;
 using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
 using ::testing::NotNull;
@@ -307,12 +310,10 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
     auto db2 = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db2->SetAttr(a, "a", a_value));
     ASSERT_OK(db->SetAttr(a[5], "a", a_value[7]));
-    absl::Status status = db->MergeInplace(*db2);
-    EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
-                                 HasSubstr("conflict")));
-    std::optional<Error> error = GetErrorPayload(status);
-    EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
-                NotNull());
+    EXPECT_THAT(db->MergeInplace(*db2),
+                AllOf(StatusIs(absl::StatusCode::kFailedPrecondition,
+                               HasSubstr("conflict")),
+                      PayloadIs<internal::DataBagMergeConflictError>()));
 
     ASSERT_OK(db->MergeInplace(
         *db2, MergeOptions{.data_conflict_policy = MergeOptions::kOverwrite}));
@@ -342,16 +343,14 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
     ASSERT_OK(db->SetAttr(a, "a", a_value));
     ASSERT_OK(db2->SetAttr(a, "a", a_value));
     ASSERT_OK(db2->SetAttr(a[0], "a", a_value[1]));
-    absl::Status status = db->MergeInplace(*db2);
-    EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
-                                 HasSubstr("conflict")));
-    EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
-                NotNull());
-    status = db2->MergeInplace(*db);
-    EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
-                                 HasSubstr("conflict")));
-    EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
-                NotNull());
+    EXPECT_THAT(db->MergeInplace(*db2),
+                AllOf(StatusIs(absl::StatusCode::kFailedPrecondition,
+                               HasSubstr("conflict")),
+                      PayloadIs<internal::DataBagMergeConflictError>()));
+    EXPECT_THAT(db2->MergeInplace(*db),
+                AllOf(StatusIs(absl::StatusCode::kFailedPrecondition,
+                               HasSubstr("conflict")),
+                      PayloadIs<internal::DataBagMergeConflictError>()));
   }
   {
     SCOPED_TRACE("merge dense with dense conflict allowed");
@@ -420,12 +419,11 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
         } else {
           if (conflict_layer != -1 && merge_options.data_conflict_policy ==
                                           MergeOptions::kRaiseOnConflict) {
-            absl::Status status = db2->MergeInplace(*db, merge_options);
-            EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
-                                         HasSubstr("conflict")));
             EXPECT_THAT(
-                arolla::GetPayload<internal::DataBagMergeConflictError>(status),
-                NotNull());
+                db2->MergeInplace(*db, merge_options),
+                AllOf(StatusIs(absl::StatusCode::kFailedPrecondition,
+                               HasSubstr("conflict")),
+                      PayloadIs<internal::DataBagMergeConflictError>()));
             continue;
           }
           ASSERT_OK(db2->MergeInplace(*db, ReverseMergeOptions(merge_options)));
@@ -626,11 +624,10 @@ TYPED_TEST(DataBagAllocatorTest, MergeObjectAttrsOnlyConflicts) {
   ASSERT_OK(db1->SetAttr(a, "x", DataItem(57)));
   auto db2 = db->PartiallyPersistentFork();
   ASSERT_OK(db2->SetAttr(a, "x", DataItem(75.0)));
-  absl::Status status = db1->MergeInplace(*db2);
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
-                               HasSubstr("conflict")));
-  EXPECT_THAT(arolla::GetPayload<internal::DataBagMergeConflictError>(status),
-              NotNull());
+  EXPECT_THAT(db1->MergeInplace(*db2),
+              AllOf(StatusIs(absl::StatusCode::kFailedPrecondition,
+                             HasSubstr("conflict")),
+                    PayloadIs<internal::DataBagMergeConflictError>()));
 
   // the same value is not a conflict
   ASSERT_OK(db2->SetAttr(a, "x", DataItem(57)));

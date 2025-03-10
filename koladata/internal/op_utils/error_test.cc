@@ -36,12 +36,11 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::testing::CausedBy;
+using ::arolla::testing::PayloadIs;
 using ::testing::AllOf;
 using ::testing::Eq;
 using ::testing::Field;
 using ::testing::IsNull;
-using ::testing::NotNull;
-using ::testing::Pointee;
 using ::testing::Property;
 
 TEST(OperatorEvalError, NoCause) {
@@ -80,16 +79,13 @@ TEST(OperatorEvalError, EmptyOperatorName) {
 
 TEST(OperatorEvalError, WithStatusAndErrorMessage) {
   absl::Status status = absl::InvalidArgumentError("error cause");
-  absl::Status new_status =
-      OperatorEvalError(status, "op_name", "error message");
   EXPECT_THAT(
-      new_status,
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error message"),
-            CausedBy(
-                StatusIs(absl::StatusCode::kInvalidArgument, "error cause"))));
-  EXPECT_THAT(
-      arolla::GetPayload<internal::Error>(new_status),
-      Property(&internal::Error::error_message, Eq("op_name: error message")));
+      OperatorEvalError(status, "op_name", "error message"),
+      AllOf(
+          StatusIs(absl::StatusCode::kInvalidArgument, "error message"),
+          CausedBy(StatusIs(absl::StatusCode::kInvalidArgument, "error cause")),
+          PayloadIs<internal::Error>(Property(&internal::Error::error_message,
+                                              Eq("op_name: error message")))));
 }
 
 TEST(OperatorEvalError, WithStatusContainingCause) {
@@ -120,15 +116,12 @@ TEST(OperatorEvalError, WithStatusContainingNonKodaPayload) {
 
   absl::Status new_status = OperatorEvalError(status, "op_name", "error");
   EXPECT_THAT(new_status,
-              StatusIs(absl::StatusCode::kInvalidArgument, "error"));
-  std::optional<internal::Error> payload =
-      internal::GetErrorPayload(new_status);
-  ASSERT_TRUE(payload.has_value());
-  EXPECT_THAT(payload->error_message(), Eq("op_name: error"));
-  auto got_cause = arolla::GetCause(new_status);
-  ASSERT_THAT(got_cause,
-              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "cause")));
-  EXPECT_THAT(arolla::GetPayload<DummyPayload>(*got_cause), NotNull());
+              AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
+                    PayloadIs<internal::Error>(Property(
+                        &internal::Error::error_message, Eq("op_name: error"))),
+                    CausedBy(AllOf(
+                        StatusIs(absl::StatusCode::kInvalidArgument, "cause"),
+                        PayloadIs<DummyPayload>()))));
 }
 
 TEST(OperatorEvalError, SubsequentCalls) {
