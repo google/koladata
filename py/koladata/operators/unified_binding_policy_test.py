@@ -37,7 +37,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
       del x, y
 
     sig = unified_binding_policy.make_unified_signature(
-        inspect.signature(op), deterministic=True
+        inspect.signature(op),
+        deterministic=True,
+        custom_boxing_fn_name_per_parameter={},
     )
     self.assertEqual(sig.aux_policy, 'koladata_unified_binding_policy:__')
     self.assertLen(sig.parameters, 2)
@@ -58,7 +60,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
       del x, y, z
 
     sig = unified_binding_policy.make_unified_signature(
-        inspect.signature(op), deterministic=True
+        inspect.signature(op),
+        deterministic=True,
+        custom_boxing_fn_name_per_parameter={},
     )
     self.assertEqual(sig.aux_policy, 'koladata_unified_binding_policy:ppP')
     self.assertLen(sig.parameters, 3)
@@ -85,7 +89,9 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
       del x, y, z
 
     sig = unified_binding_policy.make_unified_signature(
-        inspect.signature(op), deterministic=False
+        inspect.signature(op),
+        deterministic=False,
+        custom_boxing_fn_name_per_parameter={},
     )
     self.assertEqual(sig.aux_policy, 'koladata_unified_binding_policy:dkKH')
     self.assertLen(sig.parameters, 4)
@@ -116,6 +122,117 @@ class MakeUnifiedSignatureTest(parameterized.TestCase):
     arolla.testing.assert_qvalue_equal_by_fingerprint(
         sig.parameters[3].default, arolla.unspecified()
     )
+
+  @mock.patch.object(py_boxing, 'custom_as_qvalue_or_expr', create=True)
+  def test_custom_boxing_fn(self, mock_boxing_fn):
+    def op(a0, /, a1=arolla.int32(0), *, a2=1, **a3):
+      del a0, a1, a2, a3
+
+    mock_boxing_fn.return_value = arolla.int32(1)
+    sig = unified_binding_policy.make_unified_signature(
+        inspect.signature(op),
+        deterministic=False,
+        custom_boxing_fn_name_per_parameter=dict(
+            a1='custom_as_qvalue_or_expr',
+            a2='custom_as_qvalue_or_expr',
+            a3='as_qvalue_or_expr',  # default
+        ),
+    )
+    mock_boxing_fn.assert_called_with(1)
+    self.assertEqual(
+        sig.aux_policy,
+        'koladata_unified_binding_policy:_pdKH:custom_as_qvalue_or_expr;011',
+    )
+    self.assertLen(sig.parameters, 5)
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        sig.parameters[1].default, arolla.int32(0)
+    )
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        sig.parameters[2].default, arolla.int32(1)
+    )
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        "custom_boxing_fn_name specified for unknown parameter: 'a5'",
+    ):
+      sig = unified_binding_policy.make_unified_signature(
+          inspect.signature(op),
+          deterministic=False,
+          custom_boxing_fn_name_per_parameter=dict(a5='as_qvalue_or_expr'),
+      )
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        "unable to represent default value for a parameter 'a2' as a koladata"
+        ' value: 1',
+    ):
+      mock_boxing_fn.return_value = arolla.L.a3
+      _ = unified_binding_policy.make_unified_signature(
+          inspect.signature(op),
+          deterministic=False,
+          custom_boxing_fn_name_per_parameter=dict(
+              a2='custom_as_qvalue_or_expr'
+          ),
+      )
+
+  def test_custom_boxing_fns_limits(self):
+    def op(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10):
+      del a1, a2, a3, a4, a5, a6, a7, a8, a9, a10
+
+    with (
+        mock.patch.object(py_boxing, 'boxing_fn_1', create=True),
+        mock.patch.object(py_boxing, 'boxing_fn_2', create=True),
+        mock.patch.object(py_boxing, 'boxing_fn_3', create=True),
+        mock.patch.object(py_boxing, 'boxing_fn_4', create=True),
+        mock.patch.object(py_boxing, 'boxing_fn_5', create=True),
+        mock.patch.object(py_boxing, 'boxing_fn_6', create=True),
+        mock.patch.object(py_boxing, 'boxing_fn_7', create=True),
+        mock.patch.object(py_boxing, 'boxing_fn_8', create=True),
+        mock.patch.object(py_boxing, 'boxing_fn_9', create=True),
+        mock.patch.object(py_boxing, 'boxing_fn_10', create=True),
+    ):
+      sig = unified_binding_policy.make_unified_signature(
+          inspect.signature(op),
+          deterministic=True,
+          custom_boxing_fn_name_per_parameter=dict(
+              a1='boxing_fn_1',
+              a2='boxing_fn_2',
+              a3='boxing_fn_3',
+              a4='boxing_fn_4',
+              a5='boxing_fn_5',
+              a6='boxing_fn_6',
+              a7='boxing_fn_7',
+              a8='boxing_fn_8',
+              a9='boxing_fn_9',
+          ),
+      )
+      self.assertEqual(
+          sig.aux_policy,
+          'koladata_unified_binding_policy:pppppppppp:'
+          'boxing_fn_1;boxing_fn_2;boxing_fn_3;boxing_fn_4;boxing_fn_5;'
+          'boxing_fn_6;boxing_fn_7;boxing_fn_8;boxing_fn_9;123456789',
+      )
+
+      with self.assertRaisesWithLiteralMatch(
+          ValueError,
+          'only supports up to 9 custom boxing functions per operator: 10',
+      ):
+        _ = unified_binding_policy.make_unified_signature(
+            inspect.signature(op),
+            deterministic=True,
+            custom_boxing_fn_name_per_parameter=dict(
+                a1='boxing_fn_1',
+                a2='boxing_fn_2',
+                a3='boxing_fn_3',
+                a4='boxing_fn_4',
+                a5='boxing_fn_5',
+                a6='boxing_fn_6',
+                a7='boxing_fn_7',
+                a8='boxing_fn_8',
+                a9='boxing_fn_9',
+                a10='boxing_fn_10',
+            ),
+        )
 
 
 def _make_python_signature(sig: str | arolla.abc.Signature):
@@ -173,8 +290,8 @@ class MakePythonSignatureTest(parameterized.TestCase):
     self.assertIsInstance(outer_ex.__cause__, RuntimeError)
     self.assertEqual(
         str(outer_ex.__cause__),
-        'UnifiedBindingPolicy: mismatch between the number of options and'
-        ' parameters: len(aux_policy_opts)=2, len(signature.parameters)=1',
+        'UnifiedBindingPolicy: mismatch between the binding_options and'
+        ' parameters: len(binding_options)=2, len(signature.parameters)=1',
     )
 
   def test_error_unexpected_option(self):
@@ -193,7 +310,7 @@ class MakePythonSignatureTest(parameterized.TestCase):
     self.assertIsInstance(outer_ex.__cause__, RuntimeError)
     self.assertEqual(
         str(outer_ex.__cause__),
-        "UnifiedBindingPolicy: unexpected option='U', param='x'",
+        "UnifiedBindingPolicy: unexpected binding_option='U', param='x'",
     )
 
 
@@ -309,8 +426,8 @@ class BindArgumentsTest(parameterized.TestCase):
     self.assertIsInstance(outer_ex.__cause__, RuntimeError)
     self.assertEqual(
         str(outer_ex.__cause__),
-        'UnifiedBindingPolicy: mismatch between the number of options and'
-        ' parameters: len(aux_policy_opts)=2, len(signature.parameters)=1',
+        'UnifiedBindingPolicy: mismatch between the binding_options and'
+        ' parameters: len(binding_options)=2, len(signature.parameters)=1',
     )
 
   def test_error_missing_positional_parameters(self):
@@ -431,7 +548,7 @@ class BindArgumentsTest(parameterized.TestCase):
     self.assertIsInstance(outer_ex.__cause__, RuntimeError)
     self.assertEqual(
         str(outer_ex.__cause__),
-        "UnifiedBindingPolicy: unexpected option='U', param='x'",
+        "UnifiedBindingPolicy: unexpected binding_option='U', param='x'",
     )
 
     try:
@@ -446,7 +563,7 @@ class BindArgumentsTest(parameterized.TestCase):
     self.assertIsInstance(outer_ex.__cause__, RuntimeError)
     self.assertEqual(
         str(outer_ex.__cause__),
-        "UnifiedBindingPolicy: unexpected option='U', param='x'",
+        "UnifiedBindingPolicy: unexpected binding_option='U', param='x'",
     )
 
   def test_boxing_as_qvalue_or_expr(self):
@@ -603,6 +720,55 @@ class BindArgumentsTest(parameterized.TestCase):
       self.assertIsInstance(outer_ex.__cause__, ValueError)
       self.assertEqual(str(outer_ex.__cause__), 'unsupported value')
 
+  def test_custom_boxing_options(self):
+    sig = arolla.abc.make_operator_signature(
+        'x,y|koladata_unified_binding_policy:pp:box_fn_1;box_fn_2;12'
+    )
+    with (
+        mock.patch.object(py_boxing, 'box_fn_1', create=True) as mock_fn_1,
+        mock.patch.object(py_boxing, 'box_fn_2', create=True) as mock_fn_2,
+    ):
+      mock_fn_1.return_value = arolla.int32(1)
+      mock_fn_2.return_value = arolla.L._2
+      (x, y) = arolla.abc.aux_bind_arguments(sig, 1, y=2)
+      mock_fn_1.assert_called_with(1)
+      mock_fn_2.assert_called_with(2)
+      arolla.testing.assert_qvalue_equal_by_fingerprint(x, arolla.int32(1))
+      arolla.testing.assert_expr_equal_by_fingerprint(y, arolla.L._2)
+
+  def test_error_invalid_boxing_options(self):
+    with self.subTest('illegal boxing_option'):
+      sig = arolla.abc.make_operator_signature(
+          'x|koladata_unified_binding_policy:p:'
+          + ':'  # use `:` which is the character after '9' in ASCII
+      )
+      with self.assertRaisesWithLiteralMatch(
+          RuntimeError,
+          'arolla.abc.aux_bind_arguments() auxiliary binding policy has'
+          " failed: 'koladata_unified_binding_policy:p::'",
+      ) as cm:
+        _ = arolla.abc.aux_bind_arguments(sig, 1)
+      self.assertIsInstance(cm.exception.__cause__, RuntimeError)
+      self.assertEqual(
+          str(cm.exception.__cause__),
+          "UnifiedBindingPolicy: unexpected boxing_option=':', param='x'",
+      )
+    with self.subTest('boxing_fn index out of range'):
+      sig = arolla.abc.make_operator_signature(
+          'x|koladata_unified_binding_policy:p:5'
+      )
+      with self.assertRaisesWithLiteralMatch(
+          RuntimeError,
+          'arolla.abc.aux_bind_arguments() auxiliary binding policy has'
+          " failed: 'koladata_unified_binding_policy:p:5'",
+      ) as cm:
+        _ = arolla.abc.aux_bind_arguments(sig, 1)
+      self.assertIsInstance(cm.exception.__cause__, RuntimeError)
+      self.assertEqual(
+          str(cm.exception.__cause__),
+          'UnifiedBindingPolicy: boxing_fn index is out of range: 5',
+      )
+
   def test_error_import_py_boxing(self):
     sig = arolla.abc.make_operator_signature(
         'x|koladata_unified_binding_policy:_'
@@ -633,6 +799,7 @@ unified_op = arolla.abc.register_operator(
         unified_binding_policy.make_unified_signature(
             inspect.signature(lambda a, /, x, *args, y, z, **kwargs: None),
             deterministic=False,
+            custom_boxing_fn_name_per_parameter={},
         ),
         (P.a, P.x, P.args, P.y, P.z, P.kwargs),
         name='unified_op',

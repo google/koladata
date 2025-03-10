@@ -20,9 +20,10 @@
 // It encodes additional information about parameters in signature.aux_policy
 // using the following format:
 //
-//    koladata_unified_binding_policy:<options>
+//    koladata_unified_binding_policy:<binding_options>[:<boxing_options>]
 //
-// Each character in '<options>' represents a parameter and encodes its kind:
+// Each character in '<binding_options>' represents a parameter and encodes its
+// kind:
 //
 //   `_` -- positional-only parameter
 //   `p` -- positional-or-keyword parameter
@@ -32,7 +33,45 @@
 //   `K` -- variadic-keyword (**kwargs)
 //   `H` -- non-deterministic input
 //
-
+// Boxing options are structured as follows:
+//
+//   (boxing_fn_name_i;){0,9}[0-9]+
+//
+// Where `boxing_fn_name_i` is the name of a boxing function (up to 9) within
+// the `koladata.types.py_boxing` module. Digits represent parameters and encode
+// a boxing policy for each parameter. `0` represents the default boxing policy,
+// which is `as_qvalue_or_expr`, and trailing `0`s can be omitted.
+//
+// Example:
+//
+//   Given an operator declared as:
+//
+//       @as_py_function_operator(
+//         ...
+//         custom_boxing_fn_name_per_parameter=dict(
+//             fn=WITH_PY_FUNCTION_TO_PY_OBJECT
+//         ),
+//     )
+//     def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
+//       ...
+//
+//  The resulting `aux_options` (excluding the common prefix) would be:
+//
+//     ┌ First parameter is positional-or-keyword
+//     │┌ Second paramter is variadic-positional
+//     ││┌ Third parameter is keyword-only, with default
+//     │││┌ Fourth parameter is variadic-keyword
+//     ││││
+//
+//     pPdK:as_qvalue_or_expr_with_py_function_to_py_object_support;1
+//
+//          ────────────────────────┬────────────────────────────── │
+//                                  │                               │
+//          Name of the first custom boxing function                │
+//                                                                  │
+//                   First parameter uses the first boxing function ┘
+//                   (Remaining parameters use the default boxing)
+//
 #ifndef THIRD_PARTY_PY_KOLADATA_OPERATORS_PY_OPTOOLS_H_
 #define THIRD_PARTY_PY_KOLADATA_OPERATORS_PY_OPTOOLS_H_
 

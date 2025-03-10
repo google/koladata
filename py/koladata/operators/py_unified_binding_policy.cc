@@ -14,6 +14,8 @@
 //
 #include "py/koladata/operators/py_unified_binding_policy.h"
 
+#include <Python.h>
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -29,6 +31,7 @@
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
 #include "absl/random/random.h"
 #include "absl/strings/escaping.h"
@@ -83,73 +86,80 @@ using ::arolla::python::UnsafeUnwrapPyExpr;
 using ::arolla::python::UnsafeUnwrapPyQValue;
 using ::koladata::expr::kNonDeterministicTokenLeafKey;
 
-// Extracts and stores the `<options>` part of the `aux_policy` string for the
-// unified binding into the output parameter `result`. If the function is
-// successful, it returns `true`. Otherwise, it returns `false` and sets the
-// appropriate Python exception.
+// Extracts `<binding_options>` and '<boxing_options>' parts of the `aux_policy`
+// string for the unified binding into the output parameter `result`. If the
+// function is successful, it returns `true`. Otherwise, it returns `false` and
+// sets the appropriate Python exception.
 //
 bool ExtractUnifiedPolicyOpts(const ExprOperatorSignature& signature,
-                              absl::string_view& result) {
-  result = signature.aux_policy;
-  if (!absl::ConsumePrefix(&result, kUnifiedPolicy) ||
-      !absl::ConsumePrefix(&result, ":")) {
+                              absl::string_view& result_binding_options,
+                              absl::string_view& result_boxing_options) {
+  absl::string_view string = signature.aux_policy;
+  if (!absl::ConsumePrefix(&string, kUnifiedPolicy) ||
+      !absl::ConsumePrefix(&string, ":")) {
     return PyErr_Format(
         PyExc_RuntimeError,
         "UnifiedBindingPolicy: unexpected binding policy name: %s",
         absl::Utf8SafeCHexEscape(signature.aux_policy).c_str());
   }
-  if (result.size() != signature.parameters.size()) {
-    return PyErr_Format(
-        PyExc_RuntimeError,
-        "UnifiedBindingPolicy: mismatch between the number of options and "
-        "parameters: len(aux_policy_opts)=%zu, "
-        "len(signature.parameters)=%zu",
-        result.size(), signature.parameters.size());
+  const auto idx = string.find(':');
+  if (idx != absl::string_view::npos) {
+    result_binding_options = string.substr(0, idx);
+    result_boxing_options = string.substr(idx + 1);
+  } else {
+    result_binding_options = string;
+    result_boxing_options = {};
   }
   return true;
 }
 
 // A sentinel entity indicating to use the default value.
 static PyObject kSentinelDefaultValue;
-// A sentinel entity indicating to use `py_result_var_args`.
+// A sentinel entity indicating to use `py_var_args`.
 static PyObject kSentinelVarArgs;
-// A sentinel entity indicating to use `py_result_var_kwargs`.
+// A sentinel entity indicating to use `py_var_kwargs`.
 static PyObject kSentinelVarKwargs;
 // A sentinel entity indicating to use a non-deterministic expression.
 static PyObject kSentinelNonDeterministic;
 
+using PyVarKwarg = absl::flat_hash_map<absl::string_view, PyObject**>;
+
 // A lower-level binding-arguments function without boxing python values.
 // This function processes arguments for the given "unified" operator
-// signature and populates the output parameters (`py_result*`).
+// signature and populates the output parameters (`result_py_*`).
 //
-// The main result is stored in `py_result`, which has a one-to-one mapping
-// with the signature parameters. If `py_result[i]` points to
+// The main result is stored in `result_py_bound_args`, which has a one-to-one
+// mapping with the signature parameters. If `result_py_bound_args[i]` points to
 // `kSentinelDefaultValue`, it indicates that the argument's value should be
 // taken from the signature's default (the function ensures that a default
 // value exists). Similarly, a pointer to `kSentinelVarArgs` or
 // `kSentinelVarKwargs` indicates that the value should be taken from
-// `py_result_var_args` or `py_result_var_kwargs`, respectively.
+// `result_py_var_args` or `result_py_var_kwargs`, respectively.
 //
 // If the function is successful, it returns `true`. Otherwise, it returns
 // `false` and sets the corresponding Python exception.
 //
-// Note: The order of keys in `py_result_var_kwargs` is defined by the memory
+// Note: The order of keys in `result_py_var_kwargs` is defined by the memory
 // addresses of the stored values, which are of type `PyObject**`.
 //
-bool PrebindUnifiedArguments(
-    const ExprOperatorSignature& signature, PyObject** py_args,
-    Py_ssize_t nargsf, PyObject* py_tuple_kwnames,
-    std::vector<PyObject*>& py_result,
-    absl::Span<PyObject*>& py_result_var_args,
-    absl::flat_hash_map<absl::string_view, PyObject**>& py_result_var_kwargs) {
-  absl::string_view opts;
-  if (!ExtractUnifiedPolicyOpts(signature, opts)) {
-    return false;
+bool UnifiedBindArguments(const ExprOperatorSignature& signature,
+                          absl::string_view binding_options, PyObject** py_args,
+                          Py_ssize_t nargsf, PyObject* py_tuple_kwnames,
+                          std::vector<PyObject*>& result_py_bound_args,
+                          absl::Span<PyObject*>& result_py_var_args,
+                          PyVarKwarg& result_py_var_kwargs) {
+  if (binding_options.size() != signature.parameters.size()) {
+    return PyErr_Format(PyExc_RuntimeError,
+                        "UnifiedBindingPolicy: mismatch between "
+                        "the binding_options and "
+                        "parameters: len(binding_options)=%zu, "
+                        "len(signature.parameters)=%zu",
+                        binding_options.size(), signature.parameters.size());
   }
 
   // Preprocess `*args`, `**kwargs`.
   const size_t py_args_size = PyVectorcall_NARGS(nargsf);
-  absl::flat_hash_map<absl::string_view, PyObject**> py_kwargs;
+  PyVarKwarg py_kwargs;
   {
     absl::Span<PyObject*> py_kwnames;
     PyTuple_AsSpan(py_tuple_kwnames, &py_kwnames);
@@ -166,31 +176,32 @@ bool PrebindUnifiedArguments(
     }
   }
 
-  py_result.reserve(opts.size());
+  result_py_bound_args.reserve(binding_options.size());
   size_t i = 0;
 
   // Bind the positional parameters using `*args`.
-  for (; i < opts.size() && i < py_args_size; ++i) {
-    DCHECK_EQ(py_result.size(), i);
-    const char opt = opts[i];
+  for (; i < binding_options.size() && i < py_args_size; ++i) {
+    DCHECK_EQ(result_py_bound_args.size(), i);
+    const char opt = binding_options[i];
     const auto& param = signature.parameters[i];
     if (opt == kUnifiedPolicyOptPositionalOnly) {
-      py_result.push_back(py_args[i]);
+      result_py_bound_args.push_back(py_args[i]);
     } else if (opt == kUnifiedPolicyOptPositionalOrKeyword) {
       if (py_kwargs.contains(param.name)) {
         return PyErr_Format(PyExc_TypeError,
                             "multiple values for argument '%s'",
                             absl::Utf8SafeCHexEscape(param.name).c_str());
       }
-      py_result.push_back(py_args[i]);
+      result_py_bound_args.push_back(py_args[i]);
     } else {
       break;
     }
   }
   bool has_unprocessed_args = false;
-  if (i < opts.size() && opts[i] == kUnifiedPolicyOptVarPositional) {
-    py_result.push_back(&kSentinelVarArgs);
-    py_result_var_args = absl::Span<PyObject*>(py_args + i, py_args_size - i);
+  if (i < binding_options.size() &&
+      binding_options[i] == kUnifiedPolicyOptVarPositional) {
+    result_py_bound_args.push_back(&kSentinelVarArgs);
+    result_py_var_args = absl::Span<PyObject*>(py_args + i, py_args_size - i);
     i += 1;
   } else {
     has_unprocessed_args = (i < py_args_size);
@@ -199,31 +210,31 @@ bool PrebindUnifiedArguments(
   // Bind remaining parameters using `**kwargs` and the default values.
   std::vector<absl::string_view> missing_positional_params;
   std::vector<absl::string_view> missing_keyword_only_params;
-  for (; i < opts.size(); ++i) {
-    const char opt = opts[i];
+  for (; i < binding_options.size(); ++i) {
+    const char opt = binding_options[i];
     const auto& param = signature.parameters[i];
     if (opt == kUnifiedPolicyOptPositionalOnly) {
       if (param.default_value.has_value()) {
-        py_result.push_back(&kSentinelDefaultValue);
+        result_py_bound_args.push_back(&kSentinelDefaultValue);
       } else {
         missing_positional_params.push_back(param.name);
       }
     } else if (opt == kUnifiedPolicyOptPositionalOrKeyword) {
       auto it = py_kwargs.find(param.name);
       if (it != py_kwargs.end()) {
-        py_result.push_back(*it->second);
+        result_py_bound_args.push_back(*it->second);
         py_kwargs.erase(it);
       } else if (param.default_value.has_value()) {
-        py_result.push_back(&kSentinelDefaultValue);
+        result_py_bound_args.push_back(&kSentinelDefaultValue);
       } else {
         missing_positional_params.push_back(param.name);
       }
     } else if (opt == kUnifiedPolicyOptVarPositional) {
-      py_result.push_back(&kSentinelVarArgs);
+      result_py_bound_args.push_back(&kSentinelVarArgs);
     } else if (opt == kUnifiedPolicyOptRequiredKeywordOnly) {
       auto it = py_kwargs.find(param.name);
       if (it != py_kwargs.end()) {
-        py_result.push_back(*it->second);
+        result_py_bound_args.push_back(*it->second);
         py_kwargs.erase(it);
       } else {
         missing_keyword_only_params.push_back(param.name);
@@ -231,25 +242,25 @@ bool PrebindUnifiedArguments(
     } else if (opt == kUnifiedPolicyOptOptionalKeywordOnly) {
       auto it = py_kwargs.find(param.name);
       if (it != py_kwargs.end()) {
-        py_result.push_back(*it->second);
+        result_py_bound_args.push_back(*it->second);
         py_kwargs.erase(it);
       } else if (param.default_value.has_value()) {
-        py_result.push_back(&kSentinelDefaultValue);
+        result_py_bound_args.push_back(&kSentinelDefaultValue);
       } else {
         // Gracefully handle a missing default value for an optional parameter.
         missing_keyword_only_params.push_back(param.name);
       }
     } else if (opt == kUnifiedPolicyOptVarKeyword) {
-      py_result.push_back(&kSentinelVarKwargs);
-      py_result_var_kwargs = std::move(py_kwargs);
+      result_py_bound_args.push_back(&kSentinelVarKwargs);
+      result_py_var_kwargs = std::move(py_kwargs);
       py_kwargs.clear();  // Ensure `py_kwargs` state after value move.
     } else if (opt == kUnifiedPolicyOptNonDeterministic) {
-      py_result.push_back(&kSentinelNonDeterministic);
+      result_py_bound_args.push_back(&kSentinelNonDeterministic);
     } else {
       return PyErr_Format(
           PyExc_RuntimeError,
-          "UnifiedBindingPolicy: unexpected option='%s', param='%s'",
-          absl::Utf8SafeCHexEscape(opts.substr(i, 1)).c_str(),
+          "UnifiedBindingPolicy: unexpected binding_option='%s', param='%s'",
+          absl::Utf8SafeCHexEscape(absl::string_view(&opt, 1)).c_str(),
           absl::Utf8SafeCHexEscape(param.name).c_str());
     }
   }
@@ -301,9 +312,9 @@ bool PrebindUnifiedArguments(
   if (has_unprocessed_args) {
     size_t count_positionals = 0;
     size_t count_required_positionals = 0;
-    for (size_t j = 0; j < opts.size(); ++j) {
-      if (opts[j] == kUnifiedPolicyOptPositionalOnly ||
-          opts[j] == kUnifiedPolicyOptPositionalOrKeyword) {
+    for (size_t j = 0; j < binding_options.size(); ++j) {
+      if (binding_options[j] == kUnifiedPolicyOptPositionalOnly ||
+          binding_options[j] == kUnifiedPolicyOptPositionalOrKeyword) {
         count_positionals += 1;
         count_required_positionals +=
             !signature.parameters[j].default_value.has_value();
@@ -336,7 +347,7 @@ bool PrebindUnifiedArguments(
                         absl::Utf8SafeCHexEscape(it->first).c_str());
   }
 
-  DCHECK_EQ(py_result.size(), opts.size());
+  DCHECK_EQ(result_py_bound_args.size(), binding_options.size());
   return true;
 }
 
@@ -349,30 +360,6 @@ absl::StatusOr<ExprNodePtr> GenNonDeterministicToken() {
   auto seed = absl::Uniform<int64_t>(absl::IntervalClosed, *bitgen, 0,
                                      std::numeric_limits<int64_t>::max());
   return MakeOpNode(*op, {*leaf, arolla::expr::Literal(seed)});
-}
-
-// Returns a Python function `koladata.types.py_boxing.as_qvalue_or_expr` if
-// successful. Otherwise, returns `nullptr` and sets a Python exception.
-PyObjectPtr GetPyCallableAsQValueOrExprFn() {
-  static PyObject* module_name =
-      PyUnicode_InternFromString("koladata.types.py_boxing");
-  static PyObject* function_name =
-      PyUnicode_InternFromString("as_qvalue_or_expr");
-
-  auto py_module_dict = PyObjectPtr::NewRef(PyImport_GetModuleDict());
-  if (py_module_dict == nullptr) {
-    return nullptr;
-  }
-  auto py_module = PyObjectPtr::NewRef(
-      PyDict_GetItemWithError(py_module_dict.get(), module_name));
-  if (py_module == nullptr) {
-    if (!PyErr_Occurred()) {
-      PyErr_SetString(PyExc_ImportError,
-                      "`koladata.types.py_boxing` is not imported yet");
-    }
-    return nullptr;
-  }
-  return PyObjectPtr::Own(PyObject_GetAttr(py_module.get(), function_name));
 }
 
 // Returns QValue|Expr if successful. Otherwise, returns `std::nullopt` and
@@ -478,9 +465,8 @@ std::optional<QValueOrExpr> AsQValueOrExprVarArgs(
 }
 
 // Boxing for variadic-keyword arguments.
-std::optional<QValueOrExpr> AsQValueOrExprVarKwArgs(
-    PyObject* py_callable_as_qvalue_or_expr,
-    const absl::flat_hash_map<absl::string_view, PyObject**>& py_kwargs) {
+std::optional<QValueOrExpr> AsQValueOrExprVarKwargs(
+    PyObject* py_callable_as_qvalue_or_expr, const PyVarKwarg& py_kwargs) {
   const size_t n = py_kwargs.size();
   if (n == 0) {  // Fast empty case.
     return MakeEmptyNamedTuple();
@@ -551,19 +537,144 @@ std::optional<QValueOrExpr> AsQValueOrExprVarKwArgs(
   return result;
 }
 
+// Returns the `koladata.types.py_boxing` python module if successful.
+PyObjectPtr GetPyBoxingModule() {
+  static PyObject* module_name =
+      PyUnicode_InternFromString("koladata.types.py_boxing");
+  auto py_module_dict = PyObjectPtr::NewRef(PyImport_GetModuleDict());
+  if (py_module_dict == nullptr) {
+    return nullptr;
+  }
+  auto py_module = PyObjectPtr::NewRef(
+      PyDict_GetItemWithError(py_module_dict.get(), module_name));
+  if (py_module == nullptr) {
+    if (!PyErr_Occurred()) {
+      PyErr_SetString(PyExc_ImportError,
+                      "`koladata.types.py_boxing` is not imported yet");
+    }
+  }
+  return py_module;
+}
+
+// A lower-level boxing-arguments function that works with pre-bound python
+// values.
+//
+// If the function is successful, it returns `true`. Otherwise, it returns
+// `false` and sets the corresponding Python exception.
+bool UnifiedBoxBoundArguments(const ExprOperatorSignature& signature,
+                              absl::string_view boxing_options,
+                              absl::Span<PyObject*> py_bound_args,
+                              absl::Span<PyObject*> py_var_args,
+                              PyVarKwarg py_var_kwargs,
+                              std::vector<QValueOrExpr>& result) {
+  // Load the boxing functions.
+  absl::InlinedVector<PyObjectPtr, 10> py_boxing_fns;
+  auto py_boxing_module = GetPyBoxingModule();
+  if (py_boxing_module == nullptr) {
+    return false;
+  }
+  static PyObject* py_default_boxing_fn_name =
+      PyUnicode_InternFromString("as_qvalue_or_expr");
+  if (auto* py_boxing_fn =
+          PyObject_GetAttr(py_boxing_module.get(), py_default_boxing_fn_name)) {
+    py_boxing_fns.push_back(PyObjectPtr::Own(py_boxing_fn));
+  } else {
+    return false;
+  }
+  for (size_t offset = boxing_options.find(';');
+       offset != absl::string_view::npos;) {
+    auto py_boxing_fn_name = PyObjectPtr::Own(
+        PyUnicode_FromStringAndSize(boxing_options.data(), offset));
+    if (py_boxing_fn_name == nullptr) {
+      return false;
+    }
+    if (auto* py_boxing_fn =
+            PyObject_GetAttr(py_boxing_module.get(), py_boxing_fn_name.get())) {
+      py_boxing_fns.push_back(PyObjectPtr::Own(py_boxing_fn));
+    } else {
+      return false;
+    }
+    boxing_options.remove_prefix(offset + 1);
+    offset = boxing_options.find(';');
+  }
+
+  // Perform boxing.
+  DCHECK_EQ(py_bound_args.size(), signature.parameters.size());
+  result.clear();
+  result.reserve(py_bound_args.size());
+  for (size_t i = 0; i < py_bound_args.size(); ++i) {
+    auto& param = signature.parameters[i];
+    const char opt = (i < boxing_options.size() ? boxing_options[i] : '0');
+    PyObject* py_boxing_fn;
+    if (const size_t d = opt - '0'; d > 9) {
+      PyErr_Format(
+          PyExc_RuntimeError,
+          "UnifiedBindingPolicy: unexpected boxing_option='%s', param='%s'",
+          absl::Utf8SafeCHexEscape(absl::string_view(&opt, 1)).c_str(),
+          absl::Utf8SafeCHexEscape(param.name).c_str());
+      return false;
+    } else if (d >= py_boxing_fns.size()) {
+      PyErr_Format(PyExc_RuntimeError,
+                   "UnifiedBindingPolicy: boxing_fn index is out of range: %zu",
+                   d);
+      return false;
+    } else {
+      py_boxing_fn = py_boxing_fns[d].get();
+    }
+    auto* py_bound_arg = py_bound_args[i];
+    DCHECK_NE(py_bound_arg, nullptr);
+    if (py_bound_arg == &kSentinelDefaultValue) {
+      DCHECK(param.default_value.has_value());
+      result.push_back(*param.default_value);
+    } else if (py_bound_arg == &kSentinelVarArgs) {
+      auto arg = AsQValueOrExprVarArgs(py_boxing_fn, param.name, py_var_args);
+      if (!arg.has_value()) {
+        return false;
+      }
+      result.push_back(*std::move(arg));
+    } else if (py_bound_arg == &kSentinelVarKwargs) {
+      auto arg = AsQValueOrExprVarKwargs(py_boxing_fn, py_var_kwargs);
+      if (!arg.has_value()) {
+        return false;
+      }
+      result.push_back(*std::move(arg));
+    } else if (py_bound_arg == &kSentinelNonDeterministic) {
+      ASSIGN_OR_RETURN(auto arg, GenNonDeterministicToken(),
+                       (SetPyErrFromStatus(_), false));
+      result.push_back(std::move(arg));
+    } else {
+      auto arg = AsQValueOrExprArg(py_boxing_fn, param.name, py_bound_arg);
+      if (!arg.has_value()) {
+        return false;
+      }
+      result.push_back(*std::move(arg));
+    }
+  }
+  return true;
+}
+
 // The unified binding policy class.
 class UnifiedBindingPolicy : public AuxBindingPolicy {
   PyObject* MakePythonSignature(
       const ExprOperatorSignature& signature) const final {
     DCheckPyGIL();
-    absl::string_view opts;
-    if (!ExtractUnifiedPolicyOpts(signature, opts)) {
+    absl::string_view binding_options;
+    absl::string_view boxing_options;
+    if (!ExtractUnifiedPolicyOpts(signature, binding_options, boxing_options)) {
       return nullptr;
     }
+    if (binding_options.size() != signature.parameters.size()) {
+      return PyErr_Format(PyExc_RuntimeError,
+                          "UnifiedBindingPolicy: mismatch between "
+                          "the binding_options and "
+                          "parameters: len(binding_options)=%zu, "
+                          "len(signature.parameters)=%zu",
+                          binding_options.size(), signature.parameters.size());
+    }
     Signature result;
-    result.parameters.reserve(opts.size());
-    for (size_t i = 0; i < opts.size(); ++i) {
-      const char opt = opts[i];
+    result.parameters.reserve(binding_options.size());
+    for (size_t i = 0; i < binding_options.size(); ++i) {
+      const char opt = binding_options[i];
       const auto& param = signature.parameters[i];
       if (opt == kUnifiedPolicyOptPositionalOnly) {
         result.parameters.push_back(
@@ -585,8 +696,8 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
       } else {
         return PyErr_Format(
             PyExc_RuntimeError,
-            "UnifiedBindingPolicy: unexpected option='%s', param='%s'",
-            absl::Utf8SafeCHexEscape(opts.substr(i, 1)).c_str(),
+            "UnifiedBindingPolicy: unexpected binding_option='%s', param='%s'",
+            absl::Utf8SafeCHexEscape(absl::string_view(&opt, 1)).c_str(),
             absl::Utf8SafeCHexEscape(param.name).c_str());
       }
     }
@@ -599,54 +710,22 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
       Py_ssize_t nargsf, PyObject* py_tuple_kwnames,
       absl::Nonnull<std::vector<QValueOrExpr>*> result) const final {
     DCheckPyGIL();
-    std::vector<PyObject*> py_result;
-    absl::Span<PyObject*> py_result_var_args;
-    absl::flat_hash_map<absl::string_view, PyObject**> py_result_var_kwargs;
-    if (!PrebindUnifiedArguments(signature, py_args, nargsf, py_tuple_kwnames,
-                                 py_result, py_result_var_args,
-                                 py_result_var_kwargs)) {
+    absl::string_view binding_options;
+    absl::string_view boxing_options;
+    if (!ExtractUnifiedPolicyOpts(signature, binding_options, boxing_options)) {
       return false;
     }
-    auto py_callable_as_qvalue_or_expr = GetPyCallableAsQValueOrExprFn();
-    if (py_callable_as_qvalue_or_expr == nullptr) {
+    std::vector<PyObject*> py_bound_args;
+    absl::Span<PyObject*> py_var_args;
+    PyVarKwarg py_var_kwargs;
+    if (!UnifiedBindArguments(signature, binding_options, py_args, nargsf,
+                              py_tuple_kwnames, py_bound_args, py_var_args,
+                              py_var_kwargs)) {
       return false;
     }
-    DCHECK_EQ(py_result.size(), signature.parameters.size());
-    result->reserve(py_result.size());
-    for (size_t i = 0; i < py_result.size(); ++i) {
-      const auto& param = signature.parameters[i];
-      DCHECK_NE(py_result[i], nullptr);
-      if (py_result[i] == &kSentinelDefaultValue) {
-        DCHECK(param.default_value.has_value());
-        result->push_back(*param.default_value);
-      } else if (py_result[i] == &kSentinelVarArgs) {
-        auto arg = AsQValueOrExprVarArgs(py_callable_as_qvalue_or_expr.get(),
-                                         param.name, py_result_var_args);
-        if (!arg.has_value()) {
-          return false;
-        }
-        result->push_back(*std::move(arg));
-      } else if (py_result[i] == &kSentinelVarKwargs) {
-        auto arg = AsQValueOrExprVarKwArgs(py_callable_as_qvalue_or_expr.get(),
-                                           py_result_var_kwargs);
-        if (!arg.has_value()) {
-          return false;
-        }
-        result->push_back(*std::move(arg));
-      } else if (py_result[i] == &kSentinelNonDeterministic) {
-        ASSIGN_OR_RETURN(auto arg, GenNonDeterministicToken(),
-                         (SetPyErrFromStatus(_), false));
-        result->push_back(std::move(arg));
-      } else {
-        auto arg = AsQValueOrExprArg(py_callable_as_qvalue_or_expr.get(),
-                                     param.name, py_result[i]);
-        if (!arg.has_value()) {
-          return false;
-        }
-        result->push_back(*std::move(arg));
-      }
-    }
-    return true;
+    return UnifiedBoxBoundArguments(
+        signature, boxing_options, absl::Span<PyObject*>(py_bound_args),
+        py_var_args, std::move(py_var_kwargs), *result);
   }
 
   // (See the base class.)

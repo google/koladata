@@ -216,6 +216,7 @@ def as_backend_operator(
     qtype_inference_expr: arolla.Expr | arolla.QType = qtypes.DATA_SLICE,
     qtype_constraints: arolla.types.QTypeConstraints = (),
     deterministic: bool = True,
+    custom_boxing_fn_name_per_parameter: dict[str, str] | None = None,
 ) -> Callable[[types.FunctionType], arolla.types.BackendOperator]:
   """Decorator for Koladata backend operators with a unified binding policy.
 
@@ -233,6 +234,9 @@ def as_backend_operator(
       `optools.UNIFIED_NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the
       signature. This parameter receives special handling by the binding policy
       implementation.
+    custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
+      function per parameter (constants with the boxing functions look like:
+      `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
 
   Returns:
     A decorator that constructs a backend operator based on the provided Python
@@ -242,7 +246,11 @@ def as_backend_operator(
   def impl(fn):
     qtype_constraints_copy = list(qtype_constraints)
     op_sig = unified_binding_policy.make_unified_signature(
-        inspect.signature(fn), deterministic=deterministic
+        inspect.signature(fn),
+        deterministic=deterministic,
+        custom_boxing_fn_name_per_parameter=(
+            custom_boxing_fn_name_per_parameter or {}
+        ),
     )
     if not deterministic:
       qtype_constraints_copy.append(
@@ -283,6 +291,7 @@ def as_lambda_operator(
     *,
     qtype_constraints: arolla.types.QTypeConstraints = (),
     deterministic: bool | None = None,
+    custom_boxing_fn_name_per_parameter: dict[str, str] | None = None,
     suppress_unused_parameter_warning: bool = False,
 ) -> Callable[
     [types.FunctionType],
@@ -302,6 +311,9 @@ def as_lambda_operator(
       only use deterministic operators. If False, the operator will be declared
       non-deterministic. By default, the decorator attempts to detect the
       operator's determinism.
+    custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
+      function per parameter (constants with the boxing functions look like:
+      `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
     suppress_unused_parameter_warning: If True, unused parameters will not cause
       a warning.
 
@@ -320,7 +332,11 @@ def as_lambda_operator(
       )
 
     op_sig = unified_binding_policy.make_unified_signature(
-        inspect.signature(fn), deterministic=deterministic_copy
+        inspect.signature(fn),
+        deterministic=deterministic_copy,
+        custom_boxing_fn_name_per_parameter=(
+            custom_boxing_fn_name_per_parameter or {}
+        ),
     )
 
     qtype_constraints_copy = list(qtype_constraints)
@@ -378,6 +394,7 @@ def as_py_function_operator(
     qtype_constraints: arolla.types.QTypeConstraints = (),
     codec: bytes | None = None,
     deterministic: bool = True,
+    custom_boxing_fn_name_per_parameter: dict[str, str] | None = None,
 ) -> Callable[[types.FunctionType], arolla.abc.Operator]:
   """Returns a decorator for defining Koladata-specific py-function operators.
 
@@ -399,6 +416,9 @@ def as_py_function_operator(
       serializable only if the codec is specified.
     deterministic: Set this to `False` if the wrapped function is not pure
       (i.e., non-deterministic or has side effects).
+    custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
+      function per parameter (constants with the boxing functions look like:
+      `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
   """
 
   def impl(fn):
@@ -511,7 +531,11 @@ def as_py_function_operator(
           qtype_utils.expect_non_deterministic(_UNIFIED_NON_DETERMINISTIC_PARAM)
       )
     op_sig = unified_binding_policy.make_unified_signature(
-        sig, deterministic=deterministic
+        sig,
+        deterministic=deterministic,
+        custom_boxing_fn_name_per_parameter=(
+            custom_boxing_fn_name_per_parameter or {}
+        ),
     )
     op_expr = arolla.abc.bind_op(
         'py.call', fn_expr, return_type_expr, args_expr, kwargs_expr

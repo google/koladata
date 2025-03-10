@@ -20,6 +20,7 @@ from arolla import arolla
 from koladata.operators import py_optools_py_ext
 from koladata.types import py_boxing
 
+
 UNIFIED_POLICY_PREFIX = f'{py_optools_py_ext.UNIFIED_POLICY}:'
 
 # Name of the hidden parameter used to indicate non-deterministic input.
@@ -44,8 +45,84 @@ _OPT_CHR_NON_DETERMINISTIC = (
 )
 
 
+_DEFAULT_BOXING_FN_NAME = 'as_qvalue_or_expr'
+
+
+def _process_boxing_options(
+    signature: inspect.Signature,
+    custom_boxing_fn_name_per_parameter: dict[str, str],
+) -> tuple[inspect.Signature, str]:
+  """Returns the updated signature and the `binding_options`.
+
+  Args:
+    signature: An `inspect.Signature` object representing the expected python
+      signature.
+    custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
+      function per parameter. The boxing function should be specified by its
+      name in the `koladata.types.py_boxing` module (the default boxing
+      corresponds to `as_qvalue_or_expr`).
+
+  Returns:
+    An updated inspect.Signature object with boxing rules applied to the default
+    values, and `<binding_options>` for the unified `aux_policy`.
+  """
+  for param_name in custom_boxing_fn_name_per_parameter.keys():
+    if param_name not in signature.parameters:
+      raise ValueError(
+          'custom_boxing_fn_name specified for unknown parameter:'
+          f' {param_name!r}'
+      ) from None
+  boxing_options_fn_names = {_DEFAULT_BOXING_FN_NAME: 0}
+  boxing_options_fn_indices = []
+  new_parameters = []
+  for param in signature.parameters.values():
+    boxing_fn_name = custom_boxing_fn_name_per_parameter.get(
+        param.name, _DEFAULT_BOXING_FN_NAME
+    )
+    boxing_fn = getattr(py_boxing, boxing_fn_name)
+    boxing_options_fn_indices.append(
+        boxing_options_fn_names.setdefault(
+            boxing_fn_name, len(boxing_options_fn_names)
+        )
+    )
+    if param.default is param.empty or isinstance(param.default, arolla.QValue):
+      new_parameters.append(param)
+      continue
+    default = param.default
+    if not isinstance(default, arolla.Expr):
+      default = boxing_fn(default)
+    if not isinstance(default, arolla.QValue):
+      raise ValueError(
+          f'unable to represent default value for a parameter {param.name!r} as'
+          f' a koladata value: {param.default!r}'
+      )
+    new_parameters.append(param.replace(default=default))
+  signature = signature.replace(parameters=new_parameters)
+  del boxing_options_fn_names[_DEFAULT_BOXING_FN_NAME]
+  if not boxing_options_fn_names:
+    return signature, ''
+  if len(boxing_options_fn_names) > 9:
+    raise ValueError(
+        'only supports up to 9 custom boxing functions per operator:'
+        f' {len(boxing_options_fn_names)}'
+    )
+  # Trim trailing `0`s, as the default boxing rules are applied implicitly.
+  while boxing_options_fn_indices and boxing_options_fn_indices[-1] == 0:
+    boxing_options_fn_indices.pop()
+  return (
+      signature,
+      ';'.join([
+          *boxing_options_fn_names.keys(),
+          ''.join(map(str, boxing_options_fn_indices)),
+      ]),
+  )
+
+
 def make_unified_signature(
-    signature: inspect.Signature, *, deterministic: bool
+    signature: inspect.Signature,
+    *,
+    deterministic: bool,
+    custom_boxing_fn_name_per_parameter: dict[str, str],
 ) -> arolla.abc.Signature:
   """Returns an operator signature with a unified binding policy.
 
@@ -55,61 +132,70 @@ def make_unified_signature(
     deterministic: If set to False, a hidden parameter (with the name
       `NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the signature. This
       parameter receives special handling by the binding policy implementation.
+    custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
+      function per parameter. The boxing function should be specified by its
+      name in the `koladata.types.py_boxing` module (the default boxing
+      corresponds to `as_qvalue_or_expr`).
 
   Returns:
     arolla.abc.Signature: An operator signature with the unified binding
     policy applied.
   """
+  signature, aux_boxing_options = _process_boxing_options(
+      signature, custom_boxing_fn_name_per_parameter
+  )
   sig_spec = []
   sig_vals = []
-  aux_opts = []
+  aux_binding_options = []
   for param in signature.parameters.values():
     if param.kind == param.POSITIONAL_ONLY:
       if param.default is param.empty:
         sig_spec.append(param.name)
-        aux_opts.append(_OPT_CHR_POSITIONAL_ONLY)
+        aux_binding_options.append(_OPT_CHR_POSITIONAL_ONLY)
       else:
         sig_spec.append(param.name + '=')
         sig_vals.append(param.default)
-        aux_opts.append(_OPT_CHR_POSITIONAL_ONLY)
+        aux_binding_options.append(_OPT_CHR_POSITIONAL_ONLY)
     elif param.kind == param.POSITIONAL_OR_KEYWORD:
       if param.default is param.empty:
         sig_spec.append(param.name)
-        aux_opts.append(_OPT_CHR_POSITIONAL_OR_KEYWORD)
+        aux_binding_options.append(_OPT_CHR_POSITIONAL_OR_KEYWORD)
       else:
         sig_spec.append(param.name + '=')
         sig_vals.append(param.default)
-        aux_opts.append(_OPT_CHR_POSITIONAL_OR_KEYWORD)
+        aux_binding_options.append(_OPT_CHR_POSITIONAL_OR_KEYWORD)
     elif param.kind == param.KEYWORD_ONLY:
       if param.default is param.empty:
         sig_spec.append(param.name + '=')
         sig_vals.append(arolla.unspecified())
-        aux_opts.append(_OPT_CHR_REQUIRED_KEYWORD_ONLY)
+        aux_binding_options.append(_OPT_CHR_REQUIRED_KEYWORD_ONLY)
       else:
         sig_spec.append(param.name + '=')
         sig_vals.append(param.default)
-        aux_opts.append(_OPT_CHR_OPTIONAL_KEYWORD_ONLY)
+        aux_binding_options.append(_OPT_CHR_OPTIONAL_KEYWORD_ONLY)
     elif param.kind == param.VAR_POSITIONAL:
       sig_spec.append(param.name + '=')
       sig_vals.append(arolla.tuple())
-      aux_opts.append('P')
+      aux_binding_options.append(_OPT_CHR_VAR_POSITIONAL)
     elif param.kind == param.VAR_KEYWORD:
       sig_spec.append(param.name + '=')
       sig_vals.append(arolla.namedtuple())
-      aux_opts.append('K')
+      aux_binding_options.append(_OPT_CHR_VAR_KEYWORD)
     else:
       raise ValueError(f'unsupported parameter: {param}')
 
   if not deterministic:
     sig_spec.append(NON_DETERMINISTIC_PARAM_NAME + '=')
     sig_vals.append(arolla.unspecified())
-    aux_opts.append(_OPT_CHR_NON_DETERMINISTIC)
+    aux_binding_options.append(_OPT_CHR_NON_DETERMINISTIC)
 
-  aux_opts = ''.join(aux_opts)
-  return arolla.abc.make_operator_signature(  # pytype: disable=bad-return-type
-      (','.join(sig_spec) + f'|{UNIFIED_POLICY_PREFIX}{aux_opts}', *sig_vals),
-      as_qvalue=py_boxing.as_qvalue,
-  )
+  aux_options = ''.join(aux_binding_options)
+  if aux_boxing_options:
+    aux_options += ':' + aux_boxing_options
+  return arolla.abc.make_operator_signature((  # pytype: disable=bad-return-type
+      ','.join(sig_spec) + f'|{UNIFIED_POLICY_PREFIX}{aux_options}',
+      *sig_vals,
+  ))
 
 
 _make_tuple_op = arolla.abc.decay_registered_operator('core.make_tuple')
