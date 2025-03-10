@@ -306,7 +306,7 @@ TEST_P(DeepUuidTest, DictsSlice) {
   auto dict_schema = AllocateSchema();
   TriplesT schema_triples = {
       {dict_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());

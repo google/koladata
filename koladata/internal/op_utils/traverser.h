@@ -168,7 +168,33 @@ class Traverser {
     DataItem schema;
   };
 
+  absl::Status ValidatePrimitiveType(const ItemWithSchema& item) {
+    if (!item.item.has_value()) {
+      return absl::OkStatus();
+    }
+    DCHECK(item.schema.is_primitive_schema());
+    auto dtype = item.item.dtype();
+    if (auto schema_dtype = item.schema.template value<schema::DType>();
+        schema_dtype.qtype() != dtype) {
+      auto item_qtype_or = schema::DType::FromQType(dtype);
+      if (!item_qtype_or.ok()) {
+        return absl::InvalidArgumentError(absl::StrCat(
+            "during traversal, got a slice with primitive type ",
+            schema_dtype,
+            " while the actual content is not a primitive"));
+      }
+      return absl::InvalidArgumentError(
+          absl::StrCat("during traversal, got a slice with primitive type ",
+                       schema_dtype, " while the actual content has type ",
+                       item_qtype_or->name()));
+    }
+    return absl::OkStatus();
+  }
+
   absl::Status Previsit(const ItemWithSchema& item) {
+    if (item.schema.is_primitive_schema()) {
+      RETURN_IF_ERROR(ValidatePrimitiveType(item));
+    }
     if (item.item.has_value() && !item.item.ContainsAnyPrimitives()) {
       previsit_stack_.push({.item = item.item, .schema = item.schema});
     }

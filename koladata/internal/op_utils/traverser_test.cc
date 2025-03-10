@@ -28,6 +28,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
@@ -45,6 +46,8 @@
 
 namespace koladata::internal {
 namespace {
+
+using ::absl_testing::StatusIs;
 
 using ::arolla::CreateDenseArray;
 
@@ -403,7 +406,7 @@ TEST_P(NoOpTraverserTest, ShallowDictsSlice) {
   auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys =
-      DataSliceImpl::Create(CreateDenseArray<int64_t>({1, 2, 3, 1, 5, 3, 7}));
+      DataSliceImpl::Create(CreateDenseArray<int32_t>({1, 2, 3, 1, 5, 3, 7}));
   auto values =
       DataSliceImpl::Create(CreateDenseArray<float>({1, 2, 3, 4, 5, 6, 7}));
   ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
@@ -447,7 +450,7 @@ TEST_P(NoOpTraverserTest, DeepDictsSlice) {
                            {values[5], {{"x", DataItem(6)}}},
                            {values[6], {{"x", DataItem(7)}}}};
   TriplesT schema_triples = {
-      {key_schema, {{"name", DataItem(schema::kString)}}},
+      {key_schema, {{"name", DataItem(schema::kBytes)}}},
       {value_schema, {{"x", DataItem(schema::kInt32)}}},
       {dict_schema,
        {{schema::kDictKeysSchemaAttr, key_schema},
@@ -498,9 +501,9 @@ TEST_P(NoOpTraverserTest, ObjectsSlice) {
   };
   TriplesT schema_triples = {
       {item_schema, {{"x", DataItem(schema::kInt32)}}},
-      {key_schema, {{"name", DataItem(schema::kString)}}},
+      {key_schema, {{"name", DataItem(schema::kBytes)}}},
       {dict0_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kBytes)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
       {dict1_schema,
        {{schema::kDictKeysSchemaAttr, key_schema},
@@ -567,6 +570,57 @@ TEST_P(NoOpTraverserTest, SliceWithNamedSchema) {
                           {GetFallbackDb(db).get()}));
 }
 
+TEST_P(NoOpTraverserTest, PrimitiveTypesMismatch) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto schema = AllocateSchema();
+  TriplesT data_triples = {
+      {a0, {{"x", DataItem(1)}}},
+      {a1, {{"x", DataItem(2.)}}}};
+  TriplesT schema_triples = {
+      {schema, {{"x", DataItem(schema::kInt32)}}},
+  };
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  EXPECT_THAT(
+      TraverseSlice(obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               testing::AllOf(
+                   testing::HasSubstr(
+                       "during traversal, got a slice with primitive type"),
+                   testing::HasSubstr("while the actual content has type"))));
+}
+
+TEST_P(NoOpTraverserTest, TypesMismatch) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto schema = AllocateSchema();
+  TriplesT data_triples = {
+      {a0, {{"x", DataItem(1)}}},
+      {a1, {{"x", a0}}}};
+  TriplesT schema_triples = {
+      {schema, {{"x", DataItem(schema::kInt32)}}},
+  };
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  EXPECT_THAT(
+      TraverseSlice(obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               testing::AllOf(
+                   testing::HasSubstr(
+                       "during traversal, got a slice with primitive type"),
+                   testing::HasSubstr(
+                       "while the actual content is not a primitive"))));
+}
+
 TEST_P(ObjectsTraverserTest, ObjectsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
@@ -604,9 +658,9 @@ TEST_P(ObjectsTraverserTest, ObjectsSlice) {
   };
   TriplesT schema_triples = {
       {item_schema, {{"x", DataItem(schema::kInt32)}}},
-      {key_schema, {{"name", DataItem(schema::kString)}}},
+      {key_schema, {{"name", DataItem(schema::kBytes)}}},
       {dict0_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kBytes)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
       {dict1_schema,
        {{schema::kDictKeysSchemaAttr, DataItem(schema::kObject)},
@@ -636,7 +690,9 @@ TEST_P(ObjectsTraverserTest, MixedSliceWithNaN) {
   auto item_schema = AllocateSchema();
   TriplesT data_triples = {
       {a0, {{schema::kSchemaAttr, item_schema}, {"x", DataItem(NaN)}}},
-      {a1, {{schema::kSchemaAttr, item_schema}, {"x", DataItem(2)}}},
+      {a1,
+       {{schema::kSchemaAttr, item_schema},
+        {"x", DataItem(static_cast<float>(2))}}},
   };
   TriplesT schema_triples = {
       {item_schema, {{"x", DataItem(schema::kFloat32)}}},

@@ -432,7 +432,7 @@ TEST_P(DeepCloneTest, ShallowDictsSlice) {
   auto dict_schema = AllocateSchema();
   TriplesT schema_triples = {
       {dict_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetSchemaTriples(*db, GenNoiseSchemaTriples());
@@ -459,7 +459,7 @@ TEST_P(DeepCloneTest, ShallowDictsSlice) {
   ASSERT_OK(expected_db->SetInDict(result_dicts_expanded, keys, values));
   TriplesT expected_schema_triples = {
       {result_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
   SetSchemaTriples(*expected_db, expected_schema_triples);
   ASSERT_NE(result_db.get(), db.get());
@@ -491,7 +491,7 @@ TEST_P(DeepCloneTest, DeepDictsSlice) {
                            {values[5], {{"x", DataItem(6)}}},
                            {values[6], {{"x", DataItem(7)}}}};
   TriplesT schema_triples = {
-      {key_schema, {{"name", DataItem(schema::kString)}}},
+      {key_schema, {{"name", DataItem(schema::kBytes)}}},
       {value_schema, {{"x", DataItem(schema::kInt32)}}},
       {dict_schema,
        {{schema::kDictKeysSchemaAttr, key_schema},
@@ -566,7 +566,7 @@ TEST_P(DeepCloneTest, DeepDictsSlice) {
       {result_schema,
        {{schema::kDictKeysSchemaAttr, result_key_schema},
         {schema::kDictValuesSchemaAttr, result_value_schema}}},
-      {result_key_schema, {{"name", DataItem(schema::kString)}}},
+      {result_key_schema, {{"name", DataItem(schema::kBytes)}}},
       {result_value_schema, {{"x", DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*expected_db, expected_schema_triples);
   SetDataTriples(*expected_db, resultdata_triples);
@@ -611,9 +611,9 @@ TEST_P(DeepCloneTest, ObjectsSlice) {
   };
   TriplesT schema_triples = {
       {item_schema, {{"x", DataItem(schema::kInt32)}}},
-      {key_schema, {{"name", DataItem(schema::kString)}}},
+      {key_schema, {{"name", DataItem(schema::kBytes)}}},
       {dict0_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kBytes)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
       {dict1_schema,
        {{schema::kDictKeysSchemaAttr, key_schema},
@@ -704,9 +704,9 @@ TEST_P(DeepCloneTest, ObjectsSlice) {
   };
   TriplesT expected_schema_triples = {
       {result_item_schema, {{"x", DataItem(schema::kInt32)}}},
-      {result_key_schema, {{"name", DataItem(schema::kString)}}},
+      {result_key_schema, {{"name", DataItem(schema::kBytes)}}},
       {result_dict0_schema,
-       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kBytes)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}},
       {result_dict1_schema,
        {{schema::kDictKeysSchemaAttr, result_key_schema},
