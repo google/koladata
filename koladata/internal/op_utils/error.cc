@@ -40,7 +40,7 @@ absl::Status OperatorEvalError(absl::Status status,
   }
 
   // To preserve non-Koda payloads we keep the original error as a cause.
-  if (arolla::HasPayload(status) && previous_koda_error == nullptr) {
+  if (arolla::GetPayload(status) != nullptr && previous_koda_error == nullptr) {
     auto result = KodaErrorFromCause(error_message, std::move(status));
     return result;
   }
