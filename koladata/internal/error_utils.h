@@ -20,7 +20,6 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "koladata/internal/data_item.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/s11n/codec.pb.h"
 #include "arolla/serialization_base/base.pb.h"
@@ -39,14 +38,6 @@ absl::Status WithErrorPayload(absl::Status status, Error error);
 // Sets the `error` in the payload of the `status` if not ok. If `error` is not
 // ok, the error message of `error` will be appended to the `status`.
 absl::Status WithErrorPayload(absl::Status status, absl::StatusOr<Error> error);
-
-// Encodes the DataItem to ContainerProto.
-absl::StatusOr<arolla::serialization_base::ContainerProto> EncodeDataItem(
-    const DataItem& item);
-
-// Decodes the ContainerProto to DataItem.
-absl::StatusOr<DataItem> DecodeDataItem(
-    const arolla::serialization_base::ContainerProto& item_proto);
 
 // Creates KodaError with an error message from the status. If the status
 // already is a KodaError, returns the status as is.

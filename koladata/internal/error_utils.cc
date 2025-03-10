@@ -16,26 +16,17 @@
 
 #include <any>
 #include <optional>
-#include <string>
 #include <utility>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
-#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "koladata/internal/data_item.h"
 #include "koladata/internal/error.pb.h"
 #include "koladata/s11n/codec.pb.h"
-#include "arolla/qtype/typed_value.h"
-#include "arolla/serialization/encode.h"
-#include "arolla/serialization/utils.h"
 #include "arolla/util/status.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {
-
-using arolla::TypedValue;
-using arolla::serialization_base::ContainerProto;
 
 // TODO: b/374841918 - Consider removing this function in favor of
 // arolla::GetPayload<Error>.
@@ -64,17 +55,6 @@ absl::Status WithErrorPayload(absl::Status status,
         << "Error when creating KodaError: " << error.status().message();
   }
   return WithErrorPayload(std::move(status), std::move(error.value()));
-}
-
-absl::StatusOr<ContainerProto> EncodeDataItem(const DataItem& item) {
-  return arolla::serialization::Encode({TypedValue::FromValue(item)}, {});
-}
-
-absl::StatusOr<DataItem> DecodeDataItem(const ContainerProto& item_proto) {
-  ASSIGN_OR_RETURN(TypedValue result,
-                   arolla::serialization::DecodeValue(item_proto));
-  ASSIGN_OR_RETURN(DataItem item, result.As<DataItem>());
-  return item;
 }
 
 absl::Status AsKodaError(absl::Status status) {

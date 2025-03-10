@@ -48,7 +48,6 @@
 namespace koladata {
 namespace {
 
-using DataItemProto = ::koladata::s11n::KodaV1Proto::DataItemProto;
 using ::koladata::internal::Error;
 
 // Returns the attr at `attr_name` for the provided `item` and `db` pair.

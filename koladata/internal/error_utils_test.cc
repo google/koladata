@@ -16,23 +16,16 @@
 
 #include <optional>
 #include <utility>
-#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
-#include "koladata/internal/object_id.h"
 #include "koladata/s11n/codec.pb.h"
-#include "arolla/util/bytes.h"
-#include "arolla/util/meta.h"
 #include "arolla/util/status.h"
 #include "arolla/util/testing/status_matchers.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 
 namespace koladata::internal {
 namespace {
@@ -51,33 +44,6 @@ using ::testing::HasSubstr;
 using ::testing::NotNull;
 using ::testing::Property;
 using ::testing::StrEq;
-
-TEST(ErrorUtilsTest, TestEncodeDataItem) {
-  std::vector<DataItem> items{DataItem(1),
-                              DataItem(2.f),
-                              DataItem(3l),
-                              DataItem(3.5),
-                              DataItem(),
-                              DataItem(internal::AllocateSingleObject()),
-                              DataItem(arolla::kUnit),
-                              DataItem(arolla::Text("abc")),
-                              DataItem(arolla::Bytes("cba")),
-                              DataItem(schema::kBytes)};
-  for (const auto& item : items) {
-    ASSERT_OK_AND_ASSIGN(auto item_proto, EncodeDataItem(item));
-    EXPECT_THAT(DecodeDataItem(item_proto), IsOkAndHolds(item));
-  }
-}
-
-TEST(ErrorUtilsTest, TestEncodeDtype) {
-  arolla::meta::foreach_type(schema::supported_dtype_values(), [](auto tpe) {
-    using T = typename decltype(tpe)::type;
-    DType dtype = GetDType<T>();
-
-    ASSERT_OK_AND_ASSIGN(auto item_proto, EncodeDataItem(DataItem(dtype)));
-    EXPECT_THAT(DecodeDataItem(item_proto), IsOkAndHolds(DataItem(dtype)));
-  });
-}
 
 TEST(ErrorUtilsTest, GetEmptyPayload) {
   absl::Status status = absl::UnimplementedError("Test error");
