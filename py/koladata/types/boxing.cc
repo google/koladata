@@ -1110,8 +1110,7 @@ class UniversalConverter {
   // expensive callbacks to Python (parsing dataclasses) and the point of this
   // `Try...` method is to skip doing expensive Python callbacks on each Python
   // scalar.
-  absl::Status TryParsePythonScalar(PyObject* py_obj,
-                                    std::optional<DataSlice>* cache_value) {
+  absl::Status TryParsePythonScalar(PyObject* py_obj) {
     EmbeddingDataBag unused_embedding_db;
     schema::CommonSchemaAggregator schema_agg;
     internal::DataItem res_item;
@@ -1139,9 +1138,6 @@ class UniversalConverter {
       }
     }
     value_stack_.push(res);
-    if (cache_value != nullptr) {
-      *cache_value = std::move(res);
-    }
     return absl::OkStatus();
   }
 
@@ -1156,26 +1152,12 @@ class UniversalConverter {
       PyObject* py_obj, const std::optional<DataSlice>& schema,
       const std::optional<DataSlice>& parent_itemid = std::nullopt,
       const ChildItemIdAttrsDescriptor& attr_descriptor = {}) {
-    // Push `std::nullopt` to detect recursive Python structures.
-
-    std::optional<DataSlice>* cache_value = nullptr;
-
-    auto [computed_iter, emplaced] =
-        computed_.emplace(MakeCacheKey(py_obj, schema), std::nullopt);
-    if (!emplaced) {
-      if (!computed_iter->second.has_value()) {
-        return absl::InvalidArgumentError(
-            "recursive Python structures cannot be converted to Koda object");
-      }
-      // If itemid is set, values will get different itemids; in this case,
-      // we don't return the cached value, but use it only to detect recursive
-      // Python structures.
-      if (!parent_itemid.has_value()) {
-        value_stack_.push(*computed_iter->second);
-        return absl::OkStatus();
-      }
+    CacheKey cache_key = MakeCacheKey(py_obj, schema);
+    if (objects_in_progress_.find(cache_key) != objects_in_progress_.end()) {
+      return absl::InvalidArgumentError(
+          "recursive Python structures cannot be converted to Koda object");
     }
-    cache_value = &computed_iter->second;
+    objects_in_progress_.insert(cache_key);
     if (schema && schema->item() == schema::kObject) {
       // When processing Entities, if OBJECT schema is reached, the rest of
       // the Python tree is converted as Object.
@@ -1184,8 +1166,7 @@ class UniversalConverter {
           UniversalConverter<ObjectCreator>(db_, adoption_queue_, dict_as_obj_)
               .Convert(py_obj, /*schema=*/std::nullopt, /*from_dim=*/0,
                        parent_itemid, attr_descriptor));
-      computed_.insert_or_assign(MakeCacheKey(py_obj, schema),
-                                 value_stack_.top());
+      objects_in_progress_.erase(cache_key);
       return absl::OkStatus();
     }
     if (PyDict_CheckExact(py_obj)) {
@@ -1208,8 +1189,9 @@ class UniversalConverter {
     }
     // First trying the Python "scalar" conversion to avoid doing expensive
     // `AttrProvider` checks (e.g. dataclasses) on each leaf Python object.
-    absl::Status status = TryParsePythonScalar(py_obj, cache_value);
+    absl::Status status = TryParsePythonScalar(py_obj);
     if (status.ok()) {
+      objects_in_progress_.erase(cache_key);
       return status;
     }
     ASSIGN_OR_RETURN(auto attr_result,
@@ -1241,8 +1223,7 @@ class UniversalConverter {
     // elements and dict created from those keys and values).
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
-    computed_.insert_or_assign(MakeCacheKey(py_obj, dict_schema),
-                               value_stack_.top());
+    objects_in_progress_.erase(MakeCacheKey(py_obj, dict_schema));
     return absl::OkStatus();
   }
 
@@ -1260,8 +1241,7 @@ class UniversalConverter {
                          list_schema, /*item_schema=*/std::nullopt, itemid));
     ASSIGN_OR_RETURN(value_stack_.emplace(),
                      Factory::ConvertWithoutAdopt(db_, res));
-    computed_.insert_or_assign(MakeCacheKey(py_obj, list_schema),
-                               value_stack_.top());
+    objects_in_progress_.erase(MakeCacheKey(py_obj, list_schema));
     return absl::OkStatus();
   }
 
@@ -1300,8 +1280,7 @@ class UniversalConverter {
       ASSIGN_OR_RETURN(value_stack_.emplace(),
                        Factory::FromAttrs(db_, attr_names, values, itemid));
     }
-    computed_.insert_or_assign(MakeCacheKey(py_obj, entity_schema),
-                               value_stack_.top());
+    objects_in_progress_.erase(MakeCacheKey(py_obj, entity_schema));
     return absl::OkStatus();
   }
 
@@ -1337,7 +1316,8 @@ class UniversalConverter {
                     (schema ? schema->item() : DataItem()).StableFingerprint());
   }
 
-  absl::flat_hash_map<CacheKey, std::optional<DataSlice>> computed_;
+  // This set is used to detect recursive Python structures.
+  absl::flat_hash_set<CacheKey> objects_in_progress_;
 };
 
 }  // namespace

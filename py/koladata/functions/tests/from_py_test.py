@@ -18,6 +18,7 @@ import sys
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -50,7 +51,7 @@ class TestKlassInternals:
   b: float
 
 
-class FromPyTest(absltest.TestCase):
+class FromPyTest(parameterized.TestCase):
 
   # More detailed tests for conversions to Koda OBJECT are located in
   # obj_test.py.
@@ -153,6 +154,24 @@ class FromPyTest(absltest.TestCase):
 
     l = fns.from_py([1, 3.14], schema=fns.list_schema(schema_constants.OBJECT))
     testing.assert_equal(l[:].no_bag(), ds([1, 3.14], schema_constants.OBJECT))
+
+  @parameterized.named_parameters(
+      ('list', [1, 2, 3]),
+      ('dict', {'a': 2, 'b': 4}),
+      ('empty_tuple', ()),
+      ('tuple', (1, 2, 3)),
+      ('obj', dataclasses.make_dataclass('Obj', [('x', int)])(x=123)),
+  )
+  def test_same_objects_converted_to_different_items(self, input_obj):
+    d = fns.from_py({'x': input_obj, 'y': input_obj})
+    self.assertNotEqual(d['x'].get_itemid(), d['y'].get_itemid())
+    self.assertEqual(d['x'].to_py(), d['y'].to_py())
+    l = fns.from_py([input_obj, input_obj])
+    self.assertNotEqual(l[0].get_itemid(), l[1].get_itemid())
+    self.assertEqual(l[0].to_py(), l[1].to_py())
+    o = fns.from_py({'x': input_obj, 'y': input_obj}, dict_as_obj=True)
+    self.assertNotEqual(o.x.get_itemid(), o.y.get_itemid())
+    self.assertEqual(o.x.to_py(), o.y.to_py())
 
   # More detailed tests for conversions to Koda Entities for Dicts are located
   # in new_test.py.

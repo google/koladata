@@ -359,7 +359,8 @@ class ObjTest(absltest.TestCase):
         obj, ds(['d1', 'd2'], schema_constants.OBJECT)
     )
     obj_d2 = obj['d2']
-    testing.assert_equal(obj['d1']['d'], obj_d2)
+    self.assertNotEqual(obj['d1']['d'].get_itemid(), obj_d2.get_itemid())
+    self.assertEqual(obj['d1']['d'].to_py(), obj_d2.to_py())
     testing.assert_equal(
         obj_d2['b'], ds(37, schema_constants.OBJECT).with_bag(obj.get_bag())
     )
@@ -368,7 +369,7 @@ class ObjTest(absltest.TestCase):
     )
 
   def test_universal_converter_with_reusing_dicts(self):
-    d = {'abc': 42}
+    d = {'abc': 123}
     for _ in range(2):
       d = {12: d, 42: d}
     obj = fns.obj(d)
@@ -377,8 +378,9 @@ class ObjTest(absltest.TestCase):
     testing.assert_dicts_keys_equal(d1, ds([12, 42], schema_constants.OBJECT))
     d2 = obj[42]
     testing.assert_dicts_keys_equal(d2, ds([12, 42], schema_constants.OBJECT))
-    # d1 and d2 share the same ItemId.
-    testing.assert_equal(d1, d2)
+    # d1 and d2 are the same, but have different ItemId.
+    self.assertNotEqual(d1.get_itemid(), d2.get_itemid())
+    self.assertEqual(d1.to_py(), d2.to_py())
     d11 = d1[12]
     testing.assert_dicts_keys_equal(d11, ds(['abc'], schema_constants.OBJECT))
     d12 = d1[42]
