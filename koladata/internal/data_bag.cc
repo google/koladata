@@ -2597,6 +2597,8 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrAllowMissing(
   // (including code simplicity).
   SliceBuilder small_alloc_result_builder(schema_slice.size());
   absl::Status status = absl::OkStatus();
+  std::optional<ObjectId> last_schema_id;
+  DataItem attr_value;
   schema_slice.values<ObjectId>().ForEachPresent(
       [&](int64_t offset, ObjectId schema_id) {
         if (!status.ok()) {
@@ -2605,14 +2607,18 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrAllowMissing(
         if (!schema_id.IsSmallAlloc()) {
           return;
         }
-        auto attr_value_or =
-            GetSchemaAttrAllowMissing(DataItem(schema_id), attr, fallbacks);
-        if (!attr_value_or.ok()) {
-          status = attr_value_or.status();
-          return;
+        if (schema_id != last_schema_id) {
+          last_schema_id = schema_id;
+          absl::StatusOr<DataItem> attr_value_or =
+              GetSchemaAttrAllowMissing(DataItem(schema_id), attr, fallbacks);
+          if (!attr_value_or.ok()) {
+            status = attr_value_or.status();
+            return;
+          }
+          attr_value = std::move(*attr_value_or);
         }
-        small_alloc_result_builder.InsertIfNotSetAndUpdateAllocIds(
-            offset, *attr_value_or);
+        small_alloc_result_builder.InsertIfNotSetAndUpdateAllocIds(offset,
+                                                                   attr_value);
       });
   RETURN_IF_ERROR(std::move(status));
   if (!big_alloc_result.has_value()) {

@@ -477,6 +477,41 @@ TEST(DataBagTest, GetSchemaAttrsForBigAllocationAsVector) {
   }
 }
 
+TEST(DataBagTest, GetSchemaAttrAllowMissing) {
+  {
+    // Small allocations.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schemas = DataSliceImpl::ObjectsFromAllocation(
+        AllocateExplicitSchemas(kSmallAllocMaxCapacity),
+        kSmallAllocMaxCapacity);
+    auto schema = DataItem(AllocateExplicitSchema());
+    auto schema_ds = DataSliceImpl::Create(
+        {schemas[0], schema, schemas[1], schemas[1], schema, schema});
+    ASSERT_OK(db->SetSchemaAttr(schema_ds, "self", schema_ds));
+    ASSERT_OK_AND_ASSIGN(
+        DataSliceImpl schema_attrs,
+        db->GetSchemaAttrAllowMissing(schema_ds, "self", {}));
+    EXPECT_THAT(schema_attrs, IsEquivalentTo(schema_ds));
+  }
+  {
+    // Big allocations.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schemas_a = DataSliceImpl::ObjectsFromAllocation(
+        AllocateExplicitSchemas(kSmallAllocMaxCapacity + 1),
+        kSmallAllocMaxCapacity + 1);
+    auto schemas_b = DataSliceImpl::ObjectsFromAllocation(
+        AllocateExplicitSchemas(kSmallAllocMaxCapacity + 1),
+        kSmallAllocMaxCapacity + 1);
+    auto schema_ds = DataSliceImpl::Create(
+        {schemas_a[0], schemas_b[0], schemas_b[1], schemas_a[1], schemas_b[0]});
+    ASSERT_OK(db->SetSchemaAttr(schema_ds, "self", schema_ds));
+    ASSERT_OK_AND_ASSIGN(
+        DataSliceImpl schema_attrs,
+        db->GetSchemaAttrAllowMissing(schema_ds, "self", {}));
+    EXPECT_THAT(schema_attrs, IsEquivalentTo(schema_ds));
+  }
+}
+
 TEST(DataBagTest, SetSchemaName) {
   {
     // Valid name.
