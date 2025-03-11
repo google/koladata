@@ -1126,6 +1126,17 @@ TEST(DataSliceTest, GetAttrNames_Object) {
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b", "c")));
 }
 
+TEST(DataSliceTest, GetAttrNames_Object_MissingValue_BigAlloc) {
+  auto db = DataBag::Empty();
+  auto missing =
+      test::DataSlice<int>({std::nullopt, std::nullopt, std::nullopt,
+                            std::nullopt, std::nullopt, std::nullopt});
+  auto b = test::DataSlice<float>({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+  ASSERT_OK_AND_ASSIGN(auto object,
+                       ObjectCreator::FromAttrs(db, {"a", "b"}, {missing, b}));
+  EXPECT_THAT(object.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b")));
+}
+
 TEST(DataSliceTest, GetAttrNames_Object_AttrsAtIntersection) {
   auto db = DataBag::Empty();
   auto a = test::DataItem(1);

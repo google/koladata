@@ -280,8 +280,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataItem(
 }
 
 absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
-    internal::ObjectId schema_alloc, const internal::DataSliceImpl& slice,
-    const internal::DataSliceImpl& schemas,
+    internal::ObjectId schema_alloc, const internal::DataSliceImpl& schemas,
     const internal::DataBagImpl& db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks, bool union_object_attrs) {
   if (internal::AllocationId(schema_alloc).IsSmall()) {
@@ -294,10 +293,10 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
   for (const auto& attr_name : attr_names) {
     const auto& attr_name_view = attr_name.value<arolla::Text>();
     ASSIGN_OR_RETURN(auto attr, db_impl.GetSchemaAttrAllowMissing(
-                                    slice, attr_name_view, fallbacks));
+                                    schemas, attr_name_view, fallbacks));
     bool need_insert = !attr.is_empty_and_unknown();
     need_insert &=
-        union_object_attrs || (attr.present_count() == slice.present_count());
+        union_object_attrs || (attr.present_count() == schemas.present_count());
     if (need_insert) {
       result.insert(std::string(attr_name_view));
     }
@@ -361,17 +360,14 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
     return DataSlice::AttrNamesSet();
   }
   if (is_single_allocation) {
-    return GetAttrsFromDataSliceInSingleAllocation(*first_schema_alloc, slice,
-                                                   *schemas, db_impl, fallbacks,
-                                                   union_object_attrs);
+    return GetAttrsFromDataSliceInSingleAllocation(
+        *first_schema_alloc, *schemas, db_impl, fallbacks, union_object_attrs);
   }
   auto group_by = internal::ObjectsGroupBy();
   const auto schema_allocs = std::move(schema_allocs_bldr).Build();
   ASSIGN_OR_RETURN(auto edge, group_by.EdgeFromSchemasArray(schema_allocs));
   ASSIGN_OR_RETURN(auto group_schema_allocs,
                    group_by.CollapseByEdge(edge, schema_allocs));
-  ASSIGN_OR_RETURN(auto slice_grouped,
-                   group_by.ByEdge(edge, slice.values<internal::ObjectId>()));
   ASSIGN_OR_RETURN(
       auto schemas_grouped,
       group_by.ByEdge(edge, schemas->values<internal::ObjectId>()));
@@ -383,7 +379,6 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
         }
         auto attrs_or = GetAttrsFromDataSliceInSingleAllocation(
             schema_alloc,
-            internal::DataSliceImpl::Create(std::move(slice_grouped[idx])),
             internal::DataSliceImpl::Create(std::move(schemas_grouped[idx])),
             db_impl, fallbacks, union_object_attrs);
         if (!attrs_or.ok()) {
