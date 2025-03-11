@@ -64,6 +64,7 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/cancellation_context.h"
 #include "arolla/util/refcount_ptr.h"
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
@@ -532,6 +533,9 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
     if (fallbacks.empty()) {
       return nullptr;
     }
+    if (arolla::IsCancelled()) [[unlikely]] {
+      return nullptr;
+    }
     auto res = fallbacks.front();
     fallbacks = fallbacks.subspan(1);
     return res;
@@ -621,6 +625,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
       break;
     }
   }
+  RETURN_IF_ERROR(arolla::CheckCancellation());
 
   if (bldr.has_value()) {
     return std::move(*bldr).Build();
@@ -1377,6 +1382,9 @@ DataBagImpl::ExplodeLists(const DataSliceImpl& lists, ListRange range,
 
     lists.values<ObjectId>().ForEach(
         [&](int64_t offset, bool present, ObjectId list_id) {
+          if (arolla::IsCancelled()) [[unlikely]] {
+            return;
+          }
           if (present) {
             const DataList& list = GetFirstPresentList(
                 list_id, list_getter, absl::MakeSpan(fallback_list_getters));
@@ -1385,7 +1393,7 @@ DataBagImpl::ExplodeLists(const DataSliceImpl& lists, ListRange range,
           split_points_bldr.Set(offset + 1, cum_size);
         });
   }
-
+  RETURN_IF_ERROR(arolla::CheckCancellation());
   RETURN_IF_ERROR(list_getter.status());
 
   arolla::Buffer<int64_t> split_points = std::move(split_points_bldr).Build();
@@ -2179,6 +2187,7 @@ inline absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromDictImpl(
     if (bldr.is_finalized()) {
       break;
     }
+    RETURN_IF_ERROR(arolla::CheckCancellation());
     RETURN_IF_ERROR(fallback->GetFromDictNoFallback<AllocCheckFn>(dict_objects,
                                                                   keys, bldr));
   }
