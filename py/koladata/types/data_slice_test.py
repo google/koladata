@@ -3782,8 +3782,20 @@ class DataSliceListSlicingTest(parameterized.TestCase):
         d._repr_with_params(depth=2), r'Obj\(a=Obj\(b=\$[0-9a-zA-Z]{22}\)\)'  # pylint: disable=protected-access
     )
 
+    # Check item_limit behavior
+    self.assertEqual(
+        fns.list([1, 2, 3, 4, 5])._repr_with_params(item_limit=2),  # pylint: disable=protected-access
+        'List[1, 2, ...]',
+    )
+    self.assertNotIn(
+        fns.list(list(range(100)))._repr_with_params(item_limit=-1),  # pylint: disable=protected-access
+        '...',
+    )
+
     with self.assertRaisesRegex(TypeError, 'depth must be an integer'):
       d._repr_with_params(depth={})  # pylint: disable=protected-access
+    with self.assertRaisesRegex(TypeError, 'item_limit must be an integer'):
+      d._repr_with_params(item_limit='abc')  # pylint: disable=protected-access
     with self.assertRaisesRegex(TypeError,
                                 'unbounded_type_max_len must be an integer'):
       d._repr_with_params(unbounded_type_max_len={})  # pylint: disable=protected-access

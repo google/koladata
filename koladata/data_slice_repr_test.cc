@@ -1632,6 +1632,45 @@ TEST(DataSliceReprTest, UnboundedTypeMaxLength) {
               IsOkAndHolds("Dict{'aaa...'='aaa...'}"));
 }
 
+TEST(DataSliceReprTest, FormatHtml_ItemLimit) {
+  DataBagPtr bag = DataBag::Empty();
+
+  // DataSlice case
+  EXPECT_THAT(
+      DataSliceToStr(
+          test::DataSlice<int>({1, 2, 3}),
+          {.item_limit = 1, .format_html = true, }),
+      IsOkAndHolds(HasSubstr("<span class=\"limited\">...</span>")));
+
+  // List case
+  DataSlice list_item = test::DataSlice<int>({1, 2, 3});
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice list,
+      CreateListShaped(bag, DataSlice::JaggedShape::Empty(), list_item));
+  EXPECT_THAT(DataSliceToStr(list, {.item_limit = 1, .format_html = true}),
+              IsOkAndHolds(HasSubstr("<span class=\"limited\">...</span>")));
+
+  // Dict case
+  ASSERT_OK_AND_ASSIGN(auto dict_schema,
+                       CreateDictSchema(bag, test::Schema(schema::kString),
+                                        test::Schema(schema::kInt32)));
+  ObjectId dict_id = internal::AllocateSingleDict();
+  DataSlice dict = test::DataItem(dict_id, dict_schema.item(), bag);
+  DataSlice keys = test::DataSlice<arolla::Text>({"a", "x"});
+  DataSlice values = test::DataSlice<int>({1, 4});
+  ASSERT_OK(dict.SetInDict(keys, values));
+  EXPECT_THAT(DataSliceToStr(dict, {.item_limit = 1, .format_html = true}),
+              IsOkAndHolds(HasSubstr("<span class=\"limited\">...</span>")));
+
+  // Object case
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice obj,
+      ObjectCreator::FromAttrs(bag, {"a", "b"},
+                               std::vector<DataSlice>(2, test::DataItem(1))));
+  EXPECT_THAT(DataSliceToStr(obj, {.item_limit = 1, .format_html = true}),
+              IsOkAndHolds(HasSubstr("<span class=\"limited\">...</span>")));
+}
+
 TEST(DataSliceReprTest, DataSliceRepr) {
   // NOTE: More extensive repr tests are done in Python.
   auto db = DataBag::Empty();

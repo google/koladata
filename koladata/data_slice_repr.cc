@@ -57,8 +57,8 @@ using ::koladata::internal::DataItem;
 using ::koladata::internal::DataItemRepr;
 using ::koladata::internal::ObjectId;
 
-constexpr absl::string_view kEllipsis = "...";
-// This is the suffix we expect when DataItemRepr truncates a string.
+// This is the suffix we expect when DataItemRepr truncates a string. Note
+// the additional single quote at the end.
 constexpr absl::string_view kTruncationSuffix = "...'";
 constexpr absl::string_view kAttrTemplate = "%s=%s";
 constexpr absl::string_view kAttrHtmlTemplate =
@@ -173,6 +173,14 @@ struct WrappingBehavior {
     } else {
       return absl::StrFormat(kAttrTemplate, stripped_attr, value_str);
     }
+  }
+
+  // These are the ellipsis that appear when we run into an item limit.
+  std::string_view ItemLimitEllipsis() {
+    if (format_html) {
+      return "<span class=\"limited\">...</span>";
+    }
+    return "...";
   }
 
   // This must be invoked around all raw repr strings. The assumption of
@@ -389,7 +397,7 @@ std::string DataSliceImplToStr(const DataSlice& ds, const ReprOption& option,
 
       // Append ellipsis if we are hiding elements.
       if (group_size > size) {
-        elem_reprs.emplace_back(kEllipsis);
+        elem_reprs.emplace_back(wrapping.ItemLimitEllipsis());
       }
 
       // Compose final presentation of the group.
@@ -485,7 +493,7 @@ absl::StatusOr<std::string> ListToStr(const DataItem& item,
     for (size_t i = 0; i < list_impl.size(); ++i) {
       const internal::DataItem& item = list_impl[i];
       if (item_count >= option.item_limit) {
-        elements.emplace_back(kEllipsis);
+        elements.emplace_back(wrapping.ItemLimitEllipsis());
         break;
       }
       ASSIGN_OR_RETURN(std::string item_str,
@@ -544,7 +552,7 @@ absl::StatusOr<std::string> DictToStr(const DataItem& item,
 
   for (size_t i = 0; i < keys_impl.size(); ++i) {
     if (item_count >= option.item_limit) {
-      elements.emplace_back(kEllipsis);
+      elements.emplace_back(wrapping.ItemLimitEllipsis());
       break;
     }
     const DataItem& key = keys_impl[i];
@@ -585,7 +593,7 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
   for (const std::string& attr_name : attr_names) {
     // Keeps all attributes from schema.
     if (!ds.item().is_schema() && item_count >= option.item_limit) {
-      parts.emplace_back(kEllipsis);
+      parts.emplace_back(wrapping.ItemLimitEllipsis());
       break;
     }
     ASSIGN_OR_RETURN(DataSlice value, ds.GetAttr(attr_name));

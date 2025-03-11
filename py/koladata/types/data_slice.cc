@@ -648,7 +648,7 @@ PyObject* PyDataSlice_repr_with_params(PyObject* self, PyObject* const* py_args,
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor parser(FastcallArgParser(
       /*pos_only_n=*/0, /*parse_kwargs=*/false, /*kw_only_arg_names=*/
-      {"depth", "unbounded_type_max_len", "format_html"}));
+      {"depth", "item_limit", "unbounded_type_max_len", "format_html"}));
 
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
@@ -663,6 +663,16 @@ PyObject* PyDataSlice_repr_with_params(PyObject* self, PyObject* const* py_args,
       return nullptr;
     }
     depth = PyLong_AsSsize_t(py_depth);
+  }
+
+  Py_ssize_t item_limit = 20;
+  PyObject* py_item_limit = args.kw_only_args["item_limit"];
+  if (py_item_limit != nullptr) {
+    if (!PyLong_Check(py_item_limit)) {
+      PyErr_SetString(PyExc_TypeError, "item_limit must be an integer");
+      return nullptr;
+    }
+    item_limit = PyLong_AsSsize_t(py_item_limit);
   }
 
   int32_t unbounded_type_max_len = -1;
@@ -689,6 +699,7 @@ PyObject* PyDataSlice_repr_with_params(PyObject* self, PyObject* const* py_args,
 
   return PyDataSlice_str_with_options(
       self, ReprOption{.depth = depth,
+                       .item_limit = static_cast<size_t>(item_limit),
                        .strip_quotes = false,
                        .format_html = format_html,
                        .unbounded_type_max_len = unbounded_type_max_len});
@@ -1221,7 +1232,8 @@ Returns:
     {"_repr_with_params", (PyCFunction)PyDataSlice_repr_with_params,
      METH_FASTCALL | METH_KEYWORDS,
      "_repr_with_params("
-     "*, depth=1, unbounded_type_max_len=-1, format_html=False)\n"
+     "*, depth=1, item_limit=20, unbounded_type_max_len=-1, "
+     "format_html=False)\n"
      "--\n\n"
      "Used to generate str representation for interactive repr in Colab."},
     {"_debug_repr", (PyCFunction)PyDataSlice_debug_repr, METH_NOARGS,
