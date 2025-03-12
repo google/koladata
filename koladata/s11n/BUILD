@@ -45,7 +45,6 @@ cc_library(
         "//koladata/internal:missing_value",
         "//koladata/internal:non_deterministic_token",
         "//koladata/internal:object_id",
-        "//koladata/internal:schema_utils",
         "//koladata/internal:types",
         "//koladata/internal:types_buffer",
         "@com_google_absl//absl/base:core_headers",

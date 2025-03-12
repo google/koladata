@@ -89,6 +89,20 @@ class DumpsLoadsTest(parameterized.TestCase):
     loaded_bag = s11n.loads(dumped_bytes)
     testing.assert_equivalent(loaded_bag, input_slice_with_bag.get_bag())
 
+  def test_dumps_loads_named_schema(self):
+    bag = kd.bag()
+    schemas = kd.slice(
+        [bag.named_schema('A', a=kd.INT64), bag.named_schema('B', b=kd.INT64)]
+    )
+    loaded = s11n.loads(s11n.dumps(schemas))
+    testing.assert_equivalent(loaded.get_bag(), schemas.get_bag())
+
+  def test_dumps_loads_objects(self):
+    bag = kd.bag()
+    objs = bag.obj(a=kd.slice([1, 2, 3]*10))
+    loaded = s11n.loads(s11n.dumps(objs))
+    testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
+
   def test_dumps_with_riegeli_options(self):
     input_slice = kd.range(1_000_000)
     dumped_bytes_brotli = s11n.dumps(input_slice, riegeli_options='brotli')

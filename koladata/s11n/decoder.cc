@@ -42,7 +42,6 @@
 #include "koladata/internal/ellipsis.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "koladata/internal/types_buffer.h"
@@ -515,12 +514,9 @@ absl::Status DecodeAttrProto(const KodaV1Proto::AttrProto& attr_proto,
             internal::ObjectIdArray{std::move(objects_builder).Build(),
                                     std::move(bitmap)});
       }
-      if (alloc.IsSchemasAlloc() &&
-          attr_proto.name() != schema::kSchemaNameAttr) {
-        RETURN_IF_ERROR(db.SetSchemaAttr(objects, attr_proto.name(), values));
-      } else {
-        RETURN_IF_ERROR(db.SetAttr(objects, attr_proto.name(), values));
-      }
+      // Note: for schemas, we separately update dicts and attributes for big
+      // allocations.
+      RETURN_IF_ERROR(db.SetAttr(objects, attr_proto.name(), values));
     }
   }
   return absl::OkStatus();
