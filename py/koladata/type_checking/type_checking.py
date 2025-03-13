@@ -70,7 +70,7 @@ def check_inputs(**kw_constraints: data_item.DataItem):
   for key, value in kw_constraints.items():
     if value.get_schema() != schema_constants.SCHEMA:
       raise TypeError(
-          'kd.check_types: invalid constraint: expected constraint for'
+          'kd.check_inputs: invalid constraint: expected constraint for'
           f' parameter `{key}` to be a schema DataItem, got'
           f' {value.get_schema()}'
       )
@@ -84,13 +84,13 @@ def check_inputs(**kw_constraints: data_item.DataItem):
         for p in signature.parameters.values()
     ]):
       raise TypeError(
-          'kd.check_types does not support variadic parameters in the'
+          'kd.check_inputs does not support variadic parameters in the'
           ' decorated function'
       )
     for key in kw_constraints:
       if key not in signature.parameters:
         raise TypeError(
-            f'kd.check_types: parameter name `{key}` does not match any'
+            f'kd.check_inputs: parameter name `{key}` does not match any'
             ' parameter in function signature'
         )
 
@@ -106,12 +106,12 @@ def check_inputs(**kw_constraints: data_item.DataItem):
         arg = bound_args.arguments[key]
         if not isinstance(arg, (data_item.DataItem, data_slice.DataSlice)):
           raise TypeError(
-              'kd.check_types: cannot check type on non-DataSlice'
+              'kd.check_inputs: cannot check type on non-DataSlice'
               f' argument for parameter `{key}`'
           )
         if arg.get_schema() != type_constraint:
           raise TypeError(
-              f'kd.check_types: type mismatch for parameter `{key}`. Expected'
+              f'kd.check_inputs: type mismatch for parameter `{key}`. Expected'
               f' type {type_constraint}, got {arg.get_schema()}'
           )
       return f(*args, **kwargs)
@@ -166,22 +166,24 @@ def check_output(output: data_item.DataItem):
   """
   if output.get_schema() != schema_constants.SCHEMA:
     raise TypeError(
-        'kd.check_types: invalid constraint: expected constraint for output to'
+        'kd.check_output: invalid constraint: expected constraint for output to'
         f' be a schema DataItem, got {output.get_schema()}'
     )
 
   def decorate_f(f):
     def check_output_decorator(*args, **kwargs):
       # TODO: Support traced constraints/assertions.
+      if tracing_mode.is_tracing_enabled():
+        return f(*args, **kwargs)
       res = f(*args, **kwargs)
       if not isinstance(res, (data_item.DataItem, data_slice.DataSlice)):
         raise TypeError(
-            'kd.check_types: expected DataItem/DataSlice output, got'
+            'kd.check_output: expected DataItem/DataSlice output, got'
             f' {type(res)}'
         )
       if res.get_schema() != output:
         raise TypeError(
-            'kd.check_types: type mismatch for output. Expected'
+            'kd.check_output: type mismatch for output. Expected'
             f' type {output}, got {res.get_schema()}'
         )
       return res
