@@ -33,6 +33,7 @@ from koladata.operators import kde_operators as _kde_operators
 from koladata.operators import optools as _optools
 from koladata.operators import qtype_utils as _qtype_utils
 from koladata.testing import testing as _testing
+from koladata.type_checking import type_checking as _type_checking
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
@@ -185,6 +186,8 @@ lazy = _eager_only(_kde_operators.kde)
 # TODO: Remove this alias once the migration is done.
 kde = _eager_only(_kde_operators.kde)
 named_container = _same_when_tracing(_expr_container.NamedContainer)
+check_inputs = _eager_only(_type_checking.check_inputs)
+check_output = _eager_only(_type_checking.check_output)
 
 expr = _eager_only(_py_types.ModuleType('expr'))
 expr.literal = _literal_operator.literal

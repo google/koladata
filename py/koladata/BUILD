@@ -48,6 +48,7 @@ py_library(
         "//py/koladata/operators:optools",
         "//py/koladata/operators:qtype_utils",
         "//py/koladata/testing",
+        "//py/koladata/type_checking",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",

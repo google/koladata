@@ -284,6 +284,60 @@ class KdTest(absltest.TestCase):
     self.assertEqual(f(2), 4)
     self.assertEqual(kd.fn(f)(x=2), 4)
 
+  def test_check_inputs(self):
+    @kd.check_inputs(x=kd.INT32)
+    def f(x):
+      return x
+
+    # Assert does not raise.
+    _ = f(kd.slice([1, 2]))
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
+        ' got FLOAT32',
+    ):
+      _ = f(kd.slice([1.0, 2]))
+
+  def test_check_output(self):
+    @kd.check_output(kd.INT32)
+    def f(x):
+      return x
+
+    # Assert does not raise.
+    _ = f(kd.slice([1, 2]))
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'kd.check_output: type mismatch for output. Expected type INT32, got'
+        ' FLOAT32',
+    ):
+      _ = f(kd.slice([1.0, 2]))
+
+  def test_check_inputs_is_traceable(self):
+    def f(x):
+      @kd.eager.check_inputs(x=kd.INT32)
+      def g(x):
+        return x + 1
+
+      return g(x) + 1
+
+    fn = kd.fn(f)
+    # Assert does not raise.
+    kd.testing.assert_equal(fn(kd.slice([1, 2])), kd.slice([3, 4]))
+    # TODO: Support and test traced constraints.
+
+  def test_check_output_is_traceable(self):
+    def f(x):
+      @kd.eager.check_output(kd.INT32)
+      def g(x):
+        return x + 1
+
+      return g(x) + 1
+
+    fn = kd.fn(f)
+    # Assert does not raise.
+    kd.testing.assert_equal(fn(kd.slice([1, 2])), kd.slice([3, 4]))
+    # TODO: Support and test traced constraints.
+
   def test_sub_inputs(self):
     expr = I.x + I.y + V.x
     kd.testing.assert_equal(kd.expr.sub_inputs(expr, x=I.w), I.w + I.y + V.x)
@@ -355,8 +409,7 @@ class KdTest(absltest.TestCase):
         _ = kd.container
       with self.assertRaisesRegex(
           AttributeError,
-          "attribute 'to_py' is not available in tracing mode on"
-          " 'koladata.kd'",
+          "attribute 'to_py' is not available in tracing mode on 'koladata.kd'",
       ):
         _ = kd.to_py
 
