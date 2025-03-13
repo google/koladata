@@ -116,8 +116,6 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
         'use kd.slice(...) to create a slice or a multi-dimensional slice, and '
         'kd.list(...) to create a single Koda list'
     )
-  if isinstance(arg, (py_types.FunctionType, functools.partial)):
-    return arolla.abc.PyObject(arg, codec=REF_CODEC)
   if arg is data_slice.DataSlice:
     return data_item.DataItem.from_vals(None)
   if arg is data_bag.DataBag:
@@ -130,6 +128,14 @@ def as_qvalue_or_expr_with_list_to_slice_support(
 ) -> arolla.Expr | arolla.QValue:
   if isinstance(arg, list):
     return data_slice.DataSlice.from_vals(arg)
+  return as_qvalue_or_expr(arg)
+
+
+def as_qvalue_or_expr_with_py_function_to_py_object_support(
+    arg: Any,
+) -> arolla.Expr | arolla.QValue:
+  if isinstance(arg, (py_types.FunctionType, functools.partial)):
+    return arolla.abc.PyObject(arg, codec=REF_CODEC)
   return as_qvalue_or_expr(arg)
 
 
@@ -160,4 +166,17 @@ arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
     LIST_TO_SLICE_BOXING_POLICY,
     as_qvalue_or_expr_with_list_to_slice_support,
     make_literal_fn=literal,
+)
+
+# Constants for custom boxing policies.
+#
+# IMPORTANT: These strings define attributes in the `py_boxing` module.
+# If an operator uses the corresponding boxing policy, the attribute name
+# will be stored with the operator during serialization.
+#
+# Modifying an attribute name must be done with caution, as it will invalidate
+# previously serialised operators.
+#
+WITH_PY_FUNCTION_TO_PY_OBJECT = (
+    'as_qvalue_or_expr_with_py_function_to_py_object_support'
 )

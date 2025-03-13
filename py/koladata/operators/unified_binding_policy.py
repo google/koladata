@@ -72,6 +72,7 @@ def _process_boxing_options(
           'custom_boxing_fn_name specified for unknown parameter:'
           f' {param_name!r}'
       ) from None
+
   boxing_options_fn_names = {_DEFAULT_BOXING_FN_NAME: 0}
   boxing_options_fn_indices = []
   new_parameters = []

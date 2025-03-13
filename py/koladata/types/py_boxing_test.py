@@ -102,6 +102,12 @@ class PyBoxingTest(parameterized.TestCase):
     ):
       py_boxing.as_qvalue_or_expr([1])
 
+  def test_as_qvalue_or_expr_raises_on_function(self):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'object with unsupported type: function'
+    ):
+      py_boxing.as_qvalue_or_expr(lambda x: x)
+
   @parameterized.parameters(
       (1, ds(1)),
       (arolla.L.x, arolla.L.x),
@@ -116,10 +122,16 @@ class PyBoxingTest(parameterized.TestCase):
         expected_res,
     )
 
-  def test_as_qvalue_or_expr_for_callable(self):
+  def test_as_qvalue_or_expr_with_py_function_to_py_object_support(self):
     fn = lambda x: x
-    qvalue = py_boxing.as_qvalue_or_expr(fn)
-    self.assertIs(qvalue.py_value(), fn)
+    self.assertIsInstance(
+        py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(fn),
+        arolla.abc.PyObject,
+    )
+    self.assertEqual(
+        py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(1),
+        ds(1),
+    )
 
   def test_as_qvalue_or_expr_for_databag_type(self):
     # This cannot be part of the parameterized test because a different empty

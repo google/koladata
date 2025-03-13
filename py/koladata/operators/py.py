@@ -232,6 +232,9 @@ def _unwrap_optional_boolean(
         qtypes.DATA_SLICE,
         P.return_type_as,
     ),
+    custom_boxing_fn_name_per_parameter=dict(
+        fn=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT
+    ),
 )
 def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
   """Applies Python function `fn` on args.
@@ -276,6 +279,10 @@ def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
         qtype_utils.expect_data_slice_args(P.args),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
+    custom_boxing_fn_name_per_parameter=dict(
+        yes_fn=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT,
+        no_fn=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT,
+    ),
 )
 def apply_py_on_cond(yes_fn, no_fn, cond, *args, **kwargs):
   """Applies Python functions on args filtered with `cond` and `~cond`.
@@ -329,6 +336,9 @@ def apply_py_on_cond(yes_fn, no_fn, cond, *args, **kwargs):
         qtype_utils.expect_data_slice_args(P.args),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
+    custom_boxing_fn_name_per_parameter=dict(
+        fn=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT
+    ),
 )
 def apply_py_on_selected(fn, cond, *args, **kwargs):
   """Applies Python function `fn` on args filtered with cond.
@@ -499,6 +509,10 @@ def _basic_map_py(
         _expect_optional_boolean(P.include_missing),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
+    custom_boxing_fn_name_per_parameter=dict(
+        fn=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT,
+        item_completed_callback=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT,
+    ),
 )
 def map_py(
     fn,
@@ -639,6 +653,11 @@ def map_py(
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
+    custom_boxing_fn_name_per_parameter=dict(
+        true_fn=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT,
+        false_fn=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT,
+        item_completed_callback=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT,
+    ),
 )
 def map_py_on_cond(
     true_fn,
@@ -734,6 +753,10 @@ def map_py_on_cond(
         _expect_optional_py_callable(P.item_completed_callback),
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
+    custom_boxing_fn_name_per_parameter=dict(
+        fn=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT,
+        item_completed_callback=py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT,
+    ),
 )
 def map_py_on_selected(
     fn,

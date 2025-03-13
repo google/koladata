@@ -358,7 +358,7 @@ def py_fn(
       # have the args/kwargs as tuple and namedtuple.
       arolla.abc.bind_op(
           'kd.py.apply_py',
-          py_boxing.as_qvalue(f),
+          py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(f),
           args=I.args,
           return_type_as=py_boxing.as_qvalue(return_type_as),
           kwargs=I.kwargs,
@@ -549,10 +549,13 @@ def map_py_fn(
       may be kde expressions, format strings, or 0-dim DataSlices. See the
       docstring for py_fn for more details.
   """
-  f = expr_fn(
+  boxed_f = py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(f)
+  if isinstance(boxed_f, arolla.Expr):
+    raise TypeError(f'expected a function, got {f!r}')
+  result = expr_fn(
       arolla.abc.bind_op(
           'kd.py.map_py',
-          py_boxing.as_qvalue(f),
+          boxed_f,
           args=I.args,
           schema=py_boxing.as_qvalue(schema),
           max_threads=py_boxing.as_qvalue(max_threads),
@@ -563,7 +566,7 @@ def map_py_fn(
       ),
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
   )
-  return bind(f, **defaults) if defaults else f
+  return bind(result, **defaults) if defaults else result
 
 
 def get_signature(

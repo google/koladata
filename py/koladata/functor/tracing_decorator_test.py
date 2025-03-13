@@ -431,9 +431,8 @@ class TracingDecoratorTest(parameterized.TestCase):
     def f(x, fltr):
       return user_facing_kd.select(x, fltr)
 
-    # TODO: Make this fail with a nicer error message.
     with self.assertRaisesRegex(
-        ValueError, 'expected DATA_SLICE, got fltr: PY_OBJECT'
+        ValueError, 'object with unsupported type: function'
     ):
       _ = f(ds([1, 2, 3]), lambda x: x % 2 == 0)
 

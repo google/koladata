@@ -946,7 +946,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         [2, None, None],
     )
 
-  def test_map_py_default_arguments(self):
+  def test_map_py_fn_default_arguments(self):
     self.assertEqual(
         kd.call(
             functor_factories.map_py_fn(lambda x, y=1: x + y),
@@ -973,7 +973,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         7,
     )
 
-  def test_map_py_var_keyword(self):
+  def test_map_py_fn_var_keyword(self):
     def g(x, **kwargs):
       return x + kwargs['y']
 
@@ -991,7 +991,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         [2, 3, 4],
     )
 
-  def test_map_py_positional_params(self):
+  def test_map_py_fn_positional_params(self):
     def var_positional(*args):
       return sum(args)
 
@@ -1013,6 +1013,12 @@ class FunctorFactoriesTest(absltest.TestCase):
         ).to_py(),
         [1, 2],
     )
+
+  def test_map_py_fn_expr_for_function(self):
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'expected a function, got I.f'
+    ):
+      functor_factories.map_py_fn(I.f, x=I.y)
 
   def test_get_signature(self):
     fn = functor_factories.expr_fn(I.x + I.y)
