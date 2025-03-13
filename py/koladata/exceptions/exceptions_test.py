@@ -28,9 +28,6 @@ class ExceptionsTest(absltest.TestCase):
     with self.assertRaises(exceptions.KodaError) as cm:
       testing_pybind.raise_from_status_with_payload('test error')
     self.assertRegex(str(cm.exception), 'test error')
-    self.assertEqual(
-        cm.exception.err, error_pb2.Error(error_message='test error')
-    )
 
   def test_raise_by_arolla(self):
     with self.assertRaises(ValueError) as cm:
@@ -51,14 +48,6 @@ class ExceptionsTest(absltest.TestCase):
 
 The cause is: cause error""",
     )
-
-  def test_koda_error_create_fail(self):
-    with self.assertRaises(ValueError) as cm:
-      testing_pybind.raise_from_status_with_serialized_payload(
-          'message from status',
-          b'malformed proto',
-      )
-    self.assertRegex(str(cm.exception), 'message from status')
 
 
 if __name__ == '__main__':

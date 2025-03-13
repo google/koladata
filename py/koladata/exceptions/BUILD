@@ -18,19 +18,12 @@ load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("@rules_python//python:proto.bzl", "py_proto_library")
-load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
 ])
 
 licenses(["notice"])
-
-koladata_py_extension(
-    name = "py_exceptions_py_ext",
-    srcs = ["py_exceptions_module.cc"],
-    deps = [":py_exception_utils"],
-)
 
 # NOTE: b/352697901 - We copy the proto file here to make in available in the OSS py package.
 copy_file(
@@ -56,8 +49,7 @@ py_library(
     name = "exceptions",
     srcs = ["exceptions.py"],
     deps = [
-        ":error_py_proto",
-        ":py_exceptions_py_ext",
+        ":py_exception_utils",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
     ],
 )
@@ -73,20 +65,9 @@ py_test(
     ],
 )
 
-py_test(
-    name = "exceptions_not_registered_test",
-    srcs = ["exceptions_not_registered_test.py"],
-    deps = [
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
-        "//py/koladata/exceptions/testing:testing_pybind",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
 cc_library(
     name = "py_exception_utils",
     srcs = ["py_exception_utils.cc"],
-    hdrs = ["py_exception_utils.h"],
     deps = [
         "//koladata:data_slice_qtype",
         "//koladata/internal:error_cc_proto",
@@ -94,8 +75,10 @@ cc_library(
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//py/arolla/py_utils",
         "@com_google_arolla//py/arolla/py_utils:status_payload_handler_registry",
     ],
+    alwayslink = 1,
 )

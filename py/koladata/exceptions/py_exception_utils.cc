@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "py/koladata/exceptions/py_exception_utils.h"
-
 #include <Python.h>
 
 #include <string>
+#include <utility>
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/error.pb.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -42,33 +42,37 @@ bool HandleKodaPyErrStatus(const absl::Status& status) {
   if (error == nullptr) {
     return false;
   }
-  if (exception_factory->get() == nullptr) {
-    PyErr_SetString(PyExc_AssertionError, "Koda exception factory is not set");
-    return true;
-  }
-  // TODO: b/374841918 - Avoid serialization.
-  std::string serialized_error;
-  error->SerializeToString(&serialized_error);
-  auto py_serialized_error = PyObjectPtr::Own(PyBytes_FromStringAndSize(
-      serialized_error.data(), serialized_error.size()));
-  if (py_serialized_error == nullptr) {
-    return true;  // Error already set.
-  }
-  auto py_exception = PyObjectPtr::Own(
-      PyObject_CallOneArg(exception_factory->get(), py_serialized_error.get()));
-  if (py_exception == nullptr) {
-    return true;  // Error already set.
-  }
-  if (Py_IsNone(py_exception.get())) {
-    return false;
-  }
+
+  PyObjectPtr py_exception_cause;
   if (auto* cause = arolla::GetCause(status)) {
     arolla::python::SetPyErrFromStatus(*cause);
-    arolla::python::PyException_SetCauseAndContext(
-        py_exception.get(), arolla::python::PyErr_FetchRaisedException());
+    py_exception_cause = arolla::python::PyErr_FetchRaisedException();
   }
-  PyErr_SetObject(reinterpret_cast<PyObject*>(Py_TYPE(py_exception.get())),
-                  py_exception.get());
+
+  std::string error_message = error->error_message();
+  // TODO: b/389032294 - Remove manual appending of the cause.
+  if (py_exception_cause != nullptr) {
+    PyObjectPtr py_cause_error_message =
+        PyObjectPtr::Own(PyObject_Str(py_exception_cause.get()));
+    if (py_cause_error_message != nullptr) {
+      const char* cause_error_message =
+          PyUnicode_AsUTF8(py_cause_error_message.get());
+      if (cause_error_message != nullptr) {
+        absl::StrAppend(&error_message,
+                        "\n\nThe cause is: ", cause_error_message);
+      }
+    }
+    PyErr_Clear();
+  }
+
+  PyErr_SetString(PyExc_ValueError, error_message.c_str());
+
+  if (py_exception_cause != nullptr) {
+    PyObjectPtr py_exception = arolla::python::PyErr_FetchRaisedException();
+    arolla::python::PyException_SetCauseAndContext(
+        py_exception.get(), std::move(py_exception_cause));
+    arolla::python::PyErr_RestoreRaisedException(std::move(py_exception));
+  }
   return true;
 }
 

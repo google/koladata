@@ -14,44 +14,5 @@
 
 """koladata exceptions."""
 
-from koladata.exceptions import error_pb2
-from koladata.exceptions import py_exceptions_py_ext as _py_exceptions_py_ext
-
-
-# Inheriting from ValueError in order to keep the existing
-# assertRaises(ValueError) tests passing.
-# TODO: b/389032294 - Restore Exception as a base class.
-class KodaError(ValueError):
-  """Koda exception."""
-
-  def __init__(self, err: error_pb2.Error):
-    self.err = err
-
-  def __str__(self):
-    if self.__cause__ is not None:
-      return f'{self.err.error_message}\n\nThe cause is: {self.__cause__}'
-    return f'{self.err.error_message}'
-
-
-def _create_koda_error(error: error_pb2.Error) -> KodaError | None:
-  """Creates the KodaError from the given proto."""
-  if not error.error_message:
-    return None
-  return KodaError(error)
-
-
-def _create_koda_error_from_bytes(proto: bytes) -> KodaError | None:
-  """Creates the nested KodaError from the given proto.
-
-  Args:
-    proto: The serialized proto of type `koladata.internal.Error`.
-
-  Returns:
-    The KodaError created from the given proto. If the error message is empty or
-    missing, returns None.
-  """
-  error = error_pb2.Error.FromString(proto)
-  return _create_koda_error(error)
-
-
-_py_exceptions_py_ext.register_koda_exception(_create_koda_error_from_bytes)
+# TODO: b/389032294 - Remove this alias.
+KodaError = ValueError

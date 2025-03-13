@@ -21,7 +21,6 @@
 #include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/exceptions/py_exception_utils.h"  // IWYU pragma: keep, registration for HandleKodaPyErrStatus
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 #include "arolla/util/init_arolla.h"
