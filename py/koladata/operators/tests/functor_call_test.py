@@ -178,8 +178,10 @@ class FunctorCallTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'the functor was called with `DATA_SLICE` as the output type, but'
-            ' the computation resulted in type `tuple<INT32,INT32>` instead'
+            'The functor was called with `DATA_SLICE` as the output type, but'
+            ' the computation resulted in type `tuple<INT32,INT32>` instead.'
+            ' You can specify the expected output type via the'
+            ' `return_type_as=` parameter to the functor call.'
         ),
     ):
       _ = expr_eval.eval(kde.call(fn, x=arolla.tuple(1, 2)))

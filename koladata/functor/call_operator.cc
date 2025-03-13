@@ -80,8 +80,10 @@ class CallOperator : public arolla::QExprOperator {
                            ctx->set_status(std::move(_)));
           if (result.GetType() != output_slot.GetType()) {
             ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
-                "the functor was called with `%s` as the output type, but the"
-                " computation resulted in type `%s` instead",
+                "The functor was called with `%s` as the output type, but the"
+                " computation resulted in type `%s` instead. You can specify"
+                " the expected output type via the `return_type_as=` parameter"
+                " to the functor call.",
                 output_slot.GetType()->name(), result.GetType()->name())));
             return;
           }

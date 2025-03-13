@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import dataclasses
+import re
 from typing import Any, ClassVar, Self
 
 from absl.testing import absltest
@@ -257,8 +258,12 @@ class TracingDecoratorTest(parameterized.TestCase):
     fn = functor_factories.trace_py_fn(f)
     with self.assertRaisesRegex(
         ValueError,
-        'the functor was called with `DATA_SLICE` as the output type, but the'
-        ' computation resulted in type `DATA_BAG` instead',
+        re.escape(
+            'The functor was called with `DATA_SLICE` as the output type, but'
+            ' the computation resulted in type `DATA_BAG` instead. You can'
+            ' specify the expected output type via the `return_type_as=`'
+            ' parameter to the functor call.'
+        ),
     ):
       fn(5)
 
