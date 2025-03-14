@@ -759,7 +759,6 @@ cc_library(
     hdrs = ["itemid.h"],
     deps = [
         ":base62",
-        "//koladata:data_slice_qtype",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
