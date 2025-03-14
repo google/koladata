@@ -47,6 +47,7 @@
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
+#include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "koladata/repr_utils.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -221,6 +222,11 @@ absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds) {
                        "failed to merge fallback DataBags", std::move(_)));
   merged_db->UnsafeMakeImmutable();
   return ds.WithBag(std::move(merged_db));
+}
+
+absl::StatusOr<DataSlice> EmptyShaped(const DataSlice::JaggedShape& shape,
+                                      const DataSlice& schema) {
+  return CreateEmptyShaped(shape, schema, /*db=*/nullptr);
 }
 
 namespace {
