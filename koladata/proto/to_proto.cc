@@ -547,6 +547,10 @@ absl::Status ToProto(
     }
   }
 
+  if (slice.IsEmpty()) {
+    return absl::OkStatus();
+  }
+
   return internal::TrampolineExecutor::Run([&](auto& executor) -> absl::Status {
     return FillProtoMessage(slice, *message_descriptor, messages, executor);
   });

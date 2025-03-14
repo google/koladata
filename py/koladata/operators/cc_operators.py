@@ -31,6 +31,7 @@ from koladata.operators import lists as _
 from koladata.operators import masking as _
 from koladata.operators import math as _
 from koladata.operators import objs as _
+from koladata.operators import proto as _
 from koladata.operators import random as _
 from koladata.operators import schema as _
 from koladata.operators import slices as _

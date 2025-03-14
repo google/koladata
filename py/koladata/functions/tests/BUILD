@@ -17,6 +17,7 @@
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@rules_python//python:defs.bzl", "py_test")
 load("@rules_python//python:proto.bzl", "py_proto_library")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -596,12 +597,9 @@ py_test(
     name = "to_pylist_test",
     srcs = ["to_pylist_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
@@ -910,4 +908,21 @@ proto_library(
 py_proto_library(
     name = "test_py_pb2",
     deps = [":test_proto"],
+)
+
+cc_proto_library(
+    name = "test_cc_proto",
+    deps = [":test_proto"],
+)
+
+# Contains static C++ references for the messages in test.proto to force them
+# to be registered in the C++ generated descriptor pool.
+koladata_py_extension(
+    name = "test_cc_proto_py_ext",
+    testonly = 1,
+    srcs = ["test_cc_proto_module.cc"],
+    deps = [
+        ":test_cc_proto",
+        "//py/koladata/types:py_utils",  # buildcleaner: keep
+    ],
 )

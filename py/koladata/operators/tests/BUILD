@@ -7349,6 +7349,118 @@ py_test(
 )
 
 py_test(
+    name = "proto_from_proto_bytes_test",
+    srcs = ["proto_from_proto_bytes_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions/tests:test_cc_proto_py_ext",
+        "//py/koladata/functions/tests:test_py_pb2",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "proto_from_proto_json_test",
+    srcs = ["proto_from_proto_json_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions/tests:test_cc_proto_py_ext",
+        "//py/koladata/functions/tests:test_py_pb2",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+        "@com_google_protobuf//:protobuf_python",
+    ],
+)
+
+py_test(
+    name = "proto_schema_from_proto_path_test",
+    srcs = ["proto_schema_from_proto_path_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/functions/tests:test_cc_proto_py_ext",
+        "//py/koladata/functions/tests:test_py_pb2",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "proto_to_proto_bytes_test",
+    srcs = ["proto_to_proto_bytes_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/functions/tests:test_cc_proto_py_ext",
+        "//py/koladata/functions/tests:test_py_pb2",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "proto_to_proto_json_test",
+    srcs = ["proto_to_proto_json_test.py"],
+    deps = [
+        "//py/koladata/exceptions",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/functions/tests:test_cc_proto_py_ext",
+        "//py/koladata/functions/tests:test_py_pb2",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "functor_if_test",
     srcs = ["functor_if_test.py"],
     deps = [

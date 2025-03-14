@@ -40,6 +40,7 @@
 #include "koladata/operators/non_deterministic_op.h"
 #include "koladata/operators/objs.h"
 #include "koladata/operators/predicates.h"
+#include "koladata/operators/proto.h"
 #include "koladata/operators/schema.h"
 #include "koladata/operators/shapes.h"
 #include "koladata/operators/slices.h"
@@ -217,6 +218,12 @@ OPERATOR_FAMILY("kd.objs.like", std::make_unique<ObjLikeOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.new", std::make_unique<ObjOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.shaped", std::make_unique<ObjShapedOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.uu", std::make_unique<UuObjOperatorFamily>());
+//
+OPERATOR("kd.proto._from_proto_bytes", FromProtoBytes);
+OPERATOR("kd.proto._from_proto_json", FromProtoJson);
+OPERATOR("kd.proto.schema_from_proto_path", SchemaFromProtoPath);
+OPERATOR("kd.proto.to_proto_bytes", ToProtoBytes);
+OPERATOR("kd.proto.to_proto_json", ToProtoJson);
 //
 OPERATOR("kd.schema._agg_common_schema", AggCommonSchema,
          "kd.schema.agg_common_schema");

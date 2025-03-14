@@ -51,6 +51,7 @@ cc_library(
     deps = operator_list + [
         ":json",
         ":lib",
+        ":proto",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -239,6 +240,34 @@ cc_library(
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
+    ],
+)
+
+cc_library(
+    name = "proto",
+    srcs = ["proto.cc"],
+    hdrs = ["proto.h"],
+    deps = [
+        ":lib",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:uuid_utils",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:non_deterministic_token",
+        "//koladata/proto:from_proto",
+        "//koladata/proto:to_proto",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_protobuf//:json_util",
+        "@com_google_protobuf//:protobuf",
     ],
 )
 

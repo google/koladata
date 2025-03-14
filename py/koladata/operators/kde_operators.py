@@ -38,6 +38,7 @@ def get_namespaces() -> list[str]:
       'kd.masking',
       'kd.math',
       'kd.objs',
+      'kd.proto',
       'kd.py',
       'kd.random',
       'kd.schema',

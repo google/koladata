@@ -103,6 +103,7 @@ py_library(
         ":masking",
         ":math",
         ":objs",
+        ":proto",
         ":random",
         ":schema",
         ":slices",
@@ -655,6 +656,18 @@ py_library(
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
+    ],
+)
+
+py_library(
+    name = "proto",
+    srcs = ["proto.py"],
+    deps = [
+        ":optools",
+        ":qtype_utils",
+        ":view_overloads",
+        "//py/koladata/types:data_slice",
+        "@com_google_arolla//py/arolla",
     ],
 )
 
