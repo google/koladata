@@ -101,6 +101,7 @@ optools.equiv_to_op = _optools.equiv_to_op
 optools.as_qvalue = _py_boxing.as_qvalue
 optools.as_qvalue_or_expr = _py_boxing.as_qvalue_or_expr
 optools.make_operators_container = _optools.make_operators_container
+optools.WITH_PY_FUNCTION_TO_PY_OBJECT = _py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT
 
 ### Operator constraints.
 optools.constraints = _py_types.ModuleType('constraints')
