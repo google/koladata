@@ -708,6 +708,10 @@ class KdTest(absltest.TestCase):
     self.assertIsInstance(kd.add, kd.optools.eager.EagerOperator)
     kd.testing.assert_equal(kd.add.lazy_op, kde.add)
 
+  def test_function_boxing(self):
+    fn = kd.expr.as_expr(lambda x: x + 1)
+    kd.testing.assert_equal(kd.eval(kd.lazy.call(fn, 5)), kd.item(6))
+
 
 if __name__ == '__main__':
   absltest.main()

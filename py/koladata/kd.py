@@ -26,6 +26,7 @@ from koladata.expr import introspection as _introspection
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.functions import functions as _functions
+from koladata.functor import boxing as _
 from koladata.functor import expr_container as _expr_container
 from koladata.functor import functions as _functor_functions
 from koladata.operators import eager_op_utils as _eager_op_utils
