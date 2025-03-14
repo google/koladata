@@ -15,10 +15,15 @@
 """Functor operators."""
 
 from arolla import arolla
+from koladata.operators import assertion
+from koladata.operators import jagged_shape
+from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import schema
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 P = arolla.P
 
@@ -124,6 +129,62 @@ def map_(fn, *args, include_missing=False, **kwargs):  # pylint: disable=unused-
     The evaluation result.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.if_'])
+@optools.as_lambda_operator(
+    'kd.functor.if_',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.cond),
+        qtype_utils.expect_data_slice(P.yes_fn),
+        qtype_utils.expect_data_slice(P.no_fn),
+    ],
+)
+def if_(
+    cond, yes_fn, no_fn, *args, return_type_as=data_slice.DataSlice, **kwargs
+):
+  """Calls either `yes_fn` or `no_fn` depending on the value of `cond`.
+
+  This a short-circuit sibling of kd.cond which executes only one of the two
+  functors, and therefore requires that `cond` is a MASK scalar.
+
+  Example:
+    x = kd.item(5)
+    kd.if_(x > 3, lambda x: x + 1, lambda x: x - 1, x)
+    # returns 6, note that both lambdas were traced into functors.
+
+  Args:
+    cond: The condition to branch on. Must be a MASK scalar.
+    yes_fn: The functor to be called if `cond` is present.
+    no_fn: The functor to be called if `cond` is missing.
+    *args: The positional argument(s) to pass to the functor.
+    return_type_as: The return type of the call is expected to be the same as
+      the return type of this expression. In most cases, this will be a literal
+      of the corresponding type. This needs to be specified if the functor does
+      not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
+      be passed here.
+    **kwargs: The keyword argument(s) to pass to the functor.
+
+  Returns:
+    The result of the call of either `yes_fn` or `no_fn`.
+  """
+  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
+  cond = assertion.with_assertion(
+      cond,
+      # We cannot use slices.get_ndim due to a cyclic dependency between
+      # slices and functor.
+      (jagged_shape.rank(jagged_shape.get_shape(cond)) == 0)
+      & (schema.get_schema(cond) == schema_constants.MASK),
+      'the condition in kd.if_ must be a MASK scalar',
+  )
+  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      call,
+      masking.cond(cond, yes_fn, no_fn),
+      args=args,
+      return_type_as=return_type_as,
+      kwargs=kwargs,
+      **optools.unified_non_deterministic_kwarg(),
+  )
 
 
 @optools.add_to_registry()

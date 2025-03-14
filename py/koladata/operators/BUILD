@@ -570,11 +570,16 @@ py_library(
     name = "functor",
     srcs = ["functor.py"],
     deps = [
+        ":assertion",
+        ":jagged_shape",
+        ":masking",
         ":optools",
         ":qtype_utils",
+        ":schema",
         "//koladata/functor:operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
     ],
 )
