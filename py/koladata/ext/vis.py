@@ -20,6 +20,7 @@ import functools
 
 import html
 import json
+import textwrap
 from typing import Any, Union
 import uuid
 
@@ -130,9 +131,13 @@ _DEFAULT_ATTR_LIMIT = 20
 # interpreted as a CSS length and can support percentages (e.g. 40%).
 CssLength = Union[int, str]
 
+# Type that describes how to get to a particular value in a DataSlice.
+AccessPath = list[dict[str, str|list[int]]]
+
 
 @dataclasses.dataclass
 class DataSliceVisOptions:
+  """Options for visualizing a DataSlice."""
   # Size of the window of data to show.
   num_items: int = _DEFAULT_NUM_ITEMS
   # Maximum length of unbounded types such as strings and bytes.
@@ -143,28 +148,15 @@ class DataSliceVisOptions:
   detail_height: CssLength | None = 300
   # Maximum number of attributes to show by default.
   attr_limit: int | None = _DEFAULT_ATTR_LIMIT
+  # Item limit for nested parts of an item passed to the repr
+  item_limit: int | None = 20
 
 
-def _format_data_item(
+def _format_item_html(
     item: kd.types.DataItem,
-    additional_access: list[str] | None = None,
     truncate_unbounded_types: bool = True,
     options: DataSliceVisOptions | None = None) -> str:
-  """Returns a html representation of a DataItem.
-
-  Args:
-    item: The DataItem to format.
-    additional_access: The HTML string from C++ contains all accesses known
-      to the DataItem on which it is invoked. However, here in python, we also
-      make some accesses. For example, when we show a DataSlice, the HTML for
-      each index is generate separately. This argument allows additional
-      accesses to be wrapped around the HTML string. These should be a complete
-      HTML key-value pair, e.g. 'list-index="1"'.
-    truncate_unbounded_types: When True, unbounded types such as strings and
-      bytes are truncated to _DEFAULT_UNBOUNDED_TYPE_MAX_LEN. Otherwise, they
-      are shown in full.
-    options: User-facing view options.
-  """
+  """Returns an html representation of a DataItem."""
   options = options or DataSliceVisOptions()
   unbounded_type_max_len = options.unbounded_type_max_len
   dtype = item.get_dtype()
@@ -179,21 +171,46 @@ def _format_data_item(
 
   detail_pane_str = item._repr_with_params(  # pylint: disable=protected-access
       format_html=True,
+      item_limit=options.item_limit,
       depth=2,
       unbounded_type_max_len=unbounded_type_max_len)
 
   # Unescape whitespace for easier viewing in the detail pane.
   if dtype == kd.STRING:
     detail_pane_str = detail_pane_str.replace('\\n', '\n').replace('\\t', '\t')
+  return detail_pane_str
 
-  result = f'<div class="detail-pane">{detail_pane_str}</div>'
 
+def _format_data_item(
+    item: kd.types.DataItem,
+    additional_access: list[str] | None = None,
+    truncate_unbounded_types: bool = True,
+    options: DataSliceVisOptions | None = None) -> str:
+  """Returns the top-level html representation of a DataItem for use in table.
+
+  Args:
+    item: The DataItem to format.
+    additional_access: The HTML string from C++ contains all accesses known
+      to the DataItem on which it is invoked. However, here in python, we also
+      make some accesses. For example, when we show a DataSlice, the HTML for
+      each index is generate separately. This argument allows additional
+      accesses to be wrapped around the HTML string. These should be a complete
+      HTML key-value pair, e.g. 'list-index="1"'.
+    truncate_unbounded_types: When True, unbounded types such as strings and
+      bytes are truncated to _DEFAULT_UNBOUNDED_TYPE_MAX_LEN. Otherwise, they
+      are shown in full.
+    options: User-facing view options.
+  """
+  detail_pane_str = _format_item_html(item, truncate_unbounded_types, options)
   # Wrap with any necessary additional accesses.
   if additional_access:
     for access in additional_access:
-      result = f'<div {access}>{result}</div>'
-
-  return f'<div>{result}</div>'
+      detail_pane_str = f'<div {access}>{detail_pane_str}</div>'
+  # The additional div on the outside cleanly represents the slotted element.
+  # I.e. the detail pane is content and not the slotted element. This simplifies
+  # querySelector on the cell since querySelector ignores the element it is
+  # called on.
+  return f'<div><div class="detail-pane">{detail_pane_str}</div></div>'
 
 
 @dataclasses.dataclass
@@ -433,20 +450,8 @@ class DataSliceViewState:
     self.breadcrumb_entries.append(_BreadcrumbEntry(next_ds, '.' + crumb_name))
     self.refresh()
 
-  def descend_into_access_path(
-      self, access_path: list[dict[str, str|list[int]]], mode: DescendMode):
-    """Handles a click on a header that represents an expandable attr.
-
-    Args:
-      access_path: A list of dicts that encode each DataSlice access. It has
-          the shape {'type': '<access-type>', 'value': '<access-value>'}.
-          'access-type' is one of the possible string values in AccessType.
-      mode: Determines additional actions after the data slice is accessed.
-          If this is ATTR and the DataSlice is a list, then the list is
-          exploded. Otherwise, the DataSlice is rendered as is.
-    """
-    if not access_path:
-      return
+  def _apply_access_path(self, access_path: list[dict[str, str|list[int]]]):
+    """Executes the access path and returns resulting DataSlice and crumbs."""
     next_ds = self.ds
     crumbs = []
     for entry in access_path:
@@ -486,6 +491,23 @@ class DataSliceViewState:
               for i in range(next_ds.get_ndim()))
           next_ds = kd.subslice(next_ds, *value, ...)
           crumbs.append(f'.S[{joined_multi_index}]')
+    return next_ds, crumbs
+
+  def descend_into_access_path(
+      self, access_path: list[dict[str, str|list[int]]], mode: DescendMode):
+    """Handles a click on a header that represents an expandable attr.
+
+    Args:
+      access_path: A list of dicts that encode each DataSlice access. It has
+          the shape {'type': '<access-type>', 'value': '<access-value>'}.
+          'access-type' is one of the possible string values in AccessType.
+      mode: Determines additional actions after the data slice is accessed.
+          If this is ATTR and the DataSlice is a list, then the list is
+          exploded. Otherwise, the DataSlice is rendered as is.
+    """
+    if not access_path:
+      return
+    next_ds, crumbs = self._apply_access_path(access_path)
 
     if mode == DescendMode.ATTR and next_ds.is_list():
       crumbs.append('[:]')
@@ -527,6 +549,27 @@ class DataSliceViewState:
       self._handle_dim_index_click(
           int(dataset['dimension']), int(dataset['index']))
 
+  def _handle_expand_detail(self, detail):
+    """Replaces an element with fully expanded version."""
+    self._start_loading()
+
+    original_detail = detail.get('originalDetail', {})
+    cell_index = int(original_detail['cellIndex'])
+    access_path = original_detail['accessPath']
+    access_id = original_detail['accessId']
+    whitespace = original_detail['whitespace']
+
+    target_elem = self.table_elem.children[cell_index].querySelector(
+        f'[data-access-id="{access_id}"]'
+    )
+    target_ds, _ = self._apply_access_path(access_path)
+    options = dataclasses.replace(self.options, item_limit=-1)
+    item_html = _format_item_html(target_ds, options=options)
+    # lstrip since the previousSibling of elem already has the whitespace to
+    # indent the first line.
+    target_elem.innerHTML = textwrap.indent(item_html, whitespace).lstrip()
+    self._end_loading()
+
   def _handle_dim_index_click(self, dimension: int, flat_index: int):
     """Handles a click on a dim index in the main data table."""
     # Convert the flat index into a multi-index.
@@ -551,6 +594,10 @@ class DataSliceViewState:
         (instance_selector, 'request-load', self._handle_request_load, True),
         (instance_selector, 'ds-vis-click', self._handle_ds_vis_click),
         (
+            instance_selector,
+            'ds-vis-expand-detail',
+            self._handle_expand_detail
+        ), (
             instance_selector,
             'ds-vis-show-access-path',
             self._handle_show_access_path,
@@ -677,13 +724,15 @@ def visualize_slice(
     [kernel-available] {
       .attr,
       .object-id,
-      .truncated {
+      .truncated,
+      .limited {
         cursor: pointer;
         text-decoration: underline;
       }
       .attr:active,
       .object-id:active,
-      .truncated:active {
+      .truncated:active,
+      .limited:active {
         font-weight: bold;
         user-select: none;
       }
@@ -737,7 +786,7 @@ def visualize_slice(
     <kd-event-reinterpret
         id="{instance_id}"
         style="{style_string}"
-        events="click,show-access-path" prefix="ds-vis">
+        events="click,show-access-path,expand-detail" prefix="ds-vis">
       <div class="breadcrumb"></div>
       <kd-multi-dim-table
           data-headers="{data.headers}"
@@ -775,8 +824,42 @@ def visualize_slice(
         """ + access_type_strings + """
     ]);
 
+    function getAccessPath(e) {
+      return e.composedPath()
+        .filter(node => node instanceof HTMLElement)
+        .flatMap(node => Array.from(node.attributes)
+            .filter(attr => ACCESS_KEYS.has(attr.name))
+            .map(attr => ({type: attr.name, value: attr.value})))
+        .reverse();
+    }
+
     document.addEventListener('click', (e) => {
       const target = e.composedPath()[0];
+
+      // In this case, the user wants to see more data in the detail pane.
+      // We dispatch a new click event on the cell that includes the unique
+      // cell index in the table.
+      if (target.matches('.limited')) {
+        const cell = target.closest('kd-multi-dim-table > *');
+        const cellIndex = Array.prototype.indexOf.call(
+            cell.parentElement.children, cell);
+
+        // Find whitespace needed to indent the target element.
+        const whitespace = target.parentElement
+            .previousSibling?.textContent?.match(/ *$/)?.[0] || '';
+
+        // Set an access id so we can find the target's parent in python.
+        const accessPath = getAccessPath(e);
+        const accessId = accessPath.map(x => `${x.type}=${x.value}`).join(':');
+        target.parentElement.dataset['accessId'] = accessId;
+
+        cell.dispatchEvent(new CustomEvent('expand-detail', {
+          detail: { accessPath, cellIndex, whitespace, accessId },
+          bubbles: true,
+          composed: true,
+        }));
+        return;
+      }
 
       let mode = null;
       if (target.matches('.object-id') || target.matches('.truncated')) {
@@ -786,18 +869,8 @@ def visualize_slice(
       }
       if (!mode) return;
 
-      const accessPath = [];
-      for (const node of e.composedPath()) {
-        if (!(node instanceof HTMLElement)) continue;
-        for (const attr of node.attributes) {
-          if (ACCESS_KEYS.has(attr.name)) {
-            accessPath.push({type: attr.name, value: attr.value});
-          }
-        }
-      }
-
       target.dispatchEvent(new CustomEvent('show-access-path', {
-        detail: {accessPath: accessPath.reverse(), mode},
+        detail: {accessPath: getAccessPath(e), mode},
         bubbles: true,
         composed: true,
       }));
