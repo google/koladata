@@ -14,8 +14,6 @@
 
 """Operators that work on DataSlices."""
 
-import types as py_types
-
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
@@ -1237,14 +1235,13 @@ def _select(ds, fltr, expand_filter):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kd.select'])
-@arolla.optools.as_lambda_operator(
+@optools.as_lambda_operator(
     'kd.slices.select',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
         qtype_utils.expect_data_slice(P.expand_filter),
     ],
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.slices.select]',
 )
 def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
   """Creates a new DataSlice by filtering out missing items in fltr.
@@ -1271,7 +1268,10 @@ def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
 
   Args:
     ds: DataSlice with ndim > 0 to be filtered.
-    fltr: filter DataSlice with dtype as kd.MASK.
+    fltr: filter DataSlice with dtype as kd.MASK. It can also be a Koda Functor
+      or a Python function which can be evalauted to such DataSlice. A Python
+      function will be traced for evaluation, so it cannot have Python control
+      flow operations such as `if` or `while`.
     expand_filter: flag indicating if the 'filter' should be expanded to 'ds'
 
   Returns:
@@ -1282,24 +1282,6 @@ def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
       fltr=functor._maybe_call(fltr, ds),  # pylint: disable=protected-access
       expand_filter=arolla_bridge.to_arolla_boolean(expand_filter),
   )
-
-
-def _select_bind_args(
-    ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)
-):
-  """Argument binding policy for the `kd.slices.select` operator."""
-  if isinstance(fltr, py_types.FunctionType):
-    fltr = fltr(ds)
-  return (
-      py_boxing.as_qvalue_or_expr(ds),
-      py_boxing.as_qvalue_or_expr(fltr),
-      py_boxing.as_qvalue_or_expr(expand_filter),
-  )
-
-
-arolla.abc.register_adhoc_aux_binding_policy(
-    select, _select_bind_args, make_literal_fn=py_boxing.literal
-)
 
 
 @optools.add_to_registry(aliases=['kd.select_present'])

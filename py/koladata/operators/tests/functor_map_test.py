@@ -24,6 +24,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.functor import boxing as _
 from koladata.functor import functions
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -47,6 +48,14 @@ class MapTest(parameterized.TestCase):
     y = ds([[7, 8], [9, 10], [11, 12]])
     testing.assert_equal(
         expr_eval.eval(kde.functor.map(I.fn, x=I.x, y=I.y), fn=fn, x=x, y=y),
+        ds([[1 + 7, 2 + 8], [3 + 9, 4 + 10], [5 + 11, 6 + 12]]),
+    )
+
+  def test_lambda(self):
+    x = ds([[1, 2], [3, 4], [5, 6]])
+    y = ds([[7, 8], [9, 10], [11, 12]])
+    testing.assert_equal(
+        expr_eval.eval(kde.functor.map(lambda a, b: a + b, I.x, I.y), x=x, y=y),
         ds([[1 + 7, 2 + 8], [3 + 9, 4 + 10], [5 + 11, 6 + 12]]),
     )
 

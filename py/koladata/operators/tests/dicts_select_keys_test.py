@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
+from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators

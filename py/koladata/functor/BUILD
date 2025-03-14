@@ -114,6 +114,7 @@ py_test(
     name = "functor_factories_test",
     srcs = ["functor_factories_test.py"],
     deps = [
+        ":boxing",
         ":functor_factories",
         ":signature_utils",
         "//py/koladata:kd",
@@ -160,10 +161,35 @@ py_library(
     ],
 )
 
+py_library(
+    name = "boxing",
+    srcs = ["boxing.py"],
+    deps = [
+        ":functor_factories",
+        "//py/koladata/types:py_boxing",
+    ],
+)
+
+py_test(
+    name = "boxing_test",
+    srcs = ["boxing_test.py"],
+    deps = [
+        ":boxing",
+        ":functor_factories",
+        ":tracing_decorator",
+        "//py/koladata:kd",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 py_test(
     name = "tracing_decorator_test",
     srcs = ["tracing_decorator_test.py"],
     deps = [
+        ":boxing",
         ":functor_factories",
         ":tracing_decorator",
         requirement("ipython"),

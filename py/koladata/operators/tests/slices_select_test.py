@@ -21,6 +21,7 @@ from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
@@ -257,7 +258,16 @@ class SlicesSelectTest(parameterized.TestCase):
         ValueError,
         'test error',
     ):
-      expr_eval.eval(kde.slices.select(I.x, filter_fn))
+      expr_eval.eval(
+          kde.slices.select(I.x, functor_factories.py_fn(filter_fn)),
+          x=ds([1, 2, 3]),
+      )
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'unable to represent argument `fltr` as QValue or Expr',
+    ):
+      _ = kde.slices.select(I.x, filter_fn)
 
   def test_select_wrong_filter_schema(self):
     val = data_slice.DataSlice.from_vals([1, 2, None, 4])

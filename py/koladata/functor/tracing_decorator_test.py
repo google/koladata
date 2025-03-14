@@ -24,6 +24,7 @@ from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.functions import functions as fns
+from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import eager_op_utils
@@ -425,16 +426,13 @@ class TracingDecoratorTest(parameterized.TestCase):
 
       del pair_add  # Unused.
 
-  def test_cannot_pass_unwrapped_lambdas(self):
+  def test_can_pass_unwrapped_lambdas(self):
 
     @tracing_decorator.TraceAsFnDecorator()
     def f(x, fltr):
       return user_facing_kd.select(x, fltr)
 
-    with self.assertRaisesRegex(
-        ValueError, 'object with unsupported type: function'
-    ):
-      _ = f(ds([1, 2, 3]), lambda x: x % 2 == 0)
+    testing.assert_equal(f(ds([1, 2, 3]), lambda x: x % 2 == 0), ds([2]))
 
   def test_cannot_return_expr_in_eager_mode(self):
 

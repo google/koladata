@@ -14,8 +14,6 @@
 
 """Operators that work on lists."""
 
-import types as py_types
-
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
@@ -27,7 +25,6 @@ from koladata.operators import qtype_utils
 from koladata.operators import slices as slice_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
-from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -367,12 +364,9 @@ def is_list(x):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry(aliases=['kd.select_items'])
-@arolla.optools.as_lambda_operator(
+@optools.as_lambda_operator(
     'kd.lists.select_items',
     qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-    experimental_aux_policy=(
-        'koladata_adhoc_binding_policy[kd.lists.select_items]'
-    ),
 )
 def select_items(ds, fltr):
   """Selects List items by filtering out missing items in fltr.
@@ -382,7 +376,9 @@ def select_items(ds, fltr):
   Args:
     ds: List DataSlice to be filtered
     fltr: filter can be a DataSlice with dtype as kd.MASK. It can also be a Koda
-      Functor or a Python function which can be evalauted to such DataSlice.
+      Functor or a Python function which can be evalauted to such DataSlice. A
+      Python function will be traced for evaluation, so it cannot have Python
+      control flow operations such as `if` or `while`.
 
   Returns:
     Filtered DataSlice.
@@ -473,15 +469,3 @@ def with_list_append_update(x, append):
     A DataSlice of lists in a new immutable DataBag.
   """
   return core_ops.updated(x, list_update(x, append))
-
-
-def _select_items_bind_args(ds, fltr):
-  """Argument binding policy for the `kd.lists.select_items` operator."""
-  if isinstance(fltr, py_types.FunctionType):
-    fltr = fltr(ds[:])
-  return (py_boxing.as_qvalue_or_expr(ds), py_boxing.as_qvalue_or_expr(fltr))
-
-
-arolla.abc.register_adhoc_aux_binding_policy(
-    select_items, _select_items_bind_args, make_literal_fn=py_boxing.literal
-)

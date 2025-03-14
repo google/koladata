@@ -23,6 +23,7 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import view as _
 from koladata.functions import functions as fns
+from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.functor import signature_utils
 from koladata.operators import eager_op_utils

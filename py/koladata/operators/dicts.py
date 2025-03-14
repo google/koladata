@@ -14,8 +14,6 @@
 
 """Operators that work on dicts."""
 
-import types as py_types
-
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import core as core_ops
@@ -25,7 +23,6 @@ from koladata.operators import qtype_utils
 from koladata.operators import slices as slice_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
-from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -455,15 +452,12 @@ def get_values(dict_ds, key_ds=arolla.unspecified()):
 
 
 @optools.add_to_registry(aliases=['kd.select_keys'])
-@arolla.optools.as_lambda_operator(
+@optools.as_lambda_operator(
     'kd.dicts.select_keys',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
-    experimental_aux_policy=(
-        'koladata_adhoc_binding_policy[kd.dicts.select_keys]'
-    ),
 )
 def select_keys(ds, fltr):
   """Selects Dict keys by filtering out missing items in `fltr`.
@@ -473,7 +467,9 @@ def select_keys(ds, fltr):
   Args:
     ds: Dict DataSlice to be filtered
     fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
-      function which can be evalauted to such DataSlice.
+      function which can be evalauted to such DataSlice. A Python function will
+      be traced for evaluation, so it cannot have Python control flow operations
+      such as `if` or `while`.
 
   Returns:
     Filtered DataSlice.
@@ -481,30 +477,13 @@ def select_keys(ds, fltr):
   return slice_ops.select(ds=get_keys(ds), fltr=fltr)
 
 
-def _select_keys_bind_args(ds, fltr):
-  """Argument binding policy for the `kd.dicts.select_keys` operator."""
-  if isinstance(fltr, py_types.FunctionType):
-    fltr = fltr(ds.get_keys())
-  return (py_boxing.as_qvalue_or_expr(ds), py_boxing.as_qvalue_or_expr(fltr))
-
-
-arolla.abc.register_adhoc_aux_binding_policy(
-    select_keys, _select_keys_bind_args, make_literal_fn=py_boxing.literal
-)
-
-
-@optools.add_to_registry(
-    aliases=['kd.select_values']
-)
-@arolla.optools.as_lambda_operator(
+@optools.add_to_registry(aliases=['kd.select_values'])
+@optools.as_lambda_operator(
     'kd.dicts.select_values',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
     ],
-    experimental_aux_policy=(
-        'koladata_adhoc_binding_policy[kd.dicts.select_values]'
-    ),
 )
 def select_values(ds, fltr):
   """Selects Dict values by filtering out missing items in `fltr`.
@@ -514,24 +493,14 @@ def select_values(ds, fltr):
   Args:
     ds: Dict DataSlice to be filtered
     fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
-      function which can be evalauted to such DataSlice.
+      function which can be evalauted to such DataSlice. A Python function will
+      be traced for evaluation, so it cannot have Python control flow operations
+      such as `if` or `while`.
 
   Returns:
     Filtered DataSlice.
   """
   return slice_ops.select(ds=get_values(ds), fltr=fltr)
-
-
-def _select_values_bind_args(ds, fltr):
-  """Argument binding policy for the `kd.dicts.select_values` operator."""
-  if isinstance(fltr, py_types.FunctionType):
-    fltr = fltr(ds.get_values())
-  return (py_boxing.as_qvalue_or_expr(ds), py_boxing.as_qvalue_or_expr(fltr))
-
-
-arolla.abc.register_adhoc_aux_binding_policy(
-    select_values, _select_values_bind_args, make_literal_fn=py_boxing.literal
-)
 
 
 @optools.as_backend_operator(

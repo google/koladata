@@ -17,7 +17,7 @@
 import functools
 import random
 import types as py_types
-from typing import Any
+from typing import Any, Callable
 
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
@@ -76,6 +76,31 @@ def new_non_deterministic_token() -> arolla.Expr:
   )
 
 
+def _no_py_function_boxing_registered(
+    fn: py_types.FunctionType | functools.partial,
+) -> arolla.QValue:
+  del fn  # Unused.
+  raise ValueError(
+      'No implementation for Python function boxing was registered. If you are'
+      ' importing the entire koladata, this should never happen. If you are'
+      ' importing a subset of koladata modules, please do'
+      ' `from koladata.functor import boxing`.'
+  )
+
+
+_py_function_boxing_fn: Callable[
+    [py_types.FunctionType | functools.partial], arolla.QValue
+] = _no_py_function_boxing_registered
+
+
+def register_py_function_boxing_fn(
+    fn: Callable[[py_types.FunctionType | functools.partial], arolla.QValue],
+):
+  """Registers an implementation for Python function boxing."""
+  global _py_function_boxing_fn
+  _py_function_boxing_fn = fn
+
+
 # NOTE: This function should prefer to return QValues whenever possible to be as
 # friendly to eager evaluation as possible.
 def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
@@ -116,6 +141,9 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
         'use kd.slice(...) to create a slice or a multi-dimensional slice, and '
         'kd.list(...) to create a single Koda list'
     )
+  # TODO: Unify the handling of different function types.
+  if isinstance(arg, (py_types.FunctionType, functools.partial)):
+    return _py_function_boxing_fn(arg)
   if arg is data_slice.DataSlice:
     return data_item.DataItem.from_vals(None)
   if arg is data_bag.DataBag:

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -104,9 +105,25 @@ class PyBoxingTest(parameterized.TestCase):
 
   def test_as_qvalue_or_expr_raises_on_function(self):
     with self.assertRaisesWithLiteralMatch(
-        ValueError, 'object with unsupported type: function'
+        ValueError,
+        'No implementation for Python function boxing was registered. If you'
+        ' are importing the entire koladata, this should never happen. If you'
+        ' are importing a subset of koladata modules, please do `from'
+        ' koladata.functor import boxing`.',
     ):
       py_boxing.as_qvalue_or_expr(lambda x: x)
+
+  def test_register_py_function_boxing_fn(self):
+    self.addCleanup(
+        lambda: py_boxing.register_py_function_boxing_fn(
+            py_boxing._no_py_function_boxing_registered  # pylint: disable=protected-access
+        )
+    )
+    mock_box = mock.Mock(return_value=ds(1))
+    py_boxing.register_py_function_boxing_fn(mock_box)
+    fn = lambda x: x
+    self.assertEqual(py_boxing.as_qvalue_or_expr(fn), ds(1))
+    mock_box.assert_called_once_with(fn)
 
   @parameterized.parameters(
       (1, ds(1)),

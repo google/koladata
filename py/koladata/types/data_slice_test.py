@@ -28,6 +28,7 @@ from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
+from koladata.functor import boxing as _
 from koladata.functor import functor_factories
 from koladata.operators import kde_operators
 from koladata.testing import signature_test_utils
@@ -35,9 +36,9 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import dict_item as _  # pylint: disable=unused-import
+from koladata.types import dict_item as _
 from koladata.types import jagged_shape
-from koladata.types import list_item as _  # pylint: disable=unused-import
+from koladata.types import list_item as _
 from koladata.types import mask_constants
 from koladata.types import qtypes
 from koladata.types import schema_constants
