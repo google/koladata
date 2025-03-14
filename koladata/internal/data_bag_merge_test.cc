@@ -18,7 +18,6 @@
 #include <functional>
 #include <initializer_list>
 #include <limits>
-#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
