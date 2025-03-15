@@ -607,6 +607,32 @@ Returns:
   that UUIDs will be copied as ItemIds.
 ```
 
+### `kd.core.empty_shaped(shape, schema=DataItem(MASK, schema: SCHEMA))` {#kd.core.empty_shaped}
+
+``` {.no-copy}
+Returns a DataSlice of missing items with the given shape.
+
+If `schema` is a Struct schema, an empty Databag is created and attached to
+the resulting DataSlice and `schema` is adopted into that DataBag.
+
+Args:
+  shape: Shape of the resulting DataSlice.
+  schema: optional schema of the resulting DataSlice.
+```
+
+### `kd.core.empty_shaped_as(shape_from, schema=DataItem(MASK, schema: SCHEMA))` {#kd.core.empty_shaped_as}
+
+``` {.no-copy}
+Returns a DataSlice of missing items with the shape of `shape_from`.
+
+If `schema` is a Struct schema, an empty Databag is created and attached to
+the resulting DataSlice and `schema` is adopted into that DataBag.
+
+Args:
+  shape_from: used for the shape of the resulting DataSlice.
+  schema: optional schema of the resulting DataSlice.
+```
+
 ### `kd.core.enriched(ds, *bag)` {#kd.core.enriched}
 Aliases:
 
@@ -7396,6 +7422,99 @@ Alias for [kd.functor.call](#kd.functor.call) operator.
 ### `kd.cast_to(x, schema)` {#kd.cast_to}
 
 Alias for [kd.schema.cast_to](#kd.schema.cast_to) operator.
+
+### `kd.check_inputs(**kw_constraints)` {#kd.check_inputs}
+
+``` {.no-copy}
+Decorator factory for adding runtime input type checking to Koda functions.
+
+  Resulting decorators will check the schemas of DataSlice inputs of
+  a function at runtime, and raise TypeError in case of mismatch.
+
+  Decorated functions will preserve the original function's signature and
+  docstring.
+
+  Example for primitive schemas:
+
+    @kd.check_inputs(hours=kd.INT32, minutes=kd.INT32)
+    @kd.check_output(kd.STRING)
+    def timestamp(hours, minutes):
+      return kd.to_str(hours) + ':' + kd.to_str(minutes)
+
+    timestamp(ds([10, 10, 10]), kd.ds([15, 30, 45]))  # Does not raise.
+    timestamp(ds([10, 10, 10]), kd.ds([15.35, 30.12, 45.1]))  # raises TypeError
+
+  Example for complex schemas:
+
+    Doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
+
+    Query = kd.schema.named_schema(
+        'Query',
+        query_text=kd.STRING,
+        query_id=kd.INT32,
+        docs=kd.list_schema(Doc),
+    )
+
+    @kd.check_inputs(query=Query)
+    @kd.check_output(Doc)
+    def get_docs(query):
+      return query.docs[:]
+
+  Args:
+    **kw_constraints: mapping of parameter names to DataItem schemas. Names must
+      match parameter names in the decorated function. Arguments for the given
+      parameters must be DataSlices/DataItems with the corresponding schemas.
+
+  Returns:
+    A decorator that can be used to type annotate a function that accepts
+    DataSlices/DataItem inputs.
+```
+
+### `kd.check_output(output)` {#kd.check_output}
+
+``` {.no-copy}
+Decorator factory for adding runtime output type checking to Koda functions.
+
+  Resulting decorators will check the schema of the DataSlice output of
+  a function at runtime, and raise TypeError in case of mismatch.
+
+  Decorated functions will preserve the original function's signature and
+  docstring.
+
+  Example for primitive schemas:
+
+    @kd.check_inputs(hours=kd.INT32, minutes=kd.INT32)
+    @kd.check_output(kd.STRING)
+    def timestamp(hours, minutes):
+      return kd.to_str(hours) + ':' + kd.to_str(minutes)
+
+    timestamp(ds([10, 10, 10]), kd.ds([15, 30, 45]))  # Does not raise.
+    timestamp(ds([10, 10, 10]), kd.ds([15.35, 30.12, 45.1]))  # raises TypeError
+
+  Example for complex schemas:
+
+    Doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
+
+    Query = kd.schema.named_schema(
+        'Query',
+        query_text=kd.STRING,
+        query_id=kd.INT32,
+        docs=kd.list_schema(Doc),
+    )
+
+    @kd.check_inputs(query=Query)
+    @kd.check_output(Doc)
+    def get_docs(query):
+      return query.docs[:]
+
+  Args:
+    output: A DataItem schema for the output. Output of the decorated function
+      must be a DataSlice/DataItem with the corresponding schema.
+
+  Returns:
+    A decorator that can be used to annotate a function returning a
+    DataSlice/DataItem.
+```
 
 ### `kd.clear_eval_cache()` {#kd.clear_eval_cache}
 
