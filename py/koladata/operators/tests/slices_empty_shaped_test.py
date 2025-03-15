@@ -34,7 +34,7 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-class CoreEmptyShapedTest(parameterized.TestCase):
+class SlicesEmptyShapedTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (jagged_shape.create_shape(), ds(None, schema_constants.MASK)),
@@ -108,6 +108,32 @@ class CoreEmptyShapedTest(parameterized.TestCase):
     testing.assert_equal(res.get_shape(), shape)
     self.assertEqual(res.get_present_count(), 0)
 
+  def test_list_schema(self):
+    res = kde.empty_shaped(
+        jagged_shape.create_shape([3]), kde.list_schema(schema_constants.INT32)
+    ).eval()
+    testing.assert_equal(
+        res.get_schema().get_item_schema().no_bag(), schema_constants.INT32
+    )
+    testing.assert_equal(
+        res[:].no_bag(), ds([[], [], []], schema_constants.INT32)
+    )
+
+  def test_dict_schema(self):
+    res = kde.empty_shaped(
+        jagged_shape.create_shape([3]),
+        kde.dict_schema(schema_constants.INT32, schema_constants.FLOAT32)
+    ).eval()
+    testing.assert_equal(
+        res.get_schema().get_key_schema().no_bag(), schema_constants.INT32
+    )
+    testing.assert_equal(
+        res.get_schema().get_value_schema().no_bag(), schema_constants.FLOAT32
+    )
+    testing.assert_equal(
+        res.get_keys().no_bag(), ds([[], [], []], schema_constants.INT32)
+    )
+
   def test_error(self):
 
     with self.subTest('None shape'):
@@ -122,7 +148,7 @@ class CoreEmptyShapedTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.empty_shaped,
+        kde.slices.empty_shaped,
         [
             (qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE),
             (qtypes.JAGGED_SHAPE, qtypes.DATA_SLICE, qtypes.DATA_SLICE),
@@ -131,11 +157,11 @@ class CoreEmptyShapedTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.empty_shaped(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.slices.empty_shaped(I.x, I.y)))
 
   def test_aliases(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.empty_shaped, kde.empty_shaped)
+        optools.equiv_to_op(kde.slices.empty_shaped, kde.empty_shaped)
     )
 
 

@@ -28,7 +28,6 @@ from koladata.types import jagged_shape as _jagged_shape
 
 
 DataBag = _data_bag_py_ext.DataBag
-_empty_shaped = _data_bag_py_ext._empty_shaped  # pylint: disable=protected-access
 _eval_op = _py_expr_eval_py_ext.eval_op
 
 

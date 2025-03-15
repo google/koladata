@@ -717,6 +717,17 @@ absl::StatusOr<DataSlice> ConcatOrStack(
   return ConcatOrStackImpl(stack, ndim, std::move(args));
 }
 
+absl::StatusOr<DataSlice> EmptyShaped(const DataSlice::JaggedShape& shape,
+                                      const DataSlice& schema) {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  ASSIGN_OR_RETURN(
+      auto ds,
+      DataSlice::Create(
+          internal::DataSliceImpl::Create(shape.size(), internal::DataItem()),
+          shape, internal::DataItem(schema::kMask)));
+  return ds.WithSchema(schema);  // Attaches a DataBag if needed.
+}
+
 absl::StatusOr<DataSlice> GroupByIndices(
     absl::Span<const DataSlice* const> slices) {
   if (slices.size() < 2) {

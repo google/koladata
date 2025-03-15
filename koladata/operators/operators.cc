@@ -107,7 +107,6 @@ OPERATOR("kd.core._get_list_item_by_range", GetListItemByRange,
          "kd.core.get_list_item_by_range");
 OPERATOR("kd.core._new_ids_like", NewIdsLike, "kd.core.new_ids_like");
 OPERATOR("kd.core._shallow_clone", ShallowClone, "kd.core.shallow_clone");
-OPERATOR("kd.core.empty_shaped", EmptyShaped);
 OPERATOR_FAMILY("kd.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
 OPERATOR("kd.core.follow", Follow);
@@ -288,6 +287,7 @@ OPERATOR("kd.slices._inverse_mapping", InverseMapping,
 OPERATOR("kd.slices._ordinal_rank", OrdinalRank, "kd.slices.ordinal_rank");
 OPERATOR("kd.slices._select", Select, "kd.slices.select");
 OPERATOR_FAMILY("kd.slices.align", std::make_unique<AlignOperatorFamily>());
+OPERATOR("kd.slices.empty_shaped", EmptyShaped);
 OPERATOR("kd.slices.inverse_select", InverseSelect);
 OPERATOR("kd.slices.is_empty", IsEmpty);
 OPERATOR("kd.slices.reverse", Reverse);

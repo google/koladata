@@ -33,7 +33,7 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-class CoreEmptyShapedAsTest(parameterized.TestCase):
+class SlicesEmptyShapedAsTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (ds(1), ds(None, schema_constants.MASK)),
@@ -115,7 +115,7 @@ class CoreEmptyShapedAsTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.core.empty_shaped_as,
+        kde.slices.empty_shaped_as,
         [
             (qtypes.DATA_SLICE, qtypes.DATA_SLICE),
             (qtypes.DATA_SLICE, qtypes.DATA_SLICE, qtypes.DATA_SLICE),
@@ -124,11 +124,11 @@ class CoreEmptyShapedAsTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.core.empty_shaped_as(I.x, I.y)))
+    self.assertTrue(view.has_koda_view(kde.slices.empty_shaped_as(I.x, I.y)))
 
   def test_aliases(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.core.empty_shaped_as, kde.empty_shaped_as)
+        optools.equiv_to_op(kde.slices.empty_shaped_as, kde.empty_shaped_as)
     )
 
 

@@ -426,13 +426,6 @@ absl::StatusOr<DataSlice> CreateListLike(
     const std::optional<DataSlice>& item_schema = std::nullopt,
     const std::optional<DataSlice>& itemid = std::nullopt);
 
-// Creates a DataSlice of missing items with the given shape and schema.
-// If `schema` is an Entity schema and db is missing, an empty DataBag is
-// created and attached to the resulting DataSlice.
-absl::StatusOr<DataSlice> CreateEmptyShaped(const DataSlice::JaggedShape& shape,
-                                            const DataSlice& schema,
-                                            absl::Nullable<DataBagPtr> db);
-
 // Creates a NoFollow schema from `target_schema`. `target_schema` must be a
 // valid schema slice. If `target_schema` is NoFollow, primitive or ITEMID
 // schema, the error is returned.

@@ -41,7 +41,6 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error.pb.h"
-#include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/op_utils/has.h"
@@ -1253,20 +1252,6 @@ absl::StatusOr<DataSlice> NoFollow(const DataSlice& target) {
   ASSIGN_OR_RETURN(auto no_follow_schema_item,
                    schema::NoFollowSchemaItem(target.GetSchemaImpl()));
   return target.WithSchema(no_follow_schema_item);
-}
-
-absl::StatusOr<DataSlice> CreateEmptyShaped(const DataSlice::JaggedShape& shape,
-                                            const DataSlice& schema,
-                                            absl::Nullable<DataBagPtr> db) {
-  RETURN_IF_ERROR(schema.VerifyIsSchema());
-  if (db == nullptr && schema.IsStructSchema()) {
-    db = DataBag::Empty();
-  }
-  ASSIGN_OR_RETURN(
-      auto ds, DataSlice::Create(internal::DataItem(internal::MissingValue()),
-                                 internal::DataItem(schema::kMask), db));
-  ASSIGN_OR_RETURN(ds, BroadcastToShape(ds, shape));
-  return ds.SetSchema(schema);
 }
 
 }  // namespace koladata

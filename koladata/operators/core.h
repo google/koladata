@@ -49,10 +49,6 @@ class EnrichedOrUpdatedOperatorFamily : public arolla::OperatorFamily {
   virtual bool is_enriched_operator() const = 0;
 };
 
-// kd.core.empty_shaped.
-absl::StatusOr<DataSlice> EmptyShaped(const DataSlice::JaggedShape& shape,
-                                      const DataSlice& schema);
-
 // kd.core.enriched.
 class EnrichedOperatorFamily final : public EnrichedOrUpdatedOperatorFamily {
   bool is_enriched_operator() const override { return true; }

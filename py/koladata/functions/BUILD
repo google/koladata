@@ -82,12 +82,10 @@ py_library(
     srcs = ["object_factories.py"],
     visibility = ["//visibility:private"],
     deps = [
-        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
-        "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
     ],
 )

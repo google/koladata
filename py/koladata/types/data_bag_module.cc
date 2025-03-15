@@ -21,18 +21,12 @@ namespace {
 
 constexpr const char* kThisModuleName = "koladata.types.data_bag";
 
-PyMethodDef kPyDataBagModule_methods[] = {
-    {"_empty_shaped", (PyCFunction)PyEmptyShaped, METH_FASTCALL | METH_KEYWORDS,
-     "Creates a DataSlice of missing items with the given shape and schema."},
-    {nullptr} /* sentinel */
-};
-
 struct PyModuleDef data_bag = {
     PyModuleDef_HEAD_INIT,
     kThisModuleName,
     /*module docstring=*/"A DataBag definition.",
     -1,
-    /*methods=*/kPyDataBagModule_methods,
+    /*methods=*/nullptr,
 };
 
 // NOTE: This PyInit function must be named this way

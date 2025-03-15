@@ -224,11 +224,6 @@ absl::StatusOr<DataSlice> WithMergedBag(const DataSlice& ds) {
   return ds.WithBag(std::move(merged_db));
 }
 
-absl::StatusOr<DataSlice> EmptyShaped(const DataSlice::JaggedShape& shape,
-                                      const DataSlice& schema) {
-  return CreateEmptyShaped(shape, schema, /*db=*/nullptr);
-}
-
 namespace {
 
 class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {

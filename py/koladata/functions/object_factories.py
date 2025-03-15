@@ -21,7 +21,6 @@ from koladata.types import data_bag
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
 from koladata.types import jagged_shape
-from koladata.types import schema_constants
 
 
 bag = data_bag.DataBag.empty
@@ -824,54 +823,6 @@ def uuobj(
     # it has different boxing rules.
     return bag().uuobj(seed=seed, **attrs).freeze_bag()
   return db.uuobj(seed=seed, **attrs)
-
-
-def empty_shaped(
-    shape: data_slice.DataSlice,
-    /,
-    *,
-    schema: data_slice.DataSlice = schema_constants.MASK,
-    db: data_bag.DataBag | None = None,
-) -> data_slice.DataSlice:
-  """Creates a DataSlice of missing items with the given shape.
-
-  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
-  created and attached to the resulting DataSlice and `schema` is adopted into
-  the DataBag.
-
-  Args:
-    shape: Shape of the resulting DataSlice.
-    schema: optional schema of the resulting DataSlice.
-    db: optional DataBag to hold the schema if applicable.
-
-  Returns:
-    A DataSlice with the given shape.
-  """
-  return data_bag._empty_shaped(shape, schema, db)  # pylint: disable=protected-access
-
-
-def empty_shaped_as(
-    shape_from: data_slice.DataSlice,
-    /,
-    *,
-    schema: data_slice.DataSlice = schema_constants.MASK,
-    db: data_bag.DataBag | None = None,
-) -> data_slice.DataSlice:
-  """Creates a DataSlice of missing items with the shape of `shape_from`.
-
-  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
-  created and attached to the resulting DataSlice and `schema` is adopted into
-  the DataBag.
-
-  Args:
-    shape_from: used for the shape of the resulting DataSlice.
-    schema: optional schema of the resulting DataSlice.
-    db: optional DataBag to hold the schema if applicable.
-
-  Returns:
-    A DataSlice with the shape of the given DataSlice.
-  """
-  return empty_shaped(shape_from.get_shape(), schema=schema, db=db)
 
 
 def implode(

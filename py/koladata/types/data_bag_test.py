@@ -1198,48 +1198,6 @@ Assigned schema for keys: INT32""",
     testing.assert_equal(x.a[:], ds([1, 2, 3]).with_bag(db))
     testing.assert_equal(x.b[:], ds([4, 5, 6]).with_bag(db))
 
-  def test_empty_shaped(self):
-    shape = jagged_shape.create_shape([3])
-    res = data_bag._empty_shaped(shape, schema_constants.MASK)
-    testing.assert_equal(res, ds([None, None, None], schema_constants.MASK))
-
-    res = data_bag._empty_shaped(shape, schema_constants.OBJECT, db=None)
-    testing.assert_equal(res, ds([None, None, None], schema_constants.OBJECT))
-
-    db = bag()
-    res = data_bag._empty_shaped(shape, schema_constants.INT32, db=db)
-    testing.assert_equal(
-        res, ds([None, None, None], schema_constants.INT32).with_bag(db)
-    )
-    res = data_bag._empty_shaped(
-        shape, schema_constants.INT32, db=data_bag.null_bag()
-    )
-    testing.assert_equal(
-        res, ds([None, None, None], schema_constants.INT32).with_bag(None)
-    )
-
-    with self.assertRaisesRegex(
-        ValueError, r'missing required argument to _empty_shaped: `shape`'
-    ):
-      _ = data_bag._empty_shaped()
-
-    with self.assertRaisesRegex(
-        ValueError, r'missing required argument to _empty_shaped: `schema`'
-    ):
-      _ = data_bag._empty_shaped(shape)
-
-    with self.assertRaisesRegex(
-        TypeError,
-        'expecting shape to be a JaggedShape, got NoneType',
-    ):
-      data_bag._empty_shaped(None, schema_constants.INT32)
-
-    with self.assertRaisesRegex(
-        TypeError,
-        'expecting schema to be a DataSlice, got NoneType',
-    ):
-      data_bag._empty_shaped(shape, schema=None)
-
   def test_dict(self):
     db = bag()
 

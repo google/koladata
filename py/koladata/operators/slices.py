@@ -52,6 +52,48 @@ val_shaped_as = masking._val_shaped_as  # pylint: disable=protected-access
 val_like = masking._val_like  # pylint: disable=protected-access
 
 
+@optools.add_to_registry(aliases=['kd.empty_shaped'])
+@optools.as_backend_operator(
+    'kd.slices.empty_shaped',
+    qtype_constraints=[
+        qtype_utils.expect_jagged_shape(P.shape),
+        qtype_utils.expect_data_slice(P.schema),
+    ],
+)
+def empty_shaped(shape, schema=schema_constants.MASK):  # pylint: disable=unused-argument
+  """Returns a DataSlice of missing items with the given shape.
+
+  If `schema` is a Struct schema, an empty Databag is created and attached to
+  the resulting DataSlice and `schema` is adopted into that DataBag.
+
+  Args:
+    shape: Shape of the resulting DataSlice.
+    schema: optional schema of the resulting DataSlice.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.empty_shaped_as'])
+@optools.as_lambda_operator(
+    'kd.slices.empty_shaped_as',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.shape_from),
+        qtype_utils.expect_data_slice(P.schema),
+    ],
+)
+def empty_shaped_as(shape_from, schema=schema_constants.MASK):  # pylint: disable=unused-argument
+  """Returns a DataSlice of missing items with the shape of `shape_from`.
+
+  If `schema` is a Struct schema, an empty Databag is created and attached to
+  the resulting DataSlice and `schema` is adopted into that DataBag.
+
+  Args:
+    shape_from: used for the shape of the resulting DataSlice.
+    schema: optional schema of the resulting DataSlice.
+  """
+  return empty_shaped(shape_from.get_shape(), schema)
+
+
 @optools.add_to_registry(aliases=['kd.agg_count'])
 @optools.as_lambda_operator(
     'kd.slices.agg_count',

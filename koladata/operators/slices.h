@@ -52,6 +52,10 @@ absl::StatusOr<DataSlice> ConcatOrStack(
 // kd.slices.is_empty.
 absl::StatusOr<DataSlice> IsEmpty(const DataSlice& obj);
 
+// kd.slices.empty_shaped.
+absl::StatusOr<DataSlice> EmptyShaped(const DataSlice::JaggedShape& shape,
+                                      const DataSlice& schema);
+
 // kd.slices.group_by_indices.
 absl::StatusOr<DataSlice> GroupByIndices(
     absl::Span<const DataSlice* const> slices);
