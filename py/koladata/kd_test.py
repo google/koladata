@@ -241,7 +241,7 @@ class KdTest(absltest.TestCase):
     fn = kdf.expr_fn(57, signature=signature_utils.signature([]))
     self.assertTrue(kd.is_fn(fn))
     self.assertEqual(kd.is_fn(fn).get_schema(), schema_constants.MASK)
-    del fn.returns
+    fn = fn.with_attrs(returns=None)
     self.assertFalse(kd.is_fn(fn))
     self.assertEqual(kd.is_fn(fn).get_schema(), schema_constants.MASK)
     self.assertFalse(kd.is_fn(57))
@@ -617,7 +617,7 @@ class KdTest(absltest.TestCase):
         go=kd.functor.expr_fn(I.n * V.rec(n=I.n - 1)),
         stop=kd.functor.expr_fn(1),
     )
-    fn.go.rec = fn
+    fn = fn.updated(kd.attrs(fn.go, rec=fn))
     kd.testing.assert_equal(fn(n=5), kd.item(120))
 
   def test_trace_py_fn(self):

@@ -107,7 +107,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     self.assertEqual(
         functor_factories.is_fn(fn).get_schema(), schema_constants.MASK
     )
-    del fn.returns
+    fn = fn.with_attrs(returns=None)
     self.assertFalse(functor_factories.is_fn(fn))
     self.assertEqual(
         functor_factories.is_fn(fn).get_schema(), schema_constants.MASK
@@ -372,7 +372,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         ds(1.0 * 1.0 + 2.0 * 0.5 + 3.0 * 1.5),
     )
     testing.assert_equal(fn.weights[:].no_bag(), ds([1.0, 0.5, 1.5]))
-    fn.weights = fns.list([2.0, 3.0, 4.0])
+    fn = fn.with_attrs(weights=fns.list([2.0, 3.0, 4.0]))
     testing.assert_equal(
         fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
         ds(1.0 * 2.0 + 2.0 * 3.0 + 3.0 * 4.0),

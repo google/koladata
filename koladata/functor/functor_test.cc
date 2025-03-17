@@ -89,6 +89,7 @@ TEST(CreateFunctorTest, Basic) {
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature,
                                      {{"a", var_a_expr}, {"my_obj", my_obj}}));
+  EXPECT_FALSE(fn.GetBag()->IsMutable());
   EXPECT_THAT(fn.GetAttr(kReturnsAttrName),
               IsOkAndHolds(IsEquivalentTo(returns_expr.WithBag(fn.GetBag()))));
   EXPECT_THAT(fn.GetAttr("a"),
@@ -115,6 +116,7 @@ TEST(CreateFunctorTest, DefaultSignature) {
   auto slice_57 = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(
       auto fn, CreateFunctor(returns_expr, std::nullopt, {{"a", var_a_expr}}));
+  EXPECT_FALSE(fn.GetBag()->IsMutable());
   ASSERT_OK_AND_ASSIGN(auto koda_signature, fn.GetAttr(kSignatureAttrName));
   ASSERT_OK_AND_ASSIGN(auto signature,
                        KodaSignatureToCppSignature(koda_signature));
@@ -136,6 +138,7 @@ TEST(CreateFunctorTest, NonExprReturns) {
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(auto fn, CreateFunctor(slice_57, koda_signature, {}));
+  EXPECT_FALSE(fn.GetBag()->IsMutable());
   EXPECT_THAT(fn.GetAttr(kReturnsAttrName),
               IsOkAndHolds(IsEquivalentTo(slice_57.WithBag(fn.GetBag()))));
 }

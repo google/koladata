@@ -87,8 +87,12 @@ absl::StatusOr<DataSlice> CreateFunctor(
     variable_names.push_back(kSignatureAttrName);
     variable_values.push_back(signature.value());
   }
-  auto db = DataBag::Empty();
-  return ObjectCreator::FromAttrs(db, variable_names, variable_values);
+  DataBagPtr result_db = DataBag::Empty();
+  ASSIGN_OR_RETURN(auto result, ObjectCreator::FromAttrs(
+                                    result_db, variable_names,
+                                    variable_values));
+  result_db->UnsafeMakeImmutable();
+  return result;
 }
 
 absl::StatusOr<bool> IsFunctor(const DataSlice& slice) {
