@@ -58,7 +58,6 @@ using ::testing::AllOf;
 using ::testing::ElementsAre;
 using ::testing::Eq;
 using ::testing::HasSubstr;
-using ::testing::Pointee;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
 
 DataSliceEdge EdgeFromSizes(absl::Span<const int64_t> sizes) {
