@@ -14,7 +14,6 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -134,7 +133,7 @@ class KodaListAppendUpdateTest(parameterized.TestCase):
   )
   def test_error(self, x, append, err_regex):
     with self.assertRaisesWithLiteralMatch(
-        exceptions.KodaError,
+        ValueError,
         err_regex,
     ):
       _ = expr_eval.eval(kde.lists.list_append_update(x, append))

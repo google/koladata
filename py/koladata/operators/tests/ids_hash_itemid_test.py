@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -58,7 +57,7 @@ class IdsHashItemIdTest(parameterized.TestCase):
 
   def test_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'only ItemIds can be encoded, got INT32'
+        ValueError, 'only ItemIds can be encoded, got INT32'
     ):
       kde.ids.hash_itemid(ds([1, 2, 3])).eval()
 

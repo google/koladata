@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from arolla import arolla
 from koladata import kd as user_facing_kd
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import introspection
@@ -519,12 +518,12 @@ class FunctorFactoriesTest(absltest.TestCase):
         kd.call(functor_factories.py_fn(positional_only), 1), ds(1)
     )
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'positional-only arguments passed as keyword'
+        ValueError, 'positional-only arguments passed as keyword'
     ):
       _ = kd.call(functor_factories.py_fn(positional_only), args=1)
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, "missing 1 required positional argument: 'y'"
+        ValueError, "missing 1 required positional argument: 'y'"
     ):
       _ = kd.call(
           functor_factories.py_fn(lambda x, y: x + y), fns.obj(x=1, y=2)
@@ -543,9 +542,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         ),
         ds(3),
     )
-    with self.assertRaisesRegex(
-        exceptions.KodaError, "unexpected keyword argument 'y'"
-    ):
+    with self.assertRaisesRegex(ValueError, "unexpected keyword argument 'y'"):
       _ = (
           kd.call(
               functor_factories.py_fn(lambda foo: foo.x + foo.y),
@@ -734,9 +731,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     f = functor_factories.bind(
         functor_factories.py_fn(lambda x, y: x + y), x=1, y=I.z
     )
-    with self.assertRaisesRegex(
-        exceptions.KodaError, "unexpected keyword argument 'z'"
-    ):
+    with self.assertRaisesRegex(ValueError, "unexpected keyword argument 'z'"):
       # This forwards argument 'z' to the underlying Python function as well,
       # which does not accept it.
       _ = kd.call(f, z=2)
@@ -757,7 +752,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     fn = functor_factories.py_fn(lambda x, /: x)
     f = functor_factories.bind(fn, x=1)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'positional-only arguments passed as keyword arguments',
     ):
       _ = f()
@@ -766,7 +761,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     f = functor_factories.bind(fn, x=1)
     testing.assert_equal(f().no_bag(), ds(1))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'got multiple values for argument',
     ):
       _ = f(1)
@@ -1073,13 +1068,13 @@ class FunctorFactoriesTest(absltest.TestCase):
     fn = functor_factories.py_fn(lambda x, y: x + y)
     self.assertEqual(fn(x=1, y=2), 3)
     with self.assertRaisesRegex(
-        exceptions.KodaError, "got an unexpected keyword argument 'z'"
+        ValueError, "got an unexpected keyword argument 'z'"
     ):
       _ = fn(x=1, y=2, z=3)
     fn2 = functor_factories.allow_arbitrary_unused_inputs(fn)
     self.assertEqual(fn2(x=1, y=2), 3)
     with self.assertRaisesRegex(
-        exceptions.KodaError, "got an unexpected keyword argument 'z'"
+        ValueError, "got an unexpected keyword argument 'z'"
     ):
       _ = fn2(x=1, y=2, z=3)
 

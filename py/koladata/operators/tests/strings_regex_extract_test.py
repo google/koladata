@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -131,7 +130,7 @@ class StringsRegexExtractTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.regex_extract: argument `text` must be a slice of STRING,'
         ' got a slice of OBJECT containing INT32 and STRING values',
     ):

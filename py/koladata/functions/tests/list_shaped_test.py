@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 # Register kde ops for e.g. jagged_shape.create_shape().
@@ -256,7 +255,7 @@ class ListShapedTest(parameterized.TestCase):
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""the schema for list items is incompatible.
 
 Expected schema for list items: BYTES

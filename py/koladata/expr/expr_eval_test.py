@@ -19,7 +19,6 @@ import time
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext as py_expr_eval
@@ -221,7 +220,7 @@ class ExprEval(absltest.TestCase):
     testing.assert_equal(res, expr_eval.UNSPECIFIED_SELF_INPUT)
     # We can improve this error message later if needed.
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """the attribute 'foo' is missing on the schema.
 

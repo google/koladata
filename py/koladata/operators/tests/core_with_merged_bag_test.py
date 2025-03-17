@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -59,7 +58,7 @@ class CoreWithMergedBagTest(parameterized.TestCase):
 
   def test_no_bag_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.core.with_merged_bag: expect the DataSlice to have a DataBag'
         ' attached',
     ):

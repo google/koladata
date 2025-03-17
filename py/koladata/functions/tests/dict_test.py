@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -294,7 +293,7 @@ class DictTest(parameterized.TestCase):
         key_schema=schema_constants.INT64, value_schema=schema_constants.INT64
     )
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for keys is incompatible.
 
 Expected schema for keys: INT64
@@ -303,7 +302,7 @@ Assigned schema for keys: STRING"""),
       schema(items_or_keys=ds(['a', 'a']), values=ds([1, 2]))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for values is incompatible.
 
 Expected schema for values: INT64
@@ -312,7 +311,7 @@ Assigned schema for values: STRING"""),
       schema(items_or_keys=ds([1, 2]), values=ds(['1', '2']))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for values is incompatible.
 
 Expected schema for values: INT64
@@ -321,7 +320,7 @@ Assigned schema for values: STRING"""),
       fns.dict(items_or_keys={1: 'a', 2: 'b'}, schema=schema)
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for keys is incompatible.
 
 Expected schema for keys: INT64
@@ -330,7 +329,7 @@ Assigned schema for keys: STRING"""),
       fns.dict(items_or_keys={'a': 1, 'b': 1}, schema=schema)
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for values is incompatible.
 
 Expected schema for values: STRING
@@ -343,7 +342,7 @@ Assigned schema for values: INT32"""),
       )
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for keys is incompatible.
 
 Expected schema for keys: INT64
@@ -356,7 +355,7 @@ Assigned schema for keys: STRING"""),
       )
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""the schema for keys is incompatible.
 
 Expected schema for keys: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
@@ -370,7 +369,7 @@ Assigned schema for keys: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
       )
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""the schema for values is incompatible.
 
 Expected schema for values: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}

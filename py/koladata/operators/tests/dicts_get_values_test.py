@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
@@ -168,7 +167,7 @@ class DictsGetValuesTest(parameterized.TestCase):
       eval_op('kd.get_values', db.list([1, 2, 3]))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape('dict(s) expected, got LIST[INT32]'),
     ):
       eval_op('kd.get_values', db.list([1, 2, 3]), ds([0, 1]))

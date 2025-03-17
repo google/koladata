@@ -18,7 +18,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -122,7 +121,7 @@ class FromProtoBytesTest(parameterized.TestCase):
 
   def test_proto_path_not_found(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.proto.from_proto_bytes: kd.proto._from_proto_bytes: proto'
             ' message `not.a.Message` not found in C++ generated descriptor'
@@ -133,7 +132,7 @@ class FromProtoBytesTest(parameterized.TestCase):
 
   def test_parse_failure(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.proto.from_proto_bytes: kd.proto._from_proto_bytes: failed to'
             ' parse input as a binary proto of type'

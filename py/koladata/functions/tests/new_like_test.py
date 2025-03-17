@@ -15,7 +15,6 @@
 import re
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -92,7 +91,7 @@ class NewLikeTest(absltest.TestCase):
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
 
   def test_broadcast_error(self):
-    with self.assertRaisesRegex(exceptions.KodaError, 'cannot be expanded'):
+    with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
       fns.new_like(ds([1, 1]), a=ds([42]))
 
   def test_all_empty_slice(self):
@@ -131,7 +130,7 @@ class NewLikeTest(absltest.TestCase):
 
     with self.subTest('present DataItem and missing itemid'):
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           '`itemid` only has 0 present items but 1 are required',
       ):
         _ = fns.new_like(ds(1), a=42, itemid=(itemid & None))
@@ -150,14 +149,14 @@ class NewLikeTest(absltest.TestCase):
 
     with self.subTest('full DataSlice and sparse itemid'):
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           '`itemid` only has 2 present items but 3 are required',
       ):
         _ = fns.new_like(ds([1, 1, 1]), a=42, itemid=ds([id1, None, id3]))
 
     with self.subTest('full DataSlice and full itemid with duplicates'):
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           '`itemid` cannot have duplicate ItemIds',
       ):
         _ = fns.new_like(ds([1, 1, 1]), a=42, itemid=ds([id1, id2, id1]))
@@ -175,7 +174,7 @@ class NewLikeTest(absltest.TestCase):
         'sparse DataSlice and sparse itemid with sparsity mismatch'
     ):
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           '`itemid` and `shape_and_mask_from` must have the same sparsity',
       ):
         _ = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, id2, None]))
@@ -191,7 +190,7 @@ class NewLikeTest(absltest.TestCase):
 
     with self.subTest('sparse DataSlice and full itemid with duplicates'):
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           '`itemid` cannot have duplicate ItemIds',
       ):
         _ = fns.new_like(ds([1, None, 1]), a=42, itemid=ds([id1, id1, id1]))
@@ -303,18 +302,18 @@ class NewLikeTest(absltest.TestCase):
           schema=ds([schema_constants.INT32, schema_constants.STRING]),
       )
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'requires Entity schema, got INT32'
+        ValueError, 'requires Entity schema, got INT32'
     ):
       fns.new_like(ds(1), a=1, schema=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'requires Entity schema, got OBJECT'
+        ValueError, 'requires Entity schema, got OBJECT'
     ):
       fns.new_like(ds(1), a=1, schema=schema_constants.OBJECT)
 
   def test_schema_error_message(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             r"""cannot create Item(s) with the provided schema: SCHEMA(a=INT32)
 
@@ -334,7 +333,7 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
     b = db2.uuobj(x=1)
     b.x = 2
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot create Item\(s\)
 
 The cause is: cannot merge DataBags due to an exception encountered when merging entities.

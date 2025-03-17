@@ -31,7 +31,6 @@ py_library(
     srcs = ["koda_test_eval.py"],
     deps = [
         ":data_conversion",
-        "//py/koladata/exceptions",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
@@ -66,7 +65,6 @@ py_test(
     deps = [
         ":data_conversion",
         ":koda_test_eval",
-        "//py/koladata/exceptions",
         "//py/koladata/exceptions:error_py_proto",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/types:data_slice",

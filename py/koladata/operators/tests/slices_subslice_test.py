@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -373,7 +372,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
       expr_eval.eval(kde.subslice(slice(1, 3)))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "kd.slices.subslice: 'start' argument of a Slice must contain only"
             ' integers'
@@ -382,7 +381,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice('a', 3)))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "kd.slices.subslice: 'stop' argument of a Slice must contain only"
             ' integers'
@@ -391,7 +390,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, 'a')))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "kd.slices.subslice: 'stop' argument of a Slice must contain only"
             ' integers'
@@ -400,7 +399,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds('1'))))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "kd.slices.subslice: 'stop' argument of a Slice must contain only"
             ' integers'
@@ -409,7 +408,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(3, ds(1.0))))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.subslice: slicing argument at position 0 is invalid:'
             " 'step' argument of a Slice is not supported, got: DATA_SLICE"
@@ -419,7 +418,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
 
   def test_invalid_number_of_slices_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "kd.slices.subslice: cannot subslice DataSlice 'x' as the number of"
             ' provided non-ellipsis slicing arguments is larger than x.ndim:'
@@ -429,7 +428,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(1), slice(1)))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "kd.slices.subslice: cannot subslice DataSlice 'x' as the number of"
             ' provided non-ellipsis slicing arguments is larger than x.ndim:'
@@ -439,7 +438,7 @@ class SlicesSubsliceTest(parameterized.TestCase):
       expr_eval.eval(kde.subslice(ds([1, 2, 3]), slice(1), ..., slice(1)))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.subslice: slicing argument at position 2 is invalid:'
             ' ellipsis ... can appear at most once in the slicing arguments,'

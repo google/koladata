@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -112,7 +111,7 @@ class StringsReplaceTest(parameterized.TestCase):
 
   def test_three_args_wrong_types(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.replace: mixing STRING and BYTES arguments is not'
             ' allowed, but `s` contains STRING and `old_substr` contains BYTES'
@@ -191,7 +190,7 @@ class StringsReplaceTest(parameterized.TestCase):
 
   def test_incompatible_types_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.replace: mixing STRING and BYTES arguments is not'
             ' allowed, but `s` contains STRING and `old_substr` contains BYTES'
@@ -201,7 +200,7 @@ class StringsReplaceTest(parameterized.TestCase):
 
   def test_another_incompatible_types_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.replace: argument `old_substr` must be a slice of'
             ' either STRING or BYTES, got a slice of INT32'
@@ -215,7 +214,7 @@ class StringsReplaceTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.replace: argument `old_substr` must be a slice of either'
         ' STRING or BYTES, got a slice of OBJECT containing INT32 and STRING'
         ' values',

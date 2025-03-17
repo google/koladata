@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -104,40 +103,40 @@ class ShapesNewWithSizeTest(parameterized.TestCase):
 
   def test_unsupported_dimension_rank_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'kd.shapes.reshape: unsupported DataSlice rank: 2'
+        ValueError, 'kd.shapes.reshape: unsupported DataSlice rank: 2'
     ):
       expr_eval.eval(kde.shapes._new_with_size(ds(1), ds([[1]])))
 
   def test_unsupported_size_rank_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.shapes.reshape: expected rank 0, but got rank=1',
     ):
       expr_eval.eval(kde.shapes._new_with_size(ds([0])))
 
   def test_unsupported_dimension_sizes_type_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.shapes.reshape: unsupported narrowing cast to INT64',
     ):
       expr_eval.eval(kde.shapes._new_with_size(ds(1), ds(1.0)))
 
   def test_unsupported_size_type_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.shapes.reshape: unsupported narrowing cast to INT64',
     ):
       expr_eval.eval(kde.shapes._new_with_size(ds(1.0)))
 
   def test_incompatible_dimensions_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'kd.shapes.reshape: incompatible dimensions'
+        ValueError, 'kd.shapes.reshape: incompatible dimensions'
     ):
       expr_eval.eval(kde.shapes._new_with_size(ds(2), ds(2), ds([1])))
 
   def test_unresolvable_placeholder_dim_exception(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.shapes.reshape: parent_size=2 does not divide child_size=3, so the'
         ' placeholder dimension at index 1 cannot be resolved',
     ):
@@ -145,14 +144,14 @@ class ShapesNewWithSizeTest(parameterized.TestCase):
 
   def test_multiple_placeholder_dims_exception(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.shapes.reshape: only one dimension can be a placeholder',
     ):
       expr_eval.eval(kde.shapes._new_with_size(ds(2), ds(-1), ds(-1)))
 
   def test_incompatible_dimension_specification_exception(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.shapes.reshape: invalid dimension specification - the resulting'
         ' shape size=3 != the expected size=2',
     ):
@@ -160,14 +159,14 @@ class ShapesNewWithSizeTest(parameterized.TestCase):
 
   def test_negative_size_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.shapes.reshape: size must be a non-negative integer, got: -1',
     ):
       expr_eval.eval(kde.shapes._new_with_size(ds(-1)))
 
   def test_zero_group_size_after_placeholder_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.shapes.reshape: expected a non-zero group size',
     ):
       expr_eval.eval(kde.shapes._new_with_size(ds(0), ds(2), ds(-1), ds(0)))

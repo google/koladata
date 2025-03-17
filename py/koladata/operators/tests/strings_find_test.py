@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -100,7 +99,7 @@ class StringsFindTest(parameterized.TestCase):
 
   def test_eval_two_args_wrong_types(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.find: argument `substr` must be a slice of either'
             ' STRING or BYTES, got a slice of INT32'
@@ -109,7 +108,7 @@ class StringsFindTest(parameterized.TestCase):
       expr_eval.eval(kde.strings.find(None, 123))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.find: mixing STRING and BYTES arguments is not allowed,'
             ' but `x` contains STRING and `substr` contains BYTES'
@@ -202,7 +201,7 @@ class StringsFindTest(parameterized.TestCase):
 
   def test_three_args_wrong_types(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.find: argument `start` must be a slice of integer'
             ' values, got a slice of STRING'
@@ -280,7 +279,7 @@ class StringsFindTest(parameterized.TestCase):
 
   def test_incompatible_types_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.find: mixing STRING and BYTES arguments is not allowed,'
             ' but `x` contains STRING and `substr` contains BYTES'
@@ -290,7 +289,7 @@ class StringsFindTest(parameterized.TestCase):
 
   def test_another_incompatible_types_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.find: argument `substr` must be a slice of either'
             ' STRING or BYTES, got a slice of INT32'
@@ -302,7 +301,7 @@ class StringsFindTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.find: argument `substr` must be a slice of either STRING or'
         ' BYTES, got a slice of OBJECT containing INT32 and STRING values',
     ):

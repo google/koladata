@@ -84,7 +84,6 @@ class SlicesIsInTest(parameterized.TestCase):
 
   def test_x_not_an_item(self):
     with self.assertRaisesRegex(
-        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         'kd.slices.isin: argument `x` must be a DataItem',
     ):

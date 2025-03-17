@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
@@ -138,7 +137,7 @@ class SlicesTranslateTest(parameterized.TestCase):
 
   def test_incompatible_shapes(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.slices.translate: values_from must be broadcastable to keys_from',
     ):
       expr_eval.eval(
@@ -148,14 +147,14 @@ class SlicesTranslateTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.slices.translate: keys_from and values_from must have at least one'
         ' dimension',
     ):
       expr_eval.eval(kde.slices.translate(ds(['a', 'c', 'd']), ds('a'), ds(1)))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.translate: keys_from.get_shape()[:-1] must be'
             ' broadcastable to keys_to, but got JaggedShape(1) vs'
@@ -170,7 +169,7 @@ class SlicesTranslateTest(parameterized.TestCase):
 
   def test_duplicate_keys(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'keys_from must be unique within each group of the last dimension',
     ):
       expr_eval.eval(
@@ -182,7 +181,7 @@ class SlicesTranslateTest(parameterized.TestCase):
   def test_different_key_schemas(self):
     s2 = db.new_schema(x=schema_constants.INT64)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'keys_to schema must be castable to keys_from schema',
     ):
       expr_eval.eval(

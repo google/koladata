@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -117,17 +116,17 @@ class SlicesInverseMappingTest(parameterized.TestCase):
       expr_eval.eval(kde.slices.inverse_mapping(x, ndim=2))
 
   def test_invalid_permutation_error(self):
-    with self.assertRaisesRegex(exceptions.KodaError, 'invalid permutation'):
+    with self.assertRaisesRegex(ValueError, 'invalid permutation'):
       expr_eval.eval(kde.slices.inverse_mapping(ds([1, 3, 0])))
 
-    with self.assertRaisesRegex(exceptions.KodaError, 'invalid permutation'):
+    with self.assertRaisesRegex(ValueError, 'invalid permutation'):
       expr_eval.eval(
           kde.slices.inverse_mapping(ds([[1, 2, 0], [1, None]]), ndim=2)
       )
 
   def test_invalid_type_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.inverse_mapping: argument `x` must be a slice of integer'
             ' values, got a slice of FLOAT32'

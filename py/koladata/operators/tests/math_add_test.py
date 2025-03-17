@@ -23,7 +23,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -204,7 +203,7 @@ class MathAddTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.math.add: arguments `x` and `y` must contain values castable to a'
         ' common primitive type, got INT32 and STRING',
     ):
@@ -212,14 +211,14 @@ class MathAddTest(parameterized.TestCase):
 
     z = ds([[1, 2], [3]])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'shapes are not compatible',
     ):
       expr_eval.eval(kde.math.add(I.x, I.z), x=x, z=z)
 
     z = ds([[1, '2'], [3]])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.math.add: arguments `x` and `y` must contain values castable to a'
         ' common primitive type, got INT32 and OBJECT containing INT32 and'
         ' STRING values',
@@ -256,7 +255,7 @@ class MathAddTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.add: argument `x` must be a slice of consistent numeric,'
             ' bytes or string values, got a slice of SCHEMA(x=INT32)'

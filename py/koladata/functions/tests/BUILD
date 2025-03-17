@@ -43,7 +43,6 @@ py_test(
     srcs = ["list_test.py"],
     deps = [
         "//py/koladata:kd",
-        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -107,7 +106,6 @@ py_test(
     srcs = ["list_like_test.py"],
     deps = [
         "//py/koladata:kd",
-        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -126,7 +124,6 @@ py_test(
     srcs = ["list_shaped_test.py"],
     deps = [
         "//py/koladata:kd",
-        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -163,7 +160,6 @@ py_test(
     name = "implode_test",
     srcs = ["implode_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -191,7 +187,6 @@ py_test(
     srcs = ["dict_test.py"],
     deps = [
         "//py/koladata:kd",
-        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -339,7 +334,6 @@ py_test(
     name = "new_test",
     srcs = ["new_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -356,7 +350,6 @@ py_test(
     name = "new_shaped_test",
     srcs = ["new_shaped_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -390,7 +383,6 @@ py_test(
     name = "new_like_test",
     srcs = ["new_like_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -408,7 +400,6 @@ py_test(
     name = "obj_test",
     srcs = ["obj_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -425,7 +416,6 @@ py_test(
     name = "obj_shaped_test",
     srcs = ["obj_shaped_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -459,7 +449,6 @@ py_test(
     name = "obj_like_test",
     srcs = ["obj_like_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -504,7 +493,6 @@ py_test(
     name = "set_attr_test",
     srcs = ["set_attr_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:comparison",
         "//py/koladata/operators:core",
@@ -519,7 +507,6 @@ py_test(
     name = "set_attrs_test",
     srcs = ["set_attrs_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -532,7 +519,6 @@ py_test(
     name = "del_attr_test",
     srcs = ["del_attr_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
@@ -585,7 +571,6 @@ py_test(
     name = "from_py_test",
     srcs = ["from_py_test.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -612,7 +597,6 @@ py_test(
     srcs = ["to_py_test.py"],
     deps = [
         "//py/koladata/base/py_conversions:dataclasses_py_util",
-        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",

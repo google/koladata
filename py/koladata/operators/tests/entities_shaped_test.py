@@ -14,7 +14,6 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -126,7 +125,7 @@ class EntitiesShapedTest(absltest.TestCase):
   def test_schema_arg_implicit_casting_failure(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         "kd.entities.shaped: the schema for attribute 'a' is incompatible",
     ):
       kde.entities.shaped(

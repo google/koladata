@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -210,7 +209,7 @@ class ListTest(parameterized.TestCase):
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""the schema for list items is incompatible.
 
 Expected schema for list items: BYTES
@@ -219,7 +218,7 @@ Assigned schema for list items: INT32""",
       fns.list([[1, 2], [3]], item_schema=schema_constants.BYTES)
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""the schema for list items is incompatible.
 
 Expected schema for list items: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}

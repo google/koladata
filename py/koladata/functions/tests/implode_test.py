@@ -17,7 +17,6 @@ import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -147,7 +146,7 @@ class ImplodeTest(parameterized.TestCase):
       fns.implode(ds([]), ds([1]))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "kd.implode: cannot implode 'x' to fold the last 2 dimension(s)"
             " because 'x' only has 1 dimensions"

@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -241,7 +240,7 @@ class StringsSubstrTest(parameterized.TestCase):
 
   def test_eval_three_args_wrong_types(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.substr: argument `end` must be a slice of integer'
             ' values, got a slice of STRING'
@@ -273,7 +272,7 @@ class StringsSubstrTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.substr: argument `x` must be a slice of either STRING'
             ' or BYTES, got a slice of SCHEMA(x=INT32)'

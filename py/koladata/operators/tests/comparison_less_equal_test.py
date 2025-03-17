@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -120,7 +119,7 @@ class ComparisonLessEqualTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     y = ds(['a', 'b', 'c'])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.comparison.less_equal: arguments `x` and `y` must contain values'
         ' castable to a common primitive type, got INT32 and STRING',
     ):
@@ -130,13 +129,13 @@ class ComparisonLessEqualTest(parameterized.TestCase):
     empty = ds([None, None])
     schemas = ds([None, schema_constants.BOOLEAN])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.comparison.less_equal: argument `x` must be a slice of orderable'
         ' values, got a slice of SCHEMA',
     ):
       expr_eval.eval(kde.comparison.less_equal(I.x, I.y), x=schemas, y=empty)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.comparison.less_equal: argument `y` must be a slice of orderable'
         ' values, got a slice of SCHEMA',
     ):

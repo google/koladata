@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -114,7 +113,7 @@ class ObjTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
-    with self.assertRaisesRegex(exceptions.KodaError, 'please use new'):
+    with self.assertRaisesRegex(ValueError, 'please use new'):
       fns.obj(a=1, b='a', schema=schema_constants.INT32)
 
   def test_item_assignment_rhs_no_ds_args(self):

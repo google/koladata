@@ -21,7 +21,6 @@ from typing import Any
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -54,7 +53,7 @@ class ToPyTest(parameterized.TestCase):
     root.none_list_value = []
     root.none_list_value.append(None)
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for list items is incompatible'
+        ValueError, 'the schema for list items is incompatible'
     ):
       root.none_list_value.append(1)
 

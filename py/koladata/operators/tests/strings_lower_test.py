@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -77,7 +76,7 @@ class StringsLowerTest(parameterized.TestCase):
   def test_errors(self):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.lower: argument `x` must be a slice of STRING, got a slice'
         ' of INT32',
     ):
@@ -85,7 +84,7 @@ class StringsLowerTest(parameterized.TestCase):
 
     x = ds([b'ABC', b'DEF'])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.lower: argument `x` must be a slice of STRING, got a slice'
         ' of BYTES',
     ):
@@ -93,7 +92,7 @@ class StringsLowerTest(parameterized.TestCase):
 
     x = ds(['ABC', b'DEF'])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.lower: argument `x` must be a slice of STRING, got a slice'
         ' of OBJECT containing BYTES and STRING values',
     ):

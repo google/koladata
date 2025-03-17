@@ -18,7 +18,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -141,7 +140,7 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_ndim_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "kd.implode: cannot implode 'x' to fold the last 2 dimension(s)"
             " because 'x' only has 1 dimensions"

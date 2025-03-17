@@ -20,7 +20,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from IPython.core import ultratb
 from koladata import kd as user_facing_kd
-from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.functions import functions as fns
@@ -452,7 +451,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     try:
       f(0)
-    except (TypeError, exceptions.KodaError) as e:
+    except (TypeError, ValueError) as e:
       ex = e
 
     formatted_message = '\n'.join(
@@ -470,7 +469,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     try:
       f(0, 0)
-    except exceptions.KodaError as e:
+    except ValueError as e:
       ex = e
 
     formatted_message = '\n'.join(

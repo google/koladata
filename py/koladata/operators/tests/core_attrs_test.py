@@ -16,7 +16,6 @@ import re
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
@@ -52,7 +51,7 @@ class CoreAttrsTest(absltest.TestCase):
   def test_multi_attr_overwrite(self):
     o = kde.new(x=1, y=10).eval()
     with self.assertRaisesRegex(
-        exceptions.KodaError, "the schema for attribute 'x' is incompatible."
+        ValueError, "the schema for attribute 'x' is incompatible."
     ):
       _ = kde.core.attrs(o, x='2').eval()
     db2 = kde.core.attrs(
@@ -110,7 +109,7 @@ class CoreAttrsTest(absltest.TestCase):
         bag().obj(bag().new(x='1', y=10)), bag().obj(bag().new(x=2, y=20))
     ).eval()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         "kd.core.attrs: the schema for attribute 'x' is incompatible.",
     ):
       _ = kde.core.attrs(o, x='2').eval()
@@ -145,13 +144,13 @@ class CoreAttrsTest(absltest.TestCase):
   def test_non_bool_overwrite_schema(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.core.attrs: argument `overwrite_schema` must be an item holding'
         ' BOOLEAN, got an item of INT32',
     ):
       kde.core.attrs(o, x=2, overwrite_schema=1).eval()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.core.attrs: argument `overwrite_schema` must be an item holding'
         ' BOOLEAN, got a slice of rank 1 > 0',
     ):
@@ -160,7 +159,7 @@ class CoreAttrsTest(absltest.TestCase):
   def test_complex_type_conflict_error_message(self):
     o = bag().new(x=bag().new(y=2))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """kd.core.attrs: the schema for attribute 'x' is incompatible.
 

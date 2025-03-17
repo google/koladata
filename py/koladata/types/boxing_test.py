@@ -17,7 +17,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 # Needed for self.assertEqual(item_1, item_2).
-from koladata.exceptions import exceptions
+
 from koladata.operators import comparison as _
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -248,14 +248,10 @@ class BoxingTest(parameterized.TestCase):
 
   def test_entities(self):
     db = data_bag.DataBag.empty()
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'cannot find a common schema'
-    ):
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       ds([db.new(), db.new()])
 
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'cannot find a common schema'
-    ):
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       ds([db.new(), 42])
 
     e1 = db.new()
@@ -267,7 +263,7 @@ class BoxingTest(parameterized.TestCase):
   def test_no_common_schema_error_message(self):
     db = data_bag.DataBag.empty()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot find a common schema
 
  the common schema\(s\) \$[0-9a-zA-Z]{22}: SCHEMA\(x=INT32\)
@@ -276,7 +272,7 @@ class BoxingTest(parameterized.TestCase):
       ds([db.new(x=1), db.new()])
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot find a common schema
 
  the common schema\(s\) OBJECT: OBJECT
@@ -285,7 +281,7 @@ class BoxingTest(parameterized.TestCase):
       ds([1, 'a', db.new()])
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot find a common schema
 
  the common schema\(s\) OBJECT: OBJECT
@@ -294,7 +290,7 @@ class BoxingTest(parameterized.TestCase):
       ds([db.new(), 1, 'a'])
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot find a common schema
 
  the common schema\(s\) \$[0-9a-zA-Z]{22}: SCHEMA\(\)
@@ -353,7 +349,7 @@ class BoxingTest(parameterized.TestCase):
     db1 = data_bag.DataBag.empty()
     e1 = db1.new().embed_schema()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot merge DataBags due to an exception encountered when merging entities.
 
 The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
@@ -374,9 +370,7 @@ The cause is the values of attribute '__schema__' are different: SCHEMA\(\) vs S
     self.assertEqual(x.internal_as_py()[2], 42)
 
     e1 = db.new()
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'cannot find a common schema'
-    ):
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       ds([o1, o2, e1])
     x = ds([o1, o2, e1.embed_schema()])
     testing.assert_equal(x.internal_as_py()[0], o1)

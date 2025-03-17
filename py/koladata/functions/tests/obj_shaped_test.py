@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -84,7 +83,7 @@ class ObjShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
 
   def test_broadcast_error(self):
-    with self.assertRaisesRegex(exceptions.KodaError, 'cannot be expanded'):
+    with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
       fns.obj_shaped(jagged_shape.create_shape([2]), a=ds([42]))
 
   def test_adopt_bag(self):
@@ -121,7 +120,7 @@ class ObjShapedTest(absltest.TestCase):
     testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
-    with self.assertRaisesRegex(exceptions.KodaError, 'please use new'):
+    with self.assertRaisesRegex(ValueError, 'please use new'):
       fns.obj_shaped(
           jagged_shape.create_shape(), a=1, b='a', schema=schema_constants.INT32
       )

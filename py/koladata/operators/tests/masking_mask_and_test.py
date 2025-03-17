@@ -75,14 +75,12 @@ class LogicalMaskAndTest(parameterized.TestCase):
   def test_invalid_input(self):
 
     with self.assertRaisesRegex(
-        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape('kd.masking.mask_and: argument `x` must have kd.MASK dtype'),
     ):
       _ = expr_eval.eval(kde.masking.mask_and(ds(1), ds(present)))
 
     with self.assertRaisesRegex(
-        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape('kd.masking.mask_and: argument `y` must have kd.MASK dtype'),
     ):

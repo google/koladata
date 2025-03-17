@@ -181,11 +181,11 @@ class KdTest(absltest.TestCase):
   def test_exception_type(self):
     self.assertIsInstance(kd.exceptions, types.ModuleType)
 
-    def f(e: kd.exceptions.KodaError):  # pylint: disable=unused-argument
+    def f(e: ValueError):  # pylint: disable=unused-argument
       pass
 
     sig = inspect.signature(f)
-    self.assertIs(sig.parameters['e'].annotation, kd.exceptions.KodaError)
+    self.assertIs(sig.parameters['e'].annotation, ValueError)
 
   def test_kdf(self):
     fn = kdf.expr_fn(
@@ -546,7 +546,7 @@ class KdTest(absltest.TestCase):
   def test_eager_op_error_message(self):
     x = kd.slice(1)
     with self.assertRaisesRegex(
-        kd.exceptions.KodaError,
+        ValueError,
         re.escape("""cannot find a common schema
 
  the common schema(s) INT32

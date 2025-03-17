@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -163,7 +162,7 @@ class ObjsUuTest(parameterized.TestCase):
   )
   def test_error(self, seed, kwargs, err_regex):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         err_regex,
     ):
       _ = expr_eval.eval(kde.objs.uu(seed=seed, **kwargs))

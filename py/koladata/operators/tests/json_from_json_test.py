@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -657,25 +656,17 @@ class JsonFromJsonTest(parameterized.TestCase):
     )
 
   def test_json_parse_error(self):
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'json parse error at position 2'
-    ):
+    with self.assertRaisesRegex(ValueError, 'json parse error at position 2'):
       _ = kde.json.from_json('{?}').eval()
 
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'json parse error at position 2'
-    ):
+    with self.assertRaisesRegex(ValueError, 'json parse error at position 2'):
       _ = kde.json.from_json('[').eval()
 
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'json parse error at position 1'
-    ):
+    with self.assertRaisesRegex(ValueError, 'json parse error at position 1'):
       _ = kde.json.from_json('/* comments not allowed */').eval()
 
   def test_slice_one_element_error(self):
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'json parse error at position 2'
-    ):
+    with self.assertRaisesRegex(ValueError, 'json parse error at position 2'):
       _ = kde.json.from_json(ds(['[]', '[', '[]'])).eval()
 
   @parameterized.parameters(
@@ -697,7 +688,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       ('{}', fns.dict_schema(schema_constants.BYTES, schema_constants.OBJECT)),
   )
   def test_invalid_schema_error(self, value, schema):
-    with self.assertRaisesRegex(exceptions.KodaError, 'json .* invalid for '):
+    with self.assertRaisesRegex(ValueError, 'json .* invalid for '):
       _ = kde.json.from_json(value, schema).eval()
 
   @parameterized.parameters(
@@ -706,7 +697,7 @@ class JsonFromJsonTest(parameterized.TestCase):
   )
   def test_out_of_range_error(self, value, schema):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(f'cannot cast int64{{{value}}} to int32'),
     ):
       _ = kde.json.from_json(value, schema).eval()
@@ -725,27 +716,27 @@ class JsonFromJsonTest(parameterized.TestCase):
   )
   def test_string_number_parse_error(self, value, schema):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'kd.json.from_json: unable to parse '
+        ValueError, 'kd.json.from_json: unable to parse '
     ):
       _ = kde.json.from_json(value, schema).eval()
 
   def test_x_arg_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.json.from_json: argument `x` must be a slice of STRING, got a slice'
         ' of OBJECT containing INT32 values',
     ):
       _ = kde.json.from_json(fns.obj(1)).eval()
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.json.from_json: argument `x` must be a slice of STRING, got a slice'
         ' of OBJECT containing INT32 values',
     ):
       _ = kde.json.from_json(ds([fns.obj(1)])).eval()
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.json.from_json: argument `x` must be a slice of STRING, got a slice'
         ' of BYTES',
     ):
@@ -753,7 +744,7 @@ class JsonFromJsonTest(parameterized.TestCase):
 
   def test_default_number_schema_arg_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'expected default_number_schema to be OBJECT or a numeric primitive'
         ' schema',
     ):
@@ -762,9 +753,7 @@ class JsonFromJsonTest(parameterized.TestCase):
       ).eval()
 
   def test_on_invalid_arg_error(self):
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'on_invalid must be a DataItem'
-    ):
+    with self.assertRaisesRegex(ValueError, 'on_invalid must be a DataItem'):
       _ = kde.json.from_json('1', on_invalid=ds([1, 2])).eval()
 
     with self.assertRaisesRegex(ValueError, 'no common schema'):
@@ -772,7 +761,7 @@ class JsonFromJsonTest(parameterized.TestCase):
 
   def test_values_attr_arg_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'values_attr must be None if keys_attr is None'
+        ValueError, 'values_attr must be None if keys_attr is None'
     ):
       _ = kde.json.from_json(ds([]), keys_attr=None).eval()
 

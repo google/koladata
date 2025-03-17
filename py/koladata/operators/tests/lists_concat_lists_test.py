@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.operators import kde_operators
@@ -150,7 +149,7 @@ class ListsConcatListsTest(parameterized.TestCase):
     a = db.list([1, 2, 3])
     b = db.list([[1, 2, 3], [4, 5, 6]])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot find a common schema
 
  the common schema\(s\) INT32: INT32

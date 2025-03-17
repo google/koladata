@@ -19,7 +19,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from google.protobuf import json_format
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -123,7 +122,7 @@ class FromProtoJsonTest(parameterized.TestCase):
 
   def test_proto_path_not_found(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.proto.from_proto_json: kd.proto._from_proto_json: proto message'
             ' `not.a.Message` not found in C++ generated descriptor pool'
@@ -133,7 +132,7 @@ class FromProtoJsonTest(parameterized.TestCase):
 
   def test_parse_failure(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.proto.from_proto_json: kd.proto._from_proto_json: failed to'
             ' parse input as a JSON-format proto of type'

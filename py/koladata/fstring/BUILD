@@ -112,7 +112,6 @@ py_test(
     srcs = ["fstr_test.py"],
     deps = [
         ":fstring",
-        "//py/koladata/exceptions",
         "//py/koladata/expr:input_container",
         "//py/koladata/functions",
         "//py/koladata/testing",

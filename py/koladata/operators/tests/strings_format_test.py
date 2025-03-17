@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -194,7 +193,7 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_incompatible_text_bytes_types_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         # TODO: Make errors Koda friendly.
         re.escape('unsupported argument types (TEXT,TEXT,BYTES)'),
     ):
@@ -202,12 +201,12 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_unsupported_types_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.format: cannot format argument `v` of type ITEMID',
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=kde.uuid()))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.format: cannot format argument `v` of type OBJECT'
         ' containing non-primitive values',
     ):
@@ -217,21 +216,21 @@ class StringsFormatTest(parameterized.TestCase):
           )
       )
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.format: cannot format argument `v` of type MASK',
     ):
       expr_eval.eval(kde.strings.format(ds('{v}'), v=ds(arolla.present())))
 
   def test_missing_input_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         "kd.strings.format: argument name 'v' is not found",
     ):
       expr_eval.eval(kde.strings.format(ds('{v}')))
 
   def test_wrong_schema_empty_format_input_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.format: argument `fmt` must be a slice of either STRING or'
         ' BYTES, got a slice of INT64',
     ):
@@ -239,7 +238,7 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.format: cannot format argument `v` of type OBJECT'
         ' containing INT32 and STRING values',
     ):

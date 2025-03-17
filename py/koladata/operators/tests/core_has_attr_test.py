@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -76,7 +75,7 @@ class CoreHasAttrTest(parameterized.TestCase):
         ds([present, present, present]),
     )
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""failed to get attribute 'b' due to conflict with the schema from the default value
 
 The cause is: cannot find a common schema
@@ -88,7 +87,7 @@ The cause is: cannot find a common schema
 
     # Although "a" is present in all objects, getting it might still fail.
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""failed to get attribute 'a'
 
 The cause is: cannot find a common schema
@@ -98,7 +97,7 @@ The cause is: cannot find a common schema
     ):
       expr_eval.eval(kde.core.get_attr(mixed_objects, 'a'))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""failed to get attribute 'a'
 
 The cause is: cannot find a common schema

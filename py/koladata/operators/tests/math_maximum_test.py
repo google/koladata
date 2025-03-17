@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -117,7 +116,7 @@ class MathMaximumTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.math.maximum: argument `y` must be a slice of numeric values, got'
         ' a slice of STRING',
     ):
@@ -125,7 +124,7 @@ class MathMaximumTest(parameterized.TestCase):
 
     z = ds([[1, 2], [3]])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'shapes are not compatible',
     ):
       expr_eval.eval(kde.math.maximum(I.x, I.z), x=x, z=z)

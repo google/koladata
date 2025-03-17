@@ -17,7 +17,6 @@ import itertools
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -314,7 +313,7 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""the schema for list items is incompatible.
 
 Expected schema for list items: BYTES

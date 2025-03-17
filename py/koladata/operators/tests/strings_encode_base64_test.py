@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -58,7 +57,7 @@ class StringsEncodeBase64Test(parameterized.TestCase):
 
   def test_schema_error(self):
     with self.assertRaisesWithLiteralMatch(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.encode_base64: argument `x` must be a slice of BYTES, got a'
         ' slice of STRING',
     ):
@@ -66,7 +65,7 @@ class StringsEncodeBase64Test(parameterized.TestCase):
 
   def test_dtype_error(self):
     with self.assertRaisesWithLiteralMatch(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.encode_base64: argument `x` must be a slice of BYTES, got a'
         ' slice of OBJECT containing STRING values',
     ):

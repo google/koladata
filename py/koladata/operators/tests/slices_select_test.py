@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -272,7 +271,7 @@ class SlicesSelectTest(parameterized.TestCase):
   def test_select_wrong_filter_schema(self):
     val = data_slice.DataSlice.from_vals([1, 2, None, 4])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.select: the schema of the `fltr` DataSlice should only'
             ' be OBJECT or MASK'
@@ -325,14 +324,14 @@ class SlicesSelectTest(parameterized.TestCase):
   )
   def test_select_wrong_filter_type(self, values, fltr, expected):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(expected),
     ):
       expr_eval.eval(kde.slices.select(values, fltr))
 
   def test_select_on_data_item_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.select: cannot select from DataItem because its size is'
             ' always 1. Consider calling .flatten() beforehand'
@@ -368,7 +367,7 @@ class SlicesSelectTest(parameterized.TestCase):
     )
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape('kd.slices.select: failed to broadcast `fltr` to `ds`'),
     ):
       _ = expr_eval.eval(kde.slices.select(x, y))

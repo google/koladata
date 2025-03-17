@@ -16,7 +16,6 @@ import itertools
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import py_expr_eval_py_ext
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -163,7 +162,7 @@ class SchemaItemTest(absltest.TestCase):
     ):
       schema_constants.INT32.with_bag(bag())({'a': 42})
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'requires Entity schema, got INT32'
+        ValueError, 'requires Entity schema, got INT32'
     ):
       schema_constants.INT32.with_bag(bag())(a=1, b=2)
 

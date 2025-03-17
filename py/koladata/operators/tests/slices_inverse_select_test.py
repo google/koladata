@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -116,14 +115,14 @@ class SlicesInverseSelectTest(parameterized.TestCase):
 
   def test_invalid_type_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.slices.inverse_select: the schema of the fltr DataSlice should only'
         ' be Object or Mask',
     ):
       expr_eval.eval(kde.slices.inverse_select(ds([1]), ds([1, 2])))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.slices.inverse_select: fltr argument must have all items of MASK'
         ' dtype',
     ):
@@ -135,7 +134,7 @@ class SlicesInverseSelectTest(parameterized.TestCase):
 
   def test_invalid_shape_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.inverse_select: the rank of the ds and fltr DataSlice'
             ' must be the same. Got rank(ds): 0, rank(fltr): 1'
@@ -146,7 +145,7 @@ class SlicesInverseSelectTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.inverse_select: the shape of `ds` and the shape of the'
             ' present elements in `fltr` do not match: JaggedShape(2) vs'

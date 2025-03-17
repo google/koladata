@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
@@ -65,7 +64,7 @@ class CoreWithAttrTest(parameterized.TestCase):
         bag().obj(bag().new(x='1', y=10)), bag().obj(bag().new(x=2, y=20))
     ).eval()
     with self.assertRaisesRegex(
-        exceptions.KodaError, "the schema for attribute 'x' is incompatible."
+        ValueError, "the schema for attribute 'x' is incompatible."
     ):
       _ = kde.core.with_attr(o, 'x', '2').eval()
     o1 = kde.core.with_attr(o, 'x', '2', overwrite_schema=True).eval()
@@ -114,7 +113,7 @@ class CoreWithAttrTest(parameterized.TestCase):
   def test_complex_type_conflict_error_message(self):
     o = bag().new(x=bag().new(y=2))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "Expected schema for 'x': SCHEMA(y=INT32)\nAssigned schema for 'x':"
             ' SCHEMA(z=INT32)'

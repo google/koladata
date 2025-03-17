@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -52,7 +51,7 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
     x1 = fns.dict(ds([1, 2, 3]), ds([4, 5, 6]))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for keys is incompatible.'
+        ValueError, 'the schema for keys is incompatible.'
     ):
       # x1 schema is DICT[INT32, INT32]
       _ = expr_eval.eval(
@@ -82,7 +81,7 @@ class DictsWithDictUpdateTest(parameterized.TestCase):
     x1 = fns.obj(fns.dict(ds([1, 2, 3]), ds([4, 5, 6])))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for keys is incompatible.'
+        ValueError, 'the schema for keys is incompatible.'
     ):
       # x1 schema is DICT[INT32, INT32]
       _ = expr_eval.eval(

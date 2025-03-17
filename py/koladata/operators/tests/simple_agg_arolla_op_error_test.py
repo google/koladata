@@ -15,7 +15,6 @@
 import re
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.operators import kde_operators
@@ -36,7 +35,7 @@ class SimpleAggArollaOpErrorTest(absltest.TestCase):
   def test_mixed_types_input_error(self):
     x = data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.agg_max: DataSlice with mixed types is not supported:'
             ' DataSlice([1, 2.0], schema: OBJECT, shape: JaggedShape(2))'
@@ -46,7 +45,7 @@ class SimpleAggArollaOpErrorTest(absltest.TestCase):
 
   def test_expect_rank_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape('kd.math.agg_max: expected rank(x) > 0'),
     ):
       expr_eval.eval(kde.agg_max(ds(1)))
@@ -54,7 +53,7 @@ class SimpleAggArollaOpErrorTest(absltest.TestCase):
   def test_arolla_operrors(self):
     x = data_slice.DataSlice.from_vals(['1', '2', '3'])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.agg_max: argument `x` must be a slice of numeric values,'
             ' got a slice of STRING'
@@ -64,7 +63,7 @@ class SimpleAggArollaOpErrorTest(absltest.TestCase):
 
   def test_unbiased_non_scalar_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.agg_var: argument `unbiased` must be an item holding'
             ' BOOLEAN, got a slice of rank 1 > 0'

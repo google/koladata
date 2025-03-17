@@ -15,7 +15,6 @@
 import re
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -213,7 +212,7 @@ class NewTest(absltest.TestCase):
   def test_schema_arg_implicit_casting_failure(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError, r'schema for attribute \'a\' is incompatible'
+        ValueError, r'schema for attribute \'a\' is incompatible'
     ):
       fns.new(a='xyz', schema=schema)
 
@@ -285,18 +284,18 @@ class NewTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
       fns.new(a=1, schema=ds([schema_constants.INT32, schema_constants.STRING]))
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'requires Entity schema, got INT32'
+        ValueError, 'requires Entity schema, got INT32'
     ):
       fns.new(a=1, schema=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'requires Entity schema, got OBJECT'
+        ValueError, 'requires Entity schema, got OBJECT'
     ):
       fns.new(a=1, schema=schema_constants.OBJECT)
 
   def test_schema_error_message(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             r"""cannot create Item(s) with the provided schema: SCHEMA(a=INT32)
 
@@ -313,7 +312,7 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
     db = fns.bag()
     nested_schema = db.new_schema(b=schema)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot create Item\(s\) with the provided schema: SCHEMA\(b=SCHEMA\(a=INT32\)\)
 
 The cause is: the schema for attribute 'b' is incompatible.
@@ -331,7 +330,7 @@ To fix this, explicitly override schema of 'b' in the original schema by passing
     b = db2.uuobj(x=1)
     b.x = 2
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot create Item\(s\)
 
 The cause is: cannot merge DataBags due to an exception encountered when merging entities.
@@ -438,9 +437,7 @@ The cause is the values of attribute 'x' are different: 1 vs 2""",
     testing.assert_equal(d[ds([])].no_bag(), ds([]))
 
   def test_universal_converter_dict_keys_conflict(self):
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'cannot find a common schema'
-    ):
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       fns.new({fns.new(): 42, fns.new(): 37})
 
   def test_universal_converter_list_of_complex(self):
@@ -458,9 +455,7 @@ The cause is the values of attribute 'x' are different: 1 vs 2""",
     )
 
   def test_universal_converter_list_of_different_primitive_lists(self):
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'cannot find a common schema'
-    ):
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       fns.new([[1, 2], [3.14]])
     fns.new(
         [[1, 2], [3.14]],
@@ -569,9 +564,7 @@ The cause is the values of attribute 'x' are different: 1 vs 2""",
     d2 = {'b': 37}
     d1['d'] = d2
     d = {'d1': d1, 'd2': d2}
-    with self.assertRaisesRegex(
-        exceptions.KodaError, 'cannot find a common schema'
-    ):
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       fns.new(d)
 
   def test_universal_converter_with_itemid(self):

@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -141,7 +140,7 @@ class SlicesSortTest(parameterized.TestCase):
 
   def test_data_item(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         # TODO: b/374841918 - For lambdas we only report underlying operator
         # names.
         re.escape('kd.slices.ordinal_rank: expected rank(x) > 0'),
@@ -150,7 +149,6 @@ class SlicesSortTest(parameterized.TestCase):
 
   def test_different_shape(self):
     with self.assertRaisesRegex(
-        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
             'kd.slices.sort: arguments `x` and `sort_by` must have the same'
@@ -160,7 +158,6 @@ class SlicesSortTest(parameterized.TestCase):
       expr_eval.eval(kde.slices.sort(ds([0, 3, 6]), ds([0, 3, 6, 1])))
 
     with self.assertRaisesRegex(
-        # TODO: b/389032294 - Raise KodaError.
         ValueError,
         re.escape(
             'kd.slices.sort: arguments `x` and `sort_by` must have the same'

@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -134,7 +133,7 @@ class LogicalApplyMaskTest(parameterized.TestCase):
 
   def test_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.masking.apply_mask: argument `mask` must be a slice of MASK,'
             ' got a slice of INT32'

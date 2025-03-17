@@ -17,7 +17,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -101,7 +100,7 @@ class KodaToArollaDenseArrayInt64Test(parameterized.TestCase):
       expr_eval.eval(arolla_bridge.to_arolla_dense_array_int64(x))
 
   def test_unsupported_entity(self):
-    with self.assertRaisesRegex(exceptions.KodaError, 'common schema'):
+    with self.assertRaisesRegex(ValueError, 'common schema'):
       expr_eval.eval(
           arolla_bridge.to_arolla_dense_array_int64(bag().new(x=[1]))
       )

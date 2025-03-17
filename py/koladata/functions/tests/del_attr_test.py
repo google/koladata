@@ -15,7 +15,6 @@
 import re
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.types import data_slice
 
@@ -48,7 +47,7 @@ class DelAttrTest(absltest.TestCase):
     db = fns.bag()
     x = db.obj(xyz=3.14)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """the attribute 'foo' is missing on the schema.
 

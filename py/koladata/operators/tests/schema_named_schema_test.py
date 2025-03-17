@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -101,23 +100,23 @@ class KodaNamedSchemaTest(parameterized.TestCase):
 
   def test_wrong_attr_type(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.schema.named_schema: only schemas can be assigned as attributes of'
         ' schemas',
     ):
       kde.schema.named_schema('name', a=1.0).eval()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.schema.named_schema: only schemas can be assigned as attributes of'
         ' schemas',
     ):
       kde.schema.named_schema('name', a=ds(1.0)).eval()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
-            'must have the same or less number of dimensions as foo, got ' +
-            'foo.get_ndim(): 0 < values.get_ndim(): 1'
-        )
+            'must have the same or less number of dimensions as foo, got '
+            + 'foo.get_ndim(): 0 < values.get_ndim(): 1'
+        ),
     ):
       kde.schema.named_schema('name', a=ds([schema_constants.INT32])).eval()
 

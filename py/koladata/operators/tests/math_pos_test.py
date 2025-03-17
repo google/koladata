@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -119,7 +118,7 @@ class MathPosTest(parameterized.TestCase):
   def test_errors(self):
     x = data_slice.DataSlice.from_vals(['1', '2', '3'])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.pos: argument `x` must be a slice of numeric values, got'
             ' a slice of STRING'

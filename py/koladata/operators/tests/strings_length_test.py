@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -82,7 +81,7 @@ class StringsLengthTest(parameterized.TestCase):
   def test_errors(self):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.length: argument `x` must be a slice of either STRING or'
         ' BYTES, got a slice of INT32',
     ):
@@ -90,7 +89,7 @@ class StringsLengthTest(parameterized.TestCase):
 
     x = ds(['abc', b'def'])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.length: argument `x` must be a slice of either STRING or'
         ' BYTES, got a slice of OBJECT containing BYTES and STRING values',
     ):

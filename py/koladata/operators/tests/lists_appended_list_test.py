@@ -14,7 +14,6 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -158,7 +157,7 @@ class KodaAppendedListTest(parameterized.TestCase):
   )
   def test_error(self, x, append, err_regex):
     with self.assertRaisesWithLiteralMatch(
-        exceptions.KodaError,
+        ValueError,
         err_regex,
     ):
       _ = eager.lists.appended_list(x, append)
@@ -168,7 +167,7 @@ class KodaAppendedListTest(parameterized.TestCase):
     e = bag().uu(a=1)
     e.set_attr('a', 2)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""kd.lists.appended_list: cannot merge DataBags due to an exception encountered when merging entities.
 
 The conflicting entities in the both DataBags: Entity\(\):\#[0-9a-zA-Z]{22}

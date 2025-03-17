@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -114,7 +113,7 @@ class ComparisonEqualTest(parameterized.TestCase):
 
   def test_raises_on_incompatible_schemas(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.comparison.equal: arguments `x` and `y` must contain values'
             ' castable to a common type, got SCHEMA() and INT32'
@@ -124,7 +123,7 @@ class ComparisonEqualTest(parameterized.TestCase):
 
     db = data_bag.DataBag.empty()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.comparison.equal: arguments `x` and `y` must contain values'
             ' castable to a common type, got SCHEMA(x=INT32) and SCHEMA()'
@@ -133,7 +132,7 @@ class ComparisonEqualTest(parameterized.TestCase):
       expr_eval.eval(kde.comparison.equal(db.new(x=1), db.new()))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.comparison.equal: arguments `x` and `y` must contain values'
             ' castable to a common type, got SCHEMA(x=INT32) and OBJECT'
@@ -143,7 +142,7 @@ class ComparisonEqualTest(parameterized.TestCase):
       expr_eval.eval(kde.comparison.equal(db.new(x=1), db.obj()))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.comparison.equal: arguments `x` and `y` must contain values'
             ' castable to a common type, got SCHEMA(x=INT32) and ITEMID'

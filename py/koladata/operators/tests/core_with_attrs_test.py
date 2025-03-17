@@ -14,7 +14,6 @@
 
 from absl.testing import absltest
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
@@ -49,7 +48,7 @@ class CoreWithAttrsTest(absltest.TestCase):
   def test_multi_attr_update(self):
     o = kde.new(x=1, y='q').eval()
     with self.assertRaisesRegex(
-        exceptions.KodaError, "the schema for attribute 'x' is incompatible."
+        ValueError, "the schema for attribute 'x' is incompatible."
     ):
       _ = kde.core.with_attrs(o, x='2').eval()
     o1 = kde.core.with_attrs(

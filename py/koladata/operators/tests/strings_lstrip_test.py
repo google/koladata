@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -154,7 +153,7 @@ class StringsLstripTest(parameterized.TestCase):
 
   def test_incompatible_types(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'mixing STRING and BYTES arguments is not allowed, but `s` contains'
             ' STRING and `chars` contains BYTES'
@@ -163,7 +162,7 @@ class StringsLstripTest(parameterized.TestCase):
       expr_eval.eval(kde.strings.lstrip(ds('foo'), ds(b'f')))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.lstrip: argument `chars` must be a slice of either'
             ' STRING or BYTES, got a slice of INT32'
@@ -174,7 +173,7 @@ class StringsLstripTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.lstrip: argument `chars` must be a slice of either'
             ' STRING or BYTES, got a slice of INT32'
@@ -184,7 +183,7 @@ class StringsLstripTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.lstrip: argument `chars` must be a slice of either STRING'
         ' or BYTES, got a slice of OBJECT containing INT32 and STRING values',
     ):

@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -112,14 +111,14 @@ class SlicesTakeTest(parameterized.TestCase):
 
   def test_data_item_input_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape('kd.slices.take: DataItem is not supported.'),
     ):
       expr_eval.eval(kde.take(ds(1), ds(0)))
 
   def test_incompatible_shape_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.take: DataSlice with shape=JaggedShape(2) is not'
             ' compatible with shape=JaggedShape(3); kd.take requires'
@@ -129,7 +128,7 @@ class SlicesTakeTest(parameterized.TestCase):
       expr_eval.eval(kde.take(ds([[1], [2, 3]]), ds([1, 2, 3])))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.take: DataSlice with shape=JaggedShape(2, [1, 2]) is not'
             ' compatible with shape=JaggedShape(3); kd.take requires'
@@ -140,7 +139,7 @@ class SlicesTakeTest(parameterized.TestCase):
 
   def test_wrong_dtype_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """kd.slices.take: the provided indices must contain only integers
 

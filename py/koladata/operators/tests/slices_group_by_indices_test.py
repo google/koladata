@@ -16,7 +16,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -241,7 +240,7 @@ class SlicesGroupByIndicesTest(parameterized.TestCase):
 
   def test_eval_non_aligned(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.slices.group_by_indices: all arguments must have the same shape',
     ):
       expr_eval.eval(

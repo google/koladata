@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -224,21 +223,19 @@ class StringsAggJoinTest(parameterized.TestCase):
     )
 
   def test_data_item_input_error(self):
-    with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('expected rank(x) > 0')
-    ):
+    with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
       expr_eval.eval(kde.strings.agg_join(ds('foo')))
 
   def test_data_slice_sep_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape('strings.agg_join: expected rank(sep) == 0'),
     ):
       expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(['', ''])))
 
   def test_type_errors(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.agg_join: argument `x` must be a slice of either STRING'
             ' or BYTES, got a slice of INT32'
@@ -246,7 +243,7 @@ class StringsAggJoinTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.strings.agg_join(ds([1, 2]), sep=ds(b', ')))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.agg_join: argument `sep` must be a slice of either'
             ' STRING or BYTES, got a slice of INT32'
@@ -254,7 +251,7 @@ class StringsAggJoinTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.strings.agg_join(ds(['foo', 'bar']), sep=ds(1)))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.agg_join: mixing STRING and BYTES arguments is not'
             ' allowed, but `x` contains STRING and `sep` contains BYTES'

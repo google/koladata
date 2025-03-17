@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -90,7 +89,7 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_incompatible_types_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         # TODO: Make errors Koda friendly.
         re.escape('unsupported argument types (TEXT,BYTES)'),
     ):
@@ -98,7 +97,7 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_missing_input_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         # TODO: Make errors Koda friendly.
         re.escape("format specification '%s' doesn't match format arguments"),
     ):
@@ -106,7 +105,7 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_incompatible_format_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         # TODO: Make errors Koda friendly.
         re.escape("format specification '%s' doesn't match format arguments"),
     ):
@@ -114,7 +113,7 @@ class StringsFormatTest(parameterized.TestCase):
 
   def test_mixed_slice_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.printf: cannot format argument 1 of type OBJECT containing'
         ' INT32 and STRING values',
     ):

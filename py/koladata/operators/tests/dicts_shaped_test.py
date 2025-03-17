@@ -16,7 +16,6 @@ import itertools
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -225,7 +224,7 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_key_schema_errors(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""the schema for keys is incompatible.
 
 Expected schema for keys: INT32
@@ -242,7 +241,7 @@ Assigned schema for keys: STRING""",
 
   def test_value_schema_errors(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""the schema for values is incompatible.
 
 Expected schema for values: STRING
@@ -259,7 +258,7 @@ Assigned schema for values: INT32""",
 
   def test_schema_errors(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""the schema for keys is incompatible.
 
 Expected schema for keys: INT64

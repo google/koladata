@@ -19,7 +19,6 @@ from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -521,7 +520,7 @@ class FromPyTest(parameterized.TestCase):
         c=schema_constants.FLOAT32,
     )
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'schema for attribute \'x\' is incompatible'
+        ValueError, "schema for attribute 'x' is incompatible"
     ):
       fns.from_py(
           {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,

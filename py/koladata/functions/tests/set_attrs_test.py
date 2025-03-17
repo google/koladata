@@ -15,7 +15,6 @@
 import re
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
 from koladata.functions import functions as fns
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -37,7 +36,7 @@ class SetAttrsTest(absltest.TestCase):
   def test_incompatible_schema_entity(self):
     x = fns.new(a=1, b='a').fork_bag()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             r"""the schema for attribute 'b' is incompatible.
 
@@ -74,7 +73,7 @@ To fix this, explicitly override schema of 'b' in the original schema by passing
     x = fns.obj().fork_bag()
     x.set_attr('__schema__', x_schema)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             r"""the schema for attribute 'b' is incompatible.
 

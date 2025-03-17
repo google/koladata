@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -77,7 +76,7 @@ class StringsDecodeBase64Test(parameterized.TestCase):
   )
   def test_eval_invalid_base64(self, x):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.decode_base64: invalid base64 string:',
     ):
       _ = expr_eval.eval(kde.strings.decode_base64(x))
@@ -104,7 +103,7 @@ class StringsDecodeBase64Test(parameterized.TestCase):
 
   def test_schema_error(self):
     with self.assertRaisesWithLiteralMatch(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.decode_base64: argument `x` must be a slice of either'
         ' STRING or BYTES, got a slice of INT32',
     ):
@@ -112,7 +111,7 @@ class StringsDecodeBase64Test(parameterized.TestCase):
 
   def test_dtype_error(self):
     with self.assertRaisesWithLiteralMatch(
-        exceptions.KodaError,
+        ValueError,
         'kd.strings.decode_base64: argument `x` must be a slice of either'
         ' STRING or BYTES, got a slice of OBJECT containing INT32 values',
     ):

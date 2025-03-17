@@ -19,7 +19,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -126,9 +125,7 @@ class MathAggMinTest(parameterized.TestCase):
 
   def test_data_item_input_error(self):
     x = ds(1)
-    with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('expected rank(x) > 0')
-    ):
+    with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
       expr_eval.eval(kde.math.agg_min(x))
 
   @parameterized.parameters(-1, 2)
@@ -140,7 +137,7 @@ class MathAggMinTest(parameterized.TestCase):
   def test_mixed_slice_error(self):
     x = data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT)
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'DataSlice with mixed types is not supported'
+        ValueError, 'DataSlice with mixed types is not supported'
     ):
       expr_eval.eval(kde.math.agg_min(x))
 
@@ -148,7 +145,7 @@ class MathAggMinTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.agg_min: argument `x` must be a slice of numeric values,'
             ' got a slice of SCHEMA(x=INT32)'
@@ -160,7 +157,7 @@ class MathAggMinTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.obj(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.agg_min: argument `x` must be a slice of numeric values,'
             ' got a slice of OBJECT'

@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -117,7 +116,7 @@ class ComparisonGreaterTest(parameterized.TestCase):
     x = ds([1, 2, 3])
     y = ds(['a', 'b', 'c'])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.comparison.greater: arguments `x` and `y` must contain values'
         ' castable to a common primitive type, got INT32 and STRIN',
     ):
@@ -127,13 +126,13 @@ class ComparisonGreaterTest(parameterized.TestCase):
     empty = ds([None, None])
     schemas = ds([None, schema_constants.BOOLEAN])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.comparison.greater: argument `x` must be a slice of orderable'
         ' values, got a slice of SCHEMA',
     ):
       expr_eval.eval(kde.comparison.greater(I.x, I.y), x=schemas, y=empty)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.comparison.greater: argument `y` must be a slice of orderable'
         ' values, got a slice of SCHEMA',
     ):

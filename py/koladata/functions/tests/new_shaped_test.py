@@ -15,7 +15,6 @@
 import re
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -84,7 +83,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
 
   def test_broadcast_error(self):
-    with self.assertRaisesRegex(exceptions.KodaError, 'cannot be expanded'):
+    with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
       fns.new_shaped(jagged_shape.create_shape([2]), a=ds([42]))
 
   def test_adopt_bag(self):
@@ -171,7 +170,7 @@ class NewShapedTest(absltest.TestCase):
   def test_schema_arg_implicit_casting_failure(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError, r'schema for attribute \'a\' is incompatible'
+        ValueError, r'schema for attribute \'a\' is incompatible'
     ):
       fns.new_shaped(jagged_shape.create_shape([2]), a='xyz', schema=schema)
 
@@ -271,13 +270,13 @@ class NewShapedTest(absltest.TestCase):
           schema=ds([schema_constants.INT32, schema_constants.STRING]),
       )
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'requires Entity schema, got INT32'
+        ValueError, 'requires Entity schema, got INT32'
     ):
       fns.new_shaped(
           jagged_shape.create_shape(), a=1, schema=schema_constants.INT32
       )
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'requires Entity schema, got OBJECT'
+        ValueError, 'requires Entity schema, got OBJECT'
     ):
       fns.new_shaped(
           jagged_shape.create_shape(), a=1, schema=schema_constants.OBJECT
@@ -286,7 +285,7 @@ class NewShapedTest(absltest.TestCase):
   def test_schema_error_message(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             r"""cannot create Item(s) with the provided schema: SCHEMA(a=INT32)
 
@@ -301,7 +300,7 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
       fns.new_shaped(jagged_shape.create_shape(), a='a', schema=schema)
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             r"""cannot create Item(s) with the provided schema: SCHEMA(a=INT32)
 
@@ -321,7 +320,7 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
     b = db2.uuobj(x=1)
     b.x = 2
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r"""cannot create Item\(s\)
 
 The cause is: cannot merge DataBags due to an exception encountered when merging entities.

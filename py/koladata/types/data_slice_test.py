@@ -24,7 +24,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd as user_facing_kd
-from koladata.exceptions import exceptions
+
 from koladata.expr import input_container
 from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
@@ -1129,7 +1129,7 @@ class DataSliceTest(parameterized.TestCase):
       x.set_attr('xyz', ds(b'12'))
 
       with self.assertRaisesRegex(
-          exceptions.KodaError, r'schema for attribute \'xyz\' is incompatible'
+          ValueError, r'schema for attribute \'xyz\' is incompatible'
       ):
         x.set_attr('xyz', ds([12]), overwrite_schema=False)
 
@@ -1188,7 +1188,7 @@ class DataSliceTest(parameterized.TestCase):
       )
 
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           r'the schema for attribute \'abc\' is incompatible',
       ):
         x.set_attr('abc', ds([b'x', b'y']), overwrite_schema=False)
@@ -1220,7 +1220,7 @@ class DataSliceTest(parameterized.TestCase):
     db = bag()
     db2 = bag()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """the schema for attribute 'x' is incompatible.
 
@@ -1234,7 +1234,7 @@ To fix this, explicitly override schema of 'x' in the original schema by passing
 
     o = db.new(x='a').embed_schema()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """the schema for attribute 'x' is incompatible.
 
@@ -1250,7 +1250,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     o2 = db.new(x=1.0).embed_schema()
     o = ds([o1, o2])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """the schema for attribute 'x' is incompatible.
 
@@ -1310,15 +1310,15 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
   def test_set_get_attr_object_missing_schema_attr(self):
     obj = bag().obj(a=1)
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'object schema is missing for the DataItem'
+        ValueError, 'object schema is missing for the DataItem'
     ):
       _ = obj.with_bag(bag()).a
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'object schema is missing for the DataItem'
+        ValueError, 'object schema is missing for the DataItem'
     ):
       obj.with_bag(bag()).a = 1
     with self.assertRaisesRegex(
-        exceptions.KodaError, r'object schema is missing for the DataItem'
+        ValueError, r'object schema is missing for the DataItem'
     ):
       del obj.with_bag(bag()).a
 
@@ -1328,15 +1328,15 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     obj_2 = db.new(a=1).with_schema(schema_constants.OBJECT)
     obj = ds([obj_1, obj_2])
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       _ = obj.a
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       obj.a = 1
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       del obj.a
 
@@ -1434,7 +1434,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
 
     with self.subTest('incompatible schema'):
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           r'the schema for attribute \'x\' is incompatible',
       ):
         db = bag()
@@ -1523,7 +1523,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     testing.assert_equal(x.b, ds('abc').with_bag(x.get_bag()))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, r'schema for attribute \'b\' is incompatible'
+        ValueError, r'schema for attribute \'b\' is incompatible'
     ):
       x.set_attrs(a=2, b=b'abc')
 
@@ -1564,7 +1564,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
       )
       del e.get_schema().b
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           re.escape(
               """the attribute 'b' is missing on the schema.
 
@@ -1573,7 +1573,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
       ):
         _ = e.b
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           re.escape(
               """the attribute 'c' is missing on the schema.
 
@@ -1582,7 +1582,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
       ):
         del e.get_schema().c
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           re.escape(
               """the attribute 'c' is missing on the schema.
 
@@ -1595,7 +1595,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
       o = db.obj(a=1, b=2)
       del o.a
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           re.escape(
               """the attribute 'a' is missing on the schema.
 
@@ -1605,7 +1605,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         _ = o.a
       del o.get_attr('__schema__').b
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           re.escape(
               """the attribute 'b' is missing on the schema.
 
@@ -1614,7 +1614,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
       ):
         del o.b
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           re.escape(
               """the attribute 'c' is missing on the schema.
 
@@ -1624,7 +1624,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         del o.c
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """the attribute 'a' is missing for at least one object at ds.flatten().S[1]
 
@@ -1793,7 +1793,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
   def test_select_filter_error(self):
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.select: the schema of the `fltr` DataSlice should only'
             ' be OBJECT or MASK or can be evaluated to such DataSlice'
@@ -1804,7 +1804,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
 
     with self.subTest('Shape mismatch'):
       with self.assertRaisesRegex(
-          exceptions.KodaError,
+          ValueError,
           re.escape('kd.slices.select: failed to broadcast `fltr` to `ds`'),
       ):
         x = ds([[1, 2], [None, None], [7, 8, 9]])
@@ -2132,17 +2132,17 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     d = ds([d1, d2])
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       _ = d['a']
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       d['a'] = 101
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       del d['a']
 
@@ -2156,11 +2156,11 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
       non_dicts['a'] = ValueError
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('dict(s) expected, got SCHEMA(x=INT32)')
+        ValueError, re.escape('dict(s) expected, got SCHEMA(x=INT32)')
     ):
       non_dicts['a'] = 'b'
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('dict(s) expected, got SCHEMA(x=INT32)')
+        ValueError, re.escape('dict(s) expected, got SCHEMA(x=INT32)')
     ):
       _ = non_dicts['a']
     with self.assertRaisesRegex(
@@ -2177,7 +2177,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     o2 = db.obj(db.dict({1: 2}))
     s = ds([o1, o2]).fork_bag()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'dict(s) expected, got an OBJECT DataSlice with the first non-dict'
             ' schema at ds.flatten().S[0] IMPLICIT_SCHEMA(x=INT32)'
@@ -2190,7 +2190,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     db2 = bag()
     d = db.dict({'a': 1, 'b': 2})
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for keys is incompatible.
 
 Expected schema for keys: STRING
@@ -2199,7 +2199,7 @@ Assigned schema for keys: INT32"""),
       _ = d[1]
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for values is incompatible.
 
 Expected schema for values: INT32
@@ -2209,7 +2209,7 @@ Assigned schema for values: STRING"""),
 
     d = db.obj(d)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for values is incompatible.
 
 Expected schema for values: INT32
@@ -2219,7 +2219,7 @@ Assigned schema for values: STRING"""),
 
     d2 = db.dict(db.new(x=ds([1, 2]), y=ds([3, 4])), ds(1))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for keys is incompatible.
 
 Expected schema for keys: SCHEMA(x=INT32, y=INT32)
@@ -2228,7 +2228,7 @@ Assigned schema for keys: SCHEMA(x=FLOAT32, y=INT32)"""),
       _ = d2[db.new(x=ds(3.0), y=ds(5))]
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for keys is incompatible.
 
 Expected schema for keys: SCHEMA(x=INT32, y=INT32)
@@ -2239,7 +2239,7 @@ Assigned schema for keys: SCHEMA(x=STRING)"""),
     e = db.new(x=1)
     d3 = db.dict(e, db.new(x='a'))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for values is incompatible.
 
 Expected schema for values: SCHEMA(x=STRING)
@@ -2469,29 +2469,29 @@ Assigned schema for values: SCHEMA(y=FLOAT32)"""),
     l = ds([l1, l2])
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       _ = l[0]
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       _ = l[0:2]
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       l[0] = 42
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       l[0:2] = ds([[42], [12, 15]])
 
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       del l[0]
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('object schema(s) are missing')
+        ValueError, re.escape('object schema(s) are missing')
     ):
       del l[0:2]
 
@@ -2499,7 +2499,7 @@ Assigned schema for values: SCHEMA(y=FLOAT32)"""),
     db = bag()
     l = db.list([1, 2, 3])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'the schema for list items is incompatible.\n\n'
             'Expected schema for list items: INT32\n'
@@ -2510,7 +2510,7 @@ Assigned schema for values: SCHEMA(y=FLOAT32)"""),
 
     l = db.obj(l)
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'the schema for list items is incompatible.\n\n'
             'Expected schema for list items: INT32\n'
@@ -2521,7 +2521,7 @@ Assigned schema for values: SCHEMA(y=FLOAT32)"""),
 
     l = db.list([db.new(x=1)])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for list items is incompatible.
 
 Expected schema for list items: SCHEMA(x=INT32)
@@ -2530,7 +2530,7 @@ Assigned schema for list items: SCHEMA(y=INT32)"""),
       l[0] = db.new(y=1)
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for list items is incompatible.
 
 Expected schema for list items: SCHEMA(x=INT32)
@@ -2540,7 +2540,7 @@ Assigned schema for list items: SCHEMA(y=INT32)"""),
 
     l2 = db.list([db.new(x=1)])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for list items is incompatible.
 
 Expected schema for list items: SCHEMA(x=INT32)
@@ -2552,7 +2552,7 @@ Assigned schema for list items: SCHEMA(a=STRING)"""),
     db = bag()
     l = db.new(x=1).fork_bag()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape('list(s) expected, got SCHEMA(x=INT32)'),
     ):
       l.append(1)
@@ -2561,7 +2561,7 @@ Assigned schema for list items: SCHEMA(a=STRING)"""),
     o2 = db.obj(db.list([1]))
     s = ds([o1, o2]).fork_bag()
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'list(s) expected, got an OBJECT DataSlice with the first non-list'
             ' schema at ds.flatten().S[0] IMPLICIT_SCHEMA(x=INT32)'
@@ -2714,7 +2714,7 @@ Assigned schema for list items: SCHEMA(a=STRING)"""),
         ds(None, schema_constants.INT32).with_bag(db),
     )
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """cannot get items from list(s): expected indices to be integers
 
@@ -2723,7 +2723,7 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
     ):
       _ = (db.list() & ds(None))['abc']
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """cannot set items from list(s): expected indices to be integers
 
@@ -2737,7 +2737,7 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
         ds(None, schema_constants.INT32).with_bag(db),
     )
     with self.assertRaisesRegex(
-        exceptions.KodaError, 'the schema for keys is incompatible'
+        ValueError, 'the schema for keys is incompatible'
     ):
       _ = (db.dict({'a': 42}) & ds(None))[42]
 
@@ -2769,7 +2769,7 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
     ):
       del lst[[1, 2]]
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             r"""cannot remove items from list(s): expected indices to be integers
 

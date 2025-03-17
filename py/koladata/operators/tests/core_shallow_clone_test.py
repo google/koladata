@@ -16,7 +16,6 @@ import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
@@ -44,8 +43,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     result = expr_eval.eval(kde.shallow_clone(x))
     testing.assert_equal(result.y.no_bag(), y.no_bag())
     with self.assertRaisesRegex(
-        exceptions.KodaError,
-        re.escape('object schema is missing for the DataItem')
+        ValueError, re.escape('object schema is missing for the DataItem')
     ):
       _ = result.y.x
 

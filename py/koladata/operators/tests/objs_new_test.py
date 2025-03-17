@@ -15,7 +15,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -187,7 +186,7 @@ class ObjsNewTest(parameterized.TestCase):
 
   def test_converter_into_itemid_is_not_supported(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.objs.new: `itemid` is not supported when converting to object',
     ):
       kde.objs.new(I.x, itemid=I.itemid).eval(x=ds(42), itemid=bag().new())

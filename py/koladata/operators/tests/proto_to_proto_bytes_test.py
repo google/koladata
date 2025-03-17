@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -96,7 +95,7 @@ class ProtoToProtoBytesTest(parameterized.TestCase):
 
   def test_proto_path_not_found(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.proto.to_proto_bytes: proto message `not.a.Message` not'
             ' found in C++ generated descriptor pool'

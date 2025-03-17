@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -201,7 +200,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
 
   def test_multidim_descending_arg_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.slices.dense_rank: argument `descending` must be an item holding'
         ' BOOLEAN, got a slice of rank 1 > 0',
     ):
@@ -211,7 +210,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
 
   def test_missing_descending_arg_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         'kd.slices.dense_rank: argument `descending` must be an item holding'
         ' BOOLEAN, got an item of NONE',
     ):
@@ -221,7 +220,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
     db = data_bag.DataBag.empty()
     x = db.new(x=ds([1]))
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.slices.dense_rank: argument `x` must be a slice of orderable'
             ' values, got a slice of SCHEMA(x=INT32)'

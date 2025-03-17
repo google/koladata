@@ -15,7 +15,6 @@
 import re
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.operators import kde_operators
@@ -34,7 +33,7 @@ class PointwiseArollaOpErrorTest(absltest.TestCase):
 
   def test_incompatible_shapes(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """cannot align inputs to a common shape
 
@@ -44,7 +43,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
       expr_eval.eval(kde.math.subtract(ds([1, 2, 3]), ds([[1, 2], [3]])))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             """cannot align inputs to a common shape
 
@@ -57,7 +56,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
 
   def test_entity_input_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.subtract: argument `x` must be a slice of numeric values,'
             ' got a slice of SCHEMA(x=INT32)',
@@ -69,7 +68,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
 
   def test_object_input_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.subtract: argument `x` must be a slice of numeric values,'
             ' got a slice of OBJECT'
@@ -81,7 +80,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
 
   def test_mixed_types_input_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.subtract: argument `y` must be a slice of numeric values,'
             ' got a slice of OBJECT',
@@ -91,7 +90,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
 
   def test_mixed_types_non_primary_input_error(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.strings.substr: argument `end` must be a slice of integer'
             ' values, got a slice of STRING'
@@ -101,7 +100,7 @@ The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1]
 
   def test_errors(self):
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.math.subtract: argument `y` must be a slice of numeric values,'
             ' got a slice of STRING'

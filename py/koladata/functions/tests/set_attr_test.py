@@ -15,7 +15,7 @@
 import re
 
 from absl.testing import absltest
-from koladata.exceptions import exceptions
+
 from koladata.functions import functions as fns
 from koladata.operators import comparison as _  # pylint: disable=unused-import
 from koladata.operators import core as _  # pylint: disable=unused-import
@@ -36,7 +36,7 @@ class SetAttrTest(absltest.TestCase):
     testing.assert_equal(x.xyz, ds('12').with_bag(db))
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         r'the schema for attribute \'xyz\' is incompatible',
     ):
       fns.set_attr(x, 'xyz', 12, overwrite_schema=False)
@@ -122,7 +122,7 @@ class SetAttrTest(absltest.TestCase):
     fns.set_attr(x, '__schema__', e.get_schema())
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for attribute 'xyz' is incompatible.
 
 Expected schema for 'xyz': INT32
@@ -131,7 +131,7 @@ Assigned schema for 'xyz': BYTES"""),
       fns.set_attr(x, 'xyz', ds([b'x', b'y']), overwrite_schema=False)
 
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(r"""the schema for attribute 'xyz' is incompatible.
 
 Expected schema for 'xyz': INT32

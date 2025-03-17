@@ -16,7 +16,6 @@ import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -134,7 +133,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     fn = lambda _: None
     val = ds([1])
     with self.assertRaisesRegex(
-        exceptions.KodaError, re.escape('expected a mask, got cond: INT32')
+        ValueError, re.escape('expected a mask, got cond: INT32')
     ):
       expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val, val))
 
@@ -142,7 +141,7 @@ class PyMapPyOnCondTest(parameterized.TestCase):
     fn = lambda _: None
     val = ds([1])
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             "'cond' must have the same or smaller dimension than `args` and"
             ' `kwargs`'

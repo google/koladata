@@ -17,7 +17,6 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import exceptions
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
@@ -152,7 +151,7 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
     x = ds([1, None])
     y = data_bag.DataBag.empty().new() & ds(arolla.missing())
     with self.assertRaisesRegex(
-        exceptions.KodaError,
+        ValueError,
         re.escape(
             'kd.masking.coalesce: arguments `x` and `y` must contain values'
             ' castable to a common type, got INT32 and SCHEMA()'
