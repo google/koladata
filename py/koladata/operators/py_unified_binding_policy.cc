@@ -356,6 +356,8 @@ absl::StatusOr<ExprNodePtr> GenNonDeterministicToken() {
   static const absl::NoDestructor op(
       std::make_shared<RegisteredOperator>("koda_internal.non_deterministic"));
   static const absl::NoDestructor leaf(Leaf(kNonDeterministicTokenLeafKey));
+  // absl::BitGen is not thread-safe, but this code is always protected by GIL.
+  DCheckPyGIL();
   static absl::NoDestructor<absl::BitGen> bitgen;
   auto seed = absl::Uniform<int64_t>(absl::IntervalClosed, *bitgen, 0,
                                      std::numeric_limits<int64_t>::max());
