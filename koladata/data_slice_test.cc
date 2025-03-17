@@ -461,6 +461,51 @@ TEST(DataSliceTest, IsWhole) {
   }
 }
 
+TEST(DataSliceTest, WithWholeness) {
+  {
+    SCOPED_TRACE("Override flag");
+    auto db = DataBag::Empty();
+    auto ds = *DataSlice::Create(internal::DataItem(),
+                                 internal::DataItem(schema::kInt32), db,
+                                 DataSlice::Wholeness::kNotWhole);
+    EXPECT_FALSE(ds.IsWhole());
+    ds = *ds.WithWholeness(DataSlice::Wholeness::kWhole);
+    EXPECT_TRUE(ds.IsWhole());
+    ds = *ds.WithWholeness(DataSlice::Wholeness::kNotWhole);
+    EXPECT_FALSE(ds.IsWhole());
+  }
+  {
+    SCOPED_TRACE("Override flag doesn't help on mutable non empty DataBag");
+    ASSERT_OK_AND_ASSIGN(auto db, DataBag::Empty()->Fork());
+    auto obj = internal::DataItem(internal::AllocateSingleObject());
+    ASSERT_OK(
+        db->GetMutableImpl()->get().SetAttr(obj, "a", internal::DataItem(1)));
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, DataSlice::Create(obj, internal::DataItem(schema::kObject), db,
+                                   DataSlice::Wholeness::kNotWhole));
+    EXPECT_FALSE(ds.IsWhole());
+    // DataBag is mutable, so the IsWhole is still false.
+    ASSERT_OK_AND_ASSIGN(ds, ds.WithWholeness(DataSlice::Wholeness::kWhole));
+    EXPECT_FALSE(ds.IsWhole());
+  }
+}
+
+TEST(DataSliceTest, FreezeDoesntBecomeWholeIfBagIsModified) {
+  {
+    SCOPED_TRACE("Freeze updates whole information");
+    ASSERT_OK_AND_ASSIGN(auto db, DataBag::Empty()->Fork());
+    auto obj = internal::DataItem(internal::AllocateSingleObject());
+    ASSERT_OK(
+        db->GetMutableImpl()->get().SetAttr(obj, "a", internal::DataItem(1)));
+    ASSERT_OK_AND_ASSIGN(
+        auto ds, DataSlice::Create(obj, internal::DataItem(schema::kObject), db,
+                                   DataSlice::Wholeness::kWhole));
+    EXPECT_FALSE(ds.IsWhole());
+    ds = ds.FreezeBag();
+    EXPECT_FALSE(ds.IsWhole());
+  }
+}
+
 TEST(DataSliceTest, ForkDb) {
   auto db = DataBag::Empty();
   auto ds_a = test::DataSlice<int>({1, 2});

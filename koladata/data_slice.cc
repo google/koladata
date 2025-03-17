@@ -1297,6 +1297,13 @@ absl::StatusOr<DataSlice> DataSlice::WithSchema(
   });
 }
 
+absl::StatusOr<DataSlice> DataSlice::WithWholeness(Wholeness wholeness) const {
+  return VisitImpl([&](const auto& impl) {
+    return DataSlice::Create(impl, GetShape(), GetSchemaImpl(), GetBag(),
+                             wholeness);
+  });
+}
+
 absl::StatusOr<DataSlice> DataSlice::SetSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item().is_struct_schema() && schema.GetBag() != nullptr) {
