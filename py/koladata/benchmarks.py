@@ -1427,6 +1427,29 @@ def set_get_multiple_attrs_10000_entity_via_fallback(state):
 
 
 @google_benchmark.register
+@google_benchmark.option.arg_names(['nattrs'])
+@google_benchmark.option.args([1])
+@google_benchmark.option.args([10])
+@google_benchmark.option.args([100])
+@google_benchmark.option.args([1000])
+def kd_new_10000_with_whole_value(state):
+  """Benchmark for kd.new that has whole value."""
+  size = 10000
+  attr_count = state.range(0)
+  ds = kd.new(**{
+      f'abc{i}': kd.slice([i] * size)
+      for i in range(attr_count)
+  })
+  try:
+    _ = ds.missing  # To initialize all lazy initializers and reduce variance.
+  except ValueError:
+    pass
+  while state:
+    new_ds = kd.new(x=ds)
+    del new_ds
+
+
+@google_benchmark.register
 @google_benchmark.option.arg_names(['size', 'fallback_count'])
 @google_benchmark.option.ranges([(1, 10000), (0, 16)])
 def get_from_dict(state):
