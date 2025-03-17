@@ -43,7 +43,6 @@ using ::arolla::testing::CausedBy;
 using ::koladata::internal::Error;
 using ::testing::AllOf;
 using ::testing::MatchesRegex;
-using ::testing::Pointee;
 using ::testing::Property;
 using ::testing::StrEq;
 
