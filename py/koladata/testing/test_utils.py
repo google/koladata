@@ -17,7 +17,6 @@
 from typing import Any, Optional
 
 from arolla import arolla as _arolla
-from koladata.exceptions import exceptions as _
 from koladata.types import data_bag as _data_bag
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _  # pylint: disable=unused-import

@@ -78,7 +78,7 @@ def koladata_py_extension(
       * Arolla (particularly, the operator registry)
       * Abseil
       * Protobuf
-      * py/koladata/exceptions:py_exception_utils
+      * py/koladata/base:initializers
 
     These libraries are designed to function as singletons and may operate
     incorrectly if each Python extension statically links to a "private" copy
@@ -115,7 +115,7 @@ def koladata_pybind_extension(
       * Arolla (particularly, the operator registry)
       * Abseil
       * Protobuf
-      * py/koladata/exceptions:py_exception_utils
+      * py/koladata/base:initializers
 
     These libraries are designed to function as singletons and may operate
     incorrectly if each Python extension statically links to a "private" copy

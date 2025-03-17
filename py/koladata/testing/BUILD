@@ -36,7 +36,6 @@ py_library(
     name = "test_utils",
     srcs = ["test_utils.py"],
     deps = [
-        "//py/koladata/exceptions",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",

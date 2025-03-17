@@ -39,15 +39,17 @@ absl::Status CreateErrorFromCause(absl::string_view cause_message) {
   return WithErrorPayload(status, std::move(error));
 }
 
-PYBIND11_MODULE(testing_pybind, m) {
+PYBIND11_MODULE(error_converters_testing_clib, m) {
   arolla::InitArolla();
 
-  m.def("raise_from_status_with_payload", [](absl::string_view message) {
-    Error error;
-    error.set_error_message(message);
-    SetPyErrFromStatus(WithErrorPayload(absl::InternalError(message), error));
-    throw pybind11::error_already_set();
-  });
+  m.def("raise_from_status_with_payload",
+        [](absl::string_view status_message, absl::string_view koda_message) {
+          Error error;
+          error.set_error_message(koda_message);
+          SetPyErrFromStatus(
+              WithErrorPayload(absl::InternalError(status_message), error));
+          throw pybind11::error_already_set();
+        });
 
   m.def("raise_from_status_without_payload", [](absl::string_view message) {
     SetPyErrFromStatus(absl::InternalError(message));
@@ -84,4 +86,5 @@ PYBIND11_MODULE(testing_pybind, m) {
           throw pybind11::error_already_set();
         });
 };
+
 }  // namespace koladata::python

@@ -40,7 +40,7 @@ cc_shared_library(
         "//koladata/functor:operators",
         "//koladata/operators",
         "//koladata/s11n",
-        "//py/koladata/exceptions:py_exception_utils",
+        "//py/koladata/base:initializers",
         "//py/koladata/fstring:fstring_cc_lib",
         "//py/koladata/types:data_bag_cc_lib",
         "//py/koladata/types:data_slice_cc_lib",

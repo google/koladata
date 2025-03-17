@@ -408,6 +408,7 @@ py_test(
     name = "obj_test",
     srcs = ["obj_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -424,6 +425,7 @@ py_test(
     name = "obj_shaped_test",
     srcs = ["obj_shaped_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -457,6 +459,7 @@ py_test(
     name = "obj_like_test",
     srcs = ["obj_like_test.py"],
     deps = [
+        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",

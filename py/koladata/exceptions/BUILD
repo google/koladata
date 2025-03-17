@@ -16,7 +16,7 @@
 
 load("@bazel_skylib//rules:copy_file.bzl", "copy_file")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
-load("@rules_python//python:defs.bzl", "py_library", "py_test")
+load("@rules_python//python:defs.bzl", "py_library")
 load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = [
@@ -48,37 +48,5 @@ py_proto_library(
 py_library(
     name = "exceptions",
     srcs = ["exceptions.py"],
-    deps = [
-        ":py_exception_utils",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
-    ],
-)
-
-py_test(
-    name = "exceptions_test",
-    srcs = ["exceptions_test.py"],
-    deps = [
-        ":error_py_proto",
-        ":exceptions",
-        "//py/koladata/exceptions/testing:testing_pybind",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-cc_library(
-    name = "py_exception_utils",
-    srcs = ["py_exception_utils.cc"],
-    deps = [
-        "//koladata:data_slice_qtype",
-        "//koladata/internal:error_cc_proto",
-        "@com_google_absl//absl/base:no_destructor",
-        "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//py/arolla/py_utils",
-        "@com_google_arolla//py/arolla/py_utils:status_payload_handler_registry",
-    ],
-    alwayslink = 1,
+    deps = ["//py:python_path"],  # Adds //py to the path to allow convenient imports.
 )
