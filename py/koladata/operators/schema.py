@@ -242,56 +242,56 @@ def dict_schema(key_schema, value_schema):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.to_int32'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kd.schema.to_int32')
 def to_int32(x):
   """Casts `x` to INT32 using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.INT32)
 
 
-@optools.add_to_registry(aliases=['kd.to_int64'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kd.schema.to_int64')
 def to_int64(x):
   """Casts `x` to INT64 using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.INT64)
 
 
-@optools.add_to_registry(aliases=['kd.to_float32'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kd.schema.to_float32')
 def to_float32(x):
   """Casts `x` to FLOAT32 using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.FLOAT32)
 
 
-@optools.add_to_registry(aliases=['kd.to_float64'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kd.schema.to_float64')
 def to_float64(x):
   """Casts `x` to FLOAT64 using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.FLOAT64)
 
 
-@optools.add_to_registry(aliases=['kd.to_mask'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kd.schema.to_mask')
 def to_mask(x):
   """Casts `x` to MASK using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.MASK)
 
 
-@optools.add_to_registry(aliases=['kd.to_bool'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kd.schema.to_bool')
 def to_bool(x):
   """Casts `x` to BOOLEAN using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.BOOLEAN)
 
 
-@optools.add_to_registry(aliases=['kd.to_bytes'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kd.schema.to_bytes')
 def to_bytes(x):
   """Casts `x` to BYTES using explicit (permissive) casting rules."""
   return cast_to(x, schema_constants.BYTES)
 
 
-@optools.add_to_registry(aliases=['kd.to_str'])
+@optools.add_to_registry()
 @optools.as_lambda_operator('kd.schema.to_str')
 def to_str(x):
   """Casts `x` to STRING using explicit (permissive) casting rules."""

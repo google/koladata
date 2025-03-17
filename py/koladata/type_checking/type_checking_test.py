@@ -245,7 +245,7 @@ class TypeCheckingTest(absltest.TestCase):
     @type_checking.check_inputs(hours=kd.INT32, minutes=kd.INT32)
     @type_checking.check_output(kd.STRING)
     def timestamp(hours, minutes):
-      return kd.to_str(hours) + ':' + kd.to_str(minutes)
+      return kd.str(hours) + ':' + kd.str(minutes)
 
     testing.assert_equal(
         timestamp(ds([10, 10, 10]), ds([15, 30, 45])),

@@ -37,7 +37,7 @@ def check_inputs(**kw_constraints: data_item.DataItem):
     @kd.check_inputs(hours=kd.INT32, minutes=kd.INT32)
     @kd.check_output(kd.STRING)
     def timestamp(hours, minutes):
-      return kd.to_str(hours) + ':' + kd.to_str(minutes)
+      return kd.str(hours) + ':' + kd.str(minutes)
 
     timestamp(ds([10, 10, 10]), kd.ds([15, 30, 45]))  # Does not raise.
     timestamp(ds([10, 10, 10]), kd.ds([15.35, 30.12, 45.1]))  # raises TypeError

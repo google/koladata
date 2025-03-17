@@ -24,7 +24,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
@@ -91,9 +90,6 @@ class SchemaToMaskTest(parameterized.TestCase):
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.schema.to_mask(I.x)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.schema.to_mask, kde.to_mask))
 
 
 if __name__ == "__main__":
