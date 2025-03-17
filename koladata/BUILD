@@ -302,6 +302,19 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "extract_utils_test",
+    srcs = ["extract_utils_test.cc"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_binary(
     name = "benchmarks",
     testonly = 1,

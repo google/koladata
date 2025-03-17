@@ -59,11 +59,16 @@ absl::StatusOr<DataSlice> ExtractWithSchema(
           leaf_callback));
     }
     result_db->UnsafeMakeImmutable();
-    return DataSlice::Create(impl, ds.GetShape(), schema_impl, result_db);
+    return DataSlice::Create(impl, ds.GetShape(), schema_impl,
+                             std::move(result_db),
+                             DataSlice::Wholeness::kWhole);
   });
 }
 
 absl::StatusOr<DataSlice> Extract(const DataSlice& ds) {
+  if (ds.IsWhole()) {
+    return ds;
+  }
   return ExtractWithSchema(ds, ds.GetSchema());
 }
 
