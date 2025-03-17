@@ -23,7 +23,6 @@ from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema as schema_ops
 from koladata.operators import tuple as tuple_ops
-from koladata.operators import unified_binding_policy
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -312,38 +311,9 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
   raise NotImplementedError('implemented in the backend')
 
 
-# TODO: Remove the following utilities after `update_schema`
-# argument is fully deprecated.
-def attrs_repr(op_impl):
-  """Helper factory for operator's repr."""
-  sig = arolla.abc.get_operator_signature(op_impl)
-  def repr_fn(
-      node: arolla.Expr, tokens: arolla.abc.NodeTokenView
-  ) -> arolla.abc.ReprToken:
-    return unified_binding_policy.unified_op_repr(node, node.op, sig, tokens)
-  return repr_fn
-
-
-def _attrs_op_bind_args(op_impl):
-  """Argument binding policy for `kd.core.attrs` and `kd.core.with_attrs`."""
-  sig = arolla.abc.get_operator_signature(op_impl)
-  def bind_args(
-      x,
-      /,
-      *,
-      update_schema=None,
-      overwrite_schema=False,
-      **attrs,
-  ):
-    data_slice.verify_update_schema(update_schema)
-    return arolla.abc.aux_bind_arguments(
-        sig, x, overwrite_schema=overwrite_schema, **attrs
-    )
-  return bind_args
-
-
+@optools.add_to_registry(aliases=['kd.attrs'])
 @optools.as_backend_operator(
-    'koda_internal.attrs_impl',
+    'kd.core.attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.overwrite_schema),
@@ -351,26 +321,7 @@ def _attrs_op_bind_args(op_impl):
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
 )
-def _attrs_impl(x, /, *, overwrite_schema=False, **attrs):
-  """Helper for defining kd.core.attrs."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kd.attrs'], repr_fn=attrs_repr(_attrs_impl))
-@arolla.optools.as_lambda_operator(
-    'kd.core.attrs',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.overwrite_schema),
-        qtype_utils.expect_data_slice_kwargs(P.attrs),
-    ],
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.core.attrs]',
-)
-def _attrs(
-    x,
-    overwrite_schema=py_boxing.as_qvalue(False),
-    attrs=arolla.namedtuple(),
-):
+def _attrs(x, /, *, overwrite_schema=False, **attrs):
   """Returns a new DataBag containing attribute updates for `x`.
 
   Most common usage is to build an update using kd.attrs and than attach it as a
@@ -399,37 +350,12 @@ def _attrs(
     overwrite_schema: if True, schema for attributes is always updated.
     **attrs: attrs to set in the update.
   """
-  return arolla.abc.bind_op(_attrs_impl, x, overwrite_schema, attrs)
+  raise NotImplementedError('implemented in the backend')
 
 
-arolla.abc.register_adhoc_aux_binding_policy(
-    _attrs,
-    _attrs_op_bind_args(_attrs_impl),
-    make_literal_fn=py_boxing.literal,
-)
-
-
-# TODO: Remove the following binding policy after `update_schema`
-# argument is fully deprecated.
-def _attr_op_bind_args(op_impl):
-  """Argument binding policy for `kd.core.attr` and `kd.core.with_attr`."""
-  sig = arolla.abc.get_operator_signature(op_impl)
-  def bind_args(
-      x,
-      attr_name,
-      value,
-      update_schema=None,
-      overwrite_schema=False,
-  ):
-    data_slice.verify_update_schema(update_schema)
-    return arolla.abc.aux_bind_arguments(
-        sig, x, attr_name, value, overwrite_schema=overwrite_schema,
-    )
-  return bind_args
-
-
+@optools.add_to_registry(aliases=['kd.attr'])
 @optools.as_backend_operator(
-    'koda_internal.attr_impl',
+    'kd.core.attr',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
@@ -438,23 +364,7 @@ def _attr_op_bind_args(op_impl):
     ],
     qtype_inference_expr=qtypes.DATA_BAG,
 )
-def _attr_impl(x, attr_name, value, overwrite_schema=False):
-  """Helper for defining kd.core.attr."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kd.attr'])
-@arolla.optools.as_lambda_operator(
-    'kd.core.attr',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.attr_name),
-        qtype_utils.expect_data_slice(P.value),
-        qtype_utils.expect_data_slice(P.overwrite_schema),
-    ],
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.core.attr]',
-)
-def _attr(x, attr_name, value, overwrite_schema=py_boxing.as_qvalue(False)):
+def _attr(x, attr_name, value, overwrite_schema=False):
   """Returns a new DataBag containing attribute `attr_name` update for `x`.
 
   This operator is useful if attr_name cannot be used as a key in keyword
@@ -470,16 +380,12 @@ def _attr(x, attr_name, value, overwrite_schema=py_boxing.as_qvalue(False)):
     value: new value for attribute `attr_name`.
     overwrite_schema: if True, schema for attribute is always updated.
   """
-  return _attr_impl(x, attr_name, value, overwrite_schema=overwrite_schema)
+  raise NotImplementedError('implemented in the backend')
 
 
-arolla.abc.register_adhoc_aux_binding_policy(
-    _attr, _attr_op_bind_args(_attr_impl), make_literal_fn=py_boxing.literal,
-)
-
-
+@optools.add_to_registry(aliases=['kd.with_attrs'])
 @optools.as_backend_operator(
-    'koda_internal.with_attrs_impl',
+    'kd.core.with_attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.overwrite_schema),
@@ -487,28 +393,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def with_attrs_impl(x, /, *, overwrite_schema=False, **attrs):
-  """Helper for defining kd.core.with_attrs."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(
-    aliases=['kd.with_attrs'], repr_fn=attrs_repr(with_attrs_impl)
-)
-@arolla.optools.as_lambda_operator(
-    'kd.core.with_attrs',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.overwrite_schema),
-        qtype_utils.expect_data_slice_kwargs(P.attrs),
-    ],
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.core.with_attrs]',
-)
-def with_attrs(
-    x,
-    overwrite_schema=py_boxing.as_qvalue(False),
-    attrs=arolla.namedtuple(),
-):
+def with_attrs(x, /, *, overwrite_schema=False, **attrs):
   """Returns a DataSlice with a new DataBag containing updated attrs in `x`.
 
   This is a shorter version of `x.updated(kd.attrs(x, ...))`.
@@ -536,18 +421,12 @@ def with_attrs(
     overwrite_schema: if True, schema for attributes is always updated.
     **attrs: attrs to set in the update.
   """
-  return arolla.abc.bind_op(with_attrs_impl, x, overwrite_schema, attrs)
+  raise NotImplementedError('implemented in the backend')
 
 
-arolla.abc.register_adhoc_aux_binding_policy(
-    with_attrs,
-    _attrs_op_bind_args(with_attrs_impl),
-    make_literal_fn=py_boxing.literal,
-)
-
-
+@optools.add_to_registry(aliases=['kd.with_attr'])
 @optools.as_backend_operator(
-    'koda_internal.with_attr_impl',
+    'kd.core.with_attr',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.attr_name),
@@ -556,23 +435,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def with_attr_impl(x, attr_name, value, overwrite_schema=False):
-  """Helper for defining kd.core.with_attr."""
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kd.with_attr'])
-@arolla.optools.as_lambda_operator(
-    'kd.core.with_attr',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.x),
-        qtype_utils.expect_data_slice(P.attr_name),
-        qtype_utils.expect_data_slice(P.value),
-        qtype_utils.expect_data_slice(P.overwrite_schema),
-    ],
-    experimental_aux_policy='koladata_adhoc_binding_policy[kd.core.with_attr]',
-)
-def with_attr(x, attr_name, value, overwrite_schema=py_boxing.as_qvalue(False)):
+def with_attr(x, attr_name, value, overwrite_schema=False):
   """Returns a DataSlice with a new DataBag containing a single updated attribute.
 
   This operator is useful if attr_name cannot be used as a key in keyword
@@ -588,14 +451,7 @@ def with_attr(x, attr_name, value, overwrite_schema=py_boxing.as_qvalue(False)):
     value: new value for attribute `attr_name`.
     overwrite_schema: if True, schema for attribute is always updated.
   """
-  return with_attr_impl(x, attr_name, value, overwrite_schema=overwrite_schema)
-
-
-arolla.abc.register_adhoc_aux_binding_policy(
-    with_attr,
-    _attr_op_bind_args(with_attr_impl),
-    make_literal_fn=py_boxing.literal,
-)
+  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kd.with_bag'])

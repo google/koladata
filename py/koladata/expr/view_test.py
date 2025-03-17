@@ -724,21 +724,6 @@ class KodaViewTest(parameterized.TestCase):
         self, *args, **kwargs
     )
 
-  def test_with_attrs_update_schema(self):
-    entity = kde.new(x=1)
-
-    with self.subTest('with_attrs'):
-      with self.assertRaisesRegex(
-          ValueError, 'update_schema argument is deprecated'
-      ):
-        entity.with_attrs(x='2', update_schema=True)
-
-    with self.subTest('with_attr'):
-      with self.assertRaisesRegex(
-          ValueError, 'update_schema argument is deprecated'
-      ):
-        entity.with_attr('x', '2', update_schema=True)
-
 
 if __name__ == '__main__':
   absltest.main()

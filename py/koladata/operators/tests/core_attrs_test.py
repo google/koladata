@@ -49,15 +49,8 @@ QTYPES = frozenset([
 
 class CoreAttrsTest(absltest.TestCase):
 
-  def test_update_schema_arg_error(self):
-    o = kde.new(x=1, y=10).eval()
-    with self.assertRaisesRegex(
-        ValueError, 'update_schema argument is deprecated'
-    ):
-      _ = kde.core.attrs(o, x=b'2', update_schema=True)
-
   def test_multi_attr_overwrite(self):
-    o = bag().new(x=1, y=10)
+    o = kde.new(x=1, y=10).eval()
     with self.assertRaisesRegex(
         exceptions.KodaError, "the schema for attribute 'x' is incompatible."
     ):

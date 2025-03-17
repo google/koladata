@@ -1172,12 +1172,12 @@ Returns:
      "           Note that this value can be fully omitted."},
     // TODO: Add proper docstring when the rest of functionality in
     // terms of dicts and lists is done.
-    {"_set_attr", (PyCFunction)PyDataSlice_set_attr,
+    {"set_attr", (PyCFunction)PyDataSlice_set_attr,
      METH_FASTCALL | METH_KEYWORDS,
-     "_set_attr(attr_name, value, /, overwrite_schema=False)\n"
+     "set_attr(attr_name, value, /, overwrite_schema=False)\n"
      "--\n\n"
      "Sets an attribute `attr_name` to `value`."},
-    {"_set_attrs", (PyCFunction)PyDataSlice_set_attrs,
+    {"set_attrs", (PyCFunction)PyDataSlice_set_attrs,
      METH_FASTCALL | METH_KEYWORDS,
      "set_attrs(*, overwrite_schema=False, **attrs)\n"
      "--\n\n"

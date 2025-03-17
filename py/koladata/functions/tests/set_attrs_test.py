@@ -26,13 +26,6 @@ ds = data_slice.DataSlice.from_vals
 
 class SetAttrsTest(absltest.TestCase):
 
-  def test_warning(self):
-    x = fns.new().fork_bag()
-    with self.assertRaisesRegex(
-        ValueError, 'update_schema argument is deprecated'
-    ):
-      fns.set_attrs(x, xyz='12', update_schema=True)
-
   def test_entity(self):
     x = fns.new(a=ds(1, schema_constants.INT64), b='a').fork_bag()
     fns.set_attrs(x, a=2, b='abc')

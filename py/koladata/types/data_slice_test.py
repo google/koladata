@@ -152,11 +152,6 @@ class DataSliceMethodsTest(parameterized.TestCase):
               'S',  # Has different meanings between method and function.
               'get_values',  # TODO: fix this.
               'implode',  # method lacks db= argument for consistency with view
-              # TODO: Remove these 4 methods from skipped methods.
-              'set_attr',
-              'set_attrs',
-              'with_attr',
-              'with_attrs',
           },
           skip_params=[
               ('with_bag', 0),  # bag is positional-only in C++
@@ -1217,7 +1212,7 @@ class DataSliceTest(parameterized.TestCase):
       with self.assertRaisesRegex(TypeError, 'expected bool'):
         x.set_attr('invalid__overwrite_schema_type', 1, overwrite_schema=42)
       with self.assertRaisesRegex(
-          TypeError, 'expected bool for `overwrite_schema`, got: int'
+          TypeError, 'accepts 2 to 3 positional arguments'
       ):
         x.set_attr('invalid__overwrite_schema_type', 1, None, 42)
 
@@ -3620,21 +3615,6 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(obj2.x.no_bag(), ds(3))
     testing.assert_equal(obj2.y.no_bag(), ds(2))
     testing.assert_equal(obj2.z.no_bag(), ds(4))
-
-  def test_with_attrs_update_schema_arg_error(self):
-    entity = bag().new(x=1)
-
-    with self.subTest('with_attrs'):
-      with self.assertRaisesRegex(
-          ValueError, 'update_schema argument is deprecated'
-      ):
-        entity.with_attrs(x='2', update_schema=True)
-
-    with self.subTest('with_attr'):
-      with self.assertRaisesRegex(
-          ValueError, 'update_schema argument is deprecated'
-      ):
-        entity.with_attr('x', '2', update_schema=True)
 
   # More comprehensive tests are in the test_core_subslice.py.
   @parameterized.parameters(

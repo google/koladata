@@ -107,6 +107,8 @@ OPERATOR("kd.core._get_list_item_by_range", GetListItemByRange,
          "kd.core.get_list_item_by_range");
 OPERATOR("kd.core._new_ids_like", NewIdsLike, "kd.core.new_ids_like");
 OPERATOR("kd.core._shallow_clone", ShallowClone, "kd.core.shallow_clone");
+OPERATOR("kd.core.attr", Attr);
+OPERATOR_FAMILY("kd.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR_FAMILY("kd.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
 OPERATOR("kd.core.follow", Follow);
@@ -123,6 +125,9 @@ OPERATOR("kd.core.nofollow", NoFollow);
 OPERATOR("kd.core.ref", Ref);
 OPERATOR("kd.core.stub", Stub);
 OPERATOR_FAMILY("kd.core.updated", std::make_unique<UpdatedOperatorFamily>());
+OPERATOR("kd.core.with_attr", WithAttr);
+OPERATOR_FAMILY("kd.core.with_attrs",
+                std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kd.core.with_bag", WithBag);
 OPERATOR("kd.core.with_merged_bag", WithMergedBag);
 //
@@ -329,9 +334,6 @@ OPERATOR("kd.strings.strip", Strip);
 OPERATOR("kd.strings.substr", Substr);
 OPERATOR("kd.strings.upper", Upper);
 //
-OPERATOR("koda_internal.attr_impl", Attr);
-OPERATOR_FAMILY("koda_internal.attrs_impl",
-                std::make_unique<AttrsOperatorFamily>());
 OPERATOR("koda_internal.non_deterministic", NonDeterministicOp);
 OPERATOR_FAMILY("koda_internal.non_deterministic_identity",
                 std::make_unique<NonDeterministicIdentityOpFamily>());
@@ -347,9 +349,6 @@ OPERATOR("koda_internal.to_arolla_int64", ToArollaScalar<int64_t>);
 OPERATOR("koda_internal.to_arolla_optional_unit",
          ToArollaOptionalScalar<arolla::Unit>);
 OPERATOR("koda_internal.to_arolla_text", ToArollaScalar<arolla::Text>);
-OPERATOR("koda_internal.with_attr_impl", WithAttr);
-OPERATOR_FAMILY("koda_internal.with_attrs_impl",
-                std::make_unique<WithAttrsOperatorFamily>());
 // go/keep-sorted end
 
 }  // namespace

@@ -28,13 +28,6 @@ ds = data_slice.DataSlice.from_vals
 
 class SetAttrTest(absltest.TestCase):
 
-  def test_update_schema_arg_error(self):
-    x = fns.new().fork_bag()
-    with self.assertRaisesRegex(
-        ValueError, 'update_schema argument is deprecated'
-    ):
-      fns.set_attr(x, 'xyz', '12', update_schema=True)
-
   def test_entity(self):
     db = fns.bag()
     x = db.new()

@@ -370,24 +370,21 @@ class KodaView(arolla.abc.ExprView):
   def with_attrs(
       self,
       *,
-      update_schema: Any = None,
-      overwrite_schema: Any = False,
+      overwrite_schema: Any = data_slice.DataSlice.from_vals(False),
       **attrs: Any,
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op(
-        'kd.with_attrs', self, update_schema=update_schema,
-        overwrite_schema=overwrite_schema, **attrs
+        'kd.with_attrs', self, overwrite_schema=overwrite_schema, **attrs
     )
 
   def with_attr(
       self,
       attr_name: Any,
       value: Any,
-      update_schema: Any = None,
-      overwrite_schema: Any = False,
+      overwrite_schema: Any = data_slice.DataSlice.from_vals(False),
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op(
-        'kd.with_attr', self, attr_name, value, update_schema=update_schema,
+        'kd.with_attr', self, attr_name, value,
         overwrite_schema=overwrite_schema,
     )
 

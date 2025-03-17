@@ -88,12 +88,11 @@ def set_attr(
     x: data_slice.DataSlice,
     attr_name: str,
     value: Any,
-    update_schema: bool | None = None,
     overwrite_schema: bool = False,
 ):
   """Sets an attribute `attr_name` to `value`.
 
-  If `update_schema` is True and `x` is either an Entity with explicit schema
+  If `overwrite_schema` is True and `x` is either an Entity with explicit schema
   or an Object where some items are entities with explicit schema, it will get
   updated with `value`'s schema first.
 
@@ -102,22 +101,15 @@ def set_attr(
     attr_name: attribute name
     value: a DataSlice or convertible to a DataSlice that will be assigned as an
       attribute.
-    update_schema: DEPRECATED. whether to update the schema before setting an
-      attribute.
     overwrite_schema: whether to overwrite the schema before setting an
       attribute.
   """
-  x.set_attr(
-      attr_name, value,
-      update_schema=update_schema,
-      overwrite_schema=overwrite_schema
-  )
+  x.set_attr(attr_name, value, overwrite_schema=overwrite_schema)
 
 
 def set_attrs(
     x: data_slice.DataSlice,
     *,
-    update_schema: bool | None = None,
     overwrite_schema: bool = False,
     **attrs: Any
 ):
@@ -125,16 +117,12 @@ def set_attrs(
 
   Args:
     x: a DataSlice on which attributes are set. Must have DataBag attached.
-    update_schema: DEPRECATED. whether to overwrite the schema before setting an
-      attribute.
     overwrite_schema: whether to overwrite the schema before setting an
       attribute.
     **attrs: attribute values that are converted to DataSlices with DataBag
       adoption.
   """
-  x.set_attrs(
-      **attrs, update_schema=update_schema, overwrite_schema=overwrite_schema
-  )
+  x.set_attrs(**attrs, overwrite_schema=overwrite_schema)
 
 
 def del_attr(

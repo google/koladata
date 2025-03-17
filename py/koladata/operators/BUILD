@@ -369,7 +369,6 @@ py_library(
         ":qtype_utils",
         ":schema",
         ":tuple",
-        ":unified_binding_policy",
         ":view_overloads",
         "//koladata/operators",
         "//py/koladata/types:data_slice",

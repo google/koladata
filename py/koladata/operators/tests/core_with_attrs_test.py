@@ -46,15 +46,8 @@ QTYPES = frozenset([
 
 class CoreWithAttrsTest(absltest.TestCase):
 
-  def test_update_schema_arg_error(self):
-    o = kde.new(x=1, y=10).eval()
-    with self.assertRaisesRegex(
-        ValueError, 'update_schema argument is deprecated'
-    ):
-      _ = kde.core.with_attrs(o, x=b'2', update_schema=True)
-
   def test_multi_attr_update(self):
-    o = bag().new(x=1, y='q')
+    o = kde.new(x=1, y='q').eval()
     with self.assertRaisesRegex(
         exceptions.KodaError, "the schema for attribute 'x' is incompatible."
     ):
@@ -87,7 +80,7 @@ class CoreWithAttrsTest(absltest.TestCase):
       _ = kde.core.with_attrs(ds(0).with_bag(bag()), x=1).eval()
 
   def test_error_no_databag(self):
-    o = bag().new(x=1).no_bag()
+    o = kde.new(x=1).no_bag().eval()
     with self.assertRaisesRegex(
         ValueError, 'the DataSlice is a reference without a Bag',
     ):
@@ -103,7 +96,7 @@ class CoreWithAttrsTest(absltest.TestCase):
     testing.assert_equal(x.no_bag(), ds(None))
 
   def test_schema_works(self):
-    o = bag().new_schema()
+    o = kde.schema.new_schema()
     o = kde.core.with_attrs(o, x=schema_constants.INT32).eval()
     self.assertEqual(o.x.no_bag(), schema_constants.INT32)
 

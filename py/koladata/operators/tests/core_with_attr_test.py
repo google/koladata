@@ -44,13 +44,6 @@ QTYPES = frozenset([
 
 class CoreWithAttrTest(parameterized.TestCase):
 
-  def test_update_schema_arg_error(self):
-    o = kde.new(x=1, y=10).eval()
-    with self.assertRaisesRegex(
-        ValueError, 'update_schema argument is deprecated'
-    ):
-      _ = kde.core.with_attr(o, 'x', b'2', update_schema=True)
-
   @parameterized.parameters(
       (bag(), '~3!_3', 42),
       (bag(), ds('~3!_3'), ds(42)),
