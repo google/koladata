@@ -337,7 +337,6 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
   bool is_single_allocation = true;
   std::optional<internal::ObjectId> first_schema_alloc = std::nullopt;
   schemas->VisitValues([&]<class T>(const arolla::DenseArray<T>& array) {
-    absl::Status status = absl::OkStatus();
     if constexpr (std::is_same_v<T, internal::ObjectId>) {
       array.ForEachPresent([&](size_t idx, const internal::ObjectId& schema) {
         if (schema.IsNoFollowSchema()) {
@@ -396,6 +395,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
           absl::erase_if(*result, [&](auto a) { return !attrs.contains(a); });
         }
       });
+  RETURN_IF_ERROR(std::move(status));
   return result.value_or(DataSlice::AttrNamesSet());
 }
 

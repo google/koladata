@@ -1267,6 +1267,19 @@ TEST(DataSliceTest, GetAttrNames_MultipleAllocations) {
               IsOkAndHolds(ElementsAre("a", "b", "c", "d")));
 }
 
+TEST(DataSliceTest, GetAttrNames_MultipleAllocations_Error) {
+  auto db = DataBag::Empty();
+  auto schema = DataItem(internal::AllocateExplicitSchema());
+  auto item = DataItem(internal::AllocateSingleObject());
+  ASSERT_OK_AND_ASSIGN(
+      auto ds, DataSlice::Create(DataSliceImpl::Create({schema, item}),
+                                 DataSlice::JaggedShape::FlatFromSize(2),
+                                 DataItem(schema::kSchema), db));
+  EXPECT_THAT(ds.GetAttrNames(),
+              StatusIs(absl::StatusCode::kFailedPrecondition,
+                       HasSubstr("schema expected, got Entity")));
+}
+
 TEST(DataSliceTest, GetAttrNames_MultipleAllocationsWithFallback) {
   auto db = DataBag::Empty();
   auto fallback_db = DataBag::Empty();
