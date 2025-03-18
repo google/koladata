@@ -22,7 +22,6 @@ from absl.testing import absltest
 from absl.testing import flagsaver
 from absl.testing import parameterized
 from arolla import arolla
-from koladata.exceptions import error_pb2
 from koladata.operators import eager_op_utils
 from koladata.operators.tests.util import data_conversion
 from koladata.operators.tests.util import koda_test_eval
@@ -41,7 +40,7 @@ kd = eager_op_utils.operators_container('kd')
 )
 def add_fake_for_test(x, y):
   if x.get_ndim() == 0 and x > 2**30:
-    raise ValueError(error_pb2.Error(error_message='fake error'))
+    raise ValueError('fake error')
   return data_slice.DataSlice.from_vals(
       x.internal_as_arolla_value() + y.internal_as_arolla_value()
   )

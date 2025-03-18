@@ -65,7 +65,6 @@ py_test(
     deps = [
         ":data_conversion",
         ":koda_test_eval",
-        "//py/koladata/exceptions:error_py_proto",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/flags",

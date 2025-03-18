@@ -121,7 +121,6 @@ py_test(
     deps = [
         ":error_converters_testing_clib",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
-        "//py/koladata/exceptions:error_py_proto",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )

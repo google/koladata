@@ -18,7 +18,6 @@ import traceback
 
 from absl.testing import absltest
 from koladata.base import error_converters_testing_clib
-from koladata.exceptions import error_pb2
 
 
 class ExceptionsTest(absltest.TestCase):
@@ -38,18 +37,18 @@ class ExceptionsTest(absltest.TestCase):
     self.assertStartsWith(str(cm.exception), '[INTERNAL] test error')
 
   def test_nested_koda_error(self):
-    err_proto = error_pb2.Error(error_message='test error')
     with self.assertRaises(ValueError) as cm:
-      error_converters_testing_clib.raise_from_status_with_serialized_payload_and_cause(
-          'test error',
-          err_proto.SerializeToString(),
-          'cause error',
+      error_converters_testing_clib.raise_from_status_with_payload_and_cause(
+          'status error',
+          'koda error',
+          'cause status error',
+          'cause koda error',
       )
     self.assertRegex(
         str(cm.exception),
-        r"""test error
+        r"""koda error
 
-The cause is: cause error""",
+The cause is: cause koda error""",
     )
 
 

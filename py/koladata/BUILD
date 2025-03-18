@@ -34,7 +34,6 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
-        "//py/koladata/exceptions",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",

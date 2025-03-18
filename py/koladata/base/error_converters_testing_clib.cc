@@ -56,33 +56,18 @@ PYBIND11_MODULE(error_converters_testing_clib, m) {
     throw pybind11::error_already_set();
   });
 
-  m.def("raise_from_status_with_serialized_payload",
-        [](absl::string_view message, absl::string_view serialized_payload) {
+  m.def("raise_from_status_with_payload_and_cause",
+        [](absl::string_view message, absl::string_view koda_message,
+           absl::string_view cause_message,
+           absl::string_view cause_koda_message) {
           Error error;
-          error.ParseFromString(serialized_payload);
-          SetPyErrFromStatus(
-              WithErrorPayload(absl::InternalError(message), std::move(error)));
-          throw pybind11::error_already_set();
-        });
-
-  m.def("raise_from_status_with_serialized_payload_and_cause",
-        [](absl::string_view message, absl::string_view serialized_payload,
-           absl::string_view cause_message) {
-          Error error;
-          error.ParseFromString(serialized_payload);
+          error.set_error_message(koda_message);
           Error cause_error;
-          cause_error.set_error_message(cause_message);
+          cause_error.set_error_message(cause_koda_message);
           SetPyErrFromStatus(arolla::WithPayloadAndCause(
               absl::InternalError(message), std::move(error),
               arolla::WithPayload(absl::InternalError(cause_message),
                                   std::move(cause_error))));
-          throw pybind11::error_already_set();
-        });
-
-  m.def("create_error_from_cause",
-        [](absl::string_view message, absl::string_view cause_message) {
-          SetPyErrFromStatus(internal::KodaErrorFromCause(
-              message, CreateErrorFromCause(cause_message)));
           throw pybind11::error_already_set();
         });
 };

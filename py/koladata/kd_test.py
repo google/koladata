@@ -178,15 +178,6 @@ class KdTest(absltest.TestCase):
   def test_docstring(self):
     self.assertIn('Koda API', kd.__doc__)
 
-  def test_exception_type(self):
-    self.assertIsInstance(kd.exceptions, types.ModuleType)
-
-    def f(e: ValueError):  # pylint: disable=unused-argument
-      pass
-
-    sig = inspect.signature(f)
-    self.assertIs(sig.parameters['e'].annotation, ValueError)
-
   def test_kdf(self):
     fn = kdf.expr_fn(
         returns=I.x + V.foo,

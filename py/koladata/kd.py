@@ -19,7 +19,6 @@ import types as _py_types
 import typing as _typing
 
 from arolla import arolla as _arolla
-from koladata.exceptions import exceptions as _exceptions
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
@@ -123,9 +122,6 @@ optools.constraints.expect_jagged_shape_or_unspecified = (
 ### Tools for eager operators.
 optools.eager = _py_types.ModuleType('optools')
 optools.eager.EagerOperator = _eager_op_utils.EagerOperator
-
-exceptions = _eager_only(_py_types.ModuleType('exceptions'))
-exceptions.KodaError = _exceptions.KodaError
 
 
 ### Eager operators / functions from operators.
