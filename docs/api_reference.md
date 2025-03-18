@@ -24,6 +24,7 @@ Category  | Subcategory | Description
  | [masking](#kd.masking) | Masking operators.
  | [math](#kd.math) | Arithmetic operators.
  | [objs](#kd.objs) | Operators that work solely with objects.
+ | [proto](#kd.proto) | Protocol buffer serialization operators.
  | [py](#kd.py) | Operators that call Python functions.
  | [random](#kd.random) | Random and sampling operators.
  | [schema](#kd.schema) | Schema-related operators.
@@ -472,7 +473,7 @@ Core operators that are not part of other categories.
 
 **Operators**
 
-### `kd.core.attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.core.attr}
+### `kd.core.attr(x, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.attr}
 Aliases:
 
 - [kd.attr](#kd.attr)
@@ -494,7 +495,7 @@ Args:
   overwrite_schema: if True, schema for attribute is always updated.
 ```
 
-### `kd.core.attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.core.attrs}
+### `kd.core.attrs(x, /, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.core.attrs}
 Aliases:
 
 - [kd.attrs](#kd.attrs)
@@ -605,32 +606,6 @@ Returns:
   A (deep) copy of the given DataSlice.
   All referenced entities will be copied with newly allocated ItemIds. Note
   that UUIDs will be copied as ItemIds.
-```
-
-### `kd.core.empty_shaped(shape, schema=DataItem(MASK, schema: SCHEMA))` {#kd.core.empty_shaped}
-
-``` {.no-copy}
-Returns a DataSlice of missing items with the given shape.
-
-If `schema` is a Struct schema, an empty Databag is created and attached to
-the resulting DataSlice and `schema` is adopted into that DataBag.
-
-Args:
-  shape: Shape of the resulting DataSlice.
-  schema: optional schema of the resulting DataSlice.
-```
-
-### `kd.core.empty_shaped_as(shape_from, schema=DataItem(MASK, schema: SCHEMA))` {#kd.core.empty_shaped_as}
-
-``` {.no-copy}
-Returns a DataSlice of missing items with the shape of `shape_from`.
-
-If `schema` is a Struct schema, an empty Databag is created and attached to
-the resulting DataSlice and `schema` is adopted into that DataBag.
-
-Args:
-  shape_from: used for the shape of the resulting DataSlice.
-  schema: optional schema of the resulting DataSlice.
 ```
 
 ### `kd.core.enriched(ds, *bag)` {#kd.core.enriched}
@@ -1095,7 +1070,7 @@ Returns:
   DataSlice with additional fallbacks.
 ```
 
-### `kd.core.with_attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.core.with_attr}
+### `kd.core.with_attr(x, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.with_attr}
 Aliases:
 
 - [kd.with_attr](#kd.with_attr)
@@ -1117,7 +1092,7 @@ Args:
   overwrite_schema: if True, schema for attribute is always updated.
 ```
 
-### `kd.core.with_attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.core.with_attrs}
+### `kd.core.with_attrs(x, /, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.core.with_attrs}
 Aliases:
 
 - [kd.with_attrs](#kd.with_attrs)
@@ -1551,7 +1526,9 @@ Also see kd.select.
 Args:
   ds: Dict DataSlice to be filtered
   fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
-    function which can be evalauted to such DataSlice.
+    function which can be evalauted to such DataSlice. A Python function will
+    be traced for evaluation, so it cannot have Python control flow operations
+    such as `if` or `while`.
 
 Returns:
   Filtered DataSlice.
@@ -1570,7 +1547,9 @@ Also see kd.select.
 Args:
   ds: Dict DataSlice to be filtered
   fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
-    function which can be evalauted to such DataSlice.
+    function which can be evalauted to such DataSlice. A Python function will
+    be traced for evaluation, so it cannot have Python control flow operations
+    such as `if` or `while`.
 
 Returns:
   Filtered DataSlice.
@@ -1883,6 +1862,38 @@ Retrieves the signature attached to the given functor.
 
   Returns:
     The signature(s) attached to the functor(s).
+```
+
+### `kd.functor.if_(cond, yes_fn, no_fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.if_}
+Aliases:
+
+- [kd.if_](#kd.if_)
+
+``` {.no-copy}
+Calls either `yes_fn` or `no_fn` depending on the value of `cond`.
+
+This a short-circuit sibling of kd.cond which executes only one of the two
+functors, and therefore requires that `cond` is a MASK scalar.
+
+Example:
+  x = kd.item(5)
+  kd.if_(x > 3, lambda x: x + 1, lambda x: x - 1, x)
+  # returns 6, note that both lambdas were traced into functors.
+
+Args:
+  cond: The condition to branch on. Must be a MASK scalar.
+  yes_fn: The functor to be called if `cond` is present.
+  no_fn: The functor to be called if `cond` is missing.
+  *args: The positional argument(s) to pass to the functor.
+  return_type_as: The return type of the call is expected to be the same as
+    the return type of this expression. In most cases, this will be a literal
+    of the corresponding type. This needs to be specified if the functor does
+    not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
+    be passed here.
+  **kwargs: The keyword argument(s) to pass to the functor.
+
+Returns:
+  The result of the call of either `yes_fn` or `no_fn`.
 ```
 
 ### `kd.functor.is_fn(obj)` {#kd.functor.is_fn}
@@ -2756,7 +2767,9 @@ Also see kd.select.
 Args:
   ds: List DataSlice to be filtered
   fltr: filter can be a DataSlice with dtype as kd.MASK. It can also be a Koda
-    Functor or a Python function which can be evalauted to such DataSlice.
+    Functor or a Python function which can be evalauted to such DataSlice. A
+    Python function will be traced for evaluation, so it cannot have Python
+    control flow operations such as `if` or `while`.
 
 Returns:
   Filtered DataSlice.
@@ -3023,48 +3036,6 @@ Args:
 
 Returns:
   Coalesced DataSlice.
-```
-
-### `kd.masking.empty_shaped(shape, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.masking.empty_shaped}
-Aliases:
-
-- [kd.empty_shaped](#kd.empty_shaped)
-
-``` {.no-copy}
-Creates a DataSlice of missing items with the given shape.
-
-  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
-  created and attached to the resulting DataSlice and `schema` is adopted into
-  the DataBag.
-
-  Args:
-    shape: Shape of the resulting DataSlice.
-    schema: optional schema of the resulting DataSlice.
-    db: optional DataBag to hold the schema if applicable.
-
-  Returns:
-    A DataSlice with the given shape.
-```
-
-### `kd.masking.empty_shaped_as(shape_from, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.masking.empty_shaped_as}
-Aliases:
-
-- [kd.empty_shaped_as](#kd.empty_shaped_as)
-
-``` {.no-copy}
-Creates a DataSlice of missing items with the shape of `shape_from`.
-
-  If `schema` is an Entity schema and `db` is not provided, an empty Databag is
-  created and attached to the resulting DataSlice and `schema` is adopted into
-  the DataBag.
-
-  Args:
-    shape_from: used for the shape of the resulting DataSlice.
-    schema: optional schema of the resulting DataSlice.
-    db: optional DataBag to hold the schema if applicable.
-
-  Returns:
-    A DataSlice with the shape of the given DataSlice.
 ```
 
 ### `kd.masking.has(x)` {#kd.masking.has}
@@ -3913,6 +3884,182 @@ Creates object(s) whose ids are uuid(s) with the provided attributes.
 
 </section>
 
+### kd.proto {#kd.proto}
+
+Protocol buffer serialization operators.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.proto.from_proto_bytes(x, proto_path, /, *, extensions=unspecified, itemids=unspecified, schema=unspecified, on_invalid=unspecified)` {#kd.proto.from_proto_bytes}
+Aliases:
+
+- [kd.from_proto_bytes](#kd.from_proto_bytes)
+
+``` {.no-copy}
+Parses a DataSlice `x` of binary proto messages.
+
+This is equivalent to parsing `x.to_py()` as a binary proto message in Python,
+and then converting the parsed message to a DataSlice using `kd.from_proto`,
+but bypasses Python, is traceable, and supports any shape and sparsity, and
+can handle parse errors.
+
+`x` must be a DataSlice of BYTES. Missing elements of `x` will be missing in
+the result.
+
+`proto_path` must be a DataItem containing a STRING fully-qualified proto
+message name, which will be used to look up the message descriptor in the C++
+generated descriptor pool. For this to work, the C++ proto message needs to
+be compiled into the binary that executes this operator, which is not the
+same as the proto message being available in Python.
+
+See kd.from_proto for a detailed explanation of the `extensions`, `itemids`,
+and `schema` arguments.
+
+If `on_invalid` is unset, this operator will throw an error if any input
+fails to parse. If `on_invalid` is set, it must be broadcastable to `x`, and
+will be used in place of the result wherever the input fails to parse.
+
+Args:
+  x: DataSlice of BYTES
+  proto_path: DataItem containing STRING
+  extensions: 1D DataSlice of STRING
+  itemids: DataSlice of ITEMID with the same shape as `x` (optional)
+  schema: DataItem containing SCHEMA (optional)
+  on_invalid: DataSlice broacastable to the result (optional)
+
+Returns:
+  A DataSlice representing the proto data.
+```
+
+### `kd.proto.from_proto_json(x, proto_path, /, *, extensions=unspecified, itemids=unspecified, schema=unspecified, on_invalid=unspecified)` {#kd.proto.from_proto_json}
+Aliases:
+
+- [kd.from_proto_json](#kd.from_proto_json)
+
+``` {.no-copy}
+Parses a DataSlice `x` of proto JSON-format strings.
+
+This is equivalent to parsing `x.to_py()` as a JSON-format proto message in
+Python, and then converting the parsed message to a DataSlice using
+`kd.from_proto`, but bypasses Python, is traceable, supports any shape and
+sparsity, and can handle parse errors.
+
+`x` must be a DataSlice of STRING. Missing elements of `x` will be missing in
+the result.
+
+`proto_path` must be a DataItem containing a STRING fully-qualified proto
+message name, which will be used to look up the message descriptor in the C++
+generated descriptor pool. For this to work, the C++ proto message needs to
+be compiled into the binary that executes this operator, which is not the
+same as the proto message being available in Python.
+
+See kd.from_proto for a detailed explanation of the `extensions`, `itemids`,
+and `schema` arguments.
+
+If `on_invalid` is unset, this operator will throw an error if any input
+fails to parse. If `on_invalid` is set, it must be broadcastable to `x`, and
+will be used in place of the result wherever the input fails to parse.
+
+Args:
+  x: DataSlice of STRING
+  proto_path: DataItem containing STRING
+  extensions: 1D DataSlice of STRING
+  itemids: DataSlice of ITEMID with the same shape as `x` (optional)
+  schema: DataItem containing SCHEMA (optional)
+  on_invalid: DataSlice broacastable to the result (optional)
+
+Returns:
+  A DataSlice representing the proto data.
+```
+
+### `kd.proto.schema_from_proto_path(proto_path, /, *, extensions=DataItem(Entity:#5ikYYvXepp19g47QDLnJR2, schema: ITEMID))` {#kd.proto.schema_from_proto_path}
+Aliases:
+
+- [kd.schema_from_proto_path](#kd.schema_from_proto_path)
+
+``` {.no-copy}
+Returns a Koda schema representing a proto message class.
+
+This is equivalent to `kd.schema_from_proto(message_cls)` if `message_cls` is
+the Python proto class with full name `proto_path`, but bypasses Python and
+is traceable.
+
+`proto_path` must be a DataItem containing a STRING fully-qualified proto
+message name, which will be used to look up the message descriptor in the C++
+generated descriptor pool. For this to work, the C++ proto message needs to
+be compiled into the binary that executes this operator, which is not the
+same as the proto message being available in Python.
+
+See `kd.schema_from_proto` for a detailed explanation of the `extensions`
+argument.
+
+Args:
+  proto_path: DataItem containing STRING
+  extensions: 1D DataSlice of STRING
+```
+
+### `kd.proto.to_proto_bytes(x, proto_path, /)` {#kd.proto.to_proto_bytes}
+Aliases:
+
+- [kd.to_proto_bytes](#kd.to_proto_bytes)
+
+``` {.no-copy}
+Serializes a DataSlice `x` as binary proto messages.
+
+This is equivalent to using `kd.to_proto` to serialize `x` as a proto message
+in Python, then serializing that message into a binary proto, but bypasses
+Python, is traceable, and supports any shape and sparsity.
+
+`x` must be serializable as the proto message with full name `proto_path`.
+Missing elements of `x` will be missing in the result.
+
+`proto_path` must be a DataItem containing a STRING fully-qualified proto
+message name, which will be used to look up the message descriptor in the C++
+generated descriptor pool. For this to work, the C++ proto message needs to
+be compiled into the binary that executes this operator, which is not the
+same as the proto message being available in Python.
+
+Args:
+  x: DataSlice
+  proto_path: DataItem containing STRING
+
+Returns:
+  A DataSlice of BYTES with the same shape and sparsity as `x`.
+```
+
+### `kd.proto.to_proto_json(x, proto_path, /)` {#kd.proto.to_proto_json}
+Aliases:
+
+- [kd.to_proto_json](#kd.to_proto_json)
+
+``` {.no-copy}
+Serializes a DataSlice `x` as JSON-format proto messages.
+
+This is equivalent to using `kd.to_proto` to serialize `x` as a proto message
+in Python, then serializing that message into a JSON-format proto, but
+bypasses Python, is traceable, and supports any shape and sparsity.
+
+`x` must be serializable as the proto message with full name `proto_path`.
+Missing elements of `x` will be missing in the result.
+
+`proto_path` must be a DataItem containing a STRING fully-qualified proto
+message name, which will be used to look up the message descriptor in the C++
+generated descriptor pool. For this to work, the C++ proto message needs to
+be compiled into the binary that executes this operator, which is not the
+same as the proto message being available in Python.
+
+Args:
+  x: DataSlice
+  proto_path: DataItem containing STRING
+
+Returns:
+  A DataSlice of STRING with the same shape and sparsity as `x`.
+```
+
+</section>
+
 ### kd.py {#kd.py}
 
 Operators that call Python functions.
@@ -4726,18 +4873,12 @@ Creates a Koda entity schema corresponding to the given Python type.
 ```
 
 ### `kd.schema.to_bool(x)` {#kd.schema.to_bool}
-Aliases:
-
-- [kd.to_bool](#kd.to_bool)
 
 ``` {.no-copy}
 Casts `x` to BOOLEAN using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_bytes(x)` {#kd.schema.to_bytes}
-Aliases:
-
-- [kd.to_bytes](#kd.to_bytes)
 
 ``` {.no-copy}
 Casts `x` to BYTES using explicit (permissive) casting rules.
@@ -4753,36 +4894,24 @@ Casts `x` to EXPR using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_float32(x)` {#kd.schema.to_float32}
-Aliases:
-
-- [kd.to_float32](#kd.to_float32)
 
 ``` {.no-copy}
 Casts `x` to FLOAT32 using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_float64(x)` {#kd.schema.to_float64}
-Aliases:
-
-- [kd.to_float64](#kd.to_float64)
 
 ``` {.no-copy}
 Casts `x` to FLOAT64 using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_int32(x)` {#kd.schema.to_int32}
-Aliases:
-
-- [kd.to_int32](#kd.to_int32)
 
 ``` {.no-copy}
 Casts `x` to INT32 using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_int64(x)` {#kd.schema.to_int64}
-Aliases:
-
-- [kd.to_int64](#kd.to_int64)
 
 ``` {.no-copy}
 Casts `x` to INT64 using explicit (permissive) casting rules.
@@ -4793,9 +4922,6 @@ Casts `x` to INT64 using explicit (permissive) casting rules.
 Alias for [kd.schema.get_itemid](#kd.schema.get_itemid) operator.
 
 ### `kd.schema.to_mask(x)` {#kd.schema.to_mask}
-Aliases:
-
-- [kd.to_mask](#kd.to_mask)
 
 ``` {.no-copy}
 Casts `x` to MASK using explicit (permissive) casting rules.
@@ -4829,9 +4955,6 @@ Casts `x` to SCHEMA using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.to_str(x)` {#kd.schema.to_str}
-Aliases:
-
-- [kd.to_str](#kd.to_str)
 
 ``` {.no-copy}
 Casts `x` to STRING using explicit (permissive) casting rules.
@@ -5500,6 +5623,38 @@ Returns:
   A DataSlice of dense ranks.
 ```
 
+### `kd.slices.empty_shaped(shape, schema=DataItem(MASK, schema: SCHEMA))` {#kd.slices.empty_shaped}
+Aliases:
+
+- [kd.empty_shaped](#kd.empty_shaped)
+
+``` {.no-copy}
+Returns a DataSlice of missing items with the given shape.
+
+If `schema` is a Struct schema, an empty Databag is created and attached to
+the resulting DataSlice and `schema` is adopted into that DataBag.
+
+Args:
+  shape: Shape of the resulting DataSlice.
+  schema: optional schema of the resulting DataSlice.
+```
+
+### `kd.slices.empty_shaped_as(shape_from, schema=DataItem(MASK, schema: SCHEMA))` {#kd.slices.empty_shaped_as}
+Aliases:
+
+- [kd.empty_shaped_as](#kd.empty_shaped_as)
+
+``` {.no-copy}
+Returns a DataSlice of missing items with the shape of `shape_from`.
+
+If `schema` is a Struct schema, an empty Databag is created and attached to
+the resulting DataSlice and `schema` is adopted into that DataBag.
+
+Args:
+  shape_from: used for the shape of the resulting DataSlice.
+  schema: optional schema of the resulting DataSlice.
+```
+
 ### `kd.slices.expand_to(x, target, ndim=unspecified)` {#kd.slices.expand_to}
 Aliases:
 
@@ -6149,7 +6304,10 @@ Example:
 
 Args:
   ds: DataSlice with ndim > 0 to be filtered.
-  fltr: filter DataSlice with dtype as kd.MASK.
+  fltr: filter DataSlice with dtype as kd.MASK. It can also be a Koda Functor
+    or a Python function which can be evalauted to such DataSlice. A Python
+    function will be traced for evaluation, so it cannot have Python control
+    flow operations such as `if` or `while`.
   expand_filter: flag indicating if the 'filter' should be expanded to 'ds'
 
 Returns:
@@ -7391,11 +7549,11 @@ Alias for [kd.math.argmin](#kd.math.argmin) operator.
 
 Alias for [kd.slices.at](#kd.slices.at) operator.
 
-### `kd.attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.attr}
+### `kd.attr(x, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#kd.attr}
 
 Alias for [kd.core.attr](#kd.core.attr) operator.
 
-### `kd.attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.attrs}
+### `kd.attrs(x, /, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.attrs}
 
 Alias for [kd.core.attrs](#kd.core.attrs) operator.
 
@@ -7439,7 +7597,7 @@ Decorator factory for adding runtime input type checking to Koda functions.
     @kd.check_inputs(hours=kd.INT32, minutes=kd.INT32)
     @kd.check_output(kd.STRING)
     def timestamp(hours, minutes):
-      return kd.to_str(hours) + ':' + kd.to_str(minutes)
+      return kd.str(hours) + ':' + kd.str(minutes)
 
     timestamp(ds([10, 10, 10]), kd.ds([15, 30, 45]))  # Does not raise.
     timestamp(ds([10, 10, 10]), kd.ds([15.35, 30.12, 45.1]))  # raises TypeError
@@ -7670,13 +7828,13 @@ Returns a DataSlice with OBJECT schema.
     x: (DataSlice) whose schema is embedded.
 ```
 
-### `kd.empty_shaped(shape, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.empty_shaped}
+### `kd.empty_shaped(shape, schema=DataItem(MASK, schema: SCHEMA))` {#kd.empty_shaped}
 
-Alias for [kd.masking.empty_shaped](#kd.masking.empty_shaped) operator.
+Alias for [kd.slices.empty_shaped](#kd.slices.empty_shaped) operator.
 
-### `kd.empty_shaped_as(shape_from, /, *, schema=DataItem(MASK, schema: SCHEMA), db=None)` {#kd.empty_shaped_as}
+### `kd.empty_shaped_as(shape_from, schema=DataItem(MASK, schema: SCHEMA))` {#kd.empty_shaped_as}
 
-Alias for [kd.masking.empty_shaped_as](#kd.masking.empty_shaped_as) operator.
+Alias for [kd.slices.empty_shaped_as](#kd.slices.empty_shaped_as) operator.
 
 ### `kd.encode_itemid(ds)` {#kd.encode_itemid}
 
@@ -7835,6 +7993,14 @@ Returns a DataSlice representing proto data.
   Returns:
     A DataSlice representing the proto data.
 ```
+
+### `kd.from_proto_bytes(x, proto_path, /, *, extensions=unspecified, itemids=unspecified, schema=unspecified, on_invalid=unspecified)` {#kd.from_proto_bytes}
+
+Alias for [kd.proto.from_proto_bytes](#kd.proto.from_proto_bytes) operator.
+
+### `kd.from_proto_json(x, proto_path, /, *, extensions=unspecified, itemids=unspecified, schema=unspecified, on_invalid=unspecified)` {#kd.from_proto_json}
+
+Alias for [kd.proto.from_proto_json](#kd.proto.from_proto_json) operator.
 
 ### `kd.from_py(py_obj, *, dict_as_obj=False, itemid=None, schema=None, from_dim=0)` {#kd.from_py}
 Aliases:
@@ -8008,6 +8174,10 @@ Alias for [kd.core.has_primitive](#kd.core.has_primitive) operator.
 ### `kd.hash_itemid(x)` {#kd.hash_itemid}
 
 Alias for [kd.ids.hash_itemid](#kd.ids.hash_itemid) operator.
+
+### `kd.if_(cond, yes_fn, no_fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.if_}
+
+Alias for [kd.functor.if_](#kd.functor.if_) operator.
 
 ### `kd.implode(x, /, ndim=1, itemid=None, db=None)` {#kd.implode}
 
@@ -8475,6 +8645,10 @@ Returns a Koda schema representing a proto message class.
     A DataItem containing the converted schema.
 ```
 
+### `kd.schema_from_proto_path(proto_path, /, *, extensions=DataItem(Entity:#5ikYYvXepp19g47QDLnJR2, schema: ITEMID))` {#kd.schema_from_proto_path}
+
+Alias for [kd.proto.schema_from_proto_path](#kd.proto.schema_from_proto_path) operator.
+
 ### `kd.schema_from_py(tpe)` {#kd.schema_from_py}
 
 Alias for [kd.schema.schema_from_py](#kd.schema.schema_from_py) operator.
@@ -8499,12 +8673,12 @@ Alias for [kd.slices.select_present](#kd.slices.select_present) operator.
 
 Alias for [kd.dicts.select_values](#kd.dicts.select_values) operator.
 
-### `kd.set_attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.set_attr}
+### `kd.set_attr(x, attr_name, value, overwrite_schema=False)` {#kd.set_attr}
 
 ``` {.no-copy}
 Sets an attribute `attr_name` to `value`.
 
-  If `update_schema` is True and `x` is either an Entity with explicit schema
+  If `overwrite_schema` is True and `x` is either an Entity with explicit schema
   or an Object where some items are entities with explicit schema, it will get
   updated with `value`'s schema first.
 
@@ -8513,21 +8687,17 @@ Sets an attribute `attr_name` to `value`.
     attr_name: attribute name
     value: a DataSlice or convertible to a DataSlice that will be assigned as an
       attribute.
-    update_schema: DEPRECATED. whether to update the schema before setting an
-      attribute.
     overwrite_schema: whether to overwrite the schema before setting an
       attribute.
 ```
 
-### `kd.set_attrs(x, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.set_attrs}
+### `kd.set_attrs(x, *, overwrite_schema=False, **attrs)` {#kd.set_attrs}
 
 ``` {.no-copy}
 Sets multiple attributes on an object / entity.
 
   Args:
     x: a DataSlice on which attributes are set. Must have DataBag attached.
-    update_schema: DEPRECATED. whether to overwrite the schema before setting an
-      attribute.
     overwrite_schema: whether to overwrite the schema before setting an
       attribute.
     **attrs: attribute values that are converted to DataSlices with DataBag
@@ -8615,33 +8785,9 @@ Alias for [kd.slices.at](#kd.slices.at) operator.
 
 Alias for [kd.slices.tile](#kd.slices.tile) operator.
 
-### `kd.to_bool(x)` {#kd.to_bool}
-
-Alias for [kd.schema.to_bool](#kd.schema.to_bool) operator.
-
-### `kd.to_bytes(x)` {#kd.to_bytes}
-
-Alias for [kd.schema.to_bytes](#kd.schema.to_bytes) operator.
-
 ### `kd.to_expr(x)` {#kd.to_expr}
 
 Alias for [kd.schema.to_expr](#kd.schema.to_expr) operator.
-
-### `kd.to_float32(x)` {#kd.to_float32}
-
-Alias for [kd.schema.to_float32](#kd.schema.to_float32) operator.
-
-### `kd.to_float64(x)` {#kd.to_float64}
-
-Alias for [kd.schema.to_float64](#kd.schema.to_float64) operator.
-
-### `kd.to_int32(x)` {#kd.to_int32}
-
-Alias for [kd.schema.to_int32](#kd.schema.to_int32) operator.
-
-### `kd.to_int64(x)` {#kd.to_int64}
-
-Alias for [kd.schema.to_int64](#kd.schema.to_int64) operator.
 
 ### `kd.to_itemid(x)` {#kd.to_itemid}
 
@@ -8650,10 +8796,6 @@ Alias for [kd.schema.get_itemid](#kd.schema.get_itemid) operator.
 ### `kd.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.to_json}
 
 Alias for [kd.json.to_json](#kd.json.to_json) operator.
-
-### `kd.to_mask(x)` {#kd.to_mask}
-
-Alias for [kd.schema.to_mask](#kd.schema.to_mask) operator.
 
 ### `kd.to_none(x)` {#kd.to_none}
 
@@ -8694,6 +8836,14 @@ Converts a DataSlice or DataItem to one or more proto messages.
     A converted proto message or list of converted proto messages.
 ```
 
+### `kd.to_proto_bytes(x, proto_path, /)` {#kd.to_proto_bytes}
+
+Alias for [kd.proto.to_proto_bytes](#kd.proto.to_proto_bytes) operator.
+
+### `kd.to_proto_json(x, proto_path, /)` {#kd.to_proto_json}
+
+Alias for [kd.proto.to_proto_json](#kd.proto.to_proto_json) operator.
+
 ### `kd.to_py(ds, max_depth=2, obj_as_dict=False, include_missing_attrs=True)` {#kd.to_py}
 
 ``` {.no-copy}
@@ -8724,10 +8874,6 @@ Expands the outermost DataSlice dimension into a list of DataSlices.
 ### `kd.to_schema(x)` {#kd.to_schema}
 
 Alias for [kd.schema.to_schema](#kd.schema.to_schema) operator.
-
-### `kd.to_str(x)` {#kd.to_str}
-
-Alias for [kd.schema.to_str](#kd.schema.to_str) operator.
 
 ### `kd.trace_as_fn(*, name=None, py_fn=False, return_type_as=None, wrapper=None)` {#kd.trace_as_fn}
 
@@ -8803,11 +8949,11 @@ Alias for [kd.slices.val_shaped](#kd.slices.val_shaped) operator.
 
 Alias for [kd.slices.val_shaped_as](#kd.slices.val_shaped_as) operator.
 
-### `kd.with_attr(x, attr_name, value, update_schema=None, overwrite_schema=False)` {#kd.with_attr}
+### `kd.with_attr(x, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#kd.with_attr}
 
 Alias for [kd.core.with_attr](#kd.core.with_attr) operator.
 
-### `kd.with_attrs(x, /, *, update_schema=None, overwrite_schema=False, **attrs)` {#kd.with_attrs}
+### `kd.with_attrs(x, /, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.with_attrs}
 
 Alias for [kd.core.with_attrs](#kd.core.with_attrs) operator.
 
@@ -10125,7 +10271,10 @@ Example:
 
 Args:
   ds: DataSlice with ndim > 0 to be filtered.
-  fltr: filter DataSlice with dtype as kd.MASK.
+  fltr: filter DataSlice with dtype as kd.MASK. It can also be a Koda Functor
+    or a Python function which can be evalauted to such DataSlice. A Python
+    function will be traced for evaluation, so it cannot have Python control
+    flow operations such as `if` or `while`.
   expand_filter: flag indicating if the 'filter' should be expanded to 'ds'
 
 Returns:
@@ -10145,7 +10294,9 @@ Also see kd.select.
 Args:
   ds: List DataSlice to be filtered
   fltr: filter can be a DataSlice with dtype as kd.MASK. It can also be a Koda
-    Functor or a Python function which can be evalauted to such DataSlice.
+    Functor or a Python function which can be evalauted to such DataSlice. A
+    Python function will be traced for evaluation, so it cannot have Python
+    control flow operations such as `if` or `while`.
 
 Returns:
   Filtered DataSlice.
@@ -10164,7 +10315,9 @@ Also see kd.select.
 Args:
   ds: Dict DataSlice to be filtered
   fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
-    function which can be evalauted to such DataSlice.
+    function which can be evalauted to such DataSlice. A Python function will
+    be traced for evaluation, so it cannot have Python control flow operations
+    such as `if` or `while`.
 
 Returns:
   Filtered DataSlice.
@@ -10204,13 +10357,15 @@ Also see kd.select.
 Args:
   ds: Dict DataSlice to be filtered
   fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
-    function which can be evalauted to such DataSlice.
+    function which can be evalauted to such DataSlice. A Python function will
+    be traced for evaluation, so it cannot have Python control flow operations
+    such as `if` or `while`.
 
 Returns:
   Filtered DataSlice.
 ```
 
-### `DataSlice.set_attr(self, attr_name, value, /, update_schema=None, overwrite_schema=False)` {#DataSlice.set_attr}
+### `DataSlice.set_attr(attr_name, value, /, overwrite_schema=False)` {#DataSlice.set_attr}
 Aliases:
 
 - [DataItem.set_attr](#DataItem.set_attr)
@@ -10219,7 +10374,7 @@ Aliases:
 Sets an attribute `attr_name` to `value`.
 ```
 
-### `DataSlice.set_attrs(self, *, update_schema=None, overwrite_schema=False, **attrs)` {#DataSlice.set_attrs}
+### `DataSlice.set_attrs(*, overwrite_schema=False, **attrs)` {#DataSlice.set_attrs}
 Aliases:
 
 - [DataItem.set_attrs](#DataItem.set_attrs)
@@ -10227,14 +10382,11 @@ Aliases:
 ``` {.no-copy}
 Sets multiple attributes on an object / entity.
 
-  Args:
-    self: DataSlice.
-    update_schema: DEPRECATED. whether to update the schema before setting an
-      attribute.
-    overwrite_schema: whether to overwrite the schema before setting an
-      attribute.
-    **attrs: attribute values that are converted to DataSlices with DataBag
-      adoption.
+Args:
+  overwrite_schema: (bool) overwrite schema if attribute schema is missing or
+    incompatible.
+  **attrs: attribute values that are converted to DataSlices with DataBag
+    adoption.
 ```
 
 ### `DataSlice.set_schema(schema, /)` {#DataSlice.set_schema}
@@ -10422,7 +10574,7 @@ Returns:
   DataSlice with additional fallbacks.
 ```
 
-### `DataSlice.with_attr(self, attr_name, value, update_schema=None, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#DataSlice.with_attr}
+### `DataSlice.with_attr(self, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#DataSlice.with_attr}
 Aliases:
 
 - [DataItem.with_attr](#DataItem.with_attr)
@@ -10444,7 +10596,7 @@ Args:
   overwrite_schema: if True, schema for attribute is always updated.
 ```
 
-### `DataSlice.with_attrs(self, *, update_schema=None, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataSlice.with_attrs}
+### `DataSlice.with_attrs(self, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataSlice.with_attrs}
 Aliases:
 
 - [DataItem.with_attrs](#DataItem.with_attrs)
@@ -11508,11 +11660,11 @@ Alias for [DataSlice.select_present](#DataSlice.select_present) operator.
 
 Alias for [DataSlice.select_values](#DataSlice.select_values) operator.
 
-### `DataItem.set_attr(self, attr_name, value, /, update_schema=None, overwrite_schema=False)` {#DataItem.set_attr}
+### `DataItem.set_attr(attr_name, value, /, overwrite_schema=False)` {#DataItem.set_attr}
 
 Alias for [DataSlice.set_attr](#DataSlice.set_attr) operator.
 
-### `DataItem.set_attrs(self, *, update_schema=None, overwrite_schema=False, **attrs)` {#DataItem.set_attrs}
+### `DataItem.set_attrs(*, overwrite_schema=False, **attrs)` {#DataItem.set_attrs}
 
 Alias for [DataSlice.set_attrs](#DataSlice.set_attrs) operator.
 
@@ -11544,11 +11696,11 @@ Alias for [DataSlice.to_pytree](#DataSlice.to_pytree) operator.
 
 Alias for [DataSlice.updated](#DataSlice.updated) operator.
 
-### `DataItem.with_attr(self, attr_name, value, update_schema=None, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#DataItem.with_attr}
+### `DataItem.with_attr(self, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#DataItem.with_attr}
 
 Alias for [DataSlice.with_attr](#DataSlice.with_attr) operator.
 
-### `DataItem.with_attrs(self, *, update_schema=None, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataItem.with_attrs}
+### `DataItem.with_attrs(self, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#DataItem.with_attrs}
 
 Alias for [DataSlice.with_attrs](#DataSlice.with_attrs) operator.
 
