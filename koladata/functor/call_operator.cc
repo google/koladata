@@ -28,6 +28,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/functor.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/operators/utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
@@ -122,7 +123,8 @@ absl::StatusOr<arolla::OperatorPtr> CallOperatorFamily::DoGetOperator(
 
 absl::StatusOr<DataSlice> MaybeCall(arolla::EvaluationContext* ctx,
                                     const DataSlice& maybe_fn,
-                                    const DataSlice& arg) {
+                                    const DataSlice& arg,
+                                    internal::NonDeterministicToken) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(maybe_fn));
   if (is_functor) {
     ASSIGN_OR_RETURN(auto result,

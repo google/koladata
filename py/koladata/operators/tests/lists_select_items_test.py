@@ -36,7 +36,7 @@ kde = kde_operators.kde
 DATA_SLICE = qtypes.DATA_SLICE
 
 QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
+    (DATA_SLICE, DATA_SLICE, qtypes.NON_DETERMINISTIC_TOKEN, DATA_SLICE),
 ])
 
 

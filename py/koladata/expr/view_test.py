@@ -261,21 +261,26 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(C.x.repeat(C.sizes), kde.repeat(C.x, C.sizes))
 
   def test_select(self):
-    testing.assert_equal(C.x.select(C.fltr), kde.select(C.x, C.fltr))
+    testing.assert_non_deterministic_exprs_equal(
+        C.x.select(C.fltr), kde.select(C.x, C.fltr)
+    )
 
   def test_select_present(self):
-    testing.assert_equal(C.x.select_present(), kde.select_present(C.x))
+    testing.assert_non_deterministic_exprs_equal(
+        C.x.select_present(), kde.select_present(C.x)
+    )
 
   def test_select_items(self):
-    testing.assert_equal(
+    testing.assert_non_deterministic_exprs_equal(
         C.x.select_items(C.fltr), kde.select_items(C.x, C.fltr)
     )
 
   def test_select_keys(self):
-    testing.assert_equal(C.x.select_keys(C.fltr), kde.select_keys(C.x, C.fltr))
+    testing.assert_non_deterministic_exprs_equal(
+        C.x.select_keys(C.fltr), kde.select_keys(C.x, C.fltr))
 
   def test_select_values(self):
-    testing.assert_equal(
+    testing.assert_non_deterministic_exprs_equal(
         C.x.select_values(C.fltr), kde.select_values(C.x, C.fltr)
     )
 

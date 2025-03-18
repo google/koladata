@@ -35,13 +35,19 @@ kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 INT64 = schema_constants.INT64
 
 
 QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
+    (
+        DATA_SLICE, DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED,
+        NON_DETERMINISTIC_TOKEN, DATA_SLICE
+    ),
+    (
+        DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE, NON_DETERMINISTIC_TOKEN,
+        DATA_SLICE
+    ),
 ])
 
 
@@ -137,7 +143,7 @@ class RandomSampleNTest(parameterized.TestCase):
       )
 
   def test_x_as_data_item(self):
-    with self.assertRaisesRegex(ValueError, re.escape('expected rank > 0')):
+    with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
       expr_eval.eval(kde.random.sample_n(ds(1), 2, 123))
 
   def test_wrong_n_input(self):
@@ -174,6 +180,7 @@ class RandomSampleNTest(parameterized.TestCase):
             possible_qtypes=(
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
+                NON_DETERMINISTIC_TOKEN,
                 arolla.INT64,
             ),
         ),

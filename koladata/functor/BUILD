@@ -214,6 +214,7 @@ cc_library(
         ":functor",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
+        "//koladata/internal:non_deterministic_token",
         "//koladata/operators:lib",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

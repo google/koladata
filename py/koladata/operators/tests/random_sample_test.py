@@ -35,13 +35,19 @@ kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 INT64 = schema_constants.INT64
 
 
 QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED, DATA_SLICE),
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
+    (
+        DATA_SLICE, DATA_SLICE, DATA_SLICE, arolla.UNSPECIFIED,
+        NON_DETERMINISTIC_TOKEN, DATA_SLICE
+    ),
+    (
+        DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE, NON_DETERMINISTIC_TOKEN,
+        DATA_SLICE
+    ),
 ])
 
 
@@ -164,6 +170,7 @@ class RandomSampleTest(parameterized.TestCase):
             possible_qtypes=(
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
+                qtypes.NON_DETERMINISTIC_TOKEN,
                 arolla.INT64,
             ),
         ),

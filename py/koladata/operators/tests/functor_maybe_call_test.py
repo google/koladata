@@ -36,7 +36,7 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
+    (DATA_SLICE, DATA_SLICE, qtypes.NON_DETERMINISTIC_TOKEN, DATA_SLICE),
 ])
 
 
@@ -84,14 +84,22 @@ class FunctorMaybeCallTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.functor._maybe_call(f, db))
 
-  def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            kde.functor._maybe_call,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
-        QTYPES,
+  def test_non_determinism(self):
+    fn = functor_factories.fn(kde.new(x=I.self, schema='new'))
+    x = ds(42)
+
+    expr = kde.tuple.make_tuple(
+        kde.functor._maybe_call(fn, x), kde.functor._maybe_call(fn, x)
     )
+    res = expr_eval.eval(expr)
+    self.assertNotEqual(res[0].no_bag(), res[1].no_bag())
+    testing.assert_equal(res[0].x.no_bag(), res[1].x.no_bag())
+
+    expr = kde.functor._maybe_call(fn, x)
+    res_1 = expr_eval.eval(expr)
+    res_2 = expr_eval.eval(expr)
+    self.assertNotEqual(res_1.no_bag(), res_2.no_bag())
+    testing.assert_equal(res_1.x.no_bag(), res_2.x.no_bag())
 
   def test_cancellable(self):
     expr = I.self
@@ -110,6 +118,15 @@ class FunctorMaybeCallTest(parameterized.TestCase):
       # with a different error unless the interruption is handled by
       # the operator.
       expr_eval.eval(expr, x=x)
+
+  def test_qtype_signatures(self):
+    self.assertCountEqual(
+        arolla.testing.detect_qtype_signatures(
+            kde.functor._maybe_call,
+            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
+        ),
+        QTYPES,
+    )
 
   def test_view(self):
     self.assertTrue(

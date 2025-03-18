@@ -41,7 +41,7 @@ ds = lambda x: data_slice.DataSlice.from_vals(x).with_bag(db)
 present = arolla.present()
 DATA_SLICE = qtypes.DATA_SLICE
 QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, DATA_SLICE),
+    (DATA_SLICE, DATA_SLICE, qtypes.NON_DETERMINISTIC_TOKEN, DATA_SLICE),
 ])
 
 DICT = db.dict({1: 1, 2: 2, 3: 3})

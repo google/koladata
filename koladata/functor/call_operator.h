@@ -18,6 +18,7 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
@@ -36,7 +37,8 @@ class CallOperatorFamily : public arolla::OperatorFamily {
 // Otherwise, returns the first argument.
 absl::StatusOr<DataSlice> MaybeCall(arolla::EvaluationContext* ctx,
                                     const DataSlice& maybe_fn,
-                                    const DataSlice& arg);
+                                    const DataSlice& arg,
+                                    internal::NonDeterministicToken);
 
 }  // namespace koladata::functor
 

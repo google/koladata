@@ -194,6 +194,7 @@ def if_(
         qtype_utils.expect_data_slice(P.maybe_fn),
         qtype_utils.expect_data_slice(P.arg),
     ],
+    deterministic=False,
 )
 def _maybe_call(maybe_fn, arg):  # pylint: disable=unused-argument
   """Returns `maybe_fn(arg)` if `maybe_fn` is a functor or `maybe_fn`."""
