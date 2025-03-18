@@ -155,6 +155,22 @@ absl::StatusOr<PyObjectPtr> DataClassesUtil::MakeDataClassInstance(
   return py_instance;
 }
 
+absl::StatusOr<std::vector<PyObject*>> DataClassesUtil::GetAttrValues(
+    PyObject* py_obj, absl::Span<const absl::string_view> attr_names) {
+  std::vector<PyObject*> values;
+  values.reserve(attr_names.size());
+  for (absl::string_view attr_name : attr_names) {
+    PyObject* py_value = PyObject_GetAttrString(py_obj, attr_name.data());
+    if (py_value == nullptr) {
+      return arolla::python::StatusWithRawPyErr(
+          absl::StatusCode::kInvalidArgument, "");
+    }
+    owned_values_.push_back(PyObjectPtr::NewRef(py_value));
+    values.push_back(py_value);
+  }
+  return values;
+}
+
 absl::StatusOr<std::optional<DataClassesUtil::AttrResult>>
 DataClassesUtil::GetAttrNamesAndValues(PyObject* py_obj) {
   if (fn_fields_.get() == nullptr) {

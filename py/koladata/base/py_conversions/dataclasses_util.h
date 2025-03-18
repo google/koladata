@@ -52,6 +52,11 @@ class DataClassesUtil {
   absl::StatusOr<std::optional<AttrResult>> GetAttrNamesAndValues(
       PyObject* py_obj);
 
+  // Get the values of object's attributes for corresponding attr_names.
+  // Returned values are borrowed references owned by DataClassesUtil.
+  absl::StatusOr<std::vector<PyObject*>> GetAttrValues(
+      PyObject* py_obj, absl::Span<const absl::string_view> sorted_attr_names);
+
  private:
   absl::StatusOr<arolla::python::PyObjectPtr> MakeDataClass(
       absl::Span<const absl::string_view> attr_names);

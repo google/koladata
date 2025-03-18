@@ -62,6 +62,36 @@ class DataclassesUtilTest(absltest.TestCase):
     self.assertNotEqual(obj1, obj3)
     self.assertNotEqual(obj1.__class__, obj3.__class__)
 
+  def test_get_attr_values(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class TestDataclass:
+      a: int
+      b: int
+      c: int
+
+    obj = TestDataclass(a=1, b=2, c=3)
+
+    self.assertEqual(util.get_attr_values(obj, ['a', 'b', 'c']), [1, 2, 3])
+    self.assertEqual(util.get_attr_values(obj, ['c', 'b', 'a']), [3, 2, 1])
+
+  def test_get_attr_values_fails_for_non_existing_attr(self):
+    util = testing_clib.DataClassesUtil()
+
+    @dataclasses.dataclass
+    class TestDataclass:
+      a: int
+      b: int
+
+    obj = TestDataclass(a=1, b=2)
+
+    with self.assertRaisesRegex(AttributeError, 'object has no attribute'):
+      _ = util.get_attr_values(obj, ['a', 'b', 'c'])
+
+    with self.assertRaisesRegex(AttributeError, 'object has no attribute'):
+      _ = util.get_attr_values(1, ['a', 'b', 'c'])
+
 
 if __name__ == '__main__':
   absltest.main()

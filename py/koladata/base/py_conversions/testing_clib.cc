@@ -14,19 +14,20 @@
 //
 #include <Python.h>
 
+#include <cstddef>
+#include <vector>
+
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "py/arolla/abc/pybind11_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
+#include "pybind11/pytypes.h"
 #include "pybind11/stl.h"
 #include "pybind11_abseil/absl_casters.h"
-
 namespace koladata::python {
 namespace {
-
 namespace py = pybind11;
-
 PYBIND11_MODULE(testing_clib, m) {
   py::class_<DataClassesUtil>(m, "DataClassesUtil")
       .def(py::init<>())
@@ -37,8 +38,18 @@ PYBIND11_MODULE(testing_clib, m) {
                  arolla::python::pybind11_unstatus_or(
                      self.MakeDataClassInstance(attr_names));
              return py::reinterpret_steal<py::object>(py_obj.release());
+           })
+      .def("get_attr_values",
+           [](DataClassesUtil& self, py::handle dataclass_obj,
+              absl::Span<const absl::string_view> attr_names) -> py::object {
+             auto attr_values = arolla::python::pybind11_unstatus_or(
+                 self.GetAttrValues(dataclass_obj.ptr(), attr_names));
+             PyObject* res = PyList_New(attr_names.size());
+             for (size_t i = 0; i < attr_names.size(); ++i) {
+               PyList_SET_ITEM(res, i, attr_values[i]);
+             }
+             return py::reinterpret_steal<py::object>(res);
            });
 }
-
 }  // namespace
 }  // namespace koladata::python
