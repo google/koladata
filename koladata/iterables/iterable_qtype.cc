@@ -36,6 +36,7 @@ class IterableQType final : public arolla::BasicDerivedQType {
             .name = "ITERABLE[" + std::string(value_qtype->name()) + "]",
             .base_qtype = arolla::GetSequenceQType(value_qtype),
             .value_qtype = value_qtype,
+            .qtype_specialization_key = "::koladata::iterables::IterableQType",
         }) {}
 };
 

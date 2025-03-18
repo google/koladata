@@ -18,8 +18,10 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import koda_internal_iterables
+from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import iterable_qvalue
 from koladata.types import qtypes
 
 
@@ -58,10 +60,16 @@ _QTYPE_SIGNATURES = tuple(
 
 class IterablesInternalFromSequenceTest(absltest.TestCase):
 
-  def test_return_type(self):
+  def test_return_value(self):
     seq = arolla.eval(arolla.M.seq.make(1, 2, 3))
     res = expr_eval.eval(koda_internal_iterables.from_sequence(I.x), x=seq)
+    self.assertIsInstance(res, iterable_qvalue.Iterable)
     self.assertEqual(res.qtype.name, 'ITERABLE[INT32]')
+    res_list = list(res)
+    self.assertLen(res_list, 3)
+    testing.assert_equal(res_list[0], arolla.int32(1))
+    testing.assert_equal(res_list[1], arolla.int32(2))
+    testing.assert_equal(res_list[2], arolla.int32(3))
 
   def test_round_trip(self):
     seq = arolla.eval(arolla.M.seq.make(1, 2, 3))

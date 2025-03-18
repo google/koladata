@@ -673,6 +673,31 @@ py_library(
     deps = ["@com_google_arolla//py/arolla"],
 )
 
+py_library(
+    name = "iterable_qvalue",
+    srcs = ["iterable_qvalue.py"],
+    deps = [
+        ":py_boxing",
+        ":qtypes",
+        "//py/koladata/operators:koda_internal_iterables",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "iterable_qvalue_test",
+    srcs = ["iterable_qvalue_test.py"],
+    deps = [
+        ":data_bag",
+        ":data_slice",
+        ":iterable_qvalue",
+        ":qtypes",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 py_test(
     name = "general_eager_ops_test",
     srcs = ["general_eager_ops_test.py"],

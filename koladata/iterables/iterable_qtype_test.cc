@@ -38,7 +38,8 @@ TEST(IterableQTypeTest, Basics) {
   EXPECT_EQ(qtype->name(), "ITERABLE[QTYPE]");
   EXPECT_TRUE(qtype->type_fields().empty());
   EXPECT_EQ(qtype->value_qtype(), arolla::GetQTypeQType());
-  EXPECT_EQ(qtype->qtype_specialization_key(), "");
+  EXPECT_EQ(qtype->qtype_specialization_key(),
+            "::koladata::iterables::IterableQType");
   auto derived_qtype_interface =
       dynamic_cast<const arolla::DerivedQTypeInterface*>(qtype);
   ASSERT_NE(derived_qtype_interface, nullptr);

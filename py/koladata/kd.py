@@ -38,6 +38,7 @@ from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _dict_item
+from koladata.types import iterable_qvalue as _iterable_qvalue
 from koladata.types import jagged_shape as _jagged_shape
 from koladata.types import list_item as _list_item
 from koladata.types import literal_operator as _literal_operator
@@ -84,6 +85,7 @@ types.DictItem = _dict_item.DictItem
 types.JaggedShape = _jagged_shape.JaggedShape
 types.SchemaItem = _schema_item.SchemaItem
 types.Expr = _arolla.Expr
+types.Iterable = _iterable_qvalue.Iterable
 
 ### Koda QTypes.
 qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))
