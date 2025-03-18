@@ -137,6 +137,13 @@ class DataSlice {
       internal::DataItem schema, DataBagPtr db = nullptr,
       Wholeness wholeness = Wholeness::kNotWhole);
 
+  template <typename T>
+  static absl::StatusOr<koladata::DataSlice> CreateFromScalar(const T& v) {
+    return koladata::DataSlice::Create(
+        koladata::internal::DataItem(v),
+        koladata::internal::DataItem(koladata::schema::GetDType<T>()));
+  }
+
   // Default-constructed DataSlice is a single missing item with scalar shape
   // and unknown dtype.
   DataSlice() : internal_(arolla::RefcountPtr<Internal>::Make()) {};

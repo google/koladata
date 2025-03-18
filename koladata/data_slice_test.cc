@@ -359,6 +359,31 @@ TEST(DataSliceTest, CreateWithFlatShape) {
   }
 }
 
+TEST(DataSliceTest, CreateFromScalar) {
+  {
+    ASSERT_OK_AND_ASSIGN(auto ds, DataSlice::CreateFromScalar(1));
+    ASSERT_TRUE(ds.is_item());
+    EXPECT_THAT(ds.item(), IsEquivalentTo(DataItem(1)));
+    EXPECT_THAT(ds.GetSchema().item(),
+                IsEquivalentTo(DataItem(schema::kInt32)));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DataSlice::CreateFromScalar(arolla::Text("abc")));
+    ASSERT_TRUE(ds.is_item());
+    EXPECT_THAT(ds.item(), IsEquivalentTo(DataItem(arolla::Text("abc"))));
+    EXPECT_THAT(ds.GetSchema().item(),
+                IsEquivalentTo(DataItem(schema::kString)));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto ds,
+                         DataSlice::CreateFromScalar(internal::MissingValue{}));
+    ASSERT_TRUE(ds.is_item());
+    EXPECT_THAT(ds.item(), IsEquivalentTo(DataItem()));
+    EXPECT_THAT(ds.GetSchema().item(), IsEquivalentTo(DataItem(schema::kNone)));
+  }
+}
+
 TEST(DataSliceTest, IsWhole) {
   {
     // No DataBag, trivially whole.

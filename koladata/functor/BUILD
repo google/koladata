@@ -118,6 +118,54 @@ cc_test(
 )
 
 cc_library(
+    name = "cpp_function_bridge",
+    srcs = ["cpp_function_bridge.cc"],
+    hdrs = ["cpp_function_bridge.h"],
+    deps = [
+        ":functor",
+        ":signature",
+        ":signature_storage",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/operators:bootstrap",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "cpp_function_bridge_test",
+    srcs = ["cpp_function_bridge_test.cc"],
+    deps = [
+        ":call",
+        ":cpp_function_bridge",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/s11n",
+        "//koladata/testing:test_env",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr/operators/all",
+        "@com_google_arolla//arolla/qexpr/operators/all",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/serialization",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "call",
     srcs = ["call.cc"],
     hdrs = ["call.h"],
