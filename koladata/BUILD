@@ -775,3 +775,12 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "all_qexpr_operators",
+    deps = [
+        "//koladata/functor:operators",
+        "//koladata/iterables:operators",
+        "//koladata/operators",
+    ],
+)

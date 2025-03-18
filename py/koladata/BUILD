@@ -128,6 +128,7 @@ cc_test(
     name = "cc_benchmarks",
     srcs = ["cc_benchmarks.cc"],
     deps = [
+        "//koladata:all_qexpr_operators",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -136,7 +137,6 @@ cc_test(
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
-        "//koladata/operators",
         "//koladata/s11n",
         "//py/koladata/operators:cc_operators",
         "@com_google_absl//absl/log:check",

@@ -62,11 +62,11 @@ cc_library(
     srcs = ["fstring_processor.cc"],
     hdrs = ["fstring_processor.h"],
     deps = [
+        "//koladata:all_qexpr_operators",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
-        "//koladata/operators",
         "//koladata/s11n",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

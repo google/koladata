@@ -34,11 +34,11 @@ cc_shared_library(
         "//py/koladata:__subpackages__",
     ],
     deps = [
+        "//koladata:all_qexpr_operators",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/expr:init",
-        "//koladata/functor:operators",
-        "//koladata/operators",
+        "//koladata/iterables:init_expr_operators",
         "//koladata/s11n",
         "//py/koladata/base:initializers",
         "//py/koladata/fstring:fstring_cc_lib",
