@@ -38,8 +38,8 @@ export class MultiIndexFlag extends NanoElement {
       :host(.small) div {
         font-size: 10px;
         font-weight: normal;
+        line-height: 12px;
         min-width: 10px;
-        padding: 1px 2px;
       }
 
       div:empty {
