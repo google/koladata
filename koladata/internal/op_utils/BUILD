@@ -505,6 +505,31 @@ cc_test(
 )
 
 cc_library(
+    name = "coalesce_with_filtered",
+    hdrs = ["coalesce_with_filtered.h"],
+    deps = [
+        ":has",
+        ":presence_and",
+        ":presence_or",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "coalesce_with_filtered_test",
+    srcs = ["coalesce_with_filtered_test.cc"],
+    deps = [
+        ":coalesce_with_filtered",
+        "//koladata/internal:data_slice",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "benchmark_util",
     testonly = 1,
     hdrs = ["benchmark_util.h"],

@@ -582,6 +582,11 @@ class DataSlice {
   arolla::RefcountPtr<Internal> internal_;
 };
 
+// Creates a DataSlice with `shape` and `schema` and no data.
+absl::StatusOr<DataSlice> EmptyLike(
+    const DataSlice::JaggedShape& shape, internal::DataItem schema,
+    DataBagPtr db);
+
 namespace internal_broadcast {
 
 absl::StatusOr<DataSlice> BroadcastToShapeSlow(const DataSlice& slice,
@@ -628,6 +633,11 @@ absl::StatusOr<DataSlice> CastOrUpdateSchema(
 // it is a DataSlice / DataItem and if it is a schema.
 absl::Status AttrOnPrimitiveError(const DataSlice& slice,
                                   absl::string_view error_headline);
+
+// Validates that attr lookup is possible on the values of `impl`. If OK(),
+// `impl` is guaranteed to contain only Items and `db != nullptr`.
+absl::Status ValidateAttrLookupAllowed(const DataSlice& slice,
+                                       absl::string_view error_headline);
 
 }  // namespace koladata
 

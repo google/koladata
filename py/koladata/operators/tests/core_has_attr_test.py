@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -28,6 +29,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
+eager = eager_op_utils.operators_container('kd')
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
@@ -46,9 +48,8 @@ class CoreHasAttrTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.db = data_bag.DataBag.empty()
-    self.entity = self.db.new(a=ds([1, None]), b=ds([None, None]))
-    self.object = self.db.obj(a=ds([1, None]), b=ds([None, None]))
+    self.entity = eager.new(a=ds([1, None]), b=ds([None, None]))
+    self.object = eager.obj(a=ds([1, None]), b=ds([None, None]))
 
   @parameterized.parameters(
       (kde.core.has_attr(I.x, 'a'), ds([present, missing])),
@@ -58,6 +59,21 @@ class CoreHasAttrTest(parameterized.TestCase):
   def test_eval(self, expr, expected):
     testing.assert_equal(expr_eval.eval(expr, x=self.entity), expected)
     testing.assert_equal(expr_eval.eval(expr, x=self.object), expected)
+
+  @parameterized.parameters(
+      (kde.has_attr(I.x, ds(['a', 'b'])), ds([present, missing])),
+      (kde.has_attr(I.x, ds(['b', 'b'])), ds([missing, missing])),
+      (kde.has_attr(I.x, ds(['c', 'c'])), ds([missing, missing])),
+  )
+  def test_eval_with_attr_name_slice(self, expr, expected):
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.entity),
+        expected.with_bag(self.entity.get_bag()),
+    )
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.object),
+        expected.with_bag(self.object.get_bag()),
+    )
 
   def test_has_attr_does_not_fail_when_no_common_schema_for_attr(self):
     db = data_bag.DataBag.empty()
@@ -134,6 +150,13 @@ The cause is: cannot find a common schema
         ' INT32',
     ):
       expr_eval.eval(kde.core.has_attr(self.entity, 42))
+
+  def test_attr_name_slice_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'argument `attr_name` must be a slice of STRING, got a slice of INT32',
+    ):
+      expr_eval.eval(kde.core.has_attr(self.entity, ds([1, 2])))
 
     with self.assertRaisesRegex(
         ValueError,

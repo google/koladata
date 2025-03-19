@@ -49,14 +49,18 @@ class CoreGetAttrTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.entity = eager.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
-    self.object = eager.obj(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
+    self.entity = eager.new(
+        a=ds([1, 2, 3]), b=ds(['a', None, 'c']), c=ds([10, 20, 30])
+    )
+    self.object = eager.obj(
+        a=ds([1, 2, 3]), b=ds(['a', None, 'c']), c=ds([10, 20, 30])
+    )
 
   @parameterized.parameters(
       (kde.get_attr(I.x, 'a'), ds([1, 2, 3])),
       (kde.get_attr(I.x, 'a', None), ds([1, 2, 3])),
       (
-          kde.get_attr(I.x, 'c', None),
+          kde.get_attr(I.x, 'd', None),
           ds([None, None, None], schema_constants.NONE),
       ),
       (kde.get_attr(I.x, 'b', '42'), ds(['a', '42', 'c'])),
@@ -97,6 +101,68 @@ class CoreGetAttrTest(parameterized.TestCase):
         expected.with_bag(self.object.get_bag()),
     )
 
+  @parameterized.parameters(
+      (kde.get_attr(I.x, ds(['a', 'a', 'a'])), ds([1, 2, 3])),
+      (kde.get_attr(I.x, ds(['a', 'a', 'c'])), ds([1, 2, 30])),
+      (kde.get_attr(I.x, ds(['a', 'c', None])), ds([1, 20, None])),
+      (kde.get_attr(I.x, ds(['b', 'b', None])), ds(['a', None, None])),
+      (
+          kde.get_attr(I.x, ds(['b', 'a', None])),
+          ds(['a', 2, None], schema_constants.OBJECT),
+      ),
+      (kde.get_attr(I.x, ds([None, None, None])), ds([None, None, None])),
+  )
+  def test_eval_with_attr_name_slice(self, expr, expected):
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.entity),
+        expected.with_bag(self.entity.get_bag()),
+    )
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.object),
+        expected.with_bag(self.object.get_bag()),
+    )
+
+  @parameterized.parameters(
+      (kde.get_attr(I.x, ds(['a', 'a', 'a'])), ds([1, 1, 1])),
+      (kde.get_attr(I.x, ds(['a', 'a', 'c'])), ds([1, 1, 10])),
+      (kde.get_attr(I.x, ds(['a', 'c', None])), ds([1, 10, None])),
+      (kde.get_attr(I.x, ds(['b', 'b', None])), ds(['a', 'a', None])),
+      (kde.get_attr(I.x, ds([None, None, None])), ds([None, None, None])),
+  )
+  def test_eval_with_attr_name_slice_and_obj_item(self, expr, expected):
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.entity.L[0]),
+        expected.with_bag(self.entity.get_bag()),
+    )
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.object.L[0]),
+        expected.with_bag(self.object.get_bag()),
+    )
+
+  def test_schema_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'can only get attribute of a schema DataSlice if attr_name is scalar',
+    ):
+      expr_eval.eval(
+          kde.core.get_attr(self.entity.get_schema(), ds(['a', 'a', 'c']))
+      )
+
+  def test_schema_conflict(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot find a common schema',
+    ):
+      expr_eval.eval(
+          kde.core.get_attr(
+              ds([
+                  eager.new(a=eager.new(y=1), b=1),
+                  eager.new(a=eager.new(y=2), b=2),
+              ]),
+              ds(['a', 'b']),
+          )
+      )
+
   def test_same_bag(self):
     db = data_bag.DataBag.empty()
     entity = db.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))
@@ -111,6 +177,11 @@ class CoreGetAttrTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, r'the attribute \'c\' is missing'):
       eager.core.get_attr(entity, 'c')
 
+  def test_missing_slice_attr_name(self):
+    entity = bag().new(a=1, b=2)
+    with self.assertRaisesRegex(ValueError, r'the attribute \'c\' is missing'):
+      eager.core.get_attr(entity, ds(['a', 'b', 'c']))
+
   def test_attr_name_error(self):
     entity = bag().new(a=1, b=2)
     with self.assertRaisesRegex(
@@ -120,6 +191,13 @@ class CoreGetAttrTest(parameterized.TestCase):
     ):
       eager.core.get_attr(entity, 42)
 
+  def test_attr_name_slice_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'argument `attr_name` must be a slice of STRING, got a slice of INT32',
+    ):
+      eager.core.get_attr(self.entity, ds([1, 2, 3]))
+
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
@@ -128,6 +206,18 @@ class CoreGetAttrTest(parameterized.TestCase):
         ),
         QTYPES,
     )
+
+  def test_non_object_schema(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        "failed to get 'a' attribute; primitives do not have attributes",
+    ):
+      eager.core.get_attr(ds([1, 2, 3]), 'a')
+    with self.assertRaisesRegex(
+        ValueError,
+        'failed to get attribute; primitives do not have attributes',
+    ):
+      eager.core.get_attr(ds([1, 2, 3]), ds(['a', 'b', 'c']))
 
   def test_repr(self):
     self.assertEqual(repr(kde.core.get_attr(I.x, 'a')), 'I.x.a')

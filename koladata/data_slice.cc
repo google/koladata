@@ -48,11 +48,11 @@
 #include "koladata/internal/errors.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/coalesce_with_filtered.h"
 #include "koladata/internal/op_utils/expand.h"
 #include "koladata/internal/op_utils/group_by_utils.h"
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
-#include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/repr_utils.h"
@@ -73,13 +73,6 @@ namespace {
 const DataSlice::JaggedShape& MaxRankShape(const DataSlice::JaggedShape& s1,
                                            const DataSlice::JaggedShape& s2) {
   return s1.rank() < s2.rank() ? s2 : s1;
-}
-
-absl::StatusOr<DataSlice> EmptyLike(const DataSlice::JaggedShape& shape,
-                                    internal::DataItem schema, DataBagPtr db) {
-  return DataSlice::Create(
-      internal::DataSliceImpl::CreateEmptyAndUnknownType(shape.size()), shape,
-      std::move(schema), std::move(db));
 }
 
 absl::StatusOr<internal::DataItem> UnwrapIfNoFollowSchema(
@@ -549,18 +542,33 @@ absl::Status AttrOnPrimitiveError(const DataSlice& slice,
 
 absl::Status AttrOnPrimitiveError(const internal::DataItem& item,
                                   const internal::DataItem& schema,
-                                  absl::string_view attr_name,
-                                  absl::string_view action) {
-  return AttrOnPrimitiveError(
-      *DataSlice::Create(item, schema), attr_name, action);
+                                  absl::string_view error_headline) {
+  return AttrOnPrimitiveError(*DataSlice::Create(item, schema), error_headline);
 }
 
 absl::Status AttrOnPrimitiveError(const internal::DataSliceImpl& slice,
                                   const internal::DataItem& schema,
-                                  absl::string_view attr_name,
-                                  absl::string_view action) {
-  return AttrOnPrimitiveError(
-      *DataSlice::CreateWithFlatShape(slice, schema), attr_name, action);
+                                  absl::string_view error_headline) {
+  return AttrOnPrimitiveError(*DataSlice::CreateWithFlatShape(slice, schema),
+                              error_headline);
+}
+
+template <typename ImplT>
+absl::Status ValidateAttrLookupAllowed(const DataBagPtr& db, const ImplT& impl,
+                                       const internal::DataItem& schema,
+                                       absl::string_view error_headline) {
+  if (schema.is_primitive_schema() || impl.ContainsAnyPrimitives()) {
+    return AttrOnPrimitiveError(impl, schema, error_headline);
+  }
+  if (schema.is_itemid_schema()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "%s; ITEMIDs do not allow attribute access", error_headline));
+  }
+  if (db == nullptr) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "%s; the DataSlice is a reference without a bag", error_headline));
+  }
+  return absl::OkStatus();
 }
 
 auto KodaErrorCausedByMissingObjectSchemaError(const DataSlice& self) {
@@ -582,23 +590,12 @@ auto KodaErrorCausedByNoCommonSchemaError(const DataBagPtr& db) {
 // Validates that attr lookup is possible on the values of `impl`. If OK(),
 // `impl` is guaranteed to contain only Items and `db != nullptr`.
 template <typename ImplT>
-absl::Status ValidateAttrLookupAllowed(const DataBagPtr& db, const ImplT& impl,
-                                       const internal::DataItem& schema,
-                                       absl::string_view attr_name) {
-  if (schema.is_primitive_schema() || impl.ContainsAnyPrimitives()) {
-    return AttrOnPrimitiveError(impl, schema, attr_name, "get");
-  }
-  if (schema.is_itemid_schema()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "failed to get '%s' attribute; ITEMIDs do not allow attribute access",
-        attr_name));
-  }
-  if (db == nullptr) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "failed to get '%s' attribute; the DataSlice is a reference without a "
-        "bag", attr_name));
-  }
-  return absl::OkStatus();
+absl::Status ValidateAttrLookupAllowedWithAttrName(
+    const DataBagPtr& db, const ImplT& impl, const internal::DataItem& schema,
+    absl::string_view attr_name) {
+  return ValidateAttrLookupAllowed(
+      db, impl, schema,
+      absl::StrFormat("failed to get '%s' attribute", attr_name));
 }
 
 // Calls DataBagImpl::GetAttr on the specific implementation (DataSliceImpl or
@@ -613,7 +610,8 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
                                   absl::string_view attr_name,
                                   internal::DataItem& res_schema,
                                   bool allow_missing_schema) {
-  RETURN_IF_ERROR(ValidateAttrLookupAllowed(db, impl, schema, attr_name));
+  RETURN_IF_ERROR(
+      ValidateAttrLookupAllowedWithAttrName(db, impl, schema, attr_name));
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
@@ -665,7 +663,8 @@ template <typename ImplT>
 absl::StatusOr<ImplT> HasAttrImpl(const DataBagPtr& db, const ImplT& impl,
                                   const internal::DataItem& schema,
                                   absl::string_view attr_name) {
-  RETURN_IF_ERROR(ValidateAttrLookupAllowed(db, impl, schema, attr_name));
+  RETURN_IF_ERROR(
+      ValidateAttrLookupAllowedWithAttrName(db, impl, schema, attr_name));
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
@@ -678,16 +677,6 @@ absl::StatusOr<ImplT> HasAttrImpl(const DataBagPtr& db, const ImplT& impl,
   };
   ASSIGN_OR_RETURN(auto attrs, get_attr());
   return internal::HasOp()(attrs);
-}
-
-// Function for `this.GetAttr(attr_name) | (default_value & has(this))`.
-template <typename ImplT>
-absl::StatusOr<ImplT> CoalesceWithFiltered(const ImplT& objects, const ImplT& l,
-                                           const ImplT& r) {
-  ASSIGN_OR_RETURN(auto objects_presence, internal::HasOp()(objects));
-  ASSIGN_OR_RETURN(auto r_filtered,
-                   internal::PresenceAndOp()(r, objects_presence));
-  return internal::PresenceOrOp()(l, r_filtered);
 }
 
 // Configures the error messages and the behavior when the attribute
@@ -1507,8 +1496,8 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
             KodaErrorCausedByNoCommonSchemaError(_, GetBag())));
     auto result_db = DataBag::CommonDataBag({GetBag(), default_value.GetBag()});
     return DataSlice::Create(
-        CoalesceWithFiltered(impl, result_or_missing.impl<T>(),
-                             expanded_default.impl<T>()),
+        internal::CoalesceWithFiltered(impl, result_or_missing.impl<T>(),
+                                       expanded_default.impl<T>()),
         GetShape(), std::move(result_schema), std::move(result_db));
   });
 }
@@ -2303,6 +2292,14 @@ absl::Status DataSlice::VerifySchemaConsistency(
   return absl::OkStatus();
 }
 
+absl::StatusOr<DataSlice> EmptyLike(
+    const DataSlice::JaggedShape& shape, internal::DataItem schema,
+    DataBagPtr db) {
+  return DataSlice::Create(
+      internal::DataSliceImpl::CreateEmptyAndUnknownType(shape.size()), shape,
+      std::move(schema), std::move(db));
+}
+
 absl::StatusOr<DataSlice> internal_broadcast::BroadcastToShapeSlow(
     const DataSlice& slice, DataSlice::JaggedShape shape) {
   auto edge = slice.GetShape().GetBroadcastEdge(shape);
@@ -2347,6 +2344,14 @@ absl::Status AttrOnPrimitiveError(const DataSlice& slice,
   return absl::InvalidArgumentError(absl::StrFormat(
       "%s; primitives do not have attributes, got %v DataSlice with primitive "
       "values", error_headline, schema));
+}
+
+absl::Status ValidateAttrLookupAllowed(const DataSlice& slice,
+                                       absl::string_view error_headline) {
+  return slice.VisitImpl([&](const auto& impl) -> absl::Status {
+    return ValidateAttrLookupAllowed(slice.GetBag(), impl,
+                                     slice.GetSchemaImpl(), error_headline);
+  });
 }
 
 }  // namespace koladata

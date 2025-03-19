@@ -83,6 +83,47 @@ class CoreGetAttrTest(parameterized.TestCase):
         expected.with_bag(self.object.get_bag()),
     )
 
+  @parameterized.parameters(
+      (kde.maybe(I.x, ds(['a', 'd', 'a'])), ds([1, None, 3])),
+      (kde.maybe(I.x, ds(['a', 'd', 'b'])), ds([1, None, 'c'])),
+      (kde.maybe(I.x, ds(['a', 'd', None])), ds([1, None, None])),
+      (
+          kde.maybe(I.x, ds(['d', 'b', None])),
+          ds([None, None, None], schema_constants.STRING),
+      ),
+      (
+          kde.maybe(I.x, ds(['b', 'a', 'c'])),
+          ds(['a', 2, None], schema_constants.OBJECT),
+      ),
+      (kde.maybe(I.x, ds([None, None, None])), ds([None, None, None])),
+  )
+  def test_eval_with_attr_name_slice(self, expr, expected):
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.entity),
+        expected.with_bag(self.entity.get_bag()),
+    )
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.object),
+        expected.with_bag(self.object.get_bag()),
+    )
+
+  @parameterized.parameters(
+      (kde.maybe(I.x, ds(['a', 'd', 'a'])), ds([1, None, 1])),
+      (kde.maybe(I.x, ds(['a', 'd', 'c'])), ds([1, None, None])),
+      (kde.maybe(I.x, ds(['a', 'd', None])), ds([1, None, None])),
+      (kde.maybe(I.x, ds(['d', 'b', None])), ds([None, 'a', None])),
+      (kde.maybe(I.x, ds([None, None, None])), ds([None, None, None])),
+  )
+  def test_eval_with_attr_name_slice_and_obj_item(self, expr, expected):
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.entity.L[0]),
+        expected.with_bag(self.entity.get_bag()),
+    )
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.object.L[0]),
+        expected.with_bag(self.object.get_bag()),
+    )
+
   def test_attr_name_error(self):
     with self.assertRaisesRegex(
         ValueError,
@@ -90,6 +131,21 @@ class CoreGetAttrTest(parameterized.TestCase):
         ' INT32',
     ):
       eager.core.maybe(self.entity, 42)
+
+  def test_schema_conflict(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'cannot find a common schema',
+    ):
+      expr_eval.eval(
+          kde.core.maybe(
+              ds([
+                  eager.new(a=eager.new(y=1), b=1),
+                  eager.new(a=eager.new(y=2), b=2),
+              ]),
+              ds(['a', 'b']),
+          )
+      )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

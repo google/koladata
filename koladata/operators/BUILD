@@ -135,6 +135,7 @@ cc_library(
         "//koladata/internal:schema_utils",
         "//koladata/internal/op_utils:agg_common_schema",
         "//koladata/internal/op_utils:agg_uuid",
+        "//koladata/internal/op_utils:coalesce_with_filtered",
         "//koladata/internal/op_utils:collapse",
         "//koladata/internal/op_utils:deep_clone",
         "//koladata/internal/op_utils:deep_uuid",
