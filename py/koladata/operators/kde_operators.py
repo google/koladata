@@ -33,6 +33,7 @@ def get_namespaces() -> list[str]:
       'kd.entities',
       'kd.functor',
       'kd.ids',
+      'kd.iterables',
       'kd.json',
       'kd.lists',
       'kd.masking',

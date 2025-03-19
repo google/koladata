@@ -99,6 +99,7 @@ py_library(
         ":entities",
         ":functor",
         ":ids",
+        ":iterables",
         ":jagged_shape",
         ":json",
         ":koda_internal",
@@ -681,6 +682,17 @@ py_library(
         ":optools",
         "//koladata/iterables:init_expr_operators",
         "//koladata/iterables:operators",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "iterables",
+    srcs = ["iterables.py"],
+    deps = [
+        ":koda_internal_iterables",
+        ":optools",
+        "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
     ],
 )

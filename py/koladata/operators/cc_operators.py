@@ -24,6 +24,7 @@ from koladata.operators import dicts as _
 from koladata.operators import entities as _
 from koladata.operators import functor as _
 from koladata.operators import ids as _
+from koladata.operators import iterables as _
 from koladata.operators import jagged_shape as _
 from koladata.operators import json as _
 from koladata.operators import koda_internal as _
