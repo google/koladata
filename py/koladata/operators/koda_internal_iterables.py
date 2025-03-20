@@ -20,7 +20,13 @@ evaluation.
 """
 
 from arolla import arolla
+from koladata.operators import arolla_bridge
+from koladata.operators import jagged_shape
 from koladata.operators import optools
+from koladata.operators import qtype_utils
+from koladata.operators import random
+from koladata.operators import slices
+from koladata.types import qtypes
 
 P = arolla.P
 
@@ -61,7 +67,7 @@ def _expect_iterable(param):
         arolla.optools.constraints.expect_sequence(P.x),
     ],
 )
-def from_sequence(x):  # pylint: disable=unused-argument
+def from_sequence(x):
   """Converts a sequence to an iterable."""
   return arolla.M.derived_qtype.downcast(
       get_iterable_qtype(
@@ -78,9 +84,66 @@ def from_sequence(x):  # pylint: disable=unused-argument
         _expect_iterable(P.x),
     ],
 )
-def to_sequence(x):  # pylint: disable=unused-argument
+def to_sequence(x):
   """Converts an iterable to a sequence."""
   return arolla.M.derived_qtype.upcast(
       arolla.M.qtype.qtype_of(x),
       x,
   )
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.iterables.sequence_from_1d_slice',
+    qtype_inference_expr=arolla.M.qtype.make_sequence_qtype(qtypes.DATA_SLICE),
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def sequence_from_1d_slice(x):  # pylint: disable=unused-argument
+  """Creates an arolla Sequence of DataItems from a 1D DataSlice."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.iterables.shuffle',
+    qtype_constraints=[
+        _expect_iterable(P.x),
+    ],
+)
+def shuffle(x):
+  """Shuffles the items in the iterable.
+
+  This operation is intentionally non-deterministic, and should be used to
+  obtain a random order in an iterable in cases where in the parallel
+  execution environment the order can be arbitrary.
+
+  Args:
+    x: The iterable to shuffle.
+
+  Returns:
+    A shuffled iterable.
+  """
+  input_seq = to_sequence(x)
+  size = arolla.M.seq.size(input_seq)
+  shape = jagged_shape.new(arolla_bridge.to_data_slice(size))
+  # We use Koda rather than Arolla random to pick up the "nondeterministic
+  # default seed" behavior.
+  random_values = random.randint_shaped(shape)
+  # Using "slices." here will be a problem in the future, since we expect
+  # functor.while_ to depend on this operator, which would create a
+  # slices->functor->iterables->slices dependency cycle. But let us resolve
+  # that when we get there.
+  random_order = slices.ordinal_rank(random_values)
+  random_order_seq = sequence_from_1d_slice(random_order)
+  random_order_seq = arolla.M.seq.map(
+      arolla_bridge.to_arolla_int64, random_order_seq
+  )
+  shuffled_seq = arolla.M.seq.map(
+      arolla.M.seq.at,
+      # Copying the sequence is cheap-ish since it has a shared_ptr inside.
+      arolla.M.seq.repeat(input_seq, size),
+      random_order_seq,
+  )
+  return from_sequence(shuffled_seq)

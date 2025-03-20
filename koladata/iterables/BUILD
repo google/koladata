@@ -43,6 +43,7 @@ cc_library(
     name = "operators",
     srcs = ["operators.cc"],
     deps = [
+        ":from_data_slice_operators",
         ":iterable_qtype",
         "//koladata:data_slice_qtype",
         "@com_google_arolla//arolla/memory",
@@ -83,6 +84,26 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
     ],
     alwayslink = 1,
+)
+
+cc_library(
+    name = "from_data_slice_operators",
+    srcs = ["from_data_slice_operators.cc"],
+    hdrs = ["from_data_slice_operators.h"],
+    deps = [
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/sequence",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
 )
 
 cc_test(

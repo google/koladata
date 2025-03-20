@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <memory>
+
 #include "koladata/data_slice_qtype.h"
+#include "koladata/iterables/from_data_slice_operators.h"
 #include "koladata/iterables/iterable_qtype.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/optools.h"
@@ -35,6 +38,8 @@ OPERATOR("koda_internal.iterables.is_iterable_qtype",
          [](arolla::QTypePtr qtype) -> arolla::OptionalUnit {
            return arolla::OptionalUnit(IsIterableQType(qtype));
          });
+OPERATOR_FAMILY("koda_internal.iterables.sequence_from_1d_slice",
+                std::make_unique<SequenceFrom1DSliceOpFamily>());
 // go/keep-sorted end
 
 }  // namespace

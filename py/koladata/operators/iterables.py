@@ -72,3 +72,37 @@ def make(*items, value_type_as=arolla.unspecified()):
       ),
   )(items, value_type_as)
   return koda_internal_iterables.from_sequence(seq)
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.iterables.make_unordered',
+)
+def make_unordered(*items, value_type_as=arolla.unspecified()):
+  """Creates an iterable from the given list of items, in an arbitrary order.
+
+  Having unspecified order allows the parallel execution to put the items into
+  the iterable in the order they are computed, potentially increasing the amount
+  of parallel processing done.
+
+  When used with the non-parallel evaluation, we intentionally randomize the
+  order to prevent user code from depending on the order, and avoid
+  discrepancies when switching to parallel evaluation.
+
+  Args:
+    *items: A list of items to be put into the iterable.
+    value_type_as: A value that has the same type as the items. It is useful to
+      specify this explicitly if the list of items may be empty. If this is not
+      specified and the list of items is empty, the iterable will have data
+      slice as the value type.
+
+  Returns:
+    An iterable with the given items, in an arbitrary order.
+  """
+  items = arolla.optools.fix_trace_args(items)
+  ordered_seq = arolla.abc.bind_op(
+      make,
+      items=items,
+      value_type_as=value_type_as,
+  )
+  return koda_internal_iterables.shuffle(ordered_seq)

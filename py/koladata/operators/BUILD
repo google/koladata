@@ -679,9 +679,15 @@ py_library(
     name = "koda_internal_iterables",
     srcs = ["koda_internal_iterables.py"],
     deps = [
+        ":arolla_bridge",
+        ":jagged_shape",
         ":optools",
+        ":qtype_utils",
+        ":random",
+        ":slices",
         "//koladata/iterables:init_expr_operators",
         "//koladata/iterables:operators",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
