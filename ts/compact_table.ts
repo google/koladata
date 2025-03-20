@@ -277,6 +277,9 @@ export class CompactTable extends NanoElement {
 
   private tableElement?: HTMLTableElement;
 
+  // Resolves when the last render is complete.
+  renderComplete: Promise<void> = Promise.resolve();
+
   get headerWidth() {
     return (
       this.tableElement?.querySelector('th')?.getBoundingClientRect()?.width ||
@@ -503,9 +506,34 @@ export class CompactTable extends NanoElement {
     super.attributeChangedCallback(name, oldValue, newValue);
   }
 
-  override render() {
+  override async render() {
     const {shadowRoot} = this;
     if (!shadowRoot) return;
+    const {headers, cellWidth, allRows} = this.renderPass(shadowRoot);
+
+    const updateSpanCount = () => {
+      // If we updated the span count, re-render the table.
+      let needsSecondPass = false;
+      for (let i = 0; i < headers.length; i++) {
+        if (this.updateSpanCount(headers[i], cellWidth, allRows[i])) {
+          needsSecondPass = true;
+        }
+      }
+      if (needsSecondPass) {
+        this.renderPass(shadowRoot);
+      }
+    };
+
+    // Defer the updateSpanCount to avoid measuring before the browser has
+    // had a chance to do layout.
+    this.renderComplete = new Promise<void>(resolve => setTimeout(() => {
+                                              updateSpanCount();
+                                              resolve();
+                                            }, 0));
+    return this.renderComplete;
+  }
+
+  private renderPass(shadowRoot: ShadowRoot) {
     shadowRoot.textContent = '';
 
     this.tableElement = document.createElement('table');
@@ -515,16 +543,14 @@ export class CompactTable extends NanoElement {
     const cellWidth = this.measureCellWidth(table);
     const {headers} = this;
 
+    const allRows: HTMLTableRowElement[][] = [];
     const cellsPerHeader = Math.floor(this.children.length / headers.length);
     for (let i = 0; i < headers.length; i++) {
       const rows = this.renderRows(table, headers[i], cellsPerHeader, i);
-
-      // If we updated the span count, re-render the header.
-      if (this.updateSpanCount(headers[i], cellWidth, rows)) {
-        for (const row of rows) row.remove();
-        this.renderRows(table, headers[i], cellsPerHeader, i);
-      }
+      allRows.push(rows);
     }
+
+    return {headers, cellWidth, allRows};
   }
 }
 

@@ -72,15 +72,15 @@ export class MultiDimTable
     ];
   }
 
-  override attributeChangedCallback(
-    name: string,
-    oldValue: string,
-    newValue: string,
+  override async attributeChangedCallback(
+      name: string,
+      oldValue: string,
+      newValue: string,
   ) {
     if (name === 'data-cell-width') {
       this.style.setProperty('--kd-compact-table-td-width', `${newValue}px`);
       this.compactTable?.clearSpanCounts();
-      this.compactTable?.render();
+      await this.compactTable?.render();
       this.syncViewWithVisibleRange();
     } else if (name === 'data-max-folds') {
       const {compactTable} = this;
@@ -388,7 +388,7 @@ export class MultiDimTable
       compactTable.classList.contains('hover-overflow');
   }
 
-  override render() {
+  override async render() {
     const {shadowRoot} = this;
     if (!shadowRoot) return;
     const existingScrollLeft = this.dimNav?.scrollLeft || 0;
@@ -445,6 +445,7 @@ export class MultiDimTable
 
     // Sync necessary state after rendering.
     this.onMutation();
+    await compactTable.renderComplete;
     this.syncViewWithVisibleRange();
     this.updateShades();
   }
