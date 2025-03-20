@@ -37,7 +37,7 @@ cc_library(
         "//koladata/internal/op_utils:extract",
         "//koladata/internal/op_utils:traverser",
         "//py/koladata/base:to_py_object",
-        "//py/koladata/types:wrap_utils",
+        "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",

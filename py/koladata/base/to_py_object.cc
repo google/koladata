@@ -33,7 +33,7 @@
 #include "koladata/internal/object_id.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/types/wrap_utils.h"
+#include "py/koladata/base/wrap_utils.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/typed_value.h"

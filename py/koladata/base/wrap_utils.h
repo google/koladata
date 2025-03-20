@@ -14,8 +14,8 @@
 //
 // Utilities for wrapping / unwrapping QValue specializations defined by Koda.
 
-#ifndef THIRD_PARTY_PY_KOLADATA_TYPES_WRAP_UTILS_H_
-#define THIRD_PARTY_PY_KOLADATA_TYPES_WRAP_UTILS_H_
+#ifndef THIRD_PARTY_PY_KOLADATA_BASE_WRAP_UTILS_H_
+#define THIRD_PARTY_PY_KOLADATA_BASE_WRAP_UTILS_H_
 
 #include <Python.h>
 
@@ -61,7 +61,7 @@ absl::Nullable<PyObject*> WrapDataBagPtr(DataBagPtr db);
 //
 // `name_for_error` is used to format an informative error message.
 //
-// NOTE: Python None is unwrapped as NullDataBag.
+// NOTE: Python None is unwrapped as DataBagPtr(nullptr).
 std::optional<DataBagPtr> UnwrapDataBagPtr(PyObject* py_obj,
                                            absl::string_view name_for_error);
 
@@ -81,4 +81,4 @@ absl::Nullable<PyObject*> WrapPyJaggedShape(DataSlice::JaggedShape shape);
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_TYPES_WRAP_UTILS_H_
+#endif  // THIRD_PARTY_PY_KOLADATA_BASE_WRAP_UTILS_H_

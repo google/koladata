@@ -29,6 +29,7 @@ cc_library(
     hdrs = ["to_py_object.h"],
     deps = [
         ":initializers",
+        ":wrap_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata/internal:data_item",
@@ -36,7 +37,6 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:missing_value",
         "//koladata/internal:object_id",
-        "//py/koladata/types:wrap_utils",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -122,5 +122,50 @@ py_test(
         ":error_converters_testing_clib",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+cc_library(
+    name = "wrap_utils",
+    srcs = ["wrap_utils.cc"],
+    hdrs = ["wrap_utils.h"],
+    deps = [
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/jagged_shape/array/qtype",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//py/arolla/abc:py_abc",
+    ],
+)
+
+koladata_pybind_extension(
+    name = "wrap_utils_testing_clib",
+    testonly = True,
+    srcs = ["wrap_utils_testing_clib.cc"],
+    deps = [
+        ":initializers",
+        ":wrap_utils",
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
+        "@com_google_arolla//py/arolla/abc:pybind11_utils",
+        "@pybind11_abseil//pybind11_abseil:absl_casters",
+    ],
+)
+
+py_test(
+    name = "wrap_utils_test",
+    srcs = ["wrap_utils_test.py"],
+    deps = [
+        ":wrap_utils",
+        ":wrap_utils_testing_clib",
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
     ],
 )

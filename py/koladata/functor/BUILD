@@ -29,9 +29,9 @@ py_library(
     srcs = ["expr_container.py"],
     visibility = ["//visibility:public"],
     deps = [
+        ":tracing_decorator",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/functions",
-        "//py/koladata/functor:tracing_decorator",
         "//py/koladata/operators:kde_operators",
     ],
 )
@@ -58,8 +58,8 @@ cc_library(
         "//koladata:data_slice_qtype",
         "//koladata/functor",
         "//koladata/functor:signature_storage",
+        "//py/koladata/base:wrap_utils",
         "//py/koladata/types:py_utils",
-        "//py/koladata/types:wrap_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/status:statusor",

@@ -48,7 +48,7 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "py/koladata/base/to_py_object.h"
-#include "py/koladata/types/wrap_utils.h"
+#include "py/koladata/base/wrap_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"

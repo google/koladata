@@ -35,8 +35,8 @@
 #include "koladata/operators/utils.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/types/boxing.h"
-#include "py/koladata/types/wrap_utils.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/status_macros_backport.h"
 
