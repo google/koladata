@@ -46,7 +46,7 @@
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/quote.h"
 #include "arolla/jagged_shape/testing/matchers.h"
-#include "arolla/util/testing/gmock_cancellation_context.h"
+#include "arolla/util/cancellation.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -56,9 +56,8 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::arolla::testing::MockCancellationScope;
+using ::arolla::CancellationContext;
 using ::koladata::testing::IsEquivalentTo;
-using ::testing::Return;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
   return arolla::expr::CallOp("koda_internal.input",
@@ -164,43 +163,31 @@ TEST(MapTest, Cancellation) {
       }));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(
-      auto returns_expr,
-      WrapExpr(arolla::expr::CallOp(
-          "core.get_nth",
-          {arolla::expr::CallOp("core.make_tuple",
-                                {CreateInput("a"), CreateInput("a")}),
-           arolla::expr::Literal(0)})));
+  ASSERT_OK_AND_ASSIGN(auto returns_expr,
+                       WrapExpr(arolla::expr::CallOp(
+                           "core._identity_with_cancel", {CreateInput("a")})));
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}));
 
-  std::vector<int> items(512);  // Prepare a long enough test slice.
-  std::iota(items.begin(), items.end(), 0);
+  std::vector<int> items = {0, 1};
   ASSERT_OK_AND_ASSIGN(
       auto test_slice,
       DataSlice::Create(
           internal::DataSliceImpl::Create(arolla::CreateFullDenseArray(items)),
           DataSlice::JaggedShape::FlatFromSize(items.size()),
           internal::DataItem(schema::GetDType<int>())));
-  EXPECT_OK(MapFunctorWithCompilationCache(  // Pre-compile to avoid
-                fn, /*args=*/{test_slice},   // cancellation during compilation.
-                /*kwnames=*/{},
-                /*include_missing=*/false)
-                .status());
-  {
-    MockCancellationScope cancellation_scope;
-    EXPECT_CALL(cancellation_scope.context, DoCheck())
-        .WillOnce(Return(absl::CancelledError("")));
+  {  // Without cancellation scope.
+    EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{test_slice},
+                                               /*kwnames=*/{},
+                                               /*include_missing=*/false),
+                StatusIs(absl::StatusCode::kFailedPrecondition));
+  }
+  {  // With cancellation scope.
+    CancellationContext::ScopeGuard cancellation_scope;
     EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{test_slice},
                                                /*kwnames=*/{},
                                                /*include_missing=*/false),
                 StatusIs(absl::StatusCode::kCancelled));
-  }
-  {
-    EXPECT_THAT(MapFunctorWithCompilationCache(fn, /*args=*/{test_slice},
-                                               /*kwnames=*/{},
-                                               /*include_missing=*/false),
-                IsOkAndHolds(IsEquivalentTo(test_slice)));
   }
 }
 

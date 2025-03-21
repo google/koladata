@@ -13,9 +13,6 @@
 # limitations under the License.
 
 import re
-import signal
-import threading
-import time
 
 from absl.testing import absltest
 from arolla import arolla
@@ -260,18 +257,9 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     )
 
   def test_cancellation(self):
-    expr = I.x
-    for _ in range(10**4):
-      expr += expr
-    x = ds(list(range(10**6)))
-
-    def do_keyboard_interrupt():
-      time.sleep(0.1)
-      signal.raise_signal(signal.SIGINT)
-
-    threading.Thread(target=do_keyboard_interrupt).start()
-    with self.assertRaisesRegex(ValueError, re.escape('interrupt')):
-      # this computation takes approximately 3-15 seconds, unless interrupted
+    expr = arolla.M.core._identity_with_cancel(I.x, 'cancelled')
+    x = ds([1, 2, 3])
+    with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
       expr_eval.eval(expr, x=x)
 
   def test_freeze_input_data_slice(self):

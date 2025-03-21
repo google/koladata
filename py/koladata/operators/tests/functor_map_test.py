@@ -13,9 +13,6 @@
 # limitations under the License.
 
 import re
-import signal
-import threading
-import time
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -285,21 +282,12 @@ class MapTest(parameterized.TestCase):
       )
 
   def test_cancellable(self):
-    expr = I.self
-    for _ in range(10**4):
-      expr += expr
-    expr = kde.functor.map(kdf.expr_fn(expr), I.x)
-    x = ds(list(range(10**3)))
-
-    def do_keyboard_interrupt():
-      time.sleep(0.1)
-      signal.raise_signal(signal.SIGINT)
-
-    threading.Thread(target=do_keyboard_interrupt).start()
-    with self.assertRaisesRegex(ValueError, re.escape('interrupt')):
-      # This computation typically takes more than 10 seconds and fails
-      # with a different error unless the interruption is handled by
-      # the operator.
+    expr = kde.functor.map(
+        kdf.expr_fn(arolla.M.core._identity_with_cancel(I.self, 'cancelled')),
+        I.x,
+    )
+    x = ds([1, 2, 3])
+    with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
       expr_eval.eval(expr, x=x)
 
   def test_non_functor_input_error(self):

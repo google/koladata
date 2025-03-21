@@ -54,7 +54,7 @@
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/cancellation_context.h"
+#include "arolla/util/cancellation.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"

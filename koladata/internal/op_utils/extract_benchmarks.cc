@@ -23,7 +23,6 @@
 #include "absl/random/random.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
-#include "absl/time/time.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -36,13 +35,13 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
-#include "arolla/util/testing/gmock_cancellation_context.h"
+#include "arolla/util/cancellation.h"
 #include "arolla/util/unit.h"
 
 namespace koladata::internal {
 namespace {
 
-using ::arolla::testing::MockCancellationScope;
+using ::arolla::CancellationContext;
 
 constexpr auto kBenchmarkFn = [](auto* b) {
   // Number of objects per chain, number of chains.
@@ -119,7 +118,7 @@ void BM_DisjointChains(benchmark::State& state) {
   int64_t schema_depth = state.range(0);
   int64_t ds_size = state.range(1);
 
-  MockCancellationScope cancellation_scope(absl::Milliseconds(10));
+  CancellationContext::ScopeGuard cancellation_scope;
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto root_schema = DataItem(internal::AllocateExplicitSchema());
@@ -143,7 +142,7 @@ void BM_DisjointChainsObjects(benchmark::State& state) {
   int64_t schema_depth = state.range(0);
   int64_t ds_size = state.range(1);
 
-  MockCancellationScope cancellation_scope(absl::Milliseconds(10));
+  CancellationContext::ScopeGuard cancellation_scope;
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto ds = root_ds;
@@ -173,7 +172,7 @@ void BM_DAG(benchmark::State& state) {
   int64_t ds_size = state.range(3);
   absl::BitGen gen;
 
-  MockCancellationScope cancellation_scope(absl::Milliseconds(10));
+  CancellationContext::ScopeGuard cancellation_scope;
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto root_schema = DataItem(internal::AllocateExplicitSchema());
@@ -204,7 +203,7 @@ void BM_DAGObjects(benchmark::State& state) {
   int64_t ds_size = state.range(3);
   absl::BitGen gen;
 
-  MockCancellationScope cancellation_scope(absl::Milliseconds(10));
+  CancellationContext::ScopeGuard cancellation_scope;
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto root_ds = DataSliceImpl::AllocateEmptyObjects(ds_size);
   auto ds = root_ds;

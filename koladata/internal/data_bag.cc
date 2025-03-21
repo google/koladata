@@ -64,7 +64,7 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/cancellation_context.h"
+#include "arolla/util/cancellation.h"
 #include "arolla/util/refcount_ptr.h"
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
@@ -533,7 +533,7 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetAttrImpl(
     if (fallbacks.empty()) {
       return nullptr;
     }
-    if (arolla::IsCancelled()) [[unlikely]] {
+    if (arolla::Cancelled()) [[unlikely]] {
       return nullptr;
     }
     auto res = fallbacks.front();
@@ -1382,7 +1382,7 @@ DataBagImpl::ExplodeLists(const DataSliceImpl& lists, ListRange range,
 
     lists.values<ObjectId>().ForEach(
         [&](int64_t offset, bool present, ObjectId list_id) {
-          if (arolla::IsCancelled()) [[unlikely]] {
+          if (arolla::Cancelled()) [[unlikely]] {
             return;
           }
           if (present) {

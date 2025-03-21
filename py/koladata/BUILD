@@ -143,7 +143,6 @@ cc_test(
         "//py/koladata/operators:cc_operators",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/time",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/expr/operators/all",
