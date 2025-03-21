@@ -24,11 +24,14 @@ ds = data_slice.DataSlice.from_vals
 
 class UuTest(absltest.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.uu('seed', db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.uu('seed').is_mutable())
-    self.assertTrue(fns.uu('seed', db=fns.bag()).is_mutable())
 
-  def test_default_bag(self):
+  def test_basic(self):
     x = fns.uu(
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
@@ -50,39 +53,16 @@ class UuTest(absltest.TestCase):
     )
     testing.assert_equal(x.b, ds(['abc']).with_bag(x.get_bag()))
 
-  def test_provided_bag(self):
-    db = fns.bag()
-    x = fns.uu(
-        a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.STRING),
-        db=db,
-    )
-    testing.assert_equal(
-        x.get_schema(),
-        db.uu_schema(a=schema_constants.FLOAT64, b=schema_constants.STRING),
-    )
-    testing.assert_equal(
-        x.a.get_schema(), schema_constants.FLOAT64.with_bag(db)
-    )
-    testing.assert_equal(x.b.get_schema(), schema_constants.STRING.with_bag(db))
-    testing.assert_allclose(
-        x.a, ds([3.14], schema_constants.FLOAT64).with_bag(db)
-    )
-    testing.assert_equal(x.b, ds(['abc']).with_bag(db))
-
   def test_uuid_consistency(self):
-    db = fns.bag()
     x = fns.uu(
-        db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
     y = fns.uu(
-        db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
-    testing.assert_equal(x, y)
+    testing.assert_equivalent(x, y)
 
   def test_seed_arg(self):
     x = fns.uu(
@@ -121,11 +101,9 @@ class UuTest(absltest.TestCase):
     )
 
   def test_overwrite_schema_arg(self):
-    db = fns.bag()
     x = fns.uu(
-        db=db,
         a=ds([3.14], schema_constants.FLOAT32),
-        schema=fns.uu_schema(db=db, a=schema_constants.FLOAT64),
+        schema=fns.uu_schema(a=schema_constants.FLOAT64),
         overwrite_schema=True,
     )
     testing.assert_equal(

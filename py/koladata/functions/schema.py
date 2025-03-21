@@ -30,6 +30,12 @@ bag = data_bag.DataBag.empty
 _eval_op = py_expr_eval_py_ext.eval_op
 
 
+_DEPRECATED_DB_ARG_ERROR = (
+    'db= argument is deprecated, please either use this API without it or use '
+    'the corresponding db.{} method'
+)
+
+
 def new_schema(
     db: data_bag.DataBag | None = None, **attrs: data_slice.DataSlice
 ) -> data_slice.DataSlice:
@@ -47,7 +53,7 @@ def new_schema(
   """
   if db is None:
     return _eval_op('kd.schema.new_schema', **attrs)
-  return db.new_schema(**attrs)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('new_schema'))
 
 
 def list_schema(
@@ -67,7 +73,7 @@ def list_schema(
   """
   if db is None:
     return _eval_op('kd.schema.list_schema', item_schema)
-  return db.list_schema(item_schema)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('list_schema'))
 
 
 def dict_schema(
@@ -90,7 +96,7 @@ def dict_schema(
   """
   if db is None:
     return _eval_op('kd.schema.dict_schema', key_schema, value_schema)
-  return db.dict_schema(key_schema, value_schema)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('dict_schema'))
 
 
 def uu_schema(
@@ -114,7 +120,7 @@ def uu_schema(
   """
   if db is None:
     return _eval_op('kd.schema.uu_schema', seed=seed, **attrs)
-  return db.uu_schema(seed=seed, **attrs)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('uu_schema'))
 
 
 def named_schema(
@@ -145,7 +151,7 @@ def named_schema(
   """
   if db is None:
     return _eval_op('kd.schema.named_schema', name, **attrs)
-  return db.named_schema(name, **attrs)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('named_schema'))
 
 
 def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:

@@ -278,9 +278,8 @@ class JsonToJsonTest(parameterized.TestCase):
       _ = expr_eval.eval(kde.json.to_json(ds(arolla.quote(I.x))))
 
   def test_error_itemid_cycle(self):
-    db = fns.bag()
-    x = fns.new(db=db)
-    x.x = x
+    x = fns.new()
+    x = x.with_attrs(x=x)
     with self.assertRaisesRegex(
         ValueError, 'cycle detected in json serialization at '
     ):

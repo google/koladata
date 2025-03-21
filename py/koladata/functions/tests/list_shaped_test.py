@@ -32,10 +32,13 @@ kde = kde_operators.kde
 
 class ListShapedTest(parameterized.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.list_shaped(jagged_shape.create_shape(), db=fns.bag())
+
   def test_mutability(self):
     shape = jagged_shape.create_shape()
     self.assertFalse(fns.list_shaped(shape).is_mutable())
-    self.assertTrue(fns.list_shaped(shape, db=fns.bag()).is_mutable())
 
   def test_item(self):
     shape = jagged_shape.create_shape()
@@ -133,45 +136,30 @@ class ListShapedTest(parameterized.TestCase):
     )
 
   def test_list_preserves_mixed_types(self):
-    db = fns.bag()
     shape = jagged_shape.create_shape([2])
 
     testing.assert_equal(
         fns.list_shaped(
-            shape, [1, 2.0], item_schema=schema_constants.OBJECT, db=db
-        )[:],
+            shape, [1, 2.0], item_schema=schema_constants.OBJECT,
+        )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals(
                 [[1], [2.0]], schema_constants.OBJECT
             ),
-            db=db,
-        )[:],
+        )[:].no_bag(),
     )
     testing.assert_equal(
         fns.list_shaped(
             shape,
             [1, 2.0],
             schema=fns.list_schema(schema_constants.OBJECT),
-            db=db,
-        )[:],
+        )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals(
                 [[1], [2.0]], schema_constants.OBJECT
             ),
-            db=db,
-        )[:],
+        )[:].no_bag(),
     )
-
-  def test_bag_arg(self):
-    shape = jagged_shape.create_shape([2], [2, 1])
-    db = fns.bag()
-    items = ds([[[1], [2]], [[3]]])
-    l = fns.list_shaped(shape, items)
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(l.get_bag(), db)
-
-    l = fns.list_shaped(shape, items, db=db)
-    testing.assert_equal(l.get_bag(), db)
 
   def test_wrong_shape(self):
     with self.assertRaisesRegex(

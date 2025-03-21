@@ -28,16 +28,15 @@ OBJ1 = db.obj()
 OBJ2 = db.obj()
 
 
-class ImplodeTest(parameterized.TestCase):
+class ConcatListsTest(parameterized.TestCase):
+
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.concat_lists(fns.list([1, 2]), fns.list([3]), db=fns.bag())
 
   def test_mutability(self):
     self.assertFalse(
         fns.concat_lists(fns.list([1, 2]), fns.list([3])).is_mutable()
-    )
-    self.assertTrue(
-        fns.concat_lists(
-            fns.list([1, 2]), fns.list([3]), db=fns.bag()
-        ).is_mutable()
     )
 
   @parameterized.parameters(
@@ -100,12 +99,6 @@ class ImplodeTest(parameterized.TestCase):
       self.assertNotEqual(
           lists[0].get_bag().fingerprint, result.get_bag().fingerprint
       )
-
-    # Check behavior with explicit DataBag.
-    db2 = fns.bag()
-    result = fns.concat_lists(*lists, db=db2)
-    testing.assert_nested_lists_equal(result, expected)
-    self.assertEqual(result.get_bag().fingerprint, db2.fingerprint)
 
   def test_alias(self):
     self.assertIs(fns.concat_lists, fns.lists.concat)

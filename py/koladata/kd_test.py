@@ -22,6 +22,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
 from koladata.expr import tracing_mode
+from koladata.functions import functions
 from koladata.functor import signature_utils
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
@@ -573,27 +574,8 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(expr.eval(), kd.slice(30))
 
   def test_eager_op_overrides_expr_op(self):
-    x = kd.obj(a=1, db=kd.bag())
-    self.assertTrue(x.get_bag().is_mutable())
-    x = kd.objs.new(a=1, db=kd.bag())
-    self.assertTrue(x.get_bag().is_mutable())
-
-    x = kd.eval(kde.obj(a=1))
-    self.assertFalse(x.get_bag().is_mutable())
-    x = kd.eval(kde.objs.new(a=1))
-    self.assertFalse(x.get_bag().is_mutable())
-
-    def f1():
-      return kd.obj(a=1)
-
-    x = kd.trace_py_fn(f1)()
-    self.assertFalse(x.get_bag().is_mutable())
-
-    def f2():
-      return kd.objs.new(a=1)
-
-    x = kd.trace_py_fn(f2)()
-    self.assertFalse(x.get_bag().is_mutable())
+    self.assertIs(kd.obj, functions.obj)
+    self.assertIs(kd.objs.new, functions.objs.new)
 
   def test_functor_expr_fn(self):
     fn = kd.functor.expr_fn(returns=I.x + V.foo, foo=I.y)

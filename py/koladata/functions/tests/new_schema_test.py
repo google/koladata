@@ -26,96 +26,64 @@ bag = fns.bag
 
 class NewSchemaTest(absltest.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.schema.new_schema(a=schema_constants.INT32, db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(
         fns.schema.new_schema(a=schema_constants.INT32).is_mutable()
     )
-    self.assertTrue(
-        fns.schema.new_schema(
-            a=schema_constants.INT32, db=fns.bag()
-        ).is_mutable()
-    )
 
   def test_simple_schema(self):
-    db = bag()
     schema = fns.schema.new_schema(
-        db, a=schema_constants.INT32, b=schema_constants.STRING
+        a=schema_constants.INT32, b=schema_constants.STRING
     )
 
-    testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(schema.b, schema_constants.STRING.with_bag(db))
+    testing.assert_equal(schema.a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(schema.b.no_bag(), schema_constants.STRING)
 
   def test_nested_schema_with_adoption(self):
-    db = bag()
-    db2 = bag()
-    schema = fns.schema.new_schema(
-        db,
-        a=schema_constants.INT32,
-        b=fns.schema.new_schema(db2, a=schema_constants.INT32),
+    schema_b = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = fns.schema.new_schema(a=schema_constants.INT32, b=schema_b)
+    self.assertNotEqual(
+        schema_b.get_bag().fingerprint, schema.get_bag().fingerprint
     )
-    testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(schema.b.a, schema_constants.INT32.with_bag(db))
-
-  def test_bag_arg(self):
-    db = bag()
-    schema = fns.schema.new_schema(
-        a=schema_constants.INT32, b=schema_constants.STRING, db=db
-    )
-
-    testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(schema.b, schema_constants.STRING.with_bag(db))
+    testing.assert_equal(schema.a.no_bag(), schema_constants.INT32)
+    testing.assert_equal(schema.b.a.no_bag(), schema_constants.INT32)
 
   def test_list_error(self):
-    db = bag()
-    with self.assertRaisesRegex(
-        ValueError,
-        'expected DataSlice argument, got list',
-    ):
+    with self.assertRaisesRegex(ValueError, 'unable to represent argument `b`'):
       _ = fns.schema.new_schema(
-          db,
           a=schema_constants.INT32,
           b=[1, 2, 3],
       )
-    testing.assert_equivalent(db, bag())
 
   def test_dict_error(self):
-    db = bag()
-    with self.assertRaisesRegex(
-        ValueError,
-        'expected DataSlice argument, got dict',
-    ):
-      _ = db.new_schema(
+    with self.assertRaisesRegex(ValueError, 'unable to represent argument `b`'):
+      _ = fns.schema.new_schema(
           a=schema_constants.INT32,
           b={'a': 1},
       )
-    testing.assert_equivalent(db, bag())
 
   def test_non_dataslice_qvalue_error(self):
-    db = bag()
     with self.assertRaisesRegex(
         ValueError,
-        'expected DataSlice argument, got Text',
+        r'expected all arguments to be DATA_SLICE, got kwargs:.*TEXT',
     ):
       _ = fns.schema.new_schema(
-          db,
           a=schema_constants.INT32,
           b=arolla.text('hello'),
       )
-    testing.assert_equivalent(db, bag())
 
   def test_non_schema_dataslice_error(self):
-    db = bag()
     with self.assertRaisesRegex(
-        ValueError,
-        "schema's schema must be SCHEMA, got: OBJECT",
+        ValueError, "schema's schema must be SCHEMA, got: OBJECT",
     ):
-      db2 = bag()
       _ = fns.schema.new_schema(
-          db,
           a=schema_constants.INT32,
-          b=fns.obj(db=db2, a=schema_constants.INT32),
+          b=fns.obj(a=schema_constants.INT32),
       )
-    testing.assert_equivalent(db, bag())
 
 
 if __name__ == '__main__':

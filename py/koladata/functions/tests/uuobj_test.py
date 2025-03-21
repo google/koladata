@@ -25,11 +25,14 @@ ds = data_slice.DataSlice.from_vals
 
 class UuObjTest(absltest.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.uuobj('seed', db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.uuobj('seed').is_mutable())
-    self.assertTrue(fns.uuobj('seed', db=fns.bag()).is_mutable())
 
-  def test_default_bag(self):
+  def test_basic(self):
     x = fns.uuobj(
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
@@ -46,58 +49,34 @@ class UuObjTest(absltest.TestCase):
     )
     testing.assert_equal(x.b, ds(['abc']).with_bag(x.get_bag()))
 
-  def test_provided_bag(self):
-    db = fns.bag()
-    x = fns.uuobj(
-        a=ds([3.14], schema_constants.FLOAT64),
-        b=ds(['abc'], schema_constants.STRING),
-        db=db,
-    )
-    testing.assert_equal(x.get_bag(), db)
-    testing.assert_equal(
-        x.a.get_schema(), schema_constants.FLOAT64.with_bag(db)
-    )
-    testing.assert_equal(x.b.get_schema(), schema_constants.STRING.with_bag(db))
-    testing.assert_allclose(
-        x.a, ds([3.14], schema_constants.FLOAT64).with_bag(db)
-    )
-    testing.assert_equal(x.b, ds(['abc']).with_bag(db))
-
   def test_uuid_consistency(self):
-    db = fns.bag()
     x = fns.uuobj(
-        db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
     y = fns.uuobj(
-        db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
-    testing.assert_equal(x, y)
+    testing.assert_equivalent(x, y)
 
   def test_seed_arg(self):
-    db = fns.bag()
     x = fns.uuobj(
-        db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
     y = fns.uuobj(
-        db=db,
         seed='seed',
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
     z = fns.uuobj(
         'seed',
-        db=db,
         a=ds([3.14], schema_constants.FLOAT64),
         b=ds(['abc'], schema_constants.STRING),
     )
-    self.assertNotEqual(x.fingerprint, y.fingerprint)
-    self.assertEqual(y.fingerprint, z.fingerprint)
+    self.assertNotEqual(x.no_bag().fingerprint, y.no_bag().fingerprint)
+    self.assertEqual(y.no_bag().fingerprint, z.no_bag().fingerprint)
 
   def test_alias(self):
     self.assertIs(fns.uuobj, fns.objs.uu)

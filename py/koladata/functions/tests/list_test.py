@@ -32,9 +32,14 @@ kde = kde_operators.kde
 # data_bag_test.
 class ListTest(parameterized.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(
+        ValueError, 'db= argument is deprecated.* db.list method'
+    ):
+      fns.list(db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.list().is_mutable())
-    self.assertTrue(fns.list(db=fns.bag()).is_mutable())
 
   def test_empty(self):
     l = fns.list().fork_bag()
@@ -53,30 +58,25 @@ class ListTest(parameterized.TestCase):
     testing.assert_equal(l[:], ds([]).with_bag(l.get_bag()))
 
   def test_list_with_uuid(self):
-    db = fns.bag()
     testing.assert_equal(
-        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1)), db=db),
-        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1)), db=db),
+        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1))).no_bag(),
+        fns.list(itemid=kd.uuid_for_list(seed='seed', a=ds(1))).no_bag(),
     )
 
   def test_list_preserves_mixed_types(self):
-    db = fns.bag()
-
     testing.assert_equal(
-        fns.list([1, 2.0], item_schema=schema_constants.OBJECT, db=db)[:],
+        fns.list([1, 2.0], item_schema=schema_constants.OBJECT)[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT),
-            db=db,
-        )[:],
+        )[:].no_bag(),
     )
     testing.assert_equal(
         fns.list(
-            [1, 2.0], schema=fns.list_schema(schema_constants.OBJECT), db=db
-        )[:],
+            [1, 2.0], schema=fns.list_schema(schema_constants.OBJECT),
+        )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals([1, 2.0], schema_constants.OBJECT),
-            db=db,
-        )[:],
+        )[:].no_bag(),
     )
 
   def test_item_with_values(self):
@@ -115,15 +115,6 @@ class ListTest(parameterized.TestCase):
         ValueError, 'attribute \'non_existent\' is missing'
     ):
       _ = triple.with_bag(x.get_bag()).non_existent
-
-  def test_bag_arg(self):
-    db = fns.bag()
-    l = fns.list([1, 2, 3])
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(l.get_bag(), db)
-
-    l = fns.list([1, 2, 3], db=db)
-    testing.assert_equal(l.get_bag(), db)
 
   def test_repr(self):
     self.assertRegex(repr(fns.list([1, 2, 3])), r'DataItem\(.*, schema: .*\)')

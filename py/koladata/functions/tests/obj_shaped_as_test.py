@@ -28,9 +28,12 @@ kde = kde_operators.kde
 
 class ObjShapedAsTest(absltest.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.obj_shaped_as(ds([1, None]), db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.obj_shaped_as(ds([1, None])).is_mutable())
-    self.assertTrue(fns.obj_shaped_as(ds([1, None]), db=fns.bag()).is_mutable())
 
   def test_item(self):
     x = fns.obj_shaped_as(
@@ -72,11 +75,6 @@ class ObjShapedAsTest(absltest.TestCase):
     testing.assert_equal(
         x.c.get_schema(), schema_constants.BYTES.with_bag(x.get_bag())
     )
-
-  def test_bag_arg(self):
-    db = fns.bag()
-    x = fns.obj_shaped_as(ds(1), a=1, b='a', db=db)
-    testing.assert_equal(db, x.get_bag())
 
   def test_itemid(self):
     itemid = expr_eval.eval(

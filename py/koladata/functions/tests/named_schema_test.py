@@ -24,11 +24,14 @@ ds = data_slice.DataSlice.from_vals
 bag = fns.bag
 
 
-class UuSchemaTest(absltest.TestCase):
+class NamedSchemaTest(absltest.TestCase):
+
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.named_schema('my_schema', db=fns.bag())
 
   def test_mutability(self):
     self.assertFalse(fns.named_schema('my_schema').is_mutable())
-    self.assertTrue(fns.named_schema('my_schema', db=fns.bag()).is_mutable())
 
   def test_simple_schema(self):
     schema = fns.named_schema('name')
@@ -48,12 +51,6 @@ class UuSchemaTest(absltest.TestCase):
     x = fns.named_schema('name')
     y = fns.named_schema(name='name')
     testing.assert_equal(x, y.with_bag(x.get_bag()))
-
-  def test_bag_arg(self):
-    db = bag()
-    schema = fns.named_schema('name', db=db)
-    no_bag_schema = fns.named_schema('name')
-    testing.assert_equal(schema, no_bag_schema.with_bag(db))
 
   def test_attrs(self):
     schema = fns.named_schema('name', a=schema_constants.FLOAT32)

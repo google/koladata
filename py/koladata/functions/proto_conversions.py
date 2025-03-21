@@ -22,6 +22,11 @@ from koladata.types import data_item
 from koladata.types import data_slice
 
 
+_DEPRECATED_DB_ARG_ERROR = (
+    'db= argument is deprecated, please use this API without it'
+)
+
+
 def from_proto(
     messages: message.Message | None | list[message.Message | None],
     /,
@@ -122,6 +127,8 @@ def from_proto(
 
   if db is None:
     db = data_bag.DataBag.empty()
+  else:
+    raise ValueError(_DEPRECATED_DB_ARG_ERROR)
   result = db._from_proto(messages, extensions, itemid, schema)  # pylint: disable=protected-access
 
   if result_is_item:
@@ -166,6 +173,8 @@ def schema_from_proto(
   """
   if db is None:
     db = data_bag.DataBag.empty()
+  else:
+    raise ValueError(_DEPRECATED_DB_ARG_ERROR)
   return db._schema_from_proto(message_class(), extensions)  # pylint: disable=protected-access
 
 

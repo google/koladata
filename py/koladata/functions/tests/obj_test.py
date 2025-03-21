@@ -29,9 +29,12 @@ kde = kde_operators.kde
 
 class ObjTest(absltest.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.obj(db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.obj().is_mutable())
-    self.assertTrue(fns.obj(db=fns.bag()).is_mutable())
 
   def test_item(self):
     x = fns.obj(
@@ -103,14 +106,6 @@ class ObjTest(absltest.TestCase):
         ValueError, 'attribute \'non_existent\' is missing'
     ):
       _ = x.non_existent
-
-  def test_bag_arg(self):
-    db = fns.bag()
-    x = fns.obj(a=1, b='a', db=db)
-    testing.assert_equal(db, x.get_bag())
-
-    x = fns.obj([1, 2, 3], db=db)
-    testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
     with self.assertRaisesRegex(ValueError, 'please use new'):

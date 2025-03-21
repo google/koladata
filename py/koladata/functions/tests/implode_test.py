@@ -34,9 +34,12 @@ OBJ3 = db.obj(a=math.nan)
 
 class ImplodeTest(parameterized.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.implode(ds([1, None]), db=db)
+
   def test_mutability(self):
     self.assertFalse(fns.implode(ds([1, None])).is_mutable())
-    self.assertTrue(fns.implode(ds([1, None]), db=fns.bag()).is_mutable())
 
   @parameterized.parameters(
       (ds(0), 0, ds(0)),
@@ -108,12 +111,6 @@ class ImplodeTest(parameterized.TestCase):
     result = fns.implode(x, ndim)
     testing.assert_nested_lists_equal(result, expected)
     self.assertNotEqual(x.get_bag().fingerprint, result.get_bag().fingerprint)
-
-    # Check behavior with explicit DataBag.
-    db2 = fns.bag()
-    result = fns.implode(x, ndim, db=db2)
-    testing.assert_nested_lists_equal(result, expected)
-    self.assertEqual(result.get_bag().fingerprint, db2.fingerprint)
 
     # Check behavior with DataItem ndim.
     result = fns.implode(x, ds(ndim))

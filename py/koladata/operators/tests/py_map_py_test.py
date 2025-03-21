@@ -191,8 +191,8 @@ class PyMapPyTest(parameterized.TestCase):
   def test_map_py_with_schema(self):
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     schema = functions.schema.new_schema(
-        u=schema_constants.INT32, v=schema_constants.INT32, db=functions.bag()
-    )
+        u=schema_constants.INT32, v=schema_constants.INT32
+    ).fork_bag()  # mutable
 
     def my_func_dynamic_schema(x):
       return functions.new(u=x, v=x + 1)

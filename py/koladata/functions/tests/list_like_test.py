@@ -30,9 +30,12 @@ kde = kde_operators.kde
 
 class ListLikeTest(parameterized.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.list_like(ds([1, None]), db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.list_like(ds([1, None])).is_mutable())
-    self.assertTrue(fns.list_like(ds([1, None]), db=fns.bag()).is_mutable())
 
   def test_item(self):
     l = fns.list_like(ds(1)).fork_bag()
@@ -124,32 +127,27 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_list_preserves_mixed_types(self):
-    db = fns.bag()
-
     testing.assert_equal(
         fns.list_like(
-            ds([1, 2.0]), [1, 2.0], item_schema=schema_constants.OBJECT, db=db
-        )[:],
+            ds([1, 2.0]), [1, 2.0], item_schema=schema_constants.OBJECT
+        )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals(
                 [[1], [2.0]], schema_constants.OBJECT
             ),
-            db=db,
-        )[:],
+        )[:].no_bag(),
     )
     testing.assert_equal(
         fns.list_like(
             ds([1, 2.0]),
             [1, 2.0],
             schema=fns.list_schema(schema_constants.OBJECT),
-            db=db,
-        )[:],
+        )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals(
                 [[1], [2.0]], schema_constants.OBJECT
             ),
-            db=db,
-        )[:],
+        )[:].no_bag(),
     )
 
   def test_itemid_dataitem(self):
@@ -283,17 +281,6 @@ class ListLikeTest(parameterized.TestCase):
         ValueError, 'attribute \'non_existent\' is missing'
     ):
       _ = triple.with_bag(x.get_bag()).non_existent
-
-  def test_bag_arg(self):
-    db = fns.bag()
-    shape_and_mask_from = ds([[1, None], [2]])
-    items = ds([[[1], [2]], [[3]]])
-    l = fns.list_like(shape_and_mask_from, items)
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(l.get_bag(), db)
-
-    l = fns.list_like(shape_and_mask_from, items, db=db)
-    testing.assert_equal(l.get_bag(), db)
 
   def test_wrong_shape_and_mask_from(self):
     with self.assertRaisesRegex(

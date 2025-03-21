@@ -28,15 +28,16 @@ bag = fns.bag
 
 class UuSchemaTest(absltest.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.uu_schema(
+          a=schema_constants.STRING, b=schema_constants.INT32, db=bag()
+      )
+
   def test_mutability(self):
     self.assertFalse(
         fns.uu_schema(
             a=schema_constants.STRING, b=schema_constants.INT32
-        ).is_mutable()
-    )
-    self.assertTrue(
-        fns.uu_schema(
-            a=schema_constants.STRING, b=schema_constants.INT32, db=bag()
         ).is_mutable()
     )
 
@@ -86,41 +87,24 @@ class UuSchemaTest(absltest.TestCase):
         schema.b.a, schema_constants.INT32.with_bag(schema.get_bag())
     )
 
-  def test_bag_arg(self):
-    db = bag()
-    schema = fns.uu_schema(
-        a=schema_constants.INT32, b=schema_constants.STRING, db=db
-    )
-
-    testing.assert_equal(schema.a, schema_constants.INT32.with_bag(db))
-    testing.assert_equal(schema.b, schema_constants.STRING.with_bag(db))
-
   def test_non_dataslice_qvalue_error(self):
-    db = bag()
     with self.assertRaisesRegex(
         ValueError,
-        'expected DataSlice argument, got Text',
+        r'expected all arguments to be DATA_SLICE, got kwargs:.*TEXT',
     ):
       _ = fns.uu_schema(
-          db=db,
           a=schema_constants.INT32,
           b=arolla.text('hello'),
       )
-    testing.assert_equivalent(db, bag())
 
   def test_non_schema_dataslice_error(self):
-    db = bag()
     with self.assertRaisesRegex(
-        ValueError,
-        "schema's schema must be SCHEMA, got: OBJECT",
+        ValueError, "schema's schema must be SCHEMA, got: OBJECT",
     ):
-      db2 = bag()
       _ = fns.uu_schema(
-          db=db,
           a=schema_constants.INT32,
-          b=fns.obj(db=db2, a=schema_constants.INT32),
+          b=fns.obj(a=schema_constants.INT32),
       )
-    testing.assert_equivalent(db, bag())
 
   def test_alias(self):
     self.assertIs(fns.uu_schema, fns.schema.uu_schema)

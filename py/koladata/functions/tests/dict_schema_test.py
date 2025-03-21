@@ -28,35 +28,30 @@ bag = fns.bag
 
 class DictSchemaTest(absltest.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.dict_schema(schema_constants.STRING, schema_constants.INT32, db=bag())
+
   def test_mutability(self):
     self.assertFalse(
         fns.dict_schema(
             schema_constants.STRING, schema_constants.INT32
         ).is_mutable()
     )
-    self.assertTrue(
-        fns.dict_schema(
-            schema_constants.STRING, schema_constants.INT32, db=bag()
-        ).is_mutable()
-    )
 
   def test_simple_schema(self):
-    db = bag()
-    schema = fns.dict_schema(
-        schema_constants.STRING, schema_constants.INT32, db
+    schema = fns.dict_schema(schema_constants.STRING, schema_constants.INT32)
+    testing.assert_equal(
+        schema.get_attr('__keys__').no_bag(), schema_constants.STRING
     )
     testing.assert_equal(
-        schema.get_attr('__keys__'), schema_constants.STRING.with_bag(db)
-    )
-    testing.assert_equal(
-        schema.get_attr('__values__'), schema_constants.INT32.with_bag(db)
+        schema.get_attr('__values__').no_bag(), schema_constants.INT32
     )
 
   def test_dict_schema_equivalent_to_schema_of_dict(self):
-    db = bag()
-    testing.assert_equal(
-        fns.dict({'a': 1}, db=db).get_schema(),
-        fns.dict_schema(schema_constants.STRING, schema_constants.INT32, db),
+    testing.assert_equivalent(
+        fns.dict({'a': 1}).get_schema().extract(),
+        fns.dict_schema(schema_constants.STRING, schema_constants.INT32),
     )
 
   def test_no_databag(self):
@@ -71,18 +66,19 @@ class DictSchemaTest(absltest.TestCase):
     )
 
   def test_nested_schema_with_bag_adoption(self):
-    db = bag()
-    db2 = bag()
+    key_schema = fns.uu_schema(a=schema_constants.INT32)
     schema = fns.dict_schema(
-        db2.uu_schema(a=schema_constants.INT32),
-        db2.uu_schema(a=schema_constants.FLOAT32),
-        db,
+        key_schema,
+        fns.uu_schema(a=schema_constants.FLOAT32),
+    )
+    self.assertNotEqual(
+        key_schema.get_bag().fingerprint, schema.get_bag().fingerprint
     )
     testing.assert_equal(
-        schema.get_attr('__keys__').a, schema_constants.INT32.with_bag(db)
+        schema.get_attr('__keys__').a.no_bag(), schema_constants.INT32
     )
     testing.assert_equal(
-        schema.get_attr('__values__').a, schema_constants.FLOAT32.with_bag(db)
+        schema.get_attr('__values__').a.no_bag(), schema_constants.FLOAT32
     )
 
   def test_non_data_slice_arg(self):

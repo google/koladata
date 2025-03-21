@@ -26,6 +26,12 @@ from koladata.types import jagged_shape
 bag = data_bag.DataBag.empty
 
 
+_DEPRECATED_DB_ARG_ERROR = (
+    'db= argument is deprecated, please either use this API without it or use '
+    'the corresponding db.{} method'
+)
+
+
 def list_(
     items: Any | None = None,
     *,
@@ -67,9 +73,7 @@ def list_(
     return bag().list(
         items=items, item_schema=item_schema, schema=schema, itemid=itemid,
     ).freeze_bag()
-  return db.list(
-      items=items, item_schema=item_schema, schema=schema, itemid=itemid,
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('list'))
 
 
 def list_like(
@@ -109,10 +113,7 @@ def list_like(
         shape_and_mask_from, items=items, item_schema=item_schema,
         schema=schema, itemid=itemid,
     ).freeze_bag()
-  return db.list_like(
-      shape_and_mask_from, items=items, item_schema=item_schema, schema=schema,
-      itemid=itemid,
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('list_like'))
 
 
 def list_shaped(
@@ -151,9 +152,7 @@ def list_shaped(
         shape, items=items, item_schema=item_schema, schema=schema,
         itemid=itemid,
     ).freeze_bag()
-  return db.list_shaped(
-      shape, items=items, item_schema=item_schema, schema=schema, itemid=itemid,
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('list_shaped'))
 
 
 def list_shaped_as(
@@ -258,14 +257,7 @@ def dict_(
         schema=schema,
         itemid=itemid,
     ).freeze_bag()
-  return db.dict(
-      items_or_keys=items_or_keys,
-      values=values,
-      key_schema=key_schema,
-      value_schema=value_schema,
-      schema=schema,
-      itemid=itemid,
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('dict'))
 
 
 def dict_like(
@@ -321,15 +313,7 @@ def dict_like(
         schema=schema,
         itemid=itemid,
     ).freeze_bag()
-  return db.dict_like(
-      shape_and_mask_from,
-      items_or_keys=items_or_keys,
-      values=values,
-      key_schema=key_schema,
-      value_schema=value_schema,
-      schema=schema,
-      itemid=itemid,
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('dict_like'))
 
 
 def dict_shaped(
@@ -382,15 +366,7 @@ def dict_shaped(
         schema=schema,
         itemid=itemid,
     ).freeze_bag()
-  return db.dict_shaped(
-      shape,
-      items_or_keys=items_or_keys,
-      values=values,
-      key_schema=key_schema,
-      value_schema=value_schema,
-      schema=schema,
-      itemid=itemid,
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('dict_shaped'))
 
 
 def dict_shaped_as(
@@ -482,10 +458,7 @@ def new(
         arg, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
         **attrs
     ).freeze_bag()
-  return db.new(
-      arg, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
-      **attrs
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('new'))
 
 
 def new_shaped(
@@ -525,10 +498,7 @@ def new_shaped(
         shape, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
         **attrs
     ).freeze_bag()
-  return db.new_shaped(
-      shape, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
-      **attrs
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('new_shaped'))
 
 
 def new_shaped_as(
@@ -608,10 +578,7 @@ def new_like(
         shape_and_mask_from, schema=schema, overwrite_schema=overwrite_schema,
         itemid=itemid, **attrs
     ).freeze_bag()
-  return db.new_like(
-      shape_and_mask_from, schema=schema, overwrite_schema=overwrite_schema,
-      itemid=itemid, **attrs
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('new_like'))
 
 
 def obj(
@@ -639,7 +606,7 @@ def obj(
   """
   if db is None:
     return bag().obj(arg, itemid=itemid, **attrs).freeze_bag()
-  return db.obj(arg, itemid=itemid, **attrs)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('obj'))
 
 
 def container(
@@ -691,7 +658,7 @@ def obj_shaped(
     # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
     # however it has different boxing rules.
     return bag().obj_shaped(shape, itemid=itemid, **attrs).freeze_bag()
-  return db.obj_shaped(shape, itemid=itemid, **attrs)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('obj_shaped'))
 
 
 def obj_shaped_as(
@@ -747,7 +714,7 @@ def obj_like(
     return bag().obj_like(
         shape_and_mask_from, itemid=itemid, **attrs
     ).freeze_bag()
-  return db.obj_like(shape_and_mask_from, itemid=itemid, **attrs)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('obj_like'))
 
 
 def uu(
@@ -781,9 +748,7 @@ def uu(
     return bag().uu(
         seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs
     ).freeze_bag()
-  return db.uu(
-      seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs
-  )
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('uu'))
 
 
 def uuobj(
@@ -822,7 +787,7 @@ def uuobj(
     # `freeze_bag`. One alternative is to call `eval_op('uuobj', ...)` however
     # it has different boxing rules.
     return bag().uuobj(seed=seed, **attrs).freeze_bag()
-  return db.uuobj(seed=seed, **attrs)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('uuobj'))
 
 
 def implode(
@@ -863,7 +828,7 @@ def implode(
   """
   if db is None:
     return bag().implode(x, ndim, itemid).freeze_bag()
-  return db.implode(x, ndim, itemid)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('implode'))
 
 
 def concat_lists(
@@ -896,4 +861,4 @@ def concat_lists(
     # `freeze_bag`. One alternative is to call `eval_op('concat_lists', ...)`
     # however it has different boxing rules.
     return bag().concat_lists(*lists).freeze_bag()
-  return db.concat_lists(*lists)
+  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('concat_lists'))

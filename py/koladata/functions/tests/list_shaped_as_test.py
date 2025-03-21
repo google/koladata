@@ -31,11 +31,12 @@ kde = kde_operators.kde
 
 class ListShapedAsTest(parameterized.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.list_shaped_as(ds([1, None]), db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.list_shaped_as(ds([1, None])).is_mutable())
-    self.assertTrue(
-        fns.list_shaped_as(ds([1, None]), db=fns.bag()).is_mutable()
-    )
 
   def test_item(self):
     l = fns.list_shaped_as(ds(1))
@@ -61,12 +62,6 @@ class ListShapedAsTest(parameterized.TestCase):
         l[:],
         ds([[[1], [1]], [[1]]], schema_constants.OBJECT).with_bag(l.get_bag()),
     )
-
-  def test_bag_arg(self):
-    db = fns.bag()
-    items = ds([[[1], [2]], [[3]]])
-    l = fns.list_shaped_as(items, items, db=db)
-    testing.assert_equal(l.get_bag(), db)
 
   def test_itemid(self):
     itemid = expr_eval.eval(kde.allocation.new_listid_shaped_as(ds([1, 1])))
@@ -100,32 +95,27 @@ class ListShapedAsTest(parameterized.TestCase):
     )
 
   def test_list_preserves_mixed_types(self):
-    db = fns.bag()
-
     testing.assert_equal(
         fns.list_shaped_as(
-            ds([1, 2.0]), [1, 2.0], item_schema=schema_constants.OBJECT, db=db
-        )[:],
+            ds([1, 2.0]), [1, 2.0], item_schema=schema_constants.OBJECT,
+        )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals(
                 [[1], [2.0]], schema_constants.OBJECT
             ),
-            db=db,
-        )[:],
+        )[:].no_bag(),
     )
     testing.assert_equal(
         fns.list_shaped_as(
             ds([1, 2.0]),
             [1, 2.0],
             schema=fns.list_schema(schema_constants.OBJECT),
-            db=db,
-        )[:],
+        )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals(
                 [[1], [2.0]], schema_constants.OBJECT
             ),
-            db=db,
-        )[:],
+        )[:].no_bag(),
     )
 
   def test_adopt_values(self):

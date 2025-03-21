@@ -864,8 +864,8 @@ def to_proto_1k_mixed_primitive_fields(state):
 
 @google_benchmark.register
 def to_proto_100_of_100_deep(state):
-  schema = kd.schema.new_schema(int32_field=kd.INT32, db=kd.bag())
-  schema.message_field = schema
+  schema = kd.schema.new_schema(int32_field=kd.INT32)
+  schema = schema.with_attrs(message_field=schema)
   bag = kd.bag()
   x = kd.slice([bag.new(schema=schema) for _ in range(100)])
 
@@ -881,8 +881,8 @@ def to_proto_100_of_100_deep(state):
 
 @google_benchmark.register
 def to_proto_100_of_100_deep_mixed_depth(state):
-  schema = kd.schema.new_schema(int32_field=kd.INT32, db=kd.bag())
-  schema.message_field = schema
+  schema = kd.schema.new_schema(int32_field=kd.INT32)
+  schema = schema.with_attrs(message_field=schema)
   bag = kd.bag()
   x = kd.slice([bag.new(schema=schema) for _ in range(100)])
 
@@ -937,8 +937,8 @@ def to_py_1k_mixed_primitive_fields(state):
 
 @google_benchmark.register
 def to_py_100_of_100_deep(state):
-  schema = kd.schema.new_schema(int32_field=kd.INT32, db=kd.bag())
-  schema.message_field = schema
+  schema = kd.schema.new_schema(int32_field=kd.INT32)
+  schema = schema.with_attrs(message_field=schema)
   bag = kd.bag()
   x = kd.slice([bag.new(schema=schema) for _ in range(100)])
 

@@ -83,6 +83,7 @@ py_test(
     deps = [
         ":kd",
         "//py/koladata/expr:tracing_mode",
+        "//py/koladata/functions",
         "//py/koladata/functor:signature_utils",
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:schema_constants",

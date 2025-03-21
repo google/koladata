@@ -34,9 +34,12 @@ kde = kde_operators.kde
 # data_bag_test.
 class DictTest(parameterized.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.dict(db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.dict().is_mutable())
-    self.assertTrue(fns.dict(db=fns.bag()).is_mutable())
 
   def test_empty(self):
     d = fns.dict().fork_bag()
@@ -59,10 +62,9 @@ class DictTest(parameterized.TestCase):
     testing.assert_dicts_values_equal(d, ds([]))
 
   def test_dict_with_uuid(self):
-    db = fns.bag()
     testing.assert_equal(
-        fns.dict(itemid=kd.uuid_for_dict(seed='seed', a=ds(1)), db=db),
-        fns.dict(itemid=kd.uuid_for_dict(seed='seed', a=ds(1)), db=db),
+        fns.dict(itemid=kd.uuid_for_dict(seed='seed', a=ds(1))).no_bag(),
+        fns.dict(itemid=kd.uuid_for_dict(seed='seed', a=ds(1))).no_bag(),
     )
 
   def test_single_arg(self):
@@ -127,15 +129,6 @@ class DictTest(parameterized.TestCase):
     )
     with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
       _ = fns.dict(ds([[['a', 'a']]]), 42, itemid=itemid)
-
-  def test_bag_arg(self):
-    db = fns.bag()
-    d = fns.dict({1: 2})
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(d.get_bag(), db)
-
-    d = fns.dict({1: 2}, db=db)
-    testing.assert_equal(d.get_bag(), db)
 
   def test_repr(self):
     self.assertRegex(

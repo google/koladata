@@ -33,10 +33,13 @@ kde = kde_operators.kde
 
 class DictShapedTest(parameterized.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.dict_shaped(jagged_shape.create_shape([3]), db=fns.bag())
+
   def test_mutability(self):
     shape = jagged_shape.create_shape([3])
     self.assertFalse(fns.dict_shaped(shape).is_mutable())
-    self.assertTrue(fns.dict_shaped(shape, db=fns.bag()).is_mutable())
 
   def test_no_kv(self):
     shape = jagged_shape.create_shape([3])
@@ -255,11 +258,6 @@ class DictShapedTest(parameterized.TestCase):
         ValueError, 'attribute \'non_existent\' is missing'
     ):
       _ = triple.with_bag(x.get_bag()).non_existent
-
-  def test_bag_arg(self):
-    db = fns.bag()
-    x = fns.dict_shaped(ds([[0, None], [0]]).get_shape(), db=db)
-    testing.assert_equal(x.get_bag(), db)
 
   def test_errors(self):
     with self.assertRaisesRegex(

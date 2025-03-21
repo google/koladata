@@ -28,9 +28,12 @@ kde = kde_operators.kde
 
 class NewShapedAsTest(absltest.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.new_shaped_as(ds([1, None]), db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.new_shaped_as(ds([1, None])).is_mutable())
-    self.assertTrue(fns.new_shaped_as(ds([1, None]), db=fns.bag()).is_mutable())
 
   def test_item(self):
     x = fns.new_shaped_as(
@@ -78,11 +81,6 @@ class NewShapedAsTest(absltest.TestCase):
     x = fns.new_shaped_as(itemid, a=42, itemid=itemid)
     testing.assert_equal(x.a.no_bag(), ds([[42, 42], [42]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
-
-  def test_bag_arg(self):
-    db = fns.bag()
-    x = fns.new_shaped_as(ds(1), a=1, b='a', db=db)
-    testing.assert_equal(db, x.get_bag())
 
   def test_schema_arg(self):
     schema = fns.schema.new_schema(

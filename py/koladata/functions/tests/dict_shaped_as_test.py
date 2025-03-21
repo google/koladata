@@ -28,11 +28,12 @@ kde = kde_operators.kde
 
 class DictShapedAsTest(parameterized.TestCase):
 
+  def test_deprecated_db_arg(self):
+    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
+      fns.dict_shaped_as(ds([1, 2, 3]), db=fns.bag())
+
   def test_mutability(self):
     self.assertFalse(fns.dict_shaped_as(ds([1, 2, 3])).is_mutable())
-    self.assertTrue(
-        fns.dict_shaped_as(ds([1, 2, 3]), db=fns.bag()).is_mutable()
-    )
 
   def test_no_kv(self):
     x = fns.dict_shaped_as(ds([1, 2, 3])).fork_bag()
@@ -62,11 +63,6 @@ class DictShapedAsTest(parameterized.TestCase):
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['b']]]))
     testing.assert_equal(x['a'], ds([[1, 1], [None]]).with_bag(x.get_bag()))
     testing.assert_equal(x['b'], ds([[None, None], [2]]).with_bag(x.get_bag()))
-
-  def test_bag_arg(self):
-    db = fns.bag()
-    x = fns.dict_shaped_as(ds([[0, None], [0]]), db=db)
-    testing.assert_equal(x.get_bag(), db)
 
   def test_key_schema_arg(self):
     x = fns.dict_shaped_as(
