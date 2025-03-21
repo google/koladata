@@ -30,10 +30,23 @@ class IterablesInternalGetIterableQTypeTest(parameterized.TestCase):
       qtypes.DATA_BAG,
       arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_BAG),
   )
-  def testValue(self, value_qtype):
+  def test_eval(self, value_qtype):
     iterable_qtype = arolla.eval(
-        koda_internal_iterables.get_iterable_qtype(value_qtype)
+        koda_internal_iterables.get_iterable_qtype(arolla.L.arg),
+        arg=value_qtype,
     )
+    self.assertEqual(iterable_qtype.name, f'ITERABLE[{value_qtype.name}]')
+    self.assertEqual(iterable_qtype.value_qtype, value_qtype)
+
+  @parameterized.parameters(
+      qtypes.DATA_SLICE,
+      qtypes.DATA_BAG,
+      arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_BAG),
+  )
+  def test_infer_attributes(self, value_qtype):
+    iterable_qtype = koda_internal_iterables.get_iterable_qtype(
+        value_qtype
+    ).qvalue
     self.assertEqual(iterable_qtype.name, f'ITERABLE[{value_qtype.name}]')
     self.assertEqual(iterable_qtype.value_qtype, value_qtype)
 

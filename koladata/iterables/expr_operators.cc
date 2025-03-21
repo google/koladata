@@ -31,7 +31,7 @@ namespace koladata::iterables {
 
 GetIterableQTypeOp::GetIterableQTypeOp()
     : arolla::expr::ExprOperatorWithFixedSignature(
-          "qtype.get_iterable_qtype",
+          "koda_internal.iterables.get_iterable_qtype",
           arolla::expr::ExprOperatorSignature{{"x"}},
           "Gets the iterable qtype for the given value qtype.",
           arolla::FingerprintHasher("::koladata::iterables::GetIterableQTypeOp")
