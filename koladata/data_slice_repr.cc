@@ -816,4 +816,15 @@ std::string DataSliceRepr(const DataSlice& ds, const ReprOption& option) {
   return result;
 }
 
+std::string SchemaToStr(const DataSlice& schema_slice) {
+  DCHECK(schema_slice.is_item());
+  absl::StatusOr<std::string> schema_str = DataSliceToStr(schema_slice);
+  // NOTE: schema_str might be always ok(). I don't know a breaking
+  // scenario, so adding the "if" just in case.
+  if (!schema_str.ok()) {
+    schema_str = absl::StrCat(schema_slice.item());
+  }
+  return *std::move(schema_str);
+}
+
 }  // namespace koladata

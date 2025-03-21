@@ -637,8 +637,8 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaName) {
   DataBagPtr bag = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice schema,
                        CreateNamedSchema(bag, "foo", {"a", "b"},
-                                         {test::DataItem(schema::kInt64),
-                                          test::DataItem(schema::kString)}));
+                                         {test::Schema(schema::kInt64),
+                                          test::Schema(schema::kString)}));
   EXPECT_THAT(DataSliceToStr(schema), IsOkAndHolds("foo(a=INT64, b=STRING)"));
 
   // Low level api.
@@ -1793,7 +1793,7 @@ TEST(DataSliceReprTest, DataSliceRepr_WithNamedSchema) {
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice schema,
-      CreateNamedSchema(db, "foo", {"a"}, {test::DataItem(schema::kInt64)}));
+      CreateNamedSchema(db, "foo", {"a"}, {test::Schema(schema::kInt64)}));
   auto value_1 = test::DataSlice<int>({1, 2});
   ASSERT_OK_AND_ASSIGN(DataSlice entity,
                        EntityCreator::FromAttrs(db, {"a"}, {value_1}, schema));
@@ -1803,6 +1803,15 @@ TEST(DataSliceReprTest, DataSliceRepr_WithNamedSchema) {
                                      .show_shape = false}),
               Eq("DataSlice([Entity(a=1), Entity(a=2)], schema: foo(a=INT64), "
                  "ndims: 1, size: 2)"));
+}
+
+TEST(DataSliceReprTest, SchemaToStr) {
+  EXPECT_THAT(SchemaToStr(test::Schema(schema::kObject)), Eq("OBJECT"));
+  EXPECT_THAT(SchemaToStr(test::Schema(schema::kInt32)), Eq("INT32"));
+  EXPECT_THAT(
+      SchemaToStr(
+          *CreateListSchema(DataBag::Empty(), test::Schema(schema::kInt32))),
+      Eq("LIST[INT32]"));
 }
 
 }  // namespace

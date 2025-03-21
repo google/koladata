@@ -75,6 +75,13 @@ absl::StatusOr<std::string> DataItemToStr(
 std::string DataSliceRepr(const DataSlice& ds,
                           const ReprOption& option = ReprOption{});
 
+// Returns a human-readable description of the Schema DataSlice.
+//
+// NOTE: It is recommended that the caller either calls slice.VerifyIsSchema
+// before this or to otherwise ensure that the `schema_slice` is a SchemaItem
+// (e.g. calling .GetSchema() on a DataSlice).
+std::string SchemaToStr(const DataSlice& schema_slice);
+
 }  // namespace koladata
 
 #endif  // KOLADATA_DATA_SLICE_REPR_H_

@@ -230,6 +230,9 @@ class DataSlice {
   // Returns OkStatus if this DataSlice represents a dict Schema.
   absl::Status VerifyIsDictSchema() const;
 
+  // Returns OkStatus if this DataSlice represents an entity Schema.
+  absl::Status VerifyIsEntitySchema() const;
+
   // Returns an original schema from NoFollow slice. If this slice is not
   // NoFollow, an error is returned.
   absl::StatusOr<DataSlice> GetNoFollowedSchema() const;

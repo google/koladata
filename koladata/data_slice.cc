@@ -38,6 +38,7 @@
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice_op.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/casting.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -1348,7 +1349,7 @@ absl::Status DataSlice::VerifyIsListSchema() const {
   }
   RETURN_IF_ERROR(VerifyIsSchema());
   return absl::InvalidArgumentError(
-      absl::StrFormat("expected List schema, got %v", item()));
+      absl::StrFormat("expected List schema, got %s", SchemaToStr(*this)));
 }
 
 absl::Status DataSlice::VerifyIsDictSchema() const {
@@ -1357,7 +1358,16 @@ absl::Status DataSlice::VerifyIsDictSchema() const {
   }
   RETURN_IF_ERROR(VerifyIsSchema());
   return absl::InvalidArgumentError(
-      absl::StrFormat("expected Dict schema, got %v", item()));
+      absl::StrFormat("expected Dict schema, got %s", SchemaToStr(*this)));
+}
+
+absl::Status DataSlice::VerifyIsEntitySchema() const {
+  if (IsEntitySchema()) {
+    return absl::OkStatus();
+  }
+  RETURN_IF_ERROR(VerifyIsSchema());
+  return absl::InvalidArgumentError(
+      absl::StrFormat("expected Entity schema, got %s", SchemaToStr(*this)));
 }
 
 absl::StatusOr<DataSlice> DataSlice::GetNoFollowedSchema() const {

@@ -69,18 +69,6 @@ absl::Status ExpectNoneOr(schema::DType dtype, absl::string_view arg_name,
   return absl::OkStatus();
 }
 
-// Returns a simple description of the slice schema. Note that OBJECT schemas
-// are opaque and the contents (e.g. __schema__) are _not_ included.
-std::string SimpleDescribeSliceSchema(const DataSlice& slice) {
-  absl::StatusOr<std::string> schema_str = DataSliceToStr(slice.GetSchema());
-  // NOTE: schema_str might be always ok(). I don't know a breaking
-  // scenario, so adding the "if" just in case.
-  if (!schema_str.ok()) {
-    schema_str = absl::StrCat(slice.GetSchemaImpl());
-  }
-  return *std::move(schema_str);
-}
-
 }  // namespace
 
 internal::DataItem GetNarrowedSchema(const DataSlice& slice) {
@@ -224,7 +212,7 @@ std::string DescribeSliceSchema(const DataSlice& slice) {
     absl::StrAppend(&result, " values");
     return result;
   } else {
-    return SimpleDescribeSliceSchema(slice);
+    return SchemaToStr(slice.GetSchema());
   }
 }
 

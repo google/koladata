@@ -853,6 +853,12 @@ TEST(DataSliceTest, VerifyIsListSchema) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected List schema, got INT32")));
 
+  EXPECT_THAT(CreateEntitySchema(db, {"a"},
+                                 {test::Schema(schema::kInt32)})
+              ->VerifyIsListSchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("expected List schema, got SCHEMA(a=INT32)")));
+
   EXPECT_THAT(test::DataItem(42).VerifyIsListSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("must be SCHEMA, got: INT32")));
@@ -873,11 +879,43 @@ TEST(DataSliceTest, VerifyIsDictSchema) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected Dict schema, got OBJECT")));
 
+  EXPECT_THAT(CreateListSchema(db, test::Schema(schema::kInt32))
+              ->VerifyIsDictSchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("expected Dict schema, got LIST[INT32]")));
+
   EXPECT_THAT(test::DataItem(42).VerifyIsDictSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("must be SCHEMA, got: INT32")));
 
   EXPECT_THAT(test::DataSlice<int>({1, 2, 3}).VerifyIsDictSchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("must be SCHEMA, got: INT32")));
+}
+
+TEST(DataSliceTest, VerifyIsEntitySchema) {
+  auto db = DataBag::Empty();
+  EXPECT_THAT(
+      CreateEntitySchema(db, {"a", "b"},
+                         {test::Schema(schema::kInt32),
+                          test::Schema(schema::kFloat32)})
+      ->VerifyIsEntitySchema(),
+      IsOk());
+
+  EXPECT_THAT(test::Schema(schema::kObject).VerifyIsEntitySchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("expected Entity schema, got OBJECT")));
+
+  EXPECT_THAT(CreateListSchema(db, test::Schema(schema::kInt32))
+              ->VerifyIsEntitySchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("expected Entity schema, got LIST[INT32]")));
+
+  EXPECT_THAT(test::DataItem(42).VerifyIsEntitySchema(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("must be SCHEMA, got: INT32")));
+
+  EXPECT_THAT(test::DataSlice<int>({1, 2, 3}).VerifyIsEntitySchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("must be SCHEMA, got: INT32")));
 }
