@@ -6,36 +6,38 @@ This document lists public **Koda** APIs, including operators (accessible from
 `kd` and `kde` packages) and methods of main abstractions (e.g.
 DataSlice, DataBag, etc.).
 
-Category  | Subcategory | Description
---------- | ----------- | ------------
-[kd](#kd_category) | | `kd` and `kde` operators
- | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
- | [annotation](#kd.annotation) | Annotation operators.
- | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
- | [bags](#kd.bags) | Operators that work on DataBags.
- | [comparison](#kd.comparison) | Operators that compare DataSlices.
- | [core](#kd.core) | Core operators that are not part of other categories.
- | [entities](#kd.entities) | Operators that work solely with entities.
- | [dicts](#kd.dicts) | Operators working with dictionaries.
- | [functor](#kd.functor) | Operators to create and call functors.
- | [ids](#kd.ids) | Operators that work with ItemIds.
- | [json](#kd.json) | JSON serialization operators.
- | [lists](#kd.lists) | Operators working with lists.
- | [masking](#kd.masking) | Masking operators.
- | [math](#kd.math) | Arithmetic operators.
- | [objs](#kd.objs) | Operators that work solely with objects.
- | [proto](#kd.proto) | Protocol buffer serialization operators.
- | [py](#kd.py) | Operators that call Python functions.
- | [random](#kd.random) | Random and sampling operators.
- | [schema](#kd.schema) | Schema-related operators.
- | [shapes](#kd.shapes) | Operators that work on shapes
- | [slices](#kd.slices) | Operators that perform DataSlice transformations.
- | [strings](#kd.strings) | Operators that work with strings data.
- | [tuple](#kd.tuple) | Operators to create tuples.
-[kd_ext](#kd_ext_category) | | `kd_ext` operators
-[DataSlice](#DataSlice_category) | | `DataSlice` methods
-[DataBag](#DataBag_category) | | `DataBag` methods
-[DataItem](#DataItem_category) | | `DataItem` methods
+Category                         | Subcategory                  | Description
+-------------------------------- | ---------------------------- | -----------
+[kd](#kd_category)               |                              | `kd` and `kde` operators
+                                 | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
+                                 | [annotation](#kd.annotation) | Annotation operators.
+                                 | [assertion](#kd.assertion)   | Operators that assert properties of DataSlices.
+                                 | [bags](#kd.bags)             | Operators that work on DataBags.
+                                 | [comparison](#kd.comparison) | Operators that compare DataSlices.
+                                 | [core](#kd.core)             | Core operators that are not part of other categories.
+                                 | [expr](#kd.expr)             | Expr utilities.
+                                 | [entities](#kd.entities)     | Operators that work solely with entities.
+                                 | [dicts](#kd.dicts)           | Operators working with dictionaries.
+                                 | [functor](#kd.functor)       | Operators to create and call functors.
+                                 | [ids](#kd.ids)               | Operators that work with ItemIds.
+                                 | [iterables](#kd.iterables)   | Operators that work with iterables. These APIs are in active development and might change often.
+                                 | [json](#kd.json)             | JSON serialization operators.
+                                 | [lists](#kd.lists)           | Operators working with lists.
+                                 | [masking](#kd.masking)       | Masking operators.
+                                 | [math](#kd.math)             | Arithmetic operators.
+                                 | [objs](#kd.objs)             | Operators that work solely with objects.
+                                 | [proto](#kd.proto)           | Protocol buffer serialization operators.
+                                 | [py](#kd.py)                 | Operators that call Python functions.
+                                 | [random](#kd.random)         | Random and sampling operators.
+                                 | [schema](#kd.schema)         | Schema-related operators.
+                                 | [shapes](#kd.shapes)         | Operators that work on shapes
+                                 | [slices](#kd.slices)         | Operators that perform DataSlice transformations.
+                                 | [strings](#kd.strings)       | Operators that work with strings data.
+                                 | [tuple](#kd.tuple)           | Operators to create tuples.
+[kd_ext](#kd_ext_category)       |                              | `kd_ext` operators
+[DataSlice](#DataSlice_category) |                              | `DataSlice` methods
+[DataBag](#DataBag_category)     |                              | `DataBag` methods
+[DataItem](#DataItem_category)   |                              | `DataItem` methods
 
 ## `kd` and `kde` operators {#kd_category}
 
@@ -1159,6 +1161,122 @@ Returns:
 
 </section>
 
+### kd.expr {#kd.expr}
+
+Expr utilities.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.expr.as_expr(arg)` {#kd.expr.as_expr}
+
+``` {.no-copy}
+Converts Python values into Exprs.
+```
+
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x320dbb96e310>)` {#kd.expr.get_input_names}
+
+``` {.no-copy}
+Returns names of `container` inputs used in `expr`.
+```
+
+### `kd.expr.get_name(expr)` {#kd.expr.get_name}
+
+``` {.no-copy}
+Returns the name of the given Expr, or None if it does not have one.
+```
+
+### `kd.expr.is_packed_expr(ds)` {#kd.expr.is_packed_expr}
+
+``` {.no-copy}
+Returns kd.present if the argument is a DataItem containing an Expr.
+```
+
+### `kd.expr.literal(value)` {#kd.expr.literal}
+
+``` {.no-copy}
+Constructs an expr with a LiteralOperator wrapping the provided QValue.
+```
+
+### `kd.expr.pack_expr(expr)` {#kd.expr.pack_expr}
+
+``` {.no-copy}
+Packs the given Expr into a DataItem.
+```
+
+### `kd.expr.sub(expr, *subs)` {#kd.expr.sub}
+
+``` {.no-copy}
+Returns `expr` with provided expressions replaced.
+
+  Example usage:
+    kd.sub(expr, (from_1, to_1), (from_2, to_2), ...)
+
+  For the special case of a single substitution, you can also do:
+    kd.sub(expr, from, to)
+
+  It does the substitution by traversing 'expr' post-order and comparing
+  fingerprints of sub-Exprs in the original expression and those in in 'subs'.
+  For example,
+
+    kd.sub(I.x + I.y, (I.x, I.z), (I.x + I.y, I.k)) -> I.k
+
+    kd.sub(I.x + I.y, (I.x, I.y), (I.y + I.y, I.z)) -> I.y + I.y
+
+  It does not do deep transformation recursively. For example,
+
+    kd.sub(I.x + I.y, (I.x, I.z), (I.y, I.x)) -> I.z + I.x
+
+  Args:
+    expr: Expr which substitutions are applied to
+    *subs: Either zero or more (sub_from, sub_to) tuples, or exactly two
+      arguments from and to. The keys should be expressions, and the values
+      should be possible to convert to expressions using kd.as_expr.
+
+  Returns:
+    A new Expr with substitutions.
+```
+
+### `kd.expr.sub_by_name(expr, /, **subs)` {#kd.expr.sub_by_name}
+
+``` {.no-copy}
+Returns `expr` with named subexpressions replaced.
+
+  Use `kde.with_name(expr, name)` to create a named subexpression.
+
+  Example:
+    foo = kde.with_name(I.x, 'foo')
+    bar = kde.with_name(I.y, 'bar')
+    expr = foo + bar
+    kd.sub_by_name(expr, foo=I.z)
+    # -> I.z + kde.with_name(I.y, 'bar')
+
+  Args:
+    expr: an expression.
+    **subs: mapping from subexpression name to replacement node.
+```
+
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x320dbb96e310>, /, **subs)` {#kd.expr.sub_inputs}
+
+``` {.no-copy}
+Returns an expression with `container` inputs replaced with Expr(s).
+```
+
+### `kd.expr.unpack_expr(ds)` {#kd.expr.unpack_expr}
+
+``` {.no-copy}
+Unpacks an Expr stored in a DataItem.
+```
+
+### `kd.expr.unwrap_named(expr)` {#kd.expr.unwrap_named}
+
+``` {.no-copy}
+Unwraps a named Expr, raising if it is not named.
+```
+
+</section>
+
 ### kd.entities {#kd.entities}
 
 Operators that work solely with entities.
@@ -2275,6 +2393,61 @@ Args:
 
 Returns:
   A 1-dimensional DataSlice with `size` distinct uuids.
+```
+
+</section>
+
+### kd.iterables {#kd.iterables}
+
+Operators that work with iterables. These APIs are in active development and
+might change often.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.iterables.make(*items, value_type_as=unspecified)` {#kd.iterables.make}
+
+``` {.no-copy}
+Creates an iterable from the given list of items, in the given order.
+
+The items must all have the same type (for example data slice, or data bag).
+However, in case of data slices, the items can have different shapes or
+schemas.
+
+Args:
+  *items: A list of items to be put into the iterable.
+  value_type_as: A value that has the same type as the items. It is useful to
+    specify this explicitly if the list of items may be empty. If this is not
+    specified and the list of items is empty, the iterable will have data
+    slice as the value type.
+
+Returns:
+  An iterable with the given items.
+```
+
+### `kd.iterables.make_unordered(*items, value_type_as=unspecified)` {#kd.iterables.make_unordered}
+
+``` {.no-copy}
+Creates an iterable from the given list of items, in an arbitrary order.
+
+Having unspecified order allows the parallel execution to put the items into
+the iterable in the order they are computed, potentially increasing the amount
+of parallel processing done.
+
+When used with the non-parallel evaluation, we intentionally randomize the
+order to prevent user code from depending on the order, and avoid
+discrepancies when switching to parallel evaluation.
+
+Args:
+  *items: A list of items to be put into the iterable.
+  value_type_as: A value that has the same type as the items. It is useful to
+    specify this explicitly if the list of items may be empty. If this is not
+    specified and the list of items is empty, the iterable will have data
+    slice as the value type.
+
+Returns:
+  An iterable with the given items, in an arbitrary order.
 ```
 
 </section>

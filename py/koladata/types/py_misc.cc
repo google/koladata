@@ -87,6 +87,8 @@ absl::Nullable<PyObject*> PyFlattenPyList(PyObject* /*module*/,
 
 const PyMethodDef kDefPyLiteral = {
     "literal", PyLiteral, METH_O,
+    "literal(value)\n"
+    "--\n\n"
     "Constructs an expr with a LiteralOperator wrapping the provided QValue."};
 
 const PyMethodDef kDefPyAddSchemaConstants = {
