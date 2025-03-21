@@ -532,10 +532,15 @@ def _get_vis_module():
 
 @add_method(DataSlice, 'display')
 def _display(
-    self,
+    self: DataSlice,
     options: Any | None = None,
 ) -> None:
-  """Visualizes a DataSlice as an html widget."""
+  """Visualizes a DataSlice as an html widget.
+
+  Args:
+    self: The DataSlice to visualize.
+    options: This should be a `koladata.ext.vis.DataSliceVisOptions`.
+  """
   if (vis := _get_vis_module()) is not None:
     vis.visualize_slice(self, options=options)
   else:
