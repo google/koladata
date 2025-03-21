@@ -15,3 +15,5 @@ their attributes and their relations, as well as a DSL (Koda Expressions) to
 work with them.
 
 This is not an officially supported Google product.
+
+For detailed documentation and guides, check out our [documentation site](https://google.github.io/koladata/).
