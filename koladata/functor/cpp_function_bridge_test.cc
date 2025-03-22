@@ -16,7 +16,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
@@ -31,6 +30,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serialization/encode.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 namespace {
