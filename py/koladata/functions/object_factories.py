@@ -451,13 +451,13 @@ def new(
     data_slice.DataSlice with the given attrs.
   """
   if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('new', ...)` however it
-    # has different boxing rules.
-    return bag().new(
-        arg, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
-        **attrs
-    ).freeze_bag()
+    return data_bag.DataBag._new_no_bag(  # pylint: disable=protected-access
+        arg,
+        schema=schema,
+        overwrite_schema=overwrite_schema,
+        itemid=itemid,
+        **attrs,
+    )
   raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('new'))
 
 
@@ -605,7 +605,9 @@ def obj(
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
   """
   if db is None:
-    return bag().obj(arg, itemid=itemid, **attrs).freeze_bag()
+    return data_bag.DataBag._obj_no_bag(  # pylint: disable=protected-access
+        arg, itemid=itemid, **attrs
+    )
   raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('obj'))
 
 
