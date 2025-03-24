@@ -59,8 +59,7 @@ def make(*items, value_type_as=arolla.unspecified()):
       ),
       unspecified_value_type_as_case=arolla.types.DispatchCase(
           M.core.apply_varargs(M.seq.make, P.items),
-          condition=M.qtype.is_tuple_qtype(P.items)
-          & (M.qtype.get_field_count(P.items) > 0)
+          condition=(M.qtype.get_field_count(P.items) > 0)
           & (P.value_type_as == arolla.UNSPECIFIED),
       ),
       # We add value_type_as to the sequence and then remove it via seq.slice,
