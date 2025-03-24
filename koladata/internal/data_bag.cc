@@ -2665,6 +2665,12 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataItem& schema_item,
       return absl::InvalidArgumentError(absl::StrFormat(
           "only Text can be used as a schema name, got: %v", value));
     }
+  } else if (attr == schema::kSchemaMetadataAttr) {
+    if (!value.holds_value<ObjectId>()) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+        "only ItemId can be used as a schema metadata, got: %v", value
+      ));
+    }
   } else {
     RETURN_IF_ERROR(VerifyIsSchema(value));
   }
@@ -2699,7 +2705,9 @@ DataSliceImpl DataBagImpl::WithoutSmallAllocs(
 absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
                                         absl::string_view attr,
                                         const DataItem& value) {
-  RETURN_IF_ERROR(VerifyIsSchema(value));
+  if (attr != schema::kSchemaNameAttr && attr != schema::kSchemaMetadataAttr) {
+    RETURN_IF_ERROR(VerifyIsSchema(value));
+  }
   if (schema_slice.is_empty_and_unknown()) {
     return absl::OkStatus();
   }
@@ -2789,7 +2797,7 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
             [&](int64_t /*id*/, ObjectId schema_id,
             arolla::view_type_t<ValueT> value) {
               if constexpr (std::is_same_v<ValueT, ObjectId>) {
-                if (!value.IsSchema()) {
+                if (!value.IsSchema() && attr != schema::kSchemaMetadataAttr) {
                   status = InvalidRhsSetSchemaAttrError(values);
                   return;
                 }
@@ -2818,7 +2826,9 @@ absl::Status DataBagImpl::SetSchemaAttr(const DataSliceImpl& schema_slice,
     schema_slice.values<ObjectId>().ForEachPresent(
         [&](int64_t offset, ObjectId schema_id) {
           DataItem value = values[offset];
-          if (value.has_value() && !VerifyIsSchema(value).ok()) {
+          if (value.has_value() && !VerifyIsSchema(value).ok() &&
+              attr != schema::kSchemaMetadataAttr &&
+              attr != schema::kSchemaNameAttr) {
             status = InvalidRhsSetSchemaAttrError(values);
             return;
           }

@@ -614,7 +614,7 @@ std::string GetSchemaNameOrEmpty(const DataBagPtr& bag,
                                  const DataItem& schema) {
   DCHECK(bag != nullptr);
   DCHECK(schema.holds_value<ObjectId>());
-  const internal::DataBagImpl & bag_impl = bag->GetImpl();
+  const internal::DataBagImpl& bag_impl = bag->GetImpl();
   FlattenFallbackFinder finder(*bag);
   ASSIGN_OR_RETURN(
       DataItem schema_name,
@@ -625,6 +625,31 @@ std::string GetSchemaNameOrEmpty(const DataBagPtr& bag,
     return "";
   }
   return std::string(schema_name.value<arolla::Text>().view());
+}
+
+// Return the schema metadata from __schema_metadata__ attribute. The metadata
+// must hold an ObjectId and bag must not be null.
+std::string GetSchemaMetadataOrEmpty(const DataBagPtr& bag,
+                                     const DataItem& schema,
+                                     const ReprOption& option,
+                                     WrappingBehavior& wrapping) {
+  DCHECK(bag != nullptr);
+  DCHECK(schema.holds_value<ObjectId>());
+  const internal::DataBagImpl& bag_impl = bag->GetImpl();
+  FlattenFallbackFinder finder(*bag);
+  ASSIGN_OR_RETURN(
+      DataItem schema_metadata,
+      bag_impl.GetSchemaAttrAllowMissing(schema, schema::kSchemaMetadataAttr,
+                                         finder.GetFlattenFallbacks()),
+      [](const absl::Status& status) { return ""; }(_));
+  if (!schema_metadata.has_value()) {
+    return "";
+  }
+  ASSIGN_OR_RETURN(std::string metadata_str,
+                   DataItemToStr(schema_metadata, DataItem(schema::kObject),
+                                 bag, option, wrapping),
+                   [](const absl::Status& status) { return ""; }(_));
+  return metadata_str;
 }
 
 absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
@@ -694,6 +719,12 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
         std::vector<std::string> schema_parts,
         AttrsToStrParts(data_item, internal::DataItem(schema::kSchema), db,
                         next_option, wrapping));
+    std::string metadata =
+        GetSchemaMetadataOrEmpty(db, data_item, next_option, wrapping);
+    if (!metadata.empty()) {
+      schema_parts.push_back(wrapping.FormatSchemaAttrAndValue(
+          schema::kSchemaMetadataAttr, metadata, /*is_list=*/false));
+    }
     return PrettyFormatStr(
       schema_parts, {.prefix = prefix, .suffix = ")"},
       wrapping.html_char_count - initial_html_char_count);

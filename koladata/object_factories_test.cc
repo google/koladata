@@ -143,6 +143,25 @@ TEST(NamedSchemaTest, CreateNamedSchema_SchemaName) {
   EXPECT_EQ(schema_name.item(), arolla::Text("name"));
 }
 
+TEST(CreateMetadataTest, CreateMetadata) {
+  auto db = DataBag::Empty();
+
+  auto attr_db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+    auto schema,
+    CreateEntitySchema(attr_db, {"a"}, {test::Schema(schema::kFloat32)}));
+  ASSERT_OK_AND_ASSIGN(auto metadata, CreateMetadata(db, schema));
+
+  ASSERT_OK_AND_ASSIGN(auto assigned_value,
+                       schema.WithBag(db).GetAttr(schema::kSchemaMetadataAttr));
+  EXPECT_THAT(assigned_value, IsEquivalentTo(metadata));
+
+  EXPECT_EQ(metadata.GetSchemaImpl(), schema::kObject);
+  ASSERT_OK_AND_ASSIGN(auto metadata_schema,
+                       metadata.GetAttr(schema::kSchemaAttr));
+  ASSERT_OK(metadata_schema.VerifyIsSchema());
+}
+
 TEST(EntitySchemaTest, Error) {
   auto db = DataBag::Empty();
   auto int_s = test::Schema(schema::kInt32);

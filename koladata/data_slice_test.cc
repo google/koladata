@@ -1204,6 +1204,43 @@ TEST(DataSliceTest, GetObjSchema) {
   }
 }
 
+TEST(DataSliceTest, SetGetMetadata) {
+  {
+    // item
+    auto db = DataBag::Empty();
+    auto schema = test::Schema(internal::AllocateExplicitSchema()).WithBag(db);
+    ASSERT_OK_AND_ASSIGN(auto value, DataSlice::CreateFromScalar(1));
+    ASSERT_OK_AND_ASSIGN(auto schema_metadata, CreateMetadata(db, schema));
+    ASSERT_OK(schema_metadata.SetAttr("foo", value));
+    ASSERT_OK_AND_ASSIGN(auto result_metadata,
+                         schema.GetAttr(schema::kSchemaMetadataAttr));
+    ASSERT_OK_AND_ASSIGN(auto foo, result_metadata.GetAttr("foo"));
+    EXPECT_EQ(foo.item(), 1);
+  }
+  {
+    // slice, multiple metadata args
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(
+        auto schema_ds,
+        DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
+                              internal::AllocateExplicitSchemas(5), 5),
+                          DataSlice::JaggedShape::FlatFromSize(5),
+                          DataItem(schema::kSchema), db));
+    auto values_foo = test::DataSlice<int>({1, 2, 3, 4, 5}).WithBag(db);
+    auto values_bar = test::DataSlice<int>({6, 7, 8, 9, 0}).WithBag(db);
+    ASSERT_OK_AND_ASSIGN(auto schema_metadata, CreateMetadata(db, schema_ds));
+    ASSERT_OK(schema_metadata.SetAttr("foo", values_foo));
+    ASSERT_OK_AND_ASSIGN(auto schema_metadata2, CreateMetadata(db, schema_ds));
+    ASSERT_OK(schema_metadata2.SetAttr("bar", values_bar));
+    ASSERT_OK_AND_ASSIGN(auto result_metadata,
+      schema_ds.GetAttr(schema::kSchemaMetadataAttr));
+    ASSERT_OK_AND_ASSIGN(auto foo, result_metadata.GetAttr("foo"));
+    EXPECT_THAT(foo.slice(), ElementsAre(1, 2, 3, 4, 5));
+    ASSERT_OK_AND_ASSIGN(auto bar, result_metadata.GetAttr("bar"));
+    EXPECT_THAT(bar.slice(), ElementsAre(6, 7, 8, 9, 0));
+  }
+}
+
 TEST(DataSliceTest, GetAttrNames_Entity) {
   auto db = DataBag::Empty();
   auto a = test::DataSlice<int>({1});
@@ -1446,6 +1483,37 @@ TEST(DataSliceTest, GetAttrNames_MixedObjectAndPrimitive) {
   EXPECT_THAT(ds.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b", "c")));
   EXPECT_THAT(ds.GetAttrNames(/*union_object_attrs=*/true),
               IsOkAndHolds(ElementsAre("a", "b", "c")));
+}
+
+TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata) {
+  auto db = DataBag::Empty();
+  auto a = test::DataItem(1);
+  auto b = test::DataItem("a");
+  auto c = test::DataItem(3.14);
+  ASSERT_OK_AND_ASSIGN(
+      auto object, ObjectCreator::FromAttrs(db, {"a", "b", "c"}, {a, b, c}));
+  ASSERT_OK_AND_ASSIGN(auto object_schema, object.GetAttr(schema::kSchemaAttr));
+  ASSERT_OK(CreateMetadata(db, object_schema));
+
+  EXPECT_THAT(object.GetAttrNames(),
+              IsOkAndHolds(ElementsAre("a", "b", "c")));
+  EXPECT_THAT(object.GetAttrNames(/*union_object_attrs=*/true),
+              IsOkAndHolds(ElementsAre("a", "b", "c")));
+}
+
+TEST(DataSliceTest, GetAttrNames_IgnoreShemaMetadata_BigAlloc) {
+  auto db = DataBag::Empty();
+  auto missing =
+      test::DataSlice<int>({std::nullopt, std::nullopt, std::nullopt,
+                            std::nullopt, std::nullopt, std::nullopt});
+  auto d = test::DataSlice<float>({1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+  ASSERT_OK_AND_ASSIGN(auto object,
+                       ObjectCreator::FromAttrs(db, {"a", "b"}, {missing, d}));
+  ASSERT_OK_AND_ASSIGN(auto object_schema, object.GetAttr(schema::kSchemaAttr));
+  ASSERT_OK(CreateMetadata(db, object_schema));
+  EXPECT_THAT(object.GetAttrNames(), IsOkAndHolds(ElementsAre("a", "b")));
+  EXPECT_THAT(object.GetAttrNames(/*union_object_attrs=*/true),
+              IsOkAndHolds(ElementsAre("a", "b")));
 }
 
 TEST(DataSliceTest, GetAttrErrors) {

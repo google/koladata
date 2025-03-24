@@ -934,6 +934,35 @@ absl::StatusOr<DataSlice> CreateNamedSchema(
   return res;
 }
 
+absl::StatusOr<DataSlice> CreateMetadata(const DataBagPtr& db,
+                                         const DataSlice& slice) {
+  if (!slice.GetSchemaImpl().is_schema_schema()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("failed to create metadata; cannot create for a "
+                        "DataSlice with %v schema",
+                        slice.GetSchemaImpl()));
+  }
+  if (db == nullptr) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("failed to create metadata; the DataSlice "
+                        "is a reference without a bag"));
+  }
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   db->GetMutableImpl());
+  ASSIGN_OR_RETURN(
+      auto metadata,
+      slice.VisitImpl([&]<class T>(
+                          const T& ds_impl) -> absl::StatusOr<DataSlice> {
+        ASSIGN_OR_RETURN(T metadata_impl, internal::CreateUuidWithMainObject(
+                                              ds_impl, schema::kMetadataSeed));
+        RETURN_IF_ERROR(db_mutable_impl.SetSchemaAttr(
+            ds_impl, schema::kSchemaMetadataAttr, metadata_impl));
+        return DataSlice::Create(std::move(metadata_impl), slice.GetShape(),
+                                 internal::DataItem(schema::kItemId), db);
+      }));
+  return ObjectCreator::Like(db, slice, {}, {}, std::move(metadata));
+}
+
 absl::StatusOr<DataSlice> CreateSchema(
     const DataBagPtr& db,
     absl::Span<const absl::string_view> attr_names,

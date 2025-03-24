@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -531,6 +532,33 @@ TEST(DataBagTest, SetSchemaName) {
     EXPECT_THAT(db->SetSchemaAttr(schema, schema::kSchemaNameAttr, schema_name),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("only Text can be used as a schema name")));
+  }
+}
+
+TEST(DataBagTest, SetSchemaMetadata) {
+  {
+    // Valid metadata.
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema = DataItem(AllocateExplicitSchema());
+    ASSERT_OK_AND_ASSIGN(
+        auto schema_metadata,
+        CreateUuidWithMainObject(schema, schema::kMetadataSeed));
+    ASSERT_OK(db->SetSchemaAttr(schema, schema::kSchemaMetadataAttr,
+                                schema_metadata));
+    ASSERT_OK_AND_ASSIGN(
+        DataItem assigned_metadata,
+        db->GetSchemaAttr(schema, schema::kSchemaMetadataAttr));
+    EXPECT_EQ(schema_metadata, assigned_metadata);
+  }
+  {
+    // Invalid metadata;
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto schema = DataItem(AllocateExplicitSchema());
+    auto schema_metadata = DataItem(1);
+    EXPECT_THAT(
+        db->SetSchemaAttr(schema, schema::kSchemaMetadataAttr, schema_metadata),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("only ItemId can be used as a schema metadata")));
   }
 }
 

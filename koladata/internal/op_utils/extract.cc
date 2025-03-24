@@ -404,7 +404,8 @@ class CopyingProcessor {
       }
       return std::make_pair(std::move(attr_schema), false);
     }
-    if (attr_name == schema::kSchemaNameAttr &&
+    if ((attr_name == schema::kSchemaNameAttr ||
+         attr_name == schema::kSchemaMetadataAttr) &&
         old_schema_item != schema_item) {
       return std::make_pair(DataItem(), false);
     }
@@ -532,10 +533,17 @@ class CopyingProcessor {
       if (attr_name == schema::kSchemaNameAttr) {
         continue;
       }
+      if (attr_name == schema::kSchemaMetadataAttr && was_schema_updated) {
+        RETURN_IF_ERROR(Visit({DataSliceImpl::Create({std::move(attr_schema)}),
+                               DataItem(schema::kObject),
+                               SchemaSource::kDataDatabag, ds.depth - 1}));
+        continue;
+      }
       has_regular_attr = true;
       if (was_schema_updated || ds.slice.present_count() > 0) {
         // Data or schema are not yet copied.
-        RETURN_IF_ERROR(ProcessAttribute(ds, attr_name, attr_schema));
+        RETURN_IF_ERROR(
+            ProcessAttribute(ds, attr_name, std::move(attr_schema)));
       }
     }
     if (has_list_items_attr) {

@@ -66,9 +66,11 @@ constexpr absl::string_view kListItemsSchemaAttr = "__items__";
 constexpr absl::string_view kDictKeysSchemaAttr = "__keys__";
 constexpr absl::string_view kDictValuesSchemaAttr = "__values__";
 constexpr absl::string_view kSchemaNameAttr = "__schema_name__";
+constexpr absl::string_view kSchemaMetadataAttr = "__schema_metadata__";
 
 constexpr absl::string_view kImplicitSchemaSeed = "__implicit_schema__";
 constexpr absl::string_view kNoFollowSchemaSeed = "__nofollow_schema__";
+constexpr absl::string_view kMetadataSeed = "__metadata__";
 
 // Finds the supremum schema of all seen schemas according to the type promotion
 // lattice defined in go/koda-type-promotion.

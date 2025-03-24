@@ -281,6 +281,10 @@ absl::StatusOr<DataSlice> CreateNamedSchema(
     absl::Span<const absl::string_view> attr_names,
     absl::Span<const DataSlice> schemas);
 
+// Returns a metadata with its ItemId derived from given slice.
+absl::StatusOr<DataSlice> CreateMetadata(const DataBagPtr& db,
+                                         const DataSlice& slice);
+
 // Returns an allocated schema with attributes `attr_names` set to `schemas` in
 // `db`.
 

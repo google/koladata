@@ -228,7 +228,7 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
 }
 
 // Fetches all attribute names from `schema_item` and returns them ordered.
-// Excludes kSchemaNameAttr from the result.
+// Excludes kSchemaNameAttr, kSchemaMetadataAttr from the result.
 absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromSchemaItem(
     const internal::DataItem& schema_item, const internal::DataBagImpl& db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks) {
@@ -254,6 +254,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromSchemaItem(
         result.insert(std::string(attr));
       });
   result.erase(schema::kSchemaNameAttr);
+  result.erase(schema::kSchemaMetadataAttr);
   return result;
 }
 
@@ -273,6 +274,9 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataItem(
   return GetAttrsFromSchemaItem(schema_item, db_impl, fallbacks);
 }
 
+// Fetches attribute names from union or intersection of `schemas` and returns
+// them ordered. All `schemas` should belong to the `schema_alloc`.
+// Excludes kSchemaNameAttr, kSchemaMetadataAttr from the result.
 absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
     internal::ObjectId schema_alloc, const internal::DataSliceImpl& schemas,
     const internal::DataBagImpl& db_impl,
@@ -295,6 +299,8 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
       result.insert(std::string(attr_name_view));
     }
   }
+  // kSchemaNameAttr can only be present in a small allocation.
+  result.erase(schema::kSchemaMetadataAttr);
   return result;
 }
 
@@ -619,6 +625,8 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
   if (schema == schema::kSchema) {
     if (attr_name == schema::kSchemaNameAttr) {
       res_schema = internal::DataItem(schema::kString);
+    } else if (attr_name == schema::kSchemaMetadataAttr) {
+      res_schema = internal::DataItem(schema::kObject);
     } else {
       res_schema = internal::DataItem(schema::kSchema);
     }

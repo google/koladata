@@ -653,6 +653,19 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaName) {
               IsOkAndHolds("foo(a=INT64, b=STRING)"));
 }
 
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaMetadata) {
+  DataBagPtr bag = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(DataSlice schema,
+                       CreateSchema(bag, {"a", "b"},
+                                    {test::Schema(schema::kInt64),
+                                     test::Schema(schema::kString)}));
+  ASSERT_OK_AND_ASSIGN(DataSlice metadata, CreateMetadata(bag, schema));
+  ASSERT_OK(metadata.SetAttr("foo", test::DataItem(1)));
+  EXPECT_THAT(DataSliceToStr(schema),
+              IsOkAndHolds(
+                  "SCHEMA(a=INT64, b=STRING, __schema_metadata__=Obj(foo=1))"));
+}
+
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_NoBag) {
   DataBagPtr bag = DataBag::Empty();
 

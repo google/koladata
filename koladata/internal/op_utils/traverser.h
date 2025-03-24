@@ -304,7 +304,8 @@ class Traverser {
           if (!status.ok()) {
             return;
           }
-          if (attr_name == schema::kSchemaNameAttr) {
+          if (attr_name == schema::kSchemaNameAttr ||
+              attr_name == schema::kSchemaMetadataAttr) {
             return;
           }
           status = PrevisitAttribute(item, attr_name);
@@ -361,9 +362,12 @@ class Traverser {
             status = attr_schema_or.status();
             return;
           }
-          auto schema_dtype = (attr_name == schema::kSchemaNameAttr)
-                                  ? schema::kString
-                                  : schema::kSchema;
+          schema::DType schema_dtype = schema::kSchema;
+          if (attr_name == schema::kSchemaNameAttr) {
+            schema_dtype = schema::kString;
+          } else if (attr_name == schema::kSchemaMetadataAttr) {
+            schema_dtype = schema::kObject;
+          }
           status = Previsit(
               {.item = *attr_schema_or, .schema = DataItem(schema_dtype)});
         });
@@ -491,6 +495,8 @@ class Traverser {
       DataItem attr_schema_schema = DataItem(schema::kSchema);
       if (attr_name == schema::kSchemaNameAttr) {
         attr_schema_schema = DataItem(schema::kString);
+      } else if (attr_name == schema::kSchemaMetadataAttr) {
+        attr_schema_schema = DataItem(schema::kObject);
       } else if (!attr_schema.is_schema()) {
         status = absl::InvalidArgumentError(absl::StrFormat(
             "schema %v has unexpected attribute %s", schema, attr_name));
@@ -580,7 +586,8 @@ class Traverser {
       if (!status.ok()) {
         return;
       }
-      if (attr_name == schema::kSchemaNameAttr) {
+      if (attr_name == schema::kSchemaNameAttr ||
+          attr_name == schema::kSchemaMetadataAttr) {
         return;
       }
       auto attr_item_or = databag_.GetAttr(item.item, attr_name, fallbacks_);

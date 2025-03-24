@@ -38,6 +38,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
+#include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/memory/optional_value.h"
@@ -540,6 +541,38 @@ TEST_P(NoOpTraverserTest, SchemaSlice) {
   EXPECT_OK(TraverseSlice(ds, DataItem(schema::kSchema), *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
 }
+
+TEST_P(NoOpTraverserTest, SchemaWithMetadata) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto ds = DataSliceImpl::AllocateEmptyObjects(5);
+  auto a1 = ds[1];
+  auto a4 = ds[4];
+  auto schema = AllocateSchema();
+  ASSERT_OK_AND_ASSIGN(auto metadata,
+                       CreateUuidWithMainObject(schema, schema::kMetadataSeed));
+  ASSERT_OK_AND_ASSIGN(auto metadata_schema,
+                       internal::CreateUuidWithMainObject<
+                           internal::ObjectId::kUuidImplicitSchemaFlag>(
+                           metadata, schema::kImplicitSchemaSeed));
+  TriplesT data_triples = {{a1, {{"x", DataItem(1)}}},
+                           {a4, {{"x", DataItem(4)}}},
+                           {metadata,
+                            {{schema::kSchemaAttr, metadata_schema},
+                             {"order", DataItem(arolla::Text("[x]"))}}}};
+  TriplesT schema_triples = {
+      {schema,
+       {{"x", DataItem(schema::kInt32)},
+        {schema::kSchemaMetadataAttr, metadata}}},
+      {metadata_schema, {{"order", DataItem(schema::kString)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  EXPECT_OK(
+      TraverseSlice(ds, schema, *GetMainDb(db), {GetFallbackDb(db).get()}));
+}
+
 
 TEST_P(NoOpTraverserTest, SliceWithNamedSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();

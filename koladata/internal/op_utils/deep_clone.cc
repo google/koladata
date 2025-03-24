@@ -42,6 +42,7 @@ namespace koladata::internal {
 namespace {
 
 class DeepCloneVisitor : AbstractVisitor {
+  // TODO: Keep old ObjectIds for metadata.
  public:
   explicit DeepCloneVisitor(DataBagImplPtr new_databag, bool is_schema_slice)
       : new_databag_(std::move(new_databag)),

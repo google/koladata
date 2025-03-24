@@ -171,7 +171,9 @@ class ToPyVisitor : internal::AbstractVisitor {
         }
         attr_names.values<arolla::Text>().ForEachPresent(
             [&](int64_t id, absl::string_view attr) {
-              if (attr != schema::kSchemaNameAttr) {
+              if (attr != schema::kSchemaNameAttr &&
+                  attr != schema::kSchemaMetadataAttr) {
+                // TODO: Add tests for metadata support.
                 attr_names_vec.push_back(attr);
               }
             });
