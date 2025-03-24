@@ -21,19 +21,29 @@ from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
 M = arolla.M
 ds = data_slice.DataSlice.from_vals
+bag = data_bag.DataBag.empty
 DATA_SLICE = qtypes.DATA_SLICE
 kde = kde_operators.kde
 
 
 def _named_tuple(**kwargs):
   return arolla.eval(M.namedtuple.make(**kwargs))
+
+
+def _expr_quote(x):
+  return expr_eval.eval(kde.slices.expr_quote(arolla.quote(x)))
+
+
+INT32_1_UUID = expr_eval.eval(kde.ids.uuid(x=ds(1)))
 
 
 class KodaUuidTest(parameterized.TestCase):
