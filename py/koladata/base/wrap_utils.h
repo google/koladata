@@ -38,6 +38,11 @@ absl::Nullable<const DataSlice*> UnwrapDataSlice(
 // Returns a new PyQValue that wraps DataSlice `ds`. In case of errors in Python
 // runtime during allocations, this function can return nullptr.
 absl::Nullable<PyObject*> WrapPyDataSlice(DataSlice&& ds);
+// Same as `WrapPyDataSlice`, but freeze DataBag and mark DataSlice as whole.
+// It is a caller responsibility to ensure that `ds` is whole and that
+// DataBag is not shared.
+absl::Nullable<PyObject*> WrapPyDataSliceAsWholeWithFrozenDataBag(
+  DataSlice&& ds);
 
 // Unwraps a DataSlice from `py_obj` into `arg` if `py_obj` contains a
 // DataSlice. Returns true on success and false on failure. On failure, this

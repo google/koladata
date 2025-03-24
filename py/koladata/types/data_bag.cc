@@ -21,6 +21,7 @@
 #include <initializer_list>
 #include <optional>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -64,6 +65,19 @@
 
 namespace koladata::python {
 namespace {
+
+// Mode of DataBag factory function.
+// * kWithBag: DataBag is passed as the first argument.
+// * kNoBag: CLS is passed as the first argument.
+enum class DataBagFactoryMode {
+  kWithBag,
+  kNoBag,
+};
+
+// Type of the first argument of DataBag factory function.
+template <DataBagFactoryMode kMode>
+using SelfOrClsType = std::conditional_t<kMode == DataBagFactoryMode::kWithBag,
+                                         PyObject*, PyTypeObject*>;
 
 DataSlice AsMask(bool b) {
   return *DataSlice::Create(
@@ -329,7 +343,10 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
 //
 // `kwargs` are traversed and key-value pairs are extracted and added as
 // attributes of the newly created entity.
-absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
+// If kMode is kNoBag the function should be used as classmethod and resulting
+// DataSlice is IsWhole and DataBag is frozen.
+template <DataBagFactoryMode kMode>
+absl::Nullable<PyObject*> PyDataBag_new_factory(SelfOrClsType<kMode> self,
                                                 PyObject* const* py_args,
                                                 Py_ssize_t nargs,
                                                 PyObject* py_kwnames) {
@@ -342,37 +359,13 @@ absl::Nullable<PyObject*> PyDataBag_new_factory(PyObject* self,
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
-  return ProcessObjectCreation<EntityCreatorHelper>(
-      UnsafeDataBagPtr(self), args,
-      [](DataSlice&& ds) { return WrapPyDataSlice(std::move(ds)); });
-}
-
-// The same as above, but creates new DataBag.
-// Resulting DataSlice is IsWhole and DataBag is frozen.
-// classmethod
-absl::Nullable<PyObject*> PyDataBag_new_factory_no_bag(PyTypeObject*,
-                                                       PyObject* const* py_args,
-                                                       Py_ssize_t nargs,
-                                                       PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  arolla::python::PyCancellationScope cancellation_scope;
-  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/1, /*optional_positional_only=*/true,
-      /*parse_kwargs=*/true, {"schema", "overwrite_schema", "itemid"}));
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
+  if constexpr (kMode == DataBagFactoryMode::kWithBag) {
+    return ProcessObjectCreation<EntityCreatorHelper>(UnsafeDataBagPtr(self),
+                                                      args, WrapPyDataSlice);
+  } else {
+    return ProcessObjectCreation<EntityCreatorHelper>(
+        DataBag::Empty(), args, WrapPyDataSliceAsWholeWithFrozenDataBag);
   }
-  DataBagPtr db = DataBag::Empty();
-  return ProcessObjectCreation<
-      EntityCreatorHelper>(db, args, [&](DataSlice&& ds) -> PyObject* {
-    ASSIGN_OR_RETURN(ds,
-                     std::move(ds)
-                         .WithBag(db->Freeze())
-                         .WithWholeness(DataSlice::Wholeness::kWhole),
-                     arolla::python::SetPyErrFromStatus(_));
-    return WrapPyDataSlice(std::move(ds));
-  });
 }
 
 // Returns a DataSlice that represents an object with the given DataBag
@@ -383,7 +376,10 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_no_bag(PyTypeObject*,
 //
 // `kwargs` are traversed and key-value pairs are extracted and added as
 // attributes of the newly created object.
-absl::Nullable<PyObject*> PyDataBag_obj_factory(PyObject* self,
+// If kMode is kNoBag the function should be used as classmethod and resulting
+// DataSlice is IsWhole and DataBag is frozen.
+template <DataBagFactoryMode kMode>
+absl::Nullable<PyObject*> PyDataBag_obj_factory(SelfOrClsType<kMode> self,
                                                 PyObject* const* py_args,
                                                 Py_ssize_t nargs,
                                                 PyObject* py_kwnames) {
@@ -396,39 +392,13 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory(PyObject* self,
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
-  return ProcessObjectCreation<ObjectCreatorHelper>(
-      UnsafeDataBagPtr(self), args,
-      [](DataSlice&& ds) { return WrapPyDataSlice(std::move(ds)); });
-}
-
-// The same as above, but creates new DataBag.
-// Resulting DataSlice is IsWhole and DataBag is frozen.
-absl::Nullable<PyObject*> PyDataBag_obj_factory_no_bag(PyTypeObject*,
-                                                       PyObject* const* py_args,
-                                                       Py_ssize_t nargs,
-                                                       PyObject* py_kwnames) {
-  arolla::python::DCheckPyGIL();
-  arolla::python::PyCancellationScope cancellation_scope;
-  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
-      /*pos_only_n=*/1, /*optional_positional_only=*/true,
-      /*parse_kwargs=*/true, {"itemid"}));
-  FastcallArgParser::Args args;
-  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
-    return nullptr;
+  if constexpr (kMode == DataBagFactoryMode::kWithBag) {
+    return ProcessObjectCreation<ObjectCreatorHelper>(UnsafeDataBagPtr(self),
+                                                      args, WrapPyDataSlice);
+  } else {
+    return ProcessObjectCreation<ObjectCreatorHelper>(
+        DataBag::Empty(), args, WrapPyDataSliceAsWholeWithFrozenDataBag);
   }
-  DataBagPtr db = DataBag::Empty();
-  PyObject* res = nullptr;
-  ProcessObjectCreation<
-      ObjectCreatorHelper>(db, args, [&](DataSlice&& ds) -> PyObject* {
-    ASSIGN_OR_RETURN(ds,
-                     std::move(ds)
-                         .WithBag(db->Freeze())
-                         .WithWholeness(DataSlice::Wholeness::kWhole),
-                     arolla::python::SetPyErrFromStatus(_));
-    res = WrapPyDataSlice(std::move(ds));
-    return nullptr;
-  });
-  return res;
 }
 
 // Helper function that processes arguments for Entity / Object creators and
@@ -1610,7 +1580,8 @@ PyMethodDef kPyDataBag_methods[] = {
      "empty()\n"
      "--\n\n"
      "Returns an empty DataBag."},
-    {"new", (PyCFunction)PyDataBag_new_factory, METH_FASTCALL | METH_KEYWORDS,
+    {"new", (PyCFunction)PyDataBag_new_factory<DataBagFactoryMode::kWithBag>,
+     METH_FASTCALL | METH_KEYWORDS,
      "new(arg, *, schema=None, overwrite_schema=False, itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates Entities with given attrs.
@@ -1628,7 +1599,8 @@ Args:
 
 Returns:
   data_slice.DataSlice with the given attrs.)"""},
-    {"_new_no_bag", (PyCFunction)PyDataBag_new_factory_no_bag,
+    {"_new_no_bag",
+     (PyCFunction)PyDataBag_new_factory<DataBagFactoryMode::kNoBag>,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
      "_new_no_bag(arg, *, itemid=None, **attrs)\n"
      "--\n\n"
@@ -1673,7 +1645,8 @@ Args:
 
 Returns:
   data_slice.DataSlice with the given attrs.)"""},
-    {"obj", (PyCFunction)PyDataBag_obj_factory, METH_FASTCALL | METH_KEYWORDS,
+    {"obj", (PyCFunction)PyDataBag_obj_factory<DataBagFactoryMode::kWithBag>,
+     METH_FASTCALL | METH_KEYWORDS,
      "obj(arg, *, itemid=None, **attrs)\n"
      "--\n\n"
      R"""(Creates new Objects with an implicit stored schema.
@@ -1689,7 +1662,8 @@ Args:
 
 Returns:
   data_slice.DataSlice with the given attrs and kd.OBJECT schema.)"""},
-    {"_obj_no_bag", (PyCFunction)PyDataBag_obj_factory_no_bag,
+    {"_obj_no_bag",
+     (PyCFunction)PyDataBag_obj_factory<DataBagFactoryMode::kNoBag>,
      METH_CLASS | METH_FASTCALL | METH_KEYWORDS,
      "_obj_no_bag(arg, *, itemid=None, **attrs)\n"
      "--\n\n"

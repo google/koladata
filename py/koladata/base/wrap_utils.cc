@@ -14,6 +14,8 @@
 //
 #include "py/koladata/base/wrap_utils.h"
 
+#include <Python.h>
+
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -26,10 +28,12 @@
 #include "koladata/data_slice_qtype.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
+#include "py/arolla/py_utils/py_utils.h"
 #include "arolla/jagged_shape/array/qtype/qtype.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 
@@ -73,6 +77,17 @@ absl::Nullable<const DataSlice*> UnwrapDataSlice(
 absl::Nullable<PyObject*> WrapPyDataSlice(DataSlice&& ds) {
   return arolla::python::WrapAsPyQValue(
       arolla::TypedValue::FromValue(std::move(ds)));
+}
+
+absl::Nullable<PyObject*> WrapPyDataSliceAsWholeWithFrozenDataBag(
+    DataSlice&& ds) {
+  auto db = ds.GetBag();
+  ASSIGN_OR_RETURN(ds,
+                   std::move(ds)
+                       .WithBag(db == nullptr ? nullptr : db->Freeze())
+                       .WithWholeness(DataSlice::Wholeness::kWhole),
+                   arolla::python::SetPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(ds));
 }
 
 bool UnwrapDataSliceOptionalArg(PyObject* py_obj,
