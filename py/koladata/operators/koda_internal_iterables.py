@@ -92,7 +92,7 @@ def to_sequence(x):
   )
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.iterables.sequence_from_1d_slice',
     qtype_inference_expr=arolla.M.qtype.make_sequence_qtype(qtypes.DATA_SLICE),

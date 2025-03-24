@@ -83,7 +83,7 @@ class IterablesInternalSequenceFrom1DSliceTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(
+    self.assertFalse(
         view.has_koda_view(
             koda_internal_iterables.sequence_from_1d_slice(I.arg)
         )
