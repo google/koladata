@@ -327,13 +327,23 @@ TEST(DataBagTest, MergeObjectsOnlyDenseSources) {
     ASSERT_OK(db2->MergeInplace(*db));
     EXPECT_THAT(db2->GetAttr(x, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
   }
-  {  // merge dense with dense
+  {
+    SCOPED_TRACE("merge dense with dense");
     auto db = DataBagImpl::CreateEmptyDatabag();
     auto db2 = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(db->SetAttr(a, "a", a_value));
     ASSERT_OK(db2->SetAttr(a, "a", a_value));
     ASSERT_OK(db->MergeInplace(*db2));
     EXPECT_THAT(db->GetAttr(a, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
+  }
+  {
+    SCOPED_TRACE("merge empty with const dense");
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto db2 = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK_AND_ASSIGN(
+        auto obj, db2->CreateObjectsFromFields({"a"}, {std::cref(a_value)}));
+    ASSERT_OK(db->MergeInplace(*db2));
+    EXPECT_THAT(db->GetAttr(obj, "a"), IsOkAndHolds(ElementsAreArray(a_value)));
   }
   {
     SCOPED_TRACE("merge dense with dense conflict");

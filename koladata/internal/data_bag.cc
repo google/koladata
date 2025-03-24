@@ -3057,12 +3057,16 @@ absl::Status DataBagImpl::MergeBigAllocInplace(const DataBagImpl& other,
           }
           DCHECK(other_source_collection_copy.const_dense_source != nullptr);
           // Merge sparse and dense sources into single mutable dense source.
-          // This is necessary to avoid references into data from a different
-          // data bag.
-          RETURN_IF_ERROR(other_db->CreateMutableDenseSource(
-              other_source_collection_copy, alloc, attr_name,
-              // QType is not needed if dense source is present
-              nullptr, alloc.Capacity()));
+          // We want to avoid references into data from a different DataBag.
+          // In case single dense source is immutable, it is fine to share it
+          // across DataBags.
+          if (!other_sparse_sources.empty() ||
+              other_source_collection_copy.const_dense_source->IsMutable()) {
+            RETURN_IF_ERROR(other_db->CreateMutableDenseSource(
+                other_source_collection_copy, alloc, attr_name,
+                // QType is not needed if dense source is present
+                nullptr, alloc.Capacity()));
+          }
           this_collection = other_source_collection_copy;
           continue;
         }
