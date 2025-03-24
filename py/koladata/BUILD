@@ -102,6 +102,7 @@ py_library(
         "//py/koladata/ext:npkd",
         "//py/koladata/ext:pdkd",
         "//py/koladata/ext:py_cloudpickle",
+        "//py/koladata/ext:vis",
         "//py/koladata/ext/experimental/parallel_call:call",
         "@com_google_arolla//py/arolla",
     ],
