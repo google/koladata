@@ -256,7 +256,7 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.check_inputs: invalid constraint: expected constraint for parameter'
-        ' `x` to be a schema DataItem, got INT32',
+        ' `x` to be a schema DataItem, got 0',
     ):
 
       @type_checking.check_inputs(x=kd.int32(0))
@@ -267,7 +267,7 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.check_output: invalid constraint: expected constraint for output to'
-        ' be a schema DataItem, got INT32',
+        ' be a schema DataItem, got 0',
     ):
 
       @type_checking.check_output(kd.int32(0))

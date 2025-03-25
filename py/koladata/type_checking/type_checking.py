@@ -20,10 +20,10 @@ import inspect
 from koladata.expr import tracing_mode
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import schema_constants
+from koladata.types import schema_item
 
 
-def check_inputs(**kw_constraints: data_item.DataItem):
+def check_inputs(**kw_constraints: schema_item.SchemaItem):
   """Decorator factory for adding runtime input type checking to Koda functions.
 
   Resulting decorators will check the schemas of DataSlice inputs of
@@ -68,11 +68,10 @@ def check_inputs(**kw_constraints: data_item.DataItem):
     DataSlices/DataItem inputs.
   """
   for key, value in kw_constraints.items():
-    if value.get_schema() != schema_constants.SCHEMA:
+    if not isinstance(value, schema_item.SchemaItem):
       raise TypeError(
           'kd.check_inputs: invalid constraint: expected constraint for'
-          f' parameter `{key}` to be a schema DataItem, got'
-          f' {value.get_schema()}'
+          f' parameter `{key}` to be a schema DataItem, got {value}'
       )
 
   def decorate_f(f):
@@ -121,7 +120,7 @@ def check_inputs(**kw_constraints: data_item.DataItem):
   return decorate_f
 
 
-def check_output(output: data_item.DataItem):
+def check_output(output: schema_item.SchemaItem):
   """Decorator factory for adding runtime output type checking to Koda functions.
 
   Resulting decorators will check the schema of the DataSlice output of
@@ -164,10 +163,10 @@ def check_output(output: data_item.DataItem):
     A decorator that can be used to annotate a function returning a
     DataSlice/DataItem.
   """
-  if output.get_schema() != schema_constants.SCHEMA:
+  if not isinstance(output, schema_item.SchemaItem):
     raise TypeError(
         'kd.check_output: invalid constraint: expected constraint for output to'
-        f' be a schema DataItem, got {output.get_schema()}'
+        f' be a schema DataItem, got {output}'
     )
 
   def decorate_f(f):
