@@ -625,3 +625,22 @@ def get_nofollowed_schema(schema):  # pylint: disable=unused-argument
     schema: nofollow schema DataSlice.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.schema.get_repr',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.schema)],
+)
+def get_repr(schema):  # pylint: disable=unused-argument
+  """Returns a string representation of the schema.
+
+  Named schemas are only represented by their name. Other schemas are
+  represented by their content.
+
+  Args:
+    schema: A scalar schema DataSlice.
+  Returns:
+    A scalar string DataSlice. A repr of the given schema.
+  """
+  raise NotImplementedError('implemented in the backend')

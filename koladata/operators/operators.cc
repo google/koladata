@@ -245,6 +245,7 @@ OPERATOR("kd.schema.get_key_schema", GetKeySchema);
 OPERATOR("kd.schema.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kd.schema.get_obj_schema", GetObjSchema);
 OPERATOR("kd.schema.get_primitive_schema", GetPrimitiveSchema);
+OPERATOR("kd.schema.get_repr", GetRepr);
 OPERATOR("kd.schema.get_schema", GetSchema);
 OPERATOR("kd.schema.get_value_schema", GetValueSchema);
 OPERATOR("kd.schema.is_dict_schema", IsDictSchema);

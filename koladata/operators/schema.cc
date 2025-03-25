@@ -19,6 +19,7 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
@@ -26,10 +27,13 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/agg_common_schema.h"
 #include "koladata/internal/op_utils/qexpr.h"
+#include "koladata/internal/schema_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"
@@ -276,6 +280,25 @@ absl::StatusOr<DataSlice> AggCommonSchema(const DataSlice& x) {
 
 absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds) {
   return schema_ds.GetNoFollowedSchema();
+}
+
+absl::StatusOr<DataSlice> GetRepr(const DataSlice& schema) {
+  RETURN_IF_ERROR(schema.VerifyIsSchema());
+  auto lookup_status = ValidateAttrLookupAllowed(schema, "ignored error");
+  if (lookup_status.ok()) {
+    ASSIGN_OR_RETURN(auto has_name, schema.HasAttr(schema::kSchemaNameAttr));
+    if (!has_name.IsEmpty()) {
+      ASSIGN_OR_RETURN(auto name, schema.GetAttr(schema::kSchemaNameAttr));
+      return name;
+    }
+  }
+  ASSIGN_OR_RETURN(auto repr, DataSliceToStr(schema));
+  if (schema.item().holds_value<internal::ObjectId>()) {
+    repr += absl::StrFormat(
+        " with id %s", ObjectIdStr(schema.item().value<internal::ObjectId>()));
+  }
+  return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
+                           internal::DataItem(schema::kString));
 }
 
 }  // namespace koladata::ops
