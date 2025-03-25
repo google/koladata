@@ -712,12 +712,11 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
     ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
     internal::DeepCloneOp deep_clone_op(&result_db_impl.get());
     ASSIGN_OR_RETURN(
-        (auto [result_slice_impl, result_schema_impl]),
+        auto result_slice_impl,
         deep_clone_op(impl, schema_impl, db->GetImpl(), fallbacks_span));
     result_db->UnsafeMakeImmutable();
     return DataSlice::Create(std::move(result_slice_impl), ds.GetShape(),
-                             std::move(result_schema_impl),
-                             std::move(result_db));
+                             schema_impl, std::move(result_db));
   });
 }
 

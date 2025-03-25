@@ -239,7 +239,7 @@ class DeepCloneVisitor : AbstractVisitor {
 
 }  // namespace
 
-absl::StatusOr<std::pair<DataSliceImpl, DataItem>> DeepCloneOp::operator()(
+absl::StatusOr<DataSliceImpl> DeepCloneOp::operator()(
     const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks) const {
   auto visitor = std::make_shared<DeepCloneVisitor>(
@@ -253,17 +253,17 @@ absl::StatusOr<std::pair<DataSliceImpl, DataItem>> DeepCloneOp::operator()(
                      visitor->DeepCloneVisitor::GetValue(ds[i], schema));
     result_items.InsertIfNotSetAndUpdateAllocIds(i, value);
   }
-  return std::make_pair(std::move(result_items).Build(), schema);
+  return std::move(result_items).Build();
 }
 
-absl::StatusOr<std::pair<DataItem, DataItem>> DeepCloneOp::operator()(
+absl::StatusOr<DataItem> DeepCloneOp::operator()(
     const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
     DataBagImpl::FallbackSpan fallbacks) const {
-  ASSIGN_OR_RETURN((auto [result_slice, result_schema]),
+  ASSIGN_OR_RETURN(auto result_slice,
                    (*this)(DataSliceImpl::Create(/*size=*/1, item), schema,
                            databag, fallbacks));
   DCHECK_EQ(result_slice.size(), 1);
-  return std::make_pair(result_slice[0], std::move(result_schema));
+  return result_slice[0];
 }
 
 }  // namespace koladata::internal

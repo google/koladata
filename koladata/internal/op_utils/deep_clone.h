@@ -31,17 +31,17 @@ namespace koladata::internal {
 // multiple ways to reach one object through the attributes, there will be
 // exactly one clone made per input object.
 //
-// Returns a pair of (new DataSlice, new schema).
+// Returns a new DataSlice.
 class DeepCloneOp {
  public:
   explicit DeepCloneOp(DataBagImpl* new_databag) : new_databag_(new_databag) {}
 
-  absl::StatusOr<std::pair<DataSliceImpl, DataItem>> operator()(
+  absl::StatusOr<DataSliceImpl> operator()(
       const DataSliceImpl& ds, const DataItem& schema,
       const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks = {}) const;
 
-  absl::StatusOr<std::pair<DataItem, DataItem>> operator()(
+  absl::StatusOr<DataItem> operator()(
       const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks = {}) const;
 
