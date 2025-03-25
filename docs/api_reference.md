@@ -1175,7 +1175,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x3106ba4c0090>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x51097b1596d0>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1257,7 +1257,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x3106ba4c0090>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x51097b1596d0>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -9440,6 +9440,18 @@ Creates a pandas DataFrame from the given DataSlice.
 
   Returns:
     DataFrame with columns from DataSlice fields.
+```
+
+### `kd_ext.vis.register_formatters()` {#kd_ext.vis.register_formatters}
+
+``` {.no-copy}
+Register DataSlice visualization in IPython.
+```
+
+### `kd_ext.vis.visualize_slice(ds, options=None)` {#kd_ext.vis.visualize_slice}
+
+``` {.no-copy}
+Visualizes a DataSlice as a html widget.
 ```
 
 ### `kd_ext.Fn(f, *, use_tracing=True, **kwargs)` {#kd_ext.Fn}
