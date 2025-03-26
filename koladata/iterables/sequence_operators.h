@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_ITERABLES_FROM_DATA_SLICE_OPERATORS_H_
-#define KOLADATA_ITERABLES_FROM_DATA_SLICE_OPERATORS_H_
+#ifndef KOLADATA_ITERABLES_SEQUENCE_OPERATORS_H_
+#define KOLADATA_ITERABLES_SEQUENCE_OPERATORS_H_
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -29,6 +29,13 @@ class SequenceFrom1DSliceOpFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// koda_internal.iterables.sequence_chain operator.
+class SequenceChainOpFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 }  // namespace koladata::iterables
 
-#endif  // KOLADATA_ITERABLES_FROM_DATA_SLICE_OPERATORS_H_
+#endif  // KOLADATA_ITERABLES_SEQUENCE_OPERATORS_H_

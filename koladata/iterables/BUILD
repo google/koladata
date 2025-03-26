@@ -43,8 +43,8 @@ cc_library(
     name = "operators",
     srcs = ["operators.cc"],
     deps = [
-        ":from_data_slice_operators",
         ":iterable_qtype",
+        ":sequence_operators",
         "//koladata:data_slice_qtype",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
@@ -87,9 +87,9 @@ cc_library(
 )
 
 cc_library(
-    name = "from_data_slice_operators",
-    srcs = ["from_data_slice_operators.cc"],
-    hdrs = ["from_data_slice_operators.h"],
+    name = "sequence_operators",
+    srcs = ["sequence_operators.cc"],
+    hdrs = ["sequence_operators.h"],
     deps = [
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",

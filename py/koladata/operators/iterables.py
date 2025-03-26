@@ -105,3 +105,86 @@ def make_unordered(*items, value_type_as=arolla.unspecified()):
       value_type_as=value_type_as,
   )
   return koda_internal_iterables.shuffle(ordered_seq)
+
+
+@arolla.optools.as_lambda_operator(
+    'koda_internal.iterables._iterable_type_matches_value_type'
+)
+def _iterable_type_matches_value_type(iterable_type, value_type):
+  """Checks if the iterable matches the value_type_as."""
+  return (value_type == arolla.UNSPECIFIED) | (
+      iterable_type == koda_internal_iterables.get_iterable_qtype(value_type)
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.iterables.chain',
+    qtype_constraints=[
+        (
+            arolla.M.seq.all(
+                arolla.M.seq.map(
+                    koda_internal_iterables.is_iterable_qtype,
+                    arolla.M.qtype.get_field_qtypes(P.iterables),
+                )
+            ),
+            'all inputs to kd.iterables.chain must be iterables',
+        ),
+        (
+            arolla.M.seq.all_equal(
+                arolla.M.qtype.get_field_qtypes(P.iterables)
+            ),
+            'all given iterables must have the same value type',
+        ),
+        (
+            arolla.M.seq.all(
+                arolla.M.seq.map(
+                    _iterable_type_matches_value_type,
+                    arolla.M.qtype.get_field_qtypes(P.iterables),
+                    arolla.M.seq.repeat(
+                        P.value_type_as,
+                        arolla.M.qtype.get_field_count(P.iterables),
+                    ),
+                )
+            ),
+            (
+                'when value_type_as is specified, all iterables must have that'
+                ' value type'
+            ),
+        ),
+    ],
+)
+def chain(*iterables, value_type_as=arolla.unspecified()):
+  """Creates an iterable that chains the given iterables, in the given order.
+
+  The iterables must all have the same value type. If value_type_as is
+  specified, it must be the same as the value type of the iterables, if any.
+
+  Args:
+    *iterables: A list of iterables to be chained (concatenated).
+    value_type_as: A value that has the same type as the iterables. It is useful
+      to specify this explicitly if the list of iterables may be empty. If this
+      is not specified and the list of iterables is empty, the iterable will
+      have DataSlice as the value type.
+
+  Returns:
+    An iterable that chains the given iterables, in the given order.
+  """
+  iterables = arolla.optools.fix_trace_args(iterables)
+  return arolla.types.DispatchOperator(
+      'iterables, value_type_as',
+      empty_iterables_case=arolla.types.DispatchCase(
+          make(value_type_as=P.value_type_as),
+          condition=(M.qtype.get_field_count(P.iterables) == 0),
+      ),
+      # The compatibility of value_type_as with the iterables was checked
+      # in qtype_constraints.
+      default=koda_internal_iterables.from_sequence(
+          arolla.abc.bind_op(
+              koda_internal_iterables.sequence_chain,
+              sequences=arolla.M.core.map_tuple(
+                  koda_internal_iterables.to_sequence, P.iterables
+              ),
+          )
+      ),
+  )(iterables, value_type_as)

@@ -147,3 +147,34 @@ def shuffle(x):
       random_order_seq,
   )
   return from_sequence(shuffled_seq)
+
+
+@optools.add_to_registry(view=None)
+@optools.as_backend_operator(
+    'koda_internal.iterables.sequence_chain',
+    qtype_inference_expr=arolla.M.qtype.get_field_qtype(P.sequences, 0),
+    qtype_constraints=[
+        (
+            arolla.M.qtype.get_field_count(P.sequences) > 0,
+            'must have at least one sequence',
+        ),
+        (
+            arolla.M.seq.all(
+                arolla.M.seq.map(
+                    arolla.M.qtype.is_sequence_qtype,
+                    arolla.M.qtype.get_field_qtypes(P.sequences),
+                )
+            ),
+            'all inputs must be sequences',
+        ),
+        (
+            arolla.M.seq.all_equal(
+                arolla.M.qtype.get_field_qtypes(P.sequences)
+            ),
+            'all inputs must have the same type',
+        ),
+    ],
+)
+def sequence_chain(*sequences):  # pylint: disable=unused-argument
+  """Chains the given sequences into one."""
+  raise NotImplementedError('implemented in the backend')
