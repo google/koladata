@@ -121,23 +121,6 @@ py_library(
     ],
 )
 
-py_library(
-    name = "kd_ext",
-    srcs = ["kd_ext.py"],
-    visibility = ["//visibility:public"],
-    deps = ["//py/koladata:kd_ext"],
-)
-
-py_test(
-    name = "kd_ext_test",
-    srcs = ["kd_ext_test.py"],
-    deps = [
-        ":kd_ext",
-        "//py/koladata:kd",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
 py_test(
     name = "nested_data_test",
     srcs = ["nested_data_test.py"],
