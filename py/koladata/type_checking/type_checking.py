@@ -18,9 +18,12 @@ import functools
 import inspect
 
 from koladata.expr import tracing_mode
+from koladata.operators import eager_op_utils
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import schema_item
+
+eager = eager_op_utils.operators_container('kd')
 
 
 def check_inputs(**kw_constraints: schema_item.SchemaItem):
@@ -111,7 +114,8 @@ def check_inputs(**kw_constraints: schema_item.SchemaItem):
         if arg.get_schema() != type_constraint:
           raise TypeError(
               f'kd.check_inputs: type mismatch for parameter `{key}`. Expected'
-              f' type {type_constraint}, got {arg.get_schema()}'
+              f' type {eager.schema.get_repr(type_constraint)}, got'
+              f' {eager.schema.get_repr(arg.get_schema())}'
           )
       return f(*args, **kwargs)
 
@@ -182,8 +186,9 @@ def check_output(output: schema_item.SchemaItem):
         )
       if res.get_schema() != output:
         raise TypeError(
-            'kd.check_output: type mismatch for output. Expected'
-            f' type {output}, got {res.get_schema()}'
+            'kd.check_output: type mismatch for output. Expected type'
+            f' {eager.schema.get_repr(output)}, got'
+            f' {eager.schema.get_repr(res.get_schema())}'
         )
       return res
 

@@ -86,12 +86,11 @@ class TypeCheckingTest(absltest.TestCase):
     # Assert does not raise.
     _ = f(person(age=30, name='John'))
 
-    with self.assertRaisesWithLiteralMatch(
+    with self.assertRaisesRegex(
         TypeError,
-        # TODO: Improve this error message? Although a user may
-        # already improve it by using named schemas.
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type'
-        ' SCHEMA(age=INT32, name=STRING), got SCHEMA(age=INT32, name=STRING)',
+        r'kd.check_inputs: type mismatch for parameter `x`. Expected type'
+        r' SCHEMA\(age=INT32, name=STRING\) with id .*, got'
+        r' SCHEMA\(age=INT32, name=STRING\) with id .*',
     ):
       _ = f(kd.new(age=32, name='Alice'))
 
@@ -105,12 +104,11 @@ class TypeCheckingTest(absltest.TestCase):
     # Assert does not raise.
     _ = f(person(age=30, name='John'))
 
-    with self.assertRaisesWithLiteralMatch(
+    with self.assertRaisesRegex(
         TypeError,
-        # TODO: Improve this error message? Although a user may
-        # already improve it by using named schemas.
-        'kd.check_output: type mismatch for output. Expected type'
-        ' SCHEMA(age=INT32, name=STRING), got SCHEMA(age=INT32, name=STRING)',
+        r'kd.check_output: type mismatch for output. Expected type'
+        r' SCHEMA\(age=INT32, name=STRING\) with id .*, got'
+        r' SCHEMA\(age=INT32, name=STRING\) with id .*',
     ):
       _ = f(kd.new(age=32, name='Alice'))
 
@@ -126,11 +124,10 @@ class TypeCheckingTest(absltest.TestCase):
     # Assert does not raise.
     _ = f(person(age=30, first_name='John'))
 
-    with self.assertRaisesWithLiteralMatch(
+    with self.assertRaisesRegex(
         TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type'
-        ' Person(age=INT32, first_name=STRING), got SCHEMA(age=INT32,'
-        ' first_name=STRING)',
+        r'kd.check_inputs: type mismatch for parameter `x`. Expected type'
+        r' Person, got SCHEMA\(age=INT32, first_name=STRING\) with id .*',
     ):
       _ = f(kd.uu(age=32, first_name='Alice'))
 
@@ -146,11 +143,10 @@ class TypeCheckingTest(absltest.TestCase):
     # Assert does not raise.
     _ = f(person(age=30, first_name='John'))
 
-    with self.assertRaisesWithLiteralMatch(
+    with self.assertRaisesRegex(
         TypeError,
-        'kd.check_output: type mismatch for output. Expected type'
-        ' Person(age=INT32, first_name=STRING), got SCHEMA(age=INT32,'
-        ' first_name=STRING)',
+        r'kd.check_output: type mismatch for output. Expected type'
+        r' Person, got SCHEMA\(age=INT32, first_name=STRING\) with id .*',
     ):
       _ = f(kd.uu(age=32, first_name='Alice'))
 
@@ -165,11 +161,11 @@ class TypeCheckingTest(absltest.TestCase):
     _ = f(person(age=30, name='John'))
     _ = f(kd.uu(age=32, name='Alice'))
 
-    with self.assertRaisesWithLiteralMatch(
+    with self.assertRaisesRegex(
         TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type'
-        ' SCHEMA(age=INT32, name=STRING), got SCHEMA(age=FLOAT32,'
-        ' name=STRING)',
+        r'kd.check_inputs: type mismatch for parameter `x`. Expected type'
+        r' SCHEMA\(age=INT32, name=STRING\) with id .*, got'
+        r' SCHEMA\(age=FLOAT32, name=STRING\) with id .*',
     ):
       _ = f(kd.uu(age=32.0, name='Alice'))
 
@@ -184,11 +180,11 @@ class TypeCheckingTest(absltest.TestCase):
     _ = f(person(age=30, name='John'))
     _ = f(kd.uu(age=32, name='Alice'))
 
-    with self.assertRaisesWithLiteralMatch(
+    with self.assertRaisesRegex(
         TypeError,
-        'kd.check_output: type mismatch for output. Expected type'
-        ' SCHEMA(age=INT32, name=STRING), got SCHEMA(age=FLOAT32,'
-        ' name=STRING)',
+        r'kd.check_output: type mismatch for output. Expected type'
+        r' SCHEMA\(age=INT32, name=STRING\) with id .*, got'
+        r' SCHEMA\(age=FLOAT32, name=STRING\) with id .*',
     ):
       _ = f(kd.uu(age=32.0, name='Alice'))
 
@@ -236,7 +232,7 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.check_inputs: type mismatch for parameter `query`. Expected type'
-        ' Query(docs=LIST[Doc(doc_id=INT64, score=FLOAT32)]), got INT32',
+        ' Query, got INT32',
     ):
       _ = get_docs(ds([1, 2, 3]))
 

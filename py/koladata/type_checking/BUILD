@@ -25,6 +25,7 @@ py_library(
     srcs = ["type_checking.py"],
     deps = [
         "//py/koladata/expr:tracing_mode",
+        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_item",
