@@ -1151,6 +1151,47 @@ TEST_P(ExtractTest, SchemaMetadata) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ExtractTest, SchemaMetadataLoop) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema = DataItem(AllocateSchema());
+  ASSERT_OK_AND_ASSIGN(auto metadata,
+                       CreateUuidWithMainObject(schema, schema::kMetadataSeed));
+  ASSERT_OK_AND_ASSIGN(
+      auto metadata_schema,
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          metadata, schema::kImplicitSchemaSeed));
+  auto a1 = DataItem(AllocateSingleObject());
+  auto a2 = DataItem(AllocateSingleObject());
+  TriplesT schema_triples = {
+      {schema,
+       {{"x", schema},
+        {schema::kSchemaMetadataAttr, metadata}}},
+      {metadata_schema, {{"name", DataItem(schema::kString)}}}};
+  TriplesT data_triples = {
+      {a1, {{"x", a2}}},
+      {a2, {{"x", a1}}},
+      {metadata,
+       {{schema::kSchemaAttr, metadata_schema},
+        {"name", DataItem(arolla::Text("object with metadata"))}}}};
+
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, schema_triples);
+  SetDataTriples(*expected_db, data_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(a1, schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+
+  ASSERT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+
 TEST_P(ExtractTest, MaxDepthSchemaMetadata) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto schema = DataItem(AllocateSchema());
@@ -1209,6 +1250,90 @@ TEST_P(ExtractTest, MaxDepthSchemaMetadata) {
     ASSERT_OK(ExtractOp(result_db.get())(a1, schema, *GetMainDb(db),
                                         {GetFallbackDb(db).get()}, nullptr, {},
                                         /*max_depth=*/2));
+
+    ASSERT_NE(result_db.get(), db.get());
+    EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+  }
+}
+
+TEST_P(ExtractTest, MaxDepthSchemaMetadataObject) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto ds = AllocateEmptyObjects(2);
+  ASSERT_OK_AND_ASSIGN(
+      auto schemas, CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+                        ds, schema::kImplicitSchemaSeed));
+  auto item_schema = DataItem(AllocateSchema());
+  ASSERT_OK_AND_ASSIGN(
+      auto metadata, CreateUuidWithMainObject(schemas, schema::kMetadataSeed));
+  ASSERT_OK_AND_ASSIGN(
+      auto metadata_schema,
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          metadata, schema::kImplicitSchemaSeed));
+  auto a1 = ds[0];
+  auto a2 = ds[1];
+  auto b1 = DataItem(AllocateSingleObject());
+  auto b2 = DataItem(AllocateSingleObject());
+  auto metadata_a1 = DataItem(AllocateSingleObject());
+  auto metadata_a2 = DataItem(AllocateSingleObject());
+  TriplesT schema_triples = {
+      {schemas[0],
+       {{"x", item_schema}, {schema::kSchemaMetadataAttr, metadata[0]}}},
+      {schemas[1],
+       {{"x", item_schema}, {schema::kSchemaMetadataAttr, metadata[1]}}},
+      {metadata_schema[0],
+       {{"name", DataItem(schema::kString)}, {"item", item_schema}}},
+      {metadata_schema[1],
+       {{"name", DataItem(schema::kString)}, {"item", item_schema}}},
+      {item_schema, {{"x", DataItem(schema::kInt32)}, {"self", item_schema}}}};
+  TriplesT data_triples = {
+      {a1, {{schema::kSchemaAttr, schemas[0]}, {"x", b1}}},
+      {a2, {{schema::kSchemaAttr, schemas[1]}, {"x", b2}}},
+      {metadata[0],
+       {{schema::kSchemaAttr, metadata_schema[0]},
+        {"name", DataItem(arolla::Text("object with metadata"))},
+        {"item", metadata_a1}}},
+      {metadata[1],
+       {{schema::kSchemaAttr, metadata_schema[1]},
+        {"name", DataItem(arolla::Text("object with metadata"))},
+        {"item", metadata_a2}}}};
+  TriplesT data_triples_deep = {
+      {b1, {{"x", DataItem(2)}, {"self", b1}}},
+      {b2, {{"x", DataItem(2)}, {"self", b2}}},
+      {metadata_a1, {{"x", DataItem(3)}, {"self", metadata_a1}}},
+      {metadata_a2, {{"x", DataItem(3)}, {"self", metadata_a2}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetDataTriples(*db, data_triples_deep);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  {
+    // depth = 1
+    auto expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples);
+    SetDataTriples(*expected_db, data_triples);
+
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kObject),
+                                         *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/1));
+
+    ASSERT_NE(result_db.get(), db.get());
+    EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+  }
+  {
+    // depth = 2
+    auto expected_db = DataBagImpl::CreateEmptyDatabag();
+    SetSchemaTriples(*expected_db, schema_triples);
+    SetDataTriples(*expected_db, data_triples);
+    SetDataTriples(*expected_db, data_triples_deep);
+
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(ExtractOp(result_db.get())(ds, DataItem(schema::kObject),
+                                         *GetMainDb(db),
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/2));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));

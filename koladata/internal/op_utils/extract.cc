@@ -533,10 +533,13 @@ class CopyingProcessor {
       if (attr_name == schema::kSchemaNameAttr) {
         continue;
       }
-      if (attr_name == schema::kSchemaMetadataAttr && was_schema_updated) {
-        RETURN_IF_ERROR(Visit({DataSliceImpl::Create({std::move(attr_schema)}),
-                               DataItem(schema::kObject),
-                               SchemaSource::kDataDatabag, ds.depth - 1}));
+      if (attr_name == schema::kSchemaMetadataAttr) {
+        if (was_schema_updated) {
+          RETURN_IF_ERROR(
+              Visit({DataSliceImpl::Create({std::move(attr_schema)}),
+                     DataItem(schema::kObject), SchemaSource::kDataDatabag,
+                     ds.depth - 1}));
+        }
         continue;
       }
       has_regular_attr = true;
@@ -566,7 +569,8 @@ class CopyingProcessor {
   // Process slice of objects with entity schema.
   absl::Status ProcessEntitySlice(const QueuedSlice& ds) {
     if (!ds.schema.is_struct_schema()) {
-      return absl::InvalidArgumentError("schema object is expected");
+      return absl::InvalidArgumentError(
+          absl::StrFormat("schema object is expected, got %v", ds.schema));
     }
     if (ds.schema.value<ObjectId>().IsNoFollowSchema()) {
       // no processing needed for NoFollowSchema.
@@ -731,6 +735,10 @@ class CopyingProcessor {
                                        std::string_view attr_name, int depth) {
     ASSIGN_OR_RETURN((auto [attr_schemas, was_schema_updated]),
                      CopyAttrSchemas(new_schemas, old_schemas, attr_name));
+    if (attr_name == schema::kSchemaMetadataAttr) {
+      return Visit({std::move(attr_schemas), DataItem(schema::kObject),
+                    SchemaSource::kDataDatabag, depth - 1});
+    }
     if (attr_name == schema::kSchemaNameAttr) {
       return absl::OkStatus();
     }
