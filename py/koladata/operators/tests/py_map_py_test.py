@@ -17,6 +17,7 @@
 import functools
 import re
 import threading
+import time
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -697,6 +698,31 @@ class PyMapPyTest(parameterized.TestCase):
         ' a=I.a'
         ')',
     )
+
+  def test_cancellation(self):
+    n = 5
+    start_barrier = threading.Barrier(n, action=arolla.abc.simulate_SIGINT)
+    stop_barrier = threading.Barrier(n)
+
+    def fn(_):
+      start_barrier.wait(0.1)
+      try:
+        while True:
+          time.sleep(0.02)
+          arolla.abc.raise_if_cancelled()
+      finally:
+        stop_barrier.wait(0.1)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'kd.py.map_py: error during calling `fn`\n\n'
+            'The cause is: [CANCELLED] interrupted'
+        ),
+    ):
+      expr_eval.eval(
+          kde.py.map_py(fn, I.ds, max_threads=2 * n), ds=ds(list(range(n)))
+      )
 
 
 if __name__ == '__main__':

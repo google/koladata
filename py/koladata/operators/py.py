@@ -410,12 +410,19 @@ def _parallel_map(
   # Multi-thread mode
   executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
   try:
+    cancellation_context = arolla.abc.current_cancellation_context()
     future_to_idx = {
-        executor.submit(fn, *args): idx
+        executor.submit(
+            arolla.abc.run_in_cancellation_context,
+            cancellation_context,
+            fn,
+            *args,
+        ): idx
         for idx, args in enumerate(zip(*iterables))
     }
     result = [None] * len(future_to_idx)
     for future in concurrent.futures.as_completed(future_to_idx):
+      arolla.abc.raise_if_cancelled()
       idx = future_to_idx[future]
       item = future.result()
       result[idx] = item
