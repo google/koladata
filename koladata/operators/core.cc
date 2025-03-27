@@ -620,6 +620,13 @@ DataSlice Freeze<DataSlice>(const DataSlice& x) {
   return x.FreezeBag();
 }
 
+absl::StatusOr<DataSlice> CreateMetadata(const DataSlice& ds) {
+  auto result_db = DataBag::Empty();
+  auto result = CreateMetadata(result_db, ds);
+  result_db->UnsafeMakeImmutable();
+  return result;
+}
+
 absl::StatusOr<DataSlice> NewIdsLike(const DataSlice& ds,
                                      internal::NonDeterministicToken) {
   return ds.VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {

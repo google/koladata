@@ -147,6 +147,10 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
                                     const DataSlice& schema,
                                     internal::NonDeterministicToken = {});
 
+// koda_internal.create_metadata
+absl::StatusOr<DataSlice> CreateMetadata(const DataSlice& ds);
+
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_CORE_H_

@@ -1055,3 +1055,69 @@ def updated(ds, *bag):  # pylint: disable=unused-argument
     DataSlice with additional fallbacks.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(view=None)
+@optools.as_backend_operator('koda_internal.create_metadata')
+def create_metadata(x):  # pylint: disable=unused-argument
+  """Returns a DataSlice with metadata for the given DataSlice."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.metadata'])
+@optools.as_lambda_operator(
+    'kd.core.metadata',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+    ],
+)
+def metadata(x, /, **attrs):  # pylint: disable=unused-argument
+  """Returns a new DataBag containing metadata updates for `x`.
+
+  Most common usage is to build an update using kd.metadata and than attach it
+  as a DataBag update to the DataSlice.
+
+  Example:
+    x = ...
+    metadata_update = kd.metadata(x, foo=..., bar=...)
+    x = x.updated(metadata_update)
+
+  Note that if the metadata attribute name is not a valid Python identifier, it
+  might be set by `with_attr` instead:
+    metadata_update = kd.metadata(x).with_attr('123', value)
+
+  Args:
+    x: Schema for which the metadata update is being created.
+    **attrs: attrs to set in the metadata update.
+  """
+  return get_bag(
+      arolla.abc.bind_op(with_attrs, create_metadata(P.x), attrs=P.attrs)
+  )
+
+
+@optools.add_to_registry(aliases=['kd.with_metadata'])
+@optools.as_lambda_operator(
+    'kd.core.with_metadata',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+    ],
+)
+def with_metadata(x, /, **attrs):  # pylint: disable=unused-argument
+  """Returns a DataSlice with a new DataBag containing updated metadata for `x`.
+
+  This is a shorter version of `x.updated(kd.metadata(x, ...))`.
+
+  Example:
+    x = kd.with_metadata(x, foo=..., bar=...)
+
+  Note that if the metadata attribute name is not a valid Python identifier, it
+  might be set by `with_attr` instead:
+    x = kd.with_metadata(x).with_attr('123', value)
+
+  Args:
+    x: Entity / Object for which the metadata update is being created.
+    **attrs: attrs to set in the update.
+  """
+  return updated(x, arolla.abc.bind_op(metadata, x=P.x, attrs=P.attrs))

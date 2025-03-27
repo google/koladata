@@ -335,6 +335,7 @@ OPERATOR("kd.strings.strip", Strip);
 OPERATOR("kd.strings.substr", Substr);
 OPERATOR("kd.strings.upper", Upper);
 //
+OPERATOR("koda_internal.create_metadata", CreateMetadata);
 OPERATOR("koda_internal.non_deterministic", NonDeterministicOp);
 OPERATOR_FAMILY("koda_internal.non_deterministic_identity",
                 std::make_unique<NonDeterministicIdentityOpFamily>());
