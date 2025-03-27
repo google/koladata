@@ -1175,7 +1175,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x10383ae2e810>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x31647a20d8d0>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1257,7 +1257,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x10383ae2e810>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x31647a20d8d0>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -2404,6 +2404,25 @@ Operators that work with iterables. These APIs are in active development and mig
 <section class="zippy closed">
 
 **Operators**
+
+### `kd.iterables.chain(*iterables, value_type_as=unspecified)` {#kd.iterables.chain}
+
+``` {.no-copy}
+Creates an iterable that chains the given iterables, in the given order.
+
+The iterables must all have the same value type. If value_type_as is
+specified, it must be the same as the value type of the iterables, if any.
+
+Args:
+  *iterables: A list of iterables to be chained (concatenated).
+  value_type_as: A value that has the same type as the iterables. It is useful
+    to specify this explicitly if the list of iterables may be empty. If this
+    is not specified and the list of iterables is empty, the iterable will
+    have DataSlice as the value type.
+
+Returns:
+  An iterable that chains the given iterables, in the given order.
+```
 
 ### `kd.iterables.make(*items, value_type_as=unspecified)` {#kd.iterables.make}
 
@@ -4867,6 +4886,20 @@ Returns:
 ### `kd.schema.get_primitive_schema(ds)` {#kd.schema.get_primitive_schema}
 
 Alias for [kd.schema.get_dtype](#kd.schema.get_dtype) operator.
+
+### `kd.schema.get_repr(schema)` {#kd.schema.get_repr}
+
+``` {.no-copy}
+Returns a string representation of the schema.
+
+Named schemas are only represented by their name. Other schemas are
+represented by their content.
+
+Args:
+  schema: A scalar schema DataSlice.
+Returns:
+  A scalar string DataSlice. A repr of the given schema.
+```
 
 ### `kd.schema.get_schema(x)` {#kd.schema.get_schema}
 Aliases:
