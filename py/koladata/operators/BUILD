@@ -696,8 +696,12 @@ py_library(
     name = "iterables",
     srcs = ["iterables.py"],
     deps = [
+        ":arolla_bridge",
         ":koda_internal_iterables",
+        ":math",
         ":optools",
+        ":random",
+        ":slices",
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
     ],

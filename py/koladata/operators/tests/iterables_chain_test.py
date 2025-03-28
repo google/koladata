@@ -129,7 +129,7 @@ class IterablesChainTest(absltest.TestCase):
   def test_non_iterable_arg(self):
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('all inputs to kd.iterables.chain must be iterables'),
+        re.escape('all inputs must be iterables'),
     ):
       _ = expr_eval.eval(kde.iterables.chain(ds(1)))
 
