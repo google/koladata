@@ -150,6 +150,16 @@ class SchemaItemTest(absltest.TestCase):
     testing.assert_equal(entity.b, ds('xyz').with_bag(entity.get_bag()))
     self.assertNotEqual(entity.get_bag().fingerprint, s.get_bag().fingerprint)
 
+  def test_creating_entity_with_expr_args(self):
+    s = fns.schema.new_schema(
+        a=schema_constants.FLOAT32, b=schema_constants.STRING
+    )
+    self.assertTrue(s.is_entity_schema())
+    entity_expr = s.new(a=42, b=kde.item('xyz'))
+    testing.assert_non_deterministic_exprs_equal(
+        entity_expr, kde.new(schema=s, a=42, b=kde.item('xyz'))
+    )
+
   def test_creating_entities_with_call_errors(self):
     with self.assertRaisesRegex(
         ValueError,

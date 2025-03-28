@@ -37,6 +37,8 @@ class SchemaItem(data_item.DataItem):
       raise ValueError(
           'only SchemaItem with DataBags can be used for creating Entities'
       )
+    if any(isinstance(attr, arolla.Expr) for attr in attrs.values()):
+      return arolla.abc.aux_bind_op('kd.new', schema=self, **attrs)
     return _eval_op('kd.new', schema=self, **attrs)
 
   # TODO: Deprecate when all usage is updated.
