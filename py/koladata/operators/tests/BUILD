@@ -5709,6 +5709,7 @@ py_test(
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
+        "//py/koladata/types:literal_operator",
         "//py/koladata/types:mask_constants",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",

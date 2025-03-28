@@ -27,7 +27,7 @@ constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry()
-@arolla.optools.as_lambda_operator(  # Default Arolla boxing (for message).
+@optools.as_lambda_operator(
     'kd.assertion.with_assertion',
     qtype_constraints=[
         (
@@ -39,7 +39,14 @@ constraints = arolla.optools.constraints
                 f' {constraints.name_type_msg(P.condition)}'
             ),
         ),
-        constraints.expect_scalar_text(P.message),
+        (
+            (P.message == arolla.TEXT)
+            | (P.message == qtypes.DATA_SLICE),
+            (
+                'expected TEXT or DATA_SLICE, got'
+                f' {constraints.name_type_msg(P.message)}'
+            ),
+        ),
     ],
 )
 def with_assertion(x, condition, message):
@@ -64,6 +71,14 @@ def with_assertion(x, condition, message):
       ),
       default=P.condition,
   )(condition)
+  message = arolla.types.DispatchOperator(
+      'message',
+      data_slice_case=arolla.types.DispatchCase(
+          arolla_bridge.to_arolla_text(P.message),
+          condition=P.message == qtypes.DATA_SLICE,
+      ),
+      default=P.message,
+  )(message)
   return M.core.with_assertion(x, condition, message)
 
 

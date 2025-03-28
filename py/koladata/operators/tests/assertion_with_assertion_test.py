@@ -26,6 +26,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import jagged_shape
+from koladata.types import literal_operator
 from koladata.types import mask_constants
 from koladata.types import qtypes
 from koladata.types import schema_constants
@@ -42,31 +43,64 @@ class AssertionWithAssertionTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # DataSlice condition.
-      (ds(1), mask_constants.present),
-      (ds(1), ds(mask_constants.present, schema_constants.OBJECT)),
-      (ds([1, 2, 3]), mask_constants.present),
-      (jagged_shape.create_shape(), mask_constants.present),
+      (ds(1), mask_constants.present, ds('unused')),
+      (
+          ds(1),
+          ds(mask_constants.present, schema_constants.OBJECT),
+          ds('unused'),
+      ),
+      (ds([1, 2, 3]), mask_constants.present, ds('unused')),
+      (jagged_shape.create_shape(), mask_constants.present, ds('unused')),
       # (OPTIONAL_)UNIT condition.
-      (ds(1), arolla.unit()),
-      (ds(1), arolla.present()),
+      (ds(1), arolla.unit(), ds('unused')),
+      (ds(1), arolla.present(), ds('unused')),
+      # TEXT message.
+      (ds(1), mask_constants.present, arolla.text('unused')),
   )
-  def test_successful_eval(self, x, dtype):
-    result = expr_eval.eval(kde.assertion.with_assertion(x, dtype, 'unused'))
+  def test_successful_eval(self, x, condition, message):
+    result = expr_eval.eval(
+        kde.assertion.with_assertion(x, condition, message)
+    )
     testing.assert_equal(result, x)
 
   @parameterized.parameters(
       # DataSlice condition.
-      (ds(1), mask_constants.missing),
-      (ds(1), ds(mask_constants.missing, schema_constants.OBJECT)),
-      (ds(1), ds(None)),
+      (ds(1), mask_constants.missing, ds('with_assertion failure')),
+      (
+          ds(1),
+          ds(mask_constants.missing, schema_constants.OBJECT),
+          ds('with_assertion failure'),
+      ),
+      (ds(1), ds(None), ds('with_assertion failure')),
       # OPTIONAL_UNIT condition.
-      (ds(1), arolla.missing()),
+      (ds(1), arolla.missing(), ds('with_assertion failure')),
+      # TEXT message.
+      (ds(1), arolla.missing(), arolla.text('with_assertion failure')),
   )
-  def test_failing_eval(self, x, dtype):
+  def test_failing_eval(self, x, condition, message):
+    with self.assertRaisesRegex(ValueError, 'with_assertion failure'):
+      expr_eval.eval(kde.assertion.with_assertion(x, condition, message))
+
+  def test_non_literals(self):
+    expr = kde.assertion.with_assertion(I.x, I.condition, I.message)
     with self.assertRaisesRegex(ValueError, 'with_assertion failure'):
       expr_eval.eval(
-          kde.assertion.with_assertion(x, dtype, 'with_assertion failure')
+          expr,
+          x=ds(1),
+          condition=mask_constants.missing,
+          message='with_assertion failure',
       )
+
+  def test_boxing(self):
+    testing.assert_equal(
+        kde.assertion.with_assertion(1, mask_constants.present, 'foo'),
+        arolla.abc.bind_op(
+            kde.assertion.with_assertion,
+            literal_operator.literal(ds(1)),
+            literal_operator.literal(mask_constants.present),
+            literal_operator.literal(ds('foo')),
+        ),
+    )
 
   def test_non_mask_condition(self):
     with self.assertRaisesRegex(
@@ -100,6 +134,13 @@ class AssertionWithAssertionTest(parameterized.TestCase):
       expected_qtypes.append((qtype, arolla.UNIT, arolla.TEXT, qtype))
       expected_qtypes.append((qtype, arolla.OPTIONAL_UNIT, arolla.TEXT, qtype))
       expected_qtypes.append((qtype, qtypes.DATA_SLICE, arolla.TEXT, qtype))
+      expected_qtypes.append((qtype, arolla.UNIT, qtypes.DATA_SLICE, qtype))
+      expected_qtypes.append(
+          (qtype, arolla.OPTIONAL_UNIT, qtypes.DATA_SLICE, qtype)
+      )
+      expected_qtypes.append(
+          (qtype, qtypes.DATA_SLICE, qtypes.DATA_SLICE, qtype)
+      )
     arolla.testing.assert_qtype_signatures(
         kde.assertion.with_assertion,
         expected_qtypes,
