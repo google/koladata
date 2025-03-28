@@ -41,4 +41,5 @@ py_test(
 py_library(
     name = "task_repository",
     srcs = ["task_repository.py"],
+    deps = ["@com_google_arolla//py/arolla"],
 )

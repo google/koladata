@@ -29,6 +29,8 @@ import threading
 from typing import Any, Callable, Collection
 import weakref
 
+from arolla import arolla
+
 
 # This class is only used from the main thread, so we need no locking.
 class Task:
@@ -207,6 +209,7 @@ def _remote_execute(
     task_result_queue.put(e)
 
 
+@arolla.abc.add_default_cancellation_context
 def execute(
     repo: TaskRepository, final_result_task: Task, *, max_threads: int = 100
 ):
@@ -221,10 +224,10 @@ def execute(
 
   Example usage:
 
-  repo = task_repository.TaskRepository()
-  root_task = repo.add(task_repository.Task(...))
-  task_repository.execute(repo, root_task)
-  print(root_task.get_result())
+    repo = task_repository.TaskRepository()
+    root_task = repo.add(task_repository.Task(...))
+    task_repository.execute(repo, root_task)
+    print(root_task.get_result())
 
   Args:
     repo: The repository containing the tasks to execute.
@@ -235,6 +238,7 @@ def execute(
   assert final_result_task in repo._tasks  # pylint: disable=protected-access
   assert not repo._executed  # pylint: disable=protected-access
   repo._executed = True  # pylint: disable=protected-access
+  cancellation_context = arolla.abc.current_cancellation_context()
   executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_threads)
   task_result_queue = queue.SimpleQueue()
   while final_result_task.get_result() is None:
@@ -246,6 +250,8 @@ def execute(
         repo.set_result(task, task._fn(repo, task._deps_results))  # pylint: disable=protected-access
       else:
         executor.submit(
+            arolla.abc.run_in_cancellation_context,
+            cancellation_context,
             _remote_execute,
             task,
             task._fn,  # pylint: disable=protected-access

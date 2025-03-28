@@ -302,6 +302,31 @@ class FunctorCallTest(absltest.TestCase):
     self.assertLess(0.3, debug.end_time - debug.start_time)
     self.assertGreater(1.0, debug.end_time - debug.start_time)
 
+  def test_cancellation(self):
+    first_barrier = threading.Barrier(2, action=arolla.abc.simulate_SIGINT)
+    second_barrier = threading.Barrier(2)
+
+    @kd.trace_as_fn(py_fn=True)
+    def wait_for_cancellation(_: Any):
+      first_barrier.wait()
+      while True:
+        arolla.abc.raise_if_cancelled()
+        time.sleep(0.01)
+      second_barrier.wait()
+
+    @kd.trace_as_fn()
+    def fn(x):
+      y = wait_for_cancellation(x + 1)
+      z = wait_for_cancellation(x + 2)
+      return y + z
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'kd.py.apply_py: error during calling `fn`\n\n'
+        'The cause is: [CANCELLED] interrupted',
+    ):
+      call.call_multithreaded(kd.fn(fn), x=ds(1), max_threads=10)
+
 
 if __name__ == '__main__':
   absltest.main()
