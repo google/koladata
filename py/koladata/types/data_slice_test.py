@@ -152,6 +152,7 @@ class DataSliceMethodsTest(parameterized.TestCase):
               'S',  # Has different meanings between method and function.
               'get_values',  # TODO: fix this.
               'implode',  # method lacks db= argument for consistency with view
+              'new',  # method offers much simpler and restrictive interface
           },
           skip_params=[
               ('with_bag', 0),  # bag is positional-only in C++
@@ -3193,6 +3194,10 @@ The cause is: unsupported narrowing cast to INT64 for the given STRING DataSlice
       fn = getattr(data_slice.DataSlice, fn_name)
       if callable(fn):
         _ = inspect.signature(fn)  # Shouldn't raise.
+
+  def test_new(self):
+    with self.assertRaisesRegex(NotImplementedError, 'only Schema'):
+      _ = ds([1, 2, 3]).new()
 
 
 class DataSliceMergingTest(parameterized.TestCase):

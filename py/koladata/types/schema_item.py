@@ -31,6 +31,15 @@ class SchemaItem(data_item.DataItem):
   def get_nofollowed_schema(self) -> data_item.DataItem:
     return _eval_op('kd.get_nofollowed_schema', self)
 
+  def new(self, **attrs) -> data_slice.DataSlice:
+    """Returns a new Entity with this Schema."""
+    if self.get_bag() is None:
+      raise ValueError(
+          'only SchemaItem with DataBags can be used for creating Entities'
+      )
+    return _eval_op('kd.new', schema=self, **attrs)
+
+  # TODO: Deprecate when all usage is updated.
   def __call__(self, *args, **kwargs):
     """Schema DataItem can be used as Entity creator."""
     if self.get_bag() is None:

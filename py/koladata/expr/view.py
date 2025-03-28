@@ -388,6 +388,9 @@ class KodaView(arolla.abc.ExprView):
         overwrite_schema=overwrite_schema,
     )
 
+  def new(self, **attrs) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kd.new', schema=self, **attrs)
+
   def take(self, indices: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.take', self, indices)
 

@@ -415,6 +415,11 @@ class KodaViewTest(parameterized.TestCase):
         kde.with_attr(C.x, 'a', C.a, overwrite_schema=False)
     )
 
+  def test_new(self):
+    testing.assert_non_deterministic_exprs_equal(
+        C.x.new(a=C.a, b=C.b), kde.new(schema=C.x, a=C.a, b=C.b)
+    )
+
   def test_take(self):
     testing.assert_equal(C.x.take(C.indices), kde.take(C.x, C.indices))
 
@@ -678,7 +683,6 @@ class KodaViewTest(parameterized.TestCase):
         'merge_fallbacks',
         'merge_inplace',
         'named_schema',
-        'new',
         'new_like',
         'new_schema',
         'new_shaped',
@@ -721,7 +725,11 @@ class KodaViewTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       *signature_test_utils.generate_method_function_signature_compatibility_cases(
-          view.KodaView(), kde
+          view.KodaView(),
+          kde,
+          skip_methods={
+              'new',  # method offers much simpler and restrictive interface
+          },
       )
   )
   def test_consistent_signatures(self, *args, **kwargs):

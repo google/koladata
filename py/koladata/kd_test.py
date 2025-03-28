@@ -501,6 +501,17 @@ class KdTest(absltest.TestCase):
         kd.expr.unpack_expr(fn.f.returns), I.x + 1
     )
 
+  def test_tracing_schema_new(self):
+    with tracing_mode.enable_tracing():
+      entity = kd.uu_schema(a=kd.INT32, b=kd.STRING).new(a=42, b='xyz')
+    entity = kd.eval(entity)
+    kd.testing.assert_equal(
+        entity.get_schema().no_bag(),
+        kd.uu_schema(a=kd.INT32, b=kd.STRING).no_bag()
+    )
+    kd.testing.assert_equal(entity.a.no_bag(), kd.item(42))
+    kd.testing.assert_equal(entity.b.no_bag(), kd.item('xyz'))
+
   def test_type_tracing_config(self):
 
     @kd.trace_as_fn()

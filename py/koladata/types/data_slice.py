@@ -441,6 +441,14 @@ def _with_attr(
   )
 
 
+@add_method(DataSlice, 'new')
+def _new(self, **attrs):
+  """Returns a new Entity with this Schema."""
+  raise NotImplementedError(
+      'only Schema can create new Entities using .new(...)'
+  )
+
+
 @add_method(DataSlice, 'take', docstring_from='kd.take')
 def _take(self, indices: Any) -> DataSlice:
   return _eval_op('kd.take', self, indices)

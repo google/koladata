@@ -81,7 +81,8 @@ class SchemaItemTest(absltest.TestCase):
     nofollow = eval_op('kd.schema.nofollow_schema', orig_schema)
     testing.assert_equal(nofollow.get_nofollowed_schema(), orig_schema)
 
-  def test_creating_entity(self):
+  # TODO: Deprecate when all usage is updated.
+  def test_creating_entity_with_call(self):
     s = fns.schema.new_schema(
         a=schema_constants.FLOAT32, b=schema_constants.STRING
     )
@@ -92,11 +93,7 @@ class SchemaItemTest(absltest.TestCase):
     with self.assertRaises(AssertionError):
       testing.assert_equal(entity.get_bag(), s.get_bag())
 
-  def test_creating_obj(self):
-    o = fns.obj(a=schema_constants.FLOAT32, b=schema_constants.STRING)
-    self.assertFalse(o.is_entity_schema())
-
-  def test_creating_list(self):
+  def test_creating_list_with_call(self):
     l = fns.list_schema(item_schema=fns.list_schema(schema_constants.FLOAT32))
     self.assertTrue(l.is_list_schema())
     lst = l([[1., 2], [3]])
@@ -106,7 +103,7 @@ class SchemaItemTest(absltest.TestCase):
     with self.assertRaises(AssertionError):
       testing.assert_equal(lst.get_bag(), l.get_bag())
 
-  def test_creating_dict(self):
+  def test_creating_dict_with_call(self):
     d = fns.dict_schema(
         key_schema=schema_constants.STRING,
         value_schema=schema_constants.FLOAT32,
@@ -120,7 +117,7 @@ class SchemaItemTest(absltest.TestCase):
     with self.assertRaises(AssertionError):
       testing.assert_equal(dct.get_bag(), d.get_bag())
 
-  def test_creating_dict_keys_and_values_separately(self):
+  def test_creating_dict_keys_and_values_separately_with_call(self):
     d = fns.dict_schema(
         key_schema=schema_constants.STRING,
         value_schema=schema_constants.FLOAT32,
@@ -143,7 +140,17 @@ class SchemaItemTest(absltest.TestCase):
     with self.assertRaises(AssertionError):
       testing.assert_equal(dct.get_bag(), d.get_bag())
 
-  def test_creating_entities_errors(self):
+  def test_creating_entity(self):
+    s = fns.schema.new_schema(
+        a=schema_constants.FLOAT32, b=schema_constants.STRING
+    )
+    self.assertTrue(s.is_entity_schema())
+    entity = s.new(a=42, b='xyz')
+    testing.assert_equal(entity.a, ds(42.0).with_bag(entity.get_bag()))
+    testing.assert_equal(entity.b, ds('xyz').with_bag(entity.get_bag()))
+    self.assertNotEqual(entity.get_bag().fingerprint, s.get_bag().fingerprint)
+
+  def test_creating_entities_with_call_errors(self):
     with self.assertRaisesRegex(
         ValueError,
         'only SchemaItem with DataBags can be used for creating Entities',
@@ -164,6 +171,15 @@ class SchemaItemTest(absltest.TestCase):
         ValueError, 'requires Entity schema, got INT32'
     ):
       schema_constants.INT32.with_bag(bag())(a=1, b=2)
+
+  def test_creating_entities_errors(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'only SchemaItem with DataBags can be used for creating Entities',
+    ):
+      fns.schema.new_schema(
+          a=schema_constants.INT32, b=schema_constants.STRING
+      ).with_bag(None).new()
 
   def test_is_primitive_schema(self):
     a = ds(1)
