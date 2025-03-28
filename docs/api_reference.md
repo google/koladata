@@ -930,6 +930,31 @@ Aliases:
 A shortcut for kd.get_attr(x, attr_name, default=None).
 ```
 
+### `kd.core.metadata(x, /, **attrs)` {#kd.core.metadata}
+Aliases:
+
+- [kd.metadata](#kd.metadata)
+
+``` {.no-copy}
+Returns a new DataBag containing metadata updates for `x`.
+
+Most common usage is to build an update using kd.metadata and than attach it
+as a DataBag update to the DataSlice.
+
+Example:
+  x = ...
+  metadata_update = kd.metadata(x, foo=..., bar=...)
+  x = x.updated(metadata_update)
+
+Note that if the metadata attribute name is not a valid Python identifier, it
+might be set by `with_attr` instead:
+  metadata_update = kd.metadata(x).with_attr('123', value)
+
+Args:
+  x: Schema for which the metadata update is being created.
+  **attrs: attrs to set in the metadata update.
+```
+
 ### `kd.core.no_bag(ds)` {#kd.core.no_bag}
 Aliases:
 
@@ -1159,6 +1184,28 @@ Returns:
   A new DataSlice with an immutable DataBags.
 ```
 
+### `kd.core.with_metadata(x, /, **attrs)` {#kd.core.with_metadata}
+Aliases:
+
+- [kd.with_metadata](#kd.with_metadata)
+
+``` {.no-copy}
+Returns a DataSlice with a new DataBag containing updated metadata for `x`.
+
+This is a shorter version of `x.updated(kd.metadata(x, ...))`.
+
+Example:
+  x = kd.with_metadata(x, foo=..., bar=...)
+
+Note that if the metadata attribute name is not a valid Python identifier, it
+might be set by `with_attr` instead:
+  x = kd.with_metadata(x).with_attr('123', value)
+
+Args:
+  x: Entity / Object for which the metadata update is being created.
+  **attrs: attrs to set in the update.
+```
+
 </section>
 
 ### kd.expr {#kd.expr}
@@ -1175,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x31647a20d8d0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x3061fc4d5c50>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1257,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x31647a20d8d0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x3061fc4d5c50>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -8586,6 +8633,10 @@ Alias for [kd.math.maximum](#kd.math.maximum) operator.
 
 Alias for [kd.core.maybe](#kd.core.maybe) operator.
 
+### `kd.metadata(x, /, **attrs)` {#kd.metadata}
+
+Alias for [kd.core.metadata](#kd.core.metadata) operator.
+
 ### `kd.min(x)` {#kd.min}
 
 Alias for [kd.math.min](#kd.math.min) operator.
@@ -9177,6 +9228,10 @@ Alias for [kd.lists.with_list_append_update](#kd.lists.with_list_append_update) 
 ### `kd.with_merged_bag(ds)` {#kd.with_merged_bag}
 
 Alias for [kd.core.with_merged_bag](#kd.core.with_merged_bag) operator.
+
+### `kd.with_metadata(x, /, **attrs)` {#kd.with_metadata}
+
+Alias for [kd.core.with_metadata](#kd.core.with_metadata) operator.
 
 ### `kd.with_name(obj, name)` {#kd.with_name}
 
