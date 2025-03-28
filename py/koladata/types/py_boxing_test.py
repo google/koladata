@@ -150,6 +150,16 @@ class PyBoxingTest(parameterized.TestCase):
         ds(1),
     )
 
+    class Foo:
+      def method(self, x):
+        return x
+    self.assertIsInstance(
+        py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(
+            Foo().method
+        ),
+        arolla.abc.PyObject,
+    )
+
   def test_as_qvalue_or_expr_for_databag_type(self):
     # This cannot be part of the parameterized test because a different empty
     # DataBag is created anew every time.

@@ -162,7 +162,9 @@ def as_qvalue_or_expr_with_list_to_slice_support(
 def as_qvalue_or_expr_with_py_function_to_py_object_support(
     arg: Any,
 ) -> arolla.Expr | arolla.QValue:
-  if isinstance(arg, (py_types.FunctionType, functools.partial)):
+  if isinstance(
+      arg, (py_types.FunctionType, py_types.MethodType, functools.partial)
+  ):
     return arolla.abc.PyObject(arg, codec=REF_CODEC)
   return as_qvalue_or_expr(arg)
 
