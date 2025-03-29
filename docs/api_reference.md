@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x3061fc4d5c50>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x133cfae5d350>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x3061fc4d5c50>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x133cfae5d350>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -2469,6 +2469,33 @@ Args:
 
 Returns:
   An iterable that chains the given iterables, in the given order.
+```
+
+### `kd.iterables.interleave(*iterables, value_type_as=unspecified)` {#kd.iterables.interleave}
+
+``` {.no-copy}
+Creates an iterable that interleaves the given iterables.
+
+The resulting iterable has all items from all input iterables, and the order
+within each iterable is preserved. But the order of interleaving of different
+iterables can be arbitrary.
+
+Having unspecified order allows the parallel execution to put the items into
+the result in the order they are computed, potentially increasing the amount
+of parallel processing done.
+
+The iterables must all have the same value type. If value_type_as is
+specified, it must be the same as the value type of the iterables, if any.
+
+Args:
+  *iterables: A list of iterables to be interleaved.
+  value_type_as: A value that has the same type as the iterables. It is useful
+    to specify this explicitly if the list of iterables may be empty. If this
+    is not specified and the list of iterables is empty, the iterable will
+    have DataSlice as the value type.
+
+Returns:
+  An iterable that interleaves the given iterables, in arbitrary order.
 ```
 
 ### `kd.iterables.make(*items, value_type_as=unspecified)` {#kd.iterables.make}
@@ -10406,6 +10433,15 @@ Aliases:
 A shortcut for kd.get_attr(x, attr_name, default=None).
 ```
 
+### `DataSlice.new(self, **attrs)` {#DataSlice.new}
+Aliases:
+
+- [DataItem.new](#DataItem.new)
+
+``` {.no-copy}
+Returns a new Entity with this Schema.
+```
+
 ### `DataSlice.no_bag()` {#DataSlice.no_bag}
 Aliases:
 
@@ -11889,6 +11925,10 @@ Alias for [DataSlice.list_size](#DataSlice.list_size) operator.
 ### `DataItem.maybe(self, attr_name)` {#DataItem.maybe}
 
 Alias for [DataSlice.maybe](#DataSlice.maybe) operator.
+
+### `DataItem.new(self, **attrs)` {#DataItem.new}
+
+Alias for [DataSlice.new](#DataSlice.new) operator.
 
 ### `DataItem.no_bag()` {#DataItem.no_bag}
 
