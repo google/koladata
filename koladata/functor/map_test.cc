@@ -18,7 +18,6 @@
 #include "koladata/functor/map.h"
 
 #include <cstdint>
-#include <numeric>
 #include <optional>
 #include <utility>
 #include <vector>
