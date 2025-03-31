@@ -1513,10 +1513,12 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
                             attr_name),
             KodaErrorCausedByNoCommonSchemaError(_, GetBag())));
     auto result_db = DataBag::CommonDataBag({GetBag(), default_value.GetBag()});
-    return DataSlice::Create(
-        internal::CoalesceWithFiltered(impl, result_or_missing.impl<T>(),
-                                       expanded_default.impl<T>()),
-        GetShape(), std::move(result_schema), std::move(result_db));
+    ASSIGN_OR_RETURN(auto res, internal::CoalesceWithFiltered(
+                                   impl, result_or_missing.impl<T>(),
+                                   expanded_default.impl<T>()));
+    ASSIGN_OR_RETURN(res, schema::CastDataTo(res, result_schema));
+    return DataSlice::Create(std::move(res), GetShape(),
+                             std::move(result_schema), std::move(result_db));
   });
 }
 

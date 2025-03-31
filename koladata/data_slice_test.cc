@@ -3364,6 +3364,22 @@ TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_EntityCreator) {
   EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kInt32);
 }
 
+TEST(DataSliceTest, GetAttrWithDefault_CommonSchema_EntityCreator) {
+  auto db = DataBag::Empty();
+  auto shape = DataSlice::JaggedShape::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      EntityCreator::Shaped(db, shape, {"a", "b"},
+                            {test::DataItem(std::nullopt, schema::kInt64),
+                             test::DataItem(2, schema::kInt32)}));
+  EXPECT_THAT(ds.GetAttrWithDefault("a", test::DataItem(1)),
+              IsOkAndHolds(IsEquivalentTo(
+                  test::DataItem(int64_t{1}, schema::kInt64, db))));
+  EXPECT_THAT(
+      ds.GetAttrWithDefault("b", test::DataItem(1.0f)),
+      IsOkAndHolds(IsEquivalentTo(test::DataItem(2.0f, schema::kFloat32, db))));
+}
+
 TEST(DataSliceTest, GetAttrWithDefault_Primitives_ObjectCreator) {
   auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
   auto db = DataBag::Empty();

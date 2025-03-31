@@ -139,6 +139,15 @@ class CoreGetAttrTest(parameterized.TestCase):
         expected.with_bag(self.object.get_bag()),
     )
 
+  def test_type_promotion(self):
+    # Regression test for b/407094917.
+    entity = eager.new(a=ds(None, schema_constants.INT64))
+    expr = kde.get_attr(I.x, 'a', ds(1))
+    testing.assert_equal(
+        expr_eval.eval(expr, x=entity),
+        ds(1, schema_constants.INT64).with_bag(entity.get_bag()),
+    )
+
   def test_schema_error(self):
     with self.assertRaisesRegex(
         ValueError,
