@@ -1768,7 +1768,7 @@ TEST(DataSliceTest, BroadcastToShape) {
   }
   {
     // Actual expansion. More extensive tests are in:
-    // //koladata/internal/op_utils/expand_test.cc
+    // koladata/internal/op_utils/expand_test.cc
     auto edge_1 = CreateEdge({0, 3});
     auto edge_2 = CreateEdge({0, 2, 4, 6});
     ASSERT_OK_AND_ASSIGN(auto shape,

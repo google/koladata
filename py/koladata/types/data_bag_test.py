@@ -1258,7 +1258,7 @@ Assigned schema for keys: INT32""",
 
   def test_dict_shaped(self):
     # NOTE: more tests for dict_shaped in
-    # //py/koladata/functions/tests/dict_shaped_test.py
+    # py/koladata/functions/tests/dict_shaped_test.py
 
     db = bag()
     shape = jagged_shape.create_shape([3])
@@ -1273,7 +1273,7 @@ Assigned schema for keys: INT32""",
 
   def test_dict_like(self):
     # NOTE: more tests for dict_like in
-    # //py/koladata/functions/tests/dict_like_test.py
+    # py/koladata/functions/tests/dict_like_test.py
 
     db = bag()
     x = db.dict_like(
@@ -1355,7 +1355,7 @@ Assigned schema for keys: INT32""",
 
   def test_list_shaped(self):
     # NOTE: more tests for list_shaped in
-    # //py/koladata/functions/tests/list_shaped_test.py
+    # py/koladata/functions/tests/list_shaped_test.py
 
     db = bag()
     shape = jagged_shape.create_shape([3])
@@ -1365,7 +1365,7 @@ Assigned schema for keys: INT32""",
 
   def test_list_like(self):
     # NOTE: more tests for list_like in
-    # //py/koladata/functions/tests/list_like_test.py
+    # py/koladata/functions/tests/list_like_test.py
 
     db = bag()
     l = db.list_like(ds([[1, None], [1]]), ds([[[1, 2], [3]], [[4, 5]]]))
@@ -1388,7 +1388,7 @@ Assigned schema for keys: INT32""",
 
   def test_implode_impl(self):
     # NOTE: more tests for implode in
-    # //py/koladata/functions/tests/implode_test.py
+    # py/koladata/functions/tests/implode_test.py
 
     db = bag()
     with self.assertRaisesRegex(
@@ -1407,7 +1407,7 @@ Assigned schema for keys: INT32""",
 
   def test_concat_lists_impl(self):
     # NOTE: more tests for concat_lists in
-    # //py/koladata/functions/tests/concat_lists_test.py
+    # py/koladata/functions/tests/concat_lists_test.py
 
     db = bag()
     with self.assertRaisesRegex(
@@ -1939,7 +1939,7 @@ The cause is the list sizes are incompatible: 2 vs 1
 
   def test_from_proto_minimal(self):
     # NOTE: more tests for from_proto in
-    # //py/koladata/functions/tests/from_proto_test.py
+    # py/koladata/functions/tests/from_proto_test.py
 
     db = bag()
     x = db._from_proto([], [], None, None)
@@ -1998,7 +1998,7 @@ The cause is the list sizes are incompatible: 2 vs 1
 
   def test_schema_from_proto_minimal(self):
     # NOTE: more tests for schema_from_proto in
-    # //py/koladata/functions/tests/schema_from_proto_test.py
+    # py/koladata/functions/tests/schema_from_proto_test.py
 
     db = bag()
     x = db._schema_from_proto(test_pb2.MessageA(), [])

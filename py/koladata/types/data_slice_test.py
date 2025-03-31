@@ -998,7 +998,7 @@ class DataSliceTest(parameterized.TestCase):
 
   def test_to_proto_minimal(self):
     # NOTE: more tests for to_proto in
-    # //py/koladata/functions/tests/to_proto_test.py
+    # py/koladata/functions/tests/to_proto_test.py
 
     message = fns.new()._to_proto(test_pb2.EmptyMessage)  # pylint: disable=protected-access
     self.assertIsInstance(message, test_pb2.EmptyMessage)
