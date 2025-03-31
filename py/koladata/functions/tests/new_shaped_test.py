@@ -297,21 +297,6 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
     ):
       fns.new_shaped(jagged_shape.create_shape(), a='a', schema=schema)
 
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            r"""cannot create Item(s) with the provided schema: SCHEMA(a=INT32)
-
-The cause is: the schema for attribute 'a' is incompatible.
-
-Expected schema for 'a': INT32
-Assigned schema for 'a': STRING
-
-To fix this, explicitly override schema of 'a' in the original schema by passing overwrite_schema=True."""
-        ),
-    ):
-      schema(a='a')
-
     db1 = fns.bag()
     _ = db1.uuobj(x=1)
     db2 = fns.bag()

@@ -231,7 +231,7 @@ class CoreDeepCloneTest(parameterized.TestCase):
 
   def test_with_named_schema(self):
     schema = bag().named_schema('foo', x=schema_constants.INT32)
-    s = schema(x=ds([1, 2, 3]))
+    s = kde.new(x=ds([1, 2, 3]), schema=schema)
     res = expr_eval.eval(kde.core.deep_clone(s))
     testing.assert_equal(res.get_schema().no_bag(), schema.no_bag())
 

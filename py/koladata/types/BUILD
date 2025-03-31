@@ -378,7 +378,6 @@ py_library(
     name = "schema_item",
     srcs = ["schema_item.py"],
     deps = [
-        ":data_bag",
         ":data_item",
         ":data_slice",
         "//py/koladata/expr:py_expr_eval_py_ext",

@@ -16,7 +16,6 @@
 
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
-from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 
@@ -44,13 +43,11 @@ class SchemaItem(data_item.DataItem):
   # TODO: Deprecate when all usage is updated.
   def __call__(self, *args, **kwargs):
     """Schema DataItem can be used as Entity creator."""
-    if self.get_bag() is None:
-      raise ValueError(
-          'only SchemaItem with DataBags can be used for creating Entities'
-      )
-    if self.is_dict_schema():
-      return data_bag.DataBag.empty().dict(*args, **kwargs, schema=self)
-    return data_bag.DataBag.empty().new(*args, **kwargs, schema=self)
+    raise ValueError(
+        'creating Entities through Schema.__call__ is deprecated; '
+        'please use kd.new(schema=Schema, ...) or Schema.new(...) instead; '
+        f'creating with {self}'
+    )
 
 
 arolla.abc.register_qvalue_specialization(

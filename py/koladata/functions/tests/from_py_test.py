@@ -621,7 +621,7 @@ class FromPyTest(parameterized.TestCase):
     schema = fns.schema.new_schema(
         koda=fns.schema.new_schema(x=schema_constants.INT32)
     )
-    entity = fns.from_py(Test(schema.koda(x=1)), schema=schema)
+    entity = fns.from_py(Test(fns.new(x=1, schema=schema.koda)), schema=schema)
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(fns.dir(entity), ['koda'])
     koda = entity.koda

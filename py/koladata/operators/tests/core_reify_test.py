@@ -19,13 +19,11 @@ from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
-from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
@@ -33,9 +31,8 @@ kde = kde_operators.kde
 class CoreReifyTest(absltest.TestCase):
 
   def test_eval(self):
-    db = bag()
-    s = db.new_schema(a=schema_constants.INT32)
-    x = ds([s(a=1), s(a=2)])
+    s = kde.schema.new_schema(a=schema_constants.INT32).eval()
+    x = ds([kde.new(a=1, schema=s).eval(), kde.new(a=2, schema=s).eval()])
     y = x.get_itemid().no_bag()
     x1 = expr_eval.eval(kde.reify(y, source=x))
     testing.assert_equal(x1, x)

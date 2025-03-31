@@ -419,7 +419,7 @@ class ToPyTest(parameterized.TestCase):
     p = fns.schema.new_schema(
         x=schema_constants.INT32, y=schema_constants.INT32
     )
-    x = ds([p(x=1, y=2), p(x=3)])
+    x = ds([fns.new(x=1, y=2, schema=p), fns.new(x=3, schema=p)])
     self.assertEqual(
         fns.to_py(x, obj_as_dict=True, include_missing_attrs=False),
         [{'x': 1, 'y': 2}, {'x': 3}])
@@ -569,8 +569,11 @@ class ToPytreeTest(absltest.TestCase):
         x=schema_constants.INT32, y=schema_constants.INT32
     )
     self.assertEqual(
-        ds([p(x=1, y=2), p(x=3)]).to_pytree(include_missing_attrs=False),
-        [{'x': 1, 'y': 2}, {'x': 3}])
+        ds([fns.new(x=1, y=2, schema=p), fns.new(x=3, schema=p)]).to_pytree(
+            include_missing_attrs=False
+        ),
+        [{'x': 1, 'y': 2}, {'x': 3}]
+    )
 
 
 if __name__ == '__main__':

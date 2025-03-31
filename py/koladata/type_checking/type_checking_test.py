@@ -84,7 +84,7 @@ class TypeCheckingTest(absltest.TestCase):
       return x
 
     # Assert does not raise.
-    _ = f(person(age=30, name='John'))
+    _ = f(kd.new(age=30, name='John', schema=person))
 
     with self.assertRaisesRegex(
         TypeError,
@@ -102,7 +102,7 @@ class TypeCheckingTest(absltest.TestCase):
       return x
 
     # Assert does not raise.
-    _ = f(person(age=30, name='John'))
+    _ = f(kd.new(age=30, name='John', schema=person))
 
     with self.assertRaisesRegex(
         TypeError,
@@ -122,7 +122,7 @@ class TypeCheckingTest(absltest.TestCase):
       return x
 
     # Assert does not raise.
-    _ = f(person(age=30, first_name='John'))
+    _ = f(kd.new(age=30, first_name='John', schema=person))
 
     with self.assertRaisesRegex(
         TypeError,
@@ -141,7 +141,7 @@ class TypeCheckingTest(absltest.TestCase):
       return x
 
     # Assert does not raise.
-    _ = f(person(age=30, first_name='John'))
+    _ = f(kd.new(age=30, first_name='John', schema=person))
 
     with self.assertRaisesRegex(
         TypeError,
@@ -158,7 +158,7 @@ class TypeCheckingTest(absltest.TestCase):
       return x
 
     # Assert does not raise.
-    _ = f(person(age=30, name='John'))
+    _ = f(kd.new(age=30, name='John', schema=person))
     _ = f(kd.uu(age=32, name='Alice'))
 
     with self.assertRaisesRegex(
@@ -177,7 +177,7 @@ class TypeCheckingTest(absltest.TestCase):
       return x
 
     # Assert does not raise.
-    _ = f(person(age=30, name='John'))
+    _ = f(kd.new(age=30, name='John', schema=person))
     _ = f(kd.uu(age=32, name='Alice'))
 
     with self.assertRaisesRegex(
@@ -223,8 +223,12 @@ class TypeCheckingTest(absltest.TestCase):
     def get_docs(query):
       return query.docs[:]
 
-    q = query(
-        docs=[doc(doc_id=1, score=0.5), doc(doc_id=2, score=0.7)],
+    q = kd.new(
+        docs=[
+            kd.new(doc_id=1, score=0.5, schema=doc),
+            kd.new(doc_id=2, score=0.7, schema=doc)
+        ],
+        schema=query,
     )
     # Assert does not raise.
     _ = get_docs(q)

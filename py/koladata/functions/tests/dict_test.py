@@ -292,7 +292,7 @@ class DictTest(parameterized.TestCase):
 Expected schema for keys: INT64
 Assigned schema for keys: STRING"""),
     ):
-      schema(items_or_keys=ds(['a', 'a']), values=ds([1, 2]))
+      fns.dict(items_or_keys=ds(['a', 'a']), values=ds([1, 2]), schema=schema)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -301,7 +301,7 @@ Assigned schema for keys: STRING"""),
 Expected schema for values: INT64
 Assigned schema for values: STRING"""),
     ):
-      schema(items_or_keys=ds([1, 2]), values=ds(['1', '2']))
+      fns.dict(items_or_keys=ds([1, 2]), values=ds(['1', '2']), schema=schema)
 
     with self.assertRaisesRegex(
         ValueError,

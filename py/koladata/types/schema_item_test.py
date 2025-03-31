@@ -69,8 +69,8 @@ class SchemaItemTest(absltest.TestCase):
   def test_new_schema_self_ref(self):
     s = fns.schema.new_schema(value=schema_constants.INT32)
     s = s.with_attrs(child=s, parent=s)
-    child = s(value=42)
-    entity = s(value=42, child=child)
+    child = s.new(value=42).fork_bag()
+    entity = s.new(value=42, child=child)
     child.parent = entity
     testing.assert_equal(child.parent.no_bag(), entity.no_bag())
     testing.assert_equal(entity.child.no_bag(), child.no_bag())
@@ -80,65 +80,6 @@ class SchemaItemTest(absltest.TestCase):
     orig_schema = db.new().get_schema()
     nofollow = eval_op('kd.schema.nofollow_schema', orig_schema)
     testing.assert_equal(nofollow.get_nofollowed_schema(), orig_schema)
-
-  # TODO: Deprecate when all usage is updated.
-  def test_creating_entity_with_call(self):
-    s = fns.schema.new_schema(
-        a=schema_constants.FLOAT32, b=schema_constants.STRING
-    )
-    self.assertTrue(s.is_entity_schema())
-    entity = s(a=42, b='xyz')
-    testing.assert_equal(entity.a, ds(42.0).with_bag(entity.get_bag()))
-    testing.assert_equal(entity.b, ds('xyz').with_bag(entity.get_bag()))
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(entity.get_bag(), s.get_bag())
-
-  def test_creating_list_with_call(self):
-    l = fns.list_schema(item_schema=fns.list_schema(schema_constants.FLOAT32))
-    self.assertTrue(l.is_list_schema())
-    lst = l([[1., 2], [3]])
-    testing.assert_equal(
-        lst[:][:], ds([[1.0, 2.0], [3.0]]).with_bag(lst.get_bag())
-    )
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(lst.get_bag(), l.get_bag())
-
-  def test_creating_dict_with_call(self):
-    d = fns.dict_schema(
-        key_schema=schema_constants.STRING,
-        value_schema=schema_constants.FLOAT32,
-    )
-    self.assertTrue(d.is_dict_schema())
-    dct = d({'a': 42, 'b': 37})
-    testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
-    testing.assert_equal(
-        dct[ds(['a', 'b'])], ds([42.0, 37.0]).with_bag(dct.get_bag())
-    )
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(dct.get_bag(), d.get_bag())
-
-  def test_creating_dict_keys_and_values_separately_with_call(self):
-    d = fns.dict_schema(
-        key_schema=schema_constants.STRING,
-        value_schema=schema_constants.FLOAT32,
-    )
-    self.assertTrue(d.is_dict_schema())
-
-    dct = d(ds(['a', 'b']), ds([42, 37]))
-    testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
-    testing.assert_equal(
-        dct[ds(['a', 'b'])], ds([42.0, 37.0]).with_bag(dct.get_bag())
-    )
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(dct.get_bag(), d.get_bag())
-
-    dct = d(values=ds([42, 37]), items_or_keys=ds(['a', 'b']))
-    testing.assert_dicts_keys_equal(dct, ds(['a', 'b']))
-    testing.assert_equal(
-        dct[ds(['a', 'b'])], ds([42.0, 37.0]).with_bag(dct.get_bag())
-    )
-    with self.assertRaises(AssertionError):
-      testing.assert_equal(dct.get_bag(), d.get_bag())
 
   def test_creating_entity(self):
     s = fns.schema.new_schema(
@@ -160,28 +101,6 @@ class SchemaItemTest(absltest.TestCase):
         entity_expr, kde.new(schema=s, a=42, b=kde.item('xyz'))
     )
 
-  def test_creating_entities_with_call_errors(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'only SchemaItem with DataBags can be used for creating Entities',
-    ):
-      fns.schema.new_schema(
-          a=schema_constants.INT32, b=schema_constants.STRING
-      ).with_bag(None)([1, 2, 3])
-    with self.assertRaisesRegex(
-        ValueError, 'expected List schema, got INT32'
-    ):
-      schema_constants.INT32.with_bag(bag())([1, 2, 3])
-    with self.assertRaisesRegex(
-        ValueError,
-        'processing Entity attributes requires Entity schema, got INT32',
-    ):
-      schema_constants.INT32.with_bag(bag())({'a': 42})
-    with self.assertRaisesRegex(
-        ValueError, 'requires Entity schema, got INT32'
-    ):
-      schema_constants.INT32.with_bag(bag())(a=1, b=2)
-
   def test_creating_entities_errors(self):
     with self.assertRaisesRegex(
         ValueError,
@@ -190,6 +109,8 @@ class SchemaItemTest(absltest.TestCase):
       fns.schema.new_schema(
           a=schema_constants.INT32, b=schema_constants.STRING
       ).with_bag(None).new()
+    with self.assertRaisesRegex(ValueError, 'deprecated'):
+      fns.schema.new_schema(a=schema_constants.INT32)(42)
 
   def test_is_primitive_schema(self):
     a = ds(1)

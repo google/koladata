@@ -277,7 +277,7 @@ def one_obj_per_big_alloc(state):
   objs = []
   schema = kd.uu_schema(a=kd.FLOAT32)
   for i in range(size):
-    obj = schema(a=kd.slice([i] * alloc_size))
+    obj = kd.new(a=kd.slice([i] * alloc_size), schema=schema)
     objs.append(obj.S[0])
   random.shuffle(objs)
   ds = kd.slice(objs).fork_bag()

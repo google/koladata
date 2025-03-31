@@ -836,7 +836,7 @@ Assigned schema for 'a': SCHEMA(b=STRING)"""),
 Expected schema for 'a': SCHEMA(b=INT32)
 Assigned schema for 'a': SCHEMA(c=STRING)"""),
     ):
-      _ = schema(a=bag().new(c='dudulu'))
+      _ = db.new(a=bag().new(c='dudulu'), schema=schema)
 
   def test_list_schema(self):
     db = bag()
@@ -890,9 +890,12 @@ Assigned schema for 'a': SCHEMA(c=STRING)"""),
     schema = db.list_schema(schema_constants.INT32)
     with self.assertRaisesRegex(
         ValueError,
-        r"""the schema is incompatible: expected INT32, assigned STRING""",
+        r"""the schema for list items is incompatible.
+
+Expected schema for list items: INT32
+Assigned schema for list items: STRING""",
     ):
-      _ = schema(['a'])
+      _ = db.list(['a'], schema=schema)
 
   def test_dict_schema(self):
     db = bag()
@@ -981,7 +984,7 @@ Assigned schema for 'a': SCHEMA(c=STRING)"""),
 Expected schema for values: INT32
 Assigned schema for values: STRING""",
     ):
-      _ = schema({'a': 'steins;gate'})
+      _ = db.dict({'a': 'steins;gate'}, schema=schema)
 
     with self.assertRaisesRegex(
         ValueError,
@@ -990,7 +993,7 @@ Assigned schema for values: STRING""",
 Expected schema for keys: STRING
 Assigned schema for keys: INT32""",
     ):
-      _ = schema({1: 'steins;gate'})
+      _ = db.dict({1: 'steins;gate'}, schema=schema)
 
   def test_new_auto_broadcasting(self):
     db = bag()
