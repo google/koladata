@@ -40,6 +40,7 @@
 #include "koladata/test_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
@@ -767,5 +768,31 @@ BENCHMARK(BM_DataBagContentsRepr_Lists)
     ->Args({10, 10})
     ->Args({1000, 100})
     ->Args({10000, 100});
+
+void BM_CreateFromScalar_Int32(benchmark::State& state) {
+  int v = 42;
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(v);
+    auto res = DataSlice::CreateFromScalar(v);
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_CreateFromScalar_Int32);
+
+void BM_CreateFromScalar_Text(benchmark::State& state) {
+  arolla::Text t(std::string(10000, 'a'));
+  for (auto _ : state) {
+    state.PauseTiming();
+    auto t_copy = t;
+    state.ResumeTiming();
+    benchmark::DoNotOptimize(t_copy);
+    auto res = DataSlice::CreateFromScalar(std::move(t_copy));
+    benchmark::DoNotOptimize(res);
+  }
+}
+
+BENCHMARK(BM_CreateFromScalar_Text);
+
 }  // namespace
 }  // namespace koladata

@@ -138,10 +138,9 @@ class DataSlice {
       Wholeness wholeness = Wholeness::kNotWhole);
 
   template <typename T>
-  static absl::StatusOr<koladata::DataSlice> CreateFromScalar(const T& v) {
-    return koladata::DataSlice::Create(
-        koladata::internal::DataItem(v),
-        koladata::internal::DataItem(koladata::schema::GetDType<T>()));
+  static DataSlice CreateFromScalar(T v) {
+    return DataSlice(internal::DataItem(std::move(v)), JaggedShape::Empty(),
+                     internal::DataItem(schema::GetDType<T>()));
   }
 
   // Default-constructed DataSlice is a single missing item with scalar shape
