@@ -35,8 +35,6 @@ namespace {
 
 using ::arolla::python::PyObjectPtr;
 
-absl::NoDestructor<arolla::python::PyObjectPtr> exception_factory;
-
 bool HandleKodaPyErrStatus(const absl::Status& status) {
   const auto* error = arolla::GetPayload<internal::Error>(status);
   if (error == nullptr) {
@@ -78,13 +76,6 @@ bool HandleKodaPyErrStatus(const absl::Status& status) {
 
 }  // namespace
 
-absl::Nullable<PyObject*> PyRegisterExceptionFactory(PyObject* /*module*/,
-                                                     PyObject* factory) {
-  if (*exception_factory == nullptr) {
-    *exception_factory = arolla::python::PyObjectPtr::NewRef(factory);
-  }
-  Py_RETURN_NONE;
-}
 
 AROLLA_INITIALIZER(.init_fn = [] {
   return arolla::python::RegisterStatusHandler(HandleKodaPyErrStatus);
