@@ -22,7 +22,6 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import koda_internal as _
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.operators import slices as slice_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import qtypes
@@ -361,29 +360,6 @@ def is_list(x):  # pylint: disable=unused-argument
     A MASK DataItem.
   """
   raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kd.select_items'])
-@optools.as_lambda_operator(
-    'kd.lists.select_items',
-    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
-)
-def select_items(ds, fltr):
-  """Selects List items by filtering out missing items in fltr.
-
-  Also see kd.select.
-
-  Args:
-    ds: List DataSlice to be filtered
-    fltr: filter can be a DataSlice with dtype as kd.MASK. It can also be a Koda
-      Functor or a Python function which can be evalauted to such DataSlice. A
-      Python function will be traced for evaluation, so it cannot have Python
-      control flow operations such as `if` or `while`.
-
-  Returns:
-    Filtered DataSlice.
-  """
-  return slice_ops.select(ds=explode(ds), fltr=fltr)
 
 
 @optools.add_to_registry(aliases=['kd.appended_list'])

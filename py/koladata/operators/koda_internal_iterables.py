@@ -131,10 +131,6 @@ def shuffle(x):
   # We use Koda rather than Arolla random to pick up the "nondeterministic
   # default seed" behavior.
   random_values = random.randint_shaped(shape)
-  # Using "slices." here will be a problem in the future, since we expect
-  # functor.while_ to depend on this operator, which would create a
-  # slices->functor->iterables->slices dependency cycle. But let us resolve
-  # that when we get there.
   random_order = slices.ordinal_rank(random_values)
   random_order_seq = sequence_from_1d_slice(random_order)
   random_order_seq = arolla.M.seq.map(

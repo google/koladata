@@ -557,8 +557,10 @@ absl::Status FromProtoMessageField(
                      if (!itemid.has_value()) {
                        return std::nullopt;
                      }
-                     ASSIGN_OR_RETURN(auto packed_itemid,
-                                      ops::Select(*itemid, *vars->mask, false));
+                     ASSIGN_OR_RETURN(
+                         auto packed_itemid,
+                         ops::Select(*itemid, *vars->mask,
+                                     DataSlice::CreateFromScalar(false)));
                      return packed_itemid;
                    }());
 

@@ -19,7 +19,6 @@ from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import comparison
-from koladata.operators import functor
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking
 from koladata.operators import math
@@ -1271,59 +1270,18 @@ def tile(x, shape):
   return jagged_shape_ops.expand_to_shape(x, shape, get_ndim(x))
 
 
-@optools.as_backend_operator('kd.slices._select')
-def _select(ds, fltr, expand_filter):  # pylint: disable=unused-argument
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kd.select'])
-@optools.as_lambda_operator(
-    'kd.slices.select',
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.slices.internal_select_by_slice',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.fltr),
         qtype_utils.expect_data_slice(P.expand_filter),
     ],
 )
-def select(ds, fltr, expand_filter=data_slice.DataSlice.from_vals(True)):
-  """Creates a new DataSlice by filtering out missing items in fltr.
-
-  It is not supported for DataItems because their sizes are always 1.
-
-  The dimensions of `fltr` needs to be compatible with the dimensions of `ds`.
-  By default, `fltr` is expanded to 'ds' and items in `ds` corresponding
-  missing items in `fltr` are removed. The last dimension of the resulting
-  DataSlice is changed while the first N-1 dimensions are the same as those in
-  `ds`.
-
-  Example:
-    val = kd.slice([[1, None, 4], [None], [2, 8]])
-    kd.select(val, val > 3) -> [[4], [], [8]]
-
-    fltr = kd.slice(
-        [[None, kd.present, kd.present], [kd.present], [kd.present, None]])
-    kd.select(val, fltr) -> [[None, 4], [None], [2]]
-
-    fltr = kd.slice([kd.present, kd.present, None])
-    kd.select(val, fltr) -> [[1, None, 4], [None], []]
-    kd.select(val, fltr, expand_filter=False) -> [[1, None, 4], [None]]
-
-  Args:
-    ds: DataSlice with ndim > 0 to be filtered.
-    fltr: filter DataSlice with dtype as kd.MASK. It can also be a Koda Functor
-      or a Python function which can be evalauted to such DataSlice. A Python
-      function will be traced for evaluation, so it cannot have Python control
-      flow operations such as `if` or `while`.
-    expand_filter: flag indicating if the 'filter' should be expanded to 'ds'
-
-  Returns:
-    Filtered DataSlice.
-  """
-  return _select(
-      ds=ds,
-      fltr=functor._maybe_call(fltr, ds),  # pylint: disable=protected-access
-      expand_filter=arolla_bridge.to_arolla_boolean(expand_filter),
-  )
+def internal_select_by_slice(ds, fltr, expand_filter=True):  # pylint: disable=unused-argument
+  """A version of kd.select that does not support lambdas/functors."""
+  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(aliases=['kd.select_present'])
@@ -1348,7 +1306,7 @@ def select_present(ds):
   Returns:
     Filtered DataSlice.
   """
-  return select(ds=ds, fltr=masking.has(ds))
+  return internal_select_by_slice(ds=ds, fltr=masking.has(ds))
 
 
 @optools.add_to_registry(aliases=['kd.reverse'])

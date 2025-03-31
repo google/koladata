@@ -20,7 +20,6 @@ from koladata.operators import core as core_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.operators import slices as slice_ops
 from koladata.operators import view_overloads as _
 from koladata.types import data_slice
 from koladata.types import qtypes
@@ -449,58 +448,6 @@ def get_values(dict_ds, key_ds=arolla.unspecified()):
       ),
       default=_get_values_by_keys(P.dict_ds, P.key_ds),
   )(dict_ds, key_ds)
-
-
-@optools.add_to_registry(aliases=['kd.select_keys'])
-@optools.as_lambda_operator(
-    'kd.dicts.select_keys',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_slice(P.fltr),
-    ],
-)
-def select_keys(ds, fltr):
-  """Selects Dict keys by filtering out missing items in `fltr`.
-
-  Also see kd.select.
-
-  Args:
-    ds: Dict DataSlice to be filtered
-    fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
-      function which can be evalauted to such DataSlice. A Python function will
-      be traced for evaluation, so it cannot have Python control flow operations
-      such as `if` or `while`.
-
-  Returns:
-    Filtered DataSlice.
-  """
-  return slice_ops.select(ds=get_keys(ds), fltr=fltr)
-
-
-@optools.add_to_registry(aliases=['kd.select_values'])
-@optools.as_lambda_operator(
-    'kd.dicts.select_values',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_slice(P.fltr),
-    ],
-)
-def select_values(ds, fltr):
-  """Selects Dict values by filtering out missing items in `fltr`.
-
-  Also see kd.select.
-
-  Args:
-    ds: Dict DataSlice to be filtered
-    fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
-      function which can be evalauted to such DataSlice. A Python function will
-      be traced for evaluation, so it cannot have Python control flow operations
-      such as `if` or `while`.
-
-  Returns:
-    Filtered DataSlice.
-  """
-  return slice_ops.select(ds=get_values(ds), fltr=fltr)
 
 
 @optools.as_backend_operator(

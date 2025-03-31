@@ -16,11 +16,13 @@
 
 from arolla import arolla
 from koladata.operators import assertion
-from koladata.operators import jagged_shape
+from koladata.operators import dicts
+from koladata.operators import lists
 from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema
+from koladata.operators import slices
 from koladata.types import data_slice
 from koladata.types import qtypes
 from koladata.types import schema_constants
@@ -171,9 +173,7 @@ def if_(
   args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
   cond = assertion.with_assertion(
       cond,
-      # We cannot use slices.get_ndim due to a cyclic dependency between
-      # slices and functor.
-      (jagged_shape.rank(jagged_shape.get_shape(cond)) == 0)
+      (slices.get_ndim(cond) == 0)
       & (schema.get_schema(cond) == schema_constants.MASK),
       'the condition in kd.if_ must be a MASK scalar',
   )
@@ -187,6 +187,9 @@ def if_(
   )
 
 
+# We could later move this operator to slices.py or a similar lower-level
+# operator module if we discover that we have too many unrelated operators in
+# this module because they use _maybe_call.
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'kd.functor._maybe_call',
@@ -199,3 +202,132 @@ def if_(
 def _maybe_call(maybe_fn, arg):  # pylint: disable=unused-argument
   """Returns `maybe_fn(arg)` if `maybe_fn` is a functor or `maybe_fn`."""
   raise NotImplementedError('implemented in the backend')
+
+
+# This operator is defined here since it depends on _maybe_call.
+@optools.add_to_registry(aliases=['kd.select'])
+@optools.as_lambda_operator(
+    'kd.slices.select',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.fltr),
+        qtype_utils.expect_data_slice(P.expand_filter),
+    ],
+)
+def select(ds, fltr, expand_filter=True):
+  """Creates a new DataSlice by filtering out missing items in fltr.
+
+  It is not supported for DataItems because their sizes are always 1.
+
+  The dimensions of `fltr` needs to be compatible with the dimensions of `ds`.
+  By default, `fltr` is expanded to 'ds' and items in `ds` corresponding
+  missing items in `fltr` are removed. The last dimension of the resulting
+  DataSlice is changed while the first N-1 dimensions are the same as those in
+  `ds`.
+
+  Example:
+    val = kd.slice([[1, None, 4], [None], [2, 8]])
+    kd.select(val, val > 3) -> [[4], [], [8]]
+
+    fltr = kd.slice(
+        [[None, kd.present, kd.present], [kd.present], [kd.present, None]])
+    kd.select(val, fltr) -> [[None, 4], [None], [2]]
+
+    fltr = kd.slice([kd.present, kd.present, None])
+    kd.select(val, fltr) -> [[1, None, 4], [None], []]
+    kd.select(val, fltr, expand_filter=False) -> [[1, None, 4], [None]]
+
+  Args:
+    ds: DataSlice with ndim > 0 to be filtered.
+    fltr: filter DataSlice with dtype as kd.MASK. It can also be a Koda Functor
+      or a Python function which can be evalauted to such DataSlice. A Python
+      function will be traced for evaluation, so it cannot have Python control
+      flow operations such as `if` or `while`.
+    expand_filter: flag indicating if the 'filter' should be expanded to 'ds'
+
+  Returns:
+    Filtered DataSlice.
+  """
+  return slices.internal_select_by_slice(
+      ds=ds,
+      fltr=_maybe_call(fltr, ds),
+      expand_filter=expand_filter,
+  )
+
+
+# This operator is defined here since it depends on _maybe_call.
+@optools.add_to_registry(aliases=['kd.select_keys'])
+@optools.as_lambda_operator(
+    'kd.dicts.select_keys',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.fltr),
+    ],
+)
+def select_keys(ds, fltr):
+  """Selects Dict keys by filtering out missing items in `fltr`.
+
+  Also see kd.select.
+
+  Args:
+    ds: Dict DataSlice to be filtered
+    fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
+      function which can be evalauted to such DataSlice. A Python function will
+      be traced for evaluation, so it cannot have Python control flow operations
+      such as `if` or `while`.
+
+  Returns:
+    Filtered DataSlice.
+  """
+  return select(ds=dicts.get_keys(ds), fltr=fltr)
+
+
+# This operator is defined here since it depends on _maybe_call.
+@optools.add_to_registry(aliases=['kd.select_values'])
+@optools.as_lambda_operator(
+    'kd.dicts.select_values',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.fltr),
+    ],
+)
+def select_values(ds, fltr):
+  """Selects Dict values by filtering out missing items in `fltr`.
+
+  Also see kd.select.
+
+  Args:
+    ds: Dict DataSlice to be filtered
+    fltr: filter DataSlice with dtype as kd.MASK or a Koda Functor or a Python
+      function which can be evalauted to such DataSlice. A Python function will
+      be traced for evaluation, so it cannot have Python control flow operations
+      such as `if` or `while`.
+
+  Returns:
+    Filtered DataSlice.
+  """
+  return select(ds=dicts.get_values(ds), fltr=fltr)
+
+
+# This operator is defined here since it depends on _maybe_call.
+@optools.add_to_registry(aliases=['kd.select_items'])
+@optools.as_lambda_operator(
+    'kd.lists.select_items',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.ds)],
+)
+def select_items(ds, fltr):
+  """Selects List items by filtering out missing items in fltr.
+
+  Also see kd.select.
+
+  Args:
+    ds: List DataSlice to be filtered
+    fltr: filter can be a DataSlice with dtype as kd.MASK. It can also be a Koda
+      Functor or a Python function which can be evalauted to such DataSlice. A
+      Python function will be traced for evaluation, so it cannot have Python
+      control flow operations such as `if` or `while`.
+
+  Returns:
+    Filtered DataSlice.
+  """
+  return select(ds=lists.explode(ds), fltr=fltr)

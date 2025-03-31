@@ -905,13 +905,15 @@ absl::StatusOr<DataSlice> Reverse(const DataSlice& obj) {
 }
 
 absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
-                                 const bool expand_filter) {
+                                 const DataSlice& expand_filter) {
   if (ds.is_item()) {
     return absl::InvalidArgumentError(
         "cannot select from DataItem because its size is always 1. "
         "Consider calling .flatten() beforehand to convert it "
         "to a 1-dimensional DataSlice");
   }
+  ASSIGN_OR_RETURN(bool expand_filter_bool,
+                   GetBoolArgument(expand_filter, "expand_filter"));
   const internal::DataItem& schema = filter.GetSchemaImpl();
 
   if (schema != schema::kObject && schema != schema::kMask) {
@@ -921,7 +923,7 @@ absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
         "Koda Functor)");
   }
   const DataSlice::JaggedShape& fltr_shape =
-      expand_filter ? ds.GetShape() : filter.GetShape();
+      expand_filter_bool ? ds.GetShape() : filter.GetShape();
   ASSIGN_OR_RETURN(auto fltr, BroadcastToShape(filter, fltr_shape),
                    internal::KodaErrorFromCause(
                        "failed to broadcast `fltr` to `ds`", std::move(_)));
@@ -1041,11 +1043,8 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
       internal::KodaErrorFromCause(
           "keys_to schema must be castable to keys_from schema", std::move(_)));
 
-  ASSIGN_OR_RETURN(auto false_item,
-                   DataSlice::Create(internal::DataItem(false),
-                                     DataSlice::JaggedShape::Empty(),
-                                     internal::DataItem(schema::kBool)));
-  ASSIGN_OR_RETURN(auto unique_keys, Unique(keys_from, false_item));
+  ASSIGN_OR_RETURN(auto unique_keys,
+                   Unique(keys_from, DataSlice::CreateFromScalar(false)));
   if (keys_from.present_count() != unique_keys.present_count()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "keys_from must be unique within each group of the last dimension: "

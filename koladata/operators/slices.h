@@ -68,7 +68,7 @@ absl::StatusOr<DataSlice> Reverse(const DataSlice& obj);
 
 // kd.slices.select.
 absl::StatusOr<DataSlice> Select(const DataSlice& ds, const DataSlice& filter,
-                                 bool expand_filter);
+                                 const DataSlice& expand_filter);
 
 // kd.slices.inverse_select.
 absl::StatusOr<DataSlice> InverseSelect(const DataSlice& ds,

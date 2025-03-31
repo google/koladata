@@ -291,9 +291,9 @@ OPERATOR_FAMILY("kd.slices._group_by_indices",
 OPERATOR("kd.slices._inverse_mapping", InverseMapping,
          "kd.slices.inverse_mapping");
 OPERATOR("kd.slices._ordinal_rank", OrdinalRank, "kd.slices.ordinal_rank");
-OPERATOR("kd.slices._select", Select, "kd.slices.select");
 OPERATOR_FAMILY("kd.slices.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kd.slices.empty_shaped", EmptyShaped);
+OPERATOR("kd.slices.internal_select_by_slice", Select, "kd.slices.select");
 OPERATOR("kd.slices.inverse_select", InverseSelect);
 OPERATOR("kd.slices.is_empty", IsEmpty);
 OPERATOR("kd.slices.reverse", Reverse);

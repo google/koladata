@@ -151,7 +151,7 @@ def sample(
       _to_dense_array_text_or_unspecified(key),
   )
   ds_mask = arolla_bridge.to_data_slice(flat_mask, x_shape)
-  return slices.select(x, ds_mask)
+  return slices.internal_select_by_slice(x, ds_mask)
 
 
 @optools.add_to_registry(aliases=['kd.sample_n'])
@@ -211,10 +211,12 @@ def sample_n(
     Sampled DataSlice.
   """
   key = _assert_key_for_sample(x, key)
-  x_shape = jagged_shape_ops.get_shape(x)
-  x_rank = assertion.with_assertion(
-      M.jagged.rank(x_shape), M.jagged.rank(x_shape) > 0, 'expected rank(x) > 0'
+  x_shape = assertion.with_assertion(
+      jagged_shape_ops.get_shape(x),
+      slices.get_ndim(x) > 0,
+      'expected rank(x) > 0',
   )
+  x_rank = M.jagged.rank(x_shape)
   n = assertion.with_assertion(
       n,
       M.jagged.rank(jagged_shape_ops.get_shape(n)) < x_rank,
@@ -231,7 +233,7 @@ def sample_n(
       M.jagged.edge_at(x_shape, -1),
   )
   ds_mask = arolla_bridge.to_data_slice(flat_mask, x_shape)
-  return slices.select(x, ds_mask)
+  return slices.internal_select_by_slice(x, ds_mask)
 
 
 @optools.add_to_registry(

@@ -333,8 +333,9 @@ absl::Status FillProtoMessageField(
     absl::Span<const absl::Nonnull<Message*>> parent_messages,
     internal::TrampolineExecutor& executor) {
   ASSIGN_OR_RETURN(DataSlice mask, ops::Has(attr_slice));
-  ASSIGN_OR_RETURN(DataSlice dense_attr_slice,
-                   ops::Select(attr_slice, mask, false));
+  ASSIGN_OR_RETURN(
+      DataSlice dense_attr_slice,
+      ops::Select(attr_slice, mask, DataSlice::CreateFromScalar(false)));
 
   std::vector<absl::Nonnull<Message*>> dense_child_messages;
   RETURN_IF_ERROR(mask.slice().VisitValues([&](const auto& values)
