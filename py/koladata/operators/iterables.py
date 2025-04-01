@@ -21,6 +21,7 @@ evaluation.
 
 from arolla import arolla
 from koladata.operators import arolla_bridge
+from koladata.operators import bootstrap
 from koladata.operators import koda_internal_iterables
 from koladata.operators import math
 from koladata.operators import optools
@@ -125,7 +126,7 @@ _ITERABLES_CHAIN_QTYPE_CONSTRAINTS = (
     (
         arolla.M.seq.all(
             arolla.M.seq.map(
-                koda_internal_iterables.is_iterable_qtype,
+                bootstrap.is_iterable_qtype,
                 arolla.M.qtype.get_field_qtypes(P.iterables),
             )
         ),

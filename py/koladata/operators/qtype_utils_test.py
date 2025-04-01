@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
@@ -19,6 +20,7 @@ from koladata.operators import kde_operators as _  # pylint: disable=unused-impo
 from koladata.operators import qtype_utils
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import iterable_qvalue
 from koladata.types import jagged_shape
 from koladata.types import qtypes as _  # pylint: disable=unused-import
 
@@ -175,6 +177,67 @@ class KodaQTypesTest(absltest.TestCase):
           'expected NON_DETERMINISTIC_TOKEN, got non_deterministic: DATA_SLICE',
       ):
         _op(data_slice.DataSlice.from_vals(123))
+
+  def test_expect_iterable(self):
+
+    @arolla.optools.as_lambda_operator(
+        'op1.name',
+        qtype_constraints=[qtype_utils.expect_iterable(arolla.P.x)],
+    )
+    def _op(x):
+      return x
+
+    with self.subTest('success'):
+      _op(iterable_qvalue.Iterable(1, 2, 3))
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError, 'expected an iterable type, got x: INT32'
+      ):
+        _op(4)
+
+    with self.subTest('failure on unspecified'):
+      with self.assertRaisesRegex(
+          ValueError, 'expected an iterable type, got x: UNSPECIFIED'
+      ):
+        _op(arolla.unspecified())
+
+    with self.subTest('failure on sequence'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape('expected an iterable type, got x: SEQUENCE[INT32]'),
+      ):
+        _op(arolla.types.Sequence(1, 2, 3))
+
+  def test_expect_iterable_or_unspecified(self):
+
+    @arolla.optools.as_lambda_operator(
+        'op1.name',
+        qtype_constraints=[
+            qtype_utils.expect_iterable_or_unspecified(arolla.P.x)
+        ],
+    )
+    def _op(x):
+      return x
+
+    with self.subTest('success'):
+      _op(iterable_qvalue.Iterable(1, 2, 3))
+      _op(arolla.unspecified())
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError, 'expected an iterable type or unspecified, got x: INT32'
+      ):
+        _op(4)
+
+    with self.subTest('failure on sequence'):
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(
+              'expected an iterable type or unspecified, got x: SEQUENCE[INT32]'
+          ),
+      ):
+        _op(arolla.types.Sequence(1, 2, 3))
 
 
 if __name__ == '__main__':

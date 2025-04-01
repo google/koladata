@@ -17,6 +17,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.operators import bootstrap
 from koladata.operators import koda_internal_iterables
 from koladata.testing import testing
 from koladata.types import qtypes
@@ -34,7 +35,7 @@ class IterablesInternalIsIterableQTypeTest(parameterized.TestCase):
   )
   def testFalse(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(koda_internal_iterables.is_iterable_qtype(value_qtype)),
+        arolla.eval(bootstrap.is_iterable_qtype(value_qtype)),
         arolla.missing_unit(),
     )
 
@@ -46,24 +47,20 @@ class IterablesInternalIsIterableQTypeTest(parameterized.TestCase):
   )
   def testTrue(self, value_qtype):
     testing.assert_equal(
-        arolla.eval(koda_internal_iterables.is_iterable_qtype(value_qtype)),
+        arolla.eval(bootstrap.is_iterable_qtype(value_qtype)),
         arolla.present_unit(),
     )
 
   def test_qtype_signatures(self):
     self.assertEqual(
         frozenset(
-            arolla.testing.detect_qtype_signatures(
-                koda_internal_iterables.is_iterable_qtype
-            )
+            arolla.testing.detect_qtype_signatures(bootstrap.is_iterable_qtype)
         ),
         frozenset([(arolla.QTYPE, arolla.OPTIONAL_UNIT)]),
     )
 
   def test_view(self):
-    self.assertFalse(
-        view.has_koda_view(koda_internal_iterables.is_iterable_qtype(I.x))
-    )
+    self.assertFalse(view.has_koda_view(bootstrap.is_iterable_qtype(I.x)))
 
 
 if __name__ == '__main__':

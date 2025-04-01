@@ -39,27 +39,6 @@ get_iterable_qtype = arolla.abc.lookup_operator(
 )
 
 
-@optools.add_to_registry(view=None)
-@arolla.optools.as_backend_operator(
-    'koda_internal.iterables.is_iterable_qtype',
-    qtype_inference_expr=arolla.OPTIONAL_UNIT,
-    qtype_constraints=[arolla.optools.constraints.expect_qtype(P.qtype)],
-)
-def is_iterable_qtype(qtype):  # pylint: disable=unused-argument
-  """Checks if the given qtype is an iterable qtype."""
-  raise NotImplementedError('implemented in the backend')
-
-
-def _expect_iterable(param):
-  return (
-      is_iterable_qtype(param),
-      (
-          'expected an iterable type, got'
-          f' {arolla.optools.constraints.name_type_msg(param)}'
-      ),
-  )
-
-
 @optools.add_to_registry()
 @arolla.optools.as_lambda_operator(
     'koda_internal.iterables.from_sequence',
@@ -81,7 +60,7 @@ def from_sequence(x):
 @optools.as_lambda_operator(
     'koda_internal.iterables.to_sequence',
     qtype_constraints=[
-        _expect_iterable(P.x),
+        qtype_utils.expect_iterable(P.x),
     ],
 )
 def to_sequence(x):
@@ -109,7 +88,7 @@ def sequence_from_1d_slice(x):  # pylint: disable=unused-argument
 @optools.as_lambda_operator(
     'koda_internal.iterables.shuffle',
     qtype_constraints=[
-        _expect_iterable(P.x),
+        qtype_utils.expect_iterable(P.x),
     ],
 )
 def shuffle(x):

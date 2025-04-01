@@ -93,6 +93,7 @@ py_library(
         ":annotation",
         ":assertion",
         ":bags",
+        ":bootstrap",
         ":comparison",
         ":core",
         ":dicts",
@@ -215,6 +216,7 @@ py_library(
     name = "qtype_utils",
     srcs = ["qtype_utils.py"],
     deps = [
+        ":bootstrap",
         "//koladata/operators",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
@@ -230,6 +232,7 @@ py_test(
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:iterable_qvalue",
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
@@ -696,6 +699,7 @@ py_library(
     srcs = ["iterables.py"],
     deps = [
         ":arolla_bridge",
+        ":bootstrap",
         ":koda_internal_iterables",
         ":math",
         ":optools",
@@ -704,6 +708,12 @@ py_library(
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
     ],
+)
+
+py_library(
+    name = "bootstrap",
+    srcs = ["bootstrap.py"],
+    deps = ["@com_google_arolla//py/arolla"],
 )
 
 py_test(

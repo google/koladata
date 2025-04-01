@@ -15,6 +15,7 @@
 """Helpers for Koda QTypes."""
 
 from arolla import arolla
+from koladata.operators import bootstrap
 from koladata.types import qtypes
 
 constraints = arolla.optools.constraints
@@ -120,6 +121,30 @@ def expect_non_deterministic(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is non_deterministic."""
   return (
       param == qtypes.NON_DETERMINISTIC_TOKEN,
-      'expected NON_DETERMINISTIC_TOKEN, got '
-      f'{constraints.name_type_msg(param)}',
+      (
+          'expected NON_DETERMINISTIC_TOKEN, got '
+          f'{constraints.name_type_msg(param)}'
+      ),
+  )
+
+
+def expect_iterable(param):
+  """Returns a QType constraint that the given param is an iterable."""
+  return (
+      bootstrap.is_iterable_qtype(param),
+      (
+          'expected an iterable type, got'
+          f' {arolla.optools.constraints.name_type_msg(param)}'
+      ),
+  )
+
+
+def expect_iterable_or_unspecified(param):
+  """Returns a QType constraint that the given param is an iterable or unspecified."""
+  return (
+      (bootstrap.is_iterable_qtype(param)) | (param == arolla.UNSPECIFIED),
+      (
+          'expected an iterable type or unspecified, got'
+          f' {arolla.optools.constraints.name_type_msg(param)}'
+      ),
   )

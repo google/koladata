@@ -7438,6 +7438,7 @@ py_test(
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
+        "//py/koladata/operators:bootstrap",
         "//py/koladata/operators:koda_internal_iterables",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
@@ -7455,6 +7456,7 @@ py_test(
     deps = [
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
+        "//py/koladata/operators:bootstrap",
         "//py/koladata/operators:koda_internal_iterables",
         "//py/koladata/testing",
         "//py/koladata/types:qtypes",
