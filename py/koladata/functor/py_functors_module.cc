@@ -42,6 +42,8 @@ PyMethodDef kPyFunctorsModule_methods[] = {
      METH_FASTCALL | METH_KEYWORDS, "Creates a new functor."},
     {"is_fn", PyIsFn, METH_O,
      "Checks if a given DataSlice represents a functor."},
+    {"auto_variables", PyAutoVariables, METH_O,
+     "Returns a functor with auto-variables extracted."},
     {nullptr} /* sentinel */
 };
 

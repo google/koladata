@@ -118,6 +118,36 @@ cc_test(
 )
 
 cc_library(
+    name = "auto_variables",
+    srcs = ["auto_variables.cc"],
+    hdrs = ["auto_variables.h"],
+    deps = [
+        ":functor",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata:object_factories",
+        "//koladata/expr:expr_operators",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/visitors",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
     name = "cpp_function_bridge",
     srcs = ["cpp_function_bridge.cc"],
     hdrs = ["cpp_function_bridge.h"],

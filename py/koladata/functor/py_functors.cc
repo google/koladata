@@ -27,6 +27,7 @@
 #include "absl/strings/str_format.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/functor/auto_variables.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_storage.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -149,6 +150,17 @@ absl::Nullable<PyObject*> PyIsFn(PyObject* /*self*/, PyObject* fn) {
   } else {
     Py_RETURN_FALSE;
   }
+}
+
+absl::Nullable<PyObject*> PyAutoVariables(PyObject* /*self*/, PyObject* fn) {
+  arolla::python::DCheckPyGIL();
+  const auto* fun = UnwrapDataSlice(fn, "fn");
+  if (fun == nullptr) {
+    return nullptr;
+  }
+  ASSIGN_OR_RETURN(DataSlice result, functor::AutoVariables(*fun),
+                   arolla::python::SetPyErrFromStatus(_));
+  return WrapPyDataSlice(std::move(result));
 }
 
 }  // namespace koladata::python

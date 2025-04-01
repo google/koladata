@@ -294,6 +294,35 @@ class FunctorFactoriesTest(absltest.TestCase):
         introspection.unpack_expr(fn.bar), kde.explode(V.aux_0, ndim=1) + 2
     )
 
+  def test_auto_variables_shared_literal_used_in_shared_node(self):
+    base = py_boxing.literal(ds([1, 2, 3]))
+    fn = functor_factories.expr_fn(
+        (base + 1).with_name('foo') + ((base + 1) + base.with_name('bar')),
+        auto_variables=True,
+    )
+    testing.assert_equal(fn(), ds([5, 8, 11]))
+    self.assertCountEqual(
+        fns.dir(fn),
+        ['__signature__', 'returns', 'foo', 'bar', 'aux_0', 'aux_1'],
+    )
+    testing.assert_equal(fn.aux_0[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(
+        introspection.unpack_expr(fn.aux_1), kde.explode(V.aux_0, ndim=1) + 1
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn.foo), V.aux_1
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn.bar), kde.explode(V.aux_0, ndim=1)
+    )
+
+  def test_auto_variables_extracts_single_object_without_bag(self):
+    obj = kd.obj(bar=1).no_bag()
+    foo = py_boxing.literal(obj)
+    fn = functor_factories.expr_fn(foo.bar, auto_variables=True)
+    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns', 'aux_0'])
+    testing.assert_equal(fn.aux_0.no_bag(), obj)
+
   def test_auto_variables_two_uses_of_input(self):
     fn = functor_factories.expr_fn(
         V.foo + V.bar,

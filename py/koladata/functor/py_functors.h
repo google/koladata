@@ -40,6 +40,9 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
                                           PyObject* py_kwnames);
 
 absl::Nullable<PyObject*> PyIsFn(PyObject* /*self*/, PyObject* fn);
+
+absl::Nullable<PyObject*> PyAutoVariables(PyObject* /*self*/, PyObject* fn);
+
 }  // namespace koladata::python
 
 #endif  // THIRD_PARTY_PY_KOLADATA_FUNCTOR_PY_FUNCTORS_H_

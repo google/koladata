@@ -15,8 +15,10 @@
 #ifndef KOLADATA_EXPR_EXPR_OPERATORS_H_
 #define KOLADATA_EXPR_EXPR_OPERATORS_H_
 
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -132,6 +134,34 @@ class NonDeterministicOperator final
 
   absl::StatusOr<arolla::expr::ExprAttributes> InferAttributes(
       absl::Span<const arolla::expr::ExprAttributes> inputs) const final;
+};
+
+// Returns true if `node` is an operator node with InputOperator.
+bool IsInput(const arolla::expr::ExprNodePtr& node);
+
+// Returns true if `node` is either an arolla literal or an operator node with
+// LiteralOperator.
+bool IsLiteral(const arolla::expr::ExprNodePtr& node);
+
+// Helper container to create Koda specific inputs
+class InputContainer {
+ public:
+  static absl::StatusOr<InputContainer> Create(absl::string_view cont_name);
+
+  // Creates koda_internal.input(cont_name, key)
+  absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(
+      absl::string_view key) const;
+
+  // Traverses given node and finds all inputs from this container
+  absl::StatusOr<std::vector<std::string>> ExtractInputNames(
+      const arolla::expr::ExprNodePtr& node) const;
+
+ private:
+  InputContainer(arolla::expr::ExprOperatorPtr input_op,
+                 arolla::expr::ExprNodePtr cont_name)
+      : input_op_(std::move(input_op)), cont_name_(std::move(cont_name)) {};
+  arolla::expr::ExprOperatorPtr input_op_;
+  arolla::expr::ExprNodePtr cont_name_;
 };
 
 }  // namespace koladata::expr

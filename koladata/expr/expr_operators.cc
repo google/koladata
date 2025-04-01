@@ -16,11 +16,14 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -29,13 +32,18 @@
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "koladata/internal/non_deterministic_token.h"
 #include "arolla/expr/basic_expr_operator.h"
+#include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
 #include "arolla/expr/expr_node.h"
+#include "arolla/expr/expr_operator.h"
 #include "arolla/expr/expr_operator_signature.h"
+#include "arolla/expr/expr_visitor.h"
+#include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/fast_dynamic_downcast_final.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/string.h"
 #include "arolla/util/text.h"
@@ -43,6 +51,8 @@
 
 namespace koladata::expr {
 namespace {
+
+static constexpr absl::string_view kInternalInput = "koda_internal.input";
 
 absl::Status ValidateTextLiteral(const arolla::expr::ExprAttributes& attr,
                                  absl::string_view param_name) {
@@ -74,7 +84,7 @@ arolla::TypedValue FreezeDataBagOrDataSlice(arolla::TypedValue value) {
 
 InputOperator::InputOperator()
     : arolla::expr::ExprOperatorWithFixedSignature(
-          "koda_internal.input",
+          kInternalInput,
           arolla::expr::ExprOperatorSignature{{"container_name"},
                                               {"input_key"}},
           "Koda input with DATA_SLICE qtype.\n"
@@ -211,6 +221,72 @@ NonDeterministicOperator::InferAttributes(
   RETURN_IF_ERROR(ValidateOpInputsCount(inputs));
   return arolla::expr::ExprAttributes(
       arolla::GetQType<internal::NonDeterministicToken>());
+}
+
+bool IsInput(const arolla::expr::ExprNodePtr& node) {
+  if (!node->is_op()) {
+    return false;
+  }
+  return nullptr != arolla::fast_dynamic_downcast_final<const InputOperator*>(
+                        arolla::expr::DecayRegisteredOperator(node->op())
+                            .value_or(nullptr)
+                            .get());
+}
+
+bool IsLiteral(const arolla::expr::ExprNodePtr& node) {
+  if (node->is_op()) {
+    return nullptr !=
+           arolla::fast_dynamic_downcast_final<const LiteralOperator*>(
+               arolla::expr::DecayRegisteredOperator(node->op())
+                   .value_or(nullptr)
+                   .get());
+  }
+  return node->is_literal();
+}
+
+absl::StatusOr<InputContainer> InputContainer::Create(
+    absl::string_view cont_name) {
+  arolla::expr::ExprOperatorPtr input_op =
+      arolla::expr::ExprOperatorRegistry::GetInstance()->LookupOperatorOrNull(
+          kInternalInput);
+  if (input_op == nullptr) {
+    return absl::InternalError(
+        absl::StrCat("operator not found: ", kInternalInput));
+  }
+
+  return InputContainer(
+      std::move(input_op),
+      MakeLiteral(arolla::TypedValue::FromValue(arolla::Text(cont_name))));
+}
+
+absl::StatusOr<arolla::expr::ExprNodePtr> InputContainer::CreateInput(
+    absl::string_view key) const {
+  return arolla::expr::MakeOpNode(
+      input_op_,
+      {cont_name_,
+       MakeLiteral(arolla::TypedValue::FromValue(arolla::Text(key)))});
+}
+
+absl::StatusOr<std::vector<std::string>> InputContainer::ExtractInputNames(
+    const arolla::expr::ExprNodePtr& node) const {
+  std::vector<std::string> names;
+  arolla::expr::PostOrder po(node);
+  for (const auto& n : po.nodes()) {
+    if (!IsInput(n)) continue;
+    if (n->node_deps().size() != 2) {
+      return absl::FailedPreconditionError("invalid koda_internal.input node");
+    }
+    if (n->node_deps()[0]->fingerprint() == cont_name_->fingerprint()) {
+      const std::optional<arolla::TypedValue>& val =
+          n->node_deps()[1]->qvalue();
+      if (!val.has_value()) {
+        return absl::InvalidArgumentError("input name has no value");
+      }
+      ASSIGN_OR_RETURN(const arolla::Text& vname, val->As<arolla::Text>());
+      names.emplace_back(vname.view());
+    }
+  }
+  return names;
 }
 
 }  // namespace koladata::expr

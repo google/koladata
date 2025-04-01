@@ -16,14 +16,12 @@
 
 import inspect
 import types as py_types
-import typing
 from typing import Any, Callable
 
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing
-from koladata.functions import functions as fns
 from koladata.functor import py_functors_py_ext as _py_functors_py_ext
 from koladata.functor import signature_utils
 from koladata.operators import eager_op_utils as _eager_op_utils
@@ -31,11 +29,8 @@ from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import literal_operator
 from koladata.types import mask_constants
 from koladata.types import py_boxing
-from koladata.types import qtypes
-from koladata.types import schema_constants
 
 
 _kd = _eager_op_utils.operators_container('kd')
@@ -50,177 +45,6 @@ def _maybe_wrap_expr(arg: Any) -> arolla.QValue:
   if isinstance(arg, arolla.Expr):
     arg = introspection.pack_expr(arg)
   return py_boxing.as_qvalue(arg)
-
-
-# We should generalize this to a general tool that creates new variables for
-# nodes satisfying a predicate, while avoiding duplication of sub-computations.
-# It can be used for example to automatically assign kd.call nodes to their
-# own variables, to make it easier for call_multithreaded to work.
-def _extract_auto_variables(variables: dict[str, Any]) -> dict[str, Any]:
-  """Creates additional variables for DataSlices and named nodes."""
-  all_exprs = {}
-  for k, v in variables.items():
-    if v.get_schema() == schema_constants.EXPR:
-      v = introspection.unpack_expr(v)
-      all_exprs[k] = v
-  # It is important to transform everything at once if there is some shared
-  # named subtree, so we create a single tuple Expr.
-  combined = arolla.M.core.make_tuple(*all_exprs.values())
-
-  variables = dict(variables)
-  aux_variable_fingerprints = set()
-  prefix_to_counter = {}
-  # Cache these operators for the checks below.
-  kde_slice = kde.slice
-  internal_input = arolla.abc.decay_registered_operator('koda_internal.input')
-
-  def create_unique_variable(prefix: str) -> str:
-    if prefix not in prefix_to_counter:
-      prefix_to_counter[prefix] = 0
-    while True:
-      var_name = f'{prefix}_{prefix_to_counter[prefix]}'
-      prefix_to_counter[prefix] += 1
-      if var_name not in variables:
-        return var_name
-
-  def is_literal(node: arolla.Expr):
-    return node.is_literal or isinstance(
-        node.op, literal_operator.LiteralOperator
-    )
-
-  # For 'simple' ops, we do not extract them into variables even if they are
-  # used multiple times in the expression. This helps readability of the
-  # resulting functor.
-  def is_simple(node: arolla.Expr):
-    return (
-        is_literal(node)
-        or node.op is None
-        or optools.equiv_to_op(node.op, internal_input)
-    )
-
-  # We want to avoid creating duplicate computations by extracting a sub-expr
-  # into multiple variables.
-  # This maps from a node fingerprint to the fingerprint of its ancestor that
-  # will become a variable. A special value of multiple_parents
-  # means that the node has multiple such parents.
-  node_to_parent_variable = {}
-  multiple_parents = object()
-
-  def add_parent_variable(
-      node: arolla.Expr, parent_fingerprint: arolla.abc.Fingerprint
-  ):
-    if node.fingerprint in node_to_parent_variable:
-      if node_to_parent_variable[node.fingerprint] != parent_fingerprint:
-        node_to_parent_variable[node.fingerprint] = multiple_parents
-    else:
-      node_to_parent_variable[node.fingerprint] = parent_fingerprint
-
-  for k, node in all_exprs.items():
-    add_parent_variable(node, V[k].fingerprint)
-  # Iterating in reverse post_order guarantees that we will see a node before
-  # all its dependencies, so that we can check if it has multiple variable
-  # parents.
-  for node in reversed(arolla.abc.post_order(combined)):
-    parent_fingerprint = None
-    if introspection.get_name(node) is not None:
-      parent_fingerprint = node.fingerprint
-    elif node.fingerprint in node_to_parent_variable:
-      parent_fingerprint = node_to_parent_variable[node.fingerprint]
-      if parent_fingerprint is multiple_parents:
-        # This node will become a variable of its own.
-        parent_fingerprint = node.fingerprint
-    if parent_fingerprint is not None:
-      for child in node.node_deps:
-        add_parent_variable(child, parent_fingerprint)
-
-  def process_node(
-      node: arolla.Expr, new_deps: list[arolla.Expr]
-  ) -> arolla.Expr:
-    # We use the original node fingerprint for the check, but then assign
-    # the modified node to the `node` variable to avoid accidentally using
-    # the original node below.
-    has_multiple_parents = (
-        node_to_parent_variable.get(node.fingerprint) is multiple_parents
-    )
-    if node.op is None:
-      assert not new_deps
-    else:
-      node = arolla.abc.make_operator_node(node.op, new_deps)
-
-    if is_literal(node):
-      val = typing.cast(arolla.QValue, node.qvalue)
-      if val.qtype == qtypes.DATA_SLICE:
-        val = typing.cast(data_slice.DataSlice, val)
-        # Keep simple constants inlined, to avoid too many variables.
-        if (
-            val.get_bag() is None
-            and val.get_ndim() == 0
-            and (
-                val.get_schema().is_primitive_schema()
-                or val.get_schema() == schema_constants.NONE
-            )
-        ):
-          return node
-        # We need to implode the DataSlice into lists if it is not a DataItem.
-        var_name = create_unique_variable('aux')
-        var = V[var_name]
-        ndim = val.get_ndim().internal_as_py()
-        if ndim:
-          val = fns.implode(val, ndim=ndim)
-          var = kde.explode(var, ndim=ndim)
-        variables[var_name] = val
-        # When a node has multiple parents, we cannot replace its aux name
-        # with a wrapping name in the logic below, so we skip adding it to
-        # aux_variable_fingerprints.
-        if not has_multiple_parents:
-          aux_variable_fingerprints.add(var.fingerprint)
-        return var
-
-    if node.op is not None and optools.equiv_to_op(node.op, kde_slice):
-      # Our binding policy for kd.slice produces kd.slice(<literal slice>).
-      # When that is named we want the name to be used instead of aux_,
-      # so we remove the unnecessary slice() wrapper in that case.
-      val, schema = node.node_deps
-      if (
-          val.fingerprint in aux_variable_fingerprints
-          and is_literal(schema)
-          and typing.cast(arolla.QValue, schema.qvalue).qtype
-          == arolla.UNSPECIFIED
-      ):
-        return val
-
-    if (expr_name := introspection.get_name(node)) is not None:
-      name = (
-          create_unique_variable(expr_name)
-          if expr_name in variables
-          else expr_name
-      )
-      child = introspection.unwrap_named(node)
-      if child.fingerprint in aux_variable_fingerprints:
-        # If a literal DataSlice was named, avoid creating a temporary name
-        # and use the real name instead. The auxiliary variable might have
-        # been wrapped with kde.explode(), so we do a sub_inputs instead of
-        # just replacing with V[name].
-        aux_variable_fingerprints.remove(child.fingerprint)
-        var_names = introspection.get_input_names(child, V)
-        assert len(var_names) == 1
-        variables[name] = variables.pop(var_names[0])
-        return introspection.sub_inputs(child, V, **{var_names[0]: V[name]})
-      variables[name] = introspection.pack_expr(child)
-      return V[name]
-
-    if has_multiple_parents and not is_simple(node):
-      var_name = create_unique_variable('aux')
-      variables[var_name] = introspection.pack_expr(node)
-      return V[var_name]
-
-    return node
-
-  combined = arolla.abc.post_order_traverse(combined, process_node)
-  assert len(combined.node_deps) == len(all_exprs)
-  for k, v in zip(all_exprs, combined.node_deps):
-    variables[k] = introspection.pack_expr(v)
-  return variables
 
 
 def expr_fn(
@@ -257,11 +81,10 @@ def expr_fn(
   """
   returns = _maybe_wrap_expr(returns)
   variables = {k: _maybe_wrap_expr(v) for k, v in variables.items()}
+  res = _py_functors_py_ext.create_functor(returns, signature, **variables)
   if auto_variables:
-    variables['returns'] = returns
-    variables = _extract_auto_variables(variables)
-    returns = variables.pop('returns')
-  return _py_functors_py_ext.create_functor(returns, signature, **variables)
+    res = _py_functors_py_ext.auto_variables(res)
+  return res
 
 
 def is_fn(obj: Any) -> data_slice.DataSlice:

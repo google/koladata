@@ -21,13 +21,19 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/test_utils.h"
+#include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
 #include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
+#include "arolla/util/text.h"
+#include "absl/status/status_matchers.h"
 
 namespace koladata::expr {
 
 namespace {
+
+using ::absl_testing::IsOkAndHolds;
+using testing::UnorderedElementsAre;
 
 TEST(LiteralOperatorTest, DatabagLiteral) {
   // Literal freezes databag.
@@ -87,7 +93,7 @@ TEST(LiteralOperatorTest, DataSliceLiteral) {
   }
 }
 
-TEST(DataBagTest, RegularLiteral) {
+TEST(LiteralOperatorTest, RegularLiteral) {
   auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
       arolla::TypedValue::FromValue(int64_t{1}));
   EXPECT_EQ(1, literal_op->value().UnsafeAs<int64_t>());
@@ -130,6 +136,39 @@ TEST(LiteralOperatorTest, FingerprintProperties) {
       expr::LiteralOperator::MakeLiteralOperator(
           arolla::TypedValue::FromValue(int64_t{1}))->fingerprint()
       );
+}
+
+TEST(LiteralOperatorTest, IsLiteral) {
+  auto literal_op = expr::LiteralOperator::MakeLiteralOperator(
+    arolla::TypedValue::FromValue(int64_t{1}));
+  ASSERT_OK_AND_ASSIGN(auto koda_literal,
+                       arolla::expr::MakeOpNode(literal_op, {}));
+  auto arolla_literal = arolla::expr::Literal(int64_t{1});
+  EXPECT_TRUE(IsLiteral(koda_literal));
+  EXPECT_TRUE(IsLiteral(arolla_literal));
+  EXPECT_FALSE(IsLiteral(arolla::expr::Leaf("x")));
+}
+
+TEST(InputContainerTest, Container) {
+  ASSERT_OK_AND_ASSIGN(auto container, InputContainer::Create("V"));
+  ASSERT_OK_AND_ASSIGN(auto a, container.CreateInput("a"));
+  ASSERT_OK_AND_ASSIGN(auto b, container.CreateInput("b"));
+  ASSERT_OK_AND_ASSIGN(auto sum, arolla::expr::CallOp("math.add", {a, b}));
+
+  EXPECT_TRUE(IsInput(a));
+  EXPECT_TRUE(IsInput(b));
+  EXPECT_FALSE(IsInput(arolla::expr::Leaf("x")));
+  EXPECT_FALSE(IsInput(sum));
+  EXPECT_THAT(container.ExtractInputNames(sum),
+              IsOkAndHolds(UnorderedElementsAre("a", "b")));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto expected_a,
+      arolla::expr::CallOp(
+          "koda_internal.input",
+          {MakeLiteral(arolla::TypedValue::FromValue(arolla::Text("V"))),
+           MakeLiteral(arolla::TypedValue::FromValue(arolla::Text("a")))}));
+  EXPECT_EQ(a->fingerprint(), expected_a->fingerprint());
 }
 
 }  // namespace
