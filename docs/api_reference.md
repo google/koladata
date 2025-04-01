@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x52923aac53d0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x51cbfb56a490>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x52923aac53d0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x51cbfb56a490>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -6219,6 +6219,12 @@ Aliases:
 
 ``` {.no-copy}
 Returns kd.slice(x, kd.INT64).
+```
+
+### `kd.slices.internal_select_by_slice(ds, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#kd.slices.internal_select_by_slice}
+
+``` {.no-copy}
+A version of kd.select that does not support lambdas/functors.
 ```
 
 ### `kd.slices.inverse_mapping(x, ndim=unspecified)` {#kd.slices.inverse_mapping}
