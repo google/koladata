@@ -12,26 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include <memory>
-
-#include "koladata/data_slice_qtype.h"
-#include "koladata/functor/call_operator.h"
 #include "koladata/functor/is_fn_operator.h"
-#include "koladata/functor/map_operator.h"
-#include "arolla/qexpr/optools.h"
+
+#include "absl/status/statusor.h"
+#include "koladata/operators/utils.h"
+#include "koladata/functor/functor.h"
+#include "koladata/data_slice.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
-namespace {
 
-#define OPERATOR AROLLA_REGISTER_QEXPR_OPERATOR
-#define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
+absl::StatusOr<DataSlice> IsFn(const DataSlice& x) {
+  ASSIGN_OR_RETURN(bool is_functor, IsFunctor(x));
+  return ops::AsMask(is_functor);
+}
 
-// go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
-OPERATOR("kd.functor._maybe_call", MaybeCall);
-OPERATOR_FAMILY("kd.functor.call", std::make_unique<CallOperatorFamily>());
-OPERATOR("kd.functor.is_fn", IsFn);
-OPERATOR_FAMILY("kd.functor.map", std::make_unique<MapOperatorFamily>());
-// go/keep-sorted end
-
-}  // namespace
 }  // namespace koladata::functor

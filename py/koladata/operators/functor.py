@@ -331,3 +331,13 @@ def select_items(ds, fltr):
     Filtered DataSlice.
   """
   return select(ds=lists.explode(ds), fltr=fltr)
+
+
+@optools.add_to_registry(aliases=['kd.is_fn'])
+@optools.as_backend_operator(
+    'kd.functor.is_fn',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+)
+def is_fn(x):  # pylint: disable=unused-argument
+  """Returns `present` iff `x` is a functor."""
+  raise NotImplementedError('implemented in the backend')

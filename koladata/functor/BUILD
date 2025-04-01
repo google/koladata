@@ -232,6 +232,7 @@ cc_library(
     srcs = ["operators.cc"],
     deps = [
         ":call_operator",
+        ":is_fn_operator",
         ":map_operator",
         "//koladata:data_slice_qtype",
         "@com_google_arolla//arolla/qexpr",
@@ -255,6 +256,19 @@ cc_library(
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "is_fn_operator",
+    srcs = ["is_fn_operator.cc"],
+    hdrs = ["is_fn_operator.h"],
+    deps = [
+        ":functor",
+        "//koladata:data_slice",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )
