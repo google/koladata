@@ -409,7 +409,7 @@ TEST(EntityCreatorTest, SchemaArg_InvalidSchema) {
                                {test::DataItem(42), test::DataItem("xyz")},
                                test::Schema(schema::kObject)),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("requires Entity schema, got OBJECT")));
+               HasSubstr("expected Entity schema, got OBJECT")));
 }
 
 TEST(EntityCreatorTest, SchemaArg_WithFallback) {

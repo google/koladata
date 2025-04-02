@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import expr_eval
@@ -226,17 +228,20 @@ class EntitiesNewTest(absltest.TestCase):
           a=1, schema=ds([schema_constants.INT32, schema_constants.STRING])
       ).eval()
     with self.assertRaisesRegex(
-        ValueError,
-        'kd.entities.new: processing Entity attributes requires Entity schema,'
-        ' got INT32',
+        ValueError, 'kd.entities.new: expected Entity schema, got INT32',
     ):
       kde.entities.new(a=1, schema=schema_constants.INT32).eval()
     with self.assertRaisesRegex(
-        ValueError,
-        'kd.entities.new: processing Entity attributes requires Entity schema,'
-        ' got OBJECT',
+        ValueError, 'kd.entities.new: expected Entity schema, got OBJECT',
     ):
       kde.entities.new(a=1, schema=schema_constants.OBJECT).eval()
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('kd.entities.new: expected Entity schema, got LIST[INT32]')
+    ):
+      kde.entities.new(
+          a=1, schema=kde.list_schema(schema_constants.INT32)
+      ).eval()
 
   def test_converter_not_supported(self):
     with self.assertRaisesRegex(

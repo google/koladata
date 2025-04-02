@@ -480,18 +480,13 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
     bool overwrite_schema) {
   internal::DataItem schema_item;
   if (schema) {
-    RETURN_IF_ERROR(schema->VerifyIsSchema());
-    schema_item = schema->item();
-    if (!schema_item.is_struct_schema()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "processing Entity attributes requires Entity schema, got %v",
-          schema_item));
-    }
     // Copy schema into db before setting attributes for proper casting /
     // error reporting.
     AdoptionQueue schema_adoption_queue;
     schema_adoption_queue.Add(*schema);
     RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
+    RETURN_IF_ERROR(schema->WithBag(db).VerifyIsEntitySchema());
+    schema_item = schema->item();
   } else {
     // New schema is allocated, but `SetAttrs` updates empty schema based on
     // attribute schemas.
@@ -559,18 +554,13 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
                    db->GetMutableImpl());
   std::vector<DataSlice> aligned_values;
   if (schema) {
-    RETURN_IF_ERROR(schema->VerifyIsSchema());
-    schema_item = schema->item();
-    if (!schema_item.is_struct_schema()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "processing Entity attributes requires Entity schema, got %v",
-          schema_item));
-    }
     // Copy schema into db before setting attributes for proper casting /
     // error reporting.
     AdoptionQueue schema_adoption_queue;
     schema_adoption_queue.Add(*schema);
     RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
+    RETURN_IF_ERROR(schema->WithBag(db).VerifyIsEntitySchema());
+    schema_item = schema->item();
   }
   if (values.empty()) {
     if (!schema_item.has_value()) {

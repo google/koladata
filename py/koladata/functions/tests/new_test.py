@@ -279,13 +279,22 @@ class NewTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
       fns.new(a=1, schema=ds([schema_constants.INT32, schema_constants.STRING]))
     with self.assertRaisesRegex(
-        ValueError, 'requires Entity schema, got INT32'
+        ValueError, 'expected Entity schema, got INT32'
     ):
       fns.new(a=1, schema=schema_constants.INT32)
     with self.assertRaisesRegex(
-        ValueError, 'requires Entity schema, got OBJECT'
+        ValueError, 'expected Entity schema, got OBJECT'
     ):
       fns.new(a=1, schema=schema_constants.OBJECT)
+    with self.assertRaisesRegex(
+        ValueError, re.escape('expected Entity schema, got DICT{STRING, INT32}')
+    ):
+      fns.new(
+          a=1,
+          schema=fns.dict_schema(
+              schema_constants.STRING, schema_constants.INT32
+          )
+      )
 
   def test_schema_error_message(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)

@@ -268,16 +268,23 @@ class NewShapedTest(absltest.TestCase):
           schema=ds([schema_constants.INT32, schema_constants.STRING]),
       )
     with self.assertRaisesRegex(
-        ValueError, 'requires Entity schema, got INT32'
+        ValueError, 'expected Entity schema, got INT32'
     ):
       fns.new_shaped(
           jagged_shape.create_shape(), a=1, schema=schema_constants.INT32
       )
     with self.assertRaisesRegex(
-        ValueError, 'requires Entity schema, got OBJECT'
+        ValueError, 'expected Entity schema, got OBJECT'
     ):
       fns.new_shaped(
           jagged_shape.create_shape(), a=1, schema=schema_constants.OBJECT
+      )
+    with self.assertRaisesRegex(
+        ValueError, re.escape('expected Entity schema, got LIST[INT32]')
+    ):
+      fns.new_shaped(
+          jagged_shape.create_shape(), a=1,
+          schema=fns.list_schema(schema_constants.INT32)
       )
 
   def test_schema_error_message(self):
