@@ -41,7 +41,8 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
 
 absl::Nullable<PyObject*> PyIsFn(PyObject* /*self*/, PyObject* fn);
 
-absl::Nullable<PyObject*> PyAutoVariables(PyObject* /*self*/, PyObject* fn);
+absl::Nullable<PyObject*> PyAutoVariables(PyObject* /*self*/,
+                                          PyObject** py_args, Py_ssize_t nargs);
 
 }  // namespace koladata::python
 

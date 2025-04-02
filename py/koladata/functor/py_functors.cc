@@ -23,6 +23,7 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "koladata/data_slice.h"
@@ -30,9 +31,11 @@
 #include "koladata/functor/auto_variables.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_storage.h"
+#include "py/arolla/abc/py_fingerprint.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/types/py_utils.h"
+#include "arolla/util/fingerprint.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
@@ -152,14 +155,43 @@ absl::Nullable<PyObject*> PyIsFn(PyObject* /*self*/, PyObject* fn) {
   }
 }
 
-absl::Nullable<PyObject*> PyAutoVariables(PyObject* /*self*/, PyObject* fn) {
+absl::Nullable<PyObject*> PyAutoVariables(PyObject* /*self*/,
+                                          PyObject** py_args,
+                                          Py_ssize_t nargs) {
+  static const absl::NoDestructor<FastcallArgParser> parser(
+      /*pos_only_n=*/1, /*parse_kwargs=*/false, "fn", "extra_nodes_to_extract");
   arolla::python::DCheckPyGIL();
-  const auto* fun = UnwrapDataSlice(fn, "fn");
-  if (fun == nullptr) {
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, nullptr, args)) {
     return nullptr;
   }
-  ASSIGN_OR_RETURN(DataSlice result, functor::AutoVariables(*fun),
-                   arolla::python::SetPyErrFromStatus(_));
+  const auto* fn = UnwrapDataSlice(args.pos_only_args[0], "fn");
+  if (fn == nullptr) {
+    return nullptr;
+  }
+  absl::flat_hash_set<arolla::Fingerprint> extra_nodes_to_extract;
+  PyObject* fingerprint_list = args.pos_kw_values[0];
+  if (fingerprint_list != nullptr) {
+    if (!PyList_Check(fingerprint_list)) {
+      return PyErr_Format(PyExc_ValueError,
+                          "second argument should be a list of fingerprints");
+    }
+    Py_ssize_t count = PyList_Size(fingerprint_list);
+    extra_nodes_to_extract.reserve(count);
+    for (Py_ssize_t i = 0; i < count; ++i) {
+      const arolla::Fingerprint* fingerprint =
+          arolla::python::UnwrapPyFingerprint(
+              PyList_GetItem(fingerprint_list, i));
+      if (fingerprint == nullptr) {
+        return nullptr;
+      }
+      extra_nodes_to_extract.insert(*fingerprint);
+    }
+  }
+  ASSIGN_OR_RETURN(
+      DataSlice result,
+      functor::AutoVariables(*fn, std::move(extra_nodes_to_extract)),
+      arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }
 

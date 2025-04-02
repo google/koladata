@@ -21,7 +21,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
@@ -163,9 +162,11 @@ bool IsSimpleSlice(const DataSlice& slice) {
           slice.GetSchemaImpl() == internal::DataItem(schema::kNone));
 };
 
+template <typename IsExtractNeededFn>
 absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
     const ExprNodePtr& expr, const SharedNodeTracker& shared_node_tracker,
-    absl::flat_hash_map<std::string, DataSlice>& vars) {
+    absl::flat_hash_map<std::string, DataSlice>& vars,
+    IsExtractNeededFn&& is_extract_needed) {
   ASSIGN_OR_RETURN(expr::InputContainer var_container,
                    expr::InputContainer::Create("V"));
 
@@ -182,25 +183,14 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
     }
   };
 
-  auto transform_literal =
-      [&](const ExprNodePtr& node,
-          bool is_shared_node) -> absl::StatusOr<ExprNodePtr> {
-    if (!node->qvalue().has_value()) {
-      return absl::FailedPreconditionError("literal has no value");
-    }
-    if (node->qvalue()->GetType() != arolla::GetQType<DataSlice>()) {
-      return node;
-    }
-    DataSlice val = node->qvalue()->UnsafeAs<DataSlice>();
-    if (IsSimpleSlice(val)) {
-      return node;
-    }
+  auto extract_slice = [&](DataSlice slice,
+                           bool is_shared_node) -> absl::StatusOr<ExprNodePtr> {
     // We need to implode the DataSlice into lists if it is not a DataItem.
     std::string var_name = create_unique_variable("aux");
     ASSIGN_OR_RETURN(auto var, var_container.CreateInput(var_name));
-    int ndim = val.GetShape().rank();
+    int ndim = slice.GetShape().rank();
     if (ndim > 0) {
-      ASSIGN_OR_RETURN(val, Implode(DataBag::Empty(), val, ndim));
+      ASSIGN_OR_RETURN(slice, Implode(DataBag::Empty(), slice, ndim));
       ASSIGN_OR_RETURN(
           var,
           arolla::expr::CallOp(
@@ -208,7 +198,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
               {var, koladata::expr::MakeLiteral(arolla::TypedValue::FromValue(
                         DataSlice::CreateFromScalar(ndim)))}));
     }
-    vars[var_name] = val;
+    vars.emplace(var_name, std::move(slice));
     // When a node has multiple parents, we cannot replace its aux name
     // with a wrapping name in the logic below, so we skip adding it to
     // aux_variable_fingerprints.
@@ -223,8 +213,20 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
       -> absl::StatusOr<ExprNodePtr> {
     ASSIGN_OR_RETURN(auto node, WithNewDeps(old_node, new_deps));
     bool is_shared_node = shared_node_tracker.IsSharedNode(old_node);
+    bool extract_needed = is_extract_needed(old_node);
     if (expr::IsLiteral(node)) {
-      return transform_literal(node, is_shared_node);
+      if (!node->qvalue().has_value()) {
+        return absl::FailedPreconditionError("literal has no value");
+      }
+      if (node->qvalue()->GetType() == arolla::GetQType<DataSlice>()) {
+        DataSlice val = node->qvalue()->UnsafeAs<DataSlice>();
+        if (!IsSimpleSlice(val)) {
+          return extract_slice(val, is_shared_node);
+        }
+      }
+      if (!extract_needed) {
+        return node;
+      }
     }
     ASSIGN_OR_RETURN(bool is_slice_op_node, IsSliceOperator(node));
     if (is_slice_op_node) {
@@ -238,6 +240,9 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
           schema->qvalue()->GetType() == arolla::GetUnspecifiedQType()) {
         return val;
       }
+    }
+    if (!extract_needed && (!is_shared_node || IsSimple(node))) {
+      return node;
     }
     if (arolla::expr::IsNameAnnotation(node)) {
       std::string_view expr_name = arolla::expr::ReadNameAnnotation(node);
@@ -270,9 +275,6 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
       vars.emplace(name, DataSlice::CreateFromScalar(ExprQuote{child}));
       return var_container.CreateInput(name);
     }
-    if (!is_shared_node || IsSimple(node)) {
-      return node;
-    }
     std::string var_name = create_unique_variable("aux");
     vars[var_name] = DataSlice::CreateFromScalar(ExprQuote{node});
     return var_container.CreateInput(var_name);
@@ -283,7 +285,9 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
 
 }  // namespace
 
-absl::StatusOr<DataSlice> AutoVariables(const DataSlice& functor) {
+absl::StatusOr<DataSlice> AutoVariables(
+    const DataSlice& functor,
+    absl::flat_hash_set<arolla::Fingerprint> extra_nodes_to_extract) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
   if (!is_functor) return absl::InvalidArgumentError("functor expected");
 
@@ -312,8 +316,13 @@ absl::StatusOr<DataSlice> AutoVariables(const DataSlice& functor) {
   ASSIGN_OR_RETURN(expr::InputContainer var_container,
                    expr::InputContainer::Create("V"));
   for (size_t i = 0; i < expr_names.size(); ++i) {
+    const ExprNodePtr& node = exprs_vec[i];
     ASSIGN_OR_RETURN(auto v, var_container.CreateInput(expr_names[i]));
-    shared_node_tracker.AddParentVariable(exprs_vec[i], v->fingerprint());
+    shared_node_tracker.AddParentVariable(node, v->fingerprint());
+
+    // Already a variable, so we shouldn't extract it again (would lead to
+    // trivial assignments like V.aux_1 = V.aux_0).
+    extra_nodes_to_extract.erase(node->fingerprint());
   }
 
   // It is important to transform everything at once if there is some shared
@@ -322,12 +331,17 @@ absl::StatusOr<DataSlice> AutoVariables(const DataSlice& functor) {
     ExprNodePtr combined,
     arolla::expr::BindOp("core.make_tuple", std::move(exprs_vec), {}));
 
+  auto is_extract_needed = [&extra_nodes_to_extract](const ExprNodePtr& node) {
+    return arolla::expr::IsNameAnnotation(node) ||
+           extra_nodes_to_extract.contains(node->fingerprint());
+  };
+
   RETURN_IF_ERROR(
-      shared_node_tracker.Process(combined, arolla::expr::IsNameAnnotation));
+      shared_node_tracker.Process(combined, is_extract_needed));
 
   // Extract variables from `combined` to `vars`.
-  ASSIGN_OR_RETURN(combined,
-                   ExtractAutoVariables(combined, shared_node_tracker, vars));
+  ASSIGN_OR_RETURN(combined, ExtractAutoVariables(combined, shared_node_tracker,
+                                                  vars, is_extract_needed));
 
   if (combined->node_deps().size() != expr_names.size()) {
     return absl::InternalError("wrong deps count after transformation");

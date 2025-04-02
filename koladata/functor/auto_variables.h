@@ -15,21 +15,24 @@
 #ifndef KOLADATA_FUNCTOR_AUTO_VARIABLES_H_
 #define KOLADATA_FUNCTOR_AUTO_VARIABLES_H_
 
+#include "absl/container/flat_hash_set.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
+#include "arolla/util/fingerprint.h"
 
 namespace koladata::functor {
 
-// Creates additional variables for DataSlices and named nodes and returns
-// a functor with these variables extracted.
+// Returns a functor with additional variables extracted.
+// New variables will be created for:
+//   1) All named nodes
+//   2) DataSlices (except scalar primitives)
+//   3) Nodes with fingerprints listed in `extra_nodes_to_extract`.
 // NOTE: Tests are in
-// py/koladata/functor/functor_factories_test.py
+// py/koladata/functor/auto_variables_test.py
 //
-// TODO: Generalize and add `predicate` argument to control which
-// nodes should be extracted.
-//    optional<std::function<StatusOr<bool>(const ExprNodePtr&)>>& predicate
-//
-absl::StatusOr<DataSlice> AutoVariables(const DataSlice& functor);
+absl::StatusOr<DataSlice> AutoVariables(
+    const DataSlice& functor,
+    absl::flat_hash_set<arolla::Fingerprint> extra_nodes_to_extract = {});
 
 }  // namespace koladata::functor
 
