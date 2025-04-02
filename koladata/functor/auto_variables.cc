@@ -61,17 +61,15 @@ using arolla::expr::ExprOperatorPtr;
 using arolla::expr::ExprQuote;
 
 absl::StatusOr<bool> IsSliceOperator(const ExprNodePtr& node) {
-  static const absl::NoDestructor<absl::StatusOr<ExprOperatorPtr>>
-      slice_op_or_status{arolla::expr::DecayRegisteredOperator(
-          arolla::expr::ExprOperatorRegistry::GetInstance()
-              ->LookupOperatorOrNull("kd.slice"))};
-
-  RETURN_IF_ERROR(slice_op_or_status->status());
   if (!node->is_op()) {
     return false;
   }
+  ASSIGN_OR_RETURN(ExprOperatorPtr slice_op,
+                   arolla::expr::DecayRegisteredOperator(
+                       arolla::expr::ExprOperatorRegistry::GetInstance()
+                           ->LookupOperatorOrNull("kd.slice")));
   ASSIGN_OR_RETURN(auto op, arolla::expr::DecayRegisteredOperator(node->op()));
-  return op == **slice_op_or_status;
+  return op == slice_op;
 }
 
 // We want to avoid creating duplicate computations by extracting a sub-expr
