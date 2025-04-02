@@ -21,6 +21,7 @@ from koladata.expr import tracing_mode
 from koladata.operators import eager_op_utils
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import schema_item
 
 eager = eager_op_utils.operators_container('kd')
@@ -107,10 +108,7 @@ def check_inputs(**kw_constraints: schema_item.SchemaItem):
         # decoration.
         arg = bound_args.arguments[key]
         if not isinstance(arg, (data_item.DataItem, data_slice.DataSlice)):
-          raise TypeError(
-              'kd.check_inputs: cannot check type on non-DataSlice'
-              f' argument for parameter `{key}`'
-          )
+          arg = py_boxing.as_qvalue(arg)
         if arg.get_schema() != type_constraint:
           raise TypeError(
               f'kd.check_inputs: type mismatch for parameter `{key}`. Expected'

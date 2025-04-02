@@ -297,17 +297,25 @@ class TypeCheckingTest(absltest.TestCase):
       def _(x):
         return x
 
-  def test_non_data_slice_input_error(self):
+  def test_non_data_slice_input_with_autoboxing(self):
+    @type_checking.check_inputs(x=kd.INT32)
+    def f(x):
+      return x
+
+    # Assert does not raise.
+    _ = f(1)
+
+  def test_non_data_slice_input_with_wrong_autoboxing(self):
     @type_checking.check_inputs(x=kd.INT32)
     def f(x):
       return x
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.check_inputs: cannot check type on non-DataSlice argument for'
-        ' parameter `x`',
+        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
+        ' got STRING',
     ):
-      _ = f(1)
+      _ = f('hello')
 
   def test_non_data_slice_output_error(self):
     @type_checking.check_inputs(x=kd.INT32)
