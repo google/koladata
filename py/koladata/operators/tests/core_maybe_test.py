@@ -34,7 +34,6 @@ kde = kde_operators.kde
 ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
-
 QTYPES = frozenset([
     (DATA_SLICE, DATA_SLICE, DATA_SLICE),
 ])
@@ -131,6 +130,18 @@ class CoreGetAttrTest(parameterized.TestCase):
         ' INT32',
     ):
       eager.core.maybe(self.entity, 42)
+
+  @parameterized.parameters(
+      (
+          kde.maybe(I.x, ds(['a', 'b', 'c', None])),
+          ds([schema_constants.INT32, schema_constants.STRING, None, None]),
+      ),
+  )
+  def test_schema_slice_attr_name(self, expr, expected):
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.entity.get_schema()),
+        expected.with_bag(self.entity.get_bag()),
+    )
 
   def test_schema_conflict(self):
     with self.assertRaisesRegex(

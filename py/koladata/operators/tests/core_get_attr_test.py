@@ -148,13 +148,43 @@ class CoreGetAttrTest(parameterized.TestCase):
         ds(1, schema_constants.INT64).with_bag(entity.get_bag()),
     )
 
-  def test_schema_error(self):
+  @parameterized.parameters(
+      (
+          kde.get_attr(I.x, ds(['a', 'b', 'b', None])),
+          ds([
+              schema_constants.INT32,
+              schema_constants.STRING,
+              schema_constants.STRING,
+              None,
+          ]),
+      ),
+  )
+  def test_schema_slice_attr_name(self, expr, expected):
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.entity.get_schema()),
+        expected.with_bag(self.entity.get_bag()),
+    )
+
+  def test_schema_slice_special_attr_name(self):
+    expr = kde.get_attr(I.x, I.ds)
+    named_schema = eager.named_schema(
+        'my_schema', a=schema_constants.INT32, b=schema_constants.STRING
+    )
+
+    name_ds = ds(['__schema_name__', '__schema_name__'])
+    testing.assert_equal(
+        expr_eval.eval(expr, x=named_schema, ds=name_ds),
+        ds(['my_schema', 'my_schema']).with_bag(named_schema.get_bag()),
+    )
+
     with self.assertRaisesRegex(
         ValueError,
-        'can only get attribute of a schema DataSlice if attr_name is scalar',
+        'no common schema',
     ):
       expr_eval.eval(
-          kde.core.get_attr(self.entity.get_schema(), ds(['a', 'a', 'c']))
+          expr,
+          x=named_schema,
+          ds=ds(['a', 'b', '__schema_name__', '__schema_name__']),
       )
 
   def test_schema_conflict(self):

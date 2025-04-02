@@ -321,11 +321,6 @@ namespace {
 absl::Status ValidateGetAttrArguments(const DataSlice& obj,
                                       const DataSlice& attr_name) {
   RETURN_IF_ERROR(ExpectString("attr_name", attr_name));
-  // TODO: Allow schema + data slice combination.
-  if (obj.is_item() && obj.item().is_schema()) {
-    return absl::InvalidArgumentError(
-        "can only get attribute of a schema DataSlice if attr_name is scalar");
-  }
   RETURN_IF_ERROR(ValidateAttrLookupAllowed(obj, "failed to get attribute"));
   return absl::OkStatus();
 }
@@ -358,17 +353,47 @@ absl::Status ProcessSingleItem(const DataItem& obj, std::string_view attr_name,
   return absl::OkStatus();
 }
 
+// Processes a single item (obj, attr_name) pair for GetAttr (by slice)
+// methods when obj is a schema item.
+absl::Status ProcessSingleSchemaItem(
+    const DataItem& obj, std::string_view attr_name, size_t offset,
+    const internal::DataBagImpl& db_impl,
+    internal::DataBagImpl::FallbackSpan fallbacks,
+    internal::SliceBuilder& res_builder, internal::SliceBuilder& schema_builder,
+    bool allow_missing = false) {
+  DataItem res;
+  if (allow_missing) {
+    ASSIGN_OR_RETURN(
+        res, db_impl.GetSchemaAttrAllowMissing(obj, attr_name, fallbacks));
+  } else {
+    ASSIGN_OR_RETURN(res, db_impl.GetSchemaAttr(obj, attr_name, fallbacks));
+  }
+  res_builder.InsertIfNotSet(offset, res);
+
+  DataItem schema_res;
+  if (attr_name == schema::kSchemaNameAttr) {
+    schema_res = internal::DataItem(schema::kString);
+  } else if (attr_name == schema::kSchemaMetadataAttr) {
+    schema_res = internal::DataItem(schema::kObject);
+  } else {
+    schema_res = internal::DataItem(schema::kSchema);
+  }
+  schema_builder.InsertIfNotSet(offset, schema_res);
+
+  return absl::OkStatus();
+}
+
 // Returns DataSliceImpl of schema attribute if schema is OBJECT and empty
 // DataSliceImpl otherwise.
-absl::StatusOr<internal::DataSliceImpl> GetSchemaAttr(
+absl::StatusOr<internal::DataSliceImpl> GetObjSchemaAttr(
     const internal::DataSliceImpl& obj, const DataItem& schema_item,
     const internal::DataBagImpl& db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks) {
-  if (!schema_item.is_struct_schema()) {
-    DCHECK(schema_item.is_object_schema());
-    return db_impl.GetObjSchemaAttr(obj, fallbacks);
+  if (schema_item.is_struct_schema() || schema_item.is_schema_schema()) {
+    return internal::DataSliceImpl();
   }
-  return internal::DataSliceImpl();
+  DCHECK(schema_item.is_object_schema());
+  return db_impl.GetObjSchemaAttr(obj, fallbacks);
 }
 
 }  // namespace
@@ -401,7 +426,7 @@ absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
   // Empty if schema is not OBJECT.
   ASSIGN_OR_RETURN(
       internal::DataSliceImpl schema_attr,
-      GetSchemaAttr(aligned_obj, obj.GetSchemaImpl(), db_impl, fallbacks));
+      GetObjSchemaAttr(aligned_obj, obj.GetSchemaImpl(), db_impl, fallbacks));
 
   internal::SliceBuilder res_builder(aligned_obj.size());
   internal::SliceBuilder schema_builder(aligned_obj.size());
@@ -412,9 +437,15 @@ absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
         if (!status.ok()) {
           return;
         }
-        status = ProcessSingleItem(item, attr_name, offset, db_impl, fallbacks,
-                                   obj.GetSchemaImpl(), schema_attr,
-                                   res_builder, schema_builder);
+        if (obj.GetSchemaImpl().is_schema_schema()) {
+          status =
+              ProcessSingleSchemaItem(item, attr_name, offset, db_impl,
+                                      fallbacks, res_builder, schema_builder);
+        } else {
+          status = ProcessSingleItem(item, attr_name, offset, db_impl,
+                                     fallbacks, obj.GetSchemaImpl(),
+                                     schema_attr, res_builder, schema_builder);
+        }
       },
       aligned_obj.AsDataItemDenseArray(),
       aligned_attr_name.values<arolla::Text>()));
@@ -460,7 +491,7 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
   // Empty if schema is not schema::kObject.
   ASSIGN_OR_RETURN(
       internal::DataSliceImpl schema_attr,
-      GetSchemaAttr(aligned_obj, obj.GetSchemaImpl(), db_impl, fallbacks));
+      GetObjSchemaAttr(aligned_obj, obj.GetSchemaImpl(), db_impl, fallbacks));
 
   internal::SliceBuilder res_builder(aligned_obj.size());
   internal::SliceBuilder schema_builder(aligned_obj.size());
@@ -470,9 +501,15 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
         if (!status.ok()) {
           return;
         }
-        status = ProcessSingleItem(item, attr_name, offset, db_impl, fallbacks,
-                                   obj.GetSchemaImpl(), schema_attr,
-                                   res_builder, schema_builder, true);
+        if (obj.GetSchemaImpl().is_schema_schema()) {
+          status = ProcessSingleSchemaItem(
+              item, attr_name, offset, db_impl, fallbacks, res_builder,
+              schema_builder, /*allow_missing=*/true);
+        } else {
+          status = ProcessSingleItem(
+              item, attr_name, offset, db_impl, fallbacks, obj.GetSchemaImpl(),
+              schema_attr, res_builder, schema_builder, /*allow_missing=*/true);
+        }
       },
       aligned_obj.AsDataItemDenseArray(),
       aligned_attr_name.values<arolla::Text>()));

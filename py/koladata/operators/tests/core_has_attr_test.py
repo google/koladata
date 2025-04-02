@@ -143,6 +143,18 @@ The cause is: cannot find a common schema
     s = kde.schema.new_schema(x=schema_constants.INT32)
     testing.assert_equal(expr_eval.eval(kde.core.has_attr(s, 'x')), ds(present))
 
+  @parameterized.parameters(
+      (
+          kde.has_attr(I.x, ds(['a', 'b', 'c', None])),
+          ds([present, present, missing, missing]),
+      ),
+  )
+  def test_has_attr_of_schema_slice_attr_name(self, expr, expected):
+    testing.assert_equal(
+        expr_eval.eval(expr, x=self.entity.get_schema()),
+        expected.with_bag(self.entity.get_bag()),
+    )
+
   def test_attr_name_error(self):
     with self.assertRaisesRegex(
         ValueError,
