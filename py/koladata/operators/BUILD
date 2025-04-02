@@ -578,6 +578,7 @@ py_library(
     deps = [
         ":assertion",
         ":dicts",
+        ":koda_internal_iterables",
         ":lists",
         ":masking",
         ":optools",
@@ -586,6 +587,7 @@ py_library(
         ":slices",
         "//koladata/functor:operators",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",

@@ -17,6 +17,7 @@
 from arolla import arolla
 from koladata.operators import assertion
 from koladata.operators import dicts
+from koladata.operators import koda_internal_iterables
 from koladata.operators import lists
 from koladata.operators import masking
 from koladata.operators import optools
@@ -24,10 +25,12 @@ from koladata.operators import qtype_utils
 from koladata.operators import schema
 from koladata.operators import slices
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
 P = arolla.P
+M = arolla.M
 
 
 @optools.add_to_registry(aliases=['kd.call'])
@@ -341,3 +344,78 @@ def select_items(ds, fltr):
 def is_fn(x):  # pylint: disable=unused-argument
   """Returns `present` iff `x` is a functor."""
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.as_lambda_operator(
+    'kd.functor._reduce_op',
+)
+def _reduce_op(tuple_fn_x, y):
+  """Helper operator for kd.functor.reduce to apply a functor.
+
+  It is needed to both apply the functor and propagate it further, while
+  keeping functor and non-deterministic token in the context.
+  input:   ((fn, x, non_deterministic_token), y)
+  returns: (fn, fn(x, y), non_deterministic_token).
+
+  Args:
+    tuple_fn_x: A tuple of (fn, x, non_deterministic_token), where fn is a
+      functor, x is the first argument to be passed to the functor, and
+      non_deterministic_token is a non-deterministic token.
+    y: The second argument to be passed to the functor.
+
+  Returns:
+    A tuple of (fn, fn(x, y), non_deterministic_token).
+  """
+  fn = M.core.get_first(tuple_fn_x)
+  x = M.core.get_second(tuple_fn_x)
+  non_deterministic_token = M.core.get_nth(tuple_fn_x, 2)
+  return M.core.make_tuple(
+      fn,
+      arolla.abc.sub_by_fingerprint(
+          call(fn, x, y, return_type_as=x),
+          {
+              py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
+                  non_deterministic_token
+              )
+          },
+      ),
+      non_deterministic_token,
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.functor.reduce',
+    qtype_constraints=[
+        qtype_utils.expect_iterable(P.items),
+        qtype_utils.expect_data_slice(P.fn),
+    ],
+)
+def reduce(fn, items, initial_value):
+  """Reduces an iterable using the given functor.
+
+  The result is a DataSlice that has the value: fn(fn(fn(initial_value,
+  items[0]), items[1]), ...), where the fn calls are done in the order of the
+  items in the iterable.
+
+  Args:
+    fn: A binary function or functor to be applied to each item of the iterable;
+      its return type must be the same as the first argument.
+    items: An iterable to be reduced.
+    initial_value: The initial value to be passed to the functor.
+
+  Returns:
+    Result of the reduction as a single value.
+  """
+  items = koda_internal_iterables.to_sequence(items)
+  res = M.seq.reduce(
+      _reduce_op,
+      items,
+      M.core.make_tuple(
+          fn,
+          initial_value,
+          py_boxing.new_non_deterministic_token(),
+      ),
+  )
+
+  return M.core.get_second(res)
