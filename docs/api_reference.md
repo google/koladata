@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x3344fcbe8550>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x12e2fa535350>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x3344fcbe8550>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x12e2fa535350>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -2184,6 +2184,25 @@ Returns a Koda functor wrapping a python function.
 
   Returns:
     A DataItem representing the functor.
+```
+
+### `kd.functor.reduce(fn, items, initial_value)` {#kd.functor.reduce}
+
+``` {.no-copy}
+Reduces an iterable using the given functor.
+
+The result is a DataSlice that has the value: fn(fn(fn(initial_value,
+items[0]), items[1]), ...), where the fn calls are done in the order of the
+items in the iterable.
+
+Args:
+  fn: A binary function or functor to be applied to each item of the iterable;
+    its return type must be the same as the first argument.
+  items: An iterable to be reduced.
+  initial_value: The initial value to be passed to the functor.
+
+Returns:
+  Result of the reduction as a single value.
 ```
 
 ### `kd.functor.trace_as_fn(*, name=None, py_fn=False, return_type_as=None, wrapper=None)` {#kd.functor.trace_as_fn}
