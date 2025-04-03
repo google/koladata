@@ -20,29 +20,28 @@ from arolla import arolla
 import cloudpickle
 
 
-class PyObjectCloudpickleCodec(arolla.types.PyObjectCodecInterface):
+class CloudpicklePyObjectCodec(arolla.s11n.PyObjectCodecInterface):
   """PyObject serialization codec using cloudpickle."""
 
   @classmethod
-  def encode(cls, obj: object) -> bytes:
+  def encode(cls, py_object: arolla.abc.PyObject) -> bytes:
     """Encodes `obj` into bytes using cloudpickle."""
-    return cloudpickle.dumps(obj)
+    return cloudpickle.dumps(py_object.py_value())
 
   @classmethod
-  def decode(cls, serialized_obj: bytes) -> object:
-    """Decodes `serialized_obj` into an object using cloudpickle."""
-    return cloudpickle.loads(serialized_obj)
+  def decode(cls, data: bytes, codec: bytes) -> arolla.abc.PyObject:
+    """Decodes `data` into a py_object using cloudpickle."""
+    return arolla.abc.PyObject(cloudpickle.loads(data), codec=codec)
 
 
-CLOUDPICKLE_CODEC = arolla.types.register_py_object_codec(
-    'CLOUDPICKLE_CODEC', PyObjectCloudpickleCodec
+CLOUDPICKLE_CODEC = arolla.s11n.register_py_object_codec(
+    'CLOUDPICKLE_CODEC', CloudpicklePyObjectCodec
 )
 
 
 def py_cloudpickle(obj: Any) -> arolla.types.PyObject:
   """Wraps into a Arolla QValue using cloudpickle for serialization."""
-  ret = arolla.types.PyObject(obj, codec=CLOUDPICKLE_CODEC)
+  ret = arolla.abc.PyObject(obj, codec=CLOUDPICKLE_CODEC)
   # Raising an error eagerly if `obj` is not pickle-able.
   _ = arolla.s11n.dumps(ret)
   return ret
-

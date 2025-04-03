@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 import threading
 
 from absl.testing import absltest
@@ -29,9 +30,7 @@ class PyCloudpickleTest(absltest.TestCase):
       return x + y + z
 
     kd.testing.assert_equal(
-        kd.call(
-            kd.py_fn(py_cloudpickle.py_cloudpickle(pickled_f)), x=1, y=2
-        ),
+        kd.call(kd.py_fn(py_cloudpickle.py_cloudpickle(pickled_f)), x=1, y=2),
         ds(6),
     )
 
@@ -43,7 +42,7 @@ class PyCloudpickleTest(absltest.TestCase):
         kd.call(
             kd.py_fn(py_cloudpickle.py_cloudpickle(f_with_kd)), x=ds([3, 4])
         ),
-        ds([4, 6])
+        ds([4, 6]),
     )
 
   def test_apply_py(self):
@@ -66,10 +65,15 @@ class PyCloudpickleTest(absltest.TestCase):
 
   def test_non_pickleable(self):
     with self.assertRaisesRegex(
-        TypeError, 'cannot pickle'
-    ):
+        ValueError,
+        re.escape(
+            'arolla.s11n.py_object_codec.tools.encode_py_object() failed'
+        ),
+    ) as cm:
       thread = threading.Thread(target=lambda: 1)
       py_cloudpickle.py_cloudpickle(thread)
+    self.assertIsInstance(cm.exception.__cause__, TypeError)
+    self.assertRegex(str(cm.exception.__cause__), 'cannot pickle')
 
 
 if __name__ == '__main__':

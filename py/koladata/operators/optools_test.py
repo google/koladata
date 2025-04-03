@@ -685,7 +685,7 @@ class OptoolsTest(parameterized.TestCase):
     self.assertEqual(counter, expected_counter)
 
   def test_as_py_function_operator_serialization(self):
-    ref_codec = arolla.types.PyObjectReferenceCodec()
+    ref_codec = arolla.s11n.ReferencePyObjectCodec()
 
     @optools.as_py_function_operator(
         'op',

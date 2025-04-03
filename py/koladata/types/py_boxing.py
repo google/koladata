@@ -50,7 +50,7 @@ LIST_TO_SLICE_BOXING_POLICY = 'koladata_list_to_slice_boxing'
 # NOTE: Recreating this object invalidates all existing references. Thus after
 # reloading this module, any Exprs using this codec must be recreated.
 # If this causes issues, we'll need to find a workaround.
-_REF_CODEC_OBJECT = arolla.types.PyObjectReferenceCodec()
+_REF_CODEC_OBJECT = arolla.s11n.ReferencePyObjectCodec()
 REF_CODEC = _REF_CODEC_OBJECT.name
 
 
