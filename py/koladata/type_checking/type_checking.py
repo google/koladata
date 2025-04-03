@@ -14,17 +14,116 @@
 
 """Runtime type checking for Koda functions."""
 
+from collections.abc import Mapping
 import functools
 import inspect
 
 from koladata.expr import tracing_mode
+from koladata.operators import arolla_bridge
 from koladata.operators import eager_op_utils
+from koladata.operators import kde_operators
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import schema_item
+from koladata.expr import view
+from arolla import arolla
 
 eager = eager_op_utils.operators_container('kd')
+lazy = kde_operators.kde
+
+
+def _verify_input_eager(key: str,
+                        arg: data_slice.DataSlice,
+                        type_constraint: schema_item.SchemaItem):
+  """Verifies the type of input in eager mode."""
+  if not isinstance(arg, (data_item.DataItem, data_slice.DataSlice)):
+    # Boxing is needed to support Python arguments.
+    arg = py_boxing.as_qvalue(arg)
+  if arg.get_schema() != type_constraint:
+    raise TypeError(
+        f'kd.check_inputs: type mismatch for parameter `{key}`.'
+        f' Expected type {eager.schema.get_repr(type_constraint)}, got'
+        f' {eager.schema.get_repr(arg.get_schema())}'
+    )
+
+
+def _verify_inputs_eager(
+    bound_args: inspect.BoundArguments,
+    kw_constraints: Mapping[str, schema_item.SchemaItem],
+):
+  """Verifies the types of inputs in eager mode."""
+  for key, type_constraint in kw_constraints.items():
+    # KeyError is not possible as parameter presence was checked during
+    # decoration.
+    _verify_input_eager(key, bound_args.arguments[key], type_constraint)
+
+
+def _verify_output_eager(
+    output: data_slice.DataSlice,
+    constraint: schema_item.SchemaItem,
+):
+  """Verifies the type of output in eager mode."""
+  if not isinstance(output, (data_item.DataItem, data_slice.DataSlice)):
+    raise TypeError(
+        'kd.check_output: expected DataItem/DataSlice output, got'
+        f' {type(output)}'
+    )
+  if output.get_schema() != constraint:
+    raise TypeError(
+        'kd.check_output: type mismatch for output. Expected type'
+        f' {eager.schema.get_repr(constraint)}, got'
+        f' {eager.schema.get_repr(output.get_schema())}'
+    )
+
+
+def _with_input_expr_assertions(
+    bound_args: inspect.BoundArguments,
+    kw_constraints: Mapping[str, schema_item.SchemaItem],
+) -> inspect.BoundArguments:
+  """Adds assertions for input types in tracing mode."""
+  for key, type_constraint in kw_constraints.items():
+    # KeyError is not possible as parameter presence was checked during
+    # decoration.
+    # Boxing is needed to support Python arguments.
+    arg = bound_args.arguments[key]
+    if not isinstance(arg, (view.KodaView, arolla.Expr)):
+      # We attempt eager verification of a static input.
+      _verify_input_eager(key, arg, type_constraint)
+    else:
+      # Changes to bound_args will reflect in bound_args.args and
+      # bound_args.kwargs.
+      bound_args.arguments[key] = lazy.assertion.with_assertion(
+          arg,
+          lazy.get_schema(arg) == type_constraint,
+          arolla_bridge.to_arolla_text(
+              lazy.strings.join(
+                  f'kd.check_inputs: type mismatch for parameter `{key}`.'
+                  ' Expected type ',
+                  lazy.schema.get_repr(type_constraint), ', got ',
+                  lazy.schema.get_repr(arg.get_schema()),
+              )
+          ),
+      )
+  return bound_args
+
+
+def _with_output_expr_assertion(
+    output: data_slice.DataSlice,
+    constraint: schema_item.SchemaItem,
+):
+  """Adds an assertion for output type in tracing mode."""
+  return lazy.assertion.with_assertion(
+      output,
+      lazy.get_schema(output) == constraint,
+      arolla_bridge.to_arolla_text(
+          lazy.strings.join(
+              'kd.check_output: type mismatch for output. Expected type ',
+              lazy.schema.get_repr(constraint), ', got ',
+              lazy.schema.get_repr(output.get_schema()),
+          )
+      ),
+  )
 
 
 def check_inputs(**kw_constraints: schema_item.SchemaItem):
@@ -35,6 +134,10 @@ def check_inputs(**kw_constraints: schema_item.SchemaItem):
 
   Decorated functions will preserve the original function's signature and
   docstring.
+
+  Decorated functions can be traced using `kd.fn` and the inputs to the
+  resulting functor will be wrapped in kd.assertion.with_assertion nodes that
+  match the assertions of the eager version.
 
   Example for primitive schemas:
 
@@ -98,31 +201,21 @@ def check_inputs(**kw_constraints: schema_item.SchemaItem):
         )
 
     def check_inputs_decorator(*args, **kwargs):
-      # TODO: Support traced constraints/assertions.
-      if tracing_mode.is_tracing_enabled():
-        return f(*args, **kwargs)
       bound_args = signature.bind(*args, **kwargs)
-      bound_args.apply_defaults()
-      for key, type_constraint in kw_constraints.items():
-        # KeyError is not possible as parameter presence was checked during
-        # decoration.
-        arg = bound_args.arguments[key]
-        if not isinstance(arg, (data_item.DataItem, data_slice.DataSlice)):
-          arg = py_boxing.as_qvalue(arg)
-        if arg.get_schema() != type_constraint:
-          raise TypeError(
-              f'kd.check_inputs: type mismatch for parameter `{key}`. Expected'
-              f' type {eager.schema.get_repr(type_constraint)}, got'
-              f' {eager.schema.get_repr(arg.get_schema())}'
-          )
-      return f(*args, **kwargs)
+      if not tracing_mode.is_tracing_enabled():
+        bound_args.apply_defaults()
+        _verify_inputs_eager(bound_args, kw_constraints)
+        return f(*args, **kwargs)
+      else:
+        bound_args = _with_input_expr_assertions(bound_args, kw_constraints)
+        return f(*bound_args.args, **bound_args.kwargs)
 
     return functools.wraps(f)(check_inputs_decorator)
 
   return decorate_f
 
 
-def check_output(output: schema_item.SchemaItem):
+def check_output(constraint: schema_item.SchemaItem):
   """Decorator factory for adding runtime output type checking to Koda functions.
 
   Resulting decorators will check the schema of the DataSlice output of
@@ -130,6 +223,10 @@ def check_output(output: schema_item.SchemaItem):
 
   Decorated functions will preserve the original function's signature and
   docstring.
+
+  Decorated functions can be traced using `kd.fn` and the output of the
+  resulting functor will be wrapped in a kd.assertion.with_assertion node that
+  match the assertion of the eager version.
 
   Example for primitive schemas:
 
@@ -158,36 +255,26 @@ def check_output(output: schema_item.SchemaItem):
       return query.docs[:]
 
   Args:
-    output: A DataItem schema for the output. Output of the decorated function
-      must be a DataSlice/DataItem with the corresponding schema.
+    constraint: A DataItem schema for the output. Output of the decorated
+      function must be a DataSlice/DataItem with the corresponding schema.
 
   Returns:
     A decorator that can be used to annotate a function returning a
     DataSlice/DataItem.
   """
-  if not isinstance(output, schema_item.SchemaItem):
+  if not isinstance(constraint, schema_item.SchemaItem):
     raise TypeError(
         'kd.check_output: invalid constraint: expected constraint for output to'
-        f' be a schema DataItem, got {output}'
+        f' be a schema DataItem, got {constraint}'
     )
 
   def decorate_f(f):
     def check_output_decorator(*args, **kwargs):
-      # TODO: Support traced constraints/assertions.
-      if tracing_mode.is_tracing_enabled():
-        return f(*args, **kwargs)
       res = f(*args, **kwargs)
-      if not isinstance(res, (data_item.DataItem, data_slice.DataSlice)):
-        raise TypeError(
-            'kd.check_output: expected DataItem/DataSlice output, got'
-            f' {type(res)}'
-        )
-      if res.get_schema() != output:
-        raise TypeError(
-            'kd.check_output: type mismatch for output. Expected type'
-            f' {eager.schema.get_repr(output)}, got'
-            f' {eager.schema.get_repr(res.get_schema())}'
-        )
+      if not tracing_mode.is_tracing_enabled():
+        _verify_output_eager(res, constraint)
+      else:
+        res = _with_output_expr_assertion(res, constraint)
       return res
 
     return functools.wraps(f)(check_output_decorator)

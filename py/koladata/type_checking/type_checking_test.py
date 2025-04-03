@@ -226,7 +226,7 @@ class TypeCheckingTest(absltest.TestCase):
     q = kd.new(
         docs=[
             kd.new(doc_id=1, score=0.5, schema=doc),
-            kd.new(doc_id=2, score=0.7, schema=doc)
+            kd.new(doc_id=2, score=0.7, schema=doc),
         ],
         schema=query,
     )
@@ -330,36 +330,6 @@ class TypeCheckingTest(absltest.TestCase):
     ):
       _ = f(kd.int32(1))
 
-  def test_check_inputs_ignored_in_tracing(self):
-    @type_checking.check_inputs(x=kd.INT32)
-    def f(x):
-      return x
-
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
-        ' got FLOAT32',
-    ):
-      _ = f(ds([1.0, 2, 3]))
-
-    fn = kdf.fn(f)
-    testing.assert_equal(fn(ds([1.0, 2, 3])), ds([1.0, 2, 3]))
-
-  def test_check_output_ignored_in_tracing(self):
-    @type_checking.check_output(kd.INT32)
-    def f(x):
-      return x
-
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_output: type mismatch for output. Expected type INT32, got'
-        ' FLOAT32',
-    ):
-      _ = f(ds([1.0, 2, 3]))
-
-    fn = kdf.fn(f)
-    testing.assert_equal(fn(ds([1.0, 2, 3])), ds([1.0, 2, 3]))
-
   def test_check_inputs_preserves_docstring(self):
     def f(x):
       """Some docstring."""
@@ -377,6 +347,140 @@ class TypeCheckingTest(absltest.TestCase):
     decorated_f = type_checking.check_output(kd.INT32)(f)
 
     self.assertEqual(f.__doc__, decorated_f.__doc__)
+
+  def test_check_inputs_traced(self):
+    @type_checking.check_inputs(x=kd.INT32)
+    def f(x):
+      return x
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
+        ' got FLOAT32',
+    ):
+      _ = f(ds([1.0, 2, 3]))
+
+    fn = kdf.fn(f)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        # TODO: Could the .*assertion.* prefix be removed?
+        'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
+        ' for parameter `x`. Expected type INT32, got FLOAT32',
+    ):
+      _ = fn(ds([1.0, 2, 3]))
+
+  def test_check_inputs_traced_does_not_reserve_keywords(self):
+    @type_checking.check_inputs(traced=kd.INT32)
+    def f(traced):
+      return traced
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'kd.check_inputs: type mismatch for parameter `traced`. Expected type'
+        ' INT32, got FLOAT32',
+    ):
+      _ = f(ds([1.0, 2, 3]))
+
+    fn = kdf.fn(f)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        # TODO: Could the .*assertion.* prefix be removed?
+        'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
+        ' for parameter `traced`. Expected type INT32, got FLOAT32',
+    ):
+      _ = fn(ds([1.0, 2, 3]))
+
+  def test_check_output_traced(self):
+    @type_checking.check_output(kd.INT32)
+    def f(x):
+      return x
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'kd.check_output: type mismatch for output. Expected type INT32,'
+        ' got FLOAT32',
+    ):
+      _ = f(ds([1.0, 2, 3]))
+
+    fn = kdf.fn(f)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        # TODO: Could the .*assertion.* prefix be removed?
+        'kd.assertion.with_assertion: kd.check_output: type mismatch'
+        ' for output. Expected type INT32, got FLOAT32',
+    ):
+      _ = fn(ds([1.0, 2, 3]))
+
+  def test_check_inputs_traced_named_schema(self):
+    doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
+    query = kd.schema.named_schema('Query', docs=kd.list_schema(doc))
+
+    docs = ds([
+        kd.new(doc_id=1, score=0.5, schema=doc),
+        kd.new(doc_id=2, score=0.7, schema=doc),
+    ])
+    q = kd.new(
+        docs=kd.implode(docs),
+        schema=query,
+    )
+
+    @type_checking.check_inputs(q=query)
+    def get_docs(q):
+      return q.docs[:]
+
+    get_docs_fn = kdf.fn(get_docs)
+    # Assert does not raise.
+    _ = get_docs_fn(q)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
+        ' for parameter `q`. Expected type Query, got Doc',
+    ):
+      _ = get_docs_fn(docs)
+
+  def test_check_inputs_traced_static_input(self):
+    @type_checking.check_inputs(pick_a=kd.BOOLEAN)
+    def choose(pick_a=True):
+      if pick_a:
+        return ds('a')
+      else:
+        return ds('b')
+
+    def f():
+      return choose(pick_a=True)
+
+    # Assert does not raise.
+    _ = kdf.fn(f)
+
+  def test_check_output_traced_named_schema(self):
+    doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
+    query = kd.schema.named_schema('Query', docs=kd.list_schema(doc))
+
+    docs = ds([
+        kd.new(doc_id=1, score=0.5, schema=doc),
+        kd.new(doc_id=2, score=0.7, schema=doc),
+    ])
+    q = kd.new(
+        docs=kd.implode(docs),
+        schema=query,
+    )
+
+    @type_checking.check_output(doc)
+    def get_docs(q):
+      return q
+
+    get_docs_fn = kdf.fn(get_docs)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'kd.assertion.with_assertion: kd.check_output: type mismatch'
+        ' for output. Expected type Doc, got Query',
+    ):
+      _ = get_docs_fn(q)
 
 
 if __name__ == '__main__':
