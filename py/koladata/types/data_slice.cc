@@ -714,15 +714,6 @@ absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_values(PyObject* self, PyObject*) {
-  arolla::python::DCheckPyGIL();
-  arolla::python::PyCancellationScope cancellation_scope;
-  DataSlice self_ds = UnsafeDataSliceRef(self);
-  ASSIGN_OR_RETURN(auto res, self_ds.GetDictValues(),
-                   arolla::python::SetPyErrFromStatus(_));
-  return WrapPyDataSlice(std::move(res));
-}
-
 absl::Nullable<PyObject*> PyDataSlice_append(PyObject* self,
                                              PyObject* const* args,
                                              Py_ssize_t nargs) {
@@ -1156,10 +1147,6 @@ Returns:
      "get_keys()\n"
      "--\n\n"
      "Returns keys of all dicts in this DataSlice."},
-    {"get_values", PyDataSlice_get_values, METH_NOARGS,
-     "get_values()\n"
-     "--\n\n"
-     "Returns values of all dicts in this DataSlice."},
     {"get_attr", (PyCFunction)PyDataSlice_get_attr,
      METH_FASTCALL | METH_KEYWORDS,
      "get_attr(attr_name, /, default=None)\n"

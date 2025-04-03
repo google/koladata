@@ -150,7 +150,6 @@ class DataSliceMethodsTest(parameterized.TestCase):
           user_facing_kd,
           skip_methods={
               'S',  # Has different meanings between method and function.
-              'get_values',  # TODO: fix this.
               'implode',  # method lacks db= argument for consistency with view
               'new',  # method offers much simpler and restrictive interface
           },
@@ -722,6 +721,24 @@ class DataSliceTest(parameterized.TestCase):
     x = ds(None).with_bag(bag())
     testing.assert_equal(
         x.get_keys(), ds([], schema_constants.NONE).with_bag(x.get_bag())
+    )
+
+  # More comprehensive tests are in the core_get_values_test.py.
+  def test_get_values(self):
+    db = bag()
+    d1 = db.dict({1: 2, 3: 4})
+    d2 = db.dict({3: 5})
+    d = ds([d1, None, d2])
+
+    testing.assert_unordered_equal(
+        d.get_values(),
+        ds([[2, 4], [], [5]]).with_bag(db),
+    )
+    testing.assert_equal(d.get_values(), d[d.get_keys()])
+
+    testing.assert_equal(
+        d.get_values(ds([[3, 1], [1], [3]])),
+        ds([[4, 2], [None], [5]]).with_bag(db),
     )
 
   def test_get_values_on_none(self):

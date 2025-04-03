@@ -212,6 +212,11 @@ def _select_values(self, fltr: Any) -> DataSlice:
   return _eval_op('kd.select_values', self, fltr)
 
 
+@add_method(DataSlice, 'get_values', docstring_from='kd.get_values')
+def _get_values(self, key_ds: Any = arolla.unspecified()) -> DataSlice:
+  return _eval_op('kd.get_values', self, key_ds)
+
+
 @add_method(DataSlice, 'expand_to', docstring_from='kd.expand_to')
 def _expand_to(
     self, target: Any, ndim: Any = arolla.unspecified()
