@@ -16,6 +16,7 @@ import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata import kd
 from koladata.ext import nested_data
 
@@ -428,8 +429,11 @@ class NestedDataTest(parameterized.TestCase):
   def test_invalid_args(self, create_test_input):
     in_ds = create_test_input()
 
-    with self.assertRaisesRegex(
-        ValueError, re.escape("the attribute 'm' is missing")
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            re.escape("the attribute 'm' is missing")
+        ),
     ):
       nested_data.selected_path_update(in_ds, ['m'], in_ds.q[:].qt[:].qtid == 0)
 

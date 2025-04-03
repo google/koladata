@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import re
-
 from absl.testing import absltest
+from arolla import arolla
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -101,8 +101,11 @@ class NewTest(absltest.TestCase):
     # Successful.
     x = fns.new(a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesRegex(
-        ValueError, 'attribute \'non_existent\' is missing'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "attribute 'non_existent' is missing"
+        ),
     ):
       _ = x.non_existent
 
@@ -206,8 +209,11 @@ class NewTest(absltest.TestCase):
 
   def test_schema_arg_implicit_casting_failure(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
-    with self.assertRaisesRegex(
-        ValueError, r'schema for attribute \'a\' is incompatible'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "schema for attribute 'a' is incompatible"
+        ),
     ):
       fns.new(a='xyz', schema=schema)
 
@@ -278,72 +284,98 @@ class NewTest(absltest.TestCase):
       fns.new(a=1, schema=ds(['name']))
     with self.assertRaisesRegex(ValueError, 'schema can only be 0-rank'):
       fns.new(a=1, schema=ds([schema_constants.INT32, schema_constants.STRING]))
-    with self.assertRaisesRegex(
-        ValueError, 'expected Entity schema, got INT32'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'expected Entity schema, got INT32'
+        ),
     ):
       fns.new(a=1, schema=schema_constants.INT32)
-    with self.assertRaisesRegex(
-        ValueError, 'expected Entity schema, got OBJECT'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'expected Entity schema, got OBJECT'
+        ),
     ):
       fns.new(a=1, schema=schema_constants.OBJECT)
-    with self.assertRaisesRegex(
-        ValueError, re.escape('expected Entity schema, got DICT{STRING, INT32}')
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            re.escape('expected Entity schema, got DICT{STRING, INT32}')
+        ),
     ):
       fns.new(
           a=1,
           schema=fns.dict_schema(
               schema_constants.STRING, schema_constants.INT32
-          )
+          ),
       )
 
   def test_schema_error_message(self):
     schema = fns.schema.new_schema(a=schema_constants.INT32)
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            r"""cannot create Item(s) with the provided schema: SCHEMA(a=INT32)
-
-The cause is: the schema for attribute 'a' is incompatible.
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                r"""the schema for attribute 'a' is incompatible.
 
 Expected schema for 'a': INT32
 Assigned schema for 'a': STRING
 
 To fix this, explicitly override schema of 'a' in the original schema by passing overwrite_schema=True."""
+            )
         ),
-    ):
+    ) as cm:
       fns.new(a='xyz', schema=schema)
+    self.assertRegex(
+        str(cm.exception),
+        re.escape(
+            'cannot create Item(s) with the provided schema: SCHEMA(a=INT32)'
+        ),
+    )
 
     db = fns.bag()
     nested_schema = db.new_schema(b=schema)
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""cannot create Item\(s\) with the provided schema: SCHEMA\(b=SCHEMA\(a=INT32\)\)
-
-The cause is: the schema for attribute 'b' is incompatible.
+        arolla.testing.any_cause_message_regex(
+            r"""the schema for attribute 'b' is incompatible.
 
 Expected schema for 'b': SCHEMA\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
 Assigned schema for 'b': SCHEMA\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
 
 To fix this, explicitly override schema of 'b' in the original schema by passing overwrite_schema=True.""",
-    ):
+        ),
+    ) as cm:
       fns.new(b=db.new(a=123), schema=nested_schema)
+    self.assertRegex(
+        str(cm.exception),
+        re.escape(
+            'cannot create Item(s) with the provided schema:'
+            ' SCHEMA(b=SCHEMA(a=INT32))'
+        ),
+    )
 
     db1 = fns.bag()
     _ = db1.uuobj(x=1)
     db2 = fns.bag()
     b = db2.uuobj(x=1)
     b.x = 2
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""cannot create Item\(s\)
-
-The cause is: cannot merge DataBags due to an exception encountered when merging entities.
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging entities.
 
 The conflicting entities in the both DataBags: Entity\(\):\#[0-9a-zA-Z]{22}
 
 The cause is the values of attribute 'x' are different: 1 vs 2""",
-    ):
+        ),
+    ) as cm:
       db1.new(y=b)
+    self.assertRegex(
+        str(cm.exception),
+        re.escape('cannot create Item(s)'),
+    )
 
   def test_item_assignment_rhs_no_ds_args(self):
     x = fns.new(x=1, lst=[1, 2, 3], dct={'a': 42})

@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -182,7 +183,10 @@ class CoreCloneTest(parameterized.TestCase):
     self.assertFalse(res.get_bag().is_mutable())
     testing.assert_equal(res.x.no_bag(), ds(42))
     testing.assert_equal(res.z.no_bag(), ds(12))
-    with self.assertRaisesRegex(ValueError, 'attribute \'y\' is missing'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex("attribute 'y' is missing"),
+    ):
       _ = res.y
 
   def test_itemid(self):

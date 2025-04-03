@@ -106,24 +106,32 @@ class PyApplyPyTest(parameterized.TestCase):
     )
 
   def test_error_call_non_callable(self):
-    with self.assertRaisesRegex(
-        ValueError, re.escape('expected a python callable, got fn=PyObject{{}}')
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            re.escape('expected a python callable, got fn=PyObject{{}}')
+        ),
     ):
       expr_eval.eval(kde.py.apply_py(arolla.abc.PyObject({})))
 
   def test_error_unexpected_return_type(self):
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            'expected the result to have qtype DATA_SLICE, got tuple<INT32>;'
-            ' consider specifying the `return_type_as=` parameter'
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                'expected the result to have qtype DATA_SLICE, got'
+                ' tuple<INT32>; consider specifying the `return_type_as=`'
+                ' parameter'
+            )
         ),
     ):
       expr_eval.eval(kde.py.apply_py(lambda: arolla.tuple(1)))
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            'expected the result to have qtype DATA_BAG, got tuple<INT32>'
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                'expected the result to have qtype DATA_BAG, got tuple<INT32>'
+            )
         ),
     ):
       expr_eval.eval(

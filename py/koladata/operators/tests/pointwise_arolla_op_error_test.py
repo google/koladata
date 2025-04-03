@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import re
-
 from absl.testing import absltest
+from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.operators import kde_operators
@@ -32,22 +32,24 @@ DATA_SLICE = qtypes.DATA_SLICE
 class PointwiseArollaOpErrorTest(absltest.TestCase):
 
   def test_incompatible_shapes(self):
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            """cannot align inputs to a common shape
-
-The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1])"""
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                'shapes are not compatible: JaggedShape(3) vs '
+                'JaggedShape(2, [2, 1])'
+            ),
         ),
     ):
       expr_eval.eval(kde.math.subtract(ds([1, 2, 3]), ds([[1, 2], [3]])))
 
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            """cannot align inputs to a common shape
-
-The cause is: shapes are not compatible: JaggedShape(3) vs JaggedShape(2, [2, 1])"""
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                'shapes are not compatible: JaggedShape(3) vs '
+                'JaggedShape(2, [2, 1])'
+            ),
         ),
     ):
       expr_eval.eval(

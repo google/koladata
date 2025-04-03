@@ -80,10 +80,12 @@ class SchemaCastToTest(parameterized.TestCase):
     schema = entity.get_schema().with_bag(bag2)
     schema.x = schema_constants.FLOAT32
     result = expr_eval.eval(kde.schema.cast_to(entity, schema))
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        "FLOAT32 schema can only be assigned to a DataSlice that contains only"
-        " primitives of FLOAT32",
+        arolla.testing.any_cause_message_regex(
+            "FLOAT32 schema can only be assigned to a DataSlice that contains"
+            " only primitives of FLOAT32"
+        ),
     ):
       _ = result.x
 

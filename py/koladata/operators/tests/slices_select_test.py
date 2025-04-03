@@ -253,9 +253,9 @@ class SlicesSelectTest(parameterized.TestCase):
     def filter_fn(x):  # pylint: disable=unused-argument
       raise ValueError('test error')
 
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        'test error',
+        arolla.testing.any_cause_message_regex('test error'),
     ):
       expr_eval.eval(
           kde.slices.select(I.x, functor_factories.py_fn(filter_fn)),

@@ -270,8 +270,11 @@ class ListLikeTest(parameterized.TestCase):
         kde.lists.like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
     )
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesRegex(
-        ValueError, "attribute 'non_existent' is missing"
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "attribute 'non_existent' is missing"
+        ),
     ):
       _ = triple.with_bag(x.get_bag()).non_existent
 

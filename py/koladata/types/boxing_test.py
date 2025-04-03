@@ -348,14 +348,15 @@ class BoxingTest(parameterized.TestCase):
   def test_schema_embedding_conflicting_schema(self):
     db1 = data_bag.DataBag.empty()
     e1 = db1.new().embed_schema()
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""cannot merge DataBags due to an exception encountered when merging entities.
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging entities.
 
 The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
 
-The cause is the values of attribute '__schema__' are different: SCHEMA\(\) vs SCHEMA\(\)
-""",
+The cause is the values of attribute '__schema__' are different: SCHEMA\(\) vs SCHEMA\(\)"""
+        ),
     ):
       # Try to embed a schema that conflicts with the existing one.
       ds([e1, e1.with_schema(db1.new().get_schema())], OBJECT)

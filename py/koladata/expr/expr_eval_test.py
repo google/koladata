@@ -216,12 +216,14 @@ class ExprEval(absltest.TestCase):
     res = expr_eval.eval(I.self)
     testing.assert_equal(res, expr_eval.UNSPECIFIED_SELF_INPUT)
     # We can improve this error message later if needed.
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            """the attribute 'foo' is missing on the schema.
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                """the attribute 'foo' is missing on the schema.
 
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('foo')"""
+            )
         ),
     ):
       expr_eval.eval(I.self.foo)

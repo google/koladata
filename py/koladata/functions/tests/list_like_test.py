@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata import kd
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
@@ -277,8 +278,11 @@ class ListLikeTest(parameterized.TestCase):
     # Successful.
     x = fns.list_like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesRegex(
-        ValueError, 'attribute \'non_existent\' is missing'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "attribute 'non_existent' is missing"
+        ),
     ):
       _ = triple.with_bag(x.get_bag()).non_existent
 

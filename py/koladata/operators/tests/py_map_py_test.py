@@ -235,23 +235,32 @@ class PyMapPyTest(parameterized.TestCase):
     )
     self.assertFalse(res.is_mutable())
 
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape('cannot find a common schema'),
+        arolla.testing.any_cause_message_regex(
+            re.escape('cannot find a common schema')
+        ),
     ):
       _ = expr_eval.eval(
           kde.py.map_py(my_func_dynamic_schema, ds([1, 2]), schema=schema)
       )
 
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape('cannot create Item(s) with the provided schema: OBJECT'),
+        arolla.testing.any_cause_message_regex(
+            re.escape('cannot create Item(s) with the provided schema: OBJECT')
+        ),
     ):
       _ = expr_eval.eval(
           kde.py.map_py(my_func_obj_schema, ds([1, 2]), schema=schema)
       )
 
-    with self.assertRaisesRegex(ValueError, 'expected a schema, got schema=1'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            re.escape('expected a schema, got schema=1')
+        ),
+    ):
       _ = expr_eval.eval(kde.py.map_py(my_func_correct_schema, val, schema=1))
 
     db = data_bag.DataBag.empty()
@@ -429,7 +438,10 @@ class PyMapPyTest(parameterized.TestCase):
 
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
 
-    with self.assertRaisesRegex(ValueError, 'unsupported type: set'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex('unsupported type: set'),
+    ):
       expr_eval.eval(kde.py.map_py(as_set, val))
 
   def test_map_py_incompatible_inputs(self):
@@ -438,11 +450,13 @@ class PyMapPyTest(parameterized.TestCase):
 
     val1 = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
     val2 = ds([[0, 1, None, 2], [3, 4], []])
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            'DataSlice with shape=JaggedShape(3, [4, 2, 0]) cannot be expanded'
-            ' to shape=JaggedShape(3, [4, 2, 3])'
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                'DataSlice with shape=JaggedShape(3, [4, 2, 0]) cannot be'
+                ' expanded to shape=JaggedShape(3, [4, 2, 3])'
+            )
         ),
     ):
       expr_eval.eval(kde.py.map_py(add_x_y, val1, val2))
@@ -465,24 +479,31 @@ class PyMapPyTest(parameterized.TestCase):
     testing.assert_equal(res4.no_bag(), ds([[6, None, 10], [None, 11, 12]]))
 
   def test_map_py_no_inputs(self):
-    with self.assertRaisesRegex(
-        ValueError, 'expected at least one input DataSlice, got none'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'expected at least one input DataSlice, got none'
+        ),
     ):
       expr_eval.eval(kde.py.map_py(lambda: None))
 
   def test_map_py_item_invalid_fn(self):
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape('expected a python callable, got fn=PyObject{1}'),
+        arolla.testing.any_cause_message_regex(
+            re.escape('expected a python callable, got fn=PyObject{1}')
+        ),
     ):
       expr_eval.eval(kde.py.map_py(arolla.abc.PyObject(1), ds(list(range(10)))))
 
   def test_map_py_invalid_item_completed_callback(self):
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            'expected a python callable, got'
-            ' item_completed_callback=DataItem(1, schema: INT32)'
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                'expected a python callable, got'
+                ' item_completed_callback=DataItem(1, schema: INT32)'
+            )
         ),
     ):
       expr_eval.eval(
@@ -518,18 +539,27 @@ class PyMapPyTest(parameterized.TestCase):
       testing.assert_equal(res.no_bag(), ds(9))
 
     with self.subTest('ndim_invalid'):
-      with self.assertRaisesRegex(
-          ValueError, 'ndim should be between 0 and 3, got ndim=-1'
+      with self.assertRaisesWithPredicateMatch(
+          ValueError,
+          arolla.testing.any_cause_message_regex(
+              'ndim should be between 0 and 3, got ndim=-1'
+          ),
       ):
         expr_eval.eval(kde.py.map_py(agg_count, val, ndim=-1))
 
-      with self.assertRaisesRegex(
-          ValueError, 'ndim should be between 0 and 3, got ndim=4'
+      with self.assertRaisesWithPredicateMatch(
+          ValueError,
+          arolla.testing.any_cause_message_regex(
+              'ndim should be between 0 and 3, got ndim=4'
+          ),
       ):
         expr_eval.eval(kde.py.map_py(agg_count, val, ndim=4))
 
-      with self.assertRaisesRegex(
-          ValueError, 'expected a scalar integer, got ndim=None'
+      with self.assertRaisesWithPredicateMatch(
+          ValueError,
+          arolla.testing.any_cause_message_regex(
+              'expected a scalar integer, got ndim=None'
+          ),
       ):
         expr_eval.eval(kde.py.map_py(agg_count, val, ndim=None))
 
@@ -639,13 +669,18 @@ class PyMapPyTest(parameterized.TestCase):
       testing.assert_equal(res.no_bag(), ds([None, None, 2, None]))
 
   def test_map_py_invalid_include_missing(self):
-    with self.assertRaisesRegex(
-        ValueError, 'expected a scalar boolean, got include_missing=1'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'expected a scalar boolean, got include_missing=1'
+        ),
     ):
       _ = expr_eval.eval(kde.py.map_py(lambda x: x, ds([0]), include_missing=1))
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        '`include_missing=False` can only be used with `ndim=0`',
+        arolla.testing.any_cause_message_regex(
+            '`include_missing=False` can only be used with `ndim=0`',
+        ),
     ):
       _ = expr_eval.eval(
           kde.py.map_py(lambda x: x, ds([0]), ndim=1, include_missing=False)
@@ -713,11 +748,10 @@ class PyMapPyTest(parameterized.TestCase):
       finally:
         stop_barrier.wait(0.1)
 
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            'kd.py.map_py: error during calling `fn`\n\n'
-            'The cause is: [CANCELLED] interrupted'
+        arolla.testing.any_cause_message_regex(
+            re.escape('[CANCELLED] interrupted')
         ),
     ):
       expr_eval.eval(

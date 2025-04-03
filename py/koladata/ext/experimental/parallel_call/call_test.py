@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import functools
+import re
 import threading
 import time
 from typing import Any
@@ -156,7 +157,12 @@ class FunctorCallTest(absltest.TestCase):
     kd.testing.assert_equal(
         call.call_multithreaded(fn, kd.new(foo=57)).no_bag(), ds(57)
     )
-    with self.assertRaisesRegex(ValueError, "the attribute 'foo' is missing"):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "the attribute 'foo' is missing"
+        ),
+    ):
       _ = call.call_multithreaded(fn, kd.new(bar=57))
 
   def test_call_non_dataslice_inputs(self):
@@ -320,12 +326,17 @@ class FunctorCallTest(absltest.TestCase):
       z = wait_for_cancellation(x + 2)
       return y + z
 
-    with self.assertRaisesWithLiteralMatch(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        'kd.py.apply_py: error during calling `fn`\n\n'
-        'The cause is: [CANCELLED] interrupted',
-    ):
+        arolla.testing.any_cause_message_regex(
+            re.escape('[CANCELLED] interrupted')
+        ),
+    ) as cm:
       call.call_multithreaded(kd.fn(fn), x=ds(1), max_threads=10)
+    self.assertRegex(
+        str(cm.exception),
+        re.escape(r'kd.py.apply_py: error during calling `fn`'),
+    )
 
 
 if __name__ == '__main__':

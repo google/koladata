@@ -74,9 +74,9 @@ class CoreExtractBagTest(absltest.TestCase):
     o2 = o1.with_bag(bag2).with_schema(new_schema.no_bag())
     self.assertFalse(bag2.is_mutable())
     testing.assert_equal(o2[:].b, ds([1, None, 2]).with_bag(bag2))
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        "attribute 'c' is missing",
+        arolla.testing.any_cause_message_regex("attribute 'c' is missing"),
     ):
       _ = o2[:].c
     testing.assert_equal(

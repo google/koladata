@@ -829,12 +829,14 @@ Assigned schema for 'a': SCHEMA(b=STRING)"""),
 
     db = bag()
     schema = db.new_schema(a=db.new_schema(b=schema_constants.INT32))
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(r"""the schema for attribute 'a' is incompatible.
+        arolla.testing.any_cause_message_regex(
+            re.escape(r"""the schema for attribute 'a' is incompatible.
 
 Expected schema for 'a': SCHEMA(b=INT32)
 Assigned schema for 'a': SCHEMA(c=STRING)"""),
+        ),
     ):
       _ = db.new(a=bag().new(c='dudulu'), schema=schema)
 
@@ -1001,7 +1003,10 @@ Assigned schema for keys: INT32""",
     testing.assert_equal(x.a, ds([[12, 12, 12], [12], [12]]).with_bag(db))
     testing.assert_equal(x.b, ds([[1, None, 6], [None], [123]]).with_bag(db))
 
-    with self.assertRaisesRegex(ValueError, 'shapes are not compatible'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex('shapes are not compatible'),
+    ):
       db.new(a=ds([1, 2, 3]), b=ds([3.14, 3.14]))
 
   def test_obj_auto_broadcasting(self):
@@ -1014,7 +1019,10 @@ Assigned schema for keys: INT32""",
     testing.assert_equal(x.a.get_schema(), schema_constants.BYTES.with_bag(db))
     testing.assert_equal(x.b.get_schema(), schema_constants.INT32.with_bag(db))
 
-    with self.assertRaisesRegex(ValueError, 'shapes are not compatible'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex('shapes are not compatible'),
+    ):
       db.obj(a=ds([1, 2, 3]), b=ds([3.14, 3.14]))
     testing.assert_equal(
         x.get_attr('__schema__').a,
@@ -1511,14 +1519,15 @@ Assigned schema for keys: INT32""",
     db2 = bag()
     x2 = x1.with_bag(db2)
     x2.set_attr('a', 3)
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""cannot merge DataBags due to an exception encountered when merging entities.
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging entities.
 
 The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
 
-The cause is the values of attribute 'a' are different: 1 vs 3
-""",
+The cause is the values of attribute 'a' are different: 1 vs 3""",
+        ),
     ):
       db1.merge_inplace(db2, allow_data_conflicts=False)
 
@@ -1528,14 +1537,15 @@ The cause is the values of attribute 'a' are different: 1 vs 3
     db2 = bag()
     x2 = x1.L[0].with_bag(db2)
     x2.set_attr('x', 2)
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""cannot merge DataBags due to an exception encountered when merging entities.
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging entities.
 
 The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
 
-The cause is the values of attribute 'x' are different: 1 vs 2
-""",
+The cause is the values of attribute 'x' are different: 1 vs 2""",
+        ),
     ):
       db1.merge_inplace(db2, allow_data_conflicts=False)
 
@@ -1545,15 +1555,16 @@ The cause is the values of attribute 'x' are different: 1 vs 2
     db2 = bag()
     x2 = x1.with_bag(db2)
     x2.set_attr('a', db2.new_schema(c=schema_constants.INT32))
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""cannot merge DataBags due to an exception encountered when merging schemas.
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging schemas.
 
 The conflicting schema in the first DataBag: SCHEMA\(a=SCHEMA\(x=INT32\)\)
 The conflicting schema in the second DataBag: SCHEMA\(a=SCHEMA\(c=INT32\)\)
 
-The cause is the schema for attribute 'a' is incompatible: SCHEMA\(x=INT32\) vs SCHEMA\(c=INT32\)
-""",
+The cause is the schema for attribute 'a' is incompatible: SCHEMA\(x=INT32\) vs SCHEMA\(c=INT32\)""",
+        ),
     ):
       db1.merge_inplace(db2)
 
@@ -1563,15 +1574,16 @@ The cause is the schema for attribute 'a' is incompatible: SCHEMA\(x=INT32\) vs 
     db1.dict({1: db1.obj(x=1)}, itemid=itemid)
     db2 = bag()
     db2.dict({1: db2.obj(y=2)}, itemid=itemid)
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""cannot merge DataBags due to an exception encountered when merging dicts.
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging dicts.
 
 The conflicting dict in the first DataBag: Dict\{1=Entity\(\):\$[0-9a-zA-Z]{22}\}
 The conflicting dict in the second DataBag: Dict\{1=Entity\(\):\$[0-9a-zA-Z]{22}\}
 
-The cause is the value of the key 1 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}
-""",
+The cause is the value of the key 1 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}""",
+        ),
     ):
       db1.merge_inplace(db2, allow_data_conflicts=False)
 
@@ -1581,15 +1593,16 @@ The cause is the value of the key 1 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22
     db1.list([db1.obj(x=1), db1.obj(y=2)], itemid=itemid)
     db2 = bag()
     db2.list([db2.obj(x=1), db2.obj(y=3)], itemid=itemid)
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""cannot merge DataBags due to an exception encountered when merging lists.
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging lists.
 
 The conflicting list in the first DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
 The conflicting list in the second DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
 
-The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}
-""",
+The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} vs Entity\(\):\$[0-9a-zA-Z]{22}""",
+        ),
     ):
       db1.merge_inplace(db2, allow_data_conflicts=False)
 
@@ -1599,15 +1612,16 @@ The cause is the value at index 0 is incompatible: Entity\(\):\$[0-9a-zA-Z]{22} 
     db1.list([db1.obj(x=1), db1.obj(y=2)], itemid=itemid)
     db2 = bag()
     db2.list([db2.obj(x=1)], itemid=itemid)
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""cannot merge DataBags due to an exception encountered when merging lists.
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging lists.
 
 The conflicting list in the first DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\]
 The conflicting list in the second DataBag: List\[Entity\(\):\$[0-9a-zA-Z]{22}\]
 
-The cause is the list sizes are incompatible: 2 vs 1
-""",
+The cause is the list sizes are incompatible: 2 vs 1""",
+        ),
     ):
       db1.merge_inplace(db2, allow_data_conflicts=False)
 

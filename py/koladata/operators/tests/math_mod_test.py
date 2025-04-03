@@ -133,9 +133,9 @@ class MathModTest(parameterized.TestCase):
       expr_eval.eval(kde.math.mod(I.x, I.y), x=x, y=y)
 
     z = ds([[1, 2], [3]])
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        'shapes are not compatible',
+        arolla.testing.any_cause_message_regex('shapes are not compatible'),
     ):
       expr_eval.eval(kde.math.mod(I.x, I.z), x=x, z=z)
 

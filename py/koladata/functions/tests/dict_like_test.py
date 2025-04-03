@@ -16,6 +16,7 @@ import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -23,7 +24,6 @@ from koladata.testing import testing
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import schema_constants
-
 
 ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
@@ -236,8 +236,11 @@ class DictLikeTest(parameterized.TestCase):
     # Successful.
     x = fns.dict_like(ds([[1, None], [1]]), itemid=itemid.get_itemid())
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesRegex(
-        ValueError, 'attribute \'non_existent\' is missing'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "attribute 'non_existent' is missing"
+        ),
     ):
       _ = triple.with_bag(x.get_bag()).non_existent
 

@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import re
-
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -132,19 +132,24 @@ class PyMapPyOnCondTest(parameterized.TestCase):
   def test_error_non_mask_cond(self):
     fn = lambda _: None
     val = ds([1])
-    with self.assertRaisesRegex(
-        ValueError, re.escape('expected a mask, got cond: INT32')
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            re.escape('expected a mask, got cond: INT32')
+        ),
     ):
       expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val, val))
 
   def test_error_higher_dimension_cond(self):
     fn = lambda _: None
     val = ds([1])
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            "'cond' must have the same or smaller dimension than `args` and"
-            ' `kwargs`'
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                "'cond' must have the same or smaller dimension than `args` and"
+                ' `kwargs`'
+            )
         ),
     ):
       expr_eval.eval(kde.py.map_py_on_cond(fn, fn, val.repeat(1) > 2, val))

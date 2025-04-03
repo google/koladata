@@ -213,7 +213,12 @@ class CoreGetAttrTest(parameterized.TestCase):
 
   def test_missing(self):
     entity = bag().new(a=1, b=2)
-    with self.assertRaisesRegex(ValueError, r'the attribute \'c\' is missing'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            r'the attribute \'c\' is missing'
+        ),
+    ):
       eager.core.get_attr(entity, 'c')
 
   def test_missing_slice_attr_name(self):
@@ -247,14 +252,18 @@ class CoreGetAttrTest(parameterized.TestCase):
     )
 
   def test_non_object_schema(self):
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        "failed to get 'a' attribute; primitives do not have attributes",
+        arolla.testing.any_cause_message_regex(
+            "failed to get 'a' attribute; primitives do not have attributes"
+        ),
     ):
       eager.core.get_attr(ds([1, 2, 3]), 'a')
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        'failed to get attribute; primitives do not have attributes',
+        arolla.testing.any_cause_message_regex(
+            'failed to get attribute; primitives do not have attributes'
+        ),
     ):
       eager.core.get_attr(ds([1, 2, 3]), ds(['a', 'b', 'c']))
 

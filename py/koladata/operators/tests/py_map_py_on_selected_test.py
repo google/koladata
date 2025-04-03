@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -128,24 +129,34 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
   def test_error_non_mask_cond(self):
     fn = lambda _: None
     val = ds([1])
-    with self.assertRaisesRegex(ValueError, "expected a mask, got cond: INT32"):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "expected a mask, got cond: INT32"
+        ),
+    ):
       expr_eval.eval(kde.py.map_py_on_selected(fn, val, val))
 
   def test_error_no_inputs(self):
     fn = lambda _: None
     cond = ds([None], schema_constants.MASK)
-    with self.assertRaisesRegex(
-        ValueError, "expected at least one input DataSlice, got none"
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "expected at least one input DataSlice, got none"
+        ),
     ):
       expr_eval.eval(kde.py.map_py_on_selected(fn, cond))
 
   def test_error_higher_dimension_cond(self):
     fn = lambda _: None
     val = ds([[1]])
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        "'cond' must have the same or smaller dimension than `args` and"
-        " `kwargs`",
+        arolla.testing.any_cause_message_regex(
+            "'cond' must have the same or smaller dimension than `args` and"
+            " `kwargs`"
+        ),
     ):
       expr_eval.eval(kde.py.map_py_on_selected(fn, val.repeat(1) > 2, val))
 

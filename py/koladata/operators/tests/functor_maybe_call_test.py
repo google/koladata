@@ -59,8 +59,11 @@ class FunctorMaybeCallTest(parameterized.TestCase):
     f = functor_factories.expr_fn(I.self.some_attr)
 
     data = ds([1, 2, 3])
-    with self.assertRaisesRegex(
-        ValueError, 'primitives do not have attributes'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'primitives do not have attributes'
+        ),
     ):
       expr_eval.eval(kde.functor._maybe_call(f, data))
 

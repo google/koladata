@@ -90,36 +90,41 @@ class CoreHasAttrTest(parameterized.TestCase):
         expr_eval.eval(kde.core.has_attr(mixed_objects, 'a')),
         ds([present, present, present]),
     )
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""failed to get attribute 'b' due to conflict with the schema from the default value
-
-The cause is: cannot find a common schema
+        arolla.testing.any_cause_message_regex(
+            r"""cannot find a common schema
 
  the common schema\(s\) \$[0-9a-zA-Z]{22}: SCHEMA\(foo=STRING\)
  the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(foo=STRING\)""",
-    ):
+        ),
+    ) as cm:
       expr_eval.eval(kde.core.get_attr(object_2, 'b', db.new(foo='baz')))
+    self.assertRegex(
+        str(cm.exception),
+        r"failed to get attribute 'b' due to conflict with the schema from the"
+        r' default value',
+    )
 
     # Although "a" is present in all objects, getting it might still fail.
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""failed to get attribute 'a'
-
-The cause is: cannot find a common schema
+        arolla.testing.any_cause_message_regex(
+            r"""cannot find a common schema
 
  the common schema\(s\) INT32: INT32
  the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(foo=STRING\)""",
+        ),
     ):
       expr_eval.eval(kde.core.get_attr(mixed_objects, 'a'))
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        r"""failed to get attribute 'a'
-
-The cause is: cannot find a common schema
+        arolla.testing.any_cause_message_regex(
+            r"""cannot find a common schema
 
  the common schema\(s\) INT32: INT32
  the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(foo=STRING\)""",
+        ),
     ):
       expr_eval.eval(kde.core.maybe(mixed_objects, 'a'))
 
@@ -129,9 +134,9 @@ The cause is: cannot find a common schema
         expr_eval.eval(kde.core.has_attr(mixed_objects, 'c')),
         ds([present, missing, present]),
     )
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        "the attribute 'c' is missing",
+        arolla.testing.any_cause_message_regex("the attribute 'c' is missing"),
     ):
       expr_eval.eval(kde.core.get_attr(mixed_objects, 'c'))
     testing.assert_equal(

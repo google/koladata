@@ -344,7 +344,10 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
   def test_entity_tie_breaker_error(self):
     db = data_bag.DataBag.empty()
     tie_breaker = db.new(x=ds([1]))
-    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex('cannot find a common schema'),
+    ):
       expr_eval.eval(kde.slices.ordinal_rank(ds([0]), tie_breaker))
 
   def test_qtype_signatures(self):

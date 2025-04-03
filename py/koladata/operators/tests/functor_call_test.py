@@ -161,7 +161,12 @@ class FunctorCallTest(absltest.TestCase):
     testing.assert_equal(
         expr_eval.eval(kde.call(fn, fns.new(foo=57))).no_bag(), ds(57)
     )
-    with self.assertRaisesRegex(ValueError, "the attribute 'foo' is missing"):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "the attribute 'foo' is missing"
+        ),
+    ):
       _ = expr_eval.eval(kde.call(fn, fns.new(bar=57)))
 
   def test_call_non_dataslice_inputs(self):

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -102,13 +103,18 @@ class ObjTest(absltest.TestCase):
     # Successful.
     x = fns.obj(a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesRegex(
-        ValueError, 'attribute \'non_existent\' is missing'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "attribute 'non_existent' is missing"
+        ),
     ):
       _ = x.non_existent
 
   def test_schema_arg(self):
-    with self.assertRaisesRegex(ValueError, 'please use new'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError, arolla.testing.any_cause_message_regex('please use new')
+    ):
       fns.obj(a=1, b='a', schema=schema_constants.INT32)
 
   def test_item_assignment_rhs_no_ds_args(self):

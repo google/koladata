@@ -162,11 +162,13 @@ class PyApplyPyOnCondTest(parameterized.TestCase):
 
   def test_error_unexpected_no_fn_value(self):
     x = ds([mask_constants.missing])
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        re.escape(
-            'expected a python callable, got no_fn=DataSlice([missing], schema:'
-            ' MASK, ndims: 1, size: 1)'
+        arolla.testing.any_cause_message_regex(
+            re.escape(
+                'expected a python callable, got no_fn=DataSlice([missing],'
+                ' schema: MASK, ndims: 1, size: 1)'
+            )
         ),
     ):
       _ = expr_eval.eval(kde.py.apply_py_on_cond(lambda x, y: x + y, x, x))

@@ -14,6 +14,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from koladata import kd
 from koladata.ext import pdkd
 import numpy as np
@@ -207,10 +208,20 @@ class NpkdTest(parameterized.TestCase):
       self.assertCountEqual(df['x'], [1, 2, 3])
       self.assertCountEqual(df['y'], ['a', None, 'c'])
 
-      with self.assertRaisesRegex(ValueError, "the attribute 'y' is missing"):
+      with self.assertRaisesWithPredicateMatch(
+          ValueError,
+          arolla.testing.any_cause_message_regex(
+              "the attribute 'y' is missing"
+          ),
+      ):
         _ = pdkd.to_dataframe(ds, cols=['y'])
 
-      with self.assertRaisesRegex(ValueError, "the attribute 'z' is missing"):
+      with self.assertRaisesWithPredicateMatch(
+          ValueError,
+          arolla.testing.any_cause_message_regex(
+              "the attribute 'z' is missing"
+          ),
+      ):
         _ = pdkd.to_dataframe(ds, cols=['z'])
 
     with self.subTest('entity ds without db'):
@@ -252,7 +263,12 @@ class NpkdTest(parameterized.TestCase):
 
     with self.subTest('invalid attr'):
       ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice(['a', 'b', 'c']))
-      with self.assertRaisesRegex(ValueError, "the attribute 'z' is missing"):
+      with self.assertRaisesWithPredicateMatch(
+          ValueError,
+          arolla.testing.any_cause_message_regex(
+              "the attribute 'z' is missing"
+          ),
+      ):
         _ = pdkd.to_dataframe(ds, cols=['z'])
 
     with self.subTest('invalid column'):

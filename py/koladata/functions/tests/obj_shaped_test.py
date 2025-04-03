@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.functions import functions as fns
 from koladata.operators import kde_operators
@@ -86,7 +87,9 @@ class ObjShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds(['xyz', 'xyz']).with_bag(x.get_bag()))
 
   def test_broadcast_error(self):
-    with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError, arolla.testing.any_cause_message_regex('cannot be expanded')
+    ):
       fns.obj_shaped(jagged_shape.create_shape([2]), a=ds([42]))
 
   def test_adopt_bag(self):
@@ -112,13 +115,18 @@ class ObjShapedTest(absltest.TestCase):
     # Successful.
     x = fns.obj_shaped(itemid.get_shape(), a=42, itemid=itemid)
     # ITEMID's triples are stripped in the new DataBag.
-    with self.assertRaisesRegex(
-        ValueError, 'attribute \'non_existent\' is missing'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "attribute 'non_existent' is missing"
+        ),
     ):
       _ = x.non_existent
 
   def test_schema_arg(self):
-    with self.assertRaisesRegex(ValueError, 'please use new'):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError, arolla.testing.any_cause_message_regex('please use new')
+    ):
       fns.obj_shaped(
           jagged_shape.create_shape(), a=1, b='a', schema=schema_constants.INT32
       )

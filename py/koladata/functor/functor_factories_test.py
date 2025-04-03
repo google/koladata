@@ -325,13 +325,19 @@ class FunctorFactoriesTest(absltest.TestCase):
     testing.assert_equal(
         kd.call(functor_factories.py_fn(positional_only), 1), ds(1)
     )
-    with self.assertRaisesRegex(
-        ValueError, 'positional-only arguments passed as keyword'
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            'positional-only arguments passed as keyword'
+        ),
     ):
       _ = kd.call(functor_factories.py_fn(positional_only), args=1)
 
-    with self.assertRaisesRegex(
-        ValueError, "missing 1 required positional argument: 'y'"
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "missing 1 required positional argument: 'y'"
+        ),
     ):
       _ = kd.call(
           functor_factories.py_fn(lambda x, y: x + y), fns.obj(x=1, y=2)
@@ -350,7 +356,12 @@ class FunctorFactoriesTest(absltest.TestCase):
         ),
         ds(3),
     )
-    with self.assertRaisesRegex(ValueError, "unexpected keyword argument 'y'"):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "unexpected keyword argument 'y'"
+        ),
+    ):
       _ = (
           kd.call(
               functor_factories.py_fn(lambda foo: foo.x + foo.y),
@@ -539,7 +550,12 @@ class FunctorFactoriesTest(absltest.TestCase):
     f = functor_factories.bind(
         functor_factories.py_fn(lambda x, y: x + y), x=1, y=I.z
     )
-    with self.assertRaisesRegex(ValueError, "unexpected keyword argument 'z'"):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "unexpected keyword argument 'z'"
+        ),
+    ):
       # This forwards argument 'z' to the underlying Python function as well,
       # which does not accept it.
       _ = kd.call(f, z=2)
@@ -559,18 +575,22 @@ class FunctorFactoriesTest(absltest.TestCase):
   def test_bind_positional(self):
     fn = functor_factories.py_fn(lambda x, /: x)
     f = functor_factories.bind(fn, x=1)
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        'positional-only arguments passed as keyword arguments',
+        arolla.testing.any_cause_message_regex(
+            'positional-only arguments passed as keyword arguments'
+        ),
     ):
       _ = f()
 
     fn = functor_factories.py_fn(lambda x: x)
     f = functor_factories.bind(fn, x=1)
     testing.assert_equal(f().no_bag(), ds(1))
-    with self.assertRaisesRegex(
+    with self.assertRaisesWithPredicateMatch(
         ValueError,
-        'got multiple values for argument',
+        arolla.testing.any_cause_message_regex(
+            'got multiple values for argument'
+        ),
     ):
       _ = f(1)
 
@@ -875,14 +895,20 @@ class FunctorFactoriesTest(absltest.TestCase):
     # so allow_arbitrary_unused_inputs has no effect anymore.
     fn = functor_factories.py_fn(lambda x, y: x + y)
     self.assertEqual(fn(x=1, y=2), 3)
-    with self.assertRaisesRegex(
-        ValueError, "got an unexpected keyword argument 'z'"
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "got an unexpected keyword argument 'z'"
+        ),
     ):
       _ = fn(x=1, y=2, z=3)
     fn2 = functor_factories.allow_arbitrary_unused_inputs(fn)
     self.assertEqual(fn2(x=1, y=2), 3)
-    with self.assertRaisesRegex(
-        ValueError, "got an unexpected keyword argument 'z'"
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            "got an unexpected keyword argument 'z'"
+        ),
     ):
       _ = fn2(x=1, y=2, z=3)
 
