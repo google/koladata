@@ -14,9 +14,6 @@
 
 # C++ libraries for the production quality databag implementation
 
-load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
-load("@rules_python//python:proto.bzl", "py_proto_library")
-
 package(default_visibility = [
     "//koladata:internal",
 ])
@@ -29,40 +26,17 @@ cc_library(
     deps = [":data_item"],
 )
 
-proto_library(
-    name = "error_proto",
-    srcs = ["error.proto"],
-    deps = [
-        "@com_google_arolla//arolla/serialization_base:base_proto",
-    ],
-)
-
-exports_files(["error.proto"])
-
-cc_proto_library(
-    name = "error_cc_proto",
-    deps = [":error_proto"],
-)
-
-py_proto_library(
-    name = "error_py_proto",
-    deps = [":error_proto"],
-)
-
 cc_library(
     name = "error_utils",
     srcs = ["error_utils.cc"],
     hdrs = ["error_utils.h"],
     deps = [
-        ":error_cc_proto",
         "//koladata/s11n:codec_cc_proto",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/serialization_base:base_cc_proto",
         "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 
@@ -71,7 +45,6 @@ cc_test(
     srcs = ["error_utils_test.cc"],
     deps = [
         ":dtype",
-        ":error_cc_proto",
         ":error_utils",
         "//koladata/s11n",
         "//koladata/s11n:codec_cc_proto",
@@ -195,7 +168,6 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/dense_array/ops",
@@ -529,8 +501,6 @@ cc_library(
         ":dense_source",
         ":dict",
         ":dtype",
-        ":error_cc_proto",
-        ":error_utils",
         ":errors",
         ":object_id",
         ":schema_utils",
@@ -600,7 +570,6 @@ cc_test(
         ":data_item",
         ":data_slice",
         ":dtype",
-        ":error_cc_proto",
         ":error_utils",
         ":errors",
         ":object_id",
@@ -1000,7 +969,6 @@ cc_library(
         ":data_item",
         ":data_slice",
         ":dtype",
-        ":error_cc_proto",
         ":errors",
         ":missing_value",
         ":object_id",
@@ -1063,7 +1031,6 @@ cc_test(
     name = "uuid_object_benchmarks",
     srcs = ["uuid_object_benchmarks.cc"],
     deps = [
-        ":benchmark_helpers",
         ":data_slice",
         ":object_id",
         ":uuid_object",

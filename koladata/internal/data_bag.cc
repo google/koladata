@@ -47,8 +47,6 @@
 #include "koladata/internal/dense_source.h"
 #include "koladata/internal/dict.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error.pb.h"
-#include "koladata/internal/error_utils.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/presence_or.h"
@@ -2525,11 +2523,11 @@ absl::StatusOr<DataItem> DataBagImpl::GetSchemaAttr(
   ASSIGN_OR_RETURN(auto res,
                    GetSchemaAttrAllowMissing(schema_item, attr, fallbacks));
   if (!res.has_value() && schema_item.has_value()) {
-    return internal::AsKodaError(absl::InvalidArgumentError(absl::StrCat(
+    return absl::InvalidArgumentError(absl::StrCat(
         "the attribute '", attr,
         "' is missing on the schema.\n\nIf it is not a typo, perhaps ignore "
         "the schema when getting the attribute. For example, ds.maybe('",
-        attr, "')")));
+        attr, "')"));
   }
   return std::move(res);
 }
@@ -2568,13 +2566,13 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttr(
         },
         schema_slice.AsDataItemDenseArray(), result.AsDataItemDenseArray()));
     DCHECK(first_missing_schema_index.has_value());
-    return internal::AsKodaError(absl::InvalidArgumentError(absl::StrCat(
+    return absl::InvalidArgumentError(absl::StrCat(
         "the attribute '", attr,
         "' is missing for at least one object at ds.flatten().S[",
         *first_missing_schema_index, "]\n\n",
         "If it is not a typo, perhaps ignore "
         "the schema when getting the attribute. For example, ds.maybe('",
-        attr, "')")));
+        attr, "')"));
   }
   return result;
 }

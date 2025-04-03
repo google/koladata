@@ -20,7 +20,6 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/memory/memory_allocation.h"
@@ -43,12 +42,8 @@ TEST(QExpr, MakeBoundOperator) {
 
   bound_op->Run(&ctx, alloc.frame());
 
-  EXPECT_THAT(ctx.status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "test error"));
-  std::optional<internal::Error> payload =
-      internal::GetErrorPayload(ctx.status());
-  ASSERT_TRUE(payload.has_value());
-  EXPECT_THAT(payload->error_message(), Eq("op_name: test error"));
+  EXPECT_THAT(ctx.status(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                     "op_name: test error"));
 }
 
 }  // namespace

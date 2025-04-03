@@ -28,7 +28,6 @@ cc_library(
     srcs = ["to_py_object.cc"],
     hdrs = ["to_py_object.h"],
     deps = [
-        ":initializers",
         ":wrap_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -52,31 +51,11 @@ cc_library(
     ],
 )
 
-# Initializes global registries for Koda.
-cc_library(
-    name = "initializers",
-    srcs = ["error_converters.cc"],
-    deps = [
-        "//koladata:data_slice_qtype",
-        "//koladata/internal:error_cc_proto",
-        "@com_google_absl//absl/base:no_destructor",
-        "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//py/arolla/py_utils",
-        "@com_google_arolla//py/arolla/py_utils:status_payload_handler_registry",
-    ],
-    alwayslink = True,
-)
-
 koladata_pybind_extension(
     name = "to_py_object_testing_clib",
     testonly = True,
     srcs = ["to_py_object_testing_clib.cc"],
     deps = [
-        ":initializers",
         ":to_py_object",
         "//koladata:data_slice",
         "@com_google_absl//absl/status:statusor",
@@ -96,32 +75,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-    ],
-)
-
-koladata_pybind_extension(
-    name = "error_converters_testing_clib",
-    testonly = True,
-    srcs = ["error_converters_testing_clib.cc"],
-    deps = [
-        ":initializers",
-        "//koladata/internal:error_cc_proto",
-        "//koladata/internal:error_utils",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings:cord",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//py/arolla/py_utils",
-    ],
-)
-
-py_test(
-    name = "error_converters_test",
-    srcs = ["error_converters_test.py"],
-    deps = [
-        ":error_converters_testing_clib",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
-        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
 
@@ -149,7 +102,6 @@ koladata_pybind_extension(
     testonly = True,
     srcs = ["wrap_utils_testing_clib.cc"],
     deps = [
-        ":initializers",
         ":wrap_utils",
         "//koladata:data_slice_qtype",
         "@com_google_absl//absl/strings:string_view",

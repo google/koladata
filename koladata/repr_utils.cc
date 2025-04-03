@@ -36,7 +36,6 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
@@ -47,8 +46,6 @@
 
 namespace koladata {
 namespace {
-
-using ::koladata::internal::Error;
 
 // Returns the attr at `attr_name` for the provided `item` and `db` pair.
 absl::StatusOr<internal::DataItem> GetAttr(const internal::DataItem& item,
@@ -387,13 +384,12 @@ absl::Status KodaErrorCausedByIncompableSchemaError(absl::Status status,
   if (const internal::IncompatibleSchemaError* incompatible_schema_error =
           arolla::GetPayload<internal::IncompatibleSchemaError>(status);
       incompatible_schema_error != nullptr) {
-    // TODO(b/316118021) Migrate away from Error proto.
-    Error error;
     ASSIGN_OR_RETURN(std::string error_message,
                      FormatIncompatibleSchemaError(*incompatible_schema_error,
                                                    lhs_bag, rhs_bag, ds));
-    error.set_error_message(std::move(error_message));
-    return WithErrorPayload(std::move(status), std::move(error));
+    absl::Status new_status =
+        absl::Status(status.code(), std::move(error_message));
+    return arolla::WithCause(std::move(new_status), std::move(status));
   }
   return status;
 }
@@ -416,13 +412,12 @@ KodaErrorCausedByMergeConflictError(const DataBagPtr& lhs_bag,
     if (const internal::DataBagMergeConflictError* merge_conflict_error =
             arolla::GetPayload<internal::DataBagMergeConflictError>(status);
         merge_conflict_error != nullptr) {
-      // TODO(b/316118021) Migrate away from Error proto.
-      Error error;
       ASSIGN_OR_RETURN(
           std::string error_message,
           FormatDataBagMergeError(*merge_conflict_error, lhs_bag, rhs_bag));
-      error.set_error_message(std::move(error_message));
-      return WithErrorPayload(std::move(status), std::move(error));
+      absl::Status new_status =
+          absl::Status(status.code(), std::move(error_message));
+      return arolla::WithCause(std::move(new_status), std::move(status));
     }
     return status;
   };
@@ -435,12 +430,12 @@ absl::Status KodaErrorCausedByMissingCollectionItemSchemaError(
               arolla::GetPayload<internal::MissingCollectionItemSchemaError>(
                   status);
       missing_collection_schema_error != nullptr) {
-    Error error;
     ASSIGN_OR_RETURN(std::string error_message,
                      FormatMissingCollectionItemSchemaError(
                          *missing_collection_schema_error, db));
-    error.set_error_message(std::move(error_message));
-    return WithErrorPayload(status, std::move(error));
+    absl::Status new_status =
+        absl::Status(status.code(), std::move(error_message));
+    return arolla::WithCause(std::move(new_status), std::move(status));
   }
   return status;
 }
@@ -450,13 +445,12 @@ absl::Status KodaErrorCausedByMissingObjectSchemaError(absl::Status status,
   if (const internal::MissingObjectSchemaError* missing_object_schema_error =
           arolla::GetPayload<internal::MissingObjectSchemaError>(status);
       missing_object_schema_error != nullptr) {
-    // TODO(b/316118021) Migrate away from Error proto.
-    Error error;
     ASSIGN_OR_RETURN(std::string error_message,
                      FormatMissingObjectAttributeSchemaError(
                          *missing_object_schema_error, self));
-    error.set_error_message(std::move(error_message));
-    return internal::WithErrorPayload(std::move(status), std::move(error));
+    absl::Status new_status =
+        absl::Status(status.code(), std::move(error_message));
+    return arolla::WithCause(std::move(new_status), std::move(status));
   }
   return status;
 }
@@ -466,12 +460,11 @@ absl::Status KodaErrorCausedByNoCommonSchemaError(absl::Status status,
   if (const internal::NoCommonSchemaError* no_common_schema_error =
           arolla::GetPayload<internal::NoCommonSchemaError>(status);
       no_common_schema_error != nullptr) {
-    // TODO(b/316118021) Migrate away from Error proto.
-    Error error;
     ASSIGN_OR_RETURN(std::string error_message,
                      FormatNoCommonSchemaError(*no_common_schema_error, db));
-    error.set_error_message(std::move(error_message));
-    return internal::WithErrorPayload(std::move(status), std::move(error));
+    absl::Status new_status =
+        absl::Status(status.code(), std::move(error_message));
+    return arolla::WithCause(std::move(new_status), std::move(status));
   }
   return status;
 }

@@ -35,7 +35,6 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/missing_value.h"
@@ -2385,26 +2384,30 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr) {
 
   EXPECT_THAT(
       ds_2.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("missing __schema__ attribute"))),
-            PayloadIs<internal::Error>()));
+      AllOf(
+          StatusIs(absl::StatusCode::kInvalidArgument,
+                   "failed to get attribute 'a'"),
+          CausedBy(StatusIs(
+              absl::StatusCode::kInvalidArgument,
+              HasSubstr("object schema(s) are missing for some Object(s)")))));
   EXPECT_THAT(
       ds_2.GetAttrWithDefault("a", test::DataItem(42)),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("missing __schema__ attribute"))),
-            PayloadIs<internal::Error>()));
-  EXPECT_THAT(ds_2.SetAttr("a", test::DataSlice<int>({1, 1, 1})),
-              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                             HasSubstr("missing __schema__ attribute")),
-                    PayloadIs<internal::Error>()));
-  EXPECT_THAT(ds_2.DelAttr("a"),
-              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                             HasSubstr("missing __schema__ attribute")),
-                    PayloadIs<internal::Error>()));
+      AllOf(
+          StatusIs(absl::StatusCode::kInvalidArgument,
+                   "failed to get attribute 'a'"),
+          CausedBy(StatusIs(
+              absl::StatusCode::kInvalidArgument,
+              HasSubstr("object schema(s) are missing for some Object(s)")))));
+  EXPECT_THAT(
+      ds_2.SetAttr("a", test::DataSlice<int>({1, 1, 1})),
+      AllOf(StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("object schema(s) are missing for some Object(s)"))));
+  EXPECT_THAT(
+      ds_2.DelAttr("a"),
+      AllOf(StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("object schema(s) are missing for some Object(s)"))));
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {
@@ -2433,39 +2436,45 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
                        list.WithSchema(test::Schema(schema::kObject)));
 
   absl::StatusOr<DataSlice> result = obj.ExplodeList(0, std::nullopt);
-  EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
+  EXPECT_THAT(result,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
 
   absl::Status status = obj.SetInList(test::DataItem(1), test::DataItem(1));
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
+  EXPECT_THAT(status,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(status), NotNull());
 
   status = obj.AppendToList(test::DataItem(1));
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
+  EXPECT_THAT(status,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(status), NotNull());
 
   status = obj.ReplaceInList(0, 1, test::DataSlice<int>({1}));
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
+  EXPECT_THAT(status,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(status), NotNull());
 
   status = obj.RemoveInList(test::DataItem(1));
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
+  EXPECT_THAT(status,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(status), NotNull());
 
   status = obj.RemoveInList(0, std::nullopt);
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
+  EXPECT_THAT(status,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(status), NotNull());
 
   result = obj.PopFromList(test::DataItem(1));
-  EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
+  EXPECT_THAT(result,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(result.status()), NotNull());
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_Dict) {
@@ -2481,24 +2490,28 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Dict) {
                        dict.WithSchema(test::Schema(schema::kObject)));
 
   absl::StatusOr<DataSlice> result = obj.GetFromDict(key_item);
-  EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
+  EXPECT_THAT(result,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(result.status()), NotNull());
 
   result = obj.GetDictKeys();
-  EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
+  EXPECT_THAT(result,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(result.status()), NotNull());
 
   result = obj.GetDictValues();
-  EXPECT_THAT(result, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(result.status()).has_value());
+  EXPECT_THAT(result,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(result.status()), NotNull());
 
   absl::Status status = obj.SetInDict(key_item, value_item);
-  EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               HasSubstr("missing __schema__ attribute")));
-  EXPECT_TRUE(internal::GetErrorPayload(status).has_value());
+  EXPECT_THAT(status,
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("object schema is missing for the DataItem")));
+  EXPECT_THAT(arolla::GetCause(status), NotNull());
 }
 
 TEST(DataSliceTest, SetAttr_None) {
@@ -4417,10 +4430,9 @@ TEST(DataSliceTest, SchemaAttr_MissingItemsAttr_ForLists) {
 
   auto values = test::DataSlice<int>({1, 2, 3}, shape);
   // Implicit missing __items__ raises an Error.
-  EXPECT_THAT(
-      lists.AppendToList(values),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("the schema for list items is missing")));
+  EXPECT_THAT(lists.AppendToList(values),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("list(s) expected, got an OBJECT DataSlice")));
 
   schema = test::DataSlice<ObjectId>({
     list_int32_schema.item().value<ObjectId>(),
@@ -4437,7 +4449,7 @@ TEST(DataSliceTest, SchemaAttr_MissingItemsAttr_ForLists) {
   // Explicit missing __items__ raises an Error.
   EXPECT_THAT(lists.AppendToList(values),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("the schema for list items is missing")));
+                       HasSubstr("list(s) expected, got an OBJECT DataSlice")));
 }
 
 TEST(DataSliceTest, ExplodeList_NoneSchema_NotAList) {
@@ -4560,8 +4572,6 @@ TEST(DataSliceTest, ReplaceInList_Int64Schema) {
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the schema for list items is incompatible")));
-  std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  EXPECT_TRUE(error.has_value());
 
   // Lists are not modified.
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
@@ -4643,8 +4653,6 @@ TEST(DataSliceTest, SetInList_Int64Schema) {
   EXPECT_THAT(status,
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the schema for list items is incompatible")));
-  std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  EXPECT_TRUE(error.has_value());
 
   // The lists were not modified.
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
@@ -4818,9 +4826,10 @@ TEST(DataSliceTest, RemoveInList) {
     obj_lists = test::DataSlice<ObjectId>(
         {lists.slice()[0].value<ObjectId>(), internal::AllocateSingleList()},
         schema::kObject, forked_db);
-    EXPECT_THAT(obj_lists.RemoveInList(test::DataItem(0)),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("missing __schema__ attribute")));
+    EXPECT_THAT(
+        obj_lists.RemoveInList(test::DataItem(0)),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("object schema(s) are missing for some Object(s)")));
   }
   {
     // Object List - slice / range API.
@@ -4834,9 +4843,10 @@ TEST(DataSliceTest, RemoveInList) {
     obj_lists = test::DataSlice<ObjectId>(
         {lists.slice()[0].value<ObjectId>(), internal::AllocateSingleList()},
         schema::kObject, forked_db);
-    EXPECT_THAT(obj_lists.RemoveInList(0, 1),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("missing __schema__ attribute")));
+    EXPECT_THAT(
+        obj_lists.RemoveInList(0, 1),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("object schema(s) are missing for some Object(s)")));
   }
 }
 
@@ -4921,10 +4931,10 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
       {internal::AllocateSingleObject()}, schema::kItemId);
   absl::Status status = immutable_dicts.GetFromDict(itemid_keys).status();
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               "the schema for dict keys is incompatible: "
-                               "expected OBJECT, assigned ITEMID"));
-  std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  EXPECT_TRUE(error.has_value());
+                               "the schema for keys is incompatible.\n\n"
+                               "Expected schema for keys: OBJECT\n"
+                               "Assigned schema for keys: ITEMID"));
+  EXPECT_THAT(arolla::GetCause(status), NotNull());
 
   EXPECT_THAT(
       immutable_dicts.SetInDict(
@@ -4997,10 +5007,10 @@ TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
       schema::kItemId);
   absl::Status status = immutable_dicts.GetFromDict(itemid_keys).status();
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               "the schema for dict keys is incompatible: "
-                               "expected OBJECT, assigned ITEMID"));
-  std::optional<internal::Error> error = internal::GetErrorPayload(status);
-  EXPECT_TRUE(error.has_value());
+                               "the schema for keys is incompatible.\n\n"
+                               "Expected schema for keys: OBJECT\n"
+                               "Assigned schema for keys: ITEMID"));
+  EXPECT_THAT(arolla::GetCause(status), NotNull());
 
   EXPECT_THAT(
       immutable_dicts.SetInDict(
@@ -5083,8 +5093,8 @@ TEST(DataSliceTest, SchemaAttr_MissingValuesAttr_ForDicts) {
   auto values = test::DataSlice<int>({1, 2, 3}, shape);
   // Implicit missing __keys__ and __values__ raises an Error.
   EXPECT_THAT(dicts.SetInDict(keys, values),
-            StatusIs(absl::StatusCode::kInvalidArgument,
-                      HasSubstr("the schema for dict keys is missing")));
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("dict(s) expected, got an OBJECT DataSlice")));
 
   schema = test::DataSlice<ObjectId>({
     dict_schema.item().value<ObjectId>(),
@@ -5105,7 +5115,7 @@ TEST(DataSliceTest, SchemaAttr_MissingValuesAttr_ForDicts) {
   // Explicit missing __items__ raises an Error.
   EXPECT_THAT(dicts.SetInDict(keys, values),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("the schema for dict keys is missing")));
+                       HasSubstr("dict(s) expected, got an OBJECT DataSlice")));
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
@@ -5134,15 +5144,17 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
                        // TODO: The error message seems to be
                        // misleading here: the same assignment below passes,
                        // despite having OBJECT schema as well.
-                       "the schema for dict values is incompatible: expected "
-                       "INT64, assigned OBJECT"));
+                       "the schema for values is incompatible.\n\n"
+                       "Expected schema for values: INT64\n"
+                       "Assigned schema for values: OBJECT"));
   EXPECT_THAT(
       dicts.SetInDict(
           test::DataSlice<int>({1, 2, 3}, keys_shape, schema::kInt32),
           test::DataSlice<float>({4, 5, 6}, keys_shape, schema::kFloat32)),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "the schema for dict values is incompatible: expected INT64, "
-               "assigned FLOAT32"));
+               "the schema for values is incompatible.\n\n"
+               "Expected schema for values: INT64\n"
+               "Assigned schema for values: FLOAT32"));
 
   // Narrowing is supported.
   ASSERT_OK(dicts.SetInDict(
@@ -5215,8 +5227,9 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
       schema::kItemId);
   absl::Status status = immutable_dicts.GetFromDict(itemid_keys).status();
   EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
-                               "the schema for dict keys is incompatible: "
-                               "expected INT64, assigned ITEMID"));
+                               "the schema for keys is incompatible.\n\n"
+                               "Expected schema for keys: INT64\n"
+                               "Assigned schema for keys: ITEMID"));
 }
 
 TEST(DataSliceTest, SchemaAttr_GetFromDict_ImplicitSchemaKeys) {
@@ -5488,7 +5501,7 @@ TEST(DataSliceTest, GetItem_DataItem) {
       auto entity, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
   EXPECT_THAT(entity.GetItem(test::DataItem("a")),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for dict keys is missing"));
+                       "dict(s) expected, got SCHEMA(a=INT32)"));
 
   EXPECT_THAT(
       test::DataItem(internal::DataItem(), schema::kNone, db).GetItem(indices),
@@ -5519,7 +5532,7 @@ TEST(DataSliceTest, GetItem_DataSlice) {
       EntityCreator::FromAttrs(db, {"a"}, {test::DataSlice<int>({1, 2, 3})}));
   EXPECT_THAT(entities.GetItem(test::DataItem("a")),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the schema for dict keys is missing"));
+                       "dict(s) expected, got SCHEMA(a=INT32)"));
 
   EXPECT_THAT(test::EmptyDataSlice(shape, schema::kNone, db).GetItem(indices),
               IsOkAndHolds(IsEquivalentTo(

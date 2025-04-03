@@ -26,7 +26,6 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
@@ -40,7 +39,6 @@ namespace {
 
 using ::absl_testing::StatusIs;
 using ::arolla::testing::CausedBy;
-using ::koladata::internal::Error;
 using ::testing::AllOf;
 using ::testing::MatchesRegex;
 using ::testing::Property;
@@ -65,10 +63,8 @@ TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
       arolla::WithPayload(absl::InvalidArgumentError("error"),
                           std::move(error)),
       {bag});
-  std::optional<Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(
-      payload->error_message(),
+      status.message(),
       AllOf(
           MatchesRegex(
               R"regex((.|\n)*cannot find a common schema(.|\n)*)regex"),
@@ -98,10 +94,8 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema) {
       arolla::WithPayload(absl::InvalidArgumentError("error"),
                           std::move(error)),
       bag, bag, schema_1);
-  std::optional<Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(
-      payload->error_message(),
+      status.message(),
       AllOf(
           MatchesRegex(
               R"regex((.|\n)*the schema for attribute 'x' is incompatible(.|\n)*)regex"),
@@ -131,10 +125,8 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
       arolla::WithPayload(absl::InvalidArgumentError("error"),
                           std::move(error)),
       bag, bag, schema_1);
-  std::optional<Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(
-      payload->error_message(),
+      status.message(),
       AllOf(
           MatchesRegex(
               R"regex((.|\n)*the schema for attribute 'x' is incompatible(.|\n)*)regex"),
@@ -154,10 +146,8 @@ TEST(ReprUtilTest, TestKodaErrorCausedByNoCommonSchemaErrorMissingContextData) {
                           std::move(error)),
       {});
 
-  std::optional<Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
   EXPECT_THAT(
-      payload->error_message(),
+      status.message(),
       AllOf(
           MatchesRegex(R"regex((.|\n)*conflicting schema INT32(.|\n)*)regex"),
           MatchesRegex(
@@ -170,6 +160,8 @@ TEST(ReprUtilTest, TestKodaErrorCausedByNoCommonSchemaErrorOkStatus) {
           .ok());
 }
 
+struct DummyPayload {};
+
 TEST(ReprUtilTest, TestCreateItemCreationError) {
   DataSlice value = test::DataItem(schema::kInt32);
 
@@ -181,15 +173,8 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
       AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                      "cannot create Item(s) with the provided schema: INT32"),
             CausedBy(StatusIs(absl::StatusCode::kInvalidArgument, "error"))));
-  std::optional<Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
-  EXPECT_THAT(payload->error_message(),
-              StrEq("cannot create Item(s) with the provided schema: INT32"));
-
-  Error error;
-  error.set_error_message("cause");
   status = CreateItemCreationError(
-      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
+      arolla::WithPayload(absl::InvalidArgumentError("error"), DummyPayload()),
       value);
   EXPECT_THAT(
       status,
@@ -197,21 +182,13 @@ TEST(ReprUtilTest, TestCreateItemCreationError) {
           StatusIs(absl::StatusCode::kInvalidArgument,
                    "cannot create Item(s) with the provided schema: INT32"),
           CausedBy(AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "error"),
-                         ResultOf(&arolla::GetPayload<internal::Error>,
-                                  Property(&internal::Error::error_message,
-                                           StrEq("cause")))))));
-  payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
-  EXPECT_THAT(payload->error_message(),
-              StrEq("cannot create Item(s) with the provided schema: INT32"));
+                         ResultOf(&arolla::GetPayload<DummyPayload>,
+                                  testing::NotNull())))));
 
   status = CreateItemCreationError(
-      internal::WithErrorPayload(absl::InvalidArgumentError("error"), error),
+      arolla::WithPayload(absl::InvalidArgumentError("error"), DummyPayload()),
       std::nullopt);
-  payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
-  EXPECT_THAT(payload->error_message(),
-              ::testing::StrEq("cannot create Item(s)"));
+  EXPECT_THAT(status.message(), ::testing::StrEq("cannot create Item(s)"));
 }
 
 TEST(ReprUtilTest, TestKodaErrorCausedByMergeConflictError) {
@@ -225,9 +202,7 @@ TEST(ReprUtilTest, TestKodaErrorCausedByMergeConflictError) {
   absl::Status status =
       KodaErrorCausedByMergeConflictError(bag, bag)(arolla::WithPayload(
           absl::InvalidArgumentError("error"), std::move(error)));
-  std::optional<Error> payload = internal::GetErrorPayload(status);
-  EXPECT_TRUE(payload.has_value());
-  EXPECT_THAT(payload->error_message(),
+  EXPECT_THAT(status.message(),
               testing::StartsWith("cannot merge DataBags due to an exception "
                                   "encountered when merging entities"));
 }

@@ -14,7 +14,8 @@
 
 # Arolla Operators on Koda abstractions.
 #
-# Note: tests for code here are located under py/koladata/operators/tests.
+# Note: tests for code here are located under
+#       py/koladata/operators/tests.
 #
 # Operators that are available in public namespace, should be stored in `kde`
 # namespace, while internal operators used to implement various functionality
@@ -127,7 +128,6 @@ cc_library(
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/internal:ellipsis",
-        "//koladata/internal:error_cc_proto",
         "//koladata/internal:error_utils",
         "//koladata/internal:non_deterministic_token",
         "//koladata/internal:object_id",
@@ -306,7 +306,6 @@ cc_test(
         "//koladata:test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
-        "//koladata/internal:error_cc_proto",
         "//koladata/internal:error_utils",
         "//koladata/internal:object_id",
         "//koladata/internal/testing:matchers",

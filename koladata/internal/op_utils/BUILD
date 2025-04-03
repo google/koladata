@@ -923,7 +923,6 @@ cc_library(
     srcs = ["error.cc"],
     hdrs = ["error.h"],
     deps = [
-        "//koladata/internal:error_cc_proto",
         "//koladata/internal:error_utils",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
@@ -937,7 +936,6 @@ cc_test(
     srcs = ["error_test.cc"],
     deps = [
         ":error",
-        "//koladata/internal:error_cc_proto",
         "//koladata/internal:error_utils",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
@@ -965,7 +963,6 @@ cc_test(
     srcs = ["qexpr_test.cc"],
     deps = [
         ":qexpr",
-        "//koladata/internal:error_cc_proto",
         "//koladata/internal:error_utils",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",

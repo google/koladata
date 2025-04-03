@@ -1428,7 +1428,8 @@ TEST(Casting, CastToImplicit) {
     EXPECT_THAT(
         CastToImplicit(test::DataItem(1, schema::kInt32),
                        internal::DataItem(internal::AllocateExplicitSchema())),
-        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("cannot find a common schema")));
     // Common schema is not the provided schema.
     EXPECT_THAT(CastToImplicit(test::DataItem(1.0f, schema::kFloat32),
                                internal::DataItem(schema::kInt32)),
@@ -1547,7 +1548,8 @@ TEST(Casting, CastToNarrow) {
     EXPECT_THAT(
         CastToNarrow(test::DataItem(1, schema::kInt32),
                      internal::DataItem(internal::AllocateExplicitSchema())),
-        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 HasSubstr("cannot find a common schema")));
     // Common schema is not the provided schema.
     EXPECT_THAT(CastToNarrow(test::DataItem(1.0f, schema::kFloat32),
                              internal::DataItem(schema::kInt32)),
@@ -1656,9 +1658,9 @@ TEST(Alignment, AlignSchemas_Errors) {
     auto item_int = test::DataItem(1, schema::kInt32);
     auto item_itemid =
         test::DataItem(internal::AllocateSingleObject(), schema::kItemId);
-    EXPECT_THAT(
-        AlignSchemas({item_int, item_itemid}),
-        StatusIs(absl::StatusCode::kInvalidArgument, "no common schema"));
+    EXPECT_THAT(AlignSchemas({item_int, item_itemid}),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("cannot find a common schema")));
   }
 }
 

@@ -21,46 +21,33 @@
 #include "absl/strings/match.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
-#include "arolla/util/status.h"
 
 namespace koladata::internal {
 
 absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name) {
-  auto previous_koda_error = arolla::GetPayload<internal::Error>(status);
+  std::string error_message = std::string(status.message());
 
-  std::string error_message = (previous_koda_error != nullptr &&
-                               !previous_koda_error->error_message().empty())
-                                  ? previous_koda_error->error_message()
-                                  : std::string(status.message());
-  if (!absl::StartsWith(error_message, operator_name)) {
-    error_message = absl::StrFormat("%s: %s", operator_name, error_message);
+  if (absl::StartsWith(error_message, operator_name)) {
+    return status;
   }
-
-  // To preserve non-Koda payloads we keep the original error as a cause.
-  if (arolla::GetPayload(status) != nullptr && previous_koda_error == nullptr) {
-    auto result = KodaErrorFromCause(error_message, std::move(status));
-    return result;
-  }
-  internal::Error error =
-      previous_koda_error != nullptr ? *previous_koda_error : internal::Error();
-  error.set_error_message(std::move(error_message));
-  return internal::WithErrorPayload(std::move(status), std::move(error));
+  error_message = absl::StrFormat("%s: %s", operator_name, error_message);
+  return KodaErrorFromCause(error_message, std::move(status));
 }
 
 absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name,
                                absl::string_view error_message) {
-  return OperatorEvalError(KodaErrorFromCause(error_message, std::move(status)),
-                           operator_name);
+  return KodaErrorFromCause(
+      absl::StrFormat("%s: %s", operator_name, error_message),
+      std::move(status));
 }
 
 absl::Status OperatorEvalError(absl::string_view operator_name,
                                absl::string_view error_message) {
-  return OperatorEvalError(absl::InvalidArgumentError(error_message),
-                           operator_name);
+  return absl::InvalidArgumentError(
+      absl::StrFormat("%s: %s", operator_name, error_message));
 }
 
 }  // namespace koladata::internal

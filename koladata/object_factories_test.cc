@@ -480,8 +480,9 @@ TEST(EntityCreatorTest, SchemaArg_UpdateSchema) {
                                {test::DataItem(42), test::DataItem("xyz")},
                                entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("the schema for attribute 'a' is incompatible: "
-                         "expected BYTES, assigned INT32")));
+               HasSubstr("the schema for attribute 'a' is incompatible.\n\n"
+                         "Expected schema for 'a': BYTES\n"
+                         "Assigned schema for 'a': INT32")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
@@ -513,8 +514,9 @@ TEST(EntityCreatorTest, Shaped_SchemaArg_UpdateSchema) {
                             {test::DataItem(42), test::DataItem("xyz")},
                             entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("the schema for attribute 'a' is incompatible: "
-                         "expected BYTES, assigned INT32")));
+               HasSubstr("the schema for attribute 'a' is incompatible.\n\n"
+                         "Expected schema for 'a': BYTES\n"
+                         "Assigned schema for 'a': INT32")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
@@ -549,8 +551,9 @@ TEST(EntityCreatorTest, Like_SchemaArg_UpdateSchema) {
                           {test::DataItem(42), test::DataItem("xyz")},
                           entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("the schema for attribute 'a' is incompatible: "
-                         "expected BYTES, assigned INT32")));
+               HasSubstr("the schema for attribute 'a' is incompatible.\n\n"
+                         "Expected schema for 'a': BYTES\n"
+                         "Assigned schema for 'a': INT32")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
@@ -822,8 +825,9 @@ TEST(CreateUuTest, SchemaArg_UpdateSchema) {
       CreateUu(db, "", {"a", "b"}, {test::DataItem(42), test::DataItem("xyz")},
                entity_schema),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("the schema for attribute 'a' is incompatible: "
-                         "expected BYTES, assigned INT32")));
+               HasSubstr("the schema for attribute 'a' is incompatible.\n\n"
+                         "Expected schema for 'a': BYTES\n"
+                         "Assigned schema for 'a': INT32")));
 
   ASSERT_OK_AND_ASSIGN(
       auto entity,
@@ -2778,7 +2782,9 @@ TEST(ObjectFactoriesTest, CreateDictShaped_ItemId_Overwrite) {
   EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
   EXPECT_THAT(ds.GetFromDict(test::DataSlice<int>({1, 2, 3})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("the schema for dict keys is incompatible")));
+                       HasSubstr("the schema for keys is incompatible.\n\n"
+                                 "Expected schema for keys: STRING\n"
+                                 "Assigned schema for keys: INT32")));
   EXPECT_THAT(ds.GetFromDict(test::DataSlice<arolla::Text>({"a", "b", "c"})),
               IsOkAndHolds(Property(&DataSlice::slice, ElementsAre(1, 2, 3))));
 }
@@ -2879,7 +2885,9 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
                                test::DataSlice<arolla::Text>({"abc", "xyz"}),
                                test::DataSlice<int>({1, 2}), dict_schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("schema for dict keys is incompatible")));
+                       HasSubstr("the schema for keys is incompatible.\n\n"
+                                 "Expected schema for keys: INT32\n"
+                                 "Assigned schema for keys: STRING")));
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike) {

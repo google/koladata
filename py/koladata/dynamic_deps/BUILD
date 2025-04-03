@@ -40,7 +40,6 @@ cc_shared_library(
         "//koladata/expr:init",
         "//koladata/iterables:init_expr_operators",
         "//koladata/s11n",
-        "//py/koladata/base:initializers",
         "//py/koladata/fstring:fstring_cc_lib",
         "//py/koladata/types:data_bag_cc_lib",
         "//py/koladata/types:data_slice_cc_lib",

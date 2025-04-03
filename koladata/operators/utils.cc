@@ -26,7 +26,6 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error.pb.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/schema_utils.h"
 #include "arolla/memory/frame.h"

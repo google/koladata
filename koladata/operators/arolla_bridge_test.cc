@@ -30,7 +30,6 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error.pb.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
@@ -221,10 +220,6 @@ TEST(ArollaEval, SimplePointwiseEval) {
               CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
                                 "shapes are not compatible: JaggedShape(1) vs "
                                 "JaggedShape(3)"))));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    ASSERT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(),
-                Eq("cannot align inputs to a common shape"));
   }
   {
     // Incompatible shapes for all missing inputs.
@@ -239,10 +234,6 @@ TEST(ArollaEval, SimplePointwiseEval) {
               CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
                                 "shapes are not compatible: JaggedShape(1) vs "
                                 "JaggedShape(3)"))));
-    std::optional<internal::Error> payload = internal::GetErrorPayload(status);
-    ASSERT_TRUE(payload.has_value());
-    EXPECT_THAT(payload->error_message(),
-                Eq("cannot align inputs to a common shape"));
   }
   {
     // Arolla op compilation error.

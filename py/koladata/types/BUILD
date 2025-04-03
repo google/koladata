@@ -174,7 +174,6 @@ cc_library(
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
-        "//koladata/internal:error_cc_proto",
         "//koladata/operators:lib",
         "//koladata/proto:to_proto",
         "//koladata/s11n",
@@ -202,10 +201,7 @@ cc_library(
 koladata_py_extension(
     name = "data_slice_py_ext",
     srcs = ["data_slice_module.cc"],
-    deps = [
-        ":data_slice_cc_lib",
-        "//py/koladata/base:initializers",
-    ],
+    deps = [":data_slice_cc_lib"],
 )
 
 py_library(
@@ -280,10 +276,7 @@ cc_library(
 koladata_py_extension(
     name = "data_item_py_ext",
     srcs = ["data_item_module.cc"],
-    deps = [
-        ":data_item_cc_lib",
-        "//py/koladata/base:initializers",
-    ],
+    deps = [":data_item_cc_lib"],
 )
 
 py_library(
@@ -493,10 +486,7 @@ cc_library(
 koladata_py_extension(
     name = "data_bag_py_ext",
     srcs = ["data_bag_module.cc"],
-    deps = [
-        ":data_bag_cc_lib",
-        "//py/koladata/base:initializers",
-    ],
+    deps = [":data_bag_cc_lib"],
 )
 
 py_library(
@@ -553,10 +543,7 @@ pybind_library(
 koladata_py_extension(
     name = "py_misc_py_ext",
     srcs = ["py_misc_module.cc"],
-    deps = [
-        ":py_misc_cc_lib",
-        "//py/koladata/base:initializers",
-    ],
+    deps = [":py_misc_cc_lib"],
 )
 
 py_library(
