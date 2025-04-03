@@ -1643,5 +1643,18 @@ def map_with_py_fn(state):
     _ = kd.map(fn, x)
 
 
+@google_benchmark.register
+def kd_expr_fn(state):
+  while state:
+    fn = kdf.expr_fn(
+        V.x + V.y + V.z,
+        x=V.y * 2,
+        y=kdi.float32(2.0),
+        z=V.y * V.x,
+        auto_variables=True,
+    )
+    del fn
+
+
 if __name__ == '__main__':
   google_benchmark.main()
