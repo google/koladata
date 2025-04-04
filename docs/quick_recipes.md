@@ -46,7 +46,7 @@ schemas into entities, lists or dicts to create corresponding objects.
 
 ```py
 kd.from_py(kd.new(a=1, b='2'))  # DataItem(Obj(a=1, b='2'), schema: OBJECT)
-kd.ofrom_pybj(kd.list([1, 2, 3]))  # DataItem(List[1, 2, 3], schema: OBJECT)
+kd.from_py(kd.list([1, 2, 3]))  # DataItem(List[1, 2, 3], schema: OBJECT)
 kd.from_py(kd.dict({'a': 1, 'b': 2}))  # DataItem(Dict{'a'=1, 'b'=2}, schema: OBJECT)
 ```
 
