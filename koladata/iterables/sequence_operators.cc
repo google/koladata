@@ -26,6 +26,7 @@
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/operators/slices.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
@@ -33,7 +34,6 @@
 #include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/sequence/mutable_sequence.h"
 #include "arolla/sequence/sequence.h"
@@ -100,11 +100,69 @@ absl::StatusOr<arolla::OperatorPtr> SequenceFrom1DSliceOpFamily::DoGetOperator(
 
 namespace {
 
+absl::StatusOr<DataSlice> SequenceTo1DSlice(const arolla::Sequence& x) {
+  DataSlice is_stack = DataSlice::CreateFromScalar(true);
+  DataSlice ndim = DataSlice::CreateFromScalar(0);
+  std::vector<const DataSlice*> stack_args;
+  stack_args.reserve(2 + x.size());
+  stack_args.push_back(&is_stack);
+  stack_args.push_back(&ndim);
+  for (size_t i = 0; i < x.size(); ++i) {
+    ASSIGN_OR_RETURN(const DataSlice& data_slice, x.GetRef(i).As<DataSlice>());
+    if (data_slice.GetShape().rank() != 0) {
+      return absl::InvalidArgumentError(
+          absl::StrCat("All inputs must be DataItems, got ",
+                       data_slice.GetShape().rank(), " dimensions"));
+    }
+    stack_args.push_back(&data_slice);
+  }
+  return ops::ConcatOrStack(stack_args);
+}
+
+struct SequenceTo1DSliceOp final : public arolla::QExprOperator {
+  explicit SequenceTo1DSliceOp()
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            {arolla::GetSequenceQType(arolla::GetQType<DataSlice>())},
+            arolla::GetQType<DataSlice>())) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [x_slot = input_slots[0].UnsafeToSlot<arolla::Sequence>(),
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          ASSIGN_OR_RETURN(auto res, SequenceTo1DSlice(frame.Get(x_slot)),
+                           ctx->set_status(std::move(_)));
+          frame.Set(output_slot, std::move(res));
+        });
+  }
+};
+
+}  // namespace
+
+// Sequence has no QTypeTraits, since it corresponds to many possible QTypes.
+// Therefore we cannot use the automatic creation of an operator from the C++
+// function.
+absl::StatusOr<arolla::OperatorPtr> SequenceTo1DSliceOpFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 1 ||
+      input_types[0] !=
+          arolla::GetSequenceQType(arolla::GetQType<DataSlice>())) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "unexpected argument types: %s", JoinTypeNames(input_types)));
+  }
+  return EnsureOutputQTypeMatches(
+      arolla::OperatorPtr(new SequenceTo1DSliceOp()), input_types, output_type);
+}
+
+namespace {
+
 struct SequenceChainOp final : public arolla::QExprOperator {
-  explicit SequenceChainOp(absl::Span<const arolla::QTypePtr> input_types,
-                           arolla::QTypePtr output_type)
-      : QExprOperator(
-            arolla::QExprOperatorSignature::Get(input_types, output_type)) {}
+  explicit SequenceChainOp(arolla::QTypePtr output_type)
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
+            {GetSequenceQType(output_type)}, output_type)) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -112,19 +170,15 @@ struct SequenceChainOp final : public arolla::QExprOperator {
     if (input_slots.size() != 1) {
       return absl::InternalError("expected exactly one input");
     }
-    const auto& tuple_slot = input_slots[0];
-    std::vector<arolla::FrameLayout::Slot<arolla::Sequence>> seq_input_slots;
-    seq_input_slots.reserve(tuple_slot.SubSlotCount());
-    for (int arg_i = 0; arg_i < tuple_slot.SubSlotCount(); ++arg_i) {
-      seq_input_slots.push_back(
-          tuple_slot.SubSlot(arg_i).UnsafeToSlot<arolla::Sequence>());
-    }
     return arolla::MakeBoundOperator(
-        [seq_input_slots = std::move(seq_input_slots), output_slot](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+        [input_slot = input_slots[0].UnsafeToSlot<arolla::Sequence>(),
+         output_slot = output_slot](arolla::EvaluationContext* ctx,
+                                    arolla::FramePtr frame) {
+          const auto& seq_of_seq = frame.Get(input_slot);
           size_t total_size = 0;
-          for (const auto& seq_input_slot : seq_input_slots) {
-            total_size += frame.Get(seq_input_slot).size();
+          for (size_t i = 0; i < seq_of_seq.size(); ++i) {
+            const auto& seq = seq_of_seq.GetRef(i).UnsafeAs<arolla::Sequence>();
+            total_size += seq.size();
           }
           ASSIGN_OR_RETURN(
               auto res,
@@ -132,10 +186,10 @@ struct SequenceChainOp final : public arolla::QExprOperator {
                   output_slot.GetType()->value_qtype(), total_size),
               ctx->set_status(std::move(_)));
           size_t offset = 0;
-          for (const auto& seq_input_slot : seq_input_slots) {
-            const auto& input_seq = frame.Get(seq_input_slot);
-            for (size_t i = 0; i < input_seq.size(); ++i) {
-              res.UnsafeSetRef(offset, input_seq.GetRef(i));
+          for (size_t i = 0; i < seq_of_seq.size(); ++i) {
+            const auto& seq = seq_of_seq.GetRef(i).UnsafeAs<arolla::Sequence>();
+            for (size_t i = 0; i < seq.size(); ++i) {
+              res.UnsafeSetRef(offset, seq.GetRef(i));
               ++offset;
             }
           }
@@ -153,23 +207,20 @@ absl::StatusOr<arolla::OperatorPtr> SequenceChainOpFamily::DoGetOperator(
   if (input_types.size() != 1) {
     return absl::InvalidArgumentError("expects exactly one input");
   }
+  arolla::QTypePtr input_type = input_types[0];
+  if (!arolla::IsSequenceQType(input_type)) {
+    return absl::InvalidArgumentError("input type must be a sequence");
+  }
   if (!arolla::IsSequenceQType(output_type)) {
     return absl::InvalidArgumentError("output type must be a sequence");
   }
-  arolla::QTypePtr input_type = input_types[0];
-  if (!arolla::IsTupleQType(input_type)) {
-    return absl::InvalidArgumentError("input type must be a tuple");
-  }
-  const auto& input_type_fields = input_type->type_fields();
-  for (int i = 0; i < input_type_fields.size(); ++i) {
-    if (input_type_fields[i].GetType() != output_type) {
-      return absl::InvalidArgumentError(
-          "all input tuple elements must have the same type as output");
-    }
+  if (input_type != GetSequenceQType(output_type)) {
+    return absl::InvalidArgumentError(
+        "input type must be a sequence of sequences (of output type)");
   }
   return EnsureOutputQTypeMatches(
-      arolla::OperatorPtr(new SequenceChainOp(input_types, output_type)),
-      input_types, output_type);
+      arolla::OperatorPtr(new SequenceChainOp(output_type)), input_types,
+      output_type);
 }
 
 }  // namespace koladata::iterables

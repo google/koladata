@@ -42,6 +42,8 @@ OPERATOR_FAMILY("koda_internal.iterables.sequence_chain",
                 std::make_unique<SequenceChainOpFamily>());
 OPERATOR_FAMILY("koda_internal.iterables.sequence_from_1d_slice",
                 std::make_unique<SequenceFrom1DSliceOpFamily>());
+OPERATOR_FAMILY("koda_internal.iterables.sequence_to_1d_slice",
+                std::make_unique<SequenceTo1DSliceOpFamily>());
 // go/keep-sorted end
 
 }  // namespace

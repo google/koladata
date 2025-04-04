@@ -29,6 +29,13 @@ class SequenceFrom1DSliceOpFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// koda_internal.iterables.sequence_to_1d_slice operator.
+class SequenceTo1DSliceOpFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 // koda_internal.iterables.sequence_chain operator.
 class SequenceChainOpFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

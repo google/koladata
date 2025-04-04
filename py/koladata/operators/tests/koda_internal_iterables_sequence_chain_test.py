@@ -25,7 +25,7 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
   def test_chain(self):
     res = expr_eval.eval(
         koda_internal_iterables.sequence_chain(
-            arolla.M.seq.make(1, 2), arolla.M.seq.make(3)
+            arolla.M.seq.make(arolla.M.seq.make(1, 2), arolla.M.seq.make(3))
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
@@ -36,26 +36,18 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
     testing.assert_equal(res_list[1], arolla.int32(2))
     testing.assert_equal(res_list[2], arolla.int32(3))
 
-  def test_chain_mixed_types(self):
-    with self.assertRaisesRegex(ValueError, 'must have the same type'):
-      _ = expr_eval.eval(
-          koda_internal_iterables.sequence_chain(
-              arolla.M.seq.make(1),
-              arolla.M.seq.make(2.0),
-          )
-      )
-
   def test_chain_empty(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'must have at least one sequence',
-    ):
-      _ = expr_eval.eval(koda_internal_iterables.sequence_chain())
+    res = expr_eval.eval(
+        koda_internal_iterables.sequence_chain(
+            arolla.M.seq.slice(arolla.M.seq.make(arolla.M.seq.make(1)), 0, 0)
+        )
+    )
+    self.assertEmpty(list(res))
 
   def test_chain_with_only_empty_sequence(self):
     res = expr_eval.eval(
         koda_internal_iterables.sequence_chain(
-            arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0)
+            arolla.M.seq.make(arolla.M.seq.slice(arolla.M.seq.make(1), 0, 0))
         )
     )
     self.assertIsInstance(res, arolla.types.Sequence)
@@ -65,14 +57,25 @@ class IterablesInternalSequenceChainTest(absltest.TestCase):
   def test_non_sequence_arg(self):
     with self.assertRaisesRegex(
         ValueError,
-        'all inputs must be sequences',
+        'expected a sequence type, got sequences: DATA_SLICE',
     ):
       _ = expr_eval.eval(koda_internal_iterables.sequence_chain(1))
+
+  def test_non_sequence_of_sequences_arg(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'expected a sequence of sequences',
+    ):
+      _ = expr_eval.eval(
+          koda_internal_iterables.sequence_chain(arolla.M.seq.make(1))
+      )
 
   def test_view(self):
     self.assertFalse(
         view.has_koda_view(
-            koda_internal_iterables.sequence_chain(arolla.M.seq.make(1, 2))
+            koda_internal_iterables.sequence_chain(
+                arolla.M.seq.make(arolla.M.seq.make(1, 2))
+            )
         )
     )
 

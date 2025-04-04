@@ -20,13 +20,9 @@ evaluation.
 """
 
 from arolla import arolla
-from koladata.operators import arolla_bridge
 from koladata.operators import bootstrap
 from koladata.operators import koda_internal_iterables
-from koladata.operators import math
 from koladata.operators import optools
-from koladata.operators import random
-from koladata.operators import slices
 from koladata.types import data_slice
 
 P = arolla.P
@@ -186,11 +182,11 @@ def chain(*iterables, value_type_as=arolla.unspecified()):
       # The compatibility of value_type_as with the iterables was checked
       # in qtype_constraints.
       default=koda_internal_iterables.from_sequence(
-          arolla.abc.bind_op(
-              koda_internal_iterables.sequence_chain,
-              sequences=arolla.M.core.map_tuple(
-                  koda_internal_iterables.to_sequence, P.iterables
-              ),
+          koda_internal_iterables.sequence_chain(
+              M.seq.map(
+                  koda_internal_iterables.to_sequence,
+                  M.core.apply_varargs(M.seq.make, P.iterables),
+              )
           )
       ),
   )(iterables, value_type_as)
@@ -226,70 +222,22 @@ def interleave(*iterables, value_type_as=arolla.unspecified()):
     An iterable that interleaves the given iterables, in arbitrary order.
   """
   iterables = arolla.optools.fix_trace_args(iterables)
-  chain_res = arolla.abc.bind_op(
-      chain,
-      iterables,
-      value_type_as=value_type_as,
-  )
-  sequences = arolla.M.core.map_tuple(
-      koda_internal_iterables.to_sequence, iterables
-  )
-  sizes_arolla_tuple = arolla.M.core.map_tuple(
-      arolla.M.seq.size,
-      sequences,
-  )
-  sizes_tuple = arolla.M.core.map_tuple(
-      # We need a lambda wrapper to always use a default value for the 'shape'
-      # argument.
-      optools.as_lambda_operator('koda_internal.iterables._to_data_slice')(
-          lambda x: arolla_bridge.to_data_slice(x)  # pylint: disable=unnecessary-lambda
+  return arolla.types.DispatchOperator(
+      'iterables, value_type_as, non_deterministic',
+      empty_iterables_case=arolla.types.DispatchCase(
+          make(value_type_as=P.value_type_as),
+          condition=(M.qtype.get_field_count(P.iterables) == 0),
       ),
-      sizes_arolla_tuple,
-  )
-  # Here and below comments show a possible value of each slice for the
-  # case where we interleave an iterable of size 3 and an iterable of size 2,
-  # before the corresponding statement.
-  # [3, 2]
-  sizes = arolla.types.DispatchOperator(
-      'sizes_tuple',
-      # slices.stack requires at least one argument.
-      empty_sizes_tuple_case=arolla.types.DispatchCase(
-          slices.int64([]),
-          condition=(M.qtype.get_field_count(P.sizes_tuple) == 0),
+      # The compatibility of value_type_as with the iterables was checked
+      # in qtype_constraints.
+      default=koda_internal_iterables.from_sequence(
+          arolla.abc.bind_op(
+              koda_internal_iterables.sequence_interleave,
+              M.seq.map(
+                  koda_internal_iterables.to_sequence,
+                  M.core.apply_varargs(M.seq.make, P.iterables),
+              ),
+              P.non_deterministic,
+          )
       ),
-      default=arolla.abc.bind_op(slices.stack, P.sizes_tuple),  # pytype: disable=wrong-arg-types
-  )(sizes_tuple)
-  # [0, 0, 0, 1, 1]
-  indices = slices.repeat(slices.index(sizes), sizes).flatten()
-  random_values = random.randint_shaped_as(indices)
-  # [1, 0, 0, 1, 0]
-  shuffled_indices = slices.sort(indices, sort_by=random_values)
-  # [[0, 3], [1, 2, 4]]
-  grouped_indices = slices.group_by_indices(shuffled_indices)
-  # [[0, 1], [0, 1, 2]]
-  grouped_index_in_group = slices.index(grouped_indices)
-  # [0, 0, 1, 1, 2]
-  index_in_group = slices.take(
-      grouped_index_in_group.flatten(),
-      slices.inverse_mapping(grouped_indices.flatten()),
-  )
-  # [3, 0, 1, 4, 2]
-  overall_index = (
-      slices.take(math.cum_sum(sizes) - sizes, shuffled_indices)
-      + index_in_group
-  )
-  chain_res_seq = koda_internal_iterables.to_sequence(chain_res)
-  overall_index_seq = koda_internal_iterables.sequence_from_1d_slice(
-      overall_index
-  )
-  overall_index_seq = arolla.M.seq.map(
-      arolla_bridge.to_arolla_int64, overall_index_seq
-  )
-  return koda_internal_iterables.from_sequence(
-      arolla.M.seq.map(
-          arolla.M.seq.at,
-          # A sequence has a shared_ptr inside, so copying it is cheap.
-          arolla.M.seq.repeat(chain_res_seq, arolla.M.seq.size(chain_res_seq)),
-          overall_index_seq,
-      )
-  )
+  )(iterables, value_type_as, optools.unified_non_deterministic_arg())
