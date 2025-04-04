@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x12e2fa535350>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x33e2be0a2b10>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x12e2fa535350>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x33e2be0a2b10>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -7896,6 +7896,10 @@ Decorator factory for adding runtime input type checking to Koda functions.
   Decorated functions will preserve the original function's signature and
   docstring.
 
+  Decorated functions can be traced using `kd.fn` and the inputs to the
+  resulting functor will be wrapped in kd.assertion.with_assertion nodes that
+  match the assertions of the eager version.
+
   Example for primitive schemas:
 
     @kd.check_inputs(hours=kd.INT32, minutes=kd.INT32)
@@ -7932,7 +7936,7 @@ Decorator factory for adding runtime input type checking to Koda functions.
     DataSlices/DataItem inputs.
 ```
 
-### `kd.check_output(output)` {#kd.check_output}
+### `kd.check_output(constraint)` {#kd.check_output}
 
 ``` {.no-copy}
 Decorator factory for adding runtime output type checking to Koda functions.
@@ -7942,6 +7946,10 @@ Decorator factory for adding runtime output type checking to Koda functions.
 
   Decorated functions will preserve the original function's signature and
   docstring.
+
+  Decorated functions can be traced using `kd.fn` and the output of the
+  resulting functor will be wrapped in a kd.assertion.with_assertion node that
+  match the assertion of the eager version.
 
   Example for primitive schemas:
 
@@ -7970,8 +7978,8 @@ Decorator factory for adding runtime output type checking to Koda functions.
       return query.docs[:]
 
   Args:
-    output: A DataItem schema for the output. Output of the decorated function
-      must be a DataSlice/DataItem with the corresponding schema.
+    constraint: A DataItem schema for the output. Output of the decorated
+      function must be a DataSlice/DataItem with the corresponding schema.
 
   Returns:
     A decorator that can be used to annotate a function returning a
@@ -10231,13 +10239,27 @@ Aliases:
 Returns the value schema of a Dict schema`.
 ```
 
-### `DataSlice.get_values()` {#DataSlice.get_values}
+### `DataSlice.get_values(self, key_ds=unspecified)` {#DataSlice.get_values}
 Aliases:
 
 - [DataItem.get_values](#DataItem.get_values)
 
 ``` {.no-copy}
-Returns values of all dicts in this DataSlice.
+Returns values corresponding to `key_ds` for dicts in `dict_ds`.
+
+When `key_ds` is specified, it is equivalent to dict_ds[key_ds].
+
+When `key_ds` is unspecified, it returns all values in `dict_ds`. The result
+DataSlice has one more dimension used to represent values in each dict than
+`dict_ds`. While the order of values within a dict is arbitrary, it is the
+same as get_keys().
+
+Args:
+  dict_ds: DataSlice of Dicts.
+  key_ds: DataSlice of keys or unspecified.
+
+Returns:
+  A DataSlice of values.
 ```
 
 ### `DataSlice.has_attr(self, attr_name)` {#DataSlice.has_attr}
@@ -11875,7 +11897,7 @@ Alias for [DataSlice.get_size](#DataSlice.get_size) operator.
 
 Alias for [DataSlice.get_value_schema](#DataSlice.get_value_schema) operator.
 
-### `DataItem.get_values()` {#DataItem.get_values}
+### `DataItem.get_values(self, key_ds=unspecified)` {#DataItem.get_values}
 
 Alias for [DataSlice.get_values](#DataSlice.get_values) operator.
 
