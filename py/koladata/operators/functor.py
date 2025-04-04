@@ -76,6 +76,52 @@ def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):  # pylint: d
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.functor.call_and_update_namedtuple',
+    qtype_inference_expr=P.namedtuple_to_update,
+    qtype_constraints=[
+        (
+            P.fn == qtypes.DATA_SLICE,
+            (
+                'expected a functor DATA_SLICE, got'
+                f' {arolla.optools.constraints.name_type_msg(P.fn)}'
+            ),
+        ),
+        qtype_utils.expect_namedtuple(P.namedtuple_to_update),
+    ],
+    deterministic=False,
+)
+def call_and_update_namedtuple(fn, *args, namedtuple_to_update, **kwargs):  # pylint: disable=unused-argument
+  """Calls a functor which returns a namedtuple and applies it as an update.
+
+  This operator exists to avoid the need to specify return_type_as for the inner
+  call (since the returned namedtuple may have a subset of fields of the
+  original namedtuple, potentially in a different order).
+
+  Example:
+    kd.functor.call_and_update_namedtuple(
+        kd.fn(lambda x: kd.make_namedtuple(x=x * 2)),
+        x=2,
+        namedtuple_to_update=kd.make_namedtuple(x=1, y=2))
+    # returns kd.make_namedtuple(x=4, y=2)
+
+  Args:
+    fn: The functor to be called, typically created via kd.fn().
+    *args: The positional arguments to pass to the call. Scalars will be
+      auto-boxed to DataItems.
+    namedtuple_to_update: The namedtuple to be updated with the result of the
+      call. The returned namedtuple must have a subset (possibly empty or full)
+      of fields of this namedtuple, with the same types.
+    **kwargs: The keyword arguments to pass to the call. Scalars will be
+      auto-boxed to DataItems.
+
+  Returns:
+    The updated namedtuple.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kd.map'])
 @optools.as_backend_operator(
     'kd.functor.map',

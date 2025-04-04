@@ -123,7 +123,7 @@ class KodaQTypesTest(absltest.TestCase):
       ):
         _op(data_slice.DataSlice.from_vals(1), arolla.int32(1))
 
-  def test_expect_data_slice_named_tuple(self):
+  def test_expect_data_slice_kwargs(self):
     @arolla.optools.as_lambda_operator(
         'op4.name',
         qtype_constraints=[qtype_utils.expect_data_slice_kwargs(arolla.P.x)],
@@ -238,6 +238,31 @@ class KodaQTypesTest(absltest.TestCase):
           ),
       ):
         _op(arolla.types.Sequence(1, 2, 3))
+
+  def test_expect_namedtuple(self):
+    @arolla.optools.as_lambda_operator(
+        'op4.name',
+        qtype_constraints=[qtype_utils.expect_namedtuple(arolla.P.x)],
+    )
+    def _op(x):
+      return x
+
+    with self.subTest('success'):
+      _op(arolla.namedtuple())
+      _op(arolla.namedtuple(a=data_slice.DataSlice.from_vals(1)))
+      _op(
+          arolla.namedtuple(
+              a=data_slice.DataSlice.from_vals(1),
+              b=arolla.int32(1),
+          )
+      )
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          'expected a namedtuple, got x: tuple<DATA_SLICE>',
+      ):
+        _op(arolla.tuple(data_slice.DataSlice.from_vals(1)))
 
 
 if __name__ == '__main__':

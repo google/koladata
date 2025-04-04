@@ -148,3 +148,14 @@ def expect_iterable_or_unspecified(param):
           f' {arolla.optools.constraints.name_type_msg(param)}'
       ),
   )
+
+
+def expect_namedtuple(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is a namedtuple."""
+  return (
+      M.qtype.is_namedtuple_qtype(param),
+      (
+          'expected a namedtuple, got'
+          f' {arolla.optools.constraints.name_type_msg(param)}'
+      ),
+  )

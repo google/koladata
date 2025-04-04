@@ -32,6 +32,8 @@ OPERATOR("kd.functor._maybe_call", MaybeCall);
 OPERATOR_FAMILY("kd.functor.aggregate",
                 std::make_unique<AggregateOperatorFamily>());
 OPERATOR_FAMILY("kd.functor.call", std::make_unique<CallOperatorFamily>());
+OPERATOR_FAMILY("kd.functor.call_and_update_namedtuple",
+                std::make_unique<CallAndUpdateNamedTupleOperatorFamily>());
 OPERATOR("kd.functor.is_fn", IsFn);
 OPERATOR_FAMILY("kd.functor.map", std::make_unique<MapOperatorFamily>());
 // go/keep-sorted end

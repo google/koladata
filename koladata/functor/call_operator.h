@@ -19,6 +19,7 @@
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
@@ -27,6 +28,19 @@ namespace koladata::functor {
 // kd.functor.call operator.
 // Calls a given functor with the given arguments.
 class CallOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
+// kd.functor.call_and_update operator.
+// Calls a given functor with the given arguments, the functor must
+// return a namedtuple, which is then applied as an update to the given
+// namedtuple. This operator exists so that we do not have to specify
+// return_type_as for the inner call (since the returned namedtuple may
+// have a subset of fields of the original namedtuple, potentially in a
+// different order).
+class CallAndUpdateNamedTupleOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
