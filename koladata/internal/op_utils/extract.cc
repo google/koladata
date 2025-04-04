@@ -66,6 +66,11 @@ namespace {
 // Attribute name for storing information about previous visits of ObjectId.
 const std::string_view kVisitedAttrName = "u";
 
+// Attribute name for storing information about previous visits of ObjectId
+// with kObject schema. This is used to ensure that kSchemaAttr is extracted
+// for the object, even if it was already visited as entity.
+const std::string_view kObjectVisitedAttrName = "o";
+
 // Attribute name for storing information about previous visits of schema
 // ObjectId.
 const std::string_view kSchemaVisitedAttrName = "s";
@@ -83,6 +88,9 @@ struct QueuedSlice {
   // retrieve schema for the current slice.
   SchemaSource schema_source;
   int depth;
+  // extract_kschemaattr_only indicates that we should only extract kSchemaAttr
+  // for the slice.
+  bool extract_kschemaattr_only = false;
 };
 
 class CopyingProcessor {
@@ -152,6 +160,18 @@ class CopyingProcessor {
     return res;
   }
 
+  absl::StatusOr<DataSliceImpl> MarkEntitiesAsVisited(
+    const DataSliceImpl& slice) {
+    if (slice.is_empty_and_unknown()) {
+      return slice;
+    }
+    if (slice.dtype() != arolla::GetQType<ObjectId>()) {
+      return absl::InternalError("Expected a slice of ObjectIds");
+    }
+    return objects_tracker_->InternalSetUnitAttrAndReturnMissingObjects(
+        slice, kVisitedAttrName);
+  }
+
   absl::StatusOr<DataSliceImpl> MarkObjectsAsVisited(
       const DataSliceImpl& slice) {
     if (slice.is_empty_and_unknown()) {
@@ -161,7 +181,7 @@ class CopyingProcessor {
       return absl::InternalError("Expected a slice of ObjectIds");
     }
     return objects_tracker_->InternalSetUnitAttrAndReturnMissingObjects(
-        slice, kVisitedAttrName);
+        slice, kObjectVisitedAttrName);
   }
 
   absl::Status MarkSchemaAsVisited(const DataItem& schema_item,
@@ -185,19 +205,36 @@ class CopyingProcessor {
   absl::Status VisitObjects(const QueuedSlice& slice) {
     // Filter out objectIds, as Object slice may also contain primitive types.
     DataSliceImpl objects_slice = FilterToObjects(slice.slice);
-    ASSIGN_OR_RETURN(auto update_slice, MarkObjectsAsVisited(objects_slice));
-    if (update_slice.present_count() == 0) {
+    ASSIGN_OR_RETURN(auto partial_update_slice,
+                     MarkObjectsAsVisited(objects_slice));
+    if (partial_update_slice.size() == 0) {
       return absl::OkStatus();
     }
-    queued_slices_.push(QueuedSlice{.slice = std::move(update_slice),
-                                    .schema = slice.schema,
-                                    .schema_source = SchemaSource::kDataDatabag,
-                                    .depth = slice.depth + 1});
+    ASSIGN_OR_RETURN(auto update_slice,
+                     MarkEntitiesAsVisited(partial_update_slice));
+    if (update_slice.size() != partial_update_slice.size()) {
+      // We need to copy kSchemaAttr for the ObjectIds that were previously
+      // visited as entities. We assume that the schemas are the same, so we
+      // would not need a deep extraction.
+      queued_slices_.push(
+          QueuedSlice{.slice = std::move(partial_update_slice),
+                      .schema = slice.schema,
+                      .schema_source = SchemaSource::kDataDatabag,
+                      .depth = slice.depth + 1,
+                      .extract_kschemaattr_only = true});
+    }
+    if (update_slice.size() > 0) {
+      queued_slices_.push(
+          QueuedSlice{.slice = std::move(update_slice),
+                      .schema = slice.schema,
+                      .schema_source = SchemaSource::kDataDatabag,
+                      .depth = slice.depth + 1});
+    }
     return absl::OkStatus();
   }
 
   absl::Status VisitEntities(const QueuedSlice& slice) {
-    ASSIGN_OR_RETURN(auto update_slice, MarkObjectsAsVisited(slice.slice));
+    ASSIGN_OR_RETURN(auto update_slice, MarkEntitiesAsVisited(slice.slice));
     if (update_slice.present_count() == 0) {
       ASSIGN_OR_RETURN(
           auto schema_is_copied,
@@ -905,7 +942,7 @@ class CopyingProcessor {
     if (!is_shallow_clone_) {
       RETURN_IF_ERROR(SetAttrToNewDatabagSkipUnset(
           ds.slice, schema::kSchemaAttr, old_schemas));
-      if (!has_schemas) {
+      if (!has_schemas || ds.extract_kschemaattr_only) {
         return absl::OkStatus();
       }
       return ProcessObjectsWithSchemas(ds.slice, old_schemas, old_schemas,
@@ -936,6 +973,9 @@ class CopyingProcessor {
     RETURN_IF_ERROR(
         new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, new_schemas));
     RETURN_IF_ERROR(SetMappingToInitialIds(new_schemas, old_schemas));
+    if (ds.extract_kschemaattr_only) {
+      return absl::OkStatus();
+    }
     return ProcessObjectsWithSchemas(ds.slice, new_schemas, old_schemas,
                                      ds.depth);
   }
@@ -947,7 +987,8 @@ class CopyingProcessor {
       queued_slices_.pop();
       if (max_depth_ >= 0 && slice.depth > max_depth_) {
         continue;
-      } else if (max_depth_ >= 0 && slice.depth == max_depth_) {
+      } else if (max_depth_ >= 0 && slice.depth == max_depth_ &&
+                 !slice.extract_kschemaattr_only) {
         // We notify the leaf, but keep processing slice.
         RETURN_IF_ERROR(NotifyLeaf(slice));
       }

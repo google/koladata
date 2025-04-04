@@ -2411,6 +2411,42 @@ TEST_P(ExtractTest, MixedObjectsSlice) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ExtractTest, EntityAndObjectPathes) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(3);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {
+    {schema, {{"next", DataItem(schema::kObject)}}},
+  };
+  TriplesT data_triples = {
+      {a0, {{"next", a1}}},
+      {a1, {{schema::kSchemaAttr, schema}, {"next", a2}}},
+      {a2, {{schema::kSchemaAttr, schema}, {"next", DataItem(-1)}}}};
+  TriplesT unreachable_data_triples = {
+      {a0, {{schema::kSchemaAttr, schema}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetDataTriples(*db, unreachable_data_triples);
+  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenNoiseDataTriples());
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, schema_triples);
+  SetDataTriples(*expected_db, data_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK(ExtractOp(result_db.get())(obj_ids, schema, *GetMainDb(db),
+                                       {GetFallbackDb(db).get()}, nullptr, {}));
+
+  EXPECT_NE(result_db.get(), db.get());
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(ExtractTest, PartialSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(4);
