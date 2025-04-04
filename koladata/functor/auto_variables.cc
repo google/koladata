@@ -76,43 +76,36 @@ absl::StatusOr<bool> IsSliceOperator(const ExprNodePtr& node) {
 // them as well.
 class SharedNodeTracker {
  public:
-  void AddParentVariable(const ExprNodePtr& node,
-                         const arolla::Fingerprint& parent_fingerprint) {
-    auto [it, inserted] = node_to_parent_variable_.emplace(
-        node->fingerprint(), parent_fingerprint);
+  explicit SharedNodeTracker(const arolla::expr::PostOrder& post_order)
+      : post_order_(post_order),
+        node_to_parent_tag_(post_order.nodes_size(), kUnitialized) {}
 
-    // If already present in the map and has different value, then it a shared
-    // node that will be used in several extracted variables.
-    // Set to nullptr - special value for shared nodes.
-    if (!inserted && it->second != parent_fingerprint) {
-      it->second = std::nullopt;
-    }
-  };
+  void AddTopLevelVariable(size_t node_index, size_t variable_id) {
+    AddParentTag(node_index, post_order_.nodes_size() + 1 + variable_id);
+  }
 
   template <typename Fn>
-  absl::Status Process(const ExprNodePtr& expr, Fn&& to_be_extracted) {
+  absl::Status Process(Fn&& to_be_extracted) {
     // Iterating in reverse post_order guarantees that we will see a node before
     // all its dependencies, so that we can check if it has multiple variable
     // parents.
-    arolla::expr::PostOrder post_order(expr);
-    for (int64_t i = post_order.nodes_size() - 1; i >= 0; --i) {
-      const ExprNodePtr& node = post_order.node(i);
-      // `parent_fingerprint` is what will be set as parent variable to children
-      // of this node.
-      arolla::Fingerprint parent_fingerprint = node->fingerprint();
+    for (int64_t post_order_index = post_order_.nodes_size() - 1;
+         post_order_index >= 0; post_order_index--) {
+      const ExprNodePtr& node = post_order_.node(post_order_index);
+      size_t parent_tag_for_children = post_order_index;
       if (!to_be_extracted(node)) {
-        auto it = node_to_parent_variable_.find(node->fingerprint());
-        if (it == node_to_parent_variable_.end()) {
+        size_t parent_tag = node_to_parent_tag_[post_order_index];
+        if (parent_tag == kUnitialized) {
           continue;
         }
-        // If this node has parent variable, we propagate it to children.
-        // If the parent variable is nullopt (multiple parent), then this node
-        // will become a variable of its own, so using this node's
-        // fingerprint.
-        parent_fingerprint = it->second.value_or(node->fingerprint());
+        // If this node has a single parent variable, we propagate it to
+        // children. Otherwise, we will create a variable for this node itself.
+        if (parent_tag != kMultipleParent) {
+          parent_tag_for_children = parent_tag;
+        }
       }
-      for (const auto& child : node->node_deps()) {
-        AddParentVariable(child, parent_fingerprint);
+      for (size_t child : post_order_.dep_indices(post_order_index)) {
+        AddParentTag(child, parent_tag_for_children);
       }
     }
     return absl::OkStatus();
@@ -120,33 +113,42 @@ class SharedNodeTracker {
 
   // Returns true if the node will be used by multiple extracted variables
   // (and thus need to become a variable as well).
-  bool IsSharedNode(const ExprNodePtr& node) const {
-    auto node_to_parent_it = node_to_parent_variable_.find(node->fingerprint());
-    return node_to_parent_it != node_to_parent_variable_.end() &&
-           !node_to_parent_it->second.has_value();
+  bool IsSharedNode(size_t post_order_index) const {
+    return node_to_parent_tag_[post_order_index] == kMultipleParent;
   }
+
+  const arolla::expr::PostOrder& GetPostOrder() const { return post_order_; }
 
  private:
-  // This maps from a node fingerprint to the fingerprint of its ancestor that
-  // will become a variable. `nullopt` means that the node has multiple such
-  // parents.
-  absl::flat_hash_map<arolla::Fingerprint, std::optional<arolla::Fingerprint>>
-      node_to_parent_variable_;
-};
+  static constexpr size_t kUnitialized = ~size_t{};
+  static constexpr size_t kMultipleParent = kUnitialized - 1;
 
-// Wrapper for arolla::expr::WithNewDependencies, needed because
-// PostOrderTraverse passes arguments as span of pointers.
-absl::StatusOr<ExprNodePtr> WithNewDeps(
-    const ExprNodePtr& node, absl::Span<const ExprNodePtr* const> new_deps) {
-  if (!node->is_op() && !new_deps.empty()) {
-    return absl::FailedPreconditionError("leaf node shoudn't have deps");
-  }
-  std::vector<ExprNodePtr> new_deps_vec;
-  new_deps_vec.reserve(new_deps.size());
-  for (const auto& v : new_deps) {
-    new_deps_vec.push_back(*v);
-  }
-  return arolla::expr::WithNewDependencies(node, std::move(new_deps_vec));
+  // Adds a parent tag for a node.
+  // If the node already has a parent tag, then it means that the node is
+  // shared and we should assign kMultipleParent tag to it.
+  void AddParentTag(size_t node_index, size_t parent_tag) {
+    DCHECK_NE(parent_tag, kUnitialized);
+    DCHECK_NE(parent_tag, kMultipleParent);
+    size_t& parent = node_to_parent_tag_[node_index];
+    if (parent == kUnitialized) {
+      parent = parent_tag;
+    } else if (parent != parent_tag) {
+      // If already assigned and has different value, then it a shared
+      // node that will be used in several extracted variables.
+      parent = kMultipleParent;
+    }
+  };
+
+  const arolla::expr::PostOrder& post_order_;
+  // This maps from a node id in post_order_ to the parent tag.
+  // There are 4 possible values:
+  // - kUnitialized: the node has not been assigned a parent yet.
+  // - kMultipleParent: the node is shared and will be used in several
+  //   extracted variables.
+  // - post order id of the parent:
+  //      the node has a single parent with the given id.
+  // - special tag for top level variables: larger than post_order_.size().
+  std::vector<size_t> node_to_parent_tag_;
 };
 
 // For 'simple' nodes, we do not extract them into variables even if they are
@@ -208,12 +210,13 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
     return var;
   };
 
-  auto process_node = [&](const ExprNodePtr& old_node,
-                          absl::Span<const ExprNodePtr* const> new_deps)
-      -> absl::StatusOr<ExprNodePtr> {
-    ASSIGN_OR_RETURN(auto node, WithNewDeps(old_node, new_deps));
-    bool is_shared_node = shared_node_tracker.IsSharedNode(old_node);
-    bool extract_needed = is_extract_needed(old_node);
+  const auto& post_order = shared_node_tracker.GetPostOrder();
+
+  size_t post_order_index = 0;
+  auto transform_node = [&](ExprNodePtr node) -> absl::StatusOr<ExprNodePtr> {
+    bool is_shared_node = shared_node_tracker.IsSharedNode(post_order_index);
+    bool extract_needed = is_extract_needed(post_order.node(post_order_index));
+    post_order_index++;
     if (expr::IsLiteral(node)) {
       if (!node->qvalue().has_value()) {
         return absl::FailedPreconditionError("literal has no value");
@@ -280,7 +283,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
     return var_container.CreateInput(var_name);
   };
 
-  return arolla::expr::PostOrderTraverse(expr, process_node);
+  return arolla::expr::TransformOnPostOrder(post_order, transform_node);
 }
 
 }  // namespace
@@ -297,6 +300,11 @@ absl::StatusOr<DataSlice> AutoVariables(
   absl::flat_hash_map<std::string, DataSlice> vars;
   std::vector<std::string> expr_names;
   std::vector<ExprNodePtr> exprs_vec;
+
+  vars.reserve(attr_names.size());
+  expr_names.reserve(attr_names.size());
+  exprs_vec.reserve(attr_names.size());
+
   for (const auto& attr_name : attr_names) {
     if (attr_name == kSignatureAttrName) {
       continue;
@@ -306,38 +314,39 @@ absl::StatusOr<DataSlice> AutoVariables(
     if (var.is_item() &&
         var.GetSchemaImpl() == internal::DataItem(schema::kExpr)) {
       ASSIGN_OR_RETURN(auto var_expr, var.item().value<ExprQuote>().expr());
+      // Already a variable, so we shouldn't extract it again (would lead to
+      // trivial assignments like V.aux_1 = V.aux_0).
+      extra_nodes_to_extract.erase(var_expr->fingerprint());
+
       expr_names.push_back(attr_name);
       exprs_vec.push_back(std::move(var_expr));
     }
     vars.emplace(attr_name, std::move(var));
   }
 
-  SharedNodeTracker shared_node_tracker;
-  ASSIGN_OR_RETURN(expr::InputContainer var_container,
-                   expr::InputContainer::Create("V"));
-  for (size_t i = 0; i < expr_names.size(); ++i) {
-    const ExprNodePtr& node = exprs_vec[i];
-    ASSIGN_OR_RETURN(auto v, var_container.CreateInput(expr_names[i]));
-    shared_node_tracker.AddParentVariable(node, v->fingerprint());
-
-    // Already a variable, so we shouldn't extract it again (would lead to
-    // trivial assignments like V.aux_1 = V.aux_0).
-    extra_nodes_to_extract.erase(node->fingerprint());
-  }
-
   // It is important to transform everything at once if there is some shared
   // named subtree, so we create a single tuple Expr.
   ASSIGN_OR_RETURN(
-    ExprNodePtr combined,
-    arolla::expr::BindOp("core.make_tuple", std::move(exprs_vec), {}));
+      ExprNodePtr combined,
+      arolla::expr::BindOp("core.make_tuple", std::move(exprs_vec), {}));
+
+  arolla::expr::PostOrder post_order(combined);
+  SharedNodeTracker shared_node_tracker(post_order);
+  size_t root_node_index = post_order.nodes_size() - 1;
+  // Fake parent index for the top level variables.
+  // It is important for the case, where variables point to exactly the same
+  // computation graph.
+  size_t var_id = 0;
+  for (size_t child_index : post_order.dep_indices(root_node_index)) {
+    shared_node_tracker.AddTopLevelVariable(child_index, var_id++);
+  }
 
   auto is_extract_needed = [&extra_nodes_to_extract](const ExprNodePtr& node) {
     return arolla::expr::IsNameAnnotation(node) ||
            extra_nodes_to_extract.contains(node->fingerprint());
   };
 
-  RETURN_IF_ERROR(
-      shared_node_tracker.Process(combined, is_extract_needed));
+  RETURN_IF_ERROR(shared_node_tracker.Process(is_extract_needed));
 
   // Extract variables from `combined` to `vars`.
   ASSIGN_OR_RETURN(combined, ExtractAutoVariables(combined, shared_node_tracker,
