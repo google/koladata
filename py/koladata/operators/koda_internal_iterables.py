@@ -153,3 +153,15 @@ def shuffle(x):
 def sequence_chain(*sequences):  # pylint: disable=unused-argument
   """Chains the given sequences into one."""
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.iterables.empty_as',
+    qtype_constraints=[
+        qtype_utils.expect_iterable(P.iterable),
+    ],
+)
+def empty_as(iterable):
+  """Returns an empty iterable of the same type as `iterable`."""
+  return from_sequence(arolla.M.seq.slice(to_sequence(iterable), 0, 0))

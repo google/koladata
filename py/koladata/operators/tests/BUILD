@@ -7679,3 +7679,20 @@ py_test(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_test(
+    name = "koda_internal_iterables_empty_as_test",
+    srcs = ["koda_internal_iterables_empty_as_test.py"],
+    deps = [
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:bootstrap",
+        "//py/koladata/operators:koda_internal_iterables",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:iterable_qvalue",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
