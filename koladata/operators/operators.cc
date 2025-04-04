@@ -204,6 +204,7 @@ OPERATOR("kd.math.divide", Divide);
 OPERATOR("kd.math.exp", Exp);
 OPERATOR("kd.math.floor", Floor);
 OPERATOR("kd.math.floordiv", FloorDiv);
+OPERATOR("kd.math.is_nan", IsNaN);
 OPERATOR("kd.math.log", Log);
 OPERATOR("kd.math.log10", Log10);
 OPERATOR("kd.math.maximum", Maximum);

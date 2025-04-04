@@ -40,6 +40,8 @@ absl::StatusOr<DataSlice> Log10(const DataSlice& x);
 // kd.math.exp.
 absl::StatusOr<DataSlice> Exp(const DataSlice& x);
 
+// kd.math.is_nan.
+absl::StatusOr<DataSlice> IsNaN(const DataSlice& x);
 
 // kd.math.sigmoid.
 absl::StatusOr<DataSlice> Sigmoid(

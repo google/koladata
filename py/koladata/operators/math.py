@@ -902,3 +902,15 @@ def inverse_cdf(x, cdf_arg):
     cdf_arg: (float) CDF value.
   """
   return agg_inverse_cdf(jagged_shape_ops.flatten(x), cdf_arg)
+
+
+@optools.add_to_registry(aliases=['kd.is_nan'])
+@optools.as_backend_operator(
+    'kd.math.is_nan',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def _is_nan(x):  # pylint: disable=unused-argument
+  """Returns pointwise `kd.present|missing` if the input is NaN or not."""
+  raise NotImplementedError('implemented in the backend')

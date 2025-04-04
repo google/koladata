@@ -83,6 +83,12 @@ absl::StatusOr<DataSlice> Exp(const DataSlice& x) {
   return SimplePointwiseEval("math.exp", {x});
 }
 
+absl::StatusOr<DataSlice> IsNaN(const DataSlice& x) {
+  RETURN_IF_ERROR(ExpectNumeric("x", x));
+  return SimplePointwiseEval(
+      "math.is_nan", {x}, /*output_schema=*/internal::DataItem(schema::kMask));
+}
+
 absl::StatusOr<DataSlice> Abs(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectNumeric("x", x));
   return SimplePointwiseEval("math.abs", {x});
