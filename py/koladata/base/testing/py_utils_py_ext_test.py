@@ -13,7 +13,7 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.types.testing import py_utils_py_ext
+from koladata.base.testing import py_utils_py_ext
 
 
 class ParseArgsTest(absltest.TestCase):

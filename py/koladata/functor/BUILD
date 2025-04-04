@@ -56,16 +56,12 @@ cc_library(
     deps = [
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
-        "//koladata/functor",
         "//koladata/functor:auto_variables",
-        "//koladata/functor:signature_storage",
+        "//py/koladata/base:py_utils",
         "//py/koladata/base:wrap_utils",
-        "//py/koladata/types:py_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
@@ -84,8 +80,8 @@ py_library(
     srcs = ["functions.py"],
     deps = [
         ":functor_factories",
-        ":signature_utils",
         ":tracing_decorator",
+        "//py/koladata/types:signature_utils",
     ],
 )
 
@@ -94,8 +90,8 @@ py_library(
     srcs = ["functor_factories.py"],
     deps = [
         ":py_functors_py_ext",
-        ":signature_utils",
         "//koladata/expr:expr_operators",
+        "//py/koladata/base:py_functors_base_py_ext",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:tracing",
@@ -106,6 +102,7 @@ py_library(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:mask_constants",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/types:signature_utils",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -116,7 +113,6 @@ py_test(
     deps = [
         ":boxing",
         ":functor_factories",
-        ":signature_utils",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -130,6 +126,7 @@ py_test(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
+        "//py/koladata/types:signature_utils",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
@@ -155,18 +152,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_library(
-    name = "signature_utils",
-    srcs = ["signature_utils.py"],
-    deps = [
-        ":py_functors_py_ext",
-        "//py/koladata/functions",
-        "//py/koladata/types:data_item",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:py_boxing",
     ],
 )
 
@@ -227,20 +212,5 @@ py_test(
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-    ],
-)
-
-py_test(
-    name = "signature_utils_test",
-    srcs = ["signature_utils_test.py"],
-    deps = [
-        ":signature_utils",
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/types:data_item",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )

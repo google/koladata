@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "py/koladata/types/py_utils.h"
+#include "py/koladata/base/py_utils.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -35,8 +35,8 @@
 #include "koladata/operators/utils.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/base/boxing.h"
 #include "py/koladata/base/wrap_utils.h"
-#include "py/koladata/types/boxing.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/status_macros_backport.h"
 

@@ -18,11 +18,7 @@ load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
-default_visibility = [
-    "//koladata:internal",
-]
-
-package(default_visibility = default_visibility)
+package(default_visibility = ["//koladata:internal"])
 
 licenses(["notice"])
 
@@ -34,94 +30,6 @@ py_test(
         ":data_slice_py_ext",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-cc_library(
-    name = "boxing",
-    srcs = ["boxing.cc"],
-    hdrs = ["boxing.h"],
-    deps = [
-        "//koladata:arolla_utils",
-        "//koladata:data_bag",
-        "//koladata:data_slice",
-        "//koladata:data_slice_qtype",
-        "//koladata:object_factories",
-        "//koladata:uuid_utils",
-        "//koladata/internal:casting",
-        "//koladata/internal:data_item",
-        "//koladata/internal:data_slice",
-        "//koladata/internal:dtype",
-        "//koladata/internal:missing_value",
-        "//koladata/internal:schema_utils",
-        "//koladata/internal:types",
-        "//py/koladata/base/py_conversions:dataclasses_util",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_absl//absl/types:span",
-        "@com_google_arolla//arolla/array/qtype",
-        "@com_google_arolla//arolla/dense_array",
-        "@com_google_arolla//arolla/dense_array/qtype",
-        "@com_google_arolla//arolla/memory",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
-        "@com_google_arolla//py/arolla/abc:py_abc",
-        "@com_google_arolla//py/arolla/py_utils",
-    ],
-)
-
-py_test(
-    name = "boxing_test",
-    srcs = ["boxing_test.py"],
-    deps = [
-        ":data_bag",
-        ":data_item",
-        ":data_slice",
-        ":mask_constants",
-        ":qtypes",
-        ":schema_constants",
-        "//py/koladata/operators:comparison",
-        "//py/koladata/testing",
-        "//py/koladata/types/testing:operator_test_invalid_unicode_op_clib",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-cc_library(
-    name = "py_utils",
-    srcs = ["py_utils.cc"],
-    hdrs = ["py_utils.h"],
-    deps = [
-        ":boxing",
-        "//koladata:data_bag",
-        "//koladata:data_slice",
-        "//koladata:data_slice_qtype",
-        "//koladata:object_factories",
-        "//koladata/operators:lib",
-        "//py/koladata/base:wrap_utils",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_absl//absl/types:span",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util:status_backport",
-        "@com_google_arolla//py/arolla/abc:py_abc",
-        "@com_google_arolla//py/arolla/py_utils",
     ],
 )
 
@@ -163,8 +71,6 @@ cc_library(
     srcs = ["data_slice.cc"],
     hdrs = ["data_slice.h"],
     deps = [
-        ":boxing",
-        ":py_utils",
         ":pybind11_protobuf_wrapper",
         "//koladata:arolla_utils",
         "//koladata:data_bag",
@@ -177,6 +83,8 @@ cc_library(
         "//koladata/operators:lib",
         "//koladata/proto:to_proto",
         "//koladata/s11n",
+        "//py/koladata/base:boxing",
+        "//py/koladata/base:py_utils",
         "//py/koladata/base:to_py_object",
         "//py/koladata/base:wrap_utils",
         "//py/koladata/base/py_conversions:to_py",
@@ -252,14 +160,14 @@ cc_library(
     srcs = ["data_item.cc"],
     hdrs = ["data_item.h"],
     deps = [
-        ":boxing",
         ":data_slice_cc_lib",
-        ":py_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
+        "//py/koladata/base:boxing",
+        "//py/koladata/base:py_utils",
         "//py/koladata/base:to_py_object",
         "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/base:no_destructor",
@@ -378,6 +286,18 @@ py_library(
     ],
 )
 
+py_library(
+    name = "signature_utils",
+    srcs = ["signature_utils.py"],
+    deps = [
+        ":data_bag",
+        ":data_item",
+        ":data_slice",
+        ":py_boxing",
+        "//py/koladata/base:py_functors_base_py_ext",
+    ],
+)
+
 py_test(
     name = "schema_item_test",
     srcs = ["schema_item_test.py"],
@@ -397,10 +317,24 @@ py_test(
     ],
 )
 
+py_test(
+    name = "signature_utils_test",
+    srcs = ["signature_utils_test.py"],
+    deps = [
+        ":data_item",
+        ":data_slice",
+        ":schema_constants",
+        ":signature_utils",
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 py_library(
     name = "qtypes",
     srcs = ["qtypes.py"],
-    visibility = default_visibility,
     deps = [
         ":data_bag_py_ext",
         ":data_slice_py_ext",
@@ -452,8 +386,6 @@ cc_library(
     srcs = ["data_bag.cc"],
     hdrs = ["data_bag.h"],
     deps = [
-        ":boxing",
-        ":py_utils",
         ":pybind11_protobuf_wrapper",
         "//koladata:data_bag",
         "//koladata:data_bag_comparison",
@@ -466,6 +398,8 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/operators:lib",
         "//koladata/proto:from_proto",
+        "//py/koladata/base:boxing",
+        "//py/koladata/base:py_utils",
         "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
@@ -507,13 +441,13 @@ cc_library(
     srcs = ["py_misc.cc"],
     hdrs = ["py_misc.h"],
     deps = [
-        ":boxing",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata:schema_constants",
         "//koladata/expr:expr_operators",
         "//koladata/expr:init",
         "//koladata/s11n",
+        "//py/koladata/base:boxing",
         "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/base:nullability",
         "@com_google_arolla//arolla/expr",

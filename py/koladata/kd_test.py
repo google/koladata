@@ -23,9 +23,9 @@ from arolla import arolla
 from koladata import kd
 from koladata.expr import tracing_mode
 from koladata.functions import functions
-from koladata.functor import signature_utils
 from koladata.types import jagged_shape
 from koladata.types import schema_constants
+from koladata.types import signature_utils
 
 kde = kd.lazy
 kdi = kd.eager

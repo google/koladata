@@ -12,14 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tools to create and manipulate Koda functor signatures."""
+"""Tools to create and manipulate Koda functor signatures.
+
+TODO: move this to koladata/base when possible.
+"""
 
 import inspect
 import types
 from typing import Any
 
-from koladata.functions import functions
-from koladata.functor import py_functors_py_ext as _py_functors_py_ext
+from koladata.base import py_functors_base_py_ext
+from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -27,15 +30,15 @@ from koladata.types import py_boxing
 
 # Container for parameter kind constants.
 ParameterKind = types.SimpleNamespace(
-    POSITIONAL_ONLY=_py_functors_py_ext.positional_only_parameter_kind(),
-    POSITIONAL_OR_KEYWORD=_py_functors_py_ext.positional_or_keyword_parameter_kind(),
-    VAR_POSITIONAL=_py_functors_py_ext.var_positional_parameter_kind(),
-    KEYWORD_ONLY=_py_functors_py_ext.keyword_only_parameter_kind(),
-    VAR_KEYWORD=_py_functors_py_ext.var_keyword_parameter_kind(),
+    POSITIONAL_ONLY=py_functors_base_py_ext.positional_only_parameter_kind(),
+    POSITIONAL_OR_KEYWORD=py_functors_base_py_ext.positional_or_keyword_parameter_kind(),
+    VAR_POSITIONAL=py_functors_base_py_ext.var_positional_parameter_kind(),
+    KEYWORD_ONLY=py_functors_base_py_ext.keyword_only_parameter_kind(),
+    VAR_KEYWORD=py_functors_base_py_ext.var_keyword_parameter_kind(),
 )
 
 # The constant used to represent no default value in stored signatures.
-NO_DEFAULT_VALUE = _py_functors_py_ext.no_default_value_marker()
+NO_DEFAULT_VALUE = py_functors_base_py_ext.no_default_value_marker()
 
 
 def parameter(
@@ -61,7 +64,7 @@ def parameter(
     raise ValueError(
         'only DataItems can be used as default values for parameters'
     )
-  return functions.obj(name=name, kind=kind, default_value=default_value)
+  return data_bag.DataBag._obj_no_bag(name=name, kind=kind, default_value=default_value)  # pylint: disable=protected-access
 
 
 def signature(parameters: list[data_slice.DataSlice]) -> data_slice.DataSlice:
@@ -77,9 +80,11 @@ def signature(parameters: list[data_slice.DataSlice]) -> data_slice.DataSlice:
   Returns:
     A DataSlice representing the signature.
   """
-  return functions.obj(parameters=functions.implode(
-      data_slice.DataSlice.from_vals(parameters)
-  ))
+  return data_bag.DataBag._obj_no_bag(  # pylint: disable=protected-access
+      parameters=data_bag.DataBag.empty()
+      .implode(data_slice.DataSlice.from_vals(parameters))
+      .freeze_bag()
+  )
 
 
 def _parameter_from_py_parameter(

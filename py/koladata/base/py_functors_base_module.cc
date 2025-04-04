@@ -14,31 +14,35 @@
 //
 #include <Python.h>
 
-#include "py/koladata/functor/py_functors.h"
+#include "py/koladata/base/py_functors_base.h"
 
 namespace koladata::python {
 namespace {
 
-constexpr const char* kThisModuleName = "koladata.functor.py_functors";
-
-PyMethodDef kPyFunctorsModule_methods[] = {
-    {"auto_variables", (PyCFunction)PyAutoVariables, METH_FASTCALL,
-     "Returns a functor with auto-variables extracted."},
-    {nullptr} /* sentinel */
-};
-
-struct PyModuleDef py_functors_module = {
-    PyModuleDef_HEAD_INIT,
-    kThisModuleName,
-    /*module docstring=*/"The module with Python bindings for Koda functors.",
-    -1,
-    /*methods=*/kPyFunctorsModule_methods,
-};
+constexpr const char* kThisModuleName = "koladata.base.py_functors_base";
 
 // NOTE: This PyInit function must be named this way
 // (PyInit_{py_extension.name}). Otherwise it does not get initialized.
-PyMODINIT_FUNC PyInit_py_functors_py_ext(void) {
-  return PyModule_Create(&py_functors_module);
+PyMODINIT_FUNC PyInit_py_functors_base_py_ext(void) {
+  static PyMethodDef py_methods[] = {
+      kDefPyIsFn,
+      kDefPyPositionalOnlyParameterKind,
+      kDefPyPositionalOrKeywordParameterKind,
+      kDefPyVarPositionalParameterKind,
+      kDefPyKeywordOnlyParameterKind,
+      kDefPyVarKeywordParameterKind,
+      kDefPyNoDefaultValueMarker,
+      kDefPyCreateFunctor,
+      {nullptr} /* sentinel */
+  };
+  static PyModuleDef py_module = {
+      .m_base = PyModuleDef_HEAD_INIT,
+      .m_name = kThisModuleName,
+      .m_doc = "The module with base Python bindings for Koda functors.",
+      .m_size = -1,
+      .m_methods = py_methods,
+  };
+  return PyModule_Create(&py_module);
 }
 
 }  // namespace

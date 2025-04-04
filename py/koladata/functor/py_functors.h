@@ -21,26 +21,6 @@
 
 namespace koladata::python {
 
-absl::Nullable<PyObject*> PyPositionalOnlyParameterKind(PyObject* /*self*/,
-                                                        PyObject* /*py_args*/);
-absl::Nullable<PyObject*> PyPositionalOrKeywordParameterKind(
-    PyObject* /*self*/, PyObject* /*py_args*/);
-absl::Nullable<PyObject*> PyVarPositionalParameterKind(PyObject* /*self*/,
-                                                       PyObject* /*py_args*/);
-absl::Nullable<PyObject*> PyKeywordOnlyParameterKind(PyObject* /*self*/,
-                                                     PyObject* /*py_args*/);
-absl::Nullable<PyObject*> PyVarKeywordParameterKind(PyObject* /*self*/,
-                                                    PyObject* /*py_args*/);
-
-absl::Nullable<PyObject*> PyNoDefaultValueMarker(PyObject* /*self*/,
-                                                 PyObject* /*py_args*/);
-
-absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
-                                          PyObject** py_args, Py_ssize_t nargs,
-                                          PyObject* py_kwnames);
-
-absl::Nullable<PyObject*> PyIsFn(PyObject* /*self*/, PyObject* fn);
-
 absl::Nullable<PyObject*> PyAutoVariables(PyObject* /*self*/,
                                           PyObject** py_args, Py_ssize_t nargs);
 

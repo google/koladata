@@ -30,7 +30,7 @@ cc_library(
     deps = [
         ":fstring_processor",
         "//koladata/s11n",
-        "//py/koladata/types:py_utils",
+        "//py/koladata/base:py_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log:check",

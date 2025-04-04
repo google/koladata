@@ -24,7 +24,6 @@ from koladata.expr import view as _
 from koladata.functions import functions as fns
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
-from koladata.functor import signature_utils
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
@@ -32,6 +31,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import schema_constants
+from koladata.types import signature_utils
 
 
 I = input_container.InputContainer('I')

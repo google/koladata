@@ -890,6 +890,6 @@ koladata_py_extension(
     srcs = ["test_cc_proto_module.cc"],
     deps = [
         ":test_cc_proto",
-        "//py/koladata/types:py_utils",  # buildcleaner: keep
+        "//py/koladata/base:py_utils",  # buildcleaner: keep
     ],
 )

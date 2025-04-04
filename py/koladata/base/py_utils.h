@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_TYPES_PY_UTILS_H_
-#define THIRD_PARTY_PY_KOLADATA_TYPES_PY_UTILS_H_
+#ifndef THIRD_PARTY_PY_KOLADATA_BASE_PY_UTILS_H_
+#define THIRD_PARTY_PY_KOLADATA_BASE_PY_UTILS_H_
 
 #include <Python.h>
 
@@ -267,4 +267,4 @@ bool ParseBoolArg(const FastcallArgParser::Args& args,
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_TYPES_PY_UTILS_H_
+#endif  // THIRD_PARTY_PY_KOLADATA_BASE_PY_UTILS_H_

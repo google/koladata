@@ -20,12 +20,12 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
-from koladata.functor import signature_utils
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import signature_utils
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals

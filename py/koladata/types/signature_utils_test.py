@@ -12,17 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for signature_utils."""
-
 import inspect
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
-from koladata.functor import signature_utils
 from koladata.operators import kde_operators as _
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import schema_constants
+from koladata.types import signature_utils
 
 
 class SignatureUtilsTest(absltest.TestCase):

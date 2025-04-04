@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_PY_KOLADATA_TYPES_BOXING_H_
-#define THIRD_PARTY_PY_KOLADATA_TYPES_BOXING_H_
+#ifndef THIRD_PARTY_PY_KOLADATA_BASE_BOXING_H_
+#define THIRD_PARTY_PY_KOLADATA_BASE_BOXING_H_
 
 #include <Python.h>
 
@@ -129,4 +129,4 @@ absl::StatusOr<DataSlice> GenericFromPyObject(
 
 }  // namespace koladata::python
 
-#endif  // THIRD_PARTY_PY_KOLADATA_TYPES_BOXING_H_
+#endif  // THIRD_PARTY_PY_KOLADATA_BASE_BOXING_H_

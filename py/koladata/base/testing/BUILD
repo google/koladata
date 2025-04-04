@@ -59,7 +59,7 @@ arolla_py_cc_deps(
     testonly = True,
     dynamic_deps = ["//py/koladata/dynamic_deps:koladata_so"],
     visibility = ["//koladata:internal"],
-    deps = ["//py/koladata/types/testing:operator_test_invalid_unicode_op"],
+    deps = [":operator_test_invalid_unicode_op"],
 )
 
 koladata_py_extension(
@@ -67,7 +67,7 @@ koladata_py_extension(
     testonly = True,
     srcs = ["py_utils_module.cc"],
     deps = [
-        "//py/koladata/types:py_utils",
+        "//py/koladata/base:py_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/log:check",
     ],

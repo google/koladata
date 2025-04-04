@@ -22,7 +22,7 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/log/check.h"
-#include "py/koladata/types/py_utils.h"
+#include "py/koladata/base/py_utils.h"
 
 namespace  koladata::python {
 namespace {

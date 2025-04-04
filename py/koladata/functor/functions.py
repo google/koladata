@@ -21,8 +21,8 @@ in kd_test.py.
 import types as _py_types
 
 from koladata.functor import functor_factories as _functor_factories
-from koladata.functor import signature_utils as _signature_utils
 from koladata.functor import tracing_decorator as _tracing_decorator
+from koladata.types import signature_utils as _signature_utils
 
 
 functor = _py_types.SimpleNamespace(

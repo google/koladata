@@ -19,21 +19,22 @@ import types as py_types
 from typing import Any, Callable
 
 from arolla import arolla
+from koladata.base import py_functors_base_py_ext
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing
-from koladata.functor import py_functors_py_ext as _py_functors_py_ext
-from koladata.functor import signature_utils
-from koladata.operators import eager_op_utils as _eager_op_utils
+from koladata.functor import py_functors_py_ext
+from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import py_boxing
+from koladata.types import signature_utils
 
 
-_kd = _eager_op_utils.operators_container('kd')
+_kd = eager_op_utils.operators_container('kd')
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
@@ -81,9 +82,9 @@ def expr_fn(
   """
   returns = _maybe_wrap_expr(returns)
   variables = {k: _maybe_wrap_expr(v) for k, v in variables.items()}
-  res = _py_functors_py_ext.create_functor(returns, signature, **variables)
+  res = py_functors_base_py_ext.create_functor(returns, signature, **variables)
   if auto_variables:
-    res = _py_functors_py_ext.auto_variables(res)
+    res = py_functors_py_ext.auto_variables(res)
   return res
 
 
@@ -97,7 +98,9 @@ def is_fn(obj: Any) -> data_slice.DataSlice:
     kd.present if `obj` is a DataSlice representing a functor, kd.missing
     otherwise (for example if obj has wrong type).
   """
-  if isinstance(obj, data_slice.DataSlice) and _py_functors_py_ext.is_fn(obj):
+  if isinstance(obj, data_slice.DataSlice) and py_functors_base_py_ext.is_fn(
+      obj
+  ):
     return mask_constants.present
   else:
     return mask_constants.missing
