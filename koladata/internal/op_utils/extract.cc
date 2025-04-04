@@ -17,8 +17,8 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <optional>
-#include <queue>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -115,7 +115,7 @@ class CopyingProcessor {
         leaf_callback_(leaf_callback) {}
 
   absl::Status ExtractSlice(const QueuedSlice& slice) {
-    RETURN_IF_ERROR(VisitImpl(slice));
+    RETURN_IF_ERROR(VisitImpl(slice, /*push_front=*/false));
     return ProcessQueue();
   }
 
@@ -126,6 +126,17 @@ class CopyingProcessor {
   }
 
  private:
+  // Push slice to the end of the queue with incremented depth, or to the front
+  // of the queue with the same depth.
+  void UpdateDepthAndAddToQueue(QueuedSlice slice, bool push_front) {
+    if (push_front) {
+      queued_slices_.push_front(std::move(slice));
+    } else {
+      slice.depth++;
+      queued_slices_.push_back(std::move(slice));
+    }
+  }
+
   absl::Status ValidatePrimitiveTypes(const QueuedSlice& slice) {
     if (slice.slice.is_empty_and_unknown()) {
       return absl::OkStatus();
@@ -202,7 +213,7 @@ class CopyingProcessor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitObjects(const QueuedSlice& slice) {
+  absl::Status VisitObjects(const QueuedSlice& slice, bool push_front) {
     // Filter out objectIds, as Object slice may also contain primitive types.
     DataSliceImpl objects_slice = FilterToObjects(slice.slice);
     ASSIGN_OR_RETURN(auto partial_update_slice,
@@ -216,24 +227,26 @@ class CopyingProcessor {
       // We need to copy kSchemaAttr for the ObjectIds that were previously
       // visited as entities. We assume that the schemas are the same, so we
       // would not need a deep extraction.
-      queued_slices_.push(
+      UpdateDepthAndAddToQueue(
           QueuedSlice{.slice = std::move(partial_update_slice),
                       .schema = slice.schema,
                       .schema_source = SchemaSource::kDataDatabag,
-                      .depth = slice.depth + 1,
-                      .extract_kschemaattr_only = true});
+                      .depth = slice.depth,
+                      .extract_kschemaattr_only = true},
+          push_front);
     }
     if (update_slice.size() > 0) {
-      queued_slices_.push(
+      UpdateDepthAndAddToQueue(
           QueuedSlice{.slice = std::move(update_slice),
                       .schema = slice.schema,
                       .schema_source = SchemaSource::kDataDatabag,
-                      .depth = slice.depth + 1});
+                      .depth = slice.depth},
+          push_front);
     }
     return absl::OkStatus();
   }
 
-  absl::Status VisitEntities(const QueuedSlice& slice) {
+  absl::Status VisitEntities(const QueuedSlice& slice, bool push_front) {
     ASSIGN_OR_RETURN(auto update_slice, MarkEntitiesAsVisited(slice.slice));
     if (update_slice.present_count() == 0) {
       ASSIGN_OR_RETURN(
@@ -248,21 +261,22 @@ class CopyingProcessor {
       }
     }
     RETURN_IF_ERROR(MarkSchemaAsVisited(slice.schema, slice.schema_source));
-    queued_slices_.push(QueuedSlice{.slice = update_slice,
-                                    .schema = slice.schema,
-                                    .schema_source = slice.schema_source,
-                                    .depth = slice.depth + 1});
+    UpdateDepthAndAddToQueue(QueuedSlice{.slice = std::move(update_slice),
+                                         .schema = slice.schema,
+                                         .schema_source = slice.schema_source,
+                                         .depth = slice.depth},
+                             push_front);
     return absl::OkStatus();
   }
 
-  absl::Status VisitImpl(const QueuedSlice& slice) {
+  absl::Status VisitImpl(const QueuedSlice& slice, bool push_front) {
     // TODO: Decide on the behavior, when we come to the same
     // object with the different schemas.
     if (slice.schema.holds_value<ObjectId>()) {
-      return VisitEntities(slice);
+      return VisitEntities(slice, push_front);
     } else if (slice.schema.holds_value<schema::DType>()) {
       if (slice.schema == schema::kObject || slice.schema == schema::kSchema) {
-        return VisitObjects(slice);
+        return VisitObjects(slice, push_front);
       } else if (slice.schema.value<schema::DType>().is_primitive()) {
         RETURN_IF_ERROR(ValidatePrimitiveTypes(slice));
       }
@@ -280,11 +294,11 @@ class CopyingProcessor {
     return absl::OkStatus();
   }
 
-  absl::Status Visit(const QueuedSlice& slice) {
+  absl::Status Visit(const QueuedSlice& slice, bool push_front = false) {
     if (is_shallow_clone_) {
       return absl::OkStatus();
     }
-    return VisitImpl(slice);
+    return VisitImpl(slice, push_front);
   }
 
   // Sets attribute to the new_data_bag_ that are not unset in the `attr_ds`.
@@ -572,10 +586,10 @@ class CopyingProcessor {
       }
       if (attr_name == schema::kSchemaMetadataAttr) {
         if (was_schema_updated) {
-          RETURN_IF_ERROR(
-              Visit({DataSliceImpl::Create({std::move(attr_schema)}),
-                     DataItem(schema::kObject), SchemaSource::kDataDatabag,
-                     ds.depth - 1}));
+          RETURN_IF_ERROR(Visit(
+              {DataSliceImpl::Create({std::move(attr_schema)}),
+               DataItem(schema::kObject), SchemaSource::kDataDatabag, ds.depth},
+              /*push_front=*/true));
         }
         continue;
       }
@@ -774,7 +788,8 @@ class CopyingProcessor {
                      CopyAttrSchemas(new_schemas, old_schemas, attr_name));
     if (attr_name == schema::kSchemaMetadataAttr) {
       return Visit({std::move(attr_schemas), DataItem(schema::kObject),
-                    SchemaSource::kDataDatabag, depth - 1});
+                    SchemaSource::kDataDatabag, depth},
+                   /*push_front=*/true);
     }
     if (attr_name == schema::kSchemaNameAttr) {
       return absl::OkStatus();
@@ -984,7 +999,7 @@ class CopyingProcessor {
     while (!queued_slices_.empty()) {
       RETURN_IF_ERROR(arolla::CheckCancellation());
       QueuedSlice slice = std::move(queued_slices_.front());
-      queued_slices_.pop();
+      queued_slices_.pop_front();
       if (max_depth_ >= 0 && slice.depth > max_depth_) {
         continue;
       } else if (max_depth_ >= 0 && slice.depth == max_depth_ &&
@@ -1013,7 +1028,7 @@ class CopyingProcessor {
  private:
   arolla::EvaluationContext ctx_;
   ObjectsGroupBy group_by_;
-  std::queue<QueuedSlice> queued_slices_;
+  std::deque<QueuedSlice> queued_slices_;
   const DataBagImpl& databag_;
   const DataBagImpl::FallbackSpan fallbacks_;
   const absl::Nullable<const DataBagImpl*> schema_databag_;
