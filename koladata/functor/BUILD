@@ -260,6 +260,7 @@ cc_library(
     name = "operators",
     srcs = ["operators.cc"],
     deps = [
+        ":aggregate_operator",
         ":call_operator",
         ":is_fn_operator",
         ":map_operator",
@@ -320,6 +321,31 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "aggregate_operator",
+    srcs = ["aggregate_operator.cc"],
+    hdrs = ["aggregate_operator.h"],
+    deps = [
+        ":call",
+        ":functor",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/internal:non_deterministic_token",
+        "//koladata/iterables:iterable_qtype",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr/operators:bootstrap",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/sequence",
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )
