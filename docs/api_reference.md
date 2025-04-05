@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x33e2be0a2b10>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x530cfb7c3210>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x33e2be0a2b10>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x530cfb7c3210>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -1835,6 +1835,31 @@ Operators to create and call functors.
 Describes handling a given user Python type as input/output when tracing.
 ```
 
+### `kd.functor.aggregate(fn, items, return_type_as=DataItem(None, schema: NONE))` {#kd.functor.aggregate}
+
+``` {.no-copy}
+Aggregates the values of the iterable.
+
+Applies a given functor using the items in the iterable as arguments.
+Non-streaming operator. Raises if the number of items does not correspond to
+the number of arguments of the functor.
+
+This operator might look similar to kd.functor.call or kd.functor.reduce, but
+they have different semantics:
+  - kd.functor.call: supports kwargs, but does not operate on iterables.
+  - kd.functor.reduce: takes a binary functor and an initial value
+  and then applies the functor N times, where N is the number of items in the
+  iterable.
+
+Args:
+  fn: A functor to be applied to the items in the iterable.
+  items: An iterable of items to be passed to the functor as arguments.
+  return_type_as: The type of the result.
+
+Returns:
+  The result of applying the functor to the items in the iterable.
+```
+
 ### `kd.functor.allow_arbitrary_unused_inputs(fn_def)` {#kd.functor.allow_arbitrary_unused_inputs}
 
 ``` {.no-copy}
@@ -1935,6 +1960,36 @@ Args:
 
 Returns:
   The result of the call.
+```
+
+### `kd.functor.call_and_update_namedtuple(fn, *args, namedtuple_to_update, **kwargs)` {#kd.functor.call_and_update_namedtuple}
+
+``` {.no-copy}
+Calls a functor which returns a namedtuple and applies it as an update.
+
+This operator exists to avoid the need to specify return_type_as for the inner
+call (since the returned namedtuple may have a subset of fields of the
+original namedtuple, potentially in a different order).
+
+Example:
+  kd.functor.call_and_update_namedtuple(
+      kd.fn(lambda x: kd.make_namedtuple(x=x * 2)),
+      x=2,
+      namedtuple_to_update=kd.make_namedtuple(x=1, y=2))
+  # returns kd.make_namedtuple(x=4, y=2)
+
+Args:
+  fn: The functor to be called, typically created via kd.fn().
+  *args: The positional arguments to pass to the call. Scalars will be
+    auto-boxed to DataItems.
+  namedtuple_to_update: The namedtuple to be updated with the result of the
+    call. The returned namedtuple must have a subset (possibly empty or full)
+    of fields of this namedtuple, with the same types.
+  **kwargs: The keyword arguments to pass to the call. Scalars will be
+    auto-boxed to DataItems.
+
+Returns:
+  The updated namedtuple.
 ```
 
 ### `kd.functor.expr_fn(returns, *, signature=None, auto_variables=False, **variables)` {#kd.functor.expr_fn}
