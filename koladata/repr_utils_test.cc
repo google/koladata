@@ -41,8 +41,6 @@ using ::absl_testing::StatusIs;
 using ::arolla::testing::CausedBy;
 using ::testing::AllOf;
 using ::testing::MatchesRegex;
-using ::testing::Property;
-using ::testing::StrEq;
 
 TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
   DataBagPtr bag = DataBag::Empty();
