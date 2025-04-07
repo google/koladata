@@ -71,7 +71,6 @@ using ::arolla::CreateFullDenseArray;
 using ::arolla::GetQType;
 using ::arolla::TypedValue;
 using ::arolla::testing::CausedBy;
-using ::arolla::testing::PayloadIs;
 using ::koladata::internal::DataItem;
 using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::testing::DataItemWith;
