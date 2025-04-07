@@ -55,7 +55,6 @@ using ::arolla::testing::CausedBy;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::AllOf;
 using ::testing::ElementsAre;
-using ::testing::Eq;
 using ::testing::HasSubstr;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
 
