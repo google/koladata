@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import re
 
 from absl.testing import absltest
@@ -663,6 +664,20 @@ class FunctorFactoriesTest(absltest.TestCase):
     fn5 = functor_factories.fn(lambda x, y: x + y, use_tracing=False, y=5)
     testing.assert_equal(kd.call(fn4, x=ds([1, 2])), ds([6, 7]))
     testing.assert_equal(kd.call(fn5, x=ds([1, 2])), ds([6, 7]))
+
+  def test_fn_functools_partial(self):
+    def f(x, y):
+      return x + y
+
+    with self.subTest('positional-arg'):
+      fn1 = functor_factories.fn(functools.partial(f, 1), use_tracing=True)
+      testing.assert_equal(kd.call(fn1, y=ds([3, 4])), ds([4, 5]))
+      testing.assert_equal(introspection.unpack_expr(fn1.returns), 1 + I.y)
+    with self.subTest('keyword-arg'):
+      fn2 = functor_factories.fn(functools.partial(f, x=2), use_tracing=True)
+      testing.assert_equal(kd.call(fn2, y=ds([3, 4])), ds([5, 6]))
+      testing.assert_equal(kd.call(fn2, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
+      testing.assert_equal(introspection.unpack_expr(fn2.returns), I.x + I.y)
 
   def test_fn_existing_fn(self):
     existing_fn = functor_factories.expr_fn(I.x + I.y)

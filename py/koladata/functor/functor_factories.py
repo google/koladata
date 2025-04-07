@@ -14,6 +14,7 @@
 
 """Tools to create functors."""
 
+import functools
 import inspect
 import types as py_types
 from typing import Any, Callable
@@ -337,7 +338,7 @@ def fn(
   """
   if isinstance(f, arolla.Expr) or introspection.is_packed_expr(f):
     return expr_fn(f, **kwargs)
-  if isinstance(f, py_types.FunctionType):
+  if isinstance(f, (py_types.FunctionType, functools.partial)):
     if use_tracing:
       return trace_py_fn(f, **kwargs)
     else:
