@@ -287,7 +287,8 @@ void BM_AddViaFunctor(benchmark::State& state) {
       DataSlice::Create(internal::DataItem(arolla::expr::ExprQuote(expr)),
                         internal::DataItem(schema::kExpr))
           .value();
-  auto functor = functor::CreateFunctor(expr_slice, std::nullopt, {}).value();
+  auto functor =
+      functor::CreateFunctor(expr_slice, DataSlice(), {}, {}).value();
 
   auto fn = [&functor](const auto& ds) {
     return functor::CallFunctorWithCompilationCache(

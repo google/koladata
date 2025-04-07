@@ -500,3 +500,47 @@ def aggregate(fn, items, return_type_as=data_slice.DataSlice):  # pylint: disabl
     The result of applying the functor to the items in the iterable.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.functor.expr_fn',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.returns),
+        qtype_utils.expect_data_slice(P.signature),
+        qtype_utils.expect_data_slice(P.auto_variables),
+        qtype_utils.expect_data_slice_kwargs(P.variables),
+    ],
+    deterministic=False,
+)
+def expr_fn(
+    returns,
+    signature=None,
+    auto_variables=False,
+    **variables,
+):
+  """Creates a functor.
+
+  Args:
+    returns: DataItem with literal or ExprQuote that will be evaluated on the
+      functor call. Must evaluate to a DataSlice/DataItem, or the
+      return_type_as= argument should be specified at kd.call time.
+    signature: The signature of the functor. Will be used to map from args/
+      kwargs passed at calling time to I.smth inputs of the expressions. When
+      None or dataItem with missing value, the default signature will be created
+      based on the inputs from the expressions involved.
+    auto_variables: When true, we create additional variables automatically
+      based on the provided expressions for 'returns' and user-provided
+      variables. All non-scalar DataSlice literals become their own variables,
+      and all named subexpressions become their own variables. This helps
+      readability and manipulation of the resulting functor.
+    **variables: The variables of the functor. Each variable can either be an
+      expression to be evaluated, or a DataItem, or a primitive that will be
+      wrapped as a DataItem. The result of evaluating the variable can be
+      accessed as V.smth in other expressions.
+
+  Returns:
+    A DataItem representing the functor.
+  """
+  del returns, signature, auto_variables, variables
+  raise NotImplementedError('implemented in the backend')

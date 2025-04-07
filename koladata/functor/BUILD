@@ -259,11 +259,34 @@ cc_library(
 )
 
 cc_library(
+    name = "expr_fn_operator",
+    srcs = ["expr_fn_operator.cc"],
+    hdrs = ["expr_fn_operator.h"],
+    deps = [
+        ":auto_variables",
+        ":functor",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/internal/op_utils:qexpr",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
     name = "operators",
     srcs = ["operators.cc"],
     deps = [
         ":aggregate_operator",
         ":call_operator",
+        ":expr_fn_operator",
         ":is_fn_operator",
         ":map_operator",
         "//koladata:data_slice_qtype",

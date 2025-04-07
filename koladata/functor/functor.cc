@@ -15,7 +15,7 @@
 #include "koladata/functor/functor.h"
 
 #include <algorithm>
-#include <optional>
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
@@ -40,32 +40,33 @@
 
 namespace koladata::functor {
 
-absl::StatusOr<DataSlice> CreateFunctor(
-    const DataSlice& returns, const std::optional<DataSlice>& signature,
-    absl::Span<const std::pair<std::string, DataSlice>> variables) {
+namespace {
+
+absl::Status ValidateReturn(const DataSlice& returns) {
   if (!returns.is_item()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("returns must be a data item, but has shape: %s",
                         arolla::Repr(returns.GetShape())));
   }
-
-  std::vector<absl::string_view> variable_names;
-  std::vector<DataSlice> variable_values;
-  variable_names.reserve(variables.size() + 2);
-  variable_values.reserve(variables.size() + 2);
-  variable_names.push_back(kReturnsAttrName);
-  variable_values.push_back(returns);
-  for (const auto& [name, value] : variables) {
-    if (!value.is_item()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "variable [%s] must be a data item, but has shape: %s", name,
-          arolla::Repr(value.GetShape())));
-    }
-    variable_names.push_back(name);
-    variable_values.push_back(value);
+  if (!returns.item().has_value()) {
+    return absl::InvalidArgumentError("returns must be present");
   }
+  return absl::OkStatus();
+}
 
-  if (!signature.has_value()) {
+absl::Status ValidateArg(const DataSlice& returns, absl::string_view arg_name) {
+  if (!returns.is_item()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("variable [%s] must be a data item, but has shape: %s",
+                        arg_name, arolla::Repr(returns.GetShape())));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status ProcessSignature(const DataSlice& signature,
+                              std::vector<absl::string_view>& variable_names,
+                              std::vector<DataSlice>& variable_values) {
+  if (!signature.item().has_value()) {
     std::vector<std::string> inputs;
     for (const auto& value : variable_values) {
       if (value.item().holds_value<arolla::expr::ExprQuote>()) {
@@ -83,16 +84,40 @@ absl::StatusOr<DataSlice> CreateFunctor(
     variable_values.push_back(std::move(default_signature));
   } else {
     // Verify that the signature is valid.
-    RETURN_IF_ERROR(KodaSignatureToCppSignature(signature.value()).status());
+    RETURN_IF_ERROR(KodaSignatureToCppSignature(signature).status());
     variable_names.push_back(kSignatureAttrName);
-    variable_values.push_back(signature.value());
+    variable_values.push_back(signature);
   }
+  return absl::OkStatus();
+}
+
+absl::StatusOr<DataSlice> CreateFunctorImpl(
+    const DataSlice& signature, std::vector<absl::string_view> variable_names,
+    std::vector<DataSlice> variable_values) {
+  RETURN_IF_ERROR(ProcessSignature(signature, variable_names, variable_values));
   DataBagPtr result_db = DataBag::Empty();
   ASSIGN_OR_RETURN(auto result, ObjectCreator::FromAttrs(
-                                    result_db, variable_names,
-                                    variable_values));
+                                    result_db, std::move(variable_names),
+                                    std::move(variable_values)));
   result_db->UnsafeMakeImmutable();
   return result;
+}
+
+}  // namespace
+
+absl::StatusOr<DataSlice> CreateFunctor(
+    const DataSlice& returns, const DataSlice& signature,
+    std::vector<absl::string_view> variable_names,
+    std::vector<DataSlice> variable_values) {
+  RETURN_IF_ERROR(ValidateReturn(returns));
+  RETURN_IF_ERROR(ValidateArg(signature, "signature"));
+  for (size_t i = 0; i < variable_names.size(); ++i) {
+    RETURN_IF_ERROR(ValidateArg(variable_values[i], variable_names[i]));
+  }
+  variable_names.insert(variable_names.begin(), kReturnsAttrName);
+  variable_values.insert(variable_values.begin(), returns);
+  return CreateFunctorImpl(signature, std::move(variable_names),
+                           std::move(variable_values));
 }
 
 absl::StatusOr<bool> IsFunctor(const DataSlice& slice) {

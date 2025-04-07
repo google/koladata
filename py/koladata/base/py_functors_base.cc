@@ -25,6 +25,7 @@
 #include "absl/base/nullability.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/functor.h"
@@ -106,7 +107,7 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
   if (returns == nullptr) {
     return nullptr;
   }
-  std::optional<DataSlice> signature = std::nullopt;
+  DataSlice signature;
   if (py_args[1] != Py_None) {
     const auto* signature_ptr = UnwrapDataSlice(py_args[1], "signature");
     if (signature_ptr == nullptr) {
@@ -114,15 +115,18 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
     }
     signature = *signature_ptr;
   }
-  std::vector<std::pair<std::string, DataSlice>> variables;
-  variables.reserve(args.kw_names.size());
+  std::vector<absl::string_view> variable_names;
+  std::vector<DataSlice> variable_values;
+  variable_names.reserve(args.kw_names.size());
+  variable_values.reserve(args.kw_names.size());
   for (int i = 0; i < args.kw_names.size(); ++i) {
     const auto* variable = UnwrapDataSlice(
         args.kw_values[i], absl::StrFormat("variable [%s]", args.kw_names[i]));
     if (variable == nullptr) {
       return nullptr;
     }
-    variables.emplace_back(args.kw_names[i], *variable);
+    variable_names.emplace_back(args.kw_names[i]);
+    variable_values.emplace_back(*variable);
   }
   // Evaluate the expression.
   absl::StatusOr<DataSlice> result_or_error;
@@ -131,7 +135,9 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
     // otherwise we can get a deadlock between GIL and the C++ locks
     // that are used by the Expr compilation cache.
     arolla::python::ReleasePyGIL guard;
-    result_or_error = functor::CreateFunctor(*returns, signature, variables);
+    result_or_error =
+        functor::CreateFunctor(*returns, signature, std::move(variable_names),
+                               std::move(variable_values));
   }
   ASSIGN_OR_RETURN(auto result, std::move(result_or_error),
                    arolla::python::SetPyErrFromStatus(_));

@@ -84,7 +84,7 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
   ASSIGN_OR_RETURN(auto koda_signature_slice,
                    CppSignatureToKodaSignature(koda_signature));
   return CreateFunctor(std::move(op_slice), std::move(koda_signature_slice),
-                       {});
+                       {}, {});
 }
 
 

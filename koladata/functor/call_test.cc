@@ -102,11 +102,9 @@ TEST(CallTest, VariableRhombus) {
       WrapExpr(arolla::expr::CallOp("math.add",
                                     {CreateVariable("d"), CreateInput("c")})));
   ASSERT_OK_AND_ASSIGN(auto var_d_expr, WrapExpr(CreateInput("b")));
-  ASSERT_OK_AND_ASSIGN(auto fn, CreateFunctor(returns_expr, koda_signature,
-                                              {{"d", var_d_expr},
-                                               {"a", var_a_expr},
-                                               {"c", var_c_expr},
-                                               {"b", var_b_expr}}));
+  ASSERT_OK_AND_ASSIGN(
+      auto fn, CreateFunctor(returns_expr, koda_signature, {"d", "a", "c", "b"},
+                             {var_d_expr, var_a_expr, var_c_expr, var_b_expr}));
   std::vector<arolla::TypedValue> inputs = {
       arolla::TypedValue::FromValue(2),
       arolla::TypedValue::FromValue(3),
@@ -137,8 +135,8 @@ TEST(CallTest, VariableCycle) {
   ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateVariable("b")));
   ASSERT_OK_AND_ASSIGN(auto var_b_expr, WrapExpr(CreateVariable("a")));
   ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature,
-                                     {{"a", var_a_expr}, {"b", var_b_expr}}));
+                       CreateFunctor(returns_expr, koda_signature, {"a", "b"},
+                                     {var_a_expr, var_b_expr}));
   EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "variable [a] has a dependency cycle"));
@@ -150,7 +148,7 @@ TEST(CallTest, JustLiteral) {
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature, {}));
+                       CreateFunctor(returns_expr, koda_signature, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto result, CallFunctorWithCompilationCache(
                                         fn, /*args=*/{}, /*kwnames=*/{}));
   EXPECT_THAT(result.As<int32_t>(), IsOkAndHolds(57));
@@ -162,7 +160,7 @@ TEST(CallTest, MustBeScalar) {
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature, {}));
+                       CreateFunctor(returns_expr, koda_signature, {}, {}));
   ASSERT_OK_AND_ASSIGN(fn, fn.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
   EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{}),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -175,7 +173,7 @@ TEST(CallTest, NoBag) {
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature, {}));
+                       CreateFunctor(returns_expr, koda_signature, {}, {}));
   EXPECT_THAT(CallFunctorWithCompilationCache(fn.WithBag(nullptr), /*args=*/{},
                                               /*kwnames=*/{}),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -189,7 +187,7 @@ TEST(CallTest, DataSliceVariable) {
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(CreateVariable("a")));
   auto var_a = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(
-      auto fn, CreateFunctor(returns_expr, koda_signature, {{"a", var_a}}));
+      auto fn, CreateFunctor(returns_expr, koda_signature, {"a"}, {var_a}));
   ASSERT_OK_AND_ASSIGN(auto result,
                        CallFunctorWithCompilationCache(fn, /*args=*/{},
                                                        /*kwnames=*/{}));
@@ -211,7 +209,7 @@ TEST(CallTest, EvalError) {
       WrapExpr(arolla::expr::CallOp(
           "math.add", {CreateInput("a"), arolla::expr::Literal(57)})));
   ASSERT_OK_AND_ASSIGN(auto fn, CreateFunctor(returns_expr, koda_signature,
-                                              {{"foo", var_expr}}));
+                                              {"foo"}, {var_expr}));
   auto input = test::DataItem(43);
   // This error message should be improved, in particular it should actually
   // mention that we are evaluating a functor, which variable, etc.
@@ -242,7 +240,7 @@ TEST(CallTest, Cancellation) {
                        WrapExpr(arolla::expr::CallOp(
                            "core._identity_with_cancel", {CreateInput("a")})));
   ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature, {}));
+                       CreateFunctor(returns_expr, koda_signature, {}, {}));
   {  // Without cancellation scope.
     EXPECT_THAT(CallFunctorWithCompilationCache(
                     fn,

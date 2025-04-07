@@ -86,9 +86,9 @@ TEST(CreateFunctorTest, Basic) {
   auto slice_57 = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(auto my_obj, ObjectCreator::FromAttrs(
                                         DataBag::Empty(), {"a"}, {slice_57}));
-  ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature,
-                                     {{"a", var_a_expr}, {"my_obj", my_obj}}));
+  ASSERT_OK_AND_ASSIGN(
+      auto fn, CreateFunctor(returns_expr, koda_signature, {"a", "my_obj"},
+                             {var_a_expr, my_obj}));
   EXPECT_FALSE(fn.GetBag()->IsMutable());
   EXPECT_THAT(fn.GetAttr(kReturnsAttrName),
               IsOkAndHolds(IsEquivalentTo(returns_expr.WithBag(fn.GetBag()))));
@@ -115,7 +115,7 @@ TEST(CreateFunctorTest, DefaultSignature) {
   ASSERT_OK_AND_ASSIGN(auto var_a_expr, WrapExpr(CreateInput("b")));
   auto slice_57 = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(
-      auto fn, CreateFunctor(returns_expr, std::nullopt, {{"a", var_a_expr}}));
+      auto fn, CreateFunctor(returns_expr, DataSlice(), {"a"}, {var_a_expr}));
   EXPECT_FALSE(fn.GetBag()->IsMutable());
   ASSERT_OK_AND_ASSIGN(auto koda_signature, fn.GetAttr(kSignatureAttrName));
   ASSERT_OK_AND_ASSIGN(auto signature,
@@ -137,7 +137,8 @@ TEST(CreateFunctorTest, NonExprReturns) {
   ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(auto fn, CreateFunctor(slice_57, koda_signature, {}));
+  ASSERT_OK_AND_ASSIGN(auto fn,
+                       CreateFunctor(slice_57, koda_signature, {}, {}));
   EXPECT_FALSE(fn.GetBag()->IsMutable());
   EXPECT_THAT(fn.GetAttr(kReturnsAttrName),
               IsOkAndHolds(IsEquivalentTo(slice_57.WithBag(fn.GetBag()))));
@@ -152,7 +153,7 @@ TEST(CreateFunctorTest, Non0RankReturns) {
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   EXPECT_THAT(
-      CreateFunctor(slice_57_1dim, koda_signature, {}),
+      CreateFunctor(slice_57_1dim, koda_signature, {}, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "returns must be a data item, but has shape: JaggedShape(1)"));
 }
@@ -160,7 +161,7 @@ TEST(CreateFunctorTest, Non0RankReturns) {
 TEST(CreateFunctorTest, InvalidSignature) {
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   auto slice_57 = test::DataItem(57);
-  EXPECT_THAT(CreateFunctor(returns_expr, slice_57, {}),
+  EXPECT_THAT(CreateFunctor(returns_expr, slice_57, {}, {}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("failed to get attribute 'parameters'")));
 }
@@ -175,7 +176,7 @@ TEST(CreateFunctorTest, VariablesWithNon0Rank) {
       auto slice_57_with_dim,
       slice_57.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
   EXPECT_THAT(
-      CreateFunctor(returns_expr, koda_signature, {{"a", slice_57_with_dim}}),
+      CreateFunctor(returns_expr, koda_signature, {"a"}, {slice_57_with_dim}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "variable [a] must be a data item, but has shape: JaggedShape(1)"));
@@ -187,7 +188,7 @@ TEST(IsFunctorTest, Basic) {
   ASSERT_OK_AND_ASSIGN(auto koda_signature,
                        CppSignatureToKodaSignature(signature));
   ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature, {}));
+                       CreateFunctor(returns_expr, koda_signature, {}, {}));
   EXPECT_THAT(IsFunctor(fn), IsOkAndHolds(true));
   ASSERT_OK_AND_ASSIGN(auto fn2, fn.ForkBag());
   ASSERT_OK(fn2.DelAttr(kReturnsAttrName));

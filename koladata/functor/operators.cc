@@ -18,6 +18,7 @@
 #include "koladata/functor/aggregate_operator.h"
 #include "koladata/functor/call_operator.h"
 #include "koladata/functor/is_fn_operator.h"
+#include "koladata/functor/expr_fn_operator.h"
 #include "koladata/functor/map_operator.h"
 #include "arolla/qexpr/optools.h"
 
@@ -34,6 +35,7 @@ OPERATOR_FAMILY("kd.functor.aggregate",
 OPERATOR_FAMILY("kd.functor.call", std::make_unique<CallOperatorFamily>());
 OPERATOR_FAMILY("kd.functor.call_and_update_namedtuple",
                 std::make_unique<CallAndUpdateNamedTupleOperatorFamily>());
+OPERATOR_FAMILY("kd.functor.expr_fn", std::make_unique<ExprFnOperatorFamily>());
 OPERATOR("kd.functor.is_fn", IsFn);
 OPERATOR_FAMILY("kd.functor.map", std::make_unique<MapOperatorFamily>());
 // go/keep-sorted end

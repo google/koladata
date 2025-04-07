@@ -85,9 +85,9 @@ TEST(MapTest, Basic) {
   ASSERT_OK_AND_ASSIGN(auto returns_a_expr, WrapExpr(CreateInput("a")));
   ASSERT_OK_AND_ASSIGN(auto returns_b_expr, WrapExpr(CreateInput("b")));
   ASSERT_OK_AND_ASSIGN(auto fn_a,
-                       CreateFunctor(returns_a_expr, koda_signature, {}));
+                       CreateFunctor(returns_a_expr, koda_signature, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto fn_b,
-                       CreateFunctor(returns_b_expr, koda_signature, {}));
+                       CreateFunctor(returns_b_expr, koda_signature, {}, {}));
   auto merged_bag = DataBag::CommonDataBag({fn_a.GetBag(), fn_b.GetBag()});
   auto fn = test::DataSlice<internal::DataItem>(
       {fn_a.item(), fn_b.item(), internal::DataItem(), fn_a.item()},
@@ -130,9 +130,9 @@ TEST(MapTest, Alignment) {
   ASSERT_OK_AND_ASSIGN(auto returns_a_expr, WrapExpr(CreateInput("a")));
   ASSERT_OK_AND_ASSIGN(auto returns_b_expr, WrapExpr(CreateInput("b")));
   ASSERT_OK_AND_ASSIGN(auto fn_a,
-                       CreateFunctor(returns_a_expr, koda_signature, {}));
+                       CreateFunctor(returns_a_expr, koda_signature, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto fn_b,
-                       CreateFunctor(returns_b_expr, koda_signature, {}));
+                       CreateFunctor(returns_b_expr, koda_signature, {}, {}));
   auto merged_bag = DataBag::CommonDataBag({fn_a.GetBag(), fn_b.GetBag()});
   auto fn = test::DataSlice<internal::DataItem>({fn_a.item(), fn_b.item()},
                                                 merged_bag);
@@ -166,7 +166,7 @@ TEST(MapTest, Cancellation) {
                        WrapExpr(arolla::expr::CallOp(
                            "core._identity_with_cancel", {CreateInput("a")})));
   ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature, {}));
+                       CreateFunctor(returns_expr, koda_signature, {}, {}));
 
   std::vector<int> items = {0, 1};
   ASSERT_OK_AND_ASSIGN(

@@ -363,9 +363,16 @@ absl::StatusOr<DataSlice> AutoVariables(
   if (returns.empty()) {
     return absl::InternalError("no 'returns' after transformation");
   }
-  std::vector<std::pair<std::string, DataSlice>> vars_vector(vars.begin(),
-                                                             vars.end());
-  return CreateFunctor(returns.mapped(), signature, vars_vector);
+  std::vector<absl::string_view> var_names;
+  std::vector<DataSlice> var_values;
+  var_names.reserve(vars.size());
+  var_values.reserve(vars.size());
+  for (auto& [name, value] : vars) {
+    var_names.emplace_back(name);
+    var_values.emplace_back(std::move(value));
+  }
+  return CreateFunctor(returns.mapped(), signature, std::move(var_names),
+                       std::move(var_values));
 }
 
 }  // namespace koladata::functor
