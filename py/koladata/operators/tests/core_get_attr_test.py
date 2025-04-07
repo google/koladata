@@ -187,6 +187,12 @@ class CoreGetAttrTest(parameterized.TestCase):
           ds=ds(['a', 'b', '__schema_name__', '__schema_name__']),
       )
 
+  def test_update_alloc_ids(self):
+    db = data_bag.DataBag.empty()
+    entities = db.new(x=ds([db.list([1, 2])]))
+    # Fails if allocation ids are not consistent.
+    _ = eager.get_attr(entities, ds(['x']))
+
   def test_schema_conflict(self):
     with self.assertRaisesRegex(
         ValueError,

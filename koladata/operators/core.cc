@@ -336,7 +336,7 @@ absl::Status ProcessSingleItem(const DataItem& obj, std::string_view attr_name,
                                internal::SliceBuilder& schema_builder,
                                bool allow_missing = false) {
   ASSIGN_OR_RETURN(DataItem res, db_impl.GetAttr(obj, attr_name, fallbacks));
-  res_builder.InsertIfNotSet(offset, res);
+  res_builder.InsertIfNotSetAndUpdateAllocIds(offset, res);
 
   DataItem schema_res;
   const DataItem& schema_item =
@@ -348,7 +348,7 @@ absl::Status ProcessSingleItem(const DataItem& obj, std::string_view attr_name,
     ASSIGN_OR_RETURN(schema_res,
                      db_impl.GetSchemaAttr(schema_item, attr_name, fallbacks));
   }
-  schema_builder.InsertIfNotSet(offset, schema_res);
+  schema_builder.InsertIfNotSetAndUpdateAllocIds(offset, schema_res);
 
   return absl::OkStatus();
 }
@@ -530,9 +530,10 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
   if (!schema_res.has_value()) {
     schema_res = DataItem(schema::kNone);
   }
-  return DataSlice::Create(std::move(res), aligned_slices[0].GetShape(),
-                           DataItem(std::move(schema_res)),
-                           DataBag::CommonDataBag({db, attr_name.GetBag()}));
+  return DataSlice::Create(
+      std::move(res), aligned_slices[0].GetShape(),
+      DataItem(std::move(schema_res)),
+      DataBag::CommonDataBag({db, attr_name.GetBag(), default_value.GetBag()}));
 }
 
 absl::StatusOr<DataSlice> HasAttr(const DataSlice& obj,
