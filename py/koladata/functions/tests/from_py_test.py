@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import dataclasses
+import enum
 import gc
 import sys
 from unittest import mock
@@ -210,6 +211,24 @@ class FromPyTest(parameterized.TestCase):
     testing.assert_equal(item.no_bag(), ds(42, schema_constants.OBJECT))
     self.assertIsNotNone(item.get_bag())
     self.assertFalse(item.get_bag().is_mutable())
+
+  def test_primitive_int_enum(self):
+    class MyIntEnum(enum.IntEnum):
+      A = 1
+      B = 2
+      C = 2**33
+
+    testing.assert_equal(fns.from_py(MyIntEnum.A), ds(1))
+    testing.assert_equal(fns.from_py(MyIntEnum.B), ds(2))
+    testing.assert_equal(fns.from_py(MyIntEnum.C), ds(2**33))
+
+  def test_primitive_str_enum(self):
+    class MyStrEnum(enum.StrEnum):
+      A = 'a'
+      B = 'b'
+
+    testing.assert_equal(fns.from_py(MyStrEnum.A), ds('a'))
+    testing.assert_equal(fns.from_py(MyStrEnum.B), ds('b'))
 
   def test_primitive_casting_error(self):
     with self.assertRaisesRegex(

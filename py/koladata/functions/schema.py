@@ -15,6 +15,7 @@
 """Koda functions for creating schemas."""
 
 import dataclasses
+import enum
 import types as py_types
 import typing
 from typing import Any
@@ -219,11 +220,11 @@ def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:
           for field in dataclasses.fields(tpe)
       })
       return s
-    if tpe == str:
+    if tpe == str or issubclass(tpe, enum.StrEnum):
       return schema_constants.STRING
     if tpe == bytes:
       return schema_constants.BYTES
-    if tpe == int:
+    if tpe == int or issubclass(tpe, enum.IntEnum):
       # kd.from_py can return either INT32 or INT64 for integers, so we return
       # INT64 to be on the safe side.
       return schema_constants.INT64

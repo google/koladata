@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import dataclasses
+import enum
 from typing import Mapping, Optional, Sequence
 
 from absl.testing import absltest
@@ -60,6 +61,19 @@ class SchemaFromPyTest(absltest.TestCase):
         fns.schema_from_py(list[list[float]]),
         fns.list_schema(fns.list_schema(schema_constants.FLOAT32)),
     )
+
+  def test_schema_from_py_enums(self):
+    class MyIntEnum(enum.IntEnum):
+      A = 1
+      B = 2
+
+    self.assertEqual(fns.schema_from_py(MyIntEnum), schema_constants.INT64)
+
+    class MyStrEnum(enum.StrEnum):
+      A = 'A'
+      B = 'B'
+
+    self.assertEqual(fns.schema_from_py(MyStrEnum), schema_constants.STRING)
 
   def test_schema_from_py_dataclasses(self):
 
