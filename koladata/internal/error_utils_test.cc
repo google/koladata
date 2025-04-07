@@ -14,9 +14,6 @@
 //
 #include "koladata/internal/error_utils.h"
 
-#include <optional>
-#include <utility>
-
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
