@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x11617b6c1a90>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x1370fb049f50>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x11617b6c1a90>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x1370fb049f50>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -3897,6 +3897,15 @@ floor((cdf - 1e-6) * size()) in the (ascendingly) sorted array.
 Args:
   x: a DataSlice of numbers.
   cdf_arg: (float) CDF value.
+```
+
+### `kd.math.is_nan(x)` {#kd.math.is_nan}
+Aliases:
+
+- [kd.is_nan](#kd.is_nan)
+
+``` {.no-copy}
+Returns pointwise `kd.present|missing` if the input is NaN or not.
 ```
 
 ### `kd.math.log(x)` {#kd.math.log}
@@ -8605,6 +8614,10 @@ Returns kd.present if the given object is a scalar DataItem and kd.missing other
 ### `kd.is_list(x)` {#kd.is_list}
 
 Alias for [kd.lists.is_list](#kd.lists.is_list) operator.
+
+### `kd.is_nan(x)` {#kd.is_nan}
+
+Alias for [kd.math.is_nan](#kd.math.is_nan) operator.
 
 ### `kd.is_primitive(x)` {#kd.is_primitive}
 
