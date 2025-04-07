@@ -15,7 +15,6 @@
 #include "koladata/internal/op_utils/error.h"
 
 #include <functional>
-#include <optional>
 #include <type_traits>
 #include <utility>
 

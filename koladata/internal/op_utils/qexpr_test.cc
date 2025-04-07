@@ -14,8 +14,6 @@
 //
 #include "koladata/internal/op_utils/qexpr.h"
 
-#include <optional>
-
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
