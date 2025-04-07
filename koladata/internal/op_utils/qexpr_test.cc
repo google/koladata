@@ -27,7 +27,6 @@ namespace koladata {
 namespace {
 
 using ::absl_testing::StatusIs;
-using ::testing::Eq;
 
 TEST(QExpr, MakeBoundOperator) {
   auto bound_op = MakeBoundOperator(

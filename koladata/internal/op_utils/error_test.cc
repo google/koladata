@@ -39,7 +39,6 @@ using ::testing::AllOf;
 using ::testing::Eq;
 using ::testing::Field;
 using ::testing::IsNull;
-using ::testing::Property;
 
 TEST(OperatorEvalError, NoCause) {
   absl::Status status = OperatorEvalError("op_name", "error_message");
