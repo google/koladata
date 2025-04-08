@@ -1055,13 +1055,19 @@ kd.map_py(call_slow_fn, kd.slice(['hello', None, 'world']), max_threads=16)
 
 ## Mutable Workflows
 
-While immutable workflows are recommended for most cases, certain situations
-where the same Koda data structure has to be frequently modified (e.g. cache)
-require mutable data structures. `fork_bag` returns a mutable version of data at
-the cost of **O(1)** (without modifying the original one), while `freeze_bag`
-returns an immutable version (also for O(1)) and *extract* and *clone* can
-extract and return immutable pieces. Note, mutable workflows are not supported
-in tracing and have more limited options for productionalization.
+Immutable workflows are recommended for most cases, but mutable data structures
+can be useful in some situations. In particular, when a Koda data structure is
+updated frequently, then a mutable version might be more efficient. An example
+of this is a Koda data structure that implements a cache.
+
+The `fork_bag` method returns a new mutable version of the underlying data bag
+at the cost of **O(1)** (it uses copy-on-write and does not modify the original
+bag), while `freeze_bag` returns an immutable version of the underlying data bag
+(also for O(1)). The `extract` and `clone` methods extract and return immutable
+pieces of a bag.
+
+Please keep in mind that mutable workflows are not supported in tracing. They
+consequently have more limited options for productionization.
 
 ```py
 # Modify the same dict many times
@@ -1084,7 +1090,7 @@ a = a.freeze_bag()
 
 Koda can easily interoperate with normal Python, Pandas, Numpy and Proto.
 
-**From/to PyObject**
+**From/to standard Python data structures**
 
 ```py
 kd.obj(x=1, y=2).x.to_py()
@@ -1098,6 +1104,9 @@ kd.to_py(kd.dict({'a': [1, 2, 3], 'b': [4, 5, 6]}))  # {'a': [1, 2, 3], 'b': [4,
 **From/to Pandas DataFrames**
 
 ```py
+import pandas as pd
+from koladata.ext import pdkd
+
 pdkd.from_dataframe(pd.DataFrame(dict(x=[1, 2, 3], y=[10, 20, 30])))
 pdkd.to_dataframe(kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6])), cols=['x', 'y'])
 ```
@@ -1105,6 +1114,9 @@ pdkd.to_dataframe(kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6])), cols=['x
 **From/to Numpy Arrays**
 
 ```py
+import numpy as np
+from koladata.ext import npkd
+
 npkd.to_array(kd.slice([1, 2, None, 3]))
 npkd.from_array(np.array([1, 2, 0, 3]))
 ```
@@ -1132,7 +1144,7 @@ ds2 = kd.from_proto([p1, None, p2])
 # [
 #   Entity(text='txt1', b_list=List[Entity(int=1), Entity(int=2)]),
 #   missing,
-#   Entity(text='txt1', b=Entity(int=3)),
+#   Entity(text='txt2', b=Entity(int=3)),
 # ]
 
 p = kd.to_proto(ds1, MessageA)
