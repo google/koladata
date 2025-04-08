@@ -81,6 +81,15 @@ class AdoptionQueue {
 // Copies the schema stub of x to the DataBag db.
 absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x);
 
+// Returns a DataBag containing the contents of `db` and the extracted contents
+// of `slice`. The following cases exist:
+// 1. If `db == nullptr`, returns `slice.GetBag()`.
+// 2. Else if `slice.GetBag() == nullptr`, returns `db`.
+// 3. Else, `slice` is extracted, and the "common bag" is computed and returned
+//    with `slice` having a higher precedence.
+absl::StatusOr<absl::Nullable<DataBagPtr>> WithAdoptedValues(
+    const absl::Nullable<DataBagPtr>& db, const DataSlice& slice);
+
 }  // namespace koladata
 
 #endif  // KOLADATA_ADOPTION_UTILS_H_

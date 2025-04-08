@@ -208,6 +208,25 @@ class CoreGetAttrTest(parameterized.TestCase):
           )
       )
 
+  def test_with_default_extraction(self):
+    # Regression test for b/408434629.
+    db = data_bag.DataBag.empty()
+    entities = db.new(x=ds([db.list([1, 2]), db.list([3, 4])]))
+    updated_lists = (
+        entities.x & ds([None, arolla.present()])
+    ).with_list_append_update(8)
+    filtered_entities = entities.with_attr(
+        'x', entities.x & ds([arolla.present(), None])
+    )
+
+    with self.subTest('data_item_attr'):
+      result = eager.get_attr(filtered_entities, 'x', updated_lists)
+      testing.assert_equal(result[:].no_bag(), ds([[1, 2], [3, 4, 8]]))
+
+    with self.subTest('data_slice_attr'):
+      result = eager.get_attr(filtered_entities, ds(['x', 'x']), updated_lists)
+      testing.assert_equal(result[:].no_bag(), ds([[1, 2], [3, 4, 8]]))
+
   def test_same_bag(self):
     db = data_bag.DataBag.empty()
     entity = db.new(a=ds([1, 2, 3]), b=ds(['a', None, 'c']))

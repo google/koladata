@@ -26,6 +26,7 @@ from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -176,10 +177,26 @@ class LogicalCondTest(parameterized.TestCase):
     )
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
     self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
+    x_extracted = expr_eval.eval(kde.extract(x & mask))  # Filter and extract.
     testing.assert_equivalent(
         expr_eval.eval(kde.masking.cond(mask, x, y)).a,
-        ds([1, 'xyz']).with_bag(x.get_bag()).enriched(y.get_bag()),
+        ds([1, 'xyz']).with_bag(x_extracted.get_bag()).enriched(y.get_bag()),
     )
+
+  def test_extraction(self):
+    # Regression test for b/408434629.
+    db = data_bag.DataBag.empty()
+    expr = kde.masking.cond(
+        I.mask,
+        I.list.with_list_append_update(8),
+        I.list.with_list_append_update(9),
+    )
+    res = expr_eval.eval(
+        expr,
+        mask=ds([mask_constants.present, None]),
+        list=ds([db.list([1, 2]), db.list([3, 4])]),
+    )
+    testing.assert_equal(res[:].no_bag(), ds([[1, 2, 8], [3, 4, 9]]))
 
   def test_incompatible_schema_error(self):
     x = ds([1, None])

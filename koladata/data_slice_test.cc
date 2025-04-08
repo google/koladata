@@ -955,7 +955,6 @@ TEST(DataSliceTest, VerifySchemaConsistency_WithGetSchema) {
     auto entity = test::AllocateDataSlice(3, schema::kObject);
 
     ASSERT_OK_AND_ASSIGN(auto res, entity.WithSchema(entity_schema));
-    EXPECT_THAT(res.GetBag(), Not(Eq(entity_schema.GetBag())));
     EXPECT_THAT(res.GetSchema(),
                 IsEquivalentTo(entity_schema.WithBag(res.GetBag())));
 

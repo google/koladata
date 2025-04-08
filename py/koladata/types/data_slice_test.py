@@ -713,6 +713,19 @@ class DataSliceTest(parameterized.TestCase):
         x.get_attr('x', default).no_bag(), ds([None], schema_constants.INT32)
     )
 
+  def test_get_attr_with_default_extraction(self):
+    # Regression test for b/408434629.
+    db = bag()
+    entities = db.new(x=ds([db.list([1, 2]), db.list([3, 4])]))
+    updated_lists = (
+        entities.x & ds([None, arolla.present()])
+    ).with_list_append_update(8)
+    filtered_entities = entities.with_attr(
+        'x', entities.x & ds([arolla.present(), None])
+    )
+    result = filtered_entities.get_attr('x', updated_lists)
+    testing.assert_equal(result[:].no_bag(), ds([[1, 2], [3, 4, 8]]))
+
   def test_get_keys_on_none(self):
     x = ds([None]).with_bag(bag())
     testing.assert_equal(

@@ -1273,17 +1273,11 @@ bool DataSlice::IsItemIdSchema() const {
 
 absl::StatusOr<DataSlice> DataSlice::WithSchema(const DataSlice& schema) const {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  DataBagPtr schema_bag = nullptr;
-  if (schema.item().is_struct_schema() && schema.GetBag() != nullptr &&
-      schema.GetBag() != GetBag()) {
-    schema_bag = DataBag::Empty();
-    AdoptionQueue adoption_queue;
-    adoption_queue.Add(schema);
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*schema_bag));
+  DataBagPtr res_db = GetBag();
+  if (schema.item().is_struct_schema()) {
+    ASSIGN_OR_RETURN(res_db, WithAdoptedValues(res_db, schema));
   }
-  // NOTE: schema's bag should come first to respect its precedence.
-  return WithBag(DataBag::CommonDataBag({std::move(schema_bag), GetBag()}))
-      .WithSchema(schema.item());
+  return WithBag(std::move(res_db)).WithSchema(schema.item());
 }
 
 absl::StatusOr<DataSlice> DataSlice::WithSchema(
@@ -1511,7 +1505,8 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
                             "the schema from the default value",
                             attr_name),
             KodaErrorCausedByNoCommonSchemaError(_, GetBag())));
-    auto result_db = DataBag::CommonDataBag({GetBag(), default_value.GetBag()});
+    ASSIGN_OR_RETURN(auto result_db,
+                     WithAdoptedValues(GetBag(), default_value));
     ASSIGN_OR_RETURN(auto res, internal::CoalesceWithFiltered(
                                    impl, result_or_missing.impl<T>(),
                                    expanded_default.impl<T>()));

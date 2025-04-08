@@ -458,8 +458,7 @@ absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
   }
   return DataSlice::Create(std::move(res_builder).Build(),
                            aligned_slices[0].GetShape(),
-                           DataItem(std::move(schema_res)),
-                           DataBag::CommonDataBag({db, attr_name.GetBag()}));
+                           DataItem(std::move(schema_res)), db);
 }
 
 absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
@@ -530,10 +529,11 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
   if (!schema_res.has_value()) {
     schema_res = DataItem(schema::kNone);
   }
-  return DataSlice::Create(
-      std::move(res), aligned_slices[0].GetShape(),
-      DataItem(std::move(schema_res)),
-      DataBag::CommonDataBag({db, attr_name.GetBag(), default_value.GetBag()}));
+
+  ASSIGN_OR_RETURN(auto result_db, WithAdoptedValues(db, default_value));
+  return DataSlice::Create(std::move(res), aligned_slices[0].GetShape(),
+                           DataItem(std::move(schema_res)),
+                           std::move(result_db));
 }
 
 absl::StatusOr<DataSlice> HasAttr(const DataSlice& obj,

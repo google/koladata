@@ -248,7 +248,7 @@ TEST(AdoptionQueueTest, Extraction) {
               IsOkAndHolds(internal::DataItem()));  // Not extracted.
 }
 
-TEST(AdoptStubTest, Enity) {
+TEST(AdoptStubTest, Entity) {
   {
     // Holding primitives.
     auto db1 = DataBag::Empty();
@@ -461,6 +461,73 @@ TEST(AdoptStubTest, EmptyAndUnknown) {
     // Nothing is adopted.
     ASSERT_OK(AdoptStub(db2, item));
     EXPECT_THAT(db2->GetImpl(), DataBagEqual(DataBag::Empty()->GetImpl()));
+  }
+}
+
+TEST(WithAdoptedValuesTest, WithAdoptedValues) {
+  {
+    // No bags.
+    ASSERT_OK_AND_ASSIGN(auto db,
+                         WithAdoptedValues(nullptr, test::DataItem(1)));
+    EXPECT_EQ(db, nullptr);
+  }
+  {
+    // One bag.
+    auto db = DataBag::Empty()->Freeze();
+    ASSERT_FALSE(db->IsMutable());
+    // `db` is present.
+    ASSERT_OK_AND_ASSIGN(auto result_bag,
+                         WithAdoptedValues(db, test::DataItem(2)));
+    EXPECT_EQ(result_bag, db);  // the same bag.
+    // Second item has bag.
+    ASSERT_OK_AND_ASSIGN(
+        result_bag, WithAdoptedValues(nullptr, test::DataItem(2).WithBag(db)));
+    EXPECT_EQ(result_bag, db);  // the same bag.
+  }
+  {
+    // Both same bag.
+    // One bag.
+    auto db = DataBag::Empty()->Freeze();
+    ASSERT_FALSE(db->IsMutable());
+    ASSERT_OK_AND_ASSIGN(auto result_bag,
+                         WithAdoptedValues(db, test::DataItem(2).WithBag(db)));
+    EXPECT_EQ(result_bag, db);  // the same bag.
+  }
+  {
+    // Both different bags.
+    auto db = DataBag::Empty();
+    internal::DataItem unused(internal::AllocateSingleObject());
+    ASSERT_OK(db->GetMutableImpl()->get().SetAttr(unused, "unused",
+                                                  internal::DataItem(1)));
+    ASSERT_OK_AND_ASSIGN(
+        auto e1, EntityCreator::FromAttrs(db, {"x"}, {test::DataItem(2)}));
+
+    auto db2 = DataBag::Empty();
+    internal::DataItem unused2(internal::AllocateSingleObject());
+    ASSERT_OK(db2->GetMutableImpl()->get().SetAttr(unused2, "unused2",
+                                                   internal::DataItem(3)));
+    ASSERT_OK_AND_ASSIGN(auto e1_itemid,
+                         e1.WithSchema(test::Schema(schema::kItemId)));
+    ASSERT_OK_AND_ASSIGN(
+        auto e2, EntityCreator::FromAttrs(db2, {"x"}, {test::DataItem(4)},
+                                          /*schema=*/e1.GetSchema(),
+                                          /*overwrite_schema=*/false,
+                                          /*itemid=*/e1_itemid));
+
+    ASSERT_OK_AND_ASSIGN(auto result_bag, WithAdoptedValues(db2, e1));
+
+    auto expected_db = DataBag::Empty();
+    // `e1` is extracted, so its unused value is removed. But `'x'` is included.
+    ASSERT_OK(expected_db->GetMutableImpl()->get().SetAttr(
+        e1.item(), "x", internal::DataItem(2)));
+    ASSERT_OK(expected_db->GetMutableImpl()->get().SetSchemaAttr(
+        e1.GetSchemaImpl(), "x", internal::DataItem(schema::kInt32)));
+    // The contents of `db2` is not extracted but `e1` takes precedence.
+    ASSERT_OK(expected_db->GetMutableImpl()->get().SetAttr(
+        unused2, "unused2", internal::DataItem(3)));
+
+    ASSERT_OK_AND_ASSIGN(auto merged_bag, result_bag->MergeFallbacks());
+    EXPECT_THAT(merged_bag->GetImpl(), DataBagEqual(expected_db->GetImpl()));
   }
 }
 

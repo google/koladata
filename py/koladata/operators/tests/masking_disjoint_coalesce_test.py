@@ -136,9 +136,10 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
     ) & (~mask)
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
     self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
+    x_extracted = expr_eval.eval(kde.extract(x))
     testing.assert_equivalent(
         expr_eval.eval(kde.masking.disjoint_coalesce(x, y)).a,
-        ds([1, 'xyz']).with_bag(x.get_bag()).enriched(y.get_bag()),
+        ds([1, 'xyz']).with_bag(x_extracted.get_bag()).enriched(y.get_bag()),
     )
 
   def test_same_bag(self):

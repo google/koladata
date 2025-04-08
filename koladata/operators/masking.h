@@ -20,6 +20,7 @@
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -48,7 +49,7 @@ inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
 inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
                                           const DataSlice& y) {
   RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y));
-  auto res_db = DataBag::CommonDataBag({x.GetBag(), y.GetBag()});
+  ASSIGN_OR_RETURN(DataBagPtr res_db, WithAdoptedValues(y.GetBag(), x));
   ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}));
   return DataSliceOp<internal::PresenceOrOp>()(
       aligned_slices.slices[0], aligned_slices.slices[1],

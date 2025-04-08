@@ -25,6 +25,7 @@ from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -40,7 +41,7 @@ QTYPES = frozenset([
 ])
 
 
-class LogicalCoalesceTest(parameterized.TestCase):
+class MaskingCoalesceTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (
@@ -128,10 +129,20 @@ class LogicalCoalesceTest(parameterized.TestCase):
     ) & (~mask)
     y.set_attr('a', ds(['abc', 'xyz'], schema_constants.OBJECT))
     self.assertNotEqual(x.get_bag().fingerprint, y.get_bag().fingerprint)
+    x_extracted = expr_eval.eval(kde.extract(x))
     testing.assert_equivalent(
         expr_eval.eval(kde.masking.coalesce(x, y)).a,
-        ds([1, 'xyz']).with_bag(x.get_bag()).enriched(y.get_bag()),
+        ds([1, 'xyz']).with_bag(x_extracted.get_bag()).enriched(y.get_bag()),
     )
+
+  def test_extraction(self):
+    # Regression test for b/408434629.
+    db = data_bag.DataBag.empty()
+    lists = ds([db.list([1, 2]), db.list([3, 4])])
+    l1 = (lists & ds([mask_constants.present, None])).with_list_append_update(8)
+    l2 = (lists & ds([None, mask_constants.present])).with_list_append_update(9)
+    res = expr_eval.eval(kde.masking.coalesce(l1, l2))
+    testing.assert_equal(res[:].no_bag(), ds([[1, 2, 8], [3, 4, 9]]))
 
   def test_same_bag(self):
     db = data_bag.DataBag.empty()

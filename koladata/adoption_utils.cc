@@ -172,4 +172,18 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
   return absl::OkStatus();
 }
 
+absl::StatusOr<absl::Nullable<DataBagPtr>> WithAdoptedValues(
+    const absl::Nullable<DataBagPtr>& db, const DataSlice& slice) {
+  if (db == nullptr || db == slice.GetBag()) {
+    return slice.GetBag();
+  } else if (slice.GetBag() == nullptr) {
+    return db;
+  } else {
+    ASSIGN_OR_RETURN(DataSlice extracted_slice,
+                     extract_utils_internal::Extract(slice));
+    // NOTE: slices's bag should come first to respect its precedence.
+    return DataBag::ImmutableEmptyWithFallbacks({extracted_slice.GetBag(), db});
+  }
+}
+
 }  // namespace koladata
