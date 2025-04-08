@@ -518,6 +518,15 @@ class ToPyTest(parameterized.TestCase):
       x = fns.list([a, b], item_schema=schema_constants.ITEMID)
       self.assertEqual(fns.to_py(x), [a, b])
 
+  def test_schema_itemid(self):
+    a = fns.schema.new_schema(
+        value=schema_constants.OBJECT,
+        name=schema_constants.STRING,
+        score=schema_constants.FLOAT32,
+    ).get_itemid()
+
+    self.assertEqual(a.to_py(), a)
+
   def test_no_bag(self):
     x = fns.list([1, 2]).no_bag()
     testing.assert_equal(fns.to_py(x), x)
@@ -540,6 +549,38 @@ class ToPyTest(parameterized.TestCase):
 
     x = fns.new(x=1).get_itemid() & None
     self.assertIsNone(fns.to_py(x), None)
+
+  def test_schema_not_supported(self):
+    schema = fns.schema.new_schema(a=schema_constants.STRING)
+    with self.assertRaisesRegex(
+        ValueError,
+        'schema is not supported',
+    ):
+      _ = schema.to_py()
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'schema is not supported',
+    ):
+      _ = ds([schema]).to_py()
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'schema is not supported',
+    ):
+      _ = fns.list([schema]).to_py()
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'schema is not supported',
+    ):
+      _ = fns.dict({1: schema}).to_py()
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'schema is not supported',
+    ):
+      _ = fns.new(a=schema).to_py()
 
   def test_missing_import(self):
     x = fns.obj(x=1)

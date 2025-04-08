@@ -107,7 +107,7 @@ class ToPyVisitor : internal::AbstractVisitor {
 
   ItemToPyConverter GetItemToPyConverter(const DataItem& schema) {
     return [&](const DataItem& item) -> absl::StatusOr<PyObjectPtr> {
-      return GetCachedPyObjectOrCreatePrimitive(item);
+      return GetConvertedPyObjectOrCreatePrimitive(item);
     };
   }
 
@@ -134,18 +134,18 @@ class ToPyVisitor : internal::AbstractVisitor {
       return absl::OkStatus();
     }
     const ObjectId& object_id = item.value<ObjectId>();
-    if (object_cache_.contains(object_id)) {
+    if (converted_object_cache_.contains(object_id)) {
       return absl::OkStatus();
     }
 
     if (ShouldNotBeConverted(item)) {
       ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db_));
-      ASSIGN_OR_RETURN(object_cache_[object_id],
+      ASSIGN_OR_RETURN(converted_object_cache_[object_id],
                        WrapDataSliceWithErrorCheck(std::move(ds)));
       return absl::OkStatus();
     }
     if (schema.is_itemid_schema()) {
-      ASSIGN_OR_RETURN(object_cache_[object_id],
+      ASSIGN_OR_RETURN(converted_object_cache_[object_id],
                        PyObjectFromDataItem(item, schema, db_));
       return absl::OkStatus();
     }
@@ -159,7 +159,7 @@ class ToPyVisitor : internal::AbstractVisitor {
           return arolla::python::StatusWithRawPyErr(
               absl::StatusCode::kInternal, "could not create a new dict");
         }
-        object_cache_[object_id] = std::move(result);
+        converted_object_cache_[object_id] = std::move(result);
       } else {
         std::vector<absl::string_view> attr_names_vec;
         attr_names_vec.reserve(attr_names.size());
@@ -178,7 +178,7 @@ class ToPyVisitor : internal::AbstractVisitor {
               }
             });
         ASSIGN_OR_RETURN(
-            object_cache_[object_id],
+            converted_object_cache_[object_id],
             dataclasses_util_.MakeDataClassInstance(attr_names_vec));
       }
       return absl::OkStatus();
@@ -189,7 +189,7 @@ class ToPyVisitor : internal::AbstractVisitor {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not create a new dict");
       }
-      object_cache_[object_id] = std::move(result);
+      converted_object_cache_[object_id] = std::move(result);
       return absl::OkStatus();
     }
     if (item.is_list()) {
@@ -198,7 +198,7 @@ class ToPyVisitor : internal::AbstractVisitor {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not create a new list");
       }
-      object_cache_[object_id] = std::move(result);
+      converted_object_cache_[object_id] = std::move(result);
       return absl::OkStatus();
     }
 
@@ -211,10 +211,10 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (ShouldNotBeConverted(list)) {
       return absl::OkStatus();
     }
-    ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(list));
+    ASSIGN_OR_RETURN(PyObjectPtr result, GetConvertedPyObject(list));
     for (const DataItem& item : items) {
       ASSIGN_OR_RETURN(PyObjectPtr py_item,
-                       GetCachedPyObjectOrCreatePrimitive(item));
+                       GetConvertedPyObjectOrCreatePrimitive(item));
       if (PyList_Append(result.get(), py_item.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not append an item to a list");
@@ -230,7 +230,7 @@ class ToPyVisitor : internal::AbstractVisitor {
     if (ShouldNotBeConverted(dict)) {
       return absl::OkStatus();
     }
-    ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(dict));
+    ASSIGN_OR_RETURN(PyObjectPtr result, GetConvertedPyObject(dict));
 
     DCHECK_EQ(keys.size(), values.size());
     for (size_t i = 0; i < keys.size(); ++i) {
@@ -249,7 +249,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       ASSIGN_OR_RETURN(PyObjectPtr py_key,
                        PyObjectFromDataItem(keys[i], key_schema, nullptr));
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetCachedPyObjectOrCreatePrimitive(values[i]));
+                       GetConvertedPyObjectOrCreatePrimitive(values[i]));
       if (PyDict_SetItem(result.get(), py_key.get(), py_value.get()) < 0) {
         return arolla::python::StatusWithRawPyErr(
             absl::StatusCode::kInternal, "could not set an item in a dict");
@@ -273,11 +273,11 @@ class ToPyVisitor : internal::AbstractVisitor {
       return absl::OkStatus();
     }
 
-    ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(object));
+    ASSIGN_OR_RETURN(PyObjectPtr result, GetConvertedPyObject(object));
     for (size_t i = 0; i < attr_names.size(); ++i) {
       const arolla::OptionalValue<DataItem>& attr_value = attr_values[i];
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetCachedPyObjectOrCreatePrimitive(attr_value.value));
+                       GetConvertedPyObjectOrCreatePrimitive(attr_value.value));
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        AttrNamePyFromString(attr_names[i].value));
       if (PyObject_SetAttr(result.get(), attr_name_py.get(), py_value.get()) <
@@ -300,13 +300,17 @@ class ToPyVisitor : internal::AbstractVisitor {
   }
 
  private:
-  // Returns a cached Python object for the given `item`.
+  // Returns a converted Python object for the given `item`.
   // Returns an error if the `item` does not hold ObjectId, or if the object is
-  // not found in the cache.
-  absl::StatusOr<PyObjectPtr> GetCachedPyObject(const DataItem& item) {
+  // not found in the converted object cache.
+  absl::StatusOr<PyObjectPtr> GetConvertedPyObject(const DataItem& item) {
     DCHECK(item.holds_value<ObjectId>());
-    auto it = object_cache_.find(item.value<ObjectId>());
-    if (it == object_cache_.end()) {
+    auto it = converted_object_cache_.find(item.value<ObjectId>());
+    if (it == converted_object_cache_.end()) {
+      if (item.is_schema()) {
+        return absl::InvalidArgumentError(
+            "schema is not supported in to_py conversion");
+      }
       return absl::InternalError(
           "item holds an object id, but it is not found in cache; probably, it "
           "was not pre-visited.");
@@ -316,21 +320,21 @@ class ToPyVisitor : internal::AbstractVisitor {
   }
 
   // If the given `item` holds ObjectId, returns a cached Python object for the
-  // item (or an error if the object is not found in the cache). Otherwise,
-  // returns a new Python primitive for it.
-  absl::StatusOr<PyObjectPtr> GetCachedPyObjectOrCreatePrimitive(
+  // item (or an error if the object is not found in the converted object
+  // cache). Otherwise, returns a new Python primitive for it.
+  absl::StatusOr<PyObjectPtr> GetConvertedPyObjectOrCreatePrimitive(
       const DataItem& item) {
     if (!item.holds_value<ObjectId>()) {
       return PyObjectFromDataItem(item, DataItem(), db_);
     }
-    return GetCachedPyObject(item);
+    return GetConvertedPyObject(item);
   }
 
   absl::Status CreateDictFromObject(
       const DataItem& object, const DataItem& schema, bool is_object_schema,
       const arolla::DenseArray<arolla::Text>& attr_names,
       const arolla::DenseArray<DataItem>& attr_values) {
-    ASSIGN_OR_RETURN(PyObjectPtr result, GetCachedPyObject(object));
+    ASSIGN_OR_RETURN(PyObjectPtr result, GetConvertedPyObject(object));
 
     // Sort the attribute names to ensure that the order is deterministic.
     std::vector<absl::string_view> attr_names_vec;
@@ -356,7 +360,7 @@ class ToPyVisitor : internal::AbstractVisitor {
       ASSIGN_OR_RETURN(PyObjectPtr attr_name_py,
                        AttrNamePyFromString(attr_name_str));
       ASSIGN_OR_RETURN(PyObjectPtr py_value,
-                       GetCachedPyObjectOrCreatePrimitive(attr_value.value));
+                       GetConvertedPyObjectOrCreatePrimitive(attr_value.value));
       if (py_value.get() != Py_None || include_missing_attrs_) {
         if (PyDict_SetItem(result.get(), attr_name_py.get(), py_value.get()) <
             0) {
@@ -373,7 +377,8 @@ class ToPyVisitor : internal::AbstractVisitor {
            objects_not_to_convert_.contains(item.value<ObjectId>());
   }
 
-  absl::flat_hash_map<ObjectId, arolla::python::PyObjectPtr> object_cache_;
+  absl::flat_hash_map<ObjectId, arolla::python::PyObjectPtr>
+      converted_object_cache_;
 
   bool obj_as_dict_ = false;
   bool include_missing_attrs_ = false;
