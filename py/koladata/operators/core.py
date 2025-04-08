@@ -705,8 +705,8 @@ def clone(
 ):
   """Creates a DataSlice with clones of provided entities in a new DataBag.
 
-  The entities themselves and their top-level attributes are cloned (with new
-  ItemIds) and non-top-level attributes are extracted (with the same ItemIds).
+  The entities themselves are cloned (with new ItemIds) and their attributes are
+  extracted (with the same ItemIds).
 
   Also see kd.shallow_clone and kd.deep_clone.
 
@@ -723,8 +723,8 @@ def clone(
     **overrides: attribute overrides.
 
   Returns:
-    A copy of the entities where all top-level attributes are cloned (new
-    ItemIds) and all of the rest extracted.
+    A copy of the entities where entities themselves are cloned (new ItemIds)
+    and all of the rest extracted.
   """
   overrides = arolla.optools.fix_trace_kwargs(overrides)
   itemid = M.core.default_if_unspecified(itemid, _new_ids_like(x))
