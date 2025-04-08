@@ -23,8 +23,7 @@ constexpr const char* kThisModuleName = "koladata.types.data_slice";
 
 PyMethodDef kPyDataSliceModule_methods[] = {
     {"internal_register_reserved_class_method_name",
-     (PyCFunction)PyDataSliceModule_register_reserved_class_method_name,
-     METH_O,
+     (PyCFunction)PyDataSliceModule_register_reserved_class_method_name, METH_O,
      "internal_register_reserved_class_method_name(method_name, /)\n"
      "--\n\n"
      R"""(Registers a name to be reserved as a method of DataSlice or its subclasses.
@@ -40,6 +39,11 @@ Args:
      "--\n\n"
      "Returns true iff `attr_name` can be accessed through "
      "`getattr(slice, attr_name)`."},
+    {"internal_get_reserved_attrs",
+     (PyCFunction)PyDataSliceModule_get_reserved_attrs, METH_NOARGS,
+     "internal_get_reserved_attrs() -> frozenset[str]\n"
+     "--\n\n"
+     "Returns a set of reserved attributes without leading underscore."},
     {nullptr} /* sentinel */
 };
 

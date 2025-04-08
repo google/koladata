@@ -30,12 +30,19 @@ absl::Nullable<PyObject*> PyDataSliceModule_is_compliant_attr_name(
     PyObject* /*module*/, PyObject* attr_name);
 
 // Registers a name in method_name to be reserved as a method of the DataSlice
-// class or it subclasses. For these registered method names, getattr will
+// class or its subclasses. For these registered method names, getattr will
 // invoke a PyObject_GenericGetAttr.
 //
-// This must be called when adding new methods to the class in Python.
+// This must be called when adding new methods to the class or its subclasses in
+// Python.
 absl::Nullable<PyObject*> PyDataSliceModule_register_reserved_class_method_name(
     PyObject* /*module*/, PyObject* method_name);
+
+// Returns a frozenset of method names that are either defined on the CPython
+// DataSlice implementation or specifically reserved using
+// register_reserved_class_method_name.
+absl::Nullable<PyObject*> PyDataSliceModule_get_reserved_attrs(
+    PyObject* /*module*/);
 
 }  // namespace koladata::python
 

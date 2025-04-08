@@ -1242,12 +1242,16 @@ PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore() {
         while (type != nullptr) {
           const PyMethodDef* method = type->tp_methods;
           for (; method->ml_name != nullptr; ++method) {
-            res.emplace(method->ml_name);
+            if (method->ml_name[0] != '_') {
+              res.emplace(method->ml_name);
+            }
           }
           const PyGetSetDef* getter = type->tp_getset;
           if (getter != nullptr) {
             for (; getter->name != nullptr; ++getter) {
-              res.emplace(getter->name);
+              if (getter->name[0] != '_') {
+                res.emplace(getter->name);
+              }
             }
           }
           type = type->tp_base;
@@ -1354,6 +1358,26 @@ absl::Nullable<PyObject*> PyDataSliceModule_register_reserved_class_method_name(
         method_name_view);
   }
   Py_RETURN_NONE;
+}
+
+absl::Nullable<PyObject*>
+PyDataSliceModule_get_reserved_attrs(PyObject* /*module*/) {
+  arolla::python::DCheckPyGIL();
+  const absl::flat_hash_set<absl::string_view>& attrs =
+      PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore();
+  // We create a new FrozenSet, and are thus allowed to PySet_Add to it before
+  // exposing it to other code.
+  auto py_set = arolla::python::PyObjectPtr::Own(PyFrozenSet_New(nullptr));
+  for (const auto& attr : attrs) {
+    // We have to own the string in case of insertion failure. Unlike
+    // PyList_New, PySet_New does not 'steal' ownership of the item reference.
+    auto py_attr = arolla::python::PyObjectPtr::Own(
+        PyUnicode_FromStringAndSize(attr.data(), attr.size()));
+    if (PySet_Add(py_set.get(), py_attr.get()) == -1) {
+      return nullptr;
+    }
+  }
+  return py_set.release();
 }
 
 }  // namespace koladata::python

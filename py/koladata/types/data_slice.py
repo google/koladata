@@ -104,6 +104,11 @@ def register_reserved_class_method_names(cls):
   return cls
 
 
+def get_reserved_attrs() -> frozenset[str]:
+  """Returns a set of reserved attributes without leading underscore."""
+  return _data_slice_py_ext.internal_get_reserved_attrs()
+
+
 # IPython/Colab try to access those attributes on any object and expect
 # particular behavior from them, so we disallow accessing such attributes
 # on a DataSlice via __getattr__.

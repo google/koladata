@@ -169,6 +169,27 @@ class DataSliceMethodsTest(parameterized.TestCase):
         self, *args, **kwargs
     )
 
+  def test_get_reserved_attrs(self):
+    # Assert that get_reserved_attrs() is a superset of the DataSlice methods
+    # without leading underscore. It also contains registered methods from its
+    # subclasses
+    self.assertEmpty(
+        set([
+            attr
+            for attr in dir(data_slice.DataSlice)
+            if not attr.startswith('_')
+        ])
+        - data_slice.get_reserved_attrs()
+    )
+
+    @data_slice.register_reserved_class_method_names
+    class SubDataSlice(data_slice.DataSlice):  # pylint: disable=unused-variable
+
+      def new_method(self):
+        pass
+
+    self.assertIn('new_method', data_slice.get_reserved_attrs())
+
 
 class DataSliceTest(parameterized.TestCase):
 
