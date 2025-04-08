@@ -2093,6 +2093,18 @@ def str_(x):
   return schema_ops.to_str(x)
 
 
+@optools.add_to_registry(aliases=['kd.get_repr'])
+@optools.as_backend_operator(
+    'kd.slices.get_repr',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def get_repr(x):
+  """Returns a string representation of the DataSlice `x`."""
+  raise NotImplementedError('implemented in the backend')
+
+
 arolla.abc.register_adhoc_aux_binding_policy(
     str_,
     lambda x: _typed_slice_bind_args(x, schema_constants.STRING),

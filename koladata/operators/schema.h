@@ -179,7 +179,7 @@ absl::StatusOr<DataSlice> AggCommonSchema(const DataSlice& x);
 absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds);
 
 // kd.schema.get_repr.
-absl::StatusOr<DataSlice> GetRepr(const DataSlice& schema);
+absl::StatusOr<DataSlice> GetSchemaRepr(const DataSlice& schema);
 
 }  // namespace koladata::ops
 

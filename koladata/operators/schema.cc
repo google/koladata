@@ -282,7 +282,7 @@ absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds) {
   return schema_ds.GetNoFollowedSchema();
 }
 
-absl::StatusOr<DataSlice> GetRepr(const DataSlice& schema) {
+absl::StatusOr<DataSlice> GetSchemaRepr(const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   auto lookup_status = ValidateAttrLookupAllowed(schema, "ignored error");
   if (lookup_status.ok()) {

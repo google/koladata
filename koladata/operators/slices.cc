@@ -43,6 +43,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/casting.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -1060,6 +1061,12 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
                                     expanded_values_from.WithBag(nullptr)));
   ASSIGN_OR_RETURN(auto res, lookup.GetFromDict(casted_keys_to));
   return res.WithBag(expanded_values_from.GetBag());
+}
+
+absl::StatusOr<DataSlice> GetRepr(const DataSlice& x) {
+  ASSIGN_OR_RETURN(auto repr, DataSliceToStr(x));
+  return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
+                           internal::DataItem(schema::kString));
 }
 
 }  // namespace koladata::ops

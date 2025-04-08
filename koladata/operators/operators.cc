@@ -246,7 +246,7 @@ OPERATOR("kd.schema.get_key_schema", GetKeySchema);
 OPERATOR("kd.schema.get_nofollowed_schema", GetNoFollowedSchema);
 OPERATOR("kd.schema.get_obj_schema", GetObjSchema);
 OPERATOR("kd.schema.get_primitive_schema", GetPrimitiveSchema);
-OPERATOR("kd.schema.get_repr", GetRepr);
+OPERATOR("kd.schema.get_repr", GetSchemaRepr);
 OPERATOR("kd.schema.get_schema", GetSchema);
 OPERATOR("kd.schema.get_value_schema", GetValueSchema);
 OPERATOR("kd.schema.is_dict_schema", IsDictSchema);
@@ -294,6 +294,7 @@ OPERATOR("kd.slices._inverse_mapping", InverseMapping,
 OPERATOR("kd.slices._ordinal_rank", OrdinalRank, "kd.slices.ordinal_rank");
 OPERATOR_FAMILY("kd.slices.align", std::make_unique<AlignOperatorFamily>());
 OPERATOR("kd.slices.empty_shaped", EmptyShaped);
+OPERATOR("kd.slices.get_repr", GetRepr);
 OPERATOR("kd.slices.internal_select_by_slice", Select, "kd.slices.select");
 OPERATOR("kd.slices.inverse_select", InverseSelect);
 OPERATOR("kd.slices.is_empty", IsEmpty);
