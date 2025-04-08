@@ -923,21 +923,23 @@ Koda uses **tracing** and converts Python functions into Koda **functors**
 representing computational graphs. Koda functors are special Koda objects that
 can be used for evaluation or could be stored together with data.
 
-Same as JAX, in order for tracing works correctly, the Python function can only
-contain Koda operators and Python control flow (i.e. `if`, `for` and `while`)
-cannot be traced and is called only once during tracing. To trace a Python
-function, we wrap it with `kd.fn(py_fn)`.
+As is the case in JAX, in order for tracing to work correctly, the Python
+function can only contain Koda operators. Python control flow (i.e. `if`, `for`
+and `while`) is executed only during tracing - the resulting functors will
+depend on the Python control flow but will not include operators that mimic the
+Python control flow. To trace a Python function, we wrap it with `kd.fn(py_fn)`.
 
 ```py
 # Convert python functions into functors
 fn = kd.fn(lambda x, y: x+y, y=1)
+fn(kd.slice([1, 2, 3]))  # [2, 3, 4]
 fn(kd.slice([1, 2, 3]), y=10)  # [11, 12, 13]
 
 # Functors can be used as normal Koda objects (assigned and stored)
 fns = kd.obj(fn1=fn, fn2=fn.bind(y=5))
 fns.fn2(kd.slice([1, 2, 3]))  # [6, 7, 8]
 
-#
+# Functors can be serialized
 kd.dumps(fn)
 ```
 
@@ -945,14 +947,18 @@ kd.dumps(fn)
 without tracing, which can make debugging in certain situations easier.
 
 ```py
-# kd.fn uses tracing, and kd.py_fn wraps pythong functions "as-is", which is
-# useful as not everything can be traced
+# kd.fn uses tracing, and kd.py_fn wraps a Python functions "as-is", which is
+# useful because not everything can be traced
 fn = kd.py_fn(lambda x, y: x if kd.sum(x) > kd.sum(y) else y)
 fn(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5]))  # [4, 5]
+```
 
-# Can create functors that contain other functors with @kd.trace_as_fn,
-# and which would be accessible as attributes
-@kd.trace_as_fn(py_fn=True)  # py_fn=True, as below cannot be traced properly
+You can annotate functions that call other functors with **@kd.trace_as_fn**.
+When such an annotated function is traced to produce a functor, then the inner
+functors can be accessed as attributes.
+
+```py
+@kd.trace_as_fn(py_fn=True)  # py_fn=True because the Python `while` cannot be traced properly
 def my_op(x, y):
   while (x > 0): y += x; x -= 1
   return y
@@ -964,7 +970,7 @@ fn = kd.fn(final)
 fn(2, 3, 4)  # 9 = (2 + 3) + 4
 fn.final(2, 3, 4)  # the same as above
 fn.final.my_op(2, 3)  # 5 - access of the deeper functor
-# "replace" functor with another one
+# "replace" the inner functor my_op
 fn.updated(kd.attrs(fn.final, my_op=kd.fn(lambda x, y: x * y)))(2, 3, 4)  # 24 = (2 * 3) * 4
 ```
 
@@ -997,10 +1003,9 @@ kd.math.log10(x)
 kd.math.pow(x,y)
 ```
 
-**Random Number & Sampling**
+**Random Numbers & Sampling**
 
 ```py
-# Random
 x = kd.slice([[1., 2., 3.], [4., 5.]])
 # Generate random integers
 kd.randint_like(x, seed=123)  # fix seed
@@ -1011,14 +1016,13 @@ kd.sample_n(x, n=2, seed=342)
 **Ranking**
 
 ```py
-# Ranking
 x = kd.slice([[5., 4., 6., 4., 5.], [8., None, 2.]])
 kd.ordinal_rank(x)  # [[2, 0, 4, 1, 3], [1, None, 0]]
 kd.ordinal_rank(x, descending=True)  # [[1, 3, 0, 4, 2], [0, None, 1]]
 kd.dense_rank(x)  # [[1, 0, 2, 0, 1], [1, None, 0]]
 ```
 
-**Containers to manage data and evaluation logic (e.g. ranking formulas)**
+**Containers to manage data**
 
 ```py
 # Editable containers
