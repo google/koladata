@@ -720,17 +720,17 @@ add new ones.
 ```py
 a = kd.obj(x=2, y=kd.obj(z=3))
 # update existing attribute and add a new attribute
-upd = a.attrs(x=4, u=5)
+upd = kd.attrs(a, x=4, u=5)
 # To see its contents, you can do
 upd.contents_repr()
 a1 = a.updated(upd) # Obj(u=5, x=4, y=Obj(z=3))
 
 b = kd.dict({'a': 1, 'b': 2})
 # update with a new key/value pair
-upd = b.dict_update('a', 2)
+upd = kd.dict_update(b, 'a', 2)
 b1 = b.updated(upd) # Dict{'a'=2, 'b'=2}
 # update with another dict
-upd = b.dict_update(kd.dict({'a': 3, 'c': 4}))
+upd = kd.dict_update(b, kd.dict({'a': 3, 'c': 4}))
 b2 = b.updated(upd) # Dict{'c'=4, 'a'=3, 'b'=2}
 
 # Schemas are stored and can be updated in the same way
@@ -744,7 +744,7 @@ Optional: Understand how entity/object updates are represented as attributes.
 
 ```
 a = kd.obj(x=2, y=kd.obj(z=3))
-upd = a.attrs(x=4, u=5)
+upd = kd.attrs(a, x=4, u=5)
 
 # Only modification is stored as attributes in the update bag
 upd
