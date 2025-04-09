@@ -1733,30 +1733,30 @@ assert s1.get_itemid() != s2.get_itemid()
 
 ### Item Creation Using Schemas
 
-Schemas can be used to create entities by calling these schema DataItems
-directly as factory methods. Or we can use `kd.new`. That is, `schema(...)` is
-equivalent to `kd.new(..., schema=schema)`.
+Entity schemas can be used to create entities by using `schema.new(...)` or
+`kd.new(..., schema=schema)`. List and dict schemas do not support `schema.new`
+syntax.
 
 ```py
 Point = kd.named_schema('Point', x=kd.INT32, y=kd.FLOAT64)
 Line = kd.named_schema('Line', start=Point, end=kd.OBJECT)
 
-i1 = Point(x=1, y=2.3)
+i1 = Point.new(x=1, y=2.3)
 # which is equivalent to
 i1 = kd.new(x=1, y=2.3, schema=Point)
-i2 = Line(z=i1, w='4')
+i2 = Line.new(z=i1, w='4')
 
 s3 = kd.list_schema(kd.INT64)
 s4 = kd.list_schema(Point)
 
-i3 = s3([1, 2, 3, 4])
-i4 = s4([i1, i1])
+i3 = kd.list([1, 2, 3, 4], schema=s3)
+i4 = kd.list([i1, i1], schema=s4)
 
 s5 = kd.dict_schema(kd.STRING, kd.OBJECT)
 s6 = kd.dict_schema(kd.ITEMID, Line)
 
-i5 = s5({'a': kd.obj()})
-i6 = s6(kd.obj().get_itemid(), i2)
+i5 = kd.dict({'a': kd.obj()}, schema=s5)
+i6 = kd.dict(kd.obj().get_itemid(), i2, schema=s6)
 ```
 
 </section>
@@ -1778,9 +1778,16 @@ assert i1.get_schema().x == kd.INT32
 assert i1.get_schema().y == kd.FLOAT32
 assert i1.get_schema().z == kd.STRING
 
-i2 = kd.new(x=1, y=2.0, schema='Point')
-i3 = kd.new(x=2, y=3.0, schema='Point')
-assert i2.get_schema() == i3.get_schema()
+i2 = kd.new(x=1, y=2.0, z='3')
+# Schemas are different because two schemas
+# with different ItemIds are created
+assert i1.get_schema() != i2.get_schema()
+
+i3 = kd.new(x=1, y=2.0, schema='Point')
+i4 = kd.new(x=2, y=3.0, schema='Point')
+# Schemas are the same because two uu schemas
+# with the same ItemIds are created
+assert i3.get_schema() == i4.get_schema()
 ```
 
 </section>
