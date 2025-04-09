@@ -16,10 +16,14 @@ Here is an example of an improved error message.
 >>> obj.with_bag(kd.bag()).a
 ...
 
-KodaError: object schema is missing for the DataItem whose item is: $000fd856bbfc03480000000000000001:0
+ValueError: object schema is missing for the DataItem whose item is: $0000ShTxCVvMzRgwUPt5cb
 
   DataItem with the kd.OBJECT schema usually store its schema as an attribute or implicitly hold the type information when it's a primitive type. Perhaps, the OBJECT schema is set by mistake with
   foo.with_schema(kd.OBJECT) when 'foo' does not have stored schema attribute.
+
+The above exception was the direct cause of the following exception:
+
+ValueError: failed to get attribute 'a'
 ```
 
 Because the `DataBag` is newly created and doesn't contain schema info,
@@ -34,81 +38,42 @@ C++.
 
 When error happens,
 
-1.  Koda C++ collects the necessary information, creates a specific error proto
-    and attaches it to the `Status`. So the error can be propagated across all
-    C++ call stacks. During the progatation, error message will be updated by
-    `AssembleErrorMessage` when the additional context is available.
+1.  Koda C++ collects the necessary information, creates a specific error
+    payload and attaches it to the `Status`. So the error can be propagated
+    across all C++ call stacks. During the progatation, error will be clarified
+    by `KodaErrorCausedByMissingObjectSchemaError` or similar functions when the
+    additional context is available and the original error will be appended in
+    the `cause`.
 
 2.  In the topmost CPython layer, the
-    [`SetKodaPyErrFromStatus`](https://github.com/google/koladata/blob/main//py/koladata/exceptions/py_exception_utils.h)
-    C++
-    function checks if the `Status` contains the specific error proto. If so, it
-    passes the serialized proto to python side. The python counter part
-    deserializes the proto, creates the `KodaError` python exception instance,
-    stores the proto in the exception and returns the instance to C++. Finally
-    the `SetKodaPyErrFromStatus` raises the
-    [`KodaError`](https://github.com/google/koladata/blob/main//py/koladata/exceptions/exceptions.py)
-    finishes the process.
+    [`SetPyErrFromStatus`](https://github.com/google/koladata/blob/main//py/koladata/types/data_slice.cc)
+    C++ function recursively converts the error chain to python exceptions and
+    raises exceptions.
 
 ## Implementation Steps
 
 ### Check existing error categories
 
 There's already a list of error categories in
-[error.proto](https://github.com/google/koladata/blob/main//koladata/internal/error.proto).
+[errors.h](https://github.com/google/koladata/blob/main//koladata/internal/errors.h).
 
-Check if the case to improve is already covered. If so, create the error proto
-instance when error is happening and attaches to the `Status`.
-See [example](https://github.com/google/koladata/blob/main//koladata/data_slice.cc).
+Check if the case to improve is already covered. If so, create the error payload
+instance when error is happening and attaches to the `Status`. See
+[example](https://github.com/google/koladata/blob/main//koladata/internal/data_bag.cc).
 
-### Define the specific error proto type
+### Define the specific error struct type
 
-If the error case is not listed, then create a new proto container, add the
-necessary fields to the proto, create an error proto instance and attach it to
+If the error case is not listed, then create a new struct container, add the
+necessary fields, create an payload instance and attach it to
 `Status`.
 
-### Modify `AssembleErrorMessage`
+### Clarify the error message
 
-Then in
-[AssembleErrorMessage](https://github.com/google/koladata/blob/main//koladata/repr_utils.cc),
-create a new branch to handle the category. In the `Status` propagation path,
-call `AssmebleErrorMessage` to update the error message. The
-[`SupplementalData`](https://github.com/google/koladata/blob/main//koladata/repr_utils.h)
-structure can be used to carry the additional context for assembling the
-message.
-
-### Add nested errors
-
-`KodaError` also support nesting. Example:
-
-```
->>> schema = kd.schema.new_schema(a=schema_constants.INT32)
->>> kd.new(a='xyz', schema=schema)
-...
-
-KodaError: cannot create Item(s) with the provided schema: SCHEMA(a=INT32)
-
-The cause is: the schema for attribute 'a' is incompatible.
-
-Expected schema for 'a': INT32
-Assigned schema for 'a': STRING
-
-To fix this, explicitly override schema of 'a' in the original schema. For example,
-schema.a = <desired_schema>
-```
-
-When updating the error message during the
-`Status` propagation path, creates a new `KodaError` proto and moves the
-original error proto to the `cause` field. The final `KodaError` python
-exception instance will have the corresponding cause. See
-[CreateItemCreationError](https://github.com/google/koladata/blob/main//koladata/repr_utils.h)
-and its call site.
+In the `Status` propagation path, a more readable error message can be
+assembled with additional context. Here is an
+[example](https://github.com/google/koladata/blob/main//koladata/data_slice.cc) of printing the schema from DataBag.
 
 ## Current limitations and future improvement
 
-*   The error categories in Koda v0 need to be reimplemented.
-
 *   This error handling mechanism can only improve the error message on a case
     by case basis.
-
-*   Errors that happen in Arolla cannot be handled.
