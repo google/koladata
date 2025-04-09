@@ -540,8 +540,8 @@ Aliases:
 ``` {.no-copy}
 Creates a DataSlice with clones of provided entities in a new DataBag.
 
-The entities themselves and their top-level attributes are cloned (with new
-ItemIds) and non-top-level attributes are extracted (with the same ItemIds).
+The entities themselves are cloned (with new ItemIds) and their attributes are
+extracted (with the same ItemIds).
 
 Also see kd.shallow_clone and kd.deep_clone.
 
@@ -558,8 +558,8 @@ Args:
   **overrides: attribute overrides.
 
 Returns:
-  A copy of the entities where all top-level attributes are cloned (new
-  ItemIds) and all of the rest extracted.
+  A copy of the entities where entities themselves are cloned (new ItemIds)
+  and all of the rest extracted.
 ```
 
 ### `kd.core.container(*, db=None, **attrs)` {#kd.core.container}
@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x7307facb5590>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x502c7ac4d9d0>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x7307facb5590>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x502c7ac4d9d0>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -6112,6 +6112,15 @@ Aliases:
 Returns the number of dimensions of DataSlice `x`.
 ```
 
+### `kd.slices.get_repr(x)` {#kd.slices.get_repr}
+Aliases:
+
+- [kd.get_repr](#kd.get_repr)
+
+``` {.no-copy}
+Returns a string representation of the DataSlice `x`.
+```
+
 ### `kd.slices.group_by(x, *args, sort=DataItem(False, schema: BOOLEAN))` {#kd.slices.group_by}
 Aliases:
 
@@ -8487,6 +8496,10 @@ Alias for [kd.schema.get_obj_schema](#kd.schema.get_obj_schema) operator.
 
 Alias for [kd.schema.get_dtype](#kd.schema.get_dtype) operator.
 
+### `kd.get_repr(x)` {#kd.get_repr}
+
+Alias for [kd.slices.get_repr](#kd.slices.get_repr) operator.
+
 ### `kd.get_schema(x)` {#kd.get_schema}
 
 Alias for [kd.schema.get_schema](#kd.schema.get_schema) operator.
@@ -9747,8 +9760,8 @@ Aliases:
 ``` {.no-copy}
 Creates a DataSlice with clones of provided entities in a new DataBag.
 
-The entities themselves and their top-level attributes are cloned (with new
-ItemIds) and non-top-level attributes are extracted (with the same ItemIds).
+The entities themselves are cloned (with new ItemIds) and their attributes are
+extracted (with the same ItemIds).
 
 Also see kd.shallow_clone and kd.deep_clone.
 
@@ -9765,8 +9778,8 @@ Args:
   **overrides: attribute overrides.
 
 Returns:
-  A copy of the entities where all top-level attributes are cloned (new
-  ItemIds) and all of the rest extracted.
+  A copy of the entities where entities themselves are cloned (new ItemIds)
+  and all of the rest extracted.
 ```
 
 ### `DataSlice.deep_clone(self, schema=unspecified, **overrides)` {#DataSlice.deep_clone}
