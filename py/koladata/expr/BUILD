@@ -113,6 +113,7 @@ py_library(
     srcs = ["tracing.py"],
     deps = [
         ":input_container",
+        ":introspection",
         ":tracing_mode",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",

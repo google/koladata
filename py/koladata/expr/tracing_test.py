@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
@@ -158,6 +159,41 @@ class TracingTest(absltest.TestCase):
         .to_py(),
         'Hello WORLD',
     )
+
+  def test_ignored_input(self):
+    def fn(x, *, y):
+      del y
+      return x
+
+    kd.testing.assert_equal(tracing.trace(fn).eval(x=kd.slice(1)), kd.slice(1))
+
+  def test_extra_input_in_expr_error(self):
+    def fn(x, *, y):
+      return x + y + I.z + I.a
+
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        "unexpected inputs ['a', 'z'] found during tracing of function:"
+        f' `{fn}`. Traced functions must not create new or capture external'
+        ' inputs',
+    ):
+      tracing.trace(fn)
+
+  def test_nested_captured_variable_error(self):
+    def fn(x, y):
+      def internal_fn(x):
+        return x + y
+
+      traced_internal_fn = tracing.trace(internal_fn)
+      return traced_internal_fn(x)
+
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            re.escape("unexpected inputs ['y']")
+        ),
+    ):
+      tracing.trace(fn)
 
 
 if __name__ == '__main__':

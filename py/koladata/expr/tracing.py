@@ -19,6 +19,7 @@ from typing import Any, Callable
 
 from arolla import arolla
 from koladata.expr import input_container
+from koladata.expr import introspection
 from koladata.expr import tracing_mode
 from koladata.types import py_boxing
 
@@ -88,9 +89,20 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
           *[I[x] for x in positional_param_names],
           **{x: I[x] for x in keyword_param_names},
       )
-    return py_boxing.as_expr(res)
+    expr = py_boxing.as_expr(res)
   except Exception as e:
     raise ValueError(
         f'Failed to trace the function: `{fn}`. If you only need Python'
         ' evaluation, you can use `kd.py_fn(fn)` instead.'
     ) from e
+  if diff := (
+      frozenset(introspection.get_input_names(expr))
+      - frozenset(positional_param_names)
+      - frozenset(keyword_param_names)
+  ):
+    raise ValueError(
+        f'unexpected inputs {sorted(diff)} found during tracing of function:'
+        f' `{fn}`. Traced functions must not create new or capture external'
+        ' inputs'
+    )
+  return expr
