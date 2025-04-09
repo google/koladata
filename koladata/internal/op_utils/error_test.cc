@@ -35,10 +35,12 @@ using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::testing::CausedBy;
 using ::arolla::testing::PayloadIs;
+using ::testing::_;
 using ::testing::AllOf;
 using ::testing::Eq;
 using ::testing::Field;
 using ::testing::IsNull;
+using ::testing::Not;
 
 TEST(OperatorEvalError, NoCause) {
   absl::Status status = OperatorEvalError("op_name", "error_message");
@@ -49,11 +51,9 @@ TEST(OperatorEvalError, NoCause) {
 TEST(OperatorEvalError, WithStatus) {
   absl::Status status = absl::InvalidArgumentError("Test error");
   absl::Status new_status = OperatorEvalError(status, "op_name");
-  EXPECT_THAT(
-      new_status,
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "op_name: Test error"),
-            CausedBy(
-                StatusIs(absl::StatusCode::kInvalidArgument, "Test error"))));
+  EXPECT_THAT(new_status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                                         "op_name: Test error"),
+                                Not(CausedBy(_))));
 }
 
 TEST(OperatorEvalError, EmptyOperatorName) {
@@ -116,11 +116,9 @@ absl::StatusOr<int> ReturnsErrorOr(int x, int y) {
 TEST(ReturnsOperatorEvalError, WrapsStatusOr) {
   auto wrapped_fn = ReturnsOperatorEvalError("op_name", ReturnsErrorOr);
   auto status = wrapped_fn(5, 7).status();
-  EXPECT_THAT(status,
-              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                             "op_name: test error 57"),
-                    CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                      "test error 57"))));
+  EXPECT_THAT(status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                                     "op_name: test error 57"),
+                            Not(CausedBy(_))));
 }
 
 absl::Status ReturnsError(int x, int y) {
@@ -130,11 +128,9 @@ absl::Status ReturnsError(int x, int y) {
 TEST(ReturnsOperatorEvalError, WrapsStatus) {
   auto wrapped_fn = ReturnsOperatorEvalError("op_name", ReturnsError);
   auto status = wrapped_fn(5, 7);
-  EXPECT_THAT(status,
-              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                             "op_name: test error 57"),
-                    CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                      "test error 57"))));
+  EXPECT_THAT(status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                                     "op_name: test error 57"),
+                            Not(CausedBy(_))));
 }
 
 TEST(ReturnsOperatorEvalError, WithLambda) {
@@ -143,11 +139,9 @@ TEST(ReturnsOperatorEvalError, WithLambda) {
   };
   auto wrapped_fn = ReturnsOperatorEvalError("op_name", fn);
   auto status = wrapped_fn(5, 7).status();
-  EXPECT_THAT(status,
-              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                             "op_name: test error 57"),
-                    CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                      "test error 57"))));
+  EXPECT_THAT(status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                                     "op_name: test error 57"),
+                            Not(CausedBy(_))));
 }
 
 // Counts the number of times the object is copied or moved.
@@ -226,9 +220,7 @@ TEST(ReturnsOperatorEvalError, NoExtraInputCopies) {
                 AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                                "op_name: by_value: 1/1, by_const_ref: 0/0, "
                                "by_rvalue: 0/0, by_ref: 0/0"),
-                      CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                        "by_value: 1/1, by_const_ref: 0/0, "
-                                        "by_rvalue: 0/0, by_ref: 0/0"))));
+                      Not(CausedBy(_))));
   }
 }
 

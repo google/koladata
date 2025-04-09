@@ -22,18 +22,18 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "koladata/internal/error_utils.h"
+#include "arolla/util/status.h"
 
 namespace koladata::internal {
 
 absl::Status OperatorEvalError(absl::Status status,
                                absl::string_view operator_name) {
-  std::string error_message = std::string(status.message());
-
-  if (absl::StartsWith(error_message, operator_name)) {
+  if (absl::StartsWith(status.message(), operator_name)) {
     return status;
   }
-  error_message = absl::StrFormat("%s: %s", operator_name, error_message);
-  return KodaErrorFromCause(error_message, std::move(status));
+  return arolla::WithUpdatedMessage(
+      std::move(status),
+      absl::StrFormat("%s: %s", operator_name, status.message()));
 }
 
 absl::Status OperatorEvalError(absl::Status status,

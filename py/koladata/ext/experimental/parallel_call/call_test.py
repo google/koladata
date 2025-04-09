@@ -331,12 +331,8 @@ class FunctorCallTest(absltest.TestCase):
         arolla.testing.any_cause_message_regex(
             re.escape('[CANCELLED] interrupted')
         ),
-    ) as cm:
+    ):
       call.call_multithreaded(kd.fn(fn), x=ds(1), max_threads=10)
-    self.assertRegex(
-        str(cm.exception),
-        re.escape(r'kd.py.apply_py: error during calling `fn`'),
-    )
 
 
 if __name__ == '__main__':

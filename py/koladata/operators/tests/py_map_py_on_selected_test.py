@@ -141,7 +141,7 @@ class PyMapPyOnSelectedTest(parameterized.TestCase):
     fn = lambda _: None
     cond = ds([None], schema_constants.MASK)
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        TypeError,
         arolla.testing.any_cause_message_regex(
             "expected at least one input DataSlice, got none"
         ),

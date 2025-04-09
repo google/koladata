@@ -480,7 +480,7 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_no_inputs(self):
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        TypeError,
         arolla.testing.any_cause_message_regex(
             'expected at least one input DataSlice, got none'
         ),
