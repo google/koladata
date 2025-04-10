@@ -265,7 +265,7 @@ class SlicesGroupByTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.group_by(arolla.dense_array(['a', 'b']), ds([1, 2])))
 
-  def test_eval_non_aligned(self):
+  def test_eval_args_non_aligned(self):
     with self.assertRaisesRegex(
         ValueError,
         'kd.slices.group_by_indices: all arguments must have the same shape',
@@ -275,6 +275,20 @@ class SlicesGroupByTest(parameterized.TestCase):
               ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
               ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
               ds([[[1, 2, 1], [3, 1, 3]], [[1, 3], [1, 3]]]),
+          )
+      )
+
+  def test_eval_x_non_aligned_with_args(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        'kd.group_by: First argument `x` must have the same shape as the'
+        ' other arguments',
+    ):
+      expr_eval.eval(
+          kde.group_by(
+              ds([[[1, 2, 1], [3, 1, 3]], [[1, 3], [1, 3]]]),
+              ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
+              ds([[0, 7, 5, 5, 0, 5], [0, 0, 2]]),
           )
       )
 

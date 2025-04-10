@@ -779,9 +779,17 @@ def group_by(x, *args, sort=False):  # pylint: disable=redefined-outer-name
           take(P.x, _group_by_indices(P.sort, P.x)),
           condition=M.qtype.get_field_count(P.args) == 0,
       ),
-      # TODO: add assertion: x has the same shape as other args.
       default=take(
-          P.x, M.core.apply_varargs(_group_by_indices, P.sort, P.args)
+          assertion.with_assertion(
+              P.x,
+              M.jagged.equal(
+                  jagged_shape_ops.get_shape(P.x),
+                  jagged_shape_ops.get_shape(M.core.get_nth(P.args, 0)),
+              ),
+              'First argument `x` must have the same shape as the other'
+              ' arguments',
+          ),
+          M.core.apply_varargs(_group_by_indices, P.sort, P.args),
       ),
   )
   return dispatch_op(x, args, sort)
