@@ -106,7 +106,7 @@ static constexpr DTypeId GetDTypeId() {
   } else if constexpr (std::is_same_v<internal::MissingValue, T>) {
     return 13;
   } else {
-    static_assert(false, "unsupported type for DType");
+    static_assert(sizeof(T) == 0, "unsupported type for GetDTypeId");
   }
 }
 

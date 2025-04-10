@@ -215,7 +215,7 @@ const auto& GetValuesFromDataSliceCompactProto(
     static std::type_identity<T> res;
     return res;
   } else {
-    static_assert(false);
+    static_assert(sizeof(T) == 0, "unsupported type for DataSliceCompactProto");
   }
   ABSL_UNREACHABLE();
 }

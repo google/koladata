@@ -335,7 +335,7 @@ absl::Status FillItemProto(Encoder& encoder, ValueProto& value_proto,
                        encoder.EncodeValue(arolla::TypedValue::FromValue(v)));
       value_proto.add_input_value_indices(index);
     } else {
-      static_assert(false);
+      static_assert(sizeof(T) == 0, "unsupported type for DataItemProto");
     }
     return absl::OkStatus();
   });
@@ -424,7 +424,7 @@ void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
     }
     value_proto.add_input_value_indices(*index);
   } else {
-    static_assert(false);
+    static_assert(sizeof(T) == 0, "unsupported type for DataSliceCompactProto");
   }
 }
 
