@@ -392,6 +392,154 @@ def is_fn(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.functor._while',
+    qtype_inference_expr=arolla.M.qtype.conditional_qtype(
+        P.returns != arolla.UNSPECIFIED,
+        P.returns,
+        arolla.M.qtype.conditional_qtype(
+            P.yields != arolla.UNSPECIFIED,
+            arolla.M.qtype.make_sequence_qtype(P.yields),
+            arolla.M.qtype.make_sequence_qtype(P.yields_interleaved),
+        ),
+    ),
+    deterministic=False,
+)
+def _while(
+    condition_fn,  # pylint: disable=unused-argument
+    body_fn,  # pylint: disable=unused-argument
+    *,
+    returns=arolla.unspecified(),  # pylint: disable=unused-argument
+    yields=arolla.unspecified(),  # pylint: disable=unused-argument
+    yields_interleaved=arolla.unspecified(),  # pylint: disable=unused-argument
+    initial_state,  # pylint: disable=unused-argument
+):
+  """Backend operator for while_ that doesn't chain/interleave yields."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.while_'])
+@optools.as_lambda_operator(
+    'kd.functor.while_',
+    qtype_constraints=(
+        qtype_utils.expect_data_slice(P.condition_fn),
+        qtype_utils.expect_data_slice(P.body_fn),
+        qtype_utils.expect_iterable_or_unspecified(P.yields),
+        qtype_utils.expect_iterable_or_unspecified(P.yields_interleaved),
+        (
+            arolla.M.array.count(
+                arolla.M.array.make_dense_array(
+                    P.returns != arolla.UNSPECIFIED,
+                    P.yields != arolla.UNSPECIFIED,
+                    P.yields_interleaved != arolla.UNSPECIFIED,
+                )
+            )
+            == 1,
+            (
+                'exactly one of `returns`, `yields`, or `yields_interleaved`'
+                ' must be specified'
+            ),
+        ),
+    ),
+    deterministic=False,
+)
+def while_(
+    condition_fn,  # pylint: disable=unused-argument
+    body_fn,  # pylint: disable=unused-argument
+    *,
+    returns=arolla.unspecified(),  # pylint: disable=unused-argument
+    yields=arolla.unspecified(),  # pylint: disable=unused-argument
+    yields_interleaved=arolla.unspecified(),  # pylint: disable=unused-argument
+    **initial_state,  # pylint: disable=unused-argument
+):
+  """While a condition functor returns present, runs a body functor repeatedly.
+
+  The items in `initial_state` (and `returns`, if specified) are used to
+  initialize a dict of state variables, which are passed as keyword arguments
+  to `condition_fn` and `body_fn` on each loop iteration, and updated from the
+  namedtuple (see kd.make_namedtuple) return value of `body_fn`.
+
+  Exactly one of `returns`, `yields`, or `yields_interleaved` must be specified.
+  The return value of this operator depends on which one is present:
+  - `returns`: the value of `returns` when the loop ends. The initial value of
+    `returns` must have the same qtype (e.g. DataSlice, DataBag) as the final
+    return value.
+  - `yields`: a single iterable chained (using `kd.iterables.chain`) from the
+    value of `yields` returned from each invocation of `body_fn`, The value of
+    `yields` must always be an iterable, including initially.
+  - `yields_interleaved`: the same as for `yields`, but the iterables are
+    interleaved (using `kd.iterables.iterleave`) instead of being chained.
+
+  Args:
+    condition_fn: A functor with keyword argument names matching the state
+      variable names and returning a MASK DataItem.
+    body_fn: A functor with argument names matching the state variable names and
+      returning a namedtuple (see kd.make_namedtuple) with a subset of the
+      keys of `initial_state`.
+    returns: If present, the initial value of the 'returns' state variable.
+    yields: If present, the initial value of the 'yields' state variable.
+    yields_interleaved: If present, the initial value of the
+      `yields_interleaved` state variable.
+    **initial_state: A dict of the initial values for state variables.
+
+  Returns:
+    If `returns` is a state variable, the value of `returns` when the loop
+    ended. Otherwise, an iterable combining the values of `yields` or
+    `yields_interleaved` from each body invocation.
+  """
+  initial_state = arolla.optools.fix_trace_kwargs(initial_state)
+  while_result = _while(
+      condition_fn,
+      body_fn,
+      returns=returns,
+      yields=yields,
+      yields_interleaved=yields_interleaved,
+      initial_state=initial_state,
+  )
+  return arolla.types.DispatchOperator(
+      'while_result, returns, yields, yields_interleaved,'
+      ' non_determinism_token',
+      returns_case=arolla.types.DispatchCase(
+          P.while_result,
+          condition=(P.returns != arolla.UNSPECIFIED),
+      ),
+      yields_case=arolla.types.DispatchCase(
+          koda_internal_iterables.from_sequence(
+              koda_internal_iterables.sequence_chain(
+                  arolla.M.seq.map(
+                      koda_internal_iterables.to_sequence, P.while_result
+                  )
+              )
+          ),
+          condition=(P.yields != arolla.UNSPECIFIED),
+      ),
+      yields_interleaved_case=arolla.types.DispatchCase(
+          arolla.abc.sub_by_fingerprint(
+              koda_internal_iterables.from_sequence(
+                  koda_internal_iterables.sequence_interleave(
+                      arolla.M.seq.map(
+                          koda_internal_iterables.to_sequence, P.while_result
+                      ),
+                  )
+              ),
+              {
+                  py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
+                      P.non_determinism_token
+                  )
+              },
+          ),
+          condition=(P.yields_interleaved != arolla.UNSPECIFIED),
+      ),
+  )(
+      while_result,
+      returns,
+      yields,
+      yields_interleaved,
+      py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,
+  )
+
+
 @optools.as_lambda_operator(
     'kd.functor._reduce_op',
 )

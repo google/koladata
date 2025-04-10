@@ -20,6 +20,7 @@
 #include "koladata/functor/is_fn_operator.h"
 #include "koladata/functor/expr_fn_operator.h"
 #include "koladata/functor/map_operator.h"
+#include "koladata/functor/while_operator.h"
 #include "arolla/qexpr/optools.h"
 
 namespace koladata::functor {
@@ -30,6 +31,7 @@ namespace {
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
 OPERATOR("kd.functor._maybe_call", MaybeCall);
+OPERATOR_FAMILY("kd.functor._while", std::make_unique<WhileOperatorFamily>());
 OPERATOR_FAMILY("kd.functor.aggregate",
                 std::make_unique<AggregateOperatorFamily>());
 OPERATOR_FAMILY("kd.functor.call", std::make_unique<CallOperatorFamily>());
