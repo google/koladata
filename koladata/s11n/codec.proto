@@ -77,6 +77,12 @@ message KodaV1Proto {
   message DataSliceCompactProto {
     optional bytes types_buffer = 255;
 
+    // Last `extra_part_count` value indices are links to other
+    // DataSliceCompactProto serialized to arolla::Bytes.
+    // Extra parts don't have types_buffer, only additional repeated values
+    // which didn't fit into the main proto.
+    optional int64 extra_part_count = 254 [default = 0];
+
     // Field ids must be equal to ScalarTypeId<T>() for corresponding type.
     optional RepeatedPackedObjectIdProto object_id = 1;
     repeated int32 i32 = 2 [packed = true];
@@ -93,8 +99,8 @@ message KodaV1Proto {
 
   message DataSliceImplProto {
     oneof value {
-       DataItemVectorProto data_item_vector = 1;
-       DataSliceCompactProto data_slice_compact = 2;
+      DataItemVectorProto data_item_vector = 1;
+      DataSliceCompactProto data_slice_compact = 2;
     }
   }
 

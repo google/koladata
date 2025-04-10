@@ -162,8 +162,8 @@ class DataSliceS11NTest(codec_test_case.S11nCodecTestCase):
 
   def test_big_slice(self):
     value = data_slice.DataSlice.from_vals(list(range(10**7)))
-    data = arolla.s11n.dumps(value)
-    res = arolla.s11n.loads(data)
+    data = kd.dumps(value)
+    res = kd.loads(data)
     kd_testing.assert_equal(res, value)
 
   def test_slice_mixed(self):

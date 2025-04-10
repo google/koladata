@@ -14,6 +14,8 @@
 //
 #include <cstdint>
 #include <numeric>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -28,6 +30,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
+#include "arolla/memory/buffer.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/encode.h"
@@ -153,16 +156,77 @@ TEST(SerializationTest, DataSliceImpl) {
   EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
 }
 
-TEST(SerializationTest, DataSliceImplInt64BytesSize) {
-  constexpr int64_t kSize = 1000000;
-  std::vector<int64_t> values(kSize);
-  std::iota(values.begin(), values.end(), 0);
-  auto slice = DataSliceImpl::Create(arolla::CreateFullDenseArray(values));
-  std::vector<TypedValue> typed_values;
-  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
-                                       {TypedValue::FromValue(slice)}, {}));
-  // Real number is 4MB. We set a limit a bit higher.
-  EXPECT_LT(proto.ByteSizeLong(), 5 * 1000 * 1000);
+TEST(SerializationTest, BigDataSliceImplInt64) {
+  for (const int64_t mega_size : {1, 10}) {
+    std::vector<int64_t> values(mega_size * 1000 * 1000);
+    std::iota(values.begin(), values.end(), 0);
+    auto slice = DataSliceImpl::Create(arolla::CreateFullDenseArray(values));
+    std::vector<TypedValue> typed_values;
+    ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                         {TypedValue::FromValue(slice)}, {}));
+    // Size is 4MB for 1M values and 48MB for 10M values.
+    EXPECT_LT(proto.ByteSizeLong(), mega_size * 5 * 1000 * 1000);
+
+    if (mega_size == 1) {
+      EXPECT_EQ(proto.decoding_steps_size(), 3);
+    } else if (mega_size == 10) {
+      // Big slice is split into parts, so we have more decoding steps.
+      EXPECT_EQ(proto.decoding_steps_size(), 13);
+      for (const auto& step : proto.decoding_steps()) {
+        EXPECT_LT(step.ByteSizeLong(), 20000000);
+      }
+    } else {
+      ASSERT_TRUE(false);
+    }
+
+    ASSERT_OK_AND_ASSIGN(auto decode_result,
+                         arolla::serialization::Decode(proto));
+    ASSERT_EQ(decode_result.exprs.size(), 0);
+    ASSERT_EQ(decode_result.values.size(), 1);
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl res,
+                         decode_result.values[0].As<DataSliceImpl>());
+    EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
+  }
+}
+
+TEST(SerializationTest, BigDataSliceImplBytes) {
+  for (const int64_t string_size : {10, 4000000}) {
+    std::string s;
+    s.resize(string_size);
+    for (char& c : s) c = 'A';
+    arolla::StringsBuffer::Builder bldr(10);
+    for (int i = 0; i < 10; ++i) {
+      s[0] = 'A' + i;
+      bldr.Set(i, s);
+    }
+    auto slice = DataSliceImpl::Create(
+        arolla::DenseArray<arolla::Bytes>{std::move(bldr).Build()});
+    std::vector<TypedValue> typed_values;
+    ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                         {TypedValue::FromValue(slice)}, {}));
+    // 182 bytes for 10 10B strings and 40MB for 10 4MB strings.
+    EXPECT_LT(proto.ByteSizeLong(), 100 + 1.05 * string_size * 10);
+
+    if (string_size == 10) {
+      EXPECT_EQ(proto.decoding_steps_size(), 3);
+    } else if (string_size == 4000000) {
+      // Big slice is split into parts, so we have more decoding steps.
+      EXPECT_EQ(proto.decoding_steps_size(), 7);
+      for (const auto& step : proto.decoding_steps()) {
+        EXPECT_LT(step.ByteSizeLong(), 15000000);
+      }
+    } else {
+      ASSERT_TRUE(false);
+    }
+
+    ASSERT_OK_AND_ASSIGN(auto decode_result,
+                         arolla::serialization::Decode(proto));
+    ASSERT_EQ(decode_result.exprs.size(), 0);
+    ASSERT_EQ(decode_result.values.size(), 1);
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl res,
+                         decode_result.values[0].As<DataSliceImpl>());
+    EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
+  }
 }
 
 TEST(SerializationTest, DataSliceImplObjectLinkToParentIdBytesSize) {
@@ -186,14 +250,32 @@ TEST(SerializationTest, DataSliceImplObjectLinkToParentIdBytesSize) {
 }
 
 // Quite common case that may be useful to optimize in the future.
-TEST(SerializationTest, DataSliceImplObjectIdFullAllocBytesSize) {
-  constexpr int64_t kSize = 1000000;
-  auto slice = DataSliceImpl::AllocateEmptyObjects(kSize);
-  std::vector<TypedValue> typed_values;
-  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
-                                       {TypedValue::FromValue(slice)}, {}));
-  // Real number is 3MB. We set a limit a bit higher.
-  EXPECT_LT(proto.ByteSizeLong(), 3.5 * 1000 * 1000);
+TEST(SerializationTest, BigDataSliceImplObjectIdFullAlloc) {
+  for (const int64_t mega_size : {1, 10}) {
+    auto slice = DataSliceImpl::AllocateEmptyObjects(mega_size * 1000 * 1000);
+    std::vector<TypedValue> typed_values;
+    ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                         {TypedValue::FromValue(slice)}, {}));
+    // Size is 3MB for 1M values and 12.2MB for 10M values.
+    EXPECT_LT(proto.ByteSizeLong(), 3.1 * mega_size * 1000 * 1000);
+
+    if (mega_size == 1) {
+      EXPECT_EQ(proto.decoding_steps_size(), 5);
+    } else if (mega_size == 10) {
+      // Big slice is split into parts, so we have more decoding steps.
+      EXPECT_EQ(proto.decoding_steps_size(), 6);
+    } else {
+      ASSERT_TRUE(false);
+    }
+
+    ASSERT_OK_AND_ASSIGN(auto decode_result,
+                         arolla::serialization::Decode(proto));
+    ASSERT_EQ(decode_result.exprs.size(), 0);
+    ASSERT_EQ(decode_result.values.size(), 1);
+    ASSERT_OK_AND_ASSIGN(DataSliceImpl res,
+                         decode_result.values[0].As<DataSliceImpl>());
+    EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
+  }
 }
 
 }  // namespace

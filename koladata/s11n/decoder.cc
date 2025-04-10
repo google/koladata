@@ -223,6 +223,20 @@ const auto& GetValuesFromDataSliceCompactProto(
 absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
     const KodaV1Proto::DataSliceCompactProto& slice_proto,
     absl::Span<const TypedValue> input_values) {
+  if (input_values.size() < slice_proto.extra_part_count()) {
+    return absl::InvalidArgumentError("invalid extra_part_count");
+  }
+  std::vector<KodaV1Proto::DataSliceCompactProto> extra_parts;
+  extra_parts.resize(slice_proto.extra_part_count());
+  for (int64_t i = 0; i < slice_proto.extra_part_count(); ++i) {
+    ASSIGN_OR_RETURN(
+        const std::string& data,
+        input_values[input_values.size() - slice_proto.extra_part_count() + i]
+            .As<std::string>());
+    extra_parts[i].ParseFromString(data);
+  }
+  input_values = input_values.subspan(
+      0, input_values.size() - slice_proto.extra_part_count());
   const std::string& proto_types_buffer = slice_proto.types_buffer();
   internal::SliceBuilder bldr(proto_types_buffer.size());
   uint64_t processed_types = 0;
@@ -260,11 +274,25 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
                           std::type_identity<T>,
                           size_t start_id) -> absl::StatusOr<size_t> {
     auto typed_bldr = bldr.typed<T>();
-    const auto& values = GetValuesFromDataSliceCompactProto<T>(slice_proto);
-    ASSIGN_OR_RETURN(size_t values_size,
-                     get_values_size(std::type_identity<T>(), values));
+    const auto* values = &GetValuesFromDataSliceCompactProto<T>(slice_proto);
+    ASSIGN_OR_RETURN(size_t part_size,
+                     get_values_size(std::type_identity<T>(), *values));
     size_t next_start_id = proto_types_buffer.size();
     size_t last_id = 0;
+    size_t part_offset = 0;
+    auto part_it = extra_parts.begin();
+    auto next_part = [&]() -> absl::Status {
+      if (part_it == extra_parts.end()) {
+        return absl::InvalidArgumentError(absl::StrCat(
+          "DataSliceCompactProto has not enough values for type ",
+          arolla::GetQType<T>()->name()));
+      }
+      part_offset += part_size;
+      values = &GetValuesFromDataSliceCompactProto<T>(*part_it++);
+      ASSIGN_OR_RETURN(part_size,
+                       get_values_size(std::type_identity<T>(), *values));
+      return absl::OkStatus();
+    };
     for (size_t cur = start_id; cur < proto_types_buffer.size(); ++cur) {
       uint8_t cur_type_idx = static_cast<uint8_t>(proto_types_buffer[cur]);
       if (cur_type_idx == internal::TypesBuffer::kUnset) {
@@ -295,32 +323,36 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceCompactProto(
         input_values = input_values.subspan(1);
         typed_bldr.InsertIfNotSet(cur, std::move(q));
       } else {
-        if (last_id >= values_size) {
-          return absl::InvalidArgumentError(absl::StrCat(
-              "DataSliceCompactProto has not enough values for type ",
-              arolla::GetQType<T>()->name()));
+        while (last_id >= part_offset + part_size) {
+          RETURN_IF_ERROR(next_part());
         }
         if constexpr (std::is_same_v<T, internal::ObjectId>) {
           auto object_id = internal::ObjectId::UnsafeCreateFromInternalHighLow(
-              values.hi(last_id) + last_object_id.InternalHigh64(),
-              values.lo(last_id) + last_object_id.InternalLow64());
+              values->hi(last_id - part_offset) +
+                  last_object_id.InternalHigh64(),
+              values->lo(last_id - part_offset) +
+                  last_object_id.InternalLow64());
           last_object_id = object_id;
           typed_bldr.InsertIfNotSet(cur, object_id);
           bldr.GetMutableAllocationIds().Insert(
               internal::AllocationId(object_id));
         } else if constexpr (std::is_same_v<T, schema::DType>) {
-          ASSIGN_OR_RETURN(schema::DType dtype,
-                           schema::DType::FromId(values[last_id]));
+          ASSIGN_OR_RETURN(
+              schema::DType dtype,
+              schema::DType::FromId((*values)[last_id - part_offset]));
           typed_bldr.InsertIfNotSet(cur, dtype);
         } else {
           typed_bldr.InsertIfNotSet(
-              cur, internal::DataItem::View<T>(
-                       arolla::view_type_t<T>(values[last_id])));
+              cur, internal::DataItem::View<T>(arolla::view_type_t<T>(
+                       (*values)[last_id - part_offset])));
         }
         ++last_id;
       }
     }
-    if (last_id != values_size ||
+    while (part_it != extra_parts.end()) {
+      RETURN_IF_ERROR(next_part());
+    }
+    if (last_id != part_offset + part_size ||
         (std::is_same_v<T, arolla::expr::ExprQuote> && !input_values.empty())) {
       return absl::InvalidArgumentError(
           absl::StrCat("DataSliceCompactProto has unused values for type ",

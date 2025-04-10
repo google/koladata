@@ -14,9 +14,11 @@
 //
 #include "arolla/serialization_base/encoder.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -356,10 +358,11 @@ void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
                             KodaV1Proto::DataSliceCompactProto& slice_proto,
                             arolla::view_type_t<T> v,
                             internal::ObjectId& last_object_id,
-                            absl::Status& status) {
+                            absl::Status& status, size_t& size_estimation) {
   if constexpr (std::is_same_v<T, internal::ObjectId>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kObjectIdFieldNumber ==
                   internal::ScalarTypeId<T>());
+    size_estimation += sizeof(T);
     auto* packed_ids_proto = slice_proto.mutable_object_id();
     packed_ids_proto->add_hi(v.InternalHigh64() -
                              last_object_id.InternalHigh64());
@@ -369,22 +372,27 @@ void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
   } else if constexpr (std::is_same_v<T, int32_t>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kI32FieldNumber ==
                   internal::ScalarTypeId<T>());
+    size_estimation += sizeof(T);
     slice_proto.add_i32(v);
   } else if constexpr (std::is_same_v<T, int64_t>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kI64FieldNumber ==
                   internal::ScalarTypeId<T>());
+    size_estimation += sizeof(T);
     slice_proto.add_i64(v);
   } else if constexpr (std::is_same_v<T, float>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kF32FieldNumber ==
                   internal::ScalarTypeId<T>());
+    size_estimation += sizeof(T);
     slice_proto.add_f32(v);
   } else if constexpr (std::is_same_v<T, double>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kF64FieldNumber ==
                   internal::ScalarTypeId<T>());
+    size_estimation += sizeof(T);
     slice_proto.add_f64(v);
   } else if constexpr (std::is_same_v<T, bool>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kBooleanFieldNumber ==
                   internal::ScalarTypeId<T>());
+    size_estimation += sizeof(T);
     slice_proto.add_boolean(v);
   } else if constexpr (std::is_same_v<T, arolla::Unit>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kUnitFieldNumber ==
@@ -393,14 +401,17 @@ void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
   } else if constexpr (std::is_same_v<T, arolla::Text>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kTextFieldNumber ==
                   internal::ScalarTypeId<T>());
+    size_estimation += v.size();
     slice_proto.add_text(v);
   } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kBytesDataFieldNumber ==
                   internal::ScalarTypeId<T>());
+    size_estimation += v.size();
     slice_proto.add_bytes_data(v);
   } else if constexpr (std::is_same_v<T, schema::DType>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kDtypeFieldNumber ==
                   internal::ScalarTypeId<T>());
+    size_estimation += sizeof(v.type_id());
     slice_proto.add_dtype(v.type_id());
   } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kExprQuoteFieldNumber ==
@@ -440,6 +451,27 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
     }
   }
 
+  KodaV1Proto::DataSliceCompactProto extra_compact_proto;
+  KodaV1Proto::DataSliceCompactProto* current_proto = compact_proto;
+  std::vector<int64_t> extra_data_indices;
+  size_t size_estimation = 0;
+
+  constexpr size_t kSoftSizeLimitPerBlock = 1 << 23;
+
+  auto finalize_current_block = [&]() -> absl::Status {
+    if (current_proto == &extra_compact_proto) {
+      ASSIGN_OR_RETURN(
+          int64_t index,
+          encoder.EncodeValue(arolla::TypedValue::FromValue<arolla::Bytes>(
+              extra_compact_proto.SerializeAsString())));
+      extra_data_indices.push_back(index);
+      extra_compact_proto.Clear();
+    }
+    size_estimation = 0;
+    current_proto = &extra_compact_proto;
+    return absl::OkStatus();
+  };
+
   absl::Status status = absl::OkStatus();
   auto last_object_id =
       internal::ObjectId::UnsafeCreateFromInternalHighLow(0, 0);
@@ -449,11 +481,23 @@ absl::StatusOr<ValueProto> EncodeDataSliceImpl(arolla::TypedRef value,
         return;
       }
       proto_types_buffer[id] = static_cast<char>(internal::ScalarTypeId<T>());
-      AddSliceElementToProto<T>(encoder, value_proto, *compact_proto, value,
-                                last_object_id, status);
+      AddSliceElementToProto<T>(encoder, value_proto, *current_proto, value,
+                                last_object_id, status, size_estimation);
+      if (size_estimation > kSoftSizeLimitPerBlock) {
+        status = finalize_current_block();
+      }
     });
   });
   RETURN_IF_ERROR(std::move(status));
+  if (current_proto == &extra_compact_proto && size_estimation > 0) {
+    RETURN_IF_ERROR(finalize_current_block());
+  }
+  if (!extra_data_indices.empty()) {
+    compact_proto->set_extra_part_count(extra_data_indices.size());
+    for (int64_t index : extra_data_indices) {
+      value_proto.add_input_value_indices(index);
+    }
+  }
   return value_proto;
 }
 
