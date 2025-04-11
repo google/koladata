@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_OPERATORS_FUNCTOR_H_
-#define KOLADATA_OPERATORS_FUNCTOR_H_
+#ifndef KOLADATA_OPERATORS_EXPR_FN_OPERATOR_H_
+#define KOLADATA_OPERATORS_EXPR_FN_OPERATOR_H_
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -31,4 +31,4 @@ class ExprFnOperatorFamily final : public arolla::OperatorFamily {
 
 }  // namespace koladata::functor
 
-#endif  // KOLADATA_OPERATORS_FUNCTOR_H_
+#endif  // KOLADATA_OPERATORS_EXPR_FN_OPERATOR_H_
