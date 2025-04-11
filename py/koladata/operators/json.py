@@ -116,7 +116,9 @@ def from_json(
   inference behavior described above.
 
   Primitive schemas in `schema` will attempt to cast any JSON primitives using
-  normal Koda explicit casting rules.
+  normal Koda explicit casting rules, and if those fail, using the following
+  additional rules:
+  - BYTES will accept JSON strings containing base64 (RFC 4648 section 4)
 
   If entity schemas in `schema` have attributes matching `keys_attr` and/or
   `values_attr`, then the object key and/or value order (respectively) will be
@@ -133,6 +135,7 @@ def from_json(
     kd.from_json('"123"', kd.STRING) -> kd.string('123')
     kd.from_json('"123"', kd.INT32) -> kd.int32(123)
     kd.from_json('"123"', kd.FLOAT32) -> kd.float32(123.0)
+    kd.from_json('"MTIz"', kd.BYTES) -> kd.bytes(b'123')
     kd.from_json('"inf"', kd.FLOAT32) -> kd.float32(float('inf'))
     kd.from_json('"1e100"', kd.FLOAT32) -> kd.float32(float('inf'))
     kd.from_json('[1, 2, 3]', kd.list_schema(kd.INT32)) -> kd.list([1, 2, 3])
@@ -205,9 +208,9 @@ def to_json(
 ):
   r"""Converts `x` to a DataSlice of JSON strings.
 
-  Data with STRING, numeric, MASK, BOOLEAN, LIST, STRING-key DICT, and entity
-  schemas are allowed, along with OBJECT schemas that resolve to those schemas.
-  Itemid cycles are not allowed.
+  Data with STRING, BYTES, numeric, MASK, BOOLEAN, LIST, STRING-key DICT, and
+  entity schemas are allowed, along with OBJECT schemas that resolve to those
+  schemas. Itemid cycles are not allowed.
 
   Missing DataSlice items in the input are missing in the result. Missing values
   inside of lists/entities/etc. are encoded as JSON `null`, except for
@@ -225,6 +228,8 @@ def to_json(
     kd.to_json(kd.new(a=1, b='2')) -> '{"a": 1, "b": "2"}'
     kd.to_json(kd.new(x=None)) -> '{"x": null}'
     kd.to_json(kd.new(x=kd.missing)) -> '{"x": false}'
+
+  Koda BYTES values are converted to base64 strings (RFC 4648 section 4).
 
   Integers are always stored exactly in decimal. Finite floating point values
   are formatted similar to python format string `%.17g`, except that a decimal

@@ -53,6 +53,7 @@ class JsonToJsonTest(parameterized.TestCase):
       (ds([1, 2, 3]), {}, ds(['1', '2', '3'])),
       (ds([1, None, 3]), {}, ds(['1', None, '3'])),
       (ds(['a', '\n', '\\']), {}, ds(['"a"', '"\\n"', '"\\\\"'])),
+      (ds(b'abcd'), {}, ds('"YWJjZA=="')),
       (ds(123, schema_constants.INT32), {}, ds('123')),
       (ds(123, schema_constants.INT64), {}, ds('123')),
       (ds(1.25), {}, ds('1.25')),
@@ -243,18 +244,6 @@ class JsonToJsonTest(parameterized.TestCase):
     )
 
   def test_error_invalid_schema(self):
-    with self.assertRaisesRegex(
-        ValueError, 'unsupported schema BYTES for json serialization'
-    ):
-      _ = expr_eval.eval(kde.json.to_json(ds(b'a')))
-
-    with self.assertRaisesRegex(
-        ValueError, 'unsupported schema BYTES for json serialization'
-    ):
-      _ = expr_eval.eval(
-          kde.json.to_json(ds(b'a', schema=schema_constants.OBJECT))
-      )
-
     with self.assertRaisesRegex(
         ValueError, 'unsupported schema SCHEMA for json serialization'
     ):

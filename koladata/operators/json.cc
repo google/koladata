@@ -32,6 +32,7 @@
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/escaping.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
@@ -56,6 +57,7 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
@@ -176,6 +178,15 @@ absl::StatusOr<internal::DataItem> JsonNumberToDataItem(
 
 absl::StatusOr<internal::DataItem> JsonStringToDataItem(
     std::string value, const internal::DataItem& schema_impl) {
+  if (schema_impl == schema::kBytes) {
+    std::string bytes_value;
+    if (!absl::Base64Unescape(value, &bytes_value)) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "json string invalid for %v schema, must be valid base64",
+          schema_impl));
+    }
+    return internal::DataItem(arolla::Bytes(std::move(bytes_value)));
+  }
   auto value_text_item = internal::DataItem(arolla::Text(std::move(value)));
   if (schema_impl == schema::kString) {
     return std::move(value_text_item);
@@ -908,6 +919,8 @@ absl::StatusOr<SerializableJson> PrimitiveValueToSerializableJson(
     return SerializableJson(true);
   } else if constexpr (std::is_same_v<T, arolla::Text>) {
     return SerializableJson(std::string(value.view()));
+  } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
+    return SerializableJson(absl::Base64Escape(value));
   } else {
     return absl::InvalidArgumentError(absl::StrFormat(
         "unsupported schema %s for json serialization",

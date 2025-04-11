@@ -205,6 +205,9 @@ class JsonFromJsonTest(parameterized.TestCase):
       (ds('"\\u1234"'), {'schema': schema_constants.STRING}, ds('\u1234')),
       (ds('1234'), {'schema': schema_constants.STRING}, ds('1234')),
       (ds('1234.5'), {'schema': schema_constants.STRING}, ds('1234.5')),
+      # BYTES schema
+      (ds('""'), {'schema': schema_constants.BYTES}, ds(b'')),
+      (ds('"YWJjZA=="'), {'schema': schema_constants.BYTES}, ds(b'abcd')),
       # FLOAT64 schema
       (
           ds('null'),

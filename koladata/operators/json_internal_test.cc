@@ -30,6 +30,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/json.h"
+#include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 
@@ -315,8 +316,14 @@ TEST(JsonInternalTest, JsonStringToDataItem) {
       JsonStringToDataItem("10000000000", internal::DataItem(schema::kInt32)),
       StatusIs(absl::StatusCode::kInvalidArgument));
 
-  // Invalid schema
-  EXPECT_THAT(JsonStringToDataItem("abc", internal::DataItem(schema::kBytes)),
+  // BYTES (base64) parsing
+  EXPECT_THAT(
+      JsonStringToDataItem("YWJjZA==", internal::DataItem(schema::kBytes)),
+      IsOkAndHolds(internal::DataItem(arolla::Bytes("abcd"))));
+  EXPECT_THAT(
+      JsonStringToDataItem("YWJjZA", internal::DataItem(schema::kBytes)),
+      IsOkAndHolds(internal::DataItem(arolla::Bytes("abcd"))));
+  EXPECT_THAT(JsonStringToDataItem("$$$", internal::DataItem(schema::kBytes)),
               StatusIs(absl::StatusCode::kInvalidArgument));
 }
 
