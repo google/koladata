@@ -15,6 +15,10 @@
 """Functor operators."""
 
 from arolla import arolla
+from koladata.base import py_functors_base_py_ext
+from koladata.expr import input_container
+from koladata.expr import introspection
+from koladata.operators import arolla_bridge
 from koladata.operators import assertion
 from koladata.operators import dicts
 from koladata.operators import koda_internal_iterables
@@ -25,9 +29,11 @@ from koladata.operators import qtype_utils
 from koladata.operators import schema
 from koladata.operators import slices
 from koladata.types import data_slice
+from koladata.types import mask_constants
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
+from koladata.types import signature_utils
 
 P = arolla.P
 M = arolla.M
@@ -692,3 +698,320 @@ def expr_fn(
   """
   del returns, signature, auto_variables, variables
   raise NotImplementedError('implemented in the backend')
+
+
+def _create_for_iteration_condition_or_body_signature():
+  """Creates a signature for functors used to express `for` via `while`."""
+  kind_enum = signature_utils.ParameterKind
+  return signature_utils.signature([
+      signature_utils.parameter('_koda_internal_step', kind_enum.KEYWORD_ONLY),
+      signature_utils.parameter(
+          '_koda_internal_num_steps', kind_enum.KEYWORD_ONLY
+      ),
+      signature_utils.parameter(
+          '_koda_internal_iterable', kind_enum.KEYWORD_ONLY
+      ),
+      signature_utils.parameter(
+          '_koda_internal_body_fn', kind_enum.KEYWORD_ONLY
+      ),
+      signature_utils.parameter(
+          '_koda_internal_finalize_fn', kind_enum.KEYWORD_ONLY
+      ),
+      signature_utils.parameter(
+          '_koda_internal_condition_fn', kind_enum.KEYWORD_ONLY
+      ),
+      signature_utils.parameter(
+          '_koda_internal_yields_namedtuple', kind_enum.KEYWORD_ONLY
+      ),
+      signature_utils.parameter(
+          '_koda_internal_variables', kind_enum.VAR_KEYWORD
+      ),
+  ])
+
+
+def _create_for_iteration_step_signature():
+  """Creates a signature for one step inside `for` via `while`."""
+  kind_enum = signature_utils.ParameterKind
+  return signature_utils.signature([
+      signature_utils.parameter('step', kind_enum.KEYWORD_ONLY),
+      signature_utils.parameter('iterable', kind_enum.KEYWORD_ONLY),
+      signature_utils.parameter('body_fn', kind_enum.KEYWORD_ONLY),
+      signature_utils.parameter('finalize_fn', kind_enum.KEYWORD_ONLY),
+      signature_utils.parameter('variables', kind_enum.KEYWORD_ONLY),
+      signature_utils.parameter(
+          'variables_with_yields', kind_enum.KEYWORD_ONLY
+      ),
+  ])
+
+
+def _create_for_iteration_normal_step_fn():
+  """Creates a functor used to express 'body' step of the for iteration."""
+  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+  item = arolla.M.seq.at(
+      koda_internal_iterables.to_sequence(I.iterable),
+      arolla_bridge.to_arolla_int64(I.step),
+  )
+  returns = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      call_and_update_namedtuple,
+      I.body_fn,
+      args=arolla.M.core.make_tuple(item),
+      namedtuple_to_update=I.variables_with_yields,
+      kwargs=I.variables,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+  return py_functors_base_py_ext.create_functor(
+      introspection.pack_expr(returns),
+      _create_for_iteration_step_signature(),
+  )
+
+
+def _create_for_iteration_final_step_fn():
+  """Creates a functor used to express 'finalize' step of the for iteration."""
+  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+  returns = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      call_and_update_namedtuple,
+      I.finalize_fn,
+      args=arolla.M.core.make_tuple(),
+      namedtuple_to_update=I.variables_with_yields,
+      kwargs=I.variables,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+  return py_functors_base_py_ext.create_functor(
+      introspection.pack_expr(returns),
+      _create_for_iteration_step_signature(),
+  )
+
+
+def _create_for_iteration_body_fn():
+  """Creates a functor used to express for iteration."""
+  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+  V = input_container.InputContainer('V')  # pylint: disable=invalid-name
+  seq_size = arolla_bridge.to_data_slice(
+      arolla.M.seq.size(
+          koda_internal_iterables.to_sequence(I['_koda_internal_iterable'])
+      )
+  )
+  variables_with_yields = arolla.M.namedtuple.union(
+      I['_koda_internal_yields_namedtuple'],
+      I['_koda_internal_variables'],
+  )
+  new_variables = if_(
+      I['_koda_internal_step'] < seq_size,
+      V['_koda_internal_normal_step_fn'],
+      V['_koda_internal_final_step_fn'],
+      return_type_as=variables_with_yields,
+      step=I['_koda_internal_step'],
+      iterable=I['_koda_internal_iterable'],
+      body_fn=I['_koda_internal_body_fn'],
+      finalize_fn=I['_koda_internal_finalize_fn'],
+      variables=I['_koda_internal_variables'],
+      variables_with_yields=variables_with_yields,
+  )
+  returns = arolla.M.namedtuple.union(
+      new_variables,
+      arolla.M.namedtuple.make(
+          _koda_internal_step=I['_koda_internal_step'] + 1,
+      ),
+  )
+  return py_functors_base_py_ext.create_functor(
+      introspection.pack_expr(returns),
+      _create_for_iteration_condition_or_body_signature(),
+      _koda_internal_normal_step_fn=_create_for_iteration_normal_step_fn(),
+      _koda_internal_final_step_fn=_create_for_iteration_final_step_fn(),
+  )
+
+
+def _create_constant_missing_fn():
+  """Creates a functor that returns a constant missing value."""
+  return py_functors_base_py_ext.create_functor(
+      # We cannot set "missing" directly as the value, as the "returns"
+      # attribute of a functor must be present.
+      introspection.pack_expr(py_boxing.as_expr(mask_constants.missing)),
+      signature_utils.ARGS_KWARGS_SIGNATURE,
+  )
+
+
+def _create_constant_present_fn():
+  """Creates a functor that returns a constant present value."""
+  return py_functors_base_py_ext.create_functor(
+      mask_constants.present,
+      signature_utils.ARGS_KWARGS_SIGNATURE,
+  )
+
+
+def _create_for_iteration_condition_fn():
+  """Creates a functor used to express for iteration condition."""
+  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+  V = input_container.InputContainer('V')  # pylint: disable=invalid-name
+  returns = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      if_,
+      I['_koda_internal_step'] < I['_koda_internal_num_steps'],
+      arolla.M.core.default_if_unspecified(
+          I['_koda_internal_condition_fn'],
+          V['_koda_internal_constant_present_fn'],
+      ),
+      V['_koda_internal_constant_missing_fn'],
+      args=arolla.M.core.make_tuple(),
+      kwargs=I['_koda_internal_variables'],
+      **optools.unified_non_deterministic_kwarg(),
+  )
+  return py_functors_base_py_ext.create_functor(
+      introspection.pack_expr(returns),
+      _create_for_iteration_condition_or_body_signature(),
+      _koda_internal_constant_missing_fn=_create_constant_missing_fn(),
+      _koda_internal_constant_present_fn=_create_constant_present_fn(),
+  )
+
+
+_FOR_ITERATION_BODY_FN = _create_for_iteration_body_fn()
+_FOR_ITERATION_CONDITION_FN = _create_for_iteration_condition_fn()
+
+
+@optools.add_to_registry(aliases=['kd.for_'])
+@optools.as_lambda_operator(
+    'kd.functor.for_',
+    qtype_constraints=(
+        qtype_utils.expect_iterable(P.iterable),
+        qtype_utils.expect_data_slice(P.body_fn),
+        qtype_utils.expect_data_slice_or_unspecified(P.finalize_fn),
+        qtype_utils.expect_data_slice_or_unspecified(P.condition_fn),
+        qtype_utils.expect_iterable_or_unspecified(P.yields),
+        qtype_utils.expect_iterable_or_unspecified(P.yields_interleaved),
+        (
+            arolla.M.array.count(
+                arolla.M.array.make_dense_array(
+                    P.returns != arolla.UNSPECIFIED,
+                    P.yields != arolla.UNSPECIFIED,
+                    P.yields_interleaved != arolla.UNSPECIFIED,
+                )
+            )
+            == 1,
+            (
+                'exactly one of `returns`, `yields`, or `yields_interleaved`'
+                ' must be specified'
+            ),
+        ),
+    ),
+)
+def for_(
+    iterable,
+    body_fn,
+    *,
+    finalize_fn=arolla.unspecified(),
+    condition_fn=arolla.unspecified(),
+    returns=arolla.unspecified(),
+    yields=arolla.unspecified(),
+    yields_interleaved=arolla.unspecified(),
+    **initial_state,
+):
+  """Executes a loop over the given iterable.
+
+  Exactly one of `returns`, `yields`, `yields_interleaved` must be specified,
+  and that dictates what this operator returns.
+
+  When `returns` is specified, it is one more variable added to `initial_state`,
+  and the value of that variable at the end of the loop is returned.
+
+  When `yields` is specified, it must be an iterable, and the value
+  passed there, as well as the values set to this variable in each
+  iteration of the loop, are chained to get the resulting iterable.
+
+  When `yields_interleaved` is specified, the behavior is the same as `yields`,
+  but the values are interleaved instead of chained.
+
+  The behavior of the loop is equivalent to the following pseudocode:
+
+    state = initial_state  # Also add `returns` to it if specified.
+    while condition_fn(state):
+      item = next(iterable)
+      if item == <end-of-iterable>:
+        upd = finalize_fn(**state)
+      else:
+        upd = body_fn(item, **state)
+      if yields/yields_interleaved is specified:
+        yield the corresponding data from upd, and remove it from upd.
+      state.update(upd)
+      if item == <end-of-iterable>:
+        break
+    if returns is specified:
+      return state['returns']
+
+  Args:
+    iterable: The iterable to iterate over.
+    body_fn: The function to be executed for each item in the iterable. It will
+      receive the iterable item as the positional argument, and the loop
+      variables as keyword arguments (excluding `yields`/`yields_interleaved` if
+      those are specified), and must return a namedtuple with the new values for
+      some or all loop variables (including `yields`/`yields_interleaved` if
+      those are specified).
+    finalize_fn: The function to be executed when the iterable is exhausted. It
+      will receive the same arguments as `body_fn` except the positional
+      argument, and must return the same namedtuple. If not specified, the state
+      at the end will be the same as the state after processing the last item.
+      Note that finalize_fn is not called if condition_fn ever returns false.
+    condition_fn: The function to be executed to determine whether to continue
+      the loop. It will receive the loop variables as keyword arguments, and
+      must return a MASK scalar. Can be used to terminate the loop early without
+      processing all items in the iterable. If not specified, the loop will
+      continue until the iterable is exhausted.
+    returns: The loop variable that holds the return value of the loop.
+    yields: The loop variables that holds the values to yield at each iteration,
+      to be chained together.
+    yields_interleaved: The loop variables that holds the values to yield at
+      each iteration, to be interleaved.
+    **initial_state: The initial state of the loop variables.
+
+  Returns:
+    Either the return value or the iterable of yielded values.
+  """
+  initial_state = arolla.optools.fix_trace_kwargs(initial_state)
+  num_steps = arolla_bridge.to_data_slice(
+      arolla.M.seq.size(koda_internal_iterables.to_sequence(P.iterable))
+  )
+  num_steps += arolla.types.DispatchOperator(
+      'finalize_fn',
+      no_finalize_case=arolla.types.DispatchCase(
+          data_slice.DataSlice.from_vals(0),
+          condition=(P.finalize_fn == arolla.UNSPECIFIED),
+      ),
+      default=data_slice.DataSlice.from_vals(1),
+  )(finalize_fn)
+  yields_namedtuple = arolla.types.DispatchOperator(
+      'yields, yields_interleaved',
+      yields_case=arolla.types.DispatchCase(
+          arolla.M.namedtuple.make(
+              yields=koda_internal_iterables.empty_as(P.yields)
+          ),
+          condition=(P.yields != arolla.UNSPECIFIED),
+      ),
+      yields_interleaved_case=arolla.types.DispatchCase(
+          arolla.M.namedtuple.make(
+              yields_interleaved=koda_internal_iterables.empty_as(
+                  P.yields_interleaved
+              )
+          ),
+          condition=(P.yields_interleaved != arolla.UNSPECIFIED),
+      ),
+      default=arolla.M.namedtuple.make(),
+  )(yields, yields_interleaved)
+  return arolla.abc.bind_op(
+      while_,
+      condition_fn=_FOR_ITERATION_CONDITION_FN,
+      body_fn=_FOR_ITERATION_BODY_FN,
+      returns=returns,
+      yields=yields,
+      yields_interleaved=yields_interleaved,
+      initial_state=arolla.M.namedtuple.union(
+          initial_state,
+          arolla.M.namedtuple.make(
+              _koda_internal_step=data_slice.DataSlice.from_vals(0),
+              _koda_internal_num_steps=num_steps,
+              _koda_internal_iterable=iterable,
+              _koda_internal_body_fn=body_fn,
+              _koda_internal_finalize_fn=finalize_fn,
+              _koda_internal_condition_fn=condition_fn,
+              _koda_internal_yields_namedtuple=yields_namedtuple,
+          ),
+      ),
+      **optools.unified_non_deterministic_kwarg(),
+  )

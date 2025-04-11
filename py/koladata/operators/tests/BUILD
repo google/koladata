@@ -7816,3 +7816,21 @@ py_test(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_test(
+    name = "functor_for_test",
+    srcs = ["functor_for_test.py"],
+    deps = [
+        "//py/koladata:kd",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:iterable_qvalue",
+        "//py/koladata/types:mask_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)

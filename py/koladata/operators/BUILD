@@ -576,6 +576,7 @@ py_library(
     name = "functor",
     srcs = ["functor.py"],
     deps = [
+        ":arolla_bridge",
         ":assertion",
         ":dicts",
         ":koda_internal_iterables",
@@ -586,10 +587,15 @@ py_library(
         ":schema",
         ":slices",
         "//koladata/functor:operators",
+        "//py/koladata/base:py_functors_base_py_ext",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:introspection",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
+        "//py/koladata/types:signature_utils",
         "@com_google_arolla//py/arolla",
     ],
 )
