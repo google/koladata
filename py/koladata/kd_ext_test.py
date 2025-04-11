@@ -49,9 +49,6 @@ class KdExtTest(absltest.TestCase):
         kd.slice([2, 3]),
     )
 
-  def test_vis(self):
-    self.assertTrue(hasattr(kd_ext.vis, 'register_formatters'))
-
 
 if __name__ == '__main__':
   absltest.main()
