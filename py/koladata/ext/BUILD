@@ -170,7 +170,7 @@ py_test(
     deps = [
         ":nested_data",
         "//py/koladata:kd",
-        "//py/google_benchmark",
+        requirement("google-benchmark"),
         # Enables python functions in profile.
         # Enables --cpu_profile.
         # Enables --peakheap_profile.

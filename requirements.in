@@ -1,4 +1,5 @@
 cloudpickle
+google-benchmark
 ipython
 numpy
 pandas
