@@ -16,8 +16,6 @@
 
 #include <Python.h>  // IWYU pragma: keep
 
-#include <optional>
-#include <string>
 #include <utility>
 #include <vector>
 
