@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x31757c969990>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x336cbc978410>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x31757c969990>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x336cbc978410>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -2044,6 +2044,73 @@ Returns a Koda functor representing `f`.
 
   Returns:
     A Koda functor representing `f`.
+```
+
+### `kd.functor.for_(iterable, body_fn, *, finalize_fn=unspecified, condition_fn=unspecified, returns=unspecified, yields=unspecified, yields_interleaved=unspecified, **initial_state)` {#kd.functor.for_}
+Aliases:
+
+- [kd.for_](#kd.for_)
+
+``` {.no-copy}
+Executes a loop over the given iterable.
+
+Exactly one of `returns`, `yields`, `yields_interleaved` must be specified,
+and that dictates what this operator returns.
+
+When `returns` is specified, it is one more variable added to `initial_state`,
+and the value of that variable at the end of the loop is returned.
+
+When `yields` is specified, it must be an iterable, and the value
+passed there, as well as the values set to this variable in each
+iteration of the loop, are chained to get the resulting iterable.
+
+When `yields_interleaved` is specified, the behavior is the same as `yields`,
+but the values are interleaved instead of chained.
+
+The behavior of the loop is equivalent to the following pseudocode:
+
+  state = initial_state  # Also add `returns` to it if specified.
+  while condition_fn(state):
+    item = next(iterable)
+    if item == <end-of-iterable>:
+      upd = finalize_fn(**state)
+    else:
+      upd = body_fn(item, **state)
+    if yields/yields_interleaved is specified:
+      yield the corresponding data from upd, and remove it from upd.
+    state.update(upd)
+    if item == <end-of-iterable>:
+      break
+  if returns is specified:
+    return state['returns']
+
+Args:
+  iterable: The iterable to iterate over.
+  body_fn: The function to be executed for each item in the iterable. It will
+    receive the iterable item as the positional argument, and the loop
+    variables as keyword arguments (excluding `yields`/`yields_interleaved` if
+    those are specified), and must return a namedtuple with the new values for
+    some or all loop variables (including `yields`/`yields_interleaved` if
+    those are specified).
+  finalize_fn: The function to be executed when the iterable is exhausted. It
+    will receive the same arguments as `body_fn` except the positional
+    argument, and must return the same namedtuple. If not specified, the state
+    at the end will be the same as the state after processing the last item.
+    Note that finalize_fn is not called if condition_fn ever returns false.
+  condition_fn: The function to be executed to determine whether to continue
+    the loop. It will receive the loop variables as keyword arguments, and
+    must return a MASK scalar. Can be used to terminate the loop early without
+    processing all items in the iterable. If not specified, the loop will
+    continue until the iterable is exhausted.
+  returns: The loop variable that holds the return value of the loop.
+  yields: The loop variables that holds the values to yield at each iteration,
+    to be chained together.
+  yields_interleaved: The loop variables that holds the values to yield at
+    each iteration, to be interleaved.
+  **initial_state: The initial state of the loop variables.
+
+Returns:
+  Either the return value or the iterable of yielded values.
 ```
 
 ### `kd.functor.fstr_fn(returns, **kwargs)` {#kd.functor.fstr_fn}
@@ -8339,6 +8406,10 @@ Alias for [kd.functor.fn](#kd.functor.fn) operator.
 ### `kd.follow(x)` {#kd.follow}
 
 Alias for [kd.core.follow](#kd.core.follow) operator.
+
+### `kd.for_(iterable, body_fn, *, finalize_fn=unspecified, condition_fn=unspecified, returns=unspecified, yields=unspecified, yields_interleaved=unspecified, **initial_state)` {#kd.for_}
+
+Alias for [kd.functor.for_](#kd.functor.for_) operator.
 
 ### `kd.format(fmt, /, **kwargs)` {#kd.format}
 
