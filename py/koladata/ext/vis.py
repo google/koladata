@@ -37,31 +37,50 @@ _COLAB_REQUIRED_MSG = (
 
 @functools.cache
 def _colab_frontend():
-  try:
-    # pylint: disable=g-import-not-at-top
-    from google.colab import _frontend as frontend
-    # pylint: enable=g-import-not-at-top
-  except ImportError as e:
-    raise ImportError(_COLAB_REQUIRED_MSG) from e
-  return frontend
+  return None
+
+
+def _get_cell_id(info: interactiveshell.ExecutionInfo) -> str:
+  if info.cell_id is not None:
+    return info.cell_id
+  # Note that the current version of IPython does not support cell_id yet,
+  # so we fallback to Colab's running cell id internally. Externally, we
+  # will just return an empty string, which means any newly outputted
+  # visualization will cause all previous ones to no longer be interactive
+  # until IPython supports cell_id.
+  colab_frontend = _colab_frontend()
+  if colab_frontend is None:
+    return ''
+  return colab_frontend.GetRunningCellId()
 
 
 @functools.cache
-def _colab_js():
+def _colab_output():
   try:
     # pylint: disable=g-import-not-at-top
-    from google.colab.output import _js as js
+    from google.colab import output
     # pylint: enable=g-import-not-at-top
   except ImportError as e:
     raise ImportError(_COLAB_REQUIRED_MSG) from e
-  return js
+  return output
+
+
+@functools.cache
+def _colab_js_builder():
+  try:
+    # pylint: disable=g-import-not-at-top
+    from google.colab.output import _js_builder as js_builder
+    # pylint: enable=g-import-not-at-top
+  except ImportError as e:
+    raise ImportError(_COLAB_REQUIRED_MSG) from e
+  return js_builder
 
 
 @functools.cache
 def _colab_message():
   try:
     # pylint: disable=g-import-not-at-top
-    from google.colab import _message as message
+    from google.colab.output import _message as message
     # pylint: enable=g-import-not-at-top
   except ImportError as e:
     raise ImportError(_COLAB_REQUIRED_MSG) from e
@@ -77,6 +96,18 @@ def _colab_publish():
   except ImportError as e:
     raise ImportError(_COLAB_REQUIRED_MSG) from e
   return publish
+
+
+@functools.cache
+def _js_eval_global():
+  """Empehermal version of js that is not stored in the output cell."""
+  return _colab_js_builder().Js(mode=_colab_js_builder().EVAL)
+
+
+@functools.cache
+def _js_global():
+  """Persisted version of js that is is saved in the output cell."""
+  return _colab_js_builder().js_global
 
 
 kdi = kd.eager
@@ -365,7 +396,7 @@ class DataSliceViewState:
   ):
     self.ds = ds
     self.instance_id = instance_id
-    elem = _colab_js().JsEvalGlobal.document.querySelector(f'#{instance_id}')
+    elem = _js_eval_global().document.querySelector(f'#{instance_id}')
     self.footer_elem = elem.querySelector('#footer')
     self.table_elem = elem.querySelector('kd-multi-dim-table')
     self.breadcrumb_elem = elem.querySelector('.breadcrumb')
@@ -410,11 +441,11 @@ class DataSliceViewState:
     # We defer this invocation of scrollToIndex to the next JS event loop.
     # This is because the table may not be rendered yet.
     scroll_to_index = view_begin or self.items_begin
-    _colab_js().JsEvalGlobal.setTimeout(
+    _js_eval_global().setTimeout(
         table_elem.scrollToIndex.bind(table_elem, scroll_to_index), 0)
 
     if isinstance(self.ds, kd.types.DataItem):
-      _focus_data_cell(_colab_js().JsEvalGlobal, self.instance_id)
+      _focus_data_cell(_js_eval_global(), self.instance_id)
 
     table_elem.classList.remove('loading')
 
@@ -602,36 +633,39 @@ class DataSliceViewState:
         DescendMode(original_detail.get('mode', ''))
     )
 
+  def _get_listener_id(self, event_name: str) -> str:
+    return f'{self.instance_id}:{event_name}'
+
   def _get_listener_invocations(self):
-    instance_selector = f'document.querySelector("#{self.instance_id}")'
     return [
-        (instance_selector, 'request-load', self._handle_request_load, True),
-        (instance_selector, 'ds-vis-click', self._handle_ds_vis_click),
-        (
-            instance_selector,
-            'ds-vis-expand-detail',
-            self._handle_expand_detail
-        ), (
-            instance_selector,
-            'ds-vis-show-access-path',
-            self._handle_show_access_path,
-        ),
+        ('request-load', self._handle_request_load),
+        ('ds-vis-click', self._handle_ds_vis_click),
+        ('ds-vis-expand-detail', self._handle_expand_detail),
+        ('ds-vis-show-access-path', self._handle_show_access_path),
     ]
 
   def add_listeners(self):
-    for invocation in self._get_listener_invocations():
-      _colab_js().AddEventListener(*invocation)
+    """Registers event listeners for the visualization."""
+    # Emit makeDsListener helper in JS to construct event listeners below.
+    _colab_publish().javascript("""
+      window.makeDsListener = (listenerId) => {
+        return e => {
+          google.colab.kernel.invokeFunction(listenerId, [e.detail]);
+        };
+      };
+    """)
+
+    for (event_name, handler) in self._get_listener_invocations():
+      listener_id = self._get_listener_id(event_name)
+      _colab_output().register_callback(listener_id, handler)
+      _js_eval_global().document.addEventListener(
+          event_name, _js_eval_global().makeDsListener(listener_id), True)
 
   def remove_listeners(self):
-    for invocation in self._get_listener_invocations():
-      try:
-        _colab_js().RemoveEventListener(*invocation)
-      except _colab_message().MessageError:
-        # Currently Colab couples unsubscribing the python handler and removing
-        # the JS event listener. The latter fails since the root in the iframe
-        # changes. However, we still need to unregister the python handler so
-        # we just catch and ignore this error.
-        pass
+    for (event_name, _) in self._get_listener_invocations():
+      _colab_output().unregister_callback(self._get_listener_id(event_name))
+      # No need to unregister listeners in the output cell since they are
+      # not saved.
 
 
 def _css_length_to_string(length: CssLength) -> str:
@@ -817,7 +851,8 @@ def visualize_slice(
   # attribute freezes the view when the viewer scrolls into the load margin.
   # When not connected to a kernel, we don't want to freeze since no load
   # can happen.
-  elem = _colab_js().JsEvalGlobal.document.querySelector(f'#{instance_id}')
+  elem = _js_eval_global().document.querySelector(
+      f'#{instance_id}')
   table_elem = elem.querySelector('kd-multi-dim-table')
   table_elem.setAttribute('one-request-load', '')
   table_elem.setAttribute('data-header-classes', data.header_classes)
@@ -826,7 +861,7 @@ def visualize_slice(
 
   # Save a script that focuses the single cell in the table.
   if is_data_item:
-    _focus_data_cell(_colab_js().JsGlobal, instance_id)
+    _focus_data_cell(_js_global(), instance_id)
 
   # Script that interprets clicks as a show-access-path event that
   # contains the access path to the clicked element. Attributes and class names
@@ -909,15 +944,10 @@ class _Watcher:
     self._cell_id_to_state = {}
     self._shell = shell
 
-  def _get_cell_id(self, info: interactiveshell.ExecutionInfo) -> str:
-    # Note that the current version of IPython does not support cell_id yet,
-    # so we fallback to Colab's running cell id.
-    return info.cell_id or _colab_frontend().GetRunningCellId()
-
   def post_run_cell(self, exec_result: interactiveshell.ExecutionResult):
     if isinstance(exec_result.result, kd.types.DataSlice):
       state = visualize_slice(exec_result.result)
-      cell_id = self._get_cell_id(exec_result.info)
+      cell_id = _get_cell_id(exec_result.info)
 
       # Remove listeners for any existing state.
       existing = self._cell_id_to_state.get(cell_id, None)
