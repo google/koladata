@@ -1069,13 +1069,7 @@ Args:
     {"is_entity_schema", PyDataSlice_is_entity_schema, METH_NOARGS,
      "is_entity_schema()\n"
      "--\n\n"
-     R"""(Returns present iff this DataSlice represents an Entity Schema.
-
-Note that the Entity schema includes List and Dict schemas.
-
-Returns:
-  Present iff this DataSlice represents an Entity Schema.
-     )"""},
+     "Returns present iff this DataSlice represents an Entity Schema."},
     {"is_dict", PyDataSlice_is_dict, METH_NOARGS,
      "is_dict()\n"
      "--\n\n"
