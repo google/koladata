@@ -17,9 +17,10 @@
 import dataclasses
 import enum
 import functools
-
 import html
 import json
+import os.path
+import sys
 import textwrap
 from typing import Any, Union
 import uuid
@@ -29,7 +30,6 @@ import IPython
 from IPython.core import interactiveshell
 from koladata import kd
 
-from python.runfiles import runfiles
 
 _COLAB_REQUIRED_MSG = (
     'Koda visualization extensions are only supported in Colab.')
@@ -40,6 +40,7 @@ def _colab_frontend():
   try:
     # pylint: disable=g-import-not-at-top
     from google.colab import _frontend as frontend
+    # pylint: enable=g-import-not-at-top
   except ImportError as e:
     raise ImportError(_COLAB_REQUIRED_MSG) from e
   return frontend
@@ -50,6 +51,7 @@ def _colab_js():
   try:
     # pylint: disable=g-import-not-at-top
     from google.colab.output import _js as js
+    # pylint: enable=g-import-not-at-top
   except ImportError as e:
     raise ImportError(_COLAB_REQUIRED_MSG) from e
   return js
@@ -60,6 +62,7 @@ def _colab_message():
   try:
     # pylint: disable=g-import-not-at-top
     from google.colab import _message as message
+    # pylint: enable=g-import-not-at-top
   except ImportError as e:
     raise ImportError(_COLAB_REQUIRED_MSG) from e
   return message
@@ -70,6 +73,7 @@ def _colab_publish():
   try:
     # pylint: disable=g-import-not-at-top
     from google.colab.output import _publish as publish
+    # pylint: enable=g-import-not-at-top
   except ImportError as e:
     raise ImportError(_COLAB_REQUIRED_MSG) from e
   return publish
@@ -101,11 +105,21 @@ class DescendMode(enum.Enum):
 
 def _load_koda_visualization_library() -> str:
   """Loads the full koda webcomponents library."""
-  js_filename = runfiles.Create().Rlocation(
-      '_main/ts/data_slice_webcomponents.js')
-  with open(js_filename, "r") as f:
-    js_lib = '\n'.join(f.readlines())
-  return js_lib
+  try:
+    # Bazel build mode.
+    from python.runfiles import runfiles  # pylint: disable=g-import-not-at-top
+
+    js_filename = runfiles.Create().Rlocation(
+        '_main/ts/data_slice_webcomponents.js'
+    )
+  except ImportError:
+    # PyPI package mode.
+    js_filename = os.path.join(
+        os.path.dirname(sys.modules[__name__].__file__),
+        'data_slice_webcomponents.js',
+    )
+  with open(js_filename, 'r') as f:
+    return f.read()
 
 
 def _publish_koda_visualization_library():
@@ -936,4 +950,3 @@ def register_formatters():
   global _WATCHER
   _WATCHER = _Watcher(shell)
   shell.events.register('post_run_cell', _WATCHER.post_run_cell)
-
