@@ -355,12 +355,12 @@ d1.with_dict_update('a', None)
 # Dict{'a': 1, 'b': 2} rather than Dict{'b': 2}
 
 # Create an update and apply it separately
-upd = d1.dict_update(another_dict)
+upd = kd.dict_update(d1, another_dict)
 d6 = d1.updated(upd)
 
 # Allows mixing multiple updates
-d7 = d1.updated(d1.dict_update('c', 5),
-                d1.dict_update(another_dict))
+d7 = d1.updated(kd.dict_update(d1, 'c', 5),
+                kd.dict_update(d1, another_dict))
 ```
 
 </section>

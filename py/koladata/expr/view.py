@@ -255,13 +255,6 @@ class KodaView(arolla.abc.ExprView):
   def dict_size(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.dict_size', self)
 
-  def dict_update(
-      self, keys: Any, values: Any = arolla.unspecified()
-  ) -> arolla.Expr:
-    return arolla.abc.aux_bind_op(
-        'kd.dict_update', self, keys=keys, values=values
-    )
-
   def with_dict_update(
       self, keys: Any, values: Any = arolla.unspecified()
   ) -> arolla.Expr:

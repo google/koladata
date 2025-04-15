@@ -239,13 +239,6 @@ def _dict_size(self) -> DataSlice:
   return _eval_op('kd.dict_size', self)
 
 
-@add_method(DataSlice, 'dict_update', docstring_from='kd.dict_update')
-def _dict_update(
-    self, keys: Any, values: Any = arolla.unspecified()
-) -> DataBag:
-  return _eval_op('kd.dict_update', self, keys=keys, values=values)
-
-
 @add_method(DataSlice, 'with_dict_update', docstring_from='kd.with_dict_update')
 def _with_dict_update(
     self, keys: Any, values: Any = arolla.unspecified()

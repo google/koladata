@@ -2354,18 +2354,6 @@ Assigned schema for values: SCHEMA(y=FLOAT32)"""),
     testing.assert_equal(d.S[0].dict_size(), ds(1, schema_constants.INT64))
     testing.assert_equal(d.S[1].dict_size(), ds(2, schema_constants.INT64))
 
-  # More comprehensive tests are in dicts_dict_update_test.py.
-  def test_dict_update(self):
-    x1 = bag().dict(ds([1, 2]), ds([3, 4]))
-    testing.assert_dicts_equal(
-        x1.updated(x1.dict_update(fns.dict({1: 5, 3: 6}))),
-        bag().dict(ds([1, 2, 3]), ds([5, 4, 6])),
-    )
-    testing.assert_dicts_equal(
-        x1.with_bag(x1.dict_update(fns.dict({1: 5, 3: 6}))),
-        bag().dict(ds([1, 3]), ds([5, 6])),
-    )
-
   # More comprehensive tests are in dicts_with_dict_update_test.py.
   def test_with_dict_update(self):
     x1 = bag().dict(ds([1, 2]), ds([3, 4]))
