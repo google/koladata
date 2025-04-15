@@ -68,7 +68,7 @@ absl::StatusOr<std::string> DataSliceToStr(
 // aligns with the provided `data_item`.
 absl::StatusOr<std::string> DataItemToStr(
     const internal::DataItem& data_item, const internal::DataItem& schema,
-    absl::Nullable<const DataBagPtr>& db,
+    const /*absl_nullable*/ DataBagPtr& db,
     const ReprOption& option = ReprOption{});
 
 // Returns the string for python __repr__ and arolla::Repr.

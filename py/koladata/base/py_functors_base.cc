@@ -37,15 +37,15 @@ namespace koladata::python {
 
 namespace {
 
-absl::Nullable<PyObject*> PyPositionalOnlyParameterKind(PyObject* /*self*/,
-                                                        PyObject* /*py_args*/) {
+PyObject* /*absl_nullable*/ PyPositionalOnlyParameterKind(PyObject* /*self*/,
+                                                      PyObject* /*py_args*/) {
   arolla::python::DCheckPyGIL();
   // We make a copy since WrapPyDataSlice() takes ownership.
   DataSlice result = functor::PositionalOnlyParameterKind();
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyPositionalOrKeywordParameterKind(
+PyObject* /*absl_nullable*/ PyPositionalOrKeywordParameterKind(
     PyObject* /*self*/, PyObject* /*py_args*/) {
   arolla::python::DCheckPyGIL();
   // We make a copy since WrapPyDataSlice() takes ownership.
@@ -53,41 +53,41 @@ absl::Nullable<PyObject*> PyPositionalOrKeywordParameterKind(
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyVarPositionalParameterKind(PyObject* /*self*/,
-                                                       PyObject* /*py_args*/) {
+PyObject* /*absl_nullable*/ PyVarPositionalParameterKind(PyObject* /*self*/,
+                                                     PyObject* /*py_args*/) {
   arolla::python::DCheckPyGIL();
   // We make a copy since WrapPyDataSlice() takes ownership.
   DataSlice result = functor::VarPositionalParameterKind();
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyKeywordOnlyParameterKind(PyObject* /*self*/,
-                                                     PyObject* /*py_args*/) {
+PyObject* /*absl_nullable*/ PyKeywordOnlyParameterKind(PyObject* /*self*/,
+                                                   PyObject* /*py_args*/) {
   arolla::python::DCheckPyGIL();
   // We make a copy since WrapPyDataSlice() takes ownership.
   DataSlice result = functor::KeywordOnlyParameterKind();
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyVarKeywordParameterKind(PyObject* /*self*/,
-                                                    PyObject* /*py_args*/) {
+PyObject* /*absl_nullable*/ PyVarKeywordParameterKind(PyObject* /*self*/,
+                                                  PyObject* /*py_args*/) {
   arolla::python::DCheckPyGIL();
   // We make a copy since WrapPyDataSlice() takes ownership.
   DataSlice result = functor::VarKeywordParameterKind();
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyNoDefaultValueMarker(PyObject* /*self*/,
-                                                 PyObject* /*py_args*/) {
+PyObject* /*absl_nullable*/ PyNoDefaultValueMarker(PyObject* /*self*/,
+                                               PyObject* /*py_args*/) {
   arolla::python::DCheckPyGIL();
   // We make a copy since WrapPyDataSlice() takes ownership.
   DataSlice result = functor::NoDefaultValueMarker();
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
-                                          PyObject** py_args, Py_ssize_t nargs,
-                                          PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyCreateFunctor(PyObject* /*self*/, PyObject** py_args,
+                                        Py_ssize_t nargs,
+                                        PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/2, /*parse_kwargs=*/true);
@@ -142,7 +142,7 @@ absl::Nullable<PyObject*> PyCreateFunctor(PyObject* /*self*/,
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyIsFn(PyObject* /*self*/, PyObject* fn) {
+PyObject* /*absl_nullable*/ PyIsFn(PyObject* /*self*/, PyObject* fn) {
   arolla::python::DCheckPyGIL();
   const auto* unwrapped_fn = UnwrapDataSlice(fn, "fn");
   if (unwrapped_fn == nullptr) {

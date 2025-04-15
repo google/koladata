@@ -229,12 +229,12 @@ absl::Status EnsureOneofUnset(const FieldDescriptor& field, Message& message,
 // Forward declarations for recursion.
 absl::Status FillProtoMessageBreakRecursion(
     DataSlice slice, const Descriptor& message_descriptor,
-    std::vector<absl::Nonnull<Message*>> messages,
+    std::vector<Message* /*absl_nonnull*/> messages,
     internal::TrampolineExecutor& executor);
 
 absl::Status FillProtoRepeatedMessageField(
     const DataSlice& attr_slice, const FieldDescriptor& field_descriptor,
-    absl::Span<const absl::Nonnull<Message*>> parent_messages,
+    absl::Span<Message* /*absl_nonnull*/ const> parent_messages,
     internal::TrampolineExecutor& executor) {
   if (!attr_slice.IsList()) {
     return absl::InvalidArgumentError(
@@ -263,7 +263,7 @@ absl::Status FillProtoRepeatedMessageField(
 
 absl::Status FillProtoRepeatedPrimitiveField(
     const DataSlice& attr_slice, const FieldDescriptor& field_descriptor,
-    absl::Span<const absl::Nonnull<Message*>> parent_messages) {
+    absl::Span<Message* /*absl_nonnull*/ const> parent_messages) {
   if (!attr_slice.IsList()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("proto repeated primitive field %s expected Koda "
@@ -330,14 +330,14 @@ absl::Status FillProtoRepeatedPrimitiveField(
 
 absl::Status FillProtoMessageField(
     const DataSlice& attr_slice, const FieldDescriptor& field_descriptor,
-    absl::Span<const absl::Nonnull<Message*>> parent_messages,
+    absl::Span<Message* /*absl_nonnull*/ const> parent_messages,
     internal::TrampolineExecutor& executor) {
   ASSIGN_OR_RETURN(DataSlice mask, ops::Has(attr_slice));
   ASSIGN_OR_RETURN(
       DataSlice dense_attr_slice,
       ops::Select(attr_slice, mask, DataSlice::CreateFromScalar(false)));
 
-  std::vector<absl::Nonnull<Message*>> dense_child_messages;
+  std::vector<Message* /*absl_nonnull*/> dense_child_messages;
   RETURN_IF_ERROR(mask.slice().VisitValues([&](const auto& values)
                                                -> absl::Status {
     absl::Status status = absl::OkStatus();
@@ -368,7 +368,7 @@ absl::Status FillProtoMessageField(
 
 absl::Status FillProtoPrimitiveField(
     const DataSlice& attr_slice, const FieldDescriptor& field_descriptor,
-    absl::Span<const absl::Nonnull<Message*>> parent_messages) {
+    absl::Span<Message* /*absl_nonnull*/ const> parent_messages) {
   DCHECK_EQ(attr_slice.size(), parent_messages.size());
   return attr_slice.slice().VisitValues(
       [&]<typename SrcT>(const arolla::DenseArray<SrcT>& values) {
@@ -408,7 +408,7 @@ absl::Status FillProtoPrimitiveField(
 
 absl::Status FillProtoMapField(
     const DataSlice& attr_slice, const FieldDescriptor& field_descriptor,
-    absl::Span<const absl::Nonnull<Message*>> parent_messages,
+    absl::Span<Message* /*absl_nonnull*/ const> parent_messages,
     internal::TrampolineExecutor& executor) {
   if (!attr_slice.IsDict()) {
     return absl::InvalidArgumentError(absl::StrFormat(
@@ -421,7 +421,7 @@ absl::Status FillProtoMapField(
   ASSIGN_OR_RETURN(DataSlice values, attr_slice.GetDictValues());
   const auto& items_shape = keys.GetShape();
 
-  std::vector<absl::Nonnull<Message*>> child_messages;
+  std::vector<Message* /*absl_nonnull*/> child_messages;
   child_messages.reserve(items_shape.size());
   const auto& splits = items_shape.edges().back().edge_values().values;
   for (int64_t i = 0; i < parent_messages.size(); ++i) {
@@ -448,7 +448,7 @@ absl::Status FillProtoMapField(
 
 absl::Status FillProtoField(
     const DataSlice& attr_slice, const FieldDescriptor& field_descriptor,
-    absl::Span<const absl::Nonnull<Message*>> parent_messages,
+    absl::Span<Message* /*absl_nonnull*/ const> parent_messages,
     internal::TrampolineExecutor& executor) {
   if (field_descriptor.is_map()) {
     return FillProtoMapField(attr_slice, field_descriptor, parent_messages,
@@ -472,10 +472,10 @@ absl::Status FillProtoField(
   }
 }
 
-absl::Status FillProtoMessage(
-    const DataSlice& slice, const Descriptor& message_descriptor,
-    absl::Span<const absl::Nonnull<Message*>> messages,
-    internal::TrampolineExecutor& executor) {
+absl::Status FillProtoMessage(const DataSlice& slice,
+                              const Descriptor& message_descriptor,
+                              absl::Span<Message* /*absl_nonnull*/ const> messages,
+                              internal::TrampolineExecutor& executor) {
   if (slice.GetSchema().IsPrimitiveSchema()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "proto message should have only entities/objects, found %s",
@@ -508,7 +508,7 @@ absl::Status FillProtoMessage(
 
 absl::Status FillProtoMessageBreakRecursion(
     DataSlice slice, const Descriptor& message_descriptor,
-    std::vector<absl::Nonnull<Message*>> messages,
+    std::vector<Message* /*absl_nonnull*/> messages,
     internal::TrampolineExecutor& executor) {
   executor.Enqueue([slice = std::move(slice), &message_descriptor,
                            messages = std::move(messages),
@@ -522,7 +522,7 @@ absl::Status FillProtoMessageBreakRecursion(
 
 absl::Status ToProto(
     const DataSlice& slice,
-    absl::Span<const absl::Nonnull<::google::protobuf::Message*>> messages) {
+    absl::Span<::google::protobuf::Message* /*absl_nonnull*/ const> messages) {
   if (slice.GetShape().rank() != 1) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "expected 1-D DataSlice, got ndim=%d", slice.GetShape().rank()));

@@ -145,7 +145,7 @@ absl::Status DictAssignmentError(absl::Status status, size_t lhs_rank,
 
 // Gets embedded schema from DataItem for primitives and objects.
 absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
-    const internal::DataItem& item, const absl::Nullable<DataBagPtr>& db) {
+    const internal::DataItem& item, const /*absl_nullable*/ DataBagPtr& db) {
   internal::DataItem res;
   RETURN_IF_ERROR(item.VisitValue([&]<class T>(const T& value) -> absl::Status {
     if constexpr (arolla::meta::contains_v<schema::supported_primitive_dtypes,
@@ -181,7 +181,7 @@ absl::StatusOr<internal::DataItem> GetObjSchemaImpl(
 
 // Gets embedded schema from DataSliceImpl for primitives and objects.
 absl::StatusOr<internal::DataSliceImpl> GetObjSchemaImpl(
-    const internal::DataSliceImpl& impl, const absl::Nullable<DataBagPtr>& db) {
+    const internal::DataSliceImpl& impl, const /*absl_nullable*/ DataBagPtr& db) {
   internal::SliceBuilder builder(impl.size());
 
   RETURN_IF_ERROR(impl.VisitValues([&]<class T>(const arolla::DenseArray<T>&

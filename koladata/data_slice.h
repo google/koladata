@@ -237,7 +237,7 @@ class DataSlice {
   absl::StatusOr<DataSlice> GetNoFollowedSchema() const;
 
   // Returns a reference to a DataBag that this DataSlice has a reference to.
-  const absl::Nullable<DataBagPtr>& GetBag() const { return internal_->db; }
+  const /*absl_nullable*/ DataBagPtr& GetBag() const { return internal_->db; }
 
   // Returns true if all data in this DataSlice's DataBag is reachable from this
   // DataSlice. If this returns false, whether all data is reachable is unknown.

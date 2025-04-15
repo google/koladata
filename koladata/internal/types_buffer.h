@@ -66,7 +66,7 @@ struct TypesBuffer {
   }
 
   // Returns QType for given id. `nullptr` if not set or removed.
-  absl::Nullable<const arolla::QType*> id_to_type(int64_t id) const {
+  const arolla::QType* /*absl_nullable*/ id_to_type(int64_t id) const {
     return ScalarTypeIdToQType(id_to_scalar_typeid(id));
   }
 

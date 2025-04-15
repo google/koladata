@@ -68,7 +68,7 @@ int PyDataItem_bool(PyObject* self) {
   return error();
 }
 
-absl::Nullable<PyObject*> PyDataItem_index(PyObject* self) {
+PyObject* /*absl_nullable*/ PyDataItem_index(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   if (ds.item().holds_value<int>()) {
@@ -83,7 +83,7 @@ absl::Nullable<PyObject*> PyDataItem_index(PyObject* self) {
       "got %s", arolla::Repr(ds).c_str());
 }
 
-absl::Nullable<PyObject*> PyDataItem_int(PyObject* self) {
+PyObject* /*absl_nullable*/ PyDataItem_int(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   DCHECK_EQ(ds.GetShape().rank(), 0);
@@ -99,7 +99,7 @@ absl::Nullable<PyObject*> PyDataItem_int(PyObject* self) {
   return PyNumber_Long(py_obj.get());
 }
 
-absl::Nullable<PyObject*> PyDataItem_float(PyObject* self) {
+PyObject* /*absl_nullable*/ PyDataItem_float(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   DCHECK_EQ(ds.GetShape().rank(), 0);
@@ -116,10 +116,10 @@ absl::Nullable<PyObject*> PyDataItem_float(PyObject* self) {
 }
 
 // classmethod
-absl::Nullable<PyObject*> PyDataItem_from_vals(PyTypeObject* cls,
-                                               PyObject* const* py_args,
-                                               Py_ssize_t nargs,
-                                               PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataItem_from_vals(PyTypeObject* cls,
+                                             PyObject* const* py_args,
+                                             Py_ssize_t nargs,
+                                             PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/1, /*parse_kwargs=*/false, "schema");

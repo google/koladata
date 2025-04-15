@@ -61,7 +61,7 @@ absl::StatusOr<internal::DataItem> GetAttr(const internal::DataItem& item,
 
 absl::StatusOr<std::string> FormatNoCommonSchemaError(
     const internal::NoCommonSchemaError& error,
-    absl::Nullable<const DataBagPtr>& db) {
+    const /*absl_nullable*/ DataBagPtr& db) {
   if (db != nullptr) {
     ASSIGN_OR_RETURN(
         DataSlice common_schema,

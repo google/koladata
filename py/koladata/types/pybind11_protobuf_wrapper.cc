@@ -40,8 +40,8 @@ void ImportNativeProtoCasters() {
   ::pybind11_protobuf::ImportNativeProtoCasters();
 }
 
-absl::StatusOr<std::tuple<absl::Nonnull<const ::google::protobuf::Message*>, std::any>>
-UnwrapPyProtoMessage(absl::Nonnull<PyObject*> py_object) {
+absl::StatusOr<std::tuple<const ::google::protobuf::Message* /*absl_nonnull*/, std::any>>
+UnwrapPyProtoMessage(PyObject* /*absl_nonnull*/ py_object) {
   arolla::python::DCheckPyGIL();
   try {
     // Use a shared_ptr so that we have a copy constructor for std::any.
@@ -73,7 +73,7 @@ UnwrapPyProtoMessage(absl::Nonnull<PyObject*> py_object) {
   }
 }
 
-bool IsFastCppPyProtoMessage(absl::Nonnull<PyObject*> py_object) {
+bool IsFastCppPyProtoMessage(PyObject* /*absl_nonnull*/ py_object) {
   return pybind11_protobuf::PyProtoGetCppMessagePointer(py_object) != nullptr;
 }
 

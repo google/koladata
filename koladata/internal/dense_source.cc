@@ -1118,7 +1118,7 @@ absl::StatusOr<std::shared_ptr<DenseSource>> DenseSource::CreateReadonly(
 
 absl::StatusOr<std::shared_ptr<DenseSource>> DenseSource::CreateMutable(
     AllocationId alloc, int64_t size,
-    absl::Nullable<const arolla::QType*> main_type) {
+    const arolla::QType* /*absl_nullable*/ main_type) {
   if (main_type == nullptr) {
     return std::make_shared<MultitypeDenseSource>(alloc, size);
   }

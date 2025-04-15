@@ -391,7 +391,7 @@ class ToPyVisitor : internal::AbstractVisitor {
   internal::DataBagImpl::FallbackSpan fallback_span_;
 };
 
-absl::Nullable<PyObject*> ToPyImplInternal(
+PyObject* /*absl_nullable*/ ToPyImplInternal(
     const DataSlice& ds, DataBagPtr bag, bool obj_as_dict,
     bool include_missing_attrs, const absl::flat_hash_set<ObjectId>& leaf_ids) {
   if (ds.IsEmpty() || bag == nullptr ||
@@ -428,9 +428,9 @@ absl::Nullable<PyObject*> ToPyImplInternal(
   return res.release();
 }
 
-absl::Nullable<PyObject*> ToPyImpl(const DataSlice& ds, DataBagPtr bag,
-                                   int max_depth, bool obj_as_dict,
-                                   bool include_missing_attrs) {
+PyObject* /*absl_nullable*/ ToPyImpl(const DataSlice& ds, DataBagPtr bag,
+                                 int max_depth, bool obj_as_dict,
+                                 bool include_missing_attrs) {
   // When `max_depth != -1`, we want objects/dicts/lists at `max_depth`
   // to be kept as DataItems and not converted to Python objects.
   // To do that, we extract a DataSlice, and keep track of the leaf DataItems.
@@ -459,9 +459,9 @@ absl::Nullable<PyObject*> ToPyImpl(const DataSlice& ds, DataBagPtr bag,
 
 }  // namespace
 
-absl::Nullable<PyObject*> PyDataSlice_to_py(PyObject* self,
-                                            PyObject* const* py_args,
-                                            Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataSlice_to_py(PyObject* self,
+                                          PyObject* const* py_args,
+                                          Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 3) {

@@ -85,14 +85,14 @@ DataSlice AsMask(bool b) {
       internal::DataItem(schema::kMask));
 }
 
-absl::Nullable<PyObject*> PyDataBag_is_mutable(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataBag_is_mutable(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   const DataBagPtr& db = UnsafeDataBagPtr(self);
   return WrapPyDataSlice(AsMask(db->IsMutable()));
 }
 
 // classmethod
-absl::Nullable<PyObject*> PyDataBag_empty(PyTypeObject* cls, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataBag_empty(PyTypeObject* cls, PyObject*) {
   arolla::python::DCheckPyGIL();
   return arolla::python::MakePyQValue(
       PyDataBag_Type(), arolla::TypedValue::FromValue(DataBag::Empty()));
@@ -274,7 +274,7 @@ bool FirstArgProvided(PyObject* py_obj) {
 // dispatches to different implementation depending on the presence of those
 // arguments.
 template <class FactoryHelperT>
-absl::Nullable<PyObject*> ProcessObjectCreation(
+PyObject* /*absl_nullable*/ ProcessObjectCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args,
     absl::FunctionRef<PyObject*(DataSlice&&)> on_result) {
   ASSIGN_OR_RETURN(
@@ -346,10 +346,10 @@ absl::Nullable<PyObject*> ProcessObjectCreation(
 // If kMode is kNoBag the function should be used as classmethod and resulting
 // DataSlice is IsWhole and DataBag is frozen.
 template <DataBagFactoryMode kMode>
-absl::Nullable<PyObject*> PyDataBag_new_factory(SelfOrClsType<kMode> self,
-                                                PyObject* const* py_args,
-                                                Py_ssize_t nargs,
-                                                PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_new_factory(SelfOrClsType<kMode> self,
+                                              PyObject* const* py_args,
+                                              Py_ssize_t nargs,
+                                              PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
@@ -379,10 +379,10 @@ absl::Nullable<PyObject*> PyDataBag_new_factory(SelfOrClsType<kMode> self,
 // If kMode is kNoBag the function should be used as classmethod and resulting
 // DataSlice is IsWhole and DataBag is frozen.
 template <DataBagFactoryMode kMode>
-absl::Nullable<PyObject*> PyDataBag_obj_factory(SelfOrClsType<kMode> self,
-                                                PyObject* const* py_args,
-                                                Py_ssize_t nargs,
-                                                PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_obj_factory(SelfOrClsType<kMode> self,
+                                              PyObject* const* py_args,
+                                              Py_ssize_t nargs,
+                                              PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
@@ -404,7 +404,7 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory(SelfOrClsType<kMode> self,
 // Helper function that processes arguments for Entity / Object creators and
 // dispatches implementation to -Shaped behavior.
 template <class FactoryHelperT>
-absl::Nullable<PyObject*> ProcessObjectShapedCreation(
+PyObject* /*absl_nullable*/ ProcessObjectShapedCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args) {
   std::optional<DataSlice> res;
   // args.pos_only_args[0] is "shape" positional-only argument.
@@ -458,10 +458,10 @@ absl::Nullable<PyObject*> ProcessObjectShapedCreation(
 // It accepts `shape` as an argument to indicate the shape of returned
 // DataSlice. The returned DataSlice has a reference to a DataBag and thus can
 // have attributes set.
-absl::Nullable<PyObject*> PyDataBag_new_factory_shaped(PyObject* self,
-                                                       PyObject* const* py_args,
-                                                       Py_ssize_t nargs,
-                                                       PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_new_factory_shaped(PyObject* self,
+                                                     PyObject* const* py_args,
+                                                     Py_ssize_t nargs,
+                                                     PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
@@ -481,10 +481,10 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_shaped(PyObject* self,
 // It accepts `shape` as an argument to indicate the shape of returned
 // DataSlice. The returned DataSlice has a reference to a DataBag and thus can
 // have attributes set.
-absl::Nullable<PyObject*> PyDataBag_obj_factory_shaped(PyObject* self,
-                                                       PyObject* const* py_args,
-                                                       Py_ssize_t nargs,
-                                                       PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_obj_factory_shaped(PyObject* self,
+                                                     PyObject* const* py_args,
+                                                     Py_ssize_t nargs,
+                                                     PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
@@ -500,7 +500,7 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_shaped(PyObject* self,
 // Helper function that processes arguments for Entity / Object creators and
 // dispatches implementation to -Like behavior.
 template <class FactoryHelperT>
-absl::Nullable<PyObject*> ProcessObjectLikeCreation(
+PyObject* /*absl_nullable*/ ProcessObjectLikeCreation(
     const DataBagPtr& db, const FastcallArgParser::Args& args) {
   std::optional<DataSlice> res;
   // args.pos_only_args[0] is "shape_and_mask_from" positional-only argument.
@@ -554,10 +554,10 @@ absl::Nullable<PyObject*> ProcessObjectLikeCreation(
 // It accepts `shape_and_mask_from` as an argument from which shape and sparsity
 // are used to create a DataSlice. The returned DataSlice has a reference to a
 // DataBag and thus can have attributes set.
-absl::Nullable<PyObject*> PyDataBag_new_factory_like(PyObject* self,
-                                                     PyObject* const* py_args,
-                                                     Py_ssize_t nargs,
-                                                     PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_new_factory_like(PyObject* self,
+                                                   PyObject* const* py_args,
+                                                   Py_ssize_t nargs,
+                                                   PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
@@ -577,10 +577,10 @@ absl::Nullable<PyObject*> PyDataBag_new_factory_like(PyObject* self,
 // It accepts `shape_and_mask_from` as an argument from which shape and sparsity
 // are used to create a DataSlice. The returned DataSlice has a reference to a
 // DataBag and thus can have attributes set.
-absl::Nullable<PyObject*> PyDataBag_obj_factory_like(PyObject* self,
-                                                     PyObject* const* py_args,
-                                                     Py_ssize_t nargs,
-                                                     PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_obj_factory_like(PyObject* self,
+                                                   PyObject* const* py_args,
+                                                   Py_ssize_t nargs,
+                                                   PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
@@ -597,10 +597,10 @@ absl::Nullable<PyObject*> PyDataBag_obj_factory_like(PyObject* self,
 //
 // `kwargs` are traversed and key-value pairs are extracted and added as Schema
 // attributes of the newly created Schema.
-absl::Nullable<PyObject*> PyDataBag_schema_factory(PyObject* self,
-                                                   PyObject* const* py_args,
-                                                   Py_ssize_t nargs,
-                                                   PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_schema_factory(PyObject* self,
+                                                 PyObject* const* py_args,
+                                                 Py_ssize_t nargs,
+                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -624,10 +624,10 @@ absl::Nullable<PyObject*> PyDataBag_schema_factory(PyObject* self,
 //
 // Handles `seed` argument. `kwargs` are traversed and key-value pairs are
 // extracted and added as Schema attributes of the newly created Schema.
-absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
-                                                      PyObject* const* py_args,
-                                                      Py_ssize_t nargs,
-                                                      PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_uu_schema_factory(PyObject* self,
+                                                    PyObject* const* py_args,
+                                                    Py_ssize_t nargs,
+                                                    PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -652,9 +652,10 @@ absl::Nullable<PyObject*> PyDataBag_uu_schema_factory(PyObject* self,
 
 // Returns a DataSlice that represents a named schema with its item id derived
 // only from its name.
-absl::Nullable<PyObject*> PyDataBag_named_schema_factory(
-    PyObject* self, PyObject* const* py_args, Py_ssize_t nargs,
-    PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_named_schema_factory(PyObject* self,
+                                                       PyObject* const* py_args,
+                                                       Py_ssize_t nargs,
+                                                       PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -687,10 +688,10 @@ absl::Nullable<PyObject*> PyDataBag_named_schema_factory(
 //
 // `kwargs` are traversed and key-value pairs are extracted and added as
 // attributes of the newly created entity.
-absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
-                                                      PyObject* const* py_args,
-                                                      Py_ssize_t nargs,
-                                                      PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_uu_entity_factory(PyObject* self,
+                                                    PyObject* const* py_args,
+                                                    Py_ssize_t nargs,
+                                                    PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
@@ -738,10 +739,10 @@ absl::Nullable<PyObject*> PyDataBag_uu_entity_factory(PyObject* self,
 //
 // `kwargs` are traversed and key-value pairs are extracted and added as
 // attributes of the newly created object.
-absl::Nullable<PyObject*> PyDataBag_uu_obj_factory(PyObject* self,
-                                                   PyObject* const* py_args,
-                                                   Py_ssize_t nargs,
-                                                   PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_uu_obj_factory(PyObject* self,
+                                                 PyObject* const* py_args,
+                                                 Py_ssize_t nargs,
+                                                 PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -830,9 +831,9 @@ bool NormalizeDictKeysAndValues(PyObject* py_items_or_keys, PyObject* py_values,
 
 }  // namespace
 
-absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
-                                                PyObject* const* args,
-                                                Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_dict_shaped(PyObject* self,
+                                              PyObject* const* args,
+                                              Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 7) {
@@ -885,9 +886,9 @@ absl::Nullable<PyObject*> PyDataBag_dict_shaped(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
-                                              PyObject* const* args,
-                                              Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_dict_like(PyObject* self,
+                                            PyObject* const* args,
+                                            Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 7) {
@@ -941,8 +942,8 @@ absl::Nullable<PyObject*> PyDataBag_dict_like(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
-                                         Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_list(PyObject* self, PyObject* const* args,
+                                       Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 4) {
@@ -998,10 +999,10 @@ absl::Nullable<PyObject*> PyDataBag_list(PyObject* self, PyObject* const* args,
   return WrapPyDataSlice(*std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_list_schema(PyObject* self,
-                                                PyObject* const* py_args,
-                                                Py_ssize_t nargs,
-                                                PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_list_schema(PyObject* self,
+                                              PyObject* const* py_args,
+                                              Py_ssize_t nargs,
+                                              PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -1028,10 +1029,10 @@ absl::Nullable<PyObject*> PyDataBag_list_schema(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
-                                                PyObject* const* py_args,
-                                                Py_ssize_t nargs,
-                                                PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_dict_schema(PyObject* self,
+                                              PyObject* const* py_args,
+                                              Py_ssize_t nargs,
+                                              PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -1070,9 +1071,9 @@ absl::Nullable<PyObject*> PyDataBag_dict_schema(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
-                                                PyObject* const* args,
-                                                Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_list_shaped(PyObject* self,
+                                              PyObject* const* args,
+                                              Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 5) {
@@ -1124,9 +1125,9 @@ absl::Nullable<PyObject*> PyDataBag_list_shaped(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
-                                              PyObject* const* args,
-                                              Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_list_like(PyObject* self,
+                                            PyObject* const* args,
+                                            Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 5) {
@@ -1177,9 +1178,8 @@ absl::Nullable<PyObject*> PyDataBag_list_like(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
-                                            PyObject* const* args,
-                                            Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_implode(PyObject* self, PyObject* const* args,
+                                          Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 3) {
@@ -1211,9 +1211,9 @@ absl::Nullable<PyObject*> PyDataBag_implode(PyObject* self,
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyDataBag_concat_lists(PyObject* self,
-                                                 PyObject* const* args,
-                                                 Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_concat_lists(PyObject* self,
+                                               PyObject* const* args,
+                                               Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& self_db = UnsafeDataBagPtr(self);
@@ -1233,9 +1233,9 @@ absl::Nullable<PyObject*> PyDataBag_concat_lists(PyObject* self,
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyDataBag_exactly_equal(PyObject* self,
-                                                  PyObject* const* args,
-                                                  Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_exactly_equal(PyObject* self,
+                                                PyObject* const* args,
+                                                Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 1) {
@@ -1254,9 +1254,9 @@ absl::Nullable<PyObject*> PyDataBag_exactly_equal(PyObject* self,
       UnsafeDataBagPtr(self), (UnsafeDataBagPtr(other))));
 }
 
-absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
-                                                  PyObject* const* args,
-                                                  Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_merge_inplace(PyObject* self,
+                                                PyObject* const* args,
+                                                Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs < 3) {
@@ -1291,7 +1291,7 @@ absl::Nullable<PyObject*> PyDataBag_merge_inplace(PyObject* self,
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self, PyObject* ds) {
+PyObject* /*absl_nullable*/ PyDataBag_adopt(PyObject* self, PyObject* ds) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr& db = UnsafeDataBagPtr(self);
@@ -1308,7 +1308,7 @@ absl::Nullable<PyObject*> PyDataBag_adopt(PyObject* self, PyObject* ds) {
   return WrapPyDataSlice(slice->WithBag(std::move(db)));
 }
 
-absl::Nullable<PyObject*> PyDataBag_adopt_stub(PyObject* self, PyObject* ds) {
+PyObject* /*absl_nullable*/ PyDataBag_adopt_stub(PyObject* self, PyObject* ds) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr& db = UnsafeDataBagPtr(self);
@@ -1321,7 +1321,7 @@ absl::Nullable<PyObject*> PyDataBag_adopt_stub(PyObject* self, PyObject* ds) {
   return WrapPyDataSlice(slice->WithBag(std::move(db)));
 }
 
-absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& db = UnsafeDataBagPtr(self);
@@ -1330,10 +1330,8 @@ absl::Nullable<PyObject*> PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {
   return WrapDataBagPtr(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self,
-                                         PyObject* const* py_args,
-                                         Py_ssize_t nargs,
-                                         PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_fork(PyObject* self, PyObject* const* py_args,
+                                       Py_ssize_t nargs, PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -1354,10 +1352,10 @@ absl::Nullable<PyObject*> PyDataBag_fork(PyObject* self,
 }
 
 template <absl::StatusOr<std::string> ToStrFunc(const DataBagPtr&, int64_t)>
-absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self,
-                                                  PyObject* const* py_args,
-                                                  Py_ssize_t nargs,
-                                                  PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataBag_contents_repr(PyObject* self,
+                                                PyObject* const* py_args,
+                                                Py_ssize_t nargs,
+                                                PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -1382,7 +1380,7 @@ absl::Nullable<PyObject*> PyDataBag_contents_repr(PyObject* self,
   return PyUnicode_FromStringAndSize(str.c_str(), str.size());
 }
 
-absl::Nullable<PyObject*> PyDataBag_get_fallbacks(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataBag_get_fallbacks(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr& db = UnsafeDataBagPtr(self);
@@ -1397,9 +1395,9 @@ absl::Nullable<PyObject*> PyDataBag_get_fallbacks(PyObject* self, PyObject*) {
   return fallback_list.release();
 }
 
-absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
-                                               PyObject* const* args,
-                                               Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_from_proto(PyObject* self,
+                                             PyObject* const* args,
+                                             Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr db = UnsafeDataBagPtr(self);
@@ -1426,7 +1424,7 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
   auto typed_message_mask_builder = message_mask_builder.typed<arolla::Unit>();
   std::vector<std::any> message_owners;
   message_owners.reserve(messages_list_len);
-  std::vector<absl::Nonnull<const ::google::protobuf::Message*>> message_ptrs;
+  std::vector<const ::google::protobuf::Message* /*absl_nonnull*/> message_ptrs;
   message_ptrs.reserve(messages_list_len);
   for (Py_ssize_t i = 0; i < messages_list_len; ++i) {
     PyObject* py_message = PyList_GetItem(py_messages_list, i);  // Borrowed.
@@ -1497,9 +1495,9 @@ absl::Nullable<PyObject*> PyDataBag_from_proto(PyObject* self,
   return WrapPyDataSlice(std::move(result));
 }
 
-absl::Nullable<PyObject*> PyDataBag_schema_from_proto(PyObject* self,
-                                                      PyObject* const* args,
-                                                      Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataBag_schema_from_proto(PyObject* self,
+                                                    PyObject* const* args,
+                                                    Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr db = UnsafeDataBagPtr(self);
@@ -1558,7 +1556,7 @@ absl::Nullable<PyObject*> PyDataBag_schema_from_proto(PyObject* self,
   return WrapPyDataSlice(std::move(schema));
 }
 
-absl::Nullable<PyObject*> PyDataBag_get_approx_size(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataBag_get_approx_size(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataBagPtr& db = UnsafeDataBagPtr(self);

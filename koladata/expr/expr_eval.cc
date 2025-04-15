@@ -86,7 +86,7 @@ class ExprTransformationCache {
   using Impl = arolla::LruCache<arolla::Fingerprint, TransformedExprPtr>;
 
  public:
-  absl::Nullable<TransformedExprPtr> LookupOrNull(
+  /*absl_nullable*/ TransformedExprPtr LookupOrNull(
       const arolla::Fingerprint& fingerprint) ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(&mutex_);
     if (auto* res = cache_.LookupOrNull(fingerprint)) {
@@ -95,8 +95,8 @@ class ExprTransformationCache {
     return nullptr;
   }
 
-  absl::Nonnull<TransformedExprPtr> Put(const arolla::Fingerprint& fingerprint,
-                                        TransformedExprPtr value)
+  /*absl_nonnull*/ TransformedExprPtr Put(const arolla::Fingerprint& fingerprint,
+                                      TransformedExprPtr value)
       ABSL_LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock lock(&mutex_);
     return *cache_.Put(fingerprint, std::move(value));

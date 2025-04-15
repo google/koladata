@@ -26,9 +26,9 @@ namespace koladata::python {
 // The arguments match the ones in `DataSlice._to_py_impl`.
 // TODO: Move the `to_py` function definition here instead of
 // making it a member of `DataSlice`.
-absl::Nullable<PyObject*> PyDataSlice_to_py(PyObject* self,
-                                            PyObject* const* py_args,
-                                            Py_ssize_t nargs);
+PyObject* /*absl_nullable*/ PyDataSlice_to_py(PyObject* self,
+                                          PyObject* const* py_args,
+                                          Py_ssize_t nargs);
 
 }  // namespace koladata::python
 

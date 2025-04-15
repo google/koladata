@@ -710,7 +710,7 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
   bool BindArguments(
       const ExprOperatorSignature& signature, PyObject** py_args,
       Py_ssize_t nargsf, PyObject* py_tuple_kwnames,
-      absl::Nonnull<std::vector<QValueOrExpr>*> result) const final {
+      std::vector<QValueOrExpr>* /*absl_nonnull*/ result) const final {
     DCheckPyGIL();
     absl::string_view binding_options;
     absl::string_view boxing_options;
@@ -731,7 +731,7 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
   }
 
   // (See the base class.)
-  absl::Nullable<ExprNodePtr> MakeLiteral(TypedValue&& value) const final {
+  /*absl_nullable*/ ExprNodePtr MakeLiteral(TypedValue&& value) const final {
     return koladata::expr::MakeLiteral(std::move(value));
   }
 };

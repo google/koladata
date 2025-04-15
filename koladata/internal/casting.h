@@ -338,18 +338,18 @@ class ToObject {
  public:
   static absl::StatusOr<ToObject> Make(
       internal::DataItem schema, bool validate_schema = true,
-      absl::Nullable<internal::DataBagImpl*> db_impl = nullptr);
+      internal::DataBagImpl* /*absl_nullable*/ db_impl = nullptr);
 
   static absl::StatusOr<ToObject> Make(
       bool validate_schema = true,
-      absl::Nullable<internal::DataBagImpl*> db_impl = nullptr);
+      internal::DataBagImpl* /*absl_nullable*/ db_impl = nullptr);
 
   absl::Status operator()(const internal::DataItem& item) const;
   absl::Status operator()(const internal::DataSliceImpl& slice) const;
 
  private:
   ToObject(internal::DataItem entity_schema, bool validate_schema,
-           absl::Nullable<internal::DataBagImpl*> db_impl)
+           internal::DataBagImpl* /*absl_nullable*/ db_impl)
       : entity_schema_(entity_schema),
         validate_schema_(validate_schema),
         db_impl_(std::move(db_impl)) {}
@@ -358,7 +358,7 @@ class ToObject {
   // primitive, OBJECT, etc.
   internal::DataItem entity_schema_;
   bool validate_schema_;
-  absl::Nullable<internal::DataBagImpl*> db_impl_;
+  internal::DataBagImpl* /*absl_nullable*/ db_impl_;
 };
 
 // Casts the given item/slice to the provided schema.

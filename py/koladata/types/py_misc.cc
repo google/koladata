@@ -40,7 +40,7 @@ namespace {
 // NOTE: kd.literal does not do any implicit boxing of Python values into
 // QValues. In future, implicit boxing that matches that of auto-boxing applied
 // during Koda Expr evaluation may be added.
-absl::Nullable<PyObject*> PyLiteral(PyObject* /*module*/, PyObject* value) {
+PyObject* /*absl_nullable*/ PyLiteral(PyObject* /*module*/, PyObject* value) {
   arolla::python::DCheckPyGIL();
   if (!arolla::python::IsPyQValueInstance(value)) {
     return PyErr_Format(
@@ -52,7 +52,7 @@ absl::Nullable<PyObject*> PyLiteral(PyObject* /*module*/, PyObject* value) {
       koladata::expr::MakeLiteral(arolla::python::UnsafeUnwrapPyQValue(value)));
 }
 
-absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m, PyObject*) {
+PyObject* /*absl_nullable*/ PyModule_AddSchemaConstants(PyObject* m, PyObject*) {
   arolla::python::DCheckPyGIL();
   for (const auto& schema_const : SupportedSchemas()) {
     auto py_schema_const = arolla::python::PyObjectPtr::Own(
@@ -68,8 +68,8 @@ absl::Nullable<PyObject*> PyModule_AddSchemaConstants(PyObject* m, PyObject*) {
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyFlattenPyList(PyObject* /*module*/,
-                                          PyObject* py_obj) {
+PyObject* /*absl_nullable*/ PyFlattenPyList(PyObject* /*module*/,
+                                        PyObject* py_obj) {
   ASSIGN_OR_RETURN((auto [py_objects, shape]), FlattenPyList(py_obj),
                    arolla::python::SetPyErrFromStatus(_));
   auto py_list =

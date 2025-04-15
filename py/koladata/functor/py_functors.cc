@@ -34,9 +34,8 @@
 
 namespace koladata::python {
 
-absl::Nullable<PyObject*> PyAutoVariables(PyObject* /*self*/,
-                                          PyObject** py_args,
-                                          Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyAutoVariables(PyObject* /*self*/, PyObject** py_args,
+                                        Py_ssize_t nargs) {
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/1, /*parse_kwargs=*/false, "fn", "extra_nodes_to_extract");
   arolla::python::DCheckPyGIL();

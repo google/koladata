@@ -78,7 +78,7 @@ namespace schema_utils_internal {
 // (internal) Implementation of ExpectConsistentStringOrBytes.
 absl::Status ExpectConsistentStringOrBytesImpl(
     absl::Span<const absl::string_view> arg_names,
-    absl::Span<absl::Nonnull<const DataSlice* const>> args);
+    absl::Span<const DataSlice* /*absl_nonnull*/ const> args);
 
 }  // namespace schema_utils_internal
 

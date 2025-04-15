@@ -32,12 +32,12 @@ using JaggedShape = arolla::JaggedDenseArrayShape;
 PYBIND11_MODULE(wrap_utils_testing_clib, m) {
   m.def("unwrap_wrap_data_slice", [](py::handle dataslice_obj) -> py::object {
     PyObject* py_obj = dataslice_obj.ptr();
-    absl::Nullable<const DataSlice*> ds = UnwrapDataSlice(py_obj, "input arg");
+    const DataSlice* /*absl_nullable*/ ds = UnwrapDataSlice(py_obj, "input arg");
     if (ds == nullptr) {
       throw pybind11::error_already_set();
     }
     DataSlice ds_copy = *ds;
-    absl::Nullable<PyObject*> res_obj = WrapPyDataSlice(std::move(ds_copy));
+    PyObject* /*absl_nullable*/ res_obj = WrapPyDataSlice(std::move(ds_copy));
     if (py_obj == nullptr) {
       throw pybind11::error_already_set();
     }
@@ -49,7 +49,7 @@ PYBIND11_MODULE(wrap_utils_testing_clib, m) {
         PyObject* py_obj = dataslice_obj.ptr();
         const DataSlice& ds = UnsafeDataSliceRef(py_obj);
         DataSlice ds_copy = ds;
-        absl::Nullable<PyObject*> res_obj = WrapPyDataSlice(std::move(ds_copy));
+        PyObject* /*absl_nullable*/ res_obj = WrapPyDataSlice(std::move(ds_copy));
         if (py_obj == nullptr) {
           throw pybind11::error_already_set();
         }
@@ -68,7 +68,7 @@ PYBIND11_MODULE(wrap_utils_testing_clib, m) {
             // The result is std::nullopt; we return None to test it in Python.
             return py::none();
           }
-          absl::Nullable<PyObject*> res_obj = WrapPyDataSlice(std::move(*ds));
+          PyObject* /*absl_nullable*/ res_obj = WrapPyDataSlice(std::move(*ds));
           if (py_obj == nullptr) {
             throw pybind11::error_already_set();
           }
@@ -85,7 +85,7 @@ PYBIND11_MODULE(wrap_utils_testing_clib, m) {
       // The result is nullptr; we return None to test it in Python.
       return py::none();
     }
-    absl::Nullable<PyObject*> res_obj = WrapDataBagPtr(*db);
+    PyObject* /*absl_nullable*/ res_obj = WrapDataBagPtr(*db);
     if (py_obj == nullptr) {
       throw pybind11::error_already_set();
     }
@@ -103,7 +103,7 @@ PYBIND11_MODULE(wrap_utils_testing_clib, m) {
             // The result is nullptr; we return None to test it in Python.
             return py::none();
           }
-          absl::Nullable<PyObject*> res_obj = WrapDataBagPtr(*db);
+          PyObject* /*absl_nullable*/ res_obj = WrapDataBagPtr(*db);
           if (py_obj == nullptr) {
             throw pybind11::error_already_set();
           }
@@ -112,14 +112,13 @@ PYBIND11_MODULE(wrap_utils_testing_clib, m) {
 
   m.def("unwrap_wrap_jagged_shape", [](py::handle dataslice_obj) -> py::object {
     PyObject* py_obj = dataslice_obj.ptr();
-    absl::Nullable<const JaggedShape*> shape =
+    const JaggedShape* /*absl_nullable*/ shape =
         UnwrapJaggedShape(py_obj, "input arg");
     if (shape == nullptr) {
       throw pybind11::error_already_set();
     }
     JaggedShape shape_copy = *shape;
-    absl::Nullable<PyObject*> res_obj =
-        WrapPyJaggedShape(std::move(shape_copy));
+    PyObject* /*absl_nullable*/ res_obj = WrapPyJaggedShape(std::move(shape_copy));
     if (py_obj == nullptr) {
       throw pybind11::error_already_set();
     }

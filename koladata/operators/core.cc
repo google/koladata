@@ -408,7 +408,7 @@ absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
 
   RETURN_IF_ERROR(ValidateGetAttrArguments(obj, attr_name));
 
-  const absl::Nullable<DataBagPtr>& db = obj.GetBag();
+  const /*absl_nullable*/ DataBagPtr& db = obj.GetBag();
   DCHECK_NE(db, nullptr);  // Checked by ValidateGetAttrArguments.
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
@@ -471,7 +471,7 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
   }
   RETURN_IF_ERROR(ValidateGetAttrArguments(obj, attr_name));
 
-  const absl::Nullable<DataBagPtr>& db = obj.GetBag();
+  const /*absl_nullable*/ DataBagPtr& db = obj.GetBag();
   DCHECK_NE(db, nullptr);  // Checked by ValidateGetAttrArguments.
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
@@ -718,7 +718,7 @@ absl::StatusOr<DataSlice> ShallowClone(const DataSlice& obj,
         auto result_db = DataBag::Empty();
         ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
         internal::ShallowCloneOp clone_op(&result_db_impl.get());
-        absl::Nullable<const internal::DataBagImpl*> schema_db_impl = nullptr;
+        const internal::DataBagImpl* /*absl_nullable*/ schema_db_impl = nullptr;
         internal::DataBagImpl::FallbackSpan schema_fallbacks;
         if (schema_db != nullptr && schema_db != db) {
           schema_db_impl = &(schema_db->GetImpl());

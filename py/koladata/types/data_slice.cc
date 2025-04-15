@@ -69,14 +69,14 @@ namespace {
 // useful, in order to rely on error reporting from lower-level utilities that
 // do not work on DataSlices without DataBags.
 absl::Status TryAdoptInto(const AdoptionQueue& adoption_queue,
-                          absl::Nullable<const DataBagPtr>& db) {
+                          const /*absl_nullable*/ DataBagPtr& db) {
   if (db == nullptr) {
     return absl::OkStatus();
   }
   return adoption_queue.AdoptInto(*db);
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_bag(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_get_bag(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   auto db = UnsafeDataSliceRef(self).GetBag();
   if (db == nullptr) {
@@ -85,7 +85,7 @@ absl::Nullable<PyObject*> PyDataSlice_get_bag(PyObject* self, PyObject*) {
   return arolla::python::WrapAsPyQValue(arolla::TypedValue::FromValue(db));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_with_bag(PyObject* self, PyObject* db) {
+PyObject* /*absl_nullable*/ PyDataSlice_with_bag(PyObject* self, PyObject* db) {
   arolla::python::DCheckPyGIL();
   if (db == Py_None) {
     return WrapPyDataSlice(UnsafeDataSliceRef(self).WithBag(nullptr));
@@ -97,16 +97,16 @@ absl::Nullable<PyObject*> PyDataSlice_with_bag(PyObject* self, PyObject* db) {
   return WrapPyDataSlice(UnsafeDataSliceRef(self).WithBag(*std::move(db_ptr)));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_no_bag(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_no_bag(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   return WrapPyDataSlice(UnsafeDataSliceRef(self).WithBag(nullptr));
 }
 
 // classmethod
-absl::Nullable<PyObject*> PyDataSlice_from_vals(PyTypeObject* cls,
-                                                PyObject* const* py_args,
-                                                Py_ssize_t nargs,
-                                                PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataSlice_from_vals(PyTypeObject* cls,
+                                              PyObject* const* py_args,
+                                              Py_ssize_t nargs,
+                                              PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -128,9 +128,9 @@ absl::Nullable<PyObject*> PyDataSlice_from_vals(PyTypeObject* cls,
 // classmethod
 // Low-level interface for implementing `kd.from_py` behavior. See the docstring
 // of `kd.from_py` for details.
-absl::Nullable<PyObject*> PyDataSlice_from_py(PyTypeObject* cls,
-                                              PyObject* const* py_args,
-                                              Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataSlice_from_py(PyTypeObject* cls,
+                                            PyObject* const* py_args,
+                                            Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 5) {
@@ -168,8 +168,7 @@ absl::Nullable<PyObject*> PyDataSlice_from_py(PyTypeObject* cls,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_internal_as_py(PyObject* self,
-                                                     PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_internal_as_py(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
@@ -181,8 +180,8 @@ absl::Nullable<PyObject*> PyDataSlice_internal_as_py(PyObject* self,
   return res->release();
 }
 
-absl::Nullable<PyObject*> PyDataSlice_internal_as_arolla_value(PyObject* self,
-                                                               PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_internal_as_arolla_value(PyObject* self,
+                                                             PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
@@ -191,8 +190,8 @@ absl::Nullable<PyObject*> PyDataSlice_internal_as_arolla_value(PyObject* self,
   return arolla::python::WrapAsPyQValue(value);
 }
 
-absl::Nullable<PyObject*> PyDataSlice_internal_as_dense_array(PyObject* self,
-                                                              PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_internal_as_dense_array(PyObject* self,
+                                                            PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
@@ -201,9 +200,9 @@ absl::Nullable<PyObject*> PyDataSlice_internal_as_dense_array(PyObject* self,
   return arolla::python::WrapAsPyQValue(array);
 }
 
-absl::Nullable<PyObject*> PyDataSlice_to_proto(PyObject* self,
-                                               PyObject* const* py_args,
-                                               Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataSlice_to_proto(PyObject* self,
+                                             PyObject* const* py_args,
+                                             Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataSlice& slice = UnsafeDataSliceRef(self);
@@ -320,8 +319,8 @@ bool IsCompliantAttrName(absl::string_view attr_name) {
              attr_name);
 }
 
-absl::Nullable<PyObject*> PyDataSlice_getattro(PyObject* self,
-                                               PyObject* attr_name) {
+PyObject* /*absl_nullable*/ PyDataSlice_getattro(PyObject* self,
+                                             PyObject* attr_name) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   Py_ssize_t size;
@@ -345,10 +344,10 @@ absl::Nullable<PyObject*> PyDataSlice_getattro(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_attr(PyObject* self,
-                                               PyObject* const* py_args,
-                                               Py_ssize_t nargs,
-                                               PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataSlice_get_attr(PyObject* self,
+                                             PyObject* const* py_args,
+                                             Py_ssize_t nargs,
+                                             PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -418,10 +417,10 @@ int PyDataSlice_setattro(PyObject* self, PyObject* attr_name, PyObject* value) {
   return 0;
 }
 
-absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
-                                               PyObject* const* py_args,
-                                               Py_ssize_t nargs,
-                                               PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataSlice_set_attr(PyObject* self,
+                                             PyObject* const* py_args,
+                                             Py_ssize_t nargs,
+                                             PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
@@ -465,10 +464,10 @@ absl::Nullable<PyObject*> PyDataSlice_set_attr(PyObject* self,
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyDataSlice_set_attrs(PyObject* self,
-                                                PyObject* const* py_args,
-                                                Py_ssize_t nargs,
-                                                PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataSlice_set_attrs(PyObject* self,
+                                              PyObject* const* py_args,
+                                              Py_ssize_t nargs,
+                                              PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor parser(
@@ -516,7 +515,7 @@ absl::StatusOr<DataSlice> ConvertKeyToDataSlice(PyObject* key) {
   return key_ds;
 }
 
-absl::Nullable<PyObject*> PyDataSlice_subscript(PyObject* self, PyObject* key) {
+PyObject* /*absl_nullable*/ PyDataSlice_subscript(PyObject* self, PyObject* key) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
@@ -705,7 +704,7 @@ PyObject* PyDataSlice_repr_with_params(PyObject* self, PyObject* const* py_args,
                        .unbounded_type_max_len = unbounded_type_max_len});
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_get_keys(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   DataSlice self_ds = UnsafeDataSliceRef(self);
@@ -714,9 +713,9 @@ absl::Nullable<PyObject*> PyDataSlice_get_keys(PyObject* self, PyObject*) {
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_append(PyObject* self,
-                                             PyObject* const* args,
-                                             Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataSlice_append(PyObject* self,
+                                           PyObject* const* args,
+                                           Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs != 1) {
@@ -741,8 +740,8 @@ absl::Nullable<PyObject*> PyDataSlice_append(PyObject* self,
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyDataSlice_pop(PyObject* self, PyObject* const* args,
-                                          Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataSlice_pop(PyObject* self, PyObject* const* args,
+                                        Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   if (nargs > 1) {
@@ -764,7 +763,7 @@ absl::Nullable<PyObject*> PyDataSlice_pop(PyObject* self, PyObject* const* args,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_clear(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_clear(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   RETURN_IF_ERROR(UnsafeDataSliceRef(self).ClearDictOrList())
@@ -772,14 +771,14 @@ absl::Nullable<PyObject*> PyDataSlice_clear(PyObject* self, PyObject*) {
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_shape(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_get_shape(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyJaggedShape(ds.GetShape());
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_schema(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_get_schema(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
@@ -792,83 +791,81 @@ DataSlice AsMask(bool b) {
       internal::DataItem(schema::kMask));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_list_schema(PyObject* self,
-                                                     PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_list_schema(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsListSchema()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_entity_schema(PyObject* self,
-                                                       PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_entity_schema(PyObject* self,
+                                                     PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsEntitySchema()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_struct_schema(PyObject* self,
-                                                       PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_struct_schema(PyObject* self,
+                                                     PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsStructSchema()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,
-                                                     PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_dict_schema(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsDictSchema()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_dict(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_dict(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsDict()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_list(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_list(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsList()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_entity(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_entity(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsEntity()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_primitive_schema(PyObject* self,
-                                                          PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_primitive_schema(PyObject* self,
+                                                        PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsPrimitiveSchema()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_internal_is_itemid_schema(PyObject* self,
-                                                                PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_internal_is_itemid_schema(PyObject* self,
+                                                              PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsItemIdSchema()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_empty(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_empty(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(AsMask(ds.IsEmpty()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_is_mutable(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_is_mutable(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
@@ -876,15 +873,15 @@ absl::Nullable<PyObject*> PyDataSlice_is_mutable(PyObject* self, PyObject*) {
   return WrapPyDataSlice(AsMask(db != nullptr && db->IsMutable()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_freeze_bag(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_freeze_bag(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
   return WrapPyDataSlice(ds.FreezeBag());
 }
 
-absl::Nullable<PyObject*> PyDataSlice_with_schema(PyObject* self,
-                                                  PyObject* schema) {
+PyObject* /*absl_nullable*/ PyDataSlice_with_schema(PyObject* self,
+                                                PyObject* schema) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
@@ -897,8 +894,8 @@ absl::Nullable<PyObject*> PyDataSlice_with_schema(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_set_schema(PyObject* self,
-                                                 PyObject* schema) {
+PyObject* /*absl_nullable*/ PyDataSlice_set_schema(PyObject* self,
+                                               PyObject* schema) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const auto& ds = UnsafeDataSliceRef(self);
@@ -911,7 +908,7 @@ absl::Nullable<PyObject*> PyDataSlice_set_schema(PyObject* self,
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_embed_schema(PyObject* self, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_embed_schema(PyObject* self, PyObject*) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   auto& self_ds = UnsafeDataSliceRef(self);
@@ -920,10 +917,10 @@ absl::Nullable<PyObject*> PyDataSlice_embed_schema(PyObject* self, PyObject*) {
   return WrapPyDataSlice(std::move(res));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_get_attr_names(PyObject* self,
-                                                     PyObject* const* py_args,
-                                                     Py_ssize_t nargs,
-                                                     PyObject* py_kwnames) {
+PyObject* /*absl_nullable*/ PyDataSlice_get_attr_names(PyObject* self,
+                                                   PyObject* const* py_args,
+                                                   Py_ssize_t nargs,
+                                                   PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor parser(FastcallArgParser(
@@ -963,7 +960,7 @@ absl::Nullable<PyObject*> PyDataSlice_get_attr_names(PyObject* self,
   return attr_name_list.release();
 }
 
-absl::Nullable<PyObject*> PyDataSlice_format(PyObject* self, PyObject* arg) {
+PyObject* /*absl_nullable*/ PyDataSlice_format(PyObject* self, PyObject* arg) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   Py_ssize_t size;
@@ -983,12 +980,12 @@ absl::Nullable<PyObject*> PyDataSlice_format(PyObject* self, PyObject* arg) {
       placeholder.c_str(), static_cast<Py_ssize_t>(placeholder.size()));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_unspecified(PyTypeObject*, PyObject*) {
+PyObject* /*absl_nullable*/ PyDataSlice_unspecified(PyTypeObject*, PyObject*) {
   auto unspecified = UnspecifiedDataSlice();
   return WrapPyDataSlice(std::move(unspecified));
 }
 
-absl::Nullable<PyObject*> PyDataSlice_debug_repr(PyObject* self) {
+PyObject* /*absl_nullable*/ PyDataSlice_debug_repr(PyObject* self) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   std::string debug_repr = DataSliceRepr(UnsafeDataSliceRef(self));
@@ -1334,7 +1331,7 @@ PyTypeObject* PyDataSlice_Type() {
 }
 
 // data_slice_py_ext module methods
-absl::Nullable<PyObject*> PyDataSliceModule_is_compliant_attr_name(
+PyObject* /*absl_nullable*/ PyDataSliceModule_is_compliant_attr_name(
     PyObject* /*module*/, PyObject* attr_name) {
   arolla::python::DCheckPyGIL();
   Py_ssize_t size;
@@ -1346,7 +1343,7 @@ absl::Nullable<PyObject*> PyDataSliceModule_is_compliant_attr_name(
   return PyBool_FromLong(IsCompliantAttrName(attr_name_view));
 }
 
-absl::Nullable<PyObject*> PyDataSliceModule_register_reserved_class_method_name(
+PyObject* /*absl_nullable*/ PyDataSliceModule_register_reserved_class_method_name(
     PyObject* /*module*/, PyObject* method_name) {
   arolla::python::DCheckPyGIL();
   if (!PyUnicode_Check(method_name)) {
@@ -1366,7 +1363,7 @@ absl::Nullable<PyObject*> PyDataSliceModule_register_reserved_class_method_name(
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*> PyDataSliceModule_get_reserved_attrs(
+PyObject* /*absl_nullable*/ PyDataSliceModule_get_reserved_attrs(
     PyObject* /*module*/) {
   arolla::python::DCheckPyGIL();
   const absl::flat_hash_set<absl::string_view>& attrs =

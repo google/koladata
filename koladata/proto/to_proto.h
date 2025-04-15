@@ -44,7 +44,7 @@ namespace koladata {
 // to by `messages` are unspecified but valid.
 absl::Status ToProto(
     const DataSlice& slice,
-    absl::Span<const absl::Nonnull<::google::protobuf::Message*>> messages);
+    absl::Span<::google::protobuf::Message* /*absl_nonnull*/ const> messages);
 
 }  // namespace koladata
 

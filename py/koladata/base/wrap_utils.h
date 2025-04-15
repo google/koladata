@@ -32,17 +32,16 @@ namespace koladata::python {
 // access the DataSlice from PyObject*. In case `py_obj` does not hold
 // DataSlice, appropriate error is set and nullptr returned.
 // `name_for_error` is used to format an informative error message.
-absl::Nullable<const DataSlice*> UnwrapDataSlice(
+const DataSlice* /*absl_nullable*/ UnwrapDataSlice(
     PyObject* py_obj, absl::string_view name_for_error);
 
 // Returns a new PyQValue that wraps DataSlice `ds`. In case of errors in Python
 // runtime during allocations, this function can return nullptr.
-absl::Nullable<PyObject*> WrapPyDataSlice(DataSlice&& ds);
+PyObject* /*absl_nullable*/ WrapPyDataSlice(DataSlice&& ds);
 // Same as `WrapPyDataSlice`, but freeze DataBag and mark DataSlice as whole.
 // It is a caller responsibility to ensure that `ds` is whole and that
 // DataBag is not shared.
-absl::Nullable<PyObject*> WrapPyDataSliceAsWholeWithFrozenDataBag(
-  DataSlice&& ds);
+PyObject* /*absl_nullable*/ WrapPyDataSliceAsWholeWithFrozenDataBag(DataSlice&& ds);
 
 // Unwraps a DataSlice from `py_obj` into `arg` if `py_obj` contains a
 // DataSlice. Returns true on success and false on failure. On failure, this
@@ -58,7 +57,7 @@ const DataSlice& UnsafeDataSliceRef(PyObject* py_obj);
 
 // Returns a new PyQValue that wraps DataBagPtr `db`. In case of errors in
 // Python runtime during allocations, this function can return nullptr.
-absl::Nullable<PyObject*> WrapDataBagPtr(DataBagPtr db);
+PyObject* /*absl_nullable*/ WrapDataBagPtr(DataBagPtr db);
 
 // Returns a copy of shared_ptr to DataBag held by `py_obj`. This is a safe way
 // to access the DataBag from PyObject*. In case `py_obj` does not hold DataBag,
@@ -77,12 +76,12 @@ const DataBagPtr& UnsafeDataBagPtr(PyObject* py_obj);
 // access the JaggedShape from PyObject*. In case `py_obj` does not hold
 // JaggedShape, appropriate error is set and nullptr returned.
 // `name_for_error` is used to format an informative error message.
-absl::Nullable<const DataSlice::JaggedShape*> UnwrapJaggedShape(
+const DataSlice::JaggedShape* /*absl_nullable*/ UnwrapJaggedShape(
     PyObject* py_obj, absl::string_view name_for_error);
 
 // Returns a new PyQValue that wraps JaggedShape `shape`. In case of errors in
 // Python runtime during allocations, this function can return nullptr.
-absl::Nullable<PyObject*> WrapPyJaggedShape(DataSlice::JaggedShape shape);
+PyObject* /*absl_nullable*/ WrapPyJaggedShape(DataSlice::JaggedShape shape);
 
 }  // namespace koladata::python
 

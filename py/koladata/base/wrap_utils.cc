@@ -62,7 +62,7 @@ std::nullptr_t NotJaggedShapeError(PyObject* py_obj,
 
 }  // namespace
 
-absl::Nullable<const DataSlice*> UnwrapDataSlice(
+const DataSlice* /*absl_nullable*/ UnwrapDataSlice(
     PyObject* py_obj, absl::string_view name_for_error) {
   if (!arolla::python::IsPyQValueInstance(py_obj)) {
     return NotDataSliceError(py_obj, name_for_error);
@@ -74,12 +74,12 @@ absl::Nullable<const DataSlice*> UnwrapDataSlice(
   return &typed_value.UnsafeAs<DataSlice>();
 }
 
-absl::Nullable<PyObject*> WrapPyDataSlice(DataSlice&& ds) {
+PyObject* /*absl_nullable*/ WrapPyDataSlice(DataSlice&& ds) {
   return arolla::python::WrapAsPyQValue(
       arolla::TypedValue::FromValue(std::move(ds)));
 }
 
-absl::Nullable<PyObject*> WrapPyDataSliceAsWholeWithFrozenDataBag(
+PyObject* /*absl_nullable*/ WrapPyDataSliceAsWholeWithFrozenDataBag(
     DataSlice&& ds) {
   auto db = ds.GetBag();
   ASSIGN_OR_RETURN(ds,
@@ -109,7 +109,7 @@ const DataSlice& UnsafeDataSliceRef(PyObject* py_obj) {
   return arolla::python::UnsafeUnwrapPyQValue(py_obj).UnsafeAs<DataSlice>();
 }
 
-absl::Nullable<PyObject*> WrapDataBagPtr(DataBagPtr db) {
+PyObject* /*absl_nullable*/ WrapDataBagPtr(DataBagPtr db) {
   return arolla::python::WrapAsPyQValue(
       arolla::TypedValue::FromValue(std::move(db)));
 }
@@ -133,7 +133,7 @@ const DataBagPtr& UnsafeDataBagPtr(PyObject* py_obj) {
   return arolla::python::UnsafeUnwrapPyQValue(py_obj).UnsafeAs<DataBagPtr>();
 }
 
-absl::Nullable<const DataSlice::JaggedShape*> UnwrapJaggedShape(
+const DataSlice::JaggedShape* /*absl_nullable*/ UnwrapJaggedShape(
     PyObject* py_obj, absl::string_view name_for_error) {
   if (!arolla::python::IsPyQValueInstance(py_obj)) {
     return NotJaggedShapeError(py_obj, name_for_error);
@@ -146,7 +146,7 @@ absl::Nullable<const DataSlice::JaggedShape*> UnwrapJaggedShape(
   return &shape_typed_value.UnsafeAs<DataSlice::JaggedShape>();
 }
 
-absl::Nullable<PyObject*> WrapPyJaggedShape(DataSlice::JaggedShape shape) {
+PyObject* /*absl_nullable*/ WrapPyJaggedShape(DataSlice::JaggedShape shape) {
   return arolla::python::WrapAsPyQValue(
       arolla::TypedValue::FromValue(std::move(shape)));
 }
