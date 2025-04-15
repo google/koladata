@@ -2940,7 +2940,9 @@ with mylock: # Needed only if read in multi-threading settings
 
 ### Serialization
 
-It's possible to serialize DataSlices and bags into bytes.
+It's possible to serialize DataSlices and bags into bytes. See
+[Koda Persistent Storage](persistent_storage.md) for recommendations and
+guarantees for long-term storage needs.
 
 ```py
 # Serialize DataSlices.
