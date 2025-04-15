@@ -84,6 +84,16 @@ class TracingTest(absltest.TestCase):
     ):
       tracing.trace(lambda x, **y: x)
 
+  def test_eager_only_methods_not_allowed(self):
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            r'calling \.append\(\) on a DataSlice is not supported in'
+            r' expr/tracing mode',
+        ),
+    ):
+      tracing.trace(lambda x: x.append())
+
   def test_other_types_allowed_if_called_unused(self):
     testing.assert_equal(tracing.trace(lambda x, *unused: x), I.x)
     testing.assert_equal(tracing.trace(lambda x, *unused_y: x), I.x)

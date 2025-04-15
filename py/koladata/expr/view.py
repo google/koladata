@@ -30,6 +30,13 @@ from koladata.types import schema_constants
 I = input_container.InputContainer('I')
 
 
+def _raise_eager_only_method(method_name: str, class_name: str):
+  raise ValueError(
+      f'calling .{method_name}() on a {class_name} is not supported in'
+      ' expr/tracing mode'
+  )
+
+
 class SlicingHelper:
   """Slicing helper for KodaView.
 
@@ -421,6 +428,9 @@ class KodaView(arolla.abc.ExprView):
   def get_keys(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.get_keys', self)
 
+  def get_nofollowed_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kd.get_nofollowed_schema', self)
+
   def get_values(self, key_ds: Any = arolla.unspecified()) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.get_values', self, key_ds=key_ds)
 
@@ -471,6 +481,169 @@ class KodaView(arolla.abc.ExprView):
     if index < 0 or index >= len(self.node_deps):
       raise IndexError('tuple index out of range')
     return self[index]
+
+  # Eager-only DataSlice methods.
+  def append(self, *args, **kwargs):  # pylint: disable=unused-argument
+    raise ValueError(
+        'calling .append() on a DataSlice is not supported in'
+        ' expr/tracing mode; use .with_list_append_update() instead.'
+    )
+
+  def clear(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('clear', 'DataSlice')
+
+  def display(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('display', 'DataSlice')
+
+  def embed_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('embed_schema', 'DataSlice')
+
+  def fork_bag(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('fork_bag', 'DataSlice')
+
+  def from_vals(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('from_vals', 'DataSlice')
+
+  def get_attr_names(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('get_attr_names', 'DataSlice')
+
+  def internal_as_arolla_value(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('internal_as_arolla_value', 'DataSlice')
+
+  def internal_as_dense_array(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('internal_as_dense_array', 'DataSlice')
+
+  def internal_as_py(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('internal_as_py', 'DataSlice')
+
+  def internal_is_itemid_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('internal_is_itemid_schema', 'DataSlice')
+
+  def is_mutable(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('is_mutable', 'DataSlice/DataBag')
+
+  def set_attr(self, *args, **kwargs):  # pylint: disable=unused-argument
+    raise ValueError(
+        'calling .set_attr() on a DataSlice is not supported in'
+        ' expr/tracing mode; use .with_attr() instead.'
+    )
+
+  def set_attrs(self, *args, **kwargs):  # pylint: disable=unused-argument
+    raise ValueError(
+        'calling .set_attrs() on a DataSlice is not supported in'
+        ' expr/tracing mode; use .with_attrs() instead.'
+    )
+
+  def set_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
+    raise ValueError(
+        'calling .set_schema() on a DataSlice is not supported in'
+        ' expr/tracing mode; use .with_schema() instead.'
+    )
+
+  def to_py(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('to_py', 'DataSlice')
+
+  def to_pytree(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('to_pytree', 'DataSlice')
+
+  # Eager-only DataItem methods.
+  def bind(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('bind', 'DataItem')
+
+  # Eager-only ListItem methods
+  def pop(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('pop', 'ListItem')
+
+  # Eager-only DataBag methods.
+  def adopt(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('adopt', 'DataBag')
+
+  def adopt_stub(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('adopt_stub', 'DataBag')
+
+  def concat_lists(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('concat_lists', 'DataBag')
+
+  def contents_repr(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('contents_repr', 'DataBag')
+
+  def data_triples_repr(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('data_triples_repr', 'DataBag')
+
+  def dict(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('dict', 'DataBag')
+
+  def dict_like(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('dict_like', 'DataBag')
+
+  def dict_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('dict_schema', 'DataBag')
+
+  def dict_shaped(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('dict_shaped', 'DataBag')
+
+  def empty(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('empty', 'DataBag')
+
+  def fork(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('fork', 'DataBag')
+
+  def get_approx_size(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('get_approx_size', 'DataBag')
+
+  def get_fallbacks(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('get_fallbacks', 'DataBag')
+
+  def list(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('list', 'DataBag')
+
+  def list_like(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('list_like', 'DataBag')
+
+  def list_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('list_schema', 'DataBag')
+
+  def list_shaped(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('list_shaped', 'DataBag')
+
+  def merge_fallbacks(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('merge_fallbacks', 'DataBag')
+
+  def merge_inplace(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('merge_inplace', 'DataBag')
+
+  def named_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('named_schema', 'DataBag')
+
+  def new_like(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('new_like', 'DataBag')
+
+  def new_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('new_schema', 'DataBag')
+
+  def new_shaped(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('new_shaped', 'DataBag')
+
+  def obj(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('obj', 'DataBag')
+
+  def obj_like(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('obj_like', 'DataBag')
+
+  def obj_shaped(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('obj_shaped', 'DataBag')
+
+  def schema_triples_repr(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('schema_triples_repr', 'DataBag')
+
+  def uu(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('uu', 'DataBag')
+
+  def uu_schema(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('uu_schema', 'DataBag')
+
+  def uuobj(self, *args, **kwargs):  # pylint: disable=unused-argument
+    _raise_eager_only_method('uuobj', 'DataBag')
 
 
 def has_koda_view(node: arolla.Expr) -> bool:

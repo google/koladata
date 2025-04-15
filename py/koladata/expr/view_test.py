@@ -437,6 +437,11 @@ class KodaViewTest(parameterized.TestCase):
   def test_get_keys(self):
     testing.assert_equal(C.x.get_keys(), kde.get_keys(C.x))
 
+  def test_get_nofollowed_schema(self):
+    testing.assert_equal(
+        C.x.get_nofollowed_schema(), kde.get_nofollowed_schema(C.x)
+    )
+
   def test_get_values(self):
     testing.assert_equal(C.x.get_values(), kde.get_values(C.x))
 
@@ -611,88 +616,30 @@ class KodaViewTest(parameterized.TestCase):
   def test_repr(self, expr, expected_repr):
     self.assertEqual(repr(expr), expected_repr)
 
-  def test_data_slice_attrs_are_in_view(self):
-    # Asserts that all attrs / methods of DataSlice are present in the
-    # KodaView, or that they are explicitly skipped.
-    #
-    # attrs / methods should be skipped iff they cannot be added by design, not
-    # because of laziness.
+  def test_data_slice_and_subclass_attrs_are_in_view(self):
+    # Asserts that all attrs / methods of DataSlice and subclasses are present
+    # in the KodaView, or that they are explicitly skipped.
     skipped_data_slice_attrs = {
-        # go/keep-sorted start
-        'append',
-        'clear',
-        'display',
-        'embed_schema',
+        # attrs / methods that are part of ExprView and cannot be overwritten in
+        # KodaView.
         'fingerprint',
-        'fork_bag',
-        'from_vals',
-        'get_attr_names',
-        'internal_as_arolla_value',
-        'internal_as_dense_array',
-        'internal_as_py',
-        'internal_is_itemid_schema',
-        'is_mutable',
         'qtype',
-        'set_attr',
-        'set_attrs',
-        'set_schema',
-        'to_py',
-        'to_pytree',
-        # go/keep-sorted end
-    }
+    } | data_slice.RESERVED_ATTRIBUTES_WITHOUT_LEADING_UNDERSCORE
     view_attrs = {m for m in dir(view.KodaView) if not m.startswith('_')}
-    data_slice_attrs = {
-        m for m in dir(data_slice.DataSlice) if not m.startswith('_')
-    }
-    # Only skip those attrs that are absolutely necessary.
-    self.assertEmpty(skipped_data_slice_attrs - data_slice_attrs)
-    self.assertEmpty(skipped_data_slice_attrs & view_attrs)
     # Check that all required attrs are present.
-    missing_attrs = data_slice_attrs - view_attrs - skipped_data_slice_attrs
+    missing_attrs = (
+        data_slice.get_reserved_attrs() - view_attrs - skipped_data_slice_attrs
+    )
     self.assertEmpty(missing_attrs)
 
   def test_data_bag_attrs_are_in_view(self):
     # Asserts that all attrs / methods of DataBag are present in the
     # KodaView, or that they are explicitly skipped.
-    #
-    # attrs / methods should be skipped iff they cannot be added by design, not
-    # because of laziness.
     skipped_data_bag_attrs = {
-        # go/keep-sorted start
-        'adopt',
-        'adopt_stub',
-        'concat_lists',
-        'contents_repr',
-        'data_triples_repr',
-        'dict',
-        'dict_like',
-        'dict_schema',
-        'dict_shaped',
-        'empty',
+        # attrs / methods that are part of ExprView and cannot be overwritten in
+        # KodaView.
         'fingerprint',
-        'fork',
-        'get_approx_size',
-        'get_fallbacks',
-        'is_mutable',
-        'list',
-        'list_like',
-        'list_schema',
-        'list_shaped',
-        'merge_fallbacks',
-        'merge_inplace',
-        'named_schema',
-        'new_like',
-        'new_schema',
-        'new_shaped',
-        'obj',
-        'obj_like',
-        'obj_shaped',
         'qtype',
-        'schema_triples_repr',
-        'uu',
-        'uu_schema',
-        'uuobj',
-        # go/keep-sorted end
     }
     view_attrs = {m for m in dir(view.KodaView) if not m.startswith('_')}
     data_bag_attrs = {m for m in dir(data_bag.DataBag) if not m.startswith('_')}
@@ -703,7 +650,7 @@ class KodaViewTest(parameterized.TestCase):
     missing_attrs = data_bag_attrs - view_attrs - skipped_data_bag_attrs
     self.assertEmpty(missing_attrs)
 
-  def test_view_attrs_are_in_data_slice_or_data_bag(self):
+  def test_view_attrs_are_in_data_slice_subclasses_or_data_bag(self):
     # Asserts that all attrs / methods of KodaView are present in DataSlice or
     # DataBag, or that they are explicitly skipped.
     #
@@ -711,9 +658,9 @@ class KodaViewTest(parameterized.TestCase):
     # because of laziness.
     skipped_view_attrs = {'eval', 'inputs'}
     view_attrs = {m for m in dir(view.KodaView) if not m.startswith('_')}
-    data_slice_or_bag_attrs = {
-        m for m in dir(data_slice.DataSlice) if not m.startswith('_')
-    } | {m for m in dir(data_bag.DataBag) if not m.startswith('_')}
+    data_slice_or_bag_attrs = data_slice.get_reserved_attrs() | {
+        m for m in dir(data_bag.DataBag) if not m.startswith('_')
+    }
     # Only skip those attrs that are absolutely necessary.
     self.assertEmpty(skipped_view_attrs - view_attrs)
     self.assertEmpty(skipped_view_attrs & data_slice_or_bag_attrs)
@@ -727,6 +674,29 @@ class KodaViewTest(parameterized.TestCase):
           kde,
           skip_methods={
               'new',  # method offers much simpler and restrictive interface
+              # Forbidden methods have divergent (self, *args, **kwargs)
+              # signatures in order to catch any call.
+              # go/keep-sorted start
+              'concat_lists',
+              'dict',
+              'dict_like',
+              'dict_schema',
+              'dict_shaped',
+              'get_attr_names',
+              'list',
+              'list_like',
+              'list_schema',
+              'list_shaped',
+              'named_schema',
+              'new_like',
+              'new_shaped',
+              'obj',
+              'obj_like',
+              'obj_shaped',
+              'uu',
+              'uu_schema',
+              'uuobj',
+              # go/keep-sorted end
           },
       )
   )
