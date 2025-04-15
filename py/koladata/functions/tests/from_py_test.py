@@ -15,6 +15,7 @@
 import dataclasses
 import enum
 import gc
+import re
 import sys
 from unittest import mock
 
@@ -232,19 +233,25 @@ class FromPyTest(parameterized.TestCase):
 
   def test_primitive_casting_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'the schema is incompatible: expected MASK, assigned BYTES'
+        ValueError,
+        re.escape("""the schema is incompatible:
+expected schema: BYTES
+assigned schema: MASK"""),
     ):
       fns.from_py(b'xyz', schema=schema_constants.MASK)
 
   def test_primitive_down_casting_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'the schema is incompatible: expected INT32, assigned FLOAT32'
+        ValueError, re.escape('''the schema is incompatible:
+expected schema: FLOAT32
+assigned schema: INT32''')
     ):
       fns.from_py(3.14, schema=schema_constants.INT32)
     with self.assertRaisesRegex(
         ValueError,
-        'the schema is incompatible: expected INT32, assigned FLOAT32'
+        re.escape("""the schema is incompatible:
+expected schema: FLOAT32
+assigned schema: INT32"""),
     ):
       fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.INT32)
 
@@ -574,6 +581,19 @@ class FromPyTest(parameterized.TestCase):
         ValueError, "dict keys cannot be non-STRING DataItems, got b'abc'"
     ):
       fns.from_py({ds(b'abc'): 42}, dict_as_obj=True)
+
+  def test_incompatible_schema(self):
+    entity = fns.new(x=1)
+    schema = fns.schema.new_schema(x=schema_constants.INT32)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            '''the schema is incompatible:
+expected schema: SCHEMA(x=INT32)
+assigned schema: SCHEMA(x=INT32)'''
+        ),
+    ):
+      fns.from_py(entity, schema=schema)
 
   def test_dataclasses(self):
     obj = fns.from_py(TestKlass(42, NestedKlass('abc'), b'xyz'))

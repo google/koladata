@@ -263,6 +263,22 @@ class PyMapPyTest(parameterized.TestCase):
     ):
       _ = expr_eval.eval(kde.py.map_py(my_func_correct_schema, val, schema=1))
 
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            '''the schema is incompatible:
+expected schema: SCHEMA(u=INT32, v=INT32)
+assigned schema: SCHEMA(u=INT64)'''
+        ),
+    ):
+      _ = expr_eval.eval(
+          kde.py.map_py(
+              my_func_correct_schema,
+              val,
+              schema=functions.schema.new_schema(u=schema_constants.INT64),
+          )
+      )
+
     db = data_bag.DataBag.empty()
     schema_same_bag = db.new_schema(
         u=schema_constants.INT32, v=schema_constants.INT32

@@ -133,6 +133,7 @@ cc_library(
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
+        "//koladata/internal:error_utils",
         "//koladata/internal:missing_value",
         "//koladata/internal:schema_utils",
         "//koladata/internal:types",

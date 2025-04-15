@@ -409,7 +409,10 @@ The cause is the values of attribute 'x' are different: 1 vs 2""",
 
   def test_universal_converter_primitive_casting_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'the schema is incompatible: expected MASK, assigned BYTES'
+        ValueError,
+        re.escape("""the schema is incompatible:
+expected schema: BYTES
+assigned schema: MASK"""),
     ):
       fns.new(b'xyz', schema=schema_constants.MASK)
 
@@ -521,12 +524,16 @@ The cause is the values of attribute 'x' are different: 1 vs 2""",
     )
     with self.assertRaisesRegex(
         ValueError,
-        'the schema is incompatible: expected STRING, assigned BYTES',
+        re.escape("""the schema is incompatible:
+expected schema: BYTES
+assigned schema: STRING"""),
     ):
       fns.new([{b'x': [1, 2, 3]}], schema=s)
     with self.assertRaisesRegex(
         ValueError,
-        'the schema is incompatible: expected FLOAT32, assigned OBJECT',
+        re.escape("""the schema is incompatible:
+expected schema: OBJECT
+assigned schema: FLOAT32"""),
     ):
       fns.new([{'x': [1, 'x', 3]}], schema=s)
 
@@ -551,7 +558,9 @@ The cause is the values of attribute 'x' are different: 1 vs 2""",
     )
     with self.assertRaisesRegex(
         ValueError,
-        'the schema is incompatible: expected STRING, assigned BYTES',
+        re.escape('''the schema is incompatible:
+expected schema: BYTES
+assigned schema: STRING'''),
     ):
       fns.new([{b'x': [1, 2, 3]}], schema=s)
 

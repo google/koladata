@@ -46,10 +46,12 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/casting.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/error_utils.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
@@ -109,14 +111,28 @@ absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
 }
 
 // Returns an Error with incompatible schema information during narrow casting.
-absl::Status CreateIncompatibleSchemaError(
-    const internal::DataItem& expected_schema,
-    const internal::DataItem& actual_schema) {
-  // TODO: Improve the error message with payload and deep schema
-  // information.
-  return absl::InvalidArgumentError(absl::StrFormat(
-      "the schema is incompatible: expected %s, assigned %s",
-      DataItemRepr(expected_schema), DataItemRepr(actual_schema)));
+absl::Status CreateIncompatibleSchemaError(absl::Status status,
+                                           const DataSlice& item_schema,
+                                           const DataSlice& input_schema) {
+  std::string item_schema_str = SchemaToStr(item_schema);
+  std::string input_schema_str = SchemaToStr(input_schema);
+  return internal::KodaErrorFromCause(
+      absl::StrFormat("the schema is incompatible:\n"
+                      "expected schema: %s\n"
+                      "assigned schema: %s",
+                      item_schema_str, input_schema_str),
+      std::move(status));
+}
+
+absl::Status CreateIncompatibleSchemaError(const DataSlice& item_schema,
+                                           const DataSlice& input_schema) {
+  std::string item_schema_str = SchemaToStr(item_schema);
+  std::string input_schema_str = SchemaToStr(input_schema);
+  return absl::InvalidArgumentError(
+      absl::StrFormat("the schema is incompatible:\n"
+                      "expected schema: %s\n"
+                      "assigned schema: %s",
+                      item_schema_str, input_schema_str));
 }
 
 // Helper class for embedding schemas into an auxiliary DataBag.
@@ -756,7 +772,10 @@ class UniversalConverter {
             DataSlice res, CastToNarrow(value_stack_.top(), schema->item()),
             [&](absl::Status status) {
               return CreateIncompatibleSchemaError(
-                  schema->item(), GetNarrowedSchema(value_stack_.top()));
+                  std::move(status),
+                  value_stack_.top().GetSchema().WithBag(
+                      adoption_queue_.GetBagWithFallbacks()),
+                  *schema);
             }(_));
         return res;
       }
@@ -860,7 +879,11 @@ class UniversalConverter {
     if (input_schema) {
       if (schema_item.has_value() &&
           !schema::IsImplicitlyCastableTo(schema_item, input_schema->item())) {
-        return CreateIncompatibleSchemaError(input_schema->item(), schema_item);
+        ASSIGN_OR_RETURN(
+            DataSlice schema_item_ds,
+            DataSlice::Create(schema_item, internal::DataItem(schema::kSchema),
+                              adoption_queue_.GetBagWithFallbacks()));
+        return CreateIncompatibleSchemaError(schema_item_ds, *input_schema);
       }
       schema_item = input_schema->item();
     } else if (!schema_item.has_value()) {
