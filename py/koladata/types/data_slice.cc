@@ -808,6 +808,14 @@ absl::Nullable<PyObject*> PyDataSlice_is_entity_schema(PyObject* self,
   return WrapPyDataSlice(AsMask(ds.IsEntitySchema()));
 }
 
+absl::Nullable<PyObject*> PyDataSlice_is_struct_schema(PyObject* self,
+                                                       PyObject*) {
+  arolla::python::DCheckPyGIL();
+  arolla::python::PyCancellationScope cancellation_scope;
+  const auto& ds = UnsafeDataSliceRef(self);
+  return WrapPyDataSlice(AsMask(ds.IsStructSchema()));
+}
+
 absl::Nullable<PyObject*> PyDataSlice_is_dict_schema(PyObject* self,
                                                      PyObject*) {
   arolla::python::DCheckPyGIL();
@@ -1070,6 +1078,10 @@ Args:
      "is_entity_schema()\n"
      "--\n\n"
      "Returns present iff this DataSlice represents an Entity Schema."},
+    {"is_struct_schema", PyDataSlice_is_struct_schema, METH_NOARGS,
+     "is_struct_schema()\n"
+     "--\n\n"
+     "Returns present iff this DataSlice represents a Struct Schema."},
     {"is_dict", PyDataSlice_is_dict, METH_NOARGS,
      "is_dict()\n"
      "--\n\n"
@@ -1354,8 +1366,8 @@ absl::Nullable<PyObject*> PyDataSliceModule_register_reserved_class_method_name(
   Py_RETURN_NONE;
 }
 
-absl::Nullable<PyObject*>
-PyDataSliceModule_get_reserved_attrs(PyObject* /*module*/) {
+absl::Nullable<PyObject*> PyDataSliceModule_get_reserved_attrs(
+    PyObject* /*module*/) {
   arolla::python::DCheckPyGIL();
   const absl::flat_hash_set<absl::string_view>& attrs =
       PyDataSlice_GetReservedAttrsWithoutLeadingUnderscore();

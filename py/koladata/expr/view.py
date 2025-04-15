@@ -384,7 +384,10 @@ class KodaView(arolla.abc.ExprView):
       overwrite_schema: Any = data_slice.DataSlice.from_vals(False),
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op(
-        'kd.with_attr', self, attr_name, value,
+        'kd.with_attr',
+        self,
+        attr_name,
+        value,
         overwrite_schema=overwrite_schema,
     )
 
@@ -397,7 +400,7 @@ class KodaView(arolla.abc.ExprView):
   def implode(
       self,
       ndim: Any = data_slice.DataSlice.from_vals(1, schema_constants.INT64),
-      itemid: Any = arolla.unspecified()
+      itemid: Any = arolla.unspecified(),
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.implode', self, ndim, itemid)
 
@@ -460,6 +463,9 @@ class KodaView(arolla.abc.ExprView):
 
   def is_entity_schema(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.schema.is_entity_schema', self)
+
+  def is_struct_schema(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kd.schema.is_struct_schema', self)
 
   def is_list_schema(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.schema.is_list_schema', self)

@@ -277,7 +277,8 @@ class KodaViewTest(parameterized.TestCase):
 
   def test_select_keys(self):
     testing.assert_non_deterministic_exprs_equal(
-        C.x.select_keys(C.fltr), kde.select_keys(C.x, C.fltr))
+        C.x.select_keys(C.fltr), kde.select_keys(C.x, C.fltr)
+    )
 
   def test_select_values(self):
     testing.assert_non_deterministic_exprs_equal(
@@ -300,13 +301,13 @@ class KodaViewTest(parameterized.TestCase):
   def test_clone(self):
     testing.assert_non_deterministic_exprs_equal(
         C.x.clone(schema=C.schema, a=C.a),
-        kde.clone(C.x, schema=C.schema, a=C.a)
+        kde.clone(C.x, schema=C.schema, a=C.a),
     )
 
   def test_shallow_clone(self):
     testing.assert_non_deterministic_exprs_equal(
         C.x.shallow_clone(schema=C.schema, a=C.a),
-        kde.shallow_clone(C.x, schema=C.schema, a=C.a)
+        kde.shallow_clone(C.x, schema=C.schema, a=C.a),
     )
 
   def test_deep_clone(self):
@@ -317,7 +318,7 @@ class KodaViewTest(parameterized.TestCase):
   def test_deep_uuid(self):
     testing.assert_equal(
         C.x.deep_uuid(C.schema, seed=C.a),
-        kde.deep_uuid(C.x, C.schema, seed=C.a)
+        kde.deep_uuid(C.x, C.schema, seed=C.a),
     )
 
   def test_list_size(self):
@@ -406,13 +407,13 @@ class KodaViewTest(parameterized.TestCase):
   def test_with_attrs(self):
     testing.assert_equal(
         C.x.with_attrs(a=C.a, overwrite_schema=False),
-        kde.with_attrs(C.x, a=C.a, overwrite_schema=False)
+        kde.with_attrs(C.x, a=C.a, overwrite_schema=False),
     )
 
   def test_with_attr(self):
     testing.assert_equal(
         C.x.with_attr('a', C.a, overwrite_schema=False),
-        kde.with_attr(C.x, 'a', C.a, overwrite_schema=False)
+        kde.with_attr(C.x, 'a', C.a, overwrite_schema=False),
     )
 
   def test_new(self):
@@ -452,9 +453,7 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(C.x.no_bag(), kde.no_bag(C.x))
 
   def test_with_merged_bag(self):
-    testing.assert_equal(
-        C.x.with_merged_bag(), kde.with_merged_bag(C.x)
-    )
+    testing.assert_equal(C.x.with_merged_bag(), kde.with_merged_bag(C.x))
 
   def test_enriched(self):
     testing.assert_equal(
@@ -484,6 +483,11 @@ class KodaViewTest(parameterized.TestCase):
   def test_is_entity_schema(self):
     testing.assert_equal(
         C.x.is_entity_schema(), kde.schema.is_entity_schema(C.x)
+    )
+
+  def test_is_struct_schema(self):
+    testing.assert_equal(
+        C.x.is_struct_schema(), kde.schema.is_struct_schema(C.x)
     )
 
   def test_is_list_schema(self):

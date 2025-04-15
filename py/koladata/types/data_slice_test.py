@@ -2731,6 +2731,11 @@ Assigned schema for list items: SCHEMA(a=STRING)"""),
         schema_constants.STRING, schema_constants.INT32
     )
 
+    self.assertTrue(entity_schema.is_struct_schema())
+    self.assertTrue(list_schema.is_struct_schema())
+    self.assertTrue(dict_schema.is_struct_schema())
+    self.assertFalse(ds([1.0, 2.0]).get_schema().is_struct_schema())
+
     self.assertTrue(entity_schema.is_entity_schema())
     self.assertFalse(list_schema.is_entity_schema())
     self.assertFalse(dict_schema.is_entity_schema())
