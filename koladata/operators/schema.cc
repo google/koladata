@@ -285,7 +285,7 @@ absl::StatusOr<DataSlice> GetSchemaRepr(const DataSlice& schema) {
     ASSIGN_OR_RETURN(auto has_name, schema.HasAttr(schema::kSchemaNameAttr));
     if (!has_name.IsEmpty()) {
       ASSIGN_OR_RETURN(auto name, schema.GetAttr(schema::kSchemaNameAttr));
-      return name;
+      return name.WithBag(nullptr);
     }
   }
   ASSIGN_OR_RETURN(auto repr, DataSliceToStr(schema));

@@ -49,7 +49,7 @@ class SchemaGetNameTest(parameterized.TestCase):
               docs=schema_constants.OBJECT,
               query_text=schema_constants.STRING,
           ),
-          ds('Query').with_bag(db),
+          ds('Query'),
       ),
   )
   def test_eval(self, x, expected):
