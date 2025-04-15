@@ -339,6 +339,7 @@ py_library(
         ":data_bag_py_ext",
         ":data_slice_py_ext",
         ":ellipsis",
+        "//koladata/functor/parallel:init_expr_operators",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
@@ -354,7 +355,9 @@ py_test(
         ":data_slice",
         ":ellipsis",
         ":qtypes",
+        "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

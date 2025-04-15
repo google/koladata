@@ -17,6 +17,7 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import kde_operators as _  # pylint: disable=unused-import
+from koladata.operators import koda_internal_parallel
 from koladata.operators import qtype_utils
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -263,6 +264,27 @@ class KodaQTypesTest(absltest.TestCase):
           'expected a namedtuple, got x: tuple<DATA_SLICE>',
       ):
         _op(arolla.tuple(data_slice.DataSlice.from_vals(1)))
+
+  def test_expect_executor(self):
+    @arolla.optools.as_lambda_operator(
+        'op4.name',
+        qtype_constraints=[qtype_utils.expect_executor(arolla.P.x)],
+    )
+    def _op(x):
+      return x
+
+    with self.subTest('success'):
+      _op(koda_internal_parallel.get_eager_executor())
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          'expected an executor, got x: DATA_SLICE',
+      ):
+        _op(data_slice.DataSlice.from_vals(1))
+
+    # Make sure we can serialize operators using expect_executor.
+    _ = arolla.s11n.dumps(_op)
 
 
 if __name__ == '__main__':

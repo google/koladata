@@ -38,6 +38,7 @@ cc_shared_library(
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/expr:init",
+        "//koladata/functor/parallel:init_expr_operators",
         "//koladata/iterables:init_expr_operators",
         "//koladata/s11n",
         "//py/koladata/fstring:fstring_cc_lib",

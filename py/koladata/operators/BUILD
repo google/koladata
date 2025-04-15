@@ -43,6 +43,7 @@ arolla_cc_operator_package(
         "deps": [
             "arolla_operators/jagged_shape",
             "arolla_operators/koda_internal",
+            "arolla_operators/koda_functor_parallel",
             "arolla_operators/koda_iterables",
         ],
     },
@@ -50,6 +51,7 @@ arolla_cc_operator_package(
     visibility = ["//visibility:public"],
     deps = [
         "//koladata/expr:init",
+        "//koladata/functor/parallel:init_expr_operators",
         "//koladata/iterables:init_expr_operators",
         "@com_google_arolla//arolla/jagged_shape/expr",
     ],
@@ -105,6 +107,7 @@ py_library(
         ":json",
         ":koda_internal",
         ":koda_internal_iterables",
+        ":koda_internal_parallel",
         ":lists",
         ":masking",
         ":math",
@@ -217,6 +220,7 @@ py_library(
     srcs = ["qtype_utils.py"],
     deps = [
         ":bootstrap",
+        "//koladata/functor/parallel:init_expr_operators",
         "//koladata/operators",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
@@ -228,6 +232,7 @@ py_test(
     srcs = ["qtype_utils_test.py"],
     deps = [
         ":kde_operators",
+        ":koda_internal_parallel",
         ":qtype_utils",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/types:data_bag",
@@ -720,6 +725,15 @@ py_library(
     name = "bootstrap",
     srcs = ["bootstrap.py"],
     deps = ["@com_google_arolla//py/arolla"],
+)
+
+py_library(
+    name = "koda_internal_parallel",
+    srcs = ["koda_internal_parallel.py"],
+    deps = [
+        "//koladata/functor/parallel:init_expr_operators",
+        "@com_google_arolla//py/arolla",
+    ],
 )
 
 py_test(

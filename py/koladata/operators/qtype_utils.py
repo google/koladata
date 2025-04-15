@@ -159,3 +159,17 @@ def expect_namedtuple(param) -> constraints.QTypeConstraint:
           f' {arolla.optools.constraints.name_type_msg(param)}'
       ),
   )
+
+
+def expect_executor(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is an Executor."""
+  return (
+      param
+      == M.qtype.qtype_of(
+          arolla.abc.bind_op('koda_internal.parallel.get_eager_executor')
+      ),
+      (
+          'expected an executor, got'
+          f' {arolla.optools.constraints.name_type_msg(param)}'
+      ),
+  )

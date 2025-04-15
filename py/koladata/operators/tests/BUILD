@@ -7834,3 +7834,16 @@ py_test(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_test(
+    name = "koda_internal_parallel_get_eager_executor_test",
+    srcs = ["koda_internal_parallel_get_eager_executor_test.py"],
+    deps = [
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)

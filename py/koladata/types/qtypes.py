@@ -29,3 +29,4 @@ NON_DETERMINISTIC_TOKEN = arolla.abc.bind_op(
     'koda_internal.non_deterministic',
     arolla.unit(), arolla.literal(arolla.int64(0)),
 ).qtype
+EXECUTOR = arolla.abc.bind_op('koda_internal.parallel.get_eager_executor').qtype

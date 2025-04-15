@@ -13,6 +13,8 @@
 # limitations under the License.
 
 from absl.testing import absltest
+from arolla import arolla
+from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
@@ -46,6 +48,10 @@ class QTypesTest(absltest.TestCase):
     self.assertEqual(
         qtypes.NON_DETERMINISTIC_TOKEN, qtypes.NON_DETERMINISTIC_TOKEN
     )
+
+  def test_executor_qtype(self):
+    testing.assert_equal(qtypes.EXECUTOR.qtype, arolla.QTYPE)
+    self.assertEqual(str(qtypes.EXECUTOR), 'EXECUTOR')
 
 
 if __name__ == '__main__':

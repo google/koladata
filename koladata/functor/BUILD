@@ -427,10 +427,8 @@ cc_library(
     hdrs = ["aggregate_operator.h"],
     deps = [
         ":call",
-        ":functor",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
-        "//koladata/internal:non_deterministic_token",
         "//koladata/iterables:iterable_qtype",
         "//koladata/operators:lib",
         "@com_google_absl//absl/status",
