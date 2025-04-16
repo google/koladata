@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from arolla import arolla
 from koladata.functions import functions as fns
@@ -53,18 +55,25 @@ class NewSchemaTest(absltest.TestCase):
     testing.assert_equal(schema.b.a.no_bag(), schema_constants.INT32)
 
   def test_list_error(self):
-    with self.assertRaisesRegex(ValueError, 'unable to represent argument `b`'):
-      _ = fns.schema.new_schema(
-          a=schema_constants.INT32,
-          b=[1, 2, 3],
-      )
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('passing a Python list to a Koda operation is ambiguous'),
+    ) as cm:
+      _ = fns.schema.new_schema(a=schema_constants.INT32, b=[1, 2, 3])
+    self.assertEqual(
+        cm.exception.__notes__,
+        ['Error occurred while processing argument: `b`'],
+    )
 
   def test_dict_error(self):
-    with self.assertRaisesRegex(ValueError, 'unable to represent argument `b`'):
-      _ = fns.schema.new_schema(
-          a=schema_constants.INT32,
-          b={'a': 1},
-      )
+    with self.assertRaisesRegex(
+        ValueError, 'object with unsupported type: dict'
+    ) as cm:
+      _ = fns.schema.new_schema(a=schema_constants.INT32, b={'a': 1})
+    self.assertEqual(
+        cm.exception.__notes__,
+        ['Error occurred while processing argument: `b`'],
+    )
 
   def test_non_dataslice_qvalue_error(self):
     with self.assertRaisesRegex(
@@ -78,7 +87,8 @@ class NewSchemaTest(absltest.TestCase):
 
   def test_non_schema_dataslice_error(self):
     with self.assertRaisesRegex(
-        ValueError, "schema's schema must be SCHEMA, got: OBJECT",
+        ValueError,
+        "schema's schema must be SCHEMA, got: OBJECT",
     ):
       _ = fns.schema.new_schema(
           a=schema_constants.INT32,

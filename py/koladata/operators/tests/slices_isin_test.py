@@ -94,8 +94,8 @@ class SlicesIsInTest(parameterized.TestCase):
         ValueError, 'expected DATA_SLICE, got x: DATA_BAG'
     ):
       kde.slices.isin(bag(), ds([1, 2, 3]))
-    with self.assertRaisesRegex(
-        ValueError, 'unable to represent argument `x` as QValue or Expr'
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'object with unsupported type: dict'
     ):
       kde.slices.isin({'a': 42}, ds([1, 2, 3]))
 

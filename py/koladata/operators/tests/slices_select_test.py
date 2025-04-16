@@ -263,10 +263,13 @@ class SlicesSelectTest(parameterized.TestCase):
       )
 
     with self.assertRaisesRegex(
-        ValueError,
-        'unable to represent argument `fltr` as QValue or Expr',
-    ):
+        ValueError, re.escape('Failed to trace the function')
+    ) as cm:
       _ = kde.slices.select(I.x, filter_fn)
+    self.assertEqual(
+        cm.exception.__notes__,
+        ['Error occurred while processing argument: `fltr`'],
+    )
 
   def test_select_wrong_filter_schema(self):
     val = data_slice.DataSlice.from_vals([1, 2, None, 4])

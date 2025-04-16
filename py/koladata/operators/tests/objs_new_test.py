@@ -192,9 +192,8 @@ class ObjsNewTest(parameterized.TestCase):
       kde.objs.new(I.x, itemid=I.itemid).eval(x=ds(42), itemid=bag().new())
 
   def test_converter_on_python_objects(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        'unable to represent argument `arg` as QValue or Expr',
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, 'object with unsupported type: dict'
     ):
       kde.objs.new({'a': 42}, itemid=I.itemid)
 

@@ -36,6 +36,7 @@
 #include "absl/random/random.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "absl/types/span.h"
@@ -47,7 +48,6 @@
 #include "py/arolla/abc/py_signature.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "arolla/expr/expr.h"
-#include "arolla/expr/expr_attributes.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/registered_expr_operator.h"
@@ -76,7 +76,7 @@ using ::arolla::python::AuxBindingPolicy;
 using ::arolla::python::DCheckPyGIL;
 using ::arolla::python::IsPyExprInstance;
 using ::arolla::python::IsPyQValueInstance;
-using ::arolla::python::PyErr_FormatFromCause;
+using ::arolla::python::PyErr_AddNote;
 using ::arolla::python::PyObjectPtr;
 using ::arolla::python::PyTuple_AsSpan;
 using ::arolla::python::QValueOrExpr;
@@ -398,15 +398,9 @@ std::optional<QValueOrExpr> AsQValueOrExprArg(
   if (auto result = AsQValueOrExpr(py_callable_as_qvalue_or_expr, py_arg)) {
     return result;
   }
-  // Add context for TypeError and ValueError, and forward any other
-  // exceptions.
-  auto* py_exc = PyErr_Occurred();
-  if (PyErr_GivenExceptionMatches(py_exc, PyExc_TypeError) ||
-      PyErr_GivenExceptionMatches(py_exc, PyExc_ValueError)) {
-    PyErr_FormatFromCause(py_exc,
-                          "unable to represent argument `%s` as QValue or Expr",
-                          absl::Utf8SafeCHexEscape(arg_name).c_str());
-  }
+  PyErr_AddNote(
+      absl::StrFormat("Error occurred while processing argument: `%s`",
+                      absl::Utf8SafeCHexEscape(arg_name)));
   return std::nullopt;
 }
 
@@ -424,15 +418,9 @@ std::optional<QValueOrExpr> AsQValueOrExprVarArgs(
   for (size_t i = 0; i < py_args.size(); ++i) {
     auto arg = AsQValueOrExpr(py_callable_as_qvalue_or_expr, py_args[i]);
     if (!arg.has_value()) {
-      // Add context for TypeError and ValueError, and forward any other
-      // exceptions.
-      auto* py_exc = PyErr_Occurred();
-      if (PyErr_GivenExceptionMatches(py_exc, PyExc_TypeError) ||
-          PyErr_GivenExceptionMatches(py_exc, PyExc_ValueError)) {
-        PyErr_FormatFromCause(
-            py_exc, "unable to represent argument `%s[%zu]` as QValue or Expr",
-            absl::Utf8SafeCHexEscape(arg_name).c_str(), i);
-      }
+      PyErr_AddNote(
+          absl::StrFormat("Error occurred while processing argument: `%s[%zu]`",
+                          absl::Utf8SafeCHexEscape(arg_name), i));
       return std::nullopt;
     }
     has_exprs = has_exprs || std::holds_alternative<ExprNodePtr>(*arg);
@@ -485,15 +473,9 @@ std::optional<QValueOrExpr> AsQValueOrExprVarKwargs(
   for (const auto& [k, pptr] : ordered_py_kwargs) {
     auto arg = AsQValueOrExpr(py_callable_as_qvalue_or_expr, *pptr);
     if (!arg.has_value()) {
-      // Add context for TypeError and ValueError, and forward any other
-      // exceptions.
-      auto* py_exc = PyErr_Occurred();
-      if (PyErr_GivenExceptionMatches(py_exc, PyExc_TypeError) ||
-          PyErr_GivenExceptionMatches(py_exc, PyExc_ValueError)) {
-        PyErr_FormatFromCause(
-            py_exc, "unable to represent argument `%s` as QValue or Expr",
-            absl::Utf8SafeCHexEscape(k).c_str());
-      }
+      PyErr_AddNote(
+          absl::StrFormat("Error occurred while processing argument: `%s`",
+                          absl::Utf8SafeCHexEscape(k)));
       return std::nullopt;
     }
     has_exprs = has_exprs || std::holds_alternative<ExprNodePtr>(*arg);
@@ -565,8 +547,8 @@ PyObjectPtr GetPyBoxingModule() {
 // `false` and sets the corresponding Python exception.
 bool UnifiedBoxBoundArguments(const ExprOperatorSignature& signature,
                               absl::string_view boxing_options,
-                              absl::Span<PyObject*> py_bound_args,
-                              absl::Span<PyObject*> py_var_args,
+                              absl::Span<PyObject* const> py_bound_args,
+                              absl::Span<PyObject* const> py_var_args,
                               PyVarKwarg py_var_kwargs,
                               std::vector<QValueOrExpr>& result) {
   // Load the boxing functions.
@@ -725,9 +707,9 @@ class UnifiedBindingPolicy : public AuxBindingPolicy {
                               py_var_kwargs)) {
       return false;
     }
-    return UnifiedBoxBoundArguments(
-        signature, boxing_options, absl::Span<PyObject*>(py_bound_args),
-        py_var_args, std::move(py_var_kwargs), *result);
+    return UnifiedBoxBoundArguments(signature, boxing_options, py_bound_args,
+                                    py_var_args, std::move(py_var_kwargs),
+                                    *result);
   }
 
   // (See the base class.)

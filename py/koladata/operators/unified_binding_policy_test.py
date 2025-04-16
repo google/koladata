@@ -619,28 +619,14 @@ class BindArgumentsTest(parameterized.TestCase):
     testing.assert_equal(x, P.a)
     with mock.patch.object(py_boxing, 'as_qvalue_or_expr') as m:
       m.side_effect = TypeError('unsupported type')
-      try:
+      with self.assertRaisesWithLiteralMatch(
+          TypeError, 'unsupported type'
+      ) as cm:
         _ = arolla.abc.aux_bind_arguments(sig, None)
-        self.fail('expected a RuntimeError')
-      except TypeError as ex:
-        outer_ex = ex
       self.assertEqual(
-          str(outer_ex), 'unable to represent argument `x` as QValue or Expr'
+          cm.exception.__notes__,
+          ['Error occurred while processing argument: `x`'],
       )
-      self.assertIsInstance(outer_ex.__cause__, TypeError)
-      self.assertEqual(str(outer_ex.__cause__), 'unsupported type')
-    with mock.patch.object(py_boxing, 'as_qvalue_or_expr') as m:
-      m.side_effect = ValueError('unsupported value')
-      try:
-        _ = arolla.abc.aux_bind_arguments(sig, None)
-        self.fail('expected a RuntimeError')
-      except ValueError as ex:
-        outer_ex = ex
-      self.assertEqual(
-          str(outer_ex), 'unable to represent argument `x` as QValue or Expr'
-      )
-      self.assertIsInstance(outer_ex.__cause__, ValueError)
-      self.assertEqual(str(outer_ex.__cause__), 'unsupported value')
 
   def test_boxing_as_qvalue_or_expr_var_args(self):
     sig = arolla.abc.make_operator_signature(
@@ -657,29 +643,14 @@ class BindArgumentsTest(parameterized.TestCase):
     with mock.patch.object(py_boxing, 'as_qvalue_or_expr') as m:
       m.side_effect = [mock.DEFAULT, TypeError('unsupported type')]
       m.return_value = arolla.unit()
-      try:
+      with self.assertRaisesWithLiteralMatch(
+          TypeError, 'unsupported type'
+      ) as cm:
         _ = arolla.abc.aux_bind_arguments(sig, None, None)
-        self.fail('expected a RuntimeError')
-      except TypeError as ex:
-        outer_ex = ex
       self.assertEqual(
-          str(outer_ex), 'unable to represent argument `x[1]` as QValue or Expr'
+          cm.exception.__notes__,
+          ['Error occurred while processing argument: `x[1]`'],
       )
-      self.assertIsInstance(outer_ex.__cause__, TypeError)
-      self.assertEqual(str(outer_ex.__cause__), 'unsupported type')
-    with mock.patch.object(py_boxing, 'as_qvalue_or_expr') as m:
-      m.side_effect = [mock.DEFAULT, ValueError('unsupported value')]
-      m.return_value = arolla.unit()
-      try:
-        _ = arolla.abc.aux_bind_arguments(sig, None, None)
-        self.fail('expected a RuntimeError')
-      except ValueError as ex:
-        outer_ex = ex
-      self.assertEqual(
-          str(outer_ex), 'unable to represent argument `x[1]` as QValue or Expr'
-      )
-      self.assertIsInstance(outer_ex.__cause__, ValueError)
-      self.assertEqual(str(outer_ex.__cause__), 'unsupported value')
 
   def test_boxing_as_qvalue_or_expr_var_kwargs(self):
     sig = arolla.abc.make_operator_signature(
@@ -696,29 +667,14 @@ class BindArgumentsTest(parameterized.TestCase):
     with mock.patch.object(py_boxing, 'as_qvalue_or_expr') as m:
       m.side_effect = [mock.DEFAULT, TypeError('unsupported type')]
       m.return_value = arolla.unit()
-      try:
+      with self.assertRaisesWithLiteralMatch(
+          TypeError, 'unsupported type'
+      ) as cm:
         _ = arolla.abc.aux_bind_arguments(sig, a=None, b=None)
-        self.fail('expected a RuntimeError')
-      except TypeError as ex:
-        outer_ex = ex
       self.assertEqual(
-          str(outer_ex), 'unable to represent argument `b` as QValue or Expr'
+          cm.exception.__notes__,
+          ['Error occurred while processing argument: `b`'],
       )
-      self.assertIsInstance(outer_ex.__cause__, TypeError)
-      self.assertEqual(str(outer_ex.__cause__), 'unsupported type')
-    with mock.patch.object(py_boxing, 'as_qvalue_or_expr') as m:
-      m.side_effect = [mock.DEFAULT, ValueError('unsupported value')]
-      m.return_value = arolla.unit()
-      try:
-        _ = arolla.abc.aux_bind_arguments(sig, a=None, b=None)
-        self.fail('expected a RuntimeError')
-      except ValueError as ex:
-        outer_ex = ex
-      self.assertEqual(
-          str(outer_ex), 'unable to represent argument `b` as QValue or Expr'
-      )
-      self.assertIsInstance(outer_ex.__cause__, ValueError)
-      self.assertEqual(str(outer_ex.__cause__), 'unsupported value')
 
   def test_custom_boxing_options(self):
     sig = arolla.abc.make_operator_signature(

@@ -63,16 +63,19 @@ class OptoolsTest(parameterized.TestCase):
     testing.assert_equal(arolla.eval(op_default_boxing(x_raw, y_raw)), ds(5))
 
   def test_default_does_not_support_lists_boxing(self):
-    @optools.as_lambda_operator(
-        'test.op_default_boxing',
-    )
+    @optools.as_lambda_operator('test.op_default_boxing')
     def op_default_boxing(x):
       return x
 
     with self.assertRaisesRegex(
-        ValueError, 'unable to represent argument `x` as QValue or Expr'
-    ):
+        ValueError, 'passing a Python list to a Koda operation is ambiguous'
+    ) as cm:
       op_default_boxing([1, 2, 3])
+
+    self.assertEqual(
+        cm.exception.__notes__,
+        ['Error occurred while processing argument: `x`'],
+    )
 
   def test_not_only_data_slice(self):
     @optools.as_lambda_operator(

@@ -139,6 +139,7 @@ koladata_py_extension(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
