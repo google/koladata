@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x3100bbfc7ed0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x5353fa73e950>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x3100bbfc7ed0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x5353fa73e950>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -9961,28 +9961,6 @@ Aliases:
 Returns size of a Dict.
 ```
 
-### `DataSlice.dict_update(self, keys, values=unspecified)` {#DataSlice.dict_update}
-Aliases:
-
-- [DataItem.dict_update](#DataItem.dict_update)
-
-``` {.no-copy}
-Returns DataBag containing updates to a DataSlice of dicts.
-
-This operator has two forms:
-  kd.dict_update(x, keys, values) where keys and values are slices
-  kd.dict_update(x, dict_updates) where dict_updates is a DataSlice of dicts
-
-If both keys and values are specified, they must both be broadcastable to the
-shape of `x`. If only keys is specified (as dict_updates), it must be
-broadcastable to 'x'.
-
-Args:
-  x: DataSlice of dicts to update.
-  keys: A DataSlice of keys, or a DataSlice of dicts of updates.
-  values: A DataSlice of values, or unspecified if `keys` contains dicts.
-```
-
 ### `DataSlice.display(self, options=None)` {#DataSlice.display}
 Aliases:
 
@@ -10658,6 +10636,15 @@ Aliases:
 
 ``` {.no-copy}
 Returns present iff this DataSlice is a primitive (scalar) Schema.
+```
+
+### `DataSlice.is_struct_schema()` {#DataSlice.is_struct_schema}
+Aliases:
+
+- [DataItem.is_struct_schema](#DataItem.is_struct_schema)
+
+``` {.no-copy}
+Returns present iff this DataSlice represents a Struct Schema.
 ```
 
 ### `DataSlice.list_size(self)` {#DataSlice.list_size}
@@ -11977,10 +11964,6 @@ Alias for [DataSlice.deep_uuid](#DataSlice.deep_uuid) operator.
 
 Alias for [DataSlice.dict_size](#DataSlice.dict_size) operator.
 
-### `DataItem.dict_update(self, keys, values=unspecified)` {#DataItem.dict_update}
-
-Alias for [DataSlice.dict_update](#DataSlice.dict_update) operator.
-
 ### `DataItem.display(self, options=None)` {#DataItem.display}
 
 Alias for [DataSlice.display](#DataSlice.display) operator.
@@ -12162,6 +12145,10 @@ Alias for [DataSlice.is_primitive](#DataSlice.is_primitive) operator.
 ### `DataItem.is_primitive_schema()` {#DataItem.is_primitive_schema}
 
 Alias for [DataSlice.is_primitive_schema](#DataSlice.is_primitive_schema) operator.
+
+### `DataItem.is_struct_schema()` {#DataItem.is_struct_schema}
+
+Alias for [DataSlice.is_struct_schema](#DataSlice.is_struct_schema) operator.
 
 ### `DataItem.list_size(self)` {#DataItem.list_size}
 
