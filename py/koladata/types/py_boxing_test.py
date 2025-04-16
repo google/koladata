@@ -269,7 +269,7 @@ class DefaultBoxingPolicyTest(absltest.TestCase):
 
   def test_default_boxing_missing_inputs(self):
     with self.assertRaisesWithLiteralMatch(
-        TypeError, "missing 1 required argument: 'y'"
+        TypeError, "missing 1 required positional argument: 'y'"
     ):
       op_with_default_boxing(1)
 
@@ -294,7 +294,7 @@ class ListBoxingPolicyTest(absltest.TestCase):
 
   def test_list_boxing_missing_inputs(self):
     with self.assertRaisesWithLiteralMatch(
-        TypeError, "missing 2 required arguments: 'y', 'z'"
+        TypeError, "missing 2 required positional arguments: 'y' and 'z'"
     ):
       op_with_list_boxing(1)
 
