@@ -22,6 +22,7 @@ esbuild(
     name = "data_slice_webcomponents",
     srcs = [
         "compact_table.ts",
+        "data_slice_webcomponents.ts",
         "integration_elements.ts",
         "multi_dim_nav.ts",
         "multi_dim_table.ts",
@@ -32,7 +33,7 @@ esbuild(
         "nano_element.ts",
     ],
     bundle = True,
-    entry_point = "multi_dim_table.ts",
+    entry_point = "data_slice_webcomponents.ts",
     esbuild_log_level = "verbose",
     minify = True,
 )
