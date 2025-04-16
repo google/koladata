@@ -268,6 +268,11 @@ absl::StatusOr<std::string> FormatEntityOrObjectErrorMessage(
                    DataItemToStr(a, /*schema=*/internal::DataItem(), db1));
   ASSIGN_OR_RETURN(std::string b_str,
                    DataItemToStr(b, /*schema=*/internal::DataItem(), db2));
+  if (a.holds_value<internal::ObjectId>() &&
+      b.holds_value<internal::ObjectId>()) {
+    absl::StrAppend(&a_str, " with ItemId ", DataItemRepr(a));
+    absl::StrAppend(&b_str, " with ItemId ", DataItemRepr(b));
+  }
   return absl::StrFormat(kDataBagMergeErrorTripleConflict, item_str,
                          conflict.attr_name, a_str, b_str);
 }

@@ -1625,6 +1625,29 @@ The cause is the list sizes are incompatible: 2 vs 1""",
     ):
       db1.merge_inplace(db2, allow_data_conflicts=False)
 
+  def test_merge_inplace_conflict_show_itemid(self):
+    a = ds([1, 2])
+    db1 = bag()
+    l1 = a.with_bag(db1).implode()
+
+    db2 = bag()
+    l2 = a.with_bag(db2).implode()
+
+    e = db1.new(x=l1)
+    e2 = e.with_bag(db2)
+    e2.set_attr('x', l2)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_cause_message_regex(
+            r"""cannot merge DataBags due to an exception encountered when merging entities.
+
+The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
+
+The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId \$[0-9a-zA-Z]{22} vs List\[1, 2\] with ItemId \$[0-9a-zA-Z]{22}""",
+        ),
+    ):
+      db1.merge_inplace(db2, allow_data_conflicts=False)
+
   def test_merge_inplace_schema_overwrite(self):
     db1 = bag()
     x1 = db1.new(a=1, b=2)

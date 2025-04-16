@@ -354,7 +354,7 @@ class BoxingTest(parameterized.TestCase):
 
 The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
 
-The cause is the values of attribute '__schema__' are different: SCHEMA\(\) vs SCHEMA\(\)"""
+The cause is the values of attribute '__schema__' are different: SCHEMA\(\) with ItemId \$[0-9a-zA-Z]{22} vs SCHEMA\(\) with ItemId \$[0-9a-zA-Z]{22}"""
         ),
     ):
       # Try to embed a schema that conflicts with the existing one.
