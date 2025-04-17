@@ -14,7 +14,6 @@
 //
 #include "koladata/internal/op_utils/error.h"
 
-#include <string>
 #include <utility>
 
 #include "absl/status/status.h"
