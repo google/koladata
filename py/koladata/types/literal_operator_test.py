@@ -141,9 +141,9 @@ class LiteralOperatorTest(parameterized.TestCase):
     # This uses a debug repr which avoids pretty printing. This ensures that we
     # include the wrapped value in the repr.
     x = literal_operator.literal(arolla.int32(1))
-    self.assertEqual(x.op.display_name, 'koda_internal.literal[1]')
+    self.assertEqual(x.op.display_name, 'koda_internal.literal')
     with self.assertRaisesRegex(
-        ValueError, re.escape('koda_internal.literal[1]():INT32')
+        ValueError, re.escape('koda_internal.literal():Attr(qvalue=1)')
     ):
       arolla.M.annotation.qtype(x, arolla.FLOAT32)
 

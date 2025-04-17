@@ -127,8 +127,8 @@ std::shared_ptr<LiteralOperator> LiteralOperator::MakeLiteralOperator(
 LiteralOperator::LiteralOperator(arolla::TypedValue value,
                                  PrivateConstructorTag)
     : arolla::expr::ExprOperatorWithFixedSignature(
-          absl::StrFormat("koda_internal.literal[%s]", value.Repr()),
-          arolla::expr::ExprOperatorSignature{}, "Koda literal.",
+          "koda_internal.literal", arolla::expr::ExprOperatorSignature{},
+          "Koda literal.",
           arolla::FingerprintHasher("::koladata::expr::LiteralOperator")
               .Combine(value.GetFingerprint())
               .Finish()),

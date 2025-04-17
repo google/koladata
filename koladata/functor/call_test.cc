@@ -222,9 +222,9 @@ TEST(CallTest, EvalError) {
           /*kwnames=*/{}),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "expected numerics, got x: DATA_SLICE; while calling math.add "
-               "with args {annotation.qtype(L['I.a'], DATA_SLICE), 57}; while "
-               "transforming M.math.add(L['I.a'], 57); while compiling the "
-               "expression"));
+               "with args {annotation.qtype(L['I.a'], "
+               "DATA_SLICE):Attr(qtype=DATA_SLICE), 57}; while transforming "
+               "M.math.add(L['I.a'], 57); while compiling the expression"));
 }
 
 TEST(CallTest, Cancellation) {
