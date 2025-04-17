@@ -2283,7 +2283,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         ValueError,
         re.escape(
             'must have the same or less number of dimensions as dct (or keys ' +
-            'if larger), got max(dct.get_ndim(), keys.get_ndim(): 0 < ' +
+            'if larger), got max(dct.get_ndim(), keys.get_ndim()): 0 < ' +
             'values.get_ndim(): 1'
         )
     ):
@@ -2401,7 +2401,7 @@ Assigned schema for values: SCHEMA(y=FLOAT32)"""),
         re.escape(
             'must have the same or less number of dimensions as lst (or ' +
             'indices if larger), got max(lst.get_ndim(), ' +
-            'indices.get_ndim(): 0 < items.get_ndim(): 1'
+            'indices.get_ndim()): 0 < items.get_ndim(): 1'
         )
     ):
       single_list[1] = ds([1, 2, 3])

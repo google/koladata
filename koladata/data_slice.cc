@@ -111,7 +111,7 @@ absl::Status ListAssignmentError(absl::Status status, size_t lhs_rank,
       "kd.list_append_update(lst, items) or lst[indices] = items\n\n"
       "must have the same or less number of dimensions as lst (or indices if "
       "larger), got "
-      "max(lst.get_ndim(), indices.get_ndim(): %d < items.get_ndim(): %d;\n"
+      "max(lst.get_ndim(), indices.get_ndim()): %d < items.get_ndim(): %d;\n"
       "consider wrapping the last %d dimensions into lists using "
       "kd.implode(items, ndim=%d)";
 
@@ -131,7 +131,7 @@ absl::Status DictAssignmentError(absl::Status status, size_t lhs_rank,
       "kd.dict(keys, values)\n\n"
       "must have the same or less number of dimensions as dct (or keys if "
       "larger), got "
-      "max(dct.get_ndim(), keys.get_ndim(): %d < values.get_ndim(): %d;\n"
+      "max(dct.get_ndim(), keys.get_ndim()): %d < values.get_ndim(): %d;\n"
       "consider wrapping the last %d dimensions into lists using "
       "kd.implode(values, ndim=%d)";
 
