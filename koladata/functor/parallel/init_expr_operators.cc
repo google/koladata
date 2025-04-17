@@ -16,6 +16,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/functor/parallel/eager_executor.h"
+#include "koladata/functor/parallel/expr_operators.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/lambda_expr_operator.h"
@@ -35,6 +36,9 @@ AROLLA_INITIALIZER(
                                    arolla::expr::ExprOperatorSignature{},
                                    arolla::expr::Literal(GetEagerExecutor())))
                   .status());
+          RETURN_IF_ERROR(arolla::expr::RegisterOperator<AsyncEvalOp>(
+                              "koda_internal.parallel.async_eval")
+                              .status());
           return absl::OkStatus();
         })
 

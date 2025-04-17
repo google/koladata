@@ -21,7 +21,7 @@ from koladata.operators import qtype_utils
 
 P = arolla.P
 
-
+async_eval = arolla.abc.lookup_operator('koda_internal.parallel.async_eval')
 get_eager_executor = arolla.abc.lookup_operator(
     'koda_internal.parallel.get_eager_executor'
 )

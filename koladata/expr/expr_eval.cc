@@ -43,6 +43,7 @@
 #include "arolla/expr/eval/verbose_runtime_error.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
+#include "arolla/expr/expr_operator.h"
 #include "arolla/expr/expr_visitor.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/io/typed_refs_input_loader.h"
@@ -278,6 +279,36 @@ absl::StatusOr<CompiledExpr> Compile(
   return fn;
 }
 
+absl::StatusOr<CompiledExpr> CompileOp(
+    const arolla::expr::ExprOperatorPtr& op,
+    absl::Span<const arolla::TypedRef> arg_values) {
+  // TODO: Instead of creating a fingerprint, we can use a tuple
+  // as key.
+  arolla::FingerprintHasher hasher("koladata.expr_eval.op");
+  hasher.Combine(op->fingerprint());
+  for (const auto& value : arg_values) {
+    hasher.Combine(value.GetType());
+  }
+  arolla::Fingerprint key = std::move(hasher).Finish();
+  CompiledExpr fn = CompilationCache::Instance().LookupOrNull(key);
+  if (!fn) {
+    std::vector<arolla::QTypePtr> arg_types;
+    arg_types.reserve(arg_values.size());
+    for (const auto& value : arg_values) {
+      arg_types.push_back(value.GetType());
+    }
+    ASSIGN_OR_RETURN(
+        fn,
+        Compiler()
+            // Most of our expressions are small and don't contain any literals.
+            // In such cases the always clone thread safety policy is faster.
+            .SetAlwaysCloneThreadSafetyPolicy()
+            .CompileOperator(op, arg_types));
+    fn = CompilationCache::Instance().Put(key, std::move(fn));
+  }
+  return fn;
+}
+
 // Removes Arolla's ExprEvaluationError layer from the error, and turns its
 // cause into OperatorEvalError.
 absl::Status SimplifyExprEvaluationError(absl::Status status) {
@@ -353,6 +384,16 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
       Compile(transformed_expr->expr, expr_info.leaf_keys, input_qvalues),
       SimplifyExprEvaluationError(std::move(_)));
   ASSIGN_OR_RETURN(auto result, compiled_expr(input_qvalues),
+                   SimplifyExprEvaluationError(std::move(_)));
+  return result;
+}
+
+absl::StatusOr<arolla::TypedValue> EvalOpWithCompilationCache(
+    const arolla::expr::ExprOperatorPtr& op,
+    absl::Span<const arolla::TypedRef> args) {
+  ASSIGN_OR_RETURN(auto compiled_expr, CompileOp(op, args),
+                   SimplifyExprEvaluationError(std::move(_)));
+  ASSIGN_OR_RETURN(auto result, compiled_expr(args),
                    SimplifyExprEvaluationError(std::move(_)));
   return result;
 }

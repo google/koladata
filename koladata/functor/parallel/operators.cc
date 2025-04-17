@@ -15,6 +15,7 @@
 #include <memory>
 
 #include "koladata/data_slice_qtype.h"
+#include "koladata/functor/parallel/async_eval_operator.h"
 #include "koladata/functor/parallel/future_operators.h"
 #include "koladata/functor/parallel/future_qtype.h"
 #include "arolla/memory/optional_value.h"
@@ -30,6 +31,8 @@ namespace {
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
 OPERATOR_FAMILY("koda_internal.parallel.as_future",
                 std::make_unique<AsFutureOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.async_eval",
+                std::make_unique<AsyncEvalOperatorFamily>());
 OPERATOR("koda_internal.parallel.get_future_qtype",
          // Since there is a templated overload, we need to wrap in a lambda.
          [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {

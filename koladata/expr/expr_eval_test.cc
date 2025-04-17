@@ -24,6 +24,7 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "arolla/expr/expr.h"
+#include "arolla/expr/lambda_expr_operator.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
 
@@ -34,6 +35,7 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::testing::ElementsAre;
+using ::testing::HasSubstr;
 
 TEST(ExprEvalTest, Basic) {
   ASSERT_OK_AND_ASSIGN(
@@ -173,6 +175,43 @@ TEST(GetExprInputsTest, Basic) {
   EXPECT_THAT(GetExprInputs(expr), IsOkAndHolds(ElementsAre("bar", "foo")));
 }
 
+TEST(OpEvalTest, Basic) {
+  ASSERT_OK_AND_ASSIGN(auto op,
+                       arolla::expr::MakeLambdaOperator(arolla::expr::CallOp(
+                           "math.add", {arolla::expr::Placeholder("x"),
+                                        arolla::expr::Placeholder("x")})));
+  auto foo_value = arolla::TypedValue::FromValue(1);
+  ASSERT_OK_AND_ASSIGN(auto result,
+                       EvalOpWithCompilationCache(op, {foo_value.AsRef()}));
+  EXPECT_THAT(result.As<int32_t>(), IsOkAndHolds(2));
+}
+
+TEST(OpEvalTest, DifferentTypes) {
+  ASSERT_OK_AND_ASSIGN(auto op,
+                       arolla::expr::MakeLambdaOperator(arolla::expr::CallOp(
+                           "math.add", {arolla::expr::Placeholder("x"),
+                                        arolla::expr::Placeholder("x")})));
+  auto int_value = arolla::TypedValue::FromValue(1);
+  auto float_value = arolla::TypedValue::FromValue(1.0);
+  ASSERT_OK_AND_ASSIGN(auto int_result,
+                       EvalOpWithCompilationCache(op, {int_value.AsRef()}));
+  EXPECT_THAT(int_result.As<int32_t>(), IsOkAndHolds(2));
+  ASSERT_OK_AND_ASSIGN(auto float_result,
+                       EvalOpWithCompilationCache(op, {float_value.AsRef()}));
+  EXPECT_THAT(float_result.As<double>(), IsOkAndHolds(2.0));
+}
+
+TEST(OpEvalTest, WrongNumberOfArgs) {
+  ASSERT_OK_AND_ASSIGN(auto op,
+                       arolla::expr::MakeLambdaOperator(arolla::expr::CallOp(
+                           "math.add", {arolla::expr::Placeholder("x"),
+                                        arolla::expr::Placeholder("x")})));
+  auto foo_value = arolla::TypedValue::FromValue(1);
+  EXPECT_THAT(
+      EvalOpWithCompilationCache(op, {foo_value.AsRef(), foo_value.AsRef()}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("too many positional arguments")));
+}
 }  // namespace
 
 }  // namespace koladata::expr

@@ -72,6 +72,7 @@ cc_library(
     srcs = ["init_expr_operators.cc"],
     deps = [
         ":eager_executor",
+        ":expr_operators",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:string_view",
@@ -86,6 +87,7 @@ cc_library(
     name = "operators",
     srcs = ["operators.cc"],
     deps = [
+        ":async_eval_operator",
         ":future_operators",
         ":future_qtype",
         "//koladata:data_slice_qtype",
@@ -160,6 +162,67 @@ cc_library(
         "@com_google_absl//absl/synchronization",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_library(
+    name = "expr_operators",
+    srcs = ["expr_operators.cc"],
+    hdrs = ["expr_operators.h"],
+    deps = [
+        ":executor",
+        ":future_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "async_eval_operator",
+    srcs = ["async_eval_operator.cc"],
+    hdrs = ["async_eval_operator.h"],
+    deps = [
+        ":async_eval",
+        ":executor",
+        ":future",
+        ":future_qtype",
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "async_eval",
+    srcs = ["async_eval.cc"],
+    hdrs = ["async_eval.h"],
+    deps = [
+        ":executor",
+        ":future",
+        ":future_qtype",
+        "//koladata/expr:expr_eval",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 

@@ -23,6 +23,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr_node.h"
+#include "arolla/expr/expr_operator.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 
@@ -36,6 +37,13 @@ absl::StatusOr<arolla::TypedValue> EvalExprWithCompilationCache(
     const arolla::expr::ExprNodePtr& expr,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> inputs,
     absl::Span<const std::pair<std::string, arolla::TypedRef>> variables);
+
+// Evaluates the given operator with the provided args. This is a lower-level
+// API that does just compilation caching, but no input->leaf transformations
+// etc.
+absl::StatusOr<arolla::TypedValue> EvalOpWithCompilationCache(
+    const arolla::expr::ExprOperatorPtr& op,
+    absl::Span<const arolla::TypedRef> args);
 
 // Retrieves the list of variables used in the given expression.
 // This reuses the same cache as EvalExprWithCompilationCache, so it is cheap
