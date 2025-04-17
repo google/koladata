@@ -1480,6 +1480,16 @@ kd.sample_n(ds, 2, 123)
 kd.sample_n(ds, kd.slice([1, 2], 123))
 # Use 'key' for stability
 kd.sample_n(ds, 2, 123, key)
+
+ds2 = kd.slice([1, 2, 3], [4, None])
+
+# Shuffle along the last dimension
+kd.shuffle(ds2)  # Ex. -> [[3, 1, 2], [None, 4]]
+# Shuffle along the second-to-last dimension
+kd.shuffle(ds2, 1)  # Ex. -> [[4, None], [1, 2, 3]]
+# Shuffle items within the last two dimensions
+kd.shuffle(ds2.flatten(-2)).reshape_as(ds2)
+# Ex. -> [[4, 1, None], [3, 2]]
 ```
 
 </section>

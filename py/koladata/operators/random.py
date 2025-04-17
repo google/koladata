@@ -19,14 +19,17 @@ from arolla.jagged_shape import jagged_shape
 from koladata.operators import allocation
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
+from koladata.operators import core
 from koladata.operators import ids
 from koladata.operators import jagged_shape as jagged_shape_ops
+from koladata.operators import lists
 from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema
 from koladata.operators import slices
 from koladata.types import data_slice
+from koladata.types import py_boxing
 
 
 M = arolla.OperatorsContainer(jagged_shape)
@@ -376,3 +379,69 @@ def randint_like(
     A DataSlice of random numbers.
   """
   return randint_shaped_as(x, low, high, seed) & masking.has(x)
+
+
+@optools.add_to_registry(aliases=['kd.shuffle'])
+@optools.as_lambda_operator(
+    'kd.random.shuffle',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_or_unspecified(P.ndim),
+        qtype_utils.expect_data_slice_or_unspecified(P.seed),
+    ],
+)
+def shuffle(x, /, ndim=arolla.unspecified(), seed=arolla.unspecified()):
+  """Randomly shuffles a DataSlice along a single dimension (last by default).
+
+  If `ndim` is not specified, items are shuffled in the last dimension.
+  If `ndim` is specified, then the dimension `ndim` from the last is shuffled,
+  equivalent to `kd.explode(kd.shuffle(kd.implode(x, ndim)), ndim)`.
+
+  When `seed` is not specified, the results are different across multiple
+  invocations given the same input.
+
+  For example:
+
+    kd.shuffle(kd.slice([[1, 2, 3], [4, 5], [6]]))
+    -> kd.slice([[3, 1, 2], [5, 4], [6]]) (possible output)
+
+    kd.shuffle(kd.slice([[1, 2, 3], [4, 5]]), ndim=1)
+    -> kd.slice([[4, 5], [6], [1, 2, 3]]) (possible output)
+
+  Args:
+    x: DataSlice to shuffle.
+    ndim: The index of the dimension to shuffle, from the end (0 = last dim).
+      The last dimension is shuffled if this is unspecified.
+    seed: Seed for the random number generator. The same input with the same
+      seed generates the same random numbers.
+
+  Returns:
+    Shuffled DataSlice.
+  """
+  x_lists = arolla.types.DispatchOperator(
+      'x, ndim, non_determinism_token',
+      unspecified_case=arolla.types.DispatchCase(
+          P.x,
+          condition=P.ndim == arolla.UNSPECIFIED,
+      ),
+      default=arolla.abc.sub_by_fingerprint(
+          lists.implode(core.no_bag(P.x), P.ndim),
+          {
+              py_boxing.NON_DETERMINISTIC_TOKEN_LEAF.fingerprint: (
+                  P.non_determinism_token
+              )
+          },
+      ),
+  )(x, ndim, py_boxing.NON_DETERMINISTIC_TOKEN_LEAF)
+  x_shuffled_lists = slices.sort(
+      x_lists, sort_by=randint_shaped_as(x_lists, seed=seed)
+  )
+  return arolla.types.DispatchOperator(
+      'x_shuffled_lists, ndim, x_bag',
+      unspecified_case=arolla.types.DispatchCase(
+          P.x_shuffled_lists,
+          condition=P.ndim == arolla.UNSPECIFIED,
+      ),
+      # Revert bag to discard temporary lists.
+      default=core.with_bag(lists.explode(P.x_shuffled_lists, P.ndim), P.x_bag),
+  )(x_shuffled_lists, ndim, core.get_bag(x))
