@@ -208,9 +208,15 @@ def to_json(
 ):
   r"""Converts `x` to a DataSlice of JSON strings.
 
-  Data with STRING, BYTES, numeric, MASK, BOOLEAN, LIST, STRING-key DICT, and
-  entity schemas are allowed, along with OBJECT schemas that resolve to those
-  schemas. Itemid cycles are not allowed.
+  The following schemas are allowed:
+  - STRING, BYTES, INT32, INT64, FLOAT32, FLOAT64, MASK, BOOLEAN
+  - LIST[T] where T is an allowed schema
+  - DICT{K, V} where K is one of {STRING, BYTES, INT32, INT64}, and V is an
+    allowed schema
+  - Entity schemas where all attribute values have allowed schemas
+  - OBJECT schemas resolving to allowed schemas
+
+  Itemid cycles are not allowed.
 
   Missing DataSlice items in the input are missing in the result. Missing values
   inside of lists/entities/etc. are encoded as JSON `null`, except for

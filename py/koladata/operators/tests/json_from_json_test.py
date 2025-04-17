@@ -494,6 +494,16 @@ class JsonFromJsonTest(parameterized.TestCase):
           {0: 1, 3: 2},
       ),
       (
+          ds('{"YWJj": 1, "YWJjZA==": 2}'),
+          {
+              'schema': fns.dict_schema(
+                  key_schema=schema_constants.BYTES,
+                  value_schema=schema_constants.INT32,
+              ),
+          },
+          {b'abc': 1, b'abcd': 2},
+      ),
+      (
           ds('{"a": {"b": 1}, "c": 2}'),
           {},
           {
@@ -688,7 +698,6 @@ class JsonFromJsonTest(parameterized.TestCase):
       ('[]', fns.dict_schema(schema_constants.STRING, schema_constants.OBJECT)),
       ('{}', schema_constants.INT32),
       ('{}', fns.list_schema(schema_constants.INT32)),
-      ('{}', fns.dict_schema(schema_constants.BYTES, schema_constants.OBJECT)),
   )
   def test_invalid_schema_error(self, value, schema):
     with self.assertRaisesRegex(ValueError, 'json .* invalid for '):

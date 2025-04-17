@@ -23,6 +23,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -36,6 +37,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "nlohmann/json.hpp"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
@@ -55,6 +57,7 @@
 #include "koladata/schema_utils.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qexpr/operators/strings/strings.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
@@ -69,14 +72,53 @@ namespace {
 // TODO: Move to pointwise utils.
 template <typename Fn>
 absl::Status ForEachDataItem(const DataSlice& slice, Fn fn) {
-  DCHECK_EQ(slice.GetShape().rank(), 1);
+  if (slice.GetShape().rank() != 1) {
+    return absl::InternalError("slice must have rank 1");
+  }
   int64_t i = 0;
-  for (const auto& item_impl : slice.slice().AsDataItemDenseArray()) {
-    ASSIGN_OR_RETURN(auto item,
-                     DataSlice::Create(item_impl.value, slice.GetSchemaImpl(),
-                                       slice.GetBag()));
+  for (auto optional_item : slice.slice().AsDataItemDenseArray()) {
+    ASSIGN_OR_RETURN(
+        auto item,
+        DataSlice::Create(optional_item.present ? std::move(optional_item.value)
+                                                : internal::DataItem(),
+                          slice.GetSchemaImpl(), slice.GetBag()));
     RETURN_IF_ERROR(fn(i, item));
     ++i;
+  }
+  return absl::OkStatus();
+}
+
+// TODO: Move to pointwise utils.
+template <typename Fn>
+absl::Status ZipCallForEachDataItem(absl::Span<const DataSlice> slices, Fn fn) {
+  if (slices.empty()) {
+    return absl::OkStatus();
+  }
+  std::vector<arolla::DenseArray<internal::DataItem>> data_item_arrays;
+  data_item_arrays.reserve(slices.size());
+  for (const auto& slice : slices) {
+    if (slice.GetShape().rank() != 1) {
+      return absl::InternalError("slices must have rank 1");
+    }
+    if (slice.size() != slices[0].size()) {
+      return absl::InternalError("slices must all have the same size");
+    }
+    data_item_arrays.push_back(slice.slice().AsDataItemDenseArray());
+  }
+  for (int64_t i_item = 0; i_item < slices[0].size(); ++i_item) {
+    std::vector<DataSlice> items;
+    items.reserve(slices.size());
+    for (int64_t i_slice = 0; i_slice < slices.size(); ++i_slice) {
+      auto optional_item = data_item_arrays[i_slice][i_item];
+      ASSIGN_OR_RETURN(auto item,
+                       DataSlice::Create(optional_item.present
+                                             ? std::move(optional_item.value)
+                                             : internal::DataItem(),
+                                         slices[i_slice].GetSchemaImpl(),
+                                         slices[i_slice].GetBag()));
+      items.push_back(std::move(item));
+    }
+    RETURN_IF_ERROR(fn(i_item, std::move(items)));
   }
   return absl::OkStatus();
 }
@@ -599,6 +641,7 @@ class JsonSaxParser final : public nlohmann::json::json_sax_t {
       // Ensure that the key schema of the dict will be something we can convert
       // to when we have the vector of key strings in EndJsonObject.
       if (key_schema.item() != schema::kString &&
+          key_schema.item() != schema::kBytes &&
           key_schema.item() != schema::kInt32 &&
           key_schema.item() != schema::kInt64 &&
           key_schema.item() != schema::kFloat32 &&
@@ -935,6 +978,33 @@ absl::StatusOr<SerializableJson> PrimitiveDataItemToSerializableJson(
   });
 }
 
+template <typename T>
+absl::StatusOr<std::string> PrimitiveValueToObjectKeyString(const T& value) {
+  if constexpr (std::is_same_v<T, internal::MissingValue>) {
+    DCHECK(!(std::is_same_v<T, internal::MissingValue>));
+    return absl::InvalidArgumentError(
+        "missing values not supported for json object key serialization");
+  } else if constexpr (std::is_same_v<T, arolla::Text>) {
+    return std::string(value.view());
+  } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
+    return absl::Base64Escape(value);
+  } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, int64_t>) {
+    return std::string(arolla::AsTextOp()(value).view());
+  } else {
+    DCHECK(false);  // Should be unreachable.
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "unsupported schema %s for json object key serialization",
+        schema::schema_internal::GetQTypeName(arolla::GetQType<T>())));
+  }
+}
+
+absl::StatusOr<SerializableJson> PrimitiveDataItemToObjectKeyString(
+    const DataSlice& item) {
+  return item.item().VisitValue([&]<typename T>(const T& value) {
+    return PrimitiveValueToObjectKeyString(value);
+  });
+}
+
 // Forward declaration for recursion.
 //
 // NOTE: nlohmann json serialization uses recursion internally, so there isn't
@@ -974,51 +1044,55 @@ absl::StatusOr<SerializableJson> DictDataItemToSerializableJson(
   DCHECK(item.is_item());
 
   ASSIGN_OR_RETURN(auto keys, item.GetDictKeys());
-  DCHECK(!keys.is_item());
-  DCHECK(keys.slice().present_count() == keys.slice().size());
+  ASSIGN_OR_RETURN(auto values, item.GetDictValues());
+  DCHECK(!keys.is_item() &&
+         keys.slice().present_count() == keys.slice().size());
   if (keys.GetSchemaImpl() != schema::kString &&
+      keys.GetSchemaImpl() != schema::kBytes &&
+      keys.GetSchemaImpl() != schema::kInt32 &&
+      keys.GetSchemaImpl() != schema::kInt64 &&
       keys.GetSchemaImpl() != schema::kObject) {
     return absl::InvalidArgumentError(
         absl::StrFormat("unsupported dict key schema %v for json serialization",
                         keys.GetSchemaImpl()));
   }
-  if (!keys.IsEmpty() &&
-      keys.slice().dtype() != arolla::GetQType<arolla::Text>()) {
+  if (keys.IsEmpty()) {
+    return SerializableJson(SerializableJsonObject());
+  }
+  if (keys.dtype() != arolla::GetQType<arolla::Text>() &&
+      keys.dtype() != arolla::GetQType<arolla::Bytes>() &&
+      keys.dtype() != arolla::GetQType<int32_t>() &&
+      keys.dtype() != arolla::GetQType<int64_t>()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "unsupported dict key dtype %s for json serialization",
         schema::schema_internal::GetQTypeName(keys.slice().dtype())));
   }
-  if (keys.IsEmpty()) {
-    return SerializableJson(SerializableJsonObject());
-  }
 
-  const auto& keys_array = keys.slice().values<arolla::Text>().values;
-
-  std::vector<int64_t> keys_order;
-  keys_order.reserve(keys_array.size());
-  for (int64_t i = 0; i < keys_array.size(); ++i) {
-    keys_order.push_back(i);
-  }
-  std::sort(keys_order.begin(), keys_order.end(), [&](int64_t i, int64_t j) {
-    return keys_array[i] < keys_array[j];
-  });
-
-  ASSIGN_OR_RETURN(auto values, item.GetDictValues());
-  std::vector<DataSlice> values_array;
-  values_array.reserve(values.size());
-  RETURN_IF_ERROR(ForEachDataItem(
-      values, [&](auto, const DataSlice& value) -> absl::Status {
-        values_array.push_back(value);
+  std::vector<std::pair<std::string, SerializableJson>> mutable_object_items;
+  mutable_object_items.reserve(keys.size());
+  RETURN_IF_ERROR(ZipCallForEachDataItem(
+      {std::move(keys), std::move(values)},
+      [&](auto, absl::Span<const DataSlice> values) -> absl::Status {
+        DCHECK_EQ(values.size(), 2);  // (key, value)
+        ASSIGN_OR_RETURN(auto key,
+                         PrimitiveDataItemToObjectKeyString(values[0]));
+        ASSIGN_OR_RETURN(auto value,
+                         DataItemToSerializableJson(values[1], path_object_ids,
+                                                    keys_attr, values_attr));
+        mutable_object_items.emplace_back(std::move(key), std::move(value));
         return absl::OkStatus();
       }));
 
+  std::sort(
+      mutable_object_items.begin(), mutable_object_items.end(),
+      [&](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
+
   std::vector<std::pair<const std::string, SerializableJson>> object_items;
-  for (int64_t i : keys_order) {
-    ASSIGN_OR_RETURN(
-        auto value, DataItemToSerializableJson(values_array[i], path_object_ids,
-                                               keys_attr, values_attr));
-    object_items.emplace_back(keys_array[i], std::move(value));
+  object_items.reserve(mutable_object_items.size());
+  for (auto& item : mutable_object_items) {
+    object_items.emplace_back(std::move(item));
   }
+
   return SerializableJson(SerializableJsonObject(std::move(object_items)));
 }
 

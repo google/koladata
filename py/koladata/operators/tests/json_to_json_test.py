@@ -86,6 +86,21 @@ class JsonToJsonTest(parameterized.TestCase):
           ds('{"a": 1, "b": "2"}'),
       ),
       (
+          fns.dict({b'abcd': 1}),
+          {},
+          ds('{"YWJjZA==": 1}'),
+      ),
+      (
+          fns.dict({1: 1}),
+          {},
+          ds('{"1": 1}'),
+      ),
+      (
+          fns.dict({ds(1, schema_constants.INT64): 1}),
+          {},
+          ds('{"1": 1}'),
+      ),
+      (
           fns.new(a=1, b='2', c=mask_constants.missing),
           {},
           ds('{"a": 1, "b": "2", "c": false}'),
@@ -276,17 +291,19 @@ class JsonToJsonTest(parameterized.TestCase):
 
   def test_error_invalid_dict_key_schema(self):
     with self.assertRaisesRegex(
-        ValueError, 'unsupported dict key schema BYTES for json serialization'
+        ValueError, 'unsupported dict key schema MASK for json serialization'
     ):
-      _ = expr_eval.eval(kde.json.to_json(fns.dict({b'a': 'b'})))
+      _ = expr_eval.eval(
+          kde.json.to_json(fns.dict({mask_constants.present: 'b'}))
+      )
 
     with self.assertRaisesRegex(
-        ValueError, 'unsupported dict key dtype BYTES for json serialization'
+        ValueError, 'unsupported dict key dtype MASK for json serialization'
     ):
       _ = expr_eval.eval(
           kde.json.to_json(
               fns.dict(
-                  {b'a': 'b'},
+                  {mask_constants.present: 'b'},
                   schema=fns.dict_schema(
                       schema_constants.OBJECT, schema_constants.STRING
                   ),
