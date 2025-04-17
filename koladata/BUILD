@@ -776,6 +776,7 @@ cc_library(
     name = "all_qexpr_operators",
     deps = [
         "//koladata/functor:operators",
+        "//koladata/functor/parallel:operators",
         "//koladata/iterables:operators",
         "//koladata/operators",
     ],

@@ -42,8 +42,8 @@ arolla_cc_operator_package(
     arolla_initializer = {
         "deps": [
             "arolla_operators/jagged_shape",
-            "arolla_operators/koda_internal",
             "arolla_operators/koda_functor_parallel",
+            "arolla_operators/koda_internal",
             "arolla_operators/koda_iterables",
         ],
     },
@@ -732,7 +732,11 @@ py_library(
     name = "koda_internal_parallel",
     srcs = ["koda_internal_parallel.py"],
     deps = [
+        ":bootstrap",
+        ":optools",
+        ":qtype_utils",
         "//koladata/functor/parallel:init_expr_operators",
+        "//koladata/functor/parallel:operators",
         "@com_google_arolla//py/arolla",
     ],
 )

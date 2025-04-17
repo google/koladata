@@ -81,3 +81,98 @@ cc_library(
     ],
     alwayslink = 1,
 )
+
+cc_library(
+    name = "operators",
+    srcs = ["operators.cc"],
+    deps = [
+        ":future_operators",
+        ":future_qtype",
+        "//koladata:data_slice_qtype",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
+    name = "future",
+    srcs = ["future.cc"],
+    hdrs = ["future.h"],
+    deps = [
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "future_test",
+    srcs = ["future_test.cc"],
+    deps = [
+        ":future",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/qtype/testing",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "future_operators",
+    srcs = ["future_operators.cc"],
+    hdrs = ["future_operators.h"],
+    deps = [
+        ":future",
+        ":future_qtype",
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qexpr/operators/core:lib",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "future_qtype",
+    srcs = ["future_qtype.cc"],
+    hdrs = ["future_qtype.h"],
+    deps = [
+        ":future",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "future_qtype_test",
+    srcs = ["future_qtype_test.cc"],
+    deps = [
+        ":future",
+        ":future_qtype",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/qtype/testing",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

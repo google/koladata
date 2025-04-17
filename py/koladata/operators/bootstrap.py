@@ -32,3 +32,14 @@ P = arolla.P
 def is_iterable_qtype(qtype):  # pylint: disable=unused-argument
   """Checks if the given qtype is an iterable qtype."""
   raise NotImplementedError('implemented in the backend')
+
+
+@arolla.optools.add_to_registry()
+@arolla.optools.as_backend_operator(
+    'koda_internal.parallel.is_future_qtype',
+    qtype_inference_expr=arolla.OPTIONAL_UNIT,
+    qtype_constraints=[arolla.optools.constraints.expect_qtype(P.qtype)],
+)
+def is_future_qtype(qtype):  # pylint: disable=unused-argument
+  """Checks if the given qtype is a future qtype."""
+  raise NotImplementedError('implemented in the backend')
