@@ -164,6 +164,61 @@ class PyMapPyOnCondTest(parameterized.TestCase):
         optools.equiv_to_op(kde.py.map_py_on_cond, kde.map_py_on_cond)
     )
 
+  def test_understandable_yes_fn_error(self):
+    def fn1(x):
+      return x + I.x
+
+    def fn2(x):
+      return x
+
+    expr = kde.py.map_py_on_cond(fn1, fn2, mask_constants.present, ds(1))
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'unsupported type, arolla.abc.expr.Expr, for value:\n\n '
+            f' {ds(1) + I.x}'
+        ),
+    ):
+      expr_eval.eval(expr)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_note_regex(
+            re.escape(
+                'Error occurred during evaluation of kd.map_py_on_cond with'
+                f' true_fn={fn1} and false_fn={fn2}'
+            )
+        ),
+    ):
+      expr_eval.eval(expr)
+
+  def test_understandable_no_fn_error(self):
+    def fn1(x):
+      return x + I.x
+
+    def fn2(x):
+      return x
+
+    expr = kde.py.map_py_on_cond(fn2, fn1, mask_constants.missing, ds(1))
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'unsupported type, arolla.abc.expr.Expr, for value:\n\n '
+            f' {ds(1) + I.x}'
+        ),
+    ):
+      expr_eval.eval(expr)
+
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_note_regex(
+            re.escape(
+                'Error occurred during evaluation of kd.map_py_on_cond with'
+                f' true_fn={fn2} and false_fn={fn1}'
+            )
+        ),
+    ):
+      expr_eval.eval(expr)
+
 
 if __name__ == '__main__':
   absltest.main()

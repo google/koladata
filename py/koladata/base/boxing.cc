@@ -24,7 +24,6 @@
 #include <functional>
 #include <optional>
 #include <stack>
-#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -69,6 +68,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
+#include "arolla/expr/expr_debug_string.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
@@ -295,18 +295,21 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
       return absl::OkStatus();
     }
   }
-  std::string error_msg = absl::StrFormat("object with unsupported type: %s",
-                                          Py_TYPE(py_obj)->tp_name);
   if (arolla::python::IsPyExprInstance(py_obj)) {
-    absl::StrAppend(
-        &error_msg,
-        ";\n\nthis can happen when passing inputs to kd.slice / kd.item, e.g."
-        "\n\nkd.slice(x)\n\n"
+    const auto& expr = arolla::python::UnsafeUnwrapPyExpr(py_obj);
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "object with unsupported type, %s, for value:"
+        "\n\n  %s\n\n"
+        "this can happen when calling kd.slice / kd.item, e.g."
+        "\n\n  kd.slice(x)\n\n"
         "or when trying to concatenate objects during tracing, e.g."
-        "\n\nkd.slice([kd.obj(x=1), kd.obj(x=2)])\n\n"
-        "please use kd.stack(kd.obj(x=1), ...), instead");
+        "\n\n  kd.slice([kd.obj(x=1), kd.obj(x=2)])\n\n"
+        "please use kd.stack(kd.obj(x=1), ...), instead",
+        Py_TYPE(py_obj)->tp_name, arolla::expr::ToDebugString(expr)));
+  } else {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "object with unsupported type: %s", Py_TYPE(py_obj)->tp_name));
   }
-  return absl::InvalidArgumentError(error_msg);
 }
 
 // Creates a DataSlice from a flat vector of PyObject(s), shape and type of

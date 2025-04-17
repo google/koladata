@@ -171,6 +171,29 @@ class PyApplyPyTest(parameterized.TestCase):
         'kd.py.apply_py(I.fn, I.x, return_type_as=unspecified, a=I.a)',
     )
 
+  def test_understandable_error(self):
+    def foo(x):
+      return x + I.x
+
+    expr = kde.py.apply_py(foo, ds(1))
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'failed to construct a QValue from the provided input containing'
+            f' an Expr: {ds(1) + I.x}'
+        ),
+    ):
+      expr_eval.eval(expr)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_note_regex(
+            re.escape(
+                f'Error occurred during evaluation of kd.apply_py with fn={foo}'
+            )
+        ),
+    ):
+      expr_eval.eval(expr)
+
 
 if __name__ == '__main__':
   absltest.main()

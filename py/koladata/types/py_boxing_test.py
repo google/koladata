@@ -197,9 +197,15 @@ class PyBoxingTest(parameterized.TestCase):
     ):
       py_boxing.as_qvalue([1])
 
-  @parameterized.parameters(arolla.L.x, slice(arolla.L.x))
+  @parameterized.parameters(
+      [arolla.L.x], [slice(arolla.L.x)], [(1, 2, arolla.L.x)]
+  )
   def test_as_qvalue_raises_on_expr(self, value):
-    with self.assertRaisesRegex(ValueError, 'expected a QValue, got an Expr'):
+    with self.assertRaisesWithLiteralMatch(
+        ValueError,
+        'failed to construct a QValue from the provided input containing an'
+        f' Expr: {value}',
+    ):
       py_boxing.as_qvalue(value)
 
   @parameterized.parameters(

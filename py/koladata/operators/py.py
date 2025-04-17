@@ -258,15 +258,19 @@ def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
     Result of fn applied on the arguments.
   """
   fn = _unwrap_py_callable(fn, param_name='fn')
-  result = py_boxing.as_qvalue(fn(*args, **kwargs))
-  if return_type_as.qtype == arolla.UNSPECIFIED and not isinstance(
-      result, data_slice.DataSlice
-  ):
-    raise ValueError(
-        f'expected the result to have qtype DATA_SLICE, got {result.qtype};'
-        ' consider specifying the `return_type_as=` parameter'
-    )
-  return result
+  try:
+    result = py_boxing.as_qvalue(fn(*args, **kwargs))
+    if return_type_as.qtype == arolla.UNSPECIFIED and not isinstance(
+        result, data_slice.DataSlice
+    ):
+      raise ValueError(
+          f'expected the result to have qtype DATA_SLICE, got {result.qtype};'
+          ' consider specifying the `return_type_as=` parameter'
+      )
+    return result
+  except Exception as e:
+    e.add_note(f'Error occurred during evaluation of kd.apply_py with {fn=}')
+    raise
 
 
 @optools.add_to_registry(aliases=['kd.apply_py_on_cond'])
@@ -310,21 +314,28 @@ def apply_py_on_cond(yes_fn, no_fn, cond, *args, **kwargs):
   """
   yes_fn = _unwrap_py_callable(yes_fn, param_name='yes_fn')
   no_fn = _unwrap_optional_py_callable(no_fn, param_name='no_fn')
-  result = py_boxing.as_qvalue(
-      yes_fn(
-          *(x & cond for x in args),
-          **{k: v & cond for k, v in kwargs.items()},
-      )
-  )
-  if no_fn is not None:
-    inv_cond = ~cond
-    result = result | py_boxing.as_qvalue(
-        no_fn(
-            *(x & inv_cond for x in args),
-            **{k: v & inv_cond for k, v in kwargs.items()},
+  try:
+    result = py_boxing.as_qvalue(
+        yes_fn(
+            *(x & cond for x in args),
+            **{k: v & cond for k, v in kwargs.items()},
         )
     )
-  return result
+    if no_fn is not None:
+      inv_cond = ~cond
+      result = result | py_boxing.as_qvalue(
+          no_fn(
+              *(x & inv_cond for x in args),
+              **{k: v & inv_cond for k, v in kwargs.items()},
+          )
+      )
+    return result
+  except Exception as e:
+    e.add_note(
+        'Error occurred during evaluation of kd.apply_py_on_cond with'
+        f' {yes_fn=} and {no_fn=}'
+    )
+    raise
 
 
 @optools.add_to_registry(aliases=['kd.apply_py_on_selected'])
@@ -609,42 +620,46 @@ def map_py(
     Result DataSlice.
   """
   fn = _unwrap_py_callable(fn, param_name='fn')
-  max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
-  schema = _unwrap_optional_schema(schema, param_name='schema')
-  ndim = _unwrap_scalar_integer(ndim, param_name='ndim')
-  include_missing = _unwrap_optional_boolean(
-      include_missing, param_name='include_missing'
-  )
-  if include_missing is None:
-    include_missing = ndim != 0
-  elif not include_missing and ndim != 0:
-    raise ValueError('`include_missing=False` can only be used with `ndim=0`')
-  item_completed_callback = _unwrap_optional_py_callable(
-      item_completed_callback, param_name='item_completed_callback'
-  )
-  if not args and not kwargs:
-    raise TypeError('expected at least one input DataSlice, got none')
-  args = eval_op('kd.slices.align', *args, *kwargs.values())
-  cond = None
-  if not include_missing:
-    cond = functools.reduce(
-        functools.partial(eval_op, 'kd.masking.mask_and'),
-        map(
-            functools.partial(eval_op, 'kd.masking.has'),
-            itertools.chain(args, kwargs.values()),
-        ),
+  try:
+    max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
+    schema = _unwrap_optional_schema(schema, param_name='schema')
+    ndim = _unwrap_scalar_integer(ndim, param_name='ndim')
+    include_missing = _unwrap_optional_boolean(
+        include_missing, param_name='include_missing'
     )
-  kwnames = tuple(kwargs.keys())
-  vcall = arolla.abc.vectorcall
-  return _basic_map_py(
-      lambda *task_args: vcall(fn, *task_args, kwnames),
-      cond,
-      *args,
-      schema=schema,
-      ndim=ndim,
-      max_threads=max_threads,
-      item_completed_callback=item_completed_callback,
-  )
+    if include_missing is None:
+      include_missing = ndim != 0
+    elif not include_missing and ndim != 0:
+      raise ValueError('`include_missing=False` can only be used with `ndim=0`')
+    item_completed_callback = _unwrap_optional_py_callable(
+        item_completed_callback, param_name='item_completed_callback'
+    )
+    if not args and not kwargs:
+      raise TypeError('expected at least one input DataSlice, got none')
+    args = eval_op('kd.slices.align', *args, *kwargs.values())
+    cond = None
+    if not include_missing:
+      cond = functools.reduce(
+          functools.partial(eval_op, 'kd.masking.mask_and'),
+          map(
+              functools.partial(eval_op, 'kd.masking.has'),
+              itertools.chain(args, kwargs.values()),
+          ),
+      )
+    kwnames = tuple(kwargs.keys())
+    vcall = arolla.abc.vectorcall
+    return _basic_map_py(
+        lambda *task_args: vcall(fn, *task_args, kwnames),
+        cond,
+        *args,
+        schema=schema,
+        ndim=ndim,
+        max_threads=max_threads,
+        item_completed_callback=item_completed_callback,
+    )
+  except Exception as e:
+    e.add_note(f'Error occurred during evaluation of kd.map_py with {fn=}')
+    raise
 
 
 @optools.add_to_registry(aliases=['kd.map_py_on_cond'])
@@ -706,46 +721,53 @@ def map_py_on_cond(
   """
   true_fn = _unwrap_py_callable(true_fn, param_name='true_fn')
   false_fn = _unwrap_optional_py_callable(false_fn, param_name='false_fn')
-  schema = _unwrap_optional_schema(schema, param_name='schema')
-  max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
-  item_completed_callback = _unwrap_optional_py_callable(
-      item_completed_callback, param_name='item_completed_callback'
-  )
-  if not args and not kwargs:
-    raise TypeError('expected at least one input DataSlice, got none')
-  if cond.get_schema() != schema_constants.MASK:
-    raise ValueError(f'expected a mask, got cond: {cond.get_schema()}')
-  args = (*args, *kwargs.values())
-  if cond.get_ndim() > max(arg.get_ndim() for arg in args):
-    raise ValueError(
-        "'cond' must have the same or smaller dimension than `args` and"
-        ' `kwargs`'
+  try:
+    schema = _unwrap_optional_schema(schema, param_name='schema')
+    max_threads = _unwrap_scalar_integer(max_threads, param_name='max_threads')
+    item_completed_callback = _unwrap_optional_py_callable(
+        item_completed_callback, param_name='item_completed_callback'
     )
-  cond, *args = eval_op('kd.slices.align', cond, *args)
-  kwnames = tuple(kwargs.keys())
-  vcall = arolla.abc.vectorcall
-  if false_fn is None:
+    if not args and not kwargs:
+      raise TypeError('expected at least one input DataSlice, got none')
+    if cond.get_schema() != schema_constants.MASK:
+      raise ValueError(f'expected a mask, got cond: {cond.get_schema()}')
+    args = (*args, *kwargs.values())
+    if cond.get_ndim() > max(arg.get_ndim() for arg in args):
+      raise ValueError(
+          "'cond' must have the same or smaller dimension than `args` and"
+          ' `kwargs`'
+      )
+    cond, *args = eval_op('kd.slices.align', cond, *args)
+    kwnames = tuple(kwargs.keys())
+    vcall = arolla.abc.vectorcall
+    if false_fn is None:
+      return _basic_map_py(
+          lambda *task_args: vcall(true_fn, *task_args, kwnames),
+          cond,
+          *args,
+          schema=schema,
+          ndim=0,
+          max_threads=max_threads,
+          item_completed_callback=item_completed_callback,
+      )
     return _basic_map_py(
-        lambda *task_args: vcall(true_fn, *task_args, kwnames),
-        cond,
+        lambda task_cond, *task_args: vcall(
+            false_fn if task_cond is None else true_fn, *task_args, kwnames
+        ),
+        None,  # cond=
+        cond,  # arg0=
         *args,
         schema=schema,
         ndim=0,
         max_threads=max_threads,
         item_completed_callback=item_completed_callback,
     )
-  return _basic_map_py(
-      lambda task_cond, *task_args: vcall(
-          false_fn if task_cond is None else true_fn, *task_args, kwnames
-      ),
-      None,  # cond=
-      cond,  # arg0=
-      *args,
-      schema=schema,
-      ndim=0,
-      max_threads=max_threads,
-      item_completed_callback=item_completed_callback,
-  )
+  except Exception as e:
+    e.add_note(
+        'Error occurred during evaluation of kd.map_py_on_cond with'
+        f' {true_fn=} and {false_fn=}'
+    )
+    raise
 
 
 @optools.add_to_registry(aliases=['kd.map_py_on_selected'])

@@ -173,7 +173,10 @@ def as_qvalue(arg: Any) -> arolla.QValue:
   """Converts Python values into QValues."""
   qvalue_or_expr = as_qvalue_or_expr(arg)
   if isinstance(qvalue_or_expr, arolla.Expr):
-    raise ValueError('expected a QValue, got an Expr')
+    raise ValueError(
+        'failed to construct a QValue from the provided input containing an'
+        f' Expr: {arg}'
+    )
   return qvalue_or_expr
 
 

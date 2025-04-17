@@ -26,6 +26,7 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import mask_constants
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
@@ -195,6 +196,60 @@ class PyApplyPyOnCondTest(parameterized.TestCase):
         repr(kde.py.apply_py_on_cond(I.yes, I.no, I.cond, I.x, a=I.a)),
         'kd.py.apply_py_on_cond(I.yes, I.no, I.cond, I.x, a=I.a)',
     )
+
+  def test_understandable_yes_fn_error(self):
+    def fn1(x):
+      return x + I.x
+
+    def fn2(x):
+      return x
+
+    expr = kde.py.apply_py_on_cond(fn1, fn2, mask_constants.present, ds(1))
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'failed to construct a QValue from the provided input containing'
+            f' an Expr: {ds(1) + I.x}'
+        ),
+    ):
+      expr_eval.eval(expr)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_note_regex(
+            re.escape(
+                'Error occurred during evaluation of kd.apply_py_on_cond with'
+                f' yes_fn={fn1} and no_fn={fn2}'
+            )
+        ),
+    ):
+      expr_eval.eval(expr)
+
+  def test_understandable_no_fn_error(self):
+    def fn1(x):
+      return x + I.x
+
+    def fn2(x):
+      return x
+
+    expr = kde.py.apply_py_on_cond(fn2, fn1, mask_constants.present, ds(1))
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'failed to construct a QValue from the provided input containing'
+            f' an Expr: {ds(None, schema_constants.INT32) + I.x}'
+        ),
+    ):
+      expr_eval.eval(expr)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_note_regex(
+            re.escape(
+                'Error occurred during evaluation of kd.apply_py_on_cond with'
+                f' yes_fn={fn2} and no_fn={fn1}'
+            )
+        ),
+    ):
+      expr_eval.eval(expr)
 
 
 if __name__ == '__main__':

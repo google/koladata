@@ -162,7 +162,11 @@ class ExprEval(absltest.TestCase):
       expr_eval.eval(I.x, x=[1, 2, 3])
 
   def test_pure_arolla_expr_not_allowed(self):
-    with self.assertRaisesRegex(ValueError, 'expected a QValue, got an Expr'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'failed to construct a QValue from the provided input containing an'
+        ' Expr',
+    ):
       expr_eval.eval(I.x, x=I.x + I.y)
 
   def test_not_evaluable_py_type_error(self):

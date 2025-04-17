@@ -774,6 +774,29 @@ assigned schema: SCHEMA(u=INT64)'''
           kde.py.map_py(fn, I.ds, max_threads=2 * n), ds=ds(list(range(n)))
       )
 
+  def test_understandable_error(self):
+    def foo(x):
+      return x + I.x
+
+    expr = kde.py.map_py(foo, ds(1))
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'unsupported type, arolla.abc.expr.Expr, for value:\n\n '
+            f' {ds(1) + I.x}'
+        ),
+    ):
+      expr_eval.eval(expr)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_note_regex(
+            re.escape(
+                f'Error occurred during evaluation of kd.map_py with fn={foo}'
+            )
+        ),
+    ):
+      expr_eval.eval(expr)
+
 
 if __name__ == '__main__':
   absltest.main()
