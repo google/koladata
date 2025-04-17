@@ -61,7 +61,8 @@ void FingerprintHasherTraits<DataSlice>::operator()(FingerprintHasher* hasher,
 }
 
 ReprToken ReprTraits<DataSlice>::operator()(const DataSlice& value) const {
-  return ReprToken{DataSliceRepr(value, {.show_attributes = true,
+  return ReprToken{DataSliceRepr(value, {.unbounded_type_max_len = 256,
+                                         .show_attributes = true,
                                          .show_databag_id = false,
                                          .show_shape = false})};
 }

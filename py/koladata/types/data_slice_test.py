@@ -623,6 +623,22 @@ class DataSliceTest(parameterized.TestCase):
           ),
           '[[[1], [2]], [[3], [4], [5]]]',
       ),
+      (
+          'large_string',
+          ds(['a' * 1000]),
+          'DataSlice([\n'
+          f"  '{'a' * 256}...',\n"
+          '], schema: STRING, ndims: 1, size: 1)',
+          f"[\n  '{'a' * 1000}',\n]",  # No truncation.
+      ),
+      (
+          'large_bytestring',
+          ds([b'a' * 1000]),
+          'DataSlice([\n'
+          f"  b'{'a' * 256}...',\n"
+          '], schema: BYTES, ndims: 1, size: 1)',
+          f"[\n  b'{'a' * 1000}',\n]",  # No truncation.
+      ),
   )
   def test_repr_and_str_no_bag(self, x, expected_repr, expected_str):
     self.assertEqual(repr(x), expected_repr)

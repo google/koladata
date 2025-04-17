@@ -260,7 +260,17 @@ class DataItemTest(parameterized.TestCase):
           'with_bag',
           ds(12).with_bag(data_bag.DataBag.empty()),
           'DataItem(12, schema: INT32)',
-      )
+      ),
+      (
+          'large_string_truncation',
+          ds('a' * 1000),
+          f"DataItem('{'a' * 256}...', schema: STRING)",
+      ),
+      (
+          'large_bytestring_truncation',
+          ds(b'a' * 1000),
+          f"DataItem(b'{'a' * 256}...', schema: BYTES)",
+      ),
   )
   def test_repr(self, item, expected_repr):
     self.assertEqual(repr(item), expected_repr)
