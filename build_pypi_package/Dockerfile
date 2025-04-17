@@ -19,7 +19,8 @@
 #
 #     docker buildx build . \
 #         --output=. \
-#         --build-arg PACKAGE_VERSION=<version>
+#         --build-arg PACKAGE_VERSION=<version> \
+#         --build-arg PYTHON_VERSION=<3.11|3.12>
 #
 # Uploading (after build):
 #
@@ -28,21 +29,17 @@
 #
 # Recommended workflow:
 #
-#   1. Build `arolla` and `koladata` packages with version <0.0.n-d>:
+#   1. Build `arolla` and `koladata` packages:
 #      docker buildx build . \
 #          --output=. \
-#          --build-arg PACKAGE_VERSION=<0.0.n-d>
+#          --build-arg PACKAGE_VERSION=<version>
 #
-#   2. Upload the resulting packages to https://test.pypi.org:
-#      python3 -m twine upload -r testpypi https://test.pypi.org/simple/ \
-#          arolla-<0.0.n-d>-*.whl \
-#          koladata-<0.0.n-d>-*.whl
+#   2. Upload the resulting arolla-*.whl and koladata-*.whl files to
+#      Google Colab (left sidebar -> Files -> Upload to sessions storage),
+#      and do some tests.
 #
-#   3. Test on Google Colab:
-#      !pip install \
-#          --index-url https://test.pypi.org/simple/ \
-#          --extra-index-url https://pypi.org/simple/ \
-#          koladata==<0.0.n-d>
+#      # Installing the packages.
+#      !pip install arolla-*.whl koladata-*.whl
 #
 #      # Test Arolla.
 #      from arolla import arolla
@@ -52,15 +49,8 @@
 #      from koladata import kd
 #      kd.M.math.exp(1)
 #
-#   4. Build "proper" packages with version <0.0.n> (without suffix "-d"):
-#      docker buildx build . \
-#          --output=. \
-#          --build-arg PACKAGE_VERSION=<0.0.n>
-#
-#   5. Upload the resulting packages:
-#      python3 -m twine upload -r testpypi https://test.pypi.org/simple/ \
-#          arolla-<0.0.n>-*.whl \
-#          koladata-<0.0.n>-*.whl
+#   3. Upload the resulting packages:
+#      python3 -m twine upload arolla-*.whl koladata-*.whl
 #
 
 # Pre-installing packages in the base stage.
@@ -70,15 +60,17 @@ RUN /base.sh
 
 FROM base AS build
 COPY --chmod=0755 build.sh /build.sh
+ARG PYTHON_VERSION=3.11
+ENV PYTHON_VERSION=$PYTHON_VERSION
 RUN /build.sh
 
 # Note: Separating the 'build' and 'pack' stages allows caching for the build
 # artifacts.
 FROM base AS pack
 COPY --from=build /build/pkg/ /build/pkg/
-ARG PACKAGE_VERSION=0.0.0-0
-ENV PACKAGE_VERSION=$PACKAGE_VERSION
 COPY --chmod=0755 pack.sh /pack.sh
+ARG PACKAGE_VERSION=0.0.0-0 PYTHON_VERSION=3.11
+ENV PACKAGE_VERSION=$PACKAGE_VERSION PYTHON_VERSION=$PYTHON_VERSION
 RUN /pack.sh
 
 FROM scratch

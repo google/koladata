@@ -41,6 +41,7 @@ bazel_flags+=' --cxxopt=-Wno-stringop-truncation'
 bazel_flags+=' --cxxopt=-Wno-uninitialized'
 bazel_flags+=' --cxxopt=-Wno-unknown-pragmas'
 bazel_flags+=' --cxxopt=-Wno-unused-but-set-variable'
+bazel_flags+=' --@rules_python//python/config_settings:python_version='$PYTHON_VERSION
 
 # Building a version of `protoc` compatible with Google Colab.
 (
