@@ -46,6 +46,9 @@ const DataSlice& VarKeywordParameterKind();
 // Returns the constant used to indicate that a parameter has no default value.
 const DataSlice& NoDefaultValueMarker();
 
+// Returns functor signature for the *args and **kwargs parameters.
+const DataSlice& KodaArgsKwargsSignature();
+
 }  // namespace koladata::functor
 
 #endif  // KOLADATA_FUNCTOR_SIGNATURE_STORAGE_H_

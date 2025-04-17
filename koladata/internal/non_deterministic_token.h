@@ -26,7 +26,7 @@ namespace koladata::internal {
 // Type representing an argument in non-deterministic operators.
 //
 // It is a unique and distinguishable type for easy detection in custom Expr
-// processing: e.g. eval, tranformations, etc.
+// processing: e.g. eval, transformations, etc.
 //
 // It's value is not exposed to the users directly. Usual way of creating it is
 // by "embedding" the following expression as an argument to non-deterministic

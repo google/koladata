@@ -24,7 +24,7 @@ from koladata.types import py_boxing
 UNIFIED_POLICY_PREFIX = f'{py_optools_py_ext.UNIFIED_POLICY}:'
 
 # Name of the hidden parameter used to indicate non-deterministic input.
-NON_DETERMINISTIC_PARAM_NAME = '_non_deterministic_token'
+NON_DETERMINISTIC_PARAM_NAME = py_optools_py_ext.NON_DETERMINISTIC_PARAM_NAME
 
 # Note: The options must match the C++ implementation.
 #

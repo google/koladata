@@ -1015,3 +1015,44 @@ def for_(
       ),
       **optools.unified_non_deterministic_kwarg(),
   )
+
+
+@optools.add_to_registry(aliases=['kd.bind'])
+@optools.as_backend_operator(
+    'kd.functor.bind',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.fn_def),
+        qtype_utils.expect_data_slice_kwargs(P.kwargs),
+    ],
+    deterministic=False,
+)
+def bind(fn_def, **kwargs):
+  """Returns a Koda functor that partially binds a function to `kwargs`.
+
+  This function is intended to work the same as functools.partial in Python.
+  More specifically, for every "k=something" argument that you pass to this
+  function, whenever the resulting functor is called, if the user did not
+  provide "k=something_else" at call time, we will add "k=something".
+
+  Note that you can only provide defaults for the arguments passed as keyword
+  arguments this way. Positional arguments must still be provided at call time.
+  Moreover, if the user provides a value for a positional-or-keyword argument
+  positionally, and it was previously bound using this method, an exception
+  will occur.
+
+  Example:
+    f = kd.bind(kd.fn(I.x + I.y), x=0)
+    kd.call(f, y=1)  # 1
+
+  Args:
+    fn_def: A Koda functor.
+    **kwargs: Partial parameter binding. The values in this map may be
+      DataItems. This function creates auxiliary variables with names starting
+      with '_aux_fn', so it is not recommended to pass variables with such
+      names.
+
+  Returns:
+    A new Koda functor with some parameters bound.
+  """
+  del fn_def, kwargs
+  raise NotImplementedError('implemented in the backend')

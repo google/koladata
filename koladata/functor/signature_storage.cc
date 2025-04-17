@@ -236,4 +236,25 @@ const DataSlice& NoDefaultValueMarker() {
   return *val;
 }
 
+namespace {
+const Signature& CppArgsKwargsSignature() {
+  static absl::NoDestructor<Signature> val(
+      Signature::Create(
+          {Signature::Parameter{
+               .name = "args",
+               .kind = Signature::Parameter::Kind::kVarPositional},
+           Signature::Parameter{
+               .name = "kwargs",
+               .kind = Signature::Parameter::Kind::kVarKeyword}})
+          .value());
+  return *val;
+}
+}  // namespace
+
+const DataSlice& KodaArgsKwargsSignature() {
+  static absl::NoDestructor<DataSlice> val{
+      CppSignatureToKodaSignature(CppArgsKwargsSignature()).value()};
+  return *val;
+}
+
 }  // namespace koladata::functor

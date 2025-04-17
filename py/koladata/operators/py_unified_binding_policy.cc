@@ -33,15 +33,14 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
-#include "absl/random/random.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
 #include "absl/types/span.h"
-#include "koladata/expr/expr_eval.h"
 #include "koladata/expr/expr_operators.h"
+#include "koladata/expr/non_determinism.h"
 #include "py/arolla/abc/py_aux_binding_policy.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
@@ -383,19 +382,6 @@ void ReportUnprocessedKeywordArguments(const PyVarKwarg& py_var_kwargs) {
                absl::Utf8SafeCHexEscape(it->first).c_str());
 }
 
-// Returns a non-deterministic token.
-absl::StatusOr<ExprNodePtr> GenNonDeterministicToken() {
-  static const absl::NoDestructor op(
-      std::make_shared<RegisteredOperator>("koda_internal.non_deterministic"));
-  static const absl::NoDestructor leaf(Leaf(kNonDeterministicTokenLeafKey));
-  // absl::BitGen is not thread-safe, but this code is always protected by GIL.
-  DCheckPyGIL();
-  static absl::NoDestructor<absl::BitGen> bitgen;
-  auto seed = absl::Uniform<int64_t>(absl::IntervalClosed, *bitgen, 0,
-                                     std::numeric_limits<int64_t>::max());
-  return MakeOpNode(*op, {*leaf, arolla::expr::Literal(seed)});
-}
-
 // Returns QValue|Expr if successful. Otherwise, returns `std::nullopt` and
 // sets a Python exception.
 std::optional<QValueOrExpr> AsQValueOrExpr(
@@ -655,7 +641,7 @@ bool UnifiedBoxBoundArguments(const ExprOperatorSignature& signature,
       }
       result.push_back(*std::move(arg));
     } else if (py_bound_arg == &kSentinelNonDeterministic) {
-      ASSIGN_OR_RETURN(auto arg, GenNonDeterministicToken(),
+      ASSIGN_OR_RETURN(auto arg, expr::GenNonDeterministicToken(),
                        (SetPyErrFromStatus(_), false));
       result.push_back(std::move(arg));
     } else {

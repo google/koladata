@@ -16,6 +16,7 @@
 
 #include <string>
 
+#include "koladata/expr/non_determinism.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/operators/py_unified_binding_policy.h"
 
@@ -48,7 +49,11 @@ PyMODINIT_FUNC PyInit_py_optools_py_ext(void) {
   if (result == nullptr) {
     return nullptr;
   }
-  if (PyModule_AddStringConstant(result.get(), "UNIFIED_POLICY",
+  if (PyModule_AddStringConstant(
+          result.get(), "NON_DETERMINISTIC_PARAM_NAME",
+          std::string(expr::kNonDeterministicParamName).c_str()) <
+          0 ||
+      PyModule_AddStringConstant(result.get(), "UNIFIED_POLICY",
                                  std::string(kUnifiedPolicy).c_str()) < 0 ||
       PyModule_AddStringConstant(
           result.get(), "UNIFIED_POLICY_OPT_POSITIONAL_ONLY",

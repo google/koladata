@@ -16,6 +16,7 @@
 
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/aggregate_operator.h"
+#include "koladata/functor/bind_operator.h"
 #include "koladata/functor/call_operator.h"
 #include "koladata/functor/expr_fn_operator.h"
 #include "koladata/functor/is_fn_operator.h"
@@ -34,6 +35,7 @@ OPERATOR("kd.functor._maybe_call", MaybeCall);
 OPERATOR_FAMILY("kd.functor._while", std::make_unique<WhileOperatorFamily>());
 OPERATOR_FAMILY("kd.functor.aggregate",
                 std::make_unique<AggregateOperatorFamily>());
+OPERATOR_FAMILY("kd.functor.bind", std::make_unique<BindOperatorFamily>());
 OPERATOR_FAMILY("kd.functor.call", std::make_unique<CallOperatorFamily>());
 OPERATOR_FAMILY("kd.functor.call_and_update_namedtuple",
                 std::make_unique<CallAndUpdateNamedTupleOperatorFamily>());

@@ -281,10 +281,39 @@ cc_library(
 )
 
 cc_library(
+    name = "bind_operator",
+    srcs = ["bind_operator.cc"],
+    hdrs = ["bind_operator.h"],
+    deps = [
+        ":functor",
+        ":signature_storage",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/expr:expr_operators",
+        "//koladata/expr:non_determinism",
+        "//koladata/internal/op_utils:qexpr",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
     name = "operators",
     srcs = ["operators.cc"],
     deps = [
         ":aggregate_operator",
+        ":bind_operator",
         ":call_operator",
         ":expr_fn_operator",
         ":is_fn_operator",

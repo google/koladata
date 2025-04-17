@@ -533,15 +533,14 @@ class FunctorFactoriesTest(absltest.TestCase):
     ):
       _ = kd.call(f)
 
-  # TODO: Make this work.
-  # def test_bind_fn_variable(self):
-  #   # Note the usage of kde.bind when we need to bind a function variable.
-  #   f = functor_factories.expr_fn(
-  #       kde.call(V.bound_fn, y=I.y),
-  #       bound_fn=kde.bind(V.z.extract(), x=0),
-  #       z=functor_factories.expr_fn(I.x + I.y),
-  #   )
-  #   testing.assert_equal(kd.call(f, y=1), ds(1))
+  def test_bind_fn_variable(self):
+    # Note the usage of kde.bind when we need to bind a function variable.
+    f = functor_factories.expr_fn(
+        kde.call(V.bound_fn, y=I.y),
+        bound_fn=kde.bind(V.z.extract(), x=0),
+        z=functor_factories.expr_fn(I.x + I.y),
+    )
+    testing.assert_equal(kd.call(f, y=1), ds(1))
 
   def test_bind_py_fn(self):
     f = functor_factories.bind(
@@ -561,11 +560,10 @@ class FunctorFactoriesTest(absltest.TestCase):
       # which does not accept it.
       _ = kd.call(f, z=2)
 
-  # TODO: Make this work.
-  # def test_bind_as_kd_op(self):
-  #   fn = functor_factories.expr_fn(I.x + I.y)
-  #   f = kd.bind(fn, x=0, y=1)
-  #   testing.assert_equal(kd.call(f), ds(1))
+  def test_bind_as_kd_op(self):
+    fn = functor_factories.expr_fn(I.x + I.y)
+    f = kd.bind(fn, x=0, y=1)
+    testing.assert_equal(kd.call(f), ds(1))
 
   def test_bind_with_self(self):
     fn = functor_factories.expr_fn(I.x + I.y + I.self)

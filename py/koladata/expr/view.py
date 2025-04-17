@@ -547,7 +547,7 @@ class KodaView(arolla.abc.ExprView):
     _raise_eager_only_method('to_pytree', 'DataSlice')
 
   # Eager-only DataItem methods.
-  def bind(self, *args, **kwargs):  # pylint: disable=unused-argument
+  def bind(self, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('bind', 'DataItem')
 
   # Eager-only ListItem methods

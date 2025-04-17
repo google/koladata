@@ -97,6 +97,7 @@ cc_library(
     deps = [
         ":expr_operators",
         ":init",
+        ":non_determinism",
         "//koladata/internal:non_deterministic_token",
         "//koladata/internal/op_utils:error",
         "@com_google_absl//absl/base:core_headers",
@@ -116,6 +117,20 @@ cc_library(
         "@com_google_arolla//arolla/serving",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "non_determinism",
+    srcs = ["non_determinism.cc"],
+    hdrs = ["non_determinism.h"],
+    deps = [
+        ":init",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/expr",
     ],
 )
 

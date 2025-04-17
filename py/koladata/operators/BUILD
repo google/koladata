@@ -130,8 +130,8 @@ koladata_py_extension(
         "py_unified_binding_policy.h",
     ],
     deps = [
-        "//koladata/expr:expr_eval",
         "//koladata/expr:expr_operators",
+        "//koladata/expr:non_determinism",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",

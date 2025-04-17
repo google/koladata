@@ -37,6 +37,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "koladata/expr/expr_operators.h"
+#include "koladata/expr/non_determinism.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/error.h"
 #include "arolla/expr/eval/verbose_runtime_error.h"
