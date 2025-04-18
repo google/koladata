@@ -941,6 +941,7 @@ b = kd.slice([4, 5, 6])
 # Use infix operator
 a & (a > 1) # [None, None, 3]
 kd.apply_mask(a, a > 1) # Same as above
+b & kd.has(a) # mask b based on a's presence
 
 # Use infix operator
 a | b # [1, 5, 3]
@@ -983,7 +984,9 @@ kd.inverse_select(
     kd.slice([kd.missing, kd.present, kd.present])
 )
 
-kd.select_present(kd.slice([1, None, 3]))
+a = kd.slice([1, None, 3])
+kd.select_present(a)
+kd.select(a, kd.has(a)) # same as above
 
 b = kd.slice([3, 2, 1])
 c = kd.slice([-1, 0, 1])
@@ -1490,6 +1493,13 @@ kd.shuffle(ds2, 1)  # Ex. -> [[4, None], [1, 2, 3]]
 # Shuffle items within the last two dimensions
 kd.shuffle(ds2.flatten(-2)).reshape_as(ds2)
 # Ex. -> [[4, 1, None], [3, 2]]
+
+# Split a DataSlice into train, test, validation
+# `examples` is a 1D slice loaded from a dataset
+shuffled_examples = kd.shuffle(examples)
+train_examples = shuffled_examples.S[:800]
+test_examples = shuffled_examples.S[800:900]
+validation_examples = shuffled_examples.S[900:]
 ```
 
 </section>
@@ -1515,6 +1525,8 @@ kd.ordinal_rank(ds1, descending=True)
 kd.sort(ds1)
 # Sort with descending order
 kd.sort(ds1, descending=True)
+# Sort based on sort_by
+kd.sort(ds1, sort_by=ds2)
 
 # Find the n-th element in the last dimension
 kd.sort(ds1).take(2)
