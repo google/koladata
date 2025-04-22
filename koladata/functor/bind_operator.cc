@@ -43,6 +43,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
+#include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
@@ -53,6 +54,7 @@ namespace koladata::functor {
 namespace {
 
 using ::arolla::Text;
+using ::arolla::TypedRef;
 using ::arolla::TypedValue;
 using ::arolla::expr::ExprNodePtr;
 using ::arolla::expr::Literal;
@@ -94,6 +96,7 @@ absl::StatusOr<ExprNodePtr> MakeNamedTupleOfVariables(
 }
 
 absl::StatusOr<ExprNodePtr> MakeCapturingLambdaExpr(
+    TypedRef return_type_as,
     absl::Span<const absl::string_view> variable_names) {
   ASSIGN_OR_RETURN(auto i_container, expr::InputContainer::Create("I"));
   ASSIGN_OR_RETURN(auto v_container, expr::InputContainer::Create("V"));
@@ -111,16 +114,19 @@ absl::StatusOr<ExprNodePtr> MakeCapturingLambdaExpr(
                                            i_container.CreateInput("kwargs")}));
   ASSIGN_OR_RETURN(kwargs[expr::kNonDeterministicParamName],
                    expr::GenNonDeterministicToken());
+  kwargs["return_type_as"] = Literal(TypedValue(return_type_as));
+
   return ::arolla::expr::BindOp("kd.functor.call", std::move(args),
                                 std::move(kwargs));
 }
 
 absl::StatusOr<DataSlice> CreateBind(
-    const DataSlice& fn, std::vector<absl::string_view> variable_names,
+    const DataSlice& fn, TypedRef return_type_as,
+    std::vector<absl::string_view> variable_names,
     std::vector<DataSlice> variable_values) {
   RETURN_IF_ERROR(ValidateFn(fn));
   ASSIGN_OR_RETURN(auto capturing_lambda_expr,
-                   MakeCapturingLambdaExpr(variable_names));
+                   MakeCapturingLambdaExpr(return_type_as, variable_names));
   auto capturing_lambda_slice = DataSlice::CreateFromScalar(
       arolla::expr::ExprQuote(std::move(capturing_lambda_expr)));
 
@@ -147,7 +153,7 @@ class BindOperator : public arolla::QExprOperator {
     return MakeBoundOperator(
         "kd.functor.bind",
         [fn_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
-         vars_slot = input_slots[1],
+         return_type_as_slot = input_slots[1], vars_slot = input_slots[2],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
             arolla::EvaluationContext* ctx,
             arolla::FramePtr frame) -> absl::Status {
@@ -156,8 +162,10 @@ class BindOperator : public arolla::QExprOperator {
               ops::GetFieldNames(vars_slot);
           std::vector<DataSlice> var_values =
               ops::GetValueDataSlices(vars_slot, frame);
-          ASSIGN_OR_RETURN(auto result, CreateBind(fn, std::move(var_names),
-                                                   std::move(var_values)));
+          ASSIGN_OR_RETURN(
+              auto result,
+              CreateBind(fn, TypedRef::FromSlot(return_type_as_slot, frame),
+                         std::move(var_names), std::move(var_values)));
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
         });
@@ -170,15 +178,17 @@ class BindOperator : public arolla::QExprOperator {
 absl::StatusOr<arolla::OperatorPtr> BindOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 3) {
-    return absl::InvalidArgumentError("requires exactly 3 arguments");
+  if (input_types.size() != 4) {
+    return absl::InvalidArgumentError("requires exactly 4 arguments");
   }
   if (input_types[0] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
         "requires first argument to be DataSlice");
   }
-  RETURN_IF_ERROR(ops::VerifyNamedTuple(input_types[1]));
-  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[2]));
+  // input_types[1] is the return type, which is not used to verify the
+  // signature.
+  RETURN_IF_ERROR(ops::VerifyNamedTuple(input_types[2]));
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[3]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<BindOperator>(input_types), input_types, output_type);
 }

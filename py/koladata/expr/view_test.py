@@ -677,6 +677,7 @@ class KodaViewTest(parameterized.TestCase):
               # Forbidden methods have divergent (self, *args, **kwargs)
               # signatures in order to catch any call.
               # go/keep-sorted start
+              'bind',
               'concat_lists',
               'dict',
               'dict_like',

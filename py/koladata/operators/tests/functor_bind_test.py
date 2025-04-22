@@ -16,11 +16,14 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import functions as fns
 from koladata.functor import boxing as _
+from koladata.functor import functor_factories
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import signature_utils
 
@@ -47,6 +50,14 @@ class FunctorBindTest(absltest.TestCase):
     fn = kde.functor.expr_fn(ds(arolla.quote(I.x + I.y)))
     bound_fn = kde.functor.bind(fn, x=5).eval()
     testing.assert_equal(bound_fn(y=7), ds(12))
+
+  def test_bind_returns_databag(self):
+    fn = functor_factories.expr_fn(I.x.get_bag())
+    x = fns.obj(q=1)
+    bound_fn = kde.functor.bind(fn, return_type_as=data_bag.DataBag).eval()
+    testing.assert_equal(
+        bound_fn(x=x, return_type_as=data_bag.DataBag), x.get_bag()
+    )
 
   def test_fn_is_not_ds(self):
     with self.assertRaisesRegex(

@@ -1028,7 +1028,7 @@ def for_(
     ],
     deterministic=False,
 )
-def bind(fn_def, **kwargs):
+def bind(fn_def, return_type_as=data_slice.DataSlice, **kwargs):
   """Returns a Koda functor that partially binds a function to `kwargs`.
 
   This function is intended to work the same as functools.partial in Python.
@@ -1048,6 +1048,10 @@ def bind(fn_def, **kwargs):
 
   Args:
     fn_def: A Koda functor.
+    return_type_as: The return type of the functor is expected to be the same as
+      the type of this value. This needs to be specified if the functor does not
+      return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
+      passed here.
     **kwargs: Partial parameter binding. The values in this map may be
       DataItems. This function creates auxiliary variables with names starting
       with '_aux_fn', so it is not recommended to pass variables with such
@@ -1056,7 +1060,7 @@ def bind(fn_def, **kwargs):
   Returns:
     A new Koda functor with some parameters bound.
   """
-  del fn_def, kwargs
+  del fn_def, return_type_as, kwargs
   raise NotImplementedError('implemented in the backend')
 
 
