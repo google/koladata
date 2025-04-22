@@ -34,7 +34,6 @@ class KodaInternalParallelGetEagerExecutorTest(absltest.TestCase):
         koda_internal_parallel.get_eager_executor,
         [(qtypes.EXECUTOR,)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
-        + (qtypes.EXECUTOR,),
     )
 
   def test_view(self):

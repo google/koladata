@@ -34,7 +34,7 @@ class Executor {
   // Note that there is no error propagation logic in the executor, since
   // the errors can be specific to one of many tasks executed by the same
   // executor. The error propagation should be done inside the task function.
-  using TaskFn = absl::AnyInvocable<void()>;
+  using TaskFn = absl::AnyInvocable<void() &&>;
 
   // Returns the uuid of the executor. This is a randomly generated
   // fingerprint, unique for each executor instance, that is used to compute

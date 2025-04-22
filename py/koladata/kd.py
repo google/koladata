@@ -91,6 +91,7 @@ types.Iterable = _iterable_qvalue.Iterable
 qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))
 qtypes.DATA_SLICE = _qtypes.DATA_SLICE
 qtypes.DATA_BAG = _qtypes.DATA_BAG
+qtypes.EXECUTOR = _qtypes.EXECUTOR
 
 ### Tools for defining operators.
 optools = _eager_only(_py_types.ModuleType('optools'))

@@ -56,9 +56,10 @@ DETECT_SIGNATURES_QTYPES = tuple(
     dict.fromkeys(
         arolla.testing.DETECT_SIGNATURES_DEFAULT_QTYPES
         + (
-            qtypes.JAGGED_SHAPE,
+            JAGGED_SHAPE,
             DATA_BAG,
             DATA_SLICE,
+            qtypes.EXECUTOR,
             qtypes.NON_DETERMINISTIC_TOKEN,
             EMPTY_TUPLE,
             EMPTY_NAMEDTUPLE,

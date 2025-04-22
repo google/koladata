@@ -16,6 +16,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "absl/base/no_destructor.h"
 #include "absl/status/status.h"
@@ -28,7 +29,7 @@ namespace {
 class EagerExecutorImpl : public Executor {
  public:
   absl::Status Schedule(TaskFn task_fn) override {
-    task_fn();
+    std::move(task_fn)();
     return absl::OkStatus();
   }
 
