@@ -65,6 +65,7 @@ py_library(
     srcs = ["kde_operators.py"],
     deps = [
         ":cc_operators_lib",
+        ":koda_internal_parallel",
         ":optools",
         ":py",
         "@com_google_arolla//py/arolla",
@@ -742,6 +743,7 @@ py_library(
         ":qtype_utils",
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/functor/parallel:operators",
+        "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
 )

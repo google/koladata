@@ -169,6 +169,9 @@ def as_qvalue_or_expr_with_py_function_to_py_object_support(
   return as_qvalue_or_expr(arg)
 
 
+_arolla_as_qvalue_or_expr = arolla.types.as_qvalue_or_expr
+
+
 def as_qvalue(arg: Any) -> arolla.QValue:
   """Converts Python values into QValues."""
   qvalue_or_expr = as_qvalue_or_expr(arg)
@@ -213,3 +216,5 @@ arolla.abc.register_classic_aux_binding_policy_with_custom_boxing(
 WITH_PY_FUNCTION_TO_PY_OBJECT = (
     'as_qvalue_or_expr_with_py_function_to_py_object_support'
 )
+
+WITH_AROLLA_BOXING = '_arolla_as_qvalue_or_expr'

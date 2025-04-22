@@ -12,12 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include <cstdint>
 #include <memory>
 
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/functor/parallel/asio_executor.h"
 #include "koladata/functor/parallel/async_eval_operator.h"
+#include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future_operators.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/optools.h"
 #include "arolla/qtype/qtype.h"
@@ -44,6 +51,16 @@ OPERATOR("koda_internal.parallel.is_future_qtype",
          [](arolla::QTypePtr qtype) -> arolla::OptionalUnit {
            return arolla::OptionalUnit(IsFutureQType(qtype));
          });
+OPERATOR("koda_internal.parallel.make_asio_executor",
+         [](int64_t num_threads,
+            internal::NonDeterministicToken) -> absl::StatusOr<ExecutorPtr> {
+           if (num_threads < 0) {
+             return absl::InvalidArgumentError(absl::StrCat(
+                 "`num_threads` must be non-negative, but got: ", num_threads));
+           }
+           return MakeAsioExecutor(num_threads);
+         });
+
 // go/keep-sorted end
 
 }  // namespace

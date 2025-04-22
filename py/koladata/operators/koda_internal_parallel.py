@@ -18,13 +18,42 @@ from arolla import arolla
 from koladata.operators import bootstrap
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.types import py_boxing
+
 
 P = arolla.P
 
 async_eval = arolla.abc.lookup_operator('koda_internal.parallel.async_eval')
+get_default_executor = arolla.abc.lookup_operator(
+    'koda_internal.parallel.get_default_executor'
+)
 get_eager_executor = arolla.abc.lookup_operator(
     'koda_internal.parallel.get_eager_executor'
 )
+
+EXECUTOR = arolla.M.qtype.qtype_of(get_eager_executor())
+
+
+@arolla.optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.make_asio_executor',
+    qtype_constraints=[
+        arolla.optools.constraints.expect_scalar_integer(P.num_threads),
+    ],
+    qtype_inference_expr=EXECUTOR,
+    custom_boxing_fn_name_per_parameter=dict(
+        num_threads=py_boxing.WITH_AROLLA_BOXING,
+    ),
+    deterministic=False,
+)
+def make_asio_executor(num_threads=0):
+  """Returns a new executor based on boost::asio::thread_pool.
+
+  Args:
+    num_threads: The number of threads to use. Must be non-negative; 0 means
+      that the number of threads is selected automatically.
+  """
+  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry(view=None)

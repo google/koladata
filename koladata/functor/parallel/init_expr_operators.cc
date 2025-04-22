@@ -15,26 +15,45 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "koladata/expr/expr_operators.h"
+#include "koladata/functor/parallel/default_executor.h"
 #include "koladata/functor/parallel/eager_executor.h"
 #include "koladata/functor/parallel/expr_operators.h"
-#include "arolla/expr/expr.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/lambda_expr_operator.h"
 #include "arolla/expr/registered_expr_operator.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
+
+using ::arolla::TypedValue;
+using ::arolla::expr::ExprOperatorSignature;
+using ::arolla::expr::LambdaOperator;
+using ::arolla::expr::RegisterOperator;
+using ::koladata::expr::MakeLiteral;
 
 AROLLA_INITIALIZER(
         .name = "arolla_operators/koda_functor_parallel",
         .reverse_deps = {arolla::initializer_dep::kOperators},
         .init_fn = []() -> absl::Status {
           RETURN_IF_ERROR(
-              RegisterOperator("koda_internal.parallel.get_eager_executor",
-                               arolla::expr::MakeLambdaOperator(
-                                   arolla::expr::ExprOperatorSignature{},
-                                   arolla::expr::Literal(GetEagerExecutor())))
+              RegisterOperator(
+                  "koda_internal.parallel.get_eager_executor",
+                  LambdaOperator::Make(
+                      "kd.parallel.get_eager_executor", ExprOperatorSignature{},
+                      MakeLiteral(TypedValue::FromValue(GetEagerExecutor())),
+                      "Returns the eager executor."))
+                  .status());
+          RETURN_IF_ERROR(
+              RegisterOperator(
+                  "koda_internal.parallel.get_default_executor",
+                  LambdaOperator::Make(
+                      "kd.parallel.get_default_executor",
+                      ExprOperatorSignature{},
+                      MakeLiteral(TypedValue::FromValue(GetDefaultExecutor())),
+                      "Returns the default executor."))
                   .status());
           RETURN_IF_ERROR(arolla::expr::RegisterOperator<AsyncEvalOp>(
                               "koda_internal.parallel.async_eval")
