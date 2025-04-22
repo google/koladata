@@ -23,6 +23,9 @@ namespace koladata::functor {
 // kd.functor.is_fn operator.
 absl::StatusOr<DataSlice> IsFn(const DataSlice& x);
 
+// kd.functor.has_fn operator.
+absl::StatusOr<DataSlice> HasFn(const DataSlice& x);
+
 }  // namespace koladata::functor
 
 #endif  // KOLADATA_FUNCTOR_IS_FN_OPERATOR_H_

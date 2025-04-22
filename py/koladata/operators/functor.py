@@ -396,7 +396,30 @@ def select_items(ds, fltr):
     qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
 )
 def is_fn(x):  # pylint: disable=unused-argument
-  """Returns `present` iff `x` is a functor."""
+  """Returns `present` iff `x` is a scalar functor.
+
+  See `kd.functor.has_fn` for the corresponding pointwise version.
+
+  Args:
+    x: DataSlice to check.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.has_fn'])
+@optools.as_backend_operator(
+    'kd.functor.has_fn',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)]
+)
+def has_fn(x):  # pylint: disable=unused-argument
+  """Returns `present` for each item in `x` that is a functor.
+
+  Note that this is a pointwise operator. See `kd.functor.is_fn` for the
+  corresponding scalar version.
+
+  Args:
+    x: DataSlice to check.
+  """
   raise NotImplementedError('implemented in the backend')
 
 

@@ -351,9 +351,17 @@ cc_library(
     hdrs = ["is_fn_operator.h"],
     deps = [
         ":functor",
+        "//koladata:data_bag",
         "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal/op_utils:presence_and",
         "//koladata/operators:lib",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )
