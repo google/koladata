@@ -505,6 +505,11 @@ class KodaViewTest(parameterized.TestCase):
         op(C.x) >> op(C.y), kde.bags.enriched(op(C.x), op(C.y))
     )
 
+  def test_bind(self):
+    testing.assert_non_deterministic_exprs_equal(
+        C.fn.bind(x=17), kde.bind(C.fn, x=17)
+    )
+
   def test_unpacking(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
     expr = op(I.x, I.y)
