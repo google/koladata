@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x70dfbac15d90>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x7010bb1d1210>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x70dfbac15d90>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x7010bb1d1210>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -2880,9 +2880,15 @@ Aliases:
 ``` {.no-copy}
 Converts `x` to a DataSlice of JSON strings.
 
-Data with STRING, BYTES, numeric, MASK, BOOLEAN, LIST, STRING-key DICT, and
-entity schemas are allowed, along with OBJECT schemas that resolve to those
-schemas. Itemid cycles are not allowed.
+The following schemas are allowed:
+- STRING, BYTES, INT32, INT64, FLOAT32, FLOAT64, MASK, BOOLEAN
+- LIST[T] where T is an allowed schema
+- DICT{K, V} where K is one of {STRING, BYTES, INT32, INT64}, and V is an
+  allowed schema
+- Entity schemas where all attribute values have allowed schemas
+- OBJECT schemas resolving to allowed schemas
+
+Itemid cycles are not allowed.
 
 Missing DataSlice items in the input are missing in the result. Missing values
 inside of lists/entities/etc. are encoded as JSON `null`, except for
@@ -4941,6 +4947,40 @@ Args:
 
 Returns:
   Sampled DataSlice.
+```
+
+### `kd.random.shuffle(x, /, ndim=unspecified, seed=unspecified)` {#kd.random.shuffle}
+Aliases:
+
+- [kd.shuffle](#kd.shuffle)
+
+``` {.no-copy}
+Randomly shuffles a DataSlice along a single dimension (last by default).
+
+If `ndim` is not specified, items are shuffled in the last dimension.
+If `ndim` is specified, then the dimension `ndim` from the last is shuffled,
+equivalent to `kd.explode(kd.shuffle(kd.implode(x, ndim)), ndim)`.
+
+When `seed` is not specified, the results are different across multiple
+invocations given the same input.
+
+For example:
+
+  kd.shuffle(kd.slice([[1, 2, 3], [4, 5], [6]]))
+  -> kd.slice([[3, 1, 2], [5, 4], [6]]) (possible output)
+
+  kd.shuffle(kd.slice([[1, 2, 3], [4, 5]]), ndim=1)
+  -> kd.slice([[4, 5], [6], [1, 2, 3]]) (possible output)
+
+Args:
+  x: DataSlice to shuffle.
+  ndim: The index of the dimension to shuffle, from the end (0 = last dim).
+    The last dimension is shuffled if this is unspecified.
+  seed: Seed for the random number generator. The same input with the same
+    seed generates the same random numbers.
+
+Returns:
+  Shuffled DataSlice.
 ```
 
 </section>
@@ -9259,6 +9299,10 @@ Returns a copy of `x` with the provided `schema`.
 ### `kd.shallow_clone(x, /, *, itemid=unspecified, schema=unspecified, **overrides)` {#kd.shallow_clone}
 
 Alias for [kd.core.shallow_clone](#kd.core.shallow_clone) operator.
+
+### `kd.shuffle(x, /, ndim=unspecified, seed=unspecified)` {#kd.shuffle}
+
+Alias for [kd.random.shuffle](#kd.random.shuffle) operator.
 
 ### `kd.size(x)` {#kd.size}
 
