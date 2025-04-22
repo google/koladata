@@ -36,6 +36,13 @@ class Executor {
   // executor. The error propagation should be done inside the task function.
   using TaskFn = absl::AnyInvocable<void() &&>;
 
+  // Default constructor.
+  Executor() = default;
+
+  // Disable copy and move semantics.
+  Executor(const Executor&) = delete;
+  Executor& operator=(const Executor&) = delete;
+
   // Returns the uuid of the executor. This is a randomly generated
   // fingerprint, unique for each executor instance, that is used to compute
   // the fingerprint of the executor QValue.
@@ -47,6 +54,9 @@ class Executor {
   // Returns the string representation of the executor.
   virtual std::string Repr() const = 0;
 
+  // Note: The destructor should not wait for scheduled tasks.
+  // Unstarted tasks may be skipped, and already running tasks may be cancelled
+  // (if possible).
   virtual ~Executor() = default;
 
  private:

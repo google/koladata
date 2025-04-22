@@ -68,6 +68,71 @@ cc_test(
 )
 
 cc_library(
+    name = "default_executor",
+    srcs = ["default_executor.cc"],
+    hdrs = ["default_executor.h"],
+    deps = [
+        ":default_asio_executor",
+        ":executor",
+    ],
+)
+
+cc_library(
+    name = "default_asio_executor",
+    srcs = ["default_asio_executor.cc"],
+    hdrs = ["default_asio_executor.h"],
+    deps = [
+        ":executor",
+        "@boost.asio//:boost.asio",
+        "@boost.throw_exception//:boost.throw_exception",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/status",
+    ],
+)
+
+cc_test(
+    name = "default_asio_executor_test",
+    srcs = ["default_asio_executor_test.cc"],
+    deps = [
+        ":default_asio_executor",
+        ":executor",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "asio_executor",
+    srcs = ["asio_executor.cc"],
+    hdrs = ["asio_executor.h"],
+    deps = [
+        ":default_executor",
+        ":executor",
+        "@boost.asio//:boost.asio",
+        "@boost.throw_exception//:boost.throw_exception",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/status",
+    ],
+)
+
+cc_test(
+    name = "asio_executor_test",
+    srcs = ["asio_executor_test.cc"],
+    deps = [
+        ":asio_executor",
+        ":executor",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "init_expr_operators",
     srcs = ["init_expr_operators.cc"],
     deps = [
