@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x7010bb1d1210>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x1304bb6f5290>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x7010bb1d1210>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x1304bb6f5290>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -2021,6 +2021,42 @@ Creates a functor.
     A DataItem representing the functor.
 ```
 
+### `kd.functor.flat_map_chain(iterable, body_fn, value_type_as=DataItem(None, schema: NONE))` {#kd.functor.flat_map_chain}
+Aliases:
+
+- [kd.flat_map_chain](#kd.flat_map_chain)
+
+```` {.no-copy}
+Executes flat maps over the given iterable.
+
+`body_fn` is called for each item in the iterable, and must return an
+iterable of the same type as the input iterable. The resulting iterable is
+then chained to get the final result.
+
+If `body_fn=lambda x: kd.iterables.make(f(x), g(x))` and
+`iterable=kd.iterables.make(x1, x2)`, the resulting iterable will be
+`kd.iterables.make(f(x1), g(x1), f(x2), g(x2))`.
+
+Example:
+  ```
+  kd.functor.flat_map_chain(
+      kd.iterables.make(1, 10),
+      lambda x: kd.iterables.make(x, x * 2, x * 3),
+  )
+  ```
+  result: `kd.iterables.make(1, 2, 3, 10, 20, 30)`.
+
+Args:
+  iterable: The iterable to iterate over.
+  body_fn: The function to be executed for each item in the iterable. It will
+    receive the iterable item as the positional argument, and must return an
+    iterable of the same type as the input iterable.
+  value_type_as: The type to use as element type of the resulting iterable.
+
+Returns:
+  The resulting iterable as chained output of `body_fn`.
+````
+
 ### `kd.functor.fn(f, *, use_tracing=True, **kwargs)` {#kd.functor.fn}
 Aliases:
 
@@ -2149,6 +2185,21 @@ Retrieves the signature attached to the given functor.
 
   Returns:
     The signature(s) attached to the functor(s).
+```
+
+### `kd.functor.has_fn(x)` {#kd.functor.has_fn}
+Aliases:
+
+- [kd.has_fn](#kd.has_fn)
+
+``` {.no-copy}
+Returns `present` for each item in `x` that is a functor.
+
+Note that this is a pointwise operator. See `kd.functor.is_fn` for the
+corresponding scalar version.
+
+Args:
+  x: DataSlice to check.
 ```
 
 ### `kd.functor.if_(cond, yes_fn, no_fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.if_}
@@ -8432,6 +8483,10 @@ Alias for [kd.core.extract](#kd.core.extract) operator.
 
 Alias for [kd.core.extract_bag](#kd.core.extract_bag) operator.
 
+### `kd.flat_map_chain(iterable, body_fn, value_type_as=DataItem(None, schema: NONE))` {#kd.flat_map_chain}
+
+Alias for [kd.functor.flat_map_chain](#kd.functor.flat_map_chain) operator.
+
 ### `kd.flatten(x, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#kd.flatten}
 
 Alias for [kd.shapes.flatten](#kd.shapes.flatten) operator.
@@ -8705,6 +8760,10 @@ Alias for [kd.dicts.has_dict](#kd.dicts.has_dict) operator.
 ### `kd.has_entity(x)` {#kd.has_entity}
 
 Alias for [kd.core.has_entity](#kd.core.has_entity) operator.
+
+### `kd.has_fn(x)` {#kd.has_fn}
+
+Alias for [kd.functor.has_fn](#kd.functor.has_fn) operator.
 
 ### `kd.has_list(x)` {#kd.has_list}
 
