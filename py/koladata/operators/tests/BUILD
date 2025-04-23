@@ -813,6 +813,26 @@ py_test(
 )
 
 py_test(
+    name = "functor_flat_map_interleaved_test",
+    srcs = ["functor_flat_map_interleaved_test.py"],
+    deps = [
+        "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor:boxing",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:koda_internal_iterables",
+        "//py/koladata/operators:optools",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:iterable_qvalue",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "math_pos_test",
     srcs = ["math_pos_test.py"],
     deps = [

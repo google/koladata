@@ -1093,32 +1093,38 @@ def _create_for_flat_map_step_signature():
   return signature_utils.signature([
       signature_utils.parameter('item', kind_enum.POSITIONAL_ONLY),
       signature_utils.parameter(
-          '_koda_flat_map_chain_body_fn', kind_enum.KEYWORD_ONLY
+          '_koda_flat_map_body_fn', kind_enum.KEYWORD_ONLY
       ),
       signature_utils.parameter('_return_type_as', kind_enum.KEYWORD_ONLY),
   ])
 
 
-def _create_for_flat_map_step_fn():
-  """Creates a functor used to express 'body' step of the for flat_map_chain."""
+def _create_for_flat_map_step_fn(interleaved=False):
+  """Creates a functor used to express 'body' step of the for flat_map_[chain|interleaved]."""
   I = input_container.InputContainer('I')  # pylint: disable=invalid-name
 
   internal_call = arolla.abc.bind_op(
       call,
-      fn=I['_koda_flat_map_chain_body_fn'],
+      fn=I['_koda_flat_map_body_fn'],
       args=arolla.M.core.make_tuple(I.item),
       return_type_as=I['_return_type_as'],
       **optools.unified_non_deterministic_kwarg(),
   )
 
-  returns = tuple_operators.make_namedtuple(yields=internal_call)
+  if interleaved:
+    returns = tuple_operators.make_namedtuple(yields_interleaved=internal_call)
+  else:
+    returns = tuple_operators.make_namedtuple(yields=internal_call)
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(returns),
       _create_for_flat_map_step_signature(),
   )
 
 
-_FOR_FLAT_MAP_CHAIN_STEP_FN = _create_for_flat_map_step_fn()
+_FOR_FLAT_MAP_CHAIN_STEP_FN = _create_for_flat_map_step_fn(interleaved=False)
+_FOR_FLAT_MAP_INTERLEAVED_STEP_FN = _create_for_flat_map_step_fn(
+    interleaved=True
+)
 
 
 @optools.add_to_registry(aliases=['kd.flat_map_chain'])
@@ -1137,8 +1143,7 @@ def flat_map_chain(
   """Executes flat maps over the given iterable.
 
   `body_fn` is called for each item in the iterable, and must return an
-  iterable of the same type as the input iterable. The resulting iterable is
-  then chained to get the final result.
+  iterable. The resulting iterable is then chained to get the final result.
 
   If `body_fn=lambda x: kd.iterables.make(f(x), g(x))` and
   `iterable=kd.iterables.make(x1, x2)`, the resulting iterable will be
@@ -1156,8 +1161,8 @@ def flat_map_chain(
   Args:
     iterable: The iterable to iterate over.
     body_fn: The function to be executed for each item in the iterable. It will
-      receive the iterable item as the positional argument, and must return an
-      iterable of the same type as the input iterable.
+      receive the iterable item as the positional argument and must return an
+      iterable.
     value_type_as: The type to use as element type of the resulting iterable.
 
   Returns:
@@ -1171,7 +1176,67 @@ def flat_map_chain(
       yields=empty_iterable,
       initial_state=arolla.M.namedtuple.make(
           _koda_internal_iterable=iterable,
-          _koda_flat_map_chain_body_fn=body_fn,
+          _koda_flat_map_body_fn=body_fn,
+          _return_type_as=empty_iterable,
+      ),
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+
+@optools.add_to_registry(aliases=['kd.flat_map_interleaved'])
+@optools.as_lambda_operator(
+    'kd.functor.flat_map_interleaved',
+    qtype_constraints=(
+        qtype_utils.expect_iterable(P.iterable),
+        qtype_utils.expect_data_slice(P.body_fn),
+    ),
+)
+def flat_map_interleaved(
+    iterable,
+    body_fn,
+    value_type_as=data_slice.DataSlice,
+):
+  """Executes flat maps over the given iterable.
+
+  `body_fn` is called for each item in the iterable, and must return an
+  iterable. The resulting iterable is then interleaved to get the final result.
+  Please note that the order of the items in each functor output iterables is
+  preserved, while these iterables is not preserved.
+
+  If `body_fn=lambda x: kd.iterables.make(f(x), g(x))` and
+  `iterable=kd.iterables.make(x1, x2)`, the resulting iterable will be
+  `kd.iterables.make(f(x1), g(x1), f(x2), g(x2))` or `kd.iterables.make(f(x1),
+  f(x2), g(x1), g(x2))` or `kd.iterables.make(g(x1), f(x1), f(x2), g(x2))` or
+  `kd.iterables.make(g(x1), g(x2), f(x1), f(x2))`.
+
+  Example:
+    ```
+    kd.functor.flat_map_chain(
+        kd.iterables.make(1, 10),
+        lambda x: kd.iterables.make(x, x * 2, x * 3),
+    )
+    ```
+    result: `kd.iterables.make(1, 10, 2, 3, 20, 30)`.
+
+  Args:
+    iterable: The iterable to iterate over.
+    body_fn: The function to be executed for each item in the iterable. It will
+      receive the iterable item as the positional argument and must return an
+      iterable.
+    value_type_as: The type to use as element type of the resulting iterable.
+
+  Returns:
+    The resulting iterable as chained output of `body_fn`.
+  """
+  empty_iterable = iterables.make(value_type_as=value_type_as)
+  return arolla.abc.bind_op(
+      for_,
+      iterable=iterable,
+      body_fn=_FOR_FLAT_MAP_INTERLEAVED_STEP_FN,
+      yields_interleaved=empty_iterable,
+      initial_state=arolla.M.namedtuple.make(
+          _koda_internal_iterable=iterable,
+          _koda_flat_map_body_fn=body_fn,
           _return_type_as=empty_iterable,
       ),
       **optools.unified_non_deterministic_kwarg(),
