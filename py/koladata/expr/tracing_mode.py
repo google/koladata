@@ -217,13 +217,10 @@ def prepare_module_for_tracing(
   _Dispatcher.__name__ = mod.__name__
 
   for name in name_to_eager:
-    if name_to_eager[name] is name_to_tracing[name]:
-      setattr(_Dispatcher, name, name_to_eager[name])
-    else:
-      setattr(
-          _Dispatcher,
-          name,
-          _TracingDescriptor(name, name_to_eager[name], name_to_tracing[name]),
-      )
+    setattr(
+        _Dispatcher,
+        name,
+        _TracingDescriptor(name, name_to_eager[name], name_to_tracing[name]),
+    )
 
   return _Dispatcher(mod)

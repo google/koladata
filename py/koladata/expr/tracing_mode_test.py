@@ -95,6 +95,14 @@ class TracingModeTest(absltest.TestCase):
     self.assertIs(list(configs.keys())[0].obj, a)
     self.assertIs(list(configs.values())[0], a)
 
+  def test_same_when_tracing_with_functions(self):
+    configs = {}
+    mod = types.ModuleType('mod')
+    mod.__all__ = ['f']
+    mod.f = tracing_mode.same_when_tracing(configs, lambda x: x)
+    res = tracing_mode.prepare_module_for_tracing(mod, configs)
+    self.assertEqual(res.f(1), 1)
+
   def test_eager_only(self):
     configs = {}
     a = {'a': 1}
