@@ -56,7 +56,7 @@ function sizesToNodes(
     return {
       size: children.map((x) => x.size).reduce((x, y) => x + y, 0),
       children,
-      depth: children[0].depth + 1,
+      depth: Math.max(...children.map(x => x.depth)) + 1,
     };
   }
 }
@@ -262,6 +262,9 @@ export class MultiDimNav extends NanoElement {
   // attribute.
   private node: Node = {size: 0, depth: 0};
 
+  // Number of dimensions from the last read of data-sizes.
+  private numDimsFromSizes = 0;
+
   // Width of the cells in the last dimension (i.e. the bottom row)
   // of the visualization.
   private bottomCellWidth = 1;
@@ -320,8 +323,7 @@ export class MultiDimNav extends NanoElement {
   }
 
   get numDims() {
-    if (!this.node) return 0;
-    return this.node.depth + 1;
+    return this.numDimsFromSizes;
   }
 
   get totalSize() {
@@ -482,6 +484,7 @@ export class MultiDimNav extends NanoElement {
   ) {
     if (name === 'data-sizes') {
       const sizes = JSON.parse(newValue || '[]') as SizeSpec;
+      this.numDimsFromSizes = sizes.length;
       this.node = sizesToNodes(
         sizes,
         0,
