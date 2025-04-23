@@ -159,21 +159,47 @@ class NewTest(absltest.TestCase):
         ds([37, 42], schema_constants.INT64).with_bag(d.get_bag()),
     )
 
+  def test_schema_arg_dict_in_list(self):
+    list_schema = fns.list_schema(item_schema=schema_constants.OBJECT)
+    d = fns.new([{'a': 32}, {'b': 64}], schema=list_schema)
+    testing.assert_dicts_keys_equal(
+        d[:], ds([['a'], ['b']], schema_constants.OBJECT)
+    )
+    testing.assert_dicts_values_equal(
+        d[:], ds([[32], [64]], schema_constants.OBJECT)
+    )
+
   def test_schema_arg_dict_deep(self):
-    dict_schema = fns.dict_schema(
-        key_schema=schema_constants.INT64, value_schema=schema_constants.OBJECT
-    )
-    d = fns.new({42: {'a': 32}, 37: {'b': 57}}, schema=dict_schema)
-    # Keys are casted.
-    testing.assert_dicts_keys_equal(d, ds([42, 37], schema_constants.INT64))
-    inner_d1 = d[42]
-    inner_d2 = d[37]
-    testing.assert_dicts_keys_equal(
-        inner_d1, ds(['a'], schema_constants.OBJECT)
-    )
-    testing.assert_dicts_keys_equal(
-        inner_d2, ds(['b'], schema_constants.OBJECT)
-    )
+    with self.subTest('object value'):
+      dict_schema = fns.dict_schema(
+          key_schema=schema_constants.INT64,
+          value_schema=schema_constants.OBJECT,
+      )
+      d = fns.new({42: {'a': 32}, 37: {'b': 57}}, schema=dict_schema)
+      # Keys are casted.
+      testing.assert_dicts_keys_equal(d, ds([42, 37], schema_constants.INT64))
+      inner_d1 = d[42]
+      inner_d2 = d[37]
+      testing.assert_dicts_keys_equal(
+          inner_d1, ds(['a'], schema_constants.OBJECT)
+      )
+      testing.assert_dicts_keys_equal(
+          inner_d2, ds(['b'], schema_constants.OBJECT)
+      )
+
+    with self.subTest('object key'):
+      dict_schema = fns.dict_schema(
+          key_schema=schema_constants.OBJECT,
+          value_schema=schema_constants.INT64,
+      )
+      key1 = fns.obj(x=1)
+      key2 = fns.obj(y=2)
+
+      d = fns.new({key1: 123, key2: 456}, schema=dict_schema)
+      testing.assert_dicts_keys_equal(
+          d,
+          ds([key1, key2], schema_constants.OBJECT).with_bag(d.get_bag()),
+      )
 
   def test_schema_arg_dict_schema_error(self):
     list_schema = fns.list_schema(item_schema=schema_constants.FLOAT32)
@@ -542,7 +568,6 @@ assigned schema: FLOAT32"""),
     testing.assert_allclose(l[0]['x'][:].no_bag(), ds([1.0, 3.14, 3.0]))
 
   def test_universal_converter_deep_schema_caching(self):
-    t = tuple([1, 2, 3])
     t = tuple([1, 2, 3])
     s = fns.dict_schema(
         fns.list_schema(schema_constants.INT32),

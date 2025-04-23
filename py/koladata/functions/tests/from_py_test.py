@@ -156,9 +156,29 @@ class FromPyTest(parameterized.TestCase):
     l = fns.from_py([1, 3.14], schema=fns.list_schema(schema_constants.OBJECT))
     testing.assert_equal(l[:].no_bag(), ds([1, 3.14], schema_constants.OBJECT))
 
+    l = fns.from_py(
+        [{'a': 2, 'b': 4}, {'c': 6, 'd': 8}],
+        schema=fns.list_schema(
+            fns.dict_schema(schema_constants.STRING, schema_constants.INT32)
+        ),
+    )
+    testing.assert_equal(
+        l[:]['a'].no_bag(), ds([2, None], schema_constants.INT32)
+    )
+    testing.assert_equal(
+        l[:]['b'].no_bag(), ds([4, None], schema_constants.INT32)
+    )
+    testing.assert_equal(
+        l[:]['c'].no_bag(), ds([None, 6], schema_constants.INT32)
+    )
+    testing.assert_equal(
+        l[:]['d'].no_bag(), ds([None, 8], schema_constants.INT32)
+    )
+
   @parameterized.named_parameters(
       ('list', [1, 2, 3]),
       ('dict', {'a': 2, 'b': 4}),
+      ('list of dicts', [{'a': 2, 'b': 4}, {'c': 6, 'd': 8}]),
       ('empty_tuple', ()),
       ('tuple', (1, 2, 3)),
       ('obj', dataclasses.make_dataclass('Obj', [('x', int)])(x=123)),
@@ -309,8 +329,36 @@ assigned schema: INT32"""),
     testing.assert_equal(l3, ds([1, 2]))
 
   def test_empty_from_dim(self):
-    l0 = fns.from_py([], from_dim=1)
-    testing.assert_equal(l0, ds([]).with_bag(l0.get_bag()))
+    l0 = fns.from_py([], from_dim=0)
+    testing.assert_equal(
+        l0[:], ds([], schema_constants.OBJECT).with_bag(l0.get_bag())
+    )
+
+    l1 = fns.from_py([], from_dim=1)
+    testing.assert_equal(l1, ds([]).with_bag(l1.get_bag()))
+
+  def test_empty_list_of_lists_with_schema(self):
+    schema1 = fns.list_schema(schema_constants.FLOAT64)
+    schema2 = fns.list_schema(schema1)
+    l0 = fns.from_py([], schema=schema2)
+    testing.assert_equal(
+        l0[:],
+        ds([], schema1).with_bag(l0.get_bag()),
+    )
+
+  def test_empty_dict_of_dicts_with_schema(self):
+    schema1 = fns.dict_schema(
+        key_schema=schema_constants.STRING,
+        value_schema=schema_constants.FLOAT64,
+    )
+    schema2 = fns.dict_schema(
+        key_schema=schema_constants.STRING, value_schema=schema1
+    )
+    l0 = fns.from_py({}, schema=schema2)
+    testing.assert_equal(
+        l0[:],
+        ds([], schema1).with_bag(l0.get_bag()),
+    )
 
   def test_list_from_dim_with_schema(self):
     input_list = [[1, 2.0], [3, 4]]
@@ -330,7 +378,7 @@ assigned schema: INT32"""),
         schema=schema_constants.OBJECT,
         from_dim=0,
     )
-    self.assertEqual(l0.get_ndim(), 0)
+    self.assertEqual(l0_object.get_ndim(), 0)
 
     testing.assert_equal(
         l0_object[:][:].no_bag(),
@@ -376,6 +424,10 @@ assigned schema: INT32"""),
         d1[ds([['a', 'b'], ['c', 'd']])][:].no_bag(),
         ds([[[1, 2], [42]], [[3, 4], [34]]], schema_constants.OBJECT),
     )
+
+  def test_empty_dict(self):
+    d0 = fns.from_py({})
+    testing.assert_dicts_keys_equal(d0, ds([], schema_constants.OBJECT))
 
   def test_from_dim_error(self):
     input_list = [[1, 2, 3], 4]
@@ -463,6 +515,95 @@ assigned schema: INT32"""),
     self.assertFalse(d.is_dict())
     testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
     testing.assert_equal(d.a, ds(2).with_bag(d.get_bag()))
+
+  def test_dict_as_obj_if_schema_provided_with_nested_object(self):
+    schema = fns.named_schema(
+        'foo', a=schema_constants.INT32, b=schema_constants.OBJECT
+    )
+    d = fns.from_py({'a': 2, 'b': {'x': 'abc'}}, schema=schema)
+    self.assertFalse(d.is_dict())
+    testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
+
+  def test_obj_in_list_if_schema_provided(self):
+    @dataclasses.dataclass
+    class TestClass:
+      a: int
+
+    with self.subTest('list of dicts as objects'):
+      schema = fns.list_schema(
+          fns.named_schema('foo', a=schema_constants.INT32)
+      )
+      d = fns.from_py([{'a': 2}, {'a': 3}], schema=schema, dict_as_obj=True)
+      self.assertFalse(d.is_dict())
+      testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
+      testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
+
+    with self.subTest('list of data items'):
+      db = fns.bag().empty()
+      entity_schema = db.named_schema('foo', a=schema_constants.INT32)
+      ds1 = db.new(a=2, schema=entity_schema)
+      ds2 = db.new(a=3, schema=entity_schema)
+      schema = db.list_schema(entity_schema)
+      d = fns.from_py([ds1, ds2], schema=schema)
+      self.assertFalse(d.is_dict())
+      testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
+      testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
+
+    with self.subTest('list of dataclasses'):
+      ds1 = TestClass(a=2)
+      ds2 = TestClass(a=3)
+      schema = fns.list_schema(
+          fns.named_schema('foo', a=schema_constants.INT32)
+      )
+      d = fns.from_py([ds1, ds2], schema=schema)
+      self.assertFalse(d.is_dict())
+      testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
+      testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
+
+    with self.subTest('entities mixed with dataclasses'):
+      entity_schema = fns.named_schema('foo', a=schema_constants.INT32)
+      schema = fns.list_schema(entity_schema)
+      entity = fns.new(a=2, schema=entity_schema)
+      obj = TestClass(a=3)
+      x = fns.from_py([obj, entity], schema=schema, dict_as_obj=True)
+      self.assertFalse(x.is_dict())
+      testing.assert_equal(x.get_schema(), schema.with_bag(x.get_bag()))
+      testing.assert_equal(x[:].a, ds([3, 2]).with_bag(x.get_bag()))
+
+      x = fns.from_py([entity, obj], schema=schema, dict_as_obj=True)
+      self.assertFalse(x.is_dict())
+      testing.assert_equal(x.get_schema(), schema.with_bag(x.get_bag()))
+      testing.assert_equal(x[:].a, ds([2, 3]).with_bag(x.get_bag()))
+
+    with self.subTest('entities mixed with dicts'):
+      entity_schema = fns.named_schema('foo', a=schema_constants.INT32)
+      schema = fns.list_schema(entity_schema)
+      entity = fns.new(a=2, schema=entity_schema)
+      d = {'a': 3}
+      x = fns.from_py([d, entity], schema=schema, dict_as_obj=True)
+      self.assertFalse(x.is_dict())
+      testing.assert_equal(x.get_schema(), schema.with_bag(x.get_bag()))
+      testing.assert_equal(x[:].a, ds([3, 2]).with_bag(x.get_bag()))
+
+    with self.subTest(
+        'fails when entities with a different schema are mixed with dicts or'
+        ' dataclasses'
+    ):
+      d = {'a': 3}
+      obj = TestClass(a=4)
+
+      schema = fns.list_schema(
+          fns.named_schema('foo', a=schema_constants.INT32)
+      )
+
+      with self.assertRaisesRegex(
+          ValueError,
+          'cannot find a common schema',
+      ):
+        _ = fns.from_py([obj, fns.new(a=2)], schema=schema, dict_as_obj=True)
+
+      with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
+        _ = fns.from_py([fns.new(a=2), d], schema=schema, dict_as_obj=True)
 
   def test_dict_as_obj_object(self):
     obj = fns.from_py(
@@ -607,21 +748,36 @@ assigned schema: SCHEMA(x=INT32)'''
     self.assertFalse(b.is_dict())
 
   def test_dataclasses_with_schema(self):
+
+    @dataclasses.dataclass
+    class TestClass:
+      a: float
+      b: NestedKlass
+      c: bytes
+      d: list[int]
+
+    list_schema1 = fns.list_schema(schema_constants.INT32)
+    list_schema2 = fns.list_schema(list_schema1)
+
     schema = fns.schema.new_schema(
         a=schema_constants.FLOAT32,
         b=fns.schema.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
+        d=list_schema2,
     )
     entity = fns.from_py(
-        TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
+        TestClass(42, NestedKlass('abc'), b'xyz', []), schema=schema
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
-    self.assertCountEqual(fns.dir(entity), ['a', 'b', 'c'])
+    self.assertCountEqual(fns.dir(entity), ['a', 'b', 'c', 'd'])
     testing.assert_equal(entity.a.no_bag(), ds(42.0))
     b = entity.b
     testing.assert_equal(b.get_schema().no_bag(), schema.b.no_bag())
     testing.assert_equal(b.x.no_bag(), ds('abc'))
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
+    testing.assert_equal(
+        entity.d[:], ds([], list_schema1.with_bag(entity.get_bag()))
+    )
 
   def test_dataclasses_with_incomplete_schema(self):
     schema = fns.schema.new_schema(
@@ -1027,41 +1183,51 @@ assigned schema: SCHEMA(x=INT32)'''
       )
 
   def test_deep_dict_with_repetitions(self):
-    py_d = {'abc': 42}
+    py_d = {'abc': 42, 'def': 64}
     schema = fns.dict_schema(schema_constants.STRING, schema_constants.INT32)
     for _ in range(2):
       py_d = {12: py_d, 42: py_d}
       schema = fns.dict_schema(schema_constants.INT32, schema)
 
-    d = fns.from_py(py_d)
-    testing.assert_dicts_keys_equal(d, ds([12, 42], schema_constants.OBJECT))
-    d1 = d[12]
-    d2 = d[42]
-    testing.assert_dicts_keys_equal(d1, ds([12, 42], schema_constants.OBJECT))
-    testing.assert_dicts_keys_equal(d2, ds([12, 42], schema_constants.OBJECT))
-    d11 = d1[12]
-    d12 = d1[12]
-    d21 = d2[42]
-    d22 = d2[42]
-    testing.assert_dicts_keys_equal(d11, ds(['abc'], schema_constants.OBJECT))
-    testing.assert_dicts_keys_equal(d12, ds(['abc'], schema_constants.OBJECT))
-    testing.assert_dicts_keys_equal(d21, ds(['abc'], schema_constants.OBJECT))
-    testing.assert_dicts_keys_equal(d22, ds(['abc'], schema_constants.OBJECT))
+    with self.subTest('no schema'):
+      d = fns.from_py(py_d)
+      testing.assert_dicts_keys_equal(d, ds([12, 42], schema_constants.OBJECT))
+      d1 = d[12]
+      d2 = d[42]
+      testing.assert_dicts_keys_equal(d1, ds([12, 42], schema_constants.OBJECT))
+      testing.assert_dicts_keys_equal(d2, ds([12, 42], schema_constants.OBJECT))
+      d11 = d1[12]
+      d12 = d1[12]
+      d21 = d2[42]
+      d22 = d2[42]
+      testing.assert_dicts_keys_equal(
+          d11, ds(['abc', 'def'], schema_constants.OBJECT)
+      )
+      testing.assert_dicts_keys_equal(
+          d12, ds(['abc', 'def'], schema_constants.OBJECT)
+      )
+      testing.assert_dicts_keys_equal(
+          d21, ds(['abc', 'def'], schema_constants.OBJECT)
+      )
+      testing.assert_dicts_keys_equal(
+          d22, ds(['abc', 'def'], schema_constants.OBJECT)
+      )
 
-    d = fns.from_py(py_d, schema=schema)
-    testing.assert_dicts_keys_equal(d, ds([12, 42]))
-    d1 = d[12]
-    d2 = d[42]
-    testing.assert_dicts_keys_equal(d1, ds([12, 42]))
-    testing.assert_dicts_keys_equal(d2, ds([12, 42]))
-    d11 = d1[12]
-    d12 = d1[12]
-    d21 = d2[42]
-    d22 = d2[42]
-    testing.assert_dicts_keys_equal(d11, ds(['abc']))
-    testing.assert_dicts_keys_equal(d12, ds(['abc']))
-    testing.assert_dicts_keys_equal(d21, ds(['abc']))
-    testing.assert_dicts_keys_equal(d22, ds(['abc']))
+    with self.subTest('with schema'):
+      d = fns.from_py(py_d, schema=schema)
+      testing.assert_dicts_keys_equal(d, ds([12, 42]))
+      d1 = d[12]
+      d2 = d[42]
+      testing.assert_dicts_keys_equal(d1, ds([12, 42]))
+      testing.assert_dicts_keys_equal(d2, ds([12, 42]))
+      d11 = d1[12]
+      d12 = d1[12]
+      d21 = d2[42]
+      d22 = d2[42]
+      testing.assert_dicts_keys_equal(d11, ds(['abc', 'def']))
+      testing.assert_dicts_keys_equal(d12, ds(['abc', 'def']))
+      testing.assert_dicts_keys_equal(d21, ds(['abc', 'def']))
+      testing.assert_dicts_keys_equal(d22, ds(['abc', 'def']))
 
   def test_deep_dict_recursive_error(self):
     py_d = {'a': 42}
@@ -1162,6 +1328,31 @@ assigned schema: SCHEMA(x=INT32)'''
     bottom_l.append(level_1_l)
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
       fns.from_py(py_l, itemid=kde.uuid_for_list('list').eval())
+
+  def test_no_recursion_detected(self):
+    with self.subTest('list'):
+      py_l = [1, 2, 3]
+      py_l2 = [py_l, [py_l, [py_l, py_l]]]
+      _ = fns.from_py(py_l2)
+    with self.subTest('dict'):
+      py_d = {'a': 1, 'b': 2}
+      py_d2 = {'a': py_d, 'b': py_d}
+      _ = fns.from_py(py_d2)
+    with self.subTest('object'):
+      py_d = {'a': 1, 'b': 2}
+      py_d2 = {'a': {'b': py_d}, 'b': {'a': py_d}}
+      _ = fns.from_py(py_d2, dict_as_obj=True)
+
+    with self.subTest('different levels'):
+      x = [1]
+      _ = fns.from_py(
+          [x, [x], x],
+          schema=fns.list_schema(fns.list_schema(schema_constants.OBJECT)),
+      )
+      _ = fns.from_py(
+          [(), [()]],
+          schema=fns.list_schema(fns.list_schema(schema_constants.OBJECT)),
+      )
 
   def test_alias(self):
     obj = fns.from_pytree({'a': 42})
