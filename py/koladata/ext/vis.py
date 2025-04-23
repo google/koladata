@@ -702,6 +702,8 @@ def visualize_slice(
   # Global CSS primarily for breadcrumb and darkmode
   dark_mode_css = """
     kd-multi-dim-table {
+      --kd-ds-vis-message-color: lightgray;
+      --kd-ds-vis-shadow-color: #181818;
       --kd-multi-dim-table-background: #383838;
       color: white;
     }
@@ -791,6 +793,7 @@ def visualize_slice(
     }
 
     [slot="message"] {
+      color: var(--kd-ds-vis-message-color, unset);
       container-type: inline-size;
       filter: opacity(0.96);
       max-height: var(--kd-ds-vis-message-height);
@@ -801,7 +804,7 @@ def visualize_slice(
 
     [slot="message"][multi-line] {
       border-radius: 10px 10px 0 0;
-      box-shadow: 0 0 20px 0 lightgray inset;
+      box-shadow: 0 0 20px 0 var(--kd-ds-vis-shadow-color, lightgray) inset;
       padding: 10px;
     }
 
