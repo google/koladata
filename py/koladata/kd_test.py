@@ -306,7 +306,7 @@ class KdTest(absltest.TestCase):
 
   def test_check_inputs_is_traceable(self):
     def f(x):
-      @kd.eager.check_inputs(x=kd.INT32)
+      @kd.check_inputs(x=kd.INT32)
       def g(x):
         return x + 1
 
@@ -319,7 +319,7 @@ class KdTest(absltest.TestCase):
 
   def test_check_output_is_traceable(self):
     def f(x):
-      @kd.eager.check_output(kd.INT32)
+      @kd.check_output(kd.INT32)
       def g(x):
         return x + 1
 

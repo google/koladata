@@ -187,8 +187,8 @@ lazy = _eager_only(_kde_operators.kde)
 # TODO: Remove this alias once the migration is done.
 kde = _eager_only(_kde_operators.kde)
 named_container = _same_when_tracing(_expr_container.NamedContainer)
-check_inputs = _eager_only(_type_checking.check_inputs)
-check_output = _eager_only(_type_checking.check_output)
+check_inputs = _same_when_tracing(_type_checking.check_inputs)
+check_output = _same_when_tracing(_type_checking.check_output)
 
 expr = _eager_only(_py_types.ModuleType('expr'))
 expr.literal = _literal_operator.literal
