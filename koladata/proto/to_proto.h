@@ -19,6 +19,7 @@
 
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
@@ -33,6 +34,14 @@ namespace koladata {
 // The proto must be linked in the binary, otherwise returns nullptr.
 std::unique_ptr<::google::protobuf::Message> /*absl_nullable*/ CreateProtoMessagePrototype(
     absl::string_view message_name);
+
+// Finds a proto message with the given name and deserializes it from the
+// given serialized_proto.
+//
+// Returns an error if the message_name is not found in the generated descriptor
+// pool, or if the serialized_proto is not a valid proto message.
+absl::StatusOr<std::unique_ptr<::google::protobuf::Message>> DeserializeProtoByName(
+  absl::string_view message_name, absl::string_view serialized_proto);
 
 // Converts a rank-1 DataSlice to a list of proto messages of a single type.
 //

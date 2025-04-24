@@ -84,6 +84,36 @@ TEST(ToProtoTest, CreateMessagePrototype) {
             nullptr);
 }
 
+TEST(ToProtoTest, DeserializeProtoByName) {
+  koladata::testing::ExampleMessage orig;
+  orig.set_int32_field(123);
+  ASSERT_OK_AND_ASSIGN(auto message,
+                       DeserializeProtoByName("koladata.testing.ExampleMessage",
+                                              orig.SerializeAsString()));
+  ASSERT_NE(message, nullptr);
+  EXPECT_EQ(message->GetDescriptor()->full_name(),
+            "koladata.testing.ExampleMessage");
+  EXPECT_EQ(message->GetDescriptor(),
+            koladata::testing::ExampleMessage::descriptor());
+
+  auto* new_proto =
+      dynamic_cast<koladata::testing::ExampleMessage*>(message.get());
+  ASSERT_NE(new_proto, nullptr);
+  EXPECT_EQ(new_proto->int32_field(), 123);
+
+  EXPECT_THAT(
+      DeserializeProtoByName("koladata.prod.ExampleMessage",
+                             orig.SerializeAsString()),
+      StatusIs(absl::StatusCode::kNotFound,
+               "failed to create proto message koladata.prod.ExampleMessage"));
+  EXPECT_THAT(
+      DeserializeProtoByName("koladata.testing.ExampleMessage",
+                             "It is not a good proto!"),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "failed to parse proto message koladata.testing.ExampleMessage"));
+}
+
 TEST(ToProtoTest, AllMissingRootInput) {
   auto db = DataBag::Empty();
   auto schema = test::EntitySchema({}, {}, db);

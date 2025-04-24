@@ -520,7 +520,7 @@ absl::Status FillProtoMessageBreakRecursion(
 
 }  // namespace
 
-std::unique_ptr<::google::protobuf::Message> CreateProtoMessagePrototype(
+std::unique_ptr<::google::protobuf::Message> /*absl_nullable*/ CreateProtoMessagePrototype(
     absl::string_view message_name) {
   const Descriptor* descriptor =
       google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
@@ -569,5 +569,20 @@ absl::Status ToProto(
     return FillProtoMessage(slice, *message_descriptor, messages, executor);
   });
 }
+
+absl::StatusOr<std::unique_ptr<::google::protobuf::Message>> DeserializeProtoByName(
+  absl::string_view message_name, absl::string_view serialized_proto) {
+  auto message = CreateProtoMessagePrototype(message_name);
+  if (message == nullptr) {
+    return absl::NotFoundError(
+        absl::StrFormat("failed to create proto message %s", message_name));
+  }
+  if (!message->ParseFromString(serialized_proto)) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("failed to parse proto message %s", message_name));
+  }
+  return message;
+}
+
 
 }  // namespace koladata
