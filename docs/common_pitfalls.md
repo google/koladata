@@ -1399,3 +1399,50 @@ def f2():
 # The following line fails
 # kd.fn(f2)
 ```
+
+## Tracing with captured variables
+
+When tracing a Python function into a Functor that uses `kd.map_py` (or similar
+operators), we need to be careful to not accidentally capture variables. The
+following example showcases a variant of a family of problems related to this:
+
+```py
+def fn(ds, scalar_value):
+  def per_item_fn(x):
+    return x + scalar_value
+
+  return kd.map_py(per_item_fn, ds)
+
+functor = kd.fn(fn)  # Traces fine.
+# ValueError: object with unsupported type, arolla.abc.expr.Expr, for value:
+#
+#   DataItem(3, schema: INT32) + I.scalar_value
+# ...
+functor(kd.slice([1, 2, 3]), 1)
+```
+
+During tracing of `fn`, the function is called using `fn(I.ds, I.scalar_value)`.
+The `per_item_fn` captures the passed `scalar_value=I.scalar_value` rather than
+the materialized input provided during evaluation. During evaluation,
+`per_item_fn` is passed `x=kd.slice([1, 2, 3])` and returns `kd.slice([1, 2, 3])
++ I.scalar_value` rather than the intended `kd.slice([1, 2, 3]) + 1`.
+
+To fix this, the `scalar_value` should be passed as an input to `per_item_fn`:
+
+```py
+def fn(ds, scalar_value):
+  def per_item_fn(x, scalar_value):
+    return x + scalar_value
+
+  return kd.map_py(per_item_fn, ds, scalar_value)
+
+
+functor = kd.fn(fn)
+functor(kd.slice([1, 2, 3]), 1)  # [2, 3, 4]
+```
+
+Other errors may be seen for slightly different variations of the problem shown
+above.
+
+NOTE: As a rule-of-thumb, functions passed to `kd.map_py` should be pure and not
+reference captured variables.
