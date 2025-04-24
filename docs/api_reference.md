@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x1304bb6f5290>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x136c7ab9ad50>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x1304bb6f5290>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x136c7ab9ad50>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -2030,8 +2030,7 @@ Aliases:
 Executes flat maps over the given iterable.
 
 `body_fn` is called for each item in the iterable, and must return an
-iterable of the same type as the input iterable. The resulting iterable is
-then chained to get the final result.
+iterable. The resulting iterable is then chained to get the final result.
 
 If `body_fn=lambda x: kd.iterables.make(f(x), g(x))` and
 `iterable=kd.iterables.make(x1, x2)`, the resulting iterable will be
@@ -2049,8 +2048,47 @@ Example:
 Args:
   iterable: The iterable to iterate over.
   body_fn: The function to be executed for each item in the iterable. It will
-    receive the iterable item as the positional argument, and must return an
-    iterable of the same type as the input iterable.
+    receive the iterable item as the positional argument and must return an
+    iterable.
+  value_type_as: The type to use as element type of the resulting iterable.
+
+Returns:
+  The resulting iterable as chained output of `body_fn`.
+````
+
+### `kd.functor.flat_map_interleaved(iterable, body_fn, value_type_as=DataItem(None, schema: NONE))` {#kd.functor.flat_map_interleaved}
+Aliases:
+
+- [kd.flat_map_interleaved](#kd.flat_map_interleaved)
+
+```` {.no-copy}
+Executes flat maps over the given iterable.
+
+`body_fn` is called for each item in the iterable, and must return an
+iterable. The resulting iterable is then interleaved to get the final result.
+Please note that the order of the items in each functor output iterables is
+preserved, while these iterables is not preserved.
+
+If `body_fn=lambda x: kd.iterables.make(f(x), g(x))` and
+`iterable=kd.iterables.make(x1, x2)`, the resulting iterable will be
+`kd.iterables.make(f(x1), g(x1), f(x2), g(x2))` or `kd.iterables.make(f(x1),
+f(x2), g(x1), g(x2))` or `kd.iterables.make(g(x1), f(x1), f(x2), g(x2))` or
+`kd.iterables.make(g(x1), g(x2), f(x1), f(x2))`.
+
+Example:
+  ```
+  kd.functor.flat_map_chain(
+      kd.iterables.make(1, 10),
+      lambda x: kd.iterables.make(x, x * 2, x * 3),
+  )
+  ```
+  result: `kd.iterables.make(1, 10, 2, 3, 20, 30)`.
+
+Args:
+  iterable: The iterable to iterate over.
+  body_fn: The function to be executed for each item in the iterable. It will
+    receive the iterable item as the positional argument and must return an
+    iterable.
   value_type_as: The type to use as element type of the resulting iterable.
 
 Returns:
@@ -8486,6 +8524,10 @@ Alias for [kd.core.extract_bag](#kd.core.extract_bag) operator.
 ### `kd.flat_map_chain(iterable, body_fn, value_type_as=DataItem(None, schema: NONE))` {#kd.flat_map_chain}
 
 Alias for [kd.functor.flat_map_chain](#kd.functor.flat_map_chain) operator.
+
+### `kd.flat_map_interleaved(iterable, body_fn, value_type_as=DataItem(None, schema: NONE))` {#kd.flat_map_interleaved}
+
+Alias for [kd.functor.flat_map_interleaved](#kd.functor.flat_map_interleaved) operator.
 
 ### `kd.flatten(x, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#kd.flatten}
 
