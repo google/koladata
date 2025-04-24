@@ -28,6 +28,7 @@ from koladata.functions import functions as _functions
 from koladata.functor import boxing as _
 from koladata.functor import expr_container as _expr_container
 from koladata.functor import functions as _functor_functions
+from koladata.functor.parallel import clib as _functor_parallel_clib
 from koladata.operators import eager_op_utils as _eager_op_utils
 from koladata.operators import kde_operators as _kde_operators
 from koladata.operators import optools as _optools
@@ -80,12 +81,13 @@ types = _eager_only(_py_types.ModuleType('types'))
 types.DataBag = _data_bag.DataBag
 types.DataItem = _data_item.DataItem
 types.DataSlice = _data_slice.DataSlice
-types.ListItem = _list_item.ListItem
 types.DictItem = _dict_item.DictItem
-types.JaggedShape = _jagged_shape.JaggedShape
-types.SchemaItem = _schema_item.SchemaItem
+types.Executor = _functor_parallel_clib.Executor
 types.Expr = _arolla.Expr
 types.Iterable = _iterable_qvalue.Iterable
+types.JaggedShape = _jagged_shape.JaggedShape
+types.ListItem = _list_item.ListItem
+types.SchemaItem = _schema_item.SchemaItem
 
 ### Koda QTypes.
 qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))

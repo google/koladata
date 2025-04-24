@@ -44,6 +44,7 @@ py_library(
         "//py/koladata/functor:boxing",
         "//py/koladata/functor:expr_container",
         "//py/koladata/functor:functions",
+        "//py/koladata/functor/parallel:clib",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
