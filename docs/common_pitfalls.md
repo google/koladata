@@ -1143,6 +1143,29 @@ x == y  # [present, missing, missing]
 ~(x == y)  # [missing, present, present]
 ```
 
+## Mask comparison
+
+For masks, the behavior of `x == y` most closely resembles bitwise-AND, where
+`present` is 1 and `missing` is 0, and the result becomes `missing` if at least
+one of the values are missing. This is consistent with the equality behavior of
+other types such as `INT32`.
+
+In some scenarios, we want to check whether a mask value is equal to e.g.
+`missing`, and therefore return `present` if both values are `missing`. The
+behavior most closely resembles bitwise-equality. Here, `kd.mask_equal` comes in
+handy:
+
+```py
+x = kd.slice([kd.present, kd.present, kd.missing, kd.missing])
+y = kd.slice([kd.present, kd.missing, kd.present, kd.missing])
+
+x == y               # [present, missing, missing, missing]
+kd.mask_equal(x, y)  # [present, missing, missing, present]
+```
+
+There are corresponding operators for other comparisons: `kd.mask_and`,
+`kd.mask_not_equal`, `kd.mask_or` and the inversion operator `~`.
+
 ## List Updates are More Expensive than Entity/Dict Updates
 
 Entity attributes and dict key/value pairs can be updated using `with_attrs` and
