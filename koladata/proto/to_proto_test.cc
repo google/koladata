@@ -73,6 +73,17 @@ TEST(ToProtoTest, ZeroMessages) {
   EXPECT_OK(ToProto(slice, {}));
 }
 
+TEST(ToProtoTest, CreateMessagePrototype) {
+  auto message = CreateProtoMessagePrototype("koladata.testing.ExampleMessage");
+  ASSERT_NE(message, nullptr);
+  EXPECT_EQ(message->GetDescriptor()->full_name(),
+            "koladata.testing.ExampleMessage");
+  EXPECT_EQ(message->GetDescriptor(),
+            koladata::testing::ExampleMessage::descriptor());
+  EXPECT_EQ(CreateProtoMessagePrototype("koladata.prod.ExampleMessage"),
+            nullptr);
+}
+
 TEST(ToProtoTest, AllMissingRootInput) {
   auto db = DataBag::Empty();
   auto schema = test::EntitySchema({}, {}, db);

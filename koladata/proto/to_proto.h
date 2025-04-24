@@ -15,15 +15,24 @@
 #ifndef KOLADATA_PROTO_TO_PROTO_H_
 #define KOLADATA_PROTO_TO_PROTO_H_
 
+#include <memory>
 
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
 
 namespace koladata {
+
+// Helper function to create a prototype message for a given message_name.
+// Returns nullptr if the message_name is not found in the generated descriptor
+// pool.
+// The proto must be linked in the binary, otherwise returns nullptr.
+std::unique_ptr<::google::protobuf::Message> /*absl_nullable*/ CreateProtoMessagePrototype(
+    absl::string_view message_name);
 
 // Converts a rank-1 DataSlice to a list of proto messages of a single type.
 //

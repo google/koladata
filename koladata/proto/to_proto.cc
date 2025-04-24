@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -31,7 +32,6 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_slice.h"
-#include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/trampoline_executor.h"
 #include "koladata/operators/lists.h"
 #include "koladata/operators/masking.h"
@@ -519,6 +519,19 @@ absl::Status FillProtoMessageBreakRecursion(
 }
 
 }  // namespace
+
+std::unique_ptr<::google::protobuf::Message> CreateProtoMessagePrototype(
+    absl::string_view message_name) {
+  const Descriptor* descriptor =
+      google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
+          message_name);
+  if (descriptor == nullptr) {
+    return nullptr;
+  }
+  return std::unique_ptr<Message>(google::protobuf::MessageFactory::generated_factory()
+                                      ->GetPrototype(descriptor)
+                                      ->New());
+}
 
 absl::Status ToProto(
     const DataSlice& slice,

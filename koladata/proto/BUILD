@@ -87,7 +87,6 @@ cc_library(
     deps = [
         "//koladata:data_slice",
         "//koladata/internal:data_slice",
-        "//koladata/internal:dtype",
         "//koladata/internal/op_utils:trampoline_executor",
         "//koladata/operators:lib",
         "@com_google_absl//absl/base:core_headers",
