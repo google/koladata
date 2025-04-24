@@ -12,11 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import types
+
 from absl.testing import absltest
 from arolla import arolla
+from koladata.functions import functions
 from koladata.operators import kde_operators
 
 kde = kde_operators.kde
+
+FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS = frozenset([
+    # Mutating functions.
+    'del_attr',
+    'set_attr',
+    'set_attrs',
+    'set_schema',
+    'embed_schema',
+    'update_schema',
+    # Serialization and conversion.
+    'dumps',
+    'loads',
+    'from_proto',
+    'from_py',
+    'from_pytree',
+    'py_reference',
+    'to_proto',
+    'to_py',
+    'to_pylist',
+    'to_pytree',
+    'schema_from_proto',
+    'schema_from_py',
+    'schema.schema_from_py',
+    # Runtime type checking.
+    'is_expr',
+    'is_item',
+    'is_slice',
+    # Misc.
+    'container',
+    'core.container',
+    'dir',
+    'lists.concat',  # TODO: Add to `kde.lists` namespace.
+    'list',  # TODO: Remove this once `list` is added to `kde`.
+])
 
 
 class KdeOperatorsTest(absltest.TestCase):
@@ -45,6 +82,45 @@ class KdeOperatorsTest(absltest.TestCase):
         msg=(
             'operators directly in `kde` namespace without a corresponding'
             ' operator in a subnamespace'
+        ),
+    )
+
+  def test_all_functions_in_kde_operators(self):
+    sub_namespace_functions = set()
+    for ns_name in dir(functions):
+      ns = getattr(functions, ns_name)
+      if isinstance(ns, types.SimpleNamespace):
+        sub_namespace_functions.update(((ns_name, f) for f in dir(ns)))
+
+    missing_list = []
+    for f in dir(functions):
+      if (
+          isinstance(getattr(functions, f), types.SimpleNamespace)
+          or f.startswith('_')
+          or f in FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS
+      ):
+        continue
+      if not hasattr(kde, f):
+        missing_list.append(f)
+
+    for ns, f in sub_namespace_functions:
+      full_name = '%s.%s' % (ns, f)
+      if (
+          f.startswith('_')
+          or full_name in FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS
+      ):
+        continue
+      if isinstance(getattr(getattr(functions, ns), f), types.SimpleNamespace):
+        self.fail("This test doesn't expect nested namespaces.")
+
+      if not hasattr(getattr(kde, ns), f):
+        missing_list.append(full_name)
+
+    self.assertEmpty(
+        missing_list,
+        msg=(
+            'operators in functions namespace but not in kde_operators:'
+            f' {missing_list}'
         ),
     )
 

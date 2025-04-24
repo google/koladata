@@ -556,6 +556,7 @@ py_test(
     srcs = ["kde_operators_test.py"],
     deps = [
         ":kde_operators",
+        "//py/koladata/functions",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
