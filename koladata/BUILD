@@ -234,6 +234,35 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "jagged_shape_qtype",
+    srcs = ["jagged_shape_qtype.cc"],
+    hdrs = ["jagged_shape_qtype.h"],
+    deps = [
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_arolla//arolla/jagged_shape/dense_array",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "jagged_shape_qtype_test",
+    srcs = ["jagged_shape_qtype_test.cc"],
+    deps = [
+        ":jagged_shape_qtype",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/qtype",
+        "@com_google_arolla//arolla/jagged_shape/dense_array",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
+        "@com_google_arolla//arolla/jagged_shape/qtype",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "data_slice_test",
     srcs = ["data_slice_test.cc"],
