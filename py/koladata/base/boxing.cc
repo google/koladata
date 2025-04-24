@@ -24,6 +24,7 @@
 #include <functional>
 #include <optional>
 #include <stack>
+#include <string>
 #include <type_traits>
 #include <utility>
 #include <vector>
