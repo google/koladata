@@ -93,7 +93,6 @@ cc_library(
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
@@ -144,5 +143,33 @@ cc_test(
         "@com_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest",
         "@com_google_protobuf//:protobuf",
+    ],
+)
+
+cc_library(
+    name = "message_factory",
+    srcs = ["message_factory.cc"],
+    hdrs = ["message_factory.h"],
+    deps = [
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_protobuf//:protobuf",
+    ],
+)
+
+cc_test(
+    name = "message_factory_test",
+    srcs = ["message_factory_test.cc"],
+    deps = [
+        ":message_factory",
+        "//koladata/proto/testing:test_proto2_cc_proto",
+        "//koladata/proto/testing:test_proto3_cc_proto",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
     ],
 )
