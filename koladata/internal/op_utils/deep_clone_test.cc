@@ -633,6 +633,8 @@ TEST_P(DeepCloneTest, ObjectsSlice) {
   auto result_list1 = result_slice[8];
   ASSERT_OK_AND_ASSIGN((auto [result_a2_slice, _]),
                        result_db->GetDictKeys(result_dict1));
+  EXPECT_TRUE(result_dict0.holds_value<ObjectId>());
+  ASSERT_GT(result_a2_slice.size(), 0);
   auto result_a2 = result_a2_slice[0];
   ASSERT_OK_AND_ASSIGN(auto result_a3,
                        result_db->GetFromDict(result_dict1, result_a2));
@@ -869,7 +871,7 @@ TEST_P(DeepCloneTest, NoFollowSchema) {
       {result_a0, {{"x", result_a1}, {"y", result_a3}, {"z", result_a6}}},
       {result_a3, {{"x", result_a4}, {"y", result_l0}}},
       {result_a4, {{schema::kSchemaAttr, nofollow_s4}}},
-      {result_a6, {{"z", result_a6}}},
+      {result_a6, {{"z", result_a6}, {"x", DataItem()}}},
   };
   TriplesT expected_schema_triples = {
       {s0, {{"x", nofollow_s1}, {"y", s3}, {"z", s4}}},

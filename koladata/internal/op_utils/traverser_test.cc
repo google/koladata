@@ -158,6 +158,9 @@ class NoOpVisitor : AbstractVisitor {
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
                                     const DataItem& schema) override {
+    if (!item.holds_value<ObjectId>()) {
+      return value_item_;
+    }
     if (std::find(previsited_.begin(), previsited_.end(),
                   std::make_pair(item, schema)) == previsited_.end()) {
       return absl::InvalidArgumentError(absl::StrFormat(

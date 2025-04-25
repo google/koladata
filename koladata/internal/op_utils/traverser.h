@@ -20,22 +20,20 @@
 #include <memory>
 #include <stack>
 #include <string_view>
-#include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
-#include "absl/strings/str_format.h"
-#include "absl/strings/string_view.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
@@ -139,8 +137,7 @@ class Traverser {
  public:
   Traverser(const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
             std::shared_ptr<VisitorT> visitor)
-      : databag_(databag),
-        fallbacks_(fallbacks),
+      : traverse_helper_(databag, fallbacks),
         previsit_stack_(),
         topological_order_(),
         visitor_(std::move(visitor)) {
@@ -179,14 +176,12 @@ class Traverser {
       auto item_qtype_or = schema::DType::FromQType(dtype);
       if (!item_qtype_or.ok()) {
         return absl::InvalidArgumentError(absl::StrCat(
-            "during traversal, got a slice with primitive type ",
-            schema_dtype,
+            "during traversal, got a slice with primitive type ", schema_dtype,
             " while the actual content is not a primitive"));
       }
-      return absl::InvalidArgumentError(
-          absl::StrCat("during traversal, got a slice with primitive type ",
-                       schema_dtype, " while the actual content has type ",
-                       item_qtype_or->name()));
+      return absl::InvalidArgumentError(absl::StrCat(
+          "during traversal, got a slice with primitive type ", schema_dtype,
+          " while the actual content has type ", item_qtype_or->name()));
     }
     return absl::OkStatus();
   }
@@ -201,178 +196,12 @@ class Traverser {
     return visitor_->VisitorT::Previsit(item.item, item.schema);
   }
 
-  absl::Status PrevisitAttribute(const ItemWithSchema& item,
-                                 std::string_view attr_name) {
-    DataItem attr_schema;
-    if (attr_name == schema::kSchemaAttr) {
-      attr_schema = DataItem(schema::kSchema);
-    } else {
-      ASSIGN_OR_RETURN(attr_schema, databag_.GetSchemaAttr(
-                                        item.schema, attr_name, fallbacks_));
+  struct PairOfItemsHash {
+    size_t operator()(const std::pair<DataItem, DataItem>& item) const {
+      return absl::HashOf(DataItem::Hash()(item.first),
+                          DataItem::Hash()(item.second));
     }
-    ASSIGN_OR_RETURN(auto attr_item,
-                     databag_.GetAttr(item.item, attr_name, fallbacks_));
-    RETURN_IF_ERROR(Previsit({.item = attr_item, .schema = attr_schema}));
-    return absl::OkStatus();
-  }
-
-  absl::Status PrevisitListItems(const ItemWithSchema& item) {
-    ASSIGN_OR_RETURN(
-        auto list_item_schema,
-        databag_.GetSchemaAttr(item.schema, schema::kListItemsSchemaAttr,
-                               fallbacks_));
-    ASSIGN_OR_RETURN(
-        auto list_items,
-        databag_.ExplodeList(item.item, DataBagImpl::ListRange(), fallbacks_));
-    for (const DataItem& list_item : list_items) {
-      RETURN_IF_ERROR(
-          Previsit({.item = list_item, .schema = list_item_schema}));
-    }
-    return absl::OkStatus();
-  }
-
-  absl::Status PrevisitDictKeysAndValues(const ItemWithSchema& item) {
-    ASSIGN_OR_RETURN(auto dict_keys_schema,
-                     databag_.GetSchemaAttr(
-                         item.schema, schema::kDictKeysSchemaAttr, fallbacks_));
-    ASSIGN_OR_RETURN(
-        auto dict_values_schema,
-        databag_.GetSchemaAttr(item.schema, schema::kDictValuesSchemaAttr,
-                               fallbacks_));
-    ASSIGN_OR_RETURN(auto dict_keys,
-                     databag_.GetDictKeys(item.item, fallbacks_));
-    ASSIGN_OR_RETURN(auto dict_values,
-                     databag_.GetDictValues(item.item, fallbacks_));
-    for (const DataItem& dict_key : dict_keys.first) {
-      RETURN_IF_ERROR(Previsit({.item = dict_key, .schema = dict_keys_schema}));
-    }
-    for (const DataItem& dict_value : dict_values.first) {
-      RETURN_IF_ERROR(
-          Previsit({.item = dict_value, .schema = dict_values_schema}));
-    }
-    return absl::OkStatus();
-  }
-
-  absl::Status PrevisitEntityAttributes(const ItemWithSchema& item) {
-    if (item.schema.template value<ObjectId>().IsNoFollowSchema()) {
-      // No processing needed for NoFollowSchema.
-      return absl::OkStatus();
-    }
-    ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
-                     databag_.GetSchemaAttrs(item.schema, fallbacks_));
-    if (attr_names_slice.size() == 0) {
-      return absl::OkStatus();
-    }
-    if (attr_names_slice.present_count() != attr_names_slice.size()) {
-      return absl::InternalError("schema attribute names should be present");
-    }
-    const auto& attr_names = attr_names_slice.values<arolla::Text>();
-
-    bool has_list_items_attr = false;
-    bool has_dict_keys_attr = false;
-    bool has_dict_values_attr = false;
-    // Schema attributes are previsited when the item is being visited.
-    attr_names.ForEach(
-        [&](int64_t id, bool presence, std::string_view attr_name) {
-          DCHECK(presence);
-          if (attr_name == schema::kListItemsSchemaAttr) {
-            has_list_items_attr = true;
-          } else if (attr_name == schema::kDictKeysSchemaAttr) {
-            has_dict_keys_attr = true;
-          } else if (attr_name == schema::kDictValuesSchemaAttr) {
-            has_dict_values_attr = true;
-          }
-        });
-    if (has_list_items_attr) {
-      if (attr_names.size() != 1) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "list schema %v has unexpected attributes", item.schema));
-      }
-      return PrevisitListItems(item);
-    } else if (has_dict_keys_attr || has_dict_values_attr) {
-      if (attr_names.size() != 2 || !has_dict_keys_attr ||
-          !has_dict_values_attr) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "dict schema %v has unexpected attributes", item.schema));
-      }
-      return PrevisitDictKeysAndValues(item);
-    }
-    absl::Status status = absl::OkStatus();
-    attr_names.ForEach(
-        [&](int64_t id, bool presence, std::string_view attr_name) {
-          DCHECK(presence);
-          if (!status.ok()) {
-            return;
-          }
-          if (attr_name == schema::kSchemaNameAttr ||
-              attr_name == schema::kSchemaMetadataAttr) {
-            return;
-          }
-          status = PrevisitAttribute(item, attr_name);
-        });
-    return status;
-  }
-
-  absl::Status PrevisitObjectAttributes(const ItemWithSchema& item) {
-    if (!item.item.has_value() || !item.item.template holds_value<ObjectId>()) {
-      return absl::OkStatus();
-    }
-    ASSIGN_OR_RETURN(
-        auto schema,
-        databag_.GetAttr(item.item, schema::kSchemaAttr, fallbacks_));
-    if (!schema.is_struct_schema()) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("object %v is expected to have a schema in "
-                          "%s attribute, got %v",
-                          item.item, schema::kSchemaAttr, schema));
-    }
-    RETURN_IF_ERROR(visitor_->VisitorT::Previsit(item.item, schema));
-    RETURN_IF_ERROR(PrevisitAttribute(item, schema::kSchemaAttr));
-    return PrevisitEntityAttributes({item.item, schema});
-  }
-
-  absl::Status PrevisitSchemaAttributes(const ItemWithSchema& item) {
-    if (!item.item.template holds_value<ObjectId>()) {
-      return absl::OkStatus();
-    }
-    if (item.item.template value<ObjectId>().IsNoFollowSchema()) {
-      // No processing needed for NoFollowSchema.
-      return absl::OkStatus();
-    }
-    DCHECK_EQ(item.schema, schema::kSchema);
-    ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
-                     databag_.GetSchemaAttrs(item.item, fallbacks_));
-    if (attr_names_slice.size() == 0) {
-      return absl::OkStatus();
-    }
-    if (attr_names_slice.present_count() != attr_names_slice.size()) {
-      return absl::InternalError("schema attribute names should be present");
-    }
-    const auto& attr_names = attr_names_slice.values<arolla::Text>();
-    absl::Status status = absl::OkStatus();
-    attr_names.ForEach(
-        [&](int64_t id, bool presence, std::string_view attr_name) {
-          DCHECK(presence);
-          if (!status.ok()) {
-            return;
-          }
-          auto attr_schema_or =
-              databag_.GetSchemaAttr(item.item, attr_name, fallbacks_);
-          if (!attr_schema_or.ok()) {
-            status = attr_schema_or.status();
-            return;
-          }
-          schema::DType schema_dtype = schema::kSchema;
-          if (attr_name == schema::kSchemaNameAttr) {
-            schema_dtype = schema::kString;
-          } else if (attr_name == schema::kSchemaMetadataAttr) {
-            schema_dtype = schema::kObject;
-          }
-          status = Previsit(
-              {.item = *attr_schema_or, .schema = DataItem(schema_dtype)});
-        });
-    return status;
-  }
+  };
 
   absl::Status DepthFirstPrevisitItemsAndSchemas() {
     // We do a depth-first traversal, with unrolled recursion. For that we keep
@@ -380,37 +209,46 @@ class Traverser {
     // stack would reach the same size again it would mean that all the items
     // reachable from the current item have been visited.
     std::stack<std::pair<int64_t, ItemWithSchema>> objects_on_stack;
-    // TODO: Mark pairs (item, schema) as used.
-    auto used_items = absl::flat_hash_set<DataItem, DataItem::Hash>();
+    auto used_items =
+        absl::flat_hash_set<std::pair<DataItem, DataItem>, PairOfItemsHash>();
 
     while (!previsit_stack_.empty()) {
       ItemWithSchema item = std::move(previsit_stack_.top());
       previsit_stack_.pop();
-      if (!used_items.contains(item.item)) {
+      if (!used_items.contains({item.item, item.schema})) {
+        // This item would be later added with actual schema.
         objects_on_stack.emplace(previsit_stack_.size(), item);
         // Please note that we cannot insert NaN values into the set (see
         // b/395020189); one way to avoid this is not to insert primitives at
         // all, but we do check for that in Previsit.
 
-        used_items.insert(item.item);
+        used_items.insert({item.item, item.schema});
+        if (item.schema == schema::kObject) {
+          ASSIGN_OR_RETURN(item.schema,
+                           traverse_helper_.GetObjectSchema(item.item));
+          RETURN_IF_ERROR(visitor_->VisitorT::Previsit(item.item, item.schema));
+        }
         if (item.item != DataItem(schema::kSchema) ||
             item.schema != DataItem(schema::kSchema)) {
           // Always call Previsit on the schema, unless it would be a loop.
           RETURN_IF_ERROR(Previsit(
               {.item = item.schema, .schema = DataItem(schema::kSchema)}));
         }
-        if (item.schema.template holds_value<ObjectId>()) {
-          // Entity schema.
-          RETURN_IF_ERROR(PrevisitEntityAttributes(item));
-        } else if (item.schema.template holds_value<schema::DType>()) {
-          if (item.schema == schema::kObject) {
-            // Object schema.
-            RETURN_IF_ERROR(PrevisitObjectAttributes(item));
-          } else if (item.schema == schema::kSchema) {
-            RETURN_IF_ERROR(PrevisitSchemaAttributes(item));
-          }
-        } else {
-          return absl::InternalError("unsupported schema type");
+        ASSIGN_OR_RETURN(
+            TraverseHelper::TransitionsSet transitions_set,
+            traverse_helper_.GetTransitions(item.item, item.schema,
+                                            /*remove_special_attrs=*/false));
+        absl::Status status = absl::OkStatus();
+        RETURN_IF_ERROR(traverse_helper_.ForEachObject(
+            item.item, item.schema, transitions_set,
+            [&](const DataItem& item, const DataItem& schema) {
+              if (!status.ok()) {
+                return;
+              }
+              status = Previsit({.item = item, .schema = schema});
+            }));
+        if (!status.ok()) {
+          return status;
         }
       }
       // Put the items for which we have already visited all the reachable items
@@ -429,213 +267,136 @@ class Traverser {
     return visitor_->VisitorT::GetValue(item, schema);
   }
 
-  absl::Status VisitList(const ItemWithSchema& item, bool is_object) {
-    ASSIGN_OR_RETURN(
-        auto list_item_schema,
-        databag_.GetSchemaAttr(item.schema, schema::kListItemsSchemaAttr,
-                               fallbacks_));
-    ASSIGN_OR_RETURN(
-        auto list_items,
-        databag_.ExplodeList(item.item, DataBagImpl::ListRange(), fallbacks_));
-    SliceBuilder list_items_values(list_items.size());
-    for (size_t i = 0; i < list_items.size(); ++i) {
-      ASSIGN_OR_RETURN(auto value, GetValue(list_items[i], list_item_schema));
-      list_items_values.InsertIfNotSetAndUpdateAllocIds(i, value);
-    }
-    return visitor_->VisitorT::VisitList(item.item, item.schema, is_object,
-                                          std::move(list_items_values).Build());
-  }
-
-  absl::Status VisitDict(const ItemWithSchema& item, bool is_object) {
-    ASSIGN_OR_RETURN(auto dict_keys_schema,
-                     databag_.GetSchemaAttr(
-                         item.schema, schema::kDictKeysSchemaAttr, fallbacks_));
-    ASSIGN_OR_RETURN(
-        auto dict_values_schema,
-        databag_.GetSchemaAttr(item.schema, schema::kDictValuesSchemaAttr,
-                               fallbacks_));
-    ASSIGN_OR_RETURN((auto [dict_keys, dict_keys_edge]),
-                     databag_.GetDictKeys(item.item, fallbacks_));
-    ASSIGN_OR_RETURN((auto [dict_values, dict_values_edge]),
-                     databag_.GetDictValues(item.item, fallbacks_));
-    SliceBuilder dict_keys_values(dict_keys.size());
-    SliceBuilder dict_values_values(dict_values.size());
-    for (size_t i = 0; i < dict_keys.size(); ++i) {
-      ASSIGN_OR_RETURN(DataItem value,
-                       GetValue(dict_keys[i], dict_keys_schema));
-      dict_keys_values.InsertIfNotSetAndUpdateAllocIds(i, value);
-    }
-    for (size_t i = 0; i < dict_values.size(); ++i) {
-      ASSIGN_OR_RETURN(DataItem value,
-                       GetValue(dict_values[i], dict_values_schema));
-      dict_values_values.InsertIfNotSetAndUpdateAllocIds(i, value);
-    }
-    return visitor_->VisitorT::VisitDict(
-        item.item, item.schema, is_object, std::move(dict_keys_values).Build(),
-        std::move(dict_values_values).Build());
-  }
-
-  absl::Status VisitSchema(const DataItem& schema,
-                           const arolla::DenseArray<arolla::Text>& attr_names) {
-    absl::Status status = absl::OkStatus();
-    std::vector<std::tuple<absl::string_view, DataItem>> schema_attrs;
-    arolla::DenseArrayBuilder<DataItem> attr_values(attr_names.size());
-    DCHECK(attr_names.IsAllPresent());
-    attr_names.ForEachPresent([&](int64_t id, std::string_view attr_name) {
-      if (!status.ok()) {
-        return;
-      }
-      auto attr_schema_or =
-          databag_.GetSchemaAttr(schema, attr_name, fallbacks_);
-      if (!attr_schema_or.ok()) {
-        status = attr_schema_or.status();
-        return;
-      }
-      auto attr_schema = *attr_schema_or;
-      DataItem attr_schema_schema = DataItem(schema::kSchema);
-      if (attr_name == schema::kSchemaNameAttr) {
-        attr_schema_schema = DataItem(schema::kString);
-      } else if (attr_name == schema::kSchemaMetadataAttr) {
-        attr_schema_schema = DataItem(schema::kObject);
-      } else if (!attr_schema.is_schema()) {
-        status = absl::InvalidArgumentError(absl::StrFormat(
-            "schema %v has unexpected attribute %s", schema, attr_name));
-        return;
-      }
-      auto attr_value_or = GetValue(attr_schema, attr_schema_schema);
-      if (!attr_value_or.ok()) {
-        status = attr_value_or.status();
-        return;
-      }
-      auto attr_value = attr_value_or.value();
-      attr_values.Set(id, attr_value);
-    });
-    if (!status.ok()) {
-      return status;
-    }
-    return visitor_->VisitorT::VisitSchema(
-        schema, DataItem(schema::kSchema),
-        /*is_object_schema=*/false, attr_names, std::move(attr_values).Build());
-  }
-
   absl::Status VisitSchemaItem(const ItemWithSchema& item) {
-    if (!item.item.has_value()) {
+    if (!item.item.has_value() || !item.item.template holds_value<ObjectId>()) {
       return absl::OkStatus();
     }
-    if (item.item.template holds_value<ObjectId>()) {
-      ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
-                       databag_.GetSchemaAttrs(item.item, fallbacks_));
-      if (attr_names_slice.present_count() != attr_names_slice.size()) {
-        return absl::InternalError("schema attribute names should be present");
-      }
-      arolla::DenseArray<arolla::Text> attr_names;
-      if (!attr_names_slice.is_empty_and_unknown()) {
-        attr_names = attr_names_slice.values<arolla::Text>();
-      }
-      return VisitSchema(item.item, attr_names);
+    DCHECK(item.schema == schema::kSchema);
+    ASSIGN_OR_RETURN(auto transitions_set,
+                     traverse_helper_.GetTransitions(item.item, item.schema));
+    if (!transitions_set.has_attrs()) {
+      return visitor_->VisitorT::VisitSchema(item.item, item.schema,
+                                             /*is_object_schema=*/false, {},
+                                             {});
     }
-    return absl::OkStatus();
-  }
-
-  absl::Status VisitEntity(const ItemWithSchema& item, bool is_object) {
-    ASSIGN_OR_RETURN(DataSliceImpl attr_names_slice,
-                     databag_.GetSchemaAttrs(item.schema, fallbacks_));
-    if (attr_names_slice.present_count() != attr_names_slice.size()) {
-      return absl::InternalError("schema attribute names should be present");
-    }
-    arolla::DenseArray<arolla::Text> attr_names;
-    if (!attr_names_slice.is_empty_and_unknown()) {
-      attr_names = attr_names_slice.values<arolla::Text>();
-    }
-    bool has_list_items_attr = false;
-    bool has_dict_keys_attr = false;
-    bool has_dict_values_attr = false;
-    DCHECK(attr_names.IsAllPresent());
-    attr_names.ForEachPresent([&](int64_t id, std::string_view attr_name) {
-      if (attr_name == schema::kListItemsSchemaAttr) {
-        has_list_items_attr = true;
-      } else if (attr_name == schema::kDictKeysSchemaAttr) {
-        has_dict_keys_attr = true;
-      } else if (attr_name == schema::kDictValuesSchemaAttr) {
-        has_dict_values_attr = true;
-      }
-    });
-    RETURN_IF_ERROR(VisitSchema(item.schema, attr_names));
-    if (has_list_items_attr) {
-      if (attr_names.size() != 1) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "list schema %v has unexpected attributes", item.schema));
-      }
-      return VisitList(item, is_object);
-    } else if (has_dict_keys_attr || has_dict_values_attr) {
-      if (attr_names.size() != 2 || !has_dict_keys_attr ||
-          !has_dict_values_attr) {
-        return absl::InvalidArgumentError(absl::StrFormat(
-            "dict schema %v has unexpected attributes", item.schema));
-      }
-      return VisitDict(item, is_object);
-    }
+    const auto& attr_names = transitions_set.attr_names();
     arolla::DenseArrayBuilder<DataItem> attr_values(attr_names.size());
-    arolla::DenseArrayBuilder<arolla::Text> actual_attr_names(
-        attr_names.size());
     absl::Status status = absl::OkStatus();
-    size_t attr_count = 0;
-    attr_names.ForEach([&](int64_t id, bool presence,
-                           std::string_view attr_name) {
+    attr_names.ForEach([&](int64_t i, bool presence,
+                           const std::string_view attr_name) {
       DCHECK(presence);
       if (!status.ok()) {
         return;
       }
-      if (attr_name == schema::kSchemaNameAttr ||
-          attr_name == schema::kSchemaMetadataAttr) {
+      auto transition_or =
+          traverse_helper_.SchemaAttributeTransition(item.item, attr_name);
+      if (!transition_or.ok()) {
+        status = transition_or.status();
         return;
       }
-      auto attr_item_or = databag_.GetAttr(item.item, attr_name, fallbacks_);
-      if (!attr_item_or.ok()) {
-        status = attr_item_or.status();
-        return;
-      }
-      auto attr_schema_or =
-          databag_.GetSchemaAttr(item.schema, attr_name, fallbacks_);
-      if (!attr_schema_or.ok()) {
-        status = attr_item_or.status();
-        return;
-      }
-      auto value_or = GetValue(*attr_item_or, *attr_schema_or);
+      auto value_or = GetValue(transition_or->item, transition_or->schema);
       if (!value_or.ok()) {
         status = value_or.status();
         return;
       }
-      attr_values.Set(attr_count, *value_or);
-      actual_attr_names.Set(attr_count, attr_name);
-      ++attr_count;
+      attr_values.Set(i, *value_or);
     });
     if (!status.ok()) {
       return status;
     }
-    return visitor_->VisitorT::VisitObject(
-        item.item, item.schema, is_object,
-        std::move(actual_attr_names).Build(attr_count),
-        std::move(attr_values).Build(attr_count));
+    return visitor_->VisitorT::VisitSchema(item.item, item.schema,
+                                           /*is_object_schema=*/false,
+                                           attr_names,
+                                           std::move(attr_values).Build());
+  }
+
+  absl::Status VisitList(
+      const ItemWithSchema& item, bool is_object,
+      const TraverseHelper::TransitionsSet& transitions) {
+    const auto& list_items = transitions.list_items();
+    const auto& list_item_schema = transitions.list_item_schema();
+    SliceBuilder list_items_values(list_items.size());
+    for (int64_t i = 0; i < list_items.size(); ++i) {
+      ASSIGN_OR_RETURN(auto value, GetValue(list_items[i], list_item_schema));
+      list_items_values.InsertIfNotSetAndUpdateAllocIds(i, value);
+    }
+    return visitor_->VisitorT::VisitList(item.item, item.schema, is_object,
+                                         std::move(list_items_values).Build());
+  }
+
+  absl::Status VisitDict(
+      const ItemWithSchema& item, bool is_object,
+      const TraverseHelper::TransitionsSet& transitions_set) {
+    const DataSliceImpl& keys = transitions_set.dict_keys();
+    const DataItem& keys_schema = transitions_set.dict_keys_schema();
+    const DataSliceImpl& values = transitions_set.dict_values();
+    const DataItem& values_schema = transitions_set.dict_values_schema();
+    SliceBuilder keys_values(keys.size());
+    SliceBuilder values_values(values.size());
+    for (int64_t i = 0; i < keys.size(); ++i) {
+      ASSIGN_OR_RETURN(DataItem key_value, GetValue(keys[i], keys_schema));
+      ASSIGN_OR_RETURN(DataItem value_value,
+                       GetValue(values[i], values_schema));
+      keys_values.InsertIfNotSetAndUpdateAllocIds(i, key_value);
+      values_values.InsertIfNotSetAndUpdateAllocIds(i, value_value);
+    }
+    return visitor_->VisitorT::VisitDict(item.item, item.schema, is_object,
+                                         std::move(keys_values).Build(),
+                                         std::move(values_values).Build());
+  }
+
+  absl::Status VisitEntity(const ItemWithSchema& item, bool is_object) {
+    ASSIGN_OR_RETURN(auto transitions_set,
+                     traverse_helper_.GetTransitions(item.item, item.schema));
+    if (transitions_set.is_list()) {
+      return VisitList(item, is_object, transitions_set);
+    } else if (transitions_set.is_dict()) {
+      return VisitDict(item, is_object, transitions_set);
+    } else if (!transitions_set.has_attrs()) {
+      return visitor_->VisitorT::VisitObject(item.item, item.schema, is_object,
+                                             {}, {});
+    }
+    const auto& attr_names = transitions_set.attr_names();
+    arolla::DenseArrayBuilder<DataItem> attr_values(attr_names.size());
+
+    absl::Status status = absl::OkStatus();
+    attr_names.ForEach([&](int64_t i, bool presence,
+                           const std::string_view attr_name) {
+      DCHECK(presence);
+      if (!status.ok()) {
+        return;
+      }
+      auto transition_or = traverse_helper_.AttributeTransition(
+                                            item.item, item.schema, attr_name);
+      if (!transition_or.ok()) {
+        status = transition_or.status();
+        return;
+      }
+      auto value_or = GetValue(transition_or->item, transition_or->schema);
+      if (!value_or.ok()) {
+        status = value_or.status();
+        return;
+      }
+      attr_values.Set(i, *value_or);
+    });
+    if (!status.ok()) {
+      return status;
+    }
+    return visitor_->VisitorT::VisitObject(item.item, item.schema, is_object,
+                                           std::move(attr_names),
+                                           std::move(attr_values).Build());
   }
 
   absl::Status VisitObject(const ItemWithSchema& item) {
     if (!item.item.has_value() || !item.item.template holds_value<ObjectId>()) {
       return absl::OkStatus();
     }
-    ASSIGN_OR_RETURN(
-        auto schema,
-        databag_.GetAttr(item.item, schema::kSchemaAttr, fallbacks_));
-    if (!schema.is_schema()) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "object %v is expected to have a schema in %s attribute, got %v",
-          item.item, schema::kSchemaAttr, schema));
-    }
+    ASSIGN_OR_RETURN(auto schema, traverse_helper_.GetObjectSchema(item.item));
     return VisitEntity({item.item, schema}, /*is_object=*/true);
   }
 
   absl::Status VisitInPostOrder() {
-    for (auto item : topological_order_) {
+    for (const ItemWithSchema& item : topological_order_) {
       if (item.schema.template holds_value<ObjectId>()) {
         // Entity schema.
         RETURN_IF_ERROR(VisitEntity(item, /*is_object=*/false));
@@ -652,8 +413,7 @@ class Traverser {
   }
 
  private:
-  const DataBagImpl& databag_;
-  const DataBagImpl::FallbackSpan fallbacks_;
+  TraverseHelper traverse_helper_;
   std::stack<ItemWithSchema> previsit_stack_;
   std::vector<ItemWithSchema> topological_order_;
   std::shared_ptr<VisitorT> visitor_;
