@@ -3123,12 +3123,6 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
     DataSlice of concatenated Lists
 ```
 
-### `kd.lists.concat_lists(arg0, *args)` {#kd.lists.concat_lists}
-
-``` {.no-copy}
-Implementation of kde.lists.concat_lists.
-```
-
 ### `kd.lists.explode(x, ndim=DataItem(1, schema: INT64))` {#kd.lists.explode}
 Aliases:
 

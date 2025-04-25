@@ -65,7 +65,7 @@ absl::StatusOr<DataSlice> ListShaped(
     const DataSlice& itemid,
     internal::NonDeterministicToken);
 
-// kde.lists.concat_lists operator.
+// kde.lists.concat operator.
 absl::StatusOr<DataSlice> ConcatLists(std::vector<DataSlice> lists);
 
 // kd.appended_list operator.

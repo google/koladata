@@ -266,7 +266,7 @@ def implode(
 
 
 @arolla.optools.as_backend_operator(
-    'kd.lists._concat_lists',
+    'kd.lists._concat',
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def _concat_lists(*args):  # pylint: disable=unused-argument
@@ -275,7 +275,7 @@ def _concat_lists(*args):  # pylint: disable=unused-argument
 
 @optools.add_to_registry(aliases=['kd.concat_lists'])
 @optools.as_lambda_operator(
-    'kd.lists.concat_lists',
+    'kd.lists.concat',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.arg0),
         qtype_utils.expect_data_slice_args(P.args),
@@ -283,7 +283,7 @@ def _concat_lists(*args):  # pylint: disable=unused-argument
     deterministic=False,
 )
 def concat_lists(arg0, *args):
-  """Implementation of kde.lists.concat_lists."""
+  """Implementation of kde.lists.concat."""
   # TODO: Support 0 args.
   args = arolla.optools.fix_trace_args(args)
   return arolla.M.core.apply_varargs(

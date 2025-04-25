@@ -3382,8 +3382,8 @@ py_test(
 )
 
 py_test(
-    name = "lists_concat_lists_test",
-    srcs = ["lists_concat_lists_test.py"],
+    name = "lists_concat_test",
+    srcs = ["lists_concat_test.py"],
     deps = [
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",

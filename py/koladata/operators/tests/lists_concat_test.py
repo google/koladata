@@ -60,12 +60,12 @@ OBJ1 = db.obj()
 OBJ2 = db.obj()
 
 
-class ListsConcatListsTest(parameterized.TestCase):
+class ListsConcatTest(parameterized.TestCase):
 
   def test_mutability(self):
     self.assertFalse(
         expr_eval.eval(
-            kde.lists.concat_lists(db.list([1, 2]), db.list([3]))
+            kde.lists.concat(db.list([1, 2]), db.list([3]))
         ).is_mutable()
     )
 
@@ -107,22 +107,18 @@ class ListsConcatListsTest(parameterized.TestCase):
   )
   def test_eval(self, lists, expected):
     testing.assert_nested_lists_equal(
-        expr_eval.eval(kde.lists.concat_lists(*lists)), expected
+        expr_eval.eval(kde.lists.concat(*lists)), expected
     )
 
   def test_non_deterministic_token(self):
-    res_1 = expr_eval.eval(
-        kde.lists.concat_lists(db.list([1, 2]), db.list([3]))
-    )
-    res_2 = expr_eval.eval(
-        kde.lists.concat_lists(db.list([1, 2]), db.list([3]))
-    )
+    res_1 = expr_eval.eval(kde.lists.concat(db.list([1, 2]), db.list([3])))
+    res_2 = expr_eval.eval(kde.lists.concat(db.list([1, 2]), db.list([3])))
     self.assertNotEqual(
         res_1.get_bag().fingerprint, res_2.get_bag().fingerprint
     )
     testing.assert_equal(res_1[:].no_bag(), res_2[:].no_bag())
 
-    expr = kde.lists.concat_lists(db.list([1, 2]), db.list([3]))
+    expr = kde.lists.concat(db.list([1, 2]), db.list([3]))
     res_1 = expr_eval.eval(expr)
     res_2 = expr_eval.eval(expr)
     self.assertNotEqual(
@@ -133,7 +129,7 @@ class ListsConcatListsTest(parameterized.TestCase):
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.lists.concat_lists,
+            kde.lists.concat,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
             max_arity=3,
         ),
@@ -141,9 +137,7 @@ class ListsConcatListsTest(parameterized.TestCase):
     )
 
   def test_alias(self):
-    self.assertTrue(
-        optools.equiv_to_op(kde.lists.concat_lists, kde.concat_lists)
-    )
+    self.assertTrue(optools.equiv_to_op(kde.lists.concat, kde.concat_lists))
 
   def test_concat_failure(self):
     a = db.list([1, 2, 3])
@@ -155,7 +149,7 @@ class ListsConcatListsTest(parameterized.TestCase):
  the common schema\(s\) INT32: INT32
  the first conflicting schema #[0-9a-zA-Z]{22}: LIST\[INT32\]""",
     ):
-      expr_eval.eval(kde.lists.concat_lists(a, b))
+      expr_eval.eval(kde.lists.concat(a, b))
 
 
 if __name__ == '__main__':
