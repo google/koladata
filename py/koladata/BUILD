@@ -15,6 +15,7 @@
 # Koda, a library for advanced data manipulation.
 
 load("@pip_deps//:requirements.bzl", "requirement")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
 package(default_visibility = ["//py/koladata:__subpackages__"])

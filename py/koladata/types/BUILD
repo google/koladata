@@ -15,6 +15,7 @@
 # Custom C++/Python bindings for Kola types.
 
 load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
