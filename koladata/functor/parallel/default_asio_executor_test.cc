@@ -14,6 +14,8 @@
 //
 #include "koladata/functor/parallel/default_asio_executor.h"
 
+#include <memory>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/barrier.h"
@@ -27,9 +29,9 @@ TEST(DefaultAsioExecutorTest, Basic) {
   const ExecutorPtr& executor = GetDefaultAsioExecutor();
   ASSERT_NE(executor, nullptr);
 
-  absl::Barrier barrier(2);
-  ASSERT_OK(executor->Schedule([&barrier] { barrier.Block(); }));
-  barrier.Block();
+  auto barrier = std::make_shared<absl::Barrier>(2);
+  ASSERT_OK(executor->Schedule([barrier] { barrier->Block(); }));
+  barrier->Block();
 }
 
 }  // namespace
