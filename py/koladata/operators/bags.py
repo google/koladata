@@ -86,7 +86,7 @@ def updated_bag(*bags):  # pylint: disable=unused-argument
 
    Databags later in the list have higher priority.
    `updated_bag(bag1, bag2, bag3)` is equivalent to
-   `updated_bag(bag1, updated_bag(bag2, bag3)`, and so on for additional
+   `updated_bag(bag1, updated_bag(bag2, bag3))`, and so on for additional
    DataBag args.
 
   Args:
