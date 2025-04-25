@@ -258,6 +258,43 @@ class FromProtoTest(absltest.TestCase):
         ds([4, None, 5]),
     )
 
+  def test_extension_on_wrong_message_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'extension'
+            ' "koladata.functions.testing.MessageBExtension.message_b_extension"'
+            " exists, but isn't an extension on target message type"
+            ' "koladata.functions.testing.MessageA", expected'
+            ' "koladata.functions.testing.MessageB"'
+        ),
+    ):
+      _ = fns.from_proto(
+          test_pb2.MessageA(),
+          extensions=[
+              '(koladata.functions.testing.MessageBExtension.message_b_extension)'
+          ],
+      )
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'extension'
+            ' "koladata.functions.testing.MessageBExtension.message_b_extension"'
+            " exists, but isn't an extension on target message type"
+            ' "koladata.functions.testing.MessageA", expected'
+            ' "koladata.functions.testing.MessageB"'
+        ),
+    ):
+      _ = fns.from_proto(
+          test_pb2.MessageA(),
+          schema=fns.schema.new_schema(**{
+              '(koladata.functions.testing.MessageBExtension.message_b_extension)': (
+                  schema_constants.OBJECT
+              )
+          }),
+      )
+
 
 if __name__ == '__main__':
   absltest.main()

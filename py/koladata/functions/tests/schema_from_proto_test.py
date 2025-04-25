@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
@@ -134,6 +136,24 @@ class SchemaFromProtoTest(absltest.TestCase):
             '(koladata.functions.testing.MessageBExtension.message_b_extension)',
         ],
     )
+
+  def test_extension_on_wrong_message_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'extension'
+            ' "koladata.functions.testing.MessageBExtension.message_b_extension"'
+            " exists, but isn't an extension on target message type"
+            ' "koladata.functions.testing.MessageA", expected'
+            ' "koladata.functions.testing.MessageB"'
+        ),
+    ):
+      _ = fns.schema_from_proto(
+          test_pb2.MessageA,
+          extensions=[
+              '(koladata.functions.testing.MessageBExtension.message_b_extension)'
+          ],
+      )
 
 
 if __name__ == '__main__':

@@ -904,6 +904,13 @@ absl::Status FromProtoMessage(
           return absl::InvalidArgumentError(
               absl::StrFormat("extension not found: \"%s\"", ext_full_path));
         }
+        if (field->containing_type() != &message_descriptor) {
+          return absl::InvalidArgumentError(absl::StrFormat(
+              "extension \"%s\" exists, but isn't an extension "
+              "on target message type \"%s\", expected \"%s\"",
+              field->full_name(), message_descriptor.full_name(),
+              field->containing_type()->full_name()));
+        }
         vars->fields.emplace_back(field, attr_name);
       } else {
         const auto* field = message_descriptor.FindFieldByName(attr_name);
@@ -926,6 +933,13 @@ absl::Status FromProtoMessage(
     }
     if (extension_map != nullptr) {
       for (const auto& [attr_name, field] : extension_map->extension_fields) {
+        if (field->containing_type() != &message_descriptor) {
+          return absl::InvalidArgumentError(absl::StrFormat(
+              "extension \"%s\" exists, but isn't an extension "
+              "on target message type \"%s\", expected \"%s\"",
+              field->full_name(), message_descriptor.full_name(),
+              field->containing_type()->full_name()));
+        }
         vars->fields.emplace_back(field, attr_name);
       }
     }
@@ -1239,6 +1253,13 @@ absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptor(
   }
   if (extension_map != nullptr) {
     for (const auto& [attr_name, field] : extension_map->extension_fields) {
+      if (field->containing_type() != &message_descriptor) {
+        return absl::InvalidArgumentError(absl::StrFormat(
+            "extension \"%s\" exists, but isn't an extension "
+            "on target message type \"%s\", expected \"%s\"",
+            field->full_name(), message_descriptor.full_name(),
+            field->containing_type()->full_name()));
+      }
       RETURN_IF_ERROR(FillSchemaFromProtoFieldDescriptor(
           schema, attr_name, *field, extension_map,
           converted_message_descriptors, executor));
