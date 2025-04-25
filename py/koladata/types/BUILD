@@ -103,13 +103,17 @@ cc_library(
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
         "@com_google_protobuf//:protobuf",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
 
 koladata_py_extension(
     name = "data_slice_py_ext",
     srcs = ["data_slice_module.cc"],
-    deps = [":data_slice_cc_lib"],
+    deps = [
+        ":data_slice_cc_lib",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+    ],
 )
 
 py_library(
@@ -178,13 +182,17 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
 
 koladata_py_extension(
     name = "data_item_py_ext",
     srcs = ["data_item_module.cc"],
-    deps = [":data_item_cc_lib"],
+    deps = [
+        ":data_item_cc_lib",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+    ],
 )
 
 py_library(
@@ -417,13 +425,17 @@ cc_library(
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
         "@com_google_protobuf//:protobuf",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
 
 koladata_py_extension(
     name = "data_bag_py_ext",
     srcs = ["data_bag_module.cc"],
-    deps = [":data_bag_cc_lib"],
+    deps = [
+        ":data_bag_cc_lib",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+    ],
 )
 
 py_library(
@@ -459,6 +471,7 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
 
@@ -480,7 +493,10 @@ pybind_library(
 koladata_py_extension(
     name = "py_misc_py_ext",
     srcs = ["py_misc_module.cc"],
-    deps = [":py_misc_cc_lib"],
+    deps = [
+        ":py_misc_cc_lib",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+    ],
 )
 
 py_library(

@@ -148,6 +148,7 @@ koladata_py_extension(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
 

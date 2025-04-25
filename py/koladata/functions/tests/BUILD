@@ -891,5 +891,6 @@ koladata_py_extension(
     deps = [
         ":test_cc_proto",
         "//py/koladata/base:py_utils",  # buildcleaner: keep
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )

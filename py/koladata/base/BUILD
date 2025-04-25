@@ -48,6 +48,7 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",
     ],
 )
 
@@ -94,6 +95,7 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",
     ],
 )
 
@@ -115,6 +117,7 @@ cc_library(
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",
     ],
 )
 
@@ -159,6 +162,7 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",
     ],
 )
 
@@ -186,13 +190,17 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",
     ],
 )
 
 koladata_py_extension(
     name = "py_functors_base_py_ext",
     srcs = ["py_functors_base_module.cc"],
-    deps = [":py_functors_base_cc_lib"],
+    deps = [
+        ":py_functors_base_cc_lib",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+    ],
 )
 
 koladata_pybind_extension(

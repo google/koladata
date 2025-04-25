@@ -231,6 +231,7 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
 
@@ -241,5 +242,6 @@ koladata_py_extension(
         ":py_expr_eval_cc_lib",
         "//koladata/expr:non_determinism",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )

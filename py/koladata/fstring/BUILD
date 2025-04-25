@@ -39,13 +39,17 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
 
 koladata_py_extension(
     name = "fstring_py_ext",
     srcs = ["fstring_module.cc"],
-    deps = [":fstring_cc_lib"],
+    deps = [
+        ":fstring_cc_lib",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
+    ],
 )
 
 py_library(

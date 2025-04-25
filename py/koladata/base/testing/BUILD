@@ -70,6 +70,7 @@ koladata_py_extension(
         "//py/koladata/base:py_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/log:check",
+        "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
 
