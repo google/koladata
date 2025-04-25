@@ -466,9 +466,12 @@ assigned schema: INT32"""),
     ):
       _ = fns.from_py([], from_dim=2, schema=schema)
 
-  def test_none(self):
-    item = fns.from_py(None)
+  @parameterized.named_parameters(('v1', fns.from_py), ('v2', fns._from_py_v2))
+  def test_none(self, from_py_fn):
+    item = from_py_fn(None)
     testing.assert_equal(item, ds(None))
+
+  def test_none_with_schema(self):
     item = fns.from_py(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(None, schema_constants.FLOAT32))
 

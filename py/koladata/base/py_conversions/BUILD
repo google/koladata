@@ -57,6 +57,17 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "from_py",
+    srcs = ["from_py.cc"],
+    hdrs = ["from_py.h"],
+    deps = [
+        "//koladata:data_slice",
+        "@com_google_absl//absl/status:statusor",
+        "@rules_python//python/cc:current_py_cc_headers",
+    ],
+)
+
 py_library(
     name = "dataclasses_py_util",
     srcs = ["dataclasses_util.py"],
@@ -88,6 +99,21 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/py_utils",
         "@rules_python//python/cc:current_py_cc_headers",
+    ],
+)
+
+koladata_pybind_extension(
+    name = "clib",
+    srcs = ["clib.cc"],
+    deps = [
+        ":from_py",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//py/koladata/base:wrap_utils",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//py/arolla/abc:pybind11_utils",
+        "@com_google_arolla//py/arolla/py_utils",
     ],
 )
 

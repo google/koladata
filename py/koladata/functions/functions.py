@@ -140,6 +140,7 @@ is_item = _predicates.is_item
 is_slice = _predicates.is_slice
 
 from_py = _py_conversions.from_py
+_from_py_v2 = _py_conversions._from_py_v2  # pylint: disable=protected-access
 from_pytree = _py_conversions.from_py
 to_pylist = _py_conversions.to_pylist
 

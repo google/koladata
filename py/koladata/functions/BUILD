@@ -107,6 +107,7 @@ py_library(
     srcs = ["py_conversions.py"],
     visibility = ["//visibility:private"],
     deps = [
+        "//py/koladata/base/py_conversions:clib",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
         "//py/koladata/types:list_item",
