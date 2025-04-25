@@ -51,6 +51,17 @@ using ::google::protobuf::TextFormat;
 using ::testing::UnorderedElementsAre;
 using ::testing::UnorderedElementsAreArray;
 
+TEST(FromProtoTest, NullptrMessages) {
+  auto db = DataBag::Empty();
+  EXPECT_THAT(FromProto(db, {nullptr}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "expected all messages be non-null"));
+  testing::ExampleMessage message;
+  EXPECT_THAT(FromProto(db, {&message, nullptr}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "expected all messages be non-null"));
+}
+
 TEST(FromProtoTest, ZeroMessages) {
   {
     auto db = DataBag::Empty();

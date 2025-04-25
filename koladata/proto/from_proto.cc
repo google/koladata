@@ -1016,9 +1016,15 @@ absl::StatusOr<DataSlice> FromProto(
     adoption_queue.Add(*schema);
     RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
   }
-
   if (messages.empty()) {
     return FromZeroProtoMessages(db, schema);
+  }
+
+  for (const Message* message : messages) {
+    if (message == nullptr) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("expected all messages be non-null"));
+    }
   }
 
   const Descriptor* message_descriptor = messages[0]->GetDescriptor();
