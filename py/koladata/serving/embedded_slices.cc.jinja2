@@ -7,11 +7,13 @@
 #include <string>
 
 #include "py/koladata/serving/embedded_slices_internal.h"
+#include "koladata/serving/slice_registry.h"
 #include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
+#include "arolla/util/init_arolla.h"
 
 {% for n in namespaces %}
 namespace {{n}} {
@@ -37,6 +39,20 @@ absl::StatusOr<::koladata::DataSlice>
   return ::koladata::serving::embedded_slices_internal::GetEmbeddedSlice(
       *slices, name);
 }
+
+AROLLA_INITIALIZER(
+    .deps = {
+        ::arolla::initializer_dep::kOperators,
+        ::arolla::initializer_dep::kS11n,
+    },
+    .init_fn = []() -> absl::Status {
+      ASSIGN_OR_RETURN(const auto& slices, {{function_name}}());
+      for (const auto& [k, v] : slices) {
+        RETURN_IF_ERROR(koladata::serving::RegisterSlice(
+            absl::StrCat("{{ build_target }}@", k), v));
+      }
+      return absl::OkStatus();
+    });
 
 {%- for n in namespaces %}
 }  // namespace {{n}}

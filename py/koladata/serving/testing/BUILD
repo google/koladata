@@ -54,6 +54,7 @@ cc_test(
         "//koladata:data_slice",
         "//koladata:test_utils",
         "//koladata/functor:call",
+        "//koladata/serving:slice_registry",
         "//koladata/testing:matchers",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/qtype",

@@ -21,6 +21,7 @@
 #include "absl/status/status_matchers.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/call.h"
+#include "koladata/serving/slice_registry.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/qtype/testing/qtype.h"
@@ -35,6 +36,7 @@ using ::koladata::test::DataSlice;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::_;
 using ::testing::Pair;
+using ::testing::Pointee;
 using ::testing::UnorderedElementsAre;
 
 TEST(TestFunctorsTest, PlusOne) {
@@ -48,6 +50,14 @@ TEST(TestFunctorsTest, PlusOne) {
                   plus_one, {arolla::TypedRef::FromValue(input)}, {}),
               IsOkAndHolds(TypedValueWith<koladata::DataSlice>(
                   IsEquivalentTo(DataSlice<int64_t>({2, 3, 4})))));
+}
+
+TEST(TestFunctorsTest, GlobalRegistry) {
+  ASSERT_OK_AND_ASSIGN(auto plus_one, TestFunctors_plus_one());
+  EXPECT_THAT(koladata::serving::GetRegisteredSlice(
+                  "//py/koladata/serving/"
+                  "testing:cc_test_functors@plus_one"),
+              Pointee(IsEquivalentTo(plus_one)));
 }
 
 }  // namespace

@@ -111,11 +111,13 @@ def koladata_cc_embedded_slices(
         hdrs = [name + ".h"],
         deps = deps + [
             # TODO: b/409476740 - Should we depend on codecs here?
-            "//py/koladata/serving:embedded_slices_internal",
             "@com_google_absl//absl/base:no_destructor",
             "@com_google_absl//absl/container:flat_hash_map",
             "@com_google_absl//absl/status:statusor",
             "@com_google_absl//absl/strings",
+            "//koladata/serving:slice_registry",
+            "//py/koladata/serving:embedded_slices_internal",
+            "@com_google_arolla//arolla/util",
             # TODO: b/409476740 - This build rule is currently useless, unless the client has
             # visibility to DataSlice.
             "//koladata:data_slice",
