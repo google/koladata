@@ -51,6 +51,8 @@ class TestKlassInternals:
   a: int
   b: float
 
+_VERSION_PARAMS = [('v1', fns.from_py), ('v2', fns._from_py_v2)]
+
 
 class FromPyTest(parameterized.TestCase):
 
@@ -219,37 +221,40 @@ class FromPyTest(parameterized.TestCase):
         d[ds(['a', 'b'])].no_bag(), ds([1, 3.14], schema_constants.OBJECT)
     )
 
-  def test_primitive(self):
-    item = fns.from_py(42)
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_primitive(self, from_py_fn):
+    item = from_py_fn(42)
     testing.assert_equal(item, ds(42))
     self.assertIsNone(item.get_bag())
 
-    item = fns.from_py(42, schema=schema_constants.FLOAT32)
+    item = from_py_fn(42, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(42.))
     self.assertIsNone(item.get_bag())
 
-    item = fns.from_py(42, schema=schema_constants.OBJECT)
+    item = from_py_fn(42, schema=schema_constants.OBJECT)
     testing.assert_equal(item.no_bag(), ds(42, schema_constants.OBJECT))
     self.assertIsNotNone(item.get_bag())
     self.assertFalse(item.get_bag().is_mutable())
 
-  def test_primitive_int_enum(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_primitive_int_enum(self, from_py_fn):
     class MyIntEnum(enum.IntEnum):
       A = 1
       B = 2
       C = 2**33
 
-    testing.assert_equal(fns.from_py(MyIntEnum.A), ds(1))
-    testing.assert_equal(fns.from_py(MyIntEnum.B), ds(2))
-    testing.assert_equal(fns.from_py(MyIntEnum.C), ds(2**33))
+    testing.assert_equal(from_py_fn(MyIntEnum.A), ds(1))
+    testing.assert_equal(from_py_fn(MyIntEnum.B), ds(2))
+    testing.assert_equal(from_py_fn(MyIntEnum.C), ds(2**33))
 
-  def test_primitive_str_enum(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_primitive_str_enum(self, from_py_fn):
     class MyStrEnum(enum.StrEnum):
       A = 'a'
       B = 'b'
 
-    testing.assert_equal(fns.from_py(MyStrEnum.A), ds('a'))
-    testing.assert_equal(fns.from_py(MyStrEnum.B), ds('b'))
+    testing.assert_equal(from_py_fn(MyStrEnum.A), ds('a'))
+    testing.assert_equal(from_py_fn(MyStrEnum.B), ds('b'))
 
   def test_primitive_casting_error(self):
     with self.assertRaisesRegex(
@@ -260,13 +265,15 @@ assigned schema: MASK"""),
     ):
       fns.from_py(b'xyz', schema=schema_constants.MASK)
 
-  def test_primitive_down_casting_error(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_primitive_down_casting_error(self, from_py_fn):
     with self.assertRaisesRegex(
         ValueError, re.escape('''the schema is incompatible:
 expected schema: FLOAT32
 assigned schema: INT32''')
     ):
-      fns.from_py(3.14, schema=schema_constants.INT32)
+      from_py_fn(3.14, schema=schema_constants.INT32)
+    # TODO: change this to from_py_fn when lists are supported.
     with self.assertRaisesRegex(
         ValueError,
         re.escape("""the schema is incompatible:
@@ -466,19 +473,20 @@ assigned schema: INT32"""),
     ):
       _ = fns.from_py([], from_dim=2, schema=schema)
 
-  @parameterized.named_parameters(('v1', fns.from_py), ('v2', fns._from_py_v2))
+  @parameterized.named_parameters(_VERSION_PARAMS)
   def test_none(self, from_py_fn):
     item = from_py_fn(None)
     testing.assert_equal(item, ds(None))
 
-  def test_none_with_schema(self):
-    item = fns.from_py(None, schema=schema_constants.FLOAT32)
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_none_with_schema(self, from_py_fn):
+    item = from_py_fn(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(None, schema_constants.FLOAT32))
 
     schema = fns.schema.new_schema(
         a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
     )
-    item = fns.from_py(None, schema=schema)
+    item = from_py_fn(None, schema=schema)
     testing.assert_equivalent(item.get_schema(), schema)
     testing.assert_equal(item.no_bag(), ds(None).with_schema(schema.no_bag()))
 
@@ -491,9 +499,10 @@ assigned schema: INT32"""),
     res = fns.from_py([], from_dim=1, schema=schema)
     testing.assert_equal(res.no_bag(), ds([], schema.no_bag()))
 
-  def test_obj_reference(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_obj_reference(self, from_py_fn):
     obj = fns.obj()
-    item = fns.from_py(obj.ref())
+    item = from_py_fn(obj.ref())
     testing.assert_equal(item, obj.no_bag())
 
   def test_entity_reference(self):
@@ -1367,19 +1376,22 @@ assigned schema: SCHEMA(x=INT32)'''
         values, ds(42, schema_constants.OBJECT).with_bag(values.get_bag())
     )
 
-  def test_arg_errors(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_arg_errors_schema(self, from_py_fn):
     with self.assertRaisesRegex(
         TypeError, 'expecting schema to be a DataSlice, got int'
     ):
-      fns.from_py([1, 2], schema=42)
+      from_py_fn([1, 2], schema=42)
     with self.assertRaisesRegex(
         ValueError, r'schema\'s schema must be SCHEMA, got: INT32'
     ):
-      fns.from_py([1, 2], schema=ds(42))
+      from_py_fn([1, 2], schema=ds(42))
     with self.assertRaisesRegex(
         ValueError, r'schema\'s schema must be SCHEMA, got: INT32'
     ):
-      fns.from_py([1, 2], schema=ds([42]))
+      from_py_fn([1, 2], schema=ds([42]))
+
+  def test_arg_errors(self):
     with self.assertRaisesRegex(
         TypeError, 'expecting dict_as_obj to be a bool, got int'
     ):

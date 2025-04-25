@@ -63,8 +63,14 @@ cc_library(
     srcs = ["from_py.cc"],
     hdrs = ["from_py.h"],
     deps = [
+        "//koladata:data_bag",
         "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//py/koladata/base:boxing",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/util:status_backport",
         "@rules_python//python/cc:current_py_cc_headers",
     ],
 )

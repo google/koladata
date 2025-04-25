@@ -135,6 +135,12 @@ absl::StatusOr<DataSlice> GenericFromPyObject(
     PyObject* py_obj, bool dict_as_obj, const std::optional<DataSlice>& schema,
     size_t from_dim, const std::optional<DataSlice>& itemid = std::nullopt);
 
+// Returns an Error from provided status with incompatible schema information
+// during narrow casting.
+absl::Status CreateIncompatibleSchemaErrorFromStatus(
+    absl::Status status, const DataSlice& item_schema,
+    const DataSlice& input_schema);
+
 }  // namespace koladata::python
 
 #endif  // THIRD_PARTY_PY_KOLADATA_BASE_BOXING_H_

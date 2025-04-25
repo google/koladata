@@ -20,6 +20,7 @@
 #include "py/arolla/abc/pybind11_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_conversions/from_py.h"
+#include "py/koladata/base/wrap_utils.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
 
@@ -29,10 +30,15 @@ namespace {
 namespace py = pybind11;
 
 PYBIND11_MODULE(clib, m) {
-  m.def("_from_py_v2", [](py::handle py_obj) {
+  m.def("_from_py_v2", [](py::handle py_obj, py::handle schema) {
     arolla::python::PyCancellationScope cancellation_scope;
-    return arolla::TypedValue::FromValue(
-        arolla::python::pybind11_unstatus_or(FromPy_V2(py_obj.ptr())));
+    std::optional<DataSlice> schema_ds;
+    if (!UnwrapDataSliceOptionalArg(schema.ptr(), "schema", schema_ds)) {
+      throw pybind11::error_already_set();
+    }
+
+    return arolla::TypedValue::FromValue(arolla::python::pybind11_unstatus_or(
+        FromPy_V2(py_obj.ptr(), schema_ds)));
   });
 }
 

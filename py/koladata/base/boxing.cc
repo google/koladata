@@ -111,20 +111,6 @@ absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
                            std::move(schema));
 }
 
-// Returns an Error with incompatible schema information during narrow casting.
-absl::Status CreateIncompatibleSchemaError(absl::Status status,
-                                           const DataSlice& item_schema,
-                                           const DataSlice& input_schema) {
-  std::string item_schema_str = SchemaToStr(item_schema);
-  std::string input_schema_str = SchemaToStr(input_schema);
-  return internal::KodaErrorFromCause(
-      absl::StrFormat("the schema is incompatible:\n"
-                      "expected schema: %s\n"
-                      "assigned schema: %s",
-                      item_schema_str, input_schema_str),
-      std::move(status));
-}
-
 absl::Status CreateIncompatibleSchemaError(const DataSlice& item_schema,
                                            const DataSlice& input_schema) {
   std::string item_schema_str = SchemaToStr(item_schema);
@@ -328,6 +314,19 @@ absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
 }
 
 }  // namespace
+
+absl::Status CreateIncompatibleSchemaErrorFromStatus(
+    absl::Status status, const DataSlice& item_schema,
+    const DataSlice& input_schema) {
+  std::string item_schema_str = SchemaToStr(item_schema);
+  std::string input_schema_str = SchemaToStr(input_schema);
+  return internal::KodaErrorFromCause(
+      absl::StrFormat("the schema is incompatible:\n"
+                      "expected schema: %s\n"
+                      "assigned schema: %s",
+                      item_schema_str, input_schema_str),
+      std::move(status));
+}
 
 absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     const std::vector<PyObject*>& flat_list, DataSlice::JaggedShape shape,
@@ -769,15 +768,15 @@ class UniversalConverter {
                                          attr_descriptor));
       RETURN_IF_ERROR(Run());
       if (schema) {
-        ASSIGN_OR_RETURN(
-            DataSlice res, CastToNarrow(value_stack_.top(), schema->item()),
-            [&](absl::Status status) {
-              return CreateIncompatibleSchemaError(
-                  std::move(status),
-                  value_stack_.top().GetSchema().WithBag(
-                      adoption_queue_.GetBagWithFallbacks()),
-                  *schema);
-            }(_));
+        ASSIGN_OR_RETURN(DataSlice res,
+                         CastToNarrow(value_stack_.top(), schema->item()),
+                         [&](absl::Status status) {
+                           return CreateIncompatibleSchemaErrorFromStatus(
+                               std::move(status),
+                               value_stack_.top().GetSchema().WithBag(
+                                   adoption_queue_.GetBagWithFallbacks()),
+                               *schema);
+                         }(_));
         return res;
       }
       return std::move(value_stack_.top());
