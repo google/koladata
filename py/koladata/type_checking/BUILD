@@ -26,7 +26,6 @@ py_library(
     deps = [
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/expr:view",
-        "//py/koladata/operators:arolla_bridge",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_item",

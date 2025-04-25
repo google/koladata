@@ -18,24 +18,23 @@ from collections.abc import Mapping
 import functools
 import inspect
 
+from arolla import arolla
 from koladata.expr import tracing_mode
-from koladata.operators import arolla_bridge
+from koladata.expr import view
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import schema_item
-from koladata.expr import view
-from arolla import arolla
 
 eager = eager_op_utils.operators_container('kd')
 lazy = kde_operators.kde
 
 
-def _verify_input_eager(key: str,
-                        arg: data_slice.DataSlice,
-                        type_constraint: schema_item.SchemaItem):
+def _verify_input_eager(
+    key: str, arg: data_slice.DataSlice, type_constraint: schema_item.SchemaItem
+):
   """Verifies the type of input in eager mode."""
   if not isinstance(arg, (data_item.DataItem, data_slice.DataSlice)):
     # Boxing is needed to support Python arguments.
@@ -96,13 +95,12 @@ def _with_input_expr_assertions(
       bound_args.arguments[key] = lazy.assertion.with_assertion(
           arg,
           lazy.get_schema(arg) == type_constraint,
-          arolla_bridge.to_arolla_text(
-              lazy.strings.join(
-                  f'kd.check_inputs: type mismatch for parameter `{key}`.'
-                  ' Expected type ',
-                  lazy.schema.get_repr(type_constraint), ', got ',
-                  lazy.schema.get_repr(arg.get_schema()),
-              )
+          lazy.strings.join(
+              f'kd.check_inputs: type mismatch for parameter `{key}`.'
+              ' Expected type ',
+              lazy.schema.get_repr(type_constraint),
+              ', got ',
+              lazy.schema.get_repr(arg.get_schema()),
           ),
       )
   return bound_args
@@ -116,12 +114,11 @@ def _with_output_expr_assertion(
   return lazy.assertion.with_assertion(
       output,
       lazy.get_schema(output) == constraint,
-      arolla_bridge.to_arolla_text(
-          lazy.strings.join(
-              'kd.check_output: type mismatch for output. Expected type ',
-              lazy.schema.get_repr(constraint), ', got ',
-              lazy.schema.get_repr(output.get_schema()),
-          )
+      lazy.strings.join(
+          'kd.check_output: type mismatch for output. Expected type ',
+          lazy.schema.get_repr(constraint),
+          ', got ',
+          lazy.schema.get_repr(output.get_schema()),
       ),
   )
 
