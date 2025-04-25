@@ -27,6 +27,7 @@
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_item.h"
 
 namespace koladata::python {
 
@@ -45,6 +46,13 @@ namespace koladata::python {
 absl::StatusOr<DataSlice> DataSliceFromPyValue(
     PyObject* py_obj, AdoptionQueue& adoption_queue,
     const std::optional<DataSlice>& schema = std::nullopt);
+
+// Creates a DataSlice from a flat vector of PyObject(s), shape and type of
+// items. In case, edges is empty, we have a single value and treat it as 0-dim
+// output.
+absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
+    const std::vector<PyObject*>& flat_list, DataSlice::JaggedShape shape,
+    internal::DataItem schema, AdoptionQueue& adoption_queue);
 
 // Parses the Python list and returns flattened items (borrowed references)
 // together with the appropriate JaggedShape. This is the same logic as used

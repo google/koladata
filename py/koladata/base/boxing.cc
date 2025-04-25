@@ -313,9 +313,22 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
   }
 }
 
-// Creates a DataSlice from a flat vector of PyObject(s), shape and type of
-// items. In case, edges is empty, we have a single value and treat it as 0-dim
-// output.
+// Parses the Python list and creates a DataSlice from its items with
+// appropriate JaggedShape and type of items. The `py_list` can also have rank
+// 0, in which case we treat it as a scalar Python value.
+absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
+                                              DataItem schema,
+                                              AdoptionQueue& adoption_queue) {
+  arolla::python::DCheckPyGIL();
+  ASSIGN_OR_RETURN((auto [py_objects, shape]),
+                   FlattenPyList(py_list, /*max_depth=*/0));
+
+  return DataSliceFromPyFlatList(py_objects, std::move(shape),
+                                 std::move(schema), adoption_queue);
+}
+
+}  // namespace
+
 absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     const std::vector<PyObject*>& flat_list, DataSlice::JaggedShape shape,
     DataItem schema, AdoptionQueue& adoption_queue) {
@@ -425,22 +438,6 @@ absl::StatusOr<DataSlice> DataSliceFromPyFlatList(
     return impl.operator()<false>();
   }
 }
-
-// Parses the Python list and creates a DataSlice from its items with
-// appropriate JaggedShape and type of items. The `py_list` can also have rank
-// 0, in which case we treat it as a scalar Python value.
-absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
-                                              DataItem schema,
-                                              AdoptionQueue& adoption_queue) {
-  arolla::python::DCheckPyGIL();
-  ASSIGN_OR_RETURN((auto [py_objects, shape]),
-                   FlattenPyList(py_list, /*max_depth=*/0));
-
-  return DataSliceFromPyFlatList(py_objects, std::move(shape),
-                                 std::move(schema), adoption_queue);
-}
-
-}  // namespace
 
 // Parses the Python list and returns flattened items together with appropriate
 // JaggedShape.
@@ -1121,9 +1118,7 @@ class UniversalConverter {
   // int, DataItem, etc.). On failure, returns proper status error. The error
   // means that it is not a Python scalar supported by Koda and the caller
   // should evaluate other possibilities before returning this error.
-  // `cache_value` is filled with the result on success, to avoid recomputing
-  // hash and re-inserting in the hash_map, when the reference to the value is
-  // available.
+  // On success, pushes the result to `value_stack_`.
   //
   // NOTE: This is not recommended as a general pattern, as returning error can
   // also be expensive. Here, it is justified as it is followed by more
