@@ -322,7 +322,7 @@ Creates a new immutable DataBag updated by `bags`.
 
  Databags later in the list have higher priority.
  `updated_bag(bag1, bag2, bag3)` is equivalent to
- `updated_bag(bag1, updated_bag(bag2, bag3)`, and so on for additional
+ `updated_bag(bag1, updated_bag(bag2, bag3))`, and so on for additional
  DataBag args.
 
 Args:
@@ -1222,7 +1222,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x317efac531d0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x114cfa61fbf0>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1304,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x317efac531d0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x114cfa61fbf0>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
