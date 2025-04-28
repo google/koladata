@@ -40,6 +40,11 @@ package_group(
     ],
 )
 
+package_group(
+    name = "experimental_users",
+    packages = ["//javatests/com/google/quality/arolla/koladata/..."],
+)
+
 cc_test(
     name = "repr_utils_test",
     srcs = ["repr_utils_test.cc"],
@@ -181,6 +186,10 @@ cc_library(
         "repr_utils.h",
         "schema_utils.h",
         "shape_utils.h",
+    ],
+    visibility = [
+        "//koladata:experimental_users",
+        "//koladata:internal",
     ],
     deps = [
         ":data_bag",

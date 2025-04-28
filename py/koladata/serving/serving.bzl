@@ -118,10 +118,9 @@ def koladata_cc_embedded_slices(
             "//koladata/serving:slice_registry",
             "//py/koladata/serving:embedded_slices_internal",
             "@com_google_arolla//arolla/util",
-            # TODO: b/409476740 - This build rule is currently useless, unless the client has
-            # visibility to DataSlice.
             "//koladata:data_slice",
         ],
         tags = tags,
+        alwayslink = 1,
         **kwargs
     )
