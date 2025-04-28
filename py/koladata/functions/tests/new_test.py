@@ -30,10 +30,6 @@ kde = kde_operators.kde
 
 class NewTest(absltest.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.new(db=fns.bag())
-
   def test_mutability(self):
     self.assertFalse(fns.new().is_mutable())
 

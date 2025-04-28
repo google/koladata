@@ -31,10 +31,6 @@ kde = kde_operators.kde
 
 class ListLikeTest(parameterized.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.list_like(ds([1, None]), db=fns.bag())
-
   def test_mutability(self):
     self.assertFalse(fns.list_like(ds([1, None])).is_mutable())
 

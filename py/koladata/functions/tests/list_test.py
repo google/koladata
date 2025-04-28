@@ -33,12 +33,6 @@ kde = kde_operators.kde
 # data_bag_test.
 class ListTest(parameterized.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(
-        ValueError, 'db= argument is deprecated.* db.list method'
-    ):
-      fns.list(db=fns.bag())
-
   def test_mutability(self):
     self.assertFalse(fns.list().is_mutable())
 

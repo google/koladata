@@ -25,10 +25,6 @@ ds = data_slice.DataSlice.from_vals
 
 class UuObjTest(absltest.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.uuobj('seed', db=fns.bag())
-
   def test_mutability(self):
     self.assertFalse(fns.uuobj('seed').is_mutable())
 

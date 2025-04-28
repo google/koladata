@@ -30,10 +30,6 @@ OBJ2 = db.obj()
 
 class ConcatListsTest(parameterized.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.concat_lists(fns.list([1, 2]), fns.list([3]), db=fns.bag())
-
   def test_mutability(self):
     self.assertFalse(
         fns.concat_lists(fns.list([1, 2]), fns.list([3])).is_mutable()

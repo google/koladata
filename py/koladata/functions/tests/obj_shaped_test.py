@@ -32,10 +32,6 @@ kde = kde_operators.kde
 
 class ObjShapedTest(absltest.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.obj_shaped(jagged_shape.create_shape(2, [2, 1]), db=fns.bag())
-
   def test_mutability(self):
     shape = jagged_shape.create_shape(2, [2, 1])
     self.assertFalse(fns.obj_shaped(shape).is_mutable())

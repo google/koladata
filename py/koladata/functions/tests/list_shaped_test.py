@@ -33,10 +33,6 @@ kde = kde_operators.kde
 
 class ListShapedTest(parameterized.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.list_shaped(jagged_shape.create_shape(), db=fns.bag())
-
   def test_mutability(self):
     shape = jagged_shape.create_shape()
     self.assertFalse(fns.list_shaped(shape).is_mutable())

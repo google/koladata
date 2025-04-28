@@ -26,23 +26,14 @@ from koladata.types import jagged_shape
 bag = data_bag.DataBag.empty
 
 
-_DEPRECATED_DB_ARG_ERROR = (
-    'db= argument is deprecated, please either use this API without it or use '
-    'the corresponding db.{} method'
-)
-
-
 def list_(
     items: Any | None = None,
     *,
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None
 ) -> data_slice.DataSlice:
-  """Creates list(s) by collapsing `items`.
-
-  Returns an immutable list if `db` is not provided.
+  """Creates list(s) by collapsing `items` into an immutable list.
 
   If there is no argument, returns an empty Koda List.
   If the argument is a Python list, creates a nested Koda List.
@@ -61,19 +52,16 @@ def list_(
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where list(s) are created.
 
   Returns:
     The slice with list/lists.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('list', ...)` however it
-    # has different boxing rules.
-    return bag().list(
-        items=items, item_schema=item_schema, schema=schema, itemid=itemid,
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('list'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('list', ...)` however it
+  # has different boxing rules.
+  return bag().list(
+      items=items, item_schema=item_schema, schema=schema, itemid=itemid,
+  ).freeze_bag()
 
 
 def list_like(
@@ -84,11 +72,10 @@ def list_like(
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
-  Returns immutable lists if `db` is not provided.
+  Returns immutable lists.
 
   Args:
     shape_and_mask_from: a DataSlice with the shape and sparsity for the
@@ -100,20 +87,17 @@ def list_like(
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
 
   Returns:
     A DataSlice with the lists.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('list_like', ...)`
-    # however it has different boxing rules.
-    return bag().list_like(
-        shape_and_mask_from, items=items, item_schema=item_schema,
-        schema=schema, itemid=itemid,
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('list_like'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('list_like', ...)`
+  # however it has different boxing rules.
+  return bag().list_like(
+      shape_and_mask_from, items=items, item_schema=item_schema,
+      schema=schema, itemid=itemid,
+  ).freeze_bag()
 
 
 def list_shaped(
@@ -124,11 +108,10 @@ def list_shaped(
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda lists with the given shape.
 
-  Returns immutable lists if `db` is not provided.
+  Returns immutable lists.
 
   Args:
     shape: the desired shape.
@@ -139,20 +122,17 @@ def list_shaped(
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
 
   Returns:
     A DataSlice with the lists.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('list_shaped', ...)`
-    # however it has different boxing rules.
-    return bag().list_shaped(
-        shape, items=items, item_schema=item_schema, schema=schema,
-        itemid=itemid,
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('list_shaped'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('list_shaped', ...)`
+  # however it has different boxing rules.
+  return bag().list_shaped(
+      shape, items=items, item_schema=item_schema, schema=schema,
+      itemid=itemid,
+  ).freeze_bag()
 
 
 def list_shaped_as(
@@ -163,11 +143,10 @@ def list_shaped_as(
     item_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda lists with shape of the given DataSlice.
 
-  Returns immutable lists if `db` is not provided.
+  Returns immutable lists.
 
   Args:
     shape_from: mandatory DataSlice, whose shape the returned DataSlice will
@@ -179,7 +158,6 @@ def list_shaped_as(
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
 
   Returns:
     A DataSlice with the lists.
@@ -190,7 +168,6 @@ def list_shaped_as(
       item_schema=item_schema,
       schema=schema,
       itemid=itemid,
-      db=db,
   )
 
 
@@ -201,11 +178,10 @@ def dict_(
     value_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None
 ) -> data_slice.DataSlice:
   """Creates a Koda dict.
 
-  Returns an immutable dict if `db` is not provided.
+  Returns an immutable dict.
 
   Acceptable arguments are:
     1) no argument: a single empty dict
@@ -240,24 +216,21 @@ def dict_(
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where dict(s) are created.
 
   Returns:
     A DataSlice with the dict.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('dict', ...)` however it
-    # has different boxing rules.
-    return bag().dict(
-        items_or_keys=items_or_keys,
-        values=values,
-        key_schema=key_schema,
-        value_schema=value_schema,
-        schema=schema,
-        itemid=itemid,
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('dict'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('dict', ...)` however it
+  # has different boxing rules.
+  return bag().dict(
+      items_or_keys=items_or_keys,
+      values=values,
+      key_schema=key_schema,
+      value_schema=value_schema,
+      schema=schema,
+      itemid=itemid,
+  ).freeze_bag()
 
 
 def dict_like(
@@ -270,11 +243,10 @@ def dict_like(
     value_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
-  Returns immutable dicts if `db` is not provided.
+  Returns immutable dicts.
 
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
   the function assigns the given keys and values to the newly created dicts. So
@@ -295,25 +267,22 @@ def dict_like(
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where dicts are created.
 
   Returns:
     A DataSlice with the dicts.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('dict_like', ...)`
-    # however it has different boxing rules.
-    return bag().dict_like(
-        shape_and_mask_from,
-        items_or_keys=items_or_keys,
-        values=values,
-        key_schema=key_schema,
-        value_schema=value_schema,
-        schema=schema,
-        itemid=itemid,
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('dict_like'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('dict_like', ...)`
+  # however it has different boxing rules.
+  return bag().dict_like(
+      shape_and_mask_from,
+      items_or_keys=items_or_keys,
+      values=values,
+      key_schema=key_schema,
+      value_schema=value_schema,
+      schema=schema,
+      itemid=itemid,
+  ).freeze_bag()
 
 
 def dict_shaped(
@@ -325,11 +294,10 @@ def dict_shaped(
     value_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda dicts with the given shape.
 
-  Returns immutable dicts if `db` is not provided.
+  Returns immutable dicts.
 
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
   the function assigns the given keys and values to the newly created dicts. So
@@ -348,25 +316,22 @@ def dict_shaped(
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: Optional DataBag where dicts are created.
 
   Returns:
     A DataSlice with the dicts.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('dict_shaped', ...)`
-    # however it has different boxing rules.
-    return bag().dict_shaped(
-        shape,
-        items_or_keys=items_or_keys,
-        values=values,
-        key_schema=key_schema,
-        value_schema=value_schema,
-        schema=schema,
-        itemid=itemid,
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('dict_shaped'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('dict_shaped', ...)`
+  # however it has different boxing rules.
+  return bag().dict_shaped(
+      shape,
+      items_or_keys=items_or_keys,
+      values=values,
+      key_schema=key_schema,
+      value_schema=value_schema,
+      schema=schema,
+      itemid=itemid,
+  ).freeze_bag()
 
 
 def dict_shaped_as(
@@ -378,11 +343,10 @@ def dict_shaped_as(
     value_schema: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates new Koda dicts with shape of the given DataSlice.
 
-  Returns immutable dicts if `db` is not provided.
+  Returns immutable dicts.
 
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
   the function assigns the given keys and values to the newly created dicts. So
@@ -402,7 +366,6 @@ def dict_shaped_as(
     schema: The schema to use for the newly created Dict. If specified, then
       key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: Optional DataBag where dicts are created.
 
   Returns:
     A DataSlice with the dicts.
@@ -415,7 +378,6 @@ def dict_shaped_as(
       value_schema=value_schema,
       schema=schema,
       itemid=itemid,
-      db=db,
   )
 
 
@@ -426,12 +388,11 @@ def new(
     schema: data_slice.DataSlice | str | None = None,
     overwrite_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates Entities with given attrs.
 
-  Returns an immutable Entity if `db` is not provided.
+  Returns an immutable Entity.
 
   Args:
     arg: optional Python object to be converted to an Entity.
@@ -444,21 +405,18 @@ def new(
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
       itemid will only be set when the args is not a primitive or primitive
       slice if args present.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  if db is None:
-    return data_bag.DataBag._new_no_bag(  # pylint: disable=protected-access
-        arg,
-        schema=schema,
-        overwrite_schema=overwrite_schema,
-        itemid=itemid,
-        **attrs,
-    )
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('new'))
+  return data_bag.DataBag._new_no_bag(  # pylint: disable=protected-access
+      arg,
+      schema=schema,
+      overwrite_schema=overwrite_schema,
+      itemid=itemid,
+      **attrs,
+  )
 
 
 def new_shaped(
@@ -468,12 +426,11 @@ def new_shaped(
     schema: data_slice.DataSlice | str | None = None,
     overwrite_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates new Entities with the given shape.
 
-  Returns immutable Entities if `db` is not provided.
+  Returns immutable Entities.
 
   Args:
     shape: JaggedShape that the returned DataSlice will have.
@@ -484,21 +441,18 @@ def new_shaped(
     overwrite_schema: if schema attribute is missing and the attribute is being
       set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('new_shaped', ...)`
-    # however it has different boxing rules.
-    return bag().new_shaped(
-        shape, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
-        **attrs
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('new_shaped'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('new_shaped', ...)`
+  # however it has different boxing rules.
+  return bag().new_shaped(
+      shape, schema=schema, overwrite_schema=overwrite_schema, itemid=itemid,
+      **attrs
+  ).freeze_bag()
 
 
 def new_shaped_as(
@@ -508,12 +462,11 @@ def new_shaped_as(
     schema: data_slice.DataSlice | str | None = None,
     overwrite_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates new Koda entities with shape of the given DataSlice.
 
-  Returns immutable Entities if `db` is not provided.
+  Returns immutable Entities.
 
   Args:
     shape_from: DataSlice, whose shape the returned DataSlice will have.
@@ -524,7 +477,6 @@ def new_shaped_as(
     overwrite_schema: if schema attribute is missing and the attribute is being
       set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
@@ -535,7 +487,6 @@ def new_shaped_as(
       schema=schema,
       overwrite_schema=overwrite_schema,
       itemid=itemid,
-      db=db,
       **attrs,
   )
 
@@ -547,12 +498,11 @@ def new_like(
     schema: data_slice.DataSlice | str | None = None,
     overwrite_schema: bool = False,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
-  Returns immutable Entities if `db` is not provided.
+  Returns immutable Entities.
 
   Args:
     shape_and_mask_from: DataSlice, whose shape and sparsity the returned
@@ -564,21 +514,18 @@ def new_like(
     overwrite_schema: if schema attribute is missing and the attribute is being
       set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('new_like', ...)`
-    # however it has different boxing rules.
-    return bag().new_like(
-        shape_and_mask_from, schema=schema, overwrite_schema=overwrite_schema,
-        itemid=itemid, **attrs
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('new_like'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('new_like', ...)`
+  # however it has different boxing rules.
+  return bag().new_like(
+      shape_and_mask_from, schema=schema, overwrite_schema=overwrite_schema,
+      itemid=itemid, **attrs
+  ).freeze_bag()
 
 
 def obj(
@@ -586,50 +533,39 @@ def obj(
     /,
     *,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
     **attrs: Any
 ) -> data_slice.DataSlice:
   """Creates new Objects with an implicit stored schema.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   Args:
     arg: optional Python object to be converted to an Object.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
       itemid will only be set when the args is not a primitive or primitive
       slice if args presents.
-    db: optional DataBag where object are created.
     **attrs: attrs to set on the returned object.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
   """
-  if db is None:
-    return data_bag.DataBag._obj_no_bag(  # pylint: disable=protected-access
-        arg, itemid=itemid, **attrs
-    )
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('obj'))
+  return data_bag.DataBag._obj_no_bag(  # pylint: disable=protected-access
+      arg, itemid=itemid, **attrs
+  )
 
 
-def container(
-    *,
-    db: data_bag.DataBag | None = None,
-    **attrs: Any,
-) -> data_slice.DataSlice:
+def container(**attrs: Any) -> data_slice.DataSlice:
   """Creates new Objects with an implicit stored schema.
 
   Returned DataSlice has OBJECT schema and mutable DataBag.
 
   Args:
-    db: optional DataBag where object are created.
     **attrs: attrs to set on the returned object.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
   """
-  if db is None:
-    db = bag()
-  o = db.obj()
+  o = bag().obj()
   o.set_attrs(**attrs)
   return o
 
@@ -639,28 +575,24 @@ def obj_shaped(
     /,
     *,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates Objects with the given shape.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   Args:
     shape: JaggedShape that the returned DataSlice will have.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
-    # however it has different boxing rules.
-    return bag().obj_shaped(shape, itemid=itemid, **attrs).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('obj_shaped'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
+  # however it has different boxing rules.
+  return bag().obj_shaped(shape, itemid=itemid, **attrs).freeze_bag()
 
 
 def obj_shaped_as(
@@ -668,23 +600,21 @@ def obj_shaped_as(
     /,
     *,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates Objects with the shape of the given DataSlice.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   Args:
     shape_from: DataSlice, whose shape the returned DataSlice will have.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  return obj_shaped(shape_from.get_shape(), itemid=itemid, db=db, **attrs)
+  return obj_shaped(shape_from.get_shape(), itemid=itemid, **attrs)
 
 
 def obj_like(
@@ -692,31 +622,27 @@ def obj_like(
     /,
     *,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates Objects with shape and sparsity from shape_and_mask_from.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   Args:
     shape_and_mask_from: DataSlice, whose shape and sparsity the returned
       DataSlice will have.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
-    # however it has different boxing rules.
-    return bag().obj_like(
-        shape_and_mask_from, itemid=itemid, **attrs
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('obj_like'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('obj_shaped', ...)`
+  # however it has different boxing rules.
+  return bag().obj_like(
+      shape_and_mask_from, itemid=itemid, **attrs
+  ).freeze_bag()
 
 
 def uu(
@@ -724,12 +650,11 @@ def uu(
     *,
     schema: data_slice.DataSlice | None = None,
     overwrite_schema: bool = False,
-    db: data_bag.DataBag | None = None,
     **attrs: Any,
 ) -> data_slice.DataSlice:
   """Creates UuEntities with given attrs.
 
-  Returns an immutable UU Entity if `db` is not provided.
+  Returns an immutable UU Entity.
 
   Args:
     seed: string to seed the uuid computation with.
@@ -737,31 +662,23 @@ def uu(
       will be automatically created based on the schemas of the passed **attrs.
     overwrite_schema: if schema attribute is missing and the attribute is being
       set through `attrs`, schema is successfully updated.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('uu', ...)` however it
-    # has different boxing rules.
-    return bag().uu(
-        seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs
-    ).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('uu'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('uu', ...)` however it
+  # has different boxing rules.
+  return bag().uu(
+      seed=seed, schema=schema, overwrite_schema=overwrite_schema, **attrs
+  ).freeze_bag()
 
 
-def uuobj(
-    seed: str | None = None,
-    *,
-    db: data_bag.DataBag | None = None,
-    **attrs: Any,
-) -> data_slice.DataSlice:
+def uuobj(seed: str | None = None, **attrs: Any) -> data_slice.DataSlice:
   """Creates object(s) whose ids are uuid(s) with the provided attributes.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   In order to create a different "Type" from the same arguments, use
   `seed` key with the desired value, e.g.
@@ -777,19 +694,16 @@ def uuobj(
   Args:
     seed: (str) Allows different uuobj(s) to have different ids when created
       from the same inputs.
-    db: optional DataBag where entities are created.
     **attrs: key-value pairs of object attributes where values are DataSlices
       or can be converted to DataSlices using kd.new / kd.obj.
 
   Returns:
     data_slice.DataSlice
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('uuobj', ...)` however
-    # it has different boxing rules.
-    return bag().uuobj(seed=seed, **attrs).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('uuobj'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('uuobj', ...)` however
+  # it has different boxing rules.
+  return bag().uuobj(seed=seed, **attrs).freeze_bag()
 
 
 def implode(
@@ -797,17 +711,14 @@ def implode(
     /,
     ndim: int | data_slice.DataSlice = 1,
     itemid: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Implodes a Dataslice `x` a specified number of times.
 
-  Returned lists are immutable if `db` is not provided.
+  Returned lists are immutable.
 
   A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
   DataSlice of LIST[T], by folding the items in the last dimension of the
   original DataSlice into newly-created Lists.
-
-  A single list implosion is equivalent to `kd.list(x, db)`.
 
   If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
 
@@ -815,31 +726,23 @@ def implode(
   until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
   nested List.
 
-  The specified `db` is used to create any new Lists, and is the DataBag of the
-  result DataSlice. If `db` is not specified, a new DataBag is created for this
-  purpose.
-
   Args:
     x: the DataSlice to implode
     ndim: the number of implosion operations to perform
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where Lists are created from
 
   Returns:
     DataSlice of nested Lists
   """
-  if db is None:
-    return bag().implode(x, ndim, itemid).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('implode'))
+  return bag().implode(x, ndim, itemid).freeze_bag()
 
 
 def concat_lists(
     *lists: data_slice.DataSlice,
-    db: data_bag.DataBag | None = None
 ) -> data_slice.DataSlice:
   """Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
-  Returned lists are immutable if `db` is not provided.
+  Returned lists are immutable.
 
   Each input DataSlice must contain only present List items, and the item
   schemas of each input must be compatible. Input DataSlices are aligned (see
@@ -847,20 +750,13 @@ def concat_lists(
 
   If `lists` is empty, this returns a single empty list with OBJECT item schema.
 
-  The specified `db` is used to create the new concatenated lists, and is the
-  DataBag used by the result DataSlice. If `db` is not specified, a new DataBag
-  is created for this purpose.
-
   Args:
     *lists: the DataSlices of Lists to concatenate
-    db: optional DataBag to populate with the result
 
   Returns:
     DataSlice of concatenated Lists
   """
-  if db is None:
-    # TODO: Find a better way in order to avoid calling
-    # `freeze_bag`. One alternative is to call `eval_op('concat_lists', ...)`
-    # however it has different boxing rules.
-    return bag().concat_lists(*lists).freeze_bag()
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('concat_lists'))
+  # TODO: Find a better way in order to avoid calling
+  # `freeze_bag`. One alternative is to call `eval_op('concat_lists', ...)`
+  # however it has different boxing rules.
+  return bag().concat_lists(*lists).freeze_bag()

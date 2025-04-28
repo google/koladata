@@ -35,10 +35,6 @@ kde = kde_operators.kde
 # data_bag_test.
 class DictTest(parameterized.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.dict(db=fns.bag())
-
   def test_mutability(self):
     self.assertFalse(fns.dict().is_mutable())
 

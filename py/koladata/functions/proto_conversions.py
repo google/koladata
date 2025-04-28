@@ -22,11 +22,6 @@ from koladata.types import data_item
 from koladata.types import data_slice
 
 
-_DEPRECATED_DB_ARG_ERROR = (
-    'db= argument is deprecated, please use this API without it'
-)
-
-
 def from_proto(
     messages: message.Message | None | list[message.Message | None],
     /,
@@ -34,7 +29,6 @@ def from_proto(
     extensions: list[str] | None = None,
     itemid: data_slice.DataSlice | None = None,
     schema: data_slice.DataSlice | None = None,
-    db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Returns a DataSlice representing proto data.
 
@@ -92,7 +86,6 @@ def from_proto(
       create an uuschema based on the proto descriptor. When set to an entity
       schema, some fields may be set to kd.OBJECT to create objects from that
       point.
-    db: The DataBag to use for the result, or None to use a new DataBag.
 
   Returns:
     A DataSlice representing the proto data.
@@ -125,11 +118,9 @@ def from_proto(
             'itemid must be a 1-D DataSlice if messages is a list of messages'
         )
 
-  if db is None:
-    db = data_bag.DataBag.empty()
-  else:
-    raise ValueError(_DEPRECATED_DB_ARG_ERROR)
-  result = db._from_proto(messages, extensions, itemid, schema)  # pylint: disable=protected-access
+  result = data_bag.DataBag.empty()._from_proto(  # pylint: disable=protected-access
+      messages, extensions, itemid, schema
+  )
 
   if result_is_item:
     result = result.S[0]
@@ -141,7 +132,6 @@ def schema_from_proto(
     /,
     *,
     extensions: list[str] | None = None,
-    db: data_bag.DataBag | None = None,
 ) -> data_item.DataItem:
   """Returns a Koda schema representing a proto message class.
 
@@ -166,16 +156,13 @@ def schema_from_proto(
   Args:
     message_class: A proto message class to convert.
     extensions: List of proto extension paths.
-    db: The DataBag to use for the result, or None to use a new DataBag.
 
   Returns:
     A DataItem containing the converted schema.
   """
-  if db is None:
-    db = data_bag.DataBag.empty()
-  else:
-    raise ValueError(_DEPRECATED_DB_ARG_ERROR)
-  return db._schema_from_proto(message_class(), extensions)  # pylint: disable=protected-access
+  return data_bag.DataBag.empty()._schema_from_proto(  # pylint: disable=protected-access
+      message_class(), extensions
+  )
 
 
 def to_proto(

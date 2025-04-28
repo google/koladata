@@ -28,12 +28,6 @@ bag = fns.bag
 
 class UuSchemaTest(absltest.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.uu_schema(
-          a=schema_constants.STRING, b=schema_constants.INT32, db=bag()
-      )
-
   def test_mutability(self):
     self.assertFalse(
         fns.uu_schema(

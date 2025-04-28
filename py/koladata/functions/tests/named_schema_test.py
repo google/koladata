@@ -26,10 +26,6 @@ bag = fns.bag
 
 class NamedSchemaTest(absltest.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.named_schema('my_schema', db=fns.bag())
-
   def test_mutability(self):
     self.assertFalse(fns.named_schema('my_schema').is_mutable())
 

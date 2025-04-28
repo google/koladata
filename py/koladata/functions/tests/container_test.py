@@ -32,8 +32,6 @@ class ContainerTest(absltest.TestCase):
 
   def test_mutable(self):
     self.assertTrue(fns.container().is_mutable())
-    self.assertTrue(fns.container(db=fns.bag()).is_mutable())
-    self.assertTrue(fns.container(db=fns.bag(), a=42).is_mutable())
 
   def test_set_get_attr(self):
     c = fns.container()
@@ -48,15 +46,6 @@ class ContainerTest(absltest.TestCase):
     testing.assert_equal(c.lst[:].no_bag(), ds([1, 2]))
     c.dct = {'a': 42, 'b': 12}
     testing.assert_dicts_keys_equal(c.dct, ds(['a', 'b']))
-
-  def test_db_arg(self):
-    db = fns.bag()
-    c = fns.container(db=db)
-    testing.assert_equal(c.get_bag(), db)
-
-    c = fns.container(db=db, a=42)
-    testing.assert_equal(c.get_bag(), db)
-    testing.assert_equal(c.a.no_bag(), ds(42))
 
   def test_non_data_item(self):
     with self.assertRaisesRegex(

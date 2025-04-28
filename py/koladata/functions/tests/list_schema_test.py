@@ -28,12 +28,6 @@ bag = fns.bag
 
 class ListSchemaTest(absltest.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(
-        ValueError, 'db= argument is deprecated.* db.list_schema method'
-    ):
-      fns.list_schema(schema_constants.INT32, db=fns.bag())
-
   def test_mutability(self):
     self.assertFalse(fns.list_schema(schema_constants.STRING).is_mutable())
 

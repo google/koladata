@@ -31,108 +31,78 @@ bag = data_bag.DataBag.empty
 _eval_op = py_expr_eval_py_ext.eval_op
 
 
-_DEPRECATED_DB_ARG_ERROR = (
-    'db= argument is deprecated, please either use this API without it or use '
-    'the corresponding db.{} method'
-)
-
-
 def new_schema(
-    db: data_bag.DataBag | None = None, **attrs: data_slice.DataSlice
+    **attrs: data_slice.DataSlice
 ) -> data_slice.DataSlice:
   """Creates new schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   Args:
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
     **attrs: attrs to set on the schema. Must be schemas.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
   """
-  if db is None:
-    return _eval_op('kd.schema.new_schema', **attrs)
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('new_schema'))
+  return _eval_op('kd.schema.new_schema', **attrs)
 
 
-def list_schema(
-    item_schema: data_slice.DataSlice, db: data_bag.DataBag | None = None
-) -> data_slice.DataSlice:
+def list_schema(item_schema: data_slice.DataSlice) -> data_slice.DataSlice:
   """Creates a list schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   Args:
     item_schema: schema of the items in the list.
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
 
   Returns:
     data_slice.DataSlice representing a list schema.
   """
-  if db is None:
-    return _eval_op('kd.schema.list_schema', item_schema)
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('list_schema'))
+  return _eval_op('kd.schema.list_schema', item_schema)
 
 
 def dict_schema(
     key_schema: data_slice.DataSlice,
     value_schema: data_slice.DataSlice,
-    db: data_bag.DataBag | None = None,
 ) -> data_slice.DataSlice:
   """Creates a dict schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   Args:
     key_schema: schema of the keys in the list.
     value_schema: schema of the values in the list.
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
 
   Returns:
     data_slice.DataSlice representing a dict schema.
   """
-  if db is None:
-    return _eval_op('kd.schema.dict_schema', key_schema, value_schema)
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('dict_schema'))
+  return _eval_op('kd.schema.dict_schema', key_schema, value_schema)
 
 
 def uu_schema(
     seed: str = '',
-    *,
-    db: data_bag.DataBag | None = None,
     **attrs: data_slice.DataSlice
 ) -> data_slice.DataSlice:
   """Creates a uu_schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   Args:
     seed: optional string to seed the uuid computation with.
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
     **attrs: attrs to set on the schema. Must be schemas.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
   """
-  if db is None:
-    return _eval_op('kd.schema.uu_schema', seed=seed, **attrs)
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('uu_schema'))
+  return _eval_op('kd.schema.uu_schema', seed=seed, **attrs)
 
 
 def named_schema(
-    name: str,
-    *,
-    db: data_bag.DataBag | None = None,
-    **attrs: data_slice.DataSlice,
+    name: str, **attrs: data_slice.DataSlice,
 ) -> data_slice.DataSlice:
   """Creates a named entity schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   A named schema will have its item id derived only from its name, which means
   that two named schemas with the same name will have the same item id, even in
@@ -140,8 +110,6 @@ def named_schema(
 
   Args:
     name: The name to use to derive the item id of the schema.
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
     **attrs: A mapping of attribute names to DataSlices. The DataSlice values
       must be schemas themselves.
 
@@ -150,9 +118,7 @@ def named_schema(
     schema, with the DataBag attached containing the provided
     attrs.
   """
-  if db is None:
-    return _eval_op('kd.schema.named_schema', name, **attrs)
-  raise ValueError(_DEPRECATED_DB_ARG_ERROR.format('named_schema'))
+  return _eval_op('kd.schema.named_schema', name, **attrs)
 
 
 def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:

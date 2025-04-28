@@ -28,10 +28,6 @@ kde = kde_operators.kde
 
 class DictShapedAsTest(parameterized.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.dict_shaped_as(ds([1, 2, 3]), db=fns.bag())
-
   def test_mutability(self):
     self.assertFalse(fns.dict_shaped_as(ds([1, 2, 3])).is_mutable())
 

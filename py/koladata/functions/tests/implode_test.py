@@ -35,10 +35,6 @@ OBJ3 = db.obj(a=math.nan)
 
 class ImplodeTest(parameterized.TestCase):
 
-  def test_deprecated_db_arg(self):
-    with self.assertRaisesRegex(ValueError, 'db= argument is deprecated'):
-      fns.implode(ds([1, None]), db=db)
-
   def test_mutability(self):
     self.assertFalse(fns.implode(ds([1, None])).is_mutable())
 
