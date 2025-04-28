@@ -26,10 +26,13 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/util/fingerprint.h"
 #include "arolla/util/memory.h"
+#include "arolla/util/repr.h"
 
 namespace koladata::functor::parallel {
 namespace {
@@ -255,3 +258,22 @@ std::pair<StreamPtr, StreamWriterPtr> MakeStream(arolla::QTypePtr value_qtype,
 }
 
 }  // namespace koladata::functor::parallel
+
+namespace arolla {
+void FingerprintHasherTraits<koladata::functor::parallel::StreamPtr>::
+operator()(FingerprintHasher* hasher,
+           const koladata::functor::parallel::StreamPtr& value) const {
+  if (value != nullptr) {
+    hasher->Combine(value->uuid());
+  }
+}
+
+ReprToken ReprTraits<koladata::functor::parallel::StreamPtr>::operator()(
+    const koladata::functor::parallel::StreamPtr& value) const {
+  if (value == nullptr) {
+    return ReprToken{"stream{nullptr}"};
+  }
+  return ReprToken{absl::StrCat("stream[", value->value_qtype()->name(), "]")};
+}
+
+}  // namespace arolla

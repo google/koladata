@@ -145,6 +145,7 @@ cc_library(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
@@ -162,6 +163,35 @@ cc_test(
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/synchronization",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "stream_qtype",
+    srcs = ["stream_qtype.cc"],
+    hdrs = ["stream_qtype.h"],
+    deps = [
+        ":stream",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "stream_qtype_test",
+    srcs = ["stream_qtype_test.cc"],
+    deps = [
+        ":stream",
+        ":stream_qtype",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
     ],
 )

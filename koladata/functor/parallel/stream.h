@@ -25,6 +25,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/repr.h"
 
 namespace koladata::functor::parallel {
 
@@ -164,5 +165,13 @@ std::pair<StreamPtr, StreamWriterPtr> MakeStream(arolla::QTypePtr value_qtype,
                                                  size_t initial_capacity = 0);
 
 }  // namespace koladata::functor::parallel
+
+namespace arolla {
+
+AROLLA_DECLARE_FINGERPRINT_HASHER_TRAITS(
+    koladata::functor::parallel::StreamPtr);
+AROLLA_DECLARE_REPR(koladata::functor::parallel::StreamPtr);
+
+}  // namespace arolla
 
 #endif  // KOLADATA_FUNCTOR_PARALLEL_STREAM_H_
