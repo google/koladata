@@ -104,6 +104,7 @@ py_library(
         "//py/koladata/ext:nested_data",
         "//py/koladata/ext:npkd",
         "//py/koladata/ext:pdkd",
+        "//py/koladata/ext:persisted_incremental_data_bag_manager",
         "//py/koladata/ext:py_cloudpickle",
         "//py/koladata/ext:vis",
         "//py/koladata/ext/experimental/parallel_call:call",

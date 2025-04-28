@@ -52,6 +52,15 @@ class KdExtTest(absltest.TestCase):
   def test_vis(self):
     self.assertTrue(hasattr(kd_ext.vis, 'register_formatters'))
 
+  def test_persisted_incremental_data_bag_manager(self):
+    self.assertTrue(hasattr(kd_ext, 'PersistedIncrementalDataBagManager'))
+
+    persistence_dir = self.create_tempdir().full_path
+    dbm = kd_ext.PersistedIncrementalDataBagManager(persistence_dir)
+    self.assertEqual(dbm.get_available_bag_names(), {''})
+    self.assertEqual(dbm.get_loaded_bag_names(), {''})
+    kd.testing.assert_equivalent(dbm.get_bag(), kd.bag())
+
 
 if __name__ == '__main__':
   absltest.main()
