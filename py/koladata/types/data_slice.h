@@ -41,7 +41,7 @@ PyObject* /*absl_nullable*/ PyDataSliceModule_register_reserved_class_method_nam
 // Returns a frozenset of method names that are either defined on the CPython
 // DataSlice implementation or specifically reserved using
 // register_reserved_class_method_name.
-absl::Nullable<PyObject*> PyDataSliceModule_get_reserved_attrs(
+PyObject* /*absl_nullable*/ PyDataSliceModule_get_reserved_attrs(
     PyObject* /*module*/);
 
 }  // namespace koladata::python
