@@ -123,18 +123,18 @@ py_library(
 )
 
 py_library(
-    name = "persisted_incremental_databag_manager",
-    srcs = ["persisted_incremental_databag_manager.py"],
+    name = "persisted_incremental_data_bag_manager",
+    srcs = ["persisted_incremental_data_bag_manager.py"],
     deps = [
         "//py/koladata:kd",
     ],
 )
 
 py_test(
-    name = "persisted_incremental_databag_manager_test",
-    srcs = ["persisted_incremental_databag_manager_test.py"],
+    name = "persisted_incremental_data_bag_manager_test",
+    srcs = ["persisted_incremental_data_bag_manager_test.py"],
     deps = [
-        ":persisted_incremental_databag_manager",
+        ":persisted_incremental_data_bag_manager",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
     ],
