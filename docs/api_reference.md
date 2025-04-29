@@ -562,7 +562,7 @@ Returns:
   and all of the rest extracted.
 ```
 
-### `kd.core.container(*, db=None, **attrs)` {#kd.core.container}
+### `kd.core.container(**attrs)` {#kd.core.container}
 Aliases:
 
 - [kd.container](#kd.container)
@@ -573,7 +573,6 @@ Creates new Objects with an implicit stored schema.
   Returned DataSlice has OBJECT schema and mutable DataBag.
 
   Args:
-    db: optional DataBag where object are created.
     **attrs: attrs to set on the returned object.
 
   Returns:
@@ -1222,7 +1221,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x52983c87dfd0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x73b53a82bf20>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1304,7 +1303,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x52983c87dfd0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x73b53a82bf20>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -1332,7 +1331,7 @@ Operators that work solely with entities.
 
 **Operators**
 
-### `kd.entities.like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.like}
+### `kd.entities.like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.like}
 Aliases:
 
 - [kd.new_like](#kd.new_like)
@@ -1340,7 +1339,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Entities with the shape and sparsity from shape_and_mask_from.
 
-  Returns immutable Entities if `db` is not provided.
+  Returns immutable Entities.
 
   Args:
     shape_and_mask_from: DataSlice, whose shape and sparsity the returned
@@ -1352,14 +1351,13 @@ Creates new Entities with the shape and sparsity from shape_and_mask_from.
     overwrite_schema: if schema attribute is missing and the attribute is being
       set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.entities.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.new}
+### `kd.entities.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.new}
 Aliases:
 
 - [kd.new](#kd.new)
@@ -1367,7 +1365,7 @@ Aliases:
 ``` {.no-copy}
 Creates Entities with given attrs.
 
-  Returns an immutable Entity if `db` is not provided.
+  Returns an immutable Entity.
 
   Args:
     arg: optional Python object to be converted to an Entity.
@@ -1380,14 +1378,13 @@ Creates Entities with given attrs.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
       itemid will only be set when the args is not a primitive or primitive
       slice if args present.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.entities.shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.shaped}
+### `kd.entities.shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.shaped}
 Aliases:
 
 - [kd.new_shaped](#kd.new_shaped)
@@ -1395,7 +1392,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Entities with the given shape.
 
-  Returns immutable Entities if `db` is not provided.
+  Returns immutable Entities.
 
   Args:
     shape: JaggedShape that the returned DataSlice will have.
@@ -1406,14 +1403,13 @@ Creates new Entities with the given shape.
     overwrite_schema: if schema attribute is missing and the attribute is being
       set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.entities.shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.entities.shaped_as}
+### `kd.entities.shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.entities.shaped_as}
 Aliases:
 
 - [kd.new_shaped_as](#kd.new_shaped_as)
@@ -1421,7 +1417,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda entities with shape of the given DataSlice.
 
-  Returns immutable Entities if `db` is not provided.
+  Returns immutable Entities.
 
   Args:
     shape_from: DataSlice, whose shape the returned DataSlice will have.
@@ -1432,14 +1428,13 @@ Creates new Koda entities with shape of the given DataSlice.
     overwrite_schema: if schema attribute is missing and the attribute is being
       set through `attrs`, schema is successfully updated.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting entities.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.entities.uu(seed=None, *, schema=None, overwrite_schema=False, db=None, **attrs)` {#kd.entities.uu}
+### `kd.entities.uu(seed=None, *, schema=None, overwrite_schema=False, **attrs)` {#kd.entities.uu}
 Aliases:
 
 - [kd.uu](#kd.uu)
@@ -1447,7 +1442,7 @@ Aliases:
 ``` {.no-copy}
 Creates UuEntities with given attrs.
 
-  Returns an immutable UU Entity if `db` is not provided.
+  Returns an immutable UU Entity.
 
   Args:
     seed: string to seed the uuid computation with.
@@ -1455,7 +1450,6 @@ Creates UuEntities with given attrs.
       will be automatically created based on the schemas of the passed **attrs.
     overwrite_schema: if schema attribute is missing and the attribute is being
       set through `attrs`, schema is successfully updated.
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
@@ -1594,7 +1588,7 @@ Returns:
   A MASK DataItem.
 ```
 
-### `kd.dicts.like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.like}
+### `kd.dicts.like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dicts.like}
 Aliases:
 
 - [kd.dict_like](#kd.dict_like)
@@ -1602,7 +1596,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
 
-  Returns immutable dicts if `db` is not provided.
+  Returns immutable dicts.
 
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
   the function assigns the given keys and values to the newly created dicts. So
@@ -1623,13 +1617,12 @@ Creates new Koda dicts with shape and sparsity of `shape_and_mask_from`.
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where dicts are created.
 
   Returns:
     A DataSlice with the dicts.
 ```
 
-### `kd.dicts.new(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.new}
+### `kd.dicts.new(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dicts.new}
 Aliases:
 
 - [kd.dict](#kd.dict)
@@ -1637,7 +1630,7 @@ Aliases:
 ``` {.no-copy}
 Creates a Koda dict.
 
-  Returns an immutable dict if `db` is not provided.
+  Returns an immutable dict.
 
   Acceptable arguments are:
     1) no argument: a single empty dict
@@ -1672,7 +1665,6 @@ Creates a Koda dict.
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where dict(s) are created.
 
   Returns:
     A DataSlice with the dict.
@@ -1720,7 +1712,7 @@ Returns:
   Filtered DataSlice.
 ```
 
-### `kd.dicts.shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.shaped}
+### `kd.dicts.shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dicts.shaped}
 Aliases:
 
 - [kd.dict_shaped](#kd.dict_shaped)
@@ -1728,7 +1720,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda dicts with the given shape.
 
-  Returns immutable dicts if `db` is not provided.
+  Returns immutable dicts.
 
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
   the function assigns the given keys and values to the newly created dicts. So
@@ -1747,13 +1739,12 @@ Creates new Koda dicts with the given shape.
     schema: The schema to use for the newly created Dict. If specified, then
         key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: Optional DataBag where dicts are created.
 
   Returns:
     A DataSlice with the dicts.
 ```
 
-### `kd.dicts.shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dicts.shaped_as}
+### `kd.dicts.shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dicts.shaped_as}
 Aliases:
 
 - [kd.dict_shaped_as](#kd.dict_shaped_as)
@@ -1761,7 +1752,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda dicts with shape of the given DataSlice.
 
-  Returns immutable dicts if `db` is not provided.
+  Returns immutable dicts.
 
   If items_or_keys and values are not provided, creates empty dicts. Otherwise,
   the function assigns the given keys and values to the newly created dicts. So
@@ -1781,7 +1772,6 @@ Creates new Koda dicts with shape of the given DataSlice.
     schema: The schema to use for the newly created Dict. If specified, then
       key_schema and value_schema must not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: Optional DataBag where dicts are created.
 
   Returns:
     A DataSlice with the dicts.
@@ -3095,7 +3085,7 @@ Returns:
   DataSlice of lists with new itemd ids in a new immutable DataBag.
 ```
 
-### `kd.lists.concat(*lists, db=None)` {#kd.lists.concat}
+### `kd.lists.concat(*lists)` {#kd.lists.concat}
 Aliases:
 
 - [kd.concat_lists](#kd.concat_lists)
@@ -3103,7 +3093,7 @@ Aliases:
 ``` {.no-copy}
 Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
-  Returned lists are immutable if `db` is not provided.
+  Returned lists are immutable.
 
   Each input DataSlice must contain only present List items, and the item
   schemas of each input must be compatible. Input DataSlices are aligned (see
@@ -3111,13 +3101,8 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
 
   If `lists` is empty, this returns a single empty list with OBJECT item schema.
 
-  The specified `db` is used to create the new concatenated lists, and is the
-  DataBag used by the result DataSlice. If `db` is not specified, a new DataBag
-  is created for this purpose.
-
   Args:
     *lists: the DataSlices of Lists to concatenate
-    db: optional DataBag to populate with the result
 
   Returns:
     DataSlice of concatenated Lists
@@ -3182,7 +3167,7 @@ Returns:
   A MASK DataSlice with the same shape as `x`.
 ```
 
-### `kd.lists.implode(x, /, ndim=1, itemid=None, db=None)` {#kd.lists.implode}
+### `kd.lists.implode(x, /, ndim=1, itemid=None)` {#kd.lists.implode}
 Aliases:
 
 - [kd.implode](#kd.implode)
@@ -3190,13 +3175,11 @@ Aliases:
 ``` {.no-copy}
 Implodes a Dataslice `x` a specified number of times.
 
-  Returned lists are immutable if `db` is not provided.
+  Returned lists are immutable.
 
   A single list "implosion" converts a rank-(K+1) DataSlice of T to a rank-K
   DataSlice of LIST[T], by folding the items in the last dimension of the
   original DataSlice into newly-created Lists.
-
-  A single list implosion is equivalent to `kd.list(x, db)`.
 
   If `ndim` is set to a non-negative integer, implodes recursively `ndim` times.
 
@@ -3204,15 +3187,10 @@ Implodes a Dataslice `x` a specified number of times.
   until the result is a DataItem (i.e. a rank-0 DataSlice) containing a single
   nested List.
 
-  The specified `db` is used to create any new Lists, and is the DataBag of the
-  result DataSlice. If `db` is not specified, a new DataBag is created for this
-  purpose.
-
   Args:
     x: the DataSlice to implode
     ndim: the number of implosion operations to perform
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where Lists are created from
 
   Returns:
     DataSlice of nested Lists
@@ -3246,7 +3224,7 @@ Returns:
   A MASK DataItem.
 ```
 
-### `kd.lists.like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.like}
+### `kd.lists.like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.lists.like}
 Aliases:
 
 - [kd.list_like](#kd.list_like)
@@ -3254,7 +3232,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
 
-  Returns immutable lists if `db` is not provided.
+  Returns immutable lists.
 
   Args:
     shape_and_mask_from: a DataSlice with the shape and sparsity for the
@@ -3266,7 +3244,6 @@ Creates new Koda lists with shape and sparsity of `shape_and_mask_from`.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
 
   Returns:
     A DataSlice with the lists.
@@ -3317,7 +3294,7 @@ Returns:
   Filtered DataSlice.
 ```
 
-### `kd.lists.shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.shaped}
+### `kd.lists.shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.lists.shaped}
 Aliases:
 
 - [kd.list_shaped](#kd.list_shaped)
@@ -3325,7 +3302,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda lists with the given shape.
 
-  Returns immutable lists if `db` is not provided.
+  Returns immutable lists.
 
   Args:
     shape: the desired shape.
@@ -3336,13 +3313,12 @@ Creates new Koda lists with the given shape.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
 
   Returns:
     A DataSlice with the lists.
 ```
 
-### `kd.lists.shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.lists.shaped_as}
+### `kd.lists.shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.lists.shaped_as}
 Aliases:
 
 - [kd.list_shaped_as](#kd.list_shaped_as)
@@ -3350,7 +3326,7 @@ Aliases:
 ``` {.no-copy}
 Creates new Koda lists with shape of the given DataSlice.
 
-  Returns immutable lists if `db` is not provided.
+  Returns immutable lists.
 
   Args:
     shape_from: mandatory DataSlice, whose shape the returned DataSlice will
@@ -3362,7 +3338,6 @@ Creates new Koda lists with shape of the given DataSlice.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where lists are created.
 
   Returns:
     A DataSlice with the lists.
@@ -4318,7 +4293,7 @@ Operators that work solely with objects.
 
 **Operators**
 
-### `kd.objs.like(shape_and_mask_from, /, *, itemid=None, db=None, **attrs)` {#kd.objs.like}
+### `kd.objs.like(shape_and_mask_from, /, *, itemid=None, **attrs)` {#kd.objs.like}
 Aliases:
 
 - [kd.obj_like](#kd.obj_like)
@@ -4326,20 +4301,19 @@ Aliases:
 ``` {.no-copy}
 Creates Objects with shape and sparsity from shape_and_mask_from.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   Args:
     shape_and_mask_from: DataSlice, whose shape and sparsity the returned
       DataSlice will have.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.objs.new(arg=unspecified, /, *, itemid=None, db=None, **attrs)` {#kd.objs.new}
+### `kd.objs.new(arg=unspecified, /, *, itemid=None, **attrs)` {#kd.objs.new}
 Aliases:
 
 - [kd.obj](#kd.obj)
@@ -4347,21 +4321,20 @@ Aliases:
 ``` {.no-copy}
 Creates new Objects with an implicit stored schema.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   Args:
     arg: optional Python object to be converted to an Object.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
       itemid will only be set when the args is not a primitive or primitive
       slice if args presents.
-    db: optional DataBag where object are created.
     **attrs: attrs to set on the returned object.
 
   Returns:
     data_slice.DataSlice with the given attrs and kd.OBJECT schema.
 ```
 
-### `kd.objs.shaped(shape, /, *, itemid=None, db=None, **attrs)` {#kd.objs.shaped}
+### `kd.objs.shaped(shape, /, *, itemid=None, **attrs)` {#kd.objs.shaped}
 Aliases:
 
 - [kd.obj_shaped](#kd.obj_shaped)
@@ -4369,19 +4342,18 @@ Aliases:
 ``` {.no-copy}
 Creates Objects with the given shape.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   Args:
     shape: JaggedShape that the returned DataSlice will have.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.objs.shaped_as(shape_from, /, *, itemid=None, db=None, **attrs)` {#kd.objs.shaped_as}
+### `kd.objs.shaped_as(shape_from, /, *, itemid=None, **attrs)` {#kd.objs.shaped_as}
 Aliases:
 
 - [kd.obj_shaped_as](#kd.obj_shaped_as)
@@ -4389,19 +4361,18 @@ Aliases:
 ``` {.no-copy}
 Creates Objects with the shape of the given DataSlice.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   Args:
     shape_from: DataSlice, whose shape the returned DataSlice will have.
     itemid: optional ITEMID DataSlice used as ItemIds of the resulting obj(s).
-    db: optional DataBag where entities are created.
     **attrs: attrs to set in the returned Entity.
 
   Returns:
     data_slice.DataSlice with the given attrs.
 ```
 
-### `kd.objs.uu(seed=None, *, db=None, **attrs)` {#kd.objs.uu}
+### `kd.objs.uu(seed=None, **attrs)` {#kd.objs.uu}
 Aliases:
 
 - [kd.uuobj](#kd.uuobj)
@@ -4409,7 +4380,7 @@ Aliases:
 ``` {.no-copy}
 Creates object(s) whose ids are uuid(s) with the provided attributes.
 
-  Returned DataSlice has OBJECT schema and is immutable if `db` is not provided.
+  Returned DataSlice has OBJECT schema and is immutable.
 
   In order to create a different "Type" from the same arguments, use
   `seed` key with the desired value, e.g.
@@ -4425,7 +4396,6 @@ Creates object(s) whose ids are uuid(s) with the provided attributes.
   Args:
     seed: (str) Allows different uuobj(s) to have different ids when created
       from the same inputs.
-    db: optional DataBag where entities are created.
     **attrs: key-value pairs of object attributes where values are DataSlices
       or can be converted to DataSlices using kd.new / kd.obj.
 
@@ -5153,7 +5123,7 @@ Args:
   x: DataSlice of schemas.
 ```
 
-### `kd.schema.dict_schema(key_schema, value_schema, db=None)` {#kd.schema.dict_schema}
+### `kd.schema.dict_schema(key_schema, value_schema)` {#kd.schema.dict_schema}
 Aliases:
 
 - [kd.dict_schema](#kd.dict_schema)
@@ -5161,13 +5131,11 @@ Aliases:
 ``` {.no-copy}
 Creates a dict schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   Args:
     key_schema: schema of the keys in the list.
     value_schema: schema of the values in the list.
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
 
   Returns:
     data_slice.DataSlice representing a dict schema.
@@ -5360,7 +5328,7 @@ Returns true iff `x` is a primitive schema DataItem.
 Returns true iff `x` is a Struct schema DataItem.
 ```
 
-### `kd.schema.list_schema(item_schema, db=None)` {#kd.schema.list_schema}
+### `kd.schema.list_schema(item_schema)` {#kd.schema.list_schema}
 Aliases:
 
 - [kd.list_schema](#kd.list_schema)
@@ -5368,18 +5336,16 @@ Aliases:
 ``` {.no-copy}
 Creates a list schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   Args:
     item_schema: schema of the items in the list.
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
 
   Returns:
     data_slice.DataSlice representing a list schema.
 ```
 
-### `kd.schema.named_schema(name, *, db=None, **attrs)` {#kd.schema.named_schema}
+### `kd.schema.named_schema(name, **attrs)` {#kd.schema.named_schema}
 Aliases:
 
 - [kd.named_schema](#kd.named_schema)
@@ -5387,7 +5353,7 @@ Aliases:
 ``` {.no-copy}
 Creates a named entity schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   A named schema will have its item id derived only from its name, which means
   that two named schemas with the same name will have the same item id, even in
@@ -5395,8 +5361,6 @@ Creates a named entity schema in the given DataBag.
 
   Args:
     name: The name to use to derive the item id of the schema.
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
     **attrs: A mapping of attribute names to DataSlices. The DataSlice values
       must be schemas themselves.
 
@@ -5406,16 +5370,14 @@ Creates a named entity schema in the given DataBag.
     attrs.
 ```
 
-### `kd.schema.new_schema(db=None, **attrs)` {#kd.schema.new_schema}
+### `kd.schema.new_schema(**attrs)` {#kd.schema.new_schema}
 
 ``` {.no-copy}
 Creates new schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   Args:
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
     **attrs: attrs to set on the schema. Must be schemas.
 
   Returns:
@@ -5559,7 +5521,7 @@ Casts `x` to SCHEMA using explicit (permissive) casting rules.
 Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
-### `kd.schema.uu_schema(seed='', *, db=None, **attrs)` {#kd.schema.uu_schema}
+### `kd.schema.uu_schema(seed='', **attrs)` {#kd.schema.uu_schema}
 Aliases:
 
 - [kd.uu_schema](#kd.uu_schema)
@@ -5567,12 +5529,10 @@ Aliases:
 ``` {.no-copy}
 Creates a uu_schema in the given DataBag.
 
-  Returned schema is immutable if `db` is not provided.
+  Returned schema is immutable.
 
   Args:
     seed: optional string to seed the uuid computation with.
-    db: optional DataBag where the schema is created. If not provided, a new
-      Databag is created.
     **attrs: attrs to set on the schema. Must be schemas.
 
   Returns:
@@ -8318,7 +8278,7 @@ Alias for [kd.slices.collapse](#kd.slices.collapse) operator.
 
 Alias for [kd.slices.concat](#kd.slices.concat) operator.
 
-### `kd.concat_lists(*lists, db=None)` {#kd.concat_lists}
+### `kd.concat_lists(*lists)` {#kd.concat_lists}
 
 Alias for [kd.lists.concat](#kd.lists.concat) operator.
 
@@ -8326,7 +8286,7 @@ Alias for [kd.lists.concat](#kd.lists.concat) operator.
 
 Alias for [kd.masking.cond](#kd.masking.cond) operator.
 
-### `kd.container(*, db=None, **attrs)` {#kd.container}
+### `kd.container(**attrs)` {#kd.container}
 
 Alias for [kd.core.container](#kd.core.container) operator.
 
@@ -8364,23 +8324,23 @@ Deletes an attribute `attr_name` from `x`.
 
 Alias for [kd.slices.dense_rank](#kd.slices.dense_rank) operator.
 
-### `kd.dict(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict}
+### `kd.dict(items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dict}
 
 Alias for [kd.dicts.new](#kd.dicts.new) operator.
 
-### `kd.dict_like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict_like}
+### `kd.dict_like(shape_and_mask_from, /, items_or_keys=None, values=None, *, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dict_like}
 
 Alias for [kd.dicts.like](#kd.dicts.like) operator.
 
-### `kd.dict_schema(key_schema, value_schema, db=None)` {#kd.dict_schema}
+### `kd.dict_schema(key_schema, value_schema)` {#kd.dict_schema}
 
 Alias for [kd.schema.dict_schema](#kd.schema.dict_schema) operator.
 
-### `kd.dict_shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict_shaped}
+### `kd.dict_shaped(shape, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dict_shaped}
 
 Alias for [kd.dicts.shaped](#kd.dicts.shaped) operator.
 
-### `kd.dict_shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None, db=None)` {#kd.dict_shaped_as}
+### `kd.dict_shaped_as(shape_from, /, items_or_keys=None, values=None, key_schema=None, value_schema=None, schema=None, itemid=None)` {#kd.dict_shaped_as}
 
 Alias for [kd.dicts.shaped_as](#kd.dicts.shaped_as) operator.
 
@@ -8563,7 +8523,7 @@ Alias for [kd.core.freeze_bag](#kd.core.freeze_bag) operator.
 
 Alias for [kd.json.from_json](#kd.json.from_json) operator.
 
-### `kd.from_proto(messages, /, *, extensions=None, itemid=None, schema=None, db=None)` {#kd.from_proto}
+### `kd.from_proto(messages, /, *, extensions=None, itemid=None, schema=None)` {#kd.from_proto}
 
 ``` {.no-copy}
 Returns a DataSlice representing proto data.
@@ -8622,7 +8582,6 @@ Returns a DataSlice representing proto data.
       create an uuschema based on the proto descriptor. When set to an entity
       schema, some fields may be set to kd.OBJECT to create objects from that
       point.
-    db: The DataBag to use for the result, or None to use a new DataBag.
 
   Returns:
     A DataSlice representing the proto data.
@@ -8821,7 +8780,7 @@ Alias for [kd.ids.hash_itemid](#kd.ids.hash_itemid) operator.
 
 Alias for [kd.functor.if_](#kd.functor.if_) operator.
 
-### `kd.implode(x, /, ndim=1, itemid=None, db=None)` {#kd.implode}
+### `kd.implode(x, /, ndim=1, itemid=None)` {#kd.implode}
 
 Alias for [kd.lists.implode](#kd.lists.implode) operator.
 
@@ -8915,12 +8874,10 @@ Alias for [kd.comparison.less](#kd.comparison.less) operator.
 
 Alias for [kd.comparison.less_equal](#kd.comparison.less_equal) operator.
 
-### `kd.list(items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list}
+### `kd.list(items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.list}
 
 ``` {.no-copy}
-Creates list(s) by collapsing `items`.
-
-  Returns an immutable list if `db` is not provided.
+Creates list(s) by collapsing `items` into an immutable list.
 
   If there is no argument, returns an empty Koda List.
   If the argument is a Python list, creates a nested Koda List.
@@ -8939,7 +8896,6 @@ Creates list(s) by collapsing `items`.
     schema: The schema to use for the list. If specified, then item_schema must
       not be specified.
     itemid: Optional ITEMID DataSlice used as ItemIds of the resulting lists.
-    db: optional DataBag where list(s) are created.
 
   Returns:
     The slice with list/lists.
@@ -8949,19 +8905,19 @@ Creates list(s) by collapsing `items`.
 
 Alias for [kd.lists.list_append_update](#kd.lists.list_append_update) operator.
 
-### `kd.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list_like}
+### `kd.list_like(shape_and_mask_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.list_like}
 
 Alias for [kd.lists.like](#kd.lists.like) operator.
 
-### `kd.list_schema(item_schema, db=None)` {#kd.list_schema}
+### `kd.list_schema(item_schema)` {#kd.list_schema}
 
 Alias for [kd.schema.list_schema](#kd.schema.list_schema) operator.
 
-### `kd.list_shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list_shaped}
+### `kd.list_shaped(shape, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.list_shaped}
 
 Alias for [kd.lists.shaped](#kd.lists.shaped) operator.
 
-### `kd.list_shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None, db=None)` {#kd.list_shaped_as}
+### `kd.list_shaped_as(shape_from, /, items=None, *, item_schema=None, schema=None, itemid=None)` {#kd.list_shaped_as}
 
 Alias for [kd.lists.shaped_as](#kd.lists.shaped_as) operator.
 
@@ -9068,11 +9024,11 @@ Container that automatically names Exprs.
     fn(x=5)  # Returns 6
 ```
 
-### `kd.named_schema(name, *, db=None, **attrs)` {#kd.named_schema}
+### `kd.named_schema(name, **attrs)` {#kd.named_schema}
 
 Alias for [kd.schema.named_schema](#kd.schema.named_schema) operator.
 
-### `kd.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.new}
+### `kd.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.new}
 
 Alias for [kd.entities.new](#kd.entities.new) operator.
 
@@ -9108,7 +9064,7 @@ Alias for [kd.allocation.new_itemid_shaped](#kd.allocation.new_itemid_shaped) op
 
 Alias for [kd.allocation.new_itemid_shaped_as](#kd.allocation.new_itemid_shaped_as) operator.
 
-### `kd.new_like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.new_like}
+### `kd.new_like(shape_and_mask_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.new_like}
 
 Alias for [kd.entities.like](#kd.entities.like) operator.
 
@@ -9128,11 +9084,11 @@ Alias for [kd.allocation.new_listid_shaped](#kd.allocation.new_listid_shaped) op
 
 Alias for [kd.allocation.new_listid_shaped_as](#kd.allocation.new_listid_shaped_as) operator.
 
-### `kd.new_shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.new_shaped}
+### `kd.new_shaped(shape, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.new_shaped}
 
 Alias for [kd.entities.shaped](#kd.entities.shaped) operator.
 
-### `kd.new_shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, db=None, **attrs)` {#kd.new_shaped_as}
+### `kd.new_shaped_as(shape_from, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.new_shaped_as}
 
 Alias for [kd.entities.shaped_as](#kd.entities.shaped_as) operator.
 
@@ -9152,19 +9108,19 @@ Alias for [kd.schema.nofollow_schema](#kd.schema.nofollow_schema) operator.
 
 Alias for [kd.comparison.not_equal](#kd.comparison.not_equal) operator.
 
-### `kd.obj(arg=unspecified, /, *, itemid=None, db=None, **attrs)` {#kd.obj}
+### `kd.obj(arg=unspecified, /, *, itemid=None, **attrs)` {#kd.obj}
 
 Alias for [kd.objs.new](#kd.objs.new) operator.
 
-### `kd.obj_like(shape_and_mask_from, /, *, itemid=None, db=None, **attrs)` {#kd.obj_like}
+### `kd.obj_like(shape_and_mask_from, /, *, itemid=None, **attrs)` {#kd.obj_like}
 
 Alias for [kd.objs.like](#kd.objs.like) operator.
 
-### `kd.obj_shaped(shape, /, *, itemid=None, db=None, **attrs)` {#kd.obj_shaped}
+### `kd.obj_shaped(shape, /, *, itemid=None, **attrs)` {#kd.obj_shaped}
 
 Alias for [kd.objs.shaped](#kd.objs.shaped) operator.
 
-### `kd.obj_shaped_as(shape_from, /, *, itemid=None, db=None, **attrs)` {#kd.obj_shaped_as}
+### `kd.obj_shaped_as(shape_from, /, *, itemid=None, **attrs)` {#kd.obj_shaped_as}
 
 Alias for [kd.objs.shaped_as](#kd.objs.shaped_as) operator.
 
@@ -9263,7 +9219,7 @@ Alias for [kd.random.sample](#kd.random.sample) operator.
 
 Alias for [kd.random.sample_n](#kd.random.sample_n) operator.
 
-### `kd.schema_from_proto(message_class, /, *, extensions=None, db=None)` {#kd.schema_from_proto}
+### `kd.schema_from_proto(message_class, /, *, extensions=None)` {#kd.schema_from_proto}
 
 ``` {.no-copy}
 Returns a Koda schema representing a proto message class.
@@ -9289,7 +9245,6 @@ Returns a Koda schema representing a proto message class.
   Args:
     message_class: A proto message class to convert.
     extensions: List of proto extension paths.
-    db: The DataBag to use for the result, or None to use a new DataBag.
 
   Returns:
     A DataItem containing the converted schema.
@@ -9563,11 +9518,11 @@ Alias for [kd.core.updated](#kd.core.updated) operator.
 
 Alias for [kd.bags.updated](#kd.bags.updated) operator.
 
-### `kd.uu(seed=None, *, schema=None, overwrite_schema=False, db=None, **attrs)` {#kd.uu}
+### `kd.uu(seed=None, *, schema=None, overwrite_schema=False, **attrs)` {#kd.uu}
 
 Alias for [kd.entities.uu](#kd.entities.uu) operator.
 
-### `kd.uu_schema(seed='', *, db=None, **attrs)` {#kd.uu_schema}
+### `kd.uu_schema(seed='', **attrs)` {#kd.uu_schema}
 
 Alias for [kd.schema.uu_schema](#kd.schema.uu_schema) operator.
 
@@ -9587,7 +9542,7 @@ Alias for [kd.ids.uuid_for_list](#kd.ids.uuid_for_list) operator.
 
 Alias for [kd.ids.uuids_with_allocation_size](#kd.ids.uuids_with_allocation_size) operator.
 
-### `kd.uuobj(seed=None, *, db=None, **attrs)` {#kd.uuobj}
+### `kd.uuobj(seed=None, **attrs)` {#kd.uuobj}
 
 Alias for [kd.objs.uu](#kd.objs.uu) operator.
 
@@ -9662,6 +9617,70 @@ the following module is needed:
 <section class="zippy closed">
 
 **Operators**
+
+### `kd_ext.PersistedIncrementalDataBagManager.add_bag(self, bag_name, bag, dependencies)` {#kd_ext.PersistedIncrementalDataBagManager.add_bag}
+
+``` {.no-copy}
+Adds a bag to the manager, which will persist it.
+
+    Args:
+      bag_name: The name of the bag to add. This must be a name that is not
+        already present in get_available_bag_names().
+      bag: The bag to add.
+      dependencies: A non-empty collection of the names of the bags that `bag`
+        depends on. It should include all the direct dependencies. There is no
+        need to include transitive dependencies. All the names mentioned here
+        must already be present in get_available_bag_names(). After this
+        function returns, the bag and all its transitive dependencies will be
+        loaded and will hence be present in get_loaded_bag_names().
+```
+
+### `kd_ext.PersistedIncrementalDataBagManager.get_available_bag_names(self)` {#kd_ext.PersistedIncrementalDataBagManager.get_available_bag_names}
+
+``` {.no-copy}
+Returns the names of all bags that are managed by this manager.
+
+    They include the initial empty bag (named ''), all bags that have been added
+    to this manager instance, and all bags that were already persisted in the
+    persistence directory before this manager instance was created.
+```
+
+### `kd_ext.PersistedIncrementalDataBagManager.get_bag(self, bag_name='', with_all_dependents=False)` {#kd_ext.PersistedIncrementalDataBagManager.get_bag}
+
+``` {.no-copy}
+Returns a bag that includes bag_name and its transitive dependencies.
+
+    The result will also include all bags that have already been loaded. Their
+    names can be found by calling get_loaded_bag_names(). You can also call
+    get_loaded_bag_names() after this function returns to determine the names of
+    the newly loaded bags.
+
+    Args:
+      bag_name: The name of the bag whose data must be part of the result. It
+        must be a member of get_available_bag_names(). If not loaded yet, then
+        it will be loaded after all its transitive dependencies are loaded. If
+        not specified, then it is assumed to refer to the initial empty bag
+        (with name ''), which is always loaded.
+      with_all_dependents: If True, then the returned bag will also include all
+        dependents of bag_name. The dependents are computed transitively. All
+        transitive dependencies of the dependents are then also included in the
+        result.
+
+    Returns:
+      The currently loaded bag, which includes the previously loaded bags, the
+      bag called bag_name, its transitive dependencies, and if requested, the
+      transitive dependents of bag_name and their transitive dependencies.
+```
+
+### `kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag_names(self)` {#kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag_names}
+
+``` {.no-copy}
+Returns the names of all bags that are currently loaded in this manager.
+
+    The initial empty bag (with name '') is always loaded, and the bags that
+    have been added to this manager instance or loaded by previous calls to
+    get_bag() are also considered loaded.
+```
 
 ### `kd_ext.experimental.call_multithreaded(fn, /, *args, max_threads=100, **kwargs)` {#kd_ext.experimental.call_multithreaded}
 
@@ -9947,6 +9966,49 @@ Visualizes a DataSlice as a html widget.
 ### `kd_ext.Fn(f, *, use_tracing=True, **kwargs)` {#kd_ext.Fn}
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
+
+### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x73b538242db0>)` {#kd_ext.PersistedIncrementalDataBagManager}
+
+``` {.no-copy}
+Manager of a DataBag that is assembled from multiple smaller bags.
+
+  It is often convenient to create a DataBag by incrementally adding smaller
+  bags, where each of the smaller bags is an update to the large DataBag.
+
+  This also provides the opportunity to persist the smaller bags separately,
+  along with the stated dependencies among the smaller bags.
+
+  Then at a later point, usually in a different process, one can reassemble the
+  large DataBag. But instead of loading the entire DataBag, one can load only
+  the smaller bags that are needed, thereby saving loading time and memory. In
+  fact the smaller bags can be loaded incrementally, so that decisions about
+  which bags to load can be made on the fly instead of up-front. In that way,
+  the incremental creation of the large DataBag is mirrored by its incremental
+  consumption.
+
+  To streamline the consumption, you have to specify dependencies between the
+  smaller bags when they are added. It is trivial to specify a linear chain of
+  dependencies, but setting up a dependency DAG is easy and can significantly
+  improve the loading time and memory usage of data consumers. In fact this
+  class will always manage a rooted DAG of small bags, and a chain of bags is
+  just a special case.
+
+  This class manages the smaller bags, which are named, and their
+  interdependencies. It also handles the persistence of the smaller bags along
+  with some metadata to facilitate the later consumption of the data and also
+  its further augmentation. The persistence uses a filesystem directory, which
+  is hermetic in the sense that it can be moved or copied. The persistence
+  directory is consistent after each public operation of this class, provided
+  that it is not modified externally and that there is sufficient space to
+  accommodate the writes.
+
+  This class is not thread-safe. However, multiple instances of this class can
+  concurrently read from the same persistence directory. When an instance
+  modifies the persistence directory, which happens when add_bag() is called,
+  then there should be no other instances where read/write operations straddle
+  the modification. I.e. all the read/write operations of another instance must
+  happen completely before or completely after the modification.
+```
 
 ### `kd_ext.PyFn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults)` {#kd_ext.PyFn}
 
