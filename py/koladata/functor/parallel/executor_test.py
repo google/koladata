@@ -60,6 +60,31 @@ class ExecutorTest(absltest.TestCase):
     mock_unraisablehook.assert_called_once()
     self.assertEqual(mock_unraisablehook.call_args[0][0].exc_value, ex)
 
+  @arolla.abc.add_default_cancellation_context
+  def test_cancellation(self):
+    executor = arolla.abc.invoke_op('koda_internal.parallel.get_eager_executor')
+    cancellation_context = arolla.abc.current_cancellation_context()
+    assert cancellation_context is not None
+    cancellation_context.cancel('Boom!')
+
+    mock_fn = mock.Mock()
+    with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED] Boom!'):
+      executor.schedule(mock_fn)
+    mock_fn.assert_not_called()
+
+  def test_hijack_qvalue_specialization(self):
+    executor = arolla.abc.invoke_op('koda_internal.parallel.get_eager_executor')
+    tuple_executor_qtype = arolla.make_tuple_qtype(executor.qtype)
+    arolla.abc.register_qvalue_specialization(
+        tuple_executor_qtype, clib.Executor
+    )
+    tuple_executor = arolla.tuple(executor)
+    with self.assertRaisesWithLiteralMatch(
+        RuntimeError,
+        'unexpected self.qtype: expected an executor, got tuple<EXECUTOR>',
+    ):
+      tuple_executor.schedule(type)
+
 
 if __name__ == '__main__':
   absltest.main()
