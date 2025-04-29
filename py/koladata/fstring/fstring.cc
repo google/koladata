@@ -14,6 +14,8 @@
 //
 #include "py/koladata/fstring/fstring.h"
 
+#include <Python.h>
+
 #include <utility>
 
 #include "absl/base/no_destructor.h"
