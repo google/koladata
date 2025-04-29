@@ -16,18 +16,27 @@
 
 #include <Python.h>
 
-#include "absl/cleanup/cleanup.h"
+#include <utility>
+
+#include "absl/strings/str_format.h"
 #include "koladata/functor/parallel/executor.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/cancellation.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {
 
+using ::arolla::CancellationContext;
+using ::arolla::Cancelled;
+using ::arolla::CheckCancellation;
+using ::arolla::CurrentCancellationContext;
+using ::arolla::GetQType;
 using ::arolla::python::AcquirePyGIL;
-using ::arolla::python::CheckPyGIL;
 using ::arolla::python::DCheckPyGIL;
+using ::arolla::python::PyCancellationScope;
 using ::arolla::python::PyObjectGILSafePtr;
 using ::arolla::python::PyObjectPtr;
 using ::arolla::python::PyQValueType;
@@ -37,7 +46,17 @@ using ::koladata::functor::parallel::ExecutorPtr;
 
 PyObject* PyExecutor_schedule(PyObject* self, PyObject* py_arg) {
   DCheckPyGIL();
-  auto executor = UnsafeUnwrapPyQValue(self).UnsafeAs<ExecutorPtr>();
+  PyCancellationScope cancellation_scope;
+  auto& qvalue = UnsafeUnwrapPyQValue(self);
+  if (qvalue.GetType() != GetQType<ExecutorPtr>()) {
+    PyErr_SetString(
+        PyExc_RuntimeError,
+        absl::StrFormat("unexpected self.qtype: expected an executor, got %s",
+                        qvalue.GetType()->name())
+            .c_str());
+    return nullptr;
+  }
+  auto executor = qvalue.UnsafeAs<ExecutorPtr>();
   if (executor == nullptr) {
     PyErr_SetString(PyExc_ValueError, "Executor is not initialized");
     return nullptr;
@@ -46,8 +65,16 @@ PyObject* PyExecutor_schedule(PyObject* self, PyObject* py_arg) {
     return PyErr_Format(PyExc_TypeError, "expected a callable, got %s",
                         Py_TYPE(py_arg)->tp_name);
   }
-  RETURN_IF_ERROR(executor->Schedule([py_callable =
-                                          PyObjectGILSafePtr::NewRef(py_arg)] {
+  RETURN_IF_ERROR(CheckCancellation()).With(SetPyErrFromStatus);
+  RETURN_IF_ERROR(executor->Schedule([cancellation_context =
+                                          CurrentCancellationContext(),
+                                      py_callable = PyObjectGILSafePtr::NewRef(
+                                          py_arg)]() mutable {
+    CancellationContext::ScopeGuard cancellation_scope(
+        std::move(cancellation_context));
+    if (Cancelled()) {
+      return;
+    }
     AcquirePyGIL guard;
     auto py_result = PyObjectPtr::Own(PyObject_CallNoArgs(py_callable.get()));
     if (py_result == nullptr) {
@@ -64,45 +91,36 @@ PyMethodDef kPyExecutor_methods[] = {
         "schedule",
         PyExecutor_schedule,
         METH_O,
-        "schedule(fn, /)\n"
-        "--\n\n"
-        "Schedules a task to be executed by the executor.",
+        ("schedule(task_fn, /)\n"
+         "--\n\n"
+         "Schedules a task to be executed by the executor.\n"
+         "Note: The task inherits the current cancellation context."),
     },
     {nullptr}, /* sentinel */
 };
 
-// Creates and initializes PyTypeObject for PyExecutor class.
-PyTypeObject* InitPyExecutorType() {
-  CheckPyGIL();
-  PyTypeObject* py_qvalue_type = PyQValueType();
-  if (py_qvalue_type == nullptr) {
-    return nullptr;
-  }
-  absl::Cleanup py_qvalue_type_cleanup = [&] { Py_DECREF(py_qvalue_type); };
-  PyType_Slot slots[] = {
-      {Py_tp_base, py_qvalue_type},
-      {Py_tp_methods, kPyExecutor_methods},
-      {0, nullptr},
-  };
-  PyType_Spec spec = {
-      .name = "koladata.functor.parallel.Executor",
-      .flags = Py_TPFLAGS_DEFAULT,
-      .slots = slots,
-  };
-  auto py_result = PyObjectPtr::Own(PyType_FromSpec(&spec));
-  if (py_result == nullptr) {
-    return nullptr;
-  }
-  return reinterpret_cast<PyTypeObject*>(py_result.release());
-}
+PyTypeObject PyExecutor_Type = {
+    .ob_base = {PyObject_HEAD_INIT(nullptr)},
+    .tp_name = "koladata.functor.parallel.Executor",
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
+    .tp_methods = kPyExecutor_methods,
+};
 
 }  // namespace
 
 PyTypeObject* PyExecutorType() {
-  CheckPyGIL();
-  static PyTypeObject* py_result = InitPyExecutorType();
-  Py_XINCREF(py_result);
-  return py_result;
+  DCheckPyGIL();
+  if (!PyType_HasFeature(&PyExecutor_Type, Py_TPFLAGS_READY)) {
+    PyExecutor_Type.tp_base = PyQValueType();
+    if (PyExecutor_Type.tp_base == nullptr) {
+      return nullptr;
+    }
+    if (PyType_Ready(&PyExecutor_Type) < 0) {
+      return nullptr;
+    }
+  }
+  Py_INCREF(&PyExecutor_Type);
+  return &PyExecutor_Type;
 }
 
 }  // namespace koladata::python
