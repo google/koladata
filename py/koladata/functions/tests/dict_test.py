@@ -146,9 +146,9 @@ class DictTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    dict_schema = fns.dict_schema(
-        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
-    )
+    dict_schema = kde.dict_schema(
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
+    ).eval()
     dct = fns.dict(schema=dict_schema)
 
     testing.assert_equal(
@@ -208,10 +208,10 @@ class DictTest(parameterized.TestCase):
           values=None,
           key_schema=None,
           value_schema=None,
-          schema=fns.dict_schema(
+          schema=kde.dict_schema(
               key_schema=schema_constants.INT32,
               value_schema=schema_constants.OBJECT,
-          ),
+          ).eval(),
           expected_key_schema=schema_constants.INT32,
           expected_value_schema=schema_constants.OBJECT,
       ),
@@ -221,10 +221,10 @@ class DictTest(parameterized.TestCase):
           values=ds([[1, 2], [3]]),
           key_schema=None,
           value_schema=None,
-          schema=fns.dict_schema(
+          schema=kde.dict_schema(
               key_schema=schema_constants.INT64,
               value_schema=schema_constants.OBJECT,
-          ),
+          ).eval(),
           expected_key_schema=schema_constants.INT64,
           expected_value_schema=schema_constants.OBJECT,
       ),
@@ -256,9 +256,9 @@ class DictTest(parameterized.TestCase):
     )
 
   def test_schema_arg_error(self):
-    dict_schema = fns.dict_schema(
+    dict_schema = kde.dict_schema(
         key_schema=schema_constants.INT64, value_schema=schema_constants.OBJECT
-    )
+    ).eval()
     with self.assertRaisesRegex(
         ValueError, 'either a dict schema or key/value schemas, but not both'
     ):
@@ -282,9 +282,9 @@ class DictTest(parameterized.TestCase):
       fns.dict(schema=42)
 
   def test_dict_schema_error_message(self):
-    schema = fns.dict_schema(
+    schema = kde.dict_schema(
         key_schema=schema_constants.INT64, value_schema=schema_constants.INT64
-    )
+    ).eval()
     with self.assertRaisesRegex(
         ValueError,
         re.escape(r"""the schema for keys is incompatible.

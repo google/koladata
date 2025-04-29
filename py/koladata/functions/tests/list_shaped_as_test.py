@@ -82,7 +82,7 @@ class ListShapedAsTest(parameterized.TestCase):
         fns.list_shaped_as(
             ds([['a', 'b'], ['c']]),
             items=[[1, 2], [3]],
-            schema=fns.list_schema(item_schema=schema_constants.FLOAT32),
+            schema=kde.list_schema(item_schema=schema_constants.FLOAT32).eval(),
         )
         .get_schema()
         .get_attr('__items__')
@@ -105,7 +105,7 @@ class ListShapedAsTest(parameterized.TestCase):
         fns.list_shaped_as(
             ds([1, 2.0]),
             [1, 2.0],
-            schema=fns.list_schema(schema_constants.OBJECT),
+            schema=kde.list_schema(schema_constants.OBJECT).eval(),
         )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals(
@@ -124,7 +124,9 @@ class ListShapedAsTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    list_schema = fns.list_schema(fns.uu_schema(a=schema_constants.INT32))
+    list_schema = kde.list_schema(
+        kde.uu_schema(a=schema_constants.INT32)
+    ).eval()
     lst = fns.list_shaped_as(ds([0, 0]), schema=list_schema)
 
     testing.assert_equal(

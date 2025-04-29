@@ -144,25 +144,31 @@ class FromPyTest(parameterized.TestCase):
   def test_list_with_schema(self):
     # Python list items can be various Python / Koda objects that are normalized
     # to Koda Items.
-    l = fns.from_py([1, 2, 3], schema=fns.list_schema(schema_constants.FLOAT32))
+    l = fns.from_py(
+        [1, 2, 3], schema=kde.list_schema(schema_constants.FLOAT32).eval()
+    )
     testing.assert_allclose(l[:].no_bag(), ds([1.0, 2.0, 3.0]))
 
     l = fns.from_py(
         [[1, 2], [ds(42, schema_constants.INT64)]],
-        schema=fns.list_schema(fns.list_schema(schema_constants.FLOAT64)),
+        schema=kde.list_schema(
+            kde.list_schema(schema_constants.FLOAT64)
+        ).eval(),
     )
     testing.assert_allclose(
         l[:][:].no_bag(), ds([[1.0, 2.0], [42.0]], schema_constants.FLOAT64)
     )
 
-    l = fns.from_py([1, 3.14], schema=fns.list_schema(schema_constants.OBJECT))
+    l = fns.from_py(
+        [1, 3.14], schema=kde.list_schema(schema_constants.OBJECT).eval()
+    )
     testing.assert_equal(l[:].no_bag(), ds([1, 3.14], schema_constants.OBJECT))
 
     l = fns.from_py(
         [{'a': 2, 'b': 4}, {'c': 6, 'd': 8}],
-        schema=fns.list_schema(
-            fns.dict_schema(schema_constants.STRING, schema_constants.INT32)
-        ),
+        schema=kde.list_schema(
+            kde.dict_schema(schema_constants.STRING, schema_constants.INT32)
+        ).eval(),
     )
     testing.assert_equal(
         l[:]['a'].no_bag(), ds([2, None], schema_constants.INT32)
@@ -203,18 +209,18 @@ class FromPyTest(parameterized.TestCase):
     # that are normalized to Koda Items.
     d = fns.from_py(
         {ds('a'): [1, 2], 'b': [42]},
-        schema=fns.dict_schema(
-            schema_constants.STRING, fns.list_schema(schema_constants.INT32)
-        ),
+        schema=kde.dict_schema(
+            schema_constants.STRING, kde.list_schema(schema_constants.INT32)
+        ).eval(),
     )
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(d[ds(['a', 'b'])][:].no_bag(), ds([[1, 2], [42]]))
 
     d = fns.from_py(
         {ds('a'): 1, 'b': 3.14},
-        schema=fns.dict_schema(
+        schema=kde.dict_schema(
             schema_constants.STRING, schema_constants.OBJECT
-        ),
+        ).eval(),
     )
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(
@@ -345,8 +351,8 @@ assigned schema: INT32"""),
     testing.assert_equal(l1, ds([]).with_bag(l1.get_bag()))
 
   def test_empty_list_of_lists_with_schema(self):
-    schema1 = fns.list_schema(schema_constants.FLOAT64)
-    schema2 = fns.list_schema(schema1)
+    schema1 = kde.list_schema(schema_constants.FLOAT64).eval()
+    schema2 = kde.list_schema(schema1).eval()
     l0 = fns.from_py([], schema=schema2)
     testing.assert_equal(
         l0[:],
@@ -354,13 +360,13 @@ assigned schema: INT32"""),
     )
 
   def test_empty_dict_of_dicts_with_schema(self):
-    schema1 = fns.dict_schema(
+    schema1 = kde.dict_schema(
         key_schema=schema_constants.STRING,
         value_schema=schema_constants.FLOAT64,
-    )
-    schema2 = fns.dict_schema(
+    ).eval()
+    schema2 = kde.dict_schema(
         key_schema=schema_constants.STRING, value_schema=schema1
-    )
+    ).eval()
     l0 = fns.from_py({}, schema=schema2)
     testing.assert_equal(
         l0[:],
@@ -372,7 +378,9 @@ assigned schema: INT32"""),
 
     l0 = fns.from_py(
         input_list,
-        schema=fns.list_schema(fns.list_schema(schema_constants.FLOAT64)),
+        schema=kde.list_schema(
+            kde.list_schema(schema_constants.FLOAT64)
+        ).eval(),
         from_dim=0,
     )
     self.assertEqual(l0.get_ndim(), 0)
@@ -393,7 +401,8 @@ assigned schema: INT32"""),
     )
 
     l1 = fns.from_py(
-        input_list, schema=fns.list_schema(schema_constants.FLOAT32), from_dim=1
+        input_list, schema=kde.list_schema(schema_constants.FLOAT32).eval(),
+        from_dim=1
     )
     self.assertEqual(l1.get_ndim(), 1)
     testing.assert_equal(
@@ -464,9 +473,9 @@ assigned schema: INT32"""),
     ):
       _ = fns.from_py([], from_dim=2)
 
-    schema = fns.schema.new_schema(
-        a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
-    )
+    schema = kde.schema.new_schema(
+        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)
+    ).eval()
     with self.assertRaisesRegex(
         ValueError,
         'could not traverse the nested list of depth 1 up to the level 2',
@@ -483,9 +492,9 @@ assigned schema: INT32"""),
     item = from_py_fn(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item, ds(None, schema_constants.FLOAT32))
 
-    schema = fns.schema.new_schema(
-        a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
-    )
+    schema = kde.schema.new_schema(
+        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)
+    ).eval()
     item = from_py_fn(None, schema=schema)
     testing.assert_equivalent(item.get_schema(), schema)
     testing.assert_equal(item.no_bag(), ds(None).with_schema(schema.no_bag()))
@@ -493,9 +502,9 @@ assigned schema: INT32"""),
   def test_empty_slice(self):
     res = fns.from_py([], from_dim=1, schema=schema_constants.FLOAT32)
     testing.assert_equal(res.no_bag(), ds([], schema_constants.FLOAT32))
-    schema = fns.schema.new_schema(
-        a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
-    )
+    schema = kde.schema.new_schema(
+        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)
+    ).eval()
     res = fns.from_py([], from_dim=1, schema=schema)
     testing.assert_equal(res.no_bag(), ds([], schema.no_bag()))
 
@@ -522,16 +531,16 @@ assigned schema: INT32"""),
     testing.assert_equal(item, entity)
 
   def test_dict_as_obj_if_schema_provided(self):
-    schema = fns.named_schema('foo', a=schema_constants.INT32)
+    schema = kde.named_schema('foo', a=schema_constants.INT32).eval()
     d = fns.from_py({'a': 2}, schema=schema)
     self.assertFalse(d.is_dict())
     testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
     testing.assert_equal(d.a, ds(2).with_bag(d.get_bag()))
 
   def test_dict_as_obj_if_schema_provided_with_nested_object(self):
-    schema = fns.named_schema(
+    schema = kde.named_schema(
         'foo', a=schema_constants.INT32, b=schema_constants.OBJECT
-    )
+    ).eval()
     d = fns.from_py({'a': 2, 'b': {'x': 'abc'}}, schema=schema)
     self.assertFalse(d.is_dict())
     testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
@@ -542,9 +551,9 @@ assigned schema: INT32"""),
       a: int
 
     with self.subTest('list of dicts as objects'):
-      schema = fns.list_schema(
-          fns.named_schema('foo', a=schema_constants.INT32)
-      )
+      schema = kde.list_schema(
+          kde.named_schema('foo', a=schema_constants.INT32)
+      ).eval()
       d = fns.from_py([{'a': 2}, {'a': 3}], schema=schema, dict_as_obj=True)
       self.assertFalse(d.is_dict())
       testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
@@ -564,17 +573,17 @@ assigned schema: INT32"""),
     with self.subTest('list of dataclasses'):
       ds1 = TestClass(a=2)
       ds2 = TestClass(a=3)
-      schema = fns.list_schema(
-          fns.named_schema('foo', a=schema_constants.INT32)
-      )
+      schema = kde.list_schema(
+          kde.named_schema('foo', a=schema_constants.INT32)
+      ).eval()
       d = fns.from_py([ds1, ds2], schema=schema)
       self.assertFalse(d.is_dict())
       testing.assert_equal(d.get_schema(), schema.with_bag(d.get_bag()))
       testing.assert_equal(d[:].a, ds([2, 3]).with_bag(d.get_bag()))
 
     with self.subTest('entities mixed with dataclasses'):
-      entity_schema = fns.named_schema('foo', a=schema_constants.INT32)
-      schema = fns.list_schema(entity_schema)
+      entity_schema = kde.named_schema('foo', a=schema_constants.INT32).eval()
+      schema = kde.list_schema(entity_schema).eval()
       entity = fns.new(a=2, schema=entity_schema)
       obj = TestClass(a=3)
       x = fns.from_py([obj, entity], schema=schema, dict_as_obj=True)
@@ -588,8 +597,8 @@ assigned schema: INT32"""),
       testing.assert_equal(x[:].a, ds([2, 3]).with_bag(x.get_bag()))
 
     with self.subTest('entities mixed with dicts'):
-      entity_schema = fns.named_schema('foo', a=schema_constants.INT32)
-      schema = fns.list_schema(entity_schema)
+      entity_schema = kde.named_schema('foo', a=schema_constants.INT32).eval()
+      schema = kde.list_schema(entity_schema).eval()
       entity = fns.new(a=2, schema=entity_schema)
       d = {'a': 3}
       x = fns.from_py([d, entity], schema=schema, dict_as_obj=True)
@@ -604,9 +613,9 @@ assigned schema: INT32"""),
       d = {'a': 3}
       obj = TestClass(a=4)
 
-      schema = fns.list_schema(
-          fns.named_schema('foo', a=schema_constants.INT32)
-      )
+      schema = kde.list_schema(
+          kde.named_schema('foo', a=schema_constants.INT32)
+      ).eval()
 
       with self.assertRaisesRegex(
           ValueError,
@@ -630,11 +639,11 @@ assigned schema: INT32"""),
     testing.assert_equal(obj.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_with_schema(self):
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
-        b=fns.schema.new_schema(x=schema_constants.STRING),
+        b=kde.schema.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
-    )
+    ).eval()
     entity = fns.from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
@@ -648,11 +657,11 @@ assigned schema: INT32"""),
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_with_nested_object(self):
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.INT64,
         b=schema_constants.OBJECT,
         c=schema_constants.BYTES,
-    )
+    ).eval()
     entity = fns.from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
@@ -666,7 +675,7 @@ assigned schema: INT32"""),
     testing.assert_equal(entity.c.no_bag(), ds(b'xyz'))
 
   def test_dict_as_obj_entity_incomplete_schema(self):
-    schema = fns.schema.new_schema(b=schema_constants.OBJECT)
+    schema = kde.schema.new_schema(b=schema_constants.OBJECT).eval()
     entity = fns.from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
@@ -679,7 +688,7 @@ assigned schema: INT32"""),
     testing.assert_equal(entity.b.x.no_bag(), ds('abc'))
 
   def test_dict_as_obj_entity_empty_schema(self):
-    schema = fns.schema.new_schema()
+    schema = kde.schema.new_schema().eval()
     entity = fns.from_py(
         {'a': 42, 'b': {'x': 'abc'}, 'c': ds(b'xyz')}, dict_as_obj=True,
         schema=schema,
@@ -693,11 +702,11 @@ assigned schema: INT32"""),
     testing.assert_equal(obj.b.x.no_bag(), ds('abc'))
 
   def test_dict_as_obj_entity_incompatible_schema(self):
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.INT64,
-        b=fns.schema.new_schema(x=schema_constants.FLOAT32),
+        b=kde.schema.new_schema(x=schema_constants.FLOAT32),
         c=schema_constants.FLOAT32,
-    )
+    ).eval()
     with self.assertRaisesRegex(
         ValueError, "schema for attribute 'x' is incompatible"
     ):
@@ -715,7 +724,7 @@ assigned schema: INT32"""),
     entity = fns.from_py(
         {ds('a', schema_constants.OBJECT): 42},
         dict_as_obj=True,
-        schema=fns.schema.new_schema(a=schema_constants.INT32),
+        schema=kde.schema.new_schema(a=schema_constants.INT32).eval(),
     )
     self.assertCountEqual(fns.dir(entity), ['a'])
     testing.assert_equal(entity.a.no_bag(), ds(42))
@@ -737,7 +746,7 @@ assigned schema: INT32"""),
 
   def test_incompatible_schema(self):
     entity = fns.new(x=1)
-    schema = fns.schema.new_schema(x=schema_constants.INT32)
+    schema = kde.schema.new_schema(x=schema_constants.INT32).eval()
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -768,15 +777,15 @@ assigned schema: SCHEMA(x=INT32)'''
       c: bytes
       d: list[int]
 
-    list_schema1 = fns.list_schema(schema_constants.INT32)
-    list_schema2 = fns.list_schema(list_schema1)
+    list_schema1 = kde.list_schema(schema_constants.INT32).eval()
+    list_schema2 = kde.list_schema(list_schema1).eval()
 
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
-        b=fns.schema.new_schema(x=schema_constants.STRING),
+        b=kde.schema.new_schema(x=schema_constants.STRING),
         c=schema_constants.BYTES,
         d=list_schema2,
-    )
+    ).eval()
     entity = fns.from_py(
         TestClass(42, NestedKlass('abc'), b'xyz', []), schema=schema
     )
@@ -792,9 +801,9 @@ assigned schema: SCHEMA(x=INT32)'''
     )
 
   def test_dataclasses_with_incomplete_schema(self):
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
-    )
+    ).eval()
     entity = fns.from_py(
         TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
     )
@@ -825,9 +834,9 @@ assigned schema: SCHEMA(x=INT32)'''
     class Test:
       koda: data_slice.DataSlice
 
-    schema = fns.schema.new_schema(
-        koda=fns.schema.new_schema(x=schema_constants.INT32)
-    )
+    schema = kde.schema.new_schema(
+        koda=kde.schema.new_schema(x=schema_constants.INT32)
+    ).eval()
     entity = fns.from_py(Test(fns.new(x=1, schema=schema.koda)), schema=schema)
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(fns.dir(entity), ['koda'])
@@ -1038,7 +1047,9 @@ assigned schema: SCHEMA(x=INT32)'''
       ).eval()
       obj = fns.from_py(
           {'a': {'b': '1'}},
-          schema=fns.uu_schema(a=fns.uu_schema(b=schema_constants.STRING)),
+          schema=kde.uu_schema(
+              a=kde.uu_schema(b=schema_constants.STRING)
+          ).eval(),
           itemid=parent_itemid,
       )
       testing.assert_equal(obj.no_bag().get_itemid(), parent_itemid)
@@ -1060,14 +1071,14 @@ assigned schema: SCHEMA(x=INT32)'''
       ).eval()
       obj = fns.from_py(
           {'a': {'b': {'1': [1, 2, 3], '2': [4, 5]}}},
-          schema=fns.uu_schema(
-              a=fns.uu_schema(
-                  b=fns.dict_schema(
+          schema=kde.uu_schema(
+              a=kde.uu_schema(
+                  b=kde.dict_schema(
                       schema_constants.STRING,
-                      fns.list_schema(schema_constants.INT32),
+                      kde.list_schema(schema_constants.INT32),
                   )
               )
-          ),
+          ).eval(),
           itemid=parent_itemid,
       )
       testing.assert_equal(obj.no_bag().get_itemid(), parent_itemid)
@@ -1196,10 +1207,12 @@ assigned schema: SCHEMA(x=INT32)'''
 
   def test_deep_dict_with_repetitions(self):
     py_d = {'abc': 42, 'def': 64}
-    schema = fns.dict_schema(schema_constants.STRING, schema_constants.INT32)
+    schema = kde.dict_schema(
+        schema_constants.STRING, schema_constants.INT32
+    ).eval()
     for _ in range(2):
       py_d = {12: py_d, 42: py_d}
-      schema = fns.dict_schema(schema_constants.INT32, schema)
+      schema = kde.dict_schema(schema_constants.INT32, schema).eval()
 
     with self.subTest('no schema'):
       d = fns.from_py(py_d)
@@ -1243,11 +1256,13 @@ assigned schema: SCHEMA(x=INT32)'''
 
   def test_deep_dict_recursive_error(self):
     py_d = {'a': 42}
-    schema = fns.dict_schema(schema_constants.STRING, schema_constants.OBJECT)
+    schema = kde.dict_schema(
+        schema_constants.STRING, schema_constants.OBJECT
+    ).eval()
     bottom_d = py_d
     for i in range(3):
       py_d = {f'd{i}': py_d}
-      schema = fns.dict_schema(schema_constants.STRING, schema)
+      schema = kde.dict_schema(schema_constants.STRING, schema).eval()
     level_1_d = py_d
     py_d = {'top': level_1_d}
     bottom_d['cycle'] = level_1_d
@@ -1258,10 +1273,10 @@ assigned schema: SCHEMA(x=INT32)'''
 
   def test_deep_list_with_repetitions(self):
     py_l = [1, 2, 3]
-    schema = fns.list_schema(schema_constants.INT32)
+    schema = kde.list_schema(schema_constants.INT32).eval()
     for _ in range(2):
       py_l = [py_l, py_l]
-      schema = fns.list_schema(schema)
+      schema = kde.list_schema(schema).eval()
 
     testing.assert_equal(
         fns.from_py(py_l)[:][:][:].no_bag(),
@@ -1278,11 +1293,11 @@ assigned schema: SCHEMA(x=INT32)'''
 
   def test_deep_list_recursive_error(self):
     py_l = [1, 2, 3]
-    schema = fns.list_schema(schema_constants.INT32)
+    schema = kde.list_schema(schema_constants.INT32).eval()
     bottom_l = py_l
     for _ in range(3):
       py_l = [py_l, py_l]
-      schema = fns.list_schema(schema)
+      schema = kde.list_schema(schema).eval()
     level_1_l = py_l
     py_l = [level_1_l]
     bottom_l.append(level_1_l)
@@ -1293,10 +1308,10 @@ assigned schema: SCHEMA(x=INT32)'''
 
   def test_deep_object_repetitions(self):
     py_d = {'abc': 42}
-    schema = fns.uu_schema(abc=schema_constants.INT32)
+    schema = kde.uu_schema(abc=schema_constants.INT32).eval()
     for _ in range(2):
       py_d = {'x': py_d, 'y': py_d}
-      schema = fns.uu_schema(x=schema, y=schema)
+      schema = kde.uu_schema(x=schema, y=schema).eval()
 
     obj = fns.from_py(py_d, dict_as_obj=True)
     testing.assert_equal(obj.x.x.abc.no_bag(), ds(42))
@@ -1312,16 +1327,16 @@ assigned schema: SCHEMA(x=INT32)'''
 
   def test_deep_object_recursive_error(self):
     py_d = {'a': 42}
-    schema = fns.uu_schema(
+    schema = kde.uu_schema(
         a=schema_constants.INT32, cycle=schema_constants.OBJECT
-    )
+    ).eval()
     bottom_d = py_d
     for i in range(3):
       py_d = {f'd{i}': py_d}
-      schema = fns.uu_schema(**{f'd{i}': schema})
+      schema = kde.uu_schema(**{f'd{i}': schema}).eval()
     level_1_d = py_d
     py_d = {'top': level_1_d}
-    schema = fns.uu_schema(top=schema)
+    schema = kde.uu_schema(top=schema).eval()
     bottom_d['cycle'] = level_1_d
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
       fns.from_py(py_d, dict_as_obj=True)
@@ -1330,11 +1345,11 @@ assigned schema: SCHEMA(x=INT32)'''
 
   def test_deep_itemid_recursive_error(self):
     py_l = [1, 2, 3]
-    schema = fns.list_schema(schema_constants.INT32)
+    schema = kde.list_schema(schema_constants.INT32).eval()
     bottom_l = py_l
     for _ in range(3):
       py_l = [py_l, py_l]
-      schema = fns.list_schema(schema)
+      schema = kde.list_schema(schema).eval()
     level_1_l = py_l
     py_l = [level_1_l]
     bottom_l.append(level_1_l)
@@ -1359,11 +1374,15 @@ assigned schema: SCHEMA(x=INT32)'''
       x = [1]
       _ = fns.from_py(
           [x, [x], x],
-          schema=fns.list_schema(fns.list_schema(schema_constants.OBJECT)),
+          schema=kde.list_schema(
+              kde.list_schema(schema_constants.OBJECT)
+          ).eval(),
       )
       _ = fns.from_py(
           [(), [()]],
-          schema=fns.list_schema(fns.list_schema(schema_constants.OBJECT)),
+          schema=kde.list_schema(
+              kde.list_schema(schema_constants.OBJECT)
+          ).eval(),
       )
 
   def test_alias(self):
@@ -1404,7 +1423,7 @@ assigned schema: SCHEMA(x=INT32)'''
           [1, 2],
           dict_as_obj=False,
           itemid=42,
-          schema=fns.schema.new_schema(),
+          schema=kde.schema.new_schema().eval(),
           from_dim=0,
       )
 

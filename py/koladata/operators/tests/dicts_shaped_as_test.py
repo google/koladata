@@ -19,7 +19,6 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -63,9 +62,9 @@ class DictShapedAsTest(parameterized.TestCase):
       (
           ds([5, 6]),
           dict(
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
-              )
+              ).eval()
           ),
       ),
       # itemid arg
@@ -116,7 +115,7 @@ class DictShapedAsTest(parameterized.TestCase):
 
   def test_adopt_schema(self):
     dict_schema = kde.schema.dict_schema(
-        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     dct = kde.dicts.shaped_as(ds([[0, 0], [0]]), schema=dict_schema).eval()
 
@@ -175,7 +174,7 @@ class DictShapedAsTest(parameterized.TestCase):
           kde.dicts.shaped_as(
               ds([[1, 2], [4]]),
               key_schema=schema_constants.INT64,
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )
@@ -191,7 +190,7 @@ class DictShapedAsTest(parameterized.TestCase):
           kde.dicts.shaped_as(
               ds([[1, 2], [4]]),
               value_schema=schema_constants.INT64,
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )
@@ -259,7 +258,7 @@ Assigned schema for keys: STRING""",
               ds([[1, 2, 3], [4]]),
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )

@@ -79,9 +79,9 @@ class NewShapedAsTest(absltest.TestCase):
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
   def test_schema_arg(self):
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32, b=schema_constants.STRING
-    )
+    ).eval()
     x = fns.new_shaped_as(ds([1, 2]), a=42, b='xyz', schema=schema)
     self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds([42.0, 42.0]).with_bag(x.get_bag()))
@@ -94,7 +94,7 @@ class NewShapedAsTest(absltest.TestCase):
     )
 
   def test_overwrite_schema_arg(self):
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
     x = fns.new_shaped_as(
         ds([1, 2]),
         a=42,

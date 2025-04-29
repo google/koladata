@@ -20,7 +20,6 @@ import types as py_types
 import typing
 from typing import Any
 
-from koladata.expr import py_expr_eval_py_ext
 from koladata.types import data_bag
 from koladata.types import data_item as _  # pylint: disable=unused-import
 from koladata.types import data_slice
@@ -28,97 +27,6 @@ from koladata.types import schema_constants
 
 
 bag = data_bag.DataBag.empty
-_eval_op = py_expr_eval_py_ext.eval_op
-
-
-def new_schema(
-    **attrs: data_slice.DataSlice
-) -> data_slice.DataSlice:
-  """Creates new schema in the given DataBag.
-
-  Returned schema is immutable.
-
-  Args:
-    **attrs: attrs to set on the schema. Must be schemas.
-
-  Returns:
-    data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
-  """
-  return _eval_op('kd.schema.new_schema', **attrs)
-
-
-def list_schema(item_schema: data_slice.DataSlice) -> data_slice.DataSlice:
-  """Creates a list schema in the given DataBag.
-
-  Returned schema is immutable.
-
-  Args:
-    item_schema: schema of the items in the list.
-
-  Returns:
-    data_slice.DataSlice representing a list schema.
-  """
-  return _eval_op('kd.schema.list_schema', item_schema)
-
-
-def dict_schema(
-    key_schema: data_slice.DataSlice,
-    value_schema: data_slice.DataSlice,
-) -> data_slice.DataSlice:
-  """Creates a dict schema in the given DataBag.
-
-  Returned schema is immutable.
-
-  Args:
-    key_schema: schema of the keys in the list.
-    value_schema: schema of the values in the list.
-
-  Returns:
-    data_slice.DataSlice representing a dict schema.
-  """
-  return _eval_op('kd.schema.dict_schema', key_schema, value_schema)
-
-
-def uu_schema(
-    seed: str = '',
-    **attrs: data_slice.DataSlice
-) -> data_slice.DataSlice:
-  """Creates a uu_schema in the given DataBag.
-
-  Returned schema is immutable.
-
-  Args:
-    seed: optional string to seed the uuid computation with.
-    **attrs: attrs to set on the schema. Must be schemas.
-
-  Returns:
-    data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
-  """
-  return _eval_op('kd.schema.uu_schema', seed=seed, **attrs)
-
-
-def named_schema(
-    name: str, **attrs: data_slice.DataSlice,
-) -> data_slice.DataSlice:
-  """Creates a named entity schema in the given DataBag.
-
-  Returned schema is immutable.
-
-  A named schema will have its item id derived only from its name, which means
-  that two named schemas with the same name will have the same item id, even in
-  different DataBags, or with different kwargs passed to this method.
-
-  Args:
-    name: The name to use to derive the item id of the schema.
-    **attrs: A mapping of attribute names to DataSlices. The DataSlice values
-      must be schemas themselves.
-
-  Returns:
-    data_slice.DataSlice with the item id of the required schema and kd.SCHEMA
-    schema, with the DataBag attached containing the provided
-    attrs.
-  """
-  return _eval_op('kd.schema.named_schema', name, **attrs)
 
 
 def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:

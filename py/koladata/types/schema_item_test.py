@@ -17,7 +17,6 @@ import itertools
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext
-from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -67,7 +66,7 @@ class SchemaItemTest(absltest.TestCase):
     )
 
   def test_new_schema_self_ref(self):
-    s = fns.schema.new_schema(value=schema_constants.INT32)
+    s = kde.schema.new_schema(value=schema_constants.INT32).eval()
     s = s.with_attrs(child=s, parent=s)
     child = s.new(value=42).fork_bag()
     entity = s.new(value=42, child=child)
@@ -82,9 +81,9 @@ class SchemaItemTest(absltest.TestCase):
     testing.assert_equal(nofollow.get_nofollowed_schema(), orig_schema)
 
   def test_creating_entity(self):
-    s = fns.schema.new_schema(
+    s = kde.schema.new_schema(
         a=schema_constants.FLOAT32, b=schema_constants.STRING
-    )
+    ).eval()
     self.assertTrue(s.is_entity_schema())
     entity = s.new(a=42, b='xyz')
     testing.assert_equal(entity.a, ds(42.0).with_bag(entity.get_bag()))
@@ -92,9 +91,9 @@ class SchemaItemTest(absltest.TestCase):
     self.assertNotEqual(entity.get_bag().fingerprint, s.get_bag().fingerprint)
 
   def test_creating_entity_with_expr_args(self):
-    s = fns.schema.new_schema(
+    s = kde.schema.new_schema(
         a=schema_constants.FLOAT32, b=schema_constants.STRING
-    )
+    ).eval()
     self.assertTrue(s.is_entity_schema())
     entity_expr = s.new(a=42, b=kde.item('xyz'))
     testing.assert_non_deterministic_exprs_equal(
@@ -106,11 +105,11 @@ class SchemaItemTest(absltest.TestCase):
         ValueError,
         'only SchemaItem with DataBags can be used for creating Entities',
     ):
-      fns.schema.new_schema(
+      kde.schema.new_schema(
           a=schema_constants.INT32, b=schema_constants.STRING
-      ).with_bag(None).new()
+      ).eval().with_bag(None).new()
     with self.assertRaisesRegex(ValueError, 'deprecated'):
-      fns.schema.new_schema(a=schema_constants.INT32)(42)
+      kde.schema.new_schema(a=schema_constants.INT32).eval()(42)
 
   def test_is_primitive_schema(self):
     a = ds(1)
@@ -119,8 +118,8 @@ class SchemaItemTest(absltest.TestCase):
     self.assertFalse(ds([a.get_schema()]).is_primitive_schema())
     self.assertTrue(ds([a.get_schema()]).S[0].is_primitive_schema())
     self.assertTrue(ds('a').get_schema().is_primitive_schema())
-    self.assertFalse(fns.list([1, 2]).get_schema().is_primitive_schema())
-    self.assertFalse(fns.new(a=1).get_schema().is_primitive_schema())
+    self.assertFalse(bag().list([1, 2]).get_schema().is_primitive_schema())
+    self.assertFalse(bag().new(a=1).get_schema().is_primitive_schema())
 
   def test_internal_is_itemid_schema(self):
     with self.subTest('item'):

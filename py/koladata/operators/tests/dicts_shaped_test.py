@@ -19,7 +19,6 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -64,9 +63,9 @@ class DictShapedTest(parameterized.TestCase):
       (
           jagged_shape.create_shape([2]),
           dict(
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
-              )
+              ).eval()
           ),
       ),
       # itemid arg
@@ -118,7 +117,7 @@ class DictShapedTest(parameterized.TestCase):
   def test_adopt_schema(self):
     shape = ds([[0, 0], [0]]).get_shape()
     dict_schema = kde.schema.dict_schema(
-        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     dct = kde.dicts.shaped(shape, schema=dict_schema).eval()
 
@@ -185,7 +184,7 @@ class DictShapedTest(parameterized.TestCase):
           kde.dicts.shaped(
               jagged_shape.create_shape([2], [2, 1]),
               key_schema=schema_constants.INT64,
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )
@@ -201,7 +200,7 @@ class DictShapedTest(parameterized.TestCase):
           kde.dicts.shaped(
               jagged_shape.create_shape([2], [2, 1]),
               value_schema=schema_constants.INT64,
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )
@@ -269,7 +268,7 @@ Assigned schema for keys: STRING""",
               jagged_shape.create_shape([2], [2, 1]),
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )

@@ -255,79 +255,11 @@ py_test(
 )
 
 py_test(
-    name = "list_schema_test",
-    srcs = ["list_schema_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "dict_schema_test",
-    srcs = ["dict_schema_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "new_schema_test",
-    srcs = ["new_schema_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "uu_schema_test",
-    srcs = ["uu_schema_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "named_schema_test",
-    srcs = ["named_schema_test.py"],
-    deps = [
-        "//py/koladata/functions",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
     name = "schema_from_py_test",
     srcs = ["schema_from_py_test.py"],
     deps = [
         "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
     ],
@@ -569,6 +501,7 @@ py_test(
     deps = [
         ":test_py_pb2",
         "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
@@ -795,6 +728,7 @@ py_test(
     deps = [
         ":test_py_pb2",
         "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:mask_constants",

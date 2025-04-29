@@ -416,9 +416,9 @@ class ToPyTest(parameterized.TestCase):
     )
 
   def test_include_missing_attrs(self):
-    p = fns.schema.new_schema(
+    p = kde.schema.new_schema(
         x=schema_constants.INT32, y=schema_constants.INT32
-    )
+    ).eval()
     x = ds([fns.new(x=1, y=2, schema=p), fns.new(x=3, schema=p)])
     self.assertEqual(
         fns.to_py(x, obj_as_dict=True, include_missing_attrs=False),
@@ -519,11 +519,11 @@ class ToPyTest(parameterized.TestCase):
       self.assertEqual(fns.to_py(x), [a, b])
 
   def test_schema_itemid(self):
-    a = fns.schema.new_schema(
+    a = kde.schema.new_schema(
         value=schema_constants.OBJECT,
         name=schema_constants.STRING,
         score=schema_constants.FLOAT32,
-    ).get_itemid()
+    ).get_itemid().eval()
 
     self.assertEqual(a.to_py(), a)
 
@@ -551,7 +551,7 @@ class ToPyTest(parameterized.TestCase):
     self.assertIsNone(fns.to_py(x), None)
 
   def test_schema_not_supported(self):
-    schema = fns.schema.new_schema(a=schema_constants.STRING)
+    schema = kde.schema.new_schema(a=schema_constants.STRING).eval()
     with self.assertRaisesRegex(
         ValueError,
         'schema is not supported',
@@ -606,9 +606,9 @@ class ToPytreeTest(absltest.TestCase):
     # Check that the attribute order is alphabetical.
     self.assertEqual(list(fns.to_pytree(x).keys()), ['a', 'b', 'c'])
 
-    p = fns.schema.new_schema(
+    p = kde.schema.new_schema(
         x=schema_constants.INT32, y=schema_constants.INT32
-    )
+    ).eval()
     self.assertEqual(
         ds([fns.new(x=1, y=2, schema=p), fns.new(x=3, schema=p)]).to_pytree(
             include_missing_attrs=False

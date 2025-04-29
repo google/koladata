@@ -77,7 +77,7 @@ class EntitiesShapedTest(absltest.TestCase):
 
   def test_schema_arg_simple(self):
     shape = jagged_shape.create_shape(2, 3)
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING
     )
     x = kde.entities.shaped(shape, schema=schema).eval()
@@ -86,8 +86,8 @@ class EntitiesShapedTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_deep(self):
-    nested_schema = fns.schema.new_schema(p=schema_constants.BYTES)
-    schema = fns.schema.new_schema(
+    nested_schema = kde.schema.new_schema(p=schema_constants.BYTES)
+    schema = kde.schema.new_schema(
         a=schema_constants.INT32,
         b=schema_constants.STRING,
         nested=nested_schema,
@@ -96,7 +96,7 @@ class EntitiesShapedTest(absltest.TestCase):
         jagged_shape.create_shape(),
         a=42,
         b='xyz',
-        nested=fns.new_shaped(
+        nested=kde.new_shaped(
             jagged_shape.create_shape(), p=b'0123', schema=nested_schema
         ),
         schema=schema,
@@ -112,7 +112,7 @@ class EntitiesShapedTest(absltest.TestCase):
     )
 
   def test_schema_arg_implicit_casting(self):
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
     x = kde.entities.shaped(
         jagged_shape.create_shape([2]), a=42, schema=schema
     ).eval()
@@ -123,7 +123,7 @@ class EntitiesShapedTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_implicit_casting_failure(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32)
     with self.assertRaisesRegex(
         ValueError,
         "kd.entities.shaped: the schema for attribute 'a' is incompatible",
@@ -164,7 +164,7 @@ class EntitiesShapedTest(absltest.TestCase):
       _ = kde.entities.shaped(shape, schema=42, a=42).eval()
 
   def test_schema_arg_overwrite_schema(self):
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
     x = kde.entities.shaped(
         jagged_shape.create_shape([2]),
         a=42,
@@ -191,7 +191,7 @@ class EntitiesShapedTest(absltest.TestCase):
       ).eval()
 
   def test_schema_arg_overwrite_schema_overwriting(self):
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
     x = kde.entities.shaped(
         jagged_shape.create_shape(),
         a='xyz',
