@@ -24,6 +24,7 @@
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future_operators.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/optools.h"
@@ -47,9 +48,18 @@ OPERATOR("koda_internal.parallel.get_future_qtype",
          });
 OPERATOR_FAMILY("koda_internal.parallel.get_future_value_for_testing",
                 std::make_unique<GetFutureValueForTestingOperatorFamily>());
+OPERATOR("koda_internal.parallel.get_stream_qtype",
+         // Since there is a templated overload, we need to wrap in a lambda.
+         [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {
+           return GetStreamQType(value_qtype);
+         });
 OPERATOR("koda_internal.parallel.is_future_qtype",
          [](arolla::QTypePtr qtype) -> arolla::OptionalUnit {
            return arolla::OptionalUnit(IsFutureQType(qtype));
+         });
+OPERATOR("koda_internal.parallel.is_stream_qtype",
+         [](arolla::QTypePtr qtype) -> arolla::OptionalUnit {
+           return arolla::OptionalUnit(IsStreamQType(qtype));
          });
 OPERATOR("koda_internal.parallel.make_asio_executor",
          [](int64_t num_threads,

@@ -8055,3 +8055,33 @@ py_test(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_test(
+    name = "koda_internal_parallel_is_stream_qtype_test",
+    srcs = ["koda_internal_parallel_is_stream_qtype_test.py"],
+    deps = [
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:bootstrap",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/testing",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "koda_internal_parallel_get_stream_qtype_test",
+    srcs = ["koda_internal_parallel_get_stream_qtype_test.py"],
+    deps = [
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)

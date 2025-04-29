@@ -97,3 +97,14 @@ def as_future(arg):  # pylint: disable=unused-argument
 def get_future_value_for_testing(arg):  # pylint: disable=unused-argument
   """Gets the value from the given future for testing purposes."""
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(view=None)
+@optools.as_backend_operator(
+    'koda_internal.parallel.get_stream_qtype',
+    qtype_inference_expr=arolla.QTYPE,
+    qtype_constraints=[arolla.optools.constraints.expect_qtype(P.value_qtype)],
+)
+def get_stream_qtype(value_qtype):  # pylint: disable=unused-argument
+  """Gets the stream qtype for the given value qtype."""
+  raise NotImplementedError('implemented in the backend')

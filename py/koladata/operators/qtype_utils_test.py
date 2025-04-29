@@ -307,6 +307,31 @@ class KodaQTypesTest(absltest.TestCase):
     # Make sure we can serialize operators using expect_future.
     _ = arolla.s11n.dumps(_op)
 
+  def test_expect_stream(self):
+    @arolla.optools.as_lambda_operator(
+        'op4.name',
+        qtype_constraints=[qtype_utils.expect_stream(arolla.P.x)],
+    )
+    def _op(x):
+      return x
+
+    stream_qtype = arolla.eval(
+        koda_internal_parallel.get_stream_qtype(arolla.INT32)
+    )
+
+    with self.subTest('success'):
+      _op(arolla.M.annotation.qtype(arolla.L.x, stream_qtype))
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          'expected a stream, got x: DATA_SLICE',
+      ):
+        _op(data_slice.DataSlice.from_vals(1))
+
+    # Make sure we can serialize operators using expect_stream.
+    _ = arolla.s11n.dumps(_op)
+
 
 if __name__ == '__main__':
   absltest.main()

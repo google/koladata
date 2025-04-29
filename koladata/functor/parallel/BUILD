@@ -225,6 +225,7 @@ cc_library(
         ":executor",
         ":future_operators",
         ":future_qtype",
+        ":stream_qtype",
         "//koladata:data_slice_qtype",
         "//koladata/internal:non_deterministic_token",
         "@com_google_absl//absl/status",
