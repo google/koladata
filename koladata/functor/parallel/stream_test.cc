@@ -15,6 +15,7 @@
 #include "koladata/functor/parallel/stream.h"
 
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -22,6 +23,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/strings/str_cat.h"
 #include "absl/synchronization/notification.h"
 #include "koladata/functor/parallel/default_executor.h"
 #include "koladata/functor/parallel/executor.h"
@@ -39,20 +41,40 @@ using ::arolla::QTypePtr;
 using ::arolla::TypedRef;
 
 TEST(StreamTest, Basic) {
-  auto [stream, writer] = MakeStream(GetQType<int>(), 10);
+  constexpr int kItemCount = 1000;
+  auto [stream, writer] = MakeStream(GetQType<int>());
   EXPECT_EQ(stream->value_qtype(), GetQType<int>());
   {
-    auto locked_writer = writer.lock();
-    ASSERT_NE(locked_writer, nullptr);
-    for (int i = 0; i < 10; ++i) {
-      locked_writer->Write(TypedRef::FromValue(i));
+    ASSERT_NE(writer, nullptr);
+    for (int i = 0; i < kItemCount; ++i) {
+      writer->Write(TypedRef::FromValue(i));
     }
-    locked_writer->Close();
+    std::move(*writer).Close();
+  }
+  {
+    auto reader = stream->MakeReader();
+    for (int i = 0; i < kItemCount; ++i) {
+      EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), i);
+    }
+    EXPECT_OK(*reader->TryRead().close_status());
+  }
+}
+
+TEST(StreamTest, BasicWithNonTrivialType) {
+  auto [stream, writer] = MakeStream(GetQType<std::string>());
+  EXPECT_EQ(stream->value_qtype(), GetQType<std::string>());
+  {
+    ASSERT_NE(writer, nullptr);
+    for (int i = 0; i < 10; ++i) {
+      writer->Write(TypedRef::FromValue(absl::StrCat(i)));
+    }
+    std::move(*writer).Close();
   }
   {
     auto reader = stream->MakeReader();
     for (int i = 0; i < 10; ++i) {
-      EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), i);
+      EXPECT_EQ(reader->TryRead().item()->UnsafeAs<std::string>(),
+                absl::StrCat(i));
     }
     EXPECT_OK(*reader->TryRead().close_status());
   }
@@ -61,7 +83,6 @@ TEST(StreamTest, Basic) {
 TEST(StreamTest, Subscription) {
   auto [stream, writer] = MakeStream(GetQType<int>(), 10);
   EXPECT_EQ(stream->value_qtype(), GetQType<int>());
-  auto locked_writer = writer.lock();
   auto reader = stream->MakeReader();
   {
     ASSERT_TRUE(reader->TryRead().empty());
@@ -70,7 +91,7 @@ TEST(StreamTest, Subscription) {
     bool callback_done = false;
     reader->SubscribeOnce([&callback_done] { callback_done = true; });
     ASSERT_FALSE(callback_done);
-    locked_writer->Write(TypedRef::FromValue(1));
+    writer->Write(TypedRef::FromValue(1));
     ASSERT_TRUE(callback_done);
   }
   {
@@ -85,7 +106,7 @@ TEST(StreamTest, Subscription) {
     bool callback_done = false;
     reader->SubscribeOnce([&callback_done] { callback_done = true; });
     ASSERT_FALSE(callback_done);
-    locked_writer->Close();
+    std::move(*writer).Close();
     ASSERT_TRUE(callback_done);
   }
   {
@@ -95,16 +116,49 @@ TEST(StreamTest, Subscription) {
   }
 }
 
-TEST(StatusTest, CloseWithError) {
-  auto [stream, writer] = MakeStream(GetQType<int>(), 10);
-  auto locked_writer = writer.lock();
+TEST(StreamTest, SubscriptionCallbackTriggeredonStreamWriterDestructor) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
   auto reader = stream->MakeReader();
-  locked_writer->Close(absl::InvalidArgumentError("Boom!"));
+  bool callback_done = false;
+  reader->SubscribeOnce([&callback_done] { callback_done = true; });
+  ASSERT_FALSE(callback_done);
+  writer.reset();
+  ASSERT_TRUE(callback_done);
+}
+
+TEST(StreamTest, CloseWithError) {
+  auto [stream, writer] = MakeStream(GetQType<int>(), 10);
+  auto reader = stream->MakeReader();
+  std::move(*writer).Close(absl::InvalidArgumentError("Boom!"));
   ASSERT_THAT(*reader->TryRead().close_status(),
               StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
 }
 
-TEST(StatusTest, DemoFilter) {
+TEST(StreamTest, OrphanStreamWriter) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  ASSERT_FALSE(writer->Orphaned());
+  stream.reset();
+  ASSERT_TRUE(writer->Orphaned());
+  std::move(*writer).Write(TypedRef::FromValue(0));
+  std::move(*writer).Close();
+}
+
+TEST(StreamTest, OrphanedStreamWriterDestructor) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  ASSERT_FALSE(writer->Orphaned());
+  stream.reset();
+  ASSERT_TRUE(writer->Orphaned());
+  writer.reset();  // No crash.
+}
+
+TEST(StreamTest, StreamWriterCloseInDestructor) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  writer.reset();
+  ASSERT_THAT(*stream->MakeReader()->TryRead().close_status(),
+              StatusIs(absl::StatusCode::kCancelled, "orphaned"));
+}
+
+TEST(StreamTest, DemoFilter) {
   class Filter {
    public:
     Filter(ExecutorPtr executor, int factor, StreamReaderPtr reader,
@@ -115,18 +169,17 @@ TEST(StatusTest, DemoFilter) {
           writer_(std::move(writer)) {}
 
     void operator()() && {
-      auto locked_writer = writer_.lock();
-      if (locked_writer == nullptr) {
+      if (writer_ == nullptr) {
         return;  // There are no consumers for the stream.
       }
       for (;;) {
         auto try_read_result = reader_->TryRead();
         if (auto* item = try_read_result.item()) {
           if (item->UnsafeAs<int>() % factor_ != 0) {
-            locked_writer->Write(*item);
+            writer_->Write(*item);
           }
         } else if (auto* status = try_read_result.close_status()) {
-          locked_writer->Close(std::move(*status));
+          std::move(*writer_).Close(std::move(*status));
           break;
         } else {
           reader_->SubscribeOnce([self = std::move(*this)]() mutable {
@@ -161,11 +214,10 @@ TEST(StatusTest, DemoFilter) {
   }
 
   // Produce items.
-  auto locked_writer = writer.lock();
   for (int i = 2; i < 100; ++i) {
-    locked_writer->Write(TypedRef::FromValue(i));
+    writer->Write(TypedRef::FromValue(i));
   };
-  locked_writer->Close(absl::CancelledError("stop"));
+  std::move(*writer).Close(absl::CancelledError("stop"));
 
   // Consume items.
   std::vector<int> values;
@@ -188,7 +240,7 @@ class StresstestConsumer
  public:
   explicit StresstestConsumer(ExecutorPtr executor, StreamReaderPtr reader,
                               int end)
-      : executor_(executor), reader_(reader), end_(end) {}
+      : executor_(std::move(executor)), reader_(std::move(reader)), end_(end) {}
 
   void Start() {
     ASSERT_OK(executor_->Schedule(
@@ -238,11 +290,10 @@ TEST(StreamTest, StressLongStream) {
   consumer->Start();
 
   // Produce items.
-  auto locked_writer = writer.lock();
   for (int i = 0; i < kItemCount; ++i) {
-    locked_writer->Write(TypedRef::FromValue(i));
+    writer->Write(TypedRef::FromValue(i));
   }
-  locked_writer->Close();
+  std::move(*writer).Close();
 
   // Wait for consumer.
   consumer->Wait();
@@ -264,11 +315,10 @@ TEST(StreamTest, StressConcurrentRead) {
   }
 
   // Produce items.
-  auto locked_writer = writer.lock();
   for (int i = 0; i < kItemCount; ++i) {
-    locked_writer->Write(TypedRef::FromValue(i));
+    writer->Write(TypedRef::FromValue(i));
   };
-  locked_writer->Close();
+  std::move(*writer).Close();
 
   // Wait for consumers.
   for (auto& consumer : consumers) {
@@ -279,22 +329,21 @@ TEST(StreamTest, StressConcurrentRead) {
 TEST(StreamTest, PanicWhenWriteWrongType) {
   auto [stream, writer] = MakeStream(GetQType<int>());
   ASSERT_DEATH(
-      { writer.lock()->Write(TypedRef::FromValue(0.0)); },
+      { writer->Write(TypedRef::FromValue(0.0)); },
       "expected a value of type INT32, got FLOAT64");
 }
 
 TEST(StreamTest, PanicWhenWriteToClosedStream) {
   auto [stream, writer] = MakeStream(GetQType<int>());
-  writer.lock()->Close();
+  std::move(*writer).Close();
   ASSERT_DEATH(
-      { writer.lock()->Write(TypedRef::FromValue(0)); },
-      "writing to a closed stream");
+      { writer->Write(TypedRef::FromValue(0)); }, "writing to a closed stream");
 }
 
 TEST(StreamTest, PanicWhenCloseClosedStream) {
   auto [stream, writer] = MakeStream(GetQType<int>());
-  writer.lock()->Close();
-  ASSERT_DEATH({ writer.lock()->Close(); }, "closing a closed stream");
+  std::move(*writer).Close();
+  ASSERT_DEATH({ std::move(*writer).Close(); }, "closing a closed stream");
 }
 
 }  // namespace

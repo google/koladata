@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/parallel/stream.h"
 
+#include <atomic>
 #include <cstddef>
 #include <deque>
 #include <memory>
@@ -42,7 +43,11 @@ using ::arolla::MallocPtr;
 using ::arolla::QTypePtr;
 using ::arolla::TypedRef;
 
-constexpr size_t kChunkDefaultByteCapacity = 512;
+size_t GetDefaultChunkCapacity(QTypePtr value_qtype) {
+  constexpr size_t kDefaultByteCapacity = 512;
+  return (kDefaultByteCapacity + value_qtype->type_layout().AllocSize() - 1) /
+         value_qtype->type_layout().AllocSize();
+}
 
 class Chunk {
  public:
@@ -67,26 +72,40 @@ class Chunk {
 
 // Combined implementation of Stream and StreamWriter.
 class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
-                         public Stream,
-                         public StreamWriter {
+                         public Stream {
  public:
+  class Writer;
   class Reader;
 
   StreamImpl(QTypePtr value_qtype, size_t initial_capacity);
 
   StreamReaderPtr MakeReader() final ABSL_LOCKS_EXCLUDED(mutex_);
 
-  void Write(TypedRef value) final ABSL_LOCKS_EXCLUDED(mutex_);
-
-  void Close(absl::Status status) final ABSL_LOCKS_EXCLUDED(mutex_);
-
  private:
-  const size_t default_capacity_;
   absl::Mutex mutex_;
   std::deque<Chunk> chunks_ ABSL_GUARDED_BY(mutex_);
-  size_t last_chunk_offset_ ABSL_GUARDED_BY(mutex_) = 0;
+  size_t last_chunk_size_ ABSL_GUARDED_BY(mutex_) = 0;
   std::optional<absl::Status> status_ ABSL_GUARDED_BY(mutex_);
   std::vector<absl::AnyInvocable<void() &&>> callbacks_ ABSL_GUARDED_BY(mutex_);
+};
+
+// A stream writer implementation.
+class StreamImpl::Writer final : public StreamWriter {
+ public:
+  explicit Writer(const std::shared_ptr<StreamImpl>& stream);
+  ~Writer() final;
+
+  bool Orphaned() const final;
+
+  void Write(TypedRef value) final;
+
+  void Close(absl::Status status) && final;
+
+ private:
+  const std::weak_ptr<StreamImpl> weak_stream_;
+  const QTypePtr value_qtype_;
+  const size_t default_capacity_;
+  std::atomic_flag closed_ = false;
 };
 
 // A stream reader implementation.
@@ -104,7 +123,7 @@ class StreamImpl::Reader final : public StreamReader {
   const std::shared_ptr<StreamImpl> stream_;
 
   size_t next_chunk_index_ = 1;
-  Chunk* chunk_ = nullptr;
+  Chunk* chunk_;
   size_t offset_ = 0;
   size_t known_size_ = 0;
 };
@@ -115,8 +134,7 @@ Chunk::Chunk(QTypePtr value_qtype, size_t capacity)
       value_bytesize_(value_qtype->type_layout().AllocSize()),
       storage_(AlignedAlloc(value_qtype->type_layout().AllocAlignment(),
                             capacity * value_bytesize_)) {
-  value_qtype_->type_layout().InitializeAlignedAllocN(storage_.get(),
-                                                      capacity_);
+  value_qtype->type_layout().InitializeAlignedAllocN(storage_.get(), capacity_);
 }
 
 Chunk::~Chunk() {
@@ -141,54 +159,86 @@ void Chunk::SetRef(size_t i, TypedRef ref) {
 }
 
 StreamImpl::StreamImpl(QTypePtr value_qtype, size_t initial_capacity)
-    : Stream(value_qtype),
-      default_capacity_((kChunkDefaultByteCapacity +
-                         value_qtype->type_layout().AllocSize() - 1) /
-                        value_qtype->type_layout().AllocSize()) {
-  chunks_.emplace_back(
-      value_qtype, initial_capacity > 0 ? initial_capacity : default_capacity_);
-}
-
-void StreamImpl::Write(TypedRef value) {
-  if (value.GetType() != value_qtype()) {
-    LOG(FATAL) << "expected a value of type " << value_qtype()->name()
-               << ", got " << value.GetType()->name();
-  }
-  std::vector<absl::AnyInvocable<void() &&>> callbacks;
-  {
-    absl::MutexLock lock(&mutex_);
-    if (status_.has_value()) {
-      LOG(FATAL) << "writing to a closed stream";
-    }
-    if (chunks_.back().capacity() == last_chunk_offset_) {
-      chunks_.emplace_back(value_qtype(), default_capacity_);
-      last_chunk_offset_ = 0;
-    }
-    chunks_.back().SetRef(last_chunk_offset_++, value);
-    callbacks_.swap(callbacks);
-  }
-  for (auto& callback : callbacks) {
-    std::move(callback)();
-  }
-}
-
-void StreamImpl::Close(absl::Status status) {
-  std::vector<absl::AnyInvocable<void() &&>> callbacks;
-  {
-    absl::MutexLock lock(&mutex_);
-    if (status_.has_value()) {
-      LOG(FATAL) << "closing a closed stream";
-    }
-    status_.emplace(std::move(status));
-    callbacks_.swap(callbacks);
-  }
-  for (auto& callback : callbacks) {
-    std::move(callback)();
-  }
+    : Stream(value_qtype) {
+  chunks_.emplace_back(value_qtype, initial_capacity > 0
+                                        ? initial_capacity
+                                        : GetDefaultChunkCapacity(value_qtype));
 }
 
 StreamReaderPtr StreamImpl::MakeReader() {
-  return std::make_shared<Reader>(shared_from_this());
+  return std::make_unique<Reader>(shared_from_this());
+}
+
+StreamImpl::Writer::Writer(const std::shared_ptr<StreamImpl>& stream)
+    : weak_stream_(stream),
+      value_qtype_(stream->value_qtype()),
+      default_capacity_(GetDefaultChunkCapacity(value_qtype_)) {}
+
+bool StreamImpl::Writer::Orphaned() const { return weak_stream_.expired(); }
+
+void StreamImpl::Writer::Write(TypedRef value) {
+  if (value.GetType() != value_qtype_) {
+    LOG(FATAL) << "expected a value of type " << value_qtype_->name()
+               << ", got " << value.GetType()->name();
+  }
+  auto stream = weak_stream_.lock();
+  if (stream == nullptr) {
+    return;  // The stream object is gone.
+  }
+  std::vector<absl::AnyInvocable<void() &&>> callbacks;
+  {
+    absl::MutexLock lock(&stream->mutex_);
+    if (stream->status_.has_value()) {
+      LOG(FATAL) << "writing to a closed stream";
+    }
+    if (stream->chunks_.back().capacity() == stream->last_chunk_size_) {
+      stream->chunks_.emplace_back(value_qtype_, default_capacity_);
+      stream->last_chunk_size_ = 0;
+    }
+    stream->chunks_.back().SetRef(stream->last_chunk_size_++, value);
+    stream->callbacks_.swap(callbacks);
+  }
+  for (auto& callback : callbacks) {
+    std::move(callback)();
+  }
+}
+
+void StreamImpl::Writer::Close(absl::Status status) && {
+  if (closed_.test_and_set(std::memory_order_relaxed)) {
+    LOG(FATAL) << "closing a closed stream";
+  }
+  auto stream = weak_stream_.lock();
+  if (stream == nullptr) {
+    return;  // The stream object is gone.
+  }
+  std::vector<absl::AnyInvocable<void() &&>> callbacks;
+  {
+    absl::MutexLock lock(&stream->mutex_);
+    stream->status_.emplace(std::move(status));
+    stream->callbacks_.swap(callbacks);
+  }
+  for (auto& callback : callbacks) {
+    std::move(callback)();
+  }
+}
+
+StreamImpl::Writer::~Writer() {
+  if (closed_.test_and_set(std::memory_order_relaxed)) {
+    return;
+  }
+  auto stream = weak_stream_.lock();
+  if (stream == nullptr) {
+    return;  // The stream object is gone.
+  }
+  std::vector<absl::AnyInvocable<void() &&>> callbacks;
+  {
+    absl::MutexLock lock(&stream->mutex_);
+    stream->status_.emplace(absl::CancelledError("orphaned"));
+    stream->callbacks_.swap(callbacks);
+  }
+  for (auto& callback : callbacks) {
+    std::move(callback)();
+  }
 }
 
 StreamImpl::Reader::Reader(std::shared_ptr<StreamImpl> stream)
@@ -196,7 +246,7 @@ StreamImpl::Reader::Reader(std::shared_ptr<StreamImpl> stream)
   absl::MutexLock lock(&stream_->mutex_);
   chunk_ = &stream_->chunks_.front();
   if (next_chunk_index_ == stream_->chunks_.size()) {
-    known_size_ = stream_->last_chunk_offset_;
+    known_size_ = stream_->last_chunk_size_;
   } else {
     known_size_ = chunk_->capacity();
   }
@@ -225,7 +275,7 @@ void StreamImpl::Reader::Update() {
     offset_ = 0;
   }
   if (next_chunk_index_ == stream_->chunks_.size()) {
-    known_size_ = stream_->last_chunk_offset_;
+    known_size_ = stream_->last_chunk_size_;
   } else {
     known_size_ = chunk_->capacity();
   }
@@ -250,16 +300,18 @@ void StreamImpl::Reader::SubscribeOnce(
 
 std::pair<StreamPtr, StreamWriterPtr> MakeStream(arolla::QTypePtr value_qtype,
                                                  size_t initial_capacity) {
-  auto tmp = std::make_shared<StreamImpl>(value_qtype, initial_capacity);
+  auto stream_impl =
+      std::make_shared<StreamImpl>(value_qtype, initial_capacity);
   std::pair<StreamPtr, StreamWriterPtr> result;
-  result.second = tmp;
-  result.first = std::move(tmp);
+  result.second = std::make_unique<StreamImpl::Writer>(stream_impl);
+  result.first = std::move(stream_impl);
   return result;
 }
 
 }  // namespace koladata::functor::parallel
 
 namespace arolla {
+
 void FingerprintHasherTraits<koladata::functor::parallel::StreamPtr>::
 operator()(FingerprintHasher* hasher,
            const koladata::functor::parallel::StreamPtr& value) const {

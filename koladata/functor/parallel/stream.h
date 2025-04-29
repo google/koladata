@@ -33,20 +33,14 @@ class Stream;
 class StreamWriter;
 class StreamReader;
 
+// Note: Consider replacing the interfaces with concrete implementations, in
+// which case StreamWriter and StreamReader might be represented with movable,
+// but non-copyable values rather than pointers.
 using StreamPtr = std::shared_ptr<Stream>;
-using StreamReaderPtr = std::shared_ptr<StreamReader>;
+using StreamReaderPtr = std::unique_ptr<StreamReader>;
+using StreamWriterPtr = std::unique_ptr<StreamWriter>;
 
-// Note: The stream writer is owned by the stream object. The recommended
-// pattern is to use the StreamWriter with a std::weak_ptr. This way, the
-// producer can determine if the stream is no longer owned by any consumer.
-using StreamWriterPtr = std::weak_ptr<StreamWriter>;
-
-// Stream of values.
-//
-// The stream keeps all the values in memory, and can be read more than once.
-//
-// Note: Consider replacing this interface with a class if it provides enough
-// performance benefits.
+// The stream instance works like a storage that can be read more than once.
 class Stream {
  public:
   // Returns the value type of the stream.
@@ -77,17 +71,12 @@ class Stream {
 
 // Writer interface for the stream.
 //
-// Important:
-//  * The stream writer is owned by the stream object. The recommended pattern
-//    is to use the StreamWriter with a weak_ptr. This allows the stream to be
-//    automatically deleted if the stream no longer owned by anything.
-//  * It's strongly adviced that all stream were closed, because otherwise tasks
-//    waiting for the next item can hang indefinitelly. The stream can only be
-//    closed using the method Close(). Particularly, the stream cannot be closed
-//    by itself.
-//
+// Note: It is strongly advised that all streams be explicitly closed.
 class StreamWriter {
  public:
+  // Returns true if there are no potential readers left.
+  virtual bool Orphaned() const = 0;
+
   // Writes a value to the stream.
   //
   // Important: writing a value of incorrect type (non value_qtype) or writing
@@ -97,12 +86,12 @@ class StreamWriter {
   // Closes the stream with the given status.
   //
   // Important: Closing a closed stream results in undefined behaviour!
-  virtual void Close(absl::Status status) = 0;
+  virtual void Close(absl::Status status) && = 0;
 
   // Closes the stream with absl::OkStatus().
   //
   // Important: Closing a closed stream results in undefined behaviour!
-  void Close() { Close(absl::OkStatus()); }
+  void Close() && { std::move(*this).Close(absl::OkStatus()); }
 
   // Disallow copy and move.
   StreamWriter(const StreamWriter&) = delete;
