@@ -429,12 +429,7 @@ PyObject* /*absl_nullable*/ PyDataSlice_set_attr(PyObject* self,
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
-  Py_ssize_t size;
-  const char* attr_name_ptr = PyUnicode_AsUTF8AndSize(py_args[0], &size);
-  if (attr_name_ptr == nullptr) {
-    return nullptr;
-  }
-  auto attr_name_view = absl::string_view(attr_name_ptr, size);
+
   const auto& self_ds = UnsafeDataSliceRef(self);
   AdoptionQueue adoption_queue;
   ASSIGN_OR_RETURN(
@@ -452,13 +447,32 @@ PyObject* /*absl_nullable*/ PyDataSlice_set_attr(PyObject* self,
     }
     overwrite_schema = PyObject_IsTrue(py_overwrite_schema);
   }
-  RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds, overwrite_schema))
-      .With([&](absl::Status status) {
-        return arolla::python::SetPyErrFromStatus(
-            KodaErrorCausedByIncompableSchemaError(std::move(status),
-                                                   self_ds.GetBag(),
-                                                   value_ds.GetBag(), self_ds));
-      });
+  if (PyUnicode_Check(py_args[0])) {
+    Py_ssize_t size;
+    const char* attr_name_ptr = PyUnicode_AsUTF8AndSize(py_args[0], &size);
+    if (attr_name_ptr == nullptr) {
+      return nullptr;
+    }
+    auto attr_name_view = absl::string_view(attr_name_ptr, size);
+    RETURN_IF_ERROR(self_ds.SetAttr(attr_name_view, value_ds, overwrite_schema))
+        .With([&](absl::Status status) {
+          return arolla::python::SetPyErrFromStatus(
+              KodaErrorCausedByIncompableSchemaError(
+                  std::move(status), self_ds.GetBag(), value_ds.GetBag(),
+                  self_ds));
+        });
+  } else {
+    ASSIGN_OR_RETURN(DataSlice attr_name,
+                     DataSliceFromPyValueNoAdoption(py_args[0]),
+                     arolla::python::SetPyErrFromStatus(_));
+    RETURN_IF_ERROR(self_ds.SetAttr(attr_name, value_ds, overwrite_schema))
+        .With([&](absl::Status status) {
+          return arolla::python::SetPyErrFromStatus(
+              KodaErrorCausedByIncompableSchemaError(
+                  std::move(status), self_ds.GetBag(), value_ds.GetBag(),
+                  self_ds));
+        });
+  }
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*self_ds.GetBag()))
       .With(arolla::python::SetPyErrFromStatus);
   Py_RETURN_NONE;

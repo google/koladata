@@ -1276,7 +1276,7 @@ class DataSliceTest(parameterized.TestCase):
 
     with self.subTest('errors'):
       x = db.new(abc=ds([42], schema_constants.INT64))
-      with self.assertRaises(TypeError):
+      with self.assertRaisesRegex(ValueError, 'must be a slice of STRING'):
         x.set_attr(b'invalid_attr', 1)
       with self.assertRaises(ValueError):
         x.set_attr('invalid__val', ValueError)
@@ -1286,6 +1286,53 @@ class DataSliceTest(parameterized.TestCase):
           TypeError, 'accepts 2 to 3 positional arguments'
       ):
         x.set_attr('invalid__overwrite_schema_type', 1, None, 42)
+
+  def test_set_attr_ds_attr_name(self):
+    db = bag()
+    x = db.obj()
+    with self.subTest('smoke_test'):
+      x.set_attr(ds(['a', 'b']), ds([123, 456], schema_constants.INT32))
+      testing.assert_equal(x.get_attr('a'), ds(123).with_bag(db))
+      testing.assert_equal(x.get_attr('b'), ds(456).with_bag(db))
+      testing.assert_equal(
+          x.get_attr('__schema__').get_attr('a'),
+          ds(schema_constants.INT32).with_bag(db),
+      )
+      testing.assert_equal(
+          x.get_attr('__schema__').get_attr('b'),
+          ds(schema_constants.INT32).with_bag(db),
+      )
+
+    with self.subTest('schema_narrowing'):
+      x.set_attr(
+          ds(['a', 'b'], schema_constants.OBJECT),
+          ds([123, 456], schema_constants.INT32),
+      )
+      testing.assert_equal(x.get_attr('a'), ds(123).with_bag(db))
+      testing.assert_equal(x.get_attr('b'), ds(456).with_bag(db))
+
+    with self.subTest('set_list'):
+      x.set_attr(ds(['a']), ds([db.list([1, 2])]), overwrite_schema=True)
+      testing.assert_nested_lists_equal(x.get_attr('a'), db.list([1, 2]))
+
+  def test_set_attr_ds_attr_name_errors(self):
+    db = bag()
+    x = db.obj()
+
+    with self.subTest('str_attr_name'):
+      with self.assertRaisesRegex(ValueError, 'must be a slice of STRING'):
+        x.set_attr(ds([1, 2]), ds([123, 456]))
+
+    with self.subTest('non_scalar_schema_set'):
+      schema_slice = ds([
+          db.new_schema(a=schema_constants.INT32),
+          db.new_schema(b=schema_constants.STRING),
+      ])
+      with self.assertRaisesRegex(
+          ValueError,
+          'can only set attribute of a schema DataSlice if attr_name is scalar',
+      ):
+        schema_slice.set_attr(ds(['a', 'b']), schema_constants.FLOAT32)
 
   def test_set_attr_incompatible_schema(self):
     db = bag()

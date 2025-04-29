@@ -130,7 +130,7 @@ class CoreWithAttrTest(parameterized.TestCase):
   def test_error_no_databag(self):
     o = bag().new(x=1).no_bag()
     with self.assertRaisesRegex(
-        ValueError, 'the DataSlice is a reference without a Bag',
+        ValueError, 'the DataSlice is a reference without a bag',
     ):
       _ = kde.core.with_attr(o, 'x', 1).eval()
 

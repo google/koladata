@@ -56,8 +56,11 @@
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/repr_utils.h"
+#include "koladata/schema_utils.h"
+#include "koladata/shape_utils.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -1537,22 +1540,51 @@ absl::Status DataSlice::SetSchemaAttr(absl::string_view attr_name,
   });
 }
 
+namespace {
+
+absl::Status SetAttrImpl(const DataSlice& obj, absl::string_view attr_name,
+                         const DataSlice& values, bool overwrite_schema) {
+  DCHECK(obj.GetBag() != nullptr);  // Checked in CheckEligibleForSetAttr.
+  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                   obj.GetBag()->GetMutableImpl());
+  RhsHandler</*is_readonly=*/false> data_handler(
+      RhsHandlerContext::kAttr, values, attr_name, overwrite_schema);
+  if (attr_name == schema::kSchemaAttr) {
+    if (values.GetSchemaImpl() != schema::kSchema) {
+      return absl::InvalidArgumentError(absl::StrCat(
+          "only schemas can be assigned to the '__schema__' attribute, got ",
+          values.GetSchemaImpl()));
+    }
+  } else {
+    RETURN_IF_ERROR(data_handler.ProcessSchema(obj, db_mutable_impl,
+                                               /*fallbacks=*/{}));
+  }
+  return obj.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
+    return db_mutable_impl.SetAttr(impl, attr_name,
+                                   data_handler.GetValues().impl<T>());
+  });
+}
+
+absl::Status SetAttrForSingleItem(const internal::DataItem& obj,
+                                  absl::string_view attr_name,
+                                  const internal::DataItem& value,
+                                  bool overwrite_schema,
+                                  const internal::DataItem& obj_schema,
+                                  const internal::DataItem& value_schema,
+                                  const DataBagPtr& obj_db) {
+  ASSIGN_OR_RETURN(auto obj_slice, DataSlice::Create(obj, obj_schema, obj_db));
+  ASSIGN_OR_RETURN(
+      auto value_slice,
+      DataSlice::Create(value, DataSlice::JaggedShape::Empty(), value_schema));
+  return SetAttrImpl(obj_slice, attr_name, value_slice, overwrite_schema);
+}
+
+}  // namespace
+
 absl::Status DataSlice::SetAttr(absl::string_view attr_name,
                                 const DataSlice& values,
                                 bool overwrite_schema) const {
-  if (GetSchemaImpl().is_primitive_schema() || ContainsAnyPrimitives()) {
-    return AttrOnPrimitiveError(*this, attr_name, "set");
-  }
-  if (GetSchemaImpl().is_itemid_schema()) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "failed to set '%s' attribute; ITEMIDs do not allow attribute access",
-        attr_name));
-  }
-  if (GetBag() == nullptr) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "failed to set '%s' attribute; the DataSlice is a reference without a "
-        "bag", attr_name));
-  }
+  RETURN_IF_ERROR(CheckEligibleForSetAttrWithAttrName(*this, attr_name));
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, GetShape()),
                    _.With([&](auto status) {
                      return AttrAssignmentError(std::move(status),
@@ -1562,24 +1594,53 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
   if (GetSchemaImpl() == schema::kSchema) {
     return SetSchemaAttr(attr_name, expanded_values);
   }
-  ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
-                   GetBag()->GetMutableImpl());
-  RhsHandler</*is_readonly=*/false> data_handler(
-      RhsHandlerContext::kAttr, expanded_values, attr_name, overwrite_schema);
-  if (attr_name == schema::kSchemaAttr) {
-    if (expanded_values.GetSchemaImpl() != schema::kSchema) {
-      return absl::InvalidArgumentError(absl::StrCat(
-          "only schemas can be assigned to the '__schema__' attribute, got ",
-          expanded_values.GetSchemaImpl()));
-    }
-  } else {
-    RETURN_IF_ERROR(
-        data_handler.ProcessSchema(*this, db_mutable_impl, /*fallbacks=*/{}));
+  return SetAttrImpl(*this, attr_name, expanded_values, overwrite_schema);
+}
+
+absl::Status DataSlice::SetAttr(const DataSlice& attr_name,
+                                const DataSlice& values,
+                                bool overwrite_schema) const {
+  RETURN_IF_ERROR(CheckEligibleForSetAttr(*this, "failed to set attribute"));
+  if (attr_name.IsEmpty()) {
+    return absl::OkStatus();
   }
-  return VisitImpl([&]<class T>(const T& impl) -> absl::Status {
-    return db_mutable_impl.SetAttr(impl, attr_name,
-                                   data_handler.GetValues().impl<T>());
-  });
+  RETURN_IF_ERROR(ExpectString("attr_name", attr_name));
+  if (attr_name.is_item()) {
+    absl::string_view attr_name_str =
+        attr_name.item().value<arolla::Text>().view();
+    return SetAttr(attr_name_str, values, overwrite_schema);
+  }
+  // NOTE: We already covered the scalar `attr_name` case above, and we are
+  // using Align rather than AlignNonScalars, so it's guaranteed that
+  // aligned_slices will be DataSliceImpl.
+  ASSIGN_OR_RETURN(auto aligned_slices,
+                   shape::Align(absl::Span<const DataSlice>{*this, attr_name}));
+  const auto& aligned_obj = aligned_slices[0].impl<internal::DataSliceImpl>();
+  const auto& aligned_attr_name =
+      aligned_slices[1].impl<internal::DataSliceImpl>();
+
+  ASSIGN_OR_RETURN(auto expanded_values,
+                   BroadcastToShape(values, aligned_slices[0].GetShape()));
+  const internal::DataItem& schema = GetSchemaImpl();
+  if (schema == schema::kSchema) {
+    return absl::InvalidArgumentError(
+        "can only set attribute of a schema DataSlice if attr_name is scalar");
+  }
+  absl::Status status = absl::OkStatus();
+  RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
+      [&](int64_t offset, internal::DataItem item, std::string_view attr_name,
+          internal::DataItem value) {
+        if (!status.ok()) {
+          return;
+        }
+        status = SetAttrForSingleItem(item, attr_name, value, overwrite_schema,
+                                      GetSchemaImpl(), values.GetSchemaImpl(),
+                                      GetBag());
+      },
+      aligned_obj.AsDataItemDenseArray(),
+      aligned_attr_name.values<arolla::Text>(),
+      expanded_values.impl<internal::DataSliceImpl>().AsDataItemDenseArray()));
+  return status;
 }
 
 absl::Status DataSlice::SetAttrs(absl::Span<const absl::string_view> attr_names,
@@ -2366,6 +2427,44 @@ absl::Status ValidateAttrLookupAllowed(const DataSlice& slice,
     return ValidateAttrLookupAllowed(slice.GetBag(), impl,
                                      slice.GetSchemaImpl(), error_headline);
   });
+}
+
+absl::Status CheckEligibleForSetAttr(const DataSlice& slice,
+                                     absl::string_view error_headline) {
+  if (slice.GetSchemaImpl().is_primitive_schema() ||
+      slice.ContainsAnyPrimitives()) {
+    return AttrOnPrimitiveError(slice, error_headline);
+  }
+  if (slice.GetSchemaImpl().is_itemid_schema()) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        error_headline, "; ITEMIDs do not allow attribute access"));
+  }
+  if (slice.GetBag() == nullptr) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        error_headline, "; the DataSlice is a reference without a bag"));
+  }
+  return absl::OkStatus();
+}
+
+absl::Status CheckEligibleForSetAttrWithAttrName(const DataSlice& slice,
+                                                 absl::string_view attr_name) {
+  if (slice.GetSchemaImpl().is_primitive_schema() ||
+      slice.ContainsAnyPrimitives()) {
+    return AttrOnPrimitiveError(
+        slice, absl::StrFormat("failed to set '%s' attribute", attr_name));
+  }
+  if (slice.GetSchemaImpl().is_itemid_schema()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "failed to set '%s' attribute; ITEMIDs do not allow attribute access",
+        attr_name));
+  }
+  if (slice.GetBag() == nullptr) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("failed to set '%s' attribute; the DataSlice is a "
+                        "reference without a bag",
+                        attr_name));
+  }
+  return absl::OkStatus();
 }
 
 }  // namespace koladata

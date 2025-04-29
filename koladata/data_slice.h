@@ -305,6 +305,12 @@ class DataSlice {
   absl::Status SetAttr(absl::string_view attr_name, const DataSlice& values,
                        bool overwrite_schema = false) const;
 
+  // Same as above, but `attr_name` is a DataSlice, and for each item in this
+  // DataSlice, the corresponding item in `attr_name` is used as the attribute
+  // name.
+  absl::Status SetAttr(const DataSlice& attr_name, const DataSlice& values,
+                       bool overwrite_schema = false) const;
+
   // Sets multiple attributes at the same time. Attributes `attr_names` of
   // Object / Entity are set to `values`. If `overwrite_schema` is true, schemas
   // will also be updated, otherwise incompatible schema errors can be raised.
@@ -640,6 +646,12 @@ absl::Status AttrOnPrimitiveError(const DataSlice& slice,
 // `impl` is guaranteed to contain only Items and `db != nullptr`.
 absl::Status ValidateAttrLookupAllowed(const DataSlice& slice,
                                        absl::string_view error_headline);
+
+// Checks that SetAttr can be legally called on this DataSlice.
+absl::Status CheckEligibleForSetAttr(const DataSlice& slice,
+                                     absl::string_view error_headline);
+absl::Status CheckEligibleForSetAttrWithAttrName(const DataSlice& slice,
+                                                 absl::string_view attr_name);
 
 }  // namespace koladata
 
