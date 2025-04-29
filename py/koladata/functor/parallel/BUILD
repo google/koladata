@@ -30,7 +30,11 @@ koladata_pybind_extension(
     visibility = ["//koladata:internal"],
     deps = [
         ":py_executor",
+        ":py_stream",
+        "//koladata/functor/parallel:executor",
         "//koladata/functor/parallel:init_expr_operators",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/abc:pybind11_utils",
     ],
 )
@@ -42,7 +46,6 @@ cc_library(
     deps = [
         "//koladata/functor/parallel:executor",
         "@com_google_absl//absl/cleanup",
-        "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
         "@com_google_arolla//py/arolla/py_utils",
@@ -54,6 +57,38 @@ py_test(
     name = "executor_test",
     size = "small",
     srcs = ["executor_test.py"],
+    deps = [
+        ":clib",
+        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+cc_library(
+    name = "py_stream",
+    srcs = ["py_stream.cc"],
+    hdrs = ["py_stream.h"],
+    deps = [
+        "//koladata/functor/parallel:executor",
+        "//koladata/functor/parallel:stream",
+        "//koladata/functor/parallel:stream_qtype",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_arolla//py/arolla/abc:py_abc",
+        "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",
+    ],
+)
+
+py_test(
+    name = "stream_test",
+    size = "small",
+    srcs = ["stream_test.py"],
     deps = [
         ":clib",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.

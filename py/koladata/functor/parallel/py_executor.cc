@@ -19,22 +19,18 @@
 #include "absl/cleanup/cleanup.h"
 #include "koladata/functor/parallel/executor.h"
 #include "py/arolla/abc/py_qvalue.h"
-#include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {
 
-using ::arolla::GetQType;
 using ::arolla::python::AcquirePyGIL;
 using ::arolla::python::CheckPyGIL;
 using ::arolla::python::DCheckPyGIL;
 using ::arolla::python::PyObjectGILSafePtr;
 using ::arolla::python::PyObjectPtr;
 using ::arolla::python::PyQValueType;
-using ::arolla::python::RegisterPyQValueSpecializationByQType;
 using ::arolla::python::SetPyErrFromStatus;
 using ::arolla::python::UnsafeUnwrapPyQValue;
 using ::koladata::functor::parallel::ExecutorPtr;
@@ -95,10 +91,6 @@ PyTypeObject* InitPyExecutorType() {
   };
   auto py_result = PyObjectPtr::Own(PyType_FromSpec(&spec));
   if (py_result == nullptr) {
-    return nullptr;
-  }
-  if (!RegisterPyQValueSpecializationByQType(GetQType<ExecutorPtr>(),
-                                             py_result.get())) {
     return nullptr;
   }
   return reinterpret_cast<PyTypeObject*>(py_result.release());
