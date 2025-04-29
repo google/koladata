@@ -17,12 +17,14 @@ import re
 from absl.testing import absltest
 from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
 
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
 
 
 class FromProtoTest(absltest.TestCase):
@@ -288,11 +290,11 @@ class FromProtoTest(absltest.TestCase):
     ):
       _ = fns.from_proto(
           test_pb2.MessageA(),
-          schema=fns.schema.new_schema(**{
+          schema=kde.schema.new_schema(**{
               '(koladata.functions.testing.MessageBExtension.message_b_extension)': (
                   schema_constants.OBJECT
               )
-          }),
+          }).eval(),
       )
 
 

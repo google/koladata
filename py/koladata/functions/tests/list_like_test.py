@@ -116,7 +116,9 @@ class ListLikeTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    list_schema = fns.list_schema(fns.uu_schema(a=schema_constants.INT32))
+    list_schema = kde.list_schema(
+        kde.uu_schema(a=schema_constants.INT32)
+    ).eval()
     lst = fns.list_like(ds([None, 0]), schema=list_schema)
 
     testing.assert_equal(
@@ -138,7 +140,7 @@ class ListLikeTest(parameterized.TestCase):
         fns.list_like(
             ds([1, 2.0]),
             [1, 2.0],
-            schema=fns.list_schema(schema_constants.OBJECT),
+            schema=kde.list_schema(schema_constants.OBJECT).eval(),
         )[:].no_bag(),
         kd.implode(
             data_slice.DataSlice.from_vals(
@@ -318,13 +320,13 @@ class ListLikeTest(parameterized.TestCase):
       (
           None,
           None,
-          fns.list_schema(item_schema=schema_constants.INT64),
+          kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
       ),
       (
           [[1, 2], [3]],
           None,
-          fns.list_schema(item_schema=schema_constants.INT64),
+          kde.list_schema(item_schema=schema_constants.INT64).eval(),
           schema_constants.INT64,
       ),
   )
@@ -345,7 +347,7 @@ class ListLikeTest(parameterized.TestCase):
 
   def test_schema_arg_error(self):
     mask_and_shape = ds([[1, None], [3]])
-    list_schema = fns.list_schema(item_schema=schema_constants.INT64)
+    list_schema = kde.list_schema(item_schema=schema_constants.INT64).eval()
     with self.assertRaisesRegex(
         ValueError, 'either a list schema or item schema, but not both'
     ):

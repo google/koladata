@@ -94,9 +94,9 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_adopt_schema(self):
     shape = ds([[0, 0], [0]]).get_shape()
-    dict_schema = fns.dict_schema(
-        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
-    )
+    dict_schema = kde.dict_schema(
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
+    ).eval()
     dct = fns.dict_shaped(shape, schema=dict_schema)
 
     testing.assert_equal(
@@ -157,10 +157,10 @@ class DictShapedTest(parameterized.TestCase):
           values=None,
           key_schema=None,
           value_schema=None,
-          schema=fns.dict_schema(
+          schema=kde.dict_schema(
               key_schema=schema_constants.INT32,
               value_schema=schema_constants.OBJECT,
-          ),
+          ).eval(),
           expected_key_schema=schema_constants.INT32,
           expected_value_schema=schema_constants.OBJECT,
       ),
@@ -170,10 +170,10 @@ class DictShapedTest(parameterized.TestCase):
           values=ds([[1, 2], [3]]),
           key_schema=None,
           value_schema=None,
-          schema=fns.dict_schema(
+          schema=kde.dict_schema(
               key_schema=schema_constants.INT64,
               value_schema=schema_constants.OBJECT,
-          ),
+          ).eval(),
           expected_key_schema=schema_constants.INT64,
           expected_value_schema=schema_constants.OBJECT,
       ),
@@ -208,9 +208,9 @@ class DictShapedTest(parameterized.TestCase):
 
   def test_schema_arg_error(self):
     shape = ds([[0, 0], [0]]).get_shape()
-    dict_schema = fns.dict_schema(
+    dict_schema = kde.dict_schema(
         key_schema=schema_constants.INT64, value_schema=schema_constants.OBJECT
-    )
+    ).eval()
     with self.assertRaisesRegex(
         ValueError, 'either a dict schema or key/value schemas, but not both'
     ):

@@ -19,7 +19,6 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functions import functions as fns
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -56,9 +55,9 @@ class DictTest(parameterized.TestCase):
       (
           'schema arg',
           dict(
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
-              )
+              ).eval()
           ),
       ),
       # itemid arg
@@ -102,7 +101,7 @@ class DictTest(parameterized.TestCase):
 
   def test_adopt_schema(self):
     dict_schema = kde.schema.dict_schema(
-        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     dct = kde.dicts.new(schema=dict_schema).eval()
 
@@ -150,7 +149,7 @@ class DictTest(parameterized.TestCase):
       expr_eval.eval(
           kde.dicts.new(
               key_schema=schema_constants.INT64,
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )
@@ -165,7 +164,7 @@ class DictTest(parameterized.TestCase):
       expr_eval.eval(
           kde.dicts.new(
               value_schema=schema_constants.INT64,
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )
@@ -229,7 +228,7 @@ Assigned schema for keys: STRING""",
           kde.dicts.new(
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )

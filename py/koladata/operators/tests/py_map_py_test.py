@@ -37,6 +37,7 @@ from koladata.types import schema_constants
 eval_op = py_expr_eval_py_ext.eval_op
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+bag = data_bag.DataBag.empty
 kde = kde_operators.kde
 
 
@@ -191,9 +192,9 @@ class PyMapPyTest(parameterized.TestCase):
 
   def test_map_py_with_schema(self):
     val = ds([[1, 2, None, 4], [None, None], [7, 8, 9]])
-    schema = functions.schema.new_schema(
+    schema = bag().new_schema(
         u=schema_constants.INT32, v=schema_constants.INT32
-    ).fork_bag()  # mutable
+    )  # mutable
 
     def my_func_dynamic_schema(x):
       return functions.new(u=x, v=x + 1)
@@ -275,7 +276,7 @@ assigned schema: SCHEMA(u=INT64)'''
           kde.py.map_py(
               my_func_correct_schema,
               val,
-              schema=functions.schema.new_schema(u=schema_constants.INT64),
+              schema=kde.schema.new_schema(u=schema_constants.INT64),
           )
       )
 

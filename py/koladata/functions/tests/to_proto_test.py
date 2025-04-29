@@ -17,6 +17,7 @@ import re
 from absl.testing import absltest
 from koladata.functions import functions as fns
 from koladata.functions.tests import test_pb2
+from koladata.operators import kde_operators
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import mask_constants
@@ -24,6 +25,7 @@ from koladata.types import schema_constants
 
 
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
 
 
 class ToProtoTest(absltest.TestCase):
@@ -109,10 +111,10 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(message, expected_message)
 
   def test_oneof(self):
-    s = fns.schema.new_schema(
+    s = kde.schema.new_schema(
         oneof_int32_field=schema_constants.INT32,
         oneof_bytes_field=schema_constants.BYTES,
-    )
+    ).eval()
     x = ds([
         fns.new(schema=s, oneof_int32_field=1),
         fns.new(schema=s, oneof_bytes_field=b'2'),
@@ -164,10 +166,10 @@ class ToProtoTest(absltest.TestCase):
     self.assertEqual(messages, expected_messages)
 
   def test_repeated_oneof(self):
-    s = fns.schema.new_schema(
+    s = kde.schema.new_schema(
         oneof_int32_field=schema_constants.INT32,
         oneof_bytes_field=schema_constants.BYTES,
-    )
+    ).eval()
     x = fns.new(repeated_message_field=fns.list([
         fns.new(schema=s, oneof_int32_field=1),
         fns.new(schema=s, oneof_bytes_field=b'2'),

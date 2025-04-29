@@ -268,13 +268,13 @@ class JsonToJsonTest(parameterized.TestCase):
         ValueError, 'unsupported schema SCHEMA for json serialization'
     ):
       _ = expr_eval.eval(
-          kde.json.to_json(fns.schema.new_schema(a=schema_constants.INT32))
+          kde.json.to_json(kde.schema.new_schema(a=schema_constants.INT32))
       )
 
     with self.assertRaisesRegex(
         ValueError, 'unsupported schema ITEMID for json serialization'
     ):
-      _ = expr_eval.eval(kde.json.to_json(fns.new().get_itemid()))
+      _ = expr_eval.eval(kde.json.to_json(kde.new().get_itemid()))
 
     with self.assertRaisesRegex(
         ValueError, 'unsupported schema EXPR for json serialization'
@@ -282,7 +282,7 @@ class JsonToJsonTest(parameterized.TestCase):
       _ = expr_eval.eval(kde.json.to_json(ds(arolla.quote(I.x))))
 
   def test_error_itemid_cycle(self):
-    x = fns.new()
+    x = kde.new()
     x = x.with_attrs(x=x)
     with self.assertRaisesRegex(
         ValueError, 'cycle detected in json serialization at '
@@ -294,7 +294,7 @@ class JsonToJsonTest(parameterized.TestCase):
         ValueError, 'unsupported dict key schema MASK for json serialization'
     ):
       _ = expr_eval.eval(
-          kde.json.to_json(fns.dict({mask_constants.present: 'b'}))
+          kde.json.to_json(kde.dict(mask_constants.present, 'b'))
       )
 
     with self.assertRaisesRegex(
@@ -302,9 +302,10 @@ class JsonToJsonTest(parameterized.TestCase):
     ):
       _ = expr_eval.eval(
           kde.json.to_json(
-              fns.dict(
-                  {mask_constants.present: 'b'},
-                  schema=fns.dict_schema(
+              kde.dict(
+                  mask_constants.present,
+                  'b',
+                  schema=kde.dict_schema(
                       schema_constants.OBJECT, schema_constants.STRING
                   ),
               )
@@ -316,7 +317,7 @@ class JsonToJsonTest(parameterized.TestCase):
         ValueError, 'expected json key list to contain STRING, got INT32'
     ):
       _ = expr_eval.eval(
-          kde.json.to_json(fns.new(keys=fns.list([1])), keys_attr='keys')
+          kde.json.to_json(kde.new(keys=fns.list([1])), keys_attr='keys')
       )
 
     with self.assertRaisesRegex(
@@ -324,7 +325,7 @@ class JsonToJsonTest(parameterized.TestCase):
     ):
       _ = expr_eval.eval(
           kde.json.to_json(
-              fns.new(keys=fns.list(['a', None])), keys_attr='keys'
+              kde.new(keys=fns.list(['a', None])), keys_attr='keys'
           )
       )
 
@@ -336,7 +337,7 @@ class JsonToJsonTest(parameterized.TestCase):
     ):
       _ = expr_eval.eval(
           kde.json.to_json(
-              fns.new(
+              kde.new(
                   keys=fns.list(['a', 'b']),
                   values=fns.list([1, 2, 3]),
               ),

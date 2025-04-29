@@ -83,7 +83,9 @@ class DictShapedAsTest(parameterized.TestCase):
   def test_schema(self):
     x = fns.dict_shaped_as(
         ds([[0, 0], [0]]),
-        schema=fns.dict_schema(schema_constants.INT32, schema_constants.OBJECT),
+        schema=kde.dict_schema(
+            schema_constants.INT32, schema_constants.OBJECT
+        ).eval(),
     )
     testing.assert_equal(
         x.get_schema().get_attr('__keys__').with_bag(None),
@@ -112,9 +114,9 @@ class DictShapedAsTest(parameterized.TestCase):
     )
 
   def test_adopt_schema(self):
-    dict_schema = fns.dict_schema(
-        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
-    )
+    dict_schema = kde.dict_schema(
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
+    ).eval()
     dct = fns.dict_shaped_as(ds([[0, 0], [0]]), schema=dict_schema)
 
     testing.assert_equal(

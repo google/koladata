@@ -119,9 +119,9 @@ class NewShapedTest(absltest.TestCase):
       _ = x.non_existent
 
   def test_schema_arg_simple(self):
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING
-    )
+    ).eval()
     x = fns.new_shaped(
         jagged_shape.create_shape([2]), a=42, b='xyz', schema=schema
     )
@@ -132,12 +132,12 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_deep(self):
-    nested_schema = fns.schema.new_schema(p=schema_constants.BYTES)
-    schema = fns.schema.new_schema(
+    nested_schema = kde.schema.new_schema(p=schema_constants.BYTES).eval()
+    schema = kde.schema.new_schema(
         a=schema_constants.INT32,
         b=schema_constants.STRING,
         nested=nested_schema,
-    )
+    ).eval()
     x = fns.new_shaped(
         jagged_shape.create_shape(),
         a=42,
@@ -158,7 +158,7 @@ class NewShapedTest(absltest.TestCase):
     )
 
   def test_schema_arg_implicit_casting(self):
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
     x = fns.new_shaped(jagged_shape.create_shape([2]), a=42, schema=schema)
     self.assertEqual(fns.dir(x), ['a'])
     testing.assert_equal(
@@ -167,7 +167,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_implicit_casting_failure(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
@@ -177,7 +177,7 @@ class NewShapedTest(absltest.TestCase):
       fns.new_shaped(jagged_shape.create_shape([2]), a='xyz', schema=schema)
 
   def test_schema_arg_supplement_succeeds(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     x = fns.new_shaped(
         jagged_shape.create_shape(), a=42, b='xyz', schema=schema
     )
@@ -185,7 +185,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_overwrite_schema(self):
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
     x = fns.new_shaped(
         jagged_shape.create_shape([2]),
         a=42,
@@ -207,7 +207,7 @@ class NewShapedTest(absltest.TestCase):
       )  # pytype: disable=wrong-arg-types
 
   def test_schema_arg_overwrite_schema_error_overwriting(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     x = fns.new_shaped(
         jagged_shape.create_shape(),
         a='xyz',
@@ -217,7 +217,7 @@ class NewShapedTest(absltest.TestCase):
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_embed_schema(self):
-    schema = fns.schema.new_schema(a=schema_constants.OBJECT)
+    schema = kde.schema.new_schema(a=schema_constants.OBJECT).eval()
     x = fns.new_shaped(
         jagged_shape.create_shape(),
         a=fns.new(p=42, q='xyz'),
@@ -235,7 +235,7 @@ class NewShapedTest(absltest.TestCase):
   def test_str_as_schema_arg(self):
     shape = jagged_shape.create_shape([2])
     x = fns.new_shaped(shape, schema='name', a=42)
-    expected_schema = fns.named_schema('name')
+    expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape)
     testing.assert_equal(
         x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
@@ -245,7 +245,7 @@ class NewShapedTest(absltest.TestCase):
   def test_str_slice_as_schema_arg(self):
     shape = jagged_shape.create_shape([2])
     x = fns.new_shaped(shape, schema=ds('name'), a=42)
-    expected_schema = fns.named_schema('name')
+    expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(x.get_shape(), shape)
     testing.assert_equal(
         x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
@@ -298,11 +298,11 @@ class NewShapedTest(absltest.TestCase):
       fns.new_shaped(
           jagged_shape.create_shape(),
           a=1,
-          schema=fns.list_schema(schema_constants.INT32),
+          schema=kde.list_schema(schema_constants.INT32).eval(),
       )
 
   def test_schema_error_message(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(

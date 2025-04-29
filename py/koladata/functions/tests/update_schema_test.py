@@ -30,7 +30,9 @@ class UpdateSchemaTest(absltest.TestCase):
     self.assertEqual(o.get_schema().x, schema_constants.INT32)
     self.assertEqual(o.get_schema().y, schema_constants.FLOAT32)
 
-    fns.update_schema(o, x=fns.schema.new_schema(z=schema_constants.INT32))
+    fns.update_schema(
+        o, x=kde.schema.new_schema(z=schema_constants.INT32).eval()
+    )
     self.assertEqual(o.get_schema().x.z, schema_constants.INT32)
 
     o = ds([fns.obj(fns.new()), fns.obj()]).fork_bag()

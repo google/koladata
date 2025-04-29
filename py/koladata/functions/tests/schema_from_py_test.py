@@ -18,7 +18,11 @@ from typing import Mapping, Optional, Sequence
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
+from koladata.operators import kde_operators
 from koladata.types import schema_constants
+
+
+kde = kde_operators.kde
 
 
 # This needs to be module-level so that type annotations can refer to it.
@@ -40,14 +44,15 @@ class SchemaFromPyTest(absltest.TestCase):
 
   def test_schema_from_py_collections(self):
     self.assertEqual(
-        fns.schema_from_py(list[int]), fns.list_schema(schema_constants.INT64)
+        fns.schema_from_py(list[int]),
+        kde.list_schema(schema_constants.INT64).eval()
     )
     self.assertEqual(
         fns.schema_from_py(list[int]).get_item_schema(), schema_constants.INT64
     )
     self.assertEqual(
         fns.schema_from_py(dict[int, str]),
-        fns.dict_schema(schema_constants.INT64, schema_constants.STRING),
+        kde.dict_schema(schema_constants.INT64, schema_constants.STRING).eval(),
     )
     self.assertEqual(
         fns.schema_from_py(dict[int, str]).get_key_schema(),
@@ -59,7 +64,7 @@ class SchemaFromPyTest(absltest.TestCase):
     )
     self.assertEqual(
         fns.schema_from_py(list[list[float]]),
-        fns.list_schema(fns.list_schema(schema_constants.FLOAT32)),
+        kde.list_schema(kde.list_schema(schema_constants.FLOAT32)).eval(),
     )
 
   def test_schema_from_py_enums(self):
@@ -99,17 +104,19 @@ class SchemaFromPyTest(absltest.TestCase):
 
     bar_schema = fns.schema_from_py(Bar)
     int_str_pair_schema = fns.schema_from_py(IntStrPair)
-    self.assertEqual(bar_schema.x, fns.list_schema(schema_constants.INT64))
+    self.assertEqual(
+        bar_schema.x, kde.list_schema(schema_constants.INT64).eval()
+    )
     self.assertEqual(
         bar_schema.y,
-        fns.dict_schema(schema_constants.STRING, schema_constants.INT64),
+        kde.dict_schema(schema_constants.STRING, schema_constants.INT64).eval(),
     )
-    self.assertEqual(bar_schema.z, fns.list_schema(int_str_pair_schema))
+    self.assertEqual(bar_schema.z, kde.list_schema(int_str_pair_schema).eval())
     self.assertEqual(bar_schema.t, schema_constants.STRING)
     self.assertEqual(bar_schema.s, schema_constants.STRING)
     self.assertEqual(
         bar_schema.u,
-        fns.dict_schema(schema_constants.STRING, int_str_pair_schema)
+        kde.dict_schema(schema_constants.STRING, int_str_pair_schema).eval()
     )
     self.assertCountEqual(fns.dir(bar_schema), ['s', 'u', 't', 'x', 'y', 'z'])
     self.assertEqual(int_str_pair_schema.x, schema_constants.INT64)

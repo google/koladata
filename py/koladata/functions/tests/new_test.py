@@ -106,9 +106,9 @@ class NewTest(absltest.TestCase):
       _ = x.non_existent
 
   def test_schema_arg_simple(self):
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING
-    )
+    ).eval()
     x = fns.new(a=42, b='xyz', schema=schema)
     self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
@@ -117,12 +117,12 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_deep(self):
-    nested_schema = fns.schema.new_schema(p=schema_constants.BYTES)
-    schema = fns.schema.new_schema(
+    nested_schema = kde.schema.new_schema(p=schema_constants.BYTES).eval()
+    schema = kde.schema.new_schema(
         a=schema_constants.INT32,
         b=schema_constants.STRING,
         nested=nested_schema,
-    )
+    ).eval()
     x = fns.new(
         a=42,
         b='xyz',
@@ -140,14 +140,14 @@ class NewTest(absltest.TestCase):
     )
 
   def test_schema_arg_list(self):
-    list_schema = fns.list_schema(item_schema=schema_constants.FLOAT32)
+    list_schema = kde.list_schema(item_schema=schema_constants.FLOAT32).eval()
     l = fns.new([1, 2, 3], schema=list_schema)
     testing.assert_equal(l[:], ds([1.0, 2.0, 3.0]).with_bag(l.get_bag()))
 
   def test_schema_arg_dict(self):
-    dict_schema = fns.dict_schema(
+    dict_schema = kde.dict_schema(
         key_schema=schema_constants.STRING, value_schema=schema_constants.INT64
-    )
+    ).eval()
     d = fns.new({'a': 37, 'b': 42}, schema=dict_schema)
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(
@@ -156,7 +156,7 @@ class NewTest(absltest.TestCase):
     )
 
   def test_schema_arg_dict_in_list(self):
-    list_schema = fns.list_schema(item_schema=schema_constants.OBJECT)
+    list_schema = kde.list_schema(item_schema=schema_constants.OBJECT).eval()
     d = fns.new([{'a': 32}, {'b': 64}], schema=list_schema)
     testing.assert_dicts_keys_equal(
         d[:], ds([['a'], ['b']], schema_constants.OBJECT)
@@ -167,10 +167,10 @@ class NewTest(absltest.TestCase):
 
   def test_schema_arg_dict_deep(self):
     with self.subTest('object value'):
-      dict_schema = fns.dict_schema(
+      dict_schema = kde.dict_schema(
           key_schema=schema_constants.INT64,
           value_schema=schema_constants.OBJECT,
-      )
+      ).eval()
       d = fns.new({42: {'a': 32}, 37: {'b': 57}}, schema=dict_schema)
       # Keys are casted.
       testing.assert_dicts_keys_equal(d, ds([42, 37], schema_constants.INT64))
@@ -184,10 +184,10 @@ class NewTest(absltest.TestCase):
       )
 
     with self.subTest('object key'):
-      dict_schema = fns.dict_schema(
+      dict_schema = kde.dict_schema(
           key_schema=schema_constants.OBJECT,
           value_schema=schema_constants.INT64,
-      )
+      ).eval()
       key1 = fns.obj(x=1)
       key2 = fns.obj(y=2)
 
@@ -198,7 +198,7 @@ class NewTest(absltest.TestCase):
       )
 
   def test_schema_arg_dict_schema_error(self):
-    list_schema = fns.list_schema(item_schema=schema_constants.FLOAT32)
+    list_schema = kde.list_schema(item_schema=schema_constants.FLOAT32).eval()
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
@@ -209,7 +209,7 @@ class NewTest(absltest.TestCase):
       fns.new({'a': [1, 2, 3], 'b': [4, 5]}, schema=list_schema)
 
   def test_schema_arg_schema_with_fallback(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     fallback_bag = fns.bag()
     schema.with_bag(fallback_bag).set_attr('b', schema_constants.STRING)
     schema = schema.enriched(fallback_bag)
@@ -221,7 +221,7 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().b.no_bag(), schema_constants.STRING)
 
   def test_schema_arg_implicit_casting(self):
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
     x = fns.new(a=42, schema=schema)
     self.assertEqual(fns.dir(x), ['a'])
     testing.assert_equal(
@@ -230,7 +230,7 @@ class NewTest(absltest.TestCase):
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.FLOAT32)
 
   def test_schema_arg_implicit_casting_failure(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
@@ -240,13 +240,13 @@ class NewTest(absltest.TestCase):
       fns.new(a='xyz', schema=schema)
 
   def test_schema_arg_supplement_succeeds(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     x = fns.new(a=42, b='xyz', schema=schema)
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
     testing.assert_equal(x.b, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_overwrite_schema(self):
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32).eval()
     x = fns.new(a=42, b='xyz', schema=schema, overwrite_schema=True)
     self.assertEqual(fns.dir(x), ['a', 'b'])
     testing.assert_equal(x.a, ds(42).with_bag(x.get_bag()))
@@ -259,12 +259,12 @@ class NewTest(absltest.TestCase):
       fns.new(a=42, schema=schema_constants.INT32, overwrite_schema=42)  # pytype: disable=wrong-arg-types
 
   def test_schema_arg_overwrite_schema_error_overwriting(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     x = fns.new(a='xyz', schema=schema, overwrite_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 
   def test_schema_arg_embed_schema(self):
-    schema = fns.schema.new_schema(a=schema_constants.OBJECT)
+    schema = kde.schema.new_schema(a=schema_constants.OBJECT).eval()
     x = fns.new(a=fns.new(p=42, q='xyz'), schema=schema)
     self.assertEqual(fns.dir(x), ['a'])
     testing.assert_equal(x.get_schema().a.no_bag(), schema_constants.OBJECT)
@@ -277,7 +277,7 @@ class NewTest(absltest.TestCase):
 
   def test_str_as_schema_arg(self):
     x = fns.new(schema='name', a=42)
-    expected_schema = fns.named_schema('name')
+    expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(
         x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
     )
@@ -285,7 +285,7 @@ class NewTest(absltest.TestCase):
 
   def test_str_slice_as_schema_arg(self):
     x = fns.new(schema=ds('name'), a=42)
-    expected_schema = fns.named_schema('name')
+    expected_schema = kde.named_schema('name').eval()
     testing.assert_equal(
         x.get_schema().with_bag(expected_schema.get_bag()), expected_schema
     )
@@ -328,13 +328,13 @@ class NewTest(absltest.TestCase):
     ):
       fns.new(
           a=1,
-          schema=fns.dict_schema(
+          schema=kde.dict_schema(
               schema_constants.STRING, schema_constants.INT32
-          ),
+          ).eval(),
       )
 
   def test_schema_error_message(self):
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32).eval()
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
@@ -443,9 +443,9 @@ assigned schema: MASK"""),
     testing.assert_equal(item.no_bag(), ds(None))
     item = fns.new(None, schema=schema_constants.FLOAT32)
     testing.assert_equal(item.no_bag(), ds(None, schema_constants.FLOAT32))
-    schema = fns.schema.new_schema(
-        a=schema_constants.STRING, b=fns.list_schema(schema_constants.INT32)
-    )
+    schema = kde.schema.new_schema(
+        a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)
+    ).eval()
     item = fns.new(None, schema=schema)
     testing.assert_equivalent(item.get_schema(), schema)
     testing.assert_equal(item.no_bag(), ds(None).with_schema(schema.no_bag()))
@@ -505,9 +505,9 @@ assigned schema: MASK"""),
     l = fns.new([{'a': 42}, {'b': 57}])
     testing.assert_equal(
         l.get_schema().no_bag(),
-        fns.list_schema(
-            fns.dict_schema(schema_constants.STRING, schema_constants.INT32)
-        ).no_bag(),
+        kde.list_schema(
+            kde.dict_schema(schema_constants.STRING, schema_constants.INT32)
+        ).eval().no_bag(),
     )
     dicts = l[:]
     testing.assert_dicts_keys_equal(dicts, ds([['a'], ['b']]))
@@ -520,7 +520,7 @@ assigned schema: MASK"""),
       fns.new([[1, 2], [3.14]])
     fns.new(
         [[1, 2], [3.14]],
-        schema=fns.list_schema(fns.list_schema(schema_constants.FLOAT32))
+        schema=kde.list_schema(kde.list_schema(schema_constants.FLOAT32)).eval()
     )
 
   def test_universal_converter_container_contains_multi_dim_data_slice(self):
@@ -538,12 +538,12 @@ assigned schema: MASK"""),
     testing.assert_equal(l[:].no_bag(), ds([1, 2, 3]))
 
   def test_universal_converter_deep_schema(self):
-    s = fns.list_schema(
-        fns.dict_schema(
+    s = kde.list_schema(
+        kde.dict_schema(
             schema_constants.STRING,
-            fns.list_schema(schema_constants.FLOAT32),
+            kde.list_schema(schema_constants.FLOAT32),
         )
-    )
+    ).eval()
     with self.assertRaisesRegex(
         ValueError,
         re.escape("""the schema is incompatible:
@@ -565,18 +565,18 @@ assigned schema: FLOAT32"""),
 
   def test_universal_converter_deep_schema_caching(self):
     t = tuple([1, 2, 3])
-    s = fns.dict_schema(
-        fns.list_schema(schema_constants.INT32),
-        fns.list_schema(schema_constants.FLOAT32),
-    )
+    s = kde.dict_schema(
+        kde.list_schema(schema_constants.INT32),
+        kde.list_schema(schema_constants.FLOAT32),
+    ).eval()
     d = fns.new({t: t}, schema=s)
     testing.assert_equal(d.get_keys()[:].no_bag(), ds([[1, 2, 3]]))
     testing.assert_equal(d[d.get_keys()][:].no_bag(), ds([[1.0, 2.0, 3.0]]))
 
   def test_universal_converter_deep_schema_with_nested_object_schema(self):
-    s = fns.list_schema(
-        fns.dict_schema(schema_constants.STRING, schema_constants.OBJECT),
-    )
+    s = kde.list_schema(
+        kde.dict_schema(schema_constants.STRING, schema_constants.OBJECT),
+    ).eval()
     with self.assertRaisesRegex(
         ValueError,
         re.escape('''the schema is incompatible:
@@ -616,7 +616,7 @@ assigned schema: STRING'''),
     testing.assert_equal(entity[2].a, ds(42).with_bag(entity.get_bag()))
 
   def test_universal_converter_adopt_bag_schema(self):
-    schema = fns.list_schema(schema_constants.FLOAT32)
+    schema = kde.list_schema(schema_constants.FLOAT32).eval()
     entity = fns.new([1, 2, 3], schema=schema)
     with self.assertRaises(AssertionError):
       testing.assert_equal(schema.get_bag(), entity.get_bag())

@@ -63,9 +63,9 @@ class DictLikeTest(parameterized.TestCase):
       (
           ds([5, 6]),
           dict(
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
-              )
+              ).eval()
           ),
       ),
       # itemid arg
@@ -130,7 +130,7 @@ class DictLikeTest(parameterized.TestCase):
 
   def test_adopt_schema(self):
     dict_schema = kde.schema.dict_schema(
-        schema_constants.STRING, fns.uu_schema(a=schema_constants.INT32)
+        schema_constants.STRING, kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     dct = kde.dicts.like(ds([None, 0]), schema=dict_schema).eval()
 
@@ -351,7 +351,7 @@ class DictLikeTest(parameterized.TestCase):
           kde.dicts.like(
               ds([[1, 2, 3], [4]]),
               key_schema=schema_constants.INT64,
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )
@@ -367,7 +367,7 @@ class DictLikeTest(parameterized.TestCase):
           kde.dicts.like(
               ds([[1, 2, 3], [4]]),
               value_schema=schema_constants.INT64,
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )
@@ -435,7 +435,7 @@ Assigned schema for keys: STRING""",
               ds([[1, 2, 3], [4]]),
               keys=ds(['a', 'b']),
               values=ds([3, 7]),
-              schema=fns.dict_schema(
+              schema=kde.dict_schema(
                   schema_constants.INT64, schema_constants.OBJECT
               ),
           )

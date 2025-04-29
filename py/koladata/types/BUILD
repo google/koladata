@@ -318,7 +318,6 @@ py_test(
         ":schema_constants",
         ":schema_item",
         "//py/koladata/expr:py_expr_eval_py_ext",
-        "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",

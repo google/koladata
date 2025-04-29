@@ -14,12 +14,13 @@
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
-from koladata.operators import kde_operators as _  # pylint: disable=unused-import
+from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
 ds = data_slice.DataSlice.from_vals
+kde = kde_operators.kde
 
 
 class UuTest(absltest.TestCase):
@@ -81,11 +82,11 @@ class UuTest(absltest.TestCase):
   def test_schema_arg(self):
     x = fns.uu(
         a=ds([3.14], schema_constants.FLOAT32),
-        schema=fns.uu_schema(a=schema_constants.FLOAT64),
+        schema=kde.uu_schema(a=schema_constants.FLOAT64).eval(),
     )
     testing.assert_equal(
         x.get_schema(),
-        fns.uu_schema(a=schema_constants.FLOAT64).with_bag(x.get_bag()),
+        kde.uu_schema(a=schema_constants.FLOAT64).eval().with_bag(x.get_bag()),
     )
     testing.assert_equal(
         x.a.get_schema(), schema_constants.FLOAT64.with_bag(x.get_bag())
@@ -99,7 +100,7 @@ class UuTest(absltest.TestCase):
   def test_overwrite_schema_arg(self):
     x = fns.uu(
         a=ds([3.14], schema_constants.FLOAT32),
-        schema=fns.uu_schema(a=schema_constants.FLOAT64),
+        schema=kde.uu_schema(a=schema_constants.FLOAT64).eval(),
         overwrite_schema=True,
     )
     testing.assert_equal(
@@ -110,7 +111,7 @@ class UuTest(absltest.TestCase):
     )
 
   def test_schema_arg_overwrite_schema_overwriting(self):
-    schema = fns.uu_schema(a=schema_constants.INT32)
+    schema = kde.uu_schema(a=schema_constants.INT32).eval()
     x = fns.uu(a='xyz', schema=schema, overwrite_schema=True)
     testing.assert_equal(x.a, ds('xyz').with_bag(x.get_bag()))
 

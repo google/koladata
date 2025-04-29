@@ -101,7 +101,7 @@ class EntitiesLikeTest(absltest.TestCase):
 
   def test_schema_arg(self):
     shape_and_mask_from = ds([])
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING
     )
     x = kde.entities.like(shape_and_mask_from, schema=schema).eval()
@@ -289,7 +289,7 @@ class EntitiesLikeTest(absltest.TestCase):
 
   def test_overwrite_schema_arg(self):
     shape_and_mask_from = ds([6, 7])
-    schema = fns.schema.new_schema(a=schema_constants.INT32)
+    schema = kde.schema.new_schema(a=schema_constants.INT32)
     x = kde.entities.like(
         shape_and_mask_from,
         a=42,

@@ -104,7 +104,7 @@ class EntitiesShapedAsTest(absltest.TestCase):
 
   def test_schema_arg(self):
     shape_from = ds([])
-    schema = fns.schema.new_schema(
+    schema = kde.schema.new_schema(
         a=schema_constants.INT32, b=schema_constants.STRING
     )
     x = kde.entities.shaped_as(shape_from, schema=schema).eval()
@@ -152,7 +152,7 @@ class EntitiesShapedAsTest(absltest.TestCase):
 
   def test_overwrite_schema_arg(self):
     shape_from = ds([6, 7])
-    schema = fns.schema.new_schema(a=schema_constants.FLOAT32)
+    schema = kde.schema.new_schema(a=schema_constants.FLOAT32)
     x = kde.entities.shaped_as(
         shape_from,
         a=42,

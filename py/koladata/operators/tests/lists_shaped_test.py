@@ -126,7 +126,7 @@ class ListShapedTest(parameterized.TestCase):
   def test_adopt_schema(self):
     shape = jagged_shape.create_shape([2])
     list_schema = kde.schema.list_schema(
-        fns.uu_schema(a=schema_constants.INT32)
+        kde.uu_schema(a=schema_constants.INT32)
     ).eval()
     lst = kde.lists.shaped(shape, schema=list_schema).eval()
 
@@ -150,7 +150,7 @@ class ListShapedTest(parameterized.TestCase):
       )
 
   def test_schema_arg_error(self):
-    list_schema = fns.list_schema(item_schema=schema_constants.INT64)
+    list_schema = kde.list_schema(item_schema=schema_constants.INT64)
     with self.assertRaisesRegex(
         ValueError, 'either a list schema or item schema, but not both'
     ):
