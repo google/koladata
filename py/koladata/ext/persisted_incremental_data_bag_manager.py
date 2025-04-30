@@ -24,6 +24,7 @@ import os
 from typing import AbstractSet, Collection, IO, Iterable
 
 from koladata import kd
+from koladata.ext import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
 
 
 class FileSystemInterface:
@@ -131,27 +132,22 @@ class PersistedIncrementalDataBagManager:
     if not self._fs.glob(os.path.join(self._persistence_dir, '*')):  # Empty dir
       self._bag: kd.types.DataBag = kd.bag()
       bag_filename = self._get_fresh_bag_filename()
-      write_bag_to_file(
-          self._bag, self._get_bag_filepath(bag_filename), fs=self._fs
+      self._write_bag_to_file(self._bag, bag_filename)
+      self._metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata(
+          version='1.0.0',
+          data_bag_metadata=[
+              metadata_pb2.DataBagMetadata(
+                  name=_INITIAL_BAG_NAME,
+                  filename=bag_filename,
+              )
+          ],
       )
-      self._bag_name_to_filename: dict[str, str] = {
-          _INITIAL_BAG_NAME: bag_filename
-      }
-      self._persist_bag_name_to_filepath()
-      self._bag_dependencies: dict[str, list[str]] = {_INITIAL_BAG_NAME: []}
-      self._persist_bag_dependencies()
-      self._loaded_bag_names: set[str] = {_INITIAL_BAG_NAME}
-      self._metadata = dict(version='1.0.0')
       self._persist_metadata()
+      self._loaded_bag_names: set[str] = {_INITIAL_BAG_NAME}
     else:
-      self._bag_name_to_filename = self._read_bag_name_to_filename()
-      self._bag_dependencies = self._read_bag_dependencies()
-      bag_filename = self._bag_name_to_filename[_INITIAL_BAG_NAME]
-      self._bag = read_bag_from_file(
-          self._get_bag_filepath(bag_filename), fs=self._fs
-      )
-      self._loaded_bag_names = {_INITIAL_BAG_NAME}
       self._metadata = self._read_metadata()
+      self._bag = self._read_bag_from_file(_INITIAL_BAG_NAME)
+      self._loaded_bag_names = {_INITIAL_BAG_NAME}
 
   def get_available_bag_names(self) -> AbstractSet[str]:
     """Returns the names of all bags that are managed by this manager.
@@ -160,7 +156,7 @@ class PersistedIncrementalDataBagManager:
     to this manager instance, and all bags that were already persisted in the
     persistence directory before this manager instance was created.
     """
-    return frozenset(self._bag_name_to_filename.keys())
+    return frozenset([m.name for m in self._metadata.data_bag_metadata])
 
   def get_loaded_bag_names(self) -> AbstractSet[str]:
     """Returns the names of all bags that are currently loaded in this manager.
@@ -199,7 +195,7 @@ class PersistedIncrementalDataBagManager:
       bag called bag_name, its transitive dependencies, and if requested, the
       transitive dependents of bag_name and their transitive dependencies.
     """
-    if bag_name not in self._bag_name_to_filename:
+    if bag_name not in self.get_available_bag_names():
       raise ValueError(
           f"There is no bag with name '{bag_name}'. Valid bag names:"
           f' {sorted(self.get_available_bag_names())}'
@@ -215,7 +211,7 @@ class PersistedIncrementalDataBagManager:
 
     self._load_bags(
         self._get_reflexive_and_transitive_closure_image(
-            self._bag_dependencies, bags_to_consider
+            self._get_dependencies(), bags_to_consider
         )
         - self._loaded_bag_names
     )
@@ -241,7 +237,8 @@ class PersistedIncrementalDataBagManager:
         function returns, the bag and all its transitive dependencies will be
         loaded and will hence be present in get_loaded_bag_names().
     """
-    if bag_name in self._bag_dependencies:
+    available_bag_names = self.get_available_bag_names()
+    if bag_name in available_bag_names:
       raise ValueError(f"A bag with name '{bag_name}' was already added.")
     if not dependencies:
       raise ValueError(
@@ -249,7 +246,7 @@ class PersistedIncrementalDataBagManager:
           'depend only on the initial empty bag.'
       )
     for d in dependencies:
-      if d not in self._bag_dependencies:
+      if d not in available_bag_names:
         raise ValueError(
             f"A dependency on a bag with name '{d}' is invalid, because such a"
             ' bag was not added before.'
@@ -257,17 +254,21 @@ class PersistedIncrementalDataBagManager:
 
     self._load_bags(
         self._get_reflexive_and_transitive_closure_image(
-            self._bag_dependencies, set(dependencies)
+            self._get_dependencies(), set(dependencies)
         )
         - self._loaded_bag_names
     )
 
     bag_filename = self._get_fresh_bag_filename()
-    write_bag_to_file(bag, self._get_bag_filepath(bag_filename), fs=self._fs)
-    self._bag_name_to_filename[bag_name] = bag_filename
-    self._persist_bag_name_to_filepath()
-    self._bag_dependencies[bag_name] = list(dependencies)
-    self._persist_bag_dependencies()
+    self._write_bag_to_file(bag, bag_filename)
+    self._metadata.data_bag_metadata.append(
+        metadata_pb2.DataBagMetadata(
+            name=bag_name,
+            filename=bag_filename,
+            dependencies=dependencies,
+        )
+    )
+    self._persist_metadata()
     self._bag = kd.bags.updated(self._bag, bag)
     self._loaded_bag_names.add(bag_name)
 
@@ -296,6 +297,9 @@ class PersistedIncrementalDataBagManager:
     """
     if not bag_names:
       raise ValueError('bag_names must not be empty.')
+
+    bag_dependencies = self._get_dependencies()
+
     bags_to_extract = set(bag_names)
     unknown_bags = bags_to_extract - self.get_available_bag_names()
     if unknown_bags:
@@ -310,7 +314,7 @@ class PersistedIncrementalDataBagManager:
           )
       )
     bags_to_extract = self._get_reflexive_and_transitive_closure_image(
-        self._bag_dependencies, bags_to_extract
+        bag_dependencies, bags_to_extract
     )
 
     if not fs.exists(output_dir):
@@ -326,17 +330,17 @@ class PersistedIncrementalDataBagManager:
         continue
       new_manager.add_bag(
           bag_name,
-          read_bag_from_file(
-              self._get_bag_filepath(self._bag_name_to_filename[bag_name]),
-              fs=self._fs,
-          ),
-          self._bag_dependencies[bag_name],
+          self._read_bag_from_file(bag_name),
+          bag_dependencies[bag_name],
       )
+
+  def _get_dependencies(self) -> dict[str, Collection[str]]:
+    return {m.name: m.dependencies for m in self._metadata.data_bag_metadata}
 
   def _get_reverse_dependencies(self) -> dict[str, set[str]]:
     """Returns a dictionary of the reverse dependency graph."""
     result = collections.defaultdict(set)
-    for bag_name, dependencies in self._bag_dependencies.items():
+    for bag_name, dependencies in self._get_dependencies().items():
       for dependency in dependencies:
         result[dependency].add(bag_name)
     return result
@@ -376,10 +380,7 @@ class PersistedIncrementalDataBagManager:
     ):
       self._bag = kd.bags.updated(
           self._bag,
-          read_bag_from_file(
-              self._get_bag_filepath(self._bag_name_to_filename[bag_name]),
-              fs=self._fs,
-          ),
+          self._read_bag_from_file(bag_name),
       )
       self._loaded_bag_names.add(bag_name)
 
@@ -415,10 +416,11 @@ class PersistedIncrementalDataBagManager:
     result = []
     already_sorted_bags = set(already_considered_bags)
     bag_names = set(bag_names)  # Avoids mutation of the input
+    bag_dependencies = self._get_dependencies()
     while bag_names:
       for bag_name in bag_names:
         if not all(
-            d in already_sorted_bags for d in self._bag_dependencies[bag_name]
+            d in already_sorted_bags for d in bag_dependencies[bag_name]
         ):
           # All the dependencies of this bag are not in already_sorted_bags yet.
           # Consider it later.
@@ -474,67 +476,39 @@ class PersistedIncrementalDataBagManager:
     new_bag_number = max_bag_number + 1
     return f'bag-{new_bag_number:012d}.kd'
 
+  def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str):
+    write_bag_to_file(
+        bag, self._get_bag_filepath_from_filename(bag_filename), fs=self._fs
+    )
+
+  def _read_bag_from_file(self, bag_name: str) -> kd.types.DataBag:
+    return read_bag_from_file(self._get_bag_filepath(bag_name), fs=self._fs)
+
   def _get_bag_filepath(self, bag_name: str) -> str:
-    return os.path.join(self._persistence_dir, bag_name)
-
-  def _persist_bag_dependencies(self):
-    item = kd.from_py(
-        self._bag_dependencies,
-        schema=kd.dict_schema(kd.STRING, kd.list_schema(kd.STRING)),
+    bag_filename = next(
+        m.filename
+        for m in self._metadata.data_bag_metadata
+        if m.name == bag_name
     )
-    write_slice_to_file(
-        item,
-        filepath=self._get_bag_dependencies_filepath(),
-        overwrite=True,
-        fs=self._fs,
-    )
+    return self._get_bag_filepath_from_filename(bag_filename)
 
-  def _read_bag_dependencies(self) -> dict[str, list[str]]:
-    item = read_slice_from_file(
-        self._get_bag_dependencies_filepath(), fs=self._fs
-    )
-    return item.to_py(max_depth=-1)
-
-  def _get_bag_dependencies_filepath(self) -> str:
-    return os.path.join(self._persistence_dir, 'bag_dependencies.kd')
-
-  def _persist_bag_name_to_filepath(self):
-    item = kd.dict(
-        self._bag_name_to_filename,
-        key_schema=kd.STRING,
-        value_schema=kd.STRING,
-    )
-    write_slice_to_file(
-        item,
-        filepath=self._get_bag_name_to_filepath_filepath(),
-        overwrite=True,
-        fs=self._fs,
-    )
-
-  def _read_bag_name_to_filename(self) -> dict[str, str]:
-    item = read_slice_from_file(
-        self._get_bag_name_to_filepath_filepath(), fs=self._fs
-    )
-    return item.to_py(max_depth=-1)
-
-  def _get_bag_name_to_filepath_filepath(self) -> str:
-    return os.path.join(self._persistence_dir, 'bag_name_to_filepath.kd')
+  def _get_bag_filepath_from_filename(self, bag_filename: str) -> str:
+    return os.path.join(self._persistence_dir, bag_filename)
 
   def _persist_metadata(self):
-    item = kd.dict(self._metadata)
-    write_slice_to_file(
-        item,
-        filepath=self._get_metadata_filepath(),
-        overwrite=True,
-        fs=self._fs,
-    )
+    with self._fs.open(self._get_metadata_filepath(), 'wb') as f:
+      f.write(self._metadata.SerializeToString())
 
-  def _read_metadata(self) -> dict[str, str]:
-    item = read_slice_from_file(self._get_metadata_filepath(), fs=self._fs)
-    return item.to_py(max_depth=-1)
+  def _read_metadata(
+      self,
+  ) -> metadata_pb2.PersistedIncrementalDataBagManagerMetadata:
+    with self._fs.open(self._get_metadata_filepath(), 'rb') as f:
+      return metadata_pb2.PersistedIncrementalDataBagManagerMetadata.FromString(
+          f.read()
+      )
 
   def _get_metadata_filepath(self) -> str:
-    return os.path.join(self._persistence_dir, 'metadata.kd')
+    return os.path.join(self._persistence_dir, 'metadata.pb')
 
 
 def write_slice_to_file(
