@@ -242,6 +242,61 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         {'', 'bag0', 'bag1', 'bag3', 'bag4', 'bag5', 'bag6'},
     )
 
+    # We can also extract the bags from the manager, as the following subtests
+    # show.
+
+    with self.subTest('ExtractBags'):
+      new_persistence_dir = self.create_tempdir().full_path
+      manager.extract_bags(
+          new_persistence_dir,
+          bag_names={'bag5'},
+      )
+      extracted_manager = pidbm.PersistedIncrementalDataBagManager(
+          new_persistence_dir
+      )
+      self.assertEqual(
+          extracted_manager.get_available_bag_names(),
+          {'', 'bag0', 'bag1', 'bag3', 'bag5'},
+      )
+      self.assertEqual(
+          extracted_manager.get_loaded_bag_names(),
+          {''},
+      )
+      self.assert_equivalent_bags(
+          extracted_manager.get_bag('bag3'), kd.bags.updated(bag0, bag1, bag3)
+      )
+      self.assertEqual(
+          extracted_manager.get_loaded_bag_names(),
+          {'', 'bag0', 'bag1', 'bag3'},
+      )
+
+    with self.subTest('ExtractBagsWithAllDependents'):
+      new_persistence_dir = self.create_tempdir().full_path
+      manager.extract_bags(
+          new_persistence_dir,
+          bag_names={'bag5'},
+          with_all_dependents=True,
+      )
+      extracted_manager = pidbm.PersistedIncrementalDataBagManager(
+          new_persistence_dir
+      )
+      self.assertEqual(
+          extracted_manager.get_available_bag_names(),
+          {'', 'bag0', 'bag1', 'bag3', 'bag4', 'bag5', 'bag6'},
+      )
+      self.assertEqual(
+          extracted_manager.get_loaded_bag_names(),
+          {''},
+      )
+      self.assert_equivalent_bags(
+          extracted_manager.get_bag('bag5'),
+          kd.bags.updated(bag0, bag1, bag3, bag5),
+      )
+      self.assertEqual(
+          extracted_manager.get_loaded_bag_names(),
+          {'', 'bag0', 'bag1', 'bag3', 'bag5'},
+      )
+
   def test_non_existing_persistence_dir_with_initial_bag(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'fresh_dir')
     manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
@@ -310,6 +365,44 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         ' was not added before.',
     ):
       manager.add_bag('bag1', kd.bag(), dependencies=['bag1'])
+
+  def test_extract_bags_with_empty_bag_names(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+
+    output_dir = self.create_tempdir().full_path
+    with self.assertRaisesRegex(
+        ValueError,
+        'bag_names must not be empty.',
+    ):
+      manager.extract_bags(output_dir, bag_names=[])
+
+  def test_extract_bags_with_unknown_bag_names(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+
+    output_dir = self.create_tempdir().full_path
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'bag_names must be a subset of get_available_bag_names(). The'
+            " following bags are not available: ['bar', 'foo']"
+        ),
+    ):
+      manager.extract_bags(output_dir, bag_names=['foo', 'bar'])
+
+  def test_extract_bags_with_non_empty_output_dir(self):
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+
+    tempdir = self.create_tempdir()
+    tempdir.create_file()  # Non-empty.
+    output_dir = tempdir.full_path
+    with self.assertRaisesRegex(
+        ValueError,
+        'The output_dir must be empty or not exist yet.',
+    ):
+      manager.extract_bags(output_dir, bag_names=[''])
 
 
 class DataSliceAndBagPersistenceTest(absltest.TestCase):
