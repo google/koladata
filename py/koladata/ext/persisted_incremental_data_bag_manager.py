@@ -21,7 +21,7 @@ PersistedIncrementalDataBagManager.
 import collections
 import glob
 import os
-from typing import Collection, IO, Iterable
+from typing import AbstractSet, Collection, IO, Iterable
 
 from koladata import kd
 
@@ -153,7 +153,7 @@ class PersistedIncrementalDataBagManager:
       self._loaded_bag_names = {_INITIAL_BAG_NAME}
       self._metadata = self._read_metadata()
 
-  def get_available_bag_names(self) -> frozenset[str]:
+  def get_available_bag_names(self) -> AbstractSet[str]:
     """Returns the names of all bags that are managed by this manager.
 
     They include the initial empty bag (named ''), all bags that have been added
@@ -162,7 +162,7 @@ class PersistedIncrementalDataBagManager:
     """
     return frozenset(self._bag_name_to_filename.keys())
 
-  def get_loaded_bag_names(self) -> frozenset[str]:
+  def get_loaded_bag_names(self) -> AbstractSet[str]:
     """Returns the names of all bags that are currently loaded in this manager.
 
     The initial empty bag (with name '') is always loaded, and the bags that
@@ -271,6 +271,68 @@ class PersistedIncrementalDataBagManager:
     self._bag = kd.bags.updated(self._bag, bag)
     self._loaded_bag_names.add(bag_name)
 
+  def extract_bags(
+      self,
+      output_dir: str,
+      bag_names: Collection[str],
+      with_all_dependents: bool = False,
+      *,
+      fs: FileSystemInterface = FileSystemInteraction(),
+  ):
+    """Extracts the requested bags to the given output directory.
+
+    Args:
+      output_dir: The directory to which the bags will be extracted. It must
+        either be empty or not exist yet.
+      bag_names: The names of the bags that will be extracted. They must be a
+        non-empty subset of get_available_bag_names(). The extraction will also
+        include their transitive dependencies.
+      with_all_dependents: If True, then the extracted bags will also include
+        all dependents of bag_names. The dependents are computed transitively.
+        All transitive dependencies of the dependents will also be included in
+        the extraction.
+      fs: All interactions with the file system for output_dir will happen via
+        this instance.
+    """
+    if not bag_names:
+      raise ValueError('bag_names must not be empty.')
+    bags_to_extract = set(bag_names)
+    unknown_bags = bags_to_extract - self.get_available_bag_names()
+    if unknown_bags:
+      raise ValueError(
+          'bag_names must be a subset of get_available_bag_names(). The'
+          f' following bags are not available: {sorted(unknown_bags)}'
+      )
+    if with_all_dependents:
+      bags_to_extract.update(
+          self._get_reflexive_and_transitive_closure_image(
+              self._get_reverse_dependencies(), bags_to_extract
+          )
+      )
+    bags_to_extract = self._get_reflexive_and_transitive_closure_image(
+        self._bag_dependencies, bags_to_extract
+    )
+
+    if not fs.exists(output_dir):
+      fs.make_dirs(output_dir)
+    if fs.glob(os.path.join(output_dir, '*')):
+      raise ValueError(
+          f'The output_dir must be empty or not exist yet. Got {output_dir}'
+      )
+    new_manager = PersistedIncrementalDataBagManager(output_dir, fs=fs)
+    for bag_name in self._topological_sort(bags_to_extract):
+      if not bag_name:
+        # Skip the initial empty bag. The new_manager already has one.
+        continue
+      new_manager.add_bag(
+          bag_name,
+          read_bag_from_file(
+              self._get_bag_filepath(self._bag_name_to_filename[bag_name]),
+              fs=self._fs,
+          ),
+          self._bag_dependencies[bag_name],
+      )
+
   def _get_reverse_dependencies(self) -> dict[str, set[str]]:
     """Returns a dictionary of the reverse dependency graph."""
     result = collections.defaultdict(set)
@@ -307,31 +369,65 @@ class PersistedIncrementalDataBagManager:
         get_loaded_bag_names(). They must be closed with respect to the
         dependency graph, i.e. it must be the case that `{d for bn in
         bags_to_load for d in self._bag_dependencies[bn]}` is included in
-        bags_to_load | self.get_loaded_bag_names(). The provided bags_to_load
-        set will be modified in place, so callers should not make assumptions
-        about its state after calling this private helper function.
+        bags_to_load | self.get_loaded_bag_names().
     """
-    # If this is too slow, we can consider reading the bags in parallel from the
-    # filesystem.
-    while bags_to_load:
-      for bag_name in bags_to_load:
+    for bag_name in self._topological_sort(
+        bags_to_load, self._loaded_bag_names
+    ):
+      self._bag = kd.bags.updated(
+          self._bag,
+          read_bag_from_file(
+              self._get_bag_filepath(self._bag_name_to_filename[bag_name]),
+              fs=self._fs,
+          ),
+      )
+      self._loaded_bag_names.add(bag_name)
+
+  def _topological_sort(
+      self,
+      bag_names: set[str],
+      already_considered_bags: AbstractSet[str] = frozenset(),
+  ) -> list[str]:
+    """Returns a topological sorting of the bags in bag_names wrt dependencies.
+
+    The bags mentioned in already_considered_bags are considered to have already
+    been sorted before them. The result of this function will only contain the
+    elements of bag_names. It gives an ordering of bag_names such that they can
+    be appended one by one to already_considered_bags without violating the
+    dependency relation.
+
+    Args:
+      bag_names: The names of the bags to sort. They must be a subset of
+        get_available_bag_names() and disjoint from already_considered_bags. It
+        must be closed with respect to the dependency graph, i.e. it must be the
+        case that `{d for bn in bag_names for d in self._bag_dependencies[bn]}`
+        is included in (bag_names | already_considered_bags).
+      already_considered_bags: The names of the bags that have already been
+        considered for topological sorting. It must be closed wrt the dependency
+        relation. A bag in bag_names can be the first element in the result when
+        all its dependencies are included in already_considered_bags.
+        already_considered_bags will not be modified by this function.
+
+    Returns:
+      A topological sorting of the bags in bag_names wrt dependencies and the
+      already_considered_bags.
+    """
+    result = []
+    already_sorted_bags = set(already_considered_bags)
+    bag_names = set(bag_names)  # Avoids mutation of the input
+    while bag_names:
+      for bag_name in bag_names:
         if not all(
-            d in self._loaded_bag_names
-            for d in self._bag_dependencies[bag_name]
+            d in already_sorted_bags for d in self._bag_dependencies[bag_name]
         ):
-          # All the dependencies of this bag are not loaded yet. Consider it
-          # later.
+          # All the dependencies of this bag are not in already_sorted_bags yet.
+          # Consider it later.
           continue
-        self._bag = kd.bags.updated(
-            self._bag,
-            read_bag_from_file(
-                self._get_bag_filepath(self._bag_name_to_filename[bag_name]),
-                fs=self._fs,
-            ),
-        )
-        self._loaded_bag_names.add(bag_name)
-        bags_to_load.remove(bag_name)
-        break  # Because we updated bags_to_load.
+        result.append(bag_name)
+        already_sorted_bags.add(bag_name)
+        bag_names.remove(bag_name)
+        break  # Because we updated bag_names.
+    return result
 
   def _get_fresh_bag_filename(self) -> str:
     """Returns a filename that has not been used before for a bag."""
