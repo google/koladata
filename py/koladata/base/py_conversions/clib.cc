@@ -16,6 +16,8 @@
 // free-functions.
 #include <Python.h>
 
+#include <optional>
+
 #include "koladata/data_slice_qtype.h"
 #include "py/arolla/abc/pybind11_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
