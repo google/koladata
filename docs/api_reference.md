@@ -1221,7 +1221,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x73b53a82bf20>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x710ffa6b07d0>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1303,7 +1303,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x73b53a82bf20>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x710ffa6b07d0>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -9967,7 +9967,7 @@ Visualizes a DataSlice as a html widget.
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x73b538242db0>)` {#kd_ext.PersistedIncrementalDataBagManager}
+### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x710ff805bf50>)` {#kd_ext.PersistedIncrementalDataBagManager}
 
 ``` {.no-copy}
 Manager of a DataBag that is assembled from multiple smaller bags.
