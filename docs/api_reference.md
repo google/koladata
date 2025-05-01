@@ -1221,7 +1221,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x710ffa6b07d0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x501fba6b0680>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1303,7 +1303,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x710ffa6b07d0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x501fba6b0680>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -5129,16 +5129,7 @@ Aliases:
 - [kd.dict_schema](#kd.dict_schema)
 
 ``` {.no-copy}
-Creates a dict schema in the given DataBag.
-
-  Returned schema is immutable.
-
-  Args:
-    key_schema: schema of the keys in the list.
-    value_schema: schema of the values in the list.
-
-  Returns:
-    data_slice.DataSlice representing a dict schema.
+Returns a Dict schema with the provided `key_schema` and `value_schema`.
 ```
 
 ### `kd.schema.get_dtype(ds)` {#kd.schema.get_dtype}
@@ -5334,54 +5325,43 @@ Aliases:
 - [kd.list_schema](#kd.list_schema)
 
 ``` {.no-copy}
-Creates a list schema in the given DataBag.
-
-  Returned schema is immutable.
-
-  Args:
-    item_schema: schema of the items in the list.
-
-  Returns:
-    data_slice.DataSlice representing a list schema.
+Returns a List schema with the provided `item_schema`.
 ```
 
-### `kd.schema.named_schema(name, **attrs)` {#kd.schema.named_schema}
+### `kd.schema.named_schema(name, **kwargs)` {#kd.schema.named_schema}
 Aliases:
 
 - [kd.named_schema](#kd.named_schema)
 
 ``` {.no-copy}
-Creates a named entity schema in the given DataBag.
+Creates a named entity schema.
 
-  Returned schema is immutable.
+A named schema will have its item id derived only from its name, which means
+that two named schemas with the same name will have the same item id, even in
+different DataBags, or with different kwargs passed to this method.
 
-  A named schema will have its item id derived only from its name, which means
-  that two named schemas with the same name will have the same item id, even in
-  different DataBags, or with different kwargs passed to this method.
+Args:
+  name: The name to use to derive the item id of the schema.
+  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    values must be schemas themselves.
 
-  Args:
-    name: The name to use to derive the item id of the schema.
-    **attrs: A mapping of attribute names to DataSlices. The DataSlice values
-      must be schemas themselves.
-
-  Returns:
-    data_slice.DataSlice with the item id of the required schema and kd.SCHEMA
-    schema, with the DataBag attached containing the provided
-    attrs.
+Returns:
+  data_slice.DataSlice with the item id of the required schema and kd.SCHEMA
+  schema, with a new immutable DataBag attached containing the provided
+  kwargs.
 ```
 
-### `kd.schema.new_schema(**attrs)` {#kd.schema.new_schema}
+### `kd.schema.new_schema(**kwargs)` {#kd.schema.new_schema}
 
 ``` {.no-copy}
-Creates new schema in the given DataBag.
+Creates a new allocated schema.
 
-  Returned schema is immutable.
+Args:
+  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    values must be schemas themselves.
 
-  Args:
-    **attrs: attrs to set on the schema. Must be schemas.
-
-  Returns:
-    data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
+Returns:
+  (DataSlice) containing the schema id.
 ```
 
 ### `kd.schema.nofollow_schema(schema)` {#kd.schema.nofollow_schema}
@@ -5521,22 +5501,32 @@ Casts `x` to SCHEMA using explicit (permissive) casting rules.
 Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
-### `kd.schema.uu_schema(seed='', **attrs)` {#kd.schema.uu_schema}
+### `kd.schema.uu_schema(seed=DataItem('', schema: STRING), **kwargs)` {#kd.schema.uu_schema}
 Aliases:
 
 - [kd.uu_schema](#kd.uu_schema)
 
 ``` {.no-copy}
-Creates a uu_schema in the given DataBag.
+Creates a UUSchema, i.e. a schema keyed by a uuid.
 
-  Returned schema is immutable.
+In order to create a different id from the same arguments, use
+`seed` argument with the desired value, e.g.
 
-  Args:
-    seed: optional string to seed the uuid computation with.
-    **attrs: attrs to set on the schema. Must be schemas.
+kd.uu_schema(seed='type_1', x=kd.INT32, y=kd.FLOAT32)
 
-  Returns:
-    data_slice.DataSlice with the given attrs and kd.SCHEMA schema.
+and
+
+kd.uu_schema(seed='type_2', x=kd.INT32, y=kd.FLOAT32)
+
+have different ids.
+
+Args:
+  seed: string seed for the uuid computation.
+  **kwargs: a named tuple mapping attribute names to DataSlices. The DataSlice
+    values must be schemas themselves.
+
+Returns:
+  (DataSlice) containing the schema uuid.
 ```
 
 ### `kd.schema.with_schema(x, schema)` {#kd.schema.with_schema}
@@ -9024,7 +9014,7 @@ Container that automatically names Exprs.
     fn(x=5)  # Returns 6
 ```
 
-### `kd.named_schema(name, **attrs)` {#kd.named_schema}
+### `kd.named_schema(name, **kwargs)` {#kd.named_schema}
 
 Alias for [kd.schema.named_schema](#kd.schema.named_schema) operator.
 
@@ -9522,7 +9512,7 @@ Alias for [kd.bags.updated](#kd.bags.updated) operator.
 
 Alias for [kd.entities.uu](#kd.entities.uu) operator.
 
-### `kd.uu_schema(seed='', **attrs)` {#kd.uu_schema}
+### `kd.uu_schema(seed=DataItem('', schema: STRING), **kwargs)` {#kd.uu_schema}
 
 Alias for [kd.schema.uu_schema](#kd.schema.uu_schema) operator.
 
@@ -9633,6 +9623,25 @@ Adds a bag to the manager, which will persist it.
         must already be present in get_available_bag_names(). After this
         function returns, the bag and all its transitive dependencies will be
         loaded and will hence be present in get_loaded_bag_names().
+```
+
+### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, output_dir, bag_names, with_all_dependents=False, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x501fb8b6f9e0>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
+
+``` {.no-copy}
+Extracts the requested bags to the given output directory.
+
+    Args:
+      output_dir: The directory to which the bags will be extracted. It must
+        either be empty or not exist yet.
+      bag_names: The names of the bags that will be extracted. They must be a
+        non-empty subset of get_available_bag_names(). The extraction will also
+        include their transitive dependencies.
+      with_all_dependents: If True, then the extracted bags will also include
+        all dependents of bag_names. The dependents are computed transitively.
+        All transitive dependencies of the dependents will also be included in
+        the extraction.
+      fs: All interactions with the file system for output_dir will happen via
+        this instance.
 ```
 
 ### `kd_ext.PersistedIncrementalDataBagManager.get_available_bag_names(self)` {#kd_ext.PersistedIncrementalDataBagManager.get_available_bag_names}
@@ -9967,7 +9976,7 @@ Visualizes a DataSlice as a html widget.
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x710ff805bf50>)` {#kd_ext.PersistedIncrementalDataBagManager}
+### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x501fb8087320>)` {#kd_ext.PersistedIncrementalDataBagManager}
 
 ``` {.no-copy}
 Manager of a DataBag that is assembled from multiple smaller bags.
