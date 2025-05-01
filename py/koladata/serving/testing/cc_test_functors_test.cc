@@ -21,11 +21,13 @@
 #include "absl/status/status_matchers.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/call.h"
+#include "koladata/functor/cpp_function_bridge.h"
 #include "koladata/serving/slice_registry.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/qtype/testing/qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/util/text.h"
 
 namespace koladata_serving_test {
 namespace {
@@ -50,6 +52,23 @@ TEST(TestFunctorsTest, PlusOne) {
                   plus_one, {arolla::TypedRef::FromValue(input)}, {}),
               IsOkAndHolds(TypedValueWith<koladata::DataSlice>(
                   IsEquivalentTo(DataSlice<int64_t>({2, 3, 4})))));
+}
+
+TEST(TestFunctorsTest, AskAboutServing) {
+  ASSERT_OK_AND_ASSIGN(auto ask_about_serving,
+                       TestFunctors_ask_about_serving());
+  ASSERT_OK_AND_ASSIGN(
+      koladata::DataSlice external_fn,
+      koladata::functor::CreateFunctorFromFunction(
+          [](const koladata::DataSlice& input) { return input; },
+          "call_external_fn", "input"));
+
+  EXPECT_THAT(
+      koladata::functor::CallFunctorWithCompilationCache(
+          ask_about_serving, {arolla::TypedRef::FromValue(external_fn)}, {}),
+      IsOkAndHolds(TypedValueWith<koladata::DataSlice>(
+          IsEquivalentTo(koladata::test::DataItem(
+              arolla::Text("How to serve Koda functors?"))))));
 }
 
 TEST(TestFunctorsTest, GlobalRegistry) {
