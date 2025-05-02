@@ -429,8 +429,9 @@ Here are some additional helpers to perform narrowing:
 ### Boxing
 
 Conversion from Python values to corresponding Koda values, which we refer to as
-*boxing*, makes use of the type promotion rules seen above. Boxing through
-`kd.slice` can be split into two parts:
+*boxing*, by default makes use of the type promotion rules seen above. In case a
+`schema` is supplied, the result is instead produced using explicit casting
+rules. Boxing through `kd.slice` can be split into two parts:
 
 1.  A local decision for each "scalar" value of the input.
 1.  A global decision for the entire resulting DataSlice.
