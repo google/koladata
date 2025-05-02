@@ -906,6 +906,34 @@ kd.full_equal(kd.item(1), kd.slice([1, 1.0])) # present
 
 <section>
 
+### Mask Operators
+
+```py
+# Masking
+a = kd.slice([kd.present, kd.missing, kd.present])
+b = kd.slice([kd.present, kd.missing, kd.missing])
+
+a & b  # [present, missing, missing]
+# which is equivalent to
+kd.mask_and(a, b)  # [present, missing, missing]
+
+a | b  # [present, missing, present]
+# which is equivalent to
+kd.mask_or(a, b)  # [present, missing, present]
+
+a == b  # [present, missing, missing]
+# which is different from
+kd.mask_equal(a, b)  # [present, present, missing]
+
+a != b  # [missing, missing, missing]
+# which is different from
+kd.mask_not_equal(a, b)  # [missing, missing, present]
+```
+
+</section>
+
+<section>
+
 ### Presence Checking Operators
 
 ```py
@@ -2273,6 +2301,24 @@ qi = kd.from_proto(
 kd.to_proto(i1, test_pb2.Doc) # d1
 kd.to_proto(is1, test_pb2.Doc) # [d1, None, d2]
 kd.to_proto(q, test_pb2.Query) # q
+
+# Get Koda schemas from proto
+s1 = kd.schema_from_proto(test_pb2.Query)
+
+# Include extensions
+s2 = kd.schema_from_proto(
+  test_pb2.Query
+  extensions=[
+    '(koladata.testing.QueryExtension.message_a_extension)',
+    'ms_extensions.(koladata.testing.QueryExtension.ms_extension)',
+  ],
+)
+
+# Schemas are uu schemas whose ItemIds are
+# derived from proto full name
+s3 = kd.schema_from_proto(test_pb2.Query)
+assert s3.get_itemid() == s1.get_itemid()
+assert s3.get_itemid() == s2.get_itemid()
 ```
 
 </section>

@@ -248,7 +248,7 @@ def mask_and(x, y):
   return _with_schema(x & y, schema_constants.MASK)
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kd.mask_or'])
 @optools.as_lambda_operator(
     'kd.masking.mask_or',
     qtype_constraints=[
