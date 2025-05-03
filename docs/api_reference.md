@@ -1221,7 +1221,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x31067b4d52b0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x50fbbb76f7d0>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1303,7 +1303,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x31067b4d52b0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x50fbbb76f7d0>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -9625,7 +9625,7 @@ Adds a bag to the manager, which will persist it.
         loaded and will hence be present in get_loaded_bag_names().
 ```
 
-### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, output_dir, bag_names, with_all_dependents=False, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x310678365340>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
+### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, output_dir, bag_names, with_all_dependents=False, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x50fbb9aba630>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
 
 ``` {.no-copy}
 Extracts the requested bags to the given output directory.
@@ -9976,7 +9976,7 @@ Visualizes a DataSlice as a html widget.
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x310678365310>)` {#kd_ext.PersistedIncrementalDataBagManager}
+### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x50fbb8278e00>)` {#kd_ext.PersistedIncrementalDataBagManager}
 
 ``` {.no-copy}
 Manager of a DataBag that is assembled from multiple smaller bags.
