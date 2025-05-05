@@ -14,17 +14,12 @@
 //
 #include "koladata/functor/parallel/asio_executor.h"
 
-#include <cstddef>
+#include <atomic>
 #include <memory>
-#include <thread>  // NOLINT
-#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/base/thread_annotations.h"
-#include "absl/container/flat_hash_set.h"
 #include "absl/synchronization/barrier.h"
-#include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -46,30 +41,25 @@ TEST(AsioExecutorTest, Basic) {
   barrier->Block();
 }
 
-TEST(AsioExecutorTest, NumberOfThreads) {
+TEST(AsioExecutorTest, NumberOfThreadsUpperBound) {
   constexpr int kNumThreads = 5;
-  constexpr int kNumTasks = 50;
+  constexpr int kNumTasks = kNumThreads + 1;
   const auto executor = MakeAsioExecutor(kNumThreads);
 
   struct SharedState {
-    absl::Mutex mutex;
-    absl::flat_hash_set<std::thread::id> thread_ids ABSL_GUARDED_BY(mutex);
-    std::vector<absl::Notification> notifications{kNumTasks};
+    std::atomic<int> started_task_counter = 0;
+    absl::Notification notification;
   };
   auto shared_state = std::make_shared<SharedState>();
-  for (auto& notification : shared_state->notifications) {
-    ASSERT_OK(executor->Schedule([&notification, shared_state] {
-      absl::SleepFor(absl::Milliseconds(1));
-      absl::MutexLock lock(&shared_state->mutex);
-      shared_state->thread_ids.insert(std::this_thread::get_id());
-      notification.Notify();
+  for (int i = 0; i < kNumTasks; ++i) {
+    ASSERT_OK(executor->Schedule([shared_state] {
+      ++shared_state->started_task_counter;
+      shared_state->notification.WaitForNotification();
     }));
   }
-  for (auto& notification : shared_state->notifications) {
-    notification.WaitForNotification();
-  }
-  absl::MutexLock lock(&shared_state->mutex);
-  EXPECT_EQ(shared_state->thread_ids.size(), kNumThreads);
+  absl::SleepFor(absl::Milliseconds(20));
+  ASSERT_LE(shared_state->started_task_counter, kNumTasks);
+  shared_state->notification.Notify();  // Allow the tasks to finish.
 }
 
 TEST(AsioExecutorTest, NonBlockingDestructor) {

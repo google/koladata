@@ -126,8 +126,6 @@ cc_test(
     deps = [
         ":asio_executor",
         ":executor",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_arolla//arolla/util:status_backport",
