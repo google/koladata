@@ -170,6 +170,7 @@ class PersistedIncrementalDataBagManager:
   def get_bag(
       self,
       bag_name: str = _INITIAL_BAG_NAME,
+      *,
       with_all_dependents: bool = False,
   ) -> kd.types.DataBag:
     """Returns a bag that includes bag_name and its transitive dependencies.
@@ -201,21 +202,11 @@ class PersistedIncrementalDataBagManager:
           f' {sorted(self.get_available_bag_names())}'
       )
 
-    bags_to_consider = {bag_name}
-    if with_all_dependents:
-      bags_to_consider.update(
-          self._get_reflexive_and_transitive_closure_image(
-              self._get_reverse_dependencies(), bags_to_consider
-          )
-      )
-
     self._load_bags(
-        self._get_reflexive_and_transitive_closure_image(
-            self._get_dependencies(), bags_to_consider
+        self._get_dependency_closure(
+            {bag_name}, with_all_dependents=with_all_dependents
         )
-        - self._loaded_bag_names
     )
-
     return self._bag
 
   def add_bag(
@@ -254,9 +245,8 @@ class PersistedIncrementalDataBagManager:
 
     self._load_bags(
         self._get_reflexive_and_transitive_closure_image(
-            self._get_dependencies(), set(dependencies)
+            self._get_dependency_relation(), set(dependencies)
         )
-        - self._loaded_bag_names
     )
 
     bag_filename = self._get_fresh_bag_filename()
@@ -274,17 +264,18 @@ class PersistedIncrementalDataBagManager:
 
   def extract_bags(
       self,
-      output_dir: str,
       bag_names: Collection[str],
-      with_all_dependents: bool = False,
       *,
+      with_all_dependents: bool = False,
+      output_dir: str,
       fs: FileSystemInterface = FileSystemInteraction(),
   ):
     """Extracts the requested bags to the given output directory.
 
+    To extract all the bags managed by this manager, you can call this function
+    with the arguments bag_names=[''], with_all_dependents=True.
+
     Args:
-      output_dir: The directory to which the bags will be extracted. It must
-        either be empty or not exist yet.
       bag_names: The names of the bags that will be extracted. They must be a
         non-empty subset of get_available_bag_names(). The extraction will also
         include their transitive dependencies.
@@ -292,13 +283,13 @@ class PersistedIncrementalDataBagManager:
         all dependents of bag_names. The dependents are computed transitively.
         All transitive dependencies of the dependents will also be included in
         the extraction.
+      output_dir: The directory to which the bags will be extracted. It must
+        either be empty or not exist yet.
       fs: All interactions with the file system for output_dir will happen via
         this instance.
     """
     if not bag_names:
       raise ValueError('bag_names must not be empty.')
-
-    bag_dependencies = self._get_dependencies()
 
     bags_to_extract = set(bag_names)
     unknown_bags = bags_to_extract - self.get_available_bag_names()
@@ -307,15 +298,10 @@ class PersistedIncrementalDataBagManager:
           'bag_names must be a subset of get_available_bag_names(). The'
           f' following bags are not available: {sorted(unknown_bags)}'
       )
-    if with_all_dependents:
-      bags_to_extract.update(
-          self._get_reflexive_and_transitive_closure_image(
-              self._get_reverse_dependencies(), bags_to_extract
-          )
-      )
-    bags_to_extract = self._get_reflexive_and_transitive_closure_image(
-        bag_dependencies, bags_to_extract
+    bags_to_extract = self._get_dependency_closure(
+        bags_to_extract, with_all_dependents=with_all_dependents
     )
+    bag_dependencies = self._get_dependency_relation()
 
     if not fs.exists(output_dir):
       fs.make_dirs(output_dir)
@@ -323,6 +309,11 @@ class PersistedIncrementalDataBagManager:
       raise ValueError(
           f'The output_dir must be empty or not exist yet. Got {output_dir}'
       )
+    # Using a new manager is convenient, yet it might become problematic because
+    # it will load all the bags into memory and keep them in memory. An
+    # alternative would be to populate the output_dir directly, i.e. without
+    # using a new manager. Or to provide a way to unload the bags from the
+    # memory of the new manager.
     new_manager = PersistedIncrementalDataBagManager(output_dir, fs=fs)
     for bag_name in self._topological_sort(bags_to_extract):
       if not bag_name:
@@ -334,13 +325,28 @@ class PersistedIncrementalDataBagManager:
           bag_dependencies[bag_name],
       )
 
-  def _get_dependencies(self) -> dict[str, Collection[str]]:
+  def _get_dependency_closure(
+      self, bag_names: AbstractSet[str], *, with_all_dependents: bool
+  ) -> AbstractSet[str]:
+    bags_to_consider = set(bag_names)
+    if with_all_dependents:
+      bags_to_consider.update(
+          self._get_reflexive_and_transitive_closure_image(
+              self._get_reverse_dependency_relation(), bags_to_consider
+          )
+      )
+    return self._get_reflexive_and_transitive_closure_image(
+        self._get_dependency_relation(), bags_to_consider
+    )
+
+  def _get_dependency_relation(self) -> dict[str, Collection[str]]:
+    """Returns a dictionary with the full dependency graph."""
     return {m.name: m.dependencies for m in self._metadata.data_bag_metadata}
 
-  def _get_reverse_dependencies(self) -> dict[str, set[str]]:
-    """Returns a dictionary of the reverse dependency graph."""
+  def _get_reverse_dependency_relation(self) -> dict[str, set[str]]:
+    """Returns a dictionary with the full reverse dependency graph."""
     result = collections.defaultdict(set)
-    for bag_name, dependencies in self._get_dependencies().items():
+    for bag_name, dependencies in self._get_dependency_relation().items():
       for dependency in dependencies:
         result[dependency].add(bag_name)
     return result
@@ -361,22 +367,22 @@ class PersistedIncrementalDataBagManager:
       unvisited.update(relation[current])
     return result
 
-  def _load_bags(self, bags_to_load: set[str]):
-    """Loads all the requested bags into self._bag.
+  def _load_bags(self, bags_to_load: AbstractSet[str]):
+    """Loads the requested bags into self._bag.
 
     The loading will make sure that, before loading a bag, all its dependencies
-    are already loaded.
+    are already loaded. If a bag in bags_to_load is already loaded in self._bag,
+    then it won't be loaded again.
 
     Args:
       bags_to_load: The names of the bags to load into self._bag. They must be a
-        subset of get_available_bag_names() and disjoint from
-        get_loaded_bag_names(). They must be closed with respect to the
-        dependency graph, i.e. it must be the case that `{d for bn in
+        subset of get_available_bag_names(). They must be closed with respect to
+        the dependency graph, i.e. it must be the case that `{d for bn in
         bags_to_load for d in self._bag_dependencies[bn]}` is included in
         bags_to_load | self.get_loaded_bag_names().
     """
     for bag_name in self._topological_sort(
-        bags_to_load, self._loaded_bag_names
+        bags_to_load - self._loaded_bag_names, self._loaded_bag_names
     ):
       self._bag = kd.bags.updated(
           self._bag,
@@ -386,7 +392,7 @@ class PersistedIncrementalDataBagManager:
 
   def _topological_sort(
       self,
-      bag_names: set[str],
+      bag_names: AbstractSet[str],
       already_considered_bags: AbstractSet[str] = frozenset(),
   ) -> list[str]:
     """Returns a topological sorting of the bags in bag_names wrt dependencies.
@@ -416,7 +422,7 @@ class PersistedIncrementalDataBagManager:
     result = []
     already_sorted_bags = set(already_considered_bags)
     bag_names = set(bag_names)  # Avoids mutation of the input
-    bag_dependencies = self._get_dependencies()
+    bag_dependencies = self._get_dependency_relation()
     while bag_names:
       for bag_name in bag_names:
         if not all(

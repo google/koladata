@@ -248,8 +248,8 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     with self.subTest('ExtractBags'):
       new_persistence_dir = self.create_tempdir().full_path
       manager.extract_bags(
-          new_persistence_dir,
           bag_names={'bag5'},
+          output_dir=new_persistence_dir,
       )
       extracted_manager = pidbm.PersistedIncrementalDataBagManager(
           new_persistence_dir
@@ -273,9 +273,9 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     with self.subTest('ExtractBagsWithAllDependents'):
       new_persistence_dir = self.create_tempdir().full_path
       manager.extract_bags(
-          new_persistence_dir,
           bag_names={'bag5'},
           with_all_dependents=True,
+          output_dir=new_persistence_dir,
       )
       extracted_manager = pidbm.PersistedIncrementalDataBagManager(
           new_persistence_dir
@@ -375,7 +375,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         ValueError,
         'bag_names must not be empty.',
     ):
-      manager.extract_bags(output_dir, bag_names=[])
+      manager.extract_bags(bag_names=[], output_dir=output_dir)
 
   def test_extract_bags_with_unknown_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
@@ -389,7 +389,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
             " following bags are not available: ['bar', 'foo']"
         ),
     ):
-      manager.extract_bags(output_dir, bag_names=['foo', 'bar'])
+      manager.extract_bags(bag_names=['foo', 'bar'], output_dir=output_dir)
 
   def test_extract_bags_with_non_empty_output_dir(self):
     persistence_dir = self.create_tempdir().full_path
@@ -402,7 +402,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         ValueError,
         'The output_dir must be empty or not exist yet.',
     ):
-      manager.extract_bags(output_dir, bag_names=[''])
+      manager.extract_bags(bag_names=[''], output_dir=output_dir)
 
 
 class DataSliceAndBagPersistenceTest(absltest.TestCase):
