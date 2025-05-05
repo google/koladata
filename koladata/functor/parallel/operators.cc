@@ -24,6 +24,7 @@
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future_operators.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/functor/parallel/stream_interleave_operator.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "arolla/memory/optional_value.h"
@@ -70,6 +71,8 @@ OPERATOR("koda_internal.parallel.make_asio_executor",
            }
            return MakeAsioExecutor(num_threads);
          });
+OPERATOR_FAMILY("koda_internal.parallel.stream_interleave",
+                std::make_unique<StreamInterleaveOperatorFamily>());
 
 // go/keep-sorted end
 

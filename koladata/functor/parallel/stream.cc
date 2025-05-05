@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/optimization.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/log/check.h"
@@ -82,6 +83,13 @@ class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
   StreamReaderPtr MakeReader() final ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
+  enum class [[nodiscard]] InternalWriteResult { kOk, kClosed };
+  InternalWriteResult InternalWrite(arolla::TypedRef value);
+
+  void InternalClose(absl::Status&& status);
+
+  const size_t default_chunk_capacity_;
+
   absl::Mutex mutex_;
   std::deque<Chunk> chunks_ ABSL_GUARDED_BY(mutex_);
   size_t last_chunk_size_ ABSL_GUARDED_BY(mutex_) = 0;
@@ -101,10 +109,13 @@ class StreamImpl::Writer final : public StreamWriter {
 
   void Close(absl::Status status) && final;
 
+  bool TryWrite(TypedRef value) final;
+
+  void TryClose(absl::Status status) final;
+
  private:
   const std::weak_ptr<StreamImpl> weak_stream_;
   const QTypePtr value_qtype_;
-  const size_t default_capacity_;
   std::atomic_flag closed_ = false;
 };
 
@@ -159,20 +170,57 @@ void Chunk::SetRef(size_t i, TypedRef ref) {
 }
 
 StreamImpl::StreamImpl(QTypePtr value_qtype, size_t initial_capacity)
-    : Stream(value_qtype) {
+    : Stream(value_qtype),
+      default_chunk_capacity_(GetDefaultChunkCapacity(value_qtype)) {
   chunks_.emplace_back(value_qtype, initial_capacity > 0
                                         ? initial_capacity
-                                        : GetDefaultChunkCapacity(value_qtype));
+                                        : default_chunk_capacity_);
 }
 
 StreamReaderPtr StreamImpl::MakeReader() {
   return std::make_unique<Reader>(shared_from_this());
 }
 
+StreamImpl::InternalWriteResult StreamImpl::InternalWrite(
+    arolla::TypedRef value) {
+  DCHECK_EQ(value.GetType(), value_qtype());  // Tested by the public method.
+  std::vector<absl::AnyInvocable<void() &&>> callbacks;
+  {
+    absl::MutexLock lock(&mutex_);
+    if (status_.has_value()) {
+      return InternalWriteResult::kClosed;
+    }
+    if (chunks_.back().capacity() == last_chunk_size_) {
+      chunks_.emplace_back(value_qtype(), default_chunk_capacity_);
+      last_chunk_size_ = 0;
+    }
+    chunks_.back().SetRef(last_chunk_size_++, value);
+    callbacks_.swap(callbacks);
+  }
+  for (auto& callback : callbacks) {
+    std::move(callback)();
+  }
+  return InternalWriteResult::kOk;
+}
+
+void StreamImpl::InternalClose(absl::Status&& status) {
+  std::vector<absl::AnyInvocable<void() &&>> callbacks;
+  {
+    absl::MutexLock lock(&mutex_);
+    DCHECK(!status_.has_value());  // Protected by the atomic flag `closed_`
+    if (status_.has_value()) {     // in the writer.
+      return;
+    }
+    status_.emplace(std::move(status));
+    callbacks_.swap(callbacks);
+  }
+  for (auto& callback : callbacks) {
+    std::move(callback)();
+  }
+}
+
 StreamImpl::Writer::Writer(const std::shared_ptr<StreamImpl>& stream)
-    : weak_stream_(stream),
-      value_qtype_(stream->value_qtype()),
-      default_capacity_(GetDefaultChunkCapacity(value_qtype_)) {}
+    : weak_stream_(stream), value_qtype_(stream->value_qtype()) {}
 
 bool StreamImpl::Writer::Orphaned() const { return weak_stream_.expired(); }
 
@@ -185,40 +233,49 @@ void StreamImpl::Writer::Write(TypedRef value) {
   if (stream == nullptr) {
     return;  // The stream object is gone.
   }
-  std::vector<absl::AnyInvocable<void() &&>> callbacks;
-  {
-    absl::MutexLock lock(&stream->mutex_);
-    if (stream->status_.has_value()) {
+  switch (stream->InternalWrite(value)) {
+    case InternalWriteResult::kOk:
+      return;
+    case InternalWriteResult::kClosed:
       LOG(FATAL) << "writing to a closed stream";
-    }
-    if (stream->chunks_.back().capacity() == stream->last_chunk_size_) {
-      stream->chunks_.emplace_back(value_qtype_, default_capacity_);
-      stream->last_chunk_size_ = 0;
-    }
-    stream->chunks_.back().SetRef(stream->last_chunk_size_++, value);
-    stream->callbacks_.swap(callbacks);
+      return;
   }
-  for (auto& callback : callbacks) {
-    std::move(callback)();
+  ABSL_UNREACHABLE();
+}
+
+bool StreamImpl::Writer::TryWrite(arolla::TypedRef value) {
+  if (value.GetType() != value_qtype_) {
+    LOG(FATAL) << "expected a value of type " << value_qtype_->name()
+               << ", got " << value.GetType()->name();
   }
+  auto stream = weak_stream_.lock();
+  if (stream == nullptr) {
+    return false;  // The stream object is gone.
+  }
+  switch (stream->InternalWrite(value)) {
+    case InternalWriteResult::kOk:
+      return true;
+    case InternalWriteResult::kClosed:
+      return false;
+  }
+  ABSL_UNREACHABLE();
 }
 
 void StreamImpl::Writer::Close(absl::Status status) && {
   if (closed_.test_and_set(std::memory_order_relaxed)) {
     LOG(FATAL) << "closing a closed stream";
   }
-  auto stream = weak_stream_.lock();
-  if (stream == nullptr) {
-    return;  // The stream object is gone.
+  if (auto stream = weak_stream_.lock()) {
+    stream->InternalClose(std::move(status));
   }
-  std::vector<absl::AnyInvocable<void() &&>> callbacks;
-  {
-    absl::MutexLock lock(&stream->mutex_);
-    stream->status_.emplace(std::move(status));
-    stream->callbacks_.swap(callbacks);
+}
+
+void StreamImpl::Writer::TryClose(absl::Status status) {
+  if (closed_.test_and_set(std::memory_order_relaxed)) {
+    return;  // The stream is already closed.
   }
-  for (auto& callback : callbacks) {
-    std::move(callback)();
+  if (auto stream = weak_stream_.lock()) {
+    stream->InternalClose(std::move(status));
   }
 }
 

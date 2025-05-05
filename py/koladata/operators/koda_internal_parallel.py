@@ -19,9 +19,12 @@ from koladata.operators import bootstrap
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import py_boxing
+from koladata.types import qtypes
 
 
+M = arolla.M
 P = arolla.P
+constraints = arolla.optools.constraints
 
 async_eval = arolla.abc.lookup_operator('koda_internal.parallel.async_eval')
 get_default_executor = arolla.abc.lookup_operator(
@@ -107,4 +110,72 @@ def get_future_value_for_testing(arg):  # pylint: disable=unused-argument
 )
 def get_stream_qtype(value_qtype):  # pylint: disable=unused-argument
   """Gets the stream qtype for the given value qtype."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_interleave',
+    qtype_constraints=[
+        (
+            M.seq.all(
+                M.seq.map(
+                    bootstrap.is_stream_qtype,
+                    M.qtype.get_field_qtypes(P.streams),
+                )
+            ),
+            'all inputs must be streams',
+        ),
+        (
+            M.seq.all_equal(M.qtype.get_field_qtypes(P.streams)),
+            'all input streams must have the same value type',
+        ),
+        (
+            (P.value_type_as == arolla.UNSPECIFIED)
+            | (
+                M.seq.reduce(
+                    M.qtype.common_qtype,
+                    M.qtype.get_field_qtypes(P.streams),
+                    get_stream_qtype(P.value_type_as),
+                )
+                != arolla.NOTHING
+            ),
+            'input streams must be compatible with value_type_as',
+        ),
+    ],
+    qtype_inference_expr=M.qtype.conditional_qtype(
+        P.value_type_as == arolla.UNSPECIFIED,
+        M.qtype.conditional_qtype(
+            M.qtype.get_field_count(P.streams) > 0,
+            M.qtype.get_field_qtype(P.streams, 0),
+            get_stream_qtype(qtypes.DATA_SLICE),
+        ),
+        get_stream_qtype(P.value_type_as),
+    ),
+    deterministic=False,
+)
+def stream_interleave(*streams, value_type_as=arolla.unspecified()):
+  """Creates a stream that interleaves the given streams.
+
+  The resulting stream has all items from all input streams, and the order of
+  items from each stream is preserved. But the order of interleaving of
+  different streams can be arbitrary.
+
+  Having unspecified order allows the parallel execution to put the items into
+  the result in the order they are computed, potentially increasing the amount
+  of parallel processing done.
+
+  The input streams must all have the same value type. If value_type_as is
+  specified, it must be the same as the value type of the iterables, if any.
+
+  Args:
+    *streams: Input streams.
+    value_type_as: A value that has the same type as the streams. It is useful
+      to specify this explicitly if the list of iterables may be empty. If this
+      is not specified and the list of streams is empty, the resulting stream
+      will have DATA_SLICE as the value type.
+
+  Returns:
+    A stream that interleaves the input streams, in unspecified order.
+  """
   raise NotImplementedError('implemented in the backend')

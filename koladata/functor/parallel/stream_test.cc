@@ -80,6 +80,30 @@ TEST(StreamTest, BasicWithNonTrivialType) {
   }
 }
 
+TEST(StreamTest, TryCloseAfterClose) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  writer->TryClose(absl::InvalidArgumentError("Boom!"));
+  writer->TryClose(absl::InvalidArgumentError("Kaboom!"));
+  {
+    auto reader = stream->MakeReader();
+    EXPECT_THAT(*reader->TryRead().close_status(),
+                StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  }
+}
+
+TEST(StreamTest, TryWriteAfterClose) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  ASSERT_TRUE(writer->TryWrite(TypedRef::FromValue(1)));
+  writer->TryClose(absl::InvalidArgumentError("Boom!"));
+  ASSERT_FALSE(writer->TryWrite(TypedRef::FromValue(2)));
+  {
+    auto reader = stream->MakeReader();
+    EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 1);
+    EXPECT_THAT(*reader->TryRead().close_status(),
+                StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  }
+}
+
 TEST(StreamTest, Subscription) {
   auto [stream, writer] = MakeStream(GetQType<int>(), 10);
   EXPECT_EQ(stream->value_qtype(), GetQType<int>());
@@ -137,10 +161,14 @@ TEST(StreamTest, CloseWithError) {
 TEST(StreamTest, OrphanStreamWriter) {
   auto [stream, writer] = MakeStream(GetQType<int>());
   ASSERT_FALSE(writer->Orphaned());
+  writer->Write(TypedRef::FromValue(0));
+  ASSERT_TRUE(writer->TryWrite(TypedRef::FromValue(1)));
   stream.reset();
   ASSERT_TRUE(writer->Orphaned());
-  std::move(*writer).Write(TypedRef::FromValue(0));
+  writer->Write(TypedRef::FromValue(2));
+  ASSERT_FALSE(writer->TryWrite(TypedRef::FromValue(3)));
   std::move(*writer).Close();
+  // No crash.
 }
 
 TEST(StreamTest, OrphanedStreamWriterDestructor) {
@@ -330,6 +358,9 @@ TEST(StreamTest, PanicWhenWriteWrongType) {
   auto [stream, writer] = MakeStream(GetQType<int>());
   ASSERT_DEATH(
       { writer->Write(TypedRef::FromValue(0.0)); },
+      "expected a value of type INT32, got FLOAT64");
+  ASSERT_DEATH(
+      { (void)writer->TryWrite(TypedRef::FromValue(0.0)); },
       "expected a value of type INT32, got FLOAT64");
 }
 

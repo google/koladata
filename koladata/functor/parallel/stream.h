@@ -93,6 +93,18 @@ class StreamWriter {
   // Important: Closing a closed stream results in undefined behaviour!
   void Close() && { std::move(*this).Close(absl::OkStatus()); }
 
+  // Tries to write the given value to the stream. Returns `false` if
+  // the operation was unsuccessful (stream is closed or orphaned), in which
+  // case all subsequent writes will also be unsuccessful.
+  //
+  // Important: writing a value of incorrect type (non value_qtype) results in
+  // undefined behaviour!
+  [[nodiscard]] virtual bool TryWrite(arolla::TypedRef value) = 0;
+
+  // Tries to close the stream. This method has no effect if the stream has
+  // already been closed or orphaned.
+  virtual void TryClose(absl::Status status) = 0;
+
   // Disallow copy and move.
   StreamWriter(const StreamWriter&) = delete;
   StreamWriter& operator=(const StreamWriter&) = delete;
