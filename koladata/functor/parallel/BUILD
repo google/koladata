@@ -172,9 +172,11 @@ cc_library(
     hdrs = ["stream_composition.h"],
     deps = [
         ":stream",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/synchronization",
     ],
 )
 
@@ -185,6 +187,7 @@ cc_test(
         ":default_executor",
         ":stream",
         ":stream_composition",
+        "@com_google_absl//absl/random",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/synchronization",
@@ -250,7 +253,7 @@ cc_library(
         ":executor",
         ":future_operators",
         ":future_qtype",
-        ":stream_interleave_operator",
+        ":stream_operators",
         ":stream_qtype",
         "//koladata:data_slice_qtype",
         "//koladata/internal:non_deterministic_token",
@@ -393,19 +396,21 @@ cc_library(
 )
 
 cc_library(
-    name = "stream_interleave_operator",
-    srcs = ["stream_interleave_operator.cc"],
-    hdrs = ["stream_interleave_operator.h"],
+    name = "stream_operators",
+    srcs = ["stream_operators.cc"],
+    hdrs = ["stream_operators.h"],
     deps = [
         ":stream",
         ":stream_composition",
         ":stream_qtype",
+        "//koladata/operators:lib",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 

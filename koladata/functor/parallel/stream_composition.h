@@ -16,7 +16,6 @@
 #define KOLADATA_FUNCTOR_PARALLEL_STREAM_COMPOSITION_H_
 
 #include <memory>
-#include <utility>
 
 #include "absl/base/nullability.h"
 #include "koladata/functor/parallel/stream.h"
@@ -46,6 +45,34 @@ class StreamInterleave {
   // the StreamInterleave. Therefore, as soon as the callbacks are executed and
   // the StreamInterleave is destroyed (so no new inputs can be added),
   // the Scheduler will be destroyed and the circular ownership of
+  // stream->callback->scheduler->stream will be broken.
+  std::shared_ptr<Scheduler> scheduler_;
+};
+
+// This class can be used to chain multiple streams together, including cases
+// where not all streams are known in advance, but rather added one by one.
+// This class is thread-safe (but it is expected that all Add calls will
+// still be done in a particular sequence, otherwise the output can depend
+// on a race).
+class StreamChain {
+ public:
+  explicit StreamChain(StreamWriterPtr /*absl_nonnull*/ writer);
+
+  // Movable but non-copyable.
+  StreamChain(StreamChain&&) = default;
+  StreamChain& operator=(StreamChain&&) = default;
+
+  void Add(const StreamPtr /*absl_nonnull*/& stream);
+
+ private:
+  class Scheduler;
+
+  // We need a shared pointer here since callbacks will hold a reference
+  // to the Scheduler, and nothing else will own it once it is finalized.
+  // Scheduler instances are expected to be only owned by callbacks and by the
+  // StreamChain. Therefore, as soon as the callbacks are executed and the
+  // StreamChain is destroyed (so no new inputs can be added), the Scheduler
+  // will be destroyed and the circular ownership of
   // stream->callback->scheduler->stream will be broken.
   std::shared_ptr<Scheduler> scheduler_;
 };

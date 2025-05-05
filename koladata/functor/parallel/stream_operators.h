@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_INTERLEAVE_OPERATOR_H_
-#define THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_INTERLEAVE_OPERATOR_H_
+#ifndef THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_OPERATORS_H_
+#define THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_OPERATORS_H_
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -21,6 +21,14 @@
 #include "arolla/qtype/qtype.h"
 
 namespace koladata::functor::parallel {
+
+// koda_internal.parallel.stream_chain operator.
+// Chains the given streams together.
+class StreamChainOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
 
 // koda_internal.parallel.stream_interleave operator.
 class StreamInterleaveOperatorFamily final : public arolla::OperatorFamily {
@@ -31,4 +39,4 @@ class StreamInterleaveOperatorFamily final : public arolla::OperatorFamily {
 
 }  // namespace koladata::functor::parallel
 
-#endif  // THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_INTERLEAVE_OPERATOR_H_
+#endif  // THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_OPERATORS_H_
