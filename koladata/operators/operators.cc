@@ -115,6 +115,7 @@ OPERATOR("kd.core.follow", Follow);
 OPERATOR("kd.core.freeze_bag", Freeze<DataSlice>);
 OPERATOR("kd.core.get_attr_names", GetAttrNames);
 OPERATOR("kd.core.get_bag", GetBag);
+OPERATOR("kd.core.get_metadata", GetMetadata);
 OPERATOR("kd.core.has_attr", HasAttr);
 OPERATOR("kd.core.has_entity", HasEntity);
 OPERATOR("kd.core.has_primitive", HasPrimitive);

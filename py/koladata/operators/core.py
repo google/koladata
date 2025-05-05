@@ -1096,6 +1096,23 @@ def metadata(x, /, **attrs):  # pylint: disable=unused-argument
   )
 
 
+@optools.add_to_registry(aliases=['kd.get_metadata'])
+@optools.as_backend_operator(
+    'kd.core.get_metadata',
+    qtype_constraints=[qtype_utils.expect_data_slice(P.x)],
+)
+def get_metadata(x):  # pylint: disable=unused-argument
+  """Gets a metadata from a DataSlice.
+
+  Args:
+    x: DataSlice to get metadata from.
+
+  Returns:
+    Metadata DataSlice.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kd.with_metadata'])
 @optools.as_lambda_operator(
     'kd.core.with_metadata',

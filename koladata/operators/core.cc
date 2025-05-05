@@ -34,6 +34,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/extract_utils.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -643,6 +644,16 @@ DataBagPtr Freeze<DataBagPtr>(const DataBagPtr& x) {
 template <>
 DataSlice Freeze<DataSlice>(const DataSlice& x) {
   return x.FreezeBag();
+}
+
+absl::StatusOr<DataSlice> GetMetadata(const DataSlice& ds) {
+  auto schema = ds.GetSchemaImpl();
+  if (schema == schema::kSchema) {
+    return ds.GetAttr(schema::kSchemaMetadataAttr);
+  }
+  return absl::InvalidArgumentError(
+      absl::StrCat("failed to get metadata; cannot get for a DataSlice with ",
+                   SchemaToStr(ds.GetSchema()), " schema"));
 }
 
 absl::StatusOr<DataSlice> CreateMetadata(const DataSlice& ds) {

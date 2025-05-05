@@ -147,6 +147,9 @@ absl::StatusOr<DataSlice> DeepClone(const DataSlice& ds,
                                     const DataSlice& schema,
                                     internal::NonDeterministicToken = {});
 
+// koda_internal.get_metadata
+absl::StatusOr<DataSlice> GetMetadata(const DataSlice& ds);
+
 // koda_internal.create_metadata
 absl::StatusOr<DataSlice> CreateMetadata(const DataSlice& ds);
 
