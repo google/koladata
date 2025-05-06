@@ -34,14 +34,16 @@ get_eager_executor = arolla.abc.lookup_operator(
     'koda_internal.parallel.get_eager_executor'
 )
 
-EXECUTOR = arolla.M.qtype.qtype_of(get_eager_executor())
+EXECUTOR = M.qtype.qtype_of(get_eager_executor())
+
+EMPTY_TUPLE = arolla.make_tuple_qtype()
 
 
 @arolla.optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.make_asio_executor',
     qtype_constraints=[
-        arolla.optools.constraints.expect_scalar_integer(P.num_threads),
+        constraints.expect_scalar_integer(P.num_threads),
     ],
     qtype_inference_expr=EXECUTOR,
     custom_boxing_fn_name_per_parameter=dict(
@@ -63,7 +65,7 @@ def make_asio_executor(num_threads=0):
 @optools.as_backend_operator(
     'koda_internal.parallel.get_future_qtype',
     qtype_inference_expr=arolla.QTYPE,
-    qtype_constraints=[arolla.optools.constraints.expect_qtype(P.value_qtype)],
+    qtype_constraints=[constraints.expect_qtype(P.value_qtype)],
 )
 def get_future_qtype(value_qtype):  # pylint: disable=unused-argument
   """Gets the future qtype for the given value qtype."""
@@ -78,7 +80,7 @@ def get_future_qtype(value_qtype):  # pylint: disable=unused-argument
 @optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.parallel.as_future',
-    qtype_inference_expr=arolla.M.qtype.conditional_qtype(
+    qtype_inference_expr=M.qtype.conditional_qtype(
         bootstrap.is_future_qtype(P.arg),
         P.arg,
         get_future_qtype(P.arg),
@@ -92,7 +94,7 @@ def as_future(arg):  # pylint: disable=unused-argument
 @optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_future_value_for_testing',
-    qtype_inference_expr=arolla.M.qtype.get_value_qtype(P.arg),
+    qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
     qtype_constraints=[
         qtype_utils.expect_future(P.arg),
     ],
@@ -106,46 +108,43 @@ def get_future_value_for_testing(arg):  # pylint: disable=unused-argument
 @optools.as_backend_operator(
     'koda_internal.parallel.get_stream_qtype',
     qtype_inference_expr=arolla.QTYPE,
-    qtype_constraints=[arolla.optools.constraints.expect_qtype(P.value_qtype)],
+    qtype_constraints=[constraints.expect_qtype(P.value_qtype)],
 )
 def get_stream_qtype(value_qtype):  # pylint: disable=unused-argument
   """Gets the stream qtype for the given value qtype."""
   raise NotImplementedError('implemented in the backend')
 
 
-_STREAM_CHAIN_QTYPE_INFERENCE_EXPR = arolla.M.qtype.conditional_qtype(
+_STREAM_CHAIN_QTYPE_INFERENCE_EXPR = M.qtype.conditional_qtype(
     P.value_type_as == arolla.UNSPECIFIED,
-    arolla.M.qtype.conditional_qtype(
-        arolla.M.qtype.get_field_count(P.streams) > 0,
-        arolla.M.qtype.get_field_qtype(P.streams, 0),
+    M.qtype.conditional_qtype(
+        P.streams == EMPTY_TUPLE,
         get_stream_qtype(qtypes.DATA_SLICE),
+        M.qtype.get_field_qtype(P.streams, 0),
     ),
     get_stream_qtype(P.value_type_as),
 )
 
 _STREAM_CHAIN_QTYPE_CONSTRAINTS = (
     (
-        arolla.M.seq.all(
-            arolla.M.seq.map(
+        M.seq.all(
+            M.seq.map(
                 bootstrap.is_stream_qtype,
-                arolla.M.qtype.get_field_qtypes(P.streams),
+                M.qtype.get_field_qtypes(P.streams),
             )
         ),
         'all inputs must be streams',
     ),
     (
-        arolla.M.seq.all_equal(arolla.M.qtype.get_field_qtypes(P.streams)),
+        M.seq.all_equal(M.qtype.get_field_qtypes(P.streams)),
         'all input streams must have the same value type',
     ),
     (
         (P.value_type_as == arolla.UNSPECIFIED)
+        | (P.streams == EMPTY_TUPLE)
         | (
-            arolla.M.seq.reduce(
-                arolla.M.qtype.common_qtype,
-                arolla.M.qtype.get_field_qtypes(P.streams),
-                get_stream_qtype(P.value_type_as),
-            )
-            != arolla.NOTHING
+            M.qtype.get_field_qtype(P.streams, 0)
+            == get_stream_qtype(P.value_type_as)
         ),
         'input streams must be compatible with value_type_as',
     ),
