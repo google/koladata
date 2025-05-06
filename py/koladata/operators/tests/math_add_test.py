@@ -216,12 +216,12 @@ class MathAddTest(parameterized.TestCase):
     ):
       expr_eval.eval(kde.math.add(I.x, I.z), x=x, z=z)
 
-    z = ds([[1, '2'], [3]])
+    z = ds([['1', '2'], ['3']])
     with self.assertRaisesRegex(
         ValueError,
         'kd.math.add: arguments `x` and `y` must contain values castable to a'
-        ' common primitive type, got INT32 and OBJECT containing INT32 and'
-        ' STRING values',
+        ' common primitive type, got INT32 and STRING with the common'
+        ' non-primitive schema OBJECT',
     ):
       expr_eval.eval(kde.math.add(I.x, I.z), x=x, z=z)
 

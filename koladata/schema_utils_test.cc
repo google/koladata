@@ -42,6 +42,7 @@ using ::absl_testing::StatusIs;
 using ::koladata::internal::ObjectId;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::MatchesRegex;
+using ::testing::StrEq;
 
 TEST(SchemaUtilsTest, GetNarrowedSchema_Item) {
   {
@@ -537,6 +538,8 @@ TEST(SchemaUtilsTest, ExpectHaveCommonSchema) {
   auto integer_object = test::DataSlice<int>({1}, schema::kObject);
   auto entity = test::AllocateDataSlice(1, internal::AllocateExplicitSchema(),
                                         DataBag::Empty());
+  auto another_entity = test::AllocateDataSlice(
+      1, internal::AllocateExplicitSchema(), DataBag::Empty());
 
   EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, bytes, empty_and_unknown),
               IsOk());
@@ -551,6 +554,13 @@ TEST(SchemaUtilsTest, ExpectHaveCommonSchema) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                "arguments `foo` and `bar` must contain values castable to a "
                "common type, got SCHEMA() and OBJECT containing INT32 values"));
+  EXPECT_THAT(
+      ExpectHaveCommonSchema({"foo", "bar"}, entity, another_entity),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               MatchesRegex(
+                   "arguments `foo` and `bar` must contain values castable "
+                   "to a common type, got SCHEMA\\(\\) with id Schema:\\$.* "
+                   "and SCHEMA\\(\\) with id Schema:\\$.*")));
 }
 
 TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
@@ -560,6 +570,10 @@ TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
   auto bytes = test::DataSlice<std::string>({"a", "b", std::nullopt});
   auto bytes_obj =
       test::DataSlice<std::string>({"a", "b", std::nullopt}, schema::kObject);
+  auto entity = test::AllocateDataSlice(1, internal::AllocateExplicitSchema(),
+                                        DataBag::Empty());
+  auto another_entity = test::AllocateDataSlice(
+      1, internal::AllocateExplicitSchema(), DataBag::Empty());
 
   EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, empty_and_unknown,
                                               empty_and_unknown),
@@ -576,13 +590,27 @@ TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
   EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, bytes),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "arguments `foo` and `bar` must contain values castable "
-                       "to a common primitive type, got INT32 and BYTES"));
+                       "to a common primitive type, got INT32 and BYTES with "
+                       "the common non-primitive schema OBJECT"));
   EXPECT_THAT(
       ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, bytes_obj),
-      StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          "arguments `foo` and `bar` must contain values castable to a common "
-          "primitive type, got INT32 and OBJECT containing BYTES values"));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "arguments `foo` and `bar` must contain values castable to a "
+               "common primitive type, got INT32 and OBJECT containing BYTES "
+               "values with the common non-primitive schema OBJECT"));
+  EXPECT_THAT(
+      ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, entity, another_entity),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               MatchesRegex(
+                   "arguments `foo` and `bar` must contain values castable "
+                   "to a common type, got SCHEMA\\(\\) with id Schema:\\$.* "
+                   "and SCHEMA\\(\\) with id Schema:\\$.*")));
+  EXPECT_THAT(
+      ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, entity, entity),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               StrEq("arguments `foo` and `bar` must contain values castable "
+                     "to a common primitive type, got SCHEMA() and SCHEMA() "
+                     "with the common non-primitive schema SCHEMA()")));
 }
 
 }  // namespace

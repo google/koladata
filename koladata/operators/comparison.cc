@@ -32,33 +32,33 @@
 namespace koladata::ops {
 
 absl::StatusOr<DataSlice> Less(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
   RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   return SimplePointwiseEval("core.less", {x, y},
                              internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> Greater(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
   RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   return SimplePointwiseEval("core.greater", {x, y},
                              internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> LessEqual(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
   RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   return SimplePointwiseEval("core.less_equal", {x, y},
                              internal::DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   RETURN_IF_ERROR(ExpectCanBeOrdered("x", x));
   RETURN_IF_ERROR(ExpectCanBeOrdered("y", y));
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   return SimplePointwiseEval("core.greater_equal", {x, y},
                              internal::DataItem(schema::kMask));
 }

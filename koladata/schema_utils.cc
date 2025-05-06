@@ -68,6 +68,30 @@ absl::Status ExpectNoneOr(schema::DType dtype, absl::string_view arg_name,
   return absl::OkStatus();
 }
 
+absl::Status NoCommonSchemaError(absl::string_view lhs_name,
+                                 const DataSlice& lhs,
+                                 absl::string_view rhs_name,
+                                 const DataSlice& rhs) {
+  std::string lhs_schema_str = DescribeSliceSchema(lhs);
+  std::string rhs_schema_str = DescribeSliceSchema(rhs);
+  if (lhs_schema_str == rhs_schema_str) {
+    // Always true.
+    if (lhs.GetSchemaImpl().holds_value<internal::ObjectId>()) {
+      absl::StrAppend(&lhs_schema_str, " with id ",
+                      lhs.GetSchemaImpl().value<internal::ObjectId>());
+    }
+    // Always true.
+    if (rhs.GetSchemaImpl().holds_value<internal::ObjectId>()) {
+      absl::StrAppend(&rhs_schema_str, " with id ",
+                      rhs.GetSchemaImpl().value<internal::ObjectId>());
+    }
+  }
+  return absl::InvalidArgumentError(
+      absl::StrFormat("arguments `%s` and `%s` must contain values castable to "
+                      "a common type, got %s and %s",
+                      lhs_name, rhs_name, lhs_schema_str, rhs_schema_str));
+}
+
 }  // namespace
 
 internal::DataItem GetNarrowedSchema(const DataSlice& slice) {
@@ -181,7 +205,7 @@ absl::Status ExpectPresentScalar(absl::string_view arg_name,
 
 std::string DescribeSliceSchema(const DataSlice& slice) {
   if (slice.GetSchemaImpl() == schema::kObject) {
-    std::string result = absl::StrCat(slice.GetSchemaImpl(), " containing ");
+    std::string result = absl::StrCat(schema::kObject, " containing ");
     slice.VisitImpl(absl::Overload(
         [&](const internal::DataItem& impl) {
           impl.VisitValue([&]<typename T>(const T& value) {
@@ -266,11 +290,7 @@ absl::Status ExpectHaveCommonSchema(
   if (schema::CommonSchema(lhs.GetSchemaImpl(), rhs.GetSchemaImpl()).ok()) {
     return absl::OkStatus();
   }
-  return absl::InvalidArgumentError(
-      absl::StrFormat("arguments `%s` and `%s` must contain values castable to "
-                      "a common type, got %s and %s",
-                      arg_names[0], arg_names[1], DescribeSliceSchema(lhs),
-                      DescribeSliceSchema(rhs)));
+  return NoCommonSchemaError(arg_names[0], lhs, arg_names[1], rhs);
 }
 
 absl::Status ExpectHaveCommonPrimitiveSchema(
@@ -282,15 +302,24 @@ absl::Status ExpectHaveCommonPrimitiveSchema(
 
   auto lhs_narrowed = GetNarrowedSchema(lhs);
   auto rhs_narrowed = GetNarrowedSchema(rhs);
-  if (auto common_schema = schema::CommonSchema(lhs_narrowed, rhs_narrowed);
-      common_schema.ok() && *common_schema != schema::kObject) {
-    return absl::OkStatus();
+  auto common_schema = schema::CommonSchema(lhs_narrowed, rhs_narrowed);
+  if (!common_schema.ok()) {
+    return NoCommonSchemaError(arg_names[0], lhs, arg_names[1], rhs);
   }
-  return absl::InvalidArgumentError(
-      absl::StrFormat("arguments `%s` and `%s` must contain values castable to "
-                      "a common primitive type, got %s and %s",
-                      arg_names[0], arg_names[1], DescribeSliceSchema(lhs),
-                      DescribeSliceSchema(rhs)));
+  if (common_schema->holds_value<internal::ObjectId>() ||
+      *common_schema == schema::kObject) {
+    auto common_schema_slice = DataSlice::Create(
+        *common_schema, internal::DataItem(schema::kSchema), lhs.GetBag());
+    std::string common_schema_str = common_schema_slice.ok()
+                                        ? SchemaToStr(*common_schema_slice)
+                                        : absl::StrCat(*common_schema);
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "arguments `%s` and `%s` must contain values castable to a common "
+        "primitive type, got %s and %s with the common non-primitive schema %s",
+        arg_names[0], arg_names[1], DescribeSliceSchema(lhs),
+        DescribeSliceSchema(rhs), common_schema_str));
+  }
+  return absl::OkStatus();
 }
 
 }  // namespace koladata

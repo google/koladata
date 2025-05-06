@@ -34,9 +34,9 @@
 namespace koladata::ops {
 
 absl::StatusOr<DataSlice> Add(const DataSlice& x, const DataSlice& y) {
-  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   RETURN_IF_ERROR(ExpectCanBeAdded("x", x));
   RETURN_IF_ERROR(ExpectCanBeAdded("y", y));
+  RETURN_IF_ERROR(ExpectHaveCommonPrimitiveSchema({"x", "y"}, x, y));
   return SimplePointwiseEval("kd.math._add_impl", {x, y});
 }
 
