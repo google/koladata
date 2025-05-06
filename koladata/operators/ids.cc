@@ -50,7 +50,6 @@
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -65,8 +64,7 @@ namespace {
 class UuidOperator : public arolla::QExprOperator {
  public:
   explicit UuidOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -93,8 +91,7 @@ class UuidOperator : public arolla::QExprOperator {
 class UuidForListOperator : public arolla::QExprOperator {
  public:
   explicit UuidForListOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -121,8 +118,7 @@ class UuidForListOperator : public arolla::QExprOperator {
 class UuidForDictOperator : public arolla::QExprOperator {
  public:
   explicit UuidForDictOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

@@ -40,7 +40,6 @@
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
@@ -103,8 +102,7 @@ absl::StatusOr<DataSlice::JaggedShape::Edge> GetEdgeFromSizes(
 class JaggedShapeCreateOperator : public arolla::QExprOperator {
  public:
   explicit JaggedShapeCreateOperator(absl::Span<const arolla::QTypePtr> types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            types, arolla::GetQType<DataSlice::JaggedShape>())) {
+      : QExprOperator(types, arolla::GetQType<DataSlice::JaggedShape>()) {
     for (const auto& input_type : types) {
       DCHECK(input_type == arolla::GetQType<DataSlice>() ||
              input_type == arolla::GetQType<DataSlice::JaggedShape::Edge>());
@@ -175,8 +173,7 @@ class JaggedShapeCreateWithSizeOperator : public arolla::QExprOperator {
  public:
   explicit JaggedShapeCreateWithSizeOperator(
       absl::Span<const arolla::QTypePtr> types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            types, arolla::GetQType<DataSlice::JaggedShape>())) {}
+      : QExprOperator(types, arolla::GetQType<DataSlice::JaggedShape>()) {}
 
  private:
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(

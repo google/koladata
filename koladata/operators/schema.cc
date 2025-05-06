@@ -42,7 +42,6 @@
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -56,8 +55,7 @@ namespace {
 class NewSchemaOperator : public arolla::QExprOperator {
  public:
   explicit NewSchemaOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -82,8 +80,7 @@ class NewSchemaOperator : public arolla::QExprOperator {
 class UuSchemaOperator : public arolla::QExprOperator {
  public:
   explicit UuSchemaOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -112,8 +109,7 @@ class UuSchemaOperator : public arolla::QExprOperator {
 class NamedSchemaOperator : public arolla::QExprOperator {
  public:
   explicit NamedSchemaOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

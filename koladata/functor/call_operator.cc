@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
@@ -36,7 +35,6 @@
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/named_field_qtype.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
@@ -52,10 +50,7 @@ namespace {
 
 class CallOperator : public arolla::QExprOperator {
  public:
-  explicit CallOperator(absl::Span<const arolla::QTypePtr> input_types,
-                        arolla::QTypePtr output_type)
-      : QExprOperator("kd.functor.call", arolla::QExprOperatorSignature::Get(
-                                             input_types, output_type)) {}
+  using QExprOperator::QExprOperator;
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -128,12 +123,7 @@ namespace {
 
 class CallAndUpdateNamedTupleOperator : public arolla::QExprOperator {
  public:
-  explicit CallAndUpdateNamedTupleOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type)
-      : QExprOperator(
-            "kd.functor.call_and_update_namedtuple",
-            arolla::QExprOperatorSignature::Get(input_types, output_type)) {}
+  using QExprOperator::QExprOperator;
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

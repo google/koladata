@@ -39,7 +39,6 @@
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
@@ -144,8 +143,7 @@ absl::StatusOr<DataSlice> CreateBind(
 class BindOperator : public arolla::QExprOperator {
  public:
   explicit BindOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

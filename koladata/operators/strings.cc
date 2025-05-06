@@ -48,7 +48,6 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
@@ -117,8 +116,7 @@ absl::StatusOr<DataSlice> EvalFormatOp(absl::string_view op_name,
 class FormatOperator : public arolla::QExprOperator {
  public:
   explicit FormatOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -330,8 +328,8 @@ absl::StatusOr<DataSlice> RegexExtract(const DataSlice& text,
       arolla::TypedRef text_ref,
       DataSliceToOwnedArollaRef(text, typed_value_holder,
                                 internal::DataItem(schema::kString)));
-  arolla::TypedValue typed_regex = arolla::TypedValue::FromValue(
-      arolla::Text(regex_view));
+  arolla::TypedValue typed_regex =
+      arolla::TypedValue::FromValue(arolla::Text(regex_view));
   ASSIGN_OR_RETURN(arolla::TypedValue result,
                    EvalExpr("strings.extract_regex",
                             {std::move(text_ref), typed_regex.AsRef()}));
@@ -358,8 +356,8 @@ absl::StatusOr<DataSlice> RegexMatch(const DataSlice& text,
       arolla::TypedRef text_ref,
       DataSliceToOwnedArollaRef(text, typed_value_holder,
                                 internal::DataItem(schema::kString)));
-  arolla::TypedValue typed_regex = arolla::TypedValue::FromValue(
-      arolla::Text(regex_view));
+  arolla::TypedValue typed_regex =
+      arolla::TypedValue::FromValue(arolla::Text(regex_view));
   ASSIGN_OR_RETURN(arolla::TypedValue result,
                    EvalExpr("strings.contains_regex",
                             {std::move(text_ref), typed_regex.AsRef()}));

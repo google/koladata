@@ -39,7 +39,6 @@
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -62,8 +61,7 @@ absl::StatusOr<DataSlice> ConvertWithAdoption(const DataBagPtr& db,
 class ObjOperator final : public arolla::QExprOperator {
  public:
   explicit ObjOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -115,8 +113,7 @@ class ObjOperator final : public arolla::QExprOperator {
 class ObjShapedOperator : public arolla::QExprOperator {
  public:
   explicit ObjShapedOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -151,8 +148,7 @@ class ObjShapedOperator : public arolla::QExprOperator {
 class ObjLikeOperator : public arolla::QExprOperator {
  public:
   explicit ObjLikeOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -187,8 +183,7 @@ class ObjLikeOperator : public arolla::QExprOperator {
 class UuObjOperator : public arolla::QExprOperator {
  public:
   explicit UuObjOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

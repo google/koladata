@@ -39,7 +39,6 @@
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -53,8 +52,7 @@ namespace {
 class NewOperator final : public arolla::QExprOperator {
  public:
   explicit NewOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -71,10 +69,9 @@ class NewOperator final : public arolla::QExprOperator {
           if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
-          ASSIGN_OR_RETURN(
-              bool overwrite_schema,
-              GetBoolArgument(frame.Get(overwrite_schema_slot),
-                              "overwrite_schema"));
+          ASSIGN_OR_RETURN(bool overwrite_schema,
+                           GetBoolArgument(frame.Get(overwrite_schema_slot),
+                                           "overwrite_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -97,8 +94,7 @@ class NewOperator final : public arolla::QExprOperator {
 class NewShapedOperator : public arolla::QExprOperator {
  public:
   explicit NewShapedOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -117,10 +113,9 @@ class NewShapedOperator : public arolla::QExprOperator {
           if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
-          ASSIGN_OR_RETURN(
-              bool overwrite_schema,
-              GetBoolArgument(frame.Get(overwrite_schema_slot),
-                              "overwrite_schema"));
+          ASSIGN_OR_RETURN(bool overwrite_schema,
+                           GetBoolArgument(frame.Get(overwrite_schema_slot),
+                                           "overwrite_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -144,8 +139,7 @@ class NewShapedOperator : public arolla::QExprOperator {
 class NewLikeOperator : public arolla::QExprOperator {
  public:
   explicit NewLikeOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -164,10 +158,9 @@ class NewLikeOperator : public arolla::QExprOperator {
           if (schema_slot.GetType() == arolla::GetQType<DataSlice>()) {
             schema = frame.Get(schema_slot.UnsafeToSlot<DataSlice>());
           }
-          ASSIGN_OR_RETURN(
-              bool overwrite_schema,
-              GetBoolArgument(frame.Get(overwrite_schema_slot),
-                              "overwrite_schema"));
+          ASSIGN_OR_RETURN(bool overwrite_schema,
+                           GetBoolArgument(frame.Get(overwrite_schema_slot),
+                                           "overwrite_schema"));
           std::optional<DataSlice> item_id;
           if (item_id_slot.GetType() == arolla::GetQType<DataSlice>()) {
             item_id = frame.Get(item_id_slot.UnsafeToSlot<DataSlice>());
@@ -177,11 +170,10 @@ class NewLikeOperator : public arolla::QExprOperator {
           const std::vector<DataSlice> attr_values =
               GetValueDataSlices(named_tuple_slot, frame);
           DataBagPtr result_db = DataBag::Empty();
-          ASSIGN_OR_RETURN(
-              auto result,
-              EntityCreator::Like(
-                  result_db, shape_and_mask_from, attr_names, attr_values,
-                  schema, overwrite_schema, item_id));
+          ASSIGN_OR_RETURN(auto result,
+                           EntityCreator::Like(result_db, shape_and_mask_from,
+                                               attr_names, attr_values, schema,
+                                               overwrite_schema, item_id));
           result.GetBag()->UnsafeMakeImmutable();
           frame.Set(output_slot, std::move(result));
           return absl::OkStatus();
@@ -192,8 +184,7 @@ class NewLikeOperator : public arolla::QExprOperator {
 class UuOperator : public arolla::QExprOperator {
  public:
   explicit UuOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -215,10 +206,9 @@ class UuOperator : public arolla::QExprOperator {
           }
           ASSIGN_OR_RETURN(absl::string_view seed,
                            GetStringArgument(frame.Get(seed_slot), "seed"));
-          ASSIGN_OR_RETURN(
-              bool overwrite_schema,
-              GetBoolArgument(frame.Get(overwrite_schema_slot),
-                              "overwrite_schema"));
+          ASSIGN_OR_RETURN(bool overwrite_schema,
+                           GetBoolArgument(frame.Get(overwrite_schema_slot),
+                                           "overwrite_schema"));
           auto attr_names = GetFieldNames(named_tuple_slot);
           auto values = GetValueDataSlices(named_tuple_slot, frame);
           auto db = koladata::DataBag::Empty();
@@ -278,8 +268,7 @@ absl::StatusOr<arolla::OperatorPtr> NewOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(VerifyNamedTuple(input_types[4]));
   RETURN_IF_ERROR(VerifyIsNonDeterministicToken(input_types[5]));
   return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<NewOperator>(input_types), input_types,
-      output_type);
+      std::make_shared<NewOperator>(input_types), input_types, output_type);
 }
 
 absl::StatusOr<arolla::OperatorPtr> NewShapedOperatorFamily::DoGetOperator(

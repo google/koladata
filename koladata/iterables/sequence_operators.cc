@@ -31,7 +31,6 @@
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
@@ -62,9 +61,9 @@ absl::StatusOr<arolla::Sequence> SequenceFrom1DSlice(const DataSlice& x) {
 
 struct SequenceFrom1DSliceOp final : public arolla::QExprOperator {
   explicit SequenceFrom1DSliceOp()
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            {arolla::GetQType<DataSlice>()},
-            arolla::GetSequenceQType(arolla::GetQType<DataSlice>()))) {}
+      : QExprOperator({arolla::GetQType<DataSlice>()},
+                      arolla::GetSequenceQType(arolla::GetQType<DataSlice>())) {
+  }
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -121,9 +120,8 @@ absl::StatusOr<DataSlice> SequenceTo1DSlice(const arolla::Sequence& x) {
 
 struct SequenceTo1DSliceOp final : public arolla::QExprOperator {
   explicit SequenceTo1DSliceOp()
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            {arolla::GetSequenceQType(arolla::GetQType<DataSlice>())},
-            arolla::GetQType<DataSlice>())) {}
+      : QExprOperator({arolla::GetSequenceQType(arolla::GetQType<DataSlice>())},
+                      arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -161,8 +159,7 @@ namespace {
 
 struct SequenceChainOp final : public arolla::QExprOperator {
   explicit SequenceChainOp(arolla::QTypePtr output_type)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            {GetSequenceQType(output_type)}, output_type)) {}
+      : QExprOperator({GetSequenceQType(output_type)}, output_type) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

@@ -33,7 +33,6 @@
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -47,11 +46,7 @@ namespace {
 
 class AggregateOperator : public arolla::QExprOperator {
  public:
-  explicit AggregateOperator(absl::Span<const arolla::QTypePtr> input_types,
-                             arolla::QTypePtr output_type)
-      : QExprOperator(
-            "kd.functor.aggregate",
-            arolla::QExprOperatorSignature::Get(input_types, output_type)) {}
+  using QExprOperator::QExprOperator;
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

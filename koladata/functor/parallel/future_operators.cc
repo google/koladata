@@ -15,7 +15,6 @@
 #include "koladata/functor/parallel/future_operators.h"
 
 #include <memory>
-#include <string>
 #include <utility>
 
 #include "absl/status/status.h"
@@ -30,7 +29,6 @@
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qexpr/operators/core/utility_operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_slot.h"
@@ -42,11 +40,7 @@ namespace {
 
 class AsFutureOperator : public arolla::QExprOperator {
  public:
-  explicit AsFutureOperator(absl::Span<const arolla::QTypePtr> input_types,
-                            arolla::QTypePtr output_type)
-      : QExprOperator(
-            "koda_internal.parallel.as_future",
-            arolla::QExprOperatorSignature::Get(input_types, output_type)) {}
+  using QExprOperator::QExprOperator;
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -96,12 +90,7 @@ namespace {
 
 class GetFutureValueForTestingOperator : public arolla::QExprOperator {
  public:
-  explicit GetFutureValueForTestingOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type)
-      : QExprOperator(
-            "koda_internal.parallel.get_future_value_for_testing",
-            arolla::QExprOperatorSignature::Get(input_types, output_type)) {}
+  using QExprOperator::QExprOperator;
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,

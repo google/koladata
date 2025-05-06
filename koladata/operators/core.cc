@@ -63,7 +63,6 @@
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -126,8 +125,7 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool overwrite_schema,
 class AttrsOperator : public arolla::QExprOperator {
  public:
   explicit AttrsOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataBagPtr>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataBagPtr>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -169,8 +167,7 @@ absl::StatusOr<DataSlice> WithAttrs(
 class WithAttrsOperator : public arolla::QExprOperator {
  public:
   explicit WithAttrsOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
@@ -228,8 +225,7 @@ class EnrichedOrUpdatedOperator final : public arolla::QExprOperator {
  public:
   EnrichedOrUpdatedOperator(absl::Span<const arolla::QTypePtr> input_types,
                             bool is_enriched_operator)
-      : arolla::QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataSlice>())),
+      : arolla::QExprOperator(input_types, arolla::GetQType<DataSlice>()),
         is_enriched_operator_(is_enriched_operator) {}
 
  private:

@@ -74,7 +74,6 @@
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operator_errors.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -106,8 +105,8 @@ bool IsNan(const T& item) {
 class AlignOperator : public arolla::QExprOperator {
  public:
   explicit AlignOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : arolla::QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::MakeTupleQType(input_types))) {}
+      : arolla::QExprOperator(input_types,
+                              arolla::MakeTupleQType(input_types)) {}
 
  private:
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
@@ -614,8 +613,7 @@ absl::StatusOr<std::vector<subslice::SlicingArgType>> ExtractSlicingArgs(
 class SubsliceOperator : public arolla::QExprOperator {
  public:
   explicit SubsliceOperator(absl::Span<const arolla::QTypePtr> types)
-      : QExprOperator(arolla::QExprOperatorSignature::Get(
-            types, arolla::GetQType<DataSlice>())) {}
+      : QExprOperator(types, arolla::GetQType<DataSlice>()) {}
 
  private:
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(

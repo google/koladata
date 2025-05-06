@@ -22,8 +22,8 @@
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "arolla/memory/frame.h"
+#include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
@@ -37,15 +37,12 @@ using ::arolla::FramePtr;
 using ::arolla::GetQType;
 using ::arolla::OperatorPtr;
 using ::arolla::QExprOperator;
-using ::arolla::QExprOperatorSignature;
 using ::arolla::QTypePtr;
 using ::arolla::TypedSlot;
 
 class NonDeterministicIdentityOp final : public QExprOperator {
  public:
-  NonDeterministicIdentityOp(absl::Span<const QTypePtr> input_types,
-                             QTypePtr output_type)
-      : QExprOperator(QExprOperatorSignature::Get(input_types, output_type)) {}
+  using QExprOperator::QExprOperator;
 
   absl::StatusOr<std::unique_ptr<BoundOperator>> DoBind(
       absl::Span<const TypedSlot> input_slots,

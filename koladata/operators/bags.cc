@@ -34,7 +34,6 @@
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/qexpr_operator_signature.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -50,8 +49,7 @@ class EnrichedOrUpdatedDbOperator final : public arolla::QExprOperator {
  public:
   EnrichedOrUpdatedDbOperator(absl::Span<const arolla::QTypePtr> input_types,
                               bool is_enriched_operator)
-      : arolla::QExprOperator(arolla::QExprOperatorSignature::Get(
-            input_types, arolla::GetQType<DataBagPtr>())),
+      : arolla::QExprOperator(input_types, arolla::GetQType<DataBagPtr>()),
         is_enriched_operator_(is_enriched_operator) {}
 
  private:
