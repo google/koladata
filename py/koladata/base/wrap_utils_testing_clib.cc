@@ -14,6 +14,10 @@
 //
 #include <Python.h>
 
+#include <optional>
+#include <utility>
+
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_slice_qtype.h"
 #include "py/arolla/abc/pybind11_utils.h"
