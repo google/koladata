@@ -50,6 +50,7 @@
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"

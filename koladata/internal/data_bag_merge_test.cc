@@ -39,7 +39,7 @@
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/qtype/types.h"

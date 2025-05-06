@@ -39,7 +39,7 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/triples.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
@@ -57,12 +57,6 @@ using ::koladata::internal::debug::Triples;
 
 using AttrMap =
     absl::flat_hash_map<DataItem, DataItem, DataItem::Hash, DataItem::Eq>;
-
-constexpr int kTwoSpaceIndentation = 2;
-
-constexpr absl::string_view kDictValuesNameReplacement = "<dict value>";
-constexpr absl::string_view kListItemsNameReplacement = "<list items>";
-constexpr absl::string_view kSchemaNameReplacement = "<object schemas>";
 
 struct DataBagFormatOption {
   int indentation = 0;

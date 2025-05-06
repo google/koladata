@@ -32,7 +32,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"

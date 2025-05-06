@@ -23,7 +23,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/operators/utils.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"

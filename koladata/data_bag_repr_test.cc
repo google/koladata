@@ -31,7 +31,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/uuid_utils.h"

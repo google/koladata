@@ -53,6 +53,7 @@
 #include "koladata/internal/op_utils/group_by_utils.h"
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/presence_and.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/repr_utils.h"

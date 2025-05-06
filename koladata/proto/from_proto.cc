@@ -44,7 +44,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/trampoline_executor.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/slices.h"
 #include "koladata/uuid_utils.h"

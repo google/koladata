@@ -27,7 +27,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/extract_utils.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/repr_utils.h"
 #include "arolla/util/cancellation.h"
 #include "arolla/util/status_macros_backport.h"

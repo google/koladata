@@ -48,6 +48,7 @@
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/op_utils/qexpr.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/object_factories.h"

@@ -39,7 +39,7 @@
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/s11n/codec.pb.h"
 #include "arolla/util/status.h"
 #include "arolla/util/status_macros_backport.h"

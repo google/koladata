@@ -42,6 +42,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/error.h"
 #include "koladata/internal/op_utils/has.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/repr_utils.h"

@@ -43,7 +43,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/traverser.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/schema_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_conversions/dataclasses_util.h"

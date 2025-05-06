@@ -53,6 +53,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/missing_value.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"

@@ -139,6 +139,7 @@ cc_library(
         "//koladata/internal:dtype",
         "//koladata/internal:error_utils",
         "//koladata/internal:missing_value",
+        "//koladata/internal:schema_attrs",
         "//koladata/internal:schema_utils",
         "//koladata/internal:types",
         "//py/koladata/base/py_conversions:dataclasses_util",

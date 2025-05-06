@@ -33,7 +33,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/agg_common_schema.h"
 #include "koladata/internal/op_utils/qexpr.h"
-#include "koladata/internal/schema_utils.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "koladata/schema_utils.h"

@@ -34,7 +34,7 @@ cc_library(
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
-        "//koladata/internal:schema_utils",
+        "//koladata/internal:schema_attrs",
         "//koladata/internal/op_utils:extract",
         "//koladata/internal/op_utils:traverser",
         "//py/koladata/base:to_py_object",
