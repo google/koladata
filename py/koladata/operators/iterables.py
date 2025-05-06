@@ -34,14 +34,14 @@ M = arolla.M
     'kd.iterables.make',
 )
 def make(*items, value_type_as=arolla.unspecified()):
-  """Creates an iterable from the given list of items, in the given order.
+  """Creates an iterable from the provided items, in the given order.
 
   The items must all have the same type (for example data slice, or data bag).
   However, in case of data slices, the items can have different shapes or
   schemas.
 
   Args:
-    *items: A list of items to be put into the iterable.
+    *items: Items to be put into the iterable.
     value_type_as: A value that has the same type as the items. It is useful to
       specify this explicitly if the list of items may be empty. If this is not
       specified and the list of items is empty, the iterable will have data
@@ -79,7 +79,7 @@ def make(*items, value_type_as=arolla.unspecified()):
     'kd.iterables.make_unordered',
 )
 def make_unordered(*items, value_type_as=arolla.unspecified()):
-  """Creates an iterable from the given list of items, in an arbitrary order.
+  """Creates an iterable from the provided items, in an arbitrary order.
 
   Having unspecified order allows the parallel execution to put the items into
   the iterable in the order they are computed, potentially increasing the amount
@@ -90,7 +90,7 @@ def make_unordered(*items, value_type_as=arolla.unspecified()):
   discrepancies when switching to parallel evaluation.
 
   Args:
-    *items: A list of items to be put into the iterable.
+    *items: Items to be put into the iterable.
     value_type_as: A value that has the same type as the items. It is useful to
       specify this explicitly if the list of items may be empty. If this is not
       specified and the list of items is empty, the iterable will have data

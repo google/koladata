@@ -209,3 +209,51 @@ def stream_interleave(*streams, value_type_as=arolla.unspecified()):
     A stream that interleaves the input streams, in unspecified order.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_make',
+    qtype_constraints=[
+        (
+            M.seq.all_equal(M.qtype.get_field_qtypes(P.items)),
+            'all items must have the same type',
+        ),
+        (
+            (P.value_type_as == arolla.UNSPECIFIED)
+            | (P.items == EMPTY_TUPLE)
+            | (P.value_type_as == M.qtype.get_field_qtype(P.items, 0)),
+            'items must be compatible with value_type_as',
+        ),
+    ],
+    qtype_inference_expr=get_stream_qtype(
+        M.qtype.conditional_qtype(
+            P.value_type_as == arolla.UNSPECIFIED,
+            M.qtype.conditional_qtype(
+                P.items == EMPTY_TUPLE,
+                qtypes.DATA_SLICE,
+                M.qtype.get_field_qtype(P.items, 0),
+            ),
+            P.value_type_as,
+        )
+    ),
+    deterministic=False,
+)
+def stream_make(*items, value_type_as=arolla.unspecified()):
+  """Creates a stream from the given items, in the given order.
+
+  The items must all have the same type (for example data slice, or data bag).
+  However, in case of data slices, the items can have different shapes or
+  schemas.
+
+  Args:
+    *items: Items to be put into the stream.
+    value_type_as: A value that has the same type as the items. It is useful to
+      specify this explicitly if the list of items may be empty. If this is not
+      specified and the list of items is empty, the iterable will have data
+      slice as the value type.
+
+  Returns:
+    An iterable with the given items.
+  """
+  raise NotImplementedError('implemented in the backend')

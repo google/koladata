@@ -22,6 +22,7 @@
 
 namespace koladata::functor::parallel {
 
+// go/keep-sorted start block=yes newline_separated=yes
 // koda_internal.parallel.stream_chain operator.
 // Chains the given streams together.
 class StreamChainOperatorFamily : public arolla::OperatorFamily {
@@ -36,6 +37,15 @@ class StreamInterleaveOperatorFamily final : public arolla::OperatorFamily {
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
+
+// koda_internal.parallel.stream_make operator.
+class StreamMakeOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
+// go/keep-sorted end
 
 }  // namespace koladata::functor::parallel
 

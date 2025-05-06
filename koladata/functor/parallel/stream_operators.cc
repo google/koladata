@@ -32,6 +32,7 @@
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/tuple_qtype.h"
+#include "arolla/qtype/typed_ref.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
@@ -161,6 +162,60 @@ StreamInterleaveOperatorFamily::DoGetOperator(
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<StreamInterleaveOp>(input_types, output_type),
       input_types, output_type);
+}
+
+namespace {
+
+class StreamMakeOp : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [input_slot = input_slots[0],
+         value_qtype = output_slot.GetType()->value_qtype(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* /*ctx*/, arolla::FramePtr frame) {
+          const int64_t arg_count = input_slot.SubSlotCount();
+          auto [stream, writer] = MakeStream(value_qtype, arg_count);
+          frame.Set(output_slot, std::move(stream));
+          for (int64_t i = 0; i < arg_count; ++i) {
+            writer->Write(
+                arolla::TypedRef::FromSlot(input_slot.SubSlot(i), frame));
+          }
+          std::move(*writer).Close();
+        });
+  }
+};
+
+}  // namespace
+
+// stream_make(TUPLE[T, ...], T, NON_DETERMINISTIC) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr> StreamMakeOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 3) {
+    return absl::InvalidArgumentError("requires exactly 3 arguments");
+  }
+  if (!arolla::IsTupleQType(input_types[0])) {
+    return absl::InvalidArgumentError("the first argument must be a tuple");
+  }
+  // The second argument is used for type inference and can be anything, so we
+  // don't handle input_types[1] here.
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[2]));
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  for (const auto& field : input_types[0]->type_fields()) {
+    if (field.GetType() != output_type->value_qtype()) {
+      return absl::InvalidArgumentError(
+          "all tuple fields must have the same type as the value type of the "
+          "output");
+    }
+  }
+  return std::make_shared<StreamMakeOp>(input_types, output_type);
 }
 
 }  // namespace koladata::functor::parallel
