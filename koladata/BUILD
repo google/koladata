@@ -758,6 +758,7 @@ cc_test(
     deps = [
         ":data_bag",
         ":data_slice",
+        ":object_factories",
         ":test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -805,8 +806,10 @@ cc_test(
         ":data_slice",
         ":test_utils",
         "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
         "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
         "//koladata/internal/testing:matchers",
         "//koladata/testing:matchers",
         "//koladata/testing:test_env",

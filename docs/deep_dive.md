@@ -392,8 +392,6 @@ systematically support attribute assignment of `OBJECT` values, such as
 `kd.schema.new_schema(x=kd.INT32).new(x=kd.item(1, schema=kd.OBJECT))`, Koda has
 the concept of schema *narrowing*.
 
-<!-- TODO: Make GetNarrowedSchema look at __schema__ in case of ItemId. -->
-
 For all other schemas apart from `OBJECT`, the narrowed schema of a DataSlice
 `ds` is simply the schema `ds.get_schema()`. For `OBJECT`, the narrowed schema
 is the common schema of all elements, or `OBJECT` if none exists.

@@ -307,7 +307,11 @@ absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& slice,
         absl::StrFormat("unsupported implicit cast from %v to %v",
                         slice.GetSchemaImpl(), schema));
   }
-  return CastTo(slice, schema, /*validate_schema=*/false);
+  return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto impl_res, schema::CastDataTo(impl, schema));
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(), schema,
+                             slice.GetBag());
+  });
 }
 
 absl::StatusOr<DataSlice> CastToExplicit(const DataSlice& slice,
@@ -340,7 +344,11 @@ absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& slice,
         "unsupported narrowing cast to %v for the given %v DataSlice", schema,
         slice.GetSchemaImpl()));
   }
-  return CastTo(slice, schema, /*validate_schema=*/false);
+  return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto impl_res, schema::CastDataTo(impl, schema));
+    return DataSlice::Create(std::move(impl_res), slice.GetShape(), schema,
+                             slice.GetBag());
+  });
 }
 
 absl::StatusOr<SchemaAlignedSlices> AlignSchemas(

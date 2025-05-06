@@ -30,6 +30,7 @@
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
@@ -95,16 +96,26 @@ absl::Status NoCommonSchemaError(absl::string_view lhs_name,
 }  // namespace
 
 internal::DataItem GetNarrowedSchema(const DataSlice& slice) {
+  auto get_data_schema = [](const DataSlice& slice) {
+    return slice.VisitImpl([&](const auto& impl) {
+      const auto& db = slice.GetBag();
+      if (db == nullptr) {
+        return schema::GetDataSchema(impl);
+      }
+      FlattenFallbackFinder fb_finder(*db);
+      auto fallbacks = fb_finder.GetFlattenFallbacks();
+      const auto& db_impl = db->GetImpl();
+      return schema::GetDataSchema(impl, &db_impl, fallbacks);
+    });
+  };
+
   const auto& schema = slice.GetSchemaImpl();
   if (schema == schema::kObject) {
-    return slice.VisitImpl([&](const auto& impl) {
-      if (auto data_schema = schema::GetDataSchema(impl);
-          data_schema.has_value()) {
-        return data_schema;
-      } else {
-        return schema;
-      }
-    });
+    if (auto data_schema = get_data_schema(slice); data_schema.has_value()) {
+      return data_schema;
+    } else {
+      return schema;
+    }
   }
   return schema;
 }

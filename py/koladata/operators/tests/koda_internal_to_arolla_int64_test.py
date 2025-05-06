@@ -93,9 +93,7 @@ class KodaToArollaInt64Test(parameterized.TestCase):
       expr_eval.eval(arolla_bridge.to_arolla_int64(bag().new(x=1)))
 
   def test_unsupported_object(self):
-    with self.assertRaisesRegex(
-        ValueError, 'unsupported narrowing cast to INT64'
-    ):
+    with self.assertRaisesRegex(ValueError, 'common schema'):
       expr_eval.eval(arolla_bridge.to_arolla_int64(bag().obj(x=1)))
 
   def test_non_data_slice_error(self):

@@ -28,8 +28,8 @@
 namespace koladata {
 
 // Returns the common schema of the underlying data. If the schema is ambiguous
-// (e.g. the slice holds ObjectIds, or the data is mixed but there is no common
-// type), the schema of the original slice is returned.
+// (e.g. if the data is mixed but there is no common type), the schema of the
+// original slice is returned.
 //
 // Example:
 //  * GetNarrowedSchema(kd.slice([1])) -> INT32.

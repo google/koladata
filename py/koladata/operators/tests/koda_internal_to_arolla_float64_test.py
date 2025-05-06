@@ -77,9 +77,7 @@ class KodaToArollaFloat64Test(parameterized.TestCase):
       expr_eval.eval(arolla_bridge.to_arolla_float64(bag().new(x=1.0)))
 
   def test_unsupported_object(self):
-    with self.assertRaisesRegex(
-        ValueError, 'unsupported narrowing cast to FLOAT64'
-    ):
+    with self.assertRaisesRegex(ValueError, 'common schema'):
       expr_eval.eval(arolla_bridge.to_arolla_float64(bag().obj(x=1.0)))
 
   def test_qtype_signatures(self):

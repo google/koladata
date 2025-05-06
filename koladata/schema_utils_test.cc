@@ -25,8 +25,10 @@
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -63,7 +65,7 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Item) {
         IsEquivalentTo(internal::DataItem(schema::kNone)));
   }
   {
-    // Object ids.
+    // Object ids - no bag.
     EXPECT_THAT(GetNarrowedSchema(test::DataItem(
                     internal::AllocateSingleObject(), schema::kObject)),
                 IsEquivalentTo(internal::DataItem(schema::kObject)));
@@ -76,6 +78,21 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Item) {
                 IsEquivalentTo(entity_schema));
     EXPECT_THAT(GetNarrowedSchema(test::DataItem(std::nullopt, entity_schema)),
                 IsEquivalentTo(entity_schema));
+  }
+  {
+    // Object ids - with bag.
+    auto db = DataBag::Empty();
+    auto obj = internal::AllocateSingleObject();
+    // No schema - fallback to OBJECT.
+    EXPECT_THAT(GetNarrowedSchema(test::DataItem(obj, schema::kObject, db)),
+                IsEquivalentTo(internal::DataItem(schema::kObject)));
+    // Has schema.
+    auto entity_schema = internal::AllocateExplicitSchema();
+    ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
+        internal::DataItem(obj), schema::kSchemaAttr,
+        internal::DataItem(entity_schema)));
+    EXPECT_THAT(GetNarrowedSchema(test::DataItem(obj, schema::kObject, db)),
+                IsEquivalentTo(internal::DataItem(entity_schema)));
   }
 }
 
@@ -108,6 +125,28 @@ TEST(SchemaUtilsTest, GetNarrowedSchema_Slice) {
                 IsEquivalentTo(entity_schema));
     EXPECT_THAT(GetNarrowedSchema(test::EmptyDataSlice(3, entity_schema)),
                 IsEquivalentTo(entity_schema));
+  }
+  {
+    // Object ids - with bag.
+    auto db = DataBag::Empty();
+    auto slice = test::AllocateDataSlice(3, schema::kObject, db);
+    // No schemas - fallback to OBJECT.
+    EXPECT_THAT(GetNarrowedSchema(slice),
+                IsEquivalentTo(internal::DataItem(schema::kObject)));
+    // Has schema.
+    auto entity_schema = internal::DataItem(internal::AllocateExplicitSchema());
+    ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
+        slice.slice(), schema::kSchemaAttr,
+        internal::DataSliceImpl::Create(
+            {entity_schema, entity_schema, entity_schema})));
+    EXPECT_THAT(GetNarrowedSchema(slice), IsEquivalentTo(entity_schema));
+    // Conflicting schema - fallback to OBJECT.
+    auto entity_schema_2 =
+        internal::DataItem(internal::AllocateExplicitSchema());
+    ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
+        slice.slice()[0], schema::kSchemaAttr, entity_schema_2));
+    EXPECT_THAT(GetNarrowedSchema(slice),
+                IsEquivalentTo(internal::DataItem(schema::kObject)));
   }
   {
     // Mixed.

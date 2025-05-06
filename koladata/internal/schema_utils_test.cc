@@ -26,11 +26,13 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_attrs.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/status.h"
@@ -550,6 +552,69 @@ TEST(SchemaUtilsTest, GetDataSchema) {
     EXPECT_EQ(GetDataSchema(DataSliceImpl::Create(
                   {DataItem(1), DataItem(schema::kInt32)})),
               DataItem());
+  }
+  {
+    // DataItem: With a provided bag.
+    auto bag = internal::DataBagImpl::CreateEmptyDatabag();
+    DataItem obj(internal::AllocateSingleObject());
+    EXPECT_EQ(GetDataSchema(obj), DataItem());
+    EXPECT_EQ(GetDataSchema(obj, &*bag), DataItem());
+
+    // Assign a schema.
+    DataItem schema(internal::AllocateExplicitSchema());
+    ASSERT_OK(bag->SetAttr(obj, schema::kSchemaAttr, schema));
+    EXPECT_EQ(GetDataSchema(obj), DataItem());
+    EXPECT_EQ(GetDataSchema(obj, &*bag), DataItem(schema));
+
+    // As a fallback.
+    auto bag_2 = internal::DataBagImpl::CreateEmptyDatabag();
+    EXPECT_EQ(GetDataSchema(obj, &*bag_2), DataItem());
+    EXPECT_EQ(GetDataSchema(obj, &*bag_2, {bag.get()}), DataItem(schema));
+
+    // Ignored fallback.
+    DataItem schema_2(internal::AllocateExplicitSchema());
+    ASSERT_OK(bag_2->SetAttr(obj, schema::kSchemaAttr, schema_2));
+    EXPECT_EQ(GetDataSchema(obj, &*bag_2, {bag.get()}), DataItem(schema_2));
+  }
+  {
+    // DataSlice: With a provided bag.
+    auto bag = internal::DataBagImpl::CreateEmptyDatabag();
+    auto objs = DataSliceImpl::Create(
+        {DataItem(internal::AllocateSingleObject()), DataItem(),
+         DataItem(internal::AllocateSingleObject())});
+    EXPECT_EQ(GetDataSchema(objs), DataItem());
+    EXPECT_EQ(GetDataSchema(objs, &*bag), DataItem());
+
+    // Assign a schema.
+    DataItem schema(internal::AllocateExplicitSchema());
+    ASSERT_OK(bag->SetAttr(objs, schema::kSchemaAttr,
+                           DataSliceImpl::Create({schema, schema, schema})));
+    EXPECT_EQ(GetDataSchema(objs), DataItem());
+    EXPECT_EQ(GetDataSchema(objs, &*bag), DataItem(schema));
+
+    // As a fallback.
+    auto bag_2 = internal::DataBagImpl::CreateEmptyDatabag();
+    EXPECT_EQ(GetDataSchema(objs, &*bag_2), DataItem());
+    EXPECT_EQ(GetDataSchema(objs, &*bag_2, {bag.get()}), DataItem(schema));
+
+    // Ignored fallback.
+    DataItem schema_2(internal::AllocateExplicitSchema());
+    ASSERT_OK(
+        bag_2->SetAttr(objs, schema::kSchemaAttr,
+                       DataSliceImpl::Create({schema_2, schema_2, schema_2})));
+    EXPECT_EQ(GetDataSchema(objs, &*bag_2, {bag.get()}), DataItem(schema_2));
+
+    // One missing - ambiguous.
+    auto bag_3 = internal::DataBagImpl::CreateEmptyDatabag();
+    ASSERT_OK(
+        bag_3->SetAttr(objs, schema::kSchemaAttr,
+                       DataSliceImpl::Create({DataItem(), schema, schema})));
+    EXPECT_EQ(GetDataSchema(objs, &*bag_3, {}), DataItem());
+    // Conflicting - ambiguous.
+    ASSERT_OK(
+        bag_3->SetAttr(objs, schema::kSchemaAttr,
+                       DataSliceImpl::Create({schema_2, schema, schema})));
+    EXPECT_EQ(GetDataSchema(objs, &*bag_3, {}), DataItem());
   }
 }
 

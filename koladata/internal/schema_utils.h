@@ -20,9 +20,11 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -151,10 +153,19 @@ bool VerifySchemaForItemIds(const internal::DataItem& schema_item);
 // guarantee that the argument is a schema.
 absl::Status VerifyDictKeySchema(const internal::DataItem& schema_item);
 
-// Returns the schema of the underlying data. If the schema is ambiguous (e.g.
-// the slice holds ObjectIds), and empty internal::DataItem is returned.
-internal::DataItem GetDataSchema(const internal::DataItem& item);
-internal::DataItem GetDataSchema(const internal::DataSliceImpl& slice);
+// Returns the schema of the underlying data. If the slice holds ObjectIds and
+// `db_impl` is provided, the `__schema__` will be extracted. If the schema is
+// ambiguous (e.g. the slice holds ObjectIds and `db_impl` is null), or there is
+// no common schema of the underlying data an empty internal::DataItem is
+// returned.
+internal::DataItem GetDataSchema(
+    const internal::DataItem& item,
+    const internal::DataBagImpl* /*absl_nullable*/ db_impl = nullptr,
+    internal::DataBagImpl::FallbackSpan fallbacks = {});
+internal::DataItem GetDataSchema(
+    const internal::DataSliceImpl& slice,
+    const internal::DataBagImpl* /*absl_nullable*/ db_impl = nullptr,
+    internal::DataBagImpl::FallbackSpan fallbacks = {});
 
 }  // namespace koladata::schema
 

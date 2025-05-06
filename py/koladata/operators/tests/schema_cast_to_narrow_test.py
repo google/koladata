@@ -69,6 +69,24 @@ class SchemaCastToNarrowTest(parameterized.TestCase):
     res = expr_eval.eval(kde.schema.cast_to_narrow(x, schema))
     testing.assert_equal(res, expected)
 
+  def test_explicit_entity_schema(self):
+    db = data_bag.DataBag.empty()
+    entity = db.new()
+    obj = entity.embed_schema()
+    frozen_bag = db.freeze()
+    entity = entity.with_bag(frozen_bag)
+    obj = obj.with_bag(frozen_bag)
+    res = expr_eval.eval(kde.schema.cast_to_narrow(obj, entity.get_schema()))
+    testing.assert_equal(res, entity)
+
+  def test_implicit_entity_schema_error(self):
+    db = data_bag.DataBag.empty()
+    obj = db.obj()
+    with self.assertRaisesRegex(
+        ValueError, "DataSlice cannot have an implicit schema as its schema"
+    ):
+      expr_eval.eval(kde.schema.cast_to_narrow(obj, obj.get_obj_schema()))
+
   def test_adoption(self):
     bag1 = data_bag.DataBag.empty()
     bag2 = data_bag.DataBag.empty()

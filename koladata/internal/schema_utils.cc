@@ -24,6 +24,7 @@
 #include <utility>
 
 #include "absl/base/no_destructor.h"
+#include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/functional/overload.h"
@@ -34,11 +35,13 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/missing_value.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/meta.h"
@@ -347,7 +350,10 @@ absl::Status VerifyDictKeySchema(const internal::DataItem& schema_item) {
   return absl::OkStatus();
 }
 
-internal::DataItem GetDataSchema(const internal::DataItem& item) {
+internal::DataItem GetDataSchema(
+    const internal::DataItem& item,
+    const internal::DataBagImpl* /*absl_nullable*/ db_impl,
+    internal::DataBagImpl::FallbackSpan fallbacks) {
   return item.VisitValue([&]<class T>(const T& value) {
     if constexpr (arolla::meta::contains_v<supported_primitive_dtypes, T>) {
       return internal::DataItem(GetDType<T>());
@@ -356,29 +362,53 @@ internal::DataItem GetDataSchema(const internal::DataItem& item) {
     } else if constexpr (std::is_same_v<T, internal::MissingValue>) {
       return internal::DataItem(kNone);
     } else {
-      // Ambiguous for ObjectId.
       static_assert(std::is_same_v<T, internal::ObjectId>);
-      return internal::DataItem();
+      if (db_impl == nullptr) {
+        return internal::DataItem();
+      }
+      auto schema_attr = db_impl->GetAttr(item, schema::kSchemaAttr, fallbacks);
+      return schema_attr.ok() ? *std::move(schema_attr) : internal::DataItem();
     }
   });
 }
 
-internal::DataItem GetDataSchema(const internal::DataSliceImpl& slice) {
+internal::DataItem GetDataSchema(
+    const internal::DataSliceImpl& slice,
+    const internal::DataBagImpl* /*absl_nullable*/ db_impl,
+    internal::DataBagImpl::FallbackSpan fallbacks) {
   CommonSchemaAggregator schema_agg;
   schema_agg.Add(kNone);  // All missing -> NONE.
-  bool contains_non_primitives = false;
+  bool is_ambiguous = false;
   slice.VisitValues([&]<class T>(const arolla::DenseArray<T>& values) {
     if constexpr (arolla::meta::contains_v<supported_primitive_dtypes, T>) {
       schema_agg.Add(GetDType<T>());
     } else if constexpr (std::is_same_v<T, DType>) {
       schema_agg.Add(kSchema);
     } else {
-      // Ambiguous for ObjectId.
       static_assert(std::is_same_v<T, internal::ObjectId>);
-      contains_non_primitives = true;
+      if (db_impl == nullptr) {
+        is_ambiguous = true;
+        return;
+      }
+      auto schema_attrs =
+          db_impl->GetAttr(slice, schema::kSchemaAttr, fallbacks);
+      if (!schema_attrs.ok() ||
+          slice.present_count() != schema_attrs->present_count()) {
+        is_ambiguous = true;
+        return;
+      }
+      // NOTE(b/413664265): this may construct an error that is subsequently
+      // discarded. Consider changing this behavior to check if it has a common
+      // schema instead with a bool.
+      if (auto common_schema = CommonSchema(*schema_attrs);
+          common_schema.ok()) {
+        schema_agg.Add(*common_schema);
+      } else {
+        is_ambiguous = true;
+      }
     }
   });
-  if (contains_non_primitives) {
+  if (is_ambiguous) {
     return internal::DataItem();
   }
   auto result_schema = std::move(schema_agg).Get();

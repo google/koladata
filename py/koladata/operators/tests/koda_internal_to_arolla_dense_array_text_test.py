@@ -82,9 +82,7 @@ class KodaToArollaDenseArrayTextTest(parameterized.TestCase):
       expr_eval.eval(arolla_bridge.to_arolla_dense_array_text(bag().new(x=[1])))
 
   def test_unsupported_object(self):
-    with self.assertRaisesRegex(
-        ValueError, 'unsupported narrowing cast to STRING'
-    ):
+    with self.assertRaisesRegex(ValueError, 'common schema'):
       expr_eval.eval(arolla_bridge.to_arolla_dense_array_text(bag().obj(x=[1])))
 
   def test_qtype_signatures(self):

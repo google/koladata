@@ -37,6 +37,7 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/expr/expr.h"
@@ -1574,6 +1575,30 @@ TEST(Casting, CastToNarrow) {
         CastToNarrow(test::DataItem(1, schema::kObject),
                      internal::DataItem(schema::kFloat32)),
         IsOkAndHolds(IsEquivalentTo(test::DataItem(1.0f, schema::kFloat32))));
+    EXPECT_THAT(CastToNarrow(test::MixedDataSlice<int, int64_t>(
+                                 {1, std::nullopt}, {std::nullopt, int64_t{2}},
+                                 schema::kObject),
+                             internal::DataItem(schema::kInt64)),
+                IsOkAndHolds(IsEquivalentTo(test::DataSlice<int64_t>(
+                    {int64_t{1}, int64_t{2}}, schema::kInt64))));
+    // Casting to narrowed explicit entity schema.
+    auto db = DataBag::Empty();
+    ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(db, {}, {}));
+    ASSERT_OK_AND_ASSIGN(auto obj, entity.EmbedSchema());
+    EXPECT_THAT(CastToNarrow(obj, entity.GetSchemaImpl()),
+                IsOkAndHolds(IsEquivalentTo(entity)));
+    // Casting to narrowed implicit entity schema fails.
+    ASSERT_OK_AND_ASSIGN(obj, ObjectCreator::FromAttrs(db, {}, {}));
+    ASSERT_OK_AND_ASSIGN(auto obj_schema, obj.GetObjSchema());
+    EXPECT_THAT(
+        CastToNarrow(obj, obj_schema.item()),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            HasSubstr(
+                "DataSlice cannot have an implicit schema as its schema")));
+    // But casting to OBJECT again naturally works.
+    EXPECT_THAT(CastToNarrow(obj, internal::DataItem(schema::kObject)),
+                IsOkAndHolds(IsEquivalentTo(obj)));
   }
 }
 

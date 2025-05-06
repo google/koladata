@@ -871,7 +871,7 @@ class UniversalConverter {
     schema::CommonSchemaAggregator schema_agg;
     for (size_t i = 0; i < size; ++i) {
       bldr.InsertIfNotSetAndUpdateAllocIds(i, value_stack_.top().item());
-      schema_agg.Add(GetNarrowedSchema(value_stack_.top()));
+      schema_agg.Add(value_stack_.top().GetSchemaImpl());
       value_stack_.pop();
     }
     ASSIGN_OR_RETURN(DataItem schema_item, std::move(schema_agg).Get(),
