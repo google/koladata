@@ -28,10 +28,10 @@ cc_library(
     name = "standard_deps",
     visibility = ["//visibility:public"],
     deps = [
-        "//koladata:all_qexpr_operators",
+        "//koladata/functor:operators",
+        "//koladata/operators",
         "//koladata/s11n",
-        "//py/koladata/operators:cc_operators",
-        "@com_google_arolla//arolla/expr/operators:bootstrap",
+        "//py/koladata/operators:base_cc_operators",
         "@com_google_arolla//arolla/expr/operators/all",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qexpr",
         "@com_google_arolla//arolla/qexpr/operators/all:operators_on_dense_arrays",

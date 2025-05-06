@@ -99,7 +99,7 @@ cc_test(
         "//koladata/internal:object_id",
         "//koladata/testing:matchers",
         "//koladata/testing:test_env",
-        "//py/koladata/operators:cc_operators",
+        "//py/koladata/operators:base_cc_operators",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_absl//absl/status:statusor",

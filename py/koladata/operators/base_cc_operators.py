@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Initializes Koda operators that are available in C++."""
+"""Initializes base Koda operators that are available in C++."""
 
 from koladata.operators import allocation as _
 from koladata.operators import annotation as _
@@ -30,7 +30,6 @@ from koladata.operators import jagged_shape as _
 from koladata.operators import json as _
 from koladata.operators import koda_internal as _
 from koladata.operators import koda_internal_iterables as _
-from koladata.operators import koda_internal_parallel as _
 from koladata.operators import lists as _
 from koladata.operators import masking as _
 from koladata.operators import math as _

@@ -14,8 +14,8 @@
 
 """Initializes Koda operators."""
 
-from koladata.operators import cc_operators as _
-from koladata.operators import koda_internal_parallel as _
+from koladata.operators import base_cc_operators as _
+from koladata.operators import extra_cc_operators as _
 from koladata.operators import optools
 from koladata.operators import py as _
 
