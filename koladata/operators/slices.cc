@@ -611,10 +611,10 @@ absl::StatusOr<std::vector<subslice::SlicingArgType>> ExtractSlicingArgs(
   return slices;
 }
 
-class SubsliceOperator : public arolla::InlineOperator {
+class SubsliceOperator : public arolla::QExprOperator {
  public:
   explicit SubsliceOperator(absl::Span<const arolla::QTypePtr> types)
-      : InlineOperator(arolla::QExprOperatorSignature::Get(
+      : QExprOperator(arolla::QExprOperatorSignature::Get(
             types, arolla::GetQType<DataSlice>())) {}
 
  private:
@@ -721,11 +721,10 @@ absl::StatusOr<DataSlice> ConcatOrStack(
 absl::StatusOr<DataSlice> EmptyShaped(const DataSlice::JaggedShape& shape,
                                       const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  ASSIGN_OR_RETURN(
-      auto ds,
-      DataSlice::Create(
-          internal::DataSliceImpl::Create(shape.size(), internal::DataItem()),
-          shape, internal::DataItem(schema::kMask)));
+  ASSIGN_OR_RETURN(auto ds,
+                   DataSlice::Create(internal::DataSliceImpl::Create(
+                                         shape.size(), internal::DataItem()),
+                                     shape, internal::DataItem(schema::kMask)));
   return ds.WithSchema(schema);  // Attaches a DataBag if needed.
 }
 
@@ -734,7 +733,8 @@ absl::StatusOr<DataSlice> GroupByIndices(
   if (slices.size() < 2) {
     return absl::InvalidArgumentError(
         absl::StrCat("_group_by_indices expected at least 2 arguments, but "
-                     "got ", slices.size()));
+                     "got ",
+                     slices.size()));
   }
 
   ASSIGN_OR_RETURN(auto sort_bool, GetBoolArgument(*slices[0], "sort"));
@@ -775,7 +775,6 @@ absl::StatusOr<DataSlice> GroupByIndices(
       internal::DataSliceImpl::Create(std::move(indices_array)),
       std::move(new_shape), internal::DataItem(schema::kInt64));
 }
-
 
 absl::StatusOr<DataSlice> Unique(const DataSlice& x, const DataSlice& sort) {
   if (x.is_item()) {
