@@ -792,6 +792,21 @@ Returns:
   Result DataSlice.
 ```
 
+### `kd.core.get_metadata(x)` {#kd.core.get_metadata}
+Aliases:
+
+- [kd.get_metadata](#kd.get_metadata)
+
+``` {.no-copy}
+Gets a metadata from a DataSlice.
+
+Args:
+  x: DataSlice to get metadata from.
+
+Returns:
+  Metadata DataSlice.
+```
+
 ### `kd.core.has_attr(x, attr_name)` {#kd.core.has_attr}
 Aliases:
 
@@ -1221,7 +1236,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x11597ae37e90>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x1371fb0113a0>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1303,7 +1318,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x11597ae37e90>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x1371fb0113a0>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -3669,6 +3684,9 @@ Returns:
 ```
 
 ### `kd.masking.mask_or(x, y)` {#kd.masking.mask_or}
+Aliases:
+
+- [kd.mask_or](#kd.mask_or)
 
 ``` {.no-copy}
 Applies pointwise MASK_OR operation on `x` and `y`.
@@ -8678,6 +8696,10 @@ Alias for [kd.schema.get_key_schema](#kd.schema.get_key_schema) operator.
 
 Alias for [kd.dicts.get_keys](#kd.dicts.get_keys) operator.
 
+### `kd.get_metadata(x)` {#kd.get_metadata}
+
+Alias for [kd.core.get_metadata](#kd.core.get_metadata) operator.
+
 ### `kd.get_ndim(x)` {#kd.get_ndim}
 
 Alias for [kd.slices.get_ndim](#kd.slices.get_ndim) operator.
@@ -8960,6 +8982,10 @@ Alias for [kd.masking.mask_equal](#kd.masking.mask_equal) operator.
 ### `kd.mask_not_equal(x, y)` {#kd.mask_not_equal}
 
 Alias for [kd.masking.mask_not_equal](#kd.masking.mask_not_equal) operator.
+
+### `kd.mask_or(x, y)` {#kd.mask_or}
+
+Alias for [kd.masking.mask_or](#kd.masking.mask_or) operator.
 
 ### `kd.max(x)` {#kd.max}
 
@@ -9625,14 +9651,15 @@ Adds a bag to the manager, which will persist it.
         loaded and will hence be present in get_loaded_bag_names().
 ```
 
-### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, output_dir, bag_names, with_all_dependents=False, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x1159790f42f0>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
+### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x1371f80d5a90>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
 
 ``` {.no-copy}
 Extracts the requested bags to the given output directory.
 
+    To extract all the bags managed by this manager, you can call this function
+    with the arguments bag_names=[''], with_all_dependents=True.
+
     Args:
-      output_dir: The directory to which the bags will be extracted. It must
-        either be empty or not exist yet.
       bag_names: The names of the bags that will be extracted. They must be a
         non-empty subset of get_available_bag_names(). The extraction will also
         include their transitive dependencies.
@@ -9640,6 +9667,8 @@ Extracts the requested bags to the given output directory.
         all dependents of bag_names. The dependents are computed transitively.
         All transitive dependencies of the dependents will also be included in
         the extraction.
+      output_dir: The directory to which the bags will be extracted. It must
+        either be empty or not exist yet.
       fs: All interactions with the file system for output_dir will happen via
         this instance.
 ```
@@ -9654,7 +9683,7 @@ Returns the names of all bags that are managed by this manager.
     persistence directory before this manager instance was created.
 ```
 
-### `kd_ext.PersistedIncrementalDataBagManager.get_bag(self, bag_name='', with_all_dependents=False)` {#kd_ext.PersistedIncrementalDataBagManager.get_bag}
+### `kd_ext.PersistedIncrementalDataBagManager.get_bag(self, bag_name='', *, with_all_dependents=False)` {#kd_ext.PersistedIncrementalDataBagManager.get_bag}
 
 ``` {.no-copy}
 Returns a bag that includes bag_name and its transitive dependencies.
@@ -9976,7 +10005,7 @@ Visualizes a DataSlice as a html widget.
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x11597829c350>)` {#kd_ext.PersistedIncrementalDataBagManager}
+### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x1371f80d5a60>)` {#kd_ext.PersistedIncrementalDataBagManager}
 
 ``` {.no-copy}
 Manager of a DataBag that is assembled from multiple smaller bags.
