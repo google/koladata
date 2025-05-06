@@ -22,6 +22,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "koladata/attr_error_utils.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -282,7 +283,7 @@ absl::StatusOr<DataSlice> GetNoFollowedSchema(const DataSlice& schema_ds) {
 
 absl::StatusOr<DataSlice> GetSchemaRepr(const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
-  auto lookup_status = ValidateAttrLookupAllowed(schema, "ignored error");
+  auto lookup_status = ValidateAttrLookupAllowed(schema);
   if (lookup_status.ok()) {
     ASSIGN_OR_RETURN(auto has_name, schema.HasAttr(schema::kSchemaNameAttr));
     if (!has_name.IsEmpty()) {

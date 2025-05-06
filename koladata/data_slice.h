@@ -634,25 +634,6 @@ absl::StatusOr<DataSlice> CastOrUpdateSchema(
     absl::string_view attr_name, bool overwrite_schema,
     internal::DataBagImpl& db_impl);
 
-// NOTE: See how this can be used for List / Dict access as well.
-//
-// Assembles an Error for a Set / Get attribute on primitives. The Error message
-// produced depends on whether the schema is primitive or not as well as on if
-// it is a DataSlice / DataItem and if it is a schema.
-absl::Status AttrOnPrimitiveError(const DataSlice& slice,
-                                  absl::string_view error_headline);
-
-// Validates that attr lookup is possible on the values of `impl`. If OK(),
-// `impl` is guaranteed to contain only Items and `db != nullptr`.
-absl::Status ValidateAttrLookupAllowed(const DataSlice& slice,
-                                       absl::string_view error_headline);
-
-// Checks that SetAttr can be legally called on this DataSlice.
-absl::Status CheckEligibleForSetAttr(const DataSlice& slice,
-                                     absl::string_view error_headline);
-absl::Status CheckEligibleForSetAttrWithAttrName(const DataSlice& slice,
-                                                 absl::string_view attr_name);
-
 }  // namespace koladata
 
 #endif  // KOLADATA_DATA_SLICE_H_

@@ -30,6 +30,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
+#include "koladata/attr_error_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -80,8 +81,8 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool overwrite_schema,
                                  absl::Span<const absl::string_view> attr_names,
                                  absl::Span<const DataSlice> attr_values) {
   DCHECK_EQ(attr_names.size(), attr_values.size());
-  RETURN_IF_ERROR(
-    CheckEligibleForSetAttr(obj, "failed to create attribute update"));
+  RETURN_IF_ERROR(CheckEligibleForSetAttr(obj)).SetPrepend()
+      << "failed to create attribute update; ";
   DataBagPtr result_db = DataBag::Empty();
   RETURN_IF_ERROR(AdoptStub(result_db, obj));
 
@@ -310,7 +311,8 @@ namespace {
 absl::Status ValidateGetAttrArguments(const DataSlice& obj,
                                       const DataSlice& attr_name) {
   RETURN_IF_ERROR(ExpectString("attr_name", attr_name));
-  RETURN_IF_ERROR(ValidateAttrLookupAllowed(obj, "failed to get attribute"));
+  RETURN_IF_ERROR(ValidateAttrLookupAllowed(obj)).SetPrepend()
+      << "failed to get attribute; ";
   return absl::OkStatus();
 }
 

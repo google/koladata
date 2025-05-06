@@ -168,6 +168,7 @@ cc_library(
     name = "data_slice",
     srcs = [
         "adoption_utils.cc",
+        "attr_error_utils.cc",
         "casting.cc",
         "data_slice.cc",
         "data_slice_repr.cc",
@@ -178,6 +179,7 @@ cc_library(
     ],
     hdrs = [
         "adoption_utils.h",
+        "attr_error_utils.h",
         "casting.h",
         "data_slice.h",
         "data_slice_op.h",
