@@ -75,12 +75,12 @@ class SchemaWithSchemaFromObjTest(parameterized.TestCase):
     o1 = db.new(x=1).embed_schema()
     o2 = db.new(x=1).embed_schema()
     x = ds([o1, o2, None])
-    with self.assertRaisesRegex(ValueError, 'no common schema'):
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       expr_eval.eval(kde.schema.with_schema_from_obj(x))
 
   def test_mixed_entity_and_primitive_schemas_error(self):
     x = ds([obj, 1, None])
-    with self.assertRaisesRegex(ValueError, 'no common schema'):
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       expr_eval.eval(kde.schema.with_schema_from_obj(x))
 
   def test_non_obj_schema_error(self):

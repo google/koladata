@@ -36,6 +36,7 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
+#include "koladata/error_repr_utils.h"
 #include "koladata/schema_utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
@@ -268,8 +269,9 @@ absl::StatusOr<DataSlice> AggCommonSchema(const DataSlice& x) {
         "aggregation is not supported for scalar DataItems");
   }
   const auto& shape = x.GetShape();
-  ASSIGN_OR_RETURN(
-      auto res, internal::AggCommonSchemaOp(x.slice(), shape.edges().back()));
+  ASSIGN_OR_RETURN(auto res,
+                   internal::AggCommonSchemaOp(x.slice(), shape.edges().back()),
+                   KodaErrorCausedByNoCommonSchemaError(_, x.GetBag()));
   return DataSlice::Create(std::move(res), shape.RemoveDims(shape.rank() - 1),
                            internal::DataItem(schema::kSchema), x.GetBag());
 }

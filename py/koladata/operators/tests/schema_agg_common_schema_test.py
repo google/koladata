@@ -17,6 +17,8 @@
 Extensive testing is done in C++ (including testing of common schema rules).
 """
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -190,10 +192,16 @@ class SchemaAggCommonSchemaTest(parameterized.TestCase):
       expr_eval.eval(kde.schema.agg_common_schema(ds([1])))
 
   def test_no_common_schema_error(self):
-    with self.assertRaisesRegex(ValueError, 'no common schema'):
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'cannot find a common schema\n\n the common schema(s) INT32\n the'
+            ' first conflicting schema ITEMID'
+        ),
+    ):
       expr_eval.eval(
           kde.schema.agg_common_schema(
-              ds([schema_constants.INT32, ENTITY_SCHEMA])
+              ds([schema_constants.ITEMID, schema_constants.INT32])
           )
       )
 
