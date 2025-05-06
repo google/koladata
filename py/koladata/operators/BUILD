@@ -380,6 +380,7 @@ py_library(
     deps = [
         ":arolla_bridge",
         ":assertion",
+        ":masking",
         ":op_repr",
         ":optools",
         ":qtype_utils",

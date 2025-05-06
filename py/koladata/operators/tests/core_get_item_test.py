@@ -52,16 +52,40 @@ class CoreGetItemTest(parameterized.TestCase):
   @parameterized.parameters(
       # List DataItem
       (list_item, slice(None), ds([1, 2, 3])),
+      (list_item, slice(ds(None)), ds([1, 2, 3])),
+      (list_item, slice(ds(None, schema_constants.INT32)), ds([1, 2, 3])),
+      (list_item, slice(ds(None, schema_constants.OBJECT)), ds([1, 2, 3])),
       (list_item, slice(None, 2), ds([1, 2])),
+      (list_item, slice(ds(None), 2), ds([1, 2])),
       (list_item, slice(1, None), ds([2, 3])),
+      (list_item, slice(1, ds(None)), ds([2, 3])),
+      (
+          list_item,
+          slice(1, ds(None), ds(None, schema_constants.OBJECT)),
+          ds([2, 3]),
+      ),
       (list_item, slice(1, -1), ds([2])),
+      (list_item, slice(ds(1), ds(-1)), ds([2])),
       (list_item, 1, ds(2)),
       (list_item, -1, ds(3)),
       (list_item, ds(None), ds(None, schema_constants.INT32)),
       (list_item, ds([1, -2, None]), ds([2, 2, None])),
       (nested_list_item, slice(None), ds([list_item, list_item2])),
+      (nested_list_item, slice(ds(None)), ds([list_item, list_item2])),
+      (
+          nested_list_item,
+          slice(ds(None, schema_constants.INT32)),
+          ds([list_item, list_item2]),
+      ),
       (nested_list_item, slice(None, 2), ds([list_item, list_item2])),
+      (nested_list_item, slice(ds(None), ds(2)), ds([list_item, list_item2])),
+      (
+          nested_list_item,
+          slice(ds(None, schema_constants.INT32), 2),
+          ds([list_item, list_item2]),
+      ),
       (nested_list_item, slice(1, None), ds([list_item2])),
+      (nested_list_item, slice(1, ds(None)), ds([list_item2])),
       (nested_list_item, slice(0, -1), ds([list_item])),
       (nested_list_item, 1, list_item2),
       (nested_list_item, -1, list_item2),
@@ -69,8 +93,15 @@ class CoreGetItemTest(parameterized.TestCase):
       (nested_list_item, ds([1, -1, None]), ds([list_item2, list_item2, None])),
       # List DataSlice
       (list_slice, slice(None), ds([[1, 2, 3], [4, 5, 6, 7]])),
+      (list_slice, slice(ds(None)), ds([[1, 2, 3], [4, 5, 6, 7]])),
+      (
+          list_slice,
+          slice(ds(None, schema_constants.INT32)),
+          ds([[1, 2, 3], [4, 5, 6, 7]]),
+      ),
       (list_slice, slice(None, 2), ds([[1, 2], [4, 5]])),
-      (list_slice, slice(1, None), ds([[2, 3], [5, 6, 7]])),
+      (list_slice, slice(ds(None), 2), ds([[1, 2], [4, 5]])),
+      (list_slice, slice(1, ds(None)), ds([[2, 3], [5, 6, 7]])),
       (list_slice, slice(1, -1), ds([[2], [5, 6]])),
       (list_slice, 1, ds([2, 5])),
       (list_slice, -1, ds([3, 7])),
@@ -135,7 +166,7 @@ class CoreGetItemTest(parameterized.TestCase):
   def test_invalid_qtype_error(self):
     with self.assertRaisesRegex(
         ValueError,
-        'unsupported narrowing cast to INT64 for the given STRING DataSlice',
+        'unsupported narrowing cast to INT64 for the given OBJECT DataSlice',
     ):
       expr_eval.eval(kde.get_item(ds([1, 2, 3]), slice('a', 3)))
 

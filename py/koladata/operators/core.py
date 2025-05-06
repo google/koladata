@@ -13,11 +13,13 @@
 # limitations under the License.
 
 """Core DataSlice operators."""
+from typing import Any
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.operators import arolla_bridge
 from koladata.operators import assertion
+from koladata.operators import masking
 from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
@@ -33,6 +35,11 @@ M = arolla.OperatorsContainer(jagged_shape)
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
+
+
+def _int64(x: Any) -> data_slice.DataSlice:
+  """Returns an eager kd.int64(x)."""
+  return data_slice.DataSlice.from_vals(x, schema_constants.INT64)
 
 
 @optools.as_backend_operator('kd.core._get_attr')
@@ -503,17 +510,17 @@ def _get_list_item_by_slice(x, s):
   normalize_slice_arg = arolla.types.DispatchOperator(
       'n, default',
       data_slice_case=arolla.types.DispatchCase(
-          arolla_bridge.to_arolla_int64(P.n),
+          arolla_bridge.to_arolla_int64(masking.coalesce(P.n, P.default)),
           condition=P.n == qtypes.DATA_SLICE,
       ),
       undefined_case=arolla.types.DispatchCase(
-          P.default,
+          arolla_bridge.to_arolla_int64(P.default),
           condition=P.n == arolla.UNSPECIFIED,
       ),
   )
-  start = normalize_slice_arg(tuple_ops.get_nth(s, 0), 0)
-  stop = normalize_slice_arg(tuple_ops.get_nth(s, 1), arolla.int64(2**63 - 1))
-  step = normalize_slice_arg(tuple_ops.get_nth(s, 2), 1)
+  start = normalize_slice_arg(tuple_ops.get_nth(s, 0), _int64(0))
+  stop = normalize_slice_arg(tuple_ops.get_nth(s, 1), _int64(2**63 - 1))
+  step = normalize_slice_arg(tuple_ops.get_nth(s, 2), _int64(1))
   x = assertion.with_assertion(
       x, step == 1, 'kd.core.get_item: slice with step != 1 is not supported'
   )

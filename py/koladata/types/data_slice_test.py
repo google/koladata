@@ -2646,6 +2646,143 @@ Assigned schema for values: SCHEMA(y=FLOAT32)"""),
     ):
       del l[0:2]
 
+  @parameterized.parameters(
+      # Varying stop.
+      (slice(None), ds([1, 2, 3])),
+      (slice(ds(None)), ds([1, 2, 3])),
+      (slice(ds(None, schema_constants.INT32)), ds([1, 2, 3])),
+      (slice(arolla.optional_int64(None)), ds([1, 2, 3])),
+      (slice(2), ds([1, 2])),
+      (slice(ds(2)), ds([1, 2])),
+      (slice(ds(2, schema_constants.OBJECT)), ds([1, 2])),
+      (slice(arolla.int64(2)), ds([1, 2])),
+      # Varying start.
+      (slice(None, None), ds([1, 2, 3])),
+      (slice(ds(None), None), ds([1, 2, 3])),
+      (slice(ds(None, schema_constants.INT32), None), ds([1, 2, 3])),
+      (slice(arolla.optional_int64(None), None), ds([1, 2, 3])),
+      (slice(1, None), ds([2, 3])),
+      (slice(ds(1), None), ds([2, 3])),
+      (slice(ds(1, schema_constants.OBJECT), None), ds([2, 3])),
+      (slice(arolla.int64(1), None), ds([2, 3])),
+      # Varying step (only None or 1 are allowed).
+      (slice(None, None, None), ds([1, 2, 3])),
+      (slice(None, None, ds(None)), ds([1, 2, 3])),
+      (slice(None, None, 1), ds([1, 2, 3])),
+      (slice(None, None, ds(1)), ds([1, 2, 3])),
+      (slice(None, None, arolla.int32(1)), ds([1, 2, 3])),
+  )
+  def test_list_subscript_with_slice_variations(self, slice_, expected):
+    # Tests that different slice variations are supported, as long as they can
+    # be considered ints.
+    list_ = bag().list([1, 2, 3])
+    testing.assert_equal(list_[slice_].no_bag(), expected)
+
+  @parameterized.parameters(
+      (
+          slice([1, 2]),
+          (
+              "unsupported type: list; during unpacking of the 'stop' slice"
+              ' argument'
+          ),
+      ),
+      (
+          slice('foo'),
+          (
+              'unsupported narrowing cast to INT64 for the given STRING'
+              " DataSlice; during unpacking of the 'stop' slice argument"
+          ),
+      ),
+      (
+          slice([1, 2], None),
+          (
+              "unsupported type: list; during unpacking of the 'start' slice"
+              ' argument'
+          ),
+      ),
+      (
+          slice('foo', None),
+          (
+              'unsupported narrowing cast to INT64 for the given STRING'
+              " DataSlice; during unpacking of the 'start' slice argument"
+          ),
+      ),
+  )
+  def test_list_subscript_with_slice_error(self, slice_, expected_error_msg):
+    list_ = bag().list([1, 2, 3])
+    with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
+      _ = list_[slice_]
+
+  @parameterized.parameters(
+      # Varying stop.
+      (slice(None), ds([-1, -1, -1])),
+      (slice(ds(None)), ds([-1, -1, -1])),
+      (slice(ds(None, schema_constants.INT32)), ds([-1, -1, -1])),
+      (slice(arolla.optional_int64(None)), ds([-1, -1, -1])),
+      (slice(2), ds([-1, -1, 3])),
+      (slice(ds(2)), ds([-1, -1, 3])),
+      (slice(ds(2, schema_constants.OBJECT)), ds([-1, -1, 3])),
+      (slice(arolla.int64(2)), ds([-1, -1, 3])),
+      # Varying start.
+      (slice(None, None), ds([-1, -1, -1])),
+      (slice(ds(None), None), ds([-1, -1, -1])),
+      (slice(ds(None, schema_constants.INT32), None), ds([-1, -1, -1])),
+      (slice(arolla.optional_int64(None), None), ds([-1, -1, -1])),
+      (slice(1, None), ds([1, -1, -1])),
+      (slice(ds(1), None), ds([1, -1, -1])),
+      (slice(ds(1, schema_constants.OBJECT), None), ds([1, -1, -1])),
+      (slice(arolla.int64(1), None), ds([1, -1, -1])),
+      # Varying step (only None or 1 are allowed).
+      (slice(None, None, None), ds([-1, -1, -1])),
+      (slice(None, None, ds(None)), ds([-1, -1, -1])),
+      (slice(None, None, 1), ds([-1, -1, -1])),
+      (slice(None, None, ds(1)), ds([-1, -1, -1])),
+      (slice(None, None, arolla.int32(1)), ds([-1, -1, -1])),
+  )
+  def test_list_ass_subscript_with_slice_variations(self, slice_, expected):
+    # Tests that different slice variations are supported, as long as they can
+    # be considered ints.
+    list_ = bag().list([1, 2, 3])
+    list_[slice_] = -1
+    testing.assert_equal(list_[:].no_bag(), expected)
+
+  @parameterized.parameters(
+      (
+          slice([1, 2]),
+          (
+              "unsupported type: list; during unpacking of the 'stop' slice"
+              ' argument'
+          ),
+      ),
+      (
+          slice('foo'),
+          (
+              'unsupported narrowing cast to INT64 for the given STRING'
+              " DataSlice; during unpacking of the 'stop' slice argument"
+          ),
+      ),
+      (
+          slice([1, 2], None),
+          (
+              "unsupported type: list; during unpacking of the 'start' slice"
+              ' argument'
+          ),
+      ),
+      (
+          slice('foo', None),
+          (
+              'unsupported narrowing cast to INT64 for the given STRING'
+              " DataSlice; during unpacking of the 'start' slice argument"
+          ),
+      ),
+  )
+  def test_list_ass_subscript_with_slice_error(
+      self, slice_, expected_error_msg
+  ):
+    list_ = bag().list([1, 2, 3])
+    with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
+      list_[slice_] = -1
+
   def test_list_op_schema_error(self):
     db = bag()
     l = db.list([1, 2, 3])

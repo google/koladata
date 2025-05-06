@@ -32,6 +32,7 @@
 #include "absl/strings/string_view.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
+#include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -529,29 +530,58 @@ absl::StatusOr<DataSlice> ConvertKeyToDataSlice(PyObject* key) {
   return key_ds;
 }
 
+struct Slice {
+  std::optional<int64_t> start;
+  std::optional<int64_t> stop;
+  std::optional<int64_t> step;
+};
+
+// Unpacks the provided Python slice into optional int64 values. Each value must
+// be interpretable as an INT64 DataItem.
+absl::StatusOr<Slice> UnpackSlice(PyObject* /*absl_nonnull*/ slice_o) {
+  arolla::python::DCheckPyGIL();
+  DCHECK(PySlice_Check(slice_o));
+  PySliceObject* slice = reinterpret_cast<PySliceObject*>(slice_o);
+  auto get_index = [](absl::string_view name,
+                      PyObject* v) -> absl::StatusOr<std::optional<int64_t>> {
+    ASSIGN_OR_RETURN(
+        DataSlice ds, DataItemFromPyValue(v),
+        _ << "during unpacking of the '" << name << "' slice argument");
+    ASSIGN_OR_RETURN(
+        ds, CastToNarrow(ds, internal::DataItem(schema::kInt64)),
+        _ << "during unpacking of the '" << name << "' slice argument");
+    if (ds.item().has_value()) {
+      return ds.item().value<int64_t>();
+    } else {
+      return std::nullopt;
+    }
+  };
+
+  ASSIGN_OR_RETURN(auto start, get_index("start", slice->start));
+  ASSIGN_OR_RETURN(auto stop, get_index("stop", slice->stop));
+  ASSIGN_OR_RETURN(auto step, get_index("step", slice->step));
+  return Slice{.start = start, .stop = stop, .step = step};
+}
+
 PyObject* /*absl_nullable*/ PyDataSlice_subscript(PyObject* self, PyObject* key) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
   if (key && PySlice_Check(key)) {
-    Py_ssize_t start, stop, step;
-    if (PySlice_Unpack(key, &start, &stop, &step) != 0) {
-      return nullptr;
-    }
-    if (step != 1) {
+    ASSIGN_OR_RETURN(Slice slice, UnpackSlice(key),
+                     arolla::python::SetPyErrFromStatus(_));
+    if (slice.step.value_or(1) != 1) {
       PyErr_SetString(PyExc_ValueError,
                       "Slice with step != 1 is not supported");
       return nullptr;
     }
-    std::optional<int64_t> stop_or_end =
-        stop == PY_SSIZE_T_MAX ? std::optional<int64_t>(std::nullopt)
-                               : std::optional<int64_t>(stop);
     if (self_ds.ShouldApplyListOp()) {
-      ASSIGN_OR_RETURN(auto res, self_ds.ExplodeList(start, stop_or_end),
+      ASSIGN_OR_RETURN(auto res,
+                       self_ds.ExplodeList(slice.start.value_or(0), slice.stop),
                        arolla::python::SetPyErrFromStatus(_));
       return WrapPyDataSlice(std::move(res));
     } else {
-      if (start != 0 || stop_or_end.has_value()) {
+      if (slice.start.has_value() || slice.stop.has_value()) {
         PyErr_SetString(PyExc_ValueError,
                         "slice with start or stop is not supported for "
                         "dictionaries");
@@ -575,60 +605,56 @@ int PyDataSlice_ass_subscript(PyObject* self, PyObject* key, PyObject* value) {
   std::optional<DataSlice> value_ds;
   const DataSlice& self_ds = UnsafeDataSliceRef(self);
   AdoptionQueue adoption_queue;
+  auto set_py_err_from_status = [](const absl::Status& status) {
+    arolla::python::SetPyErrFromStatus(status);
+    return -1;
+  };
   if (value) {
     ASSIGN_OR_RETURN(value_ds,
                      AssignmentRhsFromPyValue(self_ds, value, adoption_queue),
-                     (arolla::python::SetPyErrFromStatus(_), -1));
+                     set_py_err_from_status(_));
     RETURN_IF_ERROR(TryAdoptInto(adoption_queue, self_ds.GetBag()))
-        .With([&](const absl::Status& status) {
-          arolla::python::SetPyErrFromStatus(status);
-          return -1;
-        });
+        .With(set_py_err_from_status);
     value_ds = std::move(value_ds)->WithBag(self_ds.GetBag());
   }
-  absl::Status status;
   if (key && PySlice_Check(key)) {
-    Py_ssize_t start, stop, step;
-    if (PySlice_Unpack(key, &start, &stop, &step) != 0) {
-      return -1;
-    }
-    if (step != 1) {
+    ASSIGN_OR_RETURN(Slice slice, UnpackSlice(key), set_py_err_from_status(_));
+    if (slice.step.value_or(1) != 1) {
       PyErr_SetString(PyExc_ValueError,
                       "slices with step != 1 are not supported");
       return -1;
     }
-    std::optional<int64_t> stop_or_end =
-        stop == PY_SSIZE_T_MAX ? std::optional<int64_t>(std::nullopt)
-                               : std::optional<int64_t>(stop);
     if (value_ds.has_value()) {
-      status = self_ds.ReplaceInList(start, stop_or_end, *value_ds);
+      RETURN_IF_ERROR(
+          self_ds.ReplaceInList(slice.start.value_or(0), slice.stop, *value_ds))
+          .With(set_py_err_from_status);
     } else {
-      status = self_ds.RemoveInList(start, stop_or_end);
+      RETURN_IF_ERROR(self_ds.RemoveInList(slice.start.value_or(0), slice.stop))
+          .With(set_py_err_from_status);
     }
   } else {
     // NOTE: In case of Dicts, key.GetBag(), if key is a DataSlice, gets adopted
     // inside SetInDict. No adoption needed in case of Lists.
     ASSIGN_OR_RETURN(DataSlice key_ds, ConvertKeyToDataSlice(key),
-                     (arolla::python::SetPyErrFromStatus(_), -1));
+                     set_py_err_from_status(_));
     if (self_ds.ShouldApplyListOp()) {
       if (value_ds.has_value()) {
-        status = self_ds.SetInList(key_ds, *value_ds);
+        RETURN_IF_ERROR(self_ds.SetInList(key_ds, *value_ds))
+            .With(set_py_err_from_status);
       } else {
-        status = self_ds.RemoveInList(key_ds);
+        RETURN_IF_ERROR(self_ds.RemoveInList(key_ds))
+            .With(set_py_err_from_status);
       }
     } else {
       if (!value_ds.has_value()) {
         ASSIGN_OR_RETURN(value_ds,
                          DataSlice::Create(internal::DataItem(),
                                            internal::DataItem(schema::kNone)),
-                         (arolla::python::SetPyErrFromStatus(_), -1));
+                         set_py_err_from_status(_));
       }
-      status = self_ds.SetInDict(key_ds, *value_ds);
+      RETURN_IF_ERROR(self_ds.SetInDict(key_ds, *value_ds))
+          .With(set_py_err_from_status);
     }
-  }
-  if (!status.ok()) {
-    arolla::python::SetPyErrFromStatus(status);
-    return -1;
   }
   return 0;
 }
