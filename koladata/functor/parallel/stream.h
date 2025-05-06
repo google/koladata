@@ -20,6 +20,7 @@
 #include <utility>
 #include <variant>
 
+#include "absl/base/attributes.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "arolla/qtype/qtype.h"
@@ -150,11 +151,15 @@ struct StreamReader::TryReadResult
 
   // Returns a pointer to the next stream element; `nullptr` indicates that no
   // data were immediately available.
-  arolla::TypedRef* item() { return std::get_if<1>(this); }
+  arolla::TypedRef* item() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return std::get_if<1>(this);
+  }
 
   // Returns a pointer to the stream close status; `nullptr` indicates that
   // the stream may have more data to read.
-  absl::Status* close_status() { return std::get_if<2>(this); }
+  absl::Status* close_status() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return std::get_if<2>(this);
+  }
 };
 
 // Creates a new stream with the given value type and initial capacity.

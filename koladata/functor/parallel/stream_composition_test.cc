@@ -310,10 +310,13 @@ TEST(StreamChainTest, MultithreadedChaining) {
   auto output_reader = output_stream->MakeReader();
   std::vector<int> result;
   for (;;) {
-    if (auto* item = output_reader->TryRead().item()) {
+    auto try_read_result = output_reader->TryRead();
+    if (auto* item = try_read_result.item()) {
       ASSERT_OK_AND_ASSIGN(int value, item->As<int>());
       result.push_back(value);
     } else {
+      ASSERT_TRUE(try_read_result.close_status() != nullptr);
+      ASSERT_OK(*try_read_result.close_status());
       break;
     }
   }
