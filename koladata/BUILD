@@ -46,8 +46,8 @@ package_group(
 )
 
 cc_test(
-    name = "repr_utils_test",
-    srcs = ["repr_utils_test.cc"],
+    name = "error_repr_utils_test",
+    srcs = ["error_repr_utils_test.cc"],
     deps = [
         ":data_bag",
         ":data_slice",
@@ -171,8 +171,8 @@ cc_library(
         "casting.cc",
         "data_slice.cc",
         "data_slice_repr.cc",
+        "error_repr_utils.cc",
         "extract_utils.cc",
-        "repr_utils.cc",
         "schema_utils.cc",
         "shape_utils.cc",
     ],
@@ -182,8 +182,8 @@ cc_library(
         "data_slice.h",
         "data_slice_op.h",
         "data_slice_repr.h",
+        "error_repr_utils.h",
         "extract_utils.h",
-        "repr_utils.h",
         "schema_utils.h",
         "shape_utils.h",
     ],

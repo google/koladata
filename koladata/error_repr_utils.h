@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_REPR_UTILS_H_
-#define KOLADATA_REPR_UTILS_H_
+#ifndef KOLADATA_ERROR_REPR_UTILS_H_
+#define KOLADATA_ERROR_REPR_UTILS_H_
 
 #include <optional>
 
@@ -65,4 +65,4 @@ absl::Status CreateItemCreationError(const absl::Status& status,
 
 }  // namespace koladata
 
-#endif  // KOLADATA_REPR_UTILS_H_
+#endif  // KOLADATA_ERROR_REPR_UTILS_H_
