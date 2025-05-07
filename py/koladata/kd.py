@@ -186,8 +186,6 @@ S = _eager_only(I.self)
 eval = _eager_only(_expr_eval.eval)  # pylint: disable=redefined-builtin
 clear_eval_cache = _eager_only(_py_expr_eval_py_ext.clear_eval_cache)
 lazy = _eager_only(_kde_operators.kde)
-# TODO: Remove this alias once the migration is done.
-kde = _eager_only(_kde_operators.kde)
 named_container = _same_when_tracing(_expr_container.NamedContainer)
 check_inputs = _same_when_tracing(_type_checking.check_inputs)
 check_output = _same_when_tracing(_type_checking.check_output)
@@ -234,8 +232,6 @@ present = _same_when_tracing(_mask_constants.present)
 
 testing = _eager_only(_testing)
 eager = _same_when_tracing(_py_types.ModuleType('eager'))
-# TODO: Remove this alias once the migration is done.
-kdi = _same_when_tracing(eager)
 
 __all__ = [api for api in globals().keys() if not api.startswith('_')]
 
@@ -247,9 +243,9 @@ def __dir__():  # pylint: disable=invalid-name
 # `eager` has eager versions of everything, available even in tracing mode.
 def _SetUpEager():
   for name in __all__:
-    if name != 'eager' and name != 'kdi':
+    if name != 'eager':
       setattr(eager, name, globals()[name])
-  eager.__all__ = [x for x in __all__ if x != 'eager' and x != 'kdi']
+  eager.__all__ = [x for x in __all__ if x != 'eager']
   eager.__dir__ = lambda: eager.__all__
 
 

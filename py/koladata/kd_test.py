@@ -27,7 +27,6 @@ from koladata.types import jagged_shape
 from koladata.types import schema_constants
 from koladata.types import signature_utils
 
-kde = kd.lazy
 kdi = kd.eager
 I = kd.I
 V = kd.V
@@ -162,7 +161,9 @@ class KdTest(absltest.TestCase):
   def test_expr(self):
     kd.testing.assert_equal(
         kd.eval(
-            kde.add(S.x, I.y), kd.new(x=kd.slice([1, 2])), y=kd.slice([3, 4])
+            kd.lazy.add(S.x, I.y),
+            kd.new(x=kd.slice([1, 2])),
+            y=kd.slice([3, 4]),
         ),
         kd.slice([4, 6]),
     )
@@ -206,12 +207,12 @@ class KdTest(absltest.TestCase):
     self.assertIs(y, x)
 
   def test_get_name(self):
-    expr = kde.with_name(I.x + I.y, 'foo')
+    expr = kd.lazy.with_name(I.x + I.y, 'foo')
     self.assertEqual(kd.expr.get_name(expr), 'foo')
     self.assertIsNone(kd.expr.get_name(expr + I.z))
 
   def test_unwrap_named(self):
-    expr = kde.with_name(I.x + I.y, 'foo')
+    expr = kd.lazy.with_name(I.x + I.y, 'foo')
     kd.testing.assert_equal(kd.expr.unwrap_named(expr), I.x + I.y)
     with self.assertRaisesRegex(ValueError, 'non-named'):
       _ = kd.expr.unwrap_named(expr + I.z)
@@ -336,8 +337,8 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.expr.sub_inputs(expr, V, x=I.w), I.x + I.y + I.w)
 
   def test_sub_by_name(self):
-    foo = kde.with_name(I.x, 'foo')
-    bar = kde.with_name(I.y, 'bar')
+    foo = kd.lazy.with_name(I.x, 'foo')
+    bar = kd.lazy.with_name(I.y, 'bar')
     expr = foo + bar
     kd.testing.assert_equal(
         kd.expr.sub_by_name(expr, foo=I.z, baz=I.w), I.z + bar
@@ -349,18 +350,14 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(kd.expr.sub(expr, (I.x, I.z)), I.z + I.y)
 
   def test_eager(self):
-    self.assertCountEqual(kdi.__all__, dir(kdi))
-    self.assertCountEqual(set(dir(kd)) - set(dir(kdi)), ['eager', 'kdi'])
-    self.assertCountEqual(set(dir(kdi)) - set(dir(kd)), [])
-    for name in kdi.__all__:
-      self.assertIs(getattr(kdi, name), getattr(kd, name))
-    for bad_name in ['eager', 'kdi']:
+    self.assertCountEqual(kd.eager.__all__, dir(kd.eager))
+    self.assertCountEqual(set(dir(kd)) - set(dir(kd.eager)), ['eager'])
+    self.assertCountEqual(set(dir(kd.eager)) - set(dir(kd)), [])
+    for name in kd.eager.__all__:
+      self.assertIs(getattr(kd.eager, name), getattr(kd, name))
+    for bad_name in ['eager']:
       with self.assertRaises(AttributeError):
-        _ = getattr(kdi, bad_name)
-    self.assertIs(kd.kdi, kd.eager)
-
-  def test_lazy_deprecated_name(self):
-    self.assertIs(kd.kde, kd.lazy)
+        _ = getattr(kd.eager, bad_name)
 
   def test_missing_attribute_error_message(self):
     with self.assertRaisesRegex(
@@ -386,10 +383,10 @@ class KdTest(absltest.TestCase):
   def test_tracing_for_ops(self):
     with tracing_mode.enable_tracing():
       sum_op = kd.sum
-    kd.testing.assert_equal(sum_op, kde.sum)
+    kd.testing.assert_equal(sum_op, kd.lazy.sum)
     with tracing_mode.enable_tracing():
       math_abs_op = kd.math.abs
-    kd.testing.assert_equal(math_abs_op, kde.math.abs)
+    kd.testing.assert_equal(math_abs_op, kd.lazy.math.abs)
 
   def test_tracing_for_functions_error(self):
     with tracing_mode.enable_tracing():
@@ -408,11 +405,13 @@ class KdTest(absltest.TestCase):
   def test_tracing_for_with_name(self):
     with tracing_mode.enable_tracing():
       with_name_expr = kd.with_name(1, 'foo')
-    kd.testing.assert_equal(with_name_expr, kde.with_name(1, 'foo'))
+    kd.testing.assert_equal(with_name_expr, kd.lazy.with_name(1, 'foo'))
 
     with tracing_mode.enable_tracing():
       with_name_expr = kd.annotation.with_name(1, 'foo')
-    kd.testing.assert_equal(with_name_expr, kde.annotation.with_name(1, 'foo'))
+    kd.testing.assert_equal(
+        with_name_expr, kd.lazy.annotation.with_name(1, 'foo')
+    )
 
   def test_tracing_for_slice_and_item(self):
     with tracing_mode.enable_tracing():
@@ -597,7 +596,7 @@ class KdTest(absltest.TestCase):
 
   def test_functor_factorial(self):
     fn = kd.functor.expr_fn(
-        kde.cond(I.n == 0, V.stop, V.go)(n=I.n),
+        kd.lazy.cond(I.n == 0, V.stop, V.go)(n=I.n),
         go=kd.functor.expr_fn(I.n * V.rec(n=I.n - 1)),
         stop=kd.functor.expr_fn(1),
     )
@@ -634,7 +633,7 @@ class KdTest(absltest.TestCase):
       return x + 1
 
     # Can access and eval op.
-    expr = kde.core.kd_test_op(kd.slice([1, 2]))
+    expr = kd.lazy.core.kd_test_op(kd.slice([1, 2]))
     kd.testing.assert_equal(kd.eval(expr), kd.slice([2, 3]))
     kd.testing.assert_equal(
         kd.core.kd_test_op(kd.slice([1, 2])), kd.slice([2, 3])
@@ -690,7 +689,7 @@ class KdTest(absltest.TestCase):
 
   def test_eager_operator(self):
     self.assertIsInstance(kd.add, kd.optools.eager.EagerOperator)
-    kd.testing.assert_equal(kd.add.lazy_op, kde.add)
+    kd.testing.assert_equal(kd.add.lazy_op, kd.lazy.add)
 
   def test_function_boxing(self):
     fn = kd.expr.as_expr(lambda x: x + 1)
