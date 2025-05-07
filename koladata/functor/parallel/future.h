@@ -17,11 +17,12 @@
 
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/synchronization/mutex.h"
 #include "arolla/qtype/qtype.h"
@@ -31,6 +32,11 @@
 
 namespace koladata::functor::parallel {
 
+class Future;
+class FutureWriter;
+
+using FuturePtr = std::shared_ptr<Future>;
+
 // This class is a future in the cooperative execution environment. One can
 // register consumers to be notified when the value is ready.
 //
@@ -38,20 +44,21 @@ namespace koladata::functor::parallel {
 // (represented as absl::StatusOr).
 //
 // This class is thread-safe. Once the value is set, it is immutable.
+// It must be created through MakeFuture.
 class Future {
+  struct PrivateConstructorTag {};
+
  public:
   using ConsumerFn =
-      absl::AnyInvocable<void(absl::StatusOr<arolla::TypedValue>)>;
+      absl::AnyInvocable<void(absl::StatusOr<arolla::TypedValue>) &&>;
 
   // Creates a future with the given value qtype, without a value.
-  explicit Future(arolla::QTypePtr value_qtype) : value_qtype_(value_qtype) {};
+  Future(PrivateConstructorTag, arolla::QTypePtr value_qtype)
+      : value_qtype_(value_qtype) {};
 
   // Adds a consumer to be notified when the value is ready. If the value is
   // already set, the consumer is called immediately.
-  void AddConsumer(ConsumerFn consumer);
-
-  // Sets the value of the future. Notifies all consumers.
-  absl::Status SetValue(absl::StatusOr<arolla::TypedValue> value);
+  void AddConsumer(ConsumerFn&& consumer);
 
   // Gets the value of the future for testing purposes. Returns an error if the
   // future is not ready yet. Real code should rely on AddConsumer instead.
@@ -70,6 +77,10 @@ class Future {
   Future& operator=(Future&&) = delete;
 
  private:
+  // Sets the value of the future. Notifies all consumers. Must be called
+  // at most once.
+  void SetValue(absl::StatusOr<arolla::TypedValue> value);
+
   arolla::QTypePtr value_qtype_;
   arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
   absl::Mutex lock_;
@@ -77,9 +88,44 @@ class Future {
       ABSL_GUARDED_BY(lock_) = std::nullopt;
   // This will be empty after the value is set.
   std::vector<ConsumerFn> consumers_ ABSL_GUARDED_BY(lock_);
+
+  friend class FutureWriter;
+  friend std::pair<FuturePtr, FutureWriter> MakeFuture(
+      arolla::QTypePtr value_qtype);
 };
 
-using FuturePtr = std::shared_ptr<Future>;
+// This class can be used to set the value of a future. It is created together
+// with the future and is destroyed when SetValue is called, to guarantee that
+// we only set the value at most once.
+// It must be created through MakeFuture.
+// This is called a Promise in C++, so we should probably rename it to Promise
+// if we ever make this API public.
+class FutureWriter {
+ public:
+  void SetValue(absl::StatusOr<arolla::TypedValue> value) &&;
+
+  // If the writer is destroyed before SetValue is called, we write an
+  // "orphaned" error to the future.
+  ~FutureWriter();
+
+  // Allow move but not copy.
+  FutureWriter(FutureWriter&&) = default;
+  FutureWriter& operator=(FutureWriter&&) = default;
+  FutureWriter(const FutureWriter&) = delete;
+  FutureWriter& operator=(const FutureWriter&) = delete;
+
+ private:
+  explicit FutureWriter(FuturePtr /*absl_nonnull*/ future)
+      : future_(std::move(future)) {}
+
+  FuturePtr future_;
+
+  friend std::pair<FuturePtr, FutureWriter> MakeFuture(
+      arolla::QTypePtr value_qtype);
+};
+
+// Creates a future and a writer for it.
+std::pair<FuturePtr, FutureWriter> MakeFuture(arolla::QTypePtr value_qtype);
 
 }  // namespace koladata::functor::parallel
 

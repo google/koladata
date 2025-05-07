@@ -51,8 +51,8 @@ class AsFutureOperator : public arolla::QExprOperator {
             arolla::FramePtr frame) -> absl::Status {
           arolla::TypedValue input_value =
               arolla::TypedValue::FromSlot(input_slot, frame);
-          FuturePtr future = std::make_shared<Future>(input_slot.GetType());
-          RETURN_IF_ERROR(future->SetValue(std::move(input_value)));
+          auto [future, writer] = MakeFuture(input_slot.GetType());
+          std::move(writer).SetValue(std::move(input_value));
           frame.Set(output_slot.UnsafeToSlot<FuturePtr>(), std::move(future));
           return absl::OkStatus();
         });

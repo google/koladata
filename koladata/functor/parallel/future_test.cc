@@ -15,6 +15,7 @@
 #include "koladata/functor/parallel/future.h"
 
 #include <memory>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -35,26 +36,30 @@ using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::testing::TypedValueWith;
 
+template <class T>
+void MarkReinitialized(T&) {}
+
 TEST(FutureTest, Basic) {
-  FuturePtr x = std::make_shared<Future>(arolla::GetQType<int>());
-  EXPECT_EQ(x->value_qtype(), arolla::GetQType<int>());
-  EXPECT_EQ(arolla::Repr(x), "future[INT32]");
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  EXPECT_EQ(future->value_qtype(), arolla::GetQType<int>());
+  EXPECT_EQ(arolla::Repr(future), "future[INT32]");
   EXPECT_THAT(
-      x->GetValueForTesting(),
+      future->GetValueForTesting(),
       StatusIs(absl::StatusCode::kInvalidArgument, "future has no value"));
-  EXPECT_OK(x->SetValue(arolla::TypedValue::FromValue(1)));
-  EXPECT_THAT(x->GetValueForTesting(), IsOkAndHolds(TypedValueWith<int>(1)));
+  std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
+  EXPECT_THAT(future->GetValueForTesting(),
+              IsOkAndHolds(TypedValueWith<int>(1)));
 }
 
 TEST(FutureTest, FutureValueFingerprint) {
-  FuturePtr x = std::make_shared<Future>(arolla::GetQType<int>());
-  FuturePtr y = std::make_shared<Future>(arolla::GetQType<int>());
+  auto [x, x_writer] = MakeFuture(arolla::GetQType<int>());
+  auto [y, y_writer] = MakeFuture(arolla::GetQType<int>());
   auto x_fingerprint = arolla::FingerprintHasher("salt").Combine(x).Finish();
   EXPECT_EQ(x_fingerprint,
             arolla::FingerprintHasher("salt").Combine(x).Finish());
   EXPECT_NE(x_fingerprint,
             arolla::FingerprintHasher("salt").Combine(y).Finish());
-  EXPECT_OK(x->SetValue(arolla::TypedValue::FromValue(1)));
+  std::move(x_writer).SetValue(arolla::TypedValue::FromValue(1));
   EXPECT_EQ(x_fingerprint,
             arolla::FingerprintHasher("salt").Combine(x).Finish());
 }
@@ -67,7 +72,7 @@ TEST(FutureTest, Nullptr) {
 }
 
 TEST(FutureTest, ConsumersWithValue) {
-  FuturePtr x = std::make_shared<Future>(arolla::GetQType<int>());
+  auto [x, writer] = MakeFuture(arolla::GetQType<int>());
   int calls = 0;
   auto consumer = [&calls](absl::StatusOr<arolla::TypedValue> value) {
     ++calls;
@@ -75,14 +80,14 @@ TEST(FutureTest, ConsumersWithValue) {
   };
   x->AddConsumer(consumer);
   EXPECT_EQ(calls, 0);
-  EXPECT_OK(x->SetValue(arolla::TypedValue::FromValue(1)));
+  std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
   EXPECT_EQ(calls, 1);
   x->AddConsumer(consumer);
   EXPECT_EQ(calls, 2);
 }
 
 TEST(FutureTest, ConsumersWithErrorStatus) {
-  FuturePtr x = std::make_shared<Future>(arolla::GetQType<int>());
+  auto [x, writer] = MakeFuture(arolla::GetQType<int>());
   int calls = 0;
   auto consumer = [&calls](absl::StatusOr<arolla::TypedValue> value) {
     ++calls;
@@ -90,46 +95,50 @@ TEST(FutureTest, ConsumersWithErrorStatus) {
   };
   x->AddConsumer(consumer);
   EXPECT_EQ(calls, 0);
-  EXPECT_OK(x->SetValue(absl::OutOfRangeError("test error")));
+  std::move(writer).SetValue(absl::OutOfRangeError("test error"));
   EXPECT_EQ(calls, 1);
   x->AddConsumer(consumer);
   EXPECT_EQ(calls, 2);
 }
 
 TEST(FutureTest, SetValueTwice) {
-  FuturePtr x = std::make_shared<Future>(arolla::GetQType<int>());
-  EXPECT_OK(x->SetValue(arolla::TypedValue::FromValue(1)));
-  EXPECT_THAT(x->SetValue(arolla::TypedValue::FromValue(2)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "future already has a value"));
-}
-
-TEST(FutureTest, SetValueThenError) {
-  FuturePtr x = std::make_shared<Future>(arolla::GetQType<int>());
-  EXPECT_OK(x->SetValue(arolla::TypedValue::FromValue(1)));
-  EXPECT_THAT(x->SetValue(absl::OutOfRangeError("test error")),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "future already has a value"));
-}
-
-TEST(FutureTest, SetErrorThenValue) {
-  FuturePtr x = std::make_shared<Future>(arolla::GetQType<int>());
-  EXPECT_OK(x->SetValue(absl::OutOfRangeError("test error")));
-  EXPECT_THAT(x->SetValue(arolla::TypedValue::FromValue(1)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "future already has a value"));
+  auto [x, writer] = MakeFuture(arolla::GetQType<int>());
+  std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
+  MarkReinitialized(writer);  // Silence the use-after-move error for test.
+  ASSERT_DEATH(
+      { std::move(writer).SetValue(arolla::TypedValue::FromValue(2)); },
+      "Trying to set value on a moved-from FutureWriter");
 }
 
 TEST(FutureTest, SetValueWrongType) {
-  FuturePtr x = std::make_shared<Future>(arolla::GetQType<int>());
-  EXPECT_THAT(x->SetValue(arolla::TypedValue::FromValue(1.0)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "value type FLOAT64 does not match future type INT32"));
+  auto [x, writer] = MakeFuture(arolla::GetQType<int>());
+  ASSERT_DEATH(
+      { std::move(writer).SetValue(arolla::TypedValue::FromValue(1.0)); },
+      "value type FLOAT64 does not match future type INT32");
+}
+
+TEST(FutureTest, OrphanedWriter) {
+  int calls = 0;
+  auto consumer = [&calls](absl::StatusOr<arolla::TypedValue> value) {
+    ++calls;
+    ASSERT_THAT(value, StatusIs(absl::StatusCode::kCancelled, "orphaned"));
+  };
+  FuturePtr future;
+  {
+    auto [x, writer] = MakeFuture(arolla::GetQType<int>());
+    x->AddConsumer(consumer);
+    future = x;
+    EXPECT_EQ(calls, 0);
+    // Writer gets destroyed here.
+  }
+  EXPECT_EQ(calls, 1);
+  EXPECT_THAT(future->GetValueForTesting(),
+              StatusIs(absl::StatusCode::kCancelled, "orphaned"));
 }
 
 TEST(FutureTest, GetValueForTestingOnError) {
-  FuturePtr x = std::make_shared<Future>(arolla::GetQType<int>());
-  EXPECT_OK(x->SetValue(absl::OutOfRangeError("test error")));
+  auto [x, writer] = MakeFuture(arolla::GetQType<int>());
+  std::move(writer).SetValue(absl::OutOfRangeError("test error"));
   EXPECT_THAT(x->GetValueForTesting(),
               StatusIs(absl::StatusCode::kOutOfRange, "test error"));
 }

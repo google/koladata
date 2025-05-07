@@ -22,9 +22,9 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "koladata/expr/expr_eval.h"
@@ -35,7 +35,6 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 
@@ -47,41 +46,40 @@ class AsyncCountdown {
   AsyncCountdown(int64_t remaining_tasks, ExecutorPtr::weak_type executor,
                  arolla::expr::ExprOperatorPtr op,
                  std::vector<std::optional<arolla::TypedValue>> input_values,
-                 FuturePtr result)
+                 FutureWriter result_writer)
       : remaining_tasks_(remaining_tasks),
         executor_(std::move(executor)),
         op_(std::move(op)),
         input_values_(std::move(input_values)),
-        result_(std::move(result)) {}
+        result_writer_(std::move(result_writer)) {}
 
-  absl::Status SetInput(size_t index,
-                        absl::StatusOr<arolla::TypedValue> value) {
+  void SetInput(size_t index, absl::StatusOr<arolla::TypedValue> value) {
     if (!value.ok()) {
-      absl::MutexLock lock(&lock_);
-      if (error_reported_) {
-        return absl::OkStatus();
+      {
+        absl::MutexLock lock(&lock_);
+        if (error_reported_) {
+          return;
+        }
+        error_reported_ = true;
       }
-      error_reported_ = true;
-      return result_->SetValue(value.status());
+      std::move(result_writer_).SetValue(value.status());
+      return;
     }
     if (IsFutureQType(value->GetType())) {
       // This branch is currently not tested since there's no way to create
       // a future to a future in Python. However, keeping it here for
       // future-proofing.
-      return absl::InvalidArgumentError(
-          "futures to futures are not supported in async eval");
+      LOG(FATAL) << "futures to futures are not supported in async eval";
     }
     bool should_schedule = false;
     {
       absl::MutexLock lock(&lock_);
       if (index < 0 || index >= input_values_.size()) {
-        return absl::InvalidArgumentError(
-            absl::StrCat("index ", index, " is out of bounds [0, ",
-                         input_values_.size(), ")."));
+        LOG(FATAL) << "index " << index << " is out of bounds [0, "
+                   << input_values_.size() << ").";
       }
       if (input_values_[index].has_value()) {
-        return absl::InvalidArgumentError(
-            absl::StrCat("Setting input ", index, " twice."));
+        LOG(FATAL) << "Setting input " << index << " twice.";
       }
       input_values_[index] = std::move(*value);
       --remaining_tasks_;
@@ -89,14 +87,15 @@ class AsyncCountdown {
         should_schedule = true;
       }
     }
+    // Note that even though we don't hold the lock here, if should_schedule
+    // is true, remaining_tasks_ is 0 and therefore SetInput will not be
+    // called again, so error_reported_ cannot become true.
     if (should_schedule) {
-      return Schedule();
-    } else {
-      return absl::OkStatus();
+      Schedule();
     }
   }
 
-  absl::Status Schedule() {
+  void Schedule() {
     std::vector<std::optional<arolla::TypedValue>> input_values;
     {
       absl::MutexLock lock(&lock_);
@@ -105,21 +104,22 @@ class AsyncCountdown {
 
     auto executor = executor_.lock();
     if (executor == nullptr) {
-      return result_->SetValue(absl::InvalidArgumentError(
-          "the executor was destroyed while the async eval was still pending"));
+      std::move(result_writer_)
+          .SetValue(
+              absl::InvalidArgumentError("the executor was destroyed while the "
+                                         "async eval was still pending"));
+      return;
     }
 
     auto execute = [op = op_, input_values = std::move(input_values),
-                    result = result_]() {
+                    result_writer = std::move(result_writer_)]() mutable {
       std::vector<arolla::TypedRef> input_refs;
       input_refs.reserve(input_values.size());
       for (const auto& value : input_values) {
         if (!value) {
-          // TODO: Propagate this error instead of ignoring.
-          result
-              ->SetValue(absl::InternalError(
-                  "all inputs are done but one is still not set"))
-              .IgnoreError();
+          std::move(result_writer)
+              .SetValue(absl::InternalError(
+                  "all inputs are done but one is still not set"));
           return;
         }
         input_refs.push_back(value->AsRef());
@@ -127,18 +127,20 @@ class AsyncCountdown {
       absl::StatusOr<arolla::TypedValue> value =
           expr::EvalOpWithCompilationCache(op, input_refs);
       if (!value.ok() || !IsFutureQType(value->GetType())) {
-        // TODO: Propagate this error instead of ignoring.
-        result->SetValue(std::move(value)).IgnoreError();
+        std::move(result_writer).SetValue(std::move(value));
         return;
       }
       std::move(value)->UnsafeAs<FuturePtr>()->AddConsumer(
-          [result](absl::StatusOr<arolla::TypedValue> value) {
-            // TODO: Propagate this error instead of ignoring.
-            result->SetValue(std::move(value)).IgnoreError();
+          [result_writer = std::move(result_writer)](
+              absl::StatusOr<arolla::TypedValue> value) mutable {
+            std::move(result_writer).SetValue(std::move(value));
           });
     };
 
-    return executor->Schedule(std::move(execute));
+    absl::Status status = executor->Schedule(std::move(execute));
+    if (!status.ok()) {
+      std::move(result_writer_).SetValue(std::move(status));
+    }
   }
 
   // Disable copy and move.
@@ -162,7 +164,7 @@ class AsyncCountdown {
   arolla::expr::ExprOperatorPtr op_;
   std::vector<std::optional<arolla::TypedValue>> input_values_
       ABSL_GUARDED_BY(lock_);
-  FuturePtr result_;
+  FutureWriter result_writer_;
   absl::Mutex lock_;
 };
 
@@ -176,7 +178,7 @@ absl::StatusOr<FuturePtr> AsyncEvalWithCompilationCache(
     const ExecutorPtr& executor, const arolla::expr::ExprOperatorPtr& op,
     absl::Span<const arolla::TypedRef> input_values,
     arolla::QTypePtr result_qtype) {
-  FuturePtr result = std::make_shared<Future>(result_qtype);
+  auto [result, result_writer] = MakeFuture(result_qtype);
   int64_t input_count = input_values.size();
   int64_t remaining_tasks = 0;
   // It is important for the countdown to not have pointers to the futures
@@ -203,18 +205,18 @@ absl::StatusOr<FuturePtr> AsyncEvalWithCompilationCache(
   // are no cycles, so if for example executor is interrupted, the futures
   // will be destroyed automatically via the shared pointers.
   AsyncCountdownPtr countdown = std::make_shared<AsyncCountdown>(
-      remaining_tasks, executor, op, std::move(ready_input_values), result);
+      remaining_tasks, executor, op, std::move(ready_input_values),
+      std::move(result_writer));
 
   if (remaining_tasks == 0) {
-    RETURN_IF_ERROR(countdown->Schedule());
+    countdown->Schedule();
   } else {
     for (int64_t i = 0; i < input_count; ++i) {
       if (IsFutureQType(input_values[i].GetType())) {
         const FuturePtr& future = input_values[i].UnsafeAs<FuturePtr>();
         future->AddConsumer(
             [countdown, i](absl::StatusOr<arolla::TypedValue> value) {
-              // TODO: Propagate this error instead of ignoring.
-              countdown->SetInput(i, std::move(value)).IgnoreError();
+              countdown->SetInput(i, std::move(value));
             });
       }
     }

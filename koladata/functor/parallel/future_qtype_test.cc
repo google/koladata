@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -57,15 +58,15 @@ TEST(FutureQTypeTest, IsFutureQType) {
 }
 
 TEST(FutureQTypeTest, MakeFutureQValue) {
-  FuturePtr future = std::make_shared<Future>(arolla::GetQType<int>());
-  EXPECT_OK(future->SetValue(arolla::TypedValue::FromValue(1)));
+  auto [future, writer] = MakeFuture(arolla::GetQType<int>());
+  std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
   auto qvalue = MakeFutureQValue(future);
   EXPECT_THAT(qvalue.GenReprToken(), ReprTokenEq("future[INT32]"));
   ASSERT_EQ(qvalue.GetType(), GetFutureQType<int>());
   EXPECT_THAT(qvalue.UnsafeAs<FuturePtr>()->GetValueForTesting(),
               IsOkAndHolds(TypedValueWith<int>(1)));
   EXPECT_EQ(qvalue.GetFingerprint(), MakeFutureQValue(future).GetFingerprint());
-  FuturePtr future2 = std::make_shared<Future>(arolla::GetQType<int>());
+  auto [future2, writer2] = MakeFuture(arolla::GetQType<int>());
   EXPECT_NE(qvalue.GetFingerprint(),
             MakeFutureQValue(future2).GetFingerprint());
 }

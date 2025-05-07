@@ -14,21 +14,24 @@
 //
 #include "koladata/functor/parallel/future.h"
 
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
 
+#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/synchronization/mutex.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
 
 namespace koladata::functor::parallel {
 
-void Future::AddConsumer(ConsumerFn consumer) {
+void Future::AddConsumer(ConsumerFn&& consumer) {
   std::optional<absl::StatusOr<arolla::TypedValue>> value;
   {
     absl::MutexLock l(&lock_);
@@ -39,29 +42,27 @@ void Future::AddConsumer(ConsumerFn consumer) {
     value = value_;
   }
   // Important to not call this while holding the lock.
-  consumer(std::move(*value));
+  std::move(consumer)(std::move(*value));
 }
 
-absl::Status Future::SetValue(absl::StatusOr<arolla::TypedValue> value) {
+void Future::SetValue(absl::StatusOr<arolla::TypedValue> value) {
   if (value.ok() && value->GetType() != value_qtype_) {
-    return absl::InvalidArgumentError(
-        absl::StrCat("value type ", value->GetType()->name(),
-                     " does not match future type ", value_qtype_->name()));
+    LOG(FATAL) << "value type " << value->GetType()->name()
+               << " does not match future type " << value_qtype_->name();
   }
   std::vector<ConsumerFn> consumers;
   {
     absl::MutexLock l(&lock_);
     if (value_) {
-      return absl::InvalidArgumentError("future already has a value");
+      LOG(FATAL) << "future already has a value";
     }
     value_ = value;
     consumers.swap(consumers_);
   }
   for (auto& consumer : consumers) {
     // Important to not call this while holding the lock.
-    consumer(value);
+    std::move(consumer)(value);
   }
-  return absl::OkStatus();
 }
 
 absl::StatusOr<arolla::TypedValue> Future::GetValueForTesting() {
@@ -70,6 +71,27 @@ absl::StatusOr<arolla::TypedValue> Future::GetValueForTesting() {
     return absl::InvalidArgumentError("future has no value");
   }
   return *value_;
+}
+
+void FutureWriter::SetValue(absl::StatusOr<arolla::TypedValue> value) && {
+  if (future_ == nullptr) {
+    LOG(FATAL) << "Trying to set value on a moved-from FutureWriter";
+  }
+  future_->SetValue(std::move(value));
+  future_.reset();
+}
+
+FutureWriter::~FutureWriter() {
+  if (future_ != nullptr) {
+    future_->SetValue(absl::CancelledError("orphaned"));
+  }
+}
+
+std::pair<FuturePtr, FutureWriter> MakeFuture(arolla::QTypePtr value_qtype) {
+  auto future =
+      std::make_shared<Future>(Future::PrivateConstructorTag(), value_qtype);
+  auto future_writer = FutureWriter(future);
+  return {std::move(future), std::move(future_writer)};
 }
 
 }  // namespace koladata::functor::parallel

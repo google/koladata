@@ -273,7 +273,9 @@ cc_library(
     hdrs = ["future.h"],
     deps = [
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -384,14 +386,13 @@ cc_library(
         ":future_qtype",
         "//koladata/expr:expr_eval",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 
