@@ -115,7 +115,6 @@ class StreamImpl::Writer final : public StreamWriter {
 
  private:
   const std::weak_ptr<StreamImpl> weak_stream_;
-  const QTypePtr value_qtype_;
   std::atomic_flag closed_ = false;
 };
 
@@ -220,13 +219,13 @@ void StreamImpl::InternalClose(absl::Status&& status) {
 }
 
 StreamImpl::Writer::Writer(const std::shared_ptr<StreamImpl>& stream)
-    : weak_stream_(stream), value_qtype_(stream->value_qtype()) {}
+    : StreamWriter(stream->value_qtype()), weak_stream_(stream) {}
 
 bool StreamImpl::Writer::Orphaned() const { return weak_stream_.expired(); }
 
 void StreamImpl::Writer::Write(TypedRef value) {
-  if (value.GetType() != value_qtype_) {
-    LOG(FATAL) << "expected a value of type " << value_qtype_->name()
+  if (value.GetType() != value_qtype()) {
+    LOG(FATAL) << "expected a value of type " << value_qtype()->name()
                << ", got " << value.GetType()->name();
   }
   auto stream = weak_stream_.lock();
@@ -244,8 +243,8 @@ void StreamImpl::Writer::Write(TypedRef value) {
 }
 
 bool StreamImpl::Writer::TryWrite(arolla::TypedRef value) {
-  if (value.GetType() != value_qtype_) {
-    LOG(FATAL) << "expected a value of type " << value_qtype_->name()
+  if (value.GetType() != value_qtype()) {
+    LOG(FATAL) << "expected a value of type " << value_qtype()->name()
                << ", got " << value.GetType()->name();
   }
   auto stream = weak_stream_.lock();

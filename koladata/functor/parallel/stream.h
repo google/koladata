@@ -75,6 +75,9 @@ class Stream {
 // Note: It is strongly advised that all streams be explicitly closed.
 class StreamWriter {
  public:
+  // Returns the value type of the stream.
+  arolla::QTypePtr value_qtype() const { return value_qtype_; }
+
   // Returns true if there are no potential readers left.
   virtual bool Orphaned() const = 0;
 
@@ -110,8 +113,15 @@ class StreamWriter {
   StreamWriter(const StreamWriter&) = delete;
   StreamWriter& operator=(const StreamWriter&) = delete;
 
-  StreamWriter() = default;
   virtual ~StreamWriter() = default;
+
+ protected:
+  explicit StreamWriter(arolla::QTypePtr value_qtype)
+      : value_qtype_(value_qtype) {}
+
+ private:
+  // Value type of the stream.
+  const arolla::QTypePtr value_qtype_;
 };
 
 // Reader interface for the stream.

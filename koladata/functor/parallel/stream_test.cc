@@ -44,6 +44,7 @@ TEST(StreamTest, Basic) {
   constexpr int kItemCount = 1000;
   auto [stream, writer] = MakeStream(GetQType<int>());
   EXPECT_EQ(stream->value_qtype(), GetQType<int>());
+  EXPECT_EQ(writer->value_qtype(), GetQType<int>());
   {
     ASSERT_NE(writer, nullptr);
     for (int i = 0; i < kItemCount; ++i) {
@@ -63,6 +64,7 @@ TEST(StreamTest, Basic) {
 TEST(StreamTest, BasicWithNonTrivialType) {
   auto [stream, writer] = MakeStream(GetQType<std::string>());
   EXPECT_EQ(stream->value_qtype(), GetQType<std::string>());
+  EXPECT_EQ(writer->value_qtype(), GetQType<std::string>());
   {
     ASSERT_NE(writer, nullptr);
     for (int i = 0; i < 10; ++i) {
@@ -106,7 +108,6 @@ TEST(StreamTest, TryWriteAfterClose) {
 
 TEST(StreamTest, Subscription) {
   auto [stream, writer] = MakeStream(GetQType<int>(), 10);
-  EXPECT_EQ(stream->value_qtype(), GetQType<int>());
   auto reader = stream->MakeReader();
   {
     ASSERT_TRUE(reader->TryRead().empty());
