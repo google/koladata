@@ -105,7 +105,7 @@ cc_library(
     srcs = ["py_functors_base.cc"],
     hdrs = ["py_functors_base.h"],
     deps = [
-        ":py_utils",
+        ":py_args",
         ":wrap_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -169,19 +169,36 @@ cc_library(
 )
 
 cc_library(
+    name = "py_args",
+    srcs = ["py_args.cc"],
+    hdrs = ["py_args.h"],
+    deps = [
+        ":wrap_utils",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_arolla//py/arolla/abc:py_abc",
+        "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",
+    ],
+)
+
+cc_library(
     name = "py_utils",
     srcs = ["py_utils.cc"],
     hdrs = ["py_utils.h"],
     deps = [
         ":boxing",
-        ":wrap_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata:object_factories",
-        "//koladata/operators:lib",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -191,7 +208,6 @@ cc_library(
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_arolla//py/arolla/abc:py_abc",
-        "@com_google_arolla//py/arolla/py_utils",
         "@rules_python//python/cc:current_py_cc_headers",
     ],
 )

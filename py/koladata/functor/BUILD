@@ -58,7 +58,7 @@ cc_library(
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/functor:auto_variables",
-        "//py/koladata/base:py_utils",
+        "//py/koladata/base:py_args",
         "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",

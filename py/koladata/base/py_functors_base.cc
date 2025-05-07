@@ -29,7 +29,7 @@
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_storage.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "py/koladata/base/py_utils.h"
+#include "py/koladata/base/py_args.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "arolla/util/status_macros_backport.h"
 

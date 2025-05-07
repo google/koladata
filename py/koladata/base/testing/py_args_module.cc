@@ -22,12 +22,12 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/log/check.h"
-#include "py/koladata/base/py_utils.h"
+#include "py/koladata/base/py_args.h"
 
 namespace  koladata::python {
 namespace {
 
-constexpr const char* kThisModuleName = "koladata.types.testing.py_utils";
+constexpr const char* kThisModuleName = "koladata.types.testing.py_args";
 
 int ToInt(PyObject* arg) {
   DCHECK(PyLong_Check(arg));
@@ -232,7 +232,7 @@ PyObject* OptionalPositionalOnly(PyObject* /*self*/, PyObject* const* py_args,
   return tuple;
 }
 
-PyMethodDef kPyUtilsModule_methods[] = {
+PyMethodDef kPyArgsModule_methods[] = {
     {"pos_kw_2_args", (PyCFunction)PositionalKeyword_2_Args,
      METH_FASTCALL | METH_KEYWORDS,
      "Test function."},
@@ -263,18 +263,18 @@ PyMethodDef kPyUtilsModule_methods[] = {
     {nullptr} /* sentinel */
 };
 
-struct PyModuleDef py_utils_module = {
+struct PyModuleDef py_args_module = {
   PyModuleDef_HEAD_INIT,
   kThisModuleName,
   /*module docstring*/"A test module for Python utilities.",
   -1,
-  /*methods=*/kPyUtilsModule_methods,
+  /*methods=*/kPyArgsModule_methods,
 };
 
 // NOTE: This PyInit function must be named this way
 // (PyInit_{py_extension.name}). Otherwise it does not get initialized.
-PyMODINIT_FUNC PyInit_py_utils_py_ext(void) {
-  return PyModule_Create(&py_utils_module);
+PyMODINIT_FUNC PyInit_py_args_py_ext(void) {
+  return PyModule_Create(&py_args_module);
 }
 
 }  // namespace

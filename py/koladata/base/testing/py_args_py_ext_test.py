@@ -13,13 +13,13 @@
 # limitations under the License.
 
 from absl.testing import absltest
-from koladata.base.testing import py_utils_py_ext
+from koladata.base.testing import py_args_py_ext
 
 
 class ParseArgsTest(absltest.TestCase):
 
   def test_pos_kw_2_args(self):
-    pos_kw_2_args = py_utils_py_ext.pos_kw_2_args
+    pos_kw_2_args = py_args_py_ext.pos_kw_2_args
 
     self.assertEqual(pos_kw_2_args(a=9, b=5), 4)
     self.assertEqual(pos_kw_2_args(9, 5), 4)
@@ -43,7 +43,7 @@ class ParseArgsTest(absltest.TestCase):
       pos_kw_2_args(1, 2, 3)
 
   def test_pos_only_and_pos_kw_3_args(self):
-    pos_only_and_pos_kw_3_args = py_utils_py_ext.pos_only_and_pos_kw_3_args
+    pos_only_and_pos_kw_3_args = py_args_py_ext.pos_only_and_pos_kw_3_args
 
     self.assertEqual(
         pos_only_and_pos_kw_3_args(None, None, a=5, b=4, c=2), (5, 4, 2)
@@ -90,7 +90,7 @@ class ParseArgsTest(absltest.TestCase):
       pos_only_and_pos_kw_3_args(1, 2, 3, 4, 5, 6)
 
   def test_kwargs(self):
-    kwargs = py_utils_py_ext.kwargs
+    kwargs = py_args_py_ext.kwargs
 
     self.assertEqual(kwargs(a=1, b=2, c=3), (('a', 'b', 'c'), (1, 2, 3)))
     self.assertEqual(kwargs(), ((), ()))
@@ -106,7 +106,7 @@ class ParseArgsTest(absltest.TestCase):
       kwargs(11, 42, a=1, b=2)
 
   def test_pos_kw_2_and_kwargs(self):
-    pos_kw_2_and_kwargs = py_utils_py_ext.pos_kw_2_and_kwargs
+    pos_kw_2_and_kwargs = py_args_py_ext.pos_kw_2_and_kwargs
 
     self.assertEqual(
         pos_kw_2_and_kwargs(p=1, q=2, r=3),
@@ -135,7 +135,7 @@ class ParseArgsTest(absltest.TestCase):
       pos_kw_2_and_kwargs(None, None, b=1, p=4)
 
   def test_keyword_only(self):
-    kw_only = py_utils_py_ext.kw_only
+    kw_only = py_args_py_ext.kw_only
 
     self.assertEqual(kw_only(a=42), (42, None))
     self.assertEqual(kw_only(b=42), (None, 42))
@@ -146,7 +146,7 @@ class ParseArgsTest(absltest.TestCase):
       _ = kw_only(15, b=12, a=42)
 
   def test_keyword_only_and_positional_only(self):
-    kw_only_and_pos_only = py_utils_py_ext.kw_only_and_pos_only
+    kw_only_and_pos_only = py_args_py_ext.kw_only_and_pos_only
 
     self.assertEqual(kw_only_and_pos_only(12, 15), (12, 15, None, None))
     self.assertEqual(kw_only_and_pos_only(12, 15, b=17), (12, 15, None, 17))
@@ -158,7 +158,7 @@ class ParseArgsTest(absltest.TestCase):
       _ = kw_only_and_pos_only(15, a=42)
 
   def test_keyword_only_and_variadic_kwargs(self):
-    kw_only_and_var_kwargs = py_utils_py_ext.kw_only_and_var_kwargs
+    kw_only_and_var_kwargs = py_args_py_ext.kw_only_and_var_kwargs
 
     self.assertEqual(
         kw_only_and_var_kwargs(c=12, d='abc', b=42),
@@ -175,7 +175,7 @@ class ParseArgsTest(absltest.TestCase):
 
   def test_keyword_only_positional_kwargs_and_variadic_kwargs(self):
     kw_only_pos_only_and_var_kwargs = (
-        py_utils_py_ext.kw_only_pos_only_and_var_kwargs
+        py_args_py_ext.kw_only_pos_only_and_var_kwargs
     )
 
     self.assertEqual(
@@ -200,7 +200,7 @@ class ParseArgsTest(absltest.TestCase):
       _ = kw_only_pos_only_and_var_kwargs(15, 52, 37, a=42)
 
   def test_optional_positional_only(self):
-    opt_pos_only = py_utils_py_ext.optional_positional_only
+    opt_pos_only = py_args_py_ext.optional_positional_only
 
     self.assertEqual(opt_pos_only(12, 42, 24, 21), (12, 42, 24, 21))
     self.assertEqual(opt_pos_only(12, 42, pos_2=24, pos_1=21), (12, 42, 21, 24))

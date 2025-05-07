@@ -54,6 +54,7 @@
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/boxing.h"
+#include "py/koladata/base/py_args.h"
 #include "py/koladata/base/py_utils.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/types/pybind11_protobuf_wrapper.h"
@@ -1305,7 +1306,7 @@ PyObject* /*absl_nullable*/ PyDataBag_adopt(PyObject* self, PyObject* ds) {
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*db))
       .With(arolla::python::SetPyErrFromStatus);
 
-  return WrapPyDataSlice(slice->WithBag(std::move(db)));
+  return WrapPyDataSlice(slice->WithBag(db));
 }
 
 PyObject* /*absl_nullable*/ PyDataBag_adopt_stub(PyObject* self, PyObject* ds) {
@@ -1318,7 +1319,7 @@ PyObject* /*absl_nullable*/ PyDataBag_adopt_stub(PyObject* self, PyObject* ds) {
   }
   RETURN_IF_ERROR(AdoptStub(db, *slice))
       .With(arolla::python::SetPyErrFromStatus);
-  return WrapPyDataSlice(slice->WithBag(std::move(db)));
+  return WrapPyDataSlice(slice->WithBag(db));
 }
 
 PyObject* /*absl_nullable*/ PyDataBag_merge_fallbacks(PyObject* self, PyObject*) {

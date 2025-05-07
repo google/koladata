@@ -31,7 +31,7 @@
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/boxing.h"
-#include "py/koladata/base/py_utils.h"
+#include "py/koladata/base/py_args.h"
 #include "py/koladata/base/to_py_object.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/types/data_slice.h"

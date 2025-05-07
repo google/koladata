@@ -64,11 +64,11 @@ arolla_py_cc_deps(
 )
 
 koladata_py_extension(
-    name = "py_utils_py_ext",
+    name = "py_args_py_ext",
     testonly = True,
-    srcs = ["py_utils_module.cc"],
+    srcs = ["py_args_module.cc"],
     deps = [
-        "//py/koladata/base:py_utils",
+        "//py/koladata/base:py_args",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/log:check",
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
@@ -76,10 +76,10 @@ koladata_py_extension(
 )
 
 py_test(
-    name = "py_utils_py_ext_test",
-    srcs = ["py_utils_py_ext_test.py"],
+    name = "py_args_py_ext_test",
+    srcs = ["py_args_py_ext_test.py"],
     deps = [
-        ":py_utils_py_ext",
+        ":py_args_py_ext",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_absl_py//absl/testing:absltest",
     ],

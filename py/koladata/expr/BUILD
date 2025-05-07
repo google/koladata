@@ -219,7 +219,7 @@ cc_library(
         "//koladata/expr:expr_eval",
         "//koladata/internal:non_deterministic_token",
         "//koladata/operators:lib",
-        "//py/koladata/base:py_utils",
+        "//py/koladata/base:py_args",
         "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
