@@ -30,7 +30,9 @@ cc_library(
     name = "standard_deps",
     visibility = ["//visibility:public"],
     deps = [
-        "//koladata:all_qexpr_operators",
+        "//koladata/functor:operators",
+        "//koladata/iterables:operators",
+        "//koladata/operators",
         "//koladata/s11n",
         "//py/koladata/operators:base_cc_operators",
         "@com_google_arolla//arolla/expr/operators:bootstrap",
