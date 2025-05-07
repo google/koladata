@@ -1236,7 +1236,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x1371fb0113a0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x3075fe04e0c0>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1318,7 +1318,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x1371fb0113a0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x3075fe04e0c0>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -2778,14 +2778,14 @@ Returns:
 ### `kd.iterables.make(*items, value_type_as=unspecified)` {#kd.iterables.make}
 
 ``` {.no-copy}
-Creates an iterable from the given list of items, in the given order.
+Creates an iterable from the provided items, in the given order.
 
 The items must all have the same type (for example data slice, or data bag).
 However, in case of data slices, the items can have different shapes or
 schemas.
 
 Args:
-  *items: A list of items to be put into the iterable.
+  *items: Items to be put into the iterable.
   value_type_as: A value that has the same type as the items. It is useful to
     specify this explicitly if the list of items may be empty. If this is not
     specified and the list of items is empty, the iterable will have data
@@ -2798,7 +2798,7 @@ Returns:
 ### `kd.iterables.make_unordered(*items, value_type_as=unspecified)` {#kd.iterables.make_unordered}
 
 ``` {.no-copy}
-Creates an iterable from the given list of items, in an arbitrary order.
+Creates an iterable from the provided items, in an arbitrary order.
 
 Having unspecified order allows the parallel execution to put the items into
 the iterable in the order they are computed, potentially increasing the amount
@@ -2809,7 +2809,7 @@ order to prevent user code from depending on the order, and avoid
 discrepancies when switching to parallel evaluation.
 
 Args:
-  *items: A list of items to be put into the iterable.
+  *items: Items to be put into the iterable.
   value_type_as: A value that has the same type as the items. It is useful to
     specify this explicitly if the list of items may be empty. If this is not
     specified and the list of items is empty, the iterable will have data
@@ -9651,7 +9651,7 @@ Adds a bag to the manager, which will persist it.
         loaded and will hence be present in get_loaded_bag_names().
 ```
 
-### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x1371f80d5a90>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
+### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x3075f8268da0>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
 
 ``` {.no-copy}
 Extracts the requested bags to the given output directory.
@@ -10005,7 +10005,7 @@ Visualizes a DataSlice as a html widget.
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x1371f80d5a60>)` {#kd_ext.PersistedIncrementalDataBagManager}
+### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x3075f8268d70>)` {#kd_ext.PersistedIncrementalDataBagManager}
 
 ``` {.no-copy}
 Manager of a DataBag that is assembled from multiple smaller bags.
