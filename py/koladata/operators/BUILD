@@ -401,6 +401,7 @@ py_library(
     name = "strings",
     srcs = ["strings.py"],
     deps = [
+        ":arolla_bridge",
         ":jagged_shape",
         ":masking",
         ":optools",

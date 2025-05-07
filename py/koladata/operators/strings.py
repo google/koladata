@@ -17,6 +17,7 @@
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.fstring import fstring as _fstring
+from koladata.operators import arolla_bridge
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking as masking_ops
 from koladata.operators import optools
@@ -523,6 +524,69 @@ def regex_match(text, regex):  # pylint: disable=unused-argument
     `present` if `text` matches `regex`.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.strings.regex_find_all',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.text),
+        qtype_utils.expect_data_slice(P.regex),
+    ],
+)
+def regex_find_all(text, regex):  # pylint: disable=unused-argument
+  """Returns the captured groups of all matches of `regex` in `text`.
+
+  The strings in `text` are scanned left-to-right to find all non-overlapping
+  matches of `regex`. The order of the matches is preserved in the result. For
+  each match, the substring matched by each capturing group of `regex` is
+  recorded. For each item of `text`, the result contains a 2-dimensional value,
+  where the first dimension captures the number of matches, and the second
+  dimension captures the captured groups.
+
+  Examples:
+    # No capturing groups, but two matches:
+    kd.strings.regex_find_all(kd.item('foo'), kd.item('o'))
+      # -> kd.slice([[], []])
+    # One capturing group, three matches:
+    kd.strings.regex_find_all(kd.item('foo'), kd.item('(.)'))
+      # -> kd.slice([['f'], ['o'], ['o']])
+    # Two capturing groups:
+    kd.strings.regex_find_all(
+        kd.slice(['fooz', 'bar', '', None]),
+        kd.item('(.)(.)')
+    )
+      # -> kd.slice([[['f', 'o'], ['o', 'z']], [['b', 'a']], [], []])
+    # Get information about the entire substring of each non-overlapping match
+    # by enclosing the pattern in additional parentheses:
+    kd.strings.regex_find_all(
+        kd.slice([['fool', 'solo'], ['bar', 'boat']]),
+        kd.item('((.*)o)')
+    )
+      # -> kd.slice([[[['foo', 'fo']], [['solo', 'sol']]], [[], [['bo', 'b']]]])
+
+  Args:
+    text: (STRING) A string.
+    regex: (STRING) A scalar string that represents a regular expression (RE2
+      syntax).
+
+  Returns:
+    A DataSlice where each item of `text` is associated with a 2-dimensional
+    representation of its matches' captured groups.
+  """
+  arolla_text = arolla_bridge.to_arolla_dense_array_text(text)
+  arolla_regex = arolla_bridge.to_arolla_text(regex)
+  result_tuple = M.strings.findall_regex(arolla_text, arolla_regex)
+  get_nth = arolla.abc.lookup_operator('core.get_nth')
+  flat_res = get_nth(result_tuple, 0)
+  value_edge = get_nth(result_tuple, 1)
+  group_edge = get_nth(result_tuple, 2)
+  shape = M.jagged.add_dims(
+      jagged_shape_ops.get_shape(text), value_edge, group_edge
+  )
+  return arolla_bridge.to_data_slice(flat_res, shape).with_schema(
+      text.get_schema()
+  )
 
 
 @optools.add_to_registry()
