@@ -15,6 +15,7 @@
 import os
 import re
 import shutil
+from unittest import mock
 from absl.testing import absltest
 from koladata import kd
 from koladata.ext import persisted_incremental_data_bag_manager as pidbm
@@ -312,6 +313,154 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     self.assertEqual(manager.get_loaded_bag_names(), {''})
     self.assert_equivalent_bags(manager.get_bag(''), kd.bag())
     self.assertEqual(manager._metadata.version, '1.0.0')
+
+  def test_use_of_provided_file_system_interaction_object(self):
+    # The assertions below check that the sequence of method names called on the
+    # mocked file system are as expected. If that turns out to be a maintenance
+    # burden, then we can just check that the *sets* of method calls are equal.
+    # For the most part, we want to make sure that interactions with the file
+    # system are happening via the provided object. The extract_bags case is the
+    # most interesting one, because it involves interaction with two directories
+    # via two different file system interaction objects.
+
+    with self.subTest('EmptyInitialPersistenceDir'):
+      persistence_dir = self.create_tempdir().full_path
+      mocked_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      _ = pidbm.PersistedIncrementalDataBagManager(
+          persistence_dir, fs=mocked_fs
+      )
+      method_names_called = [c[0] for c in mocked_fs.method_calls]
+      self.assertEqual(
+          method_names_called,
+          [
+              'exists',  # Check if persistence_dir exists.
+              'glob',  # It does exist. Check if it is empty.
+              'glob',  # To compute the filename for the initial bag.
+              'exists',  # Check if such a file already exists. It does not.
+              'open',  # To write the initial bag.
+              'open',  # To write the metadata.
+          ],
+      )
+
+    with self.subTest('NonEmptyInitialPersistenceDir'):
+      persistence_dir = self.create_tempdir().full_path
+      # Initialize the directory:
+      _ = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+
+      # Start a new manager with the already initialized persistence_dir.
+      mocked_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      _ = pidbm.PersistedIncrementalDataBagManager(
+          persistence_dir, fs=mocked_fs
+      )
+      method_names_called = [c[0] for c in mocked_fs.method_calls]
+      self.assertEqual(
+          method_names_called,
+          [
+              'exists',  # Check if persistence_dir exists. It does.
+              'glob',  # See whether it is empty. It is not.
+              'open',  # To read the metadata.
+              'open',  # To read the initial bag.
+          ],
+      )
+
+    with self.subTest('add_bag'):
+      persistence_dir = self.create_tempdir().full_path
+      mocked_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      manager = pidbm.PersistedIncrementalDataBagManager(
+          persistence_dir, fs=mocked_fs
+      )
+
+      mocked_fs.reset_mock()
+      manager.add_bag('bag1', kd.bag(), dependencies=[''])
+      method_names_called = [c[0] for c in mocked_fs.method_calls]
+      self.assertEqual(
+          method_names_called,
+          [
+              'glob',  # To find the filename for the new bag.
+              'exists',  # Check if the new bag already exists. It does not.
+              'open',  # To write the new bag.
+              'open',  # To write the metadata.
+          ],
+      )
+
+    with self.subTest('get_bag'):
+      persistence_dir = self.create_tempdir().full_path
+      manager = pidbm.PersistedIncrementalDataBagManager(
+          persistence_dir, fs=mocked_fs
+      )
+      manager.add_bag('bag1', kd.bag(), dependencies=[''])
+
+      mocked_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      manager = pidbm.PersistedIncrementalDataBagManager(
+          persistence_dir, fs=mocked_fs
+      )
+      mocked_fs.reset_mock()
+      _ = manager.get_bag('bag1')
+      method_names_called = [c[0] for c in mocked_fs.method_calls]
+      self.assertEqual(
+          method_names_called,
+          [
+              'open',  # To read the bag.
+          ],
+      )
+
+    # This is the most interesting subtest. The reason is that extract_bags()
+    # uses two file system interaction objects: one for the original
+    # persistence_dir, and one for the output_dir.
+    with self.subTest('extract_bags'):
+      persistence_dir = self.create_tempdir().full_path
+      manager = pidbm.PersistedIncrementalDataBagManager(
+          persistence_dir,
+      )
+      manager.add_bag('bag1', kd.bag(), dependencies=[''])
+
+      original_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      manager = pidbm.PersistedIncrementalDataBagManager(
+          persistence_dir, fs=original_fs
+      )
+      original_fs.reset_mock()
+
+      output_dir = self.create_tempdir().full_path
+      output_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      manager.extract_bags(
+          bag_names=['bag1'], output_dir=output_dir, fs=output_fs
+      )
+
+      self.assertEqual(
+          original_fs.method_calls,
+          # To read bag1 from persistence_dir:
+          [
+              mock.call.open(
+                  os.path.join(persistence_dir, 'bag-000000000001.kd'), 'rb'
+              )
+          ],
+      )
+
+      output_fs_method_names_called = [c[0] for c in output_fs.method_calls]
+      output_fs_method_calls_arg_0 = [c[1][0] for c in output_fs.method_calls]
+      # All the calls to the output_fs are for the output_dir:
+      self.assertEqual(
+          [
+              arg0.startswith(output_dir)
+              for arg0 in output_fs_method_calls_arg_0
+          ],
+          [True] * len(output_fs.method_calls),
+      )
+      self.assertEqual(
+          output_fs_method_names_called,
+          [
+              # For nice error messages, `manager` does the following:
+              'exists',  # Check if output_dir exists. It does.
+              'glob',  # Check if output_dir is empty. It is.
+              # The implementation goes ahead and creates a new manager, which
+              # will do all the following:
+              'exists',  # Check if the output_dir exists. It does.
+              'glob',  # Check if output_dir is empty. It is.
+              # The new manager adds two bags. For each one, it calls the
+              # methods documented in the sub-test `add_bag` above.
+              *(['glob', 'exists', 'open', 'open'] * 2),
+          ],
+      )
 
   def test_get_bag_with_wrong_name(self):
     persistence_dir = self.create_tempdir().full_path
