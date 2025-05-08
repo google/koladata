@@ -254,6 +254,27 @@ def stream_make(*items, value_type_as=arolla.unspecified()):
       slice as the value type.
 
   Returns:
-    An iterable with the given items.
+    A stream with the given items.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_from_iterable',
+    qtype_constraints=[
+        qtype_utils.expect_iterable(P.iterable),
+    ],
+    qtype_inference_expr=get_stream_qtype(M.qtype.get_value_qtype(P.iterable)),
+    deterministic=False,
+)
+def stream_from_iterable(iterable):
+  """Creates a stream from the given iterable.
+
+  Args:
+    iterable: The iterable with the items to be put into the stream.
+
+  Returns:
+    A stream with the items from the given iterable, in the same order.
   """
   raise NotImplementedError('implemented in the backend')

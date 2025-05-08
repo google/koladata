@@ -25,6 +25,7 @@
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_composition.h"
 #include "koladata/functor/parallel/stream_qtype.h"
+#include "koladata/iterables/iterable_qtype.h"
 #include "koladata/operators/utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
@@ -33,6 +34,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/sequence/sequence.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
@@ -216,6 +218,56 @@ absl::StatusOr<arolla::OperatorPtr> StreamMakeOperatorFamily::DoGetOperator(
     }
   }
   return std::make_shared<StreamMakeOp>(input_types, output_type);
+}
+
+namespace {
+
+class StreamFromIterableOp : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [input_slot = input_slots[0].UnsafeToSlot<arolla::Sequence>(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* /*ctx*/, arolla::FramePtr frame) {
+          const arolla::Sequence& sequence = frame.Get(input_slot);
+          auto [stream, writer] =
+              MakeStream(sequence.value_qtype(), sequence.size());
+          frame.Set(output_slot, std::move(stream));
+          for (int64_t i = 0; i < sequence.size(); ++i) {
+            writer->Write(sequence.GetRef(i));
+          }
+          std::move(*writer).Close();
+        });
+  }
+};
+
+}  // namespace
+
+// stream_from_iterable(ITERABLE[T], NON_DETERMINISTIC) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr>
+StreamFromIterableOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
+  }
+  if (!iterables::IsIterableQType(input_types[0])) {
+    return absl::InvalidArgumentError("the first argument must be an iterable");
+  }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[1]));
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  if (output_type->value_qtype() != input_types[0]->value_qtype()) {
+    return absl::InvalidArgumentError(
+        "the value type of the output must be the same as the value type of "
+        "the input");
+  }
+  return std::make_shared<StreamFromIterableOp>(input_types, output_type);
 }
 
 }  // namespace koladata::functor::parallel

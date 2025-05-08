@@ -404,6 +404,7 @@ cc_library(
         ":stream",
         ":stream_composition",
         ":stream_qtype",
+        "//koladata/iterables:iterable_qtype",
         "//koladata/operators:lib",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -411,6 +412,7 @@ cc_library(
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/sequence",
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )
