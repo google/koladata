@@ -211,6 +211,8 @@ def stream_interleave(*streams, value_type_as=arolla.unspecified()):
   raise NotImplementedError('implemented in the backend')
 
 
+# Since the stream returned by this operator is immutable, this operator can be
+# kept deterministic.
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_make',
@@ -237,7 +239,6 @@ def stream_interleave(*streams, value_type_as=arolla.unspecified()):
             P.value_type_as,
         )
     ),
-    deterministic=False,
 )
 def stream_make(*items, value_type_as=arolla.unspecified()):
   """Creates a stream from the given items, in the given order.
@@ -259,6 +260,8 @@ def stream_make(*items, value_type_as=arolla.unspecified()):
   raise NotImplementedError('implemented in the backend')
 
 
+# Since the stream returned by this operator is immutable, this operator can be
+# kept deterministic.
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_from_iterable',
@@ -266,7 +269,6 @@ def stream_make(*items, value_type_as=arolla.unspecified()):
         qtype_utils.expect_iterable(P.iterable),
     ],
     qtype_inference_expr=get_stream_qtype(M.qtype.get_value_qtype(P.iterable)),
-    deterministic=False,
 )
 def stream_from_iterable(iterable):
   """Creates a stream from the given iterable.

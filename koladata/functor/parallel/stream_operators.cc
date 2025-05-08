@@ -198,15 +198,14 @@ class StreamMakeOp : public arolla::QExprOperator {
 absl::StatusOr<arolla::OperatorPtr> StreamMakeOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 3) {
-    return absl::InvalidArgumentError("requires exactly 3 arguments");
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
   }
   if (!arolla::IsTupleQType(input_types[0])) {
     return absl::InvalidArgumentError("the first argument must be a tuple");
   }
   // The second argument is used for type inference and can be anything, so we
   // don't handle input_types[1] here.
-  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[2]));
   if (!IsStreamQType(output_type)) {
     return absl::InvalidArgumentError("output type must be a stream");
   }
@@ -252,13 +251,12 @@ absl::StatusOr<arolla::OperatorPtr>
 StreamFromIterableOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 2) {
+  if (input_types.size() != 1) {
     return absl::InvalidArgumentError("requires exactly 2 arguments");
   }
   if (!iterables::IsIterableQType(input_types[0])) {
     return absl::InvalidArgumentError("the first argument must be an iterable");
   }
-  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[1]));
   if (!IsStreamQType(output_type)) {
     return absl::InvalidArgumentError("output type must be a stream");
   }
