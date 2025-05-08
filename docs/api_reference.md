@@ -1236,7 +1236,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x3075fe04e0c0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x32d67a930c80>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1318,7 +1318,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x3075fe04e0c0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x32d67a930c80>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -7777,6 +7777,49 @@ Returns:
   `text` that matches the capturing group of `regex`.
 ```
 
+### `kd.strings.regex_find_all(text, regex)` {#kd.strings.regex_find_all}
+
+``` {.no-copy}
+Returns the captured groups of all matches of `regex` in `text`.
+
+The strings in `text` are scanned left-to-right to find all non-overlapping
+matches of `regex`. The order of the matches is preserved in the result. For
+each match, the substring matched by each capturing group of `regex` is
+recorded. For each item of `text`, the result contains a 2-dimensional value,
+where the first dimension captures the number of matches, and the second
+dimension captures the captured groups.
+
+Examples:
+  # No capturing groups, but two matches:
+  kd.strings.regex_find_all(kd.item('foo'), kd.item('o'))
+    # -> kd.slice([[], []])
+  # One capturing group, three matches:
+  kd.strings.regex_find_all(kd.item('foo'), kd.item('(.)'))
+    # -> kd.slice([['f'], ['o'], ['o']])
+  # Two capturing groups:
+  kd.strings.regex_find_all(
+      kd.slice(['fooz', 'bar', '', None]),
+      kd.item('(.)(.)')
+  )
+    # -> kd.slice([[['f', 'o'], ['o', 'z']], [['b', 'a']], [], []])
+  # Get information about the entire substring of each non-overlapping match
+  # by enclosing the pattern in additional parentheses:
+  kd.strings.regex_find_all(
+      kd.slice([['fool', 'solo'], ['bar', 'boat']]),
+      kd.item('((.*)o)')
+  )
+    # -> kd.slice([[[['foo', 'fo']], [['solo', 'sol']]], [[], [['bo', 'b']]]])
+
+Args:
+  text: (STRING) A string.
+  regex: (STRING) A scalar string that represents a regular expression (RE2
+    syntax).
+
+Returns:
+  A DataSlice where each item of `text` is associated with a 2-dimensional
+  representation of its matches' captured groups.
+```
+
 ### `kd.strings.regex_match(text, regex)` {#kd.strings.regex_match}
 
 ``` {.no-copy}
@@ -9651,7 +9694,7 @@ Adds a bag to the manager, which will persist it.
         loaded and will hence be present in get_loaded_bag_names().
 ```
 
-### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x3075f8268da0>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
+### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x32d6782a5640>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
 
 ``` {.no-copy}
 Extracts the requested bags to the given output directory.
@@ -10005,7 +10048,7 @@ Visualizes a DataSlice as a html widget.
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x3075f8268d70>)` {#kd_ext.PersistedIncrementalDataBagManager}
+### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x32d6782a5610>)` {#kd_ext.PersistedIncrementalDataBagManager}
 
 ``` {.no-copy}
 Manager of a DataBag that is assembled from multiple smaller bags.
