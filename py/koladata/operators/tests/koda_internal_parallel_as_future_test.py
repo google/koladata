@@ -59,13 +59,16 @@ class KodaInternalParallelAsFutureTest(absltest.TestCase):
     future_int32_qtype = expr_eval.eval(
         koda_internal_parallel.get_future_qtype(arolla.INT32)
     )
+    stream_int32_qtype = expr_eval.eval(
+        koda_internal_parallel.get_stream_qtype(arolla.INT32)
+    )
     arolla.testing.assert_qtype_signatures(
         koda_internal_parallel.as_future,
         [
             (arolla.INT32, future_int32_qtype),
             (future_int32_qtype, future_int32_qtype),
         ],
-        possible_qtypes=[arolla.INT32, future_int32_qtype],
+        possible_qtypes=[arolla.INT32, future_int32_qtype, stream_int32_qtype],
     )
 
   def test_view(self):

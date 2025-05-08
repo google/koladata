@@ -74,9 +74,6 @@ def get_future_qtype(value_qtype):  # pylint: disable=unused-argument
 
 # Since futures holding a value are immutable, this operator can be kept
 # deterministic.
-# TODO: disallow creating futures to streams in this operator,
-# once we have streams, since passing a stream to an operator expecting a future
-# is much more likely to be a bug.
 @optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.parallel.as_future',
@@ -85,6 +82,12 @@ def get_future_qtype(value_qtype):  # pylint: disable=unused-argument
         P.arg,
         get_future_qtype(P.arg),
     ),
+    qtype_constraints=[
+        (
+            ~bootstrap.is_stream_qtype(P.arg),
+            'as_future cannot be applied to a stream',
+        ),
+    ],
 )
 def as_future(arg):  # pylint: disable=unused-argument
   """Wraps the given argument in a future, if not already one."""
