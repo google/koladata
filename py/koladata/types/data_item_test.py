@@ -264,12 +264,12 @@ class DataItemTest(parameterized.TestCase):
       (
           'large_string_truncation',
           ds('a' * 1000),
-          f"DataItem('{'a' * 256}...', schema: STRING)",
+          f"DataItem('{'a' * 128}'...'{'a' * 128}', schema: STRING)",
       ),
       (
           'large_bytestring_truncation',
           ds(b'a' * 1000),
-          f"DataItem(b'{'a' * 256}...', schema: BYTES)",
+          f"DataItem(b'{'a' * 128}'...'{'a' * 128}', schema: BYTES)",
       ),
   )
   def test_repr(self, item, expected_repr):

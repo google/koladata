@@ -639,18 +639,25 @@ TEST(DataItemTest, TestRepr) {
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Unit())), "present");
   EXPECT_EQ(DataItemRepr(DataItem()), "None");
   EXPECT_EQ(DataItemRepr(DataItem(), {.show_missing = true}), "missing");
-  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("aaaaaaaaaa")),
-                                  {.unbounded_type_max_len = 3}), "'aaa...'");
-  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("aaaaaaaaaa")),
-                         {.strip_quotes = true,
-                          .unbounded_type_max_len = 3}), "aaa...");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("abcdefghij")),
+                         {.unbounded_type_max_len = 3}),
+            "'ab'...'ij'");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("abcdefghij")),
+                         {.unbounded_type_max_len = 2}),
+            "'a'...'j'");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("abcdefghij")),
+                         {.strip_quotes = true, .unbounded_type_max_len = 3}),
+            "ab...ij");
   // Check unicode characters are not broken by truncation.
-  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("⽥⇠ⲇ▚☡")),
-                      {.unbounded_type_max_len = 3}), "'⽥⇠ⲇ...'");
-  EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("aaaaaaaaaa")),
-                         {.unbounded_type_max_len = 3}), "b'aaa...'");
-  EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("aaaaaaaaaa")),
-                         {.unbounded_type_max_len = -1}), "b'aaaaaaaaaa'");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Text("⽥a⇠ⲇ▚☡")),
+                         {.unbounded_type_max_len = 3}),
+            "'⽥a'...'▚☡'");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("abcdefghij")),
+                         {.unbounded_type_max_len = 3}),
+            "b'ab'...'ij'");
+  EXPECT_EQ(DataItemRepr(DataItem(arolla::Bytes("abcdefghij")),
+                         {.unbounded_type_max_len = -1}),
+            "b'abcdefghij'");
 }
 
 TEST(DataItemTest, IsNan) {

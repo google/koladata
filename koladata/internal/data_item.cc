@@ -16,6 +16,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -121,14 +122,65 @@ void DataItem::ArollaFingerprint(arolla::FingerprintHasher* hasher) const {
 }
 
 namespace {
-  std::string Truncate(absl::string_view str, int32_t max_len) {
-    if (max_len < 0 || str.length() <= max_len) {
-      return std::string(str);
+
+struct TruncatedString {
+  absl::string_view prefix;
+  std::optional<absl::string_view> suffix = std::nullopt;
+
+  std::string JoinAndEscapeText(bool quote) const {
+    auto escape = [&](absl::string_view str) {
+      // When we keep quotes, generally escape, but unescape double quotes
+      // since they are valid in a single quoted string. Although unescaping
+      // the double quotes is not necessary, it improves readability.
+      return absl::StrReplaceAll(absl::Utf8SafeCHexEscape(str),
+                                 {{"\\\"", "\""}});
+    };
+    if (quote) {
+      if (suffix.has_value()) {
+        return absl::StrCat("'", escape(prefix), "'...'", escape(*suffix), "'");
+      } else {
+        return absl::StrCat("'", escape(prefix), "'");
+      }
+    } else {
+      // When we strip quotes, we do not escape to preserve all the of the
+      // original content of the string.
+      if (suffix.has_value()) {
+        return absl::StrCat(prefix, "...", *suffix);
+      } else {
+        return std::string(prefix);
+      }
     }
-    size_t limit = 0;
-    U8_FWD_N(str.data(), limit, str.length(), max_len);
-    return absl::StrCat(str.substr(0, limit), "...");
   }
+
+  std::string JoinAndEscapeBytes() const {
+    if (suffix.has_value()) {
+      return absl::StrCat("b'", absl::CHexEscape(prefix), "'...'",
+                          absl::CHexEscape(*suffix), "'");
+    } else {
+      return absl::StrCat("b'", absl::CHexEscape(prefix), "'");
+    }
+  }
+};
+
+TruncatedString TruncateMiddle(absl::string_view str, int32_t max_len) {
+  if (max_len < 0 || str.length() <= max_len ||
+      max_len == std::numeric_limits<int32_t>::max()) {
+    return {.prefix = str};
+  }
+  int32_t half_len = (max_len + 1) / 2;
+  size_t prefix_limit = 0;
+  U8_FWD_N(str.data(), prefix_limit, str.length(), half_len);
+  size_t suffix_limit = str.length();
+  U8_BACK_N(reinterpret_cast<const uint8_t*>(str.data()), 0, suffix_limit,
+            half_len);
+  if (prefix_limit >= suffix_limit) {
+    return {.prefix = str};
+  } else {
+    return {.prefix = str.substr(0, prefix_limit),
+            .suffix = str.substr(suffix_limit)};
+  }
+}
+
 }  // namespace
 
 std::string DataItemRepr(const DataItem& item,
@@ -140,33 +192,19 @@ std::string DataItemRepr(const DataItem& item,
         } else if constexpr (std::is_same_v<T, arolla::Unit>) {
           return "present";
         } else if constexpr (std::is_same_v<T, arolla::Text>) {
-          std::string truncated = Truncate(absl::string_view(val),
-                                           option.unbounded_type_max_len);
-
-          // When we strip quotes, we do not escape to preserve all the of the
-          // original content of the string.
-          if (option.strip_quotes) {
-            return truncated;
-          }
-
-          // When we keep quotes, generally escape, but unescape double quotes
-          // since they are valid in a single quoted string. Although unescaping
-          // the double quotes is not necessary, it improves readability.
-          return absl::StrCat(
-              "'",
-              absl::StrReplaceAll(
-                  absl::Utf8SafeCHexEscape(truncated), {{"\\\"", "\""}}),
-              "'");
+          return TruncateMiddle(absl::string_view(val),
+                                option.unbounded_type_max_len)
+              .JoinAndEscapeText(!option.strip_quotes);
         } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
-          std::string truncated = Truncate(
-              absl::string_view(val), option.unbounded_type_max_len);
-          return absl::StrCat("b'", absl::CHexEscape(truncated), "'");
+          return TruncateMiddle(absl::string_view(val),
+                                option.unbounded_type_max_len)
+              .JoinAndEscapeBytes();
         } else if constexpr (std::is_same_v<T, arolla::expr::ExprQuote>) {
           return ExprQuoteDebugString(val);
         } else if constexpr (std::is_same_v<T, bool>) {
           return val ? "True" : "False";
-        } else if constexpr (std::is_same_v<T, float>
-                             || std::is_same_v<T, double>) {
+        } else if constexpr (std::is_same_v<T, float> ||
+                             std::is_same_v<T, double>) {
           static const double_conversion::DoubleToStringConverter converter(
               double_conversion::DoubleToStringConverter::
                       EMIT_TRAILING_ZERO_AFTER_POINT |

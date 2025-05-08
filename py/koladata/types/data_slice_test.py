@@ -627,7 +627,7 @@ class DataSliceTest(parameterized.TestCase):
           'large_string',
           ds(['a' * 1000]),
           'DataSlice([\n'
-          f"  '{'a' * 256}...',\n"
+          f"  '{'a' * 128}'...'{'a' * 128}',\n"
           '], schema: STRING, ndims: 1, size: 1)',
           f"[\n  '{'a' * 1000}',\n]",  # No truncation.
       ),
@@ -635,7 +635,7 @@ class DataSliceTest(parameterized.TestCase):
           'large_bytestring',
           ds([b'a' * 1000]),
           'DataSlice([\n'
-          f"  b'{'a' * 256}...',\n"
+          f"  b'{'a' * 128}'...'{'a' * 128}',\n"
           '], schema: BYTES, ndims: 1, size: 1)',
           f"[\n  b'{'a' * 1000}',\n]",  # No truncation.
       ),
@@ -4067,7 +4067,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     self.assertNotIn('schema-attr="c"', html_str)
 
     self.assertLess(
-        len(ds('a'*1000)._repr_with_params(unbounded_type_max_len=494, depth=2)),  # pylint: disable=protected-access
+        len(ds('a'*1000)._repr_with_params(unbounded_type_max_len=492, depth=2)),  # pylint: disable=protected-access
         500)  # Extra characters are necessary for quotes and ellipsis
 
     d = fns.obj(a=fns.obj(b=fns.obj(c=fns.obj(d=1))))

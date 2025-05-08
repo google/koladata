@@ -57,9 +57,9 @@ using ::koladata::internal::DataItem;
 using ::koladata::internal::DataItemRepr;
 using ::koladata::internal::ObjectId;
 
-// This is the suffix we expect when DataItemRepr truncates a string. Note
-// the additional single quote at the end.
-constexpr absl::string_view kTruncationSuffix = "...'";
+// This is the infix we expect when DataItemRepr truncates a string. Note the
+// additional single quotes.
+constexpr absl::string_view kTruncationInfix = "'...'";
 constexpr absl::string_view kAttrTemplate = "%s=%s";
 constexpr absl::string_view kAttrHtmlTemplate =
     "<span class=\"attr\">%s</span>=%s";
@@ -195,10 +195,19 @@ struct WrappingBehavior {
       // Wrap truncation suffix in a span to make it interactive. We can not
       // do this before escaping (e.g. by passing a truncation suffix to
       // DataItemRepr) because it would be escaped by the line above.
-      if (result.ends_with(kTruncationSuffix)) {
-        result = absl::StrCat(
-            result.substr(0, result.size() - kTruncationSuffix.length()),
-            "<span class=\"truncated\">...</span>'");
+      //
+      // TODO: This can result in false positives if all of the
+      // following criteria hold:
+      //   * A _DataItem_ is passed as input.
+      //   * strip_quotes=True.
+      //   * The original string contains kTruncationInfix as a substring.
+      // Consider moving the escaping logic to the internal::DataItem repr to
+      // avoid this.
+      if (size_t t_pos = result.find(kTruncationInfix);
+          t_pos != std::string::npos) {
+        result = absl::StrCat(result.substr(0, t_pos),
+                              "'<span class=\"truncated\">...</span>'",
+                              result.substr(t_pos + kTruncationInfix.size()));
       }
 
       UpdateHtmlCharCount(result.size(), initial_value_size);

@@ -1476,8 +1476,43 @@ TEST(DataSliceReprTest, FormatHtml_DictLongStrings) {
   ASSERT_OK_AND_ASSIGN(
     std::string result, DataSliceToStr(
         data_slice, {.format_html = true, .unbounded_type_max_len = 10}));
-  EXPECT_THAT(result, HasSubstr("a<span class=\"truncated\">...</span>'"));
-  EXPECT_THAT(result, HasSubstr("b<span class=\"truncated\">...</span>'"));
+  EXPECT_THAT(result, HasSubstr("a'<span class=\"truncated\">...</span>'"));
+  EXPECT_THAT(result, HasSubstr("b'<span class=\"truncated\">...</span>'"));
+}
+
+
+TEST(DataSliceReprTest, FormatHtml_TruncationEscaping) {
+  // Sanity check that we don't accidentally match `'...'` already in the
+  // string.
+  {
+    // DataSlice
+    DataSlice slice = test::DataSlice<arolla::Text>({"'abc'...'def'"});
+    ASSERT_OK_AND_ASSIGN(
+        auto result, DataSliceToStr(slice, {.format_html = true,
+                                            .unbounded_type_max_len = 100}));
+    EXPECT_THAT(result, HasSubstr("\\'abc\\'...\\'def\\'"));
+    ASSERT_OK_AND_ASSIGN(result,
+                         DataSliceToStr(slice, {.strip_quotes = true,
+                                                .format_html = true,
+                                                .unbounded_type_max_len = 100,
+                                                .show_attributes = false}));
+    EXPECT_THAT(result, HasSubstr("\\'abc\\'...\\'def\\'"));
+  }
+  {
+    // DataItem
+    DataSlice item = test::DataItem(arolla::Text("'abc'...'def'"));
+    ASSERT_OK_AND_ASSIGN(auto result,
+                         DataSliceToStr(item, {.format_html = true,
+                                               .unbounded_type_max_len = 100}));
+    EXPECT_THAT(result, HasSubstr("\\'abc\\'...\\'def\\'"));
+    ASSERT_OK_AND_ASSIGN(result,
+                         DataSliceToStr(item, {.strip_quotes = true,
+                                               .format_html = true,
+                                               .unbounded_type_max_len = 100,
+                                               .show_attributes = false}));
+    // TODO: Do not parse `'...'` as truncated.
+    // EXPECT_THAT(result, HasSubstr("\\'abc\\'...\\'def\\'"));
+  }
 }
 
 TEST(DataSliceReprTest, FormatHtml_DictObjectIdKey) {
@@ -1640,9 +1675,9 @@ TEST(DataSliceReprTest, UnboundedTypeMaxLength) {
   ASSERT_OK(dict.SetInDict(key, value));
 
   EXPECT_THAT(DataSliceToStr(key, {.unbounded_type_max_len = 3}),
-              IsOkAndHolds("['aaa...']"));
+              IsOkAndHolds("['aa'...'aa']"));
   EXPECT_THAT(DataSliceToStr(dict, {.unbounded_type_max_len = 3}),
-              IsOkAndHolds("Dict{'aaa...'='aaa...'}"));
+              IsOkAndHolds("Dict{'aa'...'aa'='aa'...'aa'}"));
 }
 
 TEST(DataSliceReprTest, FormatHtml_ItemLimit) {
