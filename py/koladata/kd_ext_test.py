@@ -59,7 +59,9 @@ class KdExtTest(absltest.TestCase):
     dbm = kd_ext.PersistedIncrementalDataBagManager(persistence_dir)
     self.assertEqual(dbm.get_available_bag_names(), {''})
     self.assertEqual(dbm.get_loaded_bag_names(), {''})
-    kd.testing.assert_equivalent(dbm.get_bag(), kd.bag())
+    kd.testing.assert_equivalent(
+        dbm.get_loaded_bag().merge_fallbacks(), kd.bag()
+    )
 
 
 if __name__ == '__main__':
