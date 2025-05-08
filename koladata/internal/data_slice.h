@@ -82,14 +82,14 @@ class DataSliceImpl {
   // Only kRemoved and kUnset are allowed.
   static DataSliceImpl CreateEmptyAndUnknownType(TypesBuffer types_buffer);
 
-  // Returns 0 dimension DataSliceImpl with specified ObjectId's and
+  // Returns DataSliceImpl with specified ObjectId's and
   // AllocationId's.
   static DataSliceImpl CreateObjectsDataSlice(ObjectIdArray objects,
                                               AllocationIdSet allocation_ids) {
     return CreateWithAllocIds(allocation_ids, std::move(objects));
   }
 
-  // Returns 0 dimension DataSliceImpl with specified values and allocation ids.
+  // Returns DataSliceImpl with specified values and allocation ids.
   template <class T, class... Ts>
   static DataSliceImpl CreateWithAllocIds(AllocationIdSet allocation_ids,
                                           arolla::DenseArray<T> main_values,
@@ -105,7 +105,7 @@ class DataSliceImpl {
 
   static DataSliceImpl Create(const arolla::DenseArray<DataItem>& items);
 
-  // Returns 0 dimension DataSliceImpl with specified values. In case of
+  // Returns DataSliceImpl with specified values. In case of
   // ObjectId arrays for better performance prefer CreateWithAllocIds if
   // alloc ids are already known.
   template <class T, class... Ts>
@@ -116,7 +116,7 @@ class DataSliceImpl {
 
   static DataSliceImpl Create(size_t size, const DataItem& item);
 
-  // Returns 0 dimension DataSliceImpl with specified values.
+  // Returns DataSliceImpl with specified values.
   // Returns error if type is not supported.
   static absl::StatusOr<DataSliceImpl> Create(arolla::TypedRef values);
 
