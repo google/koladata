@@ -282,18 +282,8 @@ StreamImpl::Writer::~Writer() {
   if (closed_.test_and_set(std::memory_order_relaxed)) {
     return;
   }
-  auto stream = weak_stream_.lock();
-  if (stream == nullptr) {
-    return;  // The stream object is gone.
-  }
-  std::vector<absl::AnyInvocable<void() &&>> callbacks;
-  {
-    absl::MutexLock lock(&stream->mutex_);
-    stream->status_.emplace(absl::CancelledError("orphaned"));
-    stream->callbacks_.swap(callbacks);
-  }
-  for (auto& callback : callbacks) {
-    std::move(callback)();
+  if (auto stream = weak_stream_.lock()) {
+    stream->InternalClose(absl::CancelledError("orphaned"));
   }
 }
 
