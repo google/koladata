@@ -94,6 +94,17 @@ class CoreMetadataTest(absltest.TestCase):
           kde.core.metadata(ds([None], schema_constants.ITEMID)),
           text=ds(['foo']),
       )
+    with self.assertRaisesRegex(
+        ValueError,
+        r'failed to create metadata; cannot create for a DataSlice with'
+        r' SCHEMA\(x=INT32\) schema',
+    ):
+      db = fns.bag()
+      schema = db.new_schema(x=schema_constants.INT32)
+      expr_eval.eval(
+          kde.core.metadata(ds([None], schema)),
+          text=ds(['foo']),
+      )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

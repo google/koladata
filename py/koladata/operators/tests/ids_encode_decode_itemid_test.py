@@ -26,6 +26,7 @@ from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 kde = kde_operators.kde
@@ -62,9 +63,19 @@ class IdsEncodeDecodeItemIdTest(parameterized.TestCase):
     ):
       kde.ids.encode_itemid(ds([1, 2, 3])).eval()
     with self.assertRaisesRegex(
+        ValueError, 'cannot use encode_itemid on primitives'
+    ):
+      kde.ids.encode_itemid(
+          ds([1, 2, 3], schema=schema_constants.OBJECT)
+      ).eval()
+    with self.assertRaisesRegex(
         ValueError, 'only STRING can be decoded, got INT32'
     ):
       kde.ids.decode_itemid(ds([1, 2, 3])).eval()
+    with self.assertRaisesRegex(
+        ValueError, r'only STRING can be decoded, got SCHEMA\(a=INT32\)'
+    ):
+      kde.ids.decode_itemid(bag().new(a=ds([1, 2, 3]))).eval()
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

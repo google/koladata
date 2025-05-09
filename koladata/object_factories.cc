@@ -34,6 +34,7 @@
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/error_repr_utils.h"
 #include "koladata/internal/data_bag.h"
@@ -929,7 +930,7 @@ absl::StatusOr<DataSlice> CreateMetadata(const DataBagPtr& db,
     return absl::InvalidArgumentError(
         absl::StrFormat("failed to create metadata; cannot create for a "
                         "DataSlice with %v schema",
-                        slice.GetSchemaImpl()));
+                        SchemaToStr(slice.GetSchema())));
   }
   if (db == nullptr) {
     return absl::InvalidArgumentError(

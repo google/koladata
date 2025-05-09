@@ -261,26 +261,36 @@ absl::StatusOr<DataSlice> UuidsWithAllocationSize(const DataSlice& seed,
 }
 
 absl::StatusOr<DataSlice> EncodeItemId(const DataSlice& ds) {
-  ASSIGN_OR_RETURN(auto res,
-                   DataSliceOp<internal::EncodeItemId>()(
-                       ds, ds.GetShape(), internal::DataItem(schema::kString),
-                       /*db=*/nullptr),
-                   internal::OperatorEvalError(
-                       std::move(_), "kd.encode_itemid",
-                       absl::StrFormat("only ItemIds can be encoded, got %v",
-                                       ds.GetSchemaImpl())));
+  const internal::DataItem& schema = ds.GetSchemaImpl();
+  if (!schema.is_struct_schema() && schema != schema::kItemId &&
+      schema != schema::kObject) {
+    return internal::OperatorEvalError(
+        "kd.encode_itemid",
+        absl::StrFormat("only ItemIds can be encoded, got %v",
+                        SchemaToStr(ds.GetSchema())));
+  }
+  ASSIGN_OR_RETURN(
+      auto res,
+      DataSliceOp<internal::EncodeItemId>()(ds, ds.GetShape(),
+                                            internal::DataItem(schema::kString),
+                                            /*db=*/nullptr),
+      internal::OperatorEvalError(std::move(_), "kd.encode_itemid"));
   return std::move(res);
 }
 
 absl::StatusOr<DataSlice> DecodeItemId(const DataSlice& ds) {
-  ASSIGN_OR_RETURN(auto res,
-                   DataSliceOp<internal::DecodeItemId>()(
-                       ds, ds.GetShape(), internal::DataItem(schema::kItemId),
-                       /*db=*/nullptr),
-                   internal::OperatorEvalError(
-                       std::move(_), "kd.decode_itemid",
-                       absl::StrFormat("only STRING can be decoded, got %v",
-                                       ds.GetSchemaImpl())));
+  if (ds.GetSchemaImpl() != schema::kString) {
+    return internal::OperatorEvalError(
+        "kd.encode_itemid",
+        absl::StrFormat("only STRING can be decoded, got %v",
+                        SchemaToStr(ds.GetSchema())));
+  }
+  ASSIGN_OR_RETURN(
+      auto res,
+      DataSliceOp<internal::DecodeItemId>()(ds, ds.GetShape(),
+                                            internal::DataItem(schema::kItemId),
+                                            /*db=*/nullptr),
+      internal::OperatorEvalError(std::move(_), "kd.decode_itemid"));
   return std::move(res);
 }
 
