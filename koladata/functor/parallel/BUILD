@@ -184,6 +184,7 @@ cc_test(
     name = "stream_composition_test",
     srcs = ["stream_composition_test.cc"],
     deps = [
+        ":asio_executor",
         ":default_executor",
         ":stream",
         ":stream_composition",
@@ -393,6 +394,36 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
+    ],
+)
+
+cc_test(
+    name = "async_eval_test",
+    srcs = ["async_eval_test.cc"],
+    deps = [
+        ":asio_executor",
+        ":async_eval",
+        ":eager_executor",
+        ":future",
+        ":future_qtype",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata:object_factories",
+        "//koladata/testing:eval_python_declared_ops_in_cpp_tests",
+        "//koladata/testing:matchers",
+        "@com_google_absl//absl/random",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/operators:bootstrap",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/qtype/testing",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
     ],
 )
 

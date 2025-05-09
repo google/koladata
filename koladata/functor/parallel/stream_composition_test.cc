@@ -29,6 +29,7 @@
 #include "absl/synchronization/barrier.h"
 #include "absl/synchronization/blocking_counter.h"
 #include "absl/synchronization/notification.h"
+#include "koladata/functor/parallel/asio_executor.h"
 #include "koladata/functor/parallel/default_executor.h"
 #include "koladata/functor/parallel/stream.h"
 #include "arolla/qtype/base_types.h"
@@ -264,6 +265,8 @@ TEST(StreamChainTest, MultithreadedChaining) {
       alive_streams.insert(stream_id);
       max_alive = std::max(max_alive, stream_id);
     }
+    // We have +1 here since we also block on the "finish_at" time barrier.
+    ASSERT_TRUE(alive_streams.size() <= kMaxParallelism + 1);
     barriers.push_back(new absl::Barrier(alive_streams.size() + 1));
     for (int stream_id : streams_to_finish[time]) {
       alive_streams.erase(stream_id);
@@ -272,24 +275,8 @@ TEST(StreamChainTest, MultithreadedChaining) {
   }
   ASSERT_TRUE(alive_streams.empty());
 
-  auto executor = GetDefaultExecutor();
-  for (int i = 0; i < kStreamCount; ++i) {
-    const auto& [_, writer] = streams[i];
-    int start_at = stream_start_at[i];
-    int finish_at = stream_finish_at[i];
-    ASSERT_OK(executor->Schedule(
-        [&writer, &barriers, &counter, start_at, finish_at]() {
-          for (int time = start_at; time <= finish_at; ++time) {
-            if (barriers[time]->Block()) delete barriers[time];
-            if (time == finish_at) {
-              std::move(*writer).Close();
-            } else {
-              writer->Write(TypedRef::FromValue(time));
-            }
-          }
-          counter.DecrementCount();
-        }));
-  }
+  // Make sure that we have enough threads to execute.
+  auto executor = MakeAsioExecutor(kMaxParallelism + 1);
 
   auto [output_stream, output_writer] = MakeStream(GetQType<int>());
   auto chain_helper = std::make_unique<StreamChain>(std::move(output_writer));
@@ -301,6 +288,32 @@ TEST(StreamChainTest, MultithreadedChaining) {
       if (added_up_to == kStreamCount) {
         chain_helper.reset();
       }
+    }
+    // We only start streams here, so that we don't clog the executor threads
+    // with streams waiting on a future barrier.
+    for (int i : streams_to_start[time]) {
+      const auto& [_, writer] = streams[i];
+      int start_at = stream_start_at[i];
+      ASSERT_TRUE(start_at == time);
+      int finish_at = stream_finish_at[i];
+      ASSERT_OK(executor->Schedule(
+          [&writer, &barriers, &counter, start_at, finish_at]() {
+            for (int time = start_at; time <= finish_at; ++time) {
+              // In production Koda stream code, please do not use barriers or
+              // other synchronization primitives that expect concrete
+              // computations to be executed in parallel. Instead, please rely
+              // on the streams themselves to communicate between parts of
+              // the computation. This use of barriers is for testing purposes
+              // only.
+              if (barriers[time]->Block()) delete barriers[time];
+              if (time == finish_at) {
+                std::move(*writer).Close();
+              } else {
+                writer->Write(TypedRef::FromValue(time));
+              }
+            }
+            counter.DecrementCount();
+          }));
     }
     if (barriers[time]->Block()) delete barriers[time];
   }

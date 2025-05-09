@@ -143,8 +143,5 @@ TEST(FutureTest, GetValueForTestingOnError) {
               StatusIs(absl::StatusCode::kOutOfRange, "test error"));
 }
 
-// TODO: Add multithreaded integration tests once we have thread
-// pool executors implemented.
-
 }  // namespace
 }  // namespace koladata::functor::parallel

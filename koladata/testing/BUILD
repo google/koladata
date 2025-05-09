@@ -57,3 +57,16 @@ cc_library(
     deps = ["@com_google_arolla//arolla/util/testing"],
     alwayslink = True,
 )
+
+cc_library(
+    name = "eval_python_declared_ops_in_cpp_tests",
+    testonly = True,
+    deps = [
+        ":test_env",
+        "//koladata:all_qexpr_operators",
+        "//koladata/s11n",
+        "//py/koladata/operators:base_cc_operators",
+        "//py/koladata/operators:extra_cc_operators",
+        "@com_google_arolla//arolla/qexpr/operators/all",
+    ],
+)
