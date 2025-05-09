@@ -14,8 +14,6 @@
 
 # Koda, a library for advanced data manipulation.
 
-load("@pip_deps//:requirements.bzl", "requirement")
-load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 
 package(default_visibility = ["//py/koladata:__subpackages__"])
@@ -110,63 +108,5 @@ py_library(
         "//py/koladata/ext:vis",
         "//py/koladata/ext/experimental/parallel_call:call",
         "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "benchmarks",
-    srcs = ["benchmarks.py"],
-    tags = [
-        "manual",
-        "notap",
-    ],
-    deps = [
-        ":kd",
-        "@com_google_arolla//py/arolla",
-        requirement("google-benchmark"),
-        "//py/koladata/functions/tests:test_py_pb2",
-        # Enables python functions in profile.
-        # Enables --cpu_profile.
-        # Enables --peakheap_profile.
-        # Memory usage counters.
-    ],
-)
-
-cc_test(
-    name = "cc_benchmarks",
-    srcs = ["cc_benchmarks.cc"],
-    deps = [
-        "//koladata:all_qexpr_operators",
-        "//koladata:data_bag",
-        "//koladata:data_slice",
-        "//koladata:data_slice_qtype",
-        "//koladata/functor",
-        "//koladata/functor:call",
-        "//koladata/internal:data_item",
-        "//koladata/internal:data_slice",
-        "//koladata/internal:dtype",
-        "//koladata/s11n",
-        "//py/koladata/operators:base_cc_operators",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_arolla//arolla/dense_array",
-        "@com_google_arolla//arolla/expr",
-        "@com_google_arolla//arolla/expr/operators/all",
-        "@com_google_arolla//arolla/io",
-        "@com_google_arolla//arolla/jagged_shape/array/qexpr",
-        "@com_google_arolla//arolla/jagged_shape/dense_array/qexpr",
-        "@com_google_arolla//arolla/jagged_shape/dense_array/serialization_codecs",
-        "@com_google_arolla//arolla/jagged_shape/expr",
-        "@com_google_arolla//arolla/jagged_shape/qexpr",
-        "@com_google_arolla//arolla/memory",
-        "@com_google_arolla//arolla/qexpr/operators/all",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/serialization_codecs:all_decoders",
-        "@com_google_arolla//arolla/serving",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util/testing",
-        "@com_google_benchmark//:benchmark_main",
-        "@com_google_googletest//:gtest",
-        "@com_google_googletest//:gtest_main",
     ],
 )
