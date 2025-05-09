@@ -27,19 +27,10 @@ namespace koladata::internal {
 namespace {
 
 using ::absl_testing::IsOk;
-using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::testing::CausedBy;
-using ::koladata::schema::DType;
-using ::koladata::schema::GetDType;
-using ::koladata::schema::ItemIdDType;
-using ::koladata::schema::ObjectDType;
-using ::koladata::schema::SchemaDType;
 using ::testing::Eq;
-using ::testing::HasSubstr;
 using ::testing::NotNull;
-using ::testing::Property;
-using ::testing::StrEq;
 
 struct DummyPayload {};
 
