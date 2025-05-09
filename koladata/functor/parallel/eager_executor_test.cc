@@ -14,7 +14,6 @@
 //
 #include "koladata/functor/parallel/eager_executor.h"
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "koladata/functor/parallel/executor.h"
 #include "arolla/qtype/typed_value.h"
@@ -27,7 +26,7 @@ TEST(EagerExecutorTest, Execution) {
   ExecutorPtr executor = GetEagerExecutor();
   int execute_count = 0;
   auto callback = [&]() { ++execute_count; };
-  EXPECT_OK(executor->Schedule(callback));
+  executor->Schedule(callback);
   EXPECT_EQ(execute_count, 1);
 }
 

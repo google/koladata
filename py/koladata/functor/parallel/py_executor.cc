@@ -66,10 +66,9 @@ PyObject* PyExecutor_schedule(PyObject* self, PyObject* py_arg) {
                         Py_TYPE(py_arg)->tp_name);
   }
   RETURN_IF_ERROR(CheckCancellation()).With(SetPyErrFromStatus);
-  RETURN_IF_ERROR(executor->Schedule([cancellation_context =
-                                          CurrentCancellationContext(),
-                                      py_callable = PyObjectGILSafePtr::NewRef(
-                                          py_arg)]() mutable {
+  executor->Schedule([cancellation_context = CurrentCancellationContext(),
+                      py_callable =
+                          PyObjectGILSafePtr::NewRef(py_arg)]() mutable {
     CancellationContext::ScopeGuard cancellation_scope(
         std::move(cancellation_context));
     if (Cancelled()) {
@@ -82,7 +81,7 @@ PyObject* PyExecutor_schedule(PyObject* self, PyObject* py_arg) {
           PyUnicode_InternFromString("koladata.functor.parallel.Executor._run");
       PyErr_WriteUnraisable(py_context);
     }
-  })).With(SetPyErrFromStatus);
+  });
   Py_RETURN_NONE;
 }
 

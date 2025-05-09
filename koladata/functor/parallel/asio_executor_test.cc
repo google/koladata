@@ -17,14 +17,12 @@
 #include <atomic>
 #include <memory>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/barrier.h"
 #include "absl/synchronization/notification.h"
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "koladata/functor/parallel/executor.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {
@@ -36,7 +34,7 @@ TEST(AsioExecutorTest, Basic) {
 
   auto barrier = std::make_shared<absl::Barrier>(kNumThreads + 1);
   for (int i = 0; i < kNumThreads; ++i) {
-    ASSERT_OK(executor->Schedule([barrier] { barrier->Block(); }));
+    executor->Schedule([barrier] { barrier->Block(); });
   }
   barrier->Block();
 }
@@ -52,10 +50,10 @@ TEST(AsioExecutorTest, NumberOfThreadsUpperBound) {
   };
   auto shared_state = std::make_shared<SharedState>();
   for (int i = 0; i < kNumTasks; ++i) {
-    ASSERT_OK(executor->Schedule([shared_state] {
+    executor->Schedule([shared_state] {
       ++shared_state->started_task_counter;
       shared_state->notification.WaitForNotification();
-    }));
+    });
   }
   absl::SleepFor(absl::Milliseconds(20));
   ASSERT_LE(shared_state->started_task_counter, kNumTasks);
@@ -65,10 +63,10 @@ TEST(AsioExecutorTest, NumberOfThreadsUpperBound) {
 TEST(AsioExecutorTest, NonBlockingDestructor) {
   auto executor = MakeAsioExecutor();
   auto barrier = std::make_shared<absl::Barrier>(2);
-  ASSERT_OK(executor->Schedule([barrier] {
+  executor->Schedule([barrier] {
     barrier->Block();
     absl::SleepFor(absl::Milliseconds(100));
-  }));
+  });
   barrier->Block();
   const auto start = absl::Now();
   executor.reset();

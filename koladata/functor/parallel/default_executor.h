@@ -20,8 +20,6 @@
 namespace koladata::functor::parallel {
 
 // Returns the default executor.
-//
-// Note: It is expected that scheduling on the default executor never fails.
 const ExecutorPtr& GetDefaultExecutor();
 
 }  // namespace koladata::functor::parallel

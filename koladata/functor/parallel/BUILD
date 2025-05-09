@@ -29,7 +29,6 @@ cc_library(
     hdrs = ["executor.h"],
     deps = [
         "@com_google_absl//absl/functional:any_invocable",
-        "@com_google_absl//absl/status",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
     ],
@@ -54,7 +53,6 @@ cc_library(
     deps = [
         ":executor",
         "@com_google_absl//absl/base:no_destructor",
-        "@com_google_absl//absl/status",
     ],
 )
 
@@ -89,7 +87,6 @@ cc_library(
         "@boost.asio//:boost.asio",
         "@boost.throw_exception//:boost.throw_exception",
         "@com_google_absl//absl/base:no_destructor",
-        "@com_google_absl//absl/status",
     ],
 )
 
@@ -100,7 +97,6 @@ cc_test(
         ":default_asio_executor",
         ":executor",
         "@com_google_absl//absl/synchronization",
-        "@com_google_arolla//arolla/util:status_backport",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -115,8 +111,6 @@ cc_library(
         "@boost.asio//:boost.asio",
         "@boost.throw_exception//:boost.throw_exception",
         "@com_google_absl//absl/base:nullability",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/status",
     ],
 )
 
@@ -128,7 +122,6 @@ cc_test(
         ":executor",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
-        "@com_google_arolla//arolla/util:status_backport",
         "@com_google_googletest//:gtest_main",
     ],
 )

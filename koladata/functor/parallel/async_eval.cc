@@ -111,8 +111,8 @@ class AsyncCountdown {
       return;
     }
 
-    auto execute = [op = op_, input_values = std::move(input_values),
-                    result_writer = std::move(result_writer_)]() mutable {
+    executor->Schedule([op = op_, input_values = std::move(input_values),
+                        result_writer = std::move(result_writer_)]() mutable {
       std::vector<arolla::TypedRef> input_refs;
       input_refs.reserve(input_values.size());
       for (const auto& value : input_values) {
@@ -135,12 +135,7 @@ class AsyncCountdown {
               absl::StatusOr<arolla::TypedValue> value) mutable {
             std::move(result_writer).SetValue(std::move(value));
           });
-    };
-
-    absl::Status status = executor->Schedule(std::move(execute));
-    if (!status.ok()) {
-      std::move(result_writer_).SetValue(std::move(status));
-    }
+    });
   }
 
   // Disable copy and move.

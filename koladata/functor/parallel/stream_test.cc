@@ -212,7 +212,7 @@ TEST(StreamTest, DemoFilter) {
           break;
         } else {
           reader_->SubscribeOnce([self = std::move(*this)]() mutable {
-            ASSERT_OK(self.executor_->Schedule(std::move(self)));
+            self.executor_->Schedule(std::move(self));
           });
           break;
         }
@@ -272,8 +272,7 @@ class StresstestConsumer
       : executor_(std::move(executor)), reader_(std::move(reader)), end_(end) {}
 
   void Start() {
-    ASSERT_OK(executor_->Schedule(
-        [self = shared_from_this()] { self->DoProcessing(); }));
+    executor_->Schedule([self = shared_from_this()] { self->DoProcessing(); });
   }
 
   void Wait() { done_.WaitForNotification(); }
@@ -292,8 +291,8 @@ class StresstestConsumer
         break;
       } else {
         reader_->SubscribeOnce([self = shared_from_this()]() mutable {
-          ASSERT_OK(self->executor_->Schedule(
-              [self = std::move(self)] { self->DoProcessing(); }));
+          self->executor_->Schedule(
+              [self = std::move(self)] { self->DoProcessing(); });
         });
         break;
       }

@@ -16,11 +16,9 @@
 
 #include <memory>
 
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/synchronization/barrier.h"
 #include "koladata/functor/parallel/executor.h"
-#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {
@@ -30,7 +28,7 @@ TEST(DefaultAsioExecutorTest, Basic) {
   ASSERT_NE(executor, nullptr);
 
   auto barrier = std::make_shared<absl::Barrier>(2);
-  ASSERT_OK(executor->Schedule([barrier] { barrier->Block(); }));
+  executor->Schedule([barrier] { barrier->Block(); });
   barrier->Block();
 }
 

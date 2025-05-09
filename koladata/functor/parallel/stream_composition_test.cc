@@ -118,12 +118,12 @@ TEST(StreamInterleaveTest, MultithreadedInterleaving) {
   auto notification = std::make_shared<absl::Notification>();
   std::atomic<int> write_count = 0;
   for (int i = 0; i < kItemCount; ++i) {
-    ASSERT_OK(executor->Schedule([&write_count, &writers, i, notification] {
+    executor->Schedule([&write_count, &writers, i, notification] {
       writers[i % writers.size()]->Write(TypedRef::FromValue(i));
       if (++write_count == kItemCount) {
         notification->Notify();
       }
-    }));
+    });
   }
   notification->WaitForNotification();
   for (auto& w : writers) {
@@ -296,24 +296,23 @@ TEST(StreamChainTest, MultithreadedChaining) {
       int start_at = stream_start_at[i];
       ASSERT_TRUE(start_at == time);
       int finish_at = stream_finish_at[i];
-      ASSERT_OK(executor->Schedule(
-          [&writer, &barriers, &counter, start_at, finish_at]() {
-            for (int time = start_at; time <= finish_at; ++time) {
-              // In production Koda stream code, please do not use barriers or
-              // other synchronization primitives that expect concrete
-              // computations to be executed in parallel. Instead, please rely
-              // on the streams themselves to communicate between parts of
-              // the computation. This use of barriers is for testing purposes
-              // only.
-              if (barriers[time]->Block()) delete barriers[time];
-              if (time == finish_at) {
-                std::move(*writer).Close();
-              } else {
-                writer->Write(TypedRef::FromValue(time));
-              }
-            }
-            counter.DecrementCount();
-          }));
+      executor->Schedule([&writer, &barriers, &counter, start_at, finish_at]() {
+        for (int time = start_at; time <= finish_at; ++time) {
+          // In production Koda stream code, please do not use barriers or
+          // other synchronization primitives that expect concrete
+          // computations to be executed in parallel. Instead, please rely
+          // on the streams themselves to communicate between parts of
+          // the computation. This use of barriers is for testing purposes
+          // only.
+          if (barriers[time]->Block()) delete barriers[time];
+          if (time == finish_at) {
+            std::move(*writer).Close();
+          } else {
+            writer->Write(TypedRef::FromValue(time));
+          }
+        }
+        counter.DecrementCount();
+      });
     }
     if (barriers[time]->Block()) delete barriers[time];
   }

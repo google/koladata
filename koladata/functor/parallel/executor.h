@@ -19,7 +19,6 @@
 #include <string>
 
 #include "absl/functional/any_invocable.h"
-#include "absl/status/status.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
@@ -49,7 +48,7 @@ class Executor {
   const arolla::Fingerprint& uuid() const { return uuid_; }
 
   // Runs a given task on the executor. This method is thread-safe.
-  virtual absl::Status Schedule(TaskFn task_fn) = 0;
+  virtual void Schedule(TaskFn task_fn) = 0;
 
   // Returns the string representation of the executor.
   virtual std::string Repr() const = 0;

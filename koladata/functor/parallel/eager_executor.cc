@@ -19,21 +19,17 @@
 #include <utility>
 
 #include "absl/base/no_destructor.h"
-#include "absl/status/status.h"
 #include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 
 namespace {
 
-class EagerExecutorImpl : public Executor {
+class EagerExecutorImpl final : public Executor {
  public:
-  absl::Status Schedule(TaskFn task_fn) override {
-    std::move(task_fn)();
-    return absl::OkStatus();
-  }
+  void Schedule(TaskFn task_fn) final { std::move(task_fn)(); }
 
-  std::string Repr() const override { return "eager_executor"; }
+  std::string Repr() const final { return "eager_executor"; }
 };
 
 }  // namespace

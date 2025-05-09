@@ -27,7 +27,7 @@ namespace {
 
 class TestExecutor : public Executor {
  public:
-  absl::Status Schedule(TaskFn task_fn) override { return absl::OkStatus(); }
+  void Schedule(TaskFn task_fn) override {}
 
   std::string Repr() const override { return "test_executor"; }
 };

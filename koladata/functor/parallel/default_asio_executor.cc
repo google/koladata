@@ -19,7 +19,6 @@
 #include <utility>
 
 #include "absl/base/no_destructor.h"
-#include "absl/status/status.h"
 #include "koladata/functor/parallel/executor.h"
 
 #include "boost/asio/post.hpp"
@@ -30,9 +29,8 @@ namespace {
 
 class DefaultAsioExecutor final : public Executor {
  public:
-  absl::Status Schedule(TaskFn task_fn) final {
+  void Schedule(TaskFn task_fn) final {
     boost::asio::post(thread_pool_, std::move(task_fn));
-    return absl::OkStatus();
   }
 
   std::string Repr() const final { return "default_asio_executor"; }

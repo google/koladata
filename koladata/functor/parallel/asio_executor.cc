@@ -20,8 +20,6 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
-#include "absl/log/log.h"
-#include "absl/status/status.h"
 #include "koladata/functor/parallel/default_executor.h"
 #include "koladata/functor/parallel/executor.h"
 
@@ -41,18 +39,12 @@ class AsioExecutor final : public Executor {
 
   ~AsioExecutor() final {
     thread_pool_->stop();
-    auto status = GetDefaultExecutor()->Schedule(
+    GetDefaultExecutor()->Schedule(
         [thread_pool_ = thread_pool_] { thread_pool_->join(); });
-    if (!status.ok()) {
-      LOG(ERROR) << "koldata::functor::parallel::AsioExecutor::~AsioExecutor: "
-                    "unable to schedule a join task on the default executor: "
-                 << status;
-    }
   }
 
-  absl::Status Schedule(TaskFn task_fn) final {
+  void Schedule(TaskFn task_fn) final {
     boost::asio::post(*thread_pool_, std::move(task_fn));
-    return absl::OkStatus();
   }
 
   std::string Repr() const final { return "asio_executor"; }

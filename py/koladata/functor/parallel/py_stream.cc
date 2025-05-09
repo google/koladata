@@ -327,30 +327,21 @@ PyObject* PyStreamReader_subscribe_once(PyObject* self, PyObject* py_tuple_args,
     if (cancellation_context != nullptr && cancellation_context->Cancelled()) {
       return;
     }
-    auto status = executor->Schedule(
-        [cancellation_context = std::move(cancellation_context),
-         py_callable = std::move(py_callable)]() mutable {
-          CancellationContext::ScopeGuard cancellation_scope(
-              std::move(cancellation_context));
-          if (Cancelled()) {
-            return;
-          }
-          AcquirePyGIL guard;
-          auto py_result =
-              PyObjectPtr::Own(PyObject_CallNoArgs(py_callable.get()));
-          if (py_result == nullptr) {
-            static PyObject* py_context = PyUnicode_InternFromString(
-                "StreamReader._run_callback_on_executor");
-            PyErr_WriteUnraisable(py_context);
-          }
-        });
-    if (!status.ok()) {
+    executor->Schedule([cancellation_context = std::move(cancellation_context),
+                        py_callable = std::move(py_callable)]() mutable {
+      CancellationContext::ScopeGuard cancellation_scope(
+          std::move(cancellation_context));
+      if (Cancelled()) {
+        return;
+      }
       AcquirePyGIL guard;
-      static PyObject* py_context = PyUnicode_InternFromString(
-          "StreamReader._schedule_callback_on_executor");
-      SetPyErrFromStatus(status);
-      PyErr_WriteUnraisable(py_context);
-    }
+      auto py_result = PyObjectPtr::Own(PyObject_CallNoArgs(py_callable.get()));
+      if (py_result == nullptr) {
+        static PyObject* py_context = PyUnicode_InternFromString(
+            "StreamReader._run_callback_on_executor");
+        PyErr_WriteUnraisable(py_context);
+      }
+    });
   };
   fields.stream_reader->SubscribeOnce(std::move(callback));
   Py_RETURN_NONE;
