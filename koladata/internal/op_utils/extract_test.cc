@@ -24,7 +24,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
@@ -36,13 +35,11 @@
 #include "koladata/internal/op_utils/new_ids_like.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
-#include "koladata/internal/slice_builder.h"
+#include "koladata/internal/testing/deep_op_utils.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
-#include "arolla/memory/optional_value.h"
-#include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 
 namespace koladata::internal {
@@ -50,98 +47,14 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::testing::IsEmpty;
-using ::testing::UnorderedElementsAre;
-
 using ::arolla::CreateDenseArray;
 using ::koladata::internal::testing::DataBagEqual;
 using ::koladata::internal::testing::IsEquivalentTo;
+using ::testing::IsEmpty;
+using ::testing::UnorderedElementsAre;
 
-using AttrsT = std::vector<std::pair<std::string_view, DataItem>>;
-using TriplesT = std::vector<std::pair<DataItem, AttrsT>>;
-
-DataItem AllocateSchema() {
-  return DataItem(internal::AllocateExplicitSchema());
-}
-
-template <typename T>
-DataSliceImpl CreateSlice(absl::Span<const arolla::OptionalValue<T>> values) {
-  return DataSliceImpl::Create(CreateDenseArray<T>(values));
-}
-
-void SetSchemaTriples(DataBagImpl& db, const TriplesT& schema_triples) {
-  for (auto [schema, attrs] : schema_triples) {
-    for (auto [attr_name, attr_schema] : attrs) {
-      EXPECT_OK(db.SetSchemaAttr(schema, attr_name, attr_schema));
-    }
-  }
-}
-
-void SetDataTriples(DataBagImpl& db, const TriplesT& data_triples) {
-  for (auto [item, attrs] : data_triples) {
-    for (auto [attr_name, attr_data] : attrs) {
-      EXPECT_OK(db.SetAttr(item, attr_name, attr_data));
-    }
-  }
-}
-
-void SetListValues(DataBagImplPtr db, const DataSliceImpl& lists,
-                   const DataSliceImpl& values) {
-  DCHECK(lists.size() <= values.size());
-  std::vector<arolla::OptionalValue<int64_t>> split_points;
-  split_points.push_back(0);
-  int64_t remaining_size = values.size();
-  for (int i = 0; i < lists.size() - 1; ++i) {
-    split_points.push_back(1);
-    --remaining_size;
-  }
-  split_points.push_back(remaining_size);
-
-  ASSERT_OK_AND_ASSIGN(const arolla::DenseArrayEdge edge,
-                       arolla::DenseArrayEdge::FromSplitPoints(
-                           CreateDenseArray<int64_t>(split_points)));
-
-  ASSERT_OK(db->ExtendLists(lists, values, edge));
-}
-
-void SetListValues(DataBagImplPtr db, const DataItem& list,
-                   const DataSliceImpl& values) {
-  const DataSliceImpl list_expanded =
-      DataSliceImpl::Create(CreateDenseArray<DataItem>({list}));
-  SetListValues(db, list_expanded, values);
-}
-
-TriplesT GenNoiseDataTriples() {
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(5);
-  auto a0 = obj_ids[0];
-  auto a1 = obj_ids[1];
-  auto a2 = obj_ids[2];
-  auto a3 = obj_ids[3];
-  auto a4 = obj_ids[4];
-  TriplesT data = {{a0, {{"x", DataItem(1)}, {"next", a1}}},
-                   {a1, {{"y", DataItem(3)}, {"prev", a0}, {"next", a2}}},
-                   {a3, {{"x", DataItem(1)}, {"y", DataItem(2)}, {"next", a4}}},
-                   {a4, {{"prev", a3}}}};
-  return data;
-}
-
-TriplesT GenNoiseSchemaTriples() {
-  auto schema0 = AllocateSchema();
-  auto schema1 = AllocateSchema();
-  auto int_dtype = DataItem(schema::kInt32);
-  TriplesT schema_triples = {
-      {schema0, {{"self", schema0}, {"next", schema1}, {"x", int_dtype}}},
-      {schema1, {{"prev", schema0}, {"y", int_dtype}}}};
-  return schema_triples;
-}
-
-enum ExtractDbParam { kMainDb, kFallbackDb };
-enum ExtractAllocParam { kSingleAlloc, kMultipleAllocs };
-
-struct ExtractTestParam {
-  ExtractDbParam db_param;
-  ExtractAllocParam alloc_param;
-};
+using testing::deep_op_utils::DeepOpTest;
+using testing::deep_op_utils::test_param_values;
 
 struct LeafCollector {
   LeafCallback GetCallback() {
@@ -154,87 +67,16 @@ struct LeafCollector {
   }
   std::vector<DataItem> collected_items;
 };
-class CopyingOpTest : public ::testing::TestWithParam<ExtractTestParam> {
- public:
-  DataBagImplPtr GetMainDb(DataBagImplPtr db) {
-    switch (GetParam().db_param) {
-      case kMainDb:
-        return db;
-      case kFallbackDb:
-        return DataBagImpl::CreateEmptyDatabag();
-    }
-    DCHECK(false);
-  }
-  DataBagImplPtr GetFallbackDb(DataBagImplPtr db) {
-    switch (GetParam().db_param) {
-      case kMainDb:
-        return DataBagImpl::CreateEmptyDatabag();
-      case kFallbackDb:
-        return db;
-    }
-    DCHECK(false);
-  }
-  DataSliceImpl AllocateEmptyObjects(int64_t size) {
-    switch (GetParam().alloc_param) {
-      case kSingleAlloc:
-        return DataSliceImpl::AllocateEmptyObjects(size);
-      case kMultipleAllocs:
-        SliceBuilder bldr(size);
-        for (int i = 0; i < size; ++i) {
-          auto alloc_id = DataSliceImpl::AllocateEmptyObjects(size);
-          bldr.InsertIfNotSetAndUpdateAllocIds(i, alloc_id[i]);
-        }
-        return std::move(bldr).Build();
-    }
-    DCHECK(false);
-  }
-  DataSliceImpl AllocateEmptyLists(int64_t size) {
-    switch (GetParam().alloc_param) {
-      case kSingleAlloc:
-        return DataSliceImpl::ObjectsFromAllocation(AllocateLists(size), size);
-      case kMultipleAllocs:
-        SliceBuilder bldr(size);
-        for (int i = 0; i < size; ++i) {
-          auto alloc_id = AllocateLists(size);
-          bldr.InsertIfNotSetAndUpdateAllocIds(
-              i, DataItem(alloc_id.ObjectByOffset(i)));
-        }
-        return std::move(bldr).Build();
-    }
-    DCHECK(false);
-  }
-  DataSliceImpl AllocateEmptyDicts(int64_t size) {
-    switch (GetParam().alloc_param) {
-      case kSingleAlloc:
-        return DataSliceImpl::ObjectsFromAllocation(AllocateDicts(size), size);
-      case kMultipleAllocs:
-        SliceBuilder bldr(size);
-        for (int i = 0; i < size; ++i) {
-          auto alloc_id = AllocateDicts(size);
-          bldr.InsertIfNotSetAndUpdateAllocIds(
-              i, DataItem(alloc_id.ObjectByOffset(i)));
-        }
-        return std::move(bldr).Build();
-    }
-    DCHECK(false);
-  }
-};
 
-std::array<ExtractTestParam, 4> extract_test_param_values(
-    {{kMainDb, kSingleAlloc},
-     {kMainDb, kMultipleAllocs},
-     {kFallbackDb, kSingleAlloc},
-     {kFallbackDb, kMultipleAllocs}});
+class ExtractTest : public DeepOpTest {};
 
-class ExtractTest : public CopyingOpTest {};
-
-class ShallowCloneTest : public CopyingOpTest {};
+class ShallowCloneTest : public DeepOpTest {};
 
 INSTANTIATE_TEST_SUITE_P(MainOrFallback, ExtractTest,
-                         ::testing::ValuesIn(extract_test_param_values));
+                         ::testing::ValuesIn(test_param_values));
 
 INSTANTIATE_TEST_SUITE_P(MainOrFallback, ShallowCloneTest,
-                         ::testing::ValuesIn(extract_test_param_values));
+                         ::testing::ValuesIn(test_param_values));
 
 TEST_P(ShallowCloneTest, ShallowEntitySlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
@@ -251,8 +93,8 @@ TEST_P(ShallowCloneTest, ShallowEntitySlice) {
                            {a2, {{"x", DataItem(3)}, {"y", DataItem(6)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto itemid = DataSliceImpl::AllocateEmptyObjects(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -302,8 +144,8 @@ TEST_P(ShallowCloneTest, DeepEntitySlice) {
                              {schema_b, {{"self", schema_b}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto itemid = AllocateEmptyObjects(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -344,8 +186,8 @@ TEST_P(ShallowCloneTest, ShallowListsSlice) {
       {list_schema,
        {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto itemid = AllocateEmptyLists(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -391,8 +233,8 @@ TEST_P(ShallowCloneTest, DeepListsSlice) {
       {item_schema, {{"x", DataItem(schema::kInt32)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto itemid = AllocateEmptyLists(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -434,8 +276,8 @@ TEST_P(ShallowCloneTest, ShallowDictsSlice) {
        {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto itemid = AllocateEmptyDicts(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -498,8 +340,8 @@ TEST_P(ShallowCloneTest, DeepDictsSlice) {
         {schema::kDictValuesSchemaAttr, value_schema}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto itemid = AllocateEmptyDicts(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -580,8 +422,8 @@ TEST_P(ShallowCloneTest, ObjectsSlice) {
        {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, GenNoiseDataTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {a0, a1, DataItem(), DataItem(3), DataItem("a"), dicts[0], dicts[1],
@@ -670,8 +512,8 @@ TEST_P(ShallowCloneTest, MixedObjectsAndSchemasSlice) {
       {s1, {{"self", s1}, {"name", DataItem(schema::kString)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, GenNoiseDataTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {a0, a1, a2, DataItem(), DataItem(3), DataItem("a"), s0, s1}));
@@ -723,8 +565,8 @@ TEST_P(ShallowCloneTest, ObjectsWithImplicitAndExplicitSchemas) {
   };
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, GenNoiseDataTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
 
   auto itemid = NewIdsLike(obj_ids);
   auto result_db = DataBagImpl::CreateEmptyDatabag();
@@ -783,8 +625,8 @@ TEST_P(ShallowCloneTest, SchemaSlice) {
       {s2, {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
   auto itemid = DataSliceImpl::Create(
@@ -821,8 +663,8 @@ TEST_P(ShallowCloneTest, NamedSchemaSlice) {
         {"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
   auto itemid = DataSliceImpl::Create(
@@ -857,8 +699,8 @@ TEST_P(ShallowCloneTest, SchemaUuidSlice) {
       {s2, {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
   auto itemid = NewIdsLike(ds);
@@ -903,8 +745,8 @@ TEST_P(ShallowCloneTest, MissingInItemid) {
                            {a2, {{"x", DataItem(3)}, {"y", DataItem(6)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto itemid_alloc = DataSliceImpl::AllocateEmptyObjects(3);
   auto itemid = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {itemid_alloc[0], std::nullopt, itemid_alloc[2]}));
@@ -934,8 +776,8 @@ TEST_P(ShallowCloneTest, ExtraInItemid) {
                            {a2, {{"x", DataItem(3)}, {"y", DataItem(6)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto itemid = AllocateEmptyObjects(3);
   auto ds = DataSliceImpl::Create(
       CreateDenseArray<DataItem>({a0, DataItem(AllocateSingleDict()), a2}));
@@ -970,8 +812,8 @@ TEST_P(ShallowCloneTest, IntersectingItemidWithDsPrimitives) {
         {"y", DataItem(6)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto itemid = DataSliceImpl::AllocateEmptyObjects(3);
   auto ds =
       DataSliceImpl::Create(CreateDenseArray<DataItem>({a0, DataItem(3), a2}));
@@ -1003,8 +845,8 @@ TEST_P(ExtractTest, DataSliceEntity) {
 
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -1055,8 +897,8 @@ TEST_P(ExtractTest, DataSliceEntityRemovedValues) {
     auto fb = DataBagImpl::CreateEmptyDatabag();
     SetSchemaTriples(*fb, schema_triples);
     SetDataTriples(*fb, data_triples_fallback);
-    SetSchemaTriples(*db, GenNoiseSchemaTriples());
-    SetDataTriples(*db, GenNoiseDataTriples());
+    SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+    SetDataTriples(*db, GenDataTriplesForTest());
 
     auto expected_db = DataBagImpl::CreateEmptyDatabag();
     SetSchemaTriples(*expected_db, schema_triples);
@@ -1093,8 +935,8 @@ TEST_P(ExtractTest, DataSliceEntityAllUnset) {
     auto fb = DataBagImpl::CreateEmptyDatabag();
     SetSchemaTriples(*fb, schema_triples);
     SetDataTriples(*fb, data_triples);
-    SetSchemaTriples(*db, GenNoiseSchemaTriples());
-    SetDataTriples(*db, GenNoiseDataTriples());
+    SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+    SetDataTriples(*db, GenDataTriplesForTest());
 
     auto expected_db = DataBagImpl::CreateEmptyDatabag();
     SetSchemaTriples(*expected_db, schema_triples);
@@ -1137,8 +979,8 @@ TEST_P(ExtractTest, SchemaMetadata) {
 
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -1164,9 +1006,7 @@ TEST_P(ExtractTest, SchemaMetadataLoop) {
   auto a1 = DataItem(AllocateSingleObject());
   auto a2 = DataItem(AllocateSingleObject());
   TriplesT schema_triples = {
-      {schema,
-       {{"x", schema},
-        {schema::kSchemaMetadataAttr, metadata}}},
+      {schema, {{"x", schema}, {schema::kSchemaMetadataAttr, metadata}}},
       {metadata_schema, {{"name", DataItem(schema::kString)}}}};
   TriplesT data_triples = {
       {a1, {{"x", a2}}},
@@ -1177,8 +1017,8 @@ TEST_P(ExtractTest, SchemaMetadataLoop) {
 
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -1191,7 +1031,6 @@ TEST_P(ExtractTest, SchemaMetadataLoop) {
   ASSERT_NE(result_db.get(), db.get());
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
-
 
 TEST_P(ExtractTest, MaxDepthSchemaMetadata) {
   auto db = DataBagImpl::CreateEmptyDatabag();
@@ -1223,8 +1062,8 @@ TEST_P(ExtractTest, MaxDepthSchemaMetadata) {
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
   SetDataTriples(*db, data_triples_deep);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   {
     // depth = 1
@@ -1234,8 +1073,8 @@ TEST_P(ExtractTest, MaxDepthSchemaMetadata) {
 
     auto result_db = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(ExtractOp(result_db.get())(a1, schema, *GetMainDb(db),
-                                        {GetFallbackDb(db).get()}, nullptr, {},
-                                        /*max_depth=*/1));
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/1));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1249,8 +1088,8 @@ TEST_P(ExtractTest, MaxDepthSchemaMetadata) {
 
     auto result_db = DataBagImpl::CreateEmptyDatabag();
     ASSERT_OK(ExtractOp(result_db.get())(a1, schema, *GetMainDb(db),
-                                        {GetFallbackDb(db).get()}, nullptr, {},
-                                        /*max_depth=*/2));
+                                         {GetFallbackDb(db).get()}, nullptr, {},
+                                         /*max_depth=*/2));
 
     ASSERT_NE(result_db.get(), db.get());
     EXPECT_THAT(result_db, DataBagEqual(*expected_db));
@@ -1305,8 +1144,8 @@ TEST_P(ExtractTest, MaxDepthSchemaMetadataObject) {
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
   SetDataTriples(*db, data_triples_deep);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   {
     // depth = 1
@@ -1396,11 +1235,11 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
   SetDataTriples(*db, data_triples_level0);
   SetDataTriples(*db, data_triples_level1);
   SetDataTriples(*db, data_triples_level2);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
-  SetListValues(db, list_a, list_a_values);
-  SetListValues(db, list_b, list_b_values);
+  SetSingleListValues(db, list_a, list_a_values);
+  SetSingleListValues(db, list_b, list_b_values);
 
   // Everything extracted.
   {
@@ -1411,8 +1250,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
     SetDataTriples(*expected_db, data_triples_level0);
     SetDataTriples(*expected_db, data_triples_level1);
     SetDataTriples(*expected_db, data_triples_level2);
-    SetListValues(expected_db, list_a, list_a_values);
-    SetListValues(expected_db, list_b, list_b_values);
+    SetSingleListValues(expected_db, list_a, list_a_values);
+    SetSingleListValues(expected_db, list_b, list_b_values);
     {  // default max_depth, i.e. -1
       DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
       ASSERT_OK(ExtractOp(result_db.get())(root_ds, obj_dtype, *GetMainDb(db),
@@ -1441,8 +1280,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsSingleAllocation) {
     SetSchemaTriples(*expected_db, schema_triples_level1);
     SetDataTriples(*expected_db, data_triples_level0);
     SetDataTriples(*expected_db, data_triples_level1);
-    SetListValues(expected_db, list_a, list_a_values);
-    SetListValues(expected_db, list_b, list_b_values);
+    SetSingleListValues(expected_db, list_a, list_a_values);
+    SetSingleListValues(expected_db, list_b, list_b_values);
 
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
@@ -1535,11 +1374,11 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
   SetDataTriples(*db, data_triples_level0);
   SetDataTriples(*db, data_triples_level1);
   SetDataTriples(*db, data_triples_level2);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
-  SetListValues(db, list_a, list_a_values);
-  SetListValues(db, list_b, list_b_values);
+  SetSingleListValues(db, list_a, list_a_values);
+  SetSingleListValues(db, list_b, list_b_values);
 
   // Everything extracted.
   {
@@ -1550,8 +1389,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
     SetDataTriples(*expected_db, data_triples_level0);
     SetDataTriples(*expected_db, data_triples_level1);
     SetDataTriples(*expected_db, data_triples_level2);
-    SetListValues(expected_db, list_a, list_a_values);
-    SetListValues(expected_db, list_b, list_b_values);
+    SetSingleListValues(expected_db, list_a, list_a_values);
+    SetSingleListValues(expected_db, list_b, list_b_values);
     {  // default max_depth, i.e. -1
       DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
       ASSERT_OK(ExtractOp(result_db.get())(root_ds, obj_dtype, *GetMainDb(db),
@@ -1580,8 +1419,8 @@ TEST_P(ExtractTest, MaxDepthSliceOfListsMultipleAllocation) {
     SetSchemaTriples(*expected_db, schema_triples_level1);
     SetDataTriples(*expected_db, data_triples_level0);
     SetDataTriples(*expected_db, data_triples_level1);
-    SetListValues(expected_db, list_a, list_a_values);
-    SetListValues(expected_db, list_b, list_b_values);
+    SetSingleListValues(expected_db, list_a, list_a_values);
+    SetSingleListValues(expected_db, list_b, list_b_values);
 
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
@@ -1700,12 +1539,12 @@ TEST_P(ExtractTest, MaxDepth) {
   SetDataTriples(*db, data_triples_level0);
   SetDataTriples(*db, data_triples_level1);
   SetDataTriples(*db, data_triples_level2);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   ASSERT_OK(db->SetInDict(dicts_expanded_level1, keys_level1, dicts_level2));
   ASSERT_OK(db->SetInDict(dicts_level2, keys_level2, values_level2));
 
-  SetListValues(db, list_of_lists_level1, lists_level2);
+  SetSingleListValues(db, list_of_lists_level1, lists_level2);
   SetListValues(db, lists_level2, list_values_level2);
 
   // Everything extracted.
@@ -1721,7 +1560,7 @@ TEST_P(ExtractTest, MaxDepth) {
                                      dicts_level2));
     ASSERT_OK(expected_db->SetInDict(dicts_level2, keys_level2, values_level2));
 
-    SetListValues(expected_db, list_of_lists_level1, lists_level2);
+    SetSingleListValues(expected_db, list_of_lists_level1, lists_level2);
     SetListValues(expected_db, lists_level2, list_values_level2);
     {  // default max_depth, i.e. -1
       DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
@@ -1757,7 +1596,7 @@ TEST_P(ExtractTest, MaxDepth) {
     SetDataTriples(*expected_db, data_triples_level2);
     ASSERT_OK(expected_db->SetInDict(dicts_expanded_level1, keys_level1,
                                      dicts_level2));
-    SetListValues(expected_db, list_of_lists_level1, lists_level2);
+    SetSingleListValues(expected_db, list_of_lists_level1, lists_level2);
     DataBagImplPtr result_db = DataBagImpl::CreateEmptyDatabag();
     LeafCollector leaf_collector;
     ASSERT_OK(ExtractOp(result_db.get())(root_obj, obj_dtype, *GetMainDb(db),
@@ -1823,8 +1662,8 @@ TEST_P(ExtractTest, DataSliceObjectIds) {
                            {a2, {{"prev", a1}, {"next", a0}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -1859,8 +1698,8 @@ TEST_P(ExtractTest, DataSliceObjectSchema) {
       {a2, {{schema::kSchemaAttr, schema2}, {"prev", a1}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -1887,8 +1726,8 @@ TEST_P(ExtractTest, DataSliceListsPrimitives) {
       {list_schema,
        {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(expected_db->ExtendLists(lists, values, edge));
@@ -1933,8 +1772,8 @@ TEST_P(ExtractTest, DataSliceListsObjectIds) {
       {list_schema, {{schema::kListItemsSchemaAttr, point_schema}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(expected_db->ExtendLists(lists, values, edge));
@@ -1984,8 +1823,8 @@ TEST_P(ExtractTest, DataSliceListsObjectIdsObjectSchema) {
        {{schema::kListItemsSchemaAttr, DataItem(schema::kObject)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(expected_db->ExtendLists(lists, values, edge));
@@ -2016,8 +1855,8 @@ TEST_P(ExtractTest, DataSliceDictsPrimitives) {
        {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(expected_db->SetInDict(dicts_expanded, keys, values));
@@ -2069,8 +1908,8 @@ TEST_P(ExtractTest, DataSliceDictsObjectIds) {
         {schema::kDictValuesSchemaAttr, value_schema}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(expected_db->SetInDict(dicts_expanded, keys, values));
@@ -2128,8 +1967,8 @@ TEST_P(ExtractTest, DataSliceDictsObjectIdsObjectSchema) {
         {schema::kDictValuesSchemaAttr, DataItem(schema::kObject)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(expected_db->SetInDict(dicts_expanded, keys, values));
@@ -2171,8 +2010,8 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema) {
                                {schema::kDictValuesSchemaAttr, dict_schema}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(expected_db->SetInDict(dicts_expanded, keys, values));
@@ -2196,8 +2035,8 @@ TEST_P(ExtractTest, DataSliceDicts_LoopSchema_NoData) {
                               {{schema::kDictKeysSchemaAttr, key_schema},
                                {schema::kDictValuesSchemaAttr, dict_schema}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2220,8 +2059,8 @@ TEST_P(ExtractTest, DataSliceLists_LoopSchema) {
   TriplesT schema_triples = {
       {list_schema, {{schema::kListItemsSchemaAttr, list_schema}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(expected_db->AppendToList(lists, values));
@@ -2258,8 +2097,8 @@ TEST_P(ExtractTest, DataSliceDicts_InvalidSchema_MissingValues) {
   TriplesT schema_triples = {
       {dict_schema, {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
@@ -2279,8 +2118,8 @@ TEST_P(ExtractTest, DataSliceLists_InvalidSchema) {
        {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)},
         {"y", DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_THAT(
       ExtractOp(result_db.get())(DataItem(), list_schema, *GetMainDb(db),
@@ -2333,8 +2172,8 @@ TEST_P(ExtractTest, ExtractSchemaForEmptySlice) {
                              {schema2, {{"prev", schema1}}}};
   TriplesT data_triples = {};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2361,8 +2200,8 @@ TEST_P(ExtractTest, RecursiveSchema) {
       {a0, {{"next", a1}}}, {a1, {{"next", a2}}}, {a2, {{"next", a3}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2397,8 +2236,8 @@ TEST_P(ExtractTest, MixedObjectsSlice) {
   };
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2422,19 +2261,18 @@ TEST_P(ExtractTest, EntityAndObjectPathes) {
   auto schema = AllocateSchema();
 
   TriplesT schema_triples = {
-    {schema, {{"next", DataItem(schema::kObject)}}},
+      {schema, {{"next", DataItem(schema::kObject)}}},
   };
   TriplesT data_triples = {
       {a0, {{"next", a1}}},
       {a1, {{schema::kSchemaAttr, schema}, {"next", a2}}},
       {a2, {{schema::kSchemaAttr, schema}, {"next", DataItem(-1)}}}};
-  TriplesT unreachable_data_triples = {
-      {a0, {{schema::kSchemaAttr, schema}}}};
+  TriplesT unreachable_data_triples = {{a0, {{schema::kSchemaAttr, schema}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
   SetDataTriples(*db, unreachable_data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2564,9 +2402,9 @@ TEST_P(ExtractTest, ExtendedSchemaWithDifferentDataBag) {
   SetSchemaTriples(*schema_db, extended_schema_triples);
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*schema_db, GenNoiseSchemaTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*schema_db, GenSchemaTriplesFoTests());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, extended_schema_triples);
@@ -2618,9 +2456,9 @@ TEST_P(ExtractTest, NonReducingSchemaWithDifferentDataBag) {
   SetSchemaTriples(*schema_db, extended_schema_triples);
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*schema_db, GenNoiseSchemaTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*schema_db, GenSchemaTriplesFoTests());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, extended_schema_triples);
@@ -2658,9 +2496,9 @@ TEST_P(ExtractTest, DifferentSchemasInOneAllocation) {
 
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*schema_db, GenNoiseSchemaTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*schema_db, GenSchemaTriplesFoTests());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetDataTriples(*expected_db, data_triples);
@@ -2872,8 +2710,8 @@ TEST_P(ExtractTest, NoFollowObjectSchema) {
   SetSchemaTriples(*db, unreachable_schema_triples);
   SetDataTriples(*db, data_triples);
   SetDataTriples(*db, unreachable_data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2902,8 +2740,8 @@ TEST_P(ExtractTest, SchemaAsData) {
       {schema, {{schema::kSchemaAttr, DataItem(schema::kSchema)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2928,8 +2766,8 @@ TEST_P(ExtractTest, SchemaSlice) {
       {s2, {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2960,8 +2798,8 @@ TEST_P(ExtractTest, NamedSchemaSlice) {
       {s3, {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -2989,10 +2827,10 @@ TEST_P(ExtractTest, NamedSchemaWithDatabag) {
        {{schema::kSchemaNameAttr, DataItem(arolla::Text("s2"))},
         {"a", DataItem(schema::kString)}}}};
   SetSchemaTriples(*schema_db, schema_triples);
-  SetSchemaTriples(*schema_db, GenNoiseSchemaTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*schema_db, GenNoiseDataTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*schema_db, GenSchemaTriplesFoTests());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*schema_db, GenDataTriplesForTest());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -3027,8 +2865,8 @@ TEST_P(ExtractTest, NamedSchemaObjects) {
       {a0, {{schema::kSchemaAttr, s2}, {"a", DataItem(arolla::Text("foo"))}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto expected_db = DataBagImpl::CreateEmptyDatabag();
   SetSchemaTriples(*expected_db, schema_triples);
@@ -3053,8 +2891,8 @@ TEST_P(ExtractTest, ObjectSchemaMissing) {
       {obj_ids[2], {{schema::kSchemaAttr, schema}, {"x", DataItem(1)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(obj_ids, DataItem(schema::kObject),
@@ -3072,8 +2910,8 @@ TEST_P(ExtractTest, ObjectSchemaAllMissing) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(3);
 
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK(ExtractOp(result_db.get())(obj_ids, DataItem(schema::kObject),

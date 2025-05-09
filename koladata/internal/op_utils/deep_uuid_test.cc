@@ -16,13 +16,9 @@
 
 #include <cstdint>
 #include <functional>
-#include <string_view>
-#include <utility>
-#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
@@ -32,10 +28,10 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
+#include "koladata/internal/testing/deep_op_utils.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
-#include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
 
 namespace koladata::internal {
@@ -44,86 +40,13 @@ namespace {
 using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
 
-using TriplesT = std::vector<
-    std::pair<DataItem, std::vector<std::pair<std::string_view, DataItem>>>>;
+using testing::deep_op_utils::DeepOpTest;
+using testing::deep_op_utils::test_param_values;
 
-DataItem AllocateSchema() {
-  return DataItem(internal::AllocateExplicitSchema());
-}
-
-template <typename T>
-DataSliceImpl CreateSlice(absl::Span<const arolla::OptionalValue<T>> values) {
-  return DataSliceImpl::Create(CreateDenseArray<T>(values));
-}
-
-void SetSchemaTriples(DataBagImpl& db, const TriplesT& schema_triples) {
-  for (auto [schema, attrs] : schema_triples) {
-    for (auto [attr_name, attr_schema] : attrs) {
-      EXPECT_OK(db.SetSchemaAttr(schema, attr_name, attr_schema));
-    }
-  }
-}
-
-void SetDataTriples(DataBagImpl& db, const TriplesT& data_triples) {
-  for (auto [item, attrs] : data_triples) {
-    for (auto [attr_name, attr_data] : attrs) {
-      EXPECT_OK(db.SetAttr(item, attr_name, attr_data));
-    }
-  }
-}
-
-TriplesT GenNoiseDataTriples() {
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(5);
-  auto a0 = obj_ids[0];
-  auto a1 = obj_ids[1];
-  auto a2 = obj_ids[2];
-  auto a3 = obj_ids[3];
-  auto a4 = obj_ids[4];
-  TriplesT data = {{a0, {{"x", DataItem(1)}, {"next", a1}}},
-                   {a1, {{"y", DataItem(3)}, {"prev", a0}, {"next", a2}}},
-                   {a3, {{"x", DataItem(1)}, {"y", DataItem(2)}, {"next", a4}}},
-                   {a4, {{"prev", a3}}}};
-  return data;
-}
-
-TriplesT GenNoiseSchemaTriples() {
-  auto schema0 = AllocateSchema();
-  auto schema1 = AllocateSchema();
-  auto int_dtype = DataItem(schema::kInt32);
-  TriplesT schema_triples = {
-      {schema0, {{"self", schema0}, {"next", schema1}, {"x", int_dtype}}},
-      {schema1, {{"prev", schema0}, {"y", int_dtype}}}};
-  return schema_triples;
-}
-
-enum CopyingTestParam { kMainDb, kFallbackDb };
-
-class CopyingOpTest : public ::testing::TestWithParam<CopyingTestParam> {
- public:
-  DataBagImplPtr GetMainDb(DataBagImplPtr db) {
-    switch (GetParam()) {
-      case kMainDb:
-        return db;
-      case kFallbackDb:
-        return DataBagImpl::CreateEmptyDatabag();
-    }
-    DCHECK(false);
-  }
-  DataBagImplPtr GetFallbackDb(DataBagImplPtr db) {
-    switch (GetParam()) {
-      case kMainDb:
-        return DataBagImpl::CreateEmptyDatabag();
-      case kFallbackDb:
-        return db;
-    }
-    DCHECK(false);
-  }
-};
-
-class DeepUuidTest : public CopyingOpTest {};
+class DeepUuidTest : public DeepOpTest {};
 
 INSTANTIATE_TEST_SUITE_P(MainOrFallback, DeepUuidTest,
-                         ::testing::Values(kMainDb, kFallbackDb));
+                         ::testing::ValuesIn(test_param_values));
 
 TEST_P(DeepUuidTest, ShallowEntitySlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
@@ -140,8 +63,8 @@ TEST_P(DeepUuidTest, ShallowEntitySlice) {
                            {a2, {{"x", DataItem(1)}, {"y", DataItem(4)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto copy_obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
   auto copy_a0 = copy_obj_ids[0];
@@ -193,8 +116,8 @@ TEST_P(DeepUuidTest, DifferentSeeds) {
                            {a2, {{"x", DataItem(1)}, {"y", DataItem(4)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   ASSERT_OK_AND_ASSIGN(auto result_slice,
                        DeepUuidOp()(DataItem(arolla::Text("")), obj_ids, schema,
@@ -236,8 +159,8 @@ TEST_P(DeepUuidTest, DeepEntitySlice) {
       {schema_b, {{"y", DataItem(schema::kInt32)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   ASSERT_OK_AND_ASSIGN(auto result_slice,
                        DeepUuidOp()(DataItem(arolla::Text("")), ds, schema_a,
@@ -269,8 +192,8 @@ TEST_P(DeepUuidTest, ListsSlice) {
       {list_schema,
        {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   ASSERT_OK_AND_ASSIGN(
       auto result_slice,
@@ -309,8 +232,8 @@ TEST_P(DeepUuidTest, DictsSlice) {
        {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   ASSERT_OK_AND_ASSIGN(
       auto result_slice,
@@ -346,8 +269,8 @@ TEST_P(DeepUuidTest, SchemaSlice) {
        {{schema::kDictKeysSchemaAttr, DataItem(schema::kBytes)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto ds = DataSliceImpl::Create(
       CreateDenseArray<DataItem>({obj_schema, list_schema, dict_schema}));
@@ -405,8 +328,8 @@ TEST_P(DeepUuidTest, ObjectsSlice) {
         {schema::kDictValuesSchemaAttr, DataItem(schema::kInt32)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto ds = DataSliceImpl::Create(
       CreateDenseArray<DataItem>({DataItem(obj0), DataItem(obj1), DataItem(2),
@@ -449,8 +372,8 @@ TEST_P(DeepUuidTest, ObjectsSlice) {
 TEST_P(DeepUuidTest, ItemIdSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
 
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   DataItem xint = DataItem(schema::kInt32);
   DataItem xbytes = DataItem(schema::kBytes);
@@ -490,13 +413,13 @@ TEST_P(DeepUuidTest, CyclicReferences) {
       {schema_b, {{"parent", schema_a}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   EXPECT_THAT(DeepUuidOp()(DataItem(arolla::Text("")), ds, schema_a,
                            *GetMainDb(db), {GetFallbackDb(db).get()}),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       testing::HasSubstr(
+                       ::testing::HasSubstr(
                            "cyclic attributes are not allowed in deep_uuid")));
 }
 

@@ -19,7 +19,6 @@
 #include <initializer_list>
 #include <limits>
 #include <memory>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -38,10 +37,10 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
+#include "koladata/internal/testing/deep_op_utils.h"
 #include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
-#include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -49,98 +48,24 @@ namespace koladata::internal {
 namespace {
 
 using ::absl_testing::StatusIs;
-
 using ::arolla::CreateDenseArray;
-
-using TriplesT = std::vector<
-    std::pair<DataItem, std::vector<std::pair<std::string_view, DataItem>>>>;
 
 constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
-DataItem AllocateSchema() {
-  return DataItem(internal::AllocateExplicitSchema());
-}
+using testing::deep_op_utils::DeepOpTest;
+using testing::deep_op_utils::test_param_values;
 
-template <typename T>
-DataSliceImpl CreateSlice(absl::Span<const arolla::OptionalValue<T>> values) {
-  return DataSliceImpl::Create(CreateDenseArray<T>(values));
-}
-
-void SetSchemaTriples(DataBagImpl& db, const TriplesT& schema_triples) {
-  for (auto [schema, attrs] : schema_triples) {
-    for (auto [attr_name, attr_schema] : attrs) {
-      EXPECT_OK(db.SetSchemaAttr(schema, attr_name, attr_schema));
-    }
-  }
-}
-
-void SetDataTriples(DataBagImpl& db, const TriplesT& data_triples) {
-  for (auto [item, attrs] : data_triples) {
-    for (auto [attr_name, attr_data] : attrs) {
-      EXPECT_OK(db.SetAttr(item, attr_name, attr_data));
-    }
-  }
-}
-
-TriplesT GenNoiseDataTriples() {
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(5);
-  auto a0 = obj_ids[0];
-  auto a1 = obj_ids[1];
-  auto a2 = obj_ids[2];
-  auto a3 = obj_ids[3];
-  auto a4 = obj_ids[4];
-  TriplesT data = {{a0, {{"x", DataItem(1)}, {"next", a1}}},
-                   {a1, {{"y", DataItem(3)}, {"prev", a0}, {"next", a2}}},
-                   {a3, {{"x", DataItem(1)}, {"y", DataItem(2)}, {"next", a4}}},
-                   {a4, {{"prev", a3}}}};
-  return data;
-}
-
-TriplesT GenNoiseSchemaTriples() {
-  auto schema0 = AllocateSchema();
-  auto schema1 = AllocateSchema();
-  auto int_dtype = DataItem(schema::kInt32);
-  TriplesT schema_triples = {
-      {schema0, {{"self", schema0}, {"next", schema1}, {"x", int_dtype}}},
-      {schema1, {{"prev", schema0}, {"y", int_dtype}}}};
-  return schema_triples;
-}
-
-enum TraverserTestParam { kMainDb, kFallbackDb };
-
-class TraversingOpTest : public ::testing::TestWithParam<TraverserTestParam> {
- public:
-  DataBagImplPtr GetMainDb(DataBagImplPtr db) {
-    switch (GetParam()) {
-      case kMainDb:
-        return db;
-      case kFallbackDb:
-        return DataBagImpl::CreateEmptyDatabag();
-    }
-    DCHECK(false);
-  }
-  DataBagImplPtr GetFallbackDb(DataBagImplPtr db) {
-    switch (GetParam()) {
-      case kMainDb:
-        return DataBagImpl::CreateEmptyDatabag();
-      case kFallbackDb:
-        return db;
-    }
-    DCHECK(false);
-  }
-};
+class TraversingOpTest : public DeepOpTest {};
 
 class NoOpTraverserTest : public TraversingOpTest {};
 
 INSTANTIATE_TEST_SUITE_P(MainOrFallback, NoOpTraverserTest,
-                         ::testing::Values(kMainDb, kFallbackDb));
+                         ::testing::ValuesIn(test_param_values));
 
 class ObjectsTraverserTest : public TraversingOpTest {};
 
 INSTANTIATE_TEST_SUITE_P(MainOrFallback, ObjectsTraverserTest,
-                         ::testing::Values(kMainDb, kFallbackDb));
-
-
+                         ::testing::ValuesIn(test_param_values));
 
 class NoOpVisitor : AbstractVisitor {
  public:
@@ -199,8 +124,7 @@ class NoOpVisitor : AbstractVisitor {
       const DataItem& item, const DataItem& schema, bool is_object_schema,
       const arolla::DenseArray<arolla::Text>& attr_names,
       const arolla::DenseArray<DataItem>& attr_schema) override {
-    return VisitObject(item, schema, is_object_schema, attr_names,
-                       attr_schema);
+    return VisitObject(item, schema, is_object_schema, attr_names, attr_schema);
   }
 
  private:
@@ -237,11 +161,10 @@ class ObjectVisitor : AbstractVisitor {
     }
     if (schema == schema::kObject) {
       previsited_objects_.insert(item.value<ObjectId>());
-    } else if (schema.holds_value<ObjectId>()){
+    } else if (schema.holds_value<ObjectId>()) {
       if (!previsited_objects_.contains(item.value<ObjectId>())) {
-        return absl::InternalError(
-            absl::StrFormat("object %v is previsited with schema %v first",
-                            item, schema));
+        return absl::InternalError(absl::StrFormat(
+            "object %v is previsited with schema %v first", item, schema));
       }
       previsited_with_schema_.insert(item.value<ObjectId>());
     }
@@ -315,8 +238,8 @@ TEST_P(NoOpTraverserTest, ShallowEntitySlice) {
                            {a2, {{"x", DataItem(3)}, {"y", DataItem(6)}}}};
   SetSchemaTriples(*db, schema_triples);
   SetDataTriples(*db, data_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   EXPECT_OK(TraverseSlice(obj_ids, schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
@@ -345,8 +268,8 @@ TEST_P(NoOpTraverserTest, DeepEntitySlice) {
                              {schema_b, {{"self", schema_b}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   EXPECT_OK(
       TraverseSlice(ds, schema_a, *GetMainDb(db), {GetFallbackDb(db).get()}));
@@ -365,8 +288,8 @@ TEST_P(NoOpTraverserTest, ShallowListsSlice) {
       {list_schema,
        {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   EXPECT_OK(TraverseSlice(lists, list_schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
@@ -397,8 +320,8 @@ TEST_P(NoOpTraverserTest, DeepListsSlice) {
       {item_schema, {{"x", DataItem(schema::kInt32)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   EXPECT_OK(TraverseSlice(sparse_lists, list_schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
@@ -420,8 +343,8 @@ TEST_P(NoOpTraverserTest, ShallowDictsSlice) {
        {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt32)},
         {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   EXPECT_OK(TraverseSlice(dicts, dict_schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
@@ -453,16 +376,15 @@ TEST_P(NoOpTraverserTest, DeepDictsSlice) {
                            {values[4], {{"x", DataItem(5)}}},
                            {values[5], {{"x", DataItem(6)}}},
                            {values[6], {{"x", DataItem(7)}}}};
-  TriplesT schema_triples = {
-      {key_schema, {{"name", DataItem(schema::kBytes)}}},
-      {value_schema, {{"x", DataItem(schema::kInt32)}}},
-      {dict_schema,
-       {{schema::kDictKeysSchemaAttr, key_schema},
-        {schema::kDictValuesSchemaAttr, value_schema}}}};
+  TriplesT schema_triples = {{key_schema, {{"name", DataItem(schema::kBytes)}}},
+                             {value_schema, {{"x", DataItem(schema::kInt32)}}},
+                             {dict_schema,
+                              {{schema::kDictKeysSchemaAttr, key_schema},
+                               {schema::kDictValuesSchemaAttr, value_schema}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   EXPECT_OK(TraverseSlice(sparse_dicts, dict_schema, *GetMainDb(db),
                           {GetFallbackDb(db).get()}));
@@ -517,8 +439,8 @@ TEST_P(NoOpTraverserTest, ObjectsSlice) {
        {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, GenNoiseDataTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {a0, a1, DataItem(), DataItem(3), DataItem("a"), dicts[0], dicts[1],
@@ -537,8 +459,8 @@ TEST_P(NoOpTraverserTest, SchemaSlice) {
       {s2, {{"a", DataItem(schema::kString)}}},
   };
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({s1, s2}));
   EXPECT_OK(TraverseSlice(ds, DataItem(schema::kSchema), *GetMainDb(db),
@@ -569,13 +491,12 @@ TEST_P(NoOpTraverserTest, SchemaWithMetadata) {
       {metadata_schema, {{"order", DataItem(schema::kString)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
-  SetDataTriples(*db, GenNoiseDataTriples());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
 
   EXPECT_OK(
       TraverseSlice(ds, schema, *GetMainDb(db), {GetFallbackDb(db).get()}));
 }
-
 
 TEST_P(NoOpTraverserTest, SliceWithNamedSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
@@ -598,8 +519,8 @@ TEST_P(NoOpTraverserTest, SliceWithNamedSchema) {
                            {a1, {{"x", DataItem(2)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, GenNoiseDataTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({a0}));
   EXPECT_OK(TraverseSlice(ds, DataItem(named_schema), *GetMainDb(db),
@@ -612,23 +533,22 @@ TEST_P(NoOpTraverserTest, PrimitiveTypesMismatch) {
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto schema = AllocateSchema();
-  TriplesT data_triples = {
-      {a0, {{"x", DataItem(1)}}},
-      {a1, {{"x", DataItem(2.)}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem(1)}}},
+                           {a1, {{"x", DataItem(2.)}}}};
   TriplesT schema_triples = {
       {schema, {{"x", DataItem(schema::kInt32)}}},
   };
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, GenNoiseDataTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
   EXPECT_THAT(
       TraverseSlice(obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()}),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               testing::AllOf(
-                   testing::HasSubstr(
+               ::testing::AllOf(
+                   ::testing::HasSubstr(
                        "during traversal, got a slice with primitive type"),
-                   testing::HasSubstr("while the actual content has type"))));
+                   ::testing::HasSubstr("while the actual content has type"))));
 }
 
 TEST_P(NoOpTraverserTest, TypesMismatch) {
@@ -637,23 +557,21 @@ TEST_P(NoOpTraverserTest, TypesMismatch) {
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto schema = AllocateSchema();
-  TriplesT data_triples = {
-      {a0, {{"x", DataItem(1)}}},
-      {a1, {{"x", a0}}}};
+  TriplesT data_triples = {{a0, {{"x", DataItem(1)}}}, {a1, {{"x", a0}}}};
   TriplesT schema_triples = {
       {schema, {{"x", DataItem(schema::kInt32)}}},
   };
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, GenNoiseDataTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
   EXPECT_THAT(
       TraverseSlice(obj_ids, schema, *GetMainDb(db), {GetFallbackDb(db).get()}),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               testing::AllOf(
-                   testing::HasSubstr(
+               ::testing::AllOf(
+                   ::testing::HasSubstr(
                        "during traversal, got a slice with primitive type"),
-                   testing::HasSubstr(
+                   ::testing::HasSubstr(
                        "while the actual content is not a primitive"))));
 }
 
@@ -707,8 +625,8 @@ TEST_P(ObjectsTraverserTest, ObjectsSlice) {
        {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, GenNoiseDataTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {a0, a1, DataItem(), DataItem(3), DataItem("a"), dicts[0], dicts[1],
@@ -735,8 +653,8 @@ TEST_P(ObjectsTraverserTest, MixedSliceWithNaN) {
   };
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
-  SetDataTriples(*db, GenNoiseDataTriples());
-  SetSchemaTriples(*db, GenNoiseSchemaTriples());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
 
   auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {a0, a1, DataItem(), DataItem(3), DataItem("a")}));
