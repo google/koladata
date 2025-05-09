@@ -75,7 +75,7 @@ class PersistedIncrementalDataBagManager:
       self,
       persistence_dir: str,
       *,
-      fs: fsi_lib.FileSystemInterface = fsi_lib.FileSystemInteraction(),
+      fs: fsi_lib.FileSystemInterface | None = None,
   ):
     """Initializes the manager.
 
@@ -85,9 +85,10 @@ class PersistedIncrementalDataBagManager:
         populated with an empty bag named ''. Otherwise, the manager will be
         initialized from the existing artifacts in the directory.
       fs: All interactions with the file system will go through this instance.
+        If None, then the default interaction with the file system is used.
     """
     self._persistence_dir: str = persistence_dir
-    self._fs = fs
+    self._fs = fs or fsi_lib.get_default_file_system_interaction()
     del persistence_dir, fs  # Forces the use of the attributes henceforth.
     self._loaded_bags_cache: dict[str, kd.types.DataBag] = dict()
     if not self._fs.exists(self._persistence_dir):
@@ -213,7 +214,7 @@ class PersistedIncrementalDataBagManager:
       *,
       with_all_dependents: bool = False,
       output_dir: str,
-      fs: fsi_lib.FileSystemInterface = fsi_lib.FileSystemInteraction(),
+      fs: fsi_lib.FileSystemInterface | None = None,
   ):
     """Extracts the requested bags to the given output directory.
 
@@ -238,6 +239,7 @@ class PersistedIncrementalDataBagManager:
     )
     bag_dependencies = self._get_dependency_relation()
 
+    fs = fs or fsi_lib.get_default_file_system_interaction()
     if not fs.exists(output_dir):
       fs.make_dirs(output_dir)
     if fs.glob(os.path.join(output_dir, '*')):

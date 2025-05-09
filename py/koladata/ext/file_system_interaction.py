@@ -59,15 +59,20 @@ class FileSystemInteraction(FileSystemInterface):
     return glob.glob(pattern)
 
 
+def get_default_file_system_interaction():
+  return FileSystemInteraction()
+
+
 def write_slice_to_file(
     ds: kd.types.DataSlice,
     filepath: str,
     *,
     overwrite: bool = False,
     riegeli_options: str = 'snappy',
-    fs: FileSystemInterface = FileSystemInteraction(),
+    fs: FileSystemInterface | None = None,
 ):
   """Writes the given DataSlice to a file; overwrites the file if requested."""
+  fs = fs or get_default_file_system_interaction()
   if fs.exists(filepath):
     if overwrite:
       fs.remove(filepath)
@@ -78,8 +83,9 @@ def write_slice_to_file(
 
 
 def read_slice_from_file(
-    filepath: str, *, fs: FileSystemInterface = FileSystemInteraction()
+    filepath: str, *, fs: FileSystemInterface | None = None
 ) -> kd.types.DataSlice:
+  fs = fs or get_default_file_system_interaction()
   with fs.open(filepath, 'rb') as f:
     return kd.loads(f.read())
 
@@ -90,9 +96,10 @@ def write_bag_to_file(
     *,
     overwrite: bool = False,
     riegeli_options: str = 'snappy',
-    fs: FileSystemInterface = FileSystemInteraction(),
+    fs: FileSystemInterface | None = None,
 ):
   """Writes the given DataBag to a file; overwrites the file if requested."""
+  fs = fs or get_default_file_system_interaction()
   if fs.exists(filepath):
     if overwrite:
       fs.remove(filepath)
@@ -103,7 +110,8 @@ def write_bag_to_file(
 
 
 def read_bag_from_file(
-    filepath: str, *, fs: FileSystemInterface = FileSystemInteraction()
+    filepath: str, *, fs: FileSystemInterface | None = None
 ) -> kd.types.DataBag:
+  fs = fs or get_default_file_system_interaction()
   with fs.open(filepath, 'rb') as f:
     return kd.loads(f.read())
