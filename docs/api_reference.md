@@ -1236,7 +1236,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x32d67a930c80>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x33fe3aeeb980>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1318,7 +1318,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x32d67a930c80>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x33fe3aeeb980>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -9677,7 +9677,7 @@ the following module is needed:
 
 **Operators**
 
-### `kd_ext.PersistedIncrementalDataBagManager.add_bag(self, bag_name, bag, dependencies)` {#kd_ext.PersistedIncrementalDataBagManager.add_bag}
+### `kd_ext.PersistedIncrementalDataBagManager.add_bag(self, bag_name, bag, *, dependencies)` {#kd_ext.PersistedIncrementalDataBagManager.add_bag}
 
 ``` {.no-copy}
 Adds a bag to the manager, which will persist it.
@@ -9694,7 +9694,7 @@ Adds a bag to the manager, which will persist it.
         loaded and will hence be present in get_loaded_bag_names().
 ```
 
-### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x32d6782a5640>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
+### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x33fe38365190>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
 
 ``` {.no-copy}
 Extracts the requested bags to the given output directory.
@@ -9726,31 +9726,10 @@ Returns the names of all bags that are managed by this manager.
     persistence directory before this manager instance was created.
 ```
 
-### `kd_ext.PersistedIncrementalDataBagManager.get_bag(self, bag_name='', *, with_all_dependents=False)` {#kd_ext.PersistedIncrementalDataBagManager.get_bag}
+### `kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag(self)` {#kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag}
 
 ``` {.no-copy}
-Returns a bag that includes bag_name and its transitive dependencies.
-
-    The result will also include all bags that have already been loaded. Their
-    names can be found by calling get_loaded_bag_names(). You can also call
-    get_loaded_bag_names() after this function returns to determine the names of
-    the newly loaded bags.
-
-    Args:
-      bag_name: The name of the bag whose data must be part of the result. It
-        must be a member of get_available_bag_names(). If not loaded yet, then
-        it will be loaded after all its transitive dependencies are loaded. If
-        not specified, then it is assumed to refer to the initial empty bag
-        (with name ''), which is always loaded.
-      with_all_dependents: If True, then the returned bag will also include all
-        dependents of bag_name. The dependents are computed transitively. All
-        transitive dependencies of the dependents are then also included in the
-        result.
-
-    Returns:
-      The currently loaded bag, which includes the previously loaded bags, the
-      bag called bag_name, its transitive dependencies, and if requested, the
-      transitive dependents of bag_name and their transitive dependencies.
+Returns a bag consisting of all the small bags that are currently loaded.
 ```
 
 ### `kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag_names(self)` {#kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag_names}
@@ -9760,7 +9739,44 @@ Returns the names of all bags that are currently loaded in this manager.
 
     The initial empty bag (with name '') is always loaded, and the bags that
     have been added to this manager instance or loaded by previous calls to
-    get_bag() are also considered loaded.
+    load_bags() and their transitive dependencies are also considered loaded.
+
+    Some methods, such as get_minimal_bag() or extract_bags(), may load bags as
+    a side effect when they are needed but not loaded yet.
+```
+
+### `kd_ext.PersistedIncrementalDataBagManager.get_minimal_bag(self, bag_names, *, with_all_dependents=False)` {#kd_ext.PersistedIncrementalDataBagManager.get_minimal_bag}
+
+``` {.no-copy}
+Returns a minimal bag that includes bag_names and all their dependencies.
+
+    Args:
+      bag_names: The name of the bags whose data must be included in the result.
+        It must be a non-empty subset of get_available_bag_names(). These bags
+        and their transitive dependencies will be loaded if they are not loaded
+        yet.
+      with_all_dependents: If True, then the returned bag will also include all
+        the dependents of bag_names. The dependents are computed transitively.
+        All transitive dependencies of the dependents are then also included in
+        the result.
+
+    Returns:
+      A minimal bag that has the data of the requested small bags. It will not
+      include any unrelated bags that are already loaded.
+```
+
+### `kd_ext.PersistedIncrementalDataBagManager.load_bags(self, bag_names, *, with_all_dependents=False)` {#kd_ext.PersistedIncrementalDataBagManager.load_bags}
+
+``` {.no-copy}
+Loads the requested bags and their transitive dependencies.
+
+    Args:
+      bag_names: The names of the bags that should be loaded. They must be a
+        non-empty subset of get_available_bag_names(). All their transitive
+        dependencies will be loaded as well.
+      with_all_dependents: If True, then all the dependents of bag_names will
+        also be loaded. The dependents are computed transitively. All transitive
+        dependencies of the dependents will also be loaded.
 ```
 
 ### `kd_ext.experimental.call_multithreaded(fn, /, *args, max_threads=100, **kwargs)` {#kd_ext.experimental.call_multithreaded}
@@ -10048,7 +10064,7 @@ Visualizes a DataSlice as a html widget.
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x32d6782a5610>)` {#kd_ext.PersistedIncrementalDataBagManager}
+### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x33fe38365160>)` {#kd_ext.PersistedIncrementalDataBagManager}
 
 ``` {.no-copy}
 Manager of a DataBag that is assembled from multiple smaller bags.
