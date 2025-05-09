@@ -19,6 +19,7 @@ import shutil
 from unittest import mock
 from absl.testing import absltest
 from koladata import kd
+from koladata.ext import file_system_interaction as fsi_lib
 from koladata.ext import persisted_incremental_data_bag_manager as pidbm
 
 
@@ -372,7 +373,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
 
     with self.subTest('EmptyInitialPersistenceDir'):
       persistence_dir = self.create_tempdir().full_path
-      mocked_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
       _ = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -395,7 +396,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       _ = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
 
       # Start a new manager with the already initialized persistence_dir.
-      mocked_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
       _ = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -412,7 +413,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
 
     with self.subTest('add_bag'):
       persistence_dir = self.create_tempdir().full_path
-      mocked_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -438,7 +439,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       manager.add_bag('bag1', kd.bag(), dependencies=[''])
       manager.add_bag('bag2', kd.bag(), dependencies=[''])
 
-      mocked_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -460,7 +461,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       )
       manager.add_bag('bag1', kd.bag(), dependencies=[''])
 
-      mocked_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -481,14 +482,14 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       )
       manager.add_bag('bag1', kd.bag(), dependencies=[''])
 
-      original_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      original_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=original_fs
       )
       original_fs.reset_mock()
 
       output_dir = self.create_tempdir().full_path
-      output_fs = mock.Mock(wraps=pidbm.FileSystemInteraction())
+      output_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
       manager.extract_bags(
           bag_names=['bag1'], output_dir=output_dir, fs=output_fs
       )
@@ -642,33 +643,6 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         'The output_dir must be empty or not exist yet.',
     ):
       manager.extract_bags(bag_names=[''], output_dir=output_dir)
-
-
-class DataSliceAndBagPersistenceTest(absltest.TestCase):
-
-  def test_dataslice_write_read(self):
-    ds = kd.slice([1, 2, 3])
-    filepath = os.path.join(self.create_tempdir().full_path, 'test_slice.kd')
-    pidbm.write_slice_to_file(ds, filepath)
-    kd.testing.assert_equal(pidbm.read_slice_from_file(filepath), ds)
-
-    new_ds = kd.slice([4, 5, 6])
-    with self.assertRaisesRegex(ValueError, 'already exists'):
-      pidbm.write_slice_to_file(new_ds, filepath)
-    pidbm.write_slice_to_file(new_ds, filepath, overwrite=True)
-    kd.testing.assert_equal(pidbm.read_slice_from_file(filepath), new_ds)
-
-  def test_databag_write_read(self):
-    db = kd.new(x=1, y=2).get_bag()
-    filepath = os.path.join(self.create_tempdir().full_path, 'test_bag.kd')
-    pidbm.write_bag_to_file(db, filepath)
-    kd.testing.assert_equivalent(pidbm.read_bag_from_file(filepath), db)
-
-    new_db = kd.new(x=3, y=4).get_bag()
-    with self.assertRaisesRegex(ValueError, 'already exists'):
-      pidbm.write_bag_to_file(new_db, filepath)
-    pidbm.write_bag_to_file(new_db, filepath, overwrite=True)
-    kd.testing.assert_equivalent(pidbm.read_bag_from_file(filepath), new_db)
 
 
 if __name__ == '__main__':

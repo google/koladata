@@ -17,6 +17,7 @@
 import types as _py_types
 
 from koladata import kd as _kd
+from koladata.ext import file_system_interaction as _file_system_interaction
 from koladata.ext import nested_data as _nested_data
 from koladata.ext import npkd as _npkd
 from koladata.ext import pdkd as _pdkd
@@ -37,6 +38,7 @@ PyFn = _kd.py_fn
 
 py_cloudpickle = _py_cloudpickle.py_cloudpickle
 
+file_system_interaction = _file_system_interaction
 PersistedIncrementalDataBagManager = _pidbm.PersistedIncrementalDataBagManager
 
 experimental = _py_types.SimpleNamespace(

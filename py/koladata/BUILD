@@ -101,6 +101,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":kd",
+        "//py/koladata/ext:file_system_interaction",
         "//py/koladata/ext:nested_data",
         "//py/koladata/ext:npkd",
         "//py/koladata/ext:pdkd",

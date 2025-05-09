@@ -19,50 +19,12 @@ PersistedIncrementalDataBagManager.
 """
 
 import collections
-import glob
 import os
-from typing import AbstractSet, Collection, IO, Iterable
+from typing import AbstractSet, Collection, Iterable
 
 from koladata import kd
+from koladata.ext import file_system_interaction as fsi_lib
 from koladata.ext import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
-
-
-class FileSystemInterface:
-  """Interface to interact with the file system."""
-
-  def exists(self, filepath: str) -> bool:
-    raise NotImplementedError
-
-  def remove(self, filepath: str):
-    raise NotImplementedError
-
-  def open(self, filepath: str, mode: str) -> IO[bytes | str]:
-    raise NotImplementedError
-
-  def make_dirs(self, dirpath: str):
-    raise NotImplementedError
-
-  def glob(self, pattern: str) -> Collection[str]:
-    raise NotImplementedError
-
-
-class FileSystemInteraction(FileSystemInterface):
-  """Interacts with the file system."""
-
-  def exists(self, filepath: str) -> bool:
-    return os.path.exists(filepath)
-
-  def remove(self, filepath: str):
-    os.remove(filepath)
-
-  def open(self, filepath: str, mode: str) -> IO[bytes | str]:
-    return open(filepath, mode)
-
-  def make_dirs(self, dirpath: str):
-    os.makedirs(dirpath, exist_ok=True)
-
-  def glob(self, pattern: str) -> Collection[str]:
-    return glob.glob(pattern)
 
 
 _INITIAL_BAG_NAME = ''
@@ -113,7 +75,7 @@ class PersistedIncrementalDataBagManager:
       self,
       persistence_dir: str,
       *,
-      fs: FileSystemInterface = FileSystemInteraction(),
+      fs: fsi_lib.FileSystemInterface = fsi_lib.FileSystemInteraction(),
   ):
     """Initializes the manager.
 
@@ -251,7 +213,7 @@ class PersistedIncrementalDataBagManager:
       *,
       with_all_dependents: bool = False,
       output_dir: str,
-      fs: FileSystemInterface = FileSystemInteraction(),
+      fs: fsi_lib.FileSystemInterface = fsi_lib.FileSystemInteraction(),
   ):
     """Extracts the requested bags to the given output directory.
 
@@ -523,7 +485,7 @@ class PersistedIncrementalDataBagManager:
     return f'bag-{new_bag_number:012d}.kd'
 
   def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str):
-    write_bag_to_file(
+    fsi_lib.write_bag_to_file(
         bag, self._get_bag_filepath_from_filename(bag_filename), fs=self._fs
     )
 
@@ -534,7 +496,7 @@ class PersistedIncrementalDataBagManager:
         if m.name == bag_name
     )
     bag_filepath = self._get_bag_filepath_from_filename(bag_filename)
-    return read_bag_from_file(bag_filepath, fs=self._fs)
+    return fsi_lib.read_bag_from_file(bag_filepath, fs=self._fs)
 
   def _get_bag_filepath_from_filename(self, bag_filename: str) -> str:
     return os.path.join(self._persistence_dir, bag_filename)
@@ -553,51 +515,3 @@ class PersistedIncrementalDataBagManager:
 
   def _get_metadata_filepath(self) -> str:
     return os.path.join(self._persistence_dir, 'metadata.pb')
-
-
-def write_slice_to_file(
-    ds: kd.types.DataSlice,
-    filepath: str,
-    *,
-    overwrite: bool = False,
-    fs: FileSystemInterface = FileSystemInteraction(),
-):
-  """Writes the given DataSlice to a file; overwrites the file if requested."""
-  if fs.exists(filepath):
-    if overwrite:
-      fs.remove(filepath)
-    else:
-      raise ValueError(f'File {filepath} already exists.')
-  with fs.open(filepath, 'wb') as f:
-    f.write(kd.dumps(ds, riegeli_options='snappy'))
-
-
-def read_slice_from_file(
-    filepath: str, *, fs: FileSystemInterface = FileSystemInteraction()
-) -> kd.types.DataSlice:
-  with fs.open(filepath, 'rb') as f:
-    return kd.loads(f.read())
-
-
-def write_bag_to_file(
-    ds: kd.types.DataBag,
-    filepath: str,
-    *,
-    overwrite: bool = False,
-    fs: FileSystemInterface = FileSystemInteraction(),
-):
-  """Writes the given DataBag to a file; overwrites the file if requested."""
-  if fs.exists(filepath):
-    if overwrite:
-      fs.remove(filepath)
-    else:
-      raise ValueError(f'File {filepath} already exists.')
-  with fs.open(filepath, 'wb') as f:
-    f.write(kd.dumps(ds, riegeli_options='snappy'))
-
-
-def read_bag_from_file(
-    filepath: str, *, fs: FileSystemInterface = FileSystemInteraction()
-) -> kd.types.DataBag:
-  with fs.open(filepath, 'rb') as f:
-    return kd.loads(f.read())
