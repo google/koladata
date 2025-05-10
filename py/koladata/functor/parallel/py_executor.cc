@@ -71,9 +71,6 @@ PyObject* PyExecutor_schedule(PyObject* self, PyObject* py_arg) {
                           PyObjectGILSafePtr::NewRef(py_arg)]() mutable {
     CancellationContext::ScopeGuard cancellation_scope(
         std::move(cancellation_context));
-    if (Cancelled()) {
-      return;
-    }
     AcquirePyGIL guard;
     auto py_result = PyObjectPtr::Own(PyObject_CallNoArgs(py_callable.get()));
     if (py_result == nullptr) {

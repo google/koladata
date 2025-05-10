@@ -324,16 +324,10 @@ PyObject* PyStreamReader_subscribe_once(PyObject* self, PyObject* py_tuple_args,
                    cancellation_context = CurrentCancellationContext(),
                    py_callable =
                        PyObjectGILSafePtr::NewRef(py_callback)]() mutable {
-    if (cancellation_context != nullptr && cancellation_context->Cancelled()) {
-      return;
-    }
     executor->Schedule([cancellation_context = std::move(cancellation_context),
                         py_callable = std::move(py_callable)]() mutable {
       CancellationContext::ScopeGuard cancellation_scope(
           std::move(cancellation_context));
-      if (Cancelled()) {
-        return;
-      }
       AcquirePyGIL guard;
       auto py_result = PyObjectPtr::Own(PyObject_CallNoArgs(py_callable.get()));
       if (py_result == nullptr) {
