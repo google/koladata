@@ -1236,7 +1236,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x33fe3aeeb980>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x51cf7b0f7a10>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1318,7 +1318,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x33fe3aeeb980>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x51cf7b0f7a10>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -9677,6 +9677,21 @@ the following module is needed:
 
 **Operators**
 
+### `kd_ext.FileSystemInteraction.exists(self, filepath)` {#kd_ext.FileSystemInteraction.exists}
+*No description*
+
+### `kd_ext.FileSystemInteraction.glob(self, pattern)` {#kd_ext.FileSystemInteraction.glob}
+*No description*
+
+### `kd_ext.FileSystemInteraction.make_dirs(self, dirpath)` {#kd_ext.FileSystemInteraction.make_dirs}
+*No description*
+
+### `kd_ext.FileSystemInteraction.open(self, filepath, mode)` {#kd_ext.FileSystemInteraction.open}
+*No description*
+
+### `kd_ext.FileSystemInteraction.remove(self, filepath)` {#kd_ext.FileSystemInteraction.remove}
+*No description*
+
 ### `kd_ext.PersistedIncrementalDataBagManager.add_bag(self, bag_name, bag, *, dependencies)` {#kd_ext.PersistedIncrementalDataBagManager.add_bag}
 
 ``` {.no-copy}
@@ -9694,7 +9709,7 @@ Adds a bag to the manager, which will persist it.
         loaded and will hence be present in get_loaded_bag_names().
 ```
 
-### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x33fe38365190>)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
+### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=None)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
 
 ``` {.no-copy}
 Extracts the requested bags to the given output directory.
@@ -9829,6 +9844,27 @@ Calls a functor with the given arguments.
     (times in the sense of Python time.time() function), and a `children`
     attribute with a list of children that have the same structure
     recursively.
+```
+
+### `kd_ext.file_system_interaction.get_default_file_system_interaction()` {#kd_ext.file_system_interaction.get_default_file_system_interaction}
+*No description*
+
+### `kd_ext.file_system_interaction.read_bag_from_file(filepath, *, fs=None)` {#kd_ext.file_system_interaction.read_bag_from_file}
+*No description*
+
+### `kd_ext.file_system_interaction.read_slice_from_file(filepath, *, fs=None)` {#kd_ext.file_system_interaction.read_slice_from_file}
+*No description*
+
+### `kd_ext.file_system_interaction.write_bag_to_file(ds, filepath, *, overwrite=False, riegeli_options='snappy', fs=None)` {#kd_ext.file_system_interaction.write_bag_to_file}
+
+``` {.no-copy}
+Writes the given DataBag to a file; overwrites the file if requested.
+```
+
+### `kd_ext.file_system_interaction.write_slice_to_file(ds, filepath, *, overwrite=False, riegeli_options='snappy', fs=None)` {#kd_ext.file_system_interaction.write_slice_to_file}
+
+``` {.no-copy}
+Writes the given DataSlice to a file; overwrites the file if requested.
 ```
 
 ### `kd_ext.nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds)` {#kd_ext.nested_data.selected_path_update}
@@ -10064,7 +10100,13 @@ Visualizes a DataSlice as a html widget.
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
 
-### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=<koladata.ext.persisted_incremental_data_bag_manager.FileSystemInteraction object at 0x33fe38365160>)` {#kd_ext.PersistedIncrementalDataBagManager}
+### `kd_ext.FileSystemInteraction(options=None)` {#kd_ext.FileSystemInteraction}
+
+``` {.no-copy}
+Interactions with Google-internal file systems such as CNS.
+```
+
+### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=None)` {#kd_ext.PersistedIncrementalDataBagManager}
 
 ``` {.no-copy}
 Manager of a DataBag that is assembled from multiple smaller bags.
