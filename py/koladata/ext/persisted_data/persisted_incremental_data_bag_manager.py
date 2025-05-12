@@ -23,8 +23,8 @@ import os
 from typing import AbstractSet, Collection, Iterable
 
 from koladata import kd
-from koladata.ext import file_system_interaction as fsi_lib
-from koladata.ext import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
+from koladata.ext.persisted_data import file_system_interaction as fsi_lib
+from koladata.ext.persisted_data import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
 
 
 _INITIAL_BAG_NAME = ''

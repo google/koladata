@@ -16,7 +16,7 @@ import os
 
 from absl.testing import absltest
 from koladata import kd
-from koladata.ext import file_system_interaction as fsi
+from koladata.ext.persisted_data import file_system_interaction as fsi
 
 
 class DataSliceAndBagPersistenceTest(absltest.TestCase):

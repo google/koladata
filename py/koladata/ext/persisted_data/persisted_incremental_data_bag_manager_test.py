@@ -19,8 +19,8 @@ import shutil
 from unittest import mock
 from absl.testing import absltest
 from koladata import kd
-from koladata.ext import file_system_interaction as fsi_lib
-from koladata.ext import persisted_incremental_data_bag_manager as pidbm
+from koladata.ext.persisted_data import file_system_interaction as fsi_lib
+from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as pidbm
 
 
 class PersistedIncrementalDatabagManagerTest(absltest.TestCase):

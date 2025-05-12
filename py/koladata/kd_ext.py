@@ -17,18 +17,18 @@
 import types as _py_types
 
 from koladata import kd as _kd
-from koladata.ext import file_system_interaction as _file_system_interaction
 from koladata.ext import nested_data as _nested_data
 from koladata.ext import npkd as _npkd
 from koladata.ext import pdkd as _pdkd
-from koladata.ext import persisted_incremental_data_bag_manager as _pidbm
 from koladata.ext import py_cloudpickle as _py_cloudpickle
 from koladata.ext import vis as _vis
 from koladata.ext.experimental.parallel_call import call as _call
+from koladata.ext.persisted_data import persisted_data as _persisted_data
 
 npkd = _npkd
 pdkd = _pdkd
 nested_data = _nested_data
+persisted_data = _persisted_data
 vis = _vis
 
 # CamelCase versions in ext since we're still not sure what we will eventually
@@ -37,9 +37,6 @@ Fn = _kd.fn
 PyFn = _kd.py_fn
 
 py_cloudpickle = _py_cloudpickle.py_cloudpickle
-
-file_system_interaction = _file_system_interaction
-PersistedIncrementalDataBagManager = _pidbm.PersistedIncrementalDataBagManager
 
 experimental = _py_types.SimpleNamespace(
     call_multithreaded=_call.call_multithreaded,

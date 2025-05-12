@@ -99,14 +99,13 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":kd",
-        "//py/koladata/ext:file_system_interaction",
         "//py/koladata/ext:nested_data",
         "//py/koladata/ext:npkd",
         "//py/koladata/ext:pdkd",
-        "//py/koladata/ext:persisted_incremental_data_bag_manager",
         "//py/koladata/ext:py_cloudpickle",
         "//py/koladata/ext:vis",
         "//py/koladata/ext/experimental/parallel_call:call",
+        "//py/koladata/ext/persisted_data",
         "@com_google_arolla//py/arolla",
     ],
 )

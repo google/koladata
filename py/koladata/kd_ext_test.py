@@ -25,7 +25,7 @@ class KdExtTest(absltest.TestCase):
     self.assertIn('npkd', modules)
     self.assertIn('pdkd', modules)
     self.assertIn('nested_data', modules)
-    self.assertIn('file_system_interaction', modules)
+    self.assertIn('persisted_data', modules)
 
   def test_functor_factories(self):
     testing.assert_equal(kd_ext.Fn(lambda: 5)(), kd.item(5))
@@ -52,22 +52,6 @@ class KdExtTest(absltest.TestCase):
 
   def test_vis(self):
     self.assertTrue(hasattr(kd_ext.vis, 'register_formatters'))
-
-  def test_file_system_interaction(self):
-    fs = kd_ext.file_system_interaction.FileSystemInteraction()
-    dirname = self.create_tempdir().full_path
-    self.assertTrue(fs.exists(dirname))
-
-  def test_persisted_incremental_data_bag_manager(self):
-    self.assertTrue(hasattr(kd_ext, 'PersistedIncrementalDataBagManager'))
-
-    persistence_dir = self.create_tempdir().full_path
-    dbm = kd_ext.PersistedIncrementalDataBagManager(persistence_dir)
-    self.assertEqual(dbm.get_available_bag_names(), {''})
-    self.assertEqual(dbm.get_loaded_bag_names(), {''})
-    kd.testing.assert_equivalent(
-        dbm.get_loaded_bag().merge_fallbacks(), kd.bag()
-    )
 
 
 if __name__ == '__main__':

@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
-load("@rules_python//python:proto.bzl", "py_proto_library")
 
 # Tools for working with external libraries, such as numpy, pandas, etc.
 
@@ -121,57 +119,6 @@ py_library(
     deps = [
         ":functools",
         "//py/koladata:kd",
-    ],
-)
-
-py_library(
-    name = "persisted_incremental_data_bag_manager",
-    srcs = ["persisted_incremental_data_bag_manager.py"],
-    deps = [
-        ":file_system_interaction",
-        ":persisted_incremental_data_bag_manager_metadata_py_pb2",
-        "//py/koladata:kd",
-    ],
-)
-
-py_test(
-    name = "persisted_incremental_data_bag_manager_test",
-    srcs = ["persisted_incremental_data_bag_manager_test.py"],
-    deps = [
-        ":file_system_interaction",
-        ":persisted_incremental_data_bag_manager",
-        "//py/koladata:kd",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-proto_library(
-    name = "persisted_incremental_data_bag_manager_metadata_proto",
-    srcs = ["persisted_incremental_data_bag_manager_metadata.proto"],
-)
-
-py_proto_library(
-    name = "persisted_incremental_data_bag_manager_metadata_py_pb2",
-    deps = [
-        ":persisted_incremental_data_bag_manager_metadata_proto",
-    ],
-)
-
-py_library(
-    name = "file_system_interaction",
-    srcs = ["file_system_interaction.py"],
-    deps = [
-        "//py/koladata:kd",
-    ],
-)
-
-py_test(
-    name = "file_system_interaction_test",
-    srcs = ["file_system_interaction_test.py"],
-    deps = [
-        ":file_system_interaction",
-        "//py/koladata:kd",
-        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
 
