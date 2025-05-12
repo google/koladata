@@ -240,7 +240,7 @@ TEST_P(DeepCloneTest, DeepEntitySliceBigAlloc) {
 
 TEST_P(DeepCloneTest, ShallowListsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto values =
       DataSliceImpl::Create(CreateDenseArray<int32_t>({1, 2, 3, 4, 5, 6, 7}));
   ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
@@ -260,7 +260,8 @@ TEST_P(DeepCloneTest, ShallowListsSlice) {
       DeepCloneOp(result_db.get())(lists, list_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
-  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
+  EXPECT_EQ(result_slice.allocation_ids().size(),
+            lists.allocation_ids().size());
   EXPECT_NE(result_slice[0], lists[0]);
   EXPECT_NE(result_slice[1], lists[1]);
   EXPECT_NE(result_slice[2], lists[2]);
@@ -279,7 +280,7 @@ TEST_P(DeepCloneTest, ShallowListsSlice) {
 
 TEST_P(DeepCloneTest, DeepListsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto values = AllocateEmptyObjects(7);
   ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
                                       CreateDenseArray<int64_t>({0, 3, 5, 7})));
@@ -305,7 +306,8 @@ TEST_P(DeepCloneTest, DeepListsSlice) {
       DeepCloneOp(result_db.get())(lists, list_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
-  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
+  EXPECT_EQ(result_slice.allocation_ids().size(),
+            lists.allocation_ids().size());
   EXPECT_NE(result_slice[0], lists[0]);
   EXPECT_NE(result_slice[1], lists[1]);
   EXPECT_NE(result_slice[2], lists[2]);
@@ -339,7 +341,7 @@ TEST_P(DeepCloneTest, DeepListsSlice) {
 
 TEST_P(DeepCloneTest, ShallowDictsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+  auto dicts = AllocateEmptyDicts(3);
   auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys =
@@ -362,7 +364,8 @@ TEST_P(DeepCloneTest, ShallowDictsSlice) {
       DeepCloneOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
-  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
+  EXPECT_EQ(result_slice.allocation_ids().size(),
+            dicts.allocation_ids().size());
   EXPECT_NE(result_slice[0], dicts[0]);
   EXPECT_NE(result_slice[1], dicts[1]);
   EXPECT_NE(result_slice[2], dicts[2]);
@@ -385,7 +388,7 @@ TEST_P(DeepCloneTest, ShallowDictsSlice) {
 
 TEST_P(DeepCloneTest, DeepDictsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+  auto dicts = AllocateEmptyDicts(3);
   auto keys = AllocateEmptyObjects(4);
   auto values = AllocateEmptyObjects(7);
   auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
@@ -423,7 +426,8 @@ TEST_P(DeepCloneTest, DeepDictsSlice) {
       DeepCloneOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
                                    {GetFallbackDb(db).get()}));
   EXPECT_EQ(result_slice.size(), 3);
-  EXPECT_EQ(result_slice.allocation_ids().size(), 1);
+  EXPECT_EQ(result_slice.allocation_ids().size(),
+            dicts.allocation_ids().size());
   EXPECT_NE(result_slice[0], dicts[0]);
   EXPECT_NE(result_slice[1], dicts[1]);
   EXPECT_NE(result_slice[2], dicts[2]);
@@ -498,8 +502,8 @@ TEST_P(DeepCloneTest, ObjectsSlice) {
   auto a3 = obj_ids[3];
   auto a4 = obj_ids[4];
   auto a5 = obj_ids[5];
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(2), 2);
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(2), 2);
+  auto dicts = AllocateEmptyDicts(3);
+  auto lists = AllocateEmptyLists(2);
   ASSERT_OK(db->SetInDict(dicts[0], DataItem("a"), DataItem(1)));
   ASSERT_OK(db->SetInDict(dicts[1], a2, a3));
   ASSERT_OK(db->ExtendList(
@@ -743,7 +747,7 @@ TEST_P(DeepCloneTest, NoFollowSchema) {
   auto a4 = obj_ids[4];
   auto a5 = obj_ids[5];
   auto a6 = obj_ids[6];
-  auto l0 = DataSliceImpl::ObjectsFromAllocation(AllocateLists(1), 1)[0];
+  auto l0 = AllocateEmptyLists(1)[0];
   auto s0 = AllocateSchema();
   auto s1 = AllocateSchema();
   auto s2 = AllocateSchema();

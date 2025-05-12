@@ -225,7 +225,7 @@ absl::Status TraverseSliceCheckObjectPrevisits(
 
 TEST_P(NoOpTraverserTest, ShallowEntitySlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -247,7 +247,7 @@ TEST_P(NoOpTraverserTest, ShallowEntitySlice) {
 
 TEST_P(NoOpTraverserTest, DeepEntitySlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(6);
+  auto obj_ids = AllocateEmptyObjects(6);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -277,7 +277,7 @@ TEST_P(NoOpTraverserTest, DeepEntitySlice) {
 
 TEST_P(NoOpTraverserTest, ShallowListsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto values =
       DataSliceImpl::Create(CreateDenseArray<int32_t>({1, 2, 3, 4, 5, 6, 7}));
   ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
@@ -297,10 +297,10 @@ TEST_P(NoOpTraverserTest, ShallowListsSlice) {
 
 TEST_P(NoOpTraverserTest, DeepListsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto sparse_lists = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {lists[0], DataItem(), DataItem(), lists[1], lists[2]}));
-  auto values = DataSliceImpl::AllocateEmptyObjects(7);
+  auto values = AllocateEmptyObjects(7);
   auto sparse_values = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {values[0], DataItem(), DataItem(), values[1], values[2], values[3],
        values[4], values[5], values[6], DataItem()}));
@@ -329,7 +329,7 @@ TEST_P(NoOpTraverserTest, DeepListsSlice) {
 
 TEST_P(NoOpTraverserTest, ShallowDictsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+  auto dicts = AllocateEmptyDicts(3);
   auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys =
@@ -352,11 +352,11 @@ TEST_P(NoOpTraverserTest, ShallowDictsSlice) {
 
 TEST_P(NoOpTraverserTest, DeepDictsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+  auto dicts = AllocateEmptyDicts(3);
   auto sparse_dicts = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {dicts[0], DataItem(), DataItem(), dicts[1], dicts[2]}));
-  auto keys = DataSliceImpl::AllocateEmptyObjects(4);
-  auto values = DataSliceImpl::AllocateEmptyObjects(7);
+  auto keys = AllocateEmptyObjects(4);
+  auto values = AllocateEmptyObjects(7);
   auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
@@ -392,15 +392,15 @@ TEST_P(NoOpTraverserTest, DeepDictsSlice) {
 
 TEST_P(NoOpTraverserTest, ObjectsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto obj_ids = AllocateEmptyObjects(10);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
   auto a3 = obj_ids[3];
   auto a4 = obj_ids[4];
   auto a5 = obj_ids[5];
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(2), 2);
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(2), 2);
+  auto dicts = AllocateEmptyDicts(2);
+  auto lists = AllocateEmptyLists(2);
   ASSERT_OK(db->SetInDict(dicts[0], DataItem("a"), DataItem(1)));
   ASSERT_OK(db->SetInDict(dicts[1], a2, a3));
   ASSERT_OK(db->ExtendList(
@@ -469,7 +469,7 @@ TEST_P(NoOpTraverserTest, SchemaSlice) {
 
 TEST_P(NoOpTraverserTest, SchemaWithMetadata) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto ds = DataSliceImpl::AllocateEmptyObjects(5);
+  auto ds = AllocateEmptyObjects(5);
   auto a1 = ds[1];
   auto a4 = ds[4];
   auto schema = AllocateSchema();
@@ -500,7 +500,7 @@ TEST_P(NoOpTraverserTest, SchemaWithMetadata) {
 
 TEST_P(NoOpTraverserTest, SliceWithNamedSchema) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -529,7 +529,7 @@ TEST_P(NoOpTraverserTest, SliceWithNamedSchema) {
 
 TEST_P(NoOpTraverserTest, PrimitiveTypesMismatch) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto obj_ids = AllocateEmptyObjects(10);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto schema = AllocateSchema();
@@ -553,7 +553,7 @@ TEST_P(NoOpTraverserTest, PrimitiveTypesMismatch) {
 
 TEST_P(NoOpTraverserTest, TypesMismatch) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto obj_ids = AllocateEmptyObjects(10);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto schema = AllocateSchema();
@@ -577,15 +577,15 @@ TEST_P(NoOpTraverserTest, TypesMismatch) {
 
 TEST_P(ObjectsTraverserTest, ObjectsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto obj_ids = AllocateEmptyObjects(10);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
   auto a3 = obj_ids[3];
   auto a4 = obj_ids[4];
   auto a5 = obj_ids[5];
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(2), 2);
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(2), 2);
+  auto dicts = AllocateEmptyDicts(2);
+  auto lists = AllocateEmptyLists(2);
   ASSERT_OK(db->SetInDict(dicts[0], DataItem("a"), DataItem(1)));
   ASSERT_OK(db->SetInDict(dicts[1], a2, a3));
   ASSERT_OK(db->ExtendList(
@@ -638,7 +638,7 @@ TEST_P(ObjectsTraverserTest, ObjectsSlice) {
 
 TEST_P(ObjectsTraverserTest, MixedSliceWithNaN) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(10);
+  auto obj_ids = AllocateEmptyObjects(10);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto item_schema = AllocateSchema();

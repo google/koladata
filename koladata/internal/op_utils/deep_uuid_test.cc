@@ -50,7 +50,7 @@ INSTANTIATE_TEST_SUITE_P(MainOrFallback, DeepUuidTest,
 
 TEST_P(DeepUuidTest, ShallowEntitySlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -66,7 +66,7 @@ TEST_P(DeepUuidTest, ShallowEntitySlice) {
   SetSchemaTriples(*db, GenSchemaTriplesFoTests());
   SetDataTriples(*db, GenDataTriplesForTest());
 
-  auto copy_obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto copy_obj_ids = AllocateEmptyObjects(3);
   auto copy_a0 = copy_obj_ids[0];
   auto copy_a1 = copy_obj_ids[1];
   auto copy_a2 = copy_obj_ids[2];
@@ -103,7 +103,7 @@ TEST_P(DeepUuidTest, ShallowEntitySlice) {
 
 TEST_P(DeepUuidTest, DifferentSeeds) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(3);
+  auto obj_ids = AllocateEmptyObjects(3);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -137,7 +137,7 @@ TEST_P(DeepUuidTest, DifferentSeeds) {
 
 TEST_P(DeepUuidTest, DeepEntitySlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(6);
+  auto obj_ids = AllocateEmptyObjects(6);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];
@@ -181,7 +181,7 @@ TEST_P(DeepUuidTest, DeepEntitySlice) {
 
 TEST_P(DeepUuidTest, ListsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto values =
       DataSliceImpl::Create(CreateDenseArray<int32_t>({1, 2, 3, 4, 5, 6, 7}));
   ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
@@ -218,7 +218,7 @@ TEST_P(DeepUuidTest, ListsSlice) {
 
 TEST_P(DeepUuidTest, DictsSlice) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto dicts = DataSliceImpl::ObjectsFromAllocation(AllocateDicts(3), 3);
+  auto dicts = AllocateEmptyDicts(3);
   auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
   auto keys =
@@ -391,7 +391,7 @@ TEST_P(DeepUuidTest, ItemIdSlice) {
 
 TEST_P(DeepUuidTest, CyclicReferences) {
   auto db = DataBagImpl::CreateEmptyDatabag();
-  auto obj_ids = DataSliceImpl::AllocateEmptyObjects(6);
+  auto obj_ids = AllocateEmptyObjects(6);
   auto a0 = obj_ids[0];
   auto a1 = obj_ids[1];
   auto a2 = obj_ids[2];

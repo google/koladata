@@ -95,7 +95,7 @@ TEST_P(ShallowCloneTest, ShallowEntitySlice) {
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, GenSchemaTriplesFoTests());
   SetDataTriples(*db, GenDataTriplesForTest());
-  auto itemid = DataSliceImpl::AllocateEmptyObjects(3);
+  auto itemid = AllocateEmptyObjects(3);
 
   auto result_db = DataBagImpl::CreateEmptyDatabag();
   ASSERT_OK_AND_ASSIGN(
@@ -747,7 +747,7 @@ TEST_P(ShallowCloneTest, MissingInItemid) {
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, GenSchemaTriplesFoTests());
   SetDataTriples(*db, GenDataTriplesForTest());
-  auto itemid_alloc = DataSliceImpl::AllocateEmptyObjects(3);
+  auto itemid_alloc = AllocateEmptyObjects(3);
   auto itemid = DataSliceImpl::Create(CreateDenseArray<DataItem>(
       {itemid_alloc[0], std::nullopt, itemid_alloc[2]}));
 
@@ -814,7 +814,7 @@ TEST_P(ShallowCloneTest, IntersectingItemidWithDsPrimitives) {
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, GenSchemaTriplesFoTests());
   SetDataTriples(*db, GenDataTriplesForTest());
-  auto itemid = DataSliceImpl::AllocateEmptyObjects(3);
+  auto itemid = AllocateEmptyObjects(3);
   auto ds =
       DataSliceImpl::Create(CreateDenseArray<DataItem>({a0, DataItem(3), a2}));
 
@@ -1751,7 +1751,7 @@ TEST_P(ExtractTest, DataSliceListsObjectIds) {
   auto a4 = obj_ids[4];
   auto a5 = obj_ids[5];
   auto a6 = obj_ids[6];
-  auto lists = DataSliceImpl::ObjectsFromAllocation(AllocateLists(3), 3);
+  auto lists = AllocateEmptyLists(3);
   auto values = DataSliceImpl::Create(
       CreateDenseArray<DataItem>({a0, a1, a2, a3, a4, a5, a6}));
   ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
