@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "absl/base/optimization.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
@@ -40,14 +41,16 @@ namespace koladata::functor::parallel {
 namespace {
 
 using ::arolla::AlignedAlloc;
+using ::arolla::GetNothingQType;
 using ::arolla::MallocPtr;
 using ::arolla::QTypePtr;
 using ::arolla::TypedRef;
 
 size_t GetDefaultChunkCapacity(QTypePtr value_qtype) {
   constexpr size_t kDefaultByteCapacity = 512;
-  return (kDefaultByteCapacity + value_qtype->type_layout().AllocSize() - 1) /
-         value_qtype->type_layout().AllocSize();
+  const size_t bytesize = value_qtype->type_layout().AllocSize();
+  return bytesize ? (kDefaultByteCapacity + bytesize - 1) / bytesize
+                  : kDefaultByteCapacity;
 }
 
 class Chunk {
@@ -132,7 +135,7 @@ class StreamImpl::Reader final : public StreamReader {
 
   const std::shared_ptr<StreamImpl> stream_;
 
-  size_t next_chunk_index_ = 1;
+  size_t next_chunk_index_ = 0;
   Chunk* chunk_;
   size_t offset_ = 0;
   size_t known_size_ = 0;
@@ -171,9 +174,9 @@ void Chunk::SetRef(size_t i, TypedRef ref) {
 StreamImpl::StreamImpl(QTypePtr value_qtype, size_t initial_capacity)
     : Stream(value_qtype),
       default_chunk_capacity_(GetDefaultChunkCapacity(value_qtype)) {
-  chunks_.emplace_back(value_qtype, initial_capacity > 0
-                                        ? initial_capacity
-                                        : default_chunk_capacity_);
+  if (initial_capacity > 0) {
+    chunks_.emplace_back(value_qtype, initial_capacity);
+  }
 }
 
 StreamReaderPtr StreamImpl::MakeReader() {
@@ -189,7 +192,7 @@ StreamImpl::InternalWriteResult StreamImpl::InternalWrite(
     if (status_.has_value()) {
       return InternalWriteResult::kClosed;
     }
-    if (chunks_.back().capacity() == last_chunk_size_) {
+    if (chunks_.empty() || chunks_.back().capacity() == last_chunk_size_) {
       chunks_.emplace_back(value_qtype(), default_chunk_capacity_);
       last_chunk_size_ = 0;
     }
@@ -289,13 +292,8 @@ StreamImpl::Writer::~Writer() {
 
 StreamImpl::Reader::Reader(std::shared_ptr<StreamImpl> stream)
     : stream_(std::move(stream)) {
-  absl::MutexLock lock(&stream_->mutex_);
-  chunk_ = &stream_->chunks_.front();
-  if (next_chunk_index_ == stream_->chunks_.size()) {
-    known_size_ = stream_->last_chunk_size_;
-  } else {
-    known_size_ = chunk_->capacity();
-  }
+  static absl::NoDestructor<Chunk> kEmptyUnitChunk(GetNothingQType(), 0);
+  chunk_ = kEmptyUnitChunk.get();
 }
 
 StreamReader::TryReadResult StreamImpl::Reader::TryRead() {

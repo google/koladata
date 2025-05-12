@@ -36,6 +36,7 @@ namespace koladata::functor::parallel {
 namespace {
 
 using ::absl_testing::StatusIs;
+using ::arolla::GetNothingQType;
 using ::arolla::GetQType;
 using ::arolla::QTypePtr;
 using ::arolla::TypedRef;
@@ -43,10 +44,11 @@ using ::arolla::TypedRef;
 TEST(StreamTest, Basic) {
   constexpr int kItemCount = 1000;
   auto [stream, writer] = MakeStream(GetQType<int>());
+  ASSERT_NE(stream, nullptr);
+  ASSERT_NE(writer, nullptr);
   EXPECT_EQ(stream->value_qtype(), GetQType<int>());
   EXPECT_EQ(writer->value_qtype(), GetQType<int>());
   {
-    ASSERT_NE(writer, nullptr);
     for (int i = 0; i < kItemCount; ++i) {
       writer->Write(TypedRef::FromValue(i));
     }
@@ -54,9 +56,38 @@ TEST(StreamTest, Basic) {
   }
   {
     auto reader = stream->MakeReader();
+    ASSERT_NE(reader, nullptr);
     for (int i = 0; i < kItemCount; ++i) {
       EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), i);
     }
+    EXPECT_OK(*reader->TryRead().close_status());
+  }
+}
+
+TEST(StreamTest, Empty) {
+  auto [stream, writer] = MakeStream(GetQType<int>(), /*initial_capacity=*/0);
+  ASSERT_NE(stream, nullptr);
+  ASSERT_NE(writer, nullptr);
+  EXPECT_EQ(stream->value_qtype(), GetQType<int>());
+  EXPECT_EQ(writer->value_qtype(), GetQType<int>());
+  std::move(*writer).Close();
+  {
+    auto reader = stream->MakeReader();
+    ASSERT_NE(reader, nullptr);
+    EXPECT_OK(*reader->TryRead().close_status());
+  }
+}
+
+TEST(StreamTest, StreamOfNothing) {
+  auto [stream, writer] = MakeStream(GetNothingQType());
+  ASSERT_NE(stream, nullptr);
+  ASSERT_NE(writer, nullptr);
+  EXPECT_EQ(stream->value_qtype(), GetNothingQType());
+  EXPECT_EQ(writer->value_qtype(), GetNothingQType());
+  std::move(*writer).Close();
+  {
+    auto reader = stream->MakeReader();
+    ASSERT_NE(reader, nullptr);
     EXPECT_OK(*reader->TryRead().close_status());
   }
 }
@@ -66,7 +97,6 @@ TEST(StreamTest, BasicWithNonTrivialType) {
   EXPECT_EQ(stream->value_qtype(), GetQType<std::string>());
   EXPECT_EQ(writer->value_qtype(), GetQType<std::string>());
   {
-    ASSERT_NE(writer, nullptr);
     for (int i = 0; i < 10; ++i) {
       writer->Write(TypedRef::FromValue(absl::StrCat(i)));
     }
