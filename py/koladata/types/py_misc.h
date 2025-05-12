@@ -28,6 +28,9 @@ extern const PyMethodDef kDefPyAddSchemaConstants;
 // def flatten_py_list(...)
 extern const PyMethodDef kDefPyFlattenPyList;
 
+// def get_jagged_shape_qtype(...)
+extern const PyMethodDef kDefPyGetJaggedShapeQType;
+
 }  // namespace koladata::python
 
 #endif  // THIRD_PARTY_PY_KOLADATA_TYPES_PY_MISC_H_

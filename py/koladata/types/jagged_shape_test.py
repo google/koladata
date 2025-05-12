@@ -22,6 +22,16 @@ from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import jagged_shape
 
+M = arolla.M
+
+
+def _koda_shape_3d():
+  return jagged_shape.KodaJaggedShape.from_edges(
+      arolla.types.DenseArrayEdge.from_sizes([2]),
+      arolla.types.DenseArrayEdge.from_sizes([2, 1]),
+      arolla.types.DenseArrayEdge.from_sizes([1, 2, 1]),
+  )
+
 
 class JaggedShapeTest(absltest.TestCase):
 
@@ -44,6 +54,54 @@ class JaggedShapeTest(absltest.TestCase):
             arolla.types.DenseArrayEdge.from_sizes([1, 2, 1]),
         ),
     )
+
+
+class KodaJaggedShapeTest(absltest.TestCase):
+
+  def test_from_edges(self):
+    shape = _koda_shape_3d()
+    testing.assert_equal(
+        shape.qtype,
+        jagged_shape.KODA_JAGGED_SHAPE,
+    )
+    self.assertIsInstance(shape, jagged_shape.KodaJaggedShape)
+
+  def test_edges(self):
+    shape = _koda_shape_3d()
+
+    # TODO: Add support for this.
+    with self.assertRaises(NotImplementedError):
+      _ = shape.edges()
+
+  def test_rank(self):
+    shape = _koda_shape_3d()
+
+    # TODO: Add support for this.
+    with self.assertRaises(NotImplementedError):
+      _ = shape.rank()
+
+  def test_getitem(self):
+    shape = _koda_shape_3d()
+
+    # TODO: Add support for this.
+    with self.assertRaises(NotImplementedError):
+      _ = shape[0]
+
+  def test_eq(self):
+    shape = _koda_shape_3d()
+    shape2 = _koda_shape_3d()
+
+    # TODO: Add support for this.
+    with self.assertRaises(NotImplementedError):
+      _ = shape == shape2
+
+  def test_ne(self):
+    shape = _koda_shape_3d()
+    shape2 = _koda_shape_3d()
+
+    # TODO: Add support for this.
+    with self.assertRaises(NotImplementedError):
+      _ = shape != shape2
 
 
 if __name__ == '__main__':

@@ -22,6 +22,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_operators.h"
+#include "koladata/jagged_shape_qtype.h"
 #include "koladata/schema_constants.h"
 #include "py/arolla/abc/py_expr.h"
 #include "py/arolla/abc/py_qvalue.h"
@@ -83,6 +84,12 @@ PyObject* /*absl_nullable*/ PyFlattenPyList(PyObject* /*module*/,
   return PyTuple_Pack(2, py_list.release(), py_shape.release());
 }
 
+PyObject* PyModule_get_jagged_shape_qtype(PyObject* /*module*/) {
+  arolla::python::DCheckPyGIL();
+  auto qtype = koladata::GetJaggedShapeQType();
+  return arolla::python::WrapAsPyQValue(arolla::TypedValue::FromValue(qtype));
+}
+
 }  // namespace
 
 const PyMethodDef kDefPyLiteral = {
@@ -99,5 +106,12 @@ const PyMethodDef kDefPyFlattenPyList = {
     "flatten_py_list", PyFlattenPyList, METH_O,
     "Converts a Python nested list/tuple into a tuple of flat list and "
     "shape."};
+
+const PyMethodDef kDefPyGetJaggedShapeQType = {
+    "get_jagged_shape_qtype", (PyCFunction)PyModule_get_jagged_shape_qtype,
+    METH_NOARGS,
+    "get_jagged_shape_qtype()\n"
+    "--\n\n"
+    "Returns the JaggedShape QType as a python QValue."};
 
 }  // namespace koladata::python

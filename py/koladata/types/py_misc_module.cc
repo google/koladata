@@ -28,6 +28,7 @@ PyMODINIT_FUNC PyInit_py_misc_py_ext(void) {
       kDefPyLiteral,
       kDefPyAddSchemaConstants,
       kDefPyFlattenPyList,
+      kDefPyGetJaggedShapeQType,
       {nullptr} /* sentinel */
   };
   static PyModuleDef py_module = {

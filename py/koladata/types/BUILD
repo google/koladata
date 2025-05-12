@@ -348,10 +348,10 @@ py_library(
         ":data_bag_py_ext",
         ":data_slice_py_ext",
         ":ellipsis",
+        ":jagged_shape",
         "//koladata/functor/parallel:init_expr_operators",
         "//py:python_path",  # Adds //py to the path to allow convenient imports.
         "@com_google_arolla//py/arolla",
-        "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )
 
@@ -460,6 +460,7 @@ cc_library(
     deps = [
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
+        "//koladata:jagged_shape_qtype",
         "//koladata:schema_constants",
         "//koladata/expr:expr_operators",
         "//koladata/expr:init",
@@ -533,7 +534,9 @@ py_library(
     name = "jagged_shape",
     srcs = ["jagged_shape.py"],
     deps = [
+        ":py_misc_py_ext",
         "//py/koladata/expr:py_expr_eval_py_ext",
+        "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )
