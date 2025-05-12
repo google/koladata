@@ -5862,6 +5862,26 @@ py_test(
 )
 
 py_test(
+    name = "strings_regex_replace_all_test",
+    srcs = ["strings_regex_replace_all_test.py"],
+    deps = [
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:jagged_shape",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "strings_regex_match_test",
     srcs = ["strings_regex_match_test.py"],
     deps = [
@@ -6623,6 +6643,12 @@ koda_operator_coverage_test(
     name = "kd_strings_contains_regex_covers_strings_regex_match_test",
     arolla_op = "strings.contains_regex",
     koda_op = "strings.regex_match",
+)
+
+koda_operator_coverage_test(
+    name = "kd_strings_regex_replace_all_covers_strings_replace_all_regex_test",
+    arolla_op = "strings.replace_all_regex",
+    koda_op = "strings.regex_replace_all",
 )
 
 koda_operator_coverage_test(

@@ -22,6 +22,7 @@ from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking as masking_ops
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import slices
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
@@ -585,6 +586,80 @@ def regex_find_all(text, regex):  # pylint: disable=unused-argument
       jagged_shape_ops.get_shape(text), value_edge, group_edge
   )
   return arolla_bridge.to_data_slice(flat_res, shape).with_schema(
+      text.get_schema()
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.strings.regex_replace_all',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.text),
+        qtype_utils.expect_data_slice(P.regex),
+        qtype_utils.expect_data_slice(P.replacement),
+    ],
+)
+def regex_replace_all(text, regex, replacement):
+  r"""Replaces all non-overlapping matches of `regex` in `text`.
+
+  Examples:
+    # Basic with match:
+    kd.strings.regex_replace_all(
+        kd.item('banana'),
+        kd.item('ana'),
+        kd.item('ono')
+    )  # -> kd.item('bonona')
+    # Basic with no match:
+    kd.strings.regex_replace_all(
+        kd.item('banana'),
+        kd.item('x'),
+        kd.item('a')
+    )  # -> kd.item('banana')
+    # Reference the first capturing group in the replacement:
+    kd.strings.regex_replace_all(
+        kd.item('banana'),
+        kd.item('a(.)a'),
+        kd.item(r'o\1\1o')
+    )  # -> kd.item('bonnona')
+    # Reference the whole match in the replacement with \0:
+    kd.strings.regex_replace_all(
+       kd.item('abcd'),
+       kd.item('(.)(.)'),
+       kd.item(r'\2\1\0')
+    )  # -> kd.item('baabdccd')
+    # With broadcasting:
+    kd.strings.regex_replace_all(
+        kd.item('foopo'),
+        kd.item('o'),
+        kd.slice(['a', 'e']),
+    )  # -> kd.slice(['faapa', 'feepe'])
+    # With missing values:
+    kd.strings.regex_replace_all(
+        kd.slice(['foobor', 'foo', None, 'bar']),
+        kd.item('o(.)'),
+        kd.slice([r'\0x\1', 'ly', 'a', 'o']),
+    )  # -> kd.slice(['fooxoborxr', 'fly', None, 'bar'])
+
+  Args:
+    text: (STRING) A string.
+    regex: (STRING) A scalar string that represents a regular expression (RE2
+      syntax).
+    replacement: (STRING) A string that should replace each match.
+      Backslash-escaped digits (\1 to \9) can be used to reference the text that
+      matched the corresponding capturing group from the pattern, while \0
+      refers to the entire match. Replacements are not subject to re-matching.
+      Since it only replaces non-overlapping matches, replacing "ana" within
+      "banana" makes only one replacement, not two.
+
+  Returns:
+    The text string where the replacements have been made.
+  """
+  text_a, replacement_a = slices.align(text, replacement)
+  text_da = arolla_bridge.to_arolla_dense_array_text(text_a)
+  replacement_da = arolla_bridge.to_arolla_dense_array_text(replacement_a)
+  regex_t = arolla_bridge.to_arolla_text(regex)
+  res_da = M.strings.replace_all_regex(text_da, regex_t, replacement_da)
+  return arolla_bridge.to_data_slice(res_da, text_a.get_shape()).with_schema(
       text.get_schema()
   )
 

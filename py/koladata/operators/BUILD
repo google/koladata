@@ -406,6 +406,7 @@ py_library(
         ":masking",
         ":optools",
         ":qtype_utils",
+        ":slices",
         "//koladata/operators",
         "//py/koladata/fstring",
         "//py/koladata/types:data_slice",
