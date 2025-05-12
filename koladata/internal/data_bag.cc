@@ -1146,7 +1146,7 @@ const std::shared_ptr<DataListVector>* DataBagImpl::GetConstListsOrNull(
   DCHECK_EQ(alloc_hash, absl::HashOf(alloc_id));
   const DataBagImpl* bag = this;
   while (bag) {
-    auto it = bag->lists_.find(alloc_id, alloc_hash);
+    auto it = bag->lists_.find(alloc_id);
     if (it != bag->lists_.end()) {
       return &it->second;
     }
@@ -1864,7 +1864,7 @@ const std::shared_ptr<DictVector>* DataBagImpl::GetConstDictsOrNull(
   DCHECK_EQ(alloc_hash, absl::HashOf(alloc_id));
   const DataBagImpl* bag = this;
   while (bag) {
-    auto it = bag->dicts_.find(alloc_id, alloc_hash);
+    auto it = bag->dicts_.find(alloc_id);
     if (it != bag->dicts_.end()) {
       return &it->second;
     }
