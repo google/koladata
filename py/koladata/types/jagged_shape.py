@@ -37,6 +37,9 @@ KODA_JAGGED_SHAPE = _py_misc_py_ext.get_jagged_shape_qtype()
 # TODO: Replace this with KODA_JAGGED_SHAPE, keeping the
 # JAGGED_SHAPE name.
 JAGGED_SHAPE = jagged_shape.JAGGED_DENSE_ARRAY_SHAPE
+_DOWNCAST_EXPR = arolla.M.derived_qtype.downcast(
+    KODA_JAGGED_SHAPE, arolla.L.dense_array_shape
+)
 
 
 class KodaJaggedShape(
@@ -47,12 +50,10 @@ class KodaJaggedShape(
 
   @classmethod
   def from_edges(cls, *edges: arolla.types.DenseArrayEdge) -> KodaJaggedShape:
-    return arolla.eval(
-        arolla.M.derived_qtype.downcast(
-            KODA_JAGGED_SHAPE,
-            arolla.abc.invoke_op('jagged.dense_array_shape_from_edges', edges)
-        )
+    dense_array_shape = arolla.abc.invoke_op(
+        'jagged.dense_array_shape_from_edges', edges
     )
+    return arolla.eval(_DOWNCAST_EXPR, dense_array_shape=dense_array_shape)
 
   def edges(self) -> list[arolla.types.DenseArrayEdge]:
     raise NotImplementedError
