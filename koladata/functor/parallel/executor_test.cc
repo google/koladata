@@ -18,7 +18,6 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "absl/status/status.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/repr.h"
 
