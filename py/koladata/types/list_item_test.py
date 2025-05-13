@@ -26,6 +26,7 @@ from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import jagged_shape
 from koladata.types import list_item
+from koladata.types import mask_constants
 
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
@@ -94,6 +95,10 @@ class ListItemTest(parameterized.TestCase):
         ValueError, "'a' cannot be interpreted as an integer"
     ):
       l.pop("a")
+
+  def test_pop_empty_list(self):
+    l = bag().list() & mask_constants.missing
+    testing.assert_equal(l.pop(), l.get_bag().obj(None))
 
   def test_iter(self):
     db = bag()

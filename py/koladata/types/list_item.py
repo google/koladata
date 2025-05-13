@@ -29,17 +29,21 @@ _eval_op = py_expr_eval_py_ext.eval_op
 class ListItem(data_item.DataItem):
   """ListItem is a DataItem representing a Koda List."""
 
-  def pop(self, i: int = -1) -> data_item.DataItem:
+  def pop(self, index: int = -1) -> data_item.DataItem:
     """Removes an item from the ListItem."""
     l = len(self)
-    if not isinstance(i, int):
+    if not isinstance(index, int):
       try:
-        i = int(i)
+        index = int(index)
       except ValueError:
-        raise ValueError(f'{i!r} cannot be interpreted as an integer') from None
-    if (i < 0 and abs(i) > l) or (i > 0 and i >= l):
-      raise IndexError(f'List index out of range: list size {l} vs index {i}')
-    return self._internal_pop(i)
+        raise ValueError(
+            f'{index!r} cannot be interpreted as an integer'
+        ) from None
+    if (index < 0 and abs(index) > l) or (index > 0 and index >= l):
+      raise IndexError(
+          f'List index out of range: list size {l} vs index {index}'
+      )
+    return super(ListItem, self).pop(index)
 
   def __len__(self) -> int:
     return self.list_size().internal_as_py()

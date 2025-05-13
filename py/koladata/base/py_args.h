@@ -122,7 +122,7 @@ class FastcallArgParser {
   // For missing arguments, the caller should decide after calling this
   // method if they are optional (== nullptr) or mandatory. By default, all
   // positional-only arguments are mandatory to avoid confusion with optional
-  // positional-keyword argument. This behavior can be overrided with
+  // positional-keyword argument. This behavior can be overridden with
   // `optional_positional_only` flag, after which the caller should handle the
   // missing argument case.
   //

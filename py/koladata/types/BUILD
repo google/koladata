@@ -249,6 +249,7 @@ py_test(
         ":data_slice",
         ":jagged_shape",
         ":list_item",
+        ":mask_constants",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",

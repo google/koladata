@@ -2646,6 +2646,22 @@ Assigned schema for values: SCHEMA(y=FLOAT32)"""),
     ):
       del l[0:2]
 
+  def test_list_pop(self):
+    l = kde.implode(ds([[1, 2, 3], [4, 5]])).eval().fork_bag()
+    testing.assert_equal(l.pop(1), ds([2, 5]).with_bag(l.get_bag()))
+    testing.assert_equal(l.pop(ds([1, -1])), ds([3, 4]).with_bag(l.get_bag()))
+    testing.assert_equal(l[:], ds([[1], []]).with_bag(l.get_bag()))
+
+    testing.assert_equal(l.pop(), ds([1, None]).with_bag(l.get_bag()))
+
+    with self.assertRaisesRegex(
+        ValueError, 'unsupported narrowing cast to INT64'
+    ):
+      l.pop('a')
+
+    with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
+      l.pop(bag())
+
   @parameterized.parameters(
       # Varying stop.
       (slice(None), ds([1, 2, 3])),

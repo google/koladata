@@ -781,19 +781,24 @@ PyObject* /*absl_nullable*/ PyDataSlice_append(PyObject* self,
   Py_RETURN_NONE;
 }
 
-PyObject* /*absl_nullable*/ PyDataSlice_pop(PyObject* self, PyObject* const* args,
-                                        Py_ssize_t nargs) {
+PyObject* /*absl_nullable*/ PyDataSlice_pop(PyObject* self,
+                                        PyObject* const* py_args,
+                                        Py_ssize_t nargs,
+                                        PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
-  if (nargs > 1) {
-    PyErr_SetString(PyExc_ValueError,
-                    "DataSlice.pop accepts either 0 or 1 argument: list index");
+  static const absl::NoDestructor parser(FastcallArgParser(
+      /*pos_only_n=*/1, /*optional_positional_only=*/true,
+      /*parse_kwargs=*/false, {}));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
-  DataSlice res;
+  std::optional<DataSlice> res;
   DataSlice self_ds = UnsafeDataSliceRef(self);
-  if (nargs == 1) {
-    ASSIGN_OR_RETURN(auto index, DataSliceFromPyValueNoAdoption(args[0]),
+  PyObject* py_index;
+  if ((py_index = args.pos_only_args[0]) != nullptr) {
+    ASSIGN_OR_RETURN(auto index, DataSliceFromPyValueNoAdoption(py_index),
                      arolla::python::SetPyErrFromStatus(_));
     ASSIGN_OR_RETURN(res, self_ds.PopFromList(index),
                      arolla::python::SetPyErrFromStatus(_));
@@ -801,7 +806,7 @@ PyObject* /*absl_nullable*/ PyDataSlice_pop(PyObject* self, PyObject* const* arg
     ASSIGN_OR_RETURN(res, self_ds.PopFromList(),
                      arolla::python::SetPyErrFromStatus(_));
   }
-  return WrapPyDataSlice(std::move(res));
+  return WrapPyDataSlice(std::move(*res));
 }
 
 PyObject* /*absl_nullable*/ PyDataSlice_clear(PyObject* self, PyObject*) {
@@ -1224,7 +1229,9 @@ Args:
      "append(value, /)\n"
      "--\n\n"
      "Append a value to each list in this DataSlice"},
-    {"_internal_pop", (PyCFunction)PyDataSlice_pop, METH_FASTCALL,
+    {"pop", (PyCFunction)PyDataSlice_pop, METH_FASTCALL | METH_KEYWORDS,
+     "pop(index, /)\n"
+     "--\n\n"
      "Pop a value from each list in this DataSlice"},
     {"clear", PyDataSlice_clear, METH_NOARGS,
      "clear()\n"
