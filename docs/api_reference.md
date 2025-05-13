@@ -1236,7 +1236,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x10bd7c7174d0>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x31927ace3e90>)` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1318,7 +1318,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x10bd7c7174d0>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x31927ace3e90>, /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -7850,6 +7850,64 @@ Returns:
   `present` if `text` matches `regex`.
 ```
 
+### `kd.strings.regex_replace_all(text, regex, replacement)` {#kd.strings.regex_replace_all}
+
+``` {.no-copy}
+Replaces all non-overlapping matches of `regex` in `text`.
+
+Examples:
+  # Basic with match:
+  kd.strings.regex_replace_all(
+      kd.item('banana'),
+      kd.item('ana'),
+      kd.item('ono')
+  )  # -> kd.item('bonona')
+  # Basic with no match:
+  kd.strings.regex_replace_all(
+      kd.item('banana'),
+      kd.item('x'),
+      kd.item('a')
+  )  # -> kd.item('banana')
+  # Reference the first capturing group in the replacement:
+  kd.strings.regex_replace_all(
+      kd.item('banana'),
+      kd.item('a(.)a'),
+      kd.item(r'o\1\1o')
+  )  # -> kd.item('bonnona')
+  # Reference the whole match in the replacement with \0:
+  kd.strings.regex_replace_all(
+     kd.item('abcd'),
+     kd.item('(.)(.)'),
+     kd.item(r'\2\1\0')
+  )  # -> kd.item('baabdccd')
+  # With broadcasting:
+  kd.strings.regex_replace_all(
+      kd.item('foopo'),
+      kd.item('o'),
+      kd.slice(['a', 'e']),
+  )  # -> kd.slice(['faapa', 'feepe'])
+  # With missing values:
+  kd.strings.regex_replace_all(
+      kd.slice(['foobor', 'foo', None, 'bar']),
+      kd.item('o(.)'),
+      kd.slice([r'\0x\1', 'ly', 'a', 'o']),
+  )  # -> kd.slice(['fooxoborxr', 'fly', None, 'bar'])
+
+Args:
+  text: (STRING) A string.
+  regex: (STRING) A scalar string that represents a regular expression (RE2
+    syntax).
+  replacement: (STRING) A string that should replace each match.
+    Backslash-escaped digits (\1 to \9) can be used to reference the text that
+    matched the corresponding capturing group from the pattern, while \0
+    refers to the entire match. Replacements are not subject to re-matching.
+    Since it only replaces non-overlapping matches, replacing "ana" within
+    "banana" makes only one replacement, not two.
+
+Returns:
+  The text string where the replacements have been made.
+```
+
 ### `kd.strings.replace(s, old, new, max_subs=DataItem(None, schema: INT32))` {#kd.strings.replace}
 
 ``` {.no-copy}
@@ -9677,123 +9735,6 @@ the following module is needed:
 
 **Operators**
 
-### `kd_ext.FileSystemInteraction.exists(self, filepath)` {#kd_ext.FileSystemInteraction.exists}
-*No description*
-
-### `kd_ext.FileSystemInteraction.glob(self, pattern)` {#kd_ext.FileSystemInteraction.glob}
-*No description*
-
-### `kd_ext.FileSystemInteraction.make_dirs(self, dirpath)` {#kd_ext.FileSystemInteraction.make_dirs}
-*No description*
-
-### `kd_ext.FileSystemInteraction.open(self, filepath, mode)` {#kd_ext.FileSystemInteraction.open}
-*No description*
-
-### `kd_ext.FileSystemInteraction.remove(self, filepath)` {#kd_ext.FileSystemInteraction.remove}
-*No description*
-
-### `kd_ext.PersistedIncrementalDataBagManager.add_bag(self, bag_name, bag, *, dependencies)` {#kd_ext.PersistedIncrementalDataBagManager.add_bag}
-
-``` {.no-copy}
-Adds a bag to the manager, which will persist it.
-
-    Args:
-      bag_name: The name of the bag to add. This must be a name that is not
-        already present in get_available_bag_names().
-      bag: The bag to add.
-      dependencies: A non-empty collection of the names of the bags that `bag`
-        depends on. It should include all the direct dependencies. There is no
-        need to include transitive dependencies. All the names mentioned here
-        must already be present in get_available_bag_names(). After this
-        function returns, the bag and all its transitive dependencies will be
-        loaded and will hence be present in get_loaded_bag_names().
-```
-
-### `kd_ext.PersistedIncrementalDataBagManager.extract_bags(self, bag_names, *, with_all_dependents=False, output_dir, fs=None)` {#kd_ext.PersistedIncrementalDataBagManager.extract_bags}
-
-``` {.no-copy}
-Extracts the requested bags to the given output directory.
-
-    To extract all the bags managed by this manager, you can call this function
-    with the arguments bag_names=[''], with_all_dependents=True.
-
-    Args:
-      bag_names: The names of the bags that will be extracted. They must be a
-        non-empty subset of get_available_bag_names(). The extraction will also
-        include their transitive dependencies.
-      with_all_dependents: If True, then the extracted bags will also include
-        all dependents of bag_names. The dependents are computed transitively.
-        All transitive dependencies of the dependents will also be included in
-        the extraction.
-      output_dir: The directory to which the bags will be extracted. It must
-        either be empty or not exist yet.
-      fs: All interactions with the file system for output_dir will happen via
-        this instance.
-```
-
-### `kd_ext.PersistedIncrementalDataBagManager.get_available_bag_names(self)` {#kd_ext.PersistedIncrementalDataBagManager.get_available_bag_names}
-
-``` {.no-copy}
-Returns the names of all bags that are managed by this manager.
-
-    They include the initial empty bag (named ''), all bags that have been added
-    to this manager instance, and all bags that were already persisted in the
-    persistence directory before this manager instance was created.
-```
-
-### `kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag(self)` {#kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag}
-
-``` {.no-copy}
-Returns a bag consisting of all the small bags that are currently loaded.
-```
-
-### `kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag_names(self)` {#kd_ext.PersistedIncrementalDataBagManager.get_loaded_bag_names}
-
-``` {.no-copy}
-Returns the names of all bags that are currently loaded in this manager.
-
-    The initial empty bag (with name '') is always loaded, and the bags that
-    have been added to this manager instance or loaded by previous calls to
-    load_bags() and their transitive dependencies are also considered loaded.
-
-    Some methods, such as get_minimal_bag() or extract_bags(), may load bags as
-    a side effect when they are needed but not loaded yet.
-```
-
-### `kd_ext.PersistedIncrementalDataBagManager.get_minimal_bag(self, bag_names, *, with_all_dependents=False)` {#kd_ext.PersistedIncrementalDataBagManager.get_minimal_bag}
-
-``` {.no-copy}
-Returns a minimal bag that includes bag_names and all their dependencies.
-
-    Args:
-      bag_names: The name of the bags whose data must be included in the result.
-        It must be a non-empty subset of get_available_bag_names(). These bags
-        and their transitive dependencies will be loaded if they are not loaded
-        yet.
-      with_all_dependents: If True, then the returned bag will also include all
-        the dependents of bag_names. The dependents are computed transitively.
-        All transitive dependencies of the dependents are then also included in
-        the result.
-
-    Returns:
-      A minimal bag that has the data of the requested small bags. It will not
-      include any unrelated bags that are already loaded.
-```
-
-### `kd_ext.PersistedIncrementalDataBagManager.load_bags(self, bag_names, *, with_all_dependents=False)` {#kd_ext.PersistedIncrementalDataBagManager.load_bags}
-
-``` {.no-copy}
-Loads the requested bags and their transitive dependencies.
-
-    Args:
-      bag_names: The names of the bags that should be loaded. They must be a
-        non-empty subset of get_available_bag_names(). All their transitive
-        dependencies will be loaded as well.
-      with_all_dependents: If True, then all the dependents of bag_names will
-        also be loaded. The dependents are computed transitively. All transitive
-        dependencies of the dependents will also be loaded.
-```
-
 ### `kd_ext.experimental.call_multithreaded(fn, /, *args, max_threads=100, **kwargs)` {#kd_ext.experimental.call_multithreaded}
 
 ``` {.no-copy}
@@ -9844,27 +9785,6 @@ Calls a functor with the given arguments.
     (times in the sense of Python time.time() function), and a `children`
     attribute with a list of children that have the same structure
     recursively.
-```
-
-### `kd_ext.file_system_interaction.get_default_file_system_interaction()` {#kd_ext.file_system_interaction.get_default_file_system_interaction}
-*No description*
-
-### `kd_ext.file_system_interaction.read_bag_from_file(filepath, *, fs=None)` {#kd_ext.file_system_interaction.read_bag_from_file}
-*No description*
-
-### `kd_ext.file_system_interaction.read_slice_from_file(filepath, *, fs=None)` {#kd_ext.file_system_interaction.read_slice_from_file}
-*No description*
-
-### `kd_ext.file_system_interaction.write_bag_to_file(ds, filepath, *, overwrite=False, riegeli_options='snappy', fs=None)` {#kd_ext.file_system_interaction.write_bag_to_file}
-
-``` {.no-copy}
-Writes the given DataBag to a file; overwrites the file if requested.
-```
-
-### `kd_ext.file_system_interaction.write_slice_to_file(ds, filepath, *, overwrite=False, riegeli_options='snappy', fs=None)` {#kd_ext.file_system_interaction.write_slice_to_file}
-
-``` {.no-copy}
-Writes the given DataSlice to a file; overwrites the file if requested.
 ```
 
 ### `kd_ext.nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds)` {#kd_ext.nested_data.selected_path_update}
@@ -10099,55 +10019,6 @@ Visualizes a DataSlice as a html widget.
 ### `kd_ext.Fn(f, *, use_tracing=True, **kwargs)` {#kd_ext.Fn}
 
 Alias for [kd.functor.fn](#kd.functor.fn) operator.
-
-### `kd_ext.FileSystemInteraction(options=None)` {#kd_ext.FileSystemInteraction}
-
-``` {.no-copy}
-Interactions with Google-internal file systems such as CNS.
-```
-
-### `kd_ext.PersistedIncrementalDataBagManager(persistence_dir, *, fs=None)` {#kd_ext.PersistedIncrementalDataBagManager}
-
-``` {.no-copy}
-Manager of a DataBag that is assembled from multiple smaller bags.
-
-  It is often convenient to create a DataBag by incrementally adding smaller
-  bags, where each of the smaller bags is an update to the large DataBag.
-
-  This also provides the opportunity to persist the smaller bags separately,
-  along with the stated dependencies among the smaller bags.
-
-  Then at a later point, usually in a different process, one can reassemble the
-  large DataBag. But instead of loading the entire DataBag, one can load only
-  the smaller bags that are needed, thereby saving loading time and memory. In
-  fact the smaller bags can be loaded incrementally, so that decisions about
-  which bags to load can be made on the fly instead of up-front. In that way,
-  the incremental creation of the large DataBag is mirrored by its incremental
-  consumption.
-
-  To streamline the consumption, you have to specify dependencies between the
-  smaller bags when they are added. It is trivial to specify a linear chain of
-  dependencies, but setting up a dependency DAG is easy and can significantly
-  improve the loading time and memory usage of data consumers. In fact this
-  class will always manage a rooted DAG of small bags, and a chain of bags is
-  just a special case.
-
-  This class manages the smaller bags, which are named, and their
-  interdependencies. It also handles the persistence of the smaller bags along
-  with some metadata to facilitate the later consumption of the data and also
-  its further augmentation. The persistence uses a filesystem directory, which
-  is hermetic in the sense that it can be moved or copied. The persistence
-  directory is consistent after each public operation of this class, provided
-  that it is not modified externally and that there is sufficient space to
-  accommodate the writes.
-
-  This class is not thread-safe. However, multiple instances of this class can
-  concurrently read from the same persistence directory. When an instance
-  modifies the persistence directory, which happens when add_bag() is called,
-  then there should be no other instances where read/write operations straddle
-  the modification. I.e. all the read/write operations of another instance must
-  happen completely before or completely after the modification.
-```
 
 ### `kd_ext.PyFn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults)` {#kd_ext.PyFn}
 
