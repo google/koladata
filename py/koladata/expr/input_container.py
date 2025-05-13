@@ -55,6 +55,9 @@ class InputContainer:
       )
     return _get_input(self.name, input_key)
 
+  def __repr__(self) -> str:
+    return f"InputContainer('{self.name}')"
+
 
 def get_input_name(expr: arolla.Expr, container: InputContainer) -> str | None:
   """Returns the input name of `expr` if it comes from `container` else None."""

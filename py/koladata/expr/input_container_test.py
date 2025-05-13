@@ -84,6 +84,10 @@ class InputContainerTest(parameterized.TestCase):
     self.assertIsNone(input_container.get_input_name(I.x, V))
     self.assertIsNone(input_container.get_input_name(I.x + I.y, I))
 
+  def test_repr_input_container(self):
+    I = input_container.InputContainer('I')
+    self.assertEqual(repr(I), "InputContainer('I')")
+
 
 # pylint: enable=invalid-name
 

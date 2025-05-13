@@ -1236,7 +1236,7 @@ Expr utilities.
 Converts Python values into Exprs.
 ```
 
-### `kd.expr.get_input_names(expr, container=<koladata.expr.input_container.InputContainer object at 0x31927ace3e90>)` {#kd.expr.get_input_names}
+### `kd.expr.get_input_names(expr, container=InputContainer('I'))` {#kd.expr.get_input_names}
 
 ``` {.no-copy}
 Returns names of `container` inputs used in `expr`.
@@ -1318,7 +1318,7 @@ Returns `expr` with named subexpressions replaced.
     **subs: mapping from subexpression name to replacement node.
 ```
 
-### `kd.expr.sub_inputs(expr, container=<koladata.expr.input_container.InputContainer object at 0x31927ace3e90>, /, **subs)` {#kd.expr.sub_inputs}
+### `kd.expr.sub_inputs(expr, container=InputContainer('I'), /, **subs)` {#kd.expr.sub_inputs}
 
 ``` {.no-copy}
 Returns an expression with `container` inputs replaced with Expr(s).
@@ -10894,6 +10894,16 @@ Aliases:
 Returns a copy of DataSlice without DataBag.
 ```
 
+### `DataSlice.pop(index, /)` {#DataSlice.pop}
+
+Aliases:
+
+-   [DataItem.pop](#DataItem.pop)
+
+``` {.no-copy}
+Pop a value from each list in this DataSlice
+```
+
 ### `DataSlice.qtype` {#DataSlice.qtype}
 
 ``` {.no-copy}
@@ -12376,6 +12386,10 @@ Alias for [DataSlice.new](#DataSlice.new) operator.
 ### `DataItem.no_bag()` {#DataItem.no_bag}
 
 Alias for [DataSlice.no_bag](#DataSlice.no_bag) operator.
+
+### `DataItem.pop(index, /)` {#DataItem.pop}
+
+Alias for [DataSlice.pop](#DataSlice.pop) operator.
 
 ### `DataItem.qtype` {#DataItem.qtype}
 
