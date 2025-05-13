@@ -23,7 +23,8 @@ import os
 from typing import AbstractSet, Collection, Iterable
 
 from koladata import kd
-from koladata.ext.persisted_data import file_system_interaction as fsi_lib
+from koladata.ext.persisted_data import fs_interface
+from koladata.ext.persisted_data import fs_util
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager_metadata_pb2 as metadata_pb2
 
 
@@ -75,7 +76,7 @@ class PersistedIncrementalDataBagManager:
       self,
       persistence_dir: str,
       *,
-      fs: fsi_lib.FileSystemInterface | None = None,
+      fs: fs_interface.FileSystemInterface | None = None,
   ):
     """Initializes the manager.
 
@@ -88,7 +89,7 @@ class PersistedIncrementalDataBagManager:
         If None, then the default interaction with the file system is used.
     """
     self._persistence_dir: str = persistence_dir
-    self._fs = fs or fsi_lib.get_default_file_system_interaction()
+    self._fs = fs or fs_util.get_default_file_system_interaction()
     del persistence_dir, fs  # Forces the use of the attributes henceforth.
     self._loaded_bags_cache: dict[str, kd.types.DataBag] = dict()
     if not self._fs.exists(self._persistence_dir):
@@ -214,7 +215,7 @@ class PersistedIncrementalDataBagManager:
       *,
       with_all_dependents: bool = False,
       output_dir: str,
-      fs: fsi_lib.FileSystemInterface | None = None,
+      fs: fs_interface.FileSystemInterface | None = None,
   ):
     """Extracts the requested bags to the given output directory.
 
@@ -239,7 +240,7 @@ class PersistedIncrementalDataBagManager:
     )
     bag_dependencies = self._get_dependency_relation()
 
-    fs = fs or fsi_lib.get_default_file_system_interaction()
+    fs = fs or fs_util.get_default_file_system_interaction()
     if not fs.exists(output_dir):
       fs.make_dirs(output_dir)
     if fs.glob(os.path.join(output_dir, '*')):
@@ -487,8 +488,8 @@ class PersistedIncrementalDataBagManager:
     return f'bag-{new_bag_number:012d}.kd'
 
   def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str):
-    fsi_lib.write_bag_to_file(
-        bag, self._get_bag_filepath_from_filename(bag_filename), fs=self._fs
+    fs_util.write_bag_to_file(
+        self._fs, bag, self._get_bag_filepath_from_filename(bag_filename)
     )
 
   def _read_bag_from_file(self, bag_name: str) -> kd.types.DataBag:
@@ -498,7 +499,7 @@ class PersistedIncrementalDataBagManager:
         if m.name == bag_name
     )
     bag_filepath = self._get_bag_filepath_from_filename(bag_filename)
-    return fsi_lib.read_bag_from_file(bag_filepath, fs=self._fs)
+    return fs_util.read_bag_from_file(self._fs, bag_filepath)
 
   def _get_bag_filepath_from_filename(self, bag_filename: str) -> str:
     return os.path.join(self._persistence_dir, bag_filename)

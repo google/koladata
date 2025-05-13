@@ -12,67 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Utilities to interact with the file system."""
-
-import glob
-import os
-from typing import Collection, IO
+"""Utilities for interacting with the file system."""
 
 from koladata import kd
-
-
-class FileSystemInterface:
-  """Interface to interact with the file system."""
-
-  def exists(self, filepath: str) -> bool:
-    raise NotImplementedError
-
-  def remove(self, filepath: str):
-    raise NotImplementedError
-
-  def open(self, filepath: str, mode: str) -> IO[bytes | str]:
-    raise NotImplementedError
-
-  def make_dirs(self, dirpath: str):
-    raise NotImplementedError
-
-  def glob(self, pattern: str) -> Collection[str]:
-    raise NotImplementedError
-
-
-class FileSystemInteraction(FileSystemInterface):
-  """Interacts with the file system."""
-
-  def exists(self, filepath: str) -> bool:
-    return os.path.exists(filepath)
-
-  def remove(self, filepath: str):
-    os.remove(filepath)
-
-  def open(self, filepath: str, mode: str) -> IO[bytes | str]:
-    return open(filepath, mode)
-
-  def make_dirs(self, dirpath: str):
-    os.makedirs(dirpath, exist_ok=True)
-
-  def glob(self, pattern: str) -> Collection[str]:
-    return glob.glob(pattern)
+from koladata.ext.persisted_data import fs_implementation
+from koladata.ext.persisted_data import fs_interface
 
 
 def get_default_file_system_interaction():
-  return FileSystemInteraction()
+  return fs_implementation.FileSystemInteraction()
 
 
 def write_slice_to_file(
+    fs: fs_interface.FileSystemInterface,
     ds: kd.types.DataSlice,
     filepath: str,
     *,
     overwrite: bool = False,
     riegeli_options: str = 'snappy',
-    fs: FileSystemInterface | None = None,
 ):
   """Writes the given DataSlice to a file; overwrites the file if requested."""
-  fs = fs or get_default_file_system_interaction()
   if fs.exists(filepath):
     if overwrite:
       fs.remove(filepath)
@@ -83,23 +42,22 @@ def write_slice_to_file(
 
 
 def read_slice_from_file(
-    filepath: str, *, fs: FileSystemInterface | None = None
+    fs: fs_interface.FileSystemInterface,
+    filepath: str,
 ) -> kd.types.DataSlice:
-  fs = fs or get_default_file_system_interaction()
   with fs.open(filepath, 'rb') as f:
     return kd.loads(f.read())
 
 
 def write_bag_to_file(
+    fs: fs_interface.FileSystemInterface,
     ds: kd.types.DataBag,
     filepath: str,
     *,
     overwrite: bool = False,
     riegeli_options: str = 'snappy',
-    fs: FileSystemInterface | None = None,
 ):
   """Writes the given DataBag to a file; overwrites the file if requested."""
-  fs = fs or get_default_file_system_interaction()
   if fs.exists(filepath):
     if overwrite:
       fs.remove(filepath)
@@ -110,8 +68,7 @@ def write_bag_to_file(
 
 
 def read_bag_from_file(
-    filepath: str, *, fs: FileSystemInterface | None = None
+    fs: fs_interface.FileSystemInterface, filepath: str
 ) -> kd.types.DataBag:
-  fs = fs or get_default_file_system_interaction()
   with fs.open(filepath, 'rb') as f:
     return kd.loads(f.read())

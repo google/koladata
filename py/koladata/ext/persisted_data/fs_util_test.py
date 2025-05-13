@@ -16,34 +16,46 @@ import os
 
 from absl.testing import absltest
 from koladata import kd
-from koladata.ext.persisted_data import file_system_interaction as fsi
+from koladata.ext.persisted_data import fs_util
 
 
 class DataSliceAndBagPersistenceTest(absltest.TestCase):
 
+  def setUp(self):
+    super().setUp()
+    self._fs = fs_util.get_default_file_system_interaction()
+
   def test_dataslice_write_read(self):
     ds = kd.slice([1, 2, 3])
-    fsilepath = os.path.join(self.create_tempdir().full_path, 'test_slice.kd')
-    fsi.write_slice_to_file(ds, fsilepath)
-    kd.testing.assert_equal(fsi.read_slice_from_file(fsilepath), ds)
+    filepath = os.path.join(self.create_tempdir().full_path, 'test_slice.kd')
+    fs_util.write_slice_to_file(self._fs, ds, filepath)
+    kd.testing.assert_equal(
+        fs_util.read_slice_from_file(self._fs, filepath), ds
+    )
 
     new_ds = kd.slice([4, 5, 6])
     with self.assertRaisesRegex(ValueError, 'already exists'):
-      fsi.write_slice_to_file(new_ds, fsilepath)
-    fsi.write_slice_to_file(new_ds, fsilepath, overwrite=True)
-    kd.testing.assert_equal(fsi.read_slice_from_file(fsilepath), new_ds)
+      fs_util.write_slice_to_file(self._fs, new_ds, filepath)
+    fs_util.write_slice_to_file(self._fs, new_ds, filepath, overwrite=True)
+    kd.testing.assert_equal(
+        fs_util.read_slice_from_file(self._fs, filepath), new_ds
+    )
 
   def test_databag_write_read(self):
     db = kd.new(x=1, y=2).get_bag()
-    fsilepath = os.path.join(self.create_tempdir().full_path, 'test_bag.kd')
-    fsi.write_bag_to_file(db, fsilepath)
-    kd.testing.assert_equivalent(fsi.read_bag_from_file(fsilepath), db)
+    filepath = os.path.join(self.create_tempdir().full_path, 'test_bag.kd')
+    fs_util.write_bag_to_file(self._fs, db, filepath)
+    kd.testing.assert_equivalent(
+        fs_util.read_bag_from_file(self._fs, filepath), db
+    )
 
     new_db = kd.new(x=3, y=4).get_bag()
     with self.assertRaisesRegex(ValueError, 'already exists'):
-      fsi.write_bag_to_file(new_db, fsilepath)
-    fsi.write_bag_to_file(new_db, fsilepath, overwrite=True)
-    kd.testing.assert_equivalent(fsi.read_bag_from_file(fsilepath), new_db)
+      fs_util.write_bag_to_file(self._fs, new_db, filepath)
+    fs_util.write_bag_to_file(self._fs, new_db, filepath, overwrite=True)
+    kd.testing.assert_equivalent(
+        fs_util.read_bag_from_file(self._fs, filepath), new_db
+    )
 
 
 if __name__ == '__main__':

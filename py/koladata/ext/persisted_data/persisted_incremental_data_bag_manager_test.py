@@ -19,7 +19,7 @@ import shutil
 from unittest import mock
 from absl.testing import absltest
 from koladata import kd
-from koladata.ext.persisted_data import file_system_interaction as fsi_lib
+from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as pidbm
 
 
@@ -373,7 +373,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
 
     with self.subTest('EmptyInitialPersistenceDir'):
       persistence_dir = self.create_tempdir().full_path
-      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       _ = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -396,7 +396,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       _ = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
 
       # Start a new manager with the already initialized persistence_dir.
-      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       _ = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -413,7 +413,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
 
     with self.subTest('add_bag'):
       persistence_dir = self.create_tempdir().full_path
-      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -439,7 +439,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       manager.add_bag('bag1', kd.bag(), dependencies=[''])
       manager.add_bag('bag2', kd.bag(), dependencies=[''])
 
-      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -461,7 +461,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       )
       manager.add_bag('bag1', kd.bag(), dependencies=[''])
 
-      mocked_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
+      mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
@@ -482,14 +482,14 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       )
       manager.add_bag('bag1', kd.bag(), dependencies=[''])
 
-      original_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
+      original_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=original_fs
       )
       original_fs.reset_mock()
 
       output_dir = self.create_tempdir().full_path
-      output_fs = mock.Mock(wraps=fsi_lib.FileSystemInteraction())
+      output_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       manager.extract_bags(
           bag_names=['bag1'], output_dir=output_dir, fs=output_fs
       )

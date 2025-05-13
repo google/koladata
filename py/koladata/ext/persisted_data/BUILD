@@ -28,7 +28,9 @@ py_library(
     name = "persisted_data",
     srcs = ["persisted_data.py"],
     deps = [
-        ":file_system_interaction",
+        ":fs_implementation",
+        ":fs_interface",
+        ":fs_util",
         ":persisted_incremental_data_bag_manager",
     ],
 )
@@ -47,7 +49,8 @@ py_library(
     name = "persisted_incremental_data_bag_manager",
     srcs = ["persisted_incremental_data_bag_manager.py"],
     deps = [
-        ":file_system_interaction",
+        ":fs_interface",
+        ":fs_util",
         ":persisted_incremental_data_bag_manager_metadata_py_pb2",
         "//py/koladata:kd",
     ],
@@ -57,7 +60,7 @@ py_test(
     name = "persisted_incremental_data_bag_manager_test",
     srcs = ["persisted_incremental_data_bag_manager_test.py"],
     deps = [
-        ":file_system_interaction",
+        ":fs_implementation",
         ":persisted_incremental_data_bag_manager",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
@@ -77,18 +80,33 @@ py_proto_library(
 )
 
 py_library(
-    name = "file_system_interaction",
-    srcs = ["file_system_interaction.py"],
+    name = "fs_interface",
+    srcs = ["fs_interface.py"],
+)
+
+py_library(
+    name = "fs_implementation",
+    srcs = ["fs_implementation.py"],
     deps = [
+        ":fs_interface",
+    ],
+)
+
+py_library(
+    name = "fs_util",
+    srcs = ["fs_util.py"],
+    deps = [
+        ":fs_implementation",
+        ":fs_interface",
         "//py/koladata:kd",
     ],
 )
 
 py_test(
-    name = "file_system_interaction_test",
-    srcs = ["file_system_interaction_test.py"],
+    name = "fs_util_test",
+    srcs = ["fs_util_test.py"],
     deps = [
-        ":file_system_interaction",
+        ":fs_util",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
     ],

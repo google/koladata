@@ -19,8 +19,14 @@ from koladata.ext.persisted_data import persisted_data
 
 class PersistedDataTest(absltest.TestCase):
 
-  def test_file_system_interaction(self):
-    fs = persisted_data.file_system_interaction.FileSystemInteraction()
+  def test_contains_modules(self):
+    modules = dir(persisted_data)
+    self.assertIn('fs_interface', modules)
+    self.assertIn('fs_implementation', modules)
+    self.assertIn('fs_util', modules)
+
+  def test_fs_implementation(self):
+    fs = persisted_data.fs_util.get_default_file_system_interaction()
     dirname = self.create_tempdir().full_path
     self.assertTrue(fs.exists(dirname))
 
