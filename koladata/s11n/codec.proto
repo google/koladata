@@ -177,5 +177,11 @@ message KodaV1Proto {
     bool ellipsis_qtype = 11;
     bool data_bag_qtype = 12;
     bool non_deterministic_token_qtype = 13;
+
+    // ValueProto.input_value_indices[0]: arolla JaggedShape
+    bool jagged_shape_value = 14;
+
+    // Represents koladata::JaggedShape's QType
+    bool jagged_shape_qtype = 15;
   }
 }

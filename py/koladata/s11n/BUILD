@@ -33,6 +33,21 @@ py_test(
 )
 
 py_test(
+    name = "jagged_shape_s11n_test",
+    srcs = ["jagged_shape_s11n_test.py"],
+    deps = [
+        "//koladata/s11n:codec_py_proto",
+        "//py/koladata/functions:s11n",
+        "//py/koladata/types:jagged_shape",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//arolla/jagged_shape/dense_array/serialization_codecs:jagged_shape_codec_py_proto",
+        "@com_google_arolla//arolla/serialization_codecs/dense_array:dense_array_codec_py_proto",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/s11n/testing:codec_test_case",
+    ],
+)
+
+py_test(
     name = "data_slice_s11n_test",
     srcs = ["data_slice_s11n_test.py"],
     deps = [

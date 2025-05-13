@@ -27,10 +27,15 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/jagged_shape_qtype.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/edge.h"
+#include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
+#include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/buffer.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/encode.h"
@@ -136,6 +141,35 @@ TEST(SerializationTest, DTypes_Validation) {
     EXPECT_THAT(arolla::serialization::Decode(proto),
                 StatusIs(absl::StatusCode::kInvalidArgument));
   }
+}
+
+TEST(SerializationTest, JaggedShapeQType) {
+  ASSERT_OK_AND_ASSIGN(auto proto,
+                       arolla::serialization::Encode(
+                           {TypedValue::FromValue(GetJaggedShapeQType())}, {}));
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  ASSERT_OK_AND_ASSIGN(arolla::QTypePtr res,
+                       decode_result.values[0].As<arolla::QTypePtr>());
+  EXPECT_EQ(res, GetJaggedShapeQType());
+}
+
+TEST(SerializationTest, JaggedShapeQValue) {
+  ASSERT_OK_AND_ASSIGN(auto edge,
+                       arolla::DenseArrayEdge::FromSplitPoints(
+                           arolla::CreateDenseArray<int64_t>({0, 2})));
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       arolla::JaggedDenseArrayShape::FromEdges({edge}));
+  ASSERT_OK_AND_ASSIGN(
+      auto tv, TypedValue::FromValueWithQType(shape, GetJaggedShapeQType()));
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode({tv}, {}));
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  EXPECT_EQ(decode_result.values[0].GetType(), GetJaggedShapeQType());
+  ASSERT_OK_AND_ASSIGN(
+      arolla::JaggedDenseArrayShape res,
+      decode_result.values[0].As<arolla::JaggedDenseArrayShape>());
+  EXPECT_TRUE(res.IsEquivalentTo(shape));
 }
 
 TEST(SerializationTest, DataSliceImpl) {

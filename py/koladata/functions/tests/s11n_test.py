@@ -20,6 +20,7 @@ from koladata.functions import s11n
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import jagged_shape
 from koladata.types import schema_constants
 
 M = arolla.M
@@ -70,7 +71,7 @@ class DumpsLoadsTest(parameterized.TestCase):
   def test_dumps_fails_on_expr(self):
     fn = M.math.add(L.x, L.y)
     with self.assertRaisesRegex(
-        ValueError, 'expected a DataSlice or a DataBag, got.*Expr'
+        ValueError, 'expected a DataSlice, DataBag or JaggedShape, got.*Expr'
     ):
       s11n.dumps(fn)
 
@@ -78,7 +79,7 @@ class DumpsLoadsTest(parameterized.TestCase):
     fn = M.math.add(L.x, L.y)
     dumped_bytes = arolla.s11n.riegeli_dumps(fn)
     with self.assertRaisesRegex(
-        ValueError, 'expected a DataSlice or a DataBag, got.*Expr'
+        ValueError, 'expected a DataSlice, DataBag or JaggedShape, got.*Expr'
     ):
       s11n.loads(dumped_bytes)
 
@@ -122,6 +123,14 @@ class DumpsLoadsTest(parameterized.TestCase):
     e = bag.new(x=1).no_bag()
     loaded_e = s11n.loads(s11n.dumps(e))
     testing.assert_equivalent(e, loaded_e)
+
+  def test_dumps_loads_jagged_shape(self):
+    shape = jagged_shape.KodaJaggedShape.from_edges(
+        arolla.types.DenseArrayEdge.from_sizes([2]),
+    )
+    dumped_bytes = s11n.dumps(shape)
+    loaded_shape = s11n.loads(dumped_bytes)
+    testing.assert_equal(loaded_shape, shape)
 
 
 if __name__ == '__main__':

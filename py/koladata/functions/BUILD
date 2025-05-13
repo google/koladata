@@ -122,6 +122,7 @@ py_library(
     deps = [
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:jagged_shape",
         "@com_google_arolla//py/arolla",
     ],
 )

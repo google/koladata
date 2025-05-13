@@ -40,6 +40,7 @@
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "koladata/internal/types_buffer.h"
+#include "koladata/jagged_shape_qtype.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
 #include "arolla/dense_array/dense_array.h"
@@ -47,6 +48,7 @@
 #include "arolla/expr/expr_operator.h"
 #include "arolla/expr/quote.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
+#include "arolla/qtype/derived_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
@@ -121,6 +123,17 @@ absl::StatusOr<ValueProto> EncodeDataBagQType(arolla::TypedRef value,
   return value_proto;
 }
 
+absl::StatusOr<ValueProto> EncodeJaggedShapeQType(arolla::TypedRef value,
+                                                  Encoder& encoder) {
+  // Note: Safe since this function is only called for QTypes.
+  DCHECK_EQ(value.UnsafeAs<arolla::QTypePtr>(),
+            GetJaggedShapeQType());
+  ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
+  value_proto.MutableExtension(KodaV1Proto::extension)
+      ->set_jagged_shape_qtype(true);
+  return value_proto;
+}
+
 absl::StatusOr<ValueProto> EncodeDataSlice(arolla::TypedRef value,
                                            Encoder& encoder) {
   if (value.GetType() == arolla::GetQType<arolla::QTypePtr>()) {
@@ -153,6 +166,28 @@ absl::StatusOr<ValueProto> EncodeDataSlice(arolla::TypedRef value,
         encoder.EncodeValue(arolla::TypedValue::FromValue(slice.GetBag())));
     value_proto.add_input_value_indices(db_index);
   }
+  return value_proto;
+}
+
+absl::StatusOr<ValueProto> EncodeJaggedShape(arolla::TypedRef value,
+                                             Encoder& encoder) {
+  if (value.GetType() == arolla::GetQType<arolla::QTypePtr>()) {
+    return EncodeJaggedShapeQType(value, encoder);
+  }
+  if (value.GetType() != GetJaggedShapeQType()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("%s does not support serialization of %s: %s",
+                        kKodaV1Codec, value.GetType()->name(), value.Repr()));
+  }
+  ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
+
+  auto* koda_proto = value_proto.MutableExtension(KodaV1Proto::extension);
+  koda_proto->set_jagged_shape_value(true);
+
+  ASSIGN_OR_RETURN(auto base_qvalue_index,
+                   encoder.EncodeValue(
+                       arolla::TypedValue(arolla::DecayDerivedQValue(value))));
+  value_proto.add_input_value_indices(base_qvalue_index);
   return value_proto;
 }
 
@@ -520,6 +555,9 @@ AROLLA_INITIALIZER(
           RETURN_IF_ERROR(RegisterValueEncoderByQType(
               arolla::GetQType<internal::DataSliceImpl>(),
               EncodeDataSliceImpl));
+          RETURN_IF_ERROR(RegisterValueEncoderByQType(
+              GetJaggedShapeQType(),
+              EncodeJaggedShape));
           return absl::OkStatus();
         })
 

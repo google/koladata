@@ -17,6 +17,7 @@
 from arolla import arolla
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import jagged_shape
 
 
 def dumps(
@@ -40,8 +41,12 @@ def dumps(
   Returns:
     Serialized data.
   """
-  if not isinstance(x, data_slice.DataSlice | data_bag.DataBag):
-    raise ValueError(f'expected a DataSlice or a DataBag, got {type(x)}')
+  if not isinstance(
+      x, data_slice.DataSlice | data_bag.DataBag | jagged_shape.KodaJaggedShape
+  ):
+    raise ValueError(
+        f'expected a DataSlice, DataBag or JaggedShape, got {type(x)}'
+    )
   # NOTE(b/385272947): Consider moving this logic further down to support
   # extraction for literals inside of expressions. This is more tricky since we
   # want slices with the same bag to keep the same bag id, and some slices may
@@ -57,6 +62,11 @@ def dumps(
 def loads(x: bytes) -> data_slice.DataSlice | data_bag.DataBag:
   """Deserializes a DataSlice or a DataBag."""
   result = arolla.s11n.riegeli_loads(x)
-  if not isinstance(result, data_slice.DataSlice | data_bag.DataBag):
-    raise ValueError(f'expected a DataSlice or a DataBag, got {type(result)}')
+  if not isinstance(
+      result,
+      data_slice.DataSlice | data_bag.DataBag | jagged_shape.KodaJaggedShape,
+  ):
+    raise ValueError(
+        f'expected a DataSlice, DataBag or JaggedShape, got {type(result)}'
+    )
   return result

@@ -45,13 +45,17 @@
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "koladata/internal/types_buffer.h"
+#include "koladata/jagged_shape_qtype.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/expr/quote.h"
+#include "arolla/jagged_shape/dense_array/jagged_shape.h"
+#include "arolla/jagged_shape/dense_array/qtype/qtype.h"  // IWYU pragma: keep
 #include "arolla/memory/buffer.h"
+#include "arolla/qtype/derived_qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serialization_base/base.pb.h"
@@ -487,6 +491,23 @@ absl::StatusOr<ValueDecoderResult> DecodeDataSliceValue(
   }
 }
 
+absl::StatusOr<ValueDecoderResult> DecodeJaggedShapeValue(
+    absl::Span<const TypedValue> input_values) {
+  if (input_values.size() != 1) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("wrong number of input_values in DecodeJaggedShapeValue: "
+                     "expected 1, got ",
+                     input_values.size()));
+  }
+  const TypedValue& base_value = input_values[0];
+  if (base_value.GetType() !=
+      arolla::GetQType<arolla::JaggedDenseArrayShape>()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected a JaggedDenseArrayShape, got %s", base_value.Repr()));
+  }
+  return arolla::UnsafeDowncastDerivedQValue(GetJaggedShapeQType(), base_value);
+}
+
 template <typename T>
 absl::StatusOr<std::reference_wrapper<const T>> GetInputValue(
     absl::Span<const TypedValue> input_values, int index) {
@@ -637,6 +658,10 @@ absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
       return DecodeLiteralOperator(input_values);
     case KodaV1Proto::kDataSliceQtype:
       return TypedValue::FromValue(arolla::GetQType<DataSlice>());
+    case KodaV1Proto::kJaggedShapeValue:
+      return DecodeJaggedShapeValue(input_values);
+    case KodaV1Proto::kJaggedShapeQtype:
+      return TypedValue::FromValue(GetJaggedShapeQType());
     case KodaV1Proto::kEllipsisQtype:
       return TypedValue::FromValue(arolla::GetQType<internal::Ellipsis>());
     case KodaV1Proto::kEllipsisValue:
