@@ -1163,14 +1163,12 @@ bool DataSlice::IsEntitySchema() const {
   }
   const auto& db_impl = GetBag()->GetImpl();
   FlattenFallbackFinder fb_finder(*GetBag());
-  bool has_list_attr =
-      HasSchemaAttr(item(), schema::kListItemsSchemaAttr, db_impl, fb_finder);
-  bool has_dict_key_attr =
-      HasSchemaAttr(item(), schema::kDictKeysSchemaAttr, db_impl, fb_finder);
-  bool has_dict_value_attr =
-      HasSchemaAttr(item(), schema::kDictValuesSchemaAttr, db_impl, fb_finder);
-
-  return !has_list_attr && !has_dict_key_attr && !has_dict_value_attr;
+  return !HasSchemaAttr(item(), schema::kListItemsSchemaAttr, db_impl,
+                        fb_finder) &&
+         !HasSchemaAttr(item(), schema::kDictKeysSchemaAttr, db_impl,
+                        fb_finder) &&
+         !HasSchemaAttr(item(), schema::kDictValuesSchemaAttr, db_impl,
+                        fb_finder);
 }
 
 bool DataSlice::IsListSchema() const {
@@ -1189,11 +1187,10 @@ bool DataSlice::IsDictSchema() const {
   }
   const auto& db_impl = GetBag()->GetImpl();
   FlattenFallbackFinder fb_finder(*GetBag());
-  bool has_dict_key_attr =
-      HasSchemaAttr(item(), schema::kDictKeysSchemaAttr, db_impl, fb_finder);
-  bool has_dict_value_attr =
-      HasSchemaAttr(item(), schema::kDictValuesSchemaAttr, db_impl, fb_finder);
-  return has_dict_key_attr && has_dict_value_attr;
+  return HasSchemaAttr(item(), schema::kDictKeysSchemaAttr, db_impl,
+                       fb_finder) &&
+         HasSchemaAttr(item(), schema::kDictValuesSchemaAttr, db_impl,
+                       fb_finder);
 }
 
 bool DataSlice::IsPrimitiveSchema() const {
