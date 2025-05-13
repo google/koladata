@@ -1315,6 +1315,36 @@ class DataSliceTest(parameterized.TestCase):
       x.set_attr(ds(['a']), ds([db.list([1, 2])]), overwrite_schema=True)
       testing.assert_nested_lists_equal(x.get_attr('a'), db.list([1, 2]))
 
+    with self.subTest('set_attr_on_schema_slice'):
+      schema_slice = ds([
+          db.new_schema(a=schema_constants.INT32),
+          db.new_schema(b=schema_constants.STRING),
+      ])
+      schema_slice.set_attr(ds(['a', 'b']), schema_constants.FLOAT32)
+      testing.assert_equal(
+          schema_slice.get_attr('a', None),
+          ds([schema_constants.FLOAT32, None]).with_bag(db),
+      )
+      testing.assert_equal(
+          schema_slice.get_attr('b', None),
+          ds([None, schema_constants.FLOAT32]).with_bag(db),
+      )
+
+    with self.subTest('set_attr_on_schema_attr_slice'):
+      schema_item = db.new_schema(
+          a=schema_constants.INT32, b=schema_constants.STRING
+      )
+      schema_item.set_attr(
+          ds(['a', 'b']),
+          ds([schema_constants.FLOAT32, schema_constants.FLOAT64]),
+      )
+      testing.assert_equal(
+          schema_item.get_attr('a'), schema_constants.FLOAT32.with_bag(db)
+      )
+      testing.assert_equal(
+          schema_item.get_attr('b'), schema_constants.FLOAT64.with_bag(db)
+      )
+
   def test_set_attr_ds_attr_name_errors(self):
     db = bag()
     x = db.obj()
@@ -1322,17 +1352,6 @@ class DataSliceTest(parameterized.TestCase):
     with self.subTest('str_attr_name'):
       with self.assertRaisesRegex(ValueError, 'must be a slice of STRING'):
         x.set_attr(ds([1, 2]), ds([123, 456]))
-
-    with self.subTest('non_scalar_schema_set'):
-      schema_slice = ds([
-          db.new_schema(a=schema_constants.INT32),
-          db.new_schema(b=schema_constants.STRING),
-      ])
-      with self.assertRaisesRegex(
-          ValueError,
-          'can only set attribute of a schema DataSlice if attr_name is scalar',
-      ):
-        schema_slice.set_attr(ds(['a', 'b']), schema_constants.FLOAT32)
 
   def test_set_attr_incompatible_schema(self):
     db = bag()

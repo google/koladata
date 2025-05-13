@@ -1504,6 +1504,11 @@ absl::Status SetAttrForSingleItem(const internal::DataItem& obj,
                                   const internal::DataItem& obj_schema,
                                   const internal::DataItem& value_schema,
                                   const DataBagPtr& obj_db) {
+  if (obj_schema == schema::kSchema) {
+    ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
+                     obj_db->GetMutableImpl());
+    return db_mutable_impl.SetSchemaAttr(obj, attr_name, value);
+  }
   ASSIGN_OR_RETURN(auto obj_slice, DataSlice::Create(obj, obj_schema, obj_db));
   ASSIGN_OR_RETURN(
       auto value_slice,
@@ -1555,11 +1560,6 @@ absl::Status DataSlice::SetAttr(const DataSlice& attr_name,
 
   ASSIGN_OR_RETURN(auto expanded_values,
                    BroadcastToShape(values, aligned_slices[0].GetShape()));
-  const internal::DataItem& schema = GetSchemaImpl();
-  if (schema == schema::kSchema) {
-    return absl::InvalidArgumentError(
-        "can only set attribute of a schema DataSlice if attr_name is scalar");
-  }
   absl::Status status = absl::OkStatus();
   RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
       [&](int64_t offset, internal::DataItem item, std::string_view attr_name,
