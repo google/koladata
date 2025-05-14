@@ -117,6 +117,7 @@ py_library(
         ":introspection",
         ":tracing_mode",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
     ],
 )

@@ -12,12 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import re
+
 from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
 from koladata.expr import tracing
 from koladata.testing import testing
+
 
 kde = kd.lazy
 kdf = kd.functor
@@ -106,8 +109,18 @@ class TracingTest(absltest.TestCase):
     self.assertEqual(kd.eval(e), 1)
 
   def test_tracing_fail(self):
-    with self.assertRaisesRegex(ValueError, 'Failed to trace the function'):
-      tracing.trace(lambda x: 1 if x else 2)
+
+    # Adding a decorator, so that we can check that the error message does not
+    # mention `functools._lru_cache_wrapper` instead of `my_fn`.
+    @functools.lru_cache()
+    def my_fn(x):
+      return 1 if x else 2
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'Failed to trace the function .*TracingTest.test_tracing_fail.*my_fn.*',
+    ):
+      tracing.trace(my_fn)
 
   def test_names(self):
     fn = lambda x, y, z: kd.with_name(x + y, 'foo') + z

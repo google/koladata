@@ -22,6 +22,8 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing_mode
 from koladata.types import py_boxing
+from koladata.util import kd_functools
+
 
 I = input_container.InputContainer('I')
 
@@ -69,6 +71,7 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
     ]:
       if not param.name.startswith('unused'):
         raise ValueError(
+            f'Failed to trace the function {kd_functools.unwrap(fn)}. '
             'Variadic arguments are only supported in tracing when they are'
             ' actually not used in the function body, as a way to allow'
             ' arbitrary unknown arguments. If this is the case, please start'
@@ -92,8 +95,8 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
     expr = py_boxing.as_expr(res)
   except Exception as e:
     raise ValueError(
-        f'Failed to trace the function: `{fn}`. If you only need Python'
-        ' evaluation, you can use `kd.py_fn(fn)` instead.'
+        f'Failed to trace the function {kd_functools.unwrap(fn)}. If'
+        ' you only need Python evaluation, you can use `kd.py_fn(fn)` instead.'
     ) from e
   if diff := (
       frozenset(introspection.get_input_names(expr))
