@@ -358,6 +358,45 @@ def mask_not_equal(x, y):
   return ~mask_equal(x, y)
 
 
+@optools.add_to_registry(aliases=['kd.xor'])
+@optools.as_lambda_operator(
+    'kd.masking.xor',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.y),
+    ],
+)
+def xor(x, y):
+  """Applies pointwise XOR operation on `x` and `y`.
+
+  Both `x` and `y` must have MASK dtype. XOR operation is defined as:
+    kd.xor(kd.present, kd.present) -> kd.missing
+    kd.xor(kd.present, kd.missing) -> kd.present
+    kd.xor(kd.missing, kd.present) -> kd.present
+    kd.xor(kd.missing, kd.missing) -> kd.missing
+
+  It is equivalent to `x ^ y`.
+
+  Args:
+    x: DataSlice.
+    y: DataSlice.
+
+  Returns:
+    DataSlice.
+  """
+  x = assertion.assert_ds_has_primitives_of(
+      x,
+      schema_constants.MASK,
+      'kd.masking.xor: argument `x` must have kd.MASK dtype',
+  )
+  y = assertion.assert_ds_has_primitives_of(
+      y,
+      schema_constants.MASK,
+      'kd.masking.xor: argument `y` must have kd.MASK dtype',
+  )
+  return ((x & ~y) | (~x & y)).with_schema(schema_constants.MASK)
+
+
 @optools.as_backend_operator('kd.masking._agg_any')
 def _agg_any(x):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')

@@ -197,6 +197,12 @@ class KodaView(arolla.abc.ExprView):
   def __ror__(self, other: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.coalesce', other, self)
 
+  def __xor__(self, other: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kd.xor', self, other)
+
+  def __rxor__(self, other: Any) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kd.xor', other, self)
+
   def __invert__(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.has_not', self)
 

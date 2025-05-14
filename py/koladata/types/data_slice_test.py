@@ -3266,6 +3266,19 @@ Assigned schema for list items: SCHEMA(a=STRING)"""),
       testing.assert_equal((x & mask) | 4, ds([1, 4, 3]))
       # __ror__ with auto-boxing
       testing.assert_equal(None | y, ds([4, 5, 6]))
+    with self.subTest('xor'):
+      testing.assert_equal(
+          ds([arolla.present(), None]) ^ ds([None, arolla.present()]),
+          ds([arolla.present(), arolla.present()])
+      )
+      # With auto-boxing
+      testing.assert_equal(
+          ds([arolla.present(), None]) ^ None, ds([arolla.present(), None])
+      )
+      # __rxor__ with auto-boxing
+      testing.assert_equal(
+          None ^ ds([arolla.present(), None]), ds([arolla.present(), None])
+      )
     with self.subTest('not'):
       testing.assert_equal(~mask, ds([None, arolla.present(), None]))
 

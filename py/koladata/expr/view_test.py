@@ -226,6 +226,13 @@ class KodaViewTest(parameterized.TestCase):
   def test_ror(self):
     testing.assert_equal(C.x.__ror__(C.y), kde.coalesce(C.y, C.x))
 
+  def test_xor(self):
+    testing.assert_equal(C.x ^ C.y, kde.xor(C.x, C.y))
+    testing.assert_equal(ds(1) ^ C.y, kde.xor(1, C.y))
+
+  def test_rxor(self):
+    testing.assert_equal(C.x.__rxor__(C.y), kde.xor(C.y, C.x))
+
   def test_invert(self):
     testing.assert_equal(~C.x, kde.has_not(C.x))
 

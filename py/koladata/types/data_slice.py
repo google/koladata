@@ -729,6 +729,20 @@ def _ror(self, other: Any) -> DataSlice:
   return _eval_op('kd.coalesce', other, self)
 
 
+@add_method(DataSlice, '__xor__')
+def _xor(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
+  return _eval_op('kd.xor', self, other)
+
+
+@add_method(DataSlice, '__rxor__')
+def _rxor(self, other: Any) -> DataSlice:
+  if isinstance(other, arolla.Expr):
+    return NotImplemented
+  return _eval_op('kd.xor', other, self)
+
+
 @add_method(DataSlice, '__invert__')
 def _invert(self) -> DataSlice:
   return _eval_op('kd.has_not', self)
