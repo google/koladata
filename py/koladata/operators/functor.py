@@ -54,7 +54,13 @@ M = arolla.M
     )],
     deterministic=False,
 )
-def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):  # pylint: disable=unused-argument
+def call(
+    fn,  # pylint: disable=unused-argument
+    *args,  # pylint: disable=unused-argument
+    return_type_as=data_slice.DataSlice,  # pylint: disable=unused-argument
+    stack_trace_frame=None,  # pylint: disable=unused-argument
+    **kwargs,  # pylint: disable=unused-argument
+):
   """Calls a functor.
 
   See the docstring of `kd.fn` on how to create a functor.
@@ -75,6 +81,9 @@ def call(fn, *args, return_type_as=data_slice.DataSlice, **kwargs):  # pylint: d
       of the corresponding type. This needs to be specified if the functor does
       not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
       be passed here.
+    stack_trace_frame: Optional details of a stack trace frame, to be added to
+      all the exceptions raised by `fn`. Use
+      `stack_trace.create_stack_trace_frame` to create it.
     **kwargs: The keyword arguments to pass to the call. Scalars will be
       auto-boxed to DataItems.
 

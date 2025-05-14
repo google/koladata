@@ -167,8 +167,18 @@ def _schedule_call_after_deps_done(
     repository, and a new dependency is added to the provided `dest_task`
     to receive the result of the call.
   """
-  ((fn, args, return_type_as, kwargs, non_deterministic_token),) = deps_results
+  (
+      (
+          fn,
+          args,
+          return_type_as,
+          stack_trace_frame,
+          kwargs,
+          non_deterministic_token,
+      ),
+  ) = deps_results
   del return_type_as  # So far we don't enforce it.
+  del stack_trace_frame  # So far we don't propagate it.
   del non_deterministic_token  # Not needed for repeated fn.__call__.
   res_task = _schedule_call(repo, fn, args, kwargs, parent_debug, debug_name)
   dest_task.add_dep(res_task)

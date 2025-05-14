@@ -41,6 +41,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/functor.h"
+#include "koladata/functor/stack_trace.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -57,7 +58,9 @@ class CallOperator : public arolla::QExprOperator {
       arolla::TypedSlot output_slot) const final {
     return arolla::MakeBoundOperator(
         [fn_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
-         args_slot = input_slots[1], kwargs_slot = input_slots[3],
+         args_slot = input_slots[1],
+         stack_trace_frame_slot = input_slots[3].UnsafeToSlot<DataSlice>(),
+         kwargs_slot = input_slots[4],
          output_slot](arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
           const auto& fn_data_slice = frame.Get(fn_slot);
 
@@ -73,20 +76,23 @@ class CallOperator : public arolla::QExprOperator {
                 arolla::TypedRef::FromSlot(kwargs_slot.SubSlot(i), frame));
           }
           auto kwnames = arolla::GetFieldNames(kwargs_slot.GetType());
-          ASSIGN_OR_RETURN(auto result,
-                           functor::CallFunctorWithCompilationCache(
-                               fn_data_slice, arg_refs, kwnames),
-                           ctx->set_status(std::move(_)));
-          if (result.GetType() != output_slot.GetType()) {
+          auto result = functor::CallFunctorWithCompilationCache(
+              fn_data_slice, arg_refs, kwnames);
+          if (!result.ok()) {
+            ctx->set_status(MaybeAddStackTraceFrame(
+                std::move(result).status(), frame.Get(stack_trace_frame_slot)));
+            return;
+          }
+          if (result->GetType() != output_slot.GetType()) {
             ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
                 "The functor was called with `%s` as the output type, but the"
                 " computation resulted in type `%s` instead. You can specify"
                 " the expected output type via the `return_type_as=` parameter"
                 " to the functor call.",
-                output_slot.GetType()->name(), result.GetType()->name())));
+                output_slot.GetType()->name(), result->GetType()->name())));
             return;
           }
-          RETURN_IF_ERROR(result.CopyToSlot(output_slot, frame))
+          RETURN_IF_ERROR(result->CopyToSlot(output_slot, frame))
               .With(ctx->set_status());
         });
   }
@@ -97,23 +103,24 @@ class CallOperator : public arolla::QExprOperator {
 absl::StatusOr<arolla::OperatorPtr> CallOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 5) {
-    return absl::InvalidArgumentError("requires exactly 5 arguments");
+  if (input_types.size() != 6) {
+    return absl::InvalidArgumentError("requires exactly 6 arguments");
   }
   if (input_types[0] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(
-        "requires first argument to be DataSlice");
+    return absl::InvalidArgumentError("requires 1st argument to be DataSlice");
   }
   if (!arolla::IsTupleQType(input_types[1])) {
-    return absl::InvalidArgumentError("requires second argument to be Tuple");
+    return absl::InvalidArgumentError("requires 2nd argument to be Tuple");
   }
   // Argument 2 is used to infer the return type, which is handled on the Expr
   // operator level, so we just ignore it here.
-  if (!arolla::IsNamedTupleQType(input_types[3])) {
-    return absl::InvalidArgumentError(
-        "requires third argument to be NamedTuple");
+  if (input_types[3] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError("requires 4th argument to be DataSlice");
   }
-  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[4]));
+  if (!arolla::IsNamedTupleQType(input_types[4])) {
+    return absl::InvalidArgumentError("requires 5th argument to be NamedTuple");
+  }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[5]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<CallOperator>(input_types, output_type), input_types,
       output_type);

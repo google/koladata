@@ -244,6 +244,7 @@ cc_library(
     deps = [
         ":call",
         ":functor",
+        ":stack_trace",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal:non_deterministic_token",

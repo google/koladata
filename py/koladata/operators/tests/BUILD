@@ -5690,6 +5690,7 @@ py_test(
         "//py/koladata/expr:view",
         "//py/koladata/functions",
         "//py/koladata/functor:functor_factories",
+        "//py/koladata/functor:stack_trace",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
         "//py/koladata/testing",

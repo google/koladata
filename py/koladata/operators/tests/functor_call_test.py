@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import re
+import traceback
 
 from absl.testing import absltest
 from arolla import arolla
@@ -21,12 +22,14 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
+from koladata.functor import stack_trace
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import signature_utils
+
 
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
@@ -158,16 +161,57 @@ class FunctorCallTest(absltest.TestCase):
             ),
         ]),
     )
-    testing.assert_equal(
-        expr_eval.eval(kde.call(fn, fns.new(foo=57))).no_bag(), ds(57)
+    stack_frame = stack_trace.create_stack_trace_frame(
+        function_name='test_function',
+        file_name='test_file.py',
+        line_number=57,
     )
-    with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex(
-            "the attribute 'foo' is missing"
-        ),
-    ):
-      _ = expr_eval.eval(kde.call(fn, fns.new(bar=57)))
+    testing.assert_equal(
+        expr_eval.eval(
+            kde.call(fn, fns.new(foo=57), stack_trace_frame=stack_frame)
+        ).no_bag(),
+        ds(57),
+    )
+    try:
+      expr_eval.eval(
+          kde.call(fn, fns.new(bar=57), stack_trace_frame=stack_frame)
+      )
+    except ValueError as e:
+      ex = e
+
+    self.assertIn("failed to get attribute 'foo'", str(ex))
+    tb = '\n'.join(traceback.format_tb(ex.__traceback__))
+    self.assertIn('File "test_file.py", line 57, in test_function', tb)
+    self.assertIn('py/koladata/expr/expr_eval.py', tb)
+
+  def test_call_eval_error_bad_stack_trace_frame(self):
+    fn = functor_factories.expr_fn(
+        returns=I.x.foo,
+        signature=signature_utils.signature([
+            signature_utils.parameter(
+                'x', signature_utils.ParameterKind.POSITIONAL_OR_KEYWORD
+            ),
+        ]),
+    )
+    bad_stack_trace_frame = fns.int64(57)
+    testing.assert_equal(
+        expr_eval.eval(
+            kde.call(
+                fn, fns.new(foo=57), stack_trace_frame=bad_stack_trace_frame
+            )
+        ).no_bag(),
+        ds(57),
+    )
+    try:
+      expr_eval.eval(
+          kde.call(fn, fns.new(bar=57), stack_trace_frame=bad_stack_trace_frame)
+      )
+    except ValueError as e:
+      ex = e
+
+    self.assertIn("failed to get attribute 'foo'", str(ex))
+    tb = '\n'.join(traceback.format_tb(ex.__traceback__))
+    self.assertIn('py/koladata/expr/expr_eval.py', tb)
 
   def test_call_non_dataslice_inputs(self):
     fn = functor_factories.expr_fn(kde.tuple.get_nth(I.x, 1))
@@ -278,7 +322,7 @@ class FunctorCallTest(absltest.TestCase):
     self.assertEqual(
         repr(kde.functor.call(I.fn, I.x, I.y, a=I.z)),
         'kd.functor.call(I.fn, I.x, I.y, return_type_as=DataItem(None, schema:'
-        ' NONE), a=I.z)',
+        ' NONE), stack_trace_frame=DataItem(None, schema: NONE), a=I.z)',
     )
 
 
