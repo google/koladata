@@ -68,17 +68,6 @@ py_library(
 )
 
 py_test(
-    name = "kd_ext_test",
-    srcs = ["kd_ext_test.py"],
-    deps = [
-        ":kd",
-        ":kd_ext",
-        "//py/koladata/testing",
-        "@com_google_absl_py//absl/testing:absltest",
-    ],
-)
-
-py_test(
     name = "kd_test",
     srcs = ["kd_test.py"],
     deps = [
@@ -107,5 +96,16 @@ py_library(
         "//py/koladata/ext/experimental/parallel_call:call",
         "//py/koladata/ext/persisted_data",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "kd_ext_test",
+    srcs = ["kd_ext_test.py"],
+    deps = [
+        ":kd",
+        ":kd_ext",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
