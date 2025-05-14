@@ -34,6 +34,13 @@ class StreamInterleave::Scheduler {
 
   ~Scheduler() { writer_->TryClose(absl::OkStatus()); }
 
+  void AddError(absl::Status status) {
+    DCHECK(!status.ok());
+    if (!status.ok()) {
+      writer_->TryClose(std::move(status));
+    }
+  }
+
   static void ProcessInput(std::shared_ptr<Scheduler> self,
                            StreamReaderPtr reader) {
     auto try_read_result = reader->TryRead();
@@ -73,6 +80,10 @@ void StreamInterleave::Add(const StreamPtr /*absl_nonnull*/& stream) {
   }
 }
 
+void StreamInterleave::AddError(absl::Status status) && {
+  scheduler_->AddError(std::move(status));
+}
+
 // This class holds the execution state of the stream chain, and the callbacks
 // hold a pointer to it. It is thread-safe.
 class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
@@ -99,6 +110,15 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
     // called ProcessPendingInputs, so our invariants will be maintained.
     if (must_process_pending_inputs) {
       ProcessPendingInputs();
+    }
+  }
+
+  void AddError(absl::Status status) {
+    DCHECK(!status.ok());
+    if (!status.ok()) {
+      auto [stream, writer] = MakeStream(writer_->value_qtype());
+      std::move(*writer).Close(std::move(status));
+      AddInput(stream->MakeReader());
     }
   }
 
@@ -207,6 +227,14 @@ void StreamChain::Add(const StreamPtr /*absl_nonnull*/& stream) {
   DCHECK(scheduler_ != nullptr);
   if (stream != nullptr && scheduler_ != nullptr) {
     scheduler_->AddInput(stream->MakeReader());
+  }
+}
+
+void StreamChain::AddError(absl::Status status) && {
+  DCHECK(!status.ok());
+  DCHECK(scheduler_ != nullptr);
+  if (!status.ok() && scheduler_ != nullptr) {
+    scheduler_->AddError(std::move(status));
   }
 }
 

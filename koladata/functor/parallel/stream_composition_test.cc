@@ -92,14 +92,35 @@ TEST(StreamInterleaveTest, CloseWithError) {
       interleave_helper.Add(s);
     }
   }
+  writers[0]->Write(TypedRef::FromValue(0));
   std::move(*writers[0]).Close();
   std::move(*writers[1]).Close(absl::InvalidArgumentError("Boom!"));
-  writers[2]->Write(TypedRef::FromValue(0));
+  writers[2]->Write(TypedRef::FromValue(1));
   std::move(*writers[2]).Close();
-
   auto reader = stream->MakeReader();
+  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 0);
   EXPECT_THAT(*reader->TryRead().close_status(),
               StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+}
+
+TEST(StreamInterleaveTest, AddError) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  std::vector<StreamWriterPtr> writers;
+  StreamInterleave interleave_helper(std::move(writer));
+  for (int i = 0; i < 2; ++i) {
+    auto [s, w] = MakeStream(GetQType<int>());
+    writers.emplace_back(std::move(w));
+    interleave_helper.Add(s);
+  }
+  writers[0]->Write(TypedRef::FromValue(0));
+  std::move(interleave_helper).AddError(absl::InvalidArgumentError("Boom!"));
+  writers[1]->Write(TypedRef::FromValue(1));
+  auto reader = stream->MakeReader();
+  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 0);
+  EXPECT_THAT(*reader->TryRead().close_status(),
+              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  std::move(*writers[0]).Close();
+  std::move(*writers[1]).Close();
 }
 
 TEST(StreamInterleaveTest, MultithreadedInterleaving) {
@@ -218,6 +239,28 @@ TEST(StreamChainTest, CloseWithError) {
   std::move(*writers[2]).Close();
 
   auto reader = stream->MakeReader();
+  EXPECT_THAT(*reader->TryRead().close_status(),
+              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+}
+
+TEST(StreamChainTest, AddError) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  std::vector<StreamWriterPtr> writers;
+  StreamChain chain_helper(std::move(writer));
+  for (int i = 0; i < 2; ++i) {
+    auto [s, w] = MakeStream(GetQType<int>());
+    writers.emplace_back(std::move(w));
+    chain_helper.Add(s);
+  }
+  std::move(chain_helper).AddError(absl::InvalidArgumentError("Boom!"));
+  writers[0]->Write(TypedRef::FromValue(0));
+  writers[1]->Write(TypedRef::FromValue(1));
+  auto reader = stream->MakeReader();
+  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 0);
+  EXPECT_TRUE(reader->TryRead().empty());
+  std::move(*writers[0]).Close();
+  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 1);
+  std::move(*writers[1]).Close();
   EXPECT_THAT(*reader->TryRead().close_status(),
               StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
 }
