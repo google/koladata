@@ -35,6 +35,7 @@
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
+#include "koladata/functor/stack_trace.h"
 #include "koladata/internal/data_item.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -134,6 +135,7 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
   }
   computed_variable_holder.reserve(variable_evaluation_order.size());
   variables.reserve(variable_evaluation_order.size());
+
   for (const auto& variable_name : variable_evaluation_order) {
     ASSIGN_OR_RETURN(auto variable, functor.GetAttr(variable_name));
     if (variable.item().holds_value<arolla::expr::ExprQuote>()) {
@@ -142,9 +144,18 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
       // This passes all variables computed so far, even those not used, and
       // EvalExprWithCompilationCache will traverse all provided variables,
       // so this is O(num_variables**2). We can optimize this later if needed.
-      ASSIGN_OR_RETURN(auto variable_value, expr::EvalExprWithCompilationCache(
-                                                expr, inputs, variables));
-      computed_variable_holder.push_back(std::move(variable_value));
+      auto variable_value =
+          expr::EvalExprWithCompilationCache(expr, inputs, variables);
+      // Not using ASSIGN_OR_RETURN in order to avoid extra source location in
+      // the error.
+      if (!variable_value.ok()) {
+        ASSIGN_OR_RETURN(DataSlice stacktrace_frame_slice,
+                         functor.GetAttr(kStackFrameAttrName),
+                         variable_value.status());
+        return MaybeAddStackTraceFrame(variable_value.status(),
+                                       stacktrace_frame_slice);
+      }
+      computed_variable_holder.push_back(*std::move(variable_value));
     } else {
       computed_variable_holder.push_back(
           arolla::TypedValue::FromValue(std::move(variable)));

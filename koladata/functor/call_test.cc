@@ -32,11 +32,15 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
+#include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
+#include "koladata/functor/stack_trace.h"
+#include "koladata/object_factories.h"
+#include "koladata/operators/core.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 #include "arolla/util/status_macros_backport.h"
@@ -48,7 +52,10 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::CancellationContext;
+using ::arolla::testing::PayloadIs;
 using ::koladata::testing::IsEquivalentTo;
+using ::testing::AllOf;
+using ::testing::Field;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
   return arolla::expr::CallOp("koda_internal.input",
@@ -210,6 +217,18 @@ TEST(CallTest, EvalError) {
           "math.add", {CreateInput("a"), arolla::expr::Literal(57)})));
   ASSERT_OK_AND_ASSIGN(auto fn, CreateFunctor(returns_expr, koda_signature,
                                               {"foo"}, {var_expr}));
+
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice frame_slice,
+      ObjectCreator::FromAttrs(
+          db, {"function_name", "file_name", "line_number"},
+          {test::DataItem(arolla::Text("my_func")),
+           test::DataItem(arolla::Text("my_file.cc")), test::DataItem(57)}));
+  ASSERT_OK_AND_ASSIGN(
+      fn, ops::WithAttr(fn, test::DataItem(arolla::Text("_stack_trace_frame")),
+                        frame_slice, test::DataItem(false)));
+
   auto input = test::DataItem(43);
   // This error message should be improved, in particular it should actually
   // mention that we are evaluating a functor, which variable, etc.
@@ -220,11 +239,16 @@ TEST(CallTest, EvalError) {
           fn,
           /*args=*/{arolla::TypedRef::FromValue(input)},
           /*kwnames=*/{}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "expected numerics, got x: DATA_SLICE; while calling math.add "
-               "with args {annotation.qtype(L['I.a'], "
-               "DATA_SLICE):Attr(qtype=DATA_SLICE), 57}; while transforming "
-               "M.math.add(L['I.a'], 57); while compiling the expression"));
+      AllOf(StatusIs(
+                absl::StatusCode::kInvalidArgument,
+                "expected numerics, got x: DATA_SLICE; while calling math.add "
+                "with args {annotation.qtype(L['I.a'], "
+                "DATA_SLICE):Attr(qtype=DATA_SLICE), 57}; while transforming "
+                "M.math.add(L['I.a'], 57); while compiling the expression"),
+            PayloadIs<StackTraceFrame>(
+                AllOf(Field(&StackTraceFrame::function_name, "my_func"),
+                      Field(&StackTraceFrame::file_name, "my_file.cc"),
+                      Field(&StackTraceFrame::line_number, 57)))));
 }
 
 TEST(CallTest, Cancellation) {

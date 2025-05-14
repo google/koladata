@@ -18,12 +18,15 @@
 #include <string>
 
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice.h"
 
 namespace koladata::functor {
+
+constexpr absl::string_view kStackFrameAttrName = "_stack_trace_frame";
 
 // Calls the given functor with the provided arguments and keyword arguments.
 // The functor would typically be created by the CreateFunctor method,
@@ -37,6 +40,11 @@ namespace koladata::functor {
 // expressions can also refer to the variables via V.foo, in which case the
 // variable expression will be evaluated before evaluating the expression that
 // refers to it. In case of a cycle in variables, an error will be returned.
+//
+// If the functor has __stack_trace_frame__ attribute set, all the errors
+// returned from it will be wrapped with a child error with StackTraceFrame
+// payload.
+//
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames);
