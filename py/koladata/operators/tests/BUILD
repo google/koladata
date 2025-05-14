@@ -8225,3 +8225,24 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
+
+py_test(
+    name = "koda_internal_parallel_as_parallel_test",
+    srcs = ["koda_internal_parallel_as_parallel_test.py"],
+    deps = [
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:koda_internal_iterables",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators:tuple",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:iterable_qvalue",
+        "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)

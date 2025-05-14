@@ -283,3 +283,88 @@ def stream_from_iterable(iterable):
     A stream with the items from the given iterable, in the same order.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._internal_as_parallel',
+    qtype_constraints=[
+        (
+            ~bootstrap.is_future_qtype(P.outer_arg),
+            'as_parallel cannot be applied to a future',
+        ),
+        (
+            ~bootstrap.is_stream_qtype(P.outer_arg),
+            'as_parallel cannot be applied to a stream',
+        ),
+    ],
+)
+def _internal_as_parallel(outer_arg, outer_self_op):
+  """Implementation helper for as_parallel."""
+  # We prefix the arguments with "outer_" here to avoid conflict with the
+  # names in DispatchOperator.
+  return arolla.types.DispatchOperator(
+      'arg, self_op',
+      tuple_case=arolla.types.DispatchCase(
+          M.core.map_tuple(
+              P.self_op,
+              P.arg,
+              P.self_op,
+          ),
+          condition=M.qtype.is_tuple_qtype(P.arg),
+      ),
+      namedtuple_case=arolla.types.DispatchCase(
+          M.core.apply_varargs(
+              M.namedtuple.make,
+              M.qtype.get_field_names(M.qtype.qtype_of(P.arg)),
+              M.core.map_tuple(
+                  P.self_op,
+                  M.derived_qtype.upcast(M.qtype.qtype_of(P.arg), P.arg),
+                  P.self_op,
+              ),
+          ),
+          condition=M.qtype.is_namedtuple_qtype(P.arg),
+      ),
+      iterable_case=arolla.types.DispatchCase(
+          stream_from_iterable(P.arg),
+          condition=bootstrap.is_iterable_qtype(P.arg),
+      ),
+      non_deterministic_token_case=arolla.types.DispatchCase(
+          P.arg,
+          condition=P.arg == qtypes.NON_DETERMINISTIC_TOKEN,
+      ),
+      default=as_future(P.arg),
+  )(outer_arg, outer_self_op)
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel.as_parallel',
+)
+def as_parallel(arg):
+  """Given a value, return the parallel version of it.
+
+  In the automatic parallel computation world, we use the following rules:
+
+  For a type X, we define parallel_type[X] as:
+  - stream[Y] if X is iterable[Y].
+  - tuple[parallel_type[Y1], parallel_type[Y2], ...] when X
+    is tuple[Y1, Y2, ...]
+  - namedtuple[foo=parallel_type[Y1], bar=parallel_type[Y2], ...] when X
+    is namedtuple[foo=Y1, bar=Y2, ...]
+  - non_deterministic_token if X is non_deterministic_token.
+  - an error if X is a future or a stream.
+  - future[X] otherwise.
+  Note that for tuples/namedtuples, the above rule is applied recursively.
+
+  If an operator takes an argument of type X, the parallel version must take
+  parallel_type[X] for this argument.
+  If an operator returns type Y, the parallel version must return
+  parallel_type[Y].
+
+  Args:
+    arg: The value to get the parallel version of.
+
+  Returns:
+    The parallel version of the given value.
+  """
+  return _internal_as_parallel(arg, _internal_as_parallel)
