@@ -18,8 +18,9 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
-#include "koladata/data_slice_qtype.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/schema_utils.h"
+#include "koladata//schema_utils.h"
 #include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -29,12 +30,7 @@ namespace koladata::ops {
 inline absl::StatusOr<DataSlice> AssertDsHasPrimitivesOf(
     const DataSlice& ds, const DataSlice& dtype, const arolla::Text& message) {
   RETURN_IF_ERROR(dtype.VerifyIsPrimitiveSchema());
-  const auto& ds_schema = ds.GetSchemaImpl();
-  if (ds_schema != schema::kObject && ds_schema != dtype.item()) {
-    return absl::FailedPreconditionError(message.view());
-  }
-  if (ds.present_count() > 0 &&
-      ds.dtype() != dtype.item().value<schema::DType>().qtype()) {
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(ds), dtype.item())) {
     return absl::FailedPreconditionError(message.view());
   }
   return ds;

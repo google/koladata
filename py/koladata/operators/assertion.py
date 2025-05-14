@@ -93,17 +93,22 @@ def with_assertion(x, condition, message):
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def assert_ds_has_primitives_of(ds, primitive_schema, message):  # pylint: disable=unused-argument
-  """Returns `ds` if it matches `primitive_schema`, or raises an exception.
+  """Returns `ds` if its data is implicitly castable to `primitive_schema`.
 
   It raises an exception if:
-    1) `ds`'s schema is not primitive_schema or OBJECT
-    2) `ds` has present items and not all of them match `primitive_schema`
+    1) `ds`'s schema is not primitive_schema (including NONE) or OBJECT
+    2) `ds` has present items and not all of them are castable to
+       `primitive_schema`
 
   The following examples will pass:
     assert_ds_has_primitives_of(kd.present, kd.MASK, '')
     assert_ds_has_primitives_of(kd.slice([kd.present, kd.missing]), kd.MASK, '')
     assert_ds_has_primitives_of(kd.slice(None, schema=kd.OBJECT), kd.MASK, '')
     assert_ds_has_primitives_of(kd.slice([], schema=kd.OBJECT), kd.MASK, '')
+    assert_ds_has_primitives_of(
+        kd.slice([1, 3.14], schema=kd.OBJECT), kd.FLOAT32, '',
+    )
+    assert_ds_has_primitives_of(kd.slice([1, 2]), kd.FLOAT32, '')
 
   The following examples will fail:
     assert_ds_has_primitives_of(1, kd.MASK, '')
@@ -114,8 +119,5 @@ def assert_ds_has_primitives_of(ds, primitive_schema, message):  # pylint: disab
     ds: DataSlice to assert the dtype of.
     primitive_schema: The expected primitive schema.
     message: The error message to raise if the primitive schemas do not match.
-
-  Returns:
-    `ds` if the primitive schemas match.
   """
   raise NotImplementedError('implemented in the backend')

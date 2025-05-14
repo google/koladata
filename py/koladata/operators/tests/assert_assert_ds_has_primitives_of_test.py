@@ -51,6 +51,7 @@ class AssertionAssertDtypeIsTest(parameterized.TestCase):
           'unused',
       ),
       (ds(1, schema=schema_constants.INT64), schema_constants.INT64, 'unused'),
+      (ds(1), schema_constants.FLOAT32, 'unused'),
       (ds([1, 2, 3]), schema_constants.INT32, 'unused'),
       (
           ds([1, 2, 3], schema_constants.OBJECT),
@@ -63,6 +64,18 @@ class AssertionAssertDtypeIsTest(parameterized.TestCase):
           schema_constants.INT32,
           'unused',
       ),
+      (
+          ds([1.0, 2], schema_constants.OBJECT),
+          schema_constants.FLOAT32,
+          'unused'
+      ),
+      (
+          ds([None, 2], schema_constants.OBJECT),
+          schema_constants.FLOAT32,
+          'unused'
+      ),
+      (ds(None, schema_constants.NONE), schema_constants.MASK, 'unused'),
+      (ds(None, schema_constants.OBJECT), schema_constants.MASK, 'unused'),
   )
   def test_eval(self, x, dtype, message):
     result = expr_eval.eval(
@@ -71,8 +84,8 @@ class AssertionAssertDtypeIsTest(parameterized.TestCase):
     testing.assert_equal(result, x)
 
   @parameterized.parameters(
-      (ds(1), schema_constants.INT64),
-      (ds([1, 2, 3]), schema_constants.INT64),
+      (ds(1), schema_constants.MASK),
+      (ds([1, 2, 3], schema_constants.INT64), schema_constants.INT32),
       (
           ds([1, 2.0, 3], schema_constants.OBJECT),
           schema_constants.INT32,
