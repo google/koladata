@@ -10895,10 +10895,9 @@ Returns a copy of DataSlice without DataBag.
 ```
 
 ### `DataSlice.pop(index, /)` {#DataSlice.pop}
-
 Aliases:
 
--   [DataItem.pop](#DataItem.pop)
+- [DataItem.pop](#DataItem.pop)
 
 ``` {.no-copy}
 Pop a value from each list in this DataSlice
