@@ -36,6 +36,10 @@
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -50,10 +54,6 @@
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/util/bytes.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 using ::google::protobuf::Descriptor;

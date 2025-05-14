@@ -18,11 +18,11 @@
 #include <functional>
 #include <utility>
 
+#include "arolla/dense_array/dense_array.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
-#include "arolla/dense_array/dense_array.h"
 
 namespace koladata::internal {
 

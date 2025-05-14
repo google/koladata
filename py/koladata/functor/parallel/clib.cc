@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+#include "arolla/qtype/qtype_traits.h"
 #include "koladata/functor/parallel/executor.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/abc/pybind11_utils.h"
@@ -20,7 +21,6 @@
 #include "pybind11/attr.h"
 #include "pybind11/cast.h"
 #include "pybind11/pybind11.h"
-#include "arolla/qtype/qtype_traits.h"
 
 namespace koladata::python {
 namespace {

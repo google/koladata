@@ -26,6 +26,9 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/util/meta.h"
+#include "arolla/util/status.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -33,9 +36,6 @@
 #include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/util/meta.h"
-#include "arolla/util/status.h"
 
 namespace koladata::schema {
 namespace {

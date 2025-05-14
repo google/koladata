@@ -19,15 +19,15 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
+#include "arolla/qexpr/operators.h"
+#include "arolla/qtype/qtype.h"
+#include "arolla/util/repr.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/operators/utils.h"
-#include "arolla/qexpr/operators.h"
-#include "arolla/qtype/qtype.h"
-#include "arolla/util/repr.h"
 
 namespace koladata::ops {
 

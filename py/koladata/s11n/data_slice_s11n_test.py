@@ -24,9 +24,9 @@ from koladata.testing import testing as kd_testing
 from koladata.types import data_slice
 from koladata.types import schema_constants
 
-from koladata.s11n import codec_pb2 as _
 from arolla.jagged_shape.dense_array.serialization_codecs import jagged_shape_codec_pb2 as _
 from arolla.serialization_codecs.dense_array import dense_array_codec_pb2 as _
+from koladata.s11n import codec_pb2 as _
 
 
 def _get_text_header(data_slice_impl_proto=None):

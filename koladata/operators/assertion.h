@@ -17,11 +17,11 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/schema_utils.h"
-#include "koladata//schema_utils.h"
-#include "arolla/util/text.h"
+#include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {

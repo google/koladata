@@ -27,6 +27,9 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/edge.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -38,9 +41,6 @@
 #include "koladata/internal/testing/deep_op_utils.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
-#include "arolla/util/text.h"
 
 namespace koladata::internal {
 namespace {

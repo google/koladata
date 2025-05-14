@@ -29,14 +29,14 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/data_bag_repr.h"
-#include "koladata/internal/data_bag.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/repr.h"
+#include "koladata/data_bag_repr.h"
+#include "koladata/internal/data_bag.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {

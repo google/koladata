@@ -20,14 +20,14 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/op_utils/base62.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/base62.h"
 
 namespace koladata::internal {
 

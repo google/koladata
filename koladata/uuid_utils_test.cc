@@ -21,6 +21,7 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -28,7 +29,6 @@
 #include "koladata/internal/stable_fingerprint.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/test_utils.h"
-#include "arolla/qtype/qtype_traits.h"
 
 namespace koladata {
 namespace {

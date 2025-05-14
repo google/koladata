@@ -30,6 +30,7 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/util/status.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
@@ -41,7 +42,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/s11n/codec.pb.h"
-#include "arolla/util/status.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {

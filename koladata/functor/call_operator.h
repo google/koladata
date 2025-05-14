@@ -17,11 +17,11 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
-#include "koladata/internal/non_deterministic_token.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
+#include "koladata/data_slice.h"
+#include "koladata/internal/non_deterministic_token.h"
 
 namespace koladata::functor {
 

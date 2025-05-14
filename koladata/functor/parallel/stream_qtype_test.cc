@@ -18,12 +18,12 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "koladata/functor/parallel/stream.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/testing/repr_token_eq.h"
+#include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
 namespace {

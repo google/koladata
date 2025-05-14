@@ -23,13 +23,13 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/edge.h"
+#include "arolla/util/init_arolla.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
-#include "arolla/util/init_arolla.h"
 
 namespace koladata::internal {
 namespace {

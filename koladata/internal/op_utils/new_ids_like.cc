@@ -18,10 +18,10 @@
 #include <type_traits>
 #include <utility>
 
+#include "arolla/memory/buffer.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
-#include "arolla/memory/buffer.h"
 
 namespace koladata::internal {
 

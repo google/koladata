@@ -15,9 +15,9 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_STREAM_QTYPE_H_
 #define KOLADATA_FUNCTOR_PARALLEL_STREAM_QTYPE_H_
 
-#include "koladata/functor/parallel/stream.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
+#include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
 

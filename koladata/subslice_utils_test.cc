@@ -23,10 +23,10 @@
 #include "gtest/gtest.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
+#include "arolla/dense_array/dense_array.h"
 #include "koladata/data_slice.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/dense_array/dense_array.h"
 
 namespace koladata::subslice {
 namespace {

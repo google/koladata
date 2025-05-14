@@ -32,10 +32,6 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
@@ -52,6 +48,10 @@
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/types_buffer.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {

@@ -18,12 +18,12 @@
 
 #include "benchmark/benchmark.h"
 #include "absl/hash/hash.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/uuid_object.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/uuid_object.h"
 
 namespace koladata::internal {
 namespace {

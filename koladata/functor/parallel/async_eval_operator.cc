@@ -23,11 +23,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice_qtype.h"
-#include "koladata/functor/parallel/async_eval.h"
-#include "koladata/functor/parallel/executor.h"
-#include "koladata/functor/parallel/future.h"
-#include "koladata/functor/parallel/future_qtype.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
@@ -38,6 +33,11 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
+#include "koladata/data_slice_qtype.h"
+#include "koladata/functor/parallel/async_eval.h"
+#include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/future.h"
+#include "koladata/functor/parallel/future_qtype.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {

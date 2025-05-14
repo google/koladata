@@ -24,9 +24,9 @@
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
-#include "koladata/internal/error_utils.h"
 #include "arolla/util/status.h"
 #include "arolla/util/testing/status_matchers.h"
+#include "koladata/internal/error_utils.h"
 
 namespace koladata::internal {
 namespace {

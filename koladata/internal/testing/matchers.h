@@ -21,11 +21,11 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
+#include "arolla/util/demangle.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/triples.h"
-#include "arolla/util/demangle.h"
 
 namespace koladata::internal::testing {
 namespace matchers_impl {

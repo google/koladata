@@ -28,10 +28,6 @@
 #include "absl/hash/hash.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/missing_value.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/types.h"
 #include "arolla/expr/quote.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
@@ -43,6 +39,10 @@
 #include "arolla/util/meta.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/types.h"
 
 namespace koladata::internal {
 

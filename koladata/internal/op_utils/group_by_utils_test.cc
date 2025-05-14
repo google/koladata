@@ -21,12 +21,12 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/edge.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 
 namespace koladata::internal {
 namespace {

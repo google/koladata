@@ -22,10 +22,10 @@
 #include "absl/base/nullability.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/log/check.h"
-#include "koladata/internal/missing_value.h"
-#include "koladata/internal/types.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/qtype/qtype.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/types.h"
 
 namespace koladata::internal {
 

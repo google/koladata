@@ -17,15 +17,15 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
-#include "koladata/expr/expr_operators.h"
-#include "koladata/internal/ellipsis.h"
 #include "arolla/expr/annotation_expr_operators.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_operator_signature.h"
 #include "arolla/expr/lambda_expr_operator.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/util/init_arolla.h"
+#include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
+#include "koladata/expr/expr_operators.h"
+#include "koladata/internal/ellipsis.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::expr {

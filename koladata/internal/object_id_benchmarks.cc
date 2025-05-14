@@ -19,12 +19,12 @@
 
 #include "benchmark/benchmark.h"
 #include "absl/random/random.h"
-#include "koladata/internal/benchmark_helpers.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/qtype/base_types.h"
+#include "koladata/internal/benchmark_helpers.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata::internal {
 namespace {

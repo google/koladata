@@ -26,6 +26,11 @@
 #include "absl/status/statusor.h"
 #include "absl/types/optional.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/edge.h"
+#include "arolla/jagged_shape/dense_array/jagged_shape.h"
+#include "arolla/memory/optional_value.h"
+#include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -35,11 +40,6 @@
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/uuid_utils.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
-#include "arolla/jagged_shape/dense_array/jagged_shape.h"
-#include "arolla/memory/optional_value.h"
-#include "arolla/util/text.h"
 
 namespace koladata {
 namespace {

@@ -20,11 +20,11 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "koladata/internal/missing_value.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/missing_value.h"
 
 namespace koladata::internal {
 namespace {

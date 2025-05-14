@@ -17,11 +17,11 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "koladata/functor/parallel/executor.h"
-#include "koladata/functor/parallel/future.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/future.h"
 
 namespace koladata::functor::parallel {
 

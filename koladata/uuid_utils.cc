@@ -25,13 +25,13 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/uuid_object.h"
 #include "koladata/shape_utils.h"
-#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {

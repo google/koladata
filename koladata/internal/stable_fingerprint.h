@@ -22,14 +22,14 @@
 #include <utility>
 
 #include "absl/strings/string_view.h"
-#include "koladata/internal/expr_quote_utils.h"
-#include "koladata/internal/missing_value.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/expr/quote.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/expr_quote_utils.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata::internal {
 

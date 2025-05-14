@@ -14,13 +14,13 @@
 //
 #include <Python.h>
 
+#include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice.h"
 #include "py/arolla/abc/pybind11_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/to_py_object.h"
 #include "pybind11/pybind11.h"
 #include "pybind11/stl.h"
-#include "arolla/qtype/typed_value.h"
 
 namespace koladata::python {
 namespace {

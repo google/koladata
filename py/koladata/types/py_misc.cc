@@ -19,6 +19,9 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "arolla/expr/expr_operator.h"
+#include "arolla/jagged_shape/dense_array/qtype/qtype.h"
+#include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_operators.h"
@@ -30,9 +33,6 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/boxing.h"
 #include "py/koladata/base/wrap_utils.h"
-#include "arolla/expr/expr_operator.h"
-#include "arolla/jagged_shape/dense_array/qtype/qtype.h"
-#include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

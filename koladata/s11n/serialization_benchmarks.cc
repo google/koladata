@@ -19,10 +19,6 @@
 #include "benchmark/benchmark.h"
 #include "absl/log/check.h"
 #include "absl/random/random.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/testing/util.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
@@ -33,6 +29,10 @@
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata {
 namespace {

@@ -18,15 +18,15 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/strings/string_view.h"
-#include "koladata/data_bag.h"
-#include "koladata/data_slice.h"
-#include "koladata/data_slice_repr.h"
-#include "koladata/internal/data_item.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/repr.h"
+#include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_repr.h"
+#include "koladata/internal/data_item.h"
 
 namespace arolla {
 

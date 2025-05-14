@@ -22,6 +22,8 @@
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/util/status.h"
+#include "arolla/util/testing/status_matchers.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -31,8 +33,6 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
-#include "arolla/util/status.h"
-#include "arolla/util/testing/status_matchers.h"
 
 namespace koladata {
 namespace {

@@ -17,10 +17,10 @@
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 
 namespace koladata::internal {
 

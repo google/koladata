@@ -27,10 +27,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
-#include "koladata/data_bag.h"
-#include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
-#include "koladata/internal/non_deterministic_token.h"
 #include "arolla/expr/basic_expr_operator.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
@@ -47,6 +43,10 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/string.h"
 #include "arolla/util/text.h"
+#include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
+#include "koladata/internal/non_deterministic_token.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::expr {

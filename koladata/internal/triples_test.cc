@@ -19,15 +19,15 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/strings/str_cat.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/fingerprint.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/internal/uuid_object.h"
-#include "arolla/util/bytes.h"
-#include "arolla/util/fingerprint.h"
-#include "arolla/util/text.h"
 
 namespace koladata::internal::debug {
 namespace {

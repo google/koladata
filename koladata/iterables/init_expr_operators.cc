@@ -16,9 +16,9 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "koladata/iterables/expr_operators.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/util/init_arolla.h"
+#include "koladata/iterables/expr_operators.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::iterables {

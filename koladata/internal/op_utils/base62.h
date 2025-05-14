@@ -16,6 +16,7 @@
 #define KOLADATA_INTERNAL_OP_UTILS_ITEMID_UTILS_H_
 
 #include <string>
+
 #include "absl/numeric/int128.h"
 #include "absl/strings/string_view.h"
 #include "arolla/util/text.h"

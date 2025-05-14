@@ -17,8 +17,8 @@
 
 #include "absl/container/flat_hash_set.h"
 #include "absl/status/statusor.h"
-#include "koladata/data_slice.h"
 #include "arolla/util/fingerprint.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::functor {
 

@@ -19,8 +19,8 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "koladata/s11n/codec.pb.h"
 #include "arolla/util/status.h"
+#include "koladata/s11n/codec.pb.h"
 
 namespace koladata::internal {
 

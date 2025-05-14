@@ -15,10 +15,10 @@
 #include <cstdint>
 
 #include "benchmark/benchmark.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/util/text.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata::internal {
 namespace {

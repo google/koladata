@@ -23,10 +23,10 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
+#include "arolla/dense_array/dense_array.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/dense_array/dense_array.h"
 
 namespace koladata::shape {
 namespace {

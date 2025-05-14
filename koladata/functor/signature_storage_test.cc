@@ -20,6 +20,9 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/memory/optional_value.h"
+#include "arolla/util/repr.h"
+#include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/signature.h"
@@ -28,9 +31,6 @@
 #include "koladata/operators/masking.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/memory/optional_value.h"
-#include "arolla/util/repr.h"
-#include "arolla/util/text.h"
 
 namespace koladata::functor {
 

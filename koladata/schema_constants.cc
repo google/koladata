@@ -19,10 +19,10 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/types/span.h"
+#include "arolla/util/meta.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "arolla/util/meta.h"
 
 namespace koladata {
 

@@ -20,15 +20,15 @@
 #include "benchmark/benchmark.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "koladata/internal/benchmark_helpers.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/dense_source.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/benchmark_helpers.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dense_source.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata::internal {
 namespace {

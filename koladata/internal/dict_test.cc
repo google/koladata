@@ -21,10 +21,10 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/missing_value.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/missing_value.h"
 
 namespace koladata::internal {
 namespace {

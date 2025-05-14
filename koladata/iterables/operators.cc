@@ -14,12 +14,12 @@
 //
 #include <memory>
 
-#include "koladata/data_slice_qtype.h"
-#include "koladata/iterables/iterable_qtype.h"
-#include "koladata/iterables/sequence_operators.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/optools.h"
 #include "arolla/qtype/qtype.h"
+#include "koladata/data_slice_qtype.h"
+#include "koladata/iterables/iterable_qtype.h"
+#include "koladata/iterables/sequence_operators.h"
 
 namespace koladata::iterables {
 namespace {

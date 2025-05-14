@@ -19,9 +19,9 @@
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
+#include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
-#include "arolla/jagged_shape/dense_array/jagged_shape.h"
 
 namespace koladata::internal {
 

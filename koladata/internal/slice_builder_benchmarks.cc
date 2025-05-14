@@ -16,11 +16,11 @@
 #include <utility>
 
 #include "benchmark/benchmark.h"
+#include "arolla/dense_array/bitmap.h"
+#include "arolla/memory/buffer.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
-#include "arolla/dense_array/bitmap.h"
-#include "arolla/memory/buffer.h"
 
 namespace koladata::internal {
 namespace {

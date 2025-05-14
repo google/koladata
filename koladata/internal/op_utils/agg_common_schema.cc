@@ -18,15 +18,15 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/schema_utils.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_group_ops.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/raw_buffer_factory.h"
 #include "arolla/qexpr/aggregation_ops_interface.h"
 #include "arolla/util/meta.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {

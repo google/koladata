@@ -26,12 +26,6 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/slice_builder.h"
-#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
@@ -46,6 +40,12 @@
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
+#include "koladata/internal/types_buffer.h"
 
 namespace koladata::internal {
 namespace {

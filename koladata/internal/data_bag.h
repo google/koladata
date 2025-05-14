@@ -39,6 +39,10 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/edge.h"
+#include "arolla/qtype/qtype.h"
+#include "arolla/util/refcount_ptr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_list.h"
 #include "koladata/internal/data_slice.h"
@@ -46,10 +50,6 @@
 #include "koladata/internal/dict.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/sparse_source.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
-#include "arolla/qtype/qtype.h"
-#include "arolla/util/refcount_ptr.h"
 
 namespace koladata::internal {
 

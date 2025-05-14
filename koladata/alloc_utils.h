@@ -20,12 +20,12 @@
 
 #include "absl/functional/overload.h"
 #include "absl/status/statusor.h"
+#include "arolla/dense_array/dense_array.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
-#include "arolla/dense_array/dense_array.h"
 
 namespace koladata {
 

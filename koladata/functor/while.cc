@@ -25,11 +25,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
-#include "koladata/data_slice_qtype.h"
-#include "koladata/data_slice_repr.h"
-#include "koladata/functor/call.h"
-#include "koladata/internal/dtype.h"
 #include "arolla/qtype/named_field_qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
@@ -38,6 +33,11 @@
 #include "arolla/sequence/mutable_sequence.h"
 #include "arolla/sequence/sequence_qtype.h"
 #include "arolla/util/unit.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
+#include "koladata/functor/call.h"
+#include "koladata/internal/dtype.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

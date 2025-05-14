@@ -18,14 +18,14 @@
 #include "benchmark/benchmark.h"
 #include "absl/log/check.h"
 #include "absl/random/random.h"
+#include "arolla/qexpr/eval_context.h"
+#include "arolla/qexpr/operators/dense_array/logic_ops.h"
+#include "arolla/qtype/base_types.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/op_utils/benchmark_util.h"
 #include "koladata/internal/op_utils/presence_or.h"
 #include "koladata/internal/slice_builder.h"
-#include "arolla/qexpr/eval_context.h"
-#include "arolla/qexpr/operators/dense_array/logic_ops.h"
-#include "arolla/qtype/base_types.h"
 
 namespace koladata::internal {
 namespace {

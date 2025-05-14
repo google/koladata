@@ -22,13 +22,13 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/test_utils.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/test_utils.h"
 
 namespace koladata {
 namespace {

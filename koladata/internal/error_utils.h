@@ -15,11 +15,10 @@
 #ifndef KOLADATA_INTERNAL_ERROR_UTILS_H_
 #define KOLADATA_INTERNAL_ERROR_UTILS_H_
 
-
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "koladata/s11n/codec.pb.h"
 #include "arolla/serialization_base/base.pb.h"
+#include "koladata/s11n/codec.pb.h"
 
 namespace koladata::internal {
 

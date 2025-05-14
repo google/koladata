@@ -16,8 +16,8 @@
 #define KOLADATA_INTERNAL_OP_UTILS_AGG_UUID_H_
 
 #include "absl/status/statusor.h"
-#include "koladata/internal/data_slice.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
+#include "koladata/internal/data_slice.h"
 
 namespace koladata::internal {
 

@@ -24,11 +24,11 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/slice_builder.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {

@@ -33,6 +33,10 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/typed_value.h"
+#include "arolla/qtype/unspecified_qtype.h"
+#include "arolla/util/unit.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_bag_comparison.h"
@@ -58,10 +62,6 @@
 #include "py/koladata/base/py_utils.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/types/pybind11_protobuf_wrapper.h"
-#include "arolla/qtype/qtype_traits.h"
-#include "arolla/qtype/typed_value.h"
-#include "arolla/qtype/unspecified_qtype.h"
-#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

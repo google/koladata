@@ -19,9 +19,9 @@
 
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "koladata/data_slice.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/qtype/typed_value.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::python::fstring {
 

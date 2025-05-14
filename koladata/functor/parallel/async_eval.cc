@@ -27,14 +27,14 @@
 #include "absl/status/statusor.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
-#include "koladata/expr/expr_eval.h"
-#include "koladata/functor/parallel/executor.h"
-#include "koladata/functor/parallel/future.h"
-#include "koladata/functor/parallel/future_qtype.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "koladata/expr/expr_eval.h"
+#include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/future.h"
+#include "koladata/functor/parallel/future_qtype.h"
 
 namespace koladata::functor::parallel {
 

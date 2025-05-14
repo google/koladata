@@ -16,6 +16,7 @@
 #define KOLADATA_INTERNAL_OBJECT_ID_H_
 
 #include <stdbool.h>
+
 #include <algorithm>
 #include <compare>
 #include <cstddef>
@@ -36,11 +37,11 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/internal/op_utils/base62.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+#include "koladata/internal/op_utils/base62.h"
 
 namespace koladata::internal {
 

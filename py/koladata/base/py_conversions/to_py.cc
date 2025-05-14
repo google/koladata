@@ -34,6 +34,11 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/memory/optional_value.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/text.h"
+#include "arolla/util/view_types.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/extract_utils.h"
@@ -49,11 +54,6 @@
 #include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "py/koladata/base/to_py_object.h"
 #include "py/koladata/base/wrap_utils.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/memory/optional_value.h"
-#include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/text.h"
-#include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

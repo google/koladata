@@ -21,10 +21,10 @@
 
 #include "gtest/gtest.h"
 #include "absl/container/flat_hash_set.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/types.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/types.h"
 
 namespace koladata::internal {
 namespace {

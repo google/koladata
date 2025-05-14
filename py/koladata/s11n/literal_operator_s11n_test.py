@@ -21,8 +21,8 @@ from arolla import arolla
 from arolla.s11n.testing import codec_test_case
 from koladata.types import literal_operator
 
-from koladata.s11n import codec_pb2 as _
 from arolla.serialization_codecs.generic import scalar_codec_pb2 as _
+from koladata.s11n import codec_pb2 as _
 
 
 class LiteralOperatorS11NTest(codec_test_case.S11nCodecTestCase):

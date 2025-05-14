@@ -18,10 +18,10 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/s11n/codec.pb.h"
 #include "arolla/util/status.h"
 #include "arolla/util/testing/status_matchers.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/s11n/codec.pb.h"
 
 namespace koladata::internal {
 namespace {

@@ -22,12 +22,6 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/testing/matchers.h"
-#include "koladata/jagged_shape_qtype.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
@@ -43,6 +37,12 @@
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/testing/matchers.h"
+#include "koladata/jagged_shape_qtype.h"
 
 namespace koladata {
 namespace {

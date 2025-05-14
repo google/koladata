@@ -23,8 +23,8 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
 #include "arolla/util/repr.h"
+#include "koladata/data_slice.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::shape {

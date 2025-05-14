@@ -18,9 +18,9 @@
 #include <optional>
 
 #include "gtest/gtest.h"
+#include "arolla/dense_array/dense_array.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
-#include "arolla/dense_array/dense_array.h"
 
 namespace koladata::internal {
 namespace {

@@ -15,9 +15,9 @@
 #include "koladata/functor/parallel/eager_executor.h"
 
 #include "gtest/gtest.h"
-#include "koladata/functor/parallel/executor.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/repr.h"
+#include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 namespace {

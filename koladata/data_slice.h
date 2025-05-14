@@ -33,15 +33,15 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/jagged_shape/dense_array/jagged_shape.h"
+#include "arolla/qtype/qtype.h"
+#include "arolla/util/refcount_ptr.h"
+#include "arolla/util/repr.h"
 #include "koladata/data_bag.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "arolla/jagged_shape/dense_array/jagged_shape.h"
-#include "arolla/qtype/qtype.h"
-#include "arolla/util/refcount_ptr.h"
-#include "arolla/util/repr.h"
 
 namespace koladata {
 

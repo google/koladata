@@ -25,10 +25,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
-#include "koladata/data_bag.h"
-#include "koladata/data_slice_qtype.h"
-#include "koladata/internal/non_deterministic_token.h"
-#include "koladata/internal/op_utils/qexpr.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
@@ -38,6 +34,10 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_slot.h"
+#include "koladata/data_bag.h"
+#include "koladata/data_slice_qtype.h"
+#include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/op_utils/qexpr.h"
 
 namespace koladata::ops {
 

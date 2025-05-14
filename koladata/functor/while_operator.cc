@@ -26,11 +26,6 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
-#include "koladata/data_slice_qtype.h"
-#include "koladata/functor/while.h"
-#include "koladata/iterables/iterable_qtype.h"
-#include "koladata/operators/utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
@@ -43,6 +38,11 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/sequence/sequence_qtype.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
+#include "koladata/functor/while.h"
+#include "koladata/iterables/iterable_qtype.h"
+#include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

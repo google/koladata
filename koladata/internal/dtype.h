@@ -25,8 +25,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "koladata/internal/missing_value.h"
-#include "koladata/internal/stable_fingerprint.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/base_types.h"
@@ -39,6 +37,8 @@
 #include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/stable_fingerprint.h"
 
 namespace koladata::schema {
 

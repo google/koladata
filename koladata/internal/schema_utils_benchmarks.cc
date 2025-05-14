@@ -16,13 +16,13 @@
 
 #include "benchmark/benchmark.h"
 #include "gmock/gmock.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/util/meta.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_utils.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/util/meta.h"
 
 namespace koladata::schema {
 namespace {

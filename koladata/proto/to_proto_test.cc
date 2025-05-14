@@ -27,6 +27,9 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -41,9 +44,6 @@
 #include "google/protobuf/message.h"
 #include "google/protobuf/text_format.h"
 #include "google/protobuf/util/message_differencer.h"
-#include "arolla/util/bytes.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 
 using ::google::protobuf::util::MessageDifferencer;
 using ::testing::StartsWith;

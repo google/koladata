@@ -30,6 +30,11 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/jagged_shape/dense_array/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/typed_value.h"
+#include "arolla/util/unit.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
@@ -57,11 +62,6 @@
 #include "py/koladata/base/wrap_utils.h"
 #include "py/koladata/fstring/fstring_processor.h"
 #include "py/koladata/types/pybind11_protobuf_wrapper.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/jagged_shape/dense_array/qtype/qtype.h"
-#include "arolla/qtype/qtype_traits.h"
-#include "arolla/qtype/typed_value.h"
-#include "arolla/util/unit.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

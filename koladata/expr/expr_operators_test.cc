@@ -18,15 +18,15 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "koladata/data_bag.h"
-#include "koladata/data_slice.h"
-#include "koladata/test_utils.h"
+#include "absl/status/status_matchers.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_attributes.h"
 #include "arolla/qtype/typed_value.h"
-#include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
 #include "arolla/util/text.h"
-#include "absl/status/status_matchers.h"
+#include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"  // IWYU pragma: keep
+#include "koladata/test_utils.h"
 
 namespace koladata::expr {
 

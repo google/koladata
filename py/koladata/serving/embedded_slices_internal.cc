@@ -20,12 +20,12 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "koladata/data_slice.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/riegeli.h"
 #include "arolla/util/text.h"
+#include "koladata/data_slice.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::serving::embedded_slices_internal {

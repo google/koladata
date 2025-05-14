@@ -22,14 +22,14 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/util/meta.h"
+#include "arolla/util/view_types.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/slice_builder.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/util/meta.h"
-#include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata {

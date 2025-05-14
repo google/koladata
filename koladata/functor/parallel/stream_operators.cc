@@ -22,11 +22,6 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "koladata/functor/parallel/stream.h"
-#include "koladata/functor/parallel/stream_composition.h"
-#include "koladata/functor/parallel/stream_qtype.h"
-#include "koladata/iterables/iterable_qtype.h"
-#include "koladata/operators/utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
@@ -35,6 +30,11 @@
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/sequence/sequence.h"
+#include "koladata/functor/parallel/stream.h"
+#include "koladata/functor/parallel/stream_composition.h"
+#include "koladata/functor/parallel/stream_qtype.h"
+#include "koladata/iterables/iterable_qtype.h"
+#include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {

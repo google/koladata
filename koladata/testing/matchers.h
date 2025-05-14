@@ -19,12 +19,12 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "arolla/jagged_shape/testing/matchers.h"
+#include "arolla/util/repr.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
 #include "koladata/internal/testing/matchers.h"
-#include "arolla/jagged_shape/testing/matchers.h"
-#include "arolla/util/repr.h"
 
 namespace koladata::testing {
 namespace matchers_impl {

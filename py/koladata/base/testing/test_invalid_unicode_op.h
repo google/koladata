@@ -17,13 +17,13 @@
 
 #include <optional>
 
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/util/text.h"
 
 namespace koladata::ops::testing {
 

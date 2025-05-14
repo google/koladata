@@ -13,16 +13,17 @@
 // limitations under the License.
 //
 #include "koladata/internal/op_utils/reverse.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <utility>
 
 #include "absl/types/span.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/slice_builder.h"
 
 namespace koladata::internal {
 

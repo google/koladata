@@ -19,13 +19,13 @@
 
 #include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
+#include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "koladata/data_slice_qtype.h"
 #include "py/arolla/abc/pybind11_utils.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "pybind11/pytypes.h"
 #include "pybind11/stl.h"
 #include "pybind11_abseil/absl_casters.h"
-#include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 
 namespace koladata::python {
 namespace {

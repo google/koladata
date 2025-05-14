@@ -18,7 +18,6 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "koladata/expr/expr_operators.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/operator_repr_functions.h"
 #include "arolla/expr/registered_expr_operator.h"
@@ -28,6 +27,7 @@
 #include "arolla/util/repr.h"
 #include "arolla/util/string.h"
 #include "arolla/util/text.h"
+#include "koladata/expr/expr_operators.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::expr {

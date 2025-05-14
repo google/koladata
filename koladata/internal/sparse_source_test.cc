@@ -22,16 +22,16 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/types/span.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/slice_builder.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bytes.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
 
 namespace koladata::internal {
 namespace {

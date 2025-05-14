@@ -28,10 +28,10 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/types/span.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/missing_value.h"
 #include "arolla/expr/quote.h"
 #include "arolla/util/meta.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/missing_value.h"
 
 namespace koladata::internal {
 

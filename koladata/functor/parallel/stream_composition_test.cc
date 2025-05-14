@@ -29,12 +29,12 @@
 #include "absl/synchronization/barrier.h"
 #include "absl/synchronization/blocking_counter.h"
 #include "absl/synchronization/notification.h"
-#include "koladata/functor/parallel/asio_executor.h"
-#include "koladata/functor/parallel/default_executor.h"
-#include "koladata/functor/parallel/stream.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
+#include "koladata/functor/parallel/asio_executor.h"
+#include "koladata/functor/parallel/default_executor.h"
+#include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
 namespace {

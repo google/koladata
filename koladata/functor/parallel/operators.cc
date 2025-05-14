@@ -18,6 +18,9 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
+#include "arolla/memory/optional_value.h"
+#include "arolla/qexpr/optools.h"
+#include "arolla/qtype/qtype.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/asio_executor.h"
 #include "koladata/functor/parallel/async_eval_operator.h"
@@ -27,9 +30,6 @@
 #include "koladata/functor/parallel/stream_operators.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/internal/non_deterministic_token.h"
-#include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/optools.h"
-#include "arolla/qtype/qtype.h"
 
 namespace koladata::functor::parallel {
 namespace {

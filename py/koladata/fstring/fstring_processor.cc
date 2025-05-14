@@ -25,10 +25,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/strip.h"
-#include "koladata/data_slice.h"
-#include "koladata/data_slice_qtype.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
 #include "arolla/expr/eval/eval.h"
 #include "arolla/expr/eval/invoke.h"
 #include "arolla/expr/expr.h"
@@ -38,6 +34,10 @@
 #include "arolla/serialization/encode.h"
 #include "arolla/serialization_base/base.pb.h"
 #include "arolla/util/text.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python::fstring {

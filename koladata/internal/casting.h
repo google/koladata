@@ -25,11 +25,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "koladata/internal/data_bag.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
 #include "arolla/qexpr/operators/core/cast_operator.h"
@@ -41,6 +36,11 @@
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/data_bag.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::schema {

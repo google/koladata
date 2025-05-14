@@ -24,15 +24,15 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/json.h"
-#include "arolla/util/bytes.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;

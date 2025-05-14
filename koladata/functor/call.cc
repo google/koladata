@@ -26,6 +26,9 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/expr/quote.h"
+#include "arolla/qtype/typed_ref.h"
+#include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_eval.h"
@@ -33,9 +36,6 @@
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
-#include "arolla/expr/quote.h"
-#include "arolla/qtype/typed_ref.h"
-#include "arolla/qtype/typed_value.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

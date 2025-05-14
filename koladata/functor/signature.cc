@@ -26,11 +26,11 @@
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "koladata/data_slice_qtype.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

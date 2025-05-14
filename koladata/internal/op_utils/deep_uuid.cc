@@ -27,6 +27,9 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/util/fingerprint.h"
+#include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -35,9 +38,6 @@
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/uuid_object.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/util/fingerprint.h"
-#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {

@@ -17,9 +17,9 @@ from arolla import arolla
 from arolla.s11n.testing import codec_test_case
 from koladata.types import jagged_shape
 
-from koladata.s11n import codec_pb2 as _
 from arolla.jagged_shape.dense_array.serialization_codecs import jagged_shape_codec_pb2 as _
 from arolla.serialization_codecs.dense_array import dense_array_codec_pb2 as _
+from koladata.s11n import codec_pb2 as _
 
 
 class JaggedShapeS11nTest(codec_test_case.S11nCodecTestCase):

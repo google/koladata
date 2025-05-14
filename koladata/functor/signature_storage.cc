@@ -24,6 +24,9 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "arolla/memory/optional_value.h"
+#include "arolla/util/repr.h"
+#include "arolla/util/text.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -34,9 +37,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/lists.h"
-#include "arolla/memory/optional_value.h"
-#include "arolla/util/repr.h"
-#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

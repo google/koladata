@@ -20,9 +20,9 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
-#include "koladata/data_slice.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qtype/qtype.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::ops {
 

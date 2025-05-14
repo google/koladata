@@ -23,10 +23,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
-#include "koladata/functor/functor.h"
-#include "koladata/functor/signature.h"
-#include "koladata/functor/signature_storage.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator_signature.h"
@@ -36,6 +32,10 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
+#include "koladata/data_slice.h"
+#include "koladata/functor/functor.h"
+#include "koladata/functor/signature.h"
+#include "koladata/functor/signature_storage.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

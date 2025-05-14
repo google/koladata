@@ -20,8 +20,8 @@
 #include "absl/strings/match.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
-#include "koladata/internal/error_utils.h"
 #include "arolla/util/status.h"
+#include "koladata/internal/error_utils.h"
 
 namespace koladata::internal {
 

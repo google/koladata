@@ -23,10 +23,6 @@
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_group_ops.h"
@@ -36,6 +32,10 @@
 #include "arolla/qexpr/operators/dense_array/edge_ops.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {

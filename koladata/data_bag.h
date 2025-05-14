@@ -25,11 +25,11 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "koladata/internal/data_bag.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/refcount_ptr.h"
 #include "arolla/util/repr.h"
+#include "koladata/internal/data_bag.h"
 
 namespace koladata {
 

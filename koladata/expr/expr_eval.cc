@@ -36,10 +36,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
-#include "koladata/expr/expr_operators.h"
-#include "koladata/expr/non_determinism.h"
-#include "koladata/internal/non_deterministic_token.h"
-#include "koladata/internal/op_utils/error.h"
 #include "arolla/expr/eval/verbose_runtime_error.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
@@ -56,6 +52,10 @@
 #include "arolla/util/lru_cache.h"
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
+#include "koladata/expr/expr_operators.h"
+#include "koladata/expr/non_determinism.h"
+#include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/op_utils/error.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::expr {

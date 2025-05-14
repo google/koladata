@@ -23,13 +23,13 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/ops/dense_group_ops.h"
 #include "arolla/memory/raw_buffer_factory.h"
 #include "arolla/qexpr/operators/aggregation/group_op_accumulators.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {

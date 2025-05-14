@@ -26,9 +26,6 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "koladata/internal/missing_value.h"
-#include "koladata/internal/stable_fingerprint.h"
-#include "koladata/internal/types.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/quote.h"
@@ -42,6 +39,9 @@
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/stable_fingerprint.h"
+#include "koladata/internal/types.h"
 
 namespace {
 

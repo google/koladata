@@ -32,10 +32,10 @@
 #include "absl/random/random.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
-#include "koladata/internal/stable_fingerprint.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
+#include "koladata/internal/stable_fingerprint.h"
 
 namespace koladata::internal {
 namespace {

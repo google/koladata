@@ -16,8 +16,8 @@
 #define KOLADATA_INTERNAL_OP_UTILS_AGG_COMMON_SCHEMA_H_
 
 #include "absl/status/statusor.h"
-#include "koladata/internal/data_slice.h"
 #include "arolla/dense_array/edge.h"
+#include "koladata/internal/data_slice.h"
 
 namespace koladata::internal {
 

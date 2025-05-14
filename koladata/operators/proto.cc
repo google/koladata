@@ -26,6 +26,11 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
+#include "arolla/util/view_types.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
@@ -42,11 +47,6 @@
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
 #include "google/protobuf/util/json_util.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/util/bytes.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
-#include "arolla/util/view_types.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {

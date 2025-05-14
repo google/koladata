@@ -19,11 +19,11 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
-#include "koladata/internal/data_slice.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/data_slice.h"
 #include "arolla/util/status_macros_backport.h"
 
 arolla::DenseArray<arolla::Unit> koladata::internal::PresenceDenseArray(

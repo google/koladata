@@ -20,10 +20,10 @@
 
 // IWYU pragma: always_keep, the file defines QTypeTraits<T> specializations.
 
-#include "koladata/data_slice.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+#include "koladata/data_slice.h"
 
 namespace arolla {
 

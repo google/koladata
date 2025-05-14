@@ -20,12 +20,12 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/util/text.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 
 namespace koladata::internal {
 namespace {

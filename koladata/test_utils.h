@@ -21,12 +21,17 @@
 #include <initializer_list>
 #include <optional>
 #include <type_traits>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/memory/optional_value.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -34,11 +39,6 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/memory/optional_value.h"
-#include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/bytes.h"
-#include "arolla/util/text.h"
 
 namespace koladata {
 namespace test {

@@ -37,15 +37,6 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/missing_value.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/slice_builder.h"
-#include "koladata/internal/types.h"
-#include "koladata/internal/types_buffer.h"
-#include "koladata/internal/value_array.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
@@ -61,6 +52,15 @@
 #include "arolla/util/text.h"  // IWYU pragma: keep
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
+#include "koladata/internal/types.h"
+#include "koladata/internal/types_buffer.h"
+#include "koladata/internal/value_array.h"
 
 namespace koladata::internal {
 namespace {

@@ -24,14 +24,14 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/object_id.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::internal {

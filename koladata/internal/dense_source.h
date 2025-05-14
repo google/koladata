@@ -26,11 +26,11 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
+#include "arolla/qtype/qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/slice_builder.h"
-#include "arolla/qtype/qtype.h"
 
 namespace koladata::internal {
 

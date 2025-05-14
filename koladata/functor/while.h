@@ -20,8 +20,8 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
 #include "arolla/qtype/typed_value.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::functor {
 

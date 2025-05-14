@@ -20,11 +20,11 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
-#include "koladata/data_slice_qtype.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
 
 namespace koladata::ops {
 

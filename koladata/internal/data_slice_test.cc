@@ -27,12 +27,6 @@
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
-#include "koladata/internal/data_item.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/slice_builder.h"
-#include "koladata/internal/types.h"
-#include "koladata/internal/types_buffer.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/memory/optional_value.h"
@@ -42,6 +36,12 @@
 #include "arolla/util/bytes.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/meta.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/slice_builder.h"
+#include "koladata/internal/types.h"
+#include "koladata/internal/types_buffer.h"
 
 namespace koladata::internal {
 namespace {

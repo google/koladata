@@ -20,11 +20,11 @@
 #include <utility>
 
 #include "absl/status/status.h"
-#include "koladata/internal/op_utils/error.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
+#include "koladata/internal/op_utils/error.h"
 
 namespace koladata {
 

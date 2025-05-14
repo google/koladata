@@ -26,13 +26,6 @@
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
-#include "koladata/functor/cpp_function_bridge.h"
-#include "koladata/functor/functor.h"
-#include "koladata/functor/signature.h"
-#include "koladata/functor/signature_storage.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/test_utils.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -42,6 +35,13 @@
 #include "arolla/sequence/sequence.h"
 #include "arolla/util/cancellation.h"
 #include "arolla/util/unit.h"
+#include "koladata/data_slice.h"
+#include "koladata/functor/cpp_function_bridge.h"
+#include "koladata/functor/functor.h"
+#include "koladata/functor/signature.h"
+#include "koladata/functor/signature_storage.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/test_utils.h"
 
 namespace koladata::functor {
 namespace {

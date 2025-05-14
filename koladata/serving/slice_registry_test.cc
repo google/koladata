@@ -21,9 +21,9 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
+#include "arolla/qtype/base_types.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/qtype/base_types.h"
 
 namespace koladata::serving {
 namespace {

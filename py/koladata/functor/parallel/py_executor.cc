@@ -19,11 +19,11 @@
 #include <utility>
 
 #include "absl/strings/str_format.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/cancellation.h"
 #include "koladata/functor/parallel/executor.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "arolla/qtype/qtype_traits.h"
-#include "arolla/util/cancellation.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

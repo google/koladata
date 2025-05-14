@@ -18,9 +18,6 @@
 #include <cstdint>
 #include <variant>
 
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/missing_value.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/qtype.h"
@@ -28,6 +25,9 @@
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/missing_value.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata::internal {
 

@@ -18,10 +18,10 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "koladata/internal/error_utils.h"
 #include "arolla/memory/frame.h"
 #include "arolla/memory/memory_allocation.h"
 #include "arolla/qexpr/eval_context.h"
+#include "koladata/internal/error_utils.h"
 
 namespace koladata {
 namespace {

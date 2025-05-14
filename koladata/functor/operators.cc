@@ -14,6 +14,7 @@
 //
 #include <memory>
 
+#include "arolla/qexpr/optools.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/aggregate_operator.h"
 #include "koladata/functor/bind_operator.h"
@@ -22,7 +23,6 @@
 #include "koladata/functor/is_fn_operator.h"
 #include "koladata/functor/map_operator.h"
 #include "koladata/functor/while_operator.h"
-#include "arolla/qexpr/optools.h"
 
 namespace koladata::functor {
 namespace {

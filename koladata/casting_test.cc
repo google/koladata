@@ -28,6 +28,13 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "arolla/expr/expr.h"
+#include "arolla/expr/quote.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/init_arolla.h"
+#include "arolla/util/meta.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
@@ -40,13 +47,6 @@
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/expr/expr.h"
-#include "arolla/expr/quote.h"
-#include "arolla/util/bytes.h"
-#include "arolla/util/init_arolla.h"
-#include "arolla/util/meta.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 
 namespace koladata {
 namespace {

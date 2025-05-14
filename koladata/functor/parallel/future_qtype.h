@@ -15,10 +15,10 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_FUTURE_QTYPE_H_
 #define KOLADATA_FUNCTOR_PARALLEL_FUTURE_QTYPE_H_
 
-#include "koladata/functor/parallel/future.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
+#include "koladata/functor/parallel/future.h"
 
 namespace koladata::functor::parallel {
 

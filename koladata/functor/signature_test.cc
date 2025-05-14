@@ -22,12 +22,12 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/qtype/tuple_qtype.h"
+#include "arolla/qtype/typed_ref.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/qtype/tuple_qtype.h"
-#include "arolla/qtype/typed_ref.h"
 
 namespace koladata::functor {
 

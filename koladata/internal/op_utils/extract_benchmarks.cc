@@ -23,6 +23,11 @@
 #include "absl/random/random.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/memory/optional_value.h"
+#include "arolla/qtype/base_types.h"
+#include "arolla/util/cancellation.h"
+#include "arolla/util/unit.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -32,11 +37,6 @@
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/uuid_object.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/memory/optional_value.h"
-#include "arolla/qtype/base_types.h"
-#include "arolla/util/cancellation.h"
-#include "arolla/util/unit.h"
 
 namespace koladata::internal {
 namespace {

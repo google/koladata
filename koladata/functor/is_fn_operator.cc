@@ -13,23 +13,24 @@
 // limitations under the License.
 //
 #include "koladata/functor/is_fn_operator.h"
+
 #include <optional>
 #include <type_traits>
 #include <utility>
 
 #include "absl/status/statusor.h"
+#include "arolla/dense_array/dense_array.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_op.h"
+#include "koladata/functor/functor.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/operators/utils.h"
-#include "koladata/functor/functor.h"
-#include "koladata/data_slice.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

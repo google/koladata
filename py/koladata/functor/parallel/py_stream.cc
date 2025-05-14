@@ -25,6 +25,10 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
+#include "arolla/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/typed_value.h"
+#include "arolla/util/cancellation.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_qtype.h"
@@ -32,10 +36,6 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
-#include "arolla/qtype/qtype.h"
-#include "arolla/qtype/qtype_traits.h"
-#include "arolla/qtype/typed_value.h"
-#include "arolla/util/cancellation.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

@@ -25,12 +25,12 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/synchronization/notification.h"
-#include "koladata/functor/parallel/default_executor.h"
-#include "koladata/functor/parallel/executor.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
+#include "koladata/functor/parallel/default_executor.h"
+#include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 namespace {

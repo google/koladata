@@ -18,10 +18,10 @@
 #include <vector>
 
 #include "absl/status/statusor.h"
-#include "koladata/data_slice.h"
+#include "absl/types/span.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
-#include "absl/types/span.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::ops {
 

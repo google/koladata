@@ -23,6 +23,10 @@
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "arolla/expr/expr.h"
+#include "arolla/expr/expr_node.h"
+#include "arolla/expr/quote.h"
+#include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/constants.h"
@@ -32,10 +36,6 @@
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/expr/expr.h"
-#include "arolla/expr/expr_node.h"
-#include "arolla/expr/quote.h"
-#include "arolla/util/text.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

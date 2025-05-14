@@ -19,15 +19,15 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/qtype/testing/qtype.h"
+#include "arolla/qtype/typed_ref.h"
+#include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/cpp_function_bridge.h"
 #include "koladata/serving/slice_registry.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/qtype/testing/qtype.h"
-#include "arolla/qtype/typed_ref.h"
-#include "arolla/util/text.h"
 
 namespace koladata_serving_test {
 namespace {

@@ -22,6 +22,7 @@
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "absl/container/flat_hash_set.h"
+#include "arolla/util/fingerprint.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/auto_variables.h"
@@ -29,7 +30,6 @@
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_args.h"
 #include "py/koladata/base/wrap_utils.h"
-#include "arolla/util/fingerprint.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {

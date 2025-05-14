@@ -13,14 +13,15 @@
 // limitations under the License.
 //
 #include "koladata/internal/types_buffer.h"
+
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "koladata/internal/types.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/bits.h"
+#include "koladata/internal/types.h"
 
 namespace koladata::internal {
 namespace {

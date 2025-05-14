@@ -20,8 +20,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
-#include "koladata/data_slice_qtype.h"
 #include "arolla/expr/operators/std_function_operator.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -29,6 +27,8 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/status.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
 
 namespace koladata::functor {
 

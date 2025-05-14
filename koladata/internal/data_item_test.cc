@@ -27,10 +27,6 @@
 #include "absl/status/status_matchers.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "koladata/internal/dtype.h"
-#include "koladata/internal/object_id.h"
-#include "koladata/internal/schema_attrs.h"
-#include "koladata/internal/uuid_object.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_operator.h"
@@ -47,6 +43,10 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_attrs.h"
+#include "koladata/internal/uuid_object.h"
 
 namespace koladata::internal {
 namespace {

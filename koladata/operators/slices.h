@@ -17,9 +17,9 @@
 
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
-#include "koladata/data_slice.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
+#include "koladata/data_slice.h"
 
 namespace koladata::ops {
 

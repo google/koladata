@@ -22,6 +22,9 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/memory/optional_value.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -32,9 +35,6 @@
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/memory/optional_value.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 
 namespace koladata::schema {
 namespace {

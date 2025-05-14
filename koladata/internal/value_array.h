@@ -29,13 +29,13 @@
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
-#include "koladata/internal/object_id.h"
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
+#include "koladata/internal/object_id.h"
 
 // It is a private header, part of dense_source implementation.
 

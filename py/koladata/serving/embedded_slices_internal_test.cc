@@ -23,6 +23,13 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/expr/expr.h"
+#include "arolla/expr/quote.h"
+#include "arolla/qtype/testing/qtype.h"
+#include "arolla/qtype/typed_value.h"
+#include "arolla/serialization/riegeli.h"
+#include "arolla/util/bytes.h"
+#include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
@@ -33,13 +40,6 @@
 #include "koladata/operators/math.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
-#include "arolla/expr/expr.h"
-#include "arolla/expr/quote.h"
-#include "arolla/qtype/testing/qtype.h"
-#include "arolla/qtype/typed_value.h"
-#include "arolla/serialization/riegeli.h"
-#include "arolla/util/bytes.h"
-#include "arolla/util/text.h"
 
 namespace koladata::serving::embedded_slices_internal {
 namespace {

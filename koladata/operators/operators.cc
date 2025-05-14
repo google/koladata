@@ -18,6 +18,10 @@
 
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
+#include "arolla/qexpr/operator_factory.h"
+#include "arolla/qexpr/optools.h"
+#include "arolla/util/text.h"
+#include "arolla/util/unit.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/casting.h"
 #include "koladata/data_bag.h"
@@ -45,10 +49,6 @@
 #include "koladata/operators/shapes.h"
 #include "koladata/operators/slices.h"
 #include "koladata/operators/strings.h"
-#include "arolla/qexpr/operator_factory.h"
-#include "arolla/qexpr/optools.h"
-#include "arolla/util/text.h"
-#include "arolla/util/unit.h"
 
 namespace koladata::ops {
 namespace {
