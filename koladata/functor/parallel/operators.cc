@@ -81,6 +81,8 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_interleave",
                 std::make_unique<StreamInterleaveOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_make",
                 std::make_unique<StreamMakeOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.stream_map",
+                std::make_unique<StreamMapOperatorFamily>());
 
 // go/keep-sorted end
 

@@ -19,6 +19,7 @@ from koladata.operators import bootstrap
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import tuple as tuple_ops
+from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
@@ -590,3 +591,36 @@ def parallel_from_future(arg):  # pylint: disable=unused-argument
     future.
   """
   return _internal_parallel_from_future(arg, _internal_parallel_from_future)
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_map',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_stream(P.stream),
+        qtype_utils.expect_data_slice(P.body_fn),
+    ],
+    qtype_inference_expr=get_stream_qtype(P.value_type_as),
+    deterministic=False,
+)
+def stream_map(
+    executor, stream, body_fn, *, value_type_as=data_slice.DataSlice
+):
+  """Returns a new stream by applying body_fn to each item in the input stream.
+
+  For each item of the input `stream`, the `body_fn` is called. The single
+  resulting item from each call is then written into the new output stream.
+
+  Args:
+    executor: An executor for scheduling asynchronous operations.
+    stream: The input stream.
+    body_fn: The function to be executed for each item of the input stream. It
+      will receive an item as the positional argument and its result must be of
+      the same type as `value_type_as`.
+    value_type_as: The type to use as value type of the resulting stream.
+
+  Returns:
+    The resulting stream.
+  """
+  raise NotImplementedError('implemented in the backend')

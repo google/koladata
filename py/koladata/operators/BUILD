@@ -806,6 +806,7 @@ py_library(
         ":tuple",
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/functor/parallel:operators",
+        "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",

@@ -21,17 +21,25 @@
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/qtype/typed_value.h"
 #include "arolla/sequence/sequence.h"
+#include "koladata/data_slice.h"
+#include "koladata/data_slice_qtype.h"
+#include "koladata/functor/call.h"
+#include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_composition.h"
+#include "koladata/functor/parallel/stream_map.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/iterables/iterable_qtype.h"
 #include "koladata/operators/utils.h"
@@ -103,7 +111,7 @@ absl::StatusOr<arolla::OperatorPtr> StreamChainOperatorFamily::DoGetOperator(
 
 namespace {
 
-class StreamInterleaveOp : public arolla::QExprOperator {
+class StreamInterleaveOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;
 
@@ -168,7 +176,7 @@ StreamInterleaveOperatorFamily::DoGetOperator(
 
 namespace {
 
-class StreamMakeOp : public arolla::QExprOperator {
+class StreamMakeOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;
 
@@ -194,7 +202,7 @@ class StreamMakeOp : public arolla::QExprOperator {
 
 }  // namespace
 
-// stream_make(TUPLE[T, ...], T, NON_DETERMINISTIC) -> STREAM[T]
+// stream_make(TUPLE[T, ...], T) -> STREAM[T]
 absl::StatusOr<arolla::OperatorPtr> StreamMakeOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
@@ -221,7 +229,7 @@ absl::StatusOr<arolla::OperatorPtr> StreamMakeOperatorFamily::DoGetOperator(
 
 namespace {
 
-class StreamFromIterableOp : public arolla::QExprOperator {
+class StreamFromIterableOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;
 
@@ -246,7 +254,7 @@ class StreamFromIterableOp : public arolla::QExprOperator {
 
 }  // namespace
 
-// stream_from_iterable(ITERABLE[T], NON_DETERMINISTIC) -> STREAM[T]
+// stream_from_iterable(ITERABLE[T]) -> STREAM[T]
 absl::StatusOr<arolla::OperatorPtr>
 StreamFromIterableOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
@@ -266,6 +274,77 @@ StreamFromIterableOperatorFamily::DoGetOperator(
         "the input");
   }
   return std::make_shared<StreamFromIterableOp>(input_types, output_type);
+}
+
+namespace {
+
+auto MakeStreamMapFunctor(DataSlice functor_ds,
+                          arolla::QTypePtr return_value_qtype) {
+  return [functor_ds = std::move(functor_ds), return_value_qtype](
+             arolla::TypedRef item) -> absl::StatusOr<arolla::TypedValue> {
+    auto return_value = CallFunctorWithCompilationCache(functor_ds, {item}, {});
+    if (return_value.ok() && return_value->GetType() != return_value_qtype)
+        [[unlikely]] {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "The functor was called with `%s` as the return "
+          "type, but the computation resulted in type `%s` "
+          "instead. You can specify the expected output type "
+          "via the `value_type_as=` parameter.",
+          return_value_qtype->name(), return_value->GetType()->name()));
+    }
+    return return_value;
+  };
+}
+
+class StreamMapOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
+         input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
+         functor_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         return_value_qtype = output_slot.GetType()->value_qtype(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* /*ctx*/, arolla::FramePtr frame) {
+          frame.Set(output_slot,
+                    StreamMap(frame.Get(executor_slot),
+                              frame.Get(input_stream_slot), return_value_qtype,
+                              MakeStreamMapFunctor(frame.Get(functor_slot),
+                                                   return_value_qtype)));
+        });
+  }
+};
+
+}  // namespace
+
+// stream_map(
+//     EXECUTOR, STREAM[S], DATA_SLICE, T, NON_DETERMINISTIC) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr> StreamMapOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 5) {
+    return absl::InvalidArgumentError("requires exactly 5 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
+    return absl::InvalidArgumentError("the first argument must be an executor");
+  }
+  if (!IsStreamQType(input_types[1])) {
+    return absl::InvalidArgumentError("the second argument must be a stream");
+  }
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError("the third argument must be a functor");
+  }
+  // The fourth argument is used for type inference and can be anything, so we
+  // don't handle input_types[3] here.
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[4]));
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  return std::make_shared<StreamMapOp>(input_types, output_type);
 }
 
 }  // namespace koladata::functor::parallel

@@ -161,6 +161,35 @@ cc_test(
 )
 
 cc_library(
+    name = "stream_qtype",
+    srcs = ["stream_qtype.cc"],
+    hdrs = ["stream_qtype.h"],
+    deps = [
+        ":stream",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "stream_qtype_test",
+    srcs = ["stream_qtype_test.cc"],
+    deps = [
+        ":stream",
+        ":stream_qtype",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "stream_composition",
     srcs = ["stream_composition.cc"],
     hdrs = ["stream_composition.h"],
@@ -192,16 +221,19 @@ cc_test(
 )
 
 cc_library(
-    name = "stream_qtype",
-    srcs = ["stream_qtype.cc"],
-    hdrs = ["stream_qtype.h"],
+    name = "stream_map",
+    srcs = ["stream_map.cc"],
+    hdrs = ["stream_map.h"],
     deps = [
+        ":executor",
         ":stream",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/base:no_destructor",
-        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/synchronization",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
@@ -209,12 +241,20 @@ cc_library(
 )
 
 cc_test(
-    name = "stream_qtype_test",
-    srcs = ["stream_qtype_test.cc"],
+    name = "stream_map_test",
+    srcs = ["stream_map_test.cc"],
     deps = [
+        ":asio_executor",
+        ":default_executor",
+        ":eager_executor",
+        ":executor",
         ":stream",
-        ":stream_qtype",
+        ":stream_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/synchronization",
         "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
     ],
@@ -427,13 +467,19 @@ cc_library(
     srcs = ["stream_operators.cc"],
     hdrs = ["stream_operators.h"],
     deps = [
+        ":executor",
         ":stream",
         ":stream_composition",
+        ":stream_map",
         ":stream_qtype",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/functor:call",
         "//koladata/iterables:iterable_qtype",
         "//koladata/operators:lib",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
