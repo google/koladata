@@ -498,3 +498,95 @@ def future_from_parallel(executor, arg):  # pylint: disable=unused-argument
   return _internal_future_from_parallel(
       arg, executor, _internal_future_from_parallel
   )
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.async_unpack_tuple',
+    qtype_constraints=[
+        qtype_utils.expect_future(P.future),
+        (
+            M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.future))
+            | M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(P.future)),
+            'input must be a future to a tuple or a namedtuple',
+        ),
+    ],
+    qtype_inference_expr=M.qtype.make_tuple_qtype(
+        M.seq.map(
+            get_future_qtype,
+            M.qtype.get_field_qtypes(M.qtype.get_value_qtype(P.future)),
+        )
+    ),
+)
+def async_unpack_tuple(future):  # pylint: disable=unused-argument
+  """Given a future to tuple/namedtuple, returns tuple of futures to its fields."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._internal_parallel_from_future',
+    qtype_constraints=[
+        qtype_utils.expect_future(P.outer_arg),
+    ],
+)
+def _internal_parallel_from_future(outer_arg, outer_self_op):
+  """Implementation helper for parallel_from_future."""
+  # We prefix the arguments with "outer_" here to avoid conflict with the
+  # names in DispatchOperator.
+  return arolla.types.DispatchOperator(
+      'arg, self_op, new_non_deterministic_token',
+      tuple_case=arolla.types.DispatchCase(
+          M.core.map_tuple(
+              P.self_op,
+              async_unpack_tuple(P.arg),
+              P.self_op,
+              P.new_non_deterministic_token,
+          ),
+          condition=M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.arg)),
+      ),
+      namedtuple_case=arolla.types.DispatchCase(
+          M.core.apply_varargs(
+              M.namedtuple.make,
+              M.qtype.get_field_names(
+                  M.qtype.get_value_qtype(M.qtype.qtype_of(P.arg))
+              ),
+              M.core.map_tuple(
+                  P.self_op,
+                  async_unpack_tuple(P.arg),
+                  P.self_op,
+                  P.new_non_deterministic_token,
+              ),
+          ),
+          condition=M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(P.arg)),
+      ),
+      non_deterministic_token_case=arolla.types.DispatchCase(
+          P.new_non_deterministic_token,
+          condition=M.qtype.get_value_qtype(P.arg)
+          == qtypes.NON_DETERMINISTIC_TOKEN,
+      ),
+      default=P.arg,
+  )(outer_arg, outer_self_op, optools.unified_non_deterministic_arg())
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel.parallel_from_future',
+    qtype_constraints=[
+        qtype_utils.expect_future(P.arg),
+    ],
+)
+def parallel_from_future(arg):  # pylint: disable=unused-argument
+  """Given a future, convert it to a corresponding parallel value.
+
+  More specifically, if the future has a tuple/namedtuple value, convert it to
+  a tuple/namedtuple of futures. If the input is a future to the
+  non-deterministic token, returns (a new) non-deterministic token.
+
+  Args:
+    arg: The value to convert from the future form.
+
+  Returns:
+    A value of a parallel type (see as_parallel) corresponding to the given
+    future.
+  """
+  return _internal_parallel_from_future(arg, _internal_parallel_from_future)

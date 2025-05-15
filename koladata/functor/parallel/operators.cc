@@ -42,6 +42,8 @@ OPERATOR_FAMILY("koda_internal.parallel.as_future",
                 std::make_unique<AsFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.async_eval",
                 std::make_unique<AsyncEvalOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.async_unpack_tuple",
+                std::make_unique<AsyncUnpackTupleOperatorFamily>());
 OPERATOR("koda_internal.parallel.get_future_qtype",
          // Since there is a templated overload, we need to wrap in a lambda.
          [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {

@@ -30,6 +30,17 @@ class AsyncEvalOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// koda_internal.parallel.async_unpack_tuple operator.
+// Given a future to a tuple/namedtuple, returns tuple of futures to its fields.
+// This cannot be expressed via async_eval operator currently because
+// core.get_nth operator requires a statically computable index, and
+// async_eval passes all inputs as leaves.
+class AsyncUnpackTupleOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 }  // namespace koladata::functor::parallel
 
 #endif  // KOLADATA_FUNCTOR_PARALLEL_ASYNC_EVAL_OPERATOR_H_

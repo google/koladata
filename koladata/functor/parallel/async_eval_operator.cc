@@ -19,6 +19,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
@@ -31,8 +32,10 @@
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
+#include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/async_eval.h"
 #include "koladata/functor/parallel/executor.h"
@@ -99,6 +102,93 @@ absl::StatusOr<arolla::OperatorPtr> AsyncEvalOperatorFamily::DoGetOperator(
   }
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<AsyncEvalOperator>(input_types, output_type),
+      input_types, output_type);
+}
+
+namespace {
+
+class AsyncUnpackTupleOperator : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [input_slot = input_slots[0].UnsafeToSlot<FuturePtr>(), output_slot](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          const FuturePtr& input = frame.Get(input_slot);
+          arolla::QTypePtr output_qtype = output_slot.GetType();
+          DCHECK(arolla::IsTupleQType(output_qtype));
+          int64_t num_fields = output_qtype->type_fields().size();
+          std::vector<arolla::TypedValue> output_futures;
+          std::vector<FutureWriter> output_writers;
+          output_futures.reserve(num_fields);
+          output_writers.reserve(num_fields);
+          for (int64_t idx = 0; idx < num_fields; ++idx) {
+            arolla::QTypePtr field_qtype =
+                output_qtype->type_fields()[idx].GetType();
+            DCHECK(IsFutureQType(field_qtype));
+            auto [future, writer] = MakeFuture(field_qtype->value_qtype());
+            output_futures.push_back(MakeFutureQValue(std::move(future)));
+            output_writers.push_back(std::move(writer));
+          }
+          input->AddConsumer(
+              [output_writers = std::move(output_writers)](
+                  absl::StatusOr<arolla::TypedValue> value) mutable {
+                for (int64_t idx = 0; idx < output_writers.size(); ++idx) {
+                  std::move(output_writers[idx])
+                      .SetValue(value.ok()
+                                    ? arolla::TypedValue(value->GetField(idx))
+                                    : value);
+                }
+              });
+          auto output_tuple = arolla::MakeTuple(std::move(output_futures));
+          return output_tuple.CopyToSlot(output_slot, frame);
+        });
+  }
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr>
+AsyncUnpackTupleOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 1) {
+    return absl::InvalidArgumentError("requires exactly 1 argument");
+  }
+  if (!IsFutureQType(input_types[0])) {
+    return absl::InvalidArgumentError("requires first argument to be a future");
+  }
+  arolla::QTypePtr input_value_qtype = input_types[0]->value_qtype();
+  if (!IsTupleQType(input_value_qtype) &&
+      !IsNamedTupleQType(input_value_qtype)) {
+    return absl::InvalidArgumentError(
+        "requires the future to contain a tuple or a namedtuple");
+  }
+  if (!IsTupleQType(output_type)) {
+    return absl::InvalidArgumentError("requires output type to be a tuple");
+  }
+  if (input_value_qtype->type_fields().size() !=
+      output_type->type_fields().size()) {
+    return absl::InvalidArgumentError("tuple fields size mismatch");
+  }
+  for (int64_t idx = 0; idx < input_value_qtype->type_fields().size(); ++idx) {
+    arolla::QTypePtr output_field_qtype =
+        output_type->type_fields()[idx].GetType();
+    if (!IsFutureQType(output_field_qtype)) {
+      return absl::InvalidArgumentError(
+          "requires output type to be a tuple of futures");
+    }
+    if (output_field_qtype->value_qtype() !=
+        input_value_qtype->type_fields()[idx].GetType()) {
+      return absl::InvalidArgumentError("tuple field qtype mismatch");
+    }
+  }
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<AsyncUnpackTupleOperator>(input_types, output_type),
       input_types, output_type);
 }
 
