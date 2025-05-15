@@ -222,17 +222,22 @@ Operators that assert properties of DataSlices.
 ### `kd.assertion.assert_ds_has_primitives_of(ds, primitive_schema, message)` {#kd.assertion.assert_ds_has_primitives_of}
 
 ``` {.no-copy}
-Returns `ds` if it matches `primitive_schema`, or raises an exception.
+Returns `ds` if its data is implicitly castable to `primitive_schema`.
 
 It raises an exception if:
-  1) `ds`'s schema is not primitive_schema or OBJECT
-  2) `ds` has present items and not all of them match `primitive_schema`
+  1) `ds`'s schema is not primitive_schema (including NONE) or OBJECT
+  2) `ds` has present items and not all of them are castable to
+     `primitive_schema`
 
 The following examples will pass:
   assert_ds_has_primitives_of(kd.present, kd.MASK, '')
   assert_ds_has_primitives_of(kd.slice([kd.present, kd.missing]), kd.MASK, '')
   assert_ds_has_primitives_of(kd.slice(None, schema=kd.OBJECT), kd.MASK, '')
   assert_ds_has_primitives_of(kd.slice([], schema=kd.OBJECT), kd.MASK, '')
+  assert_ds_has_primitives_of(
+      kd.slice([1, 3.14], schema=kd.OBJECT), kd.FLOAT32, '',
+  )
+  assert_ds_has_primitives_of(kd.slice([1, 2]), kd.FLOAT32, '')
 
 The following examples will fail:
   assert_ds_has_primitives_of(1, kd.MASK, '')
@@ -243,9 +248,6 @@ Args:
   ds: DataSlice to assert the dtype of.
   primitive_schema: The expected primitive schema.
   message: The error message to raise if the primitive schemas do not match.
-
-Returns:
-  `ds` if the primitive schemas match.
 ```
 
 ### `kd.assertion.with_assertion(x, condition, message)` {#kd.assertion.with_assertion}
@@ -1934,7 +1936,7 @@ Returns a Koda functor that partially binds a function to `kwargs`.
     A new Koda functor with some parameters bound.
 ```
 
-### `kd.functor.call(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.call}
+### `kd.functor.call(fn, *args, return_type_as=DataItem(None, schema: NONE), stack_trace_frame=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.call}
 Aliases:
 
 - [kd.call](#kd.call)
@@ -1960,6 +1962,9 @@ Args:
     of the corresponding type. This needs to be specified if the functor does
     not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
     be passed here.
+  stack_trace_frame: Optional details of a stack trace frame, to be added to
+    all the exceptions raised by `fn`. Use
+    `stack_trace.create_stack_trace_frame` to create it.
   **kwargs: The keyword arguments to pass to the call. Scalars will be
     auto-boxed to DataItems.
 
@@ -3763,6 +3768,30 @@ Args:
 
 Returns:
   A DataSlice with the same shape as `x`.
+```
+
+### `kd.masking.xor(x, y)` {#kd.masking.xor}
+Aliases:
+
+- [kd.xor](#kd.xor)
+
+``` {.no-copy}
+Applies pointwise XOR operation on `x` and `y`.
+
+Both `x` and `y` must have MASK dtype. XOR operation is defined as:
+  kd.xor(kd.present, kd.present) -> kd.missing
+  kd.xor(kd.present, kd.missing) -> kd.present
+  kd.xor(kd.missing, kd.present) -> kd.present
+  kd.xor(kd.missing, kd.missing) -> kd.missing
+
+It is equivalent to `x ^ y`.
+
+Args:
+  x: DataSlice.
+  y: DataSlice.
+
+Returns:
+  DataSlice.
 ```
 
 </section>
@@ -8256,7 +8285,7 @@ Alias for [kd.slices.bool](#kd.slices.bool) operator.
 
 Alias for [kd.slices.bytes](#kd.slices.bytes) operator.
 
-### `kd.call(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.call}
+### `kd.call(fn, *args, return_type_as=DataItem(None, schema: NONE), stack_trace_frame=DataItem(None, schema: NONE), **kwargs)` {#kd.call}
 
 Alias for [kd.functor.call](#kd.functor.call) operator.
 
@@ -9718,6 +9747,10 @@ Alias for [kd.schema.with_schema](#kd.schema.with_schema) operator.
 ### `kd.with_schema_from_obj(x)` {#kd.with_schema_from_obj}
 
 Alias for [kd.schema.with_schema_from_obj](#kd.schema.with_schema_from_obj) operator.
+
+### `kd.xor(x, y)` {#kd.xor}
+
+Alias for [kd.masking.xor](#kd.masking.xor) operator.
 
 ### `kd.zip(*args)` {#kd.zip}
 
