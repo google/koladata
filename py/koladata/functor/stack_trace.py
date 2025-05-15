@@ -13,9 +13,14 @@
 # limitations under the License.
 
 """Tools for working with functor evaluation stack traces."""
+import contextlib
+import inspect
+import types as py_types
+from typing import Any, Callable
 
 from koladata.functions import functions as fns
 from koladata.types import data_slice
+from koladata.util import kd_functools
 
 
 def create_stack_trace_frame(
@@ -37,4 +42,61 @@ def create_stack_trace_frame(
       file_name=fns.str(file_name),
       line_number=fns.int32(line_number),
       # LINT.ThenChange(//koladata/functor/stack_trace.h)
+      schema='_functor_stack_trace_frame',
+  )
+
+
+def function_frame(func: Callable[..., Any]) -> data_slice.DataSlice | None:
+  """Returns the stack frame of the function with the line pointing to its definition."""
+  func = kd_functools.unwrap(func)
+
+  if not isinstance(func, Callable):
+    return None
+
+  function_name = func.__name__ if hasattr(func, '__name__') else f'({func})'
+
+  file_name, line_number = None, None
+  search_for_source_code_in = [func, getattr(func, '__call__', None)]
+  for f in search_for_source_code_in:
+    with contextlib.suppress(TypeError):
+      file_name = inspect.getsourcefile(f)
+      line_number = inspect.getsourcelines(f)[1]
+      break
+
+  return create_stack_trace_frame(
+      function_name=function_name, file_name=file_name, line_number=line_number
+  )
+
+
+_SKIPPED_FUNCTIONS = set()
+
+
+def skip(
+    func: py_types.FunctionType,
+) -> py_types.FunctionType:
+  """Annotates a function to be skipped by current_frame()."""
+  assert isinstance(func, py_types.FunctionType)
+  _SKIPPED_FUNCTIONS.add(func.__code__)
+  return func
+
+
+def current_frame() -> data_slice.DataSlice | None:
+  """Returns the best traceback frame to represent the current function call.
+
+  The function searches for the first frame coming from outside this module and
+  not marked using @stack_trace.skip.
+  """
+  frame = inspect.currentframe()
+  while frame and (
+      frame.f_code.co_filename == __file__
+      or frame.f_code in _SKIPPED_FUNCTIONS
+  ):
+    frame = frame.f_back
+  if not frame:
+    return None
+
+  return create_stack_trace_frame(
+      function_name=frame.f_code.co_name,
+      file_name=frame.f_code.co_filename,
+      line_number=frame.f_lineno,
   )

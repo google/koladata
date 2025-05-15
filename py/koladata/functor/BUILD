@@ -233,6 +233,20 @@ py_library(
     deps = [
         "//py/koladata/functions",
         "//py/koladata/types:data_slice",
+        "//py/koladata/util:kd_functools",
+    ],
+)
+
+py_test(
+    name = "stack_trace_test",
+    srcs = ["stack_trace_test.py"],
+    deps = [
+        ":stack_trace",
+        ":testing_clib",
+        "//py/koladata/functions",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 

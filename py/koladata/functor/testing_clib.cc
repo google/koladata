@@ -37,6 +37,7 @@ namespace koladata::python {
 namespace {
 
 PYBIND11_MODULE(testing_clib, m) {
+  m.def("some_pybind_function", [](int x) { return x; });
   m.def("reraise_error_with_stack_trace_frame",
         [](const std::function<void()> raise_error_fn,
            const arolla::TypedValue& qvalue_frame) {
