@@ -30,7 +30,6 @@ namespace koladata::python {
 namespace {
 
 using ::arolla::CancellationContext;
-using ::arolla::Cancelled;
 using ::arolla::CheckCancellation;
 using ::arolla::CurrentCancellationContext;
 using ::arolla::GetQType;
