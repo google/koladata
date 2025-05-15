@@ -28,6 +28,11 @@ def simple_function(x):
 
 
 @functools.lru_cache()
+# Some extra comment to ignore.
+
+
+# Empty lines above and another decorator below.
+@functools.lru_cache()
 def decorated_function(x):
   return x
 
@@ -81,7 +86,7 @@ class StackTraceTest(parameterized.TestCase):
           fn=decorated_function,
           name_regex='decorated_function',
           file=__file__,
-          line='@functools.lru_cache()',
+          line='def decorated_function(x):',
       ),
       dict(
           fn=SomeClass.simple_method,
@@ -99,13 +104,13 @@ class StackTraceTest(parameterized.TestCase):
           fn=SomeClass.class_method,
           name_regex='class_method',
           file=__file__,
-          line='@classmethod',
+          line='def class_method(cls, x):',
       ),
       dict(
           fn=SomeClass.static_method,
           name_regex='static_method',
           file=__file__,
-          line='@staticmethod',
+          line='def static_method(x):',
       ),
       dict(
           fn=SomeClass(),

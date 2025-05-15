@@ -13,8 +13,10 @@
 # limitations under the License.
 
 """Tools for working with functor evaluation stack traces."""
+
 import contextlib
 import inspect
+import re
 import types as py_types
 from typing import Any, Callable
 
@@ -46,6 +48,21 @@ def create_stack_trace_frame(
   )
 
 
+_GOES_BEFORE_FUNCTION_DEF = re.compile(r'\s*([#@].*|)\n')
+
+
+def _guess_line_number(func: Callable[..., Any]) -> int:
+  """Like inspect.getsourcelines, but skips decorators and comments."""
+  lines, first_line_number = inspect.getsourcelines(func)
+  i = 0
+  while i < len(lines) and re.fullmatch(_GOES_BEFORE_FUNCTION_DEF, lines[i]):
+    i += 1
+  if i != len(lines):
+    return first_line_number + i
+  else:
+    return first_line_number
+
+
 def function_frame(func: Callable[..., Any]) -> data_slice.DataSlice | None:
   """Returns the stack frame of the function with the line pointing to its definition."""
   func = kd_functools.unwrap(func)
@@ -60,7 +77,7 @@ def function_frame(func: Callable[..., Any]) -> data_slice.DataSlice | None:
   for f in search_for_source_code_in:
     with contextlib.suppress(TypeError):
       file_name = inspect.getsourcefile(f)
-      line_number = inspect.getsourcelines(f)[1]
+      line_number = _guess_line_number(f)
       break
 
   return create_stack_trace_frame(

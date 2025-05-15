@@ -506,11 +506,13 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertRegex(
         tb, 'tracing_decorator_test.py.*test_functor_call_traceback'
     )
-    self.assertIn('@tracing_decorator.TraceAsFnDecorator()', tb)
+    self.assertIn('def foo(x):', tb)
     self.assertIn('kd.call(baz, 0)', tb)
     self.assertRegex(tb, 'tracing_decorator_test.py.*baz')
+    self.assertIn('def bar(x):', tb)
     self.assertIn('return 1 // bar(x)', tb)
     self.assertRegex(tb, 'tracing_decorator_test.py.*bar')
+    self.assertIn('def baz(x):', tb)
     self.assertIn('return 1 // foo(x)', tb)
     self.assertRegex(tb, 'tracing_decorator_test.py.*foo')
 
