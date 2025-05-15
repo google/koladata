@@ -25,6 +25,7 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing
 from koladata.functor import py_functors_py_ext
+from koladata.functor import stack_trace
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -137,8 +138,17 @@ def trace_py_fn(
   """
   traced_expr = tracing.trace(f)
   signature = signature_utils.from_py_signature(inspect.signature(f))
-  f = expr_fn(traced_expr, signature=signature, auto_variables=auto_variables)
-  return bind(f, **defaults) if defaults else f
+  traced_f = expr_fn(
+      traced_expr,
+      signature=signature,
+      auto_variables=auto_variables,
+  )
+  stack_frame = stack_trace.function_frame(f)
+  if stack_frame is not None:
+    traced_f = traced_f.with_attr(
+        py_functors_py_ext.STACK_TRACE_FRAME_ATTR, stack_frame
+    )
+  return bind(traced_f, **defaults) if defaults else traced_f
 
 
 def py_fn(

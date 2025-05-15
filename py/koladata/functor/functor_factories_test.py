@@ -13,7 +13,9 @@
 # limitations under the License.
 
 import functools
+import inspect
 import re
+import traceback
 
 from absl.testing import absltest
 from arolla import arolla
@@ -184,6 +186,19 @@ class FunctorFactoriesTest(absltest.TestCase):
     testing.assert_equal(
         fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
         ds(1.0 * 2.0 + 2.0 * 3.0 + 3.0 * 4.0),
+    )
+    stacktrace_frame = fn.get_attr('_stack_trace_frame')
+    self.assertIn(
+        'py/koladata/functor/functor_factories_test.py',
+        stacktrace_frame.file_name.to_py(),
+    )
+    self.assertEqual(
+        stacktrace_frame.function_name.to_py(),
+        'my_model',
+    )
+    self.assertEqual(
+        stacktrace_frame.line_number.to_py(),
+        inspect.getsourcelines(my_model)[1]
     )
 
     fn = functor_factories.trace_py_fn(my_model, auto_variables=False)
@@ -924,6 +939,57 @@ class FunctorFactoriesTest(absltest.TestCase):
         ),
     ):
       _ = fn2(x=1, y=2, z=3)
+
+  def test_evaluation_errors(self):
+    # See also test_evaluation_errors in tracing_decorator_test.py.
+
+    fn1 = functor_factories.expr_fn(V.y + 1, y=1 // I.x)
+    fn1 = kd.with_attrs(
+        fn1,
+        _stack_trace_frame=kd.new(
+            function_name='fn1',
+            file_name='my_file.py',
+            line_number=57,
+        ),
+    )
+    fn2 = functor_factories.expr_fn(V.z + 1, z=fn1(x=V.y), y=I.x)
+    fn2 = kd.with_attrs(
+        fn2,
+        _stack_trace_frame=kd.new(
+            # function_name is not set.
+            file_name='my_file.py',
+            line_number=58,
+        ),
+    )
+    fn3 = functor_factories.bind(fn2, x=0)
+    # No stacktrace attributes assigned to fn3.
+
+    try:
+      kd.call(fn3)
+    except ValueError as e:
+      ex = e
+
+    self.assertEqual(
+        str(ex),
+        'kd.math.floordiv: division by zero',
+    )
+    tb = '\n'.join(traceback.format_tb(ex.__traceback__))
+    self.assertIn(
+        'File "my_file.py", line 57, in fn1',
+        tb
+    )
+    self.assertIn(
+        'File "my_file.py", line 58, in',
+        tb
+    )
+    self.assertNotIn(
+        'File ""',
+        tb
+    )
+    self.assertNotIn(
+        'line 0',
+        tb
+    )
 
 
 if __name__ == '__main__':

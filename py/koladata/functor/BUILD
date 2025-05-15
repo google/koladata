@@ -121,6 +121,8 @@ koladata_py_extension(
     deps = [
         ":error_converters",
         ":py_functors_cc_lib",
+        "//koladata/functor:call",
+        "@com_google_arolla//py/arolla/py_utils",
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],
 )
@@ -140,6 +142,7 @@ py_library(
     srcs = ["functor_factories.py"],
     deps = [
         ":py_functors_py_ext",
+        ":stack_trace",
         "//koladata/expr:expr_operators",
         "//py/koladata/base:py_functors_base_py_ext",
         "//py/koladata/expr:input_container",
@@ -210,6 +213,7 @@ py_library(
     srcs = ["tracing_decorator.py"],
     deps = [
         ":functor_factories",
+        ":stack_trace",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
@@ -285,5 +289,6 @@ py_test(
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
     ],
 )

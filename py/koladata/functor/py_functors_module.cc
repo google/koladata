@@ -14,6 +14,10 @@
 //
 #include <Python.h>
 
+#include <string>
+
+#include "koladata/functor/call.h"
+#include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/functor/py_functors.h"
 
 namespace koladata::python {
@@ -38,7 +42,17 @@ struct PyModuleDef py_functors_module = {
 // NOTE: This PyInit function must be named this way
 // (PyInit_{py_extension.name}). Otherwise it does not get initialized.
 PyMODINIT_FUNC PyInit_py_functors_py_ext(void) {
-  return PyModule_Create(&py_functors_module);
+  auto module =
+      arolla::python::PyObjectPtr::Own(PyModule_Create(&py_functors_module));
+  if (module == nullptr) {
+    return nullptr;
+  }
+  if (PyModule_AddStringConstant(
+          module.get(), "STACK_TRACE_FRAME_ATTR",
+          std::string(functor::kStackFrameAttrName).c_str()) < 0) {
+    return nullptr;
+  }
+  return module.release();
 }
 
 }  // namespace

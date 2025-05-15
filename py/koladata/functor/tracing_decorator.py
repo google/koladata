@@ -23,6 +23,7 @@ from typing import Any, Callable
 from arolla import arolla
 from koladata.expr import tracing_mode
 from koladata.functor import functor_factories
+from koladata.functor import stack_trace
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -159,6 +160,7 @@ def _wrap_with_from_and_to_kd(
       parameters=wrapper_params, return_annotation=inspect.Parameter.empty
   )
 
+  @functools.wraps(fn)
   def wrapper(*args: Any, **kwargs: Any) -> Any:
     __tracebackhide__ = True  # pylint: disable=invalid-name, unused-variable
     if params_with_custom_config:
@@ -285,6 +287,7 @@ class TraceAsFnDecorator:
     to_call = py_boxing.as_expr(to_call).with_name(name)
 
     @functools.wraps(fn)
+    @stack_trace.skip
     def wrapper(*args: Any, **kwargs: Any) -> Any:
       __tracebackhide__ = True  # pylint: disable=invalid-name,unused-variable
 
@@ -306,7 +309,10 @@ class TraceAsFnDecorator:
 
       if tracing_mode.is_tracing_enabled():
         res = to_call(
-            *bound.args, **bound.kwargs, return_type_as=return_type_as
+            *bound.args,
+            **bound.kwargs,
+            return_type_as=return_type_as,
+            stack_trace_frame=stack_trace.current_frame(),
         ).with_name(f'{name}_result')
       else:
         res = kd_fn(*bound.args, **bound.kwargs)

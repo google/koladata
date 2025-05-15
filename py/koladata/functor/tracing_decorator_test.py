@@ -33,6 +33,7 @@ from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 
+
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
@@ -148,12 +149,15 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertCountEqual(
         fn.get_attr_names(intersection=True),
         [
+            'aux_2',
+            'aux_3',
             'returns',
             '<lambda>',
             '<lambda>_0',
             '<lambda>_result',
             '<lambda>_result_0',
             '__signature__',
+            '_stack_trace_frame',
         ],
     )
 
@@ -206,7 +210,16 @@ class TracingDecoratorTest(parameterized.TestCase):
     # Make sure we have only one copy of 'f' but two versions of 'f_result'.
     self.assertCountEqual(
         fn.get_attr_names(intersection=True),
-        ['returns', 'f', 'f_result', 'f_result_0', '__signature__'],
+        [
+            'aux_1',
+            'aux_2',
+            'returns',
+            'f',
+            'f_result',
+            'f_result_0',
+            '__signature__',
+            '_stack_trace_frame',
+        ],
     )
 
   def test_return_type_as(self):
@@ -293,7 +306,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     )
     testing.assert_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.f_result),
-        V.f(I.x, return_type_as=empty_bag),
+        V.f(I.x, return_type_as=empty_bag, stack_trace_frame=V.aux_1),
     )
     testing.assert_equal(
         introspection.unpack_expr(fn.f.returns),
@@ -464,21 +477,42 @@ class TracingDecoratorTest(parameterized.TestCase):
 
   def test_functor_call_traceback(self):
     @tracing_decorator.TraceAsFnDecorator()
-    def f(x, y):
-      return x // y
+    def foo(x):
+      return 1 // x
+
+    @tracing_decorator.TraceAsFnDecorator()
+    def bar(x):
+      return 1 // foo(x)
+
+    def baz(x):
+      return 1 // bar(x)
+
+    baz = functor_factories.trace_py_fn(baz)
 
     try:
-      f(0, 0)
+      kd.call(baz, 0)
     except ValueError as e:
       ex = e
 
-    formatted_message = '\n'.join(
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
+
+    tb = '\n'.join(
         ultratb.VerboseTB(
             color_scheme='NoColor', include_vars=False
         ).structured_traceback(type(ex), ex, ex.__traceback__)
     )
-    self.assertIn('/tracing_decorator_test.py', formatted_message)
-    self.assertNotIn('/tracing_decorator.py', formatted_message)
+
+    self.assertNotIn('/tracing_decorator.py', tb)
+    self.assertRegex(
+        tb, 'tracing_decorator_test.py.*test_functor_call_traceback'
+    )
+    self.assertIn('@tracing_decorator.TraceAsFnDecorator()', tb)
+    self.assertIn('kd.call(baz, 0)', tb)
+    self.assertRegex(tb, 'tracing_decorator_test.py.*baz')
+    self.assertIn('return 1 // bar(x)', tb)
+    self.assertRegex(tb, 'tracing_decorator_test.py.*bar')
+    self.assertIn('return 1 // foo(x)', tb)
+    self.assertRegex(tb, 'tracing_decorator_test.py.*foo')
 
 
 if __name__ == '__main__':
