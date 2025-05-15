@@ -803,6 +803,7 @@ py_library(
         ":bootstrap",
         ":optools",
         ":qtype_utils",
+        ":tuple",
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/functor/parallel:operators",
         "//py/koladata/types:py_boxing",

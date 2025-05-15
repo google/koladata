@@ -18,6 +18,7 @@ from arolla import arolla
 from koladata.operators import bootstrap
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import tuple as tuple_ops
 from koladata.types import py_boxing
 from koladata.types import qtypes
 
@@ -368,3 +369,132 @@ def as_parallel(arg):
     The parallel version of the given value.
   """
   return _internal_as_parallel(arg, _internal_as_parallel)
+
+
+@arolla.optools.as_lambda_operator(
+    'koda_internal.parallel._internal_make_namedtuple_with_names_from',
+)
+def _internal_make_namedtuple_with_names_from(example_namedtuple, *args):
+  """Creates a namedtuple with the same field names as the given example.
+
+  This helper is needed so that we can evaluate M.namedtuple.make
+  via async_eval, since it requires the field names to be statically
+  computable.
+
+  Args:
+    example_namedtuple: The example namedtuple to get the field names from.
+    *args: The field values for the new namedtuple.
+
+  Returns:
+    A namedtuple with the same field names as the given example and the given
+    field values.
+  """
+  args = arolla.optools.fix_trace_args(args)
+  return M.core.apply_varargs(
+      M.namedtuple.make,
+      M.qtype.get_field_names(M.qtype.qtype_of(example_namedtuple)),
+      args,
+  )
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._internal_future_from_parallel',
+    # Note that we do not check the tuple/namedtuple contents here,
+    # it will be checked in the recursive call.
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.outer_executor),
+        (
+            (
+                bootstrap.is_future_qtype(P.outer_arg)
+                & ~M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.outer_arg))
+                & ~M.qtype.is_namedtuple_qtype(
+                    M.qtype.get_value_qtype(P.outer_arg)
+                )
+                & (
+                    M.qtype.get_value_qtype(P.outer_arg)
+                    != qtypes.NON_DETERMINISTIC_TOKEN
+                )
+            )
+            | (P.outer_arg == qtypes.NON_DETERMINISTIC_TOKEN)
+            | M.qtype.is_tuple_qtype(P.outer_arg)
+            | M.qtype.is_namedtuple_qtype(P.outer_arg),
+            (
+                'future_from_parallel can only be applied to a parallel'
+                ' non-stream type, got'
+                f' {constraints.name_type_msg(P.outer_arg)}'
+            ),
+        ),
+    ],
+)
+def _internal_future_from_parallel(outer_arg, outer_executor, outer_self_op):
+  """Implementation helper for future_from_parallel."""
+  # We prefix the arguments with "outer_" here to avoid conflict with the
+  # names in DispatchOperator.
+  return arolla.types.DispatchOperator(
+      'arg, executor, self_op',
+      tuple_case=arolla.types.DispatchCase(
+          M.core.apply_varargs(
+              async_eval,
+              P.executor,
+              tuple_ops.make_tuple,
+              M.core.map_tuple(
+                  P.self_op,
+                  P.arg,
+                  P.executor,
+                  P.self_op,
+              ),
+          ),
+          condition=M.qtype.is_tuple_qtype(P.arg),
+      ),
+      namedtuple_case=arolla.types.DispatchCase(
+          M.core.apply_varargs(
+              async_eval,
+              P.executor,
+              _internal_make_namedtuple_with_names_from,
+              P.arg,
+              M.core.map_tuple(
+                  P.self_op,
+                  M.derived_qtype.upcast(M.qtype.qtype_of(P.arg), P.arg),
+                  P.executor,
+                  P.self_op,
+              ),
+          ),
+          condition=M.qtype.is_namedtuple_qtype(P.arg),
+      ),
+      non_deterministic_token_case=arolla.types.DispatchCase(
+          as_future(P.arg),
+          condition=P.arg == qtypes.NON_DETERMINISTIC_TOKEN,
+      ),
+      future_case=arolla.types.DispatchCase(
+          P.arg,
+          condition=bootstrap.is_future_qtype(P.arg),
+      ),
+  )(outer_arg, outer_executor, outer_self_op)
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel.future_from_parallel',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+    ],
+)
+def future_from_parallel(executor, arg):  # pylint: disable=unused-argument
+  """Given a value of a parallel type (see as_parallel), return a future.
+
+  The result of the future will be the eager value corresponding to the parallel
+  value. In case the parallel value involves streams, this will raise.
+
+  The transformation happening here is creating a future to tuple/namedtuple
+  instead of a tuple/namedtuple of futures.
+
+  Args:
+    executor: The executor to use to create tuples/namedtuples.
+    arg: The value to convert to the future form.
+
+  Returns:
+    A future with the eager value corresponding to the given parallel value.
+  """
+  return _internal_future_from_parallel(
+      arg, executor, _internal_future_from_parallel
+  )
