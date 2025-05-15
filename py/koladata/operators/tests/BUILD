@@ -8343,3 +8343,21 @@ py_test(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_test(
+    name = "koda_internal_parallel_stream_map_unordered_test",
+    srcs = ["koda_internal_parallel_stream_map_unordered_test.py"],
+    deps = [
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor:functor_factories",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)

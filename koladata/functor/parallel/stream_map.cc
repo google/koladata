@@ -283,6 +283,59 @@ class OrderedSink final : public Sink {
   absl::Mutex mutex_;
 };
 
+class UnorderedSink final : public Sink {
+ public:
+  explicit UnorderedSink(StreamWriterPtr /*absl_nonnull*/ writer)
+      : writer_(std::move(writer)) {}
+
+  ~UnorderedSink() final {
+    if (!failed_.test_and_set(std::memory_order_relaxed) &&
+        write_count_ == input_stream_size_) {
+      std::move(*writer_).Close(absl::OkStatus());
+    }
+  }
+
+  bool Accepts(size_t /*offset*/) const final {
+    return !failed_.test(std::memory_order_relaxed);
+  }
+
+  bool PushItem(size_t /*offset*/, arolla::TypedValue&& item) final {
+    if (!failed_.test(std::memory_order_relaxed)) [[likely]] {
+      if (writer_->TryWrite(item.AsRef())) [[likely]] {
+        write_count_ += 1;
+        return true;
+      }
+      failed_.test_and_set(std::memory_order_relaxed);
+    }
+    return false;
+  }
+
+  void PushStatus(size_t offset, absl::Status&& status) final {
+    if (status.ok()) {
+      // Note: We don't need any extra synchronization here, since
+      // `absl::OkStatus` indicates the end of the input stream, which
+      // can only occur once.
+      DCHECK(!input_stream_size_.has_value());
+      input_stream_size_ = offset;
+    } else if (!failed_.test_and_set(std::memory_order_relaxed)) {
+      std::move(*writer_).Close(std::move(status));
+    }
+  }
+
+  void Cancel(absl::Status&& status) final {
+    DCHECK(!status.ok());
+    if (!failed_.test_and_set(std::memory_order_relaxed)) {
+      std::move(*writer_).Close(std::move(status));
+    }
+  }
+
+ private:
+  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  std::atomic_flag failed_;
+  std::atomic<size_t> write_count_ = 0;
+  std::optional<size_t> input_stream_size_;
+};
+
 }  // namespace
 
 StreamPtr /*absl_nonnull*/ StreamMap(
@@ -291,6 +344,15 @@ StreamPtr /*absl_nonnull*/ StreamMap(
     arolla::QTypePtr /*absl_nonnull*/ return_value_type,  // clang-format hint
     Functor functor) {
   return StreamMapImpl<State<OrderedSink>>(
+      std::move(executor), input_stream, return_value_type, std::move(functor));
+}
+
+StreamPtr /*absl_nonnull*/ StreamMapUnordered(
+    ExecutorPtr /*absl_nonnull*/ executor,
+    const StreamPtr /*absl_nonnull*/& input_stream,
+    arolla::QTypePtr /*absl_nonnull*/ return_value_type,  // clang-format hint
+    Functor functor) {
+  return StreamMapImpl<State<UnorderedSink>>(
       std::move(executor), input_stream, return_value_type, std::move(functor));
 }
 

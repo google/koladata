@@ -347,4 +347,59 @@ absl::StatusOr<arolla::OperatorPtr> StreamMapOperatorFamily::DoGetOperator(
   return std::make_shared<StreamMapOp>(input_types, output_type);
 }
 
+namespace {
+
+class StreamMapUnorderedOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
+         input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
+         functor_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         return_value_qtype = output_slot.GetType()->value_qtype(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* /*ctx*/, arolla::FramePtr frame) {
+          frame.Set(output_slot,
+                    StreamMapUnordered(
+                        frame.Get(executor_slot), frame.Get(input_stream_slot),
+                        return_value_qtype,
+                        MakeStreamMapFunctor(frame.Get(functor_slot),
+                                             return_value_qtype)));
+        });
+  }
+};
+
+}  // namespace
+
+// stream_map_unordered(
+//     EXECUTOR, STREAM[S], DATA_SLICE, T, NON_DETERMINISTIC) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr>
+StreamMapUnorderedOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 5) {
+    return absl::InvalidArgumentError("requires exactly 5 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
+    return absl::InvalidArgumentError("the first argument must be an executor");
+  }
+  if (!IsStreamQType(input_types[1])) {
+    return absl::InvalidArgumentError("the second argument must be a stream");
+  }
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError("the third argument must be a functor");
+  }
+  // The fourth argument is used for type inference and can be anything, so we
+  // don't handle input_types[3] here.
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[4]));
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  return std::make_shared<StreamMapUnorderedOp>(input_types, output_type);
+}
+
 }  // namespace koladata::functor::parallel

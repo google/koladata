@@ -36,6 +36,19 @@ StreamPtr /*absl_nonnull*/ StreamMap(
         absl::StatusOr<arolla::TypedValue>(arolla::TypedRef) const>
         functor);
 
+// Applies the given functor to each item of the stream, and puts the resulting
+// values to a new stream. All computations happen on the provided executor.
+//
+// Importantly, the order of the items in the resulting stream is not
+// guaranteed.
+StreamPtr /*absl_nonnull*/ StreamMapUnordered(
+    ExecutorPtr /*absl_nonnull*/ executor,
+    const StreamPtr /*absl_nonnull*/& input_stream,
+    arolla::QTypePtr /*absl_nonnull*/ return_value_type,
+    absl::AnyInvocable<  // clang-format hint
+        absl::StatusOr<arolla::TypedValue>(arolla::TypedRef) const>
+        functor);
+
 }  // namespace koladata::functor::parallel
 
 #endif  // KOLADATA_FUNCTOR_PARALLEL_STREAM_MAP_H_
