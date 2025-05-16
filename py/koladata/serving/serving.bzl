@@ -23,6 +23,23 @@ def koladata_trace_py_fn(
         deps = deps + ["//py/koladata/serving:serving_impl"],
     )
 
+def koladata_export_dataslice(
+        qualname,
+        deps = []):
+    """Constructs call_python_function spec for exporting a Koda DataSlice.
+
+    Pass the result to koladata_cc_embedded_slices BUILD rules.
+
+    Args:
+      qualname: fully qualified Python object name.
+      deps: Dependencies for the Python object, e.g. the python library defining it.
+  """
+    return call_python_function(
+        "koladata.serving.serving_impl._import_object",
+        args = [qualname],
+        deps = deps + ["//py/koladata/serving:serving_impl"],
+    )
+
 def koladata_cc_embedded_slices(
         name,
         cc_function_name,

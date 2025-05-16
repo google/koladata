@@ -17,6 +17,7 @@ load("@rules_python//python:defs.bzl", "py_library")
 load(
     "//py/koladata/serving:serving.bzl",
     "koladata_cc_embedded_slices",
+    "koladata_export_dataslice",
     "koladata_trace_py_fn",
 )
 
@@ -43,6 +44,7 @@ koladata_cc_embedded_slices(
     slices = {
         "plus_one": koladata_trace_py_fn("koladata.serving.testing.test_functors.plus_one"),
         "ask_about_serving": koladata_trace_py_fn("koladata.serving.testing.test_functors.ask_about_serving"),
+        "TEST_DS": koladata_export_dataslice("koladata.serving.testing.test_functors.TEST_DS"),
     },
     tool_deps = [":test_functors"],  # Can also come from "deps =" argument of koladata_trace_py_fn above.
     deps = ["//py/koladata/serving:standard_deps"],

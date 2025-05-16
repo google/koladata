@@ -19,6 +19,7 @@ namespace koladata_serving_test {
 // The map contains slices:
 // *     "plus_one"
 // *     "ask_about_serving"
+// *     "TEST_DS"
 const absl::StatusOr<absl::flat_hash_map<std::string, ::koladata::DataSlice>>&
 TestFunctors();
 
@@ -32,6 +33,10 @@ TestFunctors_plus_one
 inline absl::StatusOr<::koladata::DataSlice>
 TestFunctors_ask_about_serving
 () { return TestFunctors("ask_about_serving"); }
+
+inline absl::StatusOr<::koladata::DataSlice>
+TestFunctors_TEST_DS
+() { return TestFunctors("TEST_DS"); }
 
 }  // namespace koladata_serving_test
 // NOLINTEND

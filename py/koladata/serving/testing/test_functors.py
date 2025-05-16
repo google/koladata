@@ -25,3 +25,5 @@ def ask_about_serving(
     call_external_fn: kd.types.DataSlice,
 ) -> kd.types.DataSlice:
   return call_external_fn("How to serve Koda functors?")
+
+TEST_DS = kd.slice([1, 2, 3])
