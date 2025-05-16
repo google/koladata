@@ -118,7 +118,17 @@ def from_proto(
             'itemid must be a 1-D DataSlice if messages is a list of messages'
         )
 
-  result = data_bag.DataBag.empty()._from_proto(  # pylint: disable=protected-access
+  if (
+      schema is not None
+      and schema.get_bag() is not None
+      and not schema.get_bag().get_fallbacks()
+  ):
+    # Avoid schema adoption.
+    bag = schema.get_bag().fork()
+    schema = schema.with_bag(bag)
+  else:
+    bag = data_bag.DataBag.empty()
+  result = bag._from_proto(  # pylint: disable=protected-access
       messages, extensions, itemid, schema
   )
 

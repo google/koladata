@@ -97,6 +97,28 @@ class FromProtoBytesTest(parameterized.TestCase):
     self.assertEqual(result.get_schema(), schema_constants.OBJECT)
     self.assertEqual(kde.to_itemid(result).eval(), itemid)
 
+  def test_schema_with_bag(self):
+    # Needs some field to ensure there is a DataBag attached to schema.
+    schema = expr_eval.eval(kde.schema.new_schema(x=schema_constants.INT32))
+
+    # Add an unrelated triple to the schema bag so we can tell if it has been
+    # adopted (w/ extraction) vs. forked.
+    x = expr_eval.eval(kde.new())
+    schema = expr_eval.eval(
+        kde.with_merged_bag(kde.updated(schema, kde.attrs(x, y=1)))
+    )
+
+    result = expr_eval.eval(
+        kde.proto.from_proto_bytes(
+            b'',
+            'koladata.functions.testing.MessageA',
+            schema=schema,
+        )
+    )
+    self.assertEqual(result.to_pytree(), {'x': None})
+    self.assertEqual(result.get_schema().no_bag(), schema.no_bag())
+    self.assertEqual(x.with_bag(result.get_bag()).y.to_py(), 1)
+
   def test_extensions(self):
     m = test_pb2.MessageA()
     m.Extensions[test_pb2.MessageAExtension.message_a_extension].extra = 2

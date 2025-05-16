@@ -85,6 +85,17 @@ class FromProtoTest(absltest.TestCase):
     self.assertEqual(x.get_ndim(), 0)
     self.assertEqual(x.get_schema(), schema_constants.OBJECT)
 
+  def test_single_empty_message_invalid_schema(self):
+    with self.assertRaisesRegex(
+        ValueError, re.escape("schema's schema must be SCHEMA, got: INT32")
+    ):
+      _ = fns.from_proto(test_pb2.MessageA(), schema=ds(123))
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape("schema's schema must be SCHEMA, got: "),
+    ):
+      _ = fns.from_proto(test_pb2.MessageA(), schema=fns.list([1, 2, 3]))
+
   def test_single_empty_message_itemid(self):
     x_itemid = fns.uu(seed='').get_itemid()
     x = fns.from_proto(test_pb2.MessageA(), itemid=x_itemid)
@@ -102,6 +113,26 @@ class FromProtoTest(absltest.TestCase):
     )
     x = fns.from_proto(m)
     s = x.get_schema()
+    self.assertEqual(x.get_ndim(), 0)
+
+    self.assertEqual(x.some_text, 'thing 1')
+    self.assertEqual(s.some_text, schema_constants.STRING)
+    self.assertEqual(x.some_float, 1.0)
+    self.assertEqual(s.some_float, schema_constants.FLOAT32)
+    testing.assert_equal(x.message_b_list[:].text.no_bag(), ds(['a', 'b', 'c']))
+
+  def test_single_message_explicit_schema(self):
+    s = fns.schema_from_proto(test_pb2.MessageA)
+    m = test_pb2.MessageA(
+        some_text='thing 1',
+        some_float=1.0,
+        message_b_list=[
+            test_pb2.MessageB(text='a'),
+            test_pb2.MessageB(text='b'),
+            test_pb2.MessageB(text='c'),
+        ]
+    )
+    x = fns.from_proto(m, schema=s)
     self.assertEqual(x.get_ndim(), 0)
 
     self.assertEqual(x.some_text, 'thing 1')

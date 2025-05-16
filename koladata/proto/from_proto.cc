@@ -1026,9 +1026,11 @@ absl::StatusOr<DataSlice> FromProto(
     const std::optional<DataSlice>& schema) {
   if (schema.has_value()) {
     RETURN_IF_ERROR(schema->VerifyIsSchema());
-    AdoptionQueue adoption_queue;
-    adoption_queue.Add(*schema);
-    RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+    if (schema->GetBag() != db) {
+      AdoptionQueue adoption_queue;
+      adoption_queue.Add(*schema);
+      RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+    }
   }
   if (messages.empty()) {
     return FromZeroProtoMessages(db, schema);

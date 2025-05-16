@@ -128,7 +128,18 @@ absl::StatusOr<DataSlice> FromProtoMessages(
     schema_value = schema;
   }
 
-  auto db = DataBag::Empty();
+  // TODO: Move this logic into koladata::FromProto.
+  DataBagPtr db;
+  if (schema_value.has_value() &&
+      schema_value->GetBag() != nullptr &&
+      schema_value->GetBag()->GetFallbacks().empty()) {
+    // Avoid extracting the schema if possible, because it might be much larger
+    // than the data for complex protos.
+    ASSIGN_OR_RETURN(db, schema_value->GetBag()->Fork());
+    schema_value = schema_value->WithBag(db);
+  } else {
+    db = DataBag::Empty();
+  }
   ASSIGN_OR_RETURN(auto result, FromProto(db, message_ptrs, extensions_value,
                                                itemids_value, schema_value));
   db->UnsafeMakeImmutable();

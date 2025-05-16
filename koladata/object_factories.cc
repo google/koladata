@@ -482,9 +482,11 @@ absl::StatusOr<DataSlice> CreateEntitiesImpl(
   if (schema) {
     // Copy schema into db before setting attributes for proper casting /
     // error reporting.
-    AdoptionQueue schema_adoption_queue;
-    schema_adoption_queue.Add(*schema);
-    RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
+    if (schema->GetBag() != db) {
+      AdoptionQueue schema_adoption_queue;
+      schema_adoption_queue.Add(*schema);
+      RETURN_IF_ERROR(schema_adoption_queue.AdoptInto(*db));
+    }
     RETURN_IF_ERROR(schema->WithBag(db).VerifyIsEntitySchema());
     schema_item = schema->item();
   } else {
