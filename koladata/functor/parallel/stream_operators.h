@@ -23,6 +23,14 @@
 namespace koladata::functor::parallel {
 
 // go/keep-sorted start block=yes newline_separated=yes
+// koda_internal.parallel.stream_chain_from_stream operator.
+class StreamChainFromStreamOperatorFamily final
+    : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 // koda_internal.parallel.stream_chain operator.
 // Chains the given streams together.
 class StreamChainOperatorFamily final : public arolla::OperatorFamily {
