@@ -61,7 +61,7 @@ py_test(
     srcs = ["executor_test.py"],
     deps = [
         ":clib",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
@@ -93,7 +93,7 @@ py_test(
     srcs = ["stream_test.py"],
     deps = [
         ":clib",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],

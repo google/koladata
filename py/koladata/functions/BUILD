@@ -33,6 +33,7 @@ py_library(
         ":py_conversions",
         ":s11n",
         ":schema",
+        "//py:python_path",
         "//py/koladata/fstring",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
@@ -44,6 +45,7 @@ py_library(
     name = "predicates",
     srcs = ["predicates.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
@@ -57,6 +59,7 @@ py_library(
     srcs = ["schema.py"],
     visibility = ["//visibility:private"],
     deps = [
+        "//py:python_path",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
@@ -70,6 +73,7 @@ py_library(
     srcs = ["attrs.py"],
     visibility = ["//visibility:private"],
     deps = [
+        "//py:python_path",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
@@ -81,6 +85,7 @@ py_library(
     srcs = ["object_factories.py"],
     visibility = ["//visibility:private"],
     deps = [
+        "//py:python_path",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
@@ -94,6 +99,7 @@ py_library(
     srcs = ["proto_conversions.py"],
     visibility = ["//visibility:private"],
     deps = [
+        "//py:python_path",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
@@ -106,6 +112,7 @@ py_library(
     srcs = ["py_conversions.py"],
     visibility = ["//visibility:private"],
     deps = [
+        "//py:python_path",
         "//py/koladata/base/py_conversions:clib",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
@@ -120,6 +127,7 @@ py_library(
     name = "s11n",
     srcs = ["s11n.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",

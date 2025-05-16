@@ -23,6 +23,7 @@ py_binary(
     srcs = ["@com_google_arolla//py/arolla/ipython:start_ipython"],
     main = "@com_google_arolla//py/arolla/ipython:start_ipython.py",
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata:kd_ext",
         "@com_google_arolla//py/arolla/ipython:start_ipython",

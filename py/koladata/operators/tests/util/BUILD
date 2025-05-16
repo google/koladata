@@ -31,6 +31,7 @@ py_library(
     srcs = ["koda_test_eval.py"],
     deps = [
         ":data_conversion",
+        "//py:python_path",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
@@ -43,6 +44,7 @@ py_library(
     name = "data_conversion",
     srcs = ["data_conversion.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
@@ -54,6 +56,7 @@ py_library(
     name = "qtypes",
     srcs = ["qtypes.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
@@ -65,6 +68,7 @@ py_test(
     deps = [
         ":data_conversion",
         ":koda_test_eval",
+        "//py:python_path",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/flags",
@@ -80,6 +84,7 @@ py_test(
     srcs = ["data_conversion_test.py"],
     deps = [
         ":data_conversion",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
         "//py/koladata/types:schema_constants",

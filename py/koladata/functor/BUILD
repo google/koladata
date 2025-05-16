@@ -31,6 +31,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":tracing_decorator",
+        "//py:python_path",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
@@ -42,6 +43,7 @@ py_test(
     srcs = ["expr_container_test.py"],
     deps = [
         ":expr_container",
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:tracing_mode",
@@ -93,6 +95,7 @@ py_test(
     deps = [
         ":stack_trace",
         ":testing_clib",
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
@@ -133,6 +136,7 @@ py_library(
     deps = [
         ":functor_factories",
         ":tracing_decorator",
+        "//py:python_path",
         "//py/koladata/types:signature_utils",
     ],
 )
@@ -144,6 +148,7 @@ py_library(
         ":py_functors_py_ext",
         ":stack_trace",
         "//koladata/expr:expr_operators",
+        "//py:python_path",
         "//py/koladata/base:py_functors_base_py_ext",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
@@ -166,6 +171,7 @@ py_test(
     deps = [
         ":boxing",
         ":functor_factories",
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -192,6 +198,7 @@ py_test(
         ":boxing",
         ":functor_factories",
         ":py_functors_py_ext",
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
@@ -214,6 +221,7 @@ py_library(
     deps = [
         ":functor_factories",
         ":stack_trace",
+        "//py:python_path",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
@@ -227,6 +235,7 @@ py_library(
     srcs = ["boxing.py"],
     deps = [
         ":functor_factories",
+        "//py:python_path",
         "//py/koladata/types:py_boxing",
     ],
 )
@@ -235,6 +244,7 @@ py_library(
     name = "stack_trace",
     srcs = ["stack_trace.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/functions",
         "//py/koladata/types:data_slice",
         "//py/koladata/util:kd_functools",
@@ -247,6 +257,7 @@ py_test(
     deps = [
         ":stack_trace",
         ":testing_clib",
+        "//py:python_path",
         "//py/koladata/functions",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
@@ -261,6 +272,7 @@ py_test(
         ":boxing",
         ":functor_factories",
         ":tracing_decorator",
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -276,6 +288,7 @@ py_test(
         ":boxing",
         ":functor_factories",
         ":tracing_decorator",
+        "//py:python_path",
         requirement("ipython"),
         "//py/koladata:kd",
         "//py/koladata/expr:input_container",

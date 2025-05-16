@@ -25,7 +25,10 @@ exports_files(["LICENSE"])
 py_library(
     name = "koladata",
     visibility = ["//visibility:public"],
-    deps = [":kd"],
+    deps = [
+        ":kd",
+        "//py:python_path",
+    ],
 )
 
 py_library(
@@ -33,7 +36,7 @@ py_library(
     srcs = ["kd.py"],
     visibility = ["//visibility:public"],
     deps = [
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
@@ -72,6 +75,7 @@ py_test(
     srcs = ["kd_test.py"],
     deps = [
         ":kd",
+        "//py:python_path",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/functions",
         "//py/koladata/types:jagged_shape",
@@ -88,6 +92,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":kd",
+        "//py:python_path",
         "//py/koladata/ext:nested_data",
         "//py/koladata/ext:npkd",
         "//py/koladata/ext:pdkd",
@@ -105,6 +110,7 @@ py_test(
     deps = [
         ":kd",
         ":kd_ext",
+        "//py:python_path",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
     ],

@@ -78,6 +78,9 @@ cc_library(
 py_library(
     name = "dataclasses_py_util",
     srcs = ["dataclasses_util.py"],
+    deps = [
+        "//py:python_path",
+    ],
 )
 
 py_test(
@@ -85,7 +88,7 @@ py_test(
     srcs = ["dataclasses_py_util_test.py"],
     deps = [
         ":dataclasses_py_util",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
@@ -143,7 +146,7 @@ py_test(
     srcs = ["dataclasses_util_test.py"],
     deps = [
         ":testing_clib",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
     ],

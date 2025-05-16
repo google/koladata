@@ -30,6 +30,7 @@ py_library(
     name = "test_functors",
     srcs = ["test_functors.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
     ],
 )

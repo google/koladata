@@ -66,6 +66,7 @@ py_library(
     srcs = ["serving_impl.py"],
     visibility = ["//visibility:public"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
     ],

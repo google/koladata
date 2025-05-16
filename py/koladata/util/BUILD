@@ -25,6 +25,7 @@ licenses(["notice"])
 py_library(
     name = "kd_functools",
     srcs = ["kd_functools.py"],
+    deps = ["//py:python_path"],
 )
 
 py_test(
@@ -32,7 +33,7 @@ py_test(
     srcs = ["kd_functools_test.py"],
     deps = [
         ":kd_functools",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )

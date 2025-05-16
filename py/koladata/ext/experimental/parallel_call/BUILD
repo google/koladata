@@ -22,6 +22,7 @@ py_library(
     visibility = ["//py/koladata:__pkg__"],
     deps = [
         ":task_repository",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
     ],
@@ -32,6 +33,7 @@ py_test(
     srcs = ["call_test.py"],
     deps = [
         ":call",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
@@ -41,5 +43,8 @@ py_test(
 py_library(
     name = "task_repository",
     srcs = ["task_repository.py"],
-    deps = ["@com_google_arolla//py/arolla"],
+    deps = [
+        "//py:python_path",
+        "@com_google_arolla//py/arolla",
+    ],
 )

@@ -25,6 +25,7 @@ py_test(
     srcs = ["data_bag_s11n_test.py"],
     deps = [
         "//koladata/s11n:codec_py_proto",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
@@ -37,6 +38,7 @@ py_test(
     srcs = ["jagged_shape_s11n_test.py"],
     deps = [
         "//koladata/s11n:codec_py_proto",
+        "//py:python_path",
         "//py/koladata/functions:s11n",
         "//py/koladata/types:jagged_shape",
         "@com_google_absl_py//absl/testing:absltest",
@@ -52,6 +54,7 @@ py_test(
     srcs = ["data_slice_s11n_test.py"],
     deps = [
         "//koladata/s11n:codec_py_proto",
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -70,6 +73,7 @@ py_test(
     srcs = ["literal_operator_s11n_test.py"],
     deps = [
         "//koladata/s11n:codec_py_proto",
+        "//py:python_path",
         "//py/koladata/types:literal_operator",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//arolla/serialization_codecs/generic:scalar_codec_py_proto",
@@ -83,6 +87,7 @@ py_test(
     srcs = ["ellipsis_s11n_test.py"],
     deps = [
         "//koladata/s11n:codec_py_proto",
+        "//py:python_path",
         "//py/koladata/types:ellipsis",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
@@ -95,6 +100,7 @@ py_test(
     srcs = ["non_deterministic_s11n_test.py"],
     deps = [
         "//koladata/s11n:codec_py_proto",
+        "//py:python_path",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",

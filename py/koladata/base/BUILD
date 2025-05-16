@@ -72,6 +72,7 @@ py_test(
     srcs = ["to_py_object_test.py"],
     deps = [
         ":to_py_object_testing_clib",
+        "//py:python_path",
         "//py/koladata/functions",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
@@ -242,7 +243,7 @@ py_test(
     deps = [
         ":wrap_utils",
         ":wrap_utils_testing_clib",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
@@ -254,6 +255,7 @@ py_test(
     srcs = ["py_functors_base_test.py"],
     deps = [
         ":py_functors_base_py_ext",
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/functions",
@@ -266,6 +268,7 @@ py_test(
     name = "boxing_test",
     srcs = ["boxing_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/base/testing:operator_test_invalid_unicode_op_clib",
         "//py/koladata/operators:comparison",
         "//py/koladata/testing",

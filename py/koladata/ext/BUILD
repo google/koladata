@@ -28,6 +28,7 @@ py_library(
     srcs = ["npkd.py"],
     visibility = ["//visibility:public"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         requirement("numpy"),
         "@com_google_arolla//py/arolla",
@@ -40,6 +41,7 @@ py_test(
     srcs = ["npkd_test.py"],
     deps = [
         ":npkd",
+        "//py:python_path",
         "//py/koladata:kd",
         requirement("numpy"),
         "@com_google_absl_py//absl/testing:absltest",
@@ -53,6 +55,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":npkd",
+        "//py:python_path",
         "//py/koladata:kd",
         requirement("pandas"),
         "@com_google_arolla//py/arolla",
@@ -64,6 +67,7 @@ py_test(
     srcs = ["pdkd_test.py"],
     deps = [
         ":pdkd",
+        "//py:python_path",
         "//py/koladata:kd",
         requirement("numpy"),
         requirement("pandas"),
@@ -77,6 +81,7 @@ py_library(
     name = "py_cloudpickle",
     srcs = ["py_cloudpickle.py"],
     deps = [
+        "//py:python_path",
         requirement("cloudpickle"),
         "@com_google_arolla//py/arolla",
     ],
@@ -87,6 +92,7 @@ py_test(
     srcs = ["py_cloudpickle_test.py"],
     deps = [
         ":py_cloudpickle",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
     ],
@@ -97,6 +103,7 @@ py_library(
     srcs = ["functools.py"],
     visibility = ["//visibility:public"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
     ],
@@ -107,6 +114,7 @@ py_test(
     srcs = ["functools_test.py"],
     deps = [
         ":functools",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
     ],
@@ -118,6 +126,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         ":functools",
+        "//py:python_path",
         "//py/koladata:kd",
     ],
 )
@@ -127,6 +136,7 @@ py_test(
     srcs = ["nested_data_test.py"],
     deps = [
         ":nested_data",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -142,6 +152,7 @@ py_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
+        "//py:python_path",
         requirement("ipython"),
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
@@ -154,6 +165,7 @@ py_test(
     srcs = ["vis_test.py"],
     deps = [
         ":vis",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -169,6 +181,7 @@ py_test(
     ],
     deps = [
         ":nested_data",
+        "//py:python_path",
         "//py/koladata:kd",
         requirement("google-benchmark"),
         # Enables python functions in profile.

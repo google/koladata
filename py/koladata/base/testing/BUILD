@@ -80,7 +80,7 @@ py_test(
     srcs = ["py_args_py_ext_test.py"],
     deps = [
         ":py_args_py_ext",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )

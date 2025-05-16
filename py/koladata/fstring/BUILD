@@ -59,7 +59,7 @@ py_library(
     srcs = ["fstring.py"],
     deps = [
         ":fstring_py_ext",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
     ],
 )
 
@@ -115,6 +115,7 @@ py_test(
     srcs = ["fstr_test.py"],
     deps = [
         ":fstring",
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/functions",
         "//py/koladata/testing",

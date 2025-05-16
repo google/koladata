@@ -29,7 +29,7 @@ py_test(
     deps = [
         ":data_item_py_ext",
         ":data_slice_py_ext",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
@@ -43,6 +43,7 @@ py_library(
         ":data_slice",
         ":ellipsis",
         ":literal_operator",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
@@ -58,6 +59,7 @@ py_test(
         ":ellipsis",
         ":literal_operator",
         ":py_boxing",
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -126,7 +128,7 @@ py_library(
         ":data_slice_py_ext",
         ":general_eager_ops",
         ":jagged_shape",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "//py/koladata/base/py_conversions:dataclasses_py_util",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
@@ -146,6 +148,7 @@ py_test(
         ":mask_constants",
         ":qtypes",
         ":schema_constants",
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:input_container",
         "//py/koladata/functions",
@@ -203,6 +206,7 @@ py_library(
     deps = [
         ":data_item_py_ext",
         ":data_slice",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
@@ -217,6 +221,7 @@ py_test(
         ":data_slice",
         ":jagged_shape",
         ":schema_constants",
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:input_container",
         "//py/koladata/functions",
@@ -235,6 +240,7 @@ py_library(
     deps = [
         ":data_item",
         ":data_slice",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
@@ -250,6 +256,7 @@ py_test(
         ":jagged_shape",
         ":list_item",
         ":mask_constants",
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
@@ -264,6 +271,7 @@ py_library(
     deps = [
         ":data_item",
         ":data_slice",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -278,6 +286,7 @@ py_test(
         ":dict_item",
         ":jagged_shape",
         ":schema_constants",
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
@@ -292,6 +301,7 @@ py_library(
     deps = [
         ":data_item",
         ":data_slice",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
@@ -305,6 +315,7 @@ py_library(
         ":data_item",
         ":data_slice",
         ":py_boxing",
+        "//py:python_path",
         "//py/koladata/base:py_functors_base_py_ext",
     ],
 )
@@ -319,6 +330,7 @@ py_test(
         ":jagged_shape",
         ":schema_constants",
         ":schema_item",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -335,6 +347,7 @@ py_test(
         ":data_slice",
         ":schema_constants",
         ":signature_utils",
+        "//py:python_path",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "@com_google_absl_py//absl/testing:absltest",
@@ -351,7 +364,7 @@ py_library(
         ":ellipsis",
         ":jagged_shape",
         "//koladata/functor/parallel:init_expr_operators",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -365,6 +378,7 @@ py_test(
         ":data_slice",
         ":ellipsis",
         ":qtypes",
+        "//py:python_path",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
@@ -377,6 +391,7 @@ py_library(
     deps = [
         ":py_misc_py_ext",
         ":schema_item",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -387,7 +402,7 @@ py_test(
     deps = [
         ":schema_constants",
         ":schema_item",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
@@ -449,6 +464,7 @@ py_library(
         ":data_slice_py_ext",
         ":general_eager_ops",
         ":jagged_shape",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
@@ -508,7 +524,7 @@ py_library(
     srcs = ["literal_operator.py"],
     deps = [
         ":py_misc_py_ext",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -521,6 +537,7 @@ py_test(
         ":data_slice",
         ":literal_operator",
         ":qtypes",
+        "//py:python_path",
         "//py/koladata/expr:view",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
@@ -536,6 +553,7 @@ py_library(
     srcs = ["jagged_shape.py"],
     deps = [
         ":py_misc_py_ext",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
@@ -551,6 +569,7 @@ py_test(
         ":data_slice",
         ":jagged_shape",
         ":schema_constants",
+        "//py:python_path",
         "//py/koladata/functions/tests:test_py_pb2",
         "//py/koladata/operators:comparison",
         "//py/koladata/operators:kde_operators",
@@ -568,6 +587,7 @@ py_test(
     deps = [
         ":data_slice",
         ":jagged_shape",
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
@@ -580,7 +600,7 @@ py_library(
     srcs = ["ellipsis.py"],
     deps = [
         "//koladata/s11n",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
     ],
@@ -592,6 +612,7 @@ py_library(
     deps = [
         ":data_item",
         ":schema_constants",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -599,7 +620,10 @@ py_library(
 py_library(
     name = "general_eager_ops",
     srcs = ["general_eager_ops.py"],
-    deps = ["@com_google_arolla//py/arolla"],
+    deps = [
+        "//py:python_path",
+        "@com_google_arolla//py/arolla",
+    ],
 )
 
 py_library(
@@ -608,6 +632,7 @@ py_library(
     deps = [
         ":py_boxing",
         ":qtypes",
+        "//py:python_path",
         "//py/koladata/operators:koda_internal_iterables",
         "@com_google_arolla//py/arolla",
     ],
@@ -621,6 +646,7 @@ py_test(
         ":data_slice",
         ":iterable_qvalue",
         ":qtypes",
+        "//py:python_path",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
@@ -633,6 +659,7 @@ py_test(
     deps = [
         ":data_slice",
         ":general_eager_ops",
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
@@ -645,6 +672,7 @@ py_test(
         ":data_item",
         ":mask_constants",
         ":schema_constants",
+        "//py:python_path",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
@@ -656,6 +684,7 @@ py_test(
     srcs = ["ellipsis_test.py"],
     deps = [
         ":ellipsis",
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
@@ -668,6 +697,7 @@ py_test(
         ":data_slice",
         ":jagged_shape",
         ":py_misc_py_ext",
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
@@ -681,6 +711,7 @@ py_test(
     deps = [
         ":data_bag",
         ":data_slice",
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",

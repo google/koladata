@@ -29,6 +29,7 @@ py_library(
     srcs = ["input_container.py"],
     deps = [
         "//koladata/expr:init",
+        "//py:python_path",
         "//py/koladata/types:literal_operator",
         "@com_google_arolla//py/arolla",
     ],
@@ -41,6 +42,7 @@ py_test(
         ":expr_eval",
         ":input_container",
         ":view",
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -58,6 +60,7 @@ py_library(
         ":expr_eval",
         ":input_container",
         ":introspection",
+        "//py:python_path",
         "//py/koladata/fstring",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
@@ -72,6 +75,7 @@ py_library(
     deps = [
         ":input_container",
         ":py_expr_eval_py_ext",
+        "//py:python_path",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
@@ -84,6 +88,7 @@ py_library(
     srcs = ["introspection.py"],
     deps = [
         ":input_container",
+        "//py:python_path",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:mask_constants",
@@ -96,6 +101,7 @@ py_library(
 py_library(
     name = "tracing_mode",
     srcs = ["tracing_mode.py"],
+    deps = ["//py:python_path"],
 )
 
 py_test(
@@ -103,7 +109,7 @@ py_test(
     srcs = ["tracing_mode_test.py"],
     deps = [
         ":tracing_mode",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
@@ -116,6 +122,7 @@ py_library(
         ":input_container",
         ":introspection",
         ":tracing_mode",
+        "//py:python_path",
         "//py/koladata/types:py_boxing",
         "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
@@ -127,6 +134,7 @@ py_test(
     srcs = ["tracing_test.py"],
     deps = [
         ":tracing",
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
@@ -140,6 +148,7 @@ py_test(
     deps = [
         ":input_container",
         ":introspection",
+        "//py:python_path",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -160,6 +169,7 @@ py_test(
         ":input_container",
         ":introspection",
         ":view",
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:view_overloads",
         "//py/koladata/testing",
@@ -181,6 +191,7 @@ py_test(
         ":input_container",
         ":py_expr_eval_py_ext",
         ":view",
+        "//py:python_path",
         "//py/koladata/functions",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",
@@ -199,6 +210,7 @@ py_test(
     deps = [
         ":input_container",
         ":py_expr_eval_py_ext",
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
         "//py/koladata/testing",

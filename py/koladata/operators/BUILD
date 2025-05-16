@@ -99,6 +99,7 @@ py_library(
         ":koda_internal_parallel",
         ":optools",
         ":py",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -166,6 +167,7 @@ py_library(
         ":slices",
         ":strings",
         ":tuple",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -176,6 +178,7 @@ py_library(
     visibility = ["//visibility:private"],
     deps = [
         ":koda_internal_parallel",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -214,6 +217,7 @@ py_library(
     srcs = ["unified_binding_policy.py"],
     deps = [
         ":py_optools_py_ext",
+        "//py:python_path",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
@@ -225,6 +229,7 @@ py_test(
     deps = [
         ":op_repr",
         ":unified_binding_policy",
+        "//py:python_path",
         "//py/koladata/testing",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -241,6 +246,7 @@ py_library(
         ":op_repr",
         ":qtype_utils",
         ":unified_binding_policy",
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/types:py_boxing",
@@ -261,6 +267,7 @@ py_test(
         ":optools_test_utils",
         ":qtype_utils",
         ":tuple",
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -282,6 +289,7 @@ py_library(
         ":bootstrap",
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
@@ -294,6 +302,7 @@ py_test(
         ":kde_operators",
         ":koda_internal_parallel",
         ":qtype_utils",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
@@ -313,6 +322,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
@@ -325,6 +335,7 @@ py_library(
         ":jagged_shape",
         ":optools",
         ":qtype_utils",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -336,6 +347,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -350,6 +362,7 @@ py_library(
         ":qtype_utils",
         ":schema",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
     ],
@@ -364,6 +377,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
@@ -378,6 +392,7 @@ py_library(
         ":op_repr",
         ":optools",
         ":qtype_utils",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
@@ -393,6 +408,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -408,6 +424,7 @@ py_library(
         ":qtype_utils",
         ":slices",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/fstring",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
@@ -426,6 +443,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         ":view_overloads",
+        "//py:python_path",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
@@ -447,6 +465,7 @@ py_library(
         ":tuple",
         ":view_overloads",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -468,6 +487,7 @@ py_library(
         ":qtype_utils",
         ":view_overloads",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
@@ -486,6 +506,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
@@ -501,6 +522,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -518,6 +540,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         "//koladata/operators",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -531,6 +554,7 @@ py_library(
         ":qtype_utils",
         ":schema",
         "//koladata/operators",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -552,6 +576,7 @@ py_library(
         ":schema",
         ":slices",
         "//koladata/operators",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
@@ -567,6 +592,7 @@ py_library(
         ":qtype_utils",
         ":schema",
         ":slices",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
@@ -592,6 +618,7 @@ py_library(
         ":qtype_utils",
         ":schema",
         ":view_overloads",
+        "//py:python_path",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
@@ -608,6 +635,7 @@ py_library(
     srcs = ["koda_internal.py"],
     deps = [
         ":optools",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -617,6 +645,7 @@ py_test(
     srcs = ["kde_operators_test.py"],
     deps = [
         ":kde_operators",
+        "//py:python_path",
         "//py/koladata/functions",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
@@ -628,6 +657,7 @@ py_library(
     srcs = ["eager_op_utils.py"],
     deps = [
         ":kde_operators",
+        "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/abc:py_abc",
@@ -639,6 +669,7 @@ py_library(
     srcs = ["op_repr.py"],
     deps = [
         ":unified_binding_policy",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
     ],
@@ -661,6 +692,7 @@ py_library(
         ":slices",
         ":tuple",
         "//koladata/functor:operators",
+        "//py:python_path",
         "//py/koladata/base:py_functors_base_py_ext",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
@@ -679,6 +711,7 @@ py_library(
     srcs = ["annotation.py"],
     deps = [
         ":optools",
+        "//py:python_path",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
     ],
@@ -690,6 +723,7 @@ py_library(
     deps = [
         ":op_repr",
         ":optools",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -698,7 +732,10 @@ py_library(
     name = "optools_test_utils",
     testonly = True,
     srcs = ["optools_test_utils.py"],
-    deps = ["@com_google_arolla//py/arolla"],
+    deps = [
+        "//py:python_path",
+        "@com_google_arolla//py/arolla",
+    ],
 )
 
 py_library(
@@ -710,6 +747,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         ":view_overloads",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
@@ -725,6 +763,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         ":view_overloads",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
@@ -739,6 +778,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         ":view_overloads",
+        "//py:python_path",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
@@ -754,6 +794,7 @@ py_library(
         ":optools",
         ":qtype_utils",
         ":view_overloads",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
     ],
@@ -773,6 +814,7 @@ py_library(
         ":slices",
         "//koladata/iterables:init_expr_operators",
         "//koladata/iterables:operators",
+        "//py:python_path",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
@@ -785,6 +827,7 @@ py_library(
         ":bootstrap",
         ":koda_internal_iterables",
         ":optools",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
     ],
@@ -793,7 +836,10 @@ py_library(
 py_library(
     name = "bootstrap",
     srcs = ["bootstrap.py"],
-    deps = ["@com_google_arolla//py/arolla"],
+    deps = [
+        "//py:python_path",
+        "@com_google_arolla//py/arolla",
+    ],
 )
 
 py_library(
@@ -806,6 +852,7 @@ py_library(
         ":tuple",
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/functor/parallel:operators",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -819,6 +866,7 @@ py_test(
     deps = [
         ":eager_op_utils",
         ":optools",
+        "//py:python_path",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
@@ -833,6 +881,7 @@ py_test(
     deps = [
         ":kde_operators",
         ":op_repr",
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",

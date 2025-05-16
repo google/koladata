@@ -24,6 +24,7 @@ py_library(
     name = "type_checking",
     srcs = ["type_checking.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/expr:view",
         "//py/koladata/operators:eager_op_utils",
@@ -41,6 +42,7 @@ py_test(
     srcs = ["type_checking_test.py"],
     deps = [
         ":type_checking",
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",

@@ -33,6 +33,7 @@ py_test(
     name = "allocation_new_itemid_test",
     srcs = ["allocation_new_itemid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -53,6 +54,7 @@ py_test(
     name = "allocation_new_itemid_shaped_test",
     srcs = ["allocation_new_itemid_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -74,6 +76,7 @@ py_test(
     name = "allocation_new_itemid_like_test",
     srcs = ["allocation_new_itemid_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -95,6 +98,7 @@ py_test(
     name = "allocation_new_itemid_shaped_as_test",
     srcs = ["allocation_new_itemid_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -116,6 +120,7 @@ py_test(
     name = "allocation_new_listid_test",
     srcs = ["allocation_new_listid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -136,6 +141,7 @@ py_test(
     name = "allocation_new_listid_shaped_test",
     srcs = ["allocation_new_listid_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -157,6 +163,7 @@ py_test(
     name = "allocation_new_listid_like_test",
     srcs = ["allocation_new_listid_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -178,6 +185,7 @@ py_test(
     name = "allocation_new_listid_shaped_as_test",
     srcs = ["allocation_new_listid_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -199,6 +207,7 @@ py_test(
     name = "allocation_new_dictid_test",
     srcs = ["allocation_new_dictid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -219,6 +228,7 @@ py_test(
     name = "allocation_new_dictid_shaped_test",
     srcs = ["allocation_new_dictid_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -240,6 +250,7 @@ py_test(
     name = "allocation_new_dictid_like_test",
     srcs = ["allocation_new_dictid_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -261,6 +272,7 @@ py_test(
     name = "allocation_new_dictid_shaped_as_test",
     srcs = ["allocation_new_dictid_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -282,6 +294,7 @@ py_test(
     name = "bags_new_test",
     srcs = ["bags_new_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -300,6 +313,7 @@ py_test(
     name = "dicts_size_test",
     srcs = ["dicts_size_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -323,6 +337,7 @@ py_test(
     name = "dicts_dict_update_test",
     srcs = ["dicts_dict_update_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -345,6 +360,7 @@ py_test(
     name = "dicts_with_dict_update_test",
     srcs = ["dicts_with_dict_update_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -367,6 +383,7 @@ py_test(
     name = "lists_like_test",
     srcs = ["lists_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -389,6 +406,7 @@ py_test(
     name = "lists_shaped_test",
     srcs = ["lists_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -412,6 +430,7 @@ py_test(
     name = "lists_shaped_as_test",
     srcs = ["lists_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -434,6 +453,7 @@ py_test(
     name = "lists_size_test",
     srcs = ["lists_size_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -457,6 +477,7 @@ py_test(
     name = "core_is_entity_test",
     srcs = ["core_is_entity_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -479,6 +500,7 @@ py_test(
     name = "core_has_entity_test",
     srcs = ["core_has_entity_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -500,6 +522,7 @@ py_test(
     name = "lists_is_list_test",
     srcs = ["lists_is_list_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -522,6 +545,7 @@ py_test(
     name = "lists_has_list_test",
     srcs = ["lists_has_list_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -543,6 +567,7 @@ py_test(
     name = "dicts_is_dict_test",
     srcs = ["dicts_is_dict_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -565,6 +590,7 @@ py_test(
     name = "dicts_has_dict_test",
     srcs = ["dicts_has_dict_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -586,6 +612,7 @@ py_test(
     name = "math_add_test",
     srcs = ["math_add_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -606,6 +633,7 @@ py_test(
     name = "math_subtract_test",
     srcs = ["math_subtract_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -625,6 +653,7 @@ py_test(
     name = "math_multiply_test",
     srcs = ["math_multiply_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -644,6 +673,7 @@ py_test(
     name = "math_divide_test",
     srcs = ["math_divide_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -663,6 +693,7 @@ py_test(
     name = "math_log_test",
     srcs = ["math_log_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -682,6 +713,7 @@ py_test(
     name = "math_log10_test",
     srcs = ["math_log10_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -701,6 +733,7 @@ py_test(
     name = "math_exp_test",
     srcs = ["math_exp_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -720,6 +753,7 @@ py_test(
     name = "math_sigmoid_test",
     srcs = ["math_sigmoid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -739,6 +773,7 @@ py_test(
     name = "math_abs_test",
     srcs = ["math_abs_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -758,6 +793,7 @@ py_test(
     name = "math_neg_test",
     srcs = ["math_neg_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -777,6 +813,7 @@ py_test(
     name = "math_sign_test",
     srcs = ["math_sign_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -796,6 +833,7 @@ py_test(
     name = "functor_flat_map_chain_test",
     srcs = ["functor_flat_map_chain_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -816,6 +854,7 @@ py_test(
     name = "functor_flat_map_interleaved_test",
     srcs = ["functor_flat_map_interleaved_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -836,6 +875,7 @@ py_test(
     name = "math_pos_test",
     srcs = ["math_pos_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -855,6 +895,7 @@ py_test(
     name = "math_ceil_test",
     srcs = ["math_ceil_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -874,6 +915,7 @@ py_test(
     name = "math_floor_test",
     srcs = ["math_floor_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -893,6 +935,7 @@ py_test(
     name = "math_round_test",
     srcs = ["math_round_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -912,6 +955,7 @@ py_test(
     name = "math_pow_test",
     srcs = ["math_pow_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -931,6 +975,7 @@ py_test(
     name = "math_floordiv_test",
     srcs = ["math_floordiv_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -950,6 +995,7 @@ py_test(
     name = "math_mod_test",
     srcs = ["math_mod_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -969,6 +1015,7 @@ py_test(
     name = "math_maximum_test",
     srcs = ["math_maximum_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -989,6 +1036,7 @@ py_test(
     name = "math_minimum_test",
     srcs = ["math_minimum_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1009,6 +1057,7 @@ py_test(
     name = "math_cum_max_test",
     srcs = ["math_cum_max_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1028,6 +1077,7 @@ py_test(
     name = "math_cum_min_test",
     srcs = ["math_cum_min_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1047,6 +1097,7 @@ py_test(
     name = "math_cum_sum_test",
     srcs = ["math_cum_sum_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1066,6 +1117,7 @@ py_test(
     name = "math_cdf_test",
     srcs = ["math_cdf_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1086,6 +1138,7 @@ py_test(
     name = "math_softmax_test",
     srcs = ["math_softmax_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1106,6 +1159,7 @@ py_test(
     name = "math_agg_inverse_cdf_test",
     srcs = ["math_agg_inverse_cdf_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1126,6 +1180,7 @@ py_test(
     name = "math_inverse_cdf_test",
     srcs = ["math_inverse_cdf_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1146,6 +1201,7 @@ py_test(
     name = "math_is_nan_test",
     srcs = ["math_is_nan_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1166,6 +1222,7 @@ py_test(
     name = "core_get_attr_test",
     srcs = ["core_get_attr_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -1189,6 +1246,7 @@ py_test(
     name = "core_get_attr_names_test",
     srcs = ["core_get_attr_names_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:eager_op_utils",
@@ -1209,6 +1267,7 @@ py_test(
     name = "core_has_attr_test",
     srcs = ["core_has_attr_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1231,6 +1290,7 @@ py_test(
     name = "slices_is_empty_test",
     srcs = ["slices_is_empty_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1251,6 +1311,7 @@ py_test(
     name = "core_maybe_test",
     srcs = ["core_maybe_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1273,6 +1334,7 @@ py_test(
     name = "core_attrs_test",
     srcs = ["core_attrs_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -1292,6 +1354,7 @@ py_test(
     name = "core_attr_test",
     srcs = ["core_attr_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -1312,6 +1375,7 @@ py_test(
     name = "core_with_attrs_test",
     srcs = ["core_with_attrs_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -1331,6 +1395,7 @@ py_test(
     name = "core_with_attr_test",
     srcs = ["core_with_attr_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -1351,6 +1416,7 @@ py_test(
     name = "entities_new_test",
     srcs = ["entities_new_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1372,6 +1438,7 @@ py_test(
     name = "entities_shaped_test",
     srcs = ["entities_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1394,6 +1461,7 @@ py_test(
     name = "entities_shaped_as_test",
     srcs = ["entities_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1416,6 +1484,7 @@ py_test(
     name = "objs_new_test",
     srcs = ["objs_new_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1438,6 +1507,7 @@ py_test(
     name = "objs_shaped_test",
     srcs = ["objs_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1460,6 +1530,7 @@ py_test(
     name = "objs_shaped_as_test",
     srcs = ["objs_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -1482,6 +1553,7 @@ py_test(
     name = "objs_like_test",
     srcs = ["objs_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1503,6 +1575,7 @@ py_test(
     name = "entities_like_test",
     srcs = ["entities_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1524,6 +1597,7 @@ py_test(
     name = "dicts_new_test",
     srcs = ["dicts_new_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1545,6 +1619,7 @@ py_test(
     name = "dicts_shaped_test",
     srcs = ["dicts_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1567,6 +1642,7 @@ py_test(
     name = "dicts_shaped_as_test",
     srcs = ["dicts_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1589,6 +1665,7 @@ py_test(
     name = "dicts_like_test",
     srcs = ["dicts_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1612,6 +1689,7 @@ py_test(
     name = "core_get_item_test",
     srcs = ["core_get_item_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -1636,6 +1714,7 @@ py_test(
     name = "dicts_get_keys_test",
     srcs = ["dicts_get_keys_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -1657,6 +1736,7 @@ py_test(
     name = "dicts_get_values_test",
     srcs = ["dicts_get_values_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -1678,6 +1758,7 @@ py_test(
     name = "core_get_bag_test",
     srcs = ["core_get_bag_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -1699,6 +1780,7 @@ py_test(
     name = "masking_apply_mask_test",
     srcs = ["masking_apply_mask_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1719,6 +1801,7 @@ py_test(
     name = "masking_mask_and_test",
     srcs = ["masking_mask_and_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1739,6 +1822,7 @@ py_test(
     name = "masking_mask_or_test",
     srcs = ["masking_mask_or_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1759,6 +1843,7 @@ py_test(
     name = "masking_mask_equal_test",
     srcs = ["masking_mask_equal_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1779,6 +1864,7 @@ py_test(
     name = "masking_mask_not_equal_test",
     srcs = ["masking_mask_not_equal_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1799,6 +1885,7 @@ py_test(
     name = "masking_xor_test",
     srcs = ["masking_xor_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1819,6 +1906,7 @@ py_test(
     name = "functor_maybe_call_test",
     srcs = ["functor_maybe_call_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1839,6 +1927,7 @@ py_test(
     name = "slices_select_test",
     srcs = ["slices_select_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1862,6 +1951,7 @@ py_test(
     name = "slices_select_present_test",
     srcs = ["slices_select_present_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1881,6 +1971,7 @@ py_test(
     name = "lists_select_items_test",
     srcs = ["lists_select_items_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -1904,6 +1995,7 @@ py_test(
     name = "dicts_select_keys_test",
     srcs = ["dicts_select_keys_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -1928,6 +2020,7 @@ py_test(
     name = "dicts_select_values_test",
     srcs = ["dicts_select_values_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -1952,6 +2045,7 @@ py_test(
     name = "slices_inverse_select_test",
     srcs = ["slices_inverse_select_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1972,6 +2066,7 @@ py_test(
     name = "slices_reverse_test",
     srcs = ["slices_reverse_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -1991,6 +2086,7 @@ py_test(
     name = "slices_isin_test",
     srcs = ["slices_isin_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2012,6 +2108,7 @@ py_test(
     name = "ids_encode_decode_itemid_test",
     srcs = ["ids_encode_decode_itemid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2034,6 +2131,7 @@ py_test(
     name = "masking_coalesce_test",
     srcs = ["masking_coalesce_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -2057,6 +2155,7 @@ py_test(
     name = "masking_disjoint_coalesce_test",
     srcs = ["masking_disjoint_coalesce_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -2079,6 +2178,7 @@ py_test(
     name = "masking_cond_test",
     srcs = ["masking_cond_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2101,6 +2201,7 @@ py_test(
     name = "comparison_equal_test",
     srcs = ["comparison_equal_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2122,6 +2223,7 @@ py_test(
     name = "comparison_full_equal_test",
     srcs = ["comparison_full_equal_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2143,6 +2245,7 @@ py_test(
     name = "comparison_not_equal_test",
     srcs = ["comparison_not_equal_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2163,6 +2266,7 @@ py_test(
     name = "comparison_greater_test",
     srcs = ["comparison_greater_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2183,6 +2287,7 @@ py_test(
     name = "comparison_greater_equal_test",
     srcs = ["comparison_greater_equal_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2203,6 +2308,7 @@ py_test(
     name = "comparison_less_test",
     srcs = ["comparison_less_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2223,6 +2329,7 @@ py_test(
     name = "comparison_less_equal_test",
     srcs = ["comparison_less_equal_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2244,6 +2351,7 @@ py_test(
     name = "strings_split_test",
     srcs = ["strings_split_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2264,6 +2372,7 @@ py_test(
     name = "strings_agg_join_test",
     srcs = ["strings_agg_join_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2283,6 +2392,7 @@ py_test(
     name = "strings_strip_test",
     srcs = ["strings_strip_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2302,6 +2412,7 @@ py_test(
     name = "strings_lstrip_test",
     srcs = ["strings_lstrip_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2321,6 +2432,7 @@ py_test(
     name = "strings_rstrip_test",
     srcs = ["strings_rstrip_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2340,6 +2452,7 @@ py_test(
     name = "strings_substr_test",
     srcs = ["strings_substr_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2361,6 +2474,7 @@ py_test(
     name = "masking_has_test",
     srcs = ["masking_has_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2382,6 +2496,7 @@ py_test(
     name = "masking_has_not_test",
     srcs = ["masking_has_not_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2403,6 +2518,7 @@ py_test(
     name = "math_agg_sum_test",
     srcs = ["math_agg_sum_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2424,6 +2540,7 @@ py_test(
     name = "math_sum_test",
     srcs = ["math_sum_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2444,6 +2561,7 @@ py_test(
     name = "math_agg_mean_test",
     srcs = ["math_agg_mean_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2464,6 +2582,7 @@ py_test(
     name = "math_mean_test",
     srcs = ["math_mean_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2482,6 +2601,7 @@ py_test(
     name = "math_agg_median_test",
     srcs = ["math_agg_median_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2502,6 +2622,7 @@ py_test(
     name = "math_median_test",
     srcs = ["math_median_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2520,6 +2641,7 @@ py_test(
     name = "math_agg_std_test",
     srcs = ["math_agg_std_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2540,6 +2662,7 @@ py_test(
     name = "math_agg_var_test",
     srcs = ["math_agg_var_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2560,6 +2683,7 @@ py_test(
     name = "math_agg_max_test",
     srcs = ["math_agg_max_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2581,6 +2705,7 @@ py_test(
     name = "math_max_test",
     srcs = ["math_max_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2601,6 +2726,7 @@ py_test(
     name = "math_argmax_test",
     srcs = ["math_argmax_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2623,6 +2749,7 @@ py_test(
     name = "math_agg_min_test",
     srcs = ["math_agg_min_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2644,6 +2771,7 @@ py_test(
     name = "math_argmin_test",
     srcs = ["math_argmin_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2666,6 +2794,7 @@ py_test(
     name = "math_min_test",
     srcs = ["math_min_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2686,6 +2815,7 @@ py_test(
     name = "masking_agg_any_test",
     srcs = ["masking_agg_any_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2707,6 +2837,7 @@ py_test(
     name = "masking_any_test",
     srcs = ["masking_any_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2726,6 +2857,7 @@ py_test(
     name = "masking_agg_has_test",
     srcs = ["masking_agg_has_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2747,6 +2879,7 @@ py_test(
     name = "masking_agg_all_test",
     srcs = ["masking_agg_all_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2768,6 +2901,7 @@ py_test(
     name = "masking_all_test",
     srcs = ["masking_all_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2787,6 +2921,7 @@ py_test(
     name = "slices_agg_count_test",
     srcs = ["slices_agg_count_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2807,6 +2942,7 @@ py_test(
     name = "slices_cum_count_test",
     srcs = ["slices_cum_count_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2827,6 +2963,7 @@ py_test(
     name = "slices_count_test",
     srcs = ["slices_count_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2847,6 +2984,7 @@ py_test(
     name = "slices_agg_size_test",
     srcs = ["slices_agg_size_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2867,6 +3005,7 @@ py_test(
     name = "slices_size_test",
     srcs = ["slices_size_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2887,6 +3026,7 @@ py_test(
     name = "schema_uu_schema_test",
     srcs = ["schema_uu_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2906,6 +3046,7 @@ py_test(
     name = "schema_new_schema_test",
     srcs = ["schema_new_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2924,6 +3065,7 @@ py_test(
     name = "core_is_primitive_test",
     srcs = ["core_is_primitive_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2943,6 +3085,7 @@ py_test(
     name = "core_has_primitive_test",
     srcs = ["core_has_primitive_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2964,6 +3107,7 @@ py_test(
     name = "schema_dict_schema_test",
     srcs = ["schema_dict_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -2984,6 +3128,7 @@ py_test(
     name = "schema_list_schema_test",
     srcs = ["schema_list_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3004,6 +3149,7 @@ py_test(
     name = "ids_uuid_test",
     srcs = ["ids_uuid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3024,6 +3170,7 @@ py_test(
     name = "ids_uuid_for_list_test",
     srcs = ["ids_uuid_for_list_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3042,6 +3189,7 @@ py_test(
     name = "ids_uuid_for_dict_test",
     srcs = ["ids_uuid_for_dict_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3060,6 +3208,7 @@ py_test(
     name = "objs_uu_test",
     srcs = ["objs_uu_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3078,6 +3227,7 @@ py_test(
     name = "entities_uu_test",
     srcs = ["entities_uu_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3098,6 +3248,7 @@ py_test(
     name = "ids_agg_uuid_test",
     srcs = ["ids_agg_uuid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3119,6 +3270,7 @@ py_test(
     name = "slices_collapse_test",
     srcs = ["slices_collapse_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3139,6 +3291,7 @@ py_test(
     name = "slices_concat_test",
     srcs = ["slices_concat_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3161,6 +3314,7 @@ py_test(
     name = "slices_stack_test",
     srcs = ["slices_stack_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3182,6 +3336,7 @@ py_test(
     name = "slices_zip_test",
     srcs = ["slices_zip_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3202,6 +3357,7 @@ py_test(
     name = "slices_take_test",
     srcs = ["slices_take_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3222,6 +3378,7 @@ py_test(
     name = "slices_align_test",
     srcs = ["slices_align_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3241,6 +3398,7 @@ py_test(
     name = "slices_expand_to_test",
     srcs = ["slices_expand_to_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -3262,6 +3420,7 @@ py_test(
     name = "slices_tile_test",
     srcs = ["slices_tile_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3284,6 +3443,7 @@ py_test(
     name = "slices_is_expandable_to_test",
     srcs = ["slices_is_expandable_to_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3304,6 +3464,7 @@ py_test(
     name = "slices_is_shape_compatible_test",
     srcs = ["slices_is_shape_compatible_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -3324,6 +3485,7 @@ py_test(
     name = "lists_appended_list_test",
     srcs = ["lists_appended_list_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3343,6 +3505,7 @@ py_test(
     name = "lists_list_append_update_test",
     srcs = ["lists_list_append_update_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3361,6 +3524,7 @@ py_test(
     name = "lists_explode_test",
     srcs = ["lists_explode_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -3384,6 +3548,7 @@ py_test(
     name = "lists_implode_test",
     srcs = ["lists_implode_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3404,6 +3569,7 @@ py_test(
     name = "lists_concat_test",
     srcs = ["lists_concat_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/operators:kde_operators",
@@ -3423,6 +3589,7 @@ py_test(
     name = "lists_with_list_append_update_test",
     srcs = ["lists_with_list_append_update_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:eager_op_utils",
@@ -3441,6 +3608,7 @@ py_test(
     name = "slices_subslice_test",
     srcs = ["slices_subslice_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3460,6 +3628,7 @@ py_test(
     name = "core_nofollow_test",
     srcs = ["core_nofollow_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -3482,6 +3651,7 @@ py_test(
     name = "core_freeze_test",
     srcs = ["core_freeze_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3502,6 +3672,7 @@ py_test(
     name = "slices_index_test",
     srcs = ["slices_index_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3522,6 +3693,7 @@ py_test(
     name = "slices_range_test",
     srcs = ["slices_range_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3542,6 +3714,7 @@ py_test(
     name = "core_no_bag_test",
     srcs = ["core_no_bag_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3562,6 +3735,7 @@ py_test(
     name = "core_with_bag_test",
     srcs = ["core_with_bag_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -3582,6 +3756,7 @@ py_test(
     name = "core_reify_test",
     srcs = ["core_reify_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -3599,6 +3774,7 @@ py_test(
     name = "core_enriched_test",
     srcs = ["core_enriched_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -3623,6 +3799,7 @@ py_test(
     name = "core_updated_test",
     srcs = ["core_updated_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
@@ -3645,6 +3822,7 @@ py_test(
     name = "bags_enriched_test",
     srcs = ["bags_enriched_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3664,6 +3842,7 @@ py_test(
     name = "bags_updated_test",
     srcs = ["bags_updated_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3683,6 +3862,7 @@ py_test(
     name = "shapes_expand_to_shape_test",
     srcs = ["shapes_expand_to_shape_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -3706,6 +3886,7 @@ py_test(
     name = "slices_repeat_test",
     srcs = ["slices_repeat_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3728,6 +3909,7 @@ py_test(
     name = "slices_repeat_present_test",
     srcs = ["slices_repeat_present_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3750,6 +3932,7 @@ py_test(
     name = "slices_empty_shaped_test",
     srcs = ["slices_empty_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -3771,6 +3954,7 @@ py_test(
     name = "slices_empty_shaped_as_test",
     srcs = ["slices_empty_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -3791,6 +3975,7 @@ py_test(
     name = "shapes_new_test",
     srcs = ["shapes_new_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3809,6 +3994,7 @@ py_test(
     name = "shapes_size_test",
     srcs = ["shapes_size_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3829,6 +4015,7 @@ py_test(
     name = "shapes_rank_test",
     srcs = ["shapes_rank_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3850,6 +4037,7 @@ py_test(
     name = "shapes_dim_sizes_test",
     srcs = ["shapes_dim_sizes_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3870,6 +4058,7 @@ py_test(
     name = "shapes_dim_mapping_test",
     srcs = ["shapes_dim_mapping_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3890,6 +4079,7 @@ py_test(
     name = "shapes_reshape_test",
     srcs = ["shapes_reshape_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3911,6 +4101,7 @@ py_test(
     name = "shapes_get_shape_test",
     srcs = ["shapes_get_shape_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3931,6 +4122,7 @@ py_test(
     name = "shapes_flatten_test",
     srcs = ["shapes_flatten_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3955,6 +4147,7 @@ py_test(
     srcs = ["koda_internal_input_test.py"],
     deps = [
         "//koladata/expr:init",
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -3968,6 +4161,7 @@ py_test(
     srcs = ["koda_internal_non_deterministic_identity_test.py"],
     deps = [
         "//koladata/expr:init",
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/operators:kde_operators",
@@ -3980,6 +4174,7 @@ py_test(
     name = "koda_internal_to_arolla_boolean_test",
     srcs = ["koda_internal_to_arolla_boolean_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -3999,6 +4194,7 @@ py_test(
     name = "koda_internal_to_arolla_int64_test",
     srcs = ["koda_internal_to_arolla_int64_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4020,6 +4216,7 @@ py_test(
     name = "koda_internal_to_arolla_float64_test",
     srcs = ["koda_internal_to_arolla_float64_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4040,6 +4237,7 @@ py_test(
     name = "koda_internal_to_data_slice_test",
     srcs = ["koda_internal_to_data_slice_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4061,6 +4259,7 @@ py_test(
     name = "koda_internal_to_arolla_dense_array_int64_test",
     srcs = ["koda_internal_to_arolla_dense_array_int64_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4081,6 +4280,7 @@ py_test(
     name = "core_clone_test",
     srcs = ["core_clone_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4100,6 +4300,7 @@ py_test(
     name = "core_deep_clone_test",
     srcs = ["core_deep_clone_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4119,6 +4320,7 @@ py_test(
     name = "core_metadata_test",
     srcs = ["core_metadata_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4140,6 +4342,7 @@ py_test(
     name = "core_get_metadata_test",
     srcs = ["core_get_metadata_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4161,6 +4364,7 @@ py_test(
     name = "core_with_metadata_test",
     srcs = ["core_with_metadata_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4182,6 +4386,7 @@ py_test(
     name = "ids_deep_uuid_test",
     srcs = ["ids_deep_uuid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4201,6 +4406,7 @@ py_test(
     name = "core_extract_test",
     srcs = ["core_extract_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4222,6 +4428,7 @@ py_test(
     name = "core_shallow_clone_test",
     srcs = ["core_shallow_clone_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -4242,6 +4449,7 @@ py_test(
     name = "koda_internal_to_arolla_dense_array_unit_test",
     srcs = ["koda_internal_to_arolla_dense_array_unit_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4262,6 +4470,7 @@ py_test(
     name = "koda_internal_flatten_last_ndim_test",
     srcs = ["koda_internal_flatten_last_ndim_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4282,6 +4491,7 @@ py_test(
     name = "koda_internal_remove_last_ndim_test",
     srcs = ["koda_internal_remove_last_ndim_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4302,6 +4512,7 @@ py_test(
     name = "schema_get_primitive_schema_test",
     srcs = ["schema_get_primitive_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4323,6 +4534,7 @@ py_test(
     name = "assert_assert_ds_has_primitives_of_test",
     srcs = ["assert_assert_ds_has_primitives_of_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4343,6 +4555,7 @@ py_test(
     name = "slices_group_by_indices_test",
     srcs = ["slices_group_by_indices_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4364,6 +4577,7 @@ py_test(
     name = "slices_group_by_test",
     srcs = ["slices_group_by_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4386,6 +4600,7 @@ py_test(
     name = "slices_unique_test",
     srcs = ["slices_unique_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4409,6 +4624,7 @@ py_test(
     name = "slices_ordinal_rank_test",
     srcs = ["slices_ordinal_rank_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4429,6 +4645,7 @@ py_test(
     name = "slices_dense_rank_test",
     srcs = ["slices_dense_rank_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4449,6 +4666,7 @@ py_test(
     name = "slices_inverse_mapping_test",
     srcs = ["slices_inverse_mapping_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4468,6 +4686,7 @@ py_test(
     name = "shapes_is_expandable_to_shape_test",
     srcs = ["shapes_is_expandable_to_shape_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -4488,6 +4707,7 @@ py_test(
     name = "slices_sort_test",
     srcs = ["slices_sort_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4507,6 +4727,7 @@ py_test(
     name = "random_sample_test",
     srcs = ["random_sample_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -4528,6 +4749,7 @@ py_test(
     name = "random_sample_n_test",
     srcs = ["random_sample_n_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -4549,6 +4771,7 @@ py_test(
     name = "random_randint_shaped_test",
     srcs = ["random_randint_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4568,6 +4791,7 @@ py_test(
     name = "random_randint_shaped_as_test",
     srcs = ["random_randint_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4586,6 +4810,7 @@ py_test(
     name = "random_randint_like_test",
     srcs = ["random_randint_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4604,6 +4829,7 @@ py_test(
     name = "schema_cast_to_test",
     srcs = ["schema_cast_to_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -4627,6 +4853,7 @@ py_test(
     name = "schema_to_int32_test",
     srcs = ["schema_to_int32_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4648,6 +4875,7 @@ py_test(
     name = "slices_val_shaped_test",
     srcs = ["slices_val_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -4669,6 +4897,7 @@ py_test(
     name = "slices_val_shaped_as_test",
     srcs = ["slices_val_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -4689,6 +4918,7 @@ py_test(
     name = "slices_val_like_test",
     srcs = ["slices_val_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -4710,6 +4940,7 @@ py_test(
     name = "masking_present_shaped_test",
     srcs = ["masking_present_shaped_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4729,6 +4960,7 @@ py_test(
     name = "masking_present_shaped_as_test",
     srcs = ["masking_present_shaped_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4748,6 +4980,7 @@ py_test(
     name = "masking_present_like_test",
     srcs = ["masking_present_like_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4768,6 +5001,7 @@ py_test(
     name = "schema_to_int64_test",
     srcs = ["schema_to_int64_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4789,6 +5023,7 @@ py_test(
     name = "schema_to_float32_test",
     srcs = ["schema_to_float32_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4810,6 +5045,7 @@ py_test(
     name = "schema_to_float64_test",
     srcs = ["schema_to_float64_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4831,6 +5067,7 @@ py_test(
     name = "schema_to_mask_test",
     srcs = ["schema_to_mask_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4852,6 +5089,7 @@ py_test(
     name = "schema_to_bool_test",
     srcs = ["schema_to_bool_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4873,6 +5111,7 @@ py_test(
     name = "schema_to_bytes_test",
     srcs = ["schema_to_bytes_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4894,6 +5133,7 @@ py_test(
     name = "schema_to_str_test",
     srcs = ["schema_to_str_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4915,6 +5155,7 @@ py_test(
     name = "schema_to_expr_test",
     srcs = ["schema_to_expr_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -4936,6 +5177,7 @@ py_test(
     name = "schema_to_schema_test",
     srcs = ["schema_to_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -4959,6 +5201,7 @@ py_test(
     name = "schema_get_repr_test",
     srcs = ["schema_get_repr_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -4978,6 +5221,7 @@ py_test(
     name = "schema_to_itemid_test",
     srcs = ["schema_to_itemid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -5001,6 +5245,7 @@ py_test(
     name = "schema_to_object_test",
     srcs = ["schema_to_object_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -5024,6 +5269,7 @@ py_test(
     name = "schema_to_none_test",
     srcs = ["schema_to_none_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5045,6 +5291,7 @@ py_test(
     name = "schema_with_schema_test",
     srcs = ["schema_with_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5066,6 +5313,7 @@ py_test(
     name = "strings_decode_test",
     srcs = ["strings_decode_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5086,6 +5334,7 @@ py_test(
     name = "strings_encode_test",
     srcs = ["strings_encode_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5106,6 +5355,7 @@ py_test(
     name = "koda_internal_to_arolla_dense_array_text_test",
     srcs = ["koda_internal_to_arolla_dense_array_text_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5126,6 +5376,7 @@ py_test(
     name = "slices_translate_test",
     srcs = ["slices_translate_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -5148,6 +5399,7 @@ py_test(
     name = "slices_translate_group_test",
     srcs = ["slices_translate_group_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -5170,6 +5422,7 @@ py_test(
     name = "schema_get_schema_test",
     srcs = ["schema_get_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -5192,6 +5445,7 @@ py_test(
     name = "schema_get_obj_schema_test",
     srcs = ["schema_get_obj_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5213,6 +5467,7 @@ py_test(
     name = "schema_get_item_schema_test",
     srcs = ["schema_get_item_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5234,6 +5489,7 @@ py_test(
     name = "schema_get_key_schema_test",
     srcs = ["schema_get_key_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5255,6 +5511,7 @@ py_test(
     name = "schema_get_value_schema_test",
     srcs = ["schema_get_value_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5276,6 +5533,7 @@ py_test(
     name = "strings_length_test",
     srcs = ["strings_length_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5295,6 +5553,7 @@ py_test(
     name = "strings_lower_test",
     srcs = ["strings_lower_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5314,6 +5573,7 @@ py_test(
     name = "strings_upper_test",
     srcs = ["strings_upper_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5334,6 +5594,7 @@ py_test(
     name = "strings_printf_test",
     srcs = ["strings_printf_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5353,6 +5614,7 @@ py_test(
     name = "strings_format_test",
     srcs = ["strings_format_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5372,6 +5634,7 @@ py_test(
     name = "strings_fstr_test",
     srcs = ["strings_fstr_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5392,6 +5655,7 @@ py_test(
     name = "py_apply_py_test",
     srcs = ["py_apply_py_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5412,6 +5676,7 @@ py_test(
     srcs = ["py_apply_py_on_cond_test.py"],
     tags = ["cpu:4"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5432,6 +5697,7 @@ py_test(
     name = "py_map_py_test",
     srcs = ["py_map_py_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -5453,6 +5719,7 @@ py_test(
     name = "py_map_py_on_cond_test",
     srcs = ["py_map_py_on_cond_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5472,6 +5739,7 @@ py_test(
     name = "py_apply_py_on_selected_test",
     srcs = ["py_apply_py_on_selected_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5492,6 +5760,7 @@ py_test(
     name = "py_map_py_on_selected_test",
     srcs = ["py_map_py_on_selected_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5511,6 +5780,7 @@ py_test(
     name = "functor_map_test",
     srcs = ["functor_map_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5532,6 +5802,7 @@ py_test(
     name = "strings_join_test",
     srcs = ["strings_join_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5551,6 +5822,7 @@ py_test(
     name = "strings_contains_test",
     srcs = ["strings_contains_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5570,6 +5842,7 @@ py_test(
     name = "strings_find_test",
     srcs = ["strings_find_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5588,6 +5861,7 @@ py_test(
     name = "strings_rfind_test",
     srcs = ["strings_rfind_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5606,6 +5880,7 @@ py_test(
     name = "strings_count_test",
     srcs = ["strings_count_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5625,6 +5900,7 @@ py_test(
     name = "tuple_make_tuple_test",
     srcs = ["tuple_make_tuple_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5643,6 +5919,7 @@ py_test(
     name = "schema_cast_to_implicit_test",
     srcs = ["schema_cast_to_implicit_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5664,6 +5941,7 @@ py_test(
     name = "schema_cast_to_narrow_test",
     srcs = ["schema_cast_to_narrow_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5685,6 +5963,7 @@ py_test(
     name = "functor_call_test",
     srcs = ["functor_call_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5706,6 +5985,7 @@ py_test(
     name = "annotation_with_name_test",
     srcs = ["annotation_with_name_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:view",
@@ -5721,6 +6001,7 @@ py_test(
     name = "core_ref_test",
     srcs = ["core_ref_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5742,6 +6023,7 @@ py_test(
     name = "schema_with_schema_from_obj_test",
     srcs = ["schema_with_schema_from_obj_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -5764,6 +6046,7 @@ py_test(
     name = "slices_get_ndim_test",
     srcs = ["slices_get_ndim_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5784,6 +6067,7 @@ py_test(
     name = "slices_get_repr_test",
     srcs = ["slices_get_repr_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
@@ -5804,6 +6088,7 @@ py_test(
     name = "koda_internal_to_arolla_optional_unit_test",
     srcs = ["koda_internal_to_arolla_optional_unit_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5824,6 +6109,7 @@ py_test(
     name = "assertion_with_assertion_test",
     srcs = ["assertion_with_assertion_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5847,6 +6133,7 @@ py_test(
     name = "strings_regex_extract_test",
     srcs = ["strings_regex_extract_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5866,6 +6153,7 @@ py_test(
     name = "strings_regex_find_all_test",
     srcs = ["strings_regex_find_all_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5886,6 +6174,7 @@ py_test(
     name = "strings_regex_replace_all_test",
     srcs = ["strings_regex_replace_all_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5906,6 +6195,7 @@ py_test(
     name = "strings_regex_match_test",
     srcs = ["strings_regex_match_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5925,6 +6215,7 @@ py_test(
     name = "strings_replace_test",
     srcs = ["strings_replace_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5943,6 +6234,7 @@ py_test(
     name = "core_with_merged_bag_test",
     srcs = ["core_with_merged_bag_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -5963,6 +6255,7 @@ py_test(
     name = "core_stub_test",
     srcs = ["core_stub_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -5983,6 +6276,7 @@ py_test(
     name = "shapes_new_with_size_test",
     srcs = ["shapes_new_with_size_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6001,6 +6295,7 @@ py_test(
     name = "schema_is_dict_schema_test",
     srcs = ["schema_is_dict_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6022,6 +6317,7 @@ py_test(
     name = "schema_is_entity_schema_test",
     srcs = ["schema_is_entity_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6043,6 +6339,7 @@ py_test(
     name = "schema_is_struct_schema_test",
     srcs = ["schema_is_struct_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6064,6 +6361,7 @@ py_test(
     name = "schema_is_list_schema_test",
     srcs = ["schema_is_list_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6085,6 +6383,7 @@ py_test(
     name = "schema_is_primitive_schema_test",
     srcs = ["schema_is_primitive_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6106,6 +6405,7 @@ py_test(
     name = "pointwise_arolla_op_error_test",
     srcs = ["pointwise_arolla_op_error_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/operators:kde_operators",
@@ -6121,6 +6421,7 @@ py_test(
     name = "ids_uuids_with_allocation_size_test",
     srcs = ["ids_uuids_with_allocation_size_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6140,6 +6441,7 @@ py_test(
     name = "ids_hash_itemid_test",
     srcs = ["ids_hash_itemid_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6897,6 +7199,7 @@ py_test(
     name = "simple_agg_arolla_op_error_test",
     srcs = ["simple_agg_arolla_op_error_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/operators:kde_operators",
@@ -6912,6 +7215,7 @@ py_test(
     name = "schema_named_schema_test",
     srcs = ["schema_named_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6930,6 +7234,7 @@ py_test(
     name = "schema_internal_maybe_named_schema_test",
     srcs = ["schema_internal_maybe_named_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -6947,6 +7252,7 @@ py_test(
     name = "koda_internal_view_get_item_test",
     srcs = ["koda_internal_view_get_item_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:view_overloads",
@@ -6962,6 +7268,7 @@ py_test(
     name = "tuple_get_nth_test",
     srcs = ["tuple_get_nth_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -6980,6 +7287,7 @@ py_test(
     name = "core_extract_bag_test",
     srcs = ["core_extract_bag_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -6999,6 +7307,7 @@ py_test(
     name = "strings_encode_base64_test",
     srcs = ["strings_encode_base64_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7018,6 +7327,7 @@ py_test(
     name = "strings_decode_base64_test",
     srcs = ["strings_decode_base64_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7037,6 +7347,7 @@ py_test(
     name = "schema_agg_common_schema_test",
     srcs = ["schema_agg_common_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -7058,6 +7369,7 @@ py_test(
     name = "schema_common_schema_test",
     srcs = ["schema_common_schema_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -7079,6 +7391,7 @@ py_test(
     name = "json_to_json_test",
     srcs = ["json_to_json_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7102,6 +7415,7 @@ py_test(
     name = "core_freeze_bag_test",
     srcs = ["core_freeze_bag_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7122,6 +7436,7 @@ py_test(
     name = "slices_item_test",
     srcs = ["slices_item_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7144,6 +7459,7 @@ py_test(
     name = "slices_slice_test",
     srcs = ["slices_slice_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7166,6 +7482,7 @@ py_test(
     name = "slices_int32_test",
     srcs = ["slices_int32_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7187,6 +7504,7 @@ py_test(
     name = "slices_int64_test",
     srcs = ["slices_int64_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7208,6 +7526,7 @@ py_test(
     name = "slices_float64_test",
     srcs = ["slices_float64_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7229,6 +7548,7 @@ py_test(
     name = "slices_float32_test",
     srcs = ["slices_float32_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7250,6 +7570,7 @@ py_test(
     name = "slices_expr_quote_test",
     srcs = ["slices_expr_quote_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7271,6 +7592,7 @@ py_test(
     name = "slices_bytes_test",
     srcs = ["slices_bytes_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7292,6 +7614,7 @@ py_test(
     name = "slices_mask_test",
     srcs = ["slices_mask_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7313,6 +7636,7 @@ py_test(
     name = "slices_str_test",
     srcs = ["slices_str_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7334,6 +7658,7 @@ py_test(
     name = "slices_bool_test",
     srcs = ["slices_bool_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7355,6 +7680,7 @@ py_test(
     name = "tuple_make_slice_test",
     srcs = ["tuple_make_slice_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7373,6 +7699,7 @@ py_test(
     name = "koda_internal_to_arolla_text_test",
     srcs = ["koda_internal_to_arolla_text_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7394,6 +7721,7 @@ py_test(
     name = "tuple_make_namedtuple_test",
     srcs = ["tuple_make_namedtuple_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7412,6 +7740,7 @@ py_test(
     name = "tuple_get_namedtuple_field_test",
     srcs = ["tuple_get_namedtuple_field_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7430,6 +7759,7 @@ py_test(
     name = "json_from_json_test",
     srcs = ["json_from_json_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7454,6 +7784,7 @@ py_test(
     name = "proto_from_proto_bytes_test",
     srcs = ["proto_from_proto_bytes_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7475,6 +7806,7 @@ py_test(
     name = "proto_from_proto_json_test",
     srcs = ["proto_from_proto_json_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7497,6 +7829,7 @@ py_test(
     name = "proto_schema_from_proto_path_test",
     srcs = ["proto_schema_from_proto_path_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7519,6 +7852,7 @@ py_test(
     name = "proto_to_proto_bytes_test",
     srcs = ["proto_to_proto_bytes_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7540,6 +7874,7 @@ py_test(
     name = "proto_to_proto_json_test",
     srcs = ["proto_to_proto_json_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7561,6 +7896,7 @@ py_test(
     name = "functor_if_test",
     srcs = ["functor_if_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -7583,6 +7919,7 @@ py_test(
     name = "koda_internal_iterables_get_iterable_qtype_test",
     srcs = ["koda_internal_iterables_get_iterable_qtype_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:koda_internal_iterables",
@@ -7597,6 +7934,7 @@ py_test(
     name = "koda_internal_iterables_from_sequence_test",
     srcs = ["koda_internal_iterables_from_sequence_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7615,6 +7953,7 @@ py_test(
     name = "koda_internal_iterables_to_sequence_test",
     srcs = ["koda_internal_iterables_to_sequence_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7634,6 +7973,7 @@ py_test(
     name = "koda_internal_iterables_is_iterable_qtype_test",
     srcs = ["koda_internal_iterables_is_iterable_qtype_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:bootstrap",
@@ -7650,6 +7990,7 @@ py_test(
     name = "iterables_make_test",
     srcs = ["iterables_make_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7667,6 +8008,7 @@ py_test(
     name = "iterables_make_unordered_test",
     srcs = ["iterables_make_unordered_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7684,6 +8026,7 @@ py_test(
     name = "koda_internal_iterables_sequence_from_1d_slice_test",
     srcs = ["koda_internal_iterables_sequence_from_1d_slice_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7701,6 +8044,7 @@ py_test(
     name = "koda_internal_iterables_shuffle_test",
     srcs = ["koda_internal_iterables_shuffle_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7718,6 +8062,7 @@ py_test(
     name = "iterables_chain_test",
     srcs = ["iterables_chain_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7735,6 +8080,7 @@ py_test(
     name = "koda_internal_iterables_sequence_chain_test",
     srcs = ["koda_internal_iterables_sequence_chain_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:koda_internal_iterables",
@@ -7748,6 +8094,7 @@ py_test(
     name = "iterables_interleave_test",
     srcs = ["iterables_interleave_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7765,6 +8112,7 @@ py_test(
     name = "slices_internal_select_by_slice_test",
     srcs = ["slices_internal_select_by_slice_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7784,6 +8132,7 @@ py_test(
     name = "functor_is_fn_test",
     srcs = ["functor_is_fn_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7807,6 +8156,7 @@ py_test(
     name = "functor_while_test",
     srcs = ["functor_while_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
@@ -7829,6 +8179,7 @@ py_test(
     name = "functor_reduce_test",
     srcs = ["functor_reduce_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7846,6 +8197,7 @@ py_test(
     name = "functor_aggregate_test",
     srcs = ["functor_aggregate_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7866,6 +8218,7 @@ py_test(
     name = "functor_call_and_update_namedtuple_test",
     srcs = ["functor_call_and_update_namedtuple_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7884,6 +8237,7 @@ py_test(
     name = "koda_internal_iterables_empty_as_test",
     srcs = ["koda_internal_iterables_empty_as_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7901,6 +8255,7 @@ py_test(
     name = "koda_internal_iterables_sequence_interleave_test",
     srcs = ["koda_internal_iterables_sequence_interleave_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
@@ -7915,6 +8270,7 @@ py_test(
     name = "koda_internal_iterables_sequence_to_1d_slice_test",
     srcs = ["koda_internal_iterables_sequence_to_1d_slice_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7932,6 +8288,7 @@ py_test(
     name = "functor_expr_fn_test",
     srcs = ["functor_expr_fn_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/functions",
         "//py/koladata/functor:boxing",
@@ -7950,6 +8307,7 @@ py_test(
     name = "functor_for_test",
     srcs = ["functor_for_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -7968,6 +8326,7 @@ py_test(
     name = "functor_bind_test",
     srcs = ["functor_bind_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
@@ -7989,6 +8348,7 @@ py_test(
     name = "functor_has_fn_test",
     srcs = ["functor_has_fn_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8012,6 +8372,7 @@ py_test(
     name = "random_shuffle_test",
     srcs = ["random_shuffle_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -8033,6 +8394,7 @@ py_test(
     name = "koda_internal_parallel_is_future_qtype_test",
     srcs = ["koda_internal_parallel_is_future_qtype_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:bootstrap",
@@ -8049,6 +8411,7 @@ py_test(
     name = "koda_internal_parallel_get_future_qtype_test",
     srcs = ["koda_internal_parallel_get_future_qtype_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:koda_internal_parallel",
@@ -8063,6 +8426,7 @@ py_test(
     name = "koda_internal_parallel_as_future_test",
     srcs = ["koda_internal_parallel_as_future_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8077,6 +8441,7 @@ py_test(
     name = "koda_internal_parallel_get_future_value_for_testing_test",
     srcs = ["koda_internal_parallel_get_future_value_for_testing_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8091,6 +8456,7 @@ py_test(
     name = "koda_internal_parallel_async_eval_test",
     srcs = ["koda_internal_parallel_async_eval_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8108,6 +8474,7 @@ py_test(
     name = "koda_internal_parallel_get_default_executor_test",
     srcs = ["koda_internal_parallel_get_default_executor_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:view",
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/operators/tests/util:qtypes",
@@ -8121,6 +8488,7 @@ py_test(
     name = "koda_internal_parallel_get_eager_executor_test",
     srcs = ["koda_internal_parallel_get_eager_executor_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:view",
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/operators/tests/util:qtypes",
@@ -8134,6 +8502,7 @@ py_test(
     name = "koda_internal_parallel_make_asio_executor_test",
     srcs = ["koda_internal_parallel_make_asio_executor_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/operators:koda_internal_parallel",
@@ -8148,6 +8517,7 @@ py_test(
     name = "koda_internal_parallel_is_stream_qtype_test",
     srcs = ["koda_internal_parallel_is_stream_qtype_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:bootstrap",
@@ -8164,6 +8534,7 @@ py_test(
     name = "koda_internal_parallel_get_stream_qtype_test",
     srcs = ["koda_internal_parallel_get_stream_qtype_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:koda_internal_parallel",
@@ -8178,6 +8549,7 @@ py_test(
     name = "koda_internal_parallel_stream_chain_test",
     srcs = ["koda_internal_parallel_stream_chain_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8196,6 +8568,7 @@ py_test(
     name = "koda_internal_parallel_stream_interleave_test",
     srcs = ["koda_internal_parallel_stream_interleave_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8213,6 +8586,7 @@ py_test(
     name = "koda_internal_parallel_stream_make_test",
     srcs = ["koda_internal_parallel_stream_make_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8233,6 +8607,7 @@ py_test(
     name = "koda_internal_parallel_stream_from_iterable_test",
     srcs = ["koda_internal_parallel_stream_from_iterable_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8251,6 +8626,7 @@ py_test(
     name = "koda_internal_parallel_as_parallel_test",
     srcs = ["koda_internal_parallel_as_parallel_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8272,6 +8648,7 @@ py_test(
     name = "koda_internal_parallel_future_from_parallel_test",
     srcs = ["koda_internal_parallel_future_from_parallel_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8292,6 +8669,7 @@ py_test(
     name = "koda_internal_parallel_parallel_from_future_test",
     srcs = ["koda_internal_parallel_parallel_from_future_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8310,6 +8688,7 @@ py_test(
     name = "koda_internal_parallel_async_unpack_tuple_test",
     srcs = ["koda_internal_parallel_async_unpack_tuple_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8330,6 +8709,7 @@ py_test(
     name = "koda_internal_parallel_stream_map_test",
     srcs = ["koda_internal_parallel_stream_map_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
@@ -8348,6 +8728,7 @@ py_test(
     name = "koda_internal_parallel_stream_map_unordered_test",
     srcs = ["koda_internal_parallel_stream_map_unordered_test.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",

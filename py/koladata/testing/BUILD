@@ -28,7 +28,7 @@ py_library(
     visibility = ["//koladata:internal"],
     deps = [
         ":test_utils",
-        "//py:python_path",  # Adds //py to the path to allow convenient imports.
+        "//py:python_path",
     ],
 )
 
@@ -36,6 +36,7 @@ py_library(
     name = "test_utils",
     srcs = ["test_utils.py"],
     deps = [
+        "//py:python_path",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
@@ -52,6 +53,7 @@ py_library(
     visibility = ["//koladata:internal"],
     deps = [
         ":testing",
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -61,6 +63,7 @@ py_test(
     srcs = ["signature_test_utils_test.py"],
     deps = [
         ":signature_test_utils",
+        "//py:python_path",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
     ],
@@ -71,6 +74,7 @@ py_test(
     srcs = ["test_utils_test.py"],
     deps = [
         ":test_utils",
+        "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",

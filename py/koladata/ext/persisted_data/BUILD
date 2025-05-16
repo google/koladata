@@ -32,6 +32,7 @@ py_library(
         ":fs_interface",
         ":fs_util",
         ":persisted_incremental_data_bag_manager",
+        "//py:python_path",
     ],
 )
 
@@ -40,6 +41,7 @@ py_test(
     srcs = ["persisted_data_test.py"],
     deps = [
         ":persisted_data",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
     ],
@@ -52,6 +54,7 @@ py_library(
         ":fs_interface",
         ":fs_util",
         ":persisted_incremental_data_bag_manager_metadata_py_pb2",
+        "//py:python_path",
         "//py/koladata:kd",
     ],
 )
@@ -62,6 +65,7 @@ py_test(
     deps = [
         ":fs_implementation",
         ":persisted_incremental_data_bag_manager",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
     ],
@@ -82,6 +86,7 @@ py_proto_library(
 py_library(
     name = "fs_interface",
     srcs = ["fs_interface.py"],
+    deps = ["//py:python_path"],
 )
 
 py_library(
@@ -89,6 +94,7 @@ py_library(
     srcs = ["fs_implementation.py"],
     deps = [
         ":fs_interface",
+        "//py:python_path",
     ],
 )
 
@@ -98,6 +104,7 @@ py_library(
     deps = [
         ":fs_implementation",
         ":fs_interface",
+        "//py:python_path",
         "//py/koladata:kd",
     ],
 )
@@ -107,6 +114,7 @@ py_test(
     srcs = ["fs_util_test.py"],
     deps = [
         ":fs_util",
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
     ],

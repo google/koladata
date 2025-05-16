@@ -42,6 +42,7 @@ py_test(
         "notap",
     ],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
@@ -61,6 +62,7 @@ py_test(
         "notap",
     ],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
@@ -80,6 +82,7 @@ py_test(
         "notap",
     ],
     deps = [
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
         "//py/koladata:kd",
@@ -98,6 +101,7 @@ py_test(
         "notap",
     ],
     deps = [
+        "//py:python_path",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
         "//py/koladata/functions/tests:test_py_pb2",
@@ -117,6 +121,7 @@ py_test(
         "notap",
     ],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
@@ -136,6 +141,7 @@ py_test(
         "notap",
     ],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
@@ -155,6 +161,7 @@ py_test(
         "notap",
     ],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
@@ -174,6 +181,7 @@ py_test(
         "notap",
     ],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
@@ -193,6 +201,7 @@ py_test(
         "notap",
     ],
     deps = [
+        "//py:python_path",
         "//py/koladata:kd",
         "@com_google_arolla//py/arolla",
         requirement("google-benchmark"),
