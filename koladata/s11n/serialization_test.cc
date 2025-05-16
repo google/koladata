@@ -37,6 +37,8 @@
 #include "arolla/util/meta.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
+#include "koladata/data_bag.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
@@ -47,11 +49,15 @@
 namespace koladata {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using arolla::TypedValue;
+using internal::DataBagImpl;
+using internal::DataBagImplPtr;
 using internal::DataItem;
 using internal::DataSliceImpl;
 using internal::testing::IsEquivalentTo;
+using ::testing::ElementsAreArray;
 
 TEST(SerializationTest, DataItem) {
   std::vector<DataItem> items{
@@ -310,6 +316,30 @@ TEST(SerializationTest, BigDataSliceImplObjectIdFullAlloc) {
                          decode_result.values[0].As<DataSliceImpl>());
     EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
   }
+}
+
+TEST(SerializationTest, SchemaAttributesForBigAllocs) {
+  static constexpr int64_t kSize = 57;
+  auto schema_slice = DataSliceImpl::ObjectsFromAllocation(
+      internal::AllocateExplicitSchemas(kSize), kSize);
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(DataBagImpl & db_impl, db->GetMutableImpl());
+  ASSERT_OK(db_impl.SetSchemaAttr(schema_slice, "a", schema_slice));
+
+  ASSERT_OK_AND_ASSIGN(auto before, db_impl.GetSchemaAttrs(schema_slice[0]));
+
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                       {TypedValue::FromValue(db)}, {}));
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  ASSERT_EQ(decode_result.exprs.size(), 0);
+  ASSERT_EQ(decode_result.values.size(), 1);
+  ASSERT_OK_AND_ASSIGN(DataBagPtr res,
+                       decode_result.values[0].As<DataBagPtr>());
+  EXPECT_THAT(res->GetImpl().GetSchemaAttr(schema_slice, "a"),
+              IsOkAndHolds(ElementsAreArray(schema_slice)));
+  EXPECT_THAT(res->GetImpl().GetSchemaAttrs(schema_slice[0]),
+              IsOkAndHolds(ElementsAreArray(before)));
 }
 
 }  // namespace

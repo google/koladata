@@ -49,6 +49,7 @@ cc_library(
         "//koladata/internal:missing_value",
         "//koladata/internal:non_deterministic_token",
         "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
         "//koladata/internal:types",
         "//koladata/internal:types_buffer",
         "@com_google_absl//absl/base:core_headers",
@@ -79,7 +80,9 @@ cc_test(
     srcs = ["serialization_test.cc"],
     deps = [
         ":s11n",
+        "//koladata:data_bag",
         "//koladata:jagged_shape_qtype",
+        "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
