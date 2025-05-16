@@ -28,13 +28,6 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 
 
-def read_all(stream):
-  reader = stream.make_reader()
-  result = reader.read_available() or []
-  assert reader.read_available() is None
-  return result
-
-
 class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
 
   def test_from_iterable(self):
@@ -43,7 +36,7 @@ class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
     )
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
-    res_list = read_all(res)
+    res_list = res.read_all(timeout=0)
     self.assertLen(res_list, 2)
     testing.assert_equal(res_list[0], ds(1))
     testing.assert_equal(res_list[1], ds(2))
@@ -56,7 +49,7 @@ class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
     )
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
-    res_list = read_all(res)
+    res_list = res.read_all(timeout=0)
     self.assertLen(res_list, 2)
     testing.assert_equal(res_list[0], db1)
     testing.assert_equal(res_list[1], db2)
@@ -67,7 +60,7 @@ class KodaInternalParallelStreamFromIterableTest(absltest.TestCase):
     )
     self.assertIsInstance(res, clib.Stream)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_SLICE)
-    res_list = read_all(res)
+    res_list = res.read_all(timeout=0)
     self.assertEmpty(res_list)
 
   def test_view(self):

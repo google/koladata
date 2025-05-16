@@ -31,13 +31,6 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 
 
-def read_all(stream):
-  reader = stream.make_reader()
-  result = reader.read_available() or []
-  assert reader.read_available() is None
-  return result
-
-
 class KodaInternalParallelAsParallelTest(absltest.TestCase):
 
   def test_value_input(self):
@@ -174,7 +167,7 @@ class KodaInternalParallelAsParallelTest(absltest.TestCase):
         ),
     )
     testing.assert_equal(
-        arolla.tuple(*read_all(res)),
+        arolla.tuple(*res.read_all(timeout=0)),
         arolla.tuple(ds(1), ds(2), ds(3)),
     )
 

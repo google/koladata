@@ -32,13 +32,6 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 
 
-def read_all(stream):
-  reader = stream.make_reader()
-  result = reader.read_available() or []
-  assert reader.read_available() is None
-  return result
-
-
 class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
 
   def test_future_input(self):

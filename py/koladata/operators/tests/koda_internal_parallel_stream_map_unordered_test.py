@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import re
-import threading
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -35,22 +34,8 @@ M = arolla.M
 
 expr_fn = functor_factories.expr_fn
 
-executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
+default_executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
 eager_executor = expr_eval.eval(koda_internal_parallel.get_eager_executor())
-
-
-def read_all(stream):
-  reader = stream.make_reader()
-  reader_ready = threading.Event()
-  result = reader.read_available() or []
-  while True:
-    reader.subscribe_once(eager_executor, reader_ready.set)
-    assert reader_ready.wait()
-    reader_ready.clear()
-    items = reader.read_available()
-    if not items:
-      return result
-    result.extend(items)
 
 
 def stream_make(*args, **kwargs):
@@ -68,28 +53,31 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
   def test_default_value_type(self):
     fn = expr_fn(2 * I.self)
     res = koda_internal_parallel.stream_map_unordered(
-        executor, stream_make(1, 5, 10), fn
+        default_executor, stream_make(1, 5, 10), fn
     ).eval()
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
-    res_list = read_all(res)
+    res_list = res.read_all(timeout=None)
     self.assertEqual(sorted(res_list), [2, 10, 20])
 
   def test_value_type_as_int32(self):
     fn = expr_fn(M.math.multiply(2, I.self))
     res = koda_internal_parallel.stream_map_unordered(
-        executor, stream_make(i32(1), i32(5), i32(10)), fn, value_type_as=i32(0)
+        default_executor,
+        stream_make(i32(1), i32(5), i32(10)),
+        fn,
+        value_type_as=i32(0),
     ).eval()
     self.assertEqual(res.qtype, STREAM_OF_INT32)
-    res_list = read_all(res)
+    res_list = res.read_all(timeout=None)
     self.assertEqual(sorted(res_list), [2, 10, 20])
 
   def test_empty_input_stream(self):
     fn = expr_fn(2 * I.self)
     res = koda_internal_parallel.stream_map_unordered(
-        executor, stream_make(), fn, value_type_as=i32(0)
+        default_executor, stream_make(), fn, value_type_as=i32(0)
     ).eval()
     self.assertEqual(res.qtype, STREAM_OF_INT32)
-    res_list = read_all(res)
+    res_list = res.read_all(timeout=None)
     self.assertEqual(res_list, [])
 
   def test_stress(self):
@@ -100,9 +88,11 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
     for _ in range(layer_count):
       expr = koda_internal_parallel.stream_map_unordered(I.executor, expr, I.fn)
     res = expr.eval(
-        executor=executor, input_seq=stream_make(*range(item_count)), fn=fn
+        executor=default_executor,
+        input_seq=stream_make(*range(item_count)),
+        fn=fn,
     )
-    res_list = read_all(res)
+    res_list = res.read_all(timeout=None)
     self.assertEqual(
         sorted(res_list), [i + layer_count for i in range(item_count)]
     )
@@ -114,24 +104,24 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
         eager_executor, stream_make(*range(item_count)), fn
     ).eval()
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
-    res_list = read_all(res)
+    res_list = res.read_all(timeout=None)
     self.assertEqual(res_list, [i + 1 for i in range(item_count)])
 
   def test_error_bad_fn(self):
     fn = ds(None)
     res = koda_internal_parallel.stream_map_unordered(
-        executor, stream_make(1, 5, 10), fn, value_type_as=i32(0)
+        default_executor, stream_make(1, 5, 10), fn, value_type_as=i32(0)
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
         re.escape('the first argument of kd.call must be a functor'),
     ):
-      read_all(res)
+      res.read_all(timeout=None)
 
   def test_error_wrong_value_type_as(self):
     fn = expr_fn(2 * I.self)
     res = koda_internal_parallel.stream_map_unordered(
-        executor, stream_make(1, 5, 10), fn, value_type_as=i32(0)
+        default_executor, stream_make(1, 5, 10), fn, value_type_as=i32(0)
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
@@ -142,7 +132,7 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
             ' parameter'
         ),
     ):
-      read_all(res)
+      res.read_all(timeout=None)
 
   def test_error_stream_failure(self):
     stream, writer = stream_clib.make_stream(arolla.INT32)
@@ -150,22 +140,22 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
     writer.close(RuntimeError('Boom!'))
     fn = expr_fn(M.math.multiply(2, I.self))
     res = koda_internal_parallel.stream_map_unordered(
-        executor, stream, fn, value_type_as=i32(0)
+        default_executor, stream, fn, value_type_as=i32(0)
     ).eval()  # no error
     with self.assertRaisesRegex(RuntimeError, re.escape('Boom!')):
-      read_all(res)
+      res.read_all(timeout=None)
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_on_functor(self):
     stream, writer = stream_clib.make_stream(arolla.INT32)
     fn = expr_fn(M.core._identity_with_cancel(I.self))
     res = koda_internal_parallel.stream_map_unordered(
-        executor, stream, fn, value_type_as=i32(0)
+        default_executor, stream, fn, value_type_as=i32(0)
     ).eval()
     writer.write(i32(1))  # trigger activity
     writer.close()
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
-      read_all(res)
+      res.read_all(timeout=None)
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_on_read(self):
@@ -175,12 +165,12 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
     stream, writer = stream_clib.make_stream(arolla.INT32)
     fn = expr_fn(M.core._identity_with_cancel(I.self))
     res = koda_internal_parallel.stream_map_unordered(
-        executor, stream, fn, value_type_as=i32(0)
+        default_executor, stream, fn, value_type_as=i32(0)
     ).eval()
     cancellation_context.cancel('Boom!')
     writer.write(i32(1))  # trigger activity
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED] Boom!')):
-      read_all(res)
+      res.read_all(timeout=None)
 
   def test_non_determinism(self):
     stream_1, stream_2 = expr_eval.eval(
@@ -192,7 +182,7 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
                 I.executor, I.stream, I.fn
             ),
         ),
-        executor=executor,
+        executor=default_executor,
         stream=stream_make(),
         fn=expr_fn(I.self),
     )

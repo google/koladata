@@ -19,16 +19,20 @@
 #include <array>
 #include <cstddef>
 #include <limits>
+#include <memory>
 #include <utility>
-#include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
+#include "arolla/util/permanent_event.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_qtype.h"
@@ -36,15 +40,18 @@
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
+#include "py/koladata/base/py_args.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
 namespace {
 
 using ::arolla::CancellationContext;
+using ::arolla::Cancelled;
 using ::arolla::CheckCancellation;
 using ::arolla::CurrentCancellationContext;
 using ::arolla::GetQType;
+using ::arolla::PermanentEvent;
 using ::arolla::QTypePtr;
 using ::arolla::TypedValue;
 using ::arolla::python::AcquirePyGIL;
@@ -55,6 +62,7 @@ using ::arolla::python::PyErr_RestoreRaisedException;
 using ::arolla::python::PyObjectGILSafePtr;
 using ::arolla::python::PyObjectPtr;
 using ::arolla::python::PyQValueType;
+using ::arolla::python::ReleasePyGIL;
 using ::arolla::python::SetPyErrFromStatus;
 using ::arolla::python::StatusWithRawPyErr;
 using ::arolla::python::UnsafeUnwrapPyQValue;
@@ -163,6 +171,123 @@ PyObject* PyStream_make_reader(PyObject* self, PyObject* /*py_args*/) {
     return nullptr;
   }
   return PyStreamReader_new(stream->MakeReader());
+}
+
+PyObject* PyStream_read_all(PyObject* self, PyObject** py_args,
+                            Py_ssize_t nargs, PyObject* py_tuple_kwnames) {
+  DCheckPyGIL();
+  PyCancellationScope cancellation_scope;
+  auto cancellation_context = CurrentCancellationContext();
+  // Check that self is a valid stream.
+  auto& qvalue = UnsafeUnwrapPyQValue(self);
+  if (!IsStreamQType(qvalue.GetType())) {
+    PyErr_SetString(
+        PyExc_RuntimeError,
+        absl::StrFormat("unexpected self.qtype: expected a stream, got %s",
+                        qvalue.GetType()->name())
+            .c_str());
+    return nullptr;
+  }
+  const auto& stream = qvalue.UnsafeAs<StreamPtr>();
+  if (stream == nullptr) {
+    PyErr_SetString(PyExc_RuntimeError, "Stream is not initialized");
+    return nullptr;
+  }
+  // Parse arguments.
+  static const absl::NoDestructor parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false, /*kw_only_arg_names=*/
+      {"timeout"}));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_tuple_kwnames, args)) {
+    return nullptr;
+  }
+  double timeout_seconds = std::numeric_limits<double>::infinity();
+  PyObject* py_timeout_seconds = args.kw_only_args["timeout"];
+  if (py_timeout_seconds == nullptr) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Stream.read_all() missing 1 required keyword-only "
+                    "argument: 'timeout'");
+    return nullptr;
+  }
+  if (py_timeout_seconds != Py_None) {
+    timeout_seconds = PyFloat_AsDouble(py_timeout_seconds);
+    if (PyErr_Occurred()) {
+      PyErr_Clear();
+      return PyErr_Format(
+          PyExc_TypeError,
+          "Stream.read_all() 'timeout' must specify a non-negative "
+          "number of seconds (or be None), got: %R",
+          py_timeout_seconds);
+    }
+  }
+  if (timeout_seconds < 0.0) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Stream.read_all() 'timeout' cannot be negative");
+    return nullptr;
+  }
+  // Scan through the stream to ensure it's finalized before the timeout and
+  // determine its size. This should be relatively cheap, since the stream
+  // owns all data and we don't create item copies during the scanning.
+  size_t size = 0;
+  {
+    const absl::Time deadline = absl::Now() + absl::Seconds(timeout_seconds);
+    bool timeout = false;
+    absl::Status close_status;
+    StreamReaderPtr reader = stream->MakeReader();
+    for (ReleasePyGIL guard; !Cancelled();) {
+      auto try_read_result = reader->TryRead();
+      // Count available items.
+      while (!Cancelled() && try_read_result.item() != nullptr) {
+        size += 1;
+        try_read_result = reader->TryRead();
+      }
+      if (auto* status = try_read_result.close_status()) {
+        close_status = std::move(*status);
+        break;
+      }
+      // Wait for more data.
+      auto event = PermanentEvent::Make();
+      CancellationContext::Subscription cancellation_subscription;
+      if (cancellation_context != nullptr) {
+        cancellation_subscription =
+            cancellation_context->Subscribe([event] { event->Notify(); });
+      }
+      reader->SubscribeOnce([event] { event->Notify(); });
+      if (!event->WaitWithDeadline(deadline)) {
+        timeout = true;
+        break;
+      }
+    }
+    RETURN_IF_ERROR(CheckCancellation()).With(SetPyErrFromStatus);
+    if (timeout) {
+      PyErr_SetObject(PyExc_TimeoutError, nullptr);
+      return nullptr;
+    }
+    if (!close_status.ok()) {
+      return SetPyErrFromStatus(close_status);
+    }
+  }
+  // Build the result.
+  auto py_result = PyObjectPtr::Own(PyList_New(size));
+  if (py_result == nullptr) {
+    return nullptr;
+  }
+  auto reader = stream->MakeReader();
+  for (size_t i = 0; i < size; ++i) {
+    RETURN_IF_ERROR(CheckCancellation()).With(SetPyErrFromStatus);
+    auto try_read_result = reader->TryRead();
+    if (auto* item = try_read_result.item()) {
+      if (auto* py_item = WrapAsPyQValue(TypedValue(*item))) {
+        PyList_SET_ITEM(py_result.get(), i, py_item);
+      } else {
+        return nullptr;
+      }
+    } else {
+      PyErr_SetString(PyExc_AssertionError, "stream returns inconsistent data");
+      return nullptr;
+    }
+  }
+  return py_result.release();
 }
 
 PyObject* PyStreamWriter_orphaned(PyObject* self, PyObject* /*py_arg*/) {
@@ -348,6 +473,20 @@ PyMethodDef kPyStream_methods[] = {
         ("make_reader()\n"
          "--\n\n"
          "Returns a new reader for the stream."),
+    },
+    {
+        "read_all",
+        reinterpret_cast<PyCFunction>(&PyStream_read_all),
+        METH_FASTCALL | METH_KEYWORDS,
+        ("read_all(*, timeout)\n"
+         "--\n\n"
+         "Waits until the stream is closed and returns all its items.\n\n"
+         "If `timeout` is specified and the stream is not closed within\n"
+         "the given time, the method raises a `TimeoutError`.\n\n"
+         "Args:\n"
+         "  timeout: A timeout in seconds; None means wait indefinitely.\n\n"
+         "Returns:\n"
+         "  A list containing the stream items."),
     },
     {nullptr} /* sentinel */
 };

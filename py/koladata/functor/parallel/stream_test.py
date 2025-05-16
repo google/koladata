@@ -16,9 +16,11 @@ import gc
 import re
 import sys
 import threading
+import time
 from unittest import mock
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from arolla import arolla
 from koladata.functor.parallel import clib
 
@@ -32,7 +34,7 @@ default_executor = arolla.abc.invoke_op(
 )
 
 
-class StreamTest(absltest.TestCase):
+class StreamTest(parameterized.TestCase):
 
   def test_basic(self):
     stream, stream_writer = clib.make_stream(arolla.INT32)
@@ -294,6 +296,94 @@ class StreamTest(absltest.TestCase):
         'unexpected self.qtype: expected a stream, got tuple<STREAM[INT32]>',
     ):
       tuple_stream.make_reader()
+    with self.assertRaisesWithLiteralMatch(
+        RuntimeError,
+        'unexpected self.qtype: expected a stream, got tuple<STREAM[INT32]>',
+    ):
+      tuple_stream.read_all()
+
+  @parameterized.parameters(None, 10.0)
+  def test_stream_read_all_basic(self, timeout_seconds: float | None):
+    stream, writer = clib.make_stream(arolla.INT32)
+
+    def gen_data():
+      for i in range(1024):
+        writer.write(arolla.int32(i))
+      writer.close()
+
+    default_executor.schedule(gen_data)
+    self.assertEqual(
+        stream.read_all(timeout=timeout_seconds),
+        list(range(1024)),
+    )
+
+  def test_stream_read_all_closed_stream_with_zero_timeout(self):
+    stream, writer = clib.make_stream(arolla.INT32)
+    writer.write(arolla.int32(42))
+    writer.close()
+    self.assertEqual(stream.read_all(timeout=0), [42])
+
+  @arolla.abc.add_default_cancellation_context
+  def test_stream_read_all_cancellation(self):
+    def cancel():
+      time.sleep(0.01)
+      cancellation_context = arolla.abc.current_cancellation_context()
+      self.assertIsNotNone(cancellation_context)
+      cancellation_context.cancel('Boom!')
+
+    stream, _ = clib.make_stream(arolla.INT32)
+    default_executor.schedule(cancel)
+    with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED] Boom!'):
+      stream.read_all(timeout=1)
+
+  def test_stream_read_all_fails(self):
+    stream, writer = clib.make_stream(arolla.INT32)
+    writer.write(arolla.int32(1))
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'accepts 0 positional arguments but 1 was given'
+    ):
+      stream.read_all(object())
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        "got an unexpected keyword 'foo'",
+    ):
+      stream.read_all(foo=object())
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        "Stream.read_all() missing 1 required keyword-only argument: 'timeout'",
+    ):
+      stream.read_all()
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        "Stream.read_all() 'timeout' must specify a non-negative number of"
+        " seconds (or be None), got: 'bar'",
+    ):
+      stream.read_all(timeout='bar')
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, "Stream.read_all() 'timeout' cannot be negative"
+    ):
+      stream.read_all(timeout=-1)
+    with self.assertRaisesWithLiteralMatch(TimeoutError, ''):
+      stream.read_all(timeout=0)
+    writer.close(RuntimeError('Boom!'))
+    with self.assertRaisesWithLiteralMatch(RuntimeError, 'Boom!'):
+      stream.read_all(timeout=None)
+
+  def test_stream_read_all_timeout_without_cancellation_context(self):
+    stream, _ = clib.make_stream(arolla.INT32)
+    barrier = threading.Barrier(2)
+
+    def _impl():
+      nonlocal stream, barrier
+      self.assertIsNone(arolla.abc.current_cancellation_context())
+      with self.assertRaisesWithLiteralMatch(TimeoutError, ''):
+        stream.read_all(timeout=0.001)
+      barrier.wait()
+
+    default_executor.schedule(
+        lambda: arolla.abc.run_in_cancellation_context(None, _impl)
+    )
+    barrier.wait()
 
 
 if __name__ == '__main__':
