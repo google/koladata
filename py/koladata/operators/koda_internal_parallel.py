@@ -742,6 +742,55 @@ def stream_map_unordered(
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
+    'koda_internal.parallel.stream_flat_map_chain',
+    qtype_constraints=(
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_stream(P.stream),
+        qtype_utils.expect_data_slice(P.fn),
+    ),
+)
+def stream_flat_map_chain(
+    executor, stream, fn, *, value_type_as=data_slice.DataSlice
+):
+  """Executes flat maps over the given stream.
+
+  `fn` is called for each item in the input stream, and it must return a new
+  stream. The streams returned by `fn` are then chained to produce the final
+  result.
+
+  Example:
+      ```
+      parallel.stream_flat_map_interleaved(
+          parallel.get_default_executor(),
+          parallel.stream_make(1, 10),
+          lambda x: parallel.stream_make(x, x * 2, x * 3),
+      )
+      ```
+      result: A stream with items [1, 2, 3, 10, 20, 30].
+
+  Args:
+    executor: An executor for scheduling asynchronous operations.
+    stream: The stream to iterate over.
+    fn: The function to be executed for each item in the stream. It will receive
+      the stream item as the positional argument and must return a stream of
+      values compatible with value_type_as.
+    value_type_as: The type to use as element type of the resulting stream.
+
+  Returns:
+    The resulting interleaved results of `fn` calls.
+  """
+  return stream_chain_from_stream(
+      stream_map(
+          executor,
+          stream,
+          fn,
+          value_type_as=stream_make(value_type_as=value_type_as),
+      )
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
     'koda_internal.parallel.stream_flat_map_interleaved',
     qtype_constraints=(
         qtype_utils.expect_executor(P.executor),
