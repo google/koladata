@@ -111,6 +111,75 @@ absl::StatusOr<arolla::OperatorPtr> StreamChainOperatorFamily::DoGetOperator(
 
 namespace {
 
+class StreamInterleaveFromStreamOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [input_slot = input_slots[0].UnsafeToSlot<StreamPtr>(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>(),
+         value_qtype = output_slot.GetType()->value_qtype()](
+            arolla::EvaluationContext* /*ctx*/, arolla::FramePtr frame) {
+          auto [stream, writer] = MakeStream(value_qtype);
+          frame.Set(output_slot, std::move(stream));
+          Process(StreamInterleave(std::move(writer)),
+                  frame.Get(input_slot)->MakeReader());
+        });
+  }
+
+ private:
+  static void Process(StreamInterleave interleave_helper,
+                      StreamReaderPtr reader) {
+    auto try_read_result = reader->TryRead();
+    while (auto* item = try_read_result.item()) {
+      interleave_helper.Add(item->UnsafeAs<StreamPtr>());
+      try_read_result = reader->TryRead();
+    }
+    if (auto* status = try_read_result.close_status()) {
+      if (!status->ok()) {
+        std::move(interleave_helper).AddError(*status);
+      }
+      return;
+    }
+    reader->SubscribeOnce([interleave_helper = std::move(interleave_helper),
+                           reader = std::move(reader)]() mutable {
+      Process(std::move(interleave_helper), std::move(reader));
+    });
+  }
+};
+
+}  // namespace
+
+// stream_interleave_from_stream(
+//     STREAM[STREAM[T]], NON_DETERMINISTIC) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr>
+StreamInterleaveFromStreamOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 2) {
+    return absl::InvalidArgumentError("requires exactly 2 arguments");
+  }
+  if (!IsStreamQType(input_types[0])) {
+    return absl::InvalidArgumentError(
+        "the first argument must be a stream of streams");
+  }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[1]));
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  if (input_types[0]->value_qtype() != output_type) {
+    return absl::InvalidArgumentError(
+        "the first argument's value type must match the output type");
+  }
+  return std::make_shared<StreamInterleaveFromStreamOp>(input_types,
+                                                        output_type);
+}
+
+namespace {
+
 class StreamInterleaveOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;

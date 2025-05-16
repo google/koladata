@@ -177,7 +177,7 @@ def stream_chain(*streams, value_type_as=arolla.unspecified()):
       stream will have DATA_SLICE as the value type.
 
   Returns:
-    An stream that chains the given streams, in the given order.
+    A stream that chains the given streams in the given order.
   """
   raise NotImplementedError('implemented in the backend')
 
@@ -211,7 +211,43 @@ def stream_interleave(*streams, value_type_as=arolla.unspecified()):
       resulting stream will have DATA_SLICE as the value type.
 
   Returns:
-    A stream that interleaves the input streams, in unspecified order.
+    A stream that interleaves the input streams in an unspecified order.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_interleave_from_stream',
+    qtype_inference_expr=M.qtype.get_value_qtype(P.sstream),
+    qtype_constraints=[
+        qtype_utils.expect_stream(P.sstream),
+        (
+            bootstrap.is_stream_qtype(M.qtype.get_value_qtype(P.sstream)),
+            (
+                'expected a stream of streams, got'
+                f' {constraints.name_type_msg(P.sstream)}'
+            ),
+        ),
+    ],
+    deterministic=False,
+)
+def stream_interleave_from_stream(sstream):
+  """Creates a stream that interleaves the given streams.
+
+  The resulting stream has all items from all input streams, and the order of
+  items from each stream is preserved. But the order of interleaving of
+  different streams can be arbitrary.
+
+  Having unspecified order allows the parallel execution to put the items into
+  the result in the order they are computed, potentially increasing the amount
+  of parallel processing done.
+
+  Args:
+    sstream: A stream of input streams.
+
+  Returns:
+    A stream that interleaves the input streams in an unspecified order.
   """
   raise NotImplementedError('implemented in the backend')
 
