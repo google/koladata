@@ -695,3 +695,59 @@ def stream_map_unordered(
     The resulting stream.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel.stream_flat_map_interleaved',
+    qtype_constraints=(
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_stream(P.stream),
+        qtype_utils.expect_data_slice(P.fn),
+    ),
+)
+def stream_flat_map_interleaved(
+    executor, stream, fn, *, value_type_as=data_slice.DataSlice
+):
+  """Executes flat maps over the given stream.
+
+  `fn` is called for each item in the input stream, and it must return a new
+  stream. The streams returned by `fn` are then interleaved to produce the final
+  result. Note that while the internal order of items within each stream
+  returned by `fn` is preserved, the overall order of items from different
+  streams is not guaranteed.
+
+  Example:
+      ```
+      parallel.stream_flat_map_interleaved(
+          parallel.get_default_executor(),
+          parallel.stream_make(1, 10),
+          lambda x: parallel.stream_make(x, x * 2, x * 3),
+      )
+      ```
+      result: A stream with items {1, 2, 3, 10, 20, 30}. While the relative
+        order within {1, 2, 3} and {10, 20, 30} is guarnteed, the overall order
+        of items is unspecified. For instance, the following orderings are both
+        possible:
+         * [1, 10, 2, 20, 3, 30]
+         * [10, 20, 30, 1, 2, 3]
+
+  Args:
+    executor: An executor for scheduling asynchronous operations.
+    stream: The stream to iterate over.
+    fn: The function to be executed for each item in the stream. It will receive
+      the stream item as the positional argument and must return a stream of
+      values compatible with value_type_as.
+    value_type_as: The type to use as element type of the resulting stream.
+
+  Returns:
+    The resulting interleaved results of `fn` calls.
+  """
+  return stream_interleave_from_stream(
+      stream_map_unordered(
+          executor,
+          stream,
+          fn,
+          value_type_as=stream_make(value_type_as=value_type_as),
+      )
+  )

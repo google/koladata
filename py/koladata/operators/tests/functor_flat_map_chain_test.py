@@ -158,7 +158,7 @@ class FlatMapChainTest(absltest.TestCase):
   def test_non_functor_fn(self):
     with self.assertRaisesRegex(
         ValueError,
-        'expected DATA_SLICE, got body_fn',
+        'expected DATA_SLICE, got fn',
     ):
       expr = kde.functor.flat_map_chain(I.input_seq, I.fn)
       _ = expr.eval(
