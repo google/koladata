@@ -39,6 +39,9 @@
 namespace koladata::functor::parallel {
 namespace {
 
+using Functor = absl::AnyInvocable<  // clang-format hint
+    absl::StatusOr<arolla::TypedValue>(arolla::TypedRef) const>;
+
 // A helper interface that generalizes the construction of output streams for
 // the `stream.map` and `stream.map_unordered` operators.
 //
@@ -87,12 +90,10 @@ class Sink {
   Sink& operator=(const Sink&) = delete;
 };
 
-using Functor = absl::AnyInvocable<  // clang-format hint
-    absl::StatusOr<arolla::TypedValue>(arolla::TypedRef) const>;
+using SinkPtr = std::unique_ptr<Sink>;
 
 // A structure with the state shared between different routines implementing
 // the stream.map* operations. Only the routines in this file have access to it.
-template <typename SinkT>
 struct State {
   const arolla::CancellationContextPtr /*absl_nullable*/ cancellation_context =
       arolla::CurrentCancellationContext();
@@ -108,24 +109,25 @@ struct State {
   std::atomic_flag stop_reader;
 
   const arolla::QTypePtr /*absl_nonnull*/ value_qtype;
-  SinkT sink;
+  SinkPtr /*absl_nonnull*/ sink;
 
   // Note: A constructor for compatibility with std::make_shared.
   State(ExecutorPtr /*absl_nonnull*/ executor, Functor functor,
         StreamReaderPtr /*absl_nonnull*/ reader,
-        StreamWriterPtr /*absl_nonnull*/ writer)
+        arolla::QTypePtr /*absl_nonnull*/ value_qtype, SinkPtr /*absl_nonnull*/ sink)
       : executor(std::move(executor)),
         functor(std::move(functor)),
         reader(std::move(reader)),
-        value_qtype(writer->value_qtype()),
-        sink(std::move(writer)) {}
+        value_qtype(value_qtype),
+        sink(std::move(sink)) {}
 };
 
+using StatePtr = std::shared_ptr<State>;
+
 // Calls the functor on the given item, and forwards the result to the sink.
-template <typename StateT>
-void ProcessItem(std::shared_ptr<StateT> /*absl_nonnull*/ state, size_t offset,
+void ProcessItem(StatePtr /*absl_nonnull*/ state, size_t offset,
                  arolla::TypedRef item) {
-  if (!state->sink.Accepts(offset)) {
+  if (!state->sink->Accepts(offset)) {
     return;
   }
   // Set up the current cancellation context for the functor execution (and
@@ -134,23 +136,22 @@ void ProcessItem(std::shared_ptr<StateT> /*absl_nonnull*/ state, size_t offset,
       state->cancellation_context);
   absl::StatusOr<arolla::TypedValue> result = state->functor(item);
   if (!result.ok()) [[unlikely]] {
-    state->sink.PushStatus(offset, std::move(result).status());
+    state->sink->PushStatus(offset, std::move(result).status());
     state->stop_reader.test_and_set(std::memory_order_relaxed);
   } else if (result->GetType() != state->value_qtype) [[unlikely]] {
-    state->sink.PushStatus(
+    state->sink->PushStatus(
         offset,
         absl::InvalidArgumentError(absl::StrFormat(
             "functor returned a value of the wrong type: expected %s, got %s",
             state->value_qtype->name(), result->GetType()->name())));
     state->stop_reader.test_and_set(std::memory_order_relaxed);
-  } else if (!state->sink.PushItem(offset, *std::move(result))) [[unlikely]] {
+  } else if (!state->sink->PushItem(offset, *std::move(result))) [[unlikely]] {
     state->stop_reader.test_and_set(std::memory_order_relaxed);
   }
 }
 
 // Reads the items from the stream and schedules their processing.
-template <typename StateT>
-void ReadItems(std::shared_ptr<StateT> /*absl_nonnull*/ state) {
+void ReadItems(StatePtr /*absl_nonnull*/ state) {
   if (state->stop_reader.test(std::memory_order_relaxed)) {
     return;
   }
@@ -174,7 +175,7 @@ void ReadItems(std::shared_ptr<StateT> /*absl_nonnull*/ state) {
     //
     // Note: We could also set the `stop_reader` flag, but the reader routine
     // ends here and won't ever look at it.
-    state->sink.PushStatus(state->read_count, std::move(*status));
+    state->sink->PushStatus(state->read_count, std::move(*status));
     return;
   }
   // Wait for more items to be available.
@@ -187,33 +188,29 @@ void ReadItems(std::shared_ptr<StateT> /*absl_nonnull*/ state) {
   });
 }
 
-template <typename StateT>
-StreamPtr /*absl_nonnull*/ StreamMapImpl(
-    ExecutorPtr /*absl_nonnull*/ executor,
-    const StreamPtr /*absl_nonnull*/& input_stream,
-    arolla::QTypePtr /*absl_nonnull*/ return_value_type,  // clang-format hint
-    Functor functor) {
+void StartStreamMap(ExecutorPtr /*absl_nonnull*/ executor,
+                    const StreamPtr /*absl_nonnull*/& input_stream, SinkPtr sink,
+                    arolla::QTypePtr /*absl_nonnull*/ return_value_type,
+                    Functor functor) {
   DCHECK(functor != nullptr);
-  auto [stream, writer] = MakeStream(return_value_type);
-  auto state =
-      std::make_shared<StateT>(std::move(executor), std::move(functor),
-                               input_stream->MakeReader(), std::move(writer));
+  auto state = std::make_shared<State>(std::move(executor), std::move(functor),
+                                       input_stream->MakeReader(),
+                                       return_value_type, std::move(sink));
   if (state->cancellation_context != nullptr) {
     // Note: Use a weak pointer to the state since the subscription for
     // the cancellation notification with owning pointers is discouraged.
     state->cancellation_subscription = state->cancellation_context->Subscribe(
-        [weak_state = std::weak_ptr<StateT>(state)] {
+        [weak_state = std::weak_ptr<State>(state)] {
           auto state = weak_state.lock();
           state->stop_reader.test_and_set(std::memory_order_relaxed);
           auto status = state->cancellation_context->GetStatus();
           DCHECK(!status.ok());
-          state->sink.Cancel(std::move(status));
+          state->sink->Cancel(std::move(status));
         });
   }
   // Trigger the reading routine for the first time (further reading will be
   // scheduled on the executor).
   ReadItems(std::move(state));
-  return std::move(stream);
 }
 
 class OrderedSink final : public Sink {
@@ -343,8 +340,11 @@ StreamPtr /*absl_nonnull*/ StreamMap(
     const StreamPtr /*absl_nonnull*/& input_stream,
     arolla::QTypePtr /*absl_nonnull*/ return_value_type,  // clang-format hint
     Functor functor) {
-  return StreamMapImpl<State<OrderedSink>>(
-      std::move(executor), input_stream, return_value_type, std::move(functor));
+  auto [stream, writer] = MakeStream(return_value_type);
+  StartStreamMap(std::move(executor), input_stream,
+                 std::make_unique<OrderedSink>(std::move(writer)),
+                 return_value_type, std::move(functor));
+  return std::move(stream);
 }
 
 StreamPtr /*absl_nonnull*/ StreamMapUnordered(
@@ -352,8 +352,11 @@ StreamPtr /*absl_nonnull*/ StreamMapUnordered(
     const StreamPtr /*absl_nonnull*/& input_stream,
     arolla::QTypePtr /*absl_nonnull*/ return_value_type,  // clang-format hint
     Functor functor) {
-  return StreamMapImpl<State<UnorderedSink>>(
-      std::move(executor), input_stream, return_value_type, std::move(functor));
+  auto [stream, writer] = MakeStream(return_value_type);
+  StartStreamMap(std::move(executor), input_stream,
+                 std::make_unique<UnorderedSink>(std::move(writer)),
+                 return_value_type, std::move(functor));
+  return std::move(stream);
 }
 
 }  // namespace koladata::functor::parallel
