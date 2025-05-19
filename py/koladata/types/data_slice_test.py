@@ -99,16 +99,17 @@ class DataSliceMethodsTest(parameterized.TestCase):
     class SubDataSlice(data_slice.DataSlice):
       pass
 
-    self.assertFalse(hasattr(data_slice.DataSlice, 'bar'))
-    self.assertFalse(hasattr(SubDataSlice, 'bar'))
+    self.assertFalse(hasattr(data_slice.DataSlice, 'superbar'))
+    self.assertFalse(hasattr(SubDataSlice, 'superbar'))
 
-    @data_slice.add_method(data_slice.DataSlice, 'bar')
-    def bar(self):
+    @data_slice.add_method(data_slice.DataSlice, 'superbar')
+    def superbar(self):
       del self
       pass
 
-    self.assertTrue(hasattr(data_slice.DataSlice, 'bar'))
-    self.assertTrue(hasattr(SubDataSlice, 'bar'))
+    self.assertTrue(hasattr(data_slice.DataSlice, 'superbar'))
+    self.assertTrue(hasattr(SubDataSlice, 'superbar'))
+    delattr(data_slice.DataSlice, 'superbar')
 
   def test_subclass(self):
 
