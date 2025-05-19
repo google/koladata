@@ -31,7 +31,10 @@ class ErrorConvertersTest(absltest.TestCase):
       testing_clib.reraise_error_with_stack_trace_frame(
           raise_error,
           stack_trace.create_stack_trace_frame(
-              function_name='foo', file_name='bar.py', line_number=57
+              function_name='foo',
+              file_name='bar.py',
+              line_number=57,
+              line_text='x = y // 0',
           ),
       )
     except ValueError as e:
@@ -52,13 +55,16 @@ class ErrorConvertersTest(absltest.TestCase):
         re.escape(
             "invalid StackTraceFrame(status.code=9, status.message='error"
             " message', function_name='foo', file_name='bar.py',"
-            ' line_number=57)'
+            " line_number=57, line_text='x = y // 0')"
         ),
     ):
       testing_clib.raise_error_with_incorrect_stack_trace_frame(
           'error message',
           stack_trace.create_stack_trace_frame(
-              function_name='foo', file_name='bar.py', line_number=57
+              function_name='foo',
+              file_name='bar.py',
+              line_number=57,
+              line_text='x = y // 0',
           ),
       )
 

@@ -29,6 +29,7 @@ namespace koladata::functor {
 constexpr absl::string_view kFunctionNameAttrName = "function_name";
 constexpr absl::string_view kFileNameAttrName = "file_name";
 constexpr absl::string_view kLineNumberAttrName = "line_number";
+constexpr absl::string_view kLineTextAttrName = "line_text";
 // LINT.ThenChange(//py/koladata/functor/stack_trace.py)
 
 // Arolla error payload with the semantic meaning of "additional stack trace
@@ -37,6 +38,7 @@ struct StackTraceFrame {
   std::string function_name;
   std::string file_name;
   int32_t line_number = 0;  // Starting from 1; 0 indicates an unknown line.
+  std::string line_text;
 };
 
 // Populates the stack trace frame from the given data item, using its

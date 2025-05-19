@@ -165,6 +165,7 @@ class FunctorCallTest(absltest.TestCase):
         function_name='test_function',
         file_name='test_file.py',
         line_number=57,
+        line_text='x = y // 0',
     )
     testing.assert_equal(
         expr_eval.eval(

@@ -40,21 +40,24 @@ using ::testing::Eq;
 using ::testing::Field;
 using ::testing::IsEmpty;
 using ::testing::Optional;
+using ::testing::StrEq;
 
 TEST(ReadStackTraceFrameTest, ReadsFullFrame) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       DataSlice frame_slice,
       ObjectCreator::FromAttrs(
-          db, {"function_name", "file_name", "line_number"},
+          db, {"function_name", "file_name", "line_text", "line_number"},
           {test::DataItem(arolla::Text("my_func")),
-           test::DataItem(arolla::Text("my_file.cc")), test::DataItem(57)}));
+           test::DataItem(arolla::Text("my_file.cc")),
+           test::DataItem(arolla::Text("z = x + y")), test::DataItem(57)}));
 
   EXPECT_THAT(
       ReadStackTraceFrame(frame_slice),
       Optional(AllOf(Field(&StackTraceFrame::function_name, Eq("my_func")),
                      Field(&StackTraceFrame::file_name, Eq("my_file.cc")),
-                     Field(&StackTraceFrame::line_number, Eq(57)))));
+                     Field(&StackTraceFrame::line_number, Eq(57)),
+                     Field(&StackTraceFrame::line_text, Eq("z = x + y")))));
 }
 
 TEST(ReadStackTraceFrameTest, ReadsPartialFrame) {
@@ -106,16 +109,37 @@ TEST(MaybeAddStackTraceFrameTest, AddsFrameToStatus) {
   ASSERT_OK_AND_ASSIGN(
       DataSlice frame_slice,
       ObjectCreator::FromAttrs(db, {"function_name"},
-                               {test::DataItem(arolla::Text("error_func"))}));
+                               {test::DataItem(arolla::Text("my_func"))}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice another_frame_slice,
+      ObjectCreator::FromAttrs(
+          db, {"function_name", "file_name", "line_text", "line_number"},
+          {test::DataItem(arolla::Text("their_func")),
+           test::DataItem(arolla::Text("their_file.cc")),
+           test::DataItem(arolla::Text("z = x + y")), test::DataItem(57)}));
 
   EXPECT_THAT(
-      MaybeAddStackTraceFrame(absl::InvalidArgumentError("initial error"),
-                              frame_slice),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument, "initial error"),
+      MaybeAddStackTraceFrame(
+          MaybeAddStackTraceFrame(absl::InvalidArgumentError("initial error"),
+                                  frame_slice),
+          another_frame_slice),
+      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                     StrEq("initial error\n"
+                           "\n"
+                           "in my_func\n"
+                           "\n"
+                           "their_file.cc:57, in their_func\n"
+                           "z = x + y")),
             PayloadIs<StackTraceFrame>(
-                Field(&StackTraceFrame::function_name, Eq("error_func"))),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              "initial error"))));
+                Field(&StackTraceFrame::function_name, "their_func")),
+            CausedBy(AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                                    StrEq("initial error\n"
+                                          "\n"
+                                          "in my_func")),
+                           PayloadIs<StackTraceFrame>(Field(
+                               &StackTraceFrame::function_name, Eq("my_func"))),
+                           CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
+                                             StrEq("initial error")))))));
 }
 
 TEST(MaybeAddStackTraceFrameTest, ReturnsOriginalStatusForOkStatus) {

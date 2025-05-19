@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "koladata/data_slice.h"
@@ -49,6 +50,15 @@ std::optional<StackTraceFrame> ReadStackTraceFrame(
         std::string(file_name_slice.item().value<arolla::Text>().view());
   }
 
+  ASSIGN_OR_RETURN(auto line_text_slice,
+                   stack_trace_frame_item.GetAttrOrMissing(kLineTextAttrName),
+                   std::nullopt);
+  if (line_text_slice.is_item() &&
+      line_text_slice.item().holds_value<arolla::Text>()) {
+    frame.line_text =
+        std::string(line_text_slice.item().value<arolla::Text>().view());
+  }
+
   ASSIGN_OR_RETURN(auto line_slice,
                    stack_trace_frame_item.GetAttrOrMissing(kLineNumberAttrName),
                    std::nullopt);
@@ -57,7 +67,7 @@ std::optional<StackTraceFrame> ReadStackTraceFrame(
   }
 
   if (frame.function_name.empty() && frame.file_name.empty() &&
-      frame.line_number == 0) {
+      frame.line_number == 0 && frame.line_text.empty()) {
     return std::nullopt;
   }
   return frame;
@@ -70,7 +80,20 @@ absl::Status MaybeAddStackTraceFrame(absl::Status status,
   if (!stack_frame.has_value()) {
     return status;
   }
-  absl::Status result(status.code(), status.message());
+
+  std::string new_message = absl::StrCat(status.message(), "\n\n");
+  if (!stack_frame->file_name.empty()) {
+    absl::StrAppend(&new_message, stack_frame->file_name);
+    if (stack_frame->line_number > 0) {
+      absl::StrAppend(&new_message, ":", stack_frame->line_number, ", ");
+    }
+  }
+  absl::StrAppend(&new_message, "in ", stack_frame->function_name);
+  if (!stack_frame->line_text.empty()) {
+    absl::StrAppend(&new_message, "\n", stack_frame->line_text);
+  }
+
+  absl::Status result(status.code(), new_message);
   return arolla::WithPayloadAndCause(std::move(result), *std::move(stack_frame),
                                      std::move(status));
 };

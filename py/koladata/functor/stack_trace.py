@@ -16,6 +16,7 @@
 
 import contextlib
 import inspect
+import linecache
 import re
 import types as py_types
 from typing import Any, Callable
@@ -26,7 +27,7 @@ from koladata.util import kd_functools
 
 
 def create_stack_trace_frame(
-    function_name: str, file_name: str, line_number: int
+    function_name: str, file_name: str, line_number: int, line_text: str
 ) -> data_slice.DataSlice:
   """Returns a DataSlice representing a stack trace frame.
 
@@ -37,12 +38,14 @@ def create_stack_trace_frame(
     function_name: name of the function.
     file_name: path to the sourcefile.
     line_number: line number in the source file. O indicates an unknown line.
+    line_text: line text in the source file.
   """
   return fns.new(
       # LINT.IfChange
       function_name=fns.str(function_name),
       file_name=fns.str(file_name),
       line_number=fns.int32(line_number),
+      line_text=fns.str(line_text),
       # LINT.ThenChange(//koladata/functor/stack_trace.h)
       schema='_functor_stack_trace_frame',
   )
@@ -51,16 +54,16 @@ def create_stack_trace_frame(
 _GOES_BEFORE_FUNCTION_DEF = re.compile(r'\s*([#@].*|)\n')
 
 
-def _guess_line_number(func: Callable[..., Any]) -> int:
+def _guess_line(func: Callable[..., Any]) -> tuple[int, str]:
   """Like inspect.getsourcelines, but skips decorators and comments."""
   lines, first_line_number = inspect.getsourcelines(func)
   i = 0
   while i < len(lines) and re.fullmatch(_GOES_BEFORE_FUNCTION_DEF, lines[i]):
     i += 1
   if i != len(lines):
-    return first_line_number + i
+    return first_line_number + i, lines[i]
   else:
-    return first_line_number
+    return first_line_number, lines[0] if lines else ''
 
 
 def function_frame(func: Callable[..., Any]) -> data_slice.DataSlice | None:
@@ -72,16 +75,17 @@ def function_frame(func: Callable[..., Any]) -> data_slice.DataSlice | None:
 
   function_name = func.__name__ if hasattr(func, '__name__') else f'({func})'
 
-  file_name, line_number = None, None
+  file_name, line_number, line_text = None, None, None
   search_for_source_code_in = [func, getattr(func, '__call__', None)]
   for f in search_for_source_code_in:
     with contextlib.suppress(TypeError):
       file_name = inspect.getsourcefile(f)
-      line_number = _guess_line_number(f)
+      line_number, line_text = _guess_line(f)
       break
 
   return create_stack_trace_frame(
-      function_name=function_name, file_name=file_name, line_number=line_number
+      function_name=function_name, file_name=file_name, line_number=line_number,
+      line_text=line_text,
   )
 
 
@@ -112,8 +116,12 @@ def current_frame() -> data_slice.DataSlice | None:
   if not frame:
     return None
 
+  line_text = linecache.getline(
+      frame.f_code.co_filename, frame.f_lineno
+  ).rstrip('\n')
   return create_stack_trace_frame(
       function_name=frame.f_code.co_name,
       file_name=frame.f_code.co_filename,
       line_number=frame.f_lineno,
+      line_text=line_text,
   )

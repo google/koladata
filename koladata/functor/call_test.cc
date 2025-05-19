@@ -222,9 +222,10 @@ TEST(CallTest, EvalError) {
   ASSERT_OK_AND_ASSIGN(
       DataSlice frame_slice,
       ObjectCreator::FromAttrs(
-          db, {"function_name", "file_name", "line_number"},
+          db, {"function_name", "file_name", "line_number", "line_text"},
           {test::DataItem(arolla::Text("my_func")),
-           test::DataItem(arolla::Text("my_file.cc")), test::DataItem(57)}));
+           test::DataItem(arolla::Text("my_file.cc")), test::DataItem(57),
+           test::DataItem(arolla::Text("  z = x + y"))}));
   ASSERT_OK_AND_ASSIGN(
       fn, ops::WithAttr(fn, test::DataItem(arolla::Text("_stack_trace_frame")),
                         frame_slice, test::DataItem(false)));
@@ -244,7 +245,10 @@ TEST(CallTest, EvalError) {
                 "expected numerics, got x: DATA_SLICE; while calling math.add "
                 "with args {annotation.qtype(L['I.a'], "
                 "DATA_SLICE):Attr(qtype=DATA_SLICE), 57}; while transforming "
-                "M.math.add(L['I.a'], 57); while compiling the expression"),
+                "M.math.add(L['I.a'], 57); while compiling the expression\n"
+                "\n"
+                "my_file.cc:57, in my_func\n"
+                "  z = x + y"),
             PayloadIs<StackTraceFrame>(
                 AllOf(Field(&StackTraceFrame::function_name, "my_func"),
                       Field(&StackTraceFrame::file_name, "my_file.cc"),

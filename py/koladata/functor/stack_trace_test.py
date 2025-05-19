@@ -63,13 +63,17 @@ class StackTraceTest(parameterized.TestCase):
 
   def test_create_stack_trace_frame(self):
     frame = stack_trace.create_stack_trace_frame(
-        function_name='foo', file_name='bar.py', line_number=57
+        function_name='foo',
+        file_name='bar.py',
+        line_number=57,
+        line_text='x = y + z',
     )
     kd_testing.assert_equal(frame.function_name.no_bag(), fns.str('foo'))
     kd_testing.assert_equal(frame.file_name.no_bag(), fns.str('bar.py'))
     kd_testing.assert_equal(frame.line_number.no_bag(), fns.int32(57))
+    kd_testing.assert_equal(frame.line_text.no_bag(), fns.str('x = y + z'))
     another_frame = stack_trace.create_stack_trace_frame(
-        function_name='bar', file_name='baz.py', line_number=57
+        function_name='bar', file_name='baz.py', line_number=57, line_text=''
     )
     kd_testing.assert_equivalent(
         frame.get_schema().extract(), another_frame.get_schema().extract()
@@ -189,6 +193,7 @@ class StackTraceTest(parameterized.TestCase):
         frame.line_number.to_py(),
         inspect.getsourcelines(bar)[1] + 1  # first line of the function.
     )
+    self.assertEqual(frame.line_text.to_py(), '      return Foo().method()')
 
 if __name__ == '__main__':
   absltest.main()

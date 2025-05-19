@@ -20,6 +20,7 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/escaping.h"
 #include "arolla/util/init_arolla.h"
 #include "arolla/util/status.h"
 #include "koladata/functor/stack_trace.h"
@@ -39,10 +40,12 @@ void ConvertStackTraceFrame(const absl::Status& status) {
     PyErr_Format(PyExc_ValueError,
                  "invalid StackTraceFrame(status.code=%d, "
                  "status.message='%s', function_name='%s', "
-                 "file_name='%s', line_number=%d)",
-                 status.code(), std::string(status.message()).c_str(),
-                 stack_frame->function_name.c_str(),
-                 stack_frame->file_name.c_str(), stack_frame->line_number);
+                 "file_name='%s', line_number=%d, line_text='%s')",
+                 status.code(), absl::Utf8SafeCEscape(status.message()).c_str(),
+                 absl::Utf8SafeCEscape(stack_frame->function_name).c_str(),
+                 absl::Utf8SafeCEscape(stack_frame->file_name).c_str(),
+                 stack_frame->line_number,
+                 absl::Utf8SafeCEscape(stack_frame->line_text).c_str());
     return;
   }
 
