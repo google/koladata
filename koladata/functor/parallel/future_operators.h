@@ -24,7 +24,7 @@ namespace koladata::functor::parallel {
 
 // koda_internal.parallel.as_future operator.
 // Wraps the given value in a future. If it is already a future,
-// does nothing.
+// raises.
 class AsFutureOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
@@ -37,6 +37,24 @@ class AsFutureOperatorFamily : public arolla::OperatorFamily {
 // Real code should not use this operator, but rather apply asynchronous
 // operators to the future.
 class GetFutureValueForTestingOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
+// koda_internal.parallel.unwrap_future_to_future
+// Given a future to a future, returns a future that will get the value of the
+// inner future.
+class UnwrapFutureToFutureOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
+// koda_internal.parallel.unwrap_future_to_stream
+// Given a future to a stream, returns a stream that will get the values of the
+// inner stream.
+class UnwrapFutureToStreamOperatorFamily : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;

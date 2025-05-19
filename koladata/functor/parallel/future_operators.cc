@@ -25,7 +25,6 @@
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
-#include "arolla/qexpr/operators/core/utility_operators.h"
 #include "arolla/qtype/optional_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_slot.h"
@@ -33,6 +32,9 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/functor/parallel/stream.h"
+#include "koladata/functor/parallel/stream_composition.h"
+#include "koladata/functor/parallel/stream_qtype.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
@@ -67,23 +69,14 @@ absl::StatusOr<arolla::OperatorPtr> AsFutureOperatorFamily::DoGetOperator(
   if (input_types.size() != 1) {
     return absl::InvalidArgumentError("requires exactly 1 argument");
   }
-  if (IsFutureQType(input_types[0])) {
-    if (input_types[0] != output_type) {
-      return absl::InvalidArgumentError(
-          "output future qtype must match input type");
-    }
-    return arolla::EnsureOutputQTypeMatches(arolla::MakeCopyOp(output_type),
-                                            input_types, output_type);
-  } else {
-    if (!IsFutureQType(output_type) ||
-        output_type->value_qtype() != input_types[0]) {
-      return absl::InvalidArgumentError(
-          "output qtype must be a future of the input type");
-    }
-    return arolla::EnsureOutputQTypeMatches(
-        std::make_shared<AsFutureOperator>(input_types, output_type),
-        input_types, output_type);
+  if (!IsFutureQType(output_type) ||
+      output_type->value_qtype() != input_types[0]) {
+    return absl::InvalidArgumentError(
+        "output qtype must be a future of the input type");
   }
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<AsFutureOperator>(input_types, output_type), input_types,
+      output_type);
 }
 
 namespace {
@@ -126,6 +119,142 @@ GetFutureValueForTestingOperatorFamily::DoGetOperator(
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<GetFutureValueForTestingOperator>(input_types,
                                                          output_type),
+      input_types, output_type);
+}
+
+namespace {
+
+class UnwrapFutureToFutureOperator : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [input_slot = input_slots[0].UnsafeToSlot<FuturePtr>(),
+         output_slot = output_slot.UnsafeToSlot<FuturePtr>()](
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
+          const auto& future = frame.Get(input_slot);
+          if (future == nullptr) {
+            return absl::InvalidArgumentError("future is null");
+          }
+          const auto& inner_future_qtype = future->value_qtype();
+          if (!IsFutureQType(inner_future_qtype)) {
+            return absl::InvalidArgumentError(
+                "argument must be a future to a future");
+          }
+          auto [result_future, result_writer] =
+              MakeFuture(inner_future_qtype->value_qtype());
+          future->AddConsumer(
+              [result_writer = std::move(result_writer)](
+                  absl::StatusOr<arolla::TypedValue> value) mutable {
+                if (!value.ok()) {
+                  std::move(result_writer).SetValue(std::move(value));
+                  return;
+                }
+                const auto& inner_future = value->UnsafeAs<FuturePtr>();
+                if (inner_future == nullptr) {
+                  std::move(result_writer)
+                      .SetValue(
+                          absl::InvalidArgumentError("inner future is null"));
+                  return;
+                }
+                inner_future->AddConsumer(
+                    [result_writer = std::move(result_writer)](
+                        absl::StatusOr<arolla::TypedValue> value) mutable {
+                      std::move(result_writer).SetValue(std::move(value));
+                    });
+              });
+          frame.Set(output_slot, std::move(result_future));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr>
+UnwrapFutureToFutureOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 1) {
+    return absl::InvalidArgumentError("requires exactly 1 argument");
+  }
+  if (!IsFutureQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a future");
+  }
+  if (input_types[0] != GetFutureQType(output_type)) {
+    return absl::InvalidArgumentError(
+        "argument must be a future of the output type");
+  }
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<UnwrapFutureToFutureOperator>(input_types, output_type),
+      input_types, output_type);
+}
+
+namespace {
+
+class UnwrapFutureToStreamOperator : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [input_slot = input_slots[0].UnsafeToSlot<FuturePtr>(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
+          const auto& future = frame.Get(input_slot);
+          if (future == nullptr) {
+            return absl::InvalidArgumentError("future is null");
+          }
+          const auto& inner_stream_qtype = future->value_qtype();
+          if (!IsStreamQType(inner_stream_qtype)) {
+            return absl::InvalidArgumentError(
+                "argument must be a future to a stream");
+          }
+          auto [result_stream, result_writer] =
+              MakeStream(inner_stream_qtype->value_qtype());
+          future->AddConsumer(
+              [result_writer = std::move(result_writer)](
+                  absl::StatusOr<arolla::TypedValue> value) mutable {
+                if (!value.ok()) {
+                  std::move(*result_writer).Close(std::move(value).status());
+                  return;
+                }
+                // Using chain to copy one stream to another is an overkill,
+                // but works.
+                StreamChain chain(std::move(result_writer));
+                chain.Add(value->UnsafeAs<StreamPtr>());
+              });
+          frame.Set(output_slot, std::move(result_stream));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr>
+UnwrapFutureToStreamOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 1) {
+    return absl::InvalidArgumentError("requires exactly 1 argument");
+  }
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  if (input_types[0] != GetFutureQType(output_type)) {
+    return absl::InvalidArgumentError(
+        "argument must be a future of the output type");
+  }
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<UnwrapFutureToStreamOperator>(input_types, output_type),
       input_types, output_type);
 }
 

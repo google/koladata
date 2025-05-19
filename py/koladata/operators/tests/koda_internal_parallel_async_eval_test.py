@@ -17,6 +17,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functor.parallel import clib
 from koladata.operators import kde_operators as _
 from koladata.operators import koda_internal_parallel
 from koladata.operators import optools
@@ -28,6 +29,12 @@ ds = data_slice.DataSlice.from_vals
 
 
 class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
+
+  def _read_full_stream(self, res: clib.Stream) -> list[arolla.QValue]:
+    stream_reader = res.make_reader()
+    res = stream_reader.read_available() or []
+    self.assertIsNone(stream_reader.read_available())
+    return res
 
   def test_simple(self):
     executor = koda_internal_parallel.get_eager_executor()
@@ -155,8 +162,21 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
         lambda x, y: koda_internal_parallel.as_future(x + y)
     )
     expr = koda_internal_parallel.async_eval(executor, inner_op, I.foo, I.bar)
+    expr = koda_internal_parallel.unwrap_future_to_future(expr)
     expr = koda_internal_parallel.get_future_value_for_testing(expr)
     testing.assert_equal(expr_eval.eval(expr, foo=1, bar=2), ds(3))
+
+  def test_op_returns_stream(self):
+    executor = koda_internal_parallel.get_eager_executor()
+    inner_op = optools.as_lambda_operator('aux')(
+        lambda x, y: koda_internal_parallel.stream_make(x + y, x - y)
+    )
+    expr = koda_internal_parallel.async_eval(executor, inner_op, I.foo, I.bar)
+    expr = koda_internal_parallel.unwrap_future_to_stream(expr)
+    res = expr_eval.eval(expr, foo=1, bar=2)
+    testing.assert_equal(
+        arolla.tuple(*self._read_full_stream(res)), arolla.tuple(ds(3), ds(-1))
+    )
 
   def test_non_executor(self):
     bad_executor = ds(1)

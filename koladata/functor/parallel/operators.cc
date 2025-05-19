@@ -91,6 +91,10 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_map_unordered",
                 std::make_unique<StreamMapUnorderedOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_reduce",
                 std::make_unique<StreamReduceOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_future",
+                std::make_unique<UnwrapFutureToFutureOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_stream",
+                std::make_unique<UnwrapFutureToStreamOperatorFamily>());
 
 // go/keep-sorted end
 

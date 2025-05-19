@@ -126,15 +126,7 @@ class AsyncCountdown {
       }
       absl::StatusOr<arolla::TypedValue> value =
           expr::EvalOpWithCompilationCache(op, input_refs);
-      if (!value.ok() || !IsFutureQType(value->GetType())) {
-        std::move(result_writer).SetValue(std::move(value));
-        return;
-      }
-      std::move(value)->UnsafeAs<FuturePtr>()->AddConsumer(
-          [result_writer = std::move(result_writer)](
-              absl::StatusOr<arolla::TypedValue> value) mutable {
-            std::move(result_writer).SetValue(std::move(value));
-          });
+      std::move(result_writer).SetValue(std::move(value));
     });
   }
 

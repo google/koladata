@@ -379,6 +379,9 @@ cc_library(
     deps = [
         ":future",
         ":future_qtype",
+        ":stream",
+        ":stream_composition",
+        ":stream_qtype",
         "//koladata:data_slice_qtype",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -386,7 +389,6 @@ cc_library(
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
-        "@com_google_arolla//arolla/qexpr/operators/core:lib",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
     ],

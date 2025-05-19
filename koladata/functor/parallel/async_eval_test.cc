@@ -221,27 +221,6 @@ TEST(AsyncEvalTest, TwoErrors) {
                        HasSubstr("failed to get attribute 'c'")));
 }
 
-TEST(AsyncEvalTest, OpReturnsFuture) {
-  auto executor = GetEagerExecutor();
-  ASSERT_OK_AND_ASSIGN(
-      auto inner_op,
-      MakeLambdaOperator(
-          ExprOperatorSignature{{"x"}, {"y"}},
-          CallOp("koda_internal.parallel.as_future",
-                 {CallOp("kd.add", {Placeholder("x"), Placeholder("y")}, {})},
-                 {})));
-  auto x = DataSlice::CreateFromScalar(1);
-  auto y = DataSlice::CreateFromScalar(2);
-  ASSERT_OK_AND_ASSIGN(
-      auto res_future,
-      AsyncEvalWithCompilationCache(
-          executor, inner_op, {TypedRef::FromValue(x), TypedRef::FromValue(y)},
-          GetQType<DataSlice>()));
-  EXPECT_THAT(res_future->GetValueForTesting(),
-              IsOkAndHolds(TypedValueWith<DataSlice>(
-                  IsEquivalentTo(DataSlice::CreateFromScalar(3)))));
-}
-
 TEST(AsyncEvalTest, Multithreaded) {
   absl::BitGen rng;
 

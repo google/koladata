@@ -79,15 +79,15 @@ def get_future_qtype(value_qtype):  # pylint: disable=unused-argument
 @optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.parallel.as_future',
-    qtype_inference_expr=M.qtype.conditional_qtype(
-        bootstrap.is_future_qtype(P.arg),
-        P.arg,
-        get_future_qtype(P.arg),
-    ),
+    qtype_inference_expr=get_future_qtype(P.arg),
     qtype_constraints=[
         (
             ~bootstrap.is_stream_qtype(P.arg),
             'as_future cannot be applied to a stream',
+        ),
+        (
+            ~bootstrap.is_future_qtype(P.arg),
+            'as_future cannot be applied to a future',
         ),
     ],
 )
@@ -106,6 +106,46 @@ def as_future(arg):  # pylint: disable=unused-argument
 )
 def get_future_value_for_testing(arg):  # pylint: disable=unused-argument
   """Gets the value from the given future for testing purposes."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(view=None)
+@optools.as_backend_operator(
+    'koda_internal.parallel.unwrap_future_to_future',
+    qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
+    qtype_constraints=[
+        qtype_utils.expect_future(P.arg),
+        (
+            bootstrap.is_future_qtype(M.qtype.get_value_qtype(P.arg)),
+            (
+                'expected a future to a future, got'
+                f' {arolla.optools.constraints.name_type_msg(P.arg)}'
+            ),
+        ),
+    ],
+)
+def unwrap_future_to_future(arg):  # pylint: disable=unused-argument
+  """Given future to future, returns future getting the value of inner future."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(view=None)
+@optools.as_backend_operator(
+    'koda_internal.parallel.unwrap_future_to_stream',
+    qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
+    qtype_constraints=[
+        qtype_utils.expect_future(P.arg),
+        (
+            bootstrap.is_stream_qtype(M.qtype.get_value_qtype(P.arg)),
+            (
+                'expected a future to a stream, got'
+                f' {arolla.optools.constraints.name_type_msg(P.arg)}'
+            ),
+        ),
+    ],
+)
+def unwrap_future_to_stream(arg):  # pylint: disable=unused-argument
+  """Given future to stream, returns stream getting the values of inner stream."""
   raise NotImplementedError('implemented in the backend')
 
 

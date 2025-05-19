@@ -43,17 +43,10 @@ class KodaInternalParallelAsFutureTest(absltest.TestCase):
     expr = koda_internal_parallel.as_future(
         koda_internal_parallel.as_future(I.x)
     )
-    res = expr_eval.eval(expr, x=arolla.int32(10))
-    self.assertEqual(
-        res.qtype,
-        expr_eval.eval(koda_internal_parallel.get_future_qtype(arolla.INT32)),
-    )
-    testing.assert_equal(
-        expr_eval.eval(
-            koda_internal_parallel.get_future_value_for_testing(res)
-        ),
-        arolla.int32(10),
-    )
+    with self.assertRaisesRegex(
+        ValueError, 'as_future cannot be applied to a future'
+    ):
+      _ = expr_eval.eval(expr, x=arolla.int32(10))
 
   def test_qtype_signatures(self):
     future_int32_qtype = expr_eval.eval(
@@ -66,7 +59,6 @@ class KodaInternalParallelAsFutureTest(absltest.TestCase):
         koda_internal_parallel.as_future,
         [
             (arolla.INT32, future_int32_qtype),
-            (future_int32_qtype, future_int32_qtype),
         ],
         possible_qtypes=[arolla.INT32, future_int32_qtype, stream_int32_qtype],
     )

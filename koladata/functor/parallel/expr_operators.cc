@@ -93,11 +93,7 @@ absl::StatusOr<arolla::expr::ExprAttributes> AsyncEvalOp::InferAttributes(
     return absl::InvalidArgumentError(
         "failed to infer attributes for the async operator");
   }
-  if (IsFutureQType(attrs.qtype())) {
-    return arolla::expr::ExprAttributes(attrs.qtype());
-  } else {
-    return arolla::expr::ExprAttributes(GetFutureQType(attrs.qtype()));
-  }
+  return arolla::expr::ExprAttributes(GetFutureQType(attrs.qtype()));
 }
 
 }  // namespace koladata::functor::parallel
