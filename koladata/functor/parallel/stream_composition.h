@@ -18,6 +18,7 @@
 #include <memory>
 
 #include "absl/base/nullability.h"
+#include "absl/status/status.h"
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
