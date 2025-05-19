@@ -82,6 +82,13 @@ class StreamMapUnorderedOperatorFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// koda_internal.parallel.stream_reduce operator.
+class StreamReduceOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 // go/keep-sorted end
 
 }  // namespace koladata::functor::parallel

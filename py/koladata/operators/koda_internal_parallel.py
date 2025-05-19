@@ -843,3 +843,43 @@ def stream_flat_map_interleaved(
           value_type_as=stream_make(value_type_as=value_type_as),
       )
   )
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_reduce',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_data_slice(P.fn),
+        qtype_utils.expect_stream(P.stream),
+    ],
+    qtype_inference_expr=get_stream_qtype(P.initial_value),
+    deterministic=False,
+)
+def stream_reduce(executor, fn, stream, initial_value):
+  """Reduces a stream by iteratively applying a functor `fn`.
+
+  This operator applies `fn` sequentially to an accumulating value and each
+  item of the `stream`. The process begins with `initial_value`, then follows
+  this pattern:
+
+           value_0 = initial_value
+           value_1 = fn(value_0, stream[0])
+           value_2 = fn(value_1, stream[1])
+                  ...
+
+  The result of the reduction is the final computed value.
+
+  Args:
+    executor: The executor to use for asynchronous operations (if any).
+    fn: A binary function that takes two positional arguments -- the current
+      accumulating value and the next item from the stream -- and returns a new
+      value. It's expected to return a value of the same type as
+      `initial_value`.
+    stream: The input stream.
+    initial_value: The initial value.
+
+  Returns:
+    A stream with a single item containing the final result of the reduction.
+  """
+  raise NotImplementedError('implemented in the backend')

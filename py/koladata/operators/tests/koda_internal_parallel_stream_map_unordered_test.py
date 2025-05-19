@@ -159,16 +159,14 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_on_read(self):
-    cancellation_context = arolla.abc.current_cancellation_context()
-    assert cancellation_context is not None
-
-    stream, writer = stream_clib.make_stream(arolla.INT32)
-    fn = expr_fn(M.core._identity_with_cancel(I.self))
+    stream, _ = stream_clib.make_stream(arolla.INT32)
+    fn = expr_fn(I.self)
     res = koda_internal_parallel.stream_map_unordered(
         default_executor, stream, fn, value_type_as=i32(0)
     ).eval()
+    cancellation_context = arolla.abc.current_cancellation_context()
+    assert cancellation_context is not None
     cancellation_context.cancel('Boom!')
-    writer.write(i32(1))  # trigger activity
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED] Boom!')):
       res.read_all(timeout=None)
 

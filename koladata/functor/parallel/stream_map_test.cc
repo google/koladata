@@ -124,8 +124,8 @@ TEST(StreamMapTest, OrphanedOutputStream) {
 }
 
 TEST(StreamMapTest, FunctorCancellationContextPropagation) {
-  // Note: Use a single-threaded executor so we have predictable
-  // behaviour.
+  // Note: Use a single-threaded executor to run computations on a different
+  // thread, while still having predictable behaviour.
   auto executor = MakeAsioExecutor(1);
   arolla::CancellationContext::ScopeGuard cancellation_scope;
   auto [stream, writer] = MakeStream(arolla::GetQType<int>());
@@ -167,7 +167,7 @@ TEST(StreamMapTest, DoNotStartWhenCancelled) {
   stream = StreamMap(GetEagerExecutor(), std::move(stream),
                      arolla::GetQType<double>(), [](arolla::TypedRef item) {
                        ADD_FAILURE();
-                       return absl::FailedPreconditionError("Never");
+                       return absl::FailedPreconditionError("Never!");
                      });
   EXPECT_THAT(stream->MakeReader()->TryRead().close_status(),
               Pointee(StatusIs(absl::StatusCode::kCancelled, "Boom!")));
@@ -218,9 +218,11 @@ TEST(StreamMapTest, ExecutorShutdown) {
   auto [stream, writer] = MakeStream(arolla::GetQType<int>());
   writer->Write(arolla::TypedRef::FromValue(0));
   std::move(*writer).Close();
-  stream =
-      StreamMap(dummy_executor, std::move(stream), arolla::GetQType<int>(),
-                [](arolla::TypedRef item) { return arolla::TypedValue(item); });
+  stream = StreamMap(dummy_executor, std::move(stream), arolla::GetQType<int>(),
+                     [](arolla::TypedRef item) {
+                       ADD_FAILURE();  // Never happens.
+                       return absl::FailedPreconditionError("Never!");
+                     });
   EXPECT_THAT(stream->MakeReader()->TryRead().close_status(),
               Pointee(StatusIs(absl::StatusCode::kCancelled, "orphaned")));
 }
@@ -308,8 +310,8 @@ TEST(StreamMapUnorderedTest, OrphanedOutputStream) {
 }
 
 TEST(StreamMapUnorderedTest, FunctorCancellationContextPropagation) {
-  // Note: Use a single-threaded executor so we have predictable
-  // behaviour.
+  // Note: Use a single-threaded executor to run computations on a different
+  // thread, while still having predictable behaviour.
   auto executor = MakeAsioExecutor(1);
   arolla::CancellationContext::ScopeGuard cancellation_scope;
   auto [stream, writer] = MakeStream(arolla::GetQType<int>());
@@ -351,8 +353,8 @@ TEST(StreamMapUnorderedTest, DoNotStartWhenCancelled) {
   stream =
       StreamMapUnordered(GetEagerExecutor(), std::move(stream),
                          arolla::GetQType<double>(), [](arolla::TypedRef item) {
-                           ADD_FAILURE();
-                           return absl::FailedPreconditionError("Never");
+                           ADD_FAILURE();  // Never happens.
+                           return absl::FailedPreconditionError("Never!");
                          });
   EXPECT_THAT(stream->MakeReader()->TryRead().close_status(),
               Pointee(StatusIs(absl::StatusCode::kCancelled, "Boom!")));
@@ -405,9 +407,12 @@ TEST(StreamMapUnorderedTest, ExecutorShutdown) {
   auto [stream, writer] = MakeStream(arolla::GetQType<int>());
   writer->Write(arolla::TypedRef::FromValue(0));
   std::move(*writer).Close();
-  stream = StreamMapUnordered(
-      dummy_executor, std::move(stream), arolla::GetQType<int>(),
-      [](arolla::TypedRef item) { return arolla::TypedValue(item); });
+  stream =
+      StreamMapUnordered(dummy_executor, std::move(stream),
+                         arolla::GetQType<int>(), [](arolla::TypedRef item) {
+                           ADD_FAILURE();  // Never happens.
+                           return absl::FailedPreconditionError("Never!");
+                         });
   EXPECT_THAT(stream->MakeReader()->TryRead().close_status(),
               Pointee(StatusIs(absl::StatusCode::kCancelled, "orphaned")));
 }
