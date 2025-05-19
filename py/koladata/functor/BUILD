@@ -162,6 +162,7 @@ py_library(
         "//py/koladata/types:mask_constants",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:signature_utils",
+        "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -227,6 +228,7 @@ py_library(
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -261,6 +263,7 @@ py_test(
         "//py:python_path",
         "//py/koladata/functions",
         "//py/koladata/testing",
+        "//py/koladata/util:kd_functools",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
     ],

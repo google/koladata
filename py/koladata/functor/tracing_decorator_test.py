@@ -37,8 +37,8 @@ from koladata.types import data_slice
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 ds = data_slice.DataSlice.from_vals
-kd = eager_op_utils.operators_container('kd')
-kde = kde_operators.kde
+kd_eager = eager_op_utils.operators_container('kd')
+kd_lazy = kde_operators.kde
 
 
 class TuplePairTracingConfig(tracing_decorator.TypeTracingConfig):
@@ -310,7 +310,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     )
     testing.assert_equal(
         introspection.unpack_expr(fn.f.returns),
-        kde.attrs(I.x, foo=1),
+        kd_lazy.attrs(I.x, foo=1),
     )
 
   @parameterized.parameters(True, False)
@@ -411,7 +411,7 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     # Check that the default values from the Koda signature are respected.
     fn = fn.updated(
-        kd.attrs(
+        kd_eager.attrs(
             functor_factories.get_signature(fn.pair_add).parameters[1],
             default_value=EntityPairTracingConfig().to_kd(
                 PairWithEntityTracing, PairWithEntityTracing(x=ds(3), y=ds(4))
@@ -484,13 +484,14 @@ class TracingDecoratorTest(parameterized.TestCase):
     def bar(x):
       return 1 // foo(x)
 
+    @tracing_decorator.TraceAsFnDecorator()
     def baz(x):
       return 1 // bar(x)
 
-    baz = functor_factories.trace_py_fn(baz)
+    baz = functor_factories.fn(baz)
 
     try:
-      kd.call(baz, 0)
+      baz(0)
     except ValueError as e:
       ex = e
 
@@ -502,19 +503,58 @@ class TracingDecoratorTest(parameterized.TestCase):
         ).structured_traceback(type(ex), ex, ex.__traceback__)
     )
 
+    self.assertNotIn('/tracing.py', tb)
+    self.assertNotIn('/functor_factories.py', tb)
     self.assertNotIn('/tracing_decorator.py', tb)
+    self.assertNotIn('/stack_trace.py', tb)
+    self.assertIn('baz(0)', tb)
     self.assertRegex(
         tb, 'tracing_decorator_test.py.*test_functor_call_traceback'
     )
-    self.assertIn('def foo(x):', tb)
-    self.assertIn('kd.call(baz, 0)', tb)
+    self.assertIn('baz = functor_factories.fn(baz)', tb)
     self.assertRegex(tb, 'tracing_decorator_test.py.*baz')
-    self.assertIn('def bar(x):', tb)
+    self.assertIn('def baz(x):', tb)
     self.assertIn('return 1 // bar(x)', tb)
     self.assertRegex(tb, 'tracing_decorator_test.py.*bar')
-    self.assertIn('def baz(x):', tb)
+    self.assertIn('def bar(x):', tb)
     self.assertIn('return 1 // foo(x)', tb)
     self.assertRegex(tb, 'tracing_decorator_test.py.*foo')
+    self.assertIn('def foo(x):', tb)
+
+  def test_autoboxing_functor_call_traceback(self):
+    @tracing_decorator.TraceAsFnDecorator()
+    def foo(x):
+      return user_facing_kd.if_(
+          x > 5,
+          lambda a: a + 1,
+          lambda a: 1 // a,
+          x,
+      )
+
+    try:
+      foo(0)
+    except ValueError as e:
+      ex = e
+
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
+
+    tb = '\n'.join(
+        ultratb.VerboseTB(
+            color_scheme='NoColor', include_vars=False
+        ).structured_traceback(type(ex), ex, ex.__traceback__)
+    )
+
+    self.assertNotIn('/tracing.py', tb)
+    self.assertNotIn('/functor_factories.py', tb)
+    self.assertNotIn('/tracing_decorator.py', tb)
+    self.assertNotIn('/py_boxing.py', tb)
+    self.assertNotIn('/stack_trace.py', tb)
+    self.assertRegex(
+        tb, 'tracing_decorator_test.py.*test_autoboxing_functor_call_traceback'
+    )
+    self.assertIn('return user_facing_kd.if_(', tb)
+    self.assertRegex(tb, 'tracing_decorator_test.py.*<lambda>')
+    self.assertIn('lambda a: 1 // a,', tb)
 
 
 if __name__ == '__main__':

@@ -27,6 +27,7 @@ from koladata.functor import stack_trace
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import py_boxing
+from koladata.util import kd_functools
 
 
 # The design is loosely inspired by TensorFlow TraceType.
@@ -287,7 +288,7 @@ class TraceAsFnDecorator:
     to_call = py_boxing.as_expr(to_call).with_name(name)
 
     @functools.wraps(fn)
-    @stack_trace.skip
+    @kd_functools.skip_from_functor_stack_trace
     def wrapper(*args: Any, **kwargs: Any) -> Any:
       __tracebackhide__ = True  # pylint: disable=invalid-name,unused-variable
 

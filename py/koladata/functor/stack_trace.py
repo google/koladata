@@ -18,7 +18,6 @@ import contextlib
 import inspect
 import linecache
 import re
-import types as py_types
 from typing import Any, Callable
 
 from koladata.functions import functions as fns
@@ -89,30 +88,14 @@ def function_frame(func: Callable[..., Any]) -> data_slice.DataSlice | None:
   )
 
 
-_SKIPPED_FUNCTIONS = set()
-
-
-def skip(
-    func: py_types.FunctionType,
-) -> py_types.FunctionType:
-  """Annotates a function to be skipped by current_frame()."""
-  assert isinstance(func, py_types.FunctionType)
-  _SKIPPED_FUNCTIONS.add(func.__code__)
-  return func
-
-
+@kd_functools.skip_from_functor_stack_trace
 def current_frame() -> data_slice.DataSlice | None:
   """Returns the best traceback frame to represent the current function call.
 
   The function searches for the first frame coming from outside this module and
-  not marked using @stack_trace.skip.
+  not marked using @kd_functools.skip_from_stack_trace.
   """
-  frame = inspect.currentframe()
-  while frame and (
-      frame.f_code.co_filename == __file__
-      or frame.f_code in _SKIPPED_FUNCTIONS
-  ):
-    frame = frame.f_back
+  frame = kd_functools.current_stack_trace_frame()
   if not frame:
     return None
 

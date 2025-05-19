@@ -28,6 +28,7 @@ from koladata.util import kd_functools
 I = input_container.InputContainer('I')
 
 
+@kd_functools.skip_from_functor_stack_trace
 def trace(fn: Callable[..., Any]) -> arolla.Expr:
   """Converts the given Python function to an Expr by tracing it.
 

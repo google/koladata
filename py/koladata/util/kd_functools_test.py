@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import functools
+import inspect
 from absl.testing import absltest
 from koladata.util import kd_functools
 
@@ -39,6 +40,35 @@ class FunctoolsTest(absltest.TestCase):
     bar = functools.update_wrapper(foo, bar)
     self.assertIs(kd_functools.unwrap(bar), bar)  # Infinite loop detected.
 
+  def test_current_stack_trace_frame(self):
+    @kd_functools.skip_from_functor_stack_trace
+    def foo():
+      return kd_functools.current_stack_trace_frame()
+
+    class Foo:
+      @staticmethod
+      @kd_functools.skip_from_functor_stack_trace
+      def static_method():
+        return foo()
+
+      @kd_functools.skip_from_functor_stack_trace
+      def method(self):
+        return self.static_method()
+
+    def bar():
+      return Foo().method()
+
+    def baz():
+      return bar()
+
+    frame = baz()
+    self.assertIsNotNone(frame)
+    self.assertEqual(frame.f_code.co_name, 'bar')
+    self.assertIn('kd_functools_test.py', frame.f_code.co_filename)
+    self.assertEqual(
+        frame.f_lineno,
+        inspect.getsourcelines(bar)[1] + 1  # first line of the function.
+    )
 
 if __name__ == '__main__':
   absltest.main()

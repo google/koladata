@@ -21,6 +21,7 @@ from koladata.functions import functions as fns
 from koladata.functor import stack_trace
 from koladata.functor import testing_clib
 from koladata.testing import testing as kd_testing
+from koladata.util import kd_functools
 
 
 def simple_function(x):
@@ -166,17 +167,17 @@ class StackTraceTest(parameterized.TestCase):
     self.assertIsNone(frame)
 
   def test_current_frame(self):
-    @stack_trace.skip
+    @kd_functools.skip_from_functor_stack_trace
     def foo():
       return stack_trace.current_frame()
 
     class Foo:
       @staticmethod
-      @stack_trace.skip
+      @kd_functools.skip_from_functor_stack_trace
       def static_method():
         return foo()
 
-      @stack_trace.skip
+      @kd_functools.skip_from_functor_stack_trace
       def method(self):
         return self.static_method()
 
