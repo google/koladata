@@ -16,6 +16,7 @@
 #define KOLADATA_EXPR_EXPR_OPERATORS_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -151,6 +152,12 @@ class InputContainer {
   // Creates koda_internal.input(cont_name, key)
   absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(
       absl::string_view key) const;
+
+  // If the given node is an input from this container, returns its name,
+  // otherwise returns nullopt. Returns an error when the node is an input
+  // node but is malformed.
+  absl::StatusOr<std::optional<std::string>> GetInputName(
+      const arolla::expr::ExprNodePtr& node) const;
 
   // Traverses given node and finds all inputs from this container
   absl::StatusOr<std::vector<std::string>> ExtractInputNames(

@@ -20,6 +20,7 @@ from koladata.types import qtypes
 DATA_BAG = qtypes.DATA_BAG
 DATA_SLICE = qtypes.DATA_SLICE
 JAGGED_SHAPE = qtypes.JAGGED_SHAPE
+NON_DETERMINISTIC_TOKEN = qtypes.NON_DETERMINISTIC_TOKEN
 
 
 EMPTY_TUPLE = arolla.make_tuple_qtype()

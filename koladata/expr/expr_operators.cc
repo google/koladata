@@ -267,23 +267,31 @@ absl::StatusOr<arolla::expr::ExprNodePtr> InputContainer::CreateInput(
        MakeLiteral(arolla::TypedValue::FromValue(arolla::Text(key)))});
 }
 
+absl::StatusOr<std::optional<std::string>> InputContainer::GetInputName(
+    const arolla::expr::ExprNodePtr& node) const {
+  if (!IsInput(node)) return std::nullopt;
+  if (node->node_deps().size() != 2) {
+    return absl::FailedPreconditionError("invalid koda_internal.input node");
+  }
+  if (node->node_deps()[0]->fingerprint() != cont_name_->fingerprint()) {
+    return std::nullopt;
+  }
+  const std::optional<arolla::TypedValue>& val = node->node_deps()[1]->qvalue();
+  if (!val.has_value()) {
+    return absl::InvalidArgumentError("input name has no value");
+  }
+  ASSIGN_OR_RETURN(const arolla::Text& vname, val->As<arolla::Text>());
+  return std::string(vname.view());
+}
+
 absl::StatusOr<std::vector<std::string>> InputContainer::ExtractInputNames(
     const arolla::expr::ExprNodePtr& node) const {
   std::vector<std::string> names;
   arolla::expr::PostOrder po(node);
   for (const auto& n : po.nodes()) {
-    if (!IsInput(n)) continue;
-    if (n->node_deps().size() != 2) {
-      return absl::FailedPreconditionError("invalid koda_internal.input node");
-    }
-    if (n->node_deps()[0]->fingerprint() == cont_name_->fingerprint()) {
-      const std::optional<arolla::TypedValue>& val =
-          n->node_deps()[1]->qvalue();
-      if (!val.has_value()) {
-        return absl::InvalidArgumentError("input name has no value");
-      }
-      ASSIGN_OR_RETURN(const arolla::Text& vname, val->As<arolla::Text>());
-      names.emplace_back(vname.view());
+    ASSIGN_OR_RETURN(auto name, GetInputName(n));
+    if (name) {
+      names.emplace_back(*std::move(name));
     }
   }
   return names;

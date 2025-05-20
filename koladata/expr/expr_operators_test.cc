@@ -15,6 +15,7 @@
 #include "koladata/expr/expr_operators.h"
 
 #include <cstdint>
+#include <optional>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -161,6 +162,12 @@ TEST(InputContainerTest, Container) {
   EXPECT_FALSE(IsInput(sum));
   EXPECT_THAT(container.ExtractInputNames(sum),
               IsOkAndHolds(UnorderedElementsAre("a", "b")));
+
+  EXPECT_THAT(container.GetInputName(a), IsOkAndHolds("a"));
+  EXPECT_THAT(container.GetInputName(b), IsOkAndHolds("b"));
+  EXPECT_THAT(container.GetInputName(sum), IsOkAndHolds(std::nullopt));
+  EXPECT_THAT(container.GetInputName(arolla::expr::Leaf("x")),
+              IsOkAndHolds(std::nullopt));
 
   ASSERT_OK_AND_ASSIGN(
       auto expected_a,

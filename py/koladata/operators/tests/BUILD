@@ -8776,6 +8776,33 @@ py_test(
 )
 
 py_test(
+    name = "koda_internal_parallel_transform_test",
+    srcs = ["koda_internal_parallel_transform_test.py"],
+    deps = [
+        "//koladata/functor/parallel:execution_config_py_proto",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/functor:functor_factories",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:bootstrap",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators:slices",
+        "//py/koladata/operators:tuple",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:signature_utils",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "koda_internal_parallel_stream_flat_map_chain_test",
     srcs = ["koda_internal_parallel_stream_flat_map_chain_test.py"],
     deps = [

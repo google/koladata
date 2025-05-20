@@ -818,6 +818,21 @@ def stream_map_unordered(
 
 
 @optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.transform',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    qtype_constraints=[
+        qtype_utils.expect_execution_context(P.context),
+        qtype_utils.expect_data_slice(P.fn),
+    ],
+    deterministic=False,
+)
+def transform(context, fn):  # pylint: disable=unused-argument
+  """Transforms the given functor to a parallel version."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.parallel.stream_flat_map_chain',
     qtype_constraints=(

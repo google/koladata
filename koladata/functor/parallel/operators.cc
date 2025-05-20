@@ -32,6 +32,7 @@
 #include "koladata/functor/parallel/future_qtype.h"
 #include "koladata/functor/parallel/stream_operators.h"
 #include "koladata/functor/parallel/stream_qtype.h"
+#include "koladata/functor/parallel/transform.h"
 #include "koladata/internal/non_deterministic_token.h"
 
 namespace koladata::functor::parallel {
@@ -102,6 +103,7 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_map_unordered",
                 std::make_unique<StreamMapUnorderedOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_reduce",
                 std::make_unique<StreamReduceOperatorFamily>());
+OPERATOR("koda_internal.parallel.transform", TransformToParallel);
 OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_future",
                 std::make_unique<UnwrapFutureToFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_stream",
