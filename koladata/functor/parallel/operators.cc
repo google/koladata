@@ -21,9 +21,12 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/optools.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/asio_executor.h"
 #include "koladata/functor/parallel/async_eval_operator.h"
+#include "koladata/functor/parallel/create_execution_context.h"
+#include "koladata/functor/parallel/execution_context.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future_operators.h"
 #include "koladata/functor/parallel/future_qtype.h"
@@ -44,6 +47,14 @@ OPERATOR_FAMILY("koda_internal.parallel.async_eval",
                 std::make_unique<AsyncEvalOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.async_unpack_tuple",
                 std::make_unique<AsyncUnpackTupleOperatorFamily>());
+OPERATOR("koda_internal.parallel.create_execution_context",
+         CreateExecutionContext);
+OPERATOR("koda_internal.parallel.get_execution_context_qtype",
+         []() { return arolla::GetQType<ExecutionContextPtr>(); });
+OPERATOR("koda_internal.parallel.get_executor_from_context",
+         [](const ExecutionContextPtr& context) {
+           return context->executor();
+         });
 OPERATOR("koda_internal.parallel.get_future_qtype",
          // Since there is a templated overload, we need to wrap in a lambda.
          [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {

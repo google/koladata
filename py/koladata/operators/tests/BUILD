@@ -8872,3 +8872,50 @@ py_test(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_test(
+    name = "koda_internal_parallel_get_execution_context_qtype_test",
+    srcs = ["koda_internal_parallel_get_execution_context_qtype_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:bootstrap",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "koda_internal_parallel_create_execution_context_test",
+    srcs = ["koda_internal_parallel_create_execution_context_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:bootstrap",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "koda_internal_parallel_get_executor_from_context_test",
+    srcs = ["koda_internal_parallel_get_executor_from_context_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:bootstrap",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)

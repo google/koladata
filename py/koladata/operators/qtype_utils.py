@@ -175,6 +175,17 @@ def expect_executor(param) -> constraints.QTypeConstraint:
   )
 
 
+def expect_execution_context(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is an ExecutionContext."""
+  return (
+      param == bootstrap.get_execution_context_qtype(),
+      (
+          'expected an execution context, got'
+          f' {arolla.optools.constraints.name_type_msg(param)}'
+      ),
+  )
+
+
 def expect_future(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is a Future."""
   return (

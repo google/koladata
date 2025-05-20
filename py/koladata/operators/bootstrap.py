@@ -54,3 +54,13 @@ def is_future_qtype(qtype):  # pylint: disable=unused-argument
 def is_stream_qtype(qtype):  # pylint: disable=unused-argument
   """Checks if the given qtype is a stream qtype."""
   raise NotImplementedError('implemented in the backend')
+
+
+@arolla.optools.add_to_registry()
+@arolla.optools.as_backend_operator(
+    'koda_internal.parallel.get_execution_context_qtype',
+    qtype_inference_expr=arolla.QTYPE,
+)
+def get_execution_context_qtype():
+  """Returns the qtype for ExecutionContext."""
+  raise NotImplementedError('implemented in the backend')

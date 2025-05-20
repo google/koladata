@@ -63,6 +63,43 @@ def make_asio_executor(num_threads=0):
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.create_execution_context',
+    qtype_inference_expr=bootstrap.get_execution_context_qtype(),
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_data_slice(P.config),
+    ],
+)
+def create_execution_context(executor, config):  # pylint: disable=unused-argument
+  """Creates an execution context with the given executor and config.
+
+  Args:
+    executor: The executor to use.
+    config: A data slice with the configuration to be used. It must be a scalar
+      with structure corresponding to the ExecutionConfig proto. Attributes
+      which are not part of ExecutionConfig proto will be ignored.
+
+  Returns:
+    An execution context with the given executor and config.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.get_executor_from_context',
+    qtype_inference_expr=arolla.M.qtype.qtype_of(get_eager_executor()),
+    qtype_constraints=[
+        qtype_utils.expect_execution_context(P.context),
+    ],
+)
+def get_executor_from_context(context):  # pylint: disable=unused-argument
+  """Retrieves the executor from the given execution context."""
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(view=None)
 @optools.as_backend_operator(
     'koda_internal.parallel.get_future_qtype',

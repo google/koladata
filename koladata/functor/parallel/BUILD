@@ -14,8 +14,10 @@
 
 # Parallel execution tools for Koda.
 
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -322,6 +324,8 @@ cc_library(
     deps = [
         ":asio_executor",
         ":async_eval_operator",
+        ":create_execution_context",
+        ":execution_context",
         ":executor",
         ":future_operators",
         ":future_qtype",
@@ -529,6 +533,77 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "execution_context",
+    srcs = ["execution_context.cc"],
+    hdrs = ["execution_context.h"],
+    deps = [
+        ":execution_config_cc_proto",
+        ":executor",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "execution_context_test",
+    srcs = ["execution_context_test.cc"],
+    deps = [
+        ":eager_executor",
+        ":execution_context",
+        ":executor",
+        "//koladata/testing:test_env",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/operators:bootstrap",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "create_execution_context",
+    srcs = ["create_execution_context.cc"],
+    hdrs = ["create_execution_context.h"],
+    deps = [
+        ":execution_config_cc_proto",
+        ":execution_context",
+        ":executor",
+        "//koladata:data_slice",
+        "//koladata/proto:to_proto",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "create_execution_context_test",
+    srcs = ["create_execution_context_test.cc"],
+    deps = [
+        ":create_execution_context",
+        ":eager_executor",
+        ":execution_config_cc_proto",
+        ":executor",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata/proto:from_proto",
+        "//koladata/testing:eval_python_declared_ops_in_cpp_tests",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_test(
     name = "future_qtype_test",
     srcs = ["future_qtype_test.cc"],
@@ -540,5 +615,24 @@ cc_test(
         "@com_google_arolla//arolla/qtype/testing",
         "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+proto_library(
+    name = "execution_config_proto",
+    srcs = ["execution_config.proto"],
+)
+
+py_proto_library(
+    name = "execution_config_py_proto",
+    deps = [
+        ":execution_config_proto",
+    ],
+)
+
+cc_proto_library(
+    name = "execution_config_cc_proto",
+    deps = [
+        ":execution_config_proto",
     ],
 )
