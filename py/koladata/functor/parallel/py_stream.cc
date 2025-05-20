@@ -21,6 +21,7 @@
 #include <limits>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "absl/base/no_destructor.h"
 #include "absl/log/check.h"
