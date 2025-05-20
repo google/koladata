@@ -19,8 +19,7 @@ package koladata.functions.testing;
 option features.utf8_validation = NONE;
 option java_multiple_files = true;
 
-message EmptyMessage {
-}
+message EmptyMessage {}
 
 message MessageSet {
   option message_set_wire_format = true;
@@ -30,8 +29,8 @@ message MessageSet {
 }
 
 message MessageA {
-  string some_text = 1;
-  float some_float = 2;
+  string some_text = 1 [default = 'aaa'];
+  float some_float = 2 [default = 123.4];
   repeated MessageB message_b_list = 3;
   MessageSet message_set_extensions = 4;
 

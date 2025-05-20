@@ -121,6 +121,30 @@ class FromProtoTest(absltest.TestCase):
     self.assertEqual(s.some_float, schema_constants.FLOAT32)
     testing.assert_equal(x.message_b_list[:].text.no_bag(), ds(['a', 'b', 'c']))
 
+    # Check message schema metadata.
+    s_metadata = s.get_attr('__schema_metadata__')
+    self.assertEqual(
+        s_metadata.get_attr('__proto_schema_metadata_full_name__'),
+        'koladata.functions.testing.MessageA',
+    )
+    s_default_values = s_metadata.get_attr(
+        '__proto_schema_metadata_default_values__'
+    )
+    self.assertEqual(s_default_values.some_text, 'aaa')
+    self.assertEqual(s_default_values.some_float, 123.4)
+
+    message_b_s_metadata = s.message_b_list.get_attr('__items__').get_attr(
+        '__schema_metadata__'
+    )
+    self.assertEqual(
+        message_b_s_metadata.get_attr('__proto_schema_metadata_full_name__'),
+        'koladata.functions.testing.MessageB',
+    )
+    message_b_s_default_values = message_b_s_metadata.get_attr(
+        '__proto_schema_metadata_default_values__'
+    )
+    self.assertEqual(message_b_s_default_values.text, '')
+
   def test_single_message_explicit_schema(self):
     s = fns.schema_from_proto(test_pb2.MessageA)
     m = test_pb2.MessageA(
@@ -289,6 +313,16 @@ class FromProtoTest(absltest.TestCase):
             '(koladata.functions.testing.MessageBExtension.message_b_extension)'
         ).extra.no_bag(),
         ds([4, None, 5]),
+    )
+
+    self.assertEqual(
+        x.get_attr(
+            '(koladata.functions.testing.MessageAExtension.message_a_extension)'
+        )
+        .get_schema()
+        .get_attr('__schema_metadata__')
+        .get_attr('__proto_schema_metadata_full_name__'),
+        'koladata.functions.testing.MessageAExtension',
     )
 
   def test_extension_on_wrong_message_error(self):

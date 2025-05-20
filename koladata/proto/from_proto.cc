@@ -51,6 +51,7 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/slices.h"
+#include "koladata/proto/proto_schema_utils.h"
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
@@ -253,6 +254,26 @@ absl::StatusOr<DataSlice> CreateBareProtoUuSchema(
       {}, {});
 }
 
+// Returns a metadata OBJECT and a default values entity (with uu itemid) for
+// the given proto schema.
+absl::StatusOr<std::tuple<DataSlice, DataSlice>>
+CreateMessageSchemaMetadataAndDefaultValues(
+    const DataBagPtr& db, const DataSlice& schema,
+    const Descriptor& message_descriptor) {
+  ASSIGN_OR_RETURN(auto metadata, CreateMetadata(db, schema));
+  RETURN_IF_ERROR(metadata.SetAttr(schema::kProtoSchemaMetadataFullNameAttr,
+                                   DataSlice::CreateFromScalar(arolla::Text(
+                                       message_descriptor.full_name()))));
+  ASSIGN_OR_RETURN(auto default_values,
+                   CreateUu(db,
+                            absl::StrFormat("__from_proto_default_values_ %s__",
+                                            message_descriptor.full_name()),
+                            {}, {}));
+  RETURN_IF_ERROR(metadata.SetAttr(
+      schema::kProtoSchemaMetadataDefaultValuesAttr, default_values));
+  return {{std::move(metadata), std::move(default_values)}};
+}
+
 constexpr static absl::string_view kChildItemIdSeed = "__from_proto_child__";
 
 // Returns a rank-1 DataSlice of ITEMID containing unique uuids for each index
@@ -295,6 +316,51 @@ absl::StatusOr<std::optional<DataSlice>> MakeFlatChildIndexItemUuids(
       std::move(child_itemids)
           .Reshape(items_shape.FlattenDims(0, items_shape.rank())));
   return std::move(flat_child_itemids);
+}
+
+absl::StatusOr<DataSlice> DefaultValueFromProtoPrimitiveField(
+    const FieldDescriptor& field_descriptor) {
+  DCHECK(field_descriptor.message_type() == nullptr);
+  internal::DataItem default_item;
+  switch (field_descriptor.cpp_type()) {
+    case google::protobuf::FieldDescriptor::CPPTYPE_INT32:
+      return DataSlice::CreateFromScalar(
+          field_descriptor.default_value_int32());
+    case google::protobuf::FieldDescriptor::CPPTYPE_ENUM:
+      return DataSlice::CreateFromScalar(static_cast<int32_t>(
+          field_descriptor.default_value_enum()->number()));
+    case google::protobuf::FieldDescriptor::CPPTYPE_INT64:
+      return DataSlice::CreateFromScalar(
+          field_descriptor.default_value_int64());
+    case google::protobuf::FieldDescriptor::CPPTYPE_UINT32:
+      return DataSlice::CreateFromScalar(
+          static_cast<int64_t>(field_descriptor.default_value_uint32()));
+    case google::protobuf::FieldDescriptor::CPPTYPE_UINT64:
+      return DataSlice::CreateFromScalar(
+          static_cast<int64_t>(field_descriptor.default_value_uint64()));
+    case google::protobuf::FieldDescriptor::CPPTYPE_DOUBLE:
+      return DataSlice::CreateFromScalar(
+          field_descriptor.default_value_double());
+    case google::protobuf::FieldDescriptor::CPPTYPE_FLOAT:
+      return DataSlice::CreateFromScalar(
+          field_descriptor.default_value_float());
+    case google::protobuf::FieldDescriptor::CPPTYPE_BOOL:
+      return DataSlice::CreateFromScalar(field_descriptor.default_value_bool());
+    case google::protobuf::FieldDescriptor::CPPTYPE_STRING:
+      if (field_descriptor.type() == google::protobuf::FieldDescriptor::TYPE_BYTES) {
+        return DataSlice::CreateFromScalar(
+            arolla::Bytes(field_descriptor.default_value_string()));
+      } else {
+        return DataSlice::CreateFromScalar(
+            arolla::Text(field_descriptor.default_value_string()));
+      }
+      break;
+    default:
+      DCHECK(false);
+      return absl::InvalidArgumentError(
+          absl::StrFormat("expected primitive proto field, got %v",
+                          field_descriptor.DebugString()));
+  }
 }
 
 // Forward declarations for "recursion" via an enqueued callback.
@@ -583,7 +649,15 @@ absl::StatusOr<std::optional<DataSlice>> FromProtoPrimitiveField(
     absl::string_view attr_name, const FieldDescriptor& field_descriptor,
     absl::Span<const Message* /*absl_nonnull*/ const> parent_messages,
     const std::optional<DataSlice>& parent_schema,
+    const std::optional<DataSlice>& parent_default_values,
     bool ignore_field_presence = false) {
+  // Populate the field default value if requested.
+  if (!parent_schema.has_value() && parent_default_values.has_value()) {
+    ASSIGN_OR_RETURN(auto default_value,
+                     DefaultValueFromProtoPrimitiveField(field_descriptor));
+    RETURN_IF_ERROR(parent_default_values->SetAttr(attr_name, default_value));
+  }
+
   auto to_slice = [&]<typename T, typename F>(
                       F get) -> absl::StatusOr<std::optional<DataSlice>> {
     bool is_empty = true;
@@ -751,11 +825,12 @@ absl::Status DictFromProtoMapField(
   // treats them as default-valued if they are unset, so we want them to be
   // converted to their default values in these DataSlices instead of being
   // missing.
-  ASSIGN_OR_RETURN(vars->flat_keys,
-                   FromProtoPrimitiveField(schema::kDictKeysSchemaAttr,
-                                           *map_item_descriptor.map_key(),
-                                           flat_item_messages, vars->schema,
-                                           /*ignore_field_presence=*/true));
+  ASSIGN_OR_RETURN(
+      vars->flat_keys,
+      FromProtoPrimitiveField(schema::kDictKeysSchemaAttr,
+                              *map_item_descriptor.map_key(),
+                              flat_item_messages, vars->schema, std::nullopt,
+                              /*ignore_field_presence=*/true));
   if (map_item_descriptor.map_value()->message_type()) {
     RETURN_IF_ERROR(FromProtoMessageField(
         db, schema::kDictValuesSchemaAttr, "values",
@@ -763,11 +838,12 @@ absl::Status DictFromProtoMapField(
         vars->schema, extension_map,
         /*ignore_field_presence=*/true, executor, vars->flat_values));
   } else {
-    ASSIGN_OR_RETURN(vars->flat_values,
-                     FromProtoPrimitiveField(schema::kDictValuesSchemaAttr,
-                                             *map_item_descriptor.map_value(),
-                                             flat_item_messages, vars->schema,
-                                             /*ignore_field_presence=*/true));
+    ASSIGN_OR_RETURN(
+        vars->flat_values,
+        FromProtoPrimitiveField(schema::kDictValuesSchemaAttr,
+                                *map_item_descriptor.map_value(),
+                                flat_item_messages, vars->schema, std::nullopt,
+                                /*ignore_field_presence=*/true));
   }
 
   executor.Enqueue([db = db, vars = std::move(vars),
@@ -805,6 +881,7 @@ absl::Status FromProtoField(
     absl::Span<const Message* /*absl_nonnull*/ const> parent_messages,
     const std::optional<DataSlice>& parent_itemid,
     const std::optional<DataSlice>& parent_schema,
+    const std::optional<DataSlice>& parent_default_values,
     const ExtensionMap* /*absl_nullable*/ parent_extension_map,
     bool ignore_field_presence, internal::TrampolineExecutor& executor,
     std::optional<DataSlice>& result) {
@@ -831,11 +908,11 @@ absl::Status FromProtoField(
                                    parent_schema, parent_extension_map,
                                    ignore_field_presence, executor, result);
     } else {
-      ASSIGN_OR_RETURN(
-          result,
-          FromProtoPrimitiveField(
-              attr_name, field_descriptor, parent_messages, parent_schema,
-              /*ignore_field_presence=*/ignore_field_presence));
+      ASSIGN_OR_RETURN(result,
+                       FromProtoPrimitiveField(
+                           attr_name, field_descriptor, parent_messages,
+                           parent_schema, parent_default_values,
+                           /*ignore_field_presence=*/ignore_field_presence));
       return absl::OkStatus();
     }
   }
@@ -877,7 +954,8 @@ absl::Status FromProtoMessage(
     size_t num_messages;
     const Descriptor* message_descriptor;
     std::optional<DataSlice> itemid;
-    std::optional<DataSlice> schema;
+    std::optional<DataSlice> requested_schema;
+    std::optional<DataSlice> allocated_schema;
     DataSlice::AttrNamesSet schema_attr_names;
     std::vector<FieldVars> fields;
   };
@@ -885,7 +963,11 @@ absl::Status FromProtoMessage(
   vars->num_messages = messages.size();
   vars->message_descriptor = &message_descriptor;
   vars->itemid = itemid;
-  vars->schema = schema;
+  vars->requested_schema = schema;
+  if (!schema.has_value()) {
+    ASSIGN_OR_RETURN(vars->allocated_schema,
+                     CreateBareProtoUuSchema(db, message_descriptor));
+  }
 
   if (schema.has_value() && schema->IsStructSchema()) {
     // For explicit entity schemas, use the schema attr names as the list of
@@ -945,11 +1027,20 @@ absl::Status FromProtoMessage(
     }
   }
 
+  std::optional<DataSlice> allocated_schema_default_values;
+  if (vars->allocated_schema.has_value()) {
+    ASSIGN_OR_RETURN((auto [unused_metadata, default_values]),
+                     CreateMessageSchemaMetadataAndDefaultValues(
+                         db, *vars->allocated_schema, message_descriptor));
+    allocated_schema_default_values = std::move(default_values);
+  }
+
   // NOTE: `vars->fields[i].value` must remain pointer-stable after this point.
   for (auto& field_vars : vars->fields) {
     RETURN_IF_ERROR(FromProtoField(
         db, field_vars.attr_name, field_vars.attr_name,
-        *field_vars.field_descriptor, messages, itemid, schema, extension_map,
+        *field_vars.field_descriptor, messages, itemid, schema,
+        allocated_schema_default_values, extension_map,
         /*ignore_field_presence=*/false, executor, field_vars.value));
   }
 
@@ -967,31 +1058,30 @@ absl::Status FromProtoMessage(
 
     auto result_shape =
         DataSlice::JaggedShape::FlatFromSize(vars->num_messages);
-    if (vars->schema.has_value()) {
-      RETURN_IF_ERROR(vars->schema->VerifyIsSchema());
-      if (vars->schema->item() == schema::kObject) {
+    if (vars->requested_schema.has_value()) {
+      RETURN_IF_ERROR(vars->requested_schema->VerifyIsSchema());
+      if (vars->requested_schema->item() == schema::kObject) {
         ASSIGN_OR_RETURN(result, ObjectCreator::Shaped(
                                      db, std::move(result_shape),
                                      /*attr_names=*/std::move(value_attr_names),
                                      /*values=*/std::move(values),
                                      /*itemid=*/vars->itemid));
       } else {  // schema != OBJECT
-        ASSIGN_OR_RETURN(result, EntityCreator::Shaped(
-                                     db, std::move(result_shape),
-                                     /*attr_names=*/std::move(value_attr_names),
-                                     /*values=*/std::move(values),
-                                     /*schema=*/vars->schema,
-                                     /*overwrite_schema=*/false,
-                                     /*itemid=*/vars->itemid));
+        ASSIGN_OR_RETURN(
+            result,
+            EntityCreator::Shaped(db, std::move(result_shape),
+                                  /*attr_names=*/std::move(value_attr_names),
+                                  /*values=*/std::move(values),
+                                  /*schema=*/std::move(vars->requested_schema),
+                                  /*overwrite_schema=*/false,
+                                  /*itemid=*/vars->itemid));
       }
     } else {  // schema == nullopt
-      ASSIGN_OR_RETURN(DataSlice bare_schema,
-                       CreateBareProtoUuSchema(db, *vars->message_descriptor));
       ASSIGN_OR_RETURN(result, EntityCreator::Shaped(
                                    db, std::move(result_shape),
                                    /*attr_names=*/std::move(value_attr_names),
                                    /*values=*/std::move(values),
-                                   /*schema=*/std::move(bare_schema),
+                                   /*schema=*/std::move(vars->allocated_schema),
                                    /*overwrite_schema=*/true,
                                    /*itemid=*/vars->itemid));
     }
@@ -1200,7 +1290,8 @@ absl::Status FillSchemaFromProtoMessageFieldDescriptor(
 // Sets parent_message_schema.<attr_name> to a schema for the given proto field.
 // Child fields are populated asynchronously using `executor`.
 absl::Status FillSchemaFromProtoFieldDescriptor(
-    const DataSlice& parent_message_schema, absl::string_view attr_name,
+    const DataSlice& parent_message_schema,
+    const DataSlice& parent_default_values, absl::string_view attr_name,
     const FieldDescriptor& field_descriptor,
     const ExtensionMap* /*absl_nullable*/ parent_extension_map,
     absl::flat_hash_set<DescriptorWithExtensionMap>&
@@ -1216,6 +1307,12 @@ absl::Status FillSchemaFromProtoFieldDescriptor(
       ASSIGN_OR_RETURN(schema, CreateListSchema(bag, std::move(schema)));
     }
     RETURN_IF_ERROR(parent_message_schema.SetAttr(attr_name, schema));
+    if (field_descriptor.has_presence()) {
+      ASSIGN_OR_RETURN(auto default_value,
+                       DefaultValueFromProtoPrimitiveField(field_descriptor));
+      RETURN_IF_ERROR(
+          parent_default_values.SetAttr(attr_name, std::move(default_value)));
+    }
     return absl::OkStatus();
   }
 
@@ -1247,10 +1344,13 @@ absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptor(
           std::make_tuple(&message_descriptor, extension_map))) {
     return schema;  // Prevent infinite recursion.
   }
+  ASSIGN_OR_RETURN((auto [unused_metadata, default_values]),
+                   CreateMessageSchemaMetadataAndDefaultValues(
+                       bag, schema, message_descriptor));
   for (int i_field = 0; i_field < message_descriptor.field_count(); ++i_field) {
     const auto* field = message_descriptor.field(i_field);
     RETURN_IF_ERROR(FillSchemaFromProtoFieldDescriptor(
-        schema, field->name(), *field, extension_map,
+        schema, default_values, field->name(), *field, extension_map,
         converted_message_descriptors, executor));
   }
   if (extension_map != nullptr) {
@@ -1263,7 +1363,7 @@ absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptor(
             field->containing_type()->full_name()));
       }
       RETURN_IF_ERROR(FillSchemaFromProtoFieldDescriptor(
-          schema, attr_name, *field, extension_map,
+          schema, default_values, attr_name, *field, extension_map,
           converted_message_descriptors, executor));
     }
   }

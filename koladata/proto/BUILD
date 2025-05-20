@@ -28,6 +28,7 @@ cc_library(
     srcs = ["from_proto.cc"],
     hdrs = ["from_proto.h"],
     deps = [
+        ":proto_schema_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:object_factories",
@@ -105,6 +106,12 @@ cc_library(
         "@com_google_arolla//arolla/util:status_backport",
         "@com_google_protobuf//:protobuf",
     ],
+)
+
+cc_library(
+    name = "proto_schema_utils",
+    hdrs = ["proto_schema_utils.h"],
+    deps = ["@com_google_absl//absl/strings:string_view"],
 )
 
 cc_test(
