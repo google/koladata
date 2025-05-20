@@ -120,6 +120,7 @@ class TraverseHelper {
 
     const arolla::DenseArray<arolla::Text>& attr_names() const {
       DCHECK(keys_or_names_.has_value());
+      DCHECK(!keys_or_names_->is_empty_and_unknown());
       return keys_or_names_->values<arolla::Text>();
     }
 
@@ -385,6 +386,9 @@ class TraverseHelper {
     }
     if (!remove_special_attrs || !special_attrs_count) {
       return TransitionsSet::CreateForEntity(std::move(attr_names_slice));
+    }
+    if (special_attrs_count == attr_names.size()) {
+      return TransitionsSet::CreateEmpty();
     }
     arolla::DenseArrayBuilder<arolla::Text> filtered_attr_names(
         attr_names.size() - special_attrs_count);

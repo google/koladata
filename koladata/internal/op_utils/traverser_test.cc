@@ -527,6 +527,26 @@ TEST_P(NoOpTraverserTest, SliceWithNamedSchema) {
                           {GetFallbackDb(db).get()}));
 }
 
+TEST_P(NoOpTraverserTest, SchemaWithNameOnly) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(3);
+  auto a0 = obj_ids[0];
+  auto schema = AllocateSchema();
+  ASSERT_OK_AND_ASSIGN(auto named_schema,
+                       db->CreateUuSchemaFromFields(
+                           absl::StrCat("__named_schema__", "foo"), {}, {}));
+  TriplesT schema_triples = {
+      {named_schema,
+       {{schema::kSchemaNameAttr, DataItem(arolla::Text("foo"))}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, GenDataTriplesForTest());
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+
+  auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>({a0}));
+  EXPECT_OK(TraverseSlice(ds, DataItem(named_schema), *GetMainDb(db),
+                          {GetFallbackDb(db).get()}));
+}
+
 TEST_P(NoOpTraverserTest, PrimitiveTypesMismatch) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(10);
