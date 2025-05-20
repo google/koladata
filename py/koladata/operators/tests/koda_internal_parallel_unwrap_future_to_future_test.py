@@ -109,7 +109,7 @@ class KodaInternalParallelUnwrapFutureToFutureTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertFalse(
+    self.assertTrue(
         view.has_koda_view(koda_internal_parallel.unwrap_future_to_future(I.x))
     )
 

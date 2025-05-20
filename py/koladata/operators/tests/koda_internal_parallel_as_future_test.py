@@ -64,7 +64,7 @@ class KodaInternalParallelAsFutureTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertFalse(view.has_koda_view(koda_internal_parallel.as_future(I.x)))
+    self.assertTrue(view.has_koda_view(koda_internal_parallel.as_future(I.x)))
 
 
 if __name__ == '__main__':

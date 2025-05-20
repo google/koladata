@@ -113,7 +113,7 @@ def get_future_qtype(value_qtype):  # pylint: disable=unused-argument
 
 # Since futures holding a value are immutable, this operator can be kept
 # deterministic.
-@optools.add_to_registry(view=None)
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.as_future',
     qtype_inference_expr=get_future_qtype(P.arg),
@@ -133,7 +133,7 @@ def as_future(arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None)
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.get_future_value_for_testing',
     qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
@@ -146,7 +146,7 @@ def get_future_value_for_testing(arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None)
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.unwrap_future_to_future',
     qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
@@ -166,7 +166,7 @@ def unwrap_future_to_future(arg):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(view=None)
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.unwrap_future_to_stream',
     qtype_inference_expr=M.qtype.get_value_qtype(P.arg),
@@ -636,7 +636,7 @@ def _internal_future_from_parallel(outer_arg, outer_executor, outer_self_op):
         qtype_utils.expect_executor(P.executor),
     ],
 )
-def future_from_parallel(executor, arg):  # pylint: disable=unused-argument
+def future_from_parallel(executor, arg):
   """Given a value of a parallel type (see as_parallel), return a future.
 
   The result of the future will be the eager value corresponding to the parallel
@@ -732,7 +732,7 @@ def _internal_parallel_from_future(outer_arg, outer_self_op):
         qtype_utils.expect_future(P.arg),
     ],
 )
-def parallel_from_future(arg):  # pylint: disable=unused-argument
+def parallel_from_future(arg):
   """Given a future, convert it to a corresponding parallel value.
 
   More specifically, if the future has a tuple/namedtuple value, convert it to
