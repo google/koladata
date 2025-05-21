@@ -74,9 +74,7 @@ absl::StatusOr<arolla::OperatorPtr> AsFutureOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError(
         "output qtype must be a future of the input type");
   }
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<AsFutureOperator>(input_types, output_type), input_types,
-      output_type);
+  return std::make_shared<AsFutureOperator>(input_types, output_type);
 }
 
 namespace {
@@ -116,10 +114,8 @@ GetFutureValueForTestingOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError(
         "argument must be a future of the output type");
   }
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<GetFutureValueForTestingOperator>(input_types,
-                                                         output_type),
-      input_types, output_type);
+  return std::make_shared<GetFutureValueForTestingOperator>(input_types,
+                                                            output_type);
 }
 
 namespace {
@@ -189,9 +185,8 @@ UnwrapFutureToFutureOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError(
         "argument must be a future of the output type");
   }
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<UnwrapFutureToFutureOperator>(input_types, output_type),
-      input_types, output_type);
+  return std::make_shared<UnwrapFutureToFutureOperator>(input_types,
+                                                        output_type);
 }
 
 namespace {
@@ -253,9 +248,65 @@ UnwrapFutureToStreamOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError(
         "argument must be a future of the output type");
   }
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<UnwrapFutureToStreamOperator>(input_types, output_type),
-      input_types, output_type);
+  return std::make_shared<UnwrapFutureToStreamOperator>(input_types,
+                                                        output_type);
+}
+
+namespace {
+
+class StreamFromFutureOperator : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [input_slot = input_slots[0].UnsafeToSlot<FuturePtr>(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* ctx,
+            arolla::FramePtr frame) -> absl::Status {
+          const auto& future = frame.Get(input_slot);
+          if (future == nullptr) {
+            return absl::InvalidArgumentError("future is null");
+          }
+          auto [result_stream, result_writer] =
+              MakeStream(future->value_qtype());
+          future->AddConsumer(
+              [result_writer = std::move(result_writer)](
+                  absl::StatusOr<arolla::TypedValue> value) mutable {
+                if (!value.ok()) {
+                  std::move(*result_writer).Close(std::move(value).status());
+                  return;
+                }
+                result_writer->Write(value->AsRef());
+                std::move(*result_writer).Close();
+              });
+          frame.Set(output_slot, std::move(result_stream));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr>
+StreamFromFutureOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 1) {
+    return absl::InvalidArgumentError("requires exactly 1 argument");
+  }
+  if (!IsFutureQType(input_types[0])) {
+    return absl::InvalidArgumentError("input type must be a future");
+  }
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  if (input_types[0]->value_qtype() != output_type->value_qtype()) {
+    return absl::InvalidArgumentError("stream and future types must match");
+  }
+  return std::make_shared<StreamFromFutureOperator>(input_types, output_type);
 }
 
 }  // namespace koladata::functor::parallel

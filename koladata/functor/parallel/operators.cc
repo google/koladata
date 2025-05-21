@@ -89,6 +89,8 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_chain",
                 std::make_unique<StreamChainOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_chain_from_stream",
                 std::make_unique<StreamChainFromStreamOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.stream_from_future",
+                std::make_unique<StreamFromFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_from_iterable",
                 std::make_unique<StreamFromIterableOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_interleave",

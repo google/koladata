@@ -975,3 +975,16 @@ def stream_reduce(executor, fn, stream, initial_value):
     A stream with a single item containing the final result of the reduction.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_from_future',
+    qtype_constraints=[
+        qtype_utils.expect_future(P.future),
+    ],
+    qtype_inference_expr=get_stream_qtype(M.qtype.get_value_qtype(P.future)),
+)
+def stream_from_future(future):
+  """Creates a stream from the given future. It has 1 element or an error."""
+  raise NotImplementedError('implemented in the backend')

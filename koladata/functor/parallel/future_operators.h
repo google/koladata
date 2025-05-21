@@ -60,6 +60,16 @@ class UnwrapFutureToStreamOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// koda_internal.parallel.stream_from_future
+// Given a future[X], returns a stream[X] that will either have exactly one
+// value if the future does not store an error, or only the error from the
+// future.
+class StreamFromFutureOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 }  // namespace koladata::functor::parallel
 
 #endif  // KOLADATA_FUNCTOR_PARALLEL_AS_FUTURE_OPERATOR_H_

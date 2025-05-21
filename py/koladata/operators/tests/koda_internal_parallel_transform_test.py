@@ -227,9 +227,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'expected a bytes literal, got x: FUTURE[BYTES]'
-        ),
+        re.escape('expected a bytes literal, got x: FUTURE[BYTES]'),
     ):
       self._test_eval_on_futures(
           functor_factories.expr_fn(
