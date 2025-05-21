@@ -219,7 +219,34 @@ Operators that assert properties of DataSlices.
 
 **Operators**
 
-### `kd.assertion.assert_ds_has_primitives_of(ds, primitive_schema, message)` {#kd.assertion.assert_ds_has_primitives_of}
+### `kd.assertion.assert_present_scalar(arg_name, ds, primitive_schema)` {#kd.assertion.assert_present_scalar}
+
+``` {.no-copy}
+Returns the present scalar `ds` if it's implicitly castable to `primitive_schema`.
+
+It raises an exception if:
+  1) `ds`'s schema is not primitive_schema (including NONE) or OBJECT
+  2) `ds` is not a scalar
+  3) `ds` is not present
+  4) `ds` is not castable to `primitive_schema`
+
+The following examples will pass:
+  assert_present_scalar('x', kd.present, kd.MASK)
+  assert_present_scalar('x', 1, kd.INT32)
+  assert_present_scalar('x', 1, kd.FLOAT64)
+
+The following examples will fail:
+  assert_primitive('x', kd.missing, kd.MASK)
+  assert_primitive('x', kd.slice([kd.present]), kd.MASK)
+  assert_primitive('x', kd.present, kd.INT32)
+
+Args:
+  arg_name: The name of `ds`.
+  ds: DataSlice to assert the dtype, presence and rank of.
+  primitive_schema: The expected primitive schema.
+```
+
+### `kd.assertion.assert_primitive(arg_name, ds, primitive_schema)` {#kd.assertion.assert_primitive}
 
 ``` {.no-copy}
 Returns `ds` if its data is implicitly castable to `primitive_schema`.
@@ -230,24 +257,22 @@ It raises an exception if:
      `primitive_schema`
 
 The following examples will pass:
-  assert_ds_has_primitives_of(kd.present, kd.MASK, '')
-  assert_ds_has_primitives_of(kd.slice([kd.present, kd.missing]), kd.MASK, '')
-  assert_ds_has_primitives_of(kd.slice(None, schema=kd.OBJECT), kd.MASK, '')
-  assert_ds_has_primitives_of(kd.slice([], schema=kd.OBJECT), kd.MASK, '')
-  assert_ds_has_primitives_of(
-      kd.slice([1, 3.14], schema=kd.OBJECT), kd.FLOAT32, '',
-  )
-  assert_ds_has_primitives_of(kd.slice([1, 2]), kd.FLOAT32, '')
+  assert_primitive('x', kd.present, kd.MASK)
+  assert_primitive('x', kd.slice([kd.present, kd.missing]), kd.MASK)
+  assert_primitive('x', kd.slice(None, schema=kd.OBJECT), kd.MASK)
+  assert_primitive('x', kd.slice([], schema=kd.OBJECT), kd.MASK)
+  assert_primitive('x', kd.slice([1, 3.14], schema=kd.OBJECT), kd.FLOAT32)
+  assert_primitive('x', kd.slice([1, 2]), kd.FLOAT32)
 
 The following examples will fail:
-  assert_ds_has_primitives_of(1, kd.MASK, '')
-  assert_ds_has_primitives_of(kd.slice([kd.present, 1]), kd.MASK, '')
-  assert_ds_has_primitives_of(kd.slice(1, schema=kd.OBJECT), kd.MASK, '')
+  assert_primitive('x', 1, kd.MASK)
+  assert_primitive('x', kd.slice([kd.present, 1]), kd.MASK)
+  assert_primitive('x', kd.slice(1, schema=kd.OBJECT), kd.MASK)
 
 Args:
+  arg_name: The name of `ds`.
   ds: DataSlice to assert the dtype of.
   primitive_schema: The expected primitive schema.
-  message: The error message to raise if the primitive schemas do not match.
 ```
 
 ### `kd.assertion.with_assertion(x, condition, message)` {#kd.assertion.with_assertion}
@@ -478,7 +503,6 @@ Core operators that are not part of other categories.
 **Operators**
 
 ### `kd.core.attr(x, attr_name, value, overwrite_schema=False)` {#kd.core.attr}
-
 Aliases:
 
 - [kd.attr](#kd.attr)
@@ -501,7 +525,6 @@ Args:
 ```
 
 ### `kd.core.attrs(x, /, *, overwrite_schema=False, **attrs)` {#kd.core.attrs}
-
 Aliases:
 
 - [kd.attrs](#kd.attrs)
@@ -1116,7 +1139,6 @@ Returns:
 ```
 
 ### `kd.core.with_attr(x, attr_name, value, overwrite_schema=False)` {#kd.core.with_attr}
-
 Aliases:
 
 - [kd.with_attr](#kd.with_attr)
@@ -1139,7 +1161,6 @@ Args:
 ```
 
 ### `kd.core.with_attrs(x, /, *, overwrite_schema=False, **attrs)` {#kd.core.with_attrs}
-
 Aliases:
 
 - [kd.with_attrs](#kd.with_attrs)
@@ -2303,7 +2324,6 @@ Checks if `obj` represents a functor.
 ```
 
 ### `kd.functor.map(fn, *args, include_missing=False, **kwargs)` {#kd.functor.map}
-
 Aliases:
 
 - [kd.map](#kd.map)
@@ -2596,7 +2616,6 @@ Returns ItemIds decoded from the base62 strings.
 ```
 
 ### `kd.ids.deep_uuid(x, /, schema=unspecified, *, seed='')` {#kd.ids.deep_uuid}
-
 Aliases:
 
 - [kd.deep_uuid](#kd.deep_uuid)
@@ -2644,7 +2663,6 @@ Returns:
 ```
 
 ### `kd.ids.uuid(seed='', **kwargs)` {#kd.ids.uuid}
-
 Aliases:
 
 - [kd.uuid](#kd.uuid)
@@ -2663,7 +2681,6 @@ Returns:
 ```
 
 ### `kd.ids.uuid_for_dict(seed='', **kwargs)` {#kd.ids.uuid_for_dict}
-
 Aliases:
 
 - [kd.uuid_for_dict](#kd.uuid_for_dict)
@@ -2688,7 +2705,6 @@ Returns:
 ```
 
 ### `kd.ids.uuid_for_list(seed='', **kwargs)` {#kd.ids.uuid_for_list}
-
 Aliases:
 
 - [kd.uuid_for_list](#kd.uuid_for_list)
@@ -2713,7 +2729,6 @@ Returns:
 ```
 
 ### `kd.ids.uuids_with_allocation_size(seed='', *, size)` {#kd.ids.uuids_with_allocation_size}
-
 Aliases:
 
 - [kd.uuids_with_allocation_size](#kd.uuids_with_allocation_size)
@@ -2845,7 +2860,6 @@ JSON serialization operators.
 **Operators**
 
 ### `kd.json.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE, ndims: 1, size: 0), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.from_json}
-
 Aliases:
 
 - [kd.from_json](#kd.from_json)
@@ -2983,7 +2997,6 @@ Returns:
 ```
 
 ### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.to_json}
-
 Aliases:
 
 - [kd.to_json](#kd.to_json)
@@ -3141,7 +3154,6 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
 ```
 
 ### `kd.lists.explode(x, ndim=1)` {#kd.lists.explode}
-
 Aliases:
 
 - [kd.explode](#kd.explode)
@@ -4732,7 +4744,6 @@ Returns:
 ```
 
 ### `kd.py.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=1, ndim=0, include_missing=DataItem(None, schema: NONE), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py}
-
 Aliases:
 
 - [kd.map_py](#kd.map_py)
@@ -4817,7 +4828,6 @@ Returns:
 ```
 
 ### `kd.py.map_py_on_cond(true_fn, false_fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_cond}
-
 Aliases:
 
 - [kd.map_py_on_cond](#kd.map_py_on_cond)
@@ -4853,7 +4863,6 @@ Returns:
 ```
 
 ### `kd.py.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_selected}
-
 Aliases:
 
 - [kd.map_py_on_selected](#kd.map_py_on_selected)
@@ -5565,7 +5574,6 @@ Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
 ### `kd.schema.uu_schema(seed='', **kwargs)` {#kd.schema.uu_schema}
-
 Aliases:
 
 - [kd.uu_schema](#kd.uu_schema)
@@ -5756,7 +5764,6 @@ Returns:
 ```
 
 ### `kd.shapes.flatten(x, from_dim=0, to_dim=unspecified)` {#kd.shapes.flatten}
-
 Aliases:
 
 - [kd.flatten](#kd.flatten)
@@ -6103,7 +6110,6 @@ Returns:
 ```
 
 ### `kd.slices.concat(*args, ndim=1)` {#kd.slices.concat}
-
 Aliases:
 
 - [kd.concat](#kd.concat)
@@ -6198,7 +6204,6 @@ Returns:
 ```
 
 ### `kd.slices.dense_rank(x, descending=False, ndim=unspecified)` {#kd.slices.dense_rank}
-
 Aliases:
 
 - [kd.dense_rank](#kd.dense_rank)
@@ -6240,7 +6245,6 @@ Returns:
 ```
 
 ### `kd.slices.empty_shaped(shape, schema=MASK)` {#kd.slices.empty_shaped}
-
 Aliases:
 
 - [kd.empty_shaped](#kd.empty_shaped)
@@ -6257,7 +6261,6 @@ Args:
 ```
 
 ### `kd.slices.empty_shaped_as(shape_from, schema=MASK)` {#kd.slices.empty_shaped_as}
-
 Aliases:
 
 - [kd.empty_shaped_as](#kd.empty_shaped_as)
@@ -6378,7 +6381,6 @@ Returns a string representation of the DataSlice `x`.
 ```
 
 ### `kd.slices.group_by(x, *args, sort=False)` {#kd.slices.group_by}
-
 Aliases:
 
 - [kd.group_by](#kd.group_by)
@@ -6453,7 +6455,6 @@ Returns:
 ```
 
 ### `kd.slices.group_by_indices(*args, sort=False)` {#kd.slices.group_by_indices}
-
 Aliases:
 
 - [kd.group_by_indices](#kd.group_by_indices)
@@ -6517,7 +6518,6 @@ Returns:
 ```
 
 ### `kd.slices.index(x, dim=-1)` {#kd.slices.index}
-
 Aliases:
 
 - [kd.index](#kd.index)
@@ -6751,7 +6751,6 @@ Returns kd.slice(x, kd.MASK).
 ```
 
 ### `kd.slices.ordinal_rank(x, tie_breaker=unspecified, descending=False, ndim=unspecified)` {#kd.slices.ordinal_rank}
-
 Aliases:
 
 - [kd.ordinal_rank](#kd.ordinal_rank)
@@ -6912,7 +6911,6 @@ Returns:
 Alias for [kd.slices.inverse_select](#kd.slices.inverse_select) operator.
 
 ### `kd.slices.select(ds, fltr, expand_filter=True)` {#kd.slices.select}
-
 Aliases:
 
 - [kd.select](#kd.select)
@@ -7009,7 +7007,6 @@ Args:
 ```
 
 ### `kd.slices.sort(x, sort_by=unspecified, descending=False)` {#kd.slices.sort}
-
 Aliases:
 
 - [kd.sort](#kd.sort)
@@ -7050,7 +7047,6 @@ Returns:
 ```
 
 ### `kd.slices.stack(*args, ndim=0)` {#kd.slices.stack}
-
 Aliases:
 
 - [kd.stack](#kd.stack)
@@ -7329,7 +7325,6 @@ Returns:
 ```
 
 ### `kd.slices.unique(x, sort=False)` {#kd.slices.unique}
-
 Aliases:
 
 - [kd.unique](#kd.unique)
