@@ -83,16 +83,15 @@ def with_assertion(x, condition, message):
 
 
 @optools.add_to_registry()
-@arolla.optools.as_backend_operator(  # Default Arolla boxing
-    'kd.assertion.assert_ds_has_primitives_of',
+@optools.as_backend_operator(
+    'kd.assertion.assert_primitive',
     qtype_constraints=[
+        qtype_utils.expect_data_slice(P.arg_name),
         qtype_utils.expect_data_slice(P.ds),
         qtype_utils.expect_data_slice(P.primitive_schema),
-        constraints.expect_scalar_text(P.message),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
-def assert_ds_has_primitives_of(ds, primitive_schema, message):  # pylint: disable=unused-argument
+def assert_primitive(arg_name, ds, primitive_schema):  # pylint: disable=unused-argument
   """Returns `ds` if its data is implicitly castable to `primitive_schema`.
 
   It raises an exception if:
@@ -101,23 +100,21 @@ def assert_ds_has_primitives_of(ds, primitive_schema, message):  # pylint: disab
        `primitive_schema`
 
   The following examples will pass:
-    assert_ds_has_primitives_of(kd.present, kd.MASK, '')
-    assert_ds_has_primitives_of(kd.slice([kd.present, kd.missing]), kd.MASK, '')
-    assert_ds_has_primitives_of(kd.slice(None, schema=kd.OBJECT), kd.MASK, '')
-    assert_ds_has_primitives_of(kd.slice([], schema=kd.OBJECT), kd.MASK, '')
-    assert_ds_has_primitives_of(
-        kd.slice([1, 3.14], schema=kd.OBJECT), kd.FLOAT32, '',
-    )
-    assert_ds_has_primitives_of(kd.slice([1, 2]), kd.FLOAT32, '')
+    assert_primitive('x', kd.present, kd.MASK)
+    assert_primitive('x', kd.slice([kd.present, kd.missing]), kd.MASK)
+    assert_primitive('x', kd.slice(None, schema=kd.OBJECT), kd.MASK)
+    assert_primitive('x', kd.slice([], schema=kd.OBJECT), kd.MASK)
+    assert_primitive('x', kd.slice([1, 3.14], schema=kd.OBJECT), kd.FLOAT32)
+    assert_primitive('x', kd.slice([1, 2]), kd.FLOAT32)
 
   The following examples will fail:
-    assert_ds_has_primitives_of(1, kd.MASK, '')
-    assert_ds_has_primitives_of(kd.slice([kd.present, 1]), kd.MASK, '')
-    assert_ds_has_primitives_of(kd.slice(1, schema=kd.OBJECT), kd.MASK, '')
+    assert_primitive('x', 1, kd.MASK)
+    assert_primitive('x', kd.slice([kd.present, 1]), kd.MASK)
+    assert_primitive('x', kd.slice(1, schema=kd.OBJECT), kd.MASK)
 
   Args:
+    arg_name: The name of `ds`.
     ds: DataSlice to assert the dtype of.
     primitive_schema: The expected primitive schema.
-    message: The error message to raise if the primitive schemas do not match.
   """
   raise NotImplementedError('implemented in the backend')

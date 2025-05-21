@@ -15,24 +15,24 @@
 #ifndef KOLADATA_OPERATORS_ASSERTION_H_
 #define KOLADATA_OPERATORS_ASSERTION_H_
 
-#include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "arolla/util/text.h"
+#include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/schema_utils.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 
-// kd.assertion.assert_ds_has_primitives_of.
-inline absl::StatusOr<DataSlice> AssertDsHasPrimitivesOf(
-    const DataSlice& ds, const DataSlice& dtype, const arolla::Text& message) {
+// kd.assertion.assert_primitive.
+inline absl::StatusOr<DataSlice> AssertPrimitive(const DataSlice& arg_name,
+                                                 const DataSlice& ds,
+                                                 const DataSlice& dtype) {
   RETURN_IF_ERROR(dtype.VerifyIsPrimitiveSchema());
-  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(ds), dtype.item())) {
-    return absl::FailedPreconditionError(message.view());
-  }
+  ASSIGN_OR_RETURN(auto arg_name_text, ToArollaScalar<arolla::Text>(arg_name));
+  RETURN_IF_ERROR(ExpectDType(arg_name_text.view(), ds,
+                              dtype.item().value<schema::DType>()));
   return ds;
 }
 

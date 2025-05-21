@@ -4531,8 +4531,8 @@ py_test(
 )
 
 py_test(
-    name = "assert_assert_ds_has_primitives_of_test",
-    srcs = ["assert_assert_ds_has_primitives_of_test.py"],
+    name = "assert_assert_primitive_test",
+    srcs = ["assert_assert_primitive_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:expr_eval",

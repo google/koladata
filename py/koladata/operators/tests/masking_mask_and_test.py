@@ -76,13 +76,13 @@ class LogicalMaskAndTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('kd.masking.mask_and: argument `x` must have kd.MASK dtype'),
+        re.escape('argument `x` must be a slice of MASK, got a slice of INT32'),
     ):
       _ = expr_eval.eval(kde.masking.mask_and(ds(1), ds(present)))
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('kd.masking.mask_and: argument `y` must have kd.MASK dtype'),
+        re.escape('argument `y` must be a slice of MASK, got a slice of INT32'),
     ):
       _ = expr_eval.eval(kde.masking.mask_and(ds(present), ds(1)))
 

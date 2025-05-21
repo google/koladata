@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for kde.assertion.assert_ds_has_primitives_of."""
+import re
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -37,49 +37,49 @@ DATA_SLICE = qtypes.DATA_SLICE
 
 
 QTYPES = frozenset([
-    (DATA_SLICE, DATA_SLICE, arolla.TEXT, DATA_SLICE),
+    (DATA_SLICE, DATA_SLICE, DATA_SLICE, DATA_SLICE),
 ])
 
 
-class AssertionAssertDtypeIsTest(parameterized.TestCase):
+class AssertionAssertPrimitiveTest(parameterized.TestCase):
 
   @parameterized.parameters(
-      (ds(1), schema_constants.INT32, 'unused'),
+      ('unused', ds(1), schema_constants.INT32),
       (
+          'unused',
           ds(None, schema=schema_constants.INT32),
           schema_constants.INT32,
-          'unused',
       ),
-      (ds(1, schema=schema_constants.INT64), schema_constants.INT64, 'unused'),
-      (ds(1), schema_constants.FLOAT32, 'unused'),
-      (ds([1, 2, 3]), schema_constants.INT32, 'unused'),
+      ('unused', ds(1, schema=schema_constants.INT64), schema_constants.INT64),
+      ('unused', ds(1), schema_constants.FLOAT32),
+      ('unused', ds([1, 2, 3]), schema_constants.INT32),
       (
+          'unused',
           ds([1, 2, 3], schema_constants.OBJECT),
           schema_constants.INT32,
-          'unused',
       ),
-      (ds([], schema_constants.OBJECT), schema_constants.INT32, 'unused'),
+      ('unused', ds([], schema_constants.OBJECT), schema_constants.INT32),
       (
+          'unused',
           ds([None, None, None], schema_constants.OBJECT),
           schema_constants.INT32,
-          'unused',
       ),
       (
+          'unused',
           ds([1.0, 2], schema_constants.OBJECT),
           schema_constants.FLOAT32,
-          'unused'
       ),
       (
+          'unused',
           ds([None, 2], schema_constants.OBJECT),
           schema_constants.FLOAT32,
-          'unused'
       ),
-      (ds(None, schema_constants.NONE), schema_constants.MASK, 'unused'),
-      (ds(None, schema_constants.OBJECT), schema_constants.MASK, 'unused'),
+      ('unused', ds(None, schema_constants.NONE), schema_constants.MASK),
+      ('unused', ds(None, schema_constants.OBJECT), schema_constants.MASK),
   )
-  def test_eval(self, x, dtype, message):
+  def test_eval(self, arg_name, x, dtype):
     result = expr_eval.eval(
-        kde.assertion.assert_ds_has_primitives_of(x, dtype, message)
+        kde.assertion.assert_primitive(arg_name, x, dtype)
     )
     testing.assert_equal(result, x)
 
@@ -95,13 +95,12 @@ class AssertionAssertDtypeIsTest(parameterized.TestCase):
   def test_assertion_fails(self, x, dtype):
     with self.assertRaisesRegex(
         ValueError,
-        'assert_ds_has_primitives_of fails',
+        re.escape(
+            f'argument `foo` must be a slice of {dtype}, got a slice of'
+            f' {x.get_schema()}'
+        ),
     ):
-      expr_eval.eval(
-          kde.assertion.assert_ds_has_primitives_of(
-              x, dtype, 'assert_ds_has_primitives_of fails'
-          )
-      )
+      expr_eval.eval(kde.assertion.assert_primitive('foo', x, dtype))
 
   def test_invalid_dtype(self):
     with self.assertRaisesRegex(
@@ -109,8 +108,8 @@ class AssertionAssertDtypeIsTest(parameterized.TestCase):
         'primitive schema must contain a primitive DType',
     ):
       expr_eval.eval(
-          kde.assertion.assert_ds_has_primitives_of(
-              ds(1), schema_constants.OBJECT, 'unused'
+          kde.assertion.assert_primitive(
+              'unused', ds(1), schema_constants.OBJECT
           )
       )
 
@@ -119,13 +118,13 @@ class AssertionAssertDtypeIsTest(parameterized.TestCase):
         "primitive schema's schema must be SCHEMA",
     ):
       expr_eval.eval(
-          kde.assertion.assert_ds_has_primitives_of(ds(1), ds(1), 'unused')
+          kde.assertion.assert_primitive('unused', ds(1), ds(1))
       )
 
   def test_qtype_signatures(self):
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.assertion.assert_ds_has_primitives_of,
+            kde.assertion.assert_primitive,
             possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
         ),
         QTYPES,
@@ -134,7 +133,7 @@ class AssertionAssertDtypeIsTest(parameterized.TestCase):
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            kde.assertion.assert_ds_has_primitives_of(I.ds, I.dtype, I.message)
+            kde.assertion.assert_primitive(I.ds, I.dtype, I.message)
         )
     )
 
