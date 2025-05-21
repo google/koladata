@@ -36,6 +36,17 @@ inline absl::StatusOr<DataSlice> AssertPrimitive(const DataSlice& arg_name,
   return ds;
 }
 
+// kd.assertion.assert_present_scalar.
+inline absl::StatusOr<DataSlice> AssertPresentScalar(const DataSlice& arg_name,
+                                                 const DataSlice& ds,
+                                                 const DataSlice& dtype) {
+  RETURN_IF_ERROR(dtype.VerifyIsPrimitiveSchema());
+  ASSIGN_OR_RETURN(auto arg_name_text, ToArollaScalar<arolla::Text>(arg_name));
+  RETURN_IF_ERROR(ExpectPresentScalar(arg_name_text.view(), ds,
+                                      dtype.item().value<schema::DType>()));
+  return ds;
+}
+
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_ASSERTION_H_

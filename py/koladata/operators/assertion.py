@@ -118,3 +118,39 @@ def assert_primitive(arg_name, ds, primitive_schema):  # pylint: disable=unused-
     primitive_schema: The expected primitive schema.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.assertion.assert_present_scalar',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.arg_name),
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_slice(P.primitive_schema),
+    ],
+)
+def assert_present_scalar(arg_name, ds, primitive_schema):  # pylint: disable=unused-argument
+  """Returns the present scalar `ds` if it's implicitly castable to `primitive_schema`.
+
+  It raises an exception if:
+    1) `ds`'s schema is not primitive_schema (including NONE) or OBJECT
+    2) `ds` is not a scalar
+    3) `ds` is not present
+    4) `ds` is not castable to `primitive_schema`
+
+  The following examples will pass:
+    assert_present_scalar('x', kd.present, kd.MASK)
+    assert_present_scalar('x', 1, kd.INT32)
+    assert_present_scalar('x', 1, kd.FLOAT64)
+
+  The following examples will fail:
+    assert_primitive('x', kd.missing, kd.MASK)
+    assert_primitive('x', kd.slice([kd.present]), kd.MASK)
+    assert_primitive('x', kd.present, kd.INT32)
+
+  Args:
+    arg_name: The name of `ds`.
+    ds: DataSlice to assert the dtype, presence and rank of.
+    primitive_schema: The expected primitive schema.
+  """
+  raise NotImplementedError('implemented in the backend')

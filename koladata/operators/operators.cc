@@ -80,6 +80,7 @@ OPERATOR("kd.allocation.new_itemid_shaped", NewItemIdShaped);
 OPERATOR("kd.allocation.new_listid_like", NewListIdLike);
 OPERATOR("kd.allocation.new_listid_shaped", NewListIdShaped);
 //
+OPERATOR("kd.assertion.assert_present_scalar", AssertPresentScalar);
 OPERATOR("kd.assertion.assert_primitive", AssertPrimitive);
 //
 OPERATOR_FAMILY("kd.bags.enriched",
