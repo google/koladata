@@ -309,7 +309,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
         ValueError,
         re.escape(
             'kd.slices.ordinal_rank: argument `descending` must be an item'
-            ' holding BOOLEAN, got an item of NONE'
+            ' holding BOOLEAN, got missing'
         ),
     ):
       expr_eval.eval(

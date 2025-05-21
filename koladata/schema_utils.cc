@@ -57,18 +57,6 @@ constexpr absl::string_view DTypeName() {
   }
 }
 
-// Returns OK if the DataSlice values are of the given dtype or NONE.
-absl::Status ExpectNoneOr(schema::DType dtype, absl::string_view arg_name,
-                          const DataSlice& arg) {
-  internal::DataItem narrowed_schema = GetNarrowedSchema(arg);
-  if (narrowed_schema != schema::kNone && narrowed_schema != dtype) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "argument `%s` must be a slice of %v, got a slice of %s", arg_name,
-        dtype, DescribeSliceSchema(arg)));
-  }
-  return absl::OkStatus();
-}
-
 absl::Status NoCommonSchemaError(absl::string_view lhs_name,
                                  const DataSlice& lhs,
                                  absl::string_view rhs_name,
@@ -118,6 +106,17 @@ internal::DataItem GetNarrowedSchema(const DataSlice& slice) {
     }
   }
   return schema;
+}
+
+absl::Status ExpectDType(absl::string_view arg_name, const DataSlice& arg,
+                         schema::DType dtype) {
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
+                                      internal::DataItem(dtype))) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be a slice of %s, got a slice of %s", arg_name,
+        dtype.name(), DescribeSliceSchema(arg)));
+  }
+  return absl::OkStatus();
 }
 
 absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg) {
@@ -176,40 +175,25 @@ absl::Status ExpectCanBeOrdered(absl::string_view arg_name,
   return absl::OkStatus();
 }
 
-absl::Status ExpectString(absl::string_view arg_name, const DataSlice& arg) {
-  return ExpectNoneOr(schema::kString, arg_name, arg);
-}
-
-absl::Status ExpectBytes(absl::string_view arg_name, const DataSlice& arg) {
-  return ExpectNoneOr(schema::kBytes, arg_name, arg);
-}
-
-absl::Status ExpectMask(absl::string_view arg_name, const DataSlice& arg) {
-  return ExpectNoneOr(schema::kMask, arg_name, arg);
-}
-
-absl::Status ExpectSchema(absl::string_view arg_name, const DataSlice& arg) {
-  return ExpectNoneOr(schema::kSchema, arg_name, arg);
-}
-
 absl::Status ExpectPresentScalar(absl::string_view arg_name,
                                  const DataSlice& arg,
                                  const schema::DType expected_dtype) {
-  if (arg.GetShape().rank() != 0) {
+  if (!arg.is_item()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("argument `%s` must be an item holding %v, got a "
                         "slice of rank %i > 0",
                         arg_name, expected_dtype, arg.GetShape().rank()));
   }
-  if (GetNarrowedSchema(arg) != expected_dtype) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "argument `%s` must be an item holding %v, got an item of %s", arg_name,
-        expected_dtype, DescribeSliceSchema(arg)));
-  }
-  if (arg.present_count() != 1) {
+  if (arg.IsEmpty()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("argument `%s` must be an item holding %v, got missing",
                         arg_name, expected_dtype));
+  }
+  if (!schema::IsImplicitlyCastableTo(GetNarrowedSchema(arg),
+                                      internal::DataItem(expected_dtype))) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "argument `%s` must be an item holding %v, got an item of %s", arg_name,
+        expected_dtype, DescribeSliceSchema(arg)));
   }
   return absl::OkStatus();
 }

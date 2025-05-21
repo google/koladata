@@ -212,7 +212,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         'kd.slices.dense_rank: argument `descending` must be an item holding'
-        ' BOOLEAN, got an item of NONE',
+        ' BOOLEAN, got missing',
     ):
       expr_eval.eval(kde.slices.dense_rank(ds([0, 3, 6]), descending=ds(None)))
 

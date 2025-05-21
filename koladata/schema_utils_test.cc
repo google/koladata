@@ -451,11 +451,65 @@ TEST(SchemaUtilsTest, ExpectMask) {
       ExpectMask("foo", test::DataSlice<arolla::Unit>(
                             {std::nullopt, arolla::kPresent}, schema::kObject)),
       IsOk());
-  EXPECT_THAT(ExpectMask("foo", test::DataSlice<arolla::Text>(
-                                    {"a", "b", std::nullopt}, schema::kObject)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "argument `foo` must be a slice of MASK, got a slice "
-                       "of OBJECT containing STRING values"));
+  EXPECT_THAT(
+      ExpectMask("foo", test::DataSlice<arolla::Text>({"a", "b", std::nullopt},
+                                                      schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "argument `foo` must be a slice of MASK, got a slice "
+               "of OBJECT containing STRING values"));
+}
+
+TEST(SchemaUtilsTest, ExpectDType) {
+  {
+    // Successes.
+    EXPECT_THAT(
+        ExpectDType("foo", test::DataItem(std::nullopt, schema::kObject),
+                    schema::kInt32),
+        IsOk());
+    EXPECT_THAT(ExpectDType("foo", test::DataItem(std::nullopt, schema::kInt32),
+                            schema::kInt32),
+                IsOk());
+    EXPECT_THAT(ExpectDType("foo", test::DataItem(std::nullopt, schema::kInt32),
+                            schema::kFloat32),
+                IsOk());
+    EXPECT_THAT(ExpectDType("foo", test::DataItem(1, schema::kObject),
+                            schema::kFloat32),
+                IsOk());
+    EXPECT_THAT(ExpectDType("foo",
+                            test::MixedDataSlice<int32_t, float>(
+                                {1, std::nullopt}, {std::nullopt, 2.0}),
+                            schema::kFloat64),
+                IsOk());
+    EXPECT_THAT(ExpectDType("foo",
+                            test::MixedDataSlice<int32_t, float>(
+                                {1, std::nullopt}, {std::nullopt, 2.0}),
+                            schema::kObject),
+                IsOk());
+  } {
+    // Failures.
+    EXPECT_THAT(
+        ExpectDType("foo", test::DataItem(std::nullopt, schema::kInt64),
+                    schema::kInt32),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            "argument `foo` must be a slice of INT32, got a slice "
+            "of INT64"));
+    EXPECT_THAT(
+        ExpectDType("foo", test::DataItem(2.0, schema::kObject),
+                    schema::kInt32),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            "argument `foo` must be a slice of INT32, got a slice "
+            "of OBJECT containing FLOAT64 values"));
+    EXPECT_THAT(ExpectDType("foo",
+                            test::MixedDataSlice<int32_t, float>(
+                                {1, std::nullopt}, {std::nullopt, 2.0}),
+                            schema::kInt32),
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            "argument `foo` must be a slice of INT32, got a slice "
+            "of OBJECT containing FLOAT32 and INT32 values"));
+  }
 }
 
 TEST(SchemaUtilsTest, ExpectPresentScalar) {
@@ -472,6 +526,9 @@ TEST(SchemaUtilsTest, ExpectPresentScalar) {
   EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem(true, schema::kObject),
                                   schema::kBool),
               IsOk());
+  EXPECT_THAT(ExpectPresentScalar("foo", test::DataItem(1, schema::kObject),
+                                  schema::kFloat32),
+              IsOk());
   EXPECT_THAT(ExpectPresentScalar(
                   "foo", test::DataSlice<bool>({true, false, std::nullopt}),
                   schema::kBool),
@@ -482,8 +539,7 @@ TEST(SchemaUtilsTest, ExpectPresentScalar) {
       ExpectPresentScalar("foo", test::DataItem(std::nullopt, schema::kObject),
                           schema::kBool),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "argument `foo` must be an item holding BOOLEAN, got an "
-               "item of OBJECT containing NONE values"));
+               "argument `foo` must be an item holding BOOLEAN, got missing"));
   EXPECT_THAT(
       ExpectPresentScalar("foo", test::DataItem("true", schema::kObject),
                           schema::kBool),

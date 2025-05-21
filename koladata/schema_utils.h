@@ -37,6 +37,10 @@ namespace koladata {
 //  * GetNarrowedSchema(kd.slice([None, None], OBJECT)) -> NONE.
 internal::DataItem GetNarrowedSchema(const DataSlice& slice);
 
+// Returns OK if the DataSlice contains data of the provided DType.
+absl::Status ExpectDType(absl::string_view arg_name, const DataSlice& arg,
+                         schema::DType dtype);
+
 // Returns OK if the DataSlice's schema is a numeric type or narrowed to it.
 absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg);
 
@@ -44,18 +48,31 @@ absl::Status ExpectNumeric(absl::string_view arg_name, const DataSlice& arg);
 absl::Status ExpectInteger(absl::string_view arg_name, const DataSlice& arg);
 
 // Returns OK if the DataSlice contains strings.
-absl::Status ExpectString(absl::string_view arg_name, const DataSlice& arg);
+inline absl::Status ExpectString(absl::string_view arg_name,
+                                 const DataSlice& arg) {
+  return ExpectDType(arg_name, arg, schema::kString);
+}
 
 // Returns OK if the DataSlice contains bytes.
-absl::Status ExpectBytes(absl::string_view arg_name, const DataSlice& arg);
+inline absl::Status ExpectBytes(absl::string_view arg_name,
+                                const DataSlice& arg) {
+  return ExpectDType(arg_name, arg, schema::kBytes);
+}
 
 // Returns OK if the DataSlice contains mask.
-absl::Status ExpectMask(absl::string_view arg_name, const DataSlice& arg);
+inline absl::Status ExpectMask(absl::string_view arg_name,
+                                const DataSlice& arg) {
+  return ExpectDType(arg_name, arg, schema::kMask);
+}
 
 // Returns OK if the DataSlice contains schemas.
-absl::Status ExpectSchema(absl::string_view arg_name, const DataSlice& arg);
+inline absl::Status ExpectSchema(absl::string_view arg_name,
+                                 const DataSlice& arg) {
+  return ExpectDType(arg_name, arg, schema::kSchema);
+}
 
-// Returns OK if the DataSlice contains a present scalar of the expected dtype.
+// Returns OK if the DataSlice contains a present scalar castable to the
+// expected dtype.
 absl::Status ExpectPresentScalar(absl::string_view arg_name,
                                  const DataSlice& arg,
                                  schema::DType expected_dtype);
