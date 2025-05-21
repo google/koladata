@@ -59,6 +59,7 @@ using ::testing::_;
 using ::testing::AllOf;
 using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
+using ::testing::MatchesRegex;
 using ::testing::NotNull;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
@@ -989,8 +990,12 @@ TYPED_TEST(DataBagMergeTest, MergeDictsOnly) {
     ASSERT_OK(db2->SetInDict(a, k, DataItem(75)));
     auto status = db->MergeInplace(*db2, merge_options);
     if (merge_options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
-      EXPECT_THAT(status, StatusIs(absl::StatusCode::kFailedPrecondition,
-                                   HasSubstr("conflict")));
+      EXPECT_THAT(
+          status,
+          StatusIs(
+              absl::StatusCode::kFailedPrecondition,
+              MatchesRegex(
+                  R"regex(conflicting dict values for .* key .*: 57 vs 75)regex")));
       EXPECT_THAT(
           arolla::GetPayload<internal::DataBagMergeConflictError>(status),
           NotNull());

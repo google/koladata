@@ -3218,7 +3218,7 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
             internal::ObjectId object_id = alloc_id.ObjectByOffset(i);
             return arolla::WithPayload(
                 absl::FailedPreconditionError(absl::StrCat(
-                    "conflicting dict values for ", object_id, " key", key,
+                    "conflicting dict values for ", object_id, " key ", key,
                     ": ", this_value, " vs ", *other_value)),
                 MakeSchemaOrDictMergeError(object_id, key, this_value,
                                            *other_value));
