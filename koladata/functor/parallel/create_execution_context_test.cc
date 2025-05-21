@@ -47,7 +47,7 @@ TEST(CreateExecutionContextTest, Basic) {
       ExecutionConfig::ArgumentTransformation::EXECUTOR);
   transformation->add_arguments(
       ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS);
-  transformation->add_literal_argument_indices(1);
+  transformation->add_keep_literal_argument_indices(1);
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
   ASSERT_OK_AND_ASSIGN(
@@ -73,7 +73,7 @@ TEST(CreateExecutionContextTest, Basic) {
                   .begin()
                   ->second.argument_transformation,
               EqualsProto("arguments: EXECUTOR arguments: ORIGINAL_ARGUMENTS "
-                          "literal_argument_indices: 1"));
+                          "keep_literal_argument_indices: 1"));
 }
 
 TEST(CreateExecutionContextTest, OriginalArgumentsImplied) {
@@ -94,10 +94,11 @@ TEST(CreateExecutionContextTest, OriginalArgumentsImplied) {
           .begin()
           ->second.argument_transformation.arguments(),
       ElementsAre(ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS));
-  EXPECT_THAT(execution_context->operator_replacements()
-                  .begin()
-                  ->second.argument_transformation.literal_argument_indices(),
-              ElementsAre());
+  EXPECT_THAT(
+      execution_context->operator_replacements()
+          .begin()
+          ->second.argument_transformation.keep_literal_argument_indices(),
+      ElementsAre());
 }
 
 TEST(CreateExecutionContextTest, UnknownFromOperator) {

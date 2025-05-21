@@ -194,7 +194,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         arolla.tuple(ds(1), ds(2), ds(3)),
     )
 
-  def test_literal_only_argument(self):
+  def test_literal_preserving_argument(self):
     @optools.add_to_registry()
     @optools.as_lambda_operator(
         'koda_internal.parallel.transform_test.my_decode',
@@ -209,7 +209,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
                 from_op='strings.decode',
                 to_op='koda_internal.parallel.transform_test.my_decode',
                 argument_transformation=fns.obj(
-                    literal_argument_indices=[0],
+                    keep_literal_argument_indices=[0],
                 ),
             )
         ],
@@ -217,7 +217,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         expected_output=arolla.text('123'),
     )
 
-  def test_literal_only_argument_non_literal(self):
+  def test_literal_preserving_argument_non_literal(self):
     @optools.add_to_registry()
     @optools.as_lambda_operator(
         'koda_internal.parallel.transform_test.my_decode2',
@@ -228,8 +228,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'argument 0 of operator strings.decode is not a literal, but'
-            ' parallel evaluation only supports literals there'
+            'expected a bytes literal, got x: FUTURE[BYTES]'
         ),
     ):
       self._test_eval_on_futures(
@@ -241,7 +240,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
                   from_op='strings.decode',
                   to_op='koda_internal.parallel.transform_test.my_decode2',
                   argument_transformation=fns.obj(
-                      literal_argument_indices=[0],
+                      keep_literal_argument_indices=[0],
                   ),
               )
           ],
@@ -249,7 +248,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
           expected_output=arolla.text('123456'),
       )
 
-  def test_multiple_literal_only_arguments(self):
+  def test_multiple_literal_preserving_arguments(self):
     @optools.add_to_registry()
     @optools.as_lambda_operator(
         'koda_internal.parallel.transform_test.my_decode3',
@@ -283,7 +282,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
                         ),
                         argument_transformation=fns.obj(
                             arguments=[_EXECUTOR, _ORIGINAL_ARGUMENTS],
-                            literal_argument_indices=[2, 0],
+                            keep_literal_argument_indices=[2, 0],
                         ),
                     )
                 ]

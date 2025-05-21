@@ -23,6 +23,7 @@
 #include <variant>
 #include <vector>
 
+#include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
@@ -97,24 +98,13 @@ absl::StatusOr<DataSlice> AddVariables(
       // We could build a set for faster lookups, but currently the size
       // is always small.
       const auto& literal_indices =
-          replacement->argument_transformation.literal_argument_indices();
+          replacement->argument_transformation.keep_literal_argument_indices();
       // Also extract children, to guarantee that the parallel version of
       // the operator receives futures and not eagerly evaluated values.
       for (int64_t child_i = 0; child_i < node->node_deps().size(); ++child_i) {
         const auto& child = node->node_deps()[child_i];
-        if (std::find(literal_indices.begin(), literal_indices.end(),
-                      child_i) != literal_indices.end()) {
-          // This argument must be a literal, so we cannot extract it.
-          if (!expr::IsLiteral(child)) {
-            // This is a check to be extra careful, but I suspect everything
-            // will work fine without it as well, just some computations might
-            // happen eagerly instead of in parallel. We can relax it later.
-            return absl::InvalidArgumentError(
-                absl::StrCat("argument ", child_i, " of operator ",
-                             node->op()->display_name(),
-                             " is not a literal, but parallel evaluation only "
-                             "supports literals there"));
-          }
+        if (absl::c_contains(literal_indices, child_i) &&
+            expr::IsLiteral(child)) {
           continue;
         }
         ASSIGN_OR_RETURN(auto child_var_name,

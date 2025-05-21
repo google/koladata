@@ -64,6 +64,7 @@ cc_library(
         "//koladata/functor:auto_variables",
         "//koladata/internal:data_item",
         "//koladata/internal:non_deterministic_token",
+        "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/functional:any_invocable",

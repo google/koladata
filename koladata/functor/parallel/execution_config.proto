@@ -37,11 +37,13 @@ package koladata.functor.parallel;
 // If an operator returns type Y, the parallel version must return
 // parallel_type[Y].
 //
-// As an exception to the above rule, argument(s) of an operator denoted by
-// `literal_argument_indices` must always be a literal and will be passed as is
-// to the parallel operator (without converting it to a parallel type). This
-// is necessary to support operators that only support literals for a certain
-// argument, such as core.get_nth.
+// As an exception to the above rule, for argument(s) of an operator denoted by
+// `keep_literal_argument_indices` with type X, the parallel version must take
+// both literal X when the eager version takes a literal, and parallel_type[X]
+// when the eager version takes a non-literal. If the eager version always takes
+// a literal, the parallel version therefore must always expect a literal of
+// type X. This is necessary to support operators that only support literals for
+// a certain argument, such as core.get_nth.
 //
 // Additionally, the operator replacement can specify that we need to pass
 // additional arguments to the parallel operator, such as the executor or the
@@ -63,7 +65,7 @@ message ExecutionConfig {
     // will be passed to the replaced operator as is, without converting them
     // to a parallel type. The indexes point to the arguments in the original
     // operator.
-    repeated int64 literal_argument_indices = 2;
+    repeated int64 keep_literal_argument_indices = 2;
   }
 
   // This message describes custom handling for a specific operator in a

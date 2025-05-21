@@ -62,7 +62,7 @@ TEST(ExecutionContextTest, Getters) {
   ExecutionConfig::ArgumentTransformation transformation;
   transformation.add_arguments(
       ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS);
-  transformation.add_literal_argument_indices(1);
+  transformation.add_keep_literal_argument_indices(1);
   ExecutionContext::ReplacementMap replacements = {
       {arolla::RandomFingerprint(),
        {.op = op, .argument_transformation = transformation}}};
@@ -73,7 +73,8 @@ TEST(ExecutionContextTest, Getters) {
   EXPECT_EQ(context->operator_replacements().begin()->second.op, op);
   EXPECT_THAT(
       context->operator_replacements().begin()->second.argument_transformation,
-      EqualsProto("arguments: ORIGINAL_ARGUMENTS literal_argument_indices: 1"));
+      EqualsProto(
+          "arguments: ORIGINAL_ARGUMENTS keep_literal_argument_indices: 1"));
 }
 
 }  // namespace
