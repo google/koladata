@@ -477,7 +477,8 @@ Core operators that are not part of other categories.
 
 **Operators**
 
-### `kd.core.attr(x, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.attr}
+### `kd.core.attr(x, attr_name, value, overwrite_schema=False)` {#kd.core.attr}
+
 Aliases:
 
 - [kd.attr](#kd.attr)
@@ -499,7 +500,8 @@ Args:
   overwrite_schema: if True, schema for attribute is always updated.
 ```
 
-### `kd.core.attrs(x, /, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.core.attrs}
+### `kd.core.attrs(x, /, *, overwrite_schema=False, **attrs)` {#kd.core.attrs}
+
 Aliases:
 
 - [kd.attrs](#kd.attrs)
@@ -1113,7 +1115,8 @@ Returns:
   DataSlice with additional fallbacks.
 ```
 
-### `kd.core.with_attr(x, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#kd.core.with_attr}
+### `kd.core.with_attr(x, attr_name, value, overwrite_schema=False)` {#kd.core.with_attr}
+
 Aliases:
 
 - [kd.with_attr](#kd.with_attr)
@@ -1135,7 +1138,8 @@ Args:
   overwrite_schema: if True, schema for attribute is always updated.
 ```
 
-### `kd.core.with_attrs(x, /, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.core.with_attrs}
+### `kd.core.with_attrs(x, /, *, overwrite_schema=False, **attrs)` {#kd.core.with_attrs}
+
 Aliases:
 
 - [kd.with_attrs](#kd.with_attrs)
@@ -2298,7 +2302,8 @@ Checks if `obj` represents a functor.
     otherwise (for example if obj has wrong type).
 ```
 
-### `kd.functor.map(fn, *args, include_missing=DataItem(False, schema: BOOLEAN), **kwargs)` {#kd.functor.map}
+### `kd.functor.map(fn, *args, include_missing=False, **kwargs)` {#kd.functor.map}
+
 Aliases:
 
 - [kd.map](#kd.map)
@@ -2590,7 +2595,8 @@ Aliases:
 Returns ItemIds decoded from the base62 strings.
 ```
 
-### `kd.ids.deep_uuid(x, /, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#kd.ids.deep_uuid}
+### `kd.ids.deep_uuid(x, /, schema=unspecified, *, seed='')` {#kd.ids.deep_uuid}
+
 Aliases:
 
 - [kd.deep_uuid](#kd.deep_uuid)
@@ -2637,7 +2643,8 @@ Returns:
   A DataSlice of INT64 hash values.
 ```
 
-### `kd.ids.uuid(seed=DataItem('', schema: STRING), **kwargs)` {#kd.ids.uuid}
+### `kd.ids.uuid(seed='', **kwargs)` {#kd.ids.uuid}
+
 Aliases:
 
 - [kd.uuid](#kd.uuid)
@@ -2655,7 +2662,8 @@ Returns:
   item from each kwarg value.
 ```
 
-### `kd.ids.uuid_for_dict(seed=DataItem('', schema: STRING), **kwargs)` {#kd.ids.uuid_for_dict}
+### `kd.ids.uuid_for_dict(seed='', **kwargs)` {#kd.ids.uuid_for_dict}
+
 Aliases:
 
 - [kd.uuid_for_dict](#kd.uuid_for_dict)
@@ -2679,7 +2687,8 @@ Returns:
   item from each kwarg value.
 ```
 
-### `kd.ids.uuid_for_list(seed=DataItem('', schema: STRING), **kwargs)` {#kd.ids.uuid_for_list}
+### `kd.ids.uuid_for_list(seed='', **kwargs)` {#kd.ids.uuid_for_list}
+
 Aliases:
 
 - [kd.uuid_for_list](#kd.uuid_for_list)
@@ -2703,7 +2712,8 @@ Returns:
   item from each kwarg value.
 ```
 
-### `kd.ids.uuids_with_allocation_size(seed=DataItem('', schema: STRING), *, size)` {#kd.ids.uuids_with_allocation_size}
+### `kd.ids.uuids_with_allocation_size(seed='', *, size)` {#kd.ids.uuids_with_allocation_size}
+
 Aliases:
 
 - [kd.uuids_with_allocation_size](#kd.uuids_with_allocation_size)
@@ -2834,7 +2844,8 @@ JSON serialization operators.
 
 **Operators**
 
-### `kd.json.from_json(x, /, schema=DataItem(OBJECT, schema: SCHEMA), default_number_schema=DataItem(OBJECT, schema: SCHEMA), *, on_invalid=DataSlice([], schema: NONE, ndims: 1, size: 0), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.json.from_json}
+### `kd.json.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE, ndims: 1, size: 0), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.from_json}
+
 Aliases:
 
 - [kd.from_json](#kd.from_json)
@@ -2971,7 +2982,8 @@ Returns:
   A DataSlice with the same shape as `x` and schema `schema`.
 ```
 
-### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.json.to_json}
+### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.to_json}
+
 Aliases:
 
 - [kd.to_json](#kd.to_json)
@@ -3128,7 +3140,8 @@ Returns a DataSlice of Lists concatenated from the List items of `lists`.
     DataSlice of concatenated Lists
 ```
 
-### `kd.lists.explode(x, ndim=DataItem(1, schema: INT64))` {#kd.lists.explode}
+### `kd.lists.explode(x, ndim=1)` {#kd.lists.explode}
+
 Aliases:
 
 - [kd.explode](#kd.explode)
@@ -3922,7 +3935,7 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.math.agg_std(x, unbiased=DataItem(True, schema: BOOLEAN), ndim=unspecified)` {#kd.math.agg_std}
+### `kd.math.agg_std(x, unbiased=True, ndim=unspecified)` {#kd.math.agg_std}
 
 ``` {.no-copy}
 Returns the standard deviation along the last ndim dimensions.
@@ -3966,7 +3979,7 @@ Args:
     <= get_ndim(x).
 ```
 
-### `kd.math.agg_var(x, unbiased=DataItem(True, schema: BOOLEAN), ndim=unspecified)` {#kd.math.agg_var}
+### `kd.math.agg_var(x, unbiased=True, ndim=unspecified)` {#kd.math.agg_var}
 
 ``` {.no-copy}
 Returns the variance along the last ndim dimensions.
@@ -4267,7 +4280,7 @@ round(-1.6) == -2.0
 round(-2.5) == -3.0 # not -2.0
 ```
 
-### `kd.math.sigmoid(x, half=DataItem(0.0, schema: FLOAT32), slope=DataItem(1.0, schema: FLOAT32))` {#kd.math.sigmoid}
+### `kd.math.sigmoid(x, half=0.0, slope=1.0)` {#kd.math.sigmoid}
 
 ``` {.no-copy}
 Computes sigmoid of the input.
@@ -4295,7 +4308,7 @@ Returns:
   A dataslice of with {-1, 0, 1} of the same shape and type as the input.
 ```
 
-### `kd.math.softmax(x, beta=DataItem(1.0, schema: FLOAT32), ndim=unspecified)` {#kd.math.softmax}
+### `kd.math.softmax(x, beta=1.0, ndim=unspecified)` {#kd.math.softmax}
 
 ``` {.no-copy}
 Returns the softmax of x alon the last ndim dimensions.
@@ -4718,7 +4731,8 @@ Returns:
   Result of fn applied on filtered args.
 ```
 
-### `kd.py.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), ndim=DataItem(0, schema: INT32), include_missing=DataItem(None, schema: NONE), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py}
+### `kd.py.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=1, ndim=0, include_missing=DataItem(None, schema: NONE), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py}
+
 Aliases:
 
 - [kd.map_py](#kd.map_py)
@@ -4802,7 +4816,8 @@ Returns:
   Result DataSlice.
 ```
 
-### `kd.py.map_py_on_cond(true_fn, false_fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_cond}
+### `kd.py.map_py_on_cond(true_fn, false_fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_cond}
+
 Aliases:
 
 - [kd.map_py_on_cond](#kd.map_py_on_cond)
@@ -4837,7 +4852,8 @@ Returns:
   Result DataSlice.
 ```
 
-### `kd.py.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_selected}
+### `kd.py.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.py.map_py_on_selected}
+
 Aliases:
 
 - [kd.map_py_on_selected](#kd.map_py_on_selected)
@@ -5548,7 +5564,8 @@ Casts `x` to SCHEMA using explicit (permissive) casting rules.
 Casts `x` to STRING using explicit (permissive) casting rules.
 ```
 
-### `kd.schema.uu_schema(seed=DataItem('', schema: STRING), **kwargs)` {#kd.schema.uu_schema}
+### `kd.schema.uu_schema(seed='', **kwargs)` {#kd.schema.uu_schema}
+
 Aliases:
 
 - [kd.uu_schema](#kd.uu_schema)
@@ -5738,7 +5755,8 @@ Returns:
   Expanded DataSlice
 ```
 
-### `kd.shapes.flatten(x, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#kd.shapes.flatten}
+### `kd.shapes.flatten(x, from_dim=0, to_dim=unspecified)` {#kd.shapes.flatten}
+
 Aliases:
 
 - [kd.flatten](#kd.flatten)
@@ -6084,7 +6102,8 @@ Returns:
   Collapsed DataSlice.
 ```
 
-### `kd.slices.concat(*args, ndim=DataItem(1, schema: INT32))` {#kd.slices.concat}
+### `kd.slices.concat(*args, ndim=1)` {#kd.slices.concat}
+
 Aliases:
 
 - [kd.concat](#kd.concat)
@@ -6178,7 +6197,8 @@ Returns:
   A DataSlice of INT64 with the same shape and sparsity as `x`.
 ```
 
-### `kd.slices.dense_rank(x, descending=DataItem(False, schema: BOOLEAN), ndim=unspecified)` {#kd.slices.dense_rank}
+### `kd.slices.dense_rank(x, descending=False, ndim=unspecified)` {#kd.slices.dense_rank}
+
 Aliases:
 
 - [kd.dense_rank](#kd.dense_rank)
@@ -6219,7 +6239,8 @@ Returns:
   A DataSlice of dense ranks.
 ```
 
-### `kd.slices.empty_shaped(shape, schema=DataItem(MASK, schema: SCHEMA))` {#kd.slices.empty_shaped}
+### `kd.slices.empty_shaped(shape, schema=MASK)` {#kd.slices.empty_shaped}
+
 Aliases:
 
 - [kd.empty_shaped](#kd.empty_shaped)
@@ -6235,7 +6256,8 @@ Args:
   schema: optional schema of the resulting DataSlice.
 ```
 
-### `kd.slices.empty_shaped_as(shape_from, schema=DataItem(MASK, schema: SCHEMA))` {#kd.slices.empty_shaped_as}
+### `kd.slices.empty_shaped_as(shape_from, schema=MASK)` {#kd.slices.empty_shaped_as}
+
 Aliases:
 
 - [kd.empty_shaped_as](#kd.empty_shaped_as)
@@ -6355,7 +6377,8 @@ Aliases:
 Returns a string representation of the DataSlice `x`.
 ```
 
-### `kd.slices.group_by(x, *args, sort=DataItem(False, schema: BOOLEAN))` {#kd.slices.group_by}
+### `kd.slices.group_by(x, *args, sort=False)` {#kd.slices.group_by}
+
 Aliases:
 
 - [kd.group_by](#kd.group_by)
@@ -6429,7 +6452,8 @@ Returns:
   by dimension.
 ```
 
-### `kd.slices.group_by_indices(*args, sort=DataItem(False, schema: BOOLEAN))` {#kd.slices.group_by_indices}
+### `kd.slices.group_by_indices(*args, sort=False)` {#kd.slices.group_by_indices}
+
 Aliases:
 
 - [kd.group_by_indices](#kd.group_by_indices)
@@ -6492,7 +6516,8 @@ Returns:
   INT64 DataSlice with indices and injected grouped_by dimension.
 ```
 
-### `kd.slices.index(x, dim=DataItem(-1, schema: INT32))` {#kd.slices.index}
+### `kd.slices.index(x, dim=-1)` {#kd.slices.index}
+
 Aliases:
 
 - [kd.index](#kd.index)
@@ -6547,7 +6572,7 @@ Aliases:
 Returns kd.slice(x, kd.INT64).
 ```
 
-### `kd.slices.internal_select_by_slice(ds, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#kd.slices.internal_select_by_slice}
+### `kd.slices.internal_select_by_slice(ds, fltr, expand_filter=True)` {#kd.slices.internal_select_by_slice}
 
 ``` {.no-copy}
 A version of kd.select that does not support lambdas/functors.
@@ -6725,7 +6750,8 @@ Aliases:
 Returns kd.slice(x, kd.MASK).
 ```
 
-### `kd.slices.ordinal_rank(x, tie_breaker=unspecified, descending=DataItem(False, schema: BOOLEAN), ndim=unspecified)` {#kd.slices.ordinal_rank}
+### `kd.slices.ordinal_rank(x, tie_breaker=unspecified, descending=False, ndim=unspecified)` {#kd.slices.ordinal_rank}
+
 Aliases:
 
 - [kd.ordinal_rank](#kd.ordinal_rank)
@@ -6885,7 +6911,8 @@ Returns:
 
 Alias for [kd.slices.inverse_select](#kd.slices.inverse_select) operator.
 
-### `kd.slices.select(ds, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#kd.slices.select}
+### `kd.slices.select(ds, fltr, expand_filter=True)` {#kd.slices.select}
+
 Aliases:
 
 - [kd.select](#kd.select)
@@ -6981,7 +7008,8 @@ Args:
     cast it to the given schema.
 ```
 
-### `kd.slices.sort(x, sort_by=unspecified, descending=DataItem(False, schema: BOOLEAN))` {#kd.slices.sort}
+### `kd.slices.sort(x, sort_by=unspecified, descending=False)` {#kd.slices.sort}
+
 Aliases:
 
 - [kd.sort](#kd.sort)
@@ -7021,7 +7049,8 @@ Returns:
   DataSlice with last dimension sorted.
 ```
 
-### `kd.slices.stack(*args, ndim=DataItem(0, schema: INT32))` {#kd.slices.stack}
+### `kd.slices.stack(*args, ndim=0)` {#kd.slices.stack}
+
 Aliases:
 
 - [kd.stack](#kd.stack)
@@ -7299,7 +7328,8 @@ Returns:
   A DataSlice of translated values.
 ```
 
-### `kd.slices.unique(x, sort=DataItem(False, schema: BOOLEAN))` {#kd.slices.unique}
+### `kd.slices.unique(x, sort=False)` {#kd.slices.unique}
+
 Aliases:
 
 - [kd.unique](#kd.unique)
@@ -7558,7 +7588,7 @@ Returns:
   DataSlice of STRING.
 ```
 
-### `kd.strings.find(s, substr, start=DataItem(0, schema: INT64), end=DataItem(None, schema: INT64))` {#kd.strings.find}
+### `kd.strings.find(s, substr, start=0, end=None)` {#kd.strings.find}
 
 ``` {.no-copy}
 Returns the offset of the first occurrence of `substr` in `s`.
@@ -7937,7 +7967,7 @@ Returns:
   The text string where the replacements have been made.
 ```
 
-### `kd.strings.replace(s, old, new, max_subs=DataItem(None, schema: INT32))` {#kd.strings.replace}
+### `kd.strings.replace(s, old, new, max_subs=None)` {#kd.strings.replace}
 
 ``` {.no-copy}
 Replaces up to `max_subs` occurrences of `old` within `s` with `new`.
@@ -7960,7 +7990,7 @@ Returns:
   String with applied substitutions.
 ```
 
-### `kd.strings.rfind(s, substr, start=DataItem(0, schema: INT64), end=DataItem(None, schema: INT64))` {#kd.strings.rfind}
+### `kd.strings.rfind(s, substr, start=0, end=None)` {#kd.strings.rfind}
 
 ``` {.no-copy}
 Returns the offset of the last occurrence of `substr` in `s`.
@@ -8049,7 +8079,7 @@ Returns:
   Stripped string.
 ```
 
-### `kd.strings.substr(x, start=DataItem(0, schema: INT64), end=DataItem(None, schema: INT64))` {#kd.strings.substr}
+### `kd.strings.substr(x, start=0, end=None)` {#kd.strings.substr}
 
 ``` {.no-copy}
 Returns a DataSlice of substrings with indices [start, end).
@@ -8261,11 +8291,11 @@ Alias for [kd.math.argmin](#kd.math.argmin) operator.
 
 Alias for [kd.slices.at](#kd.slices.at) operator.
 
-### `kd.attr(x, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#kd.attr}
+### `kd.attr(x, attr_name, value, overwrite_schema=False)` {#kd.attr}
 
 Alias for [kd.core.attr](#kd.core.attr) operator.
 
-### `kd.attrs(x, /, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.attrs}
+### `kd.attrs(x, /, *, overwrite_schema=False, **attrs)` {#kd.attrs}
 
 Alias for [kd.core.attrs](#kd.core.attrs) operator.
 
@@ -8412,7 +8442,7 @@ Alias for [kd.masking.coalesce](#kd.masking.coalesce) operator.
 
 Alias for [kd.slices.collapse](#kd.slices.collapse) operator.
 
-### `kd.concat(*args, ndim=DataItem(1, schema: INT32))` {#kd.concat}
+### `kd.concat(*args, ndim=1)` {#kd.concat}
 
 Alias for [kd.slices.concat](#kd.slices.concat) operator.
 
@@ -8448,7 +8478,7 @@ Alias for [kd.ids.decode_itemid](#kd.ids.decode_itemid) operator.
 
 Alias for [kd.core.deep_clone](#kd.core.deep_clone) operator.
 
-### `kd.deep_uuid(x, /, schema=unspecified, *, seed=DataItem('', schema: STRING))` {#kd.deep_uuid}
+### `kd.deep_uuid(x, /, schema=unspecified, *, seed='')` {#kd.deep_uuid}
 
 Alias for [kd.ids.deep_uuid](#kd.ids.deep_uuid) operator.
 
@@ -8458,7 +8488,7 @@ Alias for [kd.ids.deep_uuid](#kd.ids.deep_uuid) operator.
 Deletes an attribute `attr_name` from `x`.
 ```
 
-### `kd.dense_rank(x, descending=DataItem(False, schema: BOOLEAN), ndim=unspecified)` {#kd.dense_rank}
+### `kd.dense_rank(x, descending=False, ndim=unspecified)` {#kd.dense_rank}
 
 Alias for [kd.slices.dense_rank](#kd.slices.dense_rank) operator.
 
@@ -8548,11 +8578,11 @@ Returns a DataSlice with OBJECT schema.
     x: (DataSlice) whose schema is embedded.
 ```
 
-### `kd.empty_shaped(shape, schema=DataItem(MASK, schema: SCHEMA))` {#kd.empty_shaped}
+### `kd.empty_shaped(shape, schema=MASK)` {#kd.empty_shaped}
 
 Alias for [kd.slices.empty_shaped](#kd.slices.empty_shaped) operator.
 
-### `kd.empty_shaped_as(shape_from, schema=DataItem(MASK, schema: SCHEMA))` {#kd.empty_shaped_as}
+### `kd.empty_shaped_as(shape_from, schema=MASK)` {#kd.empty_shaped_as}
 
 Alias for [kd.slices.empty_shaped_as](#kd.slices.empty_shaped_as) operator.
 
@@ -8597,7 +8627,7 @@ Alias for [kd.slices.expand_to](#kd.slices.expand_to) operator.
 
 Alias for [kd.shapes.expand_to_shape](#kd.shapes.expand_to_shape) operator.
 
-### `kd.explode(x, ndim=DataItem(1, schema: INT64))` {#kd.explode}
+### `kd.explode(x, ndim=1)` {#kd.explode}
 
 Alias for [kd.lists.explode](#kd.lists.explode) operator.
 
@@ -8621,7 +8651,7 @@ Alias for [kd.functor.flat_map_chain](#kd.functor.flat_map_chain) operator.
 
 Alias for [kd.functor.flat_map_interleaved](#kd.functor.flat_map_interleaved) operator.
 
-### `kd.flatten(x, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#kd.flatten}
+### `kd.flatten(x, from_dim=0, to_dim=unspecified)` {#kd.flatten}
 
 Alias for [kd.shapes.flatten](#kd.shapes.flatten) operator.
 
@@ -8657,7 +8687,7 @@ Alias for [kd.core.freeze](#kd.core.freeze) operator.
 
 Alias for [kd.core.freeze_bag](#kd.core.freeze_bag) operator.
 
-### `kd.from_json(x, /, schema=DataItem(OBJECT, schema: SCHEMA), default_number_schema=DataItem(OBJECT, schema: SCHEMA), *, on_invalid=DataSlice([], schema: NONE, ndims: 1, size: 0), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.from_json}
+### `kd.from_json(x, /, schema=OBJECT, default_number_schema=OBJECT, *, on_invalid=DataSlice([], schema: NONE, ndims: 1, size: 0), keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.from_json}
 
 Alias for [kd.json.from_json](#kd.json.from_json) operator.
 
@@ -8874,11 +8904,11 @@ Alias for [kd.comparison.greater](#kd.comparison.greater) operator.
 
 Alias for [kd.comparison.greater_equal](#kd.comparison.greater_equal) operator.
 
-### `kd.group_by(x, *args, sort=DataItem(False, schema: BOOLEAN))` {#kd.group_by}
+### `kd.group_by(x, *args, sort=False)` {#kd.group_by}
 
 Alias for [kd.slices.group_by](#kd.slices.group_by) operator.
 
-### `kd.group_by_indices(*args, sort=DataItem(False, schema: BOOLEAN))` {#kd.group_by_indices}
+### `kd.group_by_indices(*args, sort=False)` {#kd.group_by_indices}
 
 Alias for [kd.slices.group_by_indices](#kd.slices.group_by_indices) operator.
 
@@ -8926,7 +8956,7 @@ Alias for [kd.functor.if_](#kd.functor.if_) operator.
 
 Alias for [kd.lists.implode](#kd.lists.implode) operator.
 
-### `kd.index(x, dim=DataItem(-1, schema: INT32))` {#kd.index}
+### `kd.index(x, dim=-1)` {#kd.index}
 
 Alias for [kd.slices.index](#kd.slices.index) operator.
 
@@ -9081,19 +9111,19 @@ Alias for [kd.tuple.make_namedtuple](#kd.tuple.make_namedtuple) operator.
 
 Alias for [kd.tuple.make_tuple](#kd.tuple.make_tuple) operator.
 
-### `kd.map(fn, *args, include_missing=DataItem(False, schema: BOOLEAN), **kwargs)` {#kd.map}
+### `kd.map(fn, *args, include_missing=False, **kwargs)` {#kd.map}
 
 Alias for [kd.functor.map](#kd.functor.map) operator.
 
-### `kd.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), ndim=DataItem(0, schema: INT32), include_missing=DataItem(None, schema: NONE), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py}
+### `kd.map_py(fn, *args, schema=DataItem(None, schema: NONE), max_threads=1, ndim=0, include_missing=DataItem(None, schema: NONE), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py}
 
 Alias for [kd.py.map_py](#kd.py.map_py) operator.
 
-### `kd.map_py_on_cond(true_fn, false_fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py_on_cond}
+### `kd.map_py_on_cond(true_fn, false_fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py_on_cond}
 
 Alias for [kd.py.map_py_on_cond](#kd.py.map_py_on_cond) operator.
 
-### `kd.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=DataItem(1, schema: INT32), item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py_on_selected}
+### `kd.map_py_on_selected(fn, cond, *args, schema=DataItem(None, schema: NONE), max_threads=1, item_completed_callback=DataItem(None, schema: NONE), **kwargs)` {#kd.map_py_on_selected}
 
 Alias for [kd.py.map_py_on_selected](#kd.py.map_py_on_selected) operator.
 
@@ -9270,7 +9300,7 @@ Alias for [kd.objs.shaped](#kd.objs.shaped) operator.
 
 Alias for [kd.objs.shaped_as](#kd.objs.shaped_as) operator.
 
-### `kd.ordinal_rank(x, tie_breaker=unspecified, descending=DataItem(False, schema: BOOLEAN), ndim=unspecified)` {#kd.ordinal_rank}
+### `kd.ordinal_rank(x, tie_breaker=unspecified, descending=False, ndim=unspecified)` {#kd.ordinal_rank}
 
 Alias for [kd.slices.ordinal_rank](#kd.slices.ordinal_rank) operator.
 
@@ -9404,7 +9434,7 @@ Alias for [kd.proto.schema_from_proto_path](#kd.proto.schema_from_proto_path) op
 
 Alias for [kd.schema.schema_from_py](#kd.schema.schema_from_py) operator.
 
-### `kd.select(ds, fltr, expand_filter=DataItem(True, schema: BOOLEAN))` {#kd.select}
+### `kd.select(ds, fltr, expand_filter=True)` {#kd.select}
 
 Alias for [kd.slices.select](#kd.slices.select) operator.
 
@@ -9508,11 +9538,11 @@ Alias for [kd.slices.size](#kd.slices.size) operator.
 
 Alias for [kd.slices.slice](#kd.slices.slice) operator.
 
-### `kd.sort(x, sort_by=unspecified, descending=DataItem(False, schema: BOOLEAN))` {#kd.sort}
+### `kd.sort(x, sort_by=unspecified, descending=False)` {#kd.sort}
 
 Alias for [kd.slices.sort](#kd.slices.sort) operator.
 
-### `kd.stack(*args, ndim=DataItem(0, schema: INT32))` {#kd.stack}
+### `kd.stack(*args, ndim=0)` {#kd.stack}
 
 Alias for [kd.slices.stack](#kd.slices.stack) operator.
 
@@ -9548,7 +9578,7 @@ Alias for [kd.schema.to_expr](#kd.schema.to_expr) operator.
 
 Alias for [kd.schema.get_itemid](#kd.schema.get_itemid) operator.
 
-### `kd.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=DataItem(True, schema: BOOLEAN), keys_attr=DataItem('json_object_keys', schema: STRING), values_attr=DataItem('json_object_values', schema: STRING))` {#kd.to_json}
+### `kd.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.to_json}
 
 Alias for [kd.json.to_json](#kd.json.to_json) operator.
 
@@ -9646,7 +9676,7 @@ Alias for [kd.slices.translate](#kd.slices.translate) operator.
 
 Alias for [kd.slices.translate_group](#kd.slices.translate_group) operator.
 
-### `kd.unique(x, sort=DataItem(False, schema: BOOLEAN))` {#kd.unique}
+### `kd.unique(x, sort=False)` {#kd.unique}
 
 Alias for [kd.slices.unique](#kd.slices.unique) operator.
 
@@ -9668,23 +9698,23 @@ Alias for [kd.bags.updated](#kd.bags.updated) operator.
 
 Alias for [kd.entities.uu](#kd.entities.uu) operator.
 
-### `kd.uu_schema(seed=DataItem('', schema: STRING), **kwargs)` {#kd.uu_schema}
+### `kd.uu_schema(seed='', **kwargs)` {#kd.uu_schema}
 
 Alias for [kd.schema.uu_schema](#kd.schema.uu_schema) operator.
 
-### `kd.uuid(seed=DataItem('', schema: STRING), **kwargs)` {#kd.uuid}
+### `kd.uuid(seed='', **kwargs)` {#kd.uuid}
 
 Alias for [kd.ids.uuid](#kd.ids.uuid) operator.
 
-### `kd.uuid_for_dict(seed=DataItem('', schema: STRING), **kwargs)` {#kd.uuid_for_dict}
+### `kd.uuid_for_dict(seed='', **kwargs)` {#kd.uuid_for_dict}
 
 Alias for [kd.ids.uuid_for_dict](#kd.ids.uuid_for_dict) operator.
 
-### `kd.uuid_for_list(seed=DataItem('', schema: STRING), **kwargs)` {#kd.uuid_for_list}
+### `kd.uuid_for_list(seed='', **kwargs)` {#kd.uuid_for_list}
 
 Alias for [kd.ids.uuid_for_list](#kd.ids.uuid_for_list) operator.
 
-### `kd.uuids_with_allocation_size(seed=DataItem('', schema: STRING), *, size)` {#kd.uuids_with_allocation_size}
+### `kd.uuids_with_allocation_size(seed='', *, size)` {#kd.uuids_with_allocation_size}
 
 Alias for [kd.ids.uuids_with_allocation_size](#kd.ids.uuids_with_allocation_size) operator.
 
@@ -9708,11 +9738,11 @@ Alias for [kd.slices.val_shaped_as](#kd.slices.val_shaped_as) operator.
 
 Alias for [kd.functor.while_](#kd.functor.while_) operator.
 
-### `kd.with_attr(x, attr_name, value, overwrite_schema=DataItem(False, schema: BOOLEAN))` {#kd.with_attr}
+### `kd.with_attr(x, attr_name, value, overwrite_schema=False)` {#kd.with_attr}
 
 Alias for [kd.core.with_attr](#kd.core.with_attr) operator.
 
-### `kd.with_attrs(x, /, *, overwrite_schema=DataItem(False, schema: BOOLEAN), **attrs)` {#kd.with_attrs}
+### `kd.with_attrs(x, /, *, overwrite_schema=False, **attrs)` {#kd.with_attrs}
 
 Alias for [kd.core.with_attrs](#kd.core.with_attrs) operator.
 
