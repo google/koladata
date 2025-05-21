@@ -18,6 +18,7 @@ from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.fstring import fstring as _fstring
 from koladata.operators import arolla_bridge
+from koladata.operators import assertion
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import masking as masking_ops
 from koladata.operators import optools
@@ -575,6 +576,10 @@ def regex_find_all(text, regex):  # pylint: disable=unused-argument
     A DataSlice where each item of `text` is associated with a 2-dimensional
     representation of its matches' captured groups.
   """
+  text = assertion.assert_primitive('text', text, schema_constants.STRING)
+  regex = assertion.assert_present_scalar(
+      'regex', regex, schema_constants.STRING
+  )
   arolla_text = arolla_bridge.to_arolla_dense_array_text(text)
   arolla_regex = arolla_bridge.to_arolla_text(regex)
   result_tuple = M.strings.findall_regex(arolla_text, arolla_regex)
@@ -654,6 +659,13 @@ def regex_replace_all(text, regex, replacement):
   Returns:
     The text string where the replacements have been made.
   """
+  text = assertion.assert_primitive('text', text, schema_constants.STRING)
+  replacement = assertion.assert_primitive(
+      'replacement', replacement, schema_constants.STRING
+  )
+  regex = assertion.assert_present_scalar(
+      'regex', regex, schema_constants.STRING
+  )
   text_a, replacement_a = slices.align(text, replacement)
   text_da = arolla_bridge.to_arolla_dense_array_text(text_a)
   replacement_da = arolla_bridge.to_arolla_dense_array_text(replacement_a)

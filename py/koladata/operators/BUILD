@@ -418,6 +418,7 @@ py_library(
     srcs = ["strings.py"],
     deps = [
         ":arolla_bridge",
+        ":assertion",
         ":jagged_shape",
         ":masking",
         ":optools",

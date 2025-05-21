@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import re
-
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -129,14 +127,9 @@ class StringsRegexReplaceAllTest(parameterized.TestCase):
     testing.assert_equal(result, expected)
 
   def test_regex_incompatible_type_errors(self):
-    # TODO: The error messages here are not very good. See
-    # kd.strings.regex_find_all for ideas on how to improve them.
-
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'unsupported narrowing cast to STRING for the given BYTES DataSlice'
-        ),
+        'argument `regex` must be an item holding STRING, got an item of BYTES',
     ):
       expr_eval.eval(
           kde.strings.regex_replace_all(ds('foo'), ds(b'f'), ds('b'))
@@ -144,9 +137,7 @@ class StringsRegexReplaceAllTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'unsupported narrowing cast to STRING for the given INT32 DataSlice'
-        ),
+        'argument `regex` must be an item holding STRING, got an item of INT32',
     ):
       expr_eval.eval(
           kde.strings.regex_replace_all(
@@ -158,7 +149,7 @@ class StringsRegexReplaceAllTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('expected a present value'),
+        'argument `regex` must be an item holding STRING, got missing',
     ):
       expr_eval.eval(
           kde.strings.regex_replace_all(
@@ -167,15 +158,10 @@ class StringsRegexReplaceAllTest(parameterized.TestCase):
       )
 
   def test_mixed_slice_errors(self):
-    # TODO: The error messages here are not very good. See
-    # kd.strings.regex_find_all for ideas on how to improve them.
-
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'unsupported narrowing cast to STRING for the given OBJECT'
-            ' DataSlice'
-        ),
+        'argument `text` must be a slice of STRING, got a slice of OBJECT'
+        ' containing INT32 and STRING values',
     ):
       expr_eval.eval(
           kde.strings.regex_replace_all(ds([1, 'fo']), ds('o'), ds('a'))
@@ -183,10 +169,8 @@ class StringsRegexReplaceAllTest(parameterized.TestCase):
 
     with self.assertRaisesRegex(
         ValueError,
-        re.escape(
-            'unsupported narrowing cast to STRING for the given OBJECT'
-            ' DataSlice'
-        ),
+        'argument `replacement` must be a slice of STRING, got a slice of'
+        ' OBJECT containing INT32 and STRING values',
     ):
       expr_eval.eval(
           kde.strings.regex_replace_all(ds('foo'), ds('o'), ds([1, 'fo']))
