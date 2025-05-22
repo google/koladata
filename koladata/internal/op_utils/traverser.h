@@ -264,6 +264,9 @@ class Traverser {
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
                                     const DataItem& schema) {
+    if (schema.is_primitive_schema()) {
+      RETURN_IF_ERROR(ValidatePrimitiveType({.item = item, .schema = schema}));
+    }
     return visitor_->VisitorT::GetValue(item, schema);
   }
 

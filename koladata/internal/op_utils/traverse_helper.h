@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_INTERNAL_OP_UTILS_DEEP_COMPARATOR_H_
-#define KOLADATA_INTERNAL_OP_UTILS_DEEP_COMPARATOR_H_
+#ifndef KOLADATA_INTERNAL_OP_UTILS_TRAVERSE_HELPER_H_
+#define KOLADATA_INTERNAL_OP_UTILS_TRAVERSE_HELPER_H_
 
 #include <sys/types.h>
 
@@ -39,6 +39,10 @@
 
 namespace koladata::internal {
 
+// A helper class for traversing a databag.
+//
+// It is used to hide the details of databag accessing to get attributes and
+// schemas for different types of items.
 class TraverseHelper {
  public:
   struct Transition {
@@ -46,6 +50,10 @@ class TraverseHelper {
     DataItem schema;
   };
 
+  // A view of a set of transitions for a given item with a given schema.
+  //
+  // This class is used to make a clear dispatch logic for traversing
+  // different types of items. And to avoid repeating databag accesses.
   class TransitionsSet {
    public:
     static TransitionsSet CreateForList(DataItem list_item_schema,
@@ -147,6 +155,7 @@ class TraverseHelper {
                  DataBagImpl::FallbackSpan fallbacks)
       : databag_(databag), fallbacks_(fallbacks) {}
 
+  // Returns view of all transitions for the given item and schema.
   absl::StatusOr<TransitionsSet> GetTransitions(
       DataItem item, DataItem schema, bool remove_special_attrs = true) {
     if (schema.holds_value<ObjectId>()) {
@@ -165,6 +174,7 @@ class TraverseHelper {
     return absl::InternalError("unsupported schema type");
   }
 
+  // Calls the given function for each directly reachable object.
   template <typename Fn>
   absl::Status ForEachObject(const DataItem& item, const DataItem& schema,
                      const TransitionsSet& transitions_set, Fn&& fn) {
@@ -189,6 +199,7 @@ class TraverseHelper {
     return absl::OkStatus();
   }
 
+  // Returns transition for the given attribute.
   absl::StatusOr<Transition> AttributeTransition(const DataItem& item,
                                                  const DataItem& schema,
                                                  std::string_view attr_name) {
@@ -200,6 +211,7 @@ class TraverseHelper {
         {.item = std::move(attr_value), .schema = std::move(attr_schema)});
   }
 
+  // Returns transition for the given schema attribute.
   absl::StatusOr<Transition> SchemaAttributeTransition(
       const DataItem& schema, std::string_view attr_name) {
     ASSIGN_OR_RETURN(DataItem attr_schema,
@@ -214,30 +226,23 @@ class TraverseHelper {
         {.item = std::move(attr_schema), .schema = DataItem(schema_dtype)});
   }
 
+  // Returns the schema for the given object.
   absl::StatusOr<DataItem> GetObjectSchema(const DataItem& item) {
-    if (!item.has_value() || !item.template holds_value<ObjectId>()) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("object %v is expected to be an object", item));
-    }
-    ASSIGN_OR_RETURN(DataItem schema,
-                     databag_.GetAttr(item, schema::kSchemaAttr, fallbacks_));
-    if (!schema.is_struct_schema()) {
-      return absl::InvalidArgumentError(
-          absl::StrFormat("object %v is expected to have a schema in "
-                          "%s attribute, got %v",
-                          item, schema::kSchemaAttr, schema));
-    }
-    return schema;
+    return databag_.GetObjSchemaAttr(item, fallbacks_);
   }
 
  private:
   template <typename Fn>
   void ForEachListItemObject(const TransitionsSet& transitions_set, Fn&& fn) {
     const DataSliceImpl& list_items = transitions_set.list_items();
+    auto item_schema = transitions_set.list_item_schema();
+    if (item_schema.is_primitive_schema()) {
+      return;
+    }
     for (int64_t i = 0; i < list_items.size(); ++i) {
       const DataItem& item = list_items[i];
       if (item.holds_value<ObjectId>()) {
-        fn(item, transitions_set.list_item_schema());
+        fn(item, item_schema);
       }
     }
   }
@@ -245,18 +250,22 @@ class TraverseHelper {
   template <typename Fn>
   void ForEachDictElementObject(const TransitionsSet& transitions_set,
                                 Fn&& fn) {
-    const DataSliceImpl& dict_keys = transitions_set.dict_keys();
-    for (int64_t i = 0; i < dict_keys.size(); ++i) {
-      const DataItem& key = dict_keys[i];
-      if (key.holds_value<ObjectId>()) {
-        fn(key, transitions_set.dict_keys_schema());
+    if (!transitions_set.dict_keys_schema().is_primitive_schema()) {
+      const DataSliceImpl& dict_keys = transitions_set.dict_keys();
+      for (int64_t i = 0; i < dict_keys.size(); ++i) {
+        const DataItem& key = dict_keys[i];
+        if (key.holds_value<ObjectId>()) {
+          fn(key, transitions_set.dict_keys_schema());
+        }
       }
     }
-    const DataSliceImpl& dict_values = transitions_set.dict_values();
-    for (int64_t i = 0; i < dict_values.size(); ++i) {
-      const DataItem& value = dict_values[i];
-      if (value.holds_value<ObjectId>()) {
-        fn(value, transitions_set.dict_values_schema());
+    if (!transitions_set.dict_values_schema().is_primitive_schema()) {
+      const DataSliceImpl& dict_values = transitions_set.dict_values();
+      for (int64_t i = 0; i < dict_values.size(); ++i) {
+        const DataItem& value = dict_values[i];
+        if (value.holds_value<ObjectId>()) {
+          fn(value, transitions_set.dict_values_schema());
+        }
       }
     }
   }
@@ -273,7 +282,9 @@ class TraverseHelper {
             status = transition_or.status();
             return;
           }
-          fn(transition_or->item, transition_or->schema);
+          if (transition_or->item.holds_value<ObjectId>()) {
+            fn(transition_or->item, transition_or->schema);
+          }
         });
     return status;
   }
@@ -296,7 +307,9 @@ class TraverseHelper {
             status = transition_or.status();
             return;
           }
-          fn(transition_or->item, transition_or->schema);
+          if (transition_or->item.holds_value<ObjectId>()) {
+            fn(transition_or->item, transition_or->schema);
+          }
         });
     return status;
   }
@@ -429,4 +442,4 @@ class TraverseHelper {
 
 }  // namespace koladata::internal
 
-#endif  // KOLADATA_INTERNAL_OP_UTILS_TRAVERSER_H_
+#endif  // KOLADATA_INTERNAL_OP_UTILS_TRAVERSE_HELPER_H_

@@ -957,6 +957,20 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "qexpr_test",
+    srcs = ["qexpr_test.cc"],
+    deps = [
+        ":qexpr",
+        "//koladata/internal:error_utils",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "traverse_helper",
     hdrs = ["traverse_helper.h"],
@@ -978,15 +992,18 @@ cc_library(
 )
 
 cc_test(
-    name = "qexpr_test",
-    srcs = ["qexpr_test.cc"],
+    name = "traverse_helper_test",
+    srcs = ["traverse_helper_test.cc"],
     deps = [
-        ":qexpr",
-        "//koladata/internal:error_utils",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:status_matchers",
-        "@com_google_arolla//arolla/memory",
-        "@com_google_arolla//arolla/qexpr",
+        ":traverse_helper",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:schema_attrs",
+        "//koladata/internal/testing:deep_op_utils",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],
 )
