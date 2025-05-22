@@ -27,7 +27,6 @@ from koladata.operators import koda_internal_parallel
 from koladata.types import qtypes
 
 I = input_container.InputContainer('I')
-i32 = arolla.int32
 
 
 class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
@@ -40,7 +39,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
 
   def test_no_input_streams_with_explicit_value_type_as(self):
     res = expr_eval.eval(
-        koda_internal_parallel.stream_interleave(value_type_as=i32(0))
+        koda_internal_parallel.stream_interleave(value_type_as=arolla.int32(0))
     )
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, arolla.INT32)
@@ -59,8 +58,8 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
     self.assertEqual(res.qtype.value_qtype, arolla.INT32)
     reader = res.make_reader()
     for i in range(64):
-      writers[random.randrange(n)].write(i32(i))
-      self.assertEqual(reader.read_available(), [i32(i)])
+      writers[random.randrange(n)].write(arolla.int32(i))
+      self.assertEqual(reader.read_available(), [i])
     for writer in writers:
       self.assertEqual(reader.read_available(), [])
       writer.close()
@@ -69,13 +68,15 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
   def test_with_explicit_value_type_as(self):
     stream, writer = clib.make_stream(arolla.INT32)
     res = expr_eval.eval(
-        koda_internal_parallel.stream_interleave(stream, value_type_as=i32(0))
+        koda_internal_parallel.stream_interleave(
+            stream, value_type_as=arolla.int32(0)
+        )
     )
     self.assertIsInstance(res, clib.Stream)
     self.assertEqual(res.qtype.value_qtype, arolla.INT32)
-    writer.write(i32(1))
+    writer.write(arolla.int32(1))
     writer.close()
-    self.assertEqual(res.make_reader().read_available(), [i32(1)])
+    self.assertEqual(res.make_reader().read_available(), [1])
 
   def test_error_wrong_value_type_as(self):
     stream, writer = clib.make_stream(arolla.INT32)
@@ -106,7 +107,9 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError, re.escape('all inputs must be streams')
     ):
-      _ = expr_eval.eval(koda_internal_parallel.stream_interleave(i32(1)))
+      _ = expr_eval.eval(
+          koda_internal_parallel.stream_interleave(arolla.int32(1))
+      )
 
   def test_empty_input_streams(self):
     streams = []

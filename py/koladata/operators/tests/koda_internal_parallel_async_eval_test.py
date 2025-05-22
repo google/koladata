@@ -17,7 +17,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
-from koladata.functor.parallel import clib
+from koladata.functor.parallel import clib as _
 from koladata.operators import kde_operators as _
 from koladata.operators import koda_internal_parallel
 from koladata.operators import optools
@@ -29,12 +29,6 @@ ds = data_slice.DataSlice.from_vals
 
 
 class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
-
-  def _read_full_stream(self, res: clib.Stream) -> list[arolla.QValue]:
-    stream_reader = res.make_reader()
-    res = stream_reader.read_available() or []
-    self.assertIsNone(stream_reader.read_available())
-    return res
 
   def test_simple(self):
     executor = koda_internal_parallel.get_eager_executor()
@@ -175,7 +169,7 @@ class KodaInternalParallelAsyncEvalTest(absltest.TestCase):
     expr = koda_internal_parallel.unwrap_future_to_stream(expr)
     res = expr_eval.eval(expr, foo=1, bar=2)
     testing.assert_equal(
-        arolla.tuple(*self._read_full_stream(res)), arolla.tuple(ds(3), ds(-1))
+        arolla.tuple(*res.read_all(timeout=0)), arolla.tuple(ds(3), ds(-1))
     )
 
   def test_non_executor(self):

@@ -22,7 +22,7 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
-from koladata.functor.parallel import clib
+from koladata.functor.parallel import clib as _
 from koladata.operators import bootstrap
 from koladata.operators import koda_internal_parallel
 from koladata.operators import optools
@@ -51,12 +51,6 @@ ds = data_slice.DataSlice.from_vals
 
 
 class KodaInternalParallelTransformTest(absltest.TestCase):
-
-  def _read_full_stream(self, res: clib.Stream) -> list[arolla.QValue]:
-    stream_reader = res.make_reader()
-    res = stream_reader.read_available() or []
-    self.assertIsNone(stream_reader.read_available())
-    return res
 
   def _test_eval_on_futures(self, fn, *, replacements, inputs, expected_output):
     context = expr_eval.eval(
@@ -190,7 +184,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         )
     )
     testing.assert_equal(
-        arolla.tuple(*self._read_full_stream(res_stream)),
+        arolla.tuple(*res_stream.read_all(timeout=0)),
         arolla.tuple(ds(1), ds(2), ds(3)),
     )
 
