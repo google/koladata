@@ -21,6 +21,7 @@
 #include <optional>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
@@ -45,9 +46,25 @@ namespace koladata::internal {
 // schemas for different types of items.
 class TraverseHelper {
  public:
+  enum class TransitionType {
+    kListItem,
+    kDictKey,
+    kDictValue,
+    kAttributeName,
+  };
+
   struct Transition {
     DataItem item;
     DataItem schema;
+  };
+
+  // Information needed to identify a single transition.
+  struct TransitionKey {
+    TransitionType type;
+    // Index of the list item, or index in TransitionSet for dict keys/values.
+    int64_t index = -1;
+    // Attribute name of dict key for dict keys/values.
+    DataItem value = DataItem();
   };
 
   // A view of a set of transitions for a given item with a given schema.
@@ -132,6 +149,35 @@ class TraverseHelper {
       return keys_or_names_->values<arolla::Text>();
     }
 
+    // Converts the transitions set to a vector of TransitionKeys.
+    std::vector<TransitionKey> GetTransitionKeys() const {
+      std::vector<TransitionKey> transition_keys;
+      if (is_list()) {
+        for (int64_t i = 0; i < list_items().size(); ++i) {
+          transition_keys.push_back(
+              {.type = TransitionType::kListItem, .index = i});
+        }
+      } else if (is_dict()) {
+        for (int64_t i = 0; i < dict_keys().size(); ++i) {
+          transition_keys.push_back({.type = TransitionType::kDictKey,
+                                     .index = i,
+                                     .value = dict_keys()[i]});
+          transition_keys.push_back({.type = TransitionType::kDictValue,
+                                     .index = i,
+                                     .value = dict_keys()[i]});
+        }
+      } else if (has_attrs()) {
+        attr_names().ForEach(
+            [&](int64_t i, bool presence, std::string_view attr_name) {
+              DCHECK(presence);
+              transition_keys.push_back(
+                  {.type = TransitionType::kAttributeName,
+                   .value = DataItem(arolla::Text(attr_name))});
+            });
+      }
+      return transition_keys;
+    }
+
    private:
     TransitionsSet(std::optional<DataSliceImpl> keys_or_names,
                    std::optional<DataSliceImpl> values,
@@ -197,6 +243,34 @@ class TraverseHelper {
       return ForEachAttributeObject(item, schema, transitions_set, fn);
     }
     return absl::OkStatus();
+  }
+
+  // Returns transition for the given key.
+  absl::StatusOr<Transition> TransitionByKey(
+      const DataItem& item, const DataItem& schema,
+      const TransitionsSet& transitions_set, const TransitionKey& key) {
+    if (key.type == TransitionType::kListItem) {
+      return Transition(
+          {.item = transitions_set.list_items()[key.index],
+           .schema = transitions_set.list_item_schema()});
+    } else if (key.type == TransitionType::kDictKey) {
+      DCHECK_EQ(transitions_set.dict_keys()[key.index], key.value);
+      return Transition(
+          {.item = key.value, .schema = transitions_set.dict_keys_schema()});
+    } else if (key.type == TransitionType::kDictValue) {
+      DCHECK_EQ(transitions_set.dict_keys()[key.index], key.value);
+      return Transition({.item = transitions_set.dict_values()[key.index],
+                         .schema = transitions_set.dict_values_schema()});
+    } else if (key.type == TransitionType::kAttributeName) {
+      if (schema.is_schema_schema()) {
+        return SchemaAttributeTransition(item, key.value.value<arolla::Text>());
+      } else {
+        return AttributeTransition(item, schema,
+                                   key.value.value<arolla::Text>());
+      }
+    } else {
+      return absl::InternalError("unsupported transition key type");
+    }
   }
 
   // Returns transition for the given attribute.
