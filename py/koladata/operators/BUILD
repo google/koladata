@@ -292,6 +292,7 @@ py_library(
         "//py:python_path",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )
 
@@ -311,6 +312,7 @@ py_test(
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )
 
@@ -348,6 +350,7 @@ py_library(
         ":qtype_utils",
         "//koladata/operators",
         "//py:python_path",
+        "//py/koladata/types:jagged_shape",
         "@com_google_arolla//py/arolla",
     ],
 )

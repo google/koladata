@@ -15,6 +15,7 @@
 import re
 from absl.testing import absltest
 from arolla import arolla
+from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
 from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import kde_operators as _  # pylint: disable=unused-import
 from koladata.operators import koda_internal_parallel
@@ -81,6 +82,39 @@ class KodaQTypesTest(absltest.TestCase):
           ValueError, 'expected JAGGED_SHAPE, got x: INT32'
       ):
         _op(4)
+
+  def test_expect_arolla_jagged_shape(self):
+
+    @arolla.optools.as_lambda_operator(
+        'op3.name',
+        qtype_constraints=[qtype_utils.expect_arolla_jagged_shape(arolla.P.x)],
+    )
+    def _op(x):
+      return x
+
+    with self.subTest('success'):
+      _op(
+          arolla_jagged_shape.JaggedDenseArrayShape.from_edges(
+              arolla.types.DenseArrayEdge.from_sizes([1])
+          )
+      )
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError, 'expected JAGGED_DENSE_ARRAY_SHAPE, got x: INT32'
+      ):
+        _op(4)
+
+    with self.subTest('failure'):
+      with self.assertRaisesRegex(
+          ValueError,
+          'expected JAGGED_DENSE_ARRAY_SHAPE, got x: JAGGED_ARRAY_SHAPE',
+      ):
+        _op(
+            arolla_jagged_shape.JaggedArrayShape.from_edges(
+                arolla.types.ArrayEdge.from_sizes([1])
+            )
+        )
 
   def test_expect_jagged_shape_or_unspecified(self):
 

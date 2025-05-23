@@ -15,6 +15,7 @@
 """Helpers for Koda QTypes."""
 
 from arolla import arolla
+from arolla.jagged_shape import jagged_shape as arolla_jagged_shape
 from koladata.operators import bootstrap
 from koladata.types import qtypes
 
@@ -93,6 +94,17 @@ def expect_data_bag_args(param) -> constraints.QTypeConstraint:
       ),
       (
           'expected all arguments to be DATA_BAG, got'
+          f' {constraints.name_type_msg(param)}'
+      ),
+  )
+
+
+def expect_arolla_jagged_shape(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is an Arolla jagged shape."""
+  return (
+      param == arolla_jagged_shape.JAGGED_DENSE_ARRAY_SHAPE,
+      (
+          'expected JAGGED_DENSE_ARRAY_SHAPE, got'
           f' {constraints.name_type_msg(param)}'
       ),
   )

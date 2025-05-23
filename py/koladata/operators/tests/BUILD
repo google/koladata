@@ -9007,3 +9007,43 @@ py_test(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_test(
+    name = "koda_internal_to_arolla_jagged_shape_test",
+    srcs = ["koda_internal_to_arolla_jagged_shape_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:arolla_bridge",
+        "//py/koladata/operators:jagged_shape",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:jagged_shape",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/jagged_shape",
+    ],
+)
+
+py_test(
+    name = "koda_internal_from_arolla_jagged_shape_test",
+    srcs = ["koda_internal_from_arolla_jagged_shape_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:arolla_bridge",
+        "//py/koladata/operators:jagged_shape",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:jagged_shape",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/jagged_shape",
+    ],
+)
