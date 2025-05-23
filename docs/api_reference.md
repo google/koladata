@@ -3572,10 +3572,6 @@ Pointwise operator selects items in `yes` if corresponding items are
 
 If `no` is unspecified corresponding items in result are missing.
 
-Note that there is _no_ short-circuiting based on the `condition` - both `yes`
-and `no` branches will be evaluated irrespective of its value. See `kd.if_`
-for a short-circuiting version of this operator.
-
 Args:
   condition: DataSlice.
   yes: DataSlice.
