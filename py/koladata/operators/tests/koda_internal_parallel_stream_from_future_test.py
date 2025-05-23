@@ -42,17 +42,15 @@ class KodaInternalParallelStreamFromFutureTest(absltest.TestCase):
   def test_error(self):
     @optools.as_lambda_operator('my_op')
     def my_op(x):
-      return koda_internal_parallel.as_future(
-          assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
-      )
+      return assertion.with_assertion(x, x % 2 != 0, 'Must be odd')
 
     executor = koda_internal_parallel.get_eager_executor()
-    future_to_stream = koda_internal_parallel.async_eval(
+    future = koda_internal_parallel.async_eval(
         executor,
         my_op,
         I.x,
     )
-    expr = koda_internal_parallel.stream_from_future(future_to_stream)
+    expr = koda_internal_parallel.stream_from_future(future)
     res = expr_eval.eval(expr, x=10)
     reader = res.make_reader()
     with self.assertRaisesRegex(ValueError, 'Must be odd'):

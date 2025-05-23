@@ -988,3 +988,25 @@ def stream_reduce(executor, fn, stream, initial_value):
 def stream_from_future(future):
   """Creates a stream from the given future. It has 1 element or an error."""
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.future_from_single_value_stream',
+    qtype_constraints=[
+        qtype_utils.expect_stream(P.stream),
+    ],
+    qtype_inference_expr=get_future_qtype(M.qtype.get_value_qtype(P.stream)),
+)
+def future_from_single_value_stream(stream):
+  """Creates a future from the given stream.
+
+  The stream must have exactly one value, otherwise an error is raised.
+
+  Args:
+    stream: The input stream.
+
+  Returns:
+    A future with the single value from the stream.
+  """
+  raise NotImplementedError('implemented in the backend')

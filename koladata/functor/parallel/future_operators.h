@@ -70,6 +70,17 @@ class StreamFromFutureOperatorFamily : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
+// koda_internal.parallel.future_from_single_value_stream
+// Given a stream[X] that is expected to have exactly one value, returns a
+// future[X] with that value. If the stream has an error, zero values, or
+// more than one value, the future will get an error.
+class FutureFromSingleValueStreamOperatorFamily
+    : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 }  // namespace koladata::functor::parallel
 
 #endif  // KOLADATA_FUNCTOR_PARALLEL_AS_FUTURE_OPERATOR_H_
