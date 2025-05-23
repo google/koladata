@@ -1382,3 +1382,107 @@ above.
 
 NOTE: As a rule-of-thumb, functions passed to `kd.map_py` should be pure and not
 reference captured variables.
+
+## Conditional Short-Circuiting: `kd.cond` vs `kd.if_`
+
+[`kd.cond`](api_reference.md#kd.masking.cond) and
+[`kd.if_`](api_reference.md#kd.functor.if_) are two similar operators that allow
+for data selection based on a predicate. They differ in their functionalities,
+especially with regards to short-circuiting.
+
+### `kd.cond`
+
+`kd.cond` is a pointwise operator that takes a `MASK` `condition`, a `yes` case,
+and a `no` case, and produces an interleaved result based on the `condition`.
+All inputs are allowed to be multidimensional. For example:
+
+```py
+kd.cond(kd.present, kd.slice([1, 2, 3]), kd.slice([4, 5, 6]))  # [1, 2, 3]
+
+kd.cond(kd.missing, kd.slice([1, 2, 3]), kd.slice([4, 5, 6]))  # [4, 5, 6]
+
+kd.cond(
+  kd.slice([kd.present, kd.missing, kd.present]),
+  kd.slice([1, 2, 3]),
+  kd.slice([4, 5, 6]),
+)  # [1, 5, 3]
+```
+
+Even in a lazy context, both `yes` and `no` branches will *always* be evaluated
+irrespective of the `conditional`. This adheres to the Koda evaluation model,
+where functors and expressions are evaluated in a bottom-up manner. It's
+therefore required that both branches can be evaluated successfully. For
+example, the following will fail.
+
+```py
+@kd.fn
+def explode_or_default(x, y):
+  return kd.cond(kd.is_list(x), x[:], y)
+
+explode_or_default(kd.list([1, 2, 3]), 2)  # [1, 2, 3]
+
+# Fails. `x[:]` is not possible for an entity.
+explode_or_default(kd.new(x=1), 2)
+```
+
+### `kd.if_`
+
+`kd.if_` is an operator that takes a *scalar* `MASK` `conditional`, a `yes_fn`
+functor, a `no_fn` functor, and arguments passed to each functor. This operator
+is a *short-circuiting* alternative to `kd.cond`, where `yes_fn` will only be
+evaluated if `condition` is truthy, and `no_fn` otherwise. For example:
+
+```py
+kd.if_(
+  kd.present,
+  lambda: kd.slice([1, 2, 3]),
+  lambda: kd.slice([4, 5, 6]),
+)  # [1, 2, 3]
+
+kd.if_(
+  kd.missing,
+  lambda: kd.slice([1, 2, 3]),
+  lambda: kd.slice([4, 5, 6]),
+)  # [4, 5, 6]
+
+# Fails - the conditional is required to be a scalar.
+kd.if_(
+  kd.slice([kd.present, kd.missing, kd.present]),
+  lambda: kd.slice([1, 2, 3]),
+  lambda: kd.slice([4, 5, 6]),
+)
+```
+
+Due to the short-circuiting nature of this operator, we can rewrite the
+`explode_or_default` functor as follows:
+
+```py
+@kd.fn
+def explode_or_default(x, y):
+  return kd.if_(
+    kd.is_list(x),
+    lambda x, y: x[:],
+    lambda x, y: y,
+    x,
+    y,
+  )
+
+explode_or_default(kd.list([1, 2, 3]), 2)  # [1, 2, 3]
+explode_or_default(kd.new(x=1), 2)  # 2
+```
+
+Note that this operator still uses the normal evaluation rules, and both
+`yes_fn` and `no_fn` will be processed before `kd.if_` is evaluated. However,
+since these are *functors* rather than computational expressions, processing
+`yes_fn` simply involves returning the provided functor. Since the evaluation of
+the functor is deferred, this effectively implements short-circuiting.
+
+### Recommendation
+
+The default choice should be to use `kd.cond`, as it allows for non-scalar
+conditionals, avoids internal functor evaluation, and operates according to the
+standard evaluation rules.
+
+If you require short-circuiting to 1) conditionally avoid unnecessary and
+expensive computation, or 2) perform conditional transformations that otherwise
+leads to runtime errors, then `kd.if_` should be considered.
