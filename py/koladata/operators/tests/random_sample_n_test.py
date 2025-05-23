@@ -130,11 +130,11 @@ class RandomSampleNTest(parameterized.TestCase):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
 
     with self.assertRaisesRegex(ValueError, re.escape('same shape')):
-      _ = expr_eval.eval(kde.random.sample_n(x, 2, 123, ds([2, 1])))
+      _ = expr_eval.eval(kde.random.sample_n(x, 2, 123, ds(['2', '1'])))
 
     with self.assertRaisesRegex(ValueError, re.escape('same shape')):
       _ = expr_eval.eval(
-          kde.random.sample_n(x, 2, 123, ds([[1, 2, 3], [3, 4]]))
+          kde.random.sample_n(x, 2, 123, ds([['1', '2', '3'], ['3', '4']]))
       )
 
   def test_x_as_data_item(self):
@@ -145,12 +145,18 @@ class RandomSampleNTest(parameterized.TestCase):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('unsupported narrowing cast to INT64')
+        ValueError,
+        re.escape(
+            'argument `n` must be a slice of INT64, got a slice of STRING'
+        )
     ):
       _ = expr_eval.eval(kde.random.sample_n(x, 'a', 123))
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('unsupported narrowing cast to INT64')
+        ValueError,
+        re.escape(
+            'argument `n` must be a slice of INT64, got a slice of FLOAT32'
+        )
     ):
       _ = expr_eval.eval(kde.random.sample_n(x, ds([0.5, 0.6]), 123))
 
@@ -158,14 +164,33 @@ class RandomSampleNTest(parameterized.TestCase):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('unsupported narrowing cast to INT64')
+        ValueError,
+        re.escape(
+            'argument `seed` must be an item holding INT64, got an item of '
+            'STRING'
+        )
     ):
       _ = expr_eval.eval(kde.random.sample_n(x, 2, 'a'))
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('expected rank 0, but got rank=1')
+        ValueError,
+        re.escape(
+            'argument `seed` must be an item holding INT64, got a slice of '
+            'rank 1 > 0'
+        )
     ):
       _ = expr_eval.eval(kde.random.sample_n(x, 2, ds([123, 456])))
+
+  def test_wrong_key_input(self):
+    x = ds([[1, 2, 3], [3, 4, 6, 7]])
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'argument `key` must be a slice of STRING, got a slice of INT32'
+        )
+    ):
+      _ = expr_eval.eval(kde.random.sample_n(x, 2, 123, key=x))
 
   def test_qtype_signatures(self):
     # Limit the allowed qtypes and a random QType to speed up the test.

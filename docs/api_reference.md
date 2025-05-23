@@ -4909,6 +4909,61 @@ Random and sampling operators.
 
 **Operators**
 
+### `kd.random.mask(x, ratio, seed, key=unspecified)` {#kd.random.mask}
+
+``` {.no-copy}
+Returns a mask with near size(x) * ratio present values at random indices.
+
+The sampling of indices is performed on flatten `x` rather than on the last
+dimension.
+
+The sampling is stable given the same inputs. Optional `key` can be used to
+provide additional stability. That is, `key` is used for sampling if set and
+items corresponding to empty keys are never sampled. Otherwise, the indices of
+`x` is used.
+
+Note that the sampling is performed as follows:
+  hash(key, seed) < ratio * 2^63
+Therefore, exact sampled count is not guaranteed. E.g. result of sampling an
+array of 1000 items with 0.1 ratio has present items close to 100 (e.g. 98)
+rather than exact 100 items. However this provides per-item stability that
+the sampling result for an item is deterministic given the same key regardless
+other keys are provided.
+
+Examples:
+  # Select 50% from last dimension.
+  ds = kd.slice([[1, 2, None, 4], [5, None, None, 8]])
+  kd.random.mask(ds, 0.5, 123)
+    -> kd.slice([
+           [None, None, kd.present, None],
+           [kd.present, None, None, kd.present]
+       ])
+
+  # Use 'key' for stability
+  ds_1 = kd.slice([[1, 2, None, 4], [5, None, None, 8]])
+  key_1 = kd.slice([['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd']])
+  kd.random.mask(ds_1, 0.5, 123, key_1)
+    -> kd.slice([
+           [None, None, None, kd.present],
+           [None, None, None, kd.present],
+       ])
+
+  ds_2 = kd.slice([[4, 3, 2, 1], [5, 6, 7, 8]])
+  key_2 = kd.slice([['c', 'd', 'b', 'a'], ['a', 'b', 'c', 'd']])
+  kd.random.mask(ds_2, 0.5, 123, key_2)
+    -> kd.slice([
+           [None, kd.present, None, None],
+           [None, None, None, kd.present],
+       ])
+
+Args:
+  x: DataSlice whose shape is used for sampling.
+  ratio: float number between [0, 1].
+  seed: seed from random sampling.
+  key: keys used to generate random numbers. The same key generates the same
+    random number.
+```
+
 ### `kd.random.randint_like(x, low=unspecified, high=unspecified, seed=unspecified)` {#kd.random.randint_like}
 Aliases:
 
@@ -5000,7 +5055,7 @@ items corresponding to empty keys are never sampled. Otherwise, the indices of
 
 Note that the sampling is performed as follows:
   hash(key, seed) < ratio * 2^63
-Therefore, exact sampled count is not guaranteed. E,g, result of sampling an
+Therefore, exact sampled count is not guaranteed. E.g. result of sampling an
 array of 1000 items with 0.1 ratio has present items close to 100 (e.g. 98)
 rather than exact 100 items. However this provides per-item stability that
 the sampling result for an item is deterministic given the same key regardless

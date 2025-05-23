@@ -30,6 +30,7 @@ from koladata.operators import schema
 from koladata.operators import slices
 from koladata.types import data_slice
 from koladata.types import py_boxing
+from koladata.types import schema_constants
 
 
 M = arolla.OperatorsContainer(jagged_shape)
@@ -49,7 +50,7 @@ def _assert_key_for_sample(x, key):
   assert_same_shape = arolla.types.LambdaOperator(
       'x, key',
       assertion.with_assertion(
-          P.key,
+          assertion.assert_primitive('key', P.key, schema_constants.STRING),
           M.jagged.equal(
               jagged_shape_ops.get_shape(P.x),
               jagged_shape_ops.get_shape(P.key),
@@ -81,6 +82,88 @@ def _to_dense_array_text_or_unspecified(x):
   )(x)
 
 
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.random.mask',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.ratio),
+        qtype_utils.expect_data_slice(P.seed),
+        qtype_utils.expect_data_slice_or_unspecified(P.key),
+    ],
+)
+def mask(x, ratio, seed, key=arolla.unspecified()):
+  """Returns a mask with near size(x) * ratio present values at random indices.
+
+  The sampling of indices is performed on flatten `x` rather than on the last
+  dimension.
+
+  The sampling is stable given the same inputs. Optional `key` can be used to
+  provide additional stability. That is, `key` is used for sampling if set and
+  items corresponding to empty keys are never sampled. Otherwise, the indices of
+  `x` is used.
+
+  Note that the sampling is performed as follows:
+    hash(key, seed) < ratio * 2^63
+  Therefore, exact sampled count is not guaranteed. E.g. result of sampling an
+  array of 1000 items with 0.1 ratio has present items close to 100 (e.g. 98)
+  rather than exact 100 items. However this provides per-item stability that
+  the sampling result for an item is deterministic given the same key regardless
+  other keys are provided.
+
+  Examples:
+    # Select 50% from last dimension.
+    ds = kd.slice([[1, 2, None, 4], [5, None, None, 8]])
+    kd.random.mask(ds, 0.5, 123)
+      -> kd.slice([
+             [None, None, kd.present, None],
+             [kd.present, None, None, kd.present]
+         ])
+
+    # Use 'key' for stability
+    ds_1 = kd.slice([[1, 2, None, 4], [5, None, None, 8]])
+    key_1 = kd.slice([['a', 'b', 'c', 'd'], ['a', 'b', 'c', 'd']])
+    kd.random.mask(ds_1, 0.5, 123, key_1)
+      -> kd.slice([
+             [None, None, None, kd.present],
+             [None, None, None, kd.present],
+         ])
+
+    ds_2 = kd.slice([[4, 3, 2, 1], [5, 6, 7, 8]])
+    key_2 = kd.slice([['c', 'd', 'b', 'a'], ['a', 'b', 'c', 'd']])
+    kd.random.mask(ds_2, 0.5, 123, key_2)
+      -> kd.slice([
+             [None, kd.present, None, None],
+             [None, None, None, kd.present],
+         ])
+
+  Args:
+    x: DataSlice whose shape is used for sampling.
+    ratio: float number between [0, 1].
+    seed: seed from random sampling.
+    key: keys used to generate random numbers. The same key generates the same
+      random number.
+  """
+  key = _assert_key_for_sample(x, key)
+  x_shape = assertion.with_assertion(
+      jagged_shape_ops.get_shape(x),
+      slices.get_ndim(x) > 0,
+      'expected rank(x) > 0',
+  )
+  ratio = assertion.assert_present_scalar(
+      'ratio', ratio, schema_constants.FLOAT64
+  )
+  seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
+  flat_mask = M.random.sample(
+      M.array.make_dense_array_shape(M.jagged.size(x_shape)),
+      # TODO: allow the name to be specified in to_arolla_float64.
+      arolla_bridge.to_arolla_float64(ratio),
+      arolla_bridge.to_arolla_int64(seed),
+      _to_dense_array_text_or_unspecified(key),
+  )
+  return arolla_bridge.to_data_slice(flat_mask, x_shape)
+
+
 @optools.add_to_registry(aliases=['kd.sample'])
 @optools.as_lambda_operator(
     'kd.random.sample',
@@ -110,7 +193,7 @@ def sample(
 
   Note that the sampling is performed as follows:
     hash(key, seed) < ratio * 2^63
-  Therefore, exact sampled count is not guaranteed. E,g, result of sampling an
+  Therefore, exact sampled count is not guaranteed. E.g. result of sampling an
   array of 1000 items with 0.1 ratio has present items close to 100 (e.g. 98)
   rather than exact 100 items. However this provides per-item stability that
   the sampling result for an item is deterministic given the same key regardless
@@ -140,21 +223,7 @@ def sample(
   Returns:
     Sampled DataSlice.
   """
-  key = _assert_key_for_sample(x, key)
-  x_shape = assertion.with_assertion(
-      jagged_shape_ops.get_shape(x),
-      slices.get_ndim(x) > 0,
-      'expected rank(x) > 0',
-  )
-  flat_mask = M.random.sample(
-      M.array.make_dense_array_shape(M.jagged.size(x_shape)),
-      # TODO: allow the name to be specified in to_arolla_float64.
-      arolla_bridge.to_arolla_float64(ratio),
-      arolla_bridge.to_arolla_int64(seed),
-      _to_dense_array_text_or_unspecified(key),
-  )
-  ds_mask = arolla_bridge.to_data_slice(flat_mask, x_shape)
-  return slices.internal_select_by_slice(x, ds_mask)
+  return slices.internal_select_by_slice(x, mask(x, ratio, seed, key))
 
 
 @optools.add_to_registry(aliases=['kd.sample_n'])
@@ -225,9 +294,11 @@ def sample_n(
       M.jagged.rank(jagged_shape_ops.get_shape(n)) < x_rank,
       "the rank of 'n' must be smaller than rank of 'x'.",
   )
+  n = assertion.assert_primitive('n', n, schema_constants.INT64)
   n = jagged_shape_ops.expand_to_shape(
       n, jagged_shape_ops.remove_last_ndim(x_shape, 1)
   )
+  seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
   flat_mask = M.random.sample_n(
       M.array.make_dense_array_shape(M.jagged.size(x_shape)),
       arolla_bridge.to_arolla_dense_array_int64(n),
@@ -277,24 +348,31 @@ def randint_shaped(
   new_low = arolla.types.DispatchOperator(
       'low, high',
       unspecified_case=arolla.types.DispatchCase(
-          arolla.int64(0),
+          arolla.int64(0),  # low, while P.low represents high.
           condition=(
               (P.low == arolla.UNSPECIFIED) | (P.high == arolla.UNSPECIFIED)
           ),
       ),
-      default=arolla_bridge.to_arolla_int64(P.low),
+      default=arolla_bridge.to_arolla_int64(
+          assertion.assert_present_scalar('low', P.low, schema_constants.INT64)
+      ),
   )(low, high)
   new_high = arolla_bridge.to_arolla_int64(
-      M.core.default_if_unspecified(
-          high,
+      assertion.assert_present_scalar(
+          'high',
           M.core.default_if_unspecified(
-              low, data_slice.DataSlice.from_vals(2**63 - 1)
+              high,
+              M.core.default_if_unspecified(
+                  low, data_slice.DataSlice.from_vals(2**63 - 1)
+              ),
           ),
+          schema_constants.INT64
       )
   )
   seed = M.core.default_if_unspecified(
       seed, ids.hash_itemid(allocation.new_itemid())
   )
+  seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
 
   flat_res = M.array.randint_with_shape(
       M.array.make_dense_array_shape(M.jagged.size(shape)),

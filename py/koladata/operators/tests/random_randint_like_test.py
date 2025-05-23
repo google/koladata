@@ -108,17 +108,38 @@ class RandomRandintLikeTest(parameterized.TestCase):
     x = ds([[1, None], [3]])
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('unsupported narrowing cast to INT64')
+        ValueError,
+        re.escape(
+            'argument `high` must be an item holding INT64, got an item of '
+            'FLOAT32'
+        )
     ):
       _ = expr_eval.eval(kde.random.randint_like(x, 0.5))
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('unsupported narrowing cast to INT64')
+        ValueError,
+        re.escape(
+            'argument `low` must be an item holding INT64, got an item of '
+            'FLOAT32'
+        )
+    ):
+      _ = expr_eval.eval(kde.random.randint_like(x, 0.5, 2))
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'argument `high` must be an item holding INT64, got an item of '
+            'FLOAT32'
+        )
     ):
       _ = expr_eval.eval(kde.random.randint_like(x, 5, 10.5))
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('unsupported narrowing cast to INT64')
+        ValueError,
+        re.escape(
+            'argument `seed` must be an item holding INT64, got an item of '
+            'FLOAT32'
+        )
     ):
       _ = expr_eval.eval(kde.random.randint_like(x, seed=10.5))
 

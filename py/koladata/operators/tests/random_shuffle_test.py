@@ -155,12 +155,20 @@ class RandomShuffleTest(parameterized.TestCase):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('unsupported narrowing cast to INT64')
+        ValueError,
+        re.escape(
+            'argument `seed` must be an item holding INT64, got an item of '
+            'STRING'
+        )
     ):
       _ = expr_eval.eval(kde.random.shuffle(x, seed='a'))
 
     with self.assertRaisesRegex(
-        ValueError, re.escape('expected rank 0, but got rank=1')
+        ValueError,
+        re.escape(
+            'argument `seed` must be an item holding INT64, got a slice of '
+            'rank 1 > 0'
+        )
     ):
       _ = expr_eval.eval(kde.random.shuffle(x, seed=ds([123, 456])))
 

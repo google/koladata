@@ -22,7 +22,6 @@ from koladata.expr import input_container
 from koladata.expr import py_expr_eval_py_ext
 from koladata.expr import view
 from koladata.operators import kde_operators
-from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -46,7 +45,7 @@ QTYPES = frozenset([
 ])
 
 
-class RandomSampleTest(parameterized.TestCase):
+class RandomMaskTest(parameterized.TestCase):
 
   @parameterized.parameters(
       # x.ndim = 1
@@ -66,70 +65,68 @@ class RandomSampleTest(parameterized.TestCase):
       (bag().list([[1, 2], [3], [4], [5, 6]])[:],),
   )
   def test_eval(self, x):
-    sampled_1 = eval_op('kd.random.sample', x, 0.5, 123)
-    sampled_2 = eval_op('kd.random.sample', x, 0.5, 123)
-    testing.assert_equal(sampled_1, sampled_2)
-    self.assertLess(sampled_1.get_size(), x.get_size())
+    mask_1 = eval_op('kd.random.mask', x, 0.5, 123)
+    mask_2 = eval_op('kd.random.mask', x, 0.5, 123)
+    testing.assert_equal(mask_1, mask_2)
+    self.assertLess(mask_1.get_present_count(), x.get_size())
+    self.assertEqual(mask_1.get_size(), x.get_size())
 
-    sampled_3 = eval_op('kd.random.sample', x, 0.5, 456)
-    self.assertNotEqual(sampled_1.fingerprint, sampled_3.fingerprint)
+    mask_3 = eval_op('kd.random.mask', x, 0.5, 456)
+    self.assertNotEqual(mask_1.fingerprint, mask_3.fingerprint)
 
   @parameterized.parameters(
       (ds([None, None, None, None]),),
       (ds([]),),
   )
   def test_eval_all_missing_or_empty(self, x):
-    sampled_1 = expr_eval.eval(kde.random.sample(x, 0.5, 123))
-    sampled_2 = expr_eval.eval(kde.random.sample(x, 0.5, 123))
-    testing.assert_equal(sampled_1, sampled_2)
+    mask_1 = expr_eval.eval(kde.random.mask(x, 0.5, 123))
+    mask_2 = expr_eval.eval(kde.random.mask(x, 0.5, 123))
+    testing.assert_equal(mask_1, mask_2)
+    self.assertEqual(mask_1.get_size(), x.get_size())
 
   def test_eval_with_key(self):
-    x_1 = ds([[1, 2, 3], [3, 4, 6, 7]])
+    x = ds([[1, 2, 3], [3, 4, 6, 7]])
     key_1 = ds([['a', 'b', 'd'], ['c', 'd', 'e', 'f']])
-    sampled_1 = expr_eval.eval(
-        kde.sort(kde.random.sample(x_1, 0.5, 123, key_1))
-    )
-    x_2 = ds([[2, 3, 1], [6, 3, 7, 4]])
-    key_2 = ds([['b', 'd', 'a'], ['e', 'c', 'f', 'd']])
-    sampled_2 = expr_eval.eval(
-        kde.sort(kde.random.sample(x_2, 0.5, 123, key_2))
-    )
-    testing.assert_equal(sampled_1, sampled_2)
-    self.assertLess(sampled_1.get_size(), x_1.get_size())
+    mask_1 = expr_eval.eval(kde.random.mask(x, 0.5, 123, key_1))
 
     # Missing keys result in missing values in the result.
-    key_3 = ds([['a', 'b', 'd'], [None, None, None, None]])
-    sampled_3 = expr_eval.eval(kde.random.sample(x_1, 0.5, 123, key_3))
-    sampled_3_part_1 = expr_eval.eval(kde.slices.subslice(sampled_3, 0, ...))
-    sampled_3_part_2 = expr_eval.eval(kde.slices.subslice(sampled_3, 1, ...))
-    sampled_1_part_1 = expr_eval.eval(kde.slices.subslice(sampled_1, 0, ...))
-    testing.assert_equal(sampled_1_part_1, sampled_3_part_1)
-    self.assertEqual(sampled_3_part_2.get_size(), 0)
+    key_2 = ds([['a', 'b', 'd'], [None, None, None, None]])
+    mask_2 = expr_eval.eval(kde.random.mask(x, 0.5, 123, key_2))
+    mask_2_part_1 = expr_eval.eval(kde.slices.subslice(mask_2, 0, ...))
+    mask_2_part_2 = expr_eval.eval(kde.slices.subslice(mask_2, 1, ...))
+    mask_1_part_1 = expr_eval.eval(kde.slices.subslice(mask_1, 0, ...))
+    testing.assert_equal(mask_1_part_1, mask_2_part_1)
+    self.assertLess(mask_1.get_present_count(), x.get_size())
+    self.assertEqual(mask_2_part_2.get_present_count(), 0)
+    self.assertEqual(mask_1.get_size(), x.get_size())
+    self.assertEqual(mask_2.get_size(), x.get_size())
 
     # All missing keys
-    key_4 = ds([[None, None, None], [None, None, None, None]])
-    sampled_4 = expr_eval.eval(kde.random.sample(x_1, 0.5, 123, key_4))
-    self.assertEqual(sampled_4.get_size(), 0)
+    key_3 = ds([[None, None, None], [None, None, None, None]])
+    mask_3 = expr_eval.eval(kde.random.mask(x, 0.5, 123, key_3))
+    self.assertEqual(mask_3.get_present_count(), 0)
+    self.assertEqual(mask_3.get_size(), x.get_size())
 
   def test_ratio_great_than_one(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
-    sampled = expr_eval.eval(kde.sort(kde.random.sample(x, 1.5, 123)))
-    self.assertEqual(sampled.get_size(), x.get_size())
+    mask = expr_eval.eval(kde.random.mask(x, 1.5, 123))
+    self.assertEqual(mask.get_present_count(), x.get_size())
+    self.assertEqual(mask.get_size(), x.get_size())
 
   def test_incompatible_shapes(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
 
     with self.assertRaisesRegex(ValueError, re.escape('same shape')):
-      _ = expr_eval.eval(kde.random.sample(x, 0.5, 123, ds(['2', '1'])))
+      _ = expr_eval.eval(kde.random.mask(x, 0.5, 123, ds(['2', '1'])))
 
     with self.assertRaisesRegex(ValueError, re.escape('same shape')):
       _ = expr_eval.eval(
-          kde.random.sample(x, 0.5, 123, ds([['1', '2', '3'], ['3', '4']]))
+          kde.random.mask(x, 0.5, 123, ds([['1', '2', '3'], ['3', '4']]))
       )
 
   def test_x_as_data_item(self):
     with self.assertRaisesRegex(ValueError, re.escape('expected rank(x) > 0')):
-      expr_eval.eval(kde.random.sample(ds(1), 0.5, 123))
+      expr_eval.eval(kde.random.mask(ds(1), 0.5, 123))
 
   def test_wrong_ratio_input(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
@@ -141,7 +138,7 @@ class RandomSampleTest(parameterized.TestCase):
             'STRING'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, 'a', 123))
+      _ = expr_eval.eval(kde.random.mask(x, 'a', 123))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -150,7 +147,7 @@ class RandomSampleTest(parameterized.TestCase):
             'rank 1 > 0'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, ds([0.5, 0.6]), 123))
+      _ = expr_eval.eval(kde.random.mask(x, ds([0.5, 0.6]), 123))
 
   def test_wrong_seed_input(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
@@ -162,7 +159,7 @@ class RandomSampleTest(parameterized.TestCase):
             'STRING'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, 0.5, 'a'))
+      _ = expr_eval.eval(kde.random.mask(x, 0.5, 'a'))
 
     with self.assertRaisesRegex(
         ValueError,
@@ -171,7 +168,7 @@ class RandomSampleTest(parameterized.TestCase):
             'rank 1 > 0'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, 0.5, ds([123, 456])))
+      _ = expr_eval.eval(kde.random.mask(x, 0.5, ds([123, 456])))
 
   def test_wrong_key_input(self):
     x = ds([[1, 2, 3], [3, 4, 6, 7]])
@@ -182,13 +179,13 @@ class RandomSampleTest(parameterized.TestCase):
             'argument `key` must be a slice of STRING, got a slice of INT32'
         )
     ):
-      _ = expr_eval.eval(kde.random.sample(x, 'a', 123, key=x))
+      _ = expr_eval.eval(kde.random.mask(x, 'a', 123, key=x))
 
   def test_qtype_signatures(self):
     # Limit the allowed qtypes and a random QType to speed up the test.
     self.assertCountEqual(
         arolla.testing.detect_qtype_signatures(
-            kde.random.sample,
+            kde.random.mask,
             possible_qtypes=(
                 arolla.UNSPECIFIED,
                 qtypes.DATA_SLICE,
@@ -200,10 +197,7 @@ class RandomSampleTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.random.sample(I.x, I.ratio, I.seed)))
-
-  def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.random.sample, kde.sample))
+    self.assertTrue(view.has_koda_view(kde.random.mask(I.x, I.ratio, I.seed)))
 
 
 if __name__ == '__main__':
