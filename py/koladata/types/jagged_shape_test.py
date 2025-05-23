@@ -33,6 +33,13 @@ def _koda_shape_3d():
   )
 
 
+def _koda_shape_2d():
+  return jagged_shape.KodaJaggedShape.from_edges(
+      arolla.types.DenseArrayEdge.from_sizes([2]),
+      arolla.types.DenseArrayEdge.from_sizes([2, 1]),
+  )
+
+
 class JaggedShapeTest(absltest.TestCase):
 
   def test_jagged_shape(self):
@@ -67,41 +74,56 @@ class KodaJaggedShapeTest(absltest.TestCase):
     self.assertIsInstance(shape, jagged_shape.KodaJaggedShape)
 
   def test_edges(self):
-    shape = _koda_shape_3d()
-
-    # TODO: Add support for this.
-    with self.assertRaises(NotImplementedError):
-      _ = shape.edges()
+    edges = _koda_shape_3d().edges()
+    self.assertLen(edges, 3)
+    testing.assert_equivalent(
+        edges[0], arolla.types.DenseArrayEdge.from_sizes([2])
+    )
+    testing.assert_equivalent(
+        edges[1], arolla.types.DenseArrayEdge.from_sizes([2, 1])
+    )
+    testing.assert_equivalent(
+        edges[2], arolla.types.DenseArrayEdge.from_sizes([1, 2, 1])
+    )
 
   def test_rank(self):
     shape = _koda_shape_3d()
+    self.assertEqual(shape.rank(), 3)
 
-    # TODO: Add support for this.
-    with self.assertRaises(NotImplementedError):
-      _ = shape.rank()
-
-  def test_getitem(self):
+  def test_getitem_with_index(self):
     shape = _koda_shape_3d()
+    testing.assert_equivalent(
+        shape[1], arolla.types.DenseArrayEdge.from_sizes([2, 1])
+    )
 
-    # TODO: Add support for this.
-    with self.assertRaises(NotImplementedError):
-      _ = shape[0]
+  def test_getitem_with_slice(self):
+    shape = _koda_shape_3d()
+    self.assertEqual(shape[:2], _koda_shape_2d())
+
+  def test_getitem_with_invalid_index(self):
+    shape = _koda_shape_3d()
+    with self.assertRaises(ValueError):
+      _ = shape[1:]
+    with self.assertRaises(ValueError):
+      _ = shape[0:2:2]
+    with self.assertRaises(TypeError):
+      _ = shape['hello']
 
   def test_eq(self):
-    shape = _koda_shape_3d()
-    shape2 = _koda_shape_3d()
-
-    # TODO: Add support for this.
+    # Disable generic assert since we want to make sure we test the __eq__
+    # operator.
+    self.assertTrue(_koda_shape_3d() == _koda_shape_3d())  # pylint: disable=g-generic-assert
+    self.assertFalse(_koda_shape_3d() == _koda_shape_2d())  # pylint: disable=g-generic-assert
     with self.assertRaises(NotImplementedError):
-      _ = shape == shape2
+      _ = _koda_shape_3d() == 42
 
   def test_ne(self):
-    shape = _koda_shape_3d()
-    shape2 = _koda_shape_3d()
-
-    # TODO: Add support for this.
+    # Disable generic assert since we want to make sure we test the __ne__
+    # operator.
+    self.assertTrue(_koda_shape_3d() != _koda_shape_2d())  # pylint: disable=g-generic-assert
+    self.assertFalse(_koda_shape_3d() != _koda_shape_3d())  # pylint: disable=g-generic-assert
     with self.assertRaises(NotImplementedError):
-      _ = shape != shape2
+      _ = _koda_shape_3d() != 42
 
 
 if __name__ == '__main__':

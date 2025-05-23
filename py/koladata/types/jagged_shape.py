@@ -37,9 +37,6 @@ KODA_JAGGED_SHAPE = _py_misc_py_ext.get_jagged_shape_qtype()
 # TODO: Replace this with KODA_JAGGED_SHAPE, keeping the
 # JAGGED_SHAPE name.
 JAGGED_SHAPE = jagged_shape.JAGGED_DENSE_ARRAY_SHAPE
-_DOWNCAST_EXPR = arolla.M.derived_qtype.downcast(
-    KODA_JAGGED_SHAPE, arolla.L.dense_array_shape
-)
 
 
 class KodaJaggedShape(
@@ -53,24 +50,49 @@ class KodaJaggedShape(
     dense_array_shape = arolla.abc.invoke_op(
         'jagged.dense_array_shape_from_edges', edges
     )
-    return arolla.eval(_DOWNCAST_EXPR, dense_array_shape=dense_array_shape)
+    return arolla.abc.invoke_op(
+        'koda_internal.from_arolla_jagged_shape', (dense_array_shape,)
+    )
 
   def edges(self) -> list[arolla.types.DenseArrayEdge]:
-    raise NotImplementedError
+    dense_array_shape = arolla.abc.invoke_op(
+        'koda_internal.to_arolla_jagged_shape', (self,)
+    )
+    return dense_array_shape.edges()
 
   def rank(self) -> int:
-    raise NotImplementedError
+    dense_array_shape = arolla.abc.invoke_op(
+        'koda_internal.to_arolla_jagged_shape', (self,)
+    )
+    return dense_array_shape.rank()
 
   def __getitem__(
       self, value: Any
   ) -> arolla.types.DenseArrayEdge | KodaJaggedShape:
-    raise NotImplementedError
+    dense_array_shape = arolla.abc.invoke_op(
+        'koda_internal.to_arolla_jagged_shape', (self,)
+    )
+    result = dense_array_shape[value]
+    if isinstance(result, jagged_shape.JaggedDenseArrayShape):
+      return arolla.abc.invoke_op(
+          'koda_internal.from_arolla_jagged_shape', (result,)
+      )
+    else:
+      return result
 
   def __eq__(self, other: Any) -> bool:
-    raise NotImplementedError
+    if not isinstance(other, type(self)):
+      raise NotImplementedError
+    return arolla.abc.invoke_op(
+        'koda_internal.to_arolla_jagged_shape', (self,)
+    ) == arolla.abc.invoke_op('koda_internal.to_arolla_jagged_shape', (other,))
 
   def __ne__(self, other: Any) -> bool:
-    raise NotImplementedError
+    if not isinstance(other, type(self)):
+      raise NotImplementedError
+    return arolla.abc.invoke_op(
+        'koda_internal.to_arolla_jagged_shape', (self,)
+    ) != arolla.abc.invoke_op('koda_internal.to_arolla_jagged_shape', (other,))
 
 
 arolla.abc.register_qvalue_specialization(KODA_JAGGED_SHAPE, KodaJaggedShape)

@@ -15,6 +15,8 @@
 from absl.testing import absltest
 from arolla import arolla
 from arolla.s11n.testing import codec_test_case
+# Register kde ops for e.g. JaggedShape.from-edges().
+from koladata.operators import kde_operators as _
 from koladata.types import jagged_shape
 
 from arolla.jagged_shape.dense_array.serialization_codecs import jagged_shape_codec_pb2 as _

@@ -39,7 +39,7 @@ py_test(
     deps = [
         "//koladata/s11n:codec_py_proto",
         "//py:python_path",
-        "//py/koladata/functions:s11n",
+        "//py/koladata/operators:kde_operators",
         "//py/koladata/types:jagged_shape",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//arolla/jagged_shape/dense_array/serialization_codecs:jagged_shape_codec_py_proto",
