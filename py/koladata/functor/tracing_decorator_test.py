@@ -157,7 +157,7 @@ class TracingDecoratorTest(parameterized.TestCase):
             '<lambda>_result',
             '<lambda>_result_0',
             '__signature__',
-            '_stack_trace_frame',
+            '__stack_trace_frame__',
         ],
     )
 
@@ -218,7 +218,7 @@ class TracingDecoratorTest(parameterized.TestCase):
             'f_result',
             'f_result_0',
             '__signature__',
-            '_stack_trace_frame',
+            '__stack_trace_frame__',
         ],
     )
 
@@ -462,9 +462,11 @@ class TracingDecoratorTest(parameterized.TestCase):
     def f(x, y):
       return x // y
 
+    f = functor_factories.fn(f)
+
     try:
       f(0)
-    except (TypeError, ValueError) as e:
+    except ValueError as e:
       ex = e
 
     formatted_message = '\n'.join(
@@ -472,8 +474,10 @@ class TracingDecoratorTest(parameterized.TestCase):
             color_scheme='NoColor', include_vars=False
         ).structured_traceback(type(ex), ex, ex.__traceback__)
     )
-    self.assertIn('/tracing_decorator_test.py', formatted_message)
     self.assertNotIn('/tracing_decorator.py', formatted_message)
+    self.assertIn('/tracing_decorator_test.py', formatted_message)
+    self.assertIn('f(0)', formatted_message)
+    self.assertIn('def f(x, y):', formatted_message)
 
   def test_functor_call_traceback(self):
     @tracing_decorator.TraceAsFnDecorator()

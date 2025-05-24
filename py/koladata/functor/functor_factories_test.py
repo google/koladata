@@ -187,7 +187,7 @@ class FunctorFactoriesTest(absltest.TestCase):
         fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
         ds(1.0 * 2.0 + 2.0 * 3.0 + 3.0 * 4.0),
     )
-    stacktrace_frame = fn.get_attr('_stack_trace_frame')
+    stacktrace_frame = fn.get_attr('__stack_trace_frame__')
     self.assertIn(
         'py/koladata/functor/functor_factories_test.py',
         stacktrace_frame.file_name.to_py(),
@@ -944,18 +944,20 @@ class FunctorFactoriesTest(absltest.TestCase):
     # See also test_evaluation_errors in tracing_decorator_test.py.
 
     fn1 = functor_factories.expr_fn(V.y + 1, y=1 // I.x)
-    fn1 = kd.with_attrs(
+    fn1 = kd.with_attr(
         fn1,
-        _stack_trace_frame=kd.new(
+        '__stack_trace_frame__',
+        kd.new(
             function_name='fn1',
             file_name='my_file.py',
             line_number=57,
         ),
     )
     fn2 = functor_factories.expr_fn(V.z + 1, z=fn1(x=V.y), y=I.x)
-    fn2 = kd.with_attrs(
+    fn2 = kd.with_attr(
         fn2,
-        _stack_trace_frame=kd.new(
+        '__stack_trace_frame__',
+        kd.new(
             # function_name is not set.
             file_name='my_file.py',
             line_number=58,

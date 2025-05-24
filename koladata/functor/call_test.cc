@@ -34,6 +34,7 @@
 #include "arolla/util/cancellation.h"
 #include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature.h"
@@ -218,6 +219,24 @@ TEST(CallTest, EvalError) {
   ASSERT_OK_AND_ASSIGN(auto fn, CreateFunctor(returns_expr, koda_signature,
                                               {"foo"}, {var_expr}));
 
+  auto input = test::DataItem(43);
+  // This error message should be improved, in particular it should actually
+  // mention that we are evaluating a functor, which variable, etc.
+  // It is OK to only improve this on the Python side, the C++ error is not
+  // so important.
+  EXPECT_THAT(
+      CallFunctorWithCompilationCache(
+          fn,
+          /*args=*/{arolla::TypedRef::FromValue(input)},
+          /*kwnames=*/{}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "expected numerics, got x: DATA_SLICE; while calling math.add "
+               "with args {annotation.qtype(L['I.a'], "
+               "DATA_SLICE):Attr(qtype=DATA_SLICE), 57}; while transforming "
+               "M.math.add(L['I.a'], 57); while compiling the expression"));
+
+  // The same test with a stack trace below.
+
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       DataSlice frame_slice,
@@ -227,10 +246,10 @@ TEST(CallTest, EvalError) {
            test::DataItem(arolla::Text("my_file.cc")), test::DataItem(57),
            test::DataItem(arolla::Text("  z = x + y"))}));
   ASSERT_OK_AND_ASSIGN(
-      fn, ops::WithAttr(fn, test::DataItem(arolla::Text("_stack_trace_frame")),
-                        frame_slice, test::DataItem(false)));
+      fn,
+      ops::WithAttr(fn, test::DataItem(arolla::Text("__stack_trace_frame__")),
+                    frame_slice, test::DataItem(false)));
 
-  auto input = test::DataItem(43);
   // This error message should be improved, in particular it should actually
   // mention that we are evaluating a functor, which variable, etc.
   // It is OK to only improve this on the Python side, the C++ error is not

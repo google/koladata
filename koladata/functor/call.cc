@@ -104,9 +104,7 @@ absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
   return res;
 }
 
-}  // namespace
-
-absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
+absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCacheImpl(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
@@ -146,14 +144,9 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
       // so this is O(num_variables**2). We can optimize this later if needed.
       auto variable_value =
           expr::EvalExprWithCompilationCache(expr, inputs, variables);
-      // Not using ASSIGN_OR_RETURN in order to avoid extra source location in
-      // the error.
       if (!variable_value.ok()) {
-        ASSIGN_OR_RETURN(DataSlice stacktrace_frame_slice,
-                         functor.GetAttr(kStackFrameAttrName),
-                         variable_value.status());
-        return MaybeAddStackTraceFrame(variable_value.status(),
-                                       stacktrace_frame_slice);
+        // Not using ASSIGN_OR_RETURN to avoid an extra source location.
+        return variable_value.status();
       }
       computed_variable_holder.push_back(*std::move(variable_value));
     } else {
@@ -164,6 +157,20 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
                            computed_variable_holder.back().AsRef());
   }
   return computed_variable_holder.back();
+}
+
+}  // namespace
+
+absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
+    const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
+    absl::Span<const std::string> kwnames) {
+  auto result = CallFunctorWithCompilationCacheImpl(functor, args, kwnames);
+  if (!result.ok()) {
+    ASSIGN_OR_RETURN(DataSlice stacktrace_frame_slice,
+                     functor.GetAttr(kStackFrameAttrName), result.status());
+    return MaybeAddStackTraceFrame(result.status(), stacktrace_frame_slice);
+  }
+  return result;
 }
 
 }  // namespace koladata::functor

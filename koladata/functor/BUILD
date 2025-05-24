@@ -541,6 +541,7 @@ cc_test(
         ":signature",
         ":signature_storage",
         ":stack_trace",
+        "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:object_factories",
         "//koladata:test_utils",
