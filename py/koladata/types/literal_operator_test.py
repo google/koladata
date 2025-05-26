@@ -143,9 +143,14 @@ class LiteralOperatorTest(parameterized.TestCase):
     x = literal_operator.literal(arolla.int32(1))
     self.assertEqual(x.op.display_name, 'koda_internal.literal')
     with self.assertRaisesRegex(
-        ValueError, re.escape('koda_internal.literal():Attr(qvalue=1)')
-    ):
+        ValueError,
+        re.escape('inconsistent annotation.qtype(expr: INT32, qtype=FLOAT32)'),
+    ) as cm:
       arolla.M.annotation.qtype(x, arolla.FLOAT32)
+    self.assertIn(
+        'koda_internal.literal():Attr(qvalue=1)',
+        '\n'.join(cm.exception.__notes__),
+    )
 
 
 if __name__ == '__main__':

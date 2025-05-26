@@ -57,6 +57,7 @@ using ::arolla::testing::PayloadIs;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::AllOf;
 using ::testing::Field;
+using ::testing::HasSubstr;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
   return arolla::expr::CallOp("koda_internal.input",
@@ -224,16 +225,12 @@ TEST(CallTest, EvalError) {
   // mention that we are evaluating a functor, which variable, etc.
   // It is OK to only improve this on the Python side, the C++ error is not
   // so important.
-  EXPECT_THAT(
-      CallFunctorWithCompilationCache(
-          fn,
-          /*args=*/{arolla::TypedRef::FromValue(input)},
-          /*kwnames=*/{}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "expected numerics, got x: DATA_SLICE; while calling math.add "
-               "with args {annotation.qtype(L['I.a'], "
-               "DATA_SLICE):Attr(qtype=DATA_SLICE), 57}; while transforming "
-               "M.math.add(L['I.a'], 57); while compiling the expression"));
+  EXPECT_THAT(CallFunctorWithCompilationCache(
+                  fn,
+                  /*args=*/{arolla::TypedRef::FromValue(input)},
+                  /*kwnames=*/{}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("expected numerics, got x: DATA_SLICE")));
 
   // The same test with a stack trace below.
 
@@ -254,24 +251,16 @@ TEST(CallTest, EvalError) {
   // mention that we are evaluating a functor, which variable, etc.
   // It is OK to only improve this on the Python side, the C++ error is not
   // so important.
-  EXPECT_THAT(
-      CallFunctorWithCompilationCache(
-          fn,
-          /*args=*/{arolla::TypedRef::FromValue(input)},
-          /*kwnames=*/{}),
-      AllOf(StatusIs(
-                absl::StatusCode::kInvalidArgument,
-                "expected numerics, got x: DATA_SLICE; while calling math.add "
-                "with args {annotation.qtype(L['I.a'], "
-                "DATA_SLICE):Attr(qtype=DATA_SLICE), 57}; while transforming "
-                "M.math.add(L['I.a'], 57); while compiling the expression\n"
-                "\n"
-                "my_file.cc:57, in my_func\n"
-                "  z = x + y"),
-            PayloadIs<StackTraceFrame>(
-                AllOf(Field(&StackTraceFrame::function_name, "my_func"),
-                      Field(&StackTraceFrame::file_name, "my_file.cc"),
-                      Field(&StackTraceFrame::line_number, 57)))));
+  EXPECT_THAT(CallFunctorWithCompilationCache(
+                  fn,
+                  /*args=*/{arolla::TypedRef::FromValue(input)},
+                  /*kwnames=*/{}),
+              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
+                             HasSubstr("expected numerics, got x: DATA_SLICE")),
+                    PayloadIs<StackTraceFrame>(
+                        AllOf(Field(&StackTraceFrame::function_name, "my_func"),
+                              Field(&StackTraceFrame::file_name, "my_file.cc"),
+                              Field(&StackTraceFrame::line_number, 57)))));
 }
 
 TEST(CallTest, Cancellation) {

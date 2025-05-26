@@ -91,8 +91,7 @@ class StringsJoinTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'expected at least one argument; while calling kd.strings.join'
-            ' with args {}'
+            'expected at least one argument'
         ),
     ):
       expr_eval.eval(kde.strings.join())

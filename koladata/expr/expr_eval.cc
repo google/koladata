@@ -309,12 +309,19 @@ absl::StatusOr<CompiledExpr> CompileOp(
   return fn;
 }
 
-// Removes Arolla's ExprEvaluationError layer from the error, and turns its
-// cause into OperatorEvalError.
+// Removes Arolla's NotePayload and VerboseRuntimeError layers from the error,
+// and annotates the cause message with the operator name.
+// TODO: b/418206913 - Can we filter NotePayloads selectively?
 absl::Status SimplifyExprEvaluationError(absl::Status status) {
+  const auto* current_status = &status;
+  const auto* cause = arolla::GetCause(status);
+  while (arolla::GetPayload<arolla::NotePayload>(*current_status) != nullptr &&
+         cause != nullptr) {
+    current_status = cause;
+    cause = arolla::GetCause(*current_status);
+  }
   const auto* verbose_runtime_error =
-      arolla::GetPayload<arolla::expr::VerboseRuntimeError>(status);
-  const absl::Status* cause = arolla::GetCause(status);
+      arolla::GetPayload<arolla::expr::VerboseRuntimeError>(*current_status);
   if (verbose_runtime_error == nullptr || cause == nullptr) {
     return status;
   }
