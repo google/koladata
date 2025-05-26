@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/functional/any_invocable.h"
@@ -35,6 +36,7 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr.h"
+#include "arolla/expr/expr_debug_string.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/expr/expr_operator_signature.h"
@@ -43,8 +45,10 @@
 #include "arolla/expr/quote.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/expr/visitors/substitution.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_eval.h"
@@ -54,8 +58,12 @@
 #include "koladata/functor/functor.h"
 #include "koladata/functor/parallel/execution_context.h"
 #include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/signature.h"
+#include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "koladata/object_factories.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
@@ -179,6 +187,47 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
   return arolla::expr::MakeOpNode(replacement.op, std::move(new_deps));
 }
 
+absl::StatusOr<DataSlice> MakeParallelDefaultValueMarker() {
+  ASSIGN_OR_RETURN(auto present,
+                   DataSlice::Create(internal::DataItem(arolla::kPresent),
+                                     internal::DataItem(schema::kMask)));
+  // We have an attribute to make this slightly nicer when printed, it is not
+  // used for any other purpose.
+  ASSIGN_OR_RETURN(auto res,
+                   CreateUu(DataBag::Empty(), "__parameter_default_value__",
+                            {"parallel_default_value"}, {std::move(present)}));
+  return res.FreezeBag();
+}
+
+const DataSlice& ParallelDefaultValueMarker() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{*MakeParallelDefaultValueMarker()};
+  return *val;
+}
+
+// Returns a signature where parameters with a default value receive a
+// new special default value ParallelDefaultValueMarker(), and a hash map
+// from parameter name to the actual default value.
+// This is needed because the default values of a functor parameter can only be
+// DataItems, and here we need to replace them with a future to a DataItem.
+absl::StatusOr<
+    std::pair<DataSlice, absl::flat_hash_map<std::string, DataSlice>>>
+ExtractDefaultsFromSignature(const DataSlice& signature) {
+  ASSIGN_OR_RETURN(auto cpp_signature, KodaSignatureToCppSignature(signature));
+  std::vector<Signature::Parameter> parameters = cpp_signature.parameters();
+  absl::flat_hash_map<std::string, DataSlice> defaults;
+  for (auto& param : parameters) {
+    if (param.default_value) {
+      defaults[param.name] = *param.default_value;
+      param.default_value = ParallelDefaultValueMarker();
+    }
+  }
+  ASSIGN_OR_RETURN(auto new_cpp_signature, Signature::Create(parameters));
+  ASSIGN_OR_RETURN(auto new_signature,
+                   CppSignatureToKodaSignature(new_cpp_signature));
+  return std::make_pair(std::move(new_signature), std::move(defaults));
+}
+
 // Creates a lambda operator that evaluates the given expression asynchronously.
 // It expects the variables as inputs in the same order as in variable_names.
 absl::StatusOr<arolla::expr::ExprOperatorPtr> CreateAsyncLambdaOp(
@@ -233,6 +282,53 @@ absl::StatusOr<arolla::expr::ExprNodePtr> CreateAsyncEval(
       {std::move(async_expr), expr::GenNonDeterministicToken()}, {});
 }
 
+// Applies the parallel replacement to the given literal.
+absl::StatusOr<arolla::expr::ExprNodePtr> ApplyLiteralReplacement(
+    arolla::expr::ExprNodePtr var_expr) {
+  // This is more lightweight than async_eval, even though that would also
+  // work.
+  return arolla::expr::BindOp("koda_internal.parallel.as_parallel",
+                              {std::move(var_expr)}, {});
+}
+
+// Applies the parallel replacement to the given input or leaf.
+absl::StatusOr<arolla::expr::ExprNodePtr> ApplyInputReplacement(
+    arolla::expr::ExprNodePtr var_expr,
+    const expr::InputContainer& variable_container,
+    const expr::InputContainer& input_container,
+    const absl::flat_hash_map<std::string, DataSlice>& defaults) {
+  if (var_expr->is_leaf()) {
+    if (var_expr->leaf_key() != expr::kNonDeterministicTokenLeafKey) {
+      return absl::InvalidArgumentError(
+          absl::StrCat("unexpected leaf node: ", var_expr->leaf_key()));
+    }
+    return std::move(var_expr);
+  }
+  ASSIGN_OR_RETURN(auto var_name, variable_container.GetInputName(var_expr));
+  if (var_name) {
+    // Variables are already in parallel form.
+    return std::move(var_expr);
+  }
+  ASSIGN_OR_RETURN(auto input_name, input_container.GetInputName(var_expr));
+  if (!input_name) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "found an input node that is neither an input nor a variable: ",
+        arolla::expr::ToDebugString(var_expr)));
+  }
+  auto it = defaults.find(*input_name);
+  if (it == defaults.end()) {
+    // Inputs that are not the default value are already in parallel form.
+    return std::move(var_expr);
+  }
+  return arolla::expr::CallOp(
+      "koda_internal.parallel._get_value_or_parallel_default",
+      {std::move(var_expr),
+       // We pass the default value marker here even though it's a global
+       // constant to avoid having to expose it to Python in some other way.
+       arolla::expr::Literal(ParallelDefaultValueMarker()),
+       arolla::expr::Literal(it->second)});
+}
+
 // This is a default replacement that is used when there is no custom
 // replacement. It uses future_from_parallel+async_eval+parallel_from_future
 // to transform the expression into a parallel version.
@@ -240,17 +336,6 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyDefaultReplacement(
     arolla::expr::ExprNodePtr var_expr,
     const expr::InputContainer& variable_container,
     const ExecutorPtr& executor) {
-  if (expr::IsInput(var_expr) || var_expr->is_leaf()) {
-    // Inputs are already valid parallel types, and leaves are only the
-    // non-deterministic leaf which is also a valid parallel type.
-    return std::move(var_expr);
-  }
-  if (expr::IsLiteral(var_expr)) {
-    // This is more lightweight than async_eval, even though that would also
-    // work.
-    return arolla::expr::BindOp("koda_internal.parallel.as_parallel",
-                                {std::move(var_expr)}, {});
-  }
   // Because of the AddVariables logic, the expression here can only have
   // variables, but not inputs or leaves.
   ASSIGN_OR_RETURN(auto variable_names, expr::GetExprVariables(var_expr));
@@ -263,6 +348,7 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyDefaultReplacement(
   return CreateAsyncEval(std::move(lambda_op), variable_names,
                          variable_container, executor);
 }
+
 }  // namespace
 
 // The transformation is done in 2 steps:
@@ -283,6 +369,8 @@ absl::StatusOr<DataSlice> TransformToParallel(
   }
   ASSIGN_OR_RETURN(expr::InputContainer variable_container,
                    expr::InputContainer::Create("V"));
+  ASSIGN_OR_RETURN(expr::InputContainer input_container,
+                   expr::InputContainer::Create("I"));
 
   const auto& replacements = context->operator_replacements();
   auto find_replacement = [&replacements](const arolla::expr::ExprNodePtr& node)
@@ -301,7 +389,10 @@ absl::StatusOr<DataSlice> TransformToParallel(
 
   ASSIGN_OR_RETURN(functor, AddVariables(std::move(functor), variable_container,
                                          find_replacement));
-  ASSIGN_OR_RETURN(DataSlice signature, functor.GetAttr(kSignatureAttrName));
+  ASSIGN_OR_RETURN(DataSlice orig_signature,
+                   functor.GetAttr(kSignatureAttrName));
+  ASSIGN_OR_RETURN((auto [signature, defaults]),
+                   ExtractDefaultsFromSignature(orig_signature));
   ASSIGN_OR_RETURN(auto attr_names, functor.GetAttrNames());
   if (attr_names.size() < 2) {
     return absl::InternalError(
@@ -330,6 +421,12 @@ absl::StatusOr<DataSlice> TransformToParallel(
     if (replacement) {
       ASSIGN_OR_RETURN(var_expr, ApplyReplacement(std::move(var_expr), context,
                                                   *replacement));
+    } else if (expr::IsInput(var_expr) || var_expr->is_leaf()) {
+      ASSIGN_OR_RETURN(var_expr, ApplyInputReplacement(
+                                     std::move(var_expr), variable_container,
+                                     input_container, defaults));
+    } else if (expr::IsLiteral(var_expr)) {
+      ASSIGN_OR_RETURN(var_expr, ApplyLiteralReplacement(std::move(var_expr)));
     } else {
       ASSIGN_OR_RETURN(var_expr, ApplyDefaultReplacement(std::move(var_expr),
                                                          variable_container,

@@ -30,6 +30,7 @@ from koladata.operators import slices as slice_ops
 from koladata.operators import tuple as tuple_ops
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import signature_utils
 
@@ -445,6 +446,53 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         ),
         ds(3),
     )
+
+  def test_default_value(self):
+    self._test_eval_on_futures(
+        functor_factories.trace_py_fn(lambda x, y=1: x + y),
+        replacements=[],
+        inputs=[2],
+        expected_output=ds(3),
+    )
+    self._test_eval_on_futures(
+        functor_factories.trace_py_fn(lambda x, y=1: x + y),
+        replacements=[],
+        inputs=[2, 3],
+        expected_output=ds(5),
+    )
+
+  def test_default_value_bag_type(self):
+    db = data_bag.DataBag.empty().freeze()
+    self._test_eval_on_futures(
+        functor_factories.trace_py_fn(lambda y=1: y),
+        replacements=[],
+        inputs=[db],
+        expected_output=db,
+    )
+
+  def test_default_value_non_parallel_slice_passed(self):
+    fn = functor_factories.trace_py_fn(lambda y=1: y)
+    context = koda_internal_parallel.create_execution_context(
+        koda_internal_parallel.get_eager_executor(), None
+    )
+    transformed_fn = expr_eval.eval(
+        koda_internal_parallel.transform(context, fn)
+    )
+    future_slice = koda_internal_parallel.as_future(data_slice.DataSlice).eval()
+    with self.assertRaisesRegex(
+        ValueError,
+        'a non-parallel data slice passed to a parallel functor',
+    ):
+      _ = expr_eval.eval(transformed_fn(ds(1), return_type_as=future_slice))
+    with self.assertRaisesRegex(
+        ValueError,
+        'a non-parallel data slice passed to a parallel functor',
+    ):
+      _ = expr_eval.eval(
+          transformed_fn(
+              fns.new(x=fns.slice([1, 2])), return_type_as=future_slice
+          )
+      )
 
   def test_qtype_signatures(self):
     execution_context_qtype = expr_eval.eval(

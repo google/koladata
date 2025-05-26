@@ -15,13 +15,18 @@
 """Internal operators for parallel execution."""
 
 from arolla import arolla
+from koladata.operators import assertion
 from koladata.operators import bootstrap
+from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
+from koladata.operators import schema as schema_ops
+from koladata.operators import slices
 from koladata.operators import tuple as tuple_ops
 from koladata.types import data_slice
 from koladata.types import py_boxing
 from koladata.types import qtypes
+from koladata.types import schema_constants
 
 
 M = arolla.M
@@ -815,6 +820,59 @@ def stream_map_unordered(
     The resulting stream.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+# This operator is tested via koda_internal_parallel_transform_test.py.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._get_value_or_parallel_default',
+)
+def _get_value_or_parallel_default(
+    outer_value, outer_default_value_marker, outer_default_value
+):
+  """An implementation helper for transform.
+
+  If outer_value is a DataSlice, asserts that it is the same as
+  outer_default_value_marker and returns the parallel version of
+  outer_default_value. Otherwise returns outer_value unchanged.
+
+  Since DataSlice is not a valid parallel type, there is no way for a
+  legitimate argument to a parallel functor to be a DataSlice except when
+  it is the default value marker.
+
+  All parameters are prefixed with "outer_" to avoid conflicts with the
+  names in DispatchOperator.
+
+  Args:
+    outer_value: The value to check.
+    outer_default_value_marker: The default value marker.
+    outer_default_value: The default value to use when we see the default value
+      marker.
+
+  Returns:
+    The parallel version of outer_default_value if outer_value is
+    outer_default_value_marker, otherwise outer_value.
+  """
+  return arolla.types.DispatchOperator(
+      'value, default_value_marker, default_value',
+      data_slice_case=arolla.types.DispatchCase(
+          assertion.with_assertion(
+              as_parallel(P.default_value),
+              # We cast to OBJECT and have kd.all to have a proper error message
+              # instead of a schema mismatch or a shape mismatch.
+              (slices.get_ndim(P.value) == 0)
+              & masking.all_(
+                  schema_ops.with_schema(P.value, schema_constants.OBJECT)
+                  == schema_ops.with_schema(
+                      P.default_value_marker, schema_constants.OBJECT
+                  )
+              ),
+              'a non-parallel data slice passed to a parallel functor',
+          ),
+          condition=P.value == qtypes.DATA_SLICE,
+      ),
+      default=P.value,
+  )(outer_value, outer_default_value_marker, outer_default_value)
 
 
 @optools.add_to_registry()

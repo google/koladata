@@ -851,9 +851,13 @@ py_library(
     name = "koda_internal_parallel",
     srcs = ["koda_internal_parallel.py"],
     deps = [
+        ":assertion",
         ":bootstrap",
+        ":masking",
         ":optools",
         ":qtype_utils",
+        ":schema",
+        ":slices",
         ":tuple",
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/functor/parallel:operators",
@@ -861,6 +865,7 @@ py_library(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
     ],
 )

@@ -8817,6 +8817,7 @@ py_test(
         "//py/koladata/operators:tuple",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:signature_utils",
         "@com_google_absl_py//absl/testing:absltest",
