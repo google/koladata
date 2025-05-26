@@ -37,6 +37,7 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         "//py:python_path",
+        "//py/koladata/base:init",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",

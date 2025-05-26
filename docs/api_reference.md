@@ -1247,6 +1247,22 @@ Args:
   **attrs: attrs to set in the update.
 ```
 
+### `kd.core.with_print(x, *args, sep=' ', end='
+')` {#kd.core.with_print}
+
+``` {.no-copy}
+Prints *args to stdout and returns `x`.
+
+The operator uses str(arg) for each of the *args, i.e. it is not pointwise,
+and too long arguments may be truncated.
+
+Args:
+  x: Value to propagate (unchanged).
+  *args: DataSlice(s) to print.
+  sep: Separator to use between DataSlice(s).
+  end: End string to use after the last DataSlice.
+```
+
 </section>
 
 ### kd.expr {#kd.expr}

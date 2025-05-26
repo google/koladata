@@ -44,6 +44,7 @@
 #include "koladata/operators/non_deterministic_op.h"
 #include "koladata/operators/objs.h"
 #include "koladata/operators/predicates.h"
+#include "koladata/operators/print.h"
 #include "koladata/operators/proto.h"
 #include "koladata/operators/schema.h"
 #include "koladata/operators/shapes.h"
@@ -132,6 +133,8 @@ OPERATOR_FAMILY("kd.core.with_attrs",
                 std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kd.core.with_bag", WithBag);
 OPERATOR("kd.core.with_merged_bag", WithMergedBag);
+OPERATOR_FAMILY("kd.core.with_print",
+                std::make_unique<WithPrintOperatorFamily>());
 //
 OPERATOR("kd.dicts._dict_update", DictUpdate, "kd.dicts.dict_update");
 OPERATOR("kd.dicts._get_values", GetValues, "kd.dicts.get_values");

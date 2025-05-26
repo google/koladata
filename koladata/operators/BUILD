@@ -86,6 +86,7 @@ cc_library(
         "non_deterministic_op.cc",
         "objs.cc",
         "predicates.cc",
+        "print.cc",
         "schema.cc",
         "shapes.cc",
         "slices.cc",
@@ -108,6 +109,7 @@ cc_library(
         "non_deterministic_op.h",
         "objs.h",
         "predicates.h",
+        "print.h",
         "schema.h",
         "shapes.h",
         "slices.h",
@@ -159,6 +161,7 @@ cc_library(
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:inlined_vector",
+        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/functional:overload",
         "@com_google_absl//absl/hash",
         "@com_google_absl//absl/log",
@@ -345,6 +348,24 @@ cc_test(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "print_test",
+    srcs = ["print_test.cc"],
+    deps = [
+        "//koladata:data_slice_qtype",
+        "//koladata:test_utils",
+        "//koladata/internal:non_deterministic_token",
+        "//py/koladata/operators:base_cc_operators",
+        "@com_google_absl//absl/cleanup",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/expr/testing",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
     ],
 )

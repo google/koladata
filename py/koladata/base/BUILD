@@ -24,6 +24,19 @@ package(default_visibility = [
 
 licenses(["notice"])
 
+koladata_py_extension(
+    name = "init",
+    srcs = ["init.cc"],
+    deps = [
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//py/arolla/py_utils",
+        "@rules_python//python/cc:current_py_cc_headers",
+    ],
+)
+
 cc_library(
     name = "to_py_object",
     srcs = ["to_py_object.cc"],

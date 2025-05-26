@@ -19,6 +19,7 @@ import types as _py_types
 import typing as _typing
 
 from arolla import arolla as _arolla
+from koladata.base import init as _
 from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection

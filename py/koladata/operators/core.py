@@ -1145,3 +1145,29 @@ def with_metadata(x, /, **attrs):  # pylint: disable=unused-argument
     **attrs: attrs to set in the update.
   """
   return updated(x, arolla.abc.bind_op(metadata, x=P.x, attrs=P.attrs))
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.core.with_print',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice_args(P.args),
+        qtype_utils.expect_data_slice(P.sep),
+        qtype_utils.expect_data_slice(P.end),
+    ],
+    qtype_inference_expr=P.x,
+    deterministic=False,
+)
+def with_print(x, *args, sep=' ', end='\n'):  # pylint: disable=unused-argument
+  """Prints *args to stdout and returns `x`.
+
+  The operator uses str(arg) for each of the *args, i.e. it is not pointwise,
+  and too long arguments may be truncated.
+
+  Args:
+    x: Value to propagate (unchanged).
+    *args: DataSlice(s) to print.
+    sep: Separator to use between DataSlice(s).
+    end: End string to use after the last DataSlice.
+  """
+  raise NotImplementedError('implemented in the backend')
