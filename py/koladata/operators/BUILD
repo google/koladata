@@ -853,6 +853,7 @@ py_library(
     deps = [
         ":assertion",
         ":bootstrap",
+        ":functor",
         ":masking",
         ":optools",
         ":qtype_utils",

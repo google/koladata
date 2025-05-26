@@ -17,6 +17,7 @@
 from arolla import arolla
 from koladata.operators import assertion
 from koladata.operators import bootstrap
+from koladata.operators import functor
 from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import qtype_utils
@@ -559,6 +560,36 @@ def _internal_make_namedtuple_with_names_from(example_namedtuple, *args):
   )
 
 
+# TODO: Also create a recursive version of this.
+@arolla.optools.as_lambda_operator(
+    'koda_internal.parallel._nonrecursive_is_parallel_qtype',
+)
+def _nonrecursive_is_parallel_qtype(arg):
+  """A relaxed check if the given argument is a parallel type.
+
+  This does not recurse into tuples/namedtuples.
+
+  Args:
+    arg: The argument QType to check.
+
+  Returns:
+    present if the argument could be a parallel type, missing if we are certain
+    that the argument is not a parallel type.
+  """
+  return (
+      (
+          bootstrap.is_future_qtype(arg)
+          & ~M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(arg))
+          & ~M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(arg))
+          & (M.qtype.get_value_qtype(arg) != qtypes.NON_DETERMINISTIC_TOKEN)
+      )
+      | bootstrap.is_stream_qtype(arg)
+      | (arg == qtypes.NON_DETERMINISTIC_TOKEN)
+      | M.qtype.is_tuple_qtype(arg)
+      | M.qtype.is_namedtuple_qtype(arg)
+  )
+
+
 @optools.as_lambda_operator(
     'koda_internal.parallel._internal_future_from_parallel',
     # Note that we do not check the tuple/namedtuple contents here,
@@ -566,20 +597,8 @@ def _internal_make_namedtuple_with_names_from(example_namedtuple, *args):
     qtype_constraints=[
         qtype_utils.expect_executor(P.outer_executor),
         (
-            (
-                bootstrap.is_future_qtype(P.outer_arg)
-                & ~M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.outer_arg))
-                & ~M.qtype.is_namedtuple_qtype(
-                    M.qtype.get_value_qtype(P.outer_arg)
-                )
-                & (
-                    M.qtype.get_value_qtype(P.outer_arg)
-                    != qtypes.NON_DETERMINISTIC_TOKEN
-                )
-            )
-            | (P.outer_arg == qtypes.NON_DETERMINISTIC_TOKEN)
-            | M.qtype.is_tuple_qtype(P.outer_arg)
-            | M.qtype.is_namedtuple_qtype(P.outer_arg),
+            _nonrecursive_is_parallel_qtype(P.outer_arg)
+            & ~bootstrap.is_stream_qtype(P.outer_arg),
             (
                 'future_from_parallel can only be applied to a parallel'
                 ' non-stream type, got'
@@ -888,6 +907,242 @@ def _get_value_or_parallel_default(
 def transform(context, fn):  # pylint: disable=unused-argument
   """Transforms the given functor to a parallel version."""
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._internal_unwrap_future_to_parallel',
+    qtype_constraints=[
+        qtype_utils.expect_future(P.outer_arg),
+        (
+            _nonrecursive_is_parallel_qtype(
+                M.qtype.get_value_qtype(P.outer_arg)
+            ),
+            (
+                'input must be a future to a parallel type, got'
+                f' {constraints.name_type_msg(P.outer_arg)}'
+            ),
+        ),
+    ],
+)
+def _internal_unwrap_future_to_parallel(outer_arg, outer_self_op):
+  """Implementation helper for unwrap_future_to_parallel."""
+  # We prefix the arguments with "outer_" here to avoid conflict with the
+  # names in DispatchOperator.
+  return arolla.types.DispatchOperator(
+      'arg, self_op, new_non_deterministic_token',
+      tuple_case=arolla.types.DispatchCase(
+          M.core.map_tuple(
+              P.self_op,
+              async_unpack_tuple(P.arg),
+              P.self_op,
+              P.new_non_deterministic_token,
+          ),
+          condition=M.qtype.is_tuple_qtype(M.qtype.get_value_qtype(P.arg)),
+      ),
+      namedtuple_case=arolla.types.DispatchCase(
+          M.core.apply_varargs(
+              M.namedtuple.make,
+              M.qtype.get_field_names(
+                  M.qtype.get_value_qtype(M.qtype.qtype_of(P.arg))
+              ),
+              M.core.map_tuple(
+                  P.self_op,
+                  async_unpack_tuple(P.arg),
+                  P.self_op,
+                  P.new_non_deterministic_token,
+              ),
+          ),
+          condition=M.qtype.is_namedtuple_qtype(M.qtype.get_value_qtype(P.arg)),
+      ),
+      non_deterministic_token_case=arolla.types.DispatchCase(
+          P.new_non_deterministic_token,
+          condition=(
+              M.qtype.get_value_qtype(P.arg) == qtypes.NON_DETERMINISTIC_TOKEN
+          ),
+      ),
+      future_case=arolla.types.DispatchCase(
+          unwrap_future_to_future(P.arg),
+          condition=bootstrap.is_future_qtype(M.qtype.get_value_qtype(P.arg)),
+      ),
+      stream_case=arolla.types.DispatchCase(
+          unwrap_future_to_stream(P.arg),
+          condition=bootstrap.is_stream_qtype(M.qtype.get_value_qtype(P.arg)),
+      ),
+  )(outer_arg, outer_self_op, optools.unified_non_deterministic_arg())
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel.unwrap_future_to_parallel',
+    qtype_constraints=[
+        qtype_utils.expect_future(P.arg),
+    ],
+)
+def unwrap_future_to_parallel(arg):
+  """Given a future to a parallel type, returns a copy of the inner value."""
+  return _internal_unwrap_future_to_parallel(
+      arg, _internal_unwrap_future_to_parallel
+  )
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_call_impl',
+)
+def _parallel_call_impl(context, fn, stack_trace_frame, parallel_args):
+  transformed_fn = transform(context, fn)
+  args = parallel_args[0]
+  return_type_as = parallel_args[1]
+  kwargs = parallel_args[2]
+  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      functor.call,
+      transformed_fn,
+      args=args,
+      return_type_as=return_type_as,
+      stack_trace_frame=stack_trace_frame,
+      kwargs=kwargs,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+
+def _expect_future_data_slice(arg):
+  return (
+      arg == get_future_qtype(qtypes.DATA_SLICE),
+      (
+          'expected a future to a data slice, got'
+          f' {constraints.name_type_msg(arg)}'
+      ),
+  )
+
+
+def _expect_future_data_slice_or_unspecified(arg):
+  return (
+      (arg == get_future_qtype(qtypes.DATA_SLICE))
+      | (arg == arolla.UNSPECIFIED),
+      (
+          'expected a future to a data slice or unspecified, got'
+          f' {constraints.name_type_msg(arg)}'
+      ),
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel.parallel_call',
+    qtype_constraints=(
+        qtype_utils.expect_execution_context(P.context),
+        _expect_future_data_slice(P.fn),
+        _expect_future_data_slice_or_unspecified(P.stack_trace_frame),
+        (
+            # TODO: get rid of "nonrecursive" here.
+            M.seq.all(
+                M.seq.map(
+                    _nonrecursive_is_parallel_qtype,
+                    M.qtype.get_field_qtypes(P.args),
+                )
+            ),
+            (
+                'args must have parallel types, got'
+                f' {constraints.name_type_msg(P.args)}'
+            ),
+        ),
+        (
+            # TODO: get rid of "nonrecursive" here.
+            M.seq.all(
+                M.seq.map(
+                    _nonrecursive_is_parallel_qtype,
+                    M.qtype.get_field_qtypes(P.kwargs),
+                )
+            ),
+            (
+                'kwargs must have parallel types, got'
+                f' {constraints.name_type_msg(P.kwargs)}'
+            ),
+        ),
+        (
+            # TODO: get rid of "nonrecursive" here.
+            _nonrecursive_is_parallel_qtype(P.return_type_as)
+            | (P.return_type_as == arolla.UNSPECIFIED),
+            (
+                'return_type_as must have a parallel type, got'
+                f' {constraints.name_type_msg(P.return_type_as)}'
+            ),
+        ),
+    ),
+)
+def parallel_call(
+    context,
+    fn,
+    *args,
+    return_type_as=arolla.unspecified(),
+    stack_trace_frame=arolla.unspecified(),
+    **kwargs,
+):
+  """Calls the given functor via the parallel evaluation.
+
+  This operator is intented to be used as a parallel version of `functor.call`,
+  therefore all inputs except `context` must have parallel types
+  (futures/streams/tuples thereof).
+  See execution_config.proto for more details about parallel types.
+
+  Note that the default values specified in the signature here are not used
+  when using this operator as a parallel version of `functor.call`, only when
+  this operator is called directly.
+
+  Example:
+    kd.call(kd.fn(I.x + I.y), x=2, y=3)
+    # returns kd.item(5)
+
+    kd.lazy.call(I.fn, x=2, y=3).eval(fn=kd.fn(I.x + I.y))
+    # returns kd.item(5)
+
+  Args:
+    context: The execution context to use for the parallel call.
+    fn: The future with the functor to be called, typically created via kd.fn().
+    *args: The parallel versions of the positional arguments to pass to the
+      call.
+    return_type_as: The return type of the parallel call is expected to be the
+      same as the return type of this expression. In most cases, this will be a
+      literal of the corresponding type. This needs to be specified if the
+      functor does not return a DataSlice, in other words if the parallel
+      version does not return a future to a DataSlice.
+    stack_trace_frame: Optional future to the details of a stack trace frame, to
+      be added to all the exceptions raised by `fn`. Use
+      `stack_trace.create_stack_trace_frame` to create it. Currently the frame
+      will only be added to errors happening when scheduling the parallel
+      execution, but not to errors happening within the parallel execution.
+    **kwargs: The parallel versions of the keyword arguments to pass to the
+      call.
+
+  Returns:
+    The parallel value containing the result of the call.
+  """
+  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
+  return_type_as = arolla.M.core.default_if_unspecified(
+      return_type_as,
+      as_future(data_slice.DataSlice),
+  )
+  stack_trace_frame = arolla.M.core.default_if_unspecified(
+      stack_trace_frame,
+      as_future(data_slice.DataSlice.from_vals(None)),
+  )
+
+  # We need async_eval here since `fn` and `stack_trace_frame` are futures.
+  # `async_eval` will wait on any argument that is a future before exeucting
+  # the async operator, but all other arguments are passed as is, including
+  # tuples of futures. So we wrap the rest into a tuple so that async_eval does
+  # not wait on the args/kwargs/return_type_as futures since the transformed
+  # parallel functor expects parallel arguments for those.
+  return unwrap_future_to_parallel(
+      async_eval(
+          get_executor_from_context(context),
+          _parallel_call_impl,
+          context,
+          fn,
+          stack_trace_frame,
+          tuple_ops.make_tuple(args, return_type_as, kwargs),
+          optools.unified_non_deterministic_arg(),
+      )
+  )
 
 
 @optools.add_to_registry()
