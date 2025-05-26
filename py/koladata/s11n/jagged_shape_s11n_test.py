@@ -44,8 +44,8 @@ class JaggedShapeS11nTest(codec_test_case.S11nCodecTestCase):
         output_value_index: 1
       }
     """
-    self.assertDumpsEqual(jagged_shape.KODA_JAGGED_SHAPE, text)
-    self.assertLoadsEqual(text, jagged_shape.KODA_JAGGED_SHAPE)
+    self.assertDumpsEqual(jagged_shape.JAGGED_SHAPE, text)
+    self.assertLoadsEqual(text, jagged_shape.JAGGED_SHAPE)
 
   def test_value(self):
     text = """
@@ -108,7 +108,7 @@ class JaggedShapeS11nTest(codec_test_case.S11nCodecTestCase):
         output_value_index: 6
       }
     """
-    koda_shape = jagged_shape.KodaJaggedShape.from_edges(
+    koda_shape = jagged_shape.JaggedShape.from_edges(
         arolla.types.DenseArrayEdge.from_sizes([2]),
     )
     self.assertDumpsEqual(koda_shape, text)

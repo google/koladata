@@ -17,7 +17,7 @@
 from arolla import arolla
 from koladata.operators import optools
 from koladata.operators import qtype_utils
-from koladata.types import jagged_shape
+from koladata.types import qtypes
 
 M = arolla.M
 P = arolla.P
@@ -252,24 +252,16 @@ def to_data_slice(x, shape=arolla.unspecified()):
 )
 def from_arolla_jagged_shape(shape):
   """Returns a Koda JaggedShape from an Arolla JaggedShape."""
-  return M.derived_qtype.downcast(jagged_shape.KODA_JAGGED_SHAPE, shape)
+  return M.derived_qtype.downcast(qtypes.JAGGED_SHAPE, shape)
 
 
 @optools.add_to_registry(view=None)
 @optools.as_lambda_operator(
     'koda_internal.to_arolla_jagged_shape',
-    # TODO: Replace this with qtype_utils.expect_jagged_shape when
-    # the the switch happens.
     qtype_constraints=[
-        (
-            P.shape == jagged_shape.KODA_JAGGED_SHAPE,
-            (
-                'expected JAGGED_SHAPE, got '
-                f' {qtype_utils.constraints.name_type_msg(P.shape)}'
-            ),
-        ),
+        qtype_utils.expect_jagged_shape(P.shape),
     ],
 )
 def to_arolla_jagged_shape(shape):
   """Returns an Arolla JaggedShape from a Koda JaggedShape."""
-  return M.derived_qtype.upcast(jagged_shape.KODA_JAGGED_SHAPE, shape)
+  return M.derived_qtype.upcast(qtypes.JAGGED_SHAPE, shape)

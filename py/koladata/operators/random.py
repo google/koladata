@@ -52,8 +52,12 @@ def _assert_key_for_sample(x, key):
       assertion.with_assertion(
           assertion.assert_primitive('key', P.key, schema_constants.STRING),
           M.jagged.equal(
-              jagged_shape_ops.get_shape(P.x),
-              jagged_shape_ops.get_shape(P.key),
+              arolla_bridge.to_arolla_jagged_shape(
+                  jagged_shape_ops.get_shape(P.x)
+              ),
+              arolla_bridge.to_arolla_jagged_shape(
+                  jagged_shape_ops.get_shape(P.key)
+              ),
           ),
           "'x' and 'key' must have the same shape.",
       ),
@@ -155,7 +159,9 @@ def mask(x, ratio, seed, key=arolla.unspecified()):
   )
   seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
   flat_mask = M.random.sample(
-      M.array.make_dense_array_shape(M.jagged.size(x_shape)),
+      M.array.make_dense_array_shape(
+          M.jagged.size(arolla_bridge.to_arolla_jagged_shape(x_shape))
+      ),
       # TODO: allow the name to be specified in to_arolla_float64.
       arolla_bridge.to_arolla_float64(ratio),
       arolla_bridge.to_arolla_int64(seed),
@@ -288,10 +294,14 @@ def sample_n(
       slices.get_ndim(x) > 0,
       'expected rank(x) > 0',
   )
-  x_rank = M.jagged.rank(x_shape)
+  x_shape_upcast = arolla_bridge.to_arolla_jagged_shape(x_shape)
+  n_shape_upcast = arolla_bridge.to_arolla_jagged_shape(
+      jagged_shape_ops.get_shape(n)
+  )
+  x_rank = M.jagged.rank(x_shape_upcast)
   n = assertion.with_assertion(
       n,
-      M.jagged.rank(jagged_shape_ops.get_shape(n)) < x_rank,
+      M.jagged.rank(n_shape_upcast) < x_rank,
       "the rank of 'n' must be smaller than rank of 'x'.",
   )
   n = assertion.assert_primitive('n', n, schema_constants.INT64)
@@ -300,11 +310,11 @@ def sample_n(
   )
   seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
   flat_mask = M.random.sample_n(
-      M.array.make_dense_array_shape(M.jagged.size(x_shape)),
+      M.array.make_dense_array_shape(M.jagged.size(x_shape_upcast)),
       arolla_bridge.to_arolla_dense_array_int64(n),
       arolla_bridge.to_arolla_int64(seed),
       _to_dense_array_text_or_unspecified(key),
-      M.jagged.edge_at(x_shape, -1),
+      M.jagged.edge_at(x_shape_upcast, -1),
   )
   ds_mask = arolla_bridge.to_data_slice(flat_mask, x_shape)
   return slices.internal_select_by_slice(x, ds_mask)
@@ -375,7 +385,8 @@ def randint_shaped(
   seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
 
   flat_res = M.array.randint_with_shape(
-      M.array.make_dense_array_shape(M.jagged.size(shape)),
+      M.array.make_dense_array_shape(M.jagged.size(
+          arolla_bridge.to_arolla_jagged_shape(shape))),
       new_low,
       new_high,
       arolla_bridge.to_arolla_int64(seed),

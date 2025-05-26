@@ -41,6 +41,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
+#include "koladata/jagged_shape_qtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -236,7 +237,7 @@ absl::StatusOr<arolla::OperatorPtr> ObjShapedOperatorFamily::DoGetOperator(
   if (input_types.size() != 4) {
     return absl::InvalidArgumentError("requires exactly 4 arguments");
   }
-  if (input_types[0] != arolla::GetQType<DataSlice::JaggedShape>()) {
+  if (input_types[0] != GetJaggedShapeQType()) {
     return absl::InvalidArgumentError(
         "requires first argument to be JaggedShape");
   }

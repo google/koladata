@@ -30,6 +30,7 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/jagged_shape_qtype.h"
 #include "py/arolla/abc/py_qvalue.h"
 #include "py/arolla/abc/py_qvalue_specialization.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -139,16 +140,18 @@ const DataSlice::JaggedShape* /*absl_nullable*/ UnwrapJaggedShape(
     return NotJaggedShapeError(py_obj, name_for_error);
   }
   const auto& shape_typed_value = arolla::python::UnsafeUnwrapPyQValue(py_obj);
-  if (shape_typed_value.GetType() !=
-      arolla::GetQType<DataSlice::JaggedShape>()) {
+  if (shape_typed_value.GetType() != GetJaggedShapeQType()) {
     return NotJaggedShapeError(py_obj, name_for_error);
   }
   return &shape_typed_value.UnsafeAs<DataSlice::JaggedShape>();
 }
 
 PyObject* /*absl_nullable*/ WrapPyJaggedShape(DataSlice::JaggedShape shape) {
-  return arolla::python::WrapAsPyQValue(
-      arolla::TypedValue::FromValue(std::move(shape)));
+  ASSIGN_OR_RETURN(auto typed_value,
+                   arolla::TypedValue::FromValueWithQType(
+                       std::move(shape), GetJaggedShapeQType()),
+                   arolla::python::SetPyErrFromStatus(_));
+  return arolla::python::WrapAsPyQValue(std::move(typed_value));
 }
 
 }  // namespace koladata::python

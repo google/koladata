@@ -16,6 +16,7 @@
 
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
+from koladata.operators import arolla_bridge
 from koladata.operators import core as core_ops
 from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import optools
@@ -103,7 +104,14 @@ def create(
   shape = arolla.types.DispatchOperator(
       'itemid, keys',
       unspecified_case=arolla.types.DispatchCase(
-          M.jagged.remove_dims(jagged_shape_ops.get_shape(P.keys), from_dim=-1),
+          arolla_bridge.from_arolla_jagged_shape(
+              M.jagged.remove_dims(
+                  arolla_bridge.to_arolla_jagged_shape(
+                      jagged_shape_ops.get_shape(P.keys)
+                  ),
+                  from_dim=-1,
+              )
+          ),
           condition=(P.itemid == arolla.UNSPECIFIED),
       ),
       default=jagged_shape_ops.get_shape(P.itemid),

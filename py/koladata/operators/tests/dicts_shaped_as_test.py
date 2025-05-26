@@ -127,7 +127,7 @@ class DictShapedAsTest(parameterized.TestCase):
   def test_wrong_shape_and_mask_from(self):
     with self.assertRaisesRegex(
         ValueError,
-        'expected DATA_SLICE, got shape_from: JAGGED_DENSE_ARRAY_SHAPE',
+        'expected DATA_SLICE, got shape_from: JAGGED_SHAPE',
     ):
       expr_eval.eval(kde.dicts.shaped_as(jagged_shape.create_shape([2])))
 

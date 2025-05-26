@@ -42,7 +42,7 @@ def dumps(
     Serialized data.
   """
   if not isinstance(
-      x, data_slice.DataSlice | data_bag.DataBag | jagged_shape.KodaJaggedShape
+      x, data_slice.DataSlice | data_bag.DataBag | jagged_shape.JaggedShape
   ):
     raise ValueError(
         f'expected a DataSlice, DataBag or JaggedShape, got {type(x)}'
@@ -64,7 +64,7 @@ def loads(x: bytes) -> data_slice.DataSlice | data_bag.DataBag:
   result = arolla.s11n.riegeli_loads(x)
   if not isinstance(
       result,
-      data_slice.DataSlice | data_bag.DataBag | jagged_shape.KodaJaggedShape,
+      data_slice.DataSlice | data_bag.DataBag | jagged_shape.JaggedShape,
   ):
     raise ValueError(
         f'expected a DataSlice, DataBag or JaggedShape, got {type(result)}'

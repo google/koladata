@@ -125,7 +125,7 @@ class DumpsLoadsTest(parameterized.TestCase):
     testing.assert_equivalent(e, loaded_e)
 
   def test_dumps_loads_jagged_shape(self):
-    shape = jagged_shape.KodaJaggedShape.from_edges(
+    shape = jagged_shape.JaggedShape.from_edges(
         arolla.types.DenseArrayEdge.from_sizes([2]),
     )
     dumped_bytes = s11n.dumps(shape)

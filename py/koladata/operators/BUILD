@@ -350,7 +350,7 @@ py_library(
         ":qtype_utils",
         "//koladata/operators",
         "//py:python_path",
-        "//py/koladata/types:jagged_shape",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -583,6 +583,7 @@ py_library(
         "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
@@ -747,6 +748,7 @@ py_library(
     name = "dicts",
     srcs = ["dicts.py"],
     deps = [
+        ":arolla_bridge",
         ":core",
         ":jagged_shape",
         ":optools",

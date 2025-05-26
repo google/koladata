@@ -126,7 +126,11 @@ def _new_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
 )
 def size(shape):
   """Returns the total number of elements the jagged shape represents."""
-  return arolla_bridge.to_data_slice(M.jagged.size(shape))
+  return arolla_bridge.to_data_slice(
+      M.jagged.size(
+          arolla_bridge.to_arolla_jagged_shape(shape)
+      )
+  )
 
 
 @optools.add_to_registry(aliases=['kd.get_shape'])
@@ -228,12 +232,15 @@ def _flatten_last_ndim(x, ndim):
 
   @arolla.optools.as_lambda_operator('koda_internal.flatten_last_ndim.shape')
   def flatten_shape(x, ndim):
-    rank = M.jagged.rank(x)
+    x_upcast = arolla_bridge.to_arolla_jagged_shape(x)
+    x_rank = M.jagged.rank(x_upcast)
     ndim = to_int64(ndim)
     ndim = assertion.with_assertion(
-        ndim, (ndim >= 0) & (ndim <= rank), 'expected 0 <= ndim <= rank'
+        ndim, (ndim >= 0) & (ndim <= x_rank), 'expected 0 <= ndim <= rank'
     )
-    return M.jagged.flatten(x, rank - ndim)
+    return arolla_bridge.from_arolla_jagged_shape(
+        M.jagged.flatten(x_upcast, x_rank - ndim)
+    )
 
   @arolla.optools.as_lambda_operator('koda_internal.flatten_last_ndim.slice')
   def flatten_slice(x, ndim):
@@ -291,12 +298,15 @@ def flatten_last_ndim(x, ndim):
 )
 def _remove_last_ndim(x, ndim):
   """(internal) Remove the last `ndim` dimensions of shape `x`."""
-  x_rank = M.jagged.rank(x)
+  x_upcast = arolla_bridge.to_arolla_jagged_shape(x)
+  x_rank = M.jagged.rank(x_upcast)
   ndim = arolla_bridge.to_arolla_int64(ndim)
   ndim = assertion.with_assertion(
       ndim, (ndim >= 0) & (ndim <= x_rank), 'expected 0 <= ndim <= rank'
   )
-  return M.jagged.remove_dims(x, x_rank - ndim)
+  return arolla_bridge.from_arolla_jagged_shape(
+      M.jagged.remove_dims(x_upcast, x_rank - ndim)
+  )
 
 
 @optools.add_to_registry()
@@ -400,7 +410,11 @@ def expand_to_shape(x, shape, ndim=arolla.unspecified()):
       ),
       default=arolla_bridge.to_arolla_int64(P.ndim),
   )
-  return _expand_to_shape(x, shape, to_arolla_int64(ndim))
+  return _expand_to_shape(
+      x,
+      arolla_bridge.to_arolla_jagged_shape(shape),
+      to_arolla_int64(ndim),
+  )
 
 
 @optools.add_to_registry()
@@ -425,7 +439,10 @@ def is_expandable_to_shape(x, target_shape, ndim=arolla.unspecified()):
   """
   shape = remove_last_ndim(get_shape(x), ndim)
   return arolla_bridge.to_data_slice(
-      M.jagged.is_broadcastable_to(shape, target_shape)
+      M.jagged.is_broadcastable_to(
+          arolla_bridge.to_arolla_jagged_shape(shape),
+          arolla_bridge.to_arolla_jagged_shape(target_shape)
+      )
   )
 
 
@@ -487,7 +504,14 @@ def flatten(
       default=arolla_bridge.to_arolla_int64,
   )
   return reshape(
-      x, M.jagged.flatten(get_shape(x), to_int64(from_dim), to_int64(to_dim))
+      x,
+      arolla_bridge.from_arolla_jagged_shape(
+          M.jagged.flatten(
+              arolla_bridge.to_arolla_jagged_shape(get_shape(x)),
+              to_int64(from_dim),
+              to_int64(to_dim),
+          ),
+      ),
   )
 
 
@@ -498,7 +522,8 @@ def flatten(
 )
 def rank(shape):
   """Returns the rank of the jagged shape."""
-  return arolla_bridge.to_data_slice(M.jagged.rank(shape))
+  return arolla_bridge.to_data_slice(M.jagged.rank(
+      arolla_bridge.to_arolla_jagged_shape(shape)))
 
 
 @optools.add_to_registry()
@@ -523,7 +548,11 @@ def dim_sizes(shape, dim):
   """
   dim_int64 = arolla_bridge.to_arolla_int64(dim)
   return arolla_bridge.to_data_slice(
-      M.edge.sizes(M.jagged.edge_at(shape, dim_int64))
+      M.edge.sizes(
+          M.jagged.edge_at(
+              arolla_bridge.to_arolla_jagged_shape(shape), dim_int64
+          )
+      )
   )
 
 
@@ -550,5 +579,9 @@ def dim_mapping(shape, dim):
   """
   dim_int64 = arolla_bridge.to_arolla_int64(dim)
   return arolla_bridge.to_data_slice(
-      M.edge.mapping(M.jagged.edge_at(shape, dim_int64))
+      M.edge.mapping(
+          M.jagged.edge_at(
+              arolla_bridge.to_arolla_jagged_shape(shape), dim_int64
+          )
+      )
   )

@@ -587,8 +587,14 @@ def regex_find_all(text, regex):  # pylint: disable=unused-argument
   flat_res = get_nth(result_tuple, 0)
   value_edge = get_nth(result_tuple, 1)
   group_edge = get_nth(result_tuple, 2)
-  shape = M.jagged.add_dims(
-      jagged_shape_ops.get_shape(text), value_edge, group_edge
+  shape = arolla_bridge.from_arolla_jagged_shape(
+      M.jagged.add_dims(
+          arolla_bridge.to_arolla_jagged_shape(
+              jagged_shape_ops.get_shape(text)
+          ),
+          value_edge,
+          group_edge,
+      ),
   )
   return arolla_bridge.to_data_slice(flat_res, shape).with_schema(
       text.get_schema()

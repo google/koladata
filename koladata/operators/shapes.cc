@@ -43,6 +43,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/qexpr.h"
+#include "koladata/jagged_shape_qtype.h"
 #include "koladata/subslice_utils.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -102,7 +103,7 @@ absl::StatusOr<DataSlice::JaggedShape::Edge> GetEdgeFromSizes(
 class JaggedShapeCreateOperator : public arolla::QExprOperator {
  public:
   explicit JaggedShapeCreateOperator(absl::Span<const arolla::QTypePtr> types)
-      : QExprOperator(types, arolla::GetQType<DataSlice::JaggedShape>()) {
+      : QExprOperator(types, koladata::GetJaggedShapeQType()) {
     for (const auto& input_type : types) {
       DCHECK(input_type == arolla::GetQType<DataSlice>() ||
              input_type == arolla::GetQType<DataSlice::JaggedShape::Edge>());
@@ -173,7 +174,7 @@ class JaggedShapeCreateWithSizeOperator : public arolla::QExprOperator {
  public:
   explicit JaggedShapeCreateWithSizeOperator(
       absl::Span<const arolla::QTypePtr> types)
-      : QExprOperator(types, arolla::GetQType<DataSlice::JaggedShape>()) {}
+      : QExprOperator(types, koladata::GetJaggedShapeQType()) {}
 
  private:
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(

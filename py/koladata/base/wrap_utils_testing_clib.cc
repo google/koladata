@@ -21,7 +21,9 @@
 #include "absl/strings/string_view.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/jagged_shape_qtype.h"
 #include "py/arolla/abc/pybind11_utils.h"
+#include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/wrap_utils.h"
 #include "pybind11/pytypes.h"
 #include "pybind11/stl.h"
@@ -146,8 +148,13 @@ PYBIND11_MODULE(wrap_utils_testing_clib, m) {
     return arolla::TypedValue::FromValue(std::move(*ds));
   });
 
-  m.def("make_shape", []() {
-    return arolla::TypedValue::FromValue(JaggedShape::FlatFromSize(3));
+  m.def("make_shape", []() -> arolla::TypedValue {
+    auto typed_value = arolla::TypedValue::FromValueWithQType(
+        JaggedShape::FlatFromSize(3), GetJaggedShapeQType());
+    if (!typed_value.ok()) {
+      throw pybind11::error_already_set();
+    }
+    return *std::move(typed_value);
   });
 
   m.def("make_data_bag", []() {

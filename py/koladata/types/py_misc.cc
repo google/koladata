@@ -78,9 +78,8 @@ PyObject* /*absl_nullable*/ PyFlattenPyList(PyObject* /*module*/,
   for (int i = 0; i < py_objects.size(); ++i) {
     PyList_SetItem(py_list.get(), i, Py_NewRef(py_objects[i]));
   }
-  auto py_shape =
-      arolla::python::PyObjectPtr::Own(arolla::python::WrapAsPyQValue(
-          arolla::TypedValue::FromValue(std::move(shape))));
+  auto py_shape = arolla::python::PyObjectPtr::Own(
+      WrapPyJaggedShape(std::move(shape)));
   return PyTuple_Pack(2, py_list.release(), py_shape.release());
 }
 

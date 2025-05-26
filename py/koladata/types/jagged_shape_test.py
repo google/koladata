@@ -26,7 +26,7 @@ M = arolla.M
 
 
 def _koda_shape_3d():
-  return jagged_shape.KodaJaggedShape.from_edges(
+  return jagged_shape.JaggedShape.from_edges(
       arolla.types.DenseArrayEdge.from_sizes([2]),
       arolla.types.DenseArrayEdge.from_sizes([2, 1]),
       arolla.types.DenseArrayEdge.from_sizes([1, 2, 1]),
@@ -34,7 +34,7 @@ def _koda_shape_3d():
 
 
 def _koda_shape_2d():
-  return jagged_shape.KodaJaggedShape.from_edges(
+  return jagged_shape.JaggedShape.from_edges(
       arolla.types.DenseArrayEdge.from_sizes([2]),
       arolla.types.DenseArrayEdge.from_sizes([2, 1]),
   )
@@ -62,16 +62,13 @@ class JaggedShapeTest(absltest.TestCase):
         ),
     )
 
-
-class KodaJaggedShapeTest(absltest.TestCase):
-
   def test_from_edges(self):
     shape = _koda_shape_3d()
     testing.assert_equal(
         shape.qtype,
-        jagged_shape.KODA_JAGGED_SHAPE,
+        jagged_shape.JAGGED_SHAPE,
     )
-    self.assertIsInstance(shape, jagged_shape.KodaJaggedShape)
+    self.assertIsInstance(shape, jagged_shape.JaggedShape)
 
   def test_edges(self):
     edges = _koda_shape_3d().edges()

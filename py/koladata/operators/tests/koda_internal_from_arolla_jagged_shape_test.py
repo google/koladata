@@ -35,12 +35,6 @@ def create_arolla_shape(*sizes):
   ])
 
 
-def create_koda_shape(*sizes):
-  return jagged_shape.KodaJaggedShape.from_edges(*[
-      arolla.types.DenseArrayEdge.from_sizes(size_array) for size_array in sizes
-  ])
-
-
 def create_array_shape(*sizes):
   return arolla_jagged_shape.JaggedArrayShape.from_edges(*[
       arolla.types.DenseArrayEdge.from_sizes(size_array) for size_array in sizes
@@ -52,12 +46,12 @@ class ShapesFromArollaShapeTest(parameterized.TestCase):
   @parameterized.parameters(
       (
           create_arolla_shape(),
-          create_koda_shape(),
+          jagged_shape.create_shape(),
       ),
-      (create_arolla_shape([2]), create_koda_shape([2])),
+      (create_arolla_shape([2]), jagged_shape.create_shape([2])),
       (
           create_arolla_shape([2], [2, 1]),
-          create_koda_shape([2], [2, 1]),
+          jagged_shape.create_shape([2], [2, 1]),
       ),
   )
   def test_eval(self, shape, expected_res):
@@ -82,11 +76,11 @@ class ShapesFromArollaShapeTest(parameterized.TestCase):
         (
             (
                 arolla_jagged_shape.JAGGED_DENSE_ARRAY_SHAPE,
-                jagged_shape.KODA_JAGGED_SHAPE,
+                jagged_shape.JAGGED_SHAPE,
             ),
         ),
-        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
-        + (jagged_shape.KODA_JAGGED_SHAPE,),
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES +
+        (arolla_jagged_shape.JAGGED_DENSE_ARRAY_SHAPE,),
     )
 
   def test_view(self):

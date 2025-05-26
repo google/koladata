@@ -121,9 +121,13 @@ def agg_count(x, ndim=arolla.unspecified()):
   x = jagged_shape_ops.flatten_last_ndim(x, ndim)
   flat_units = arolla_bridge.to_arolla_dense_array_unit(masking.has(x))
   shape = jagged_shape_ops.get_shape(x)
-  flat_res = M.array.count(flat_units, into=M.jagged.edge_at(shape, -1))
+  shape_upcast = arolla_bridge.to_arolla_jagged_shape(shape)
+  flat_res = M.array.count(flat_units, into=M.jagged.edge_at(shape_upcast, -1))
   return arolla_bridge.to_data_slice(
-      flat_res, M.jagged.remove_dims(shape, from_dim=-1)
+      flat_res,
+      arolla_bridge.from_arolla_jagged_shape(
+          M.jagged.remove_dims(shape_upcast, from_dim=-1)
+      ),
   )
 
 
@@ -158,7 +162,10 @@ def cum_count(x, ndim=arolla.unspecified()):
   flat_res = M.array.cum_count(
       flat_units,
       over=M.jagged.edge_at(
-          jagged_shape_ops.flatten_last_ndim(x_shape, ndim), -1
+          arolla_bridge.to_arolla_jagged_shape(
+              jagged_shape_ops.flatten_last_ndim(x_shape, ndim),
+          ),
+          -1,
       ),
   )
   return arolla_bridge.to_data_slice(flat_res, x_shape)
@@ -783,8 +790,12 @@ def group_by(x, *args, sort=False):  # pylint: disable=redefined-outer-name
           assertion.with_assertion(
               P.x,
               M.jagged.equal(
-                  jagged_shape_ops.get_shape(P.x),
-                  jagged_shape_ops.get_shape(M.core.get_nth(P.args, 0)),
+                  arolla_bridge.to_arolla_jagged_shape(
+                      jagged_shape_ops.get_shape(P.x)
+                  ),
+                  arolla_bridge.to_arolla_jagged_shape(
+                      jagged_shape_ops.get_shape(M.core.get_nth(P.args, 0)),
+                  ),
               ),
               'First argument `x` must have the same shape as the other'
               ' arguments',
@@ -867,7 +878,7 @@ def index(x, dim=-1):
   flat_res = M.array.agg_index(
       flat_units,
       over=M.jagged.edge_at(
-          shape,
+          arolla_bridge.to_arolla_jagged_shape(shape),
           -1,
       ),
   )
@@ -1147,7 +1158,13 @@ def repeat(x, sizes):
   edge = M.edge.from_sizes(
       arolla_bridge.to_arolla_dense_array_int64(expanded_sizes)
   )
-  target_shape = M.jagged.add_dims(x_shape, edge)
+
+  target_shape = arolla_bridge.from_arolla_jagged_shape(
+      M.jagged.add_dims(
+          arolla_bridge.to_arolla_jagged_shape(x_shape),
+          edge,
+      )
+  )
   return jagged_shape_ops.expand_to_shape(x, target_shape)
 
 
@@ -1391,8 +1408,12 @@ def sort(x, sort_by=arolla.unspecified(), descending=False):
       assertion.with_assertion(
           P.x,
           M.jagged.equal(
-              jagged_shape_ops.get_shape(P.x),
-              jagged_shape_ops.get_shape(P.sort_by),
+              arolla_bridge.to_arolla_jagged_shape(
+                  jagged_shape_ops.get_shape(P.x)
+              ),
+              arolla_bridge.to_arolla_jagged_shape(
+                  jagged_shape_ops.get_shape(P.sort_by)
+              ),
           ),
           'kd.slices.sort: arguments `x` and `sort_by` must have the same'
           ' shape',
@@ -1733,8 +1754,12 @@ def translate_group(keys_to, keys_from, values_from):
       assertion.with_assertion(
           P.keys_from,
           M.jagged.equal(
-              jagged_shape_ops.get_shape(P.keys_from),
-              jagged_shape_ops.get_shape(P.values_from),
+              arolla_bridge.to_arolla_jagged_shape(
+                  jagged_shape_ops.get_shape(P.keys_from)
+              ),
+              arolla_bridge.to_arolla_jagged_shape(
+                  jagged_shape_ops.get_shape(P.values_from)
+              ),
           ),
           'kd.slices.translate_group: `keys_from` and `values_from` must have'
           ' the same shape',

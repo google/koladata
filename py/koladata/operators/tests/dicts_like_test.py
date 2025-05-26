@@ -304,7 +304,7 @@ class DictLikeTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         'expected DATA_SLICE, got shape_and_mask_from:'
-        ' JAGGED_DENSE_ARRAY_SHAPE',
+        ' JAGGED_SHAPE',
     ):
       expr_eval.eval(kde.dicts.like(jagged_shape.create_shape([2])))
 
