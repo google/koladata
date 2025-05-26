@@ -99,9 +99,20 @@ def create(
       value_schema, data_slice.unspecified()
   )
   schema = M.core.default_if_unspecified(schema, data_slice.unspecified())
+
+  shape = arolla.types.DispatchOperator(
+      'itemid, keys',
+      unspecified_case=arolla.types.DispatchCase(
+          M.jagged.remove_dims(jagged_shape_ops.get_shape(P.keys), from_dim=-1),
+          condition=(P.itemid == arolla.UNSPECIFIED),
+      ),
+      default=jagged_shape_ops.get_shape(P.itemid),
+  )(itemid, keys)
+
   itemid = M.core.default_if_unspecified(itemid, data_slice.unspecified())
+
   return _shaped(
-      shape=jagged_shape_ops.new(),
+      shape=shape,
       keys=keys,
       values=values,
       key_schema=key_schema,

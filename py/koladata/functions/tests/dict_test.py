@@ -108,6 +108,11 @@ class DictTest(parameterized.TestCase):
     testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['a']]]))
     testing.assert_equal(x.no_bag().get_itemid(), itemid)
 
+    x = fns.dict(ds(['a', 'b']), 1, itemid=itemid)
+    self.assertEqual(x.get_shape().rank(), 2)
+    testing.assert_dicts_keys_equal(x, ds([[['a'], ['a']], [['b']]]))
+    testing.assert_equal(x.no_bag().get_itemid(), itemid)
+
   def test_itemid_from_different_bag(self):
     triple = fns.new(non_existent=42)
     itemid = fns.dict({'a': triple})

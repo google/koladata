@@ -1208,49 +1208,61 @@ Assigned schema for keys: INT32""",
   def test_dict(self):
     db = bag()
 
-    # 0-arg
-    x = db.dict()
-    x['a'] = 1
-    testing.assert_dicts_equal(
-        x,
-        db.dict(
-            {'a': 1},
-            key_schema=schema_constants.OBJECT,
-            value_schema=schema_constants.OBJECT,
-        ),
-    )
+    with self.subTest('no arg'):
+      x = db.dict()
+      x['a'] = 1
+      testing.assert_dicts_equal(
+          x,
+          db.dict(
+              {'a': 1},
+              key_schema=schema_constants.OBJECT,
+              value_schema=schema_constants.OBJECT,
+          ),
+      )
 
-    x = db.dict(
-        key_schema=schema_constants.INT64, value_schema=schema_constants.STRING
-    )
-    self.assertEqual(
-        x.get_schema().get_attr('__keys__'), schema_constants.INT64
-    )
-    self.assertEqual(
-        x.get_schema().get_attr('__values__'), schema_constants.STRING
-    )
+    with self.subTest('schema arg'):
+      x = db.dict(
+          key_schema=schema_constants.INT64,
+          value_schema=schema_constants.STRING,
+      )
+      self.assertEqual(
+          x.get_schema().get_attr('__keys__'), schema_constants.INT64
+      )
+      self.assertEqual(
+          x.get_schema().get_attr('__values__'), schema_constants.STRING
+      )
 
-    # 1-arg
-    x = db.dict({'a': 42})
-    testing.assert_equal(x['a'], ds(42).with_bag(db))
-    x = db.dict({'a': {b'x': 42, b'y': 12}, 'b': {b'z': 15}})
-    testing.assert_equal(
-        x[ds(['a', 'b'])][ds([[b'x', b'x'], [b'z']])],
-        ds([[42, 42], [15]]).with_bag(db),
-    )
+    with self.subTest('dict arg'):
+      x = db.dict({'a': 42})
+      testing.assert_equal(x['a'], ds(42).with_bag(db))
+    with self.subTest('dict arg with bytes key'):
+      x = db.dict({'a': {b'x': 42, b'y': 12}, 'b': {b'z': 15}})
+      testing.assert_equal(
+          x[ds(['a', 'b'])][ds([[b'x', b'x'], [b'z']])],
+          ds([[42, 42], [15]]).with_bag(db),
+      )
 
-    # 2-arg
-    x = db.dict(ds(['a', 'b']), 1)
-    self.assertEqual(x.get_shape().rank(), 0)
-    testing.assert_equal(x[ds(['a', 'b'])], ds([1, 1]).with_bag(db))
+    with self.subTest('keys and values'):
+      x = db.dict(ds(['a', 'b']), 1)
+      self.assertEqual(x.get_shape().rank(), 0)
+      testing.assert_equal(x[ds(['a', 'b'])], ds([1, 1]).with_bag(db))
 
-    x = db.dict(ds([['a', 'b'], ['c']]), 1)
-    # NOTE: Dimension of dicts is reduced by 1.
-    self.assertEqual(x.get_shape().rank(), 1)
-    testing.assert_equal(
-        x[ds([['a', 'b'], ['d']])],
-        ds([[1, 1], [None]]).with_bag(db),
-    )
+    with self.subTest('milti-dim keys and values'):
+      x = db.dict(ds([['a', 'b'], ['c']]), 1)
+      # NOTE: Dimension of dicts is reduced by 1.
+      self.assertEqual(x.get_shape().rank(), 1)
+      testing.assert_equal(
+          x[ds([['a', 'b'], ['d']])],
+          ds([[1, 1], [None]]).with_bag(db),
+      )
+
+    with self.subTest('itemid'):
+      itemid = kde.allocation.new_dictid_shaped_as(ds([1, 2])).eval()
+
+      x = db.dict(ds(['a', 'b']), 1, itemid=itemid)
+      self.assertEqual(x.get_shape().rank(), 1)
+      testing.assert_equal(x[ds(['a', 'b'])], ds([1, 1]).with_bag(db))
+      testing.assert_equal(x.get_itemid().no_bag(), itemid)
 
   def test_dict_errors(self):
     db = bag()

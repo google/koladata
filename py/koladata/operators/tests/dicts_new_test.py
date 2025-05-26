@@ -71,9 +71,11 @@ class DictTest(parameterized.TestCase):
     expected = bag().dict(**kwargs)
     testing.assert_dicts_equal(actual, expected)
 
-  def test_keys_values(self):
-    keys = ds(['a', 'b'])
-    values = ds([3, 7])
+  @parameterized.parameters(
+      (ds(['a', 'b']), ds([3, 7])),
+      (ds([['a', 'b'], ['c']]), 1),
+  )
+  def test_keys_values(self, keys, values):
     actual = expr_eval.eval(
         kde.dicts.new(
             keys,
@@ -84,7 +86,32 @@ class DictTest(parameterized.TestCase):
         keys,
         values,
     )
+    self.assertEqual(actual.get_shape().rank(), keys.get_shape().rank() - 1)
     testing.assert_dicts_equal(actual, expected)
+
+  @parameterized.parameters(
+      ('a', 42),
+      (ds(['a', 'b']), 34),
+      (ds(['a', 'b']), ds([3, 7])),
+      (ds([[[1], [2]], [[4]]]), 'abc'),
+  )
+  def test_itemid(self, keys, values):
+    itemids = expr_eval.eval(
+        kde.allocation.new_dictid_shaped_as(ds([[1, 2], [3]]))
+    )
+    actual = expr_eval.eval(kde.dicts.new(keys, values, itemid=itemids))
+    expected = bag().dict(keys, values, itemid=itemids)
+    testing.assert_dicts_equal(actual, expected)
+
+  def test_itemid_itemds_keys_shape_incompatible(self):
+    keys = ds([[[1], [2], [3]], [[4], [5], [6]]])
+    values = 1
+    itemids = expr_eval.eval(
+        kde.allocation.new_dictid_shaped_as(ds([[1, 2], [3]]))
+    )
+
+    with self.assertRaisesRegex(ValueError, 'cannot be expanded'):
+      _ = expr_eval.eval(kde.dicts.new(keys, values, itemid=itemids))
 
   def test_db_is_immutable(self):
     d = expr_eval.eval(kde.dicts.new())
