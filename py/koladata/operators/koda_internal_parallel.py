@@ -1499,6 +1499,32 @@ def _parallel_stream_make(executor, items, value_type_as):
   )
 
 
+# qtype constraints for everything except executor are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_make_unordered',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+    ],
+)
+def _parallel_stream_make_unordered(executor, items, value_type_as):
+  """The parallel version of iterables.make_unordered."""
+  item_streams = M.core.map_tuple(
+      _single_element_stream_from_parallel,
+      items,
+      executor,
+  )
+  item_streams = M.core.concat_tuples(
+      item_streams, _empty_streams_from_value_type_as(executor, value_type_as)
+  )
+  return arolla.abc.bind_op(
+      stream_interleave,
+      item_streams,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "core.make_tuple"
@@ -1586,6 +1612,14 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
       arguments: EXECUTOR
       arguments: ORIGINAL_ARGUMENTS
       arguments: NON_DETERMINISTIC_TOKEN
+    }
+  }
+  operator_replacements {
+    from_op: "kd.iterables.make_unordered"
+    to_op: "koda_internal.parallel._parallel_stream_make_unordered"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
     }
   }
 """

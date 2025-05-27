@@ -367,10 +367,62 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     self.assertIsNone(reader.read_available())
 
-  def test_iterables_make_empty(self):
+  def test_iterables_make_unordered(self):
+    e1 = threading.Event()
+    e2 = threading.Event()
+    e3 = threading.Event()
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_1():
+      self.assertTrue(e1.wait(timeout=5.0))
+      return 1
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_2():
+      self.assertTrue(e2.wait(timeout=5.0))
+      return 2
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_3():
+      self.assertTrue(e3.wait(timeout=5.0))
+      return 3
 
     def f():
-      return iterables.make()
+      return iterables.make_unordered(
+          wait_and_return_1(), wait_and_return_2(), wait_and_return_3()
+      )
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res = transformed_fn(
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    reader = res.make_reader()
+    time.sleep(0.01)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+    e2.set()
+    self._wait_until_n_items(res, 1)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(2))
+    )
+    e1.set()
+    self._wait_until_n_items(res, 2)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(1))
+    )
+    e3.set()
+    self._wait_until_n_items(res, 4)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(3))
+    )
+    self.assertIsNone(reader.read_available())
+
+  @parameterized.parameters(iterables.make, iterables.make_unordered)
+  def test_iterables_make_empty(self, op):
+
+    def f():
+      return op()
 
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f
@@ -381,10 +433,11 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
     self.assertEqual(res.read_all(timeout=5.0), [])
 
-  def test_iterables_make_empty_bags(self):
+  @parameterized.parameters(iterables.make, iterables.make_unordered)
+  def test_iterables_make_empty_bags(self, op):
 
     def f():
-      return iterables.make(value_type_as=data_bag.DataBag)
+      return op(value_type_as=data_bag.DataBag)
 
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f
@@ -397,10 +450,11 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
     self.assertEqual(res.read_all(timeout=5.0), [])
 
-  def test_iterables_make_bags(self):
+  @parameterized.parameters(iterables.make, iterables.make_unordered)
+  def test_iterables_make_bags(self, op):
 
     def f(x):
-      return iterables.make(x, value_type_as=data_bag.DataBag)
+      return op(x, value_type_as=data_bag.DataBag)
 
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f
@@ -416,12 +470,11 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         arolla.tuple(*res.read_all(timeout=5.0)), arolla.tuple(db)
     )
 
-  def test_iterables_make_tuples(self):
+  @parameterized.parameters(iterables.make, iterables.make_unordered)
+  def test_iterables_make_tuples(self, op):
 
     def f(x, y):
-      return iterables.make(
-          tuple_ops.make_tuple(x, y), tuple_ops.make_tuple(y, x)
-      )
+      return op(tuple_ops.make_tuple(x, y))
 
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f
@@ -439,7 +492,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
-        arolla.tuple(arolla.tuple(ds(1), ds(2)), arolla.tuple(ds(2), ds(1))),
+        arolla.tuple(arolla.tuple(ds(1), ds(2))),
     )
 
 
