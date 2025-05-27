@@ -303,8 +303,8 @@ def assert_allclose(
       rtol=rtol,
       atol=atol,
       msg=f'the values are not close up to the given tolerance:\n\n'
-      f'expected: {actual_value._debug_repr()}\n'  # pylint: disable=protected-access
-      f'actual: {expected_value._debug_repr()}',  # pylint: disable=protected-access
+      f'actual: {actual_value._debug_repr()}\n'  # pylint: disable=protected-access
+      f'expected: {expected_value._debug_repr()}',  # pylint: disable=protected-access
   )
   assert_equal(
       actual_value.get_bag(),
