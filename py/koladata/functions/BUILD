@@ -28,6 +28,7 @@ py_library(
     deps = [
         ":attrs",
         ":object_factories",
+        ":parallel",
         ":predicates",
         ":proto_conversions",
         ":py_conversions",
@@ -132,5 +133,18 @@ py_library(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "parallel",
+    srcs = ["parallel.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/types:data_item",
+        "//py/koladata/types:data_slice",
     ],
 )

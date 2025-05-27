@@ -19,6 +19,7 @@ import types as _py_types
 from koladata.fstring import fstring as _fstring
 from koladata.functions import attrs as _attrs
 from koladata.functions import object_factories as _object_factories
+from koladata.functions import parallel as _parallel
 from koladata.functions import predicates as _predicates
 from koladata.functions import proto_conversions as _proto_conversions
 from koladata.functions import py_conversions as _py_conversions
@@ -175,4 +176,8 @@ slices = _py_types.SimpleNamespace(
     bool=_py_conversions.bool_,
     mask=_py_conversions.mask,
     expr_quote=_py_conversions.expr_quote,
+)
+
+parallel = _py_types.SimpleNamespace(
+    call_multithreaded=_parallel.call_multithreaded,
 )
