@@ -152,6 +152,16 @@ class LiteralOperatorTest(parameterized.TestCase):
         '\n'.join(cm.exception.__notes__),
     )
 
+  def test_infer_attr(self):
+    # Regression test for b/420604646. Asserts that the inferred attr is the
+    # same as the qvalue.
+    x = data_bag.DataBag.empty().new(x=1).enriched(data_bag.DataBag.empty())
+    self.assertNotEmpty(x.get_bag().get_fallbacks())
+    l = literal_operator.literal(x)
+    self.assertEqual(
+        arolla.abc.infer_attr(l.op).qvalue.fingerprint, l.qvalue.fingerprint  # pytype: disable=attribute-error
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

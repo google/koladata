@@ -111,11 +111,13 @@ absl::StatusOr<arolla::expr::ExprAttributes> InputOperator::InferAttributes(
 }
 
 arolla::expr::ExprNodePtr MakeLiteral(arolla::TypedValue value) {
-  value = FreezeDataBagOrDataSlice(std::move(value));
-  auto attr = arolla::expr::ExprAttributes(value);
+  auto op = expr::LiteralOperator::MakeLiteralOperator(std::move(value));
+  // NOTE: We own the LiteralOperator::InferAttributes computation, and
+  // therefore know that this cannot fail. It's therefore safe to dereference
+  // the StatusOr without properly handling potential errors.
+  auto output_attr = *op->InferAttributes({});
   return arolla::expr::ExprNode::UnsafeMakeOperatorNode(
-      expr::LiteralOperator::MakeLiteralOperator(std::move(value)), {},
-      std::move(attr));
+      std::move(op), {}, std::move(output_attr));
 }
 
 std::shared_ptr<LiteralOperator> LiteralOperator::MakeLiteralOperator(
