@@ -27,6 +27,7 @@
 #include "absl/status/statusor.h"
 #include "absl/synchronization/barrier.h"
 #include "absl/synchronization/blocking_counter.h"
+#include "absl/synchronization/notification.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
@@ -40,6 +41,7 @@
 #include "arolla/qtype/testing/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/cancellation.h"
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -309,6 +311,62 @@ TEST(AsyncEvalTest, Multithreaded) {
         sum_futures[i]->GetValueForTesting(),
         IsOkAndHolds(TypedValueWith<DataSlice>(IsEquivalentTo(
             DataSlice::CreateFromScalar(expected_values[i + kWaveSize])))));
+  }
+}
+
+TEST(AsyncEvalTest, CancellationContextPropagation) {
+  // Note: Use a single-threaded executor to run computations on a different
+  // thread, while still having predictable behaviour.
+  auto executor = MakeAsioExecutor(1);
+  arolla::CancellationContext::ScopeGuard cancellation_scope;
+  auto get_int_output_type = [](absl::Span<const QType* const> input_qtypes) {
+    return GetQType<int>();
+  };
+  bool should_fail = false;
+  auto async_op = std::make_shared<StdFunctionOperator>(
+      "internal", ExprOperatorSignature{{"x"}}, "", get_int_output_type,
+      [&should_fail](absl::Span<const TypedRef> inputs) {
+        auto cancellation_context = arolla::CurrentCancellationContext();
+        EXPECT_NE(cancellation_context, nullptr);
+        if (cancellation_context != nullptr && should_fail) {
+          cancellation_context->Cancel(absl::CancelledError("Boom!"));
+        }
+        return arolla::TypedValue::FromValue(2 * inputs[0].UnsafeAs<int>());
+      });
+  {
+    should_fail = false;
+    auto [input_future, input_writer] = MakeFuture(arolla::GetQType<int>());
+    auto input_future_value = MakeFutureQValue(std::move(input_future));
+    ASSERT_OK_AND_ASSIGN(
+        auto future,
+        AsyncEvalWithCompilationCache(
+            executor, async_op, {input_future_value.AsRef()}, GetQType<int>()));
+    auto notification = std::make_shared<absl::Notification>();
+    future->AddConsumer(
+        [notification](absl::StatusOr<arolla::TypedValue> value) {
+          EXPECT_THAT(value, IsOkAndHolds(TypedValueWith<int>(20)));
+          notification->Notify();
+        });
+    std::move(input_writer).SetValue(TypedValue::FromValue(10));
+    notification->WaitForNotification();
+  }
+  {
+    should_fail = true;
+    auto [input_future, input_writer] = MakeFuture(arolla::GetQType<int>());
+    auto input_future_value = MakeFutureQValue(std::move(input_future));
+    ASSERT_OK_AND_ASSIGN(
+        auto future,
+        AsyncEvalWithCompilationCache(
+            executor, async_op, {input_future_value.AsRef()}, GetQType<int>()));
+    auto notification = std::make_shared<absl::Notification>();
+    future->AddConsumer(
+        [notification](absl::StatusOr<arolla::TypedValue> value) {
+          EXPECT_THAT(value, StatusIs(absl::StatusCode::kCancelled,
+                                      HasSubstr("Boom!")));
+          notification->Notify();
+        });
+    std::move(input_writer).SetValue(TypedValue::FromValue(10));
+    notification->WaitForNotification();
   }
 }
 

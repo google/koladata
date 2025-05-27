@@ -21,6 +21,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
@@ -31,6 +32,7 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/cancellation.h"
 #include "koladata/expr/expr_eval.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future.h"
@@ -112,7 +114,11 @@ class AsyncCountdown {
     }
 
     executor->Schedule([op = op_, input_values = std::move(input_values),
-                        result_writer = std::move(result_writer_)]() mutable {
+                        result_writer = std::move(result_writer_),
+                        cancelation_context =
+                            std::move(cancellation_context_)]() mutable {
+      arolla::CancellationContext::ScopeGuard cancellation_scope(
+          std::move(cancelation_context));
       std::vector<arolla::TypedRef> input_refs;
       input_refs.reserve(input_values.size());
       for (const auto& value : input_values) {
@@ -153,6 +159,8 @@ class AsyncCountdown {
       ABSL_GUARDED_BY(lock_);
   FutureWriter result_writer_;
   absl::Mutex lock_;
+  arolla::CancellationContextPtr /*absl_nullable*/ cancellation_context_ =
+      arolla::CurrentCancellationContext();
 };
 
 // We need reference counting here since multiple futures use the countdown
