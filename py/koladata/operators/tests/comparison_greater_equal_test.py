@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -117,8 +119,12 @@ class ComparisonGreaterEqualTest(parameterized.TestCase):
     y = ds(['a', 'b', 'c'])
     with self.assertRaisesRegex(
         ValueError,
-        'kd.comparison.greater_equal: arguments `x` and `y` must contain values'
-        ' castable to a common primitive type, got INT32 and STRING',
+        re.escape(
+            r"""kd.comparison.greater_equal: arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema OBJECT.
+
+Schema for `x`: INT32
+Schema for `y`: STRING"""
+        ),
     ):
       expr_eval.eval(kde.comparison.greater_equal(I.x, I.y), x=x, y=y)
 

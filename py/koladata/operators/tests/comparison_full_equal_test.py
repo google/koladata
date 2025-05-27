@@ -111,8 +111,10 @@ class ComparisonFullEqualTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.comparison.equal: arguments `x` and `y` must contain values'
-            ' castable to a common type, got SCHEMA() and INT32'
+            r'''kd.comparison.equal: arguments do not have a common schema.
+
+Schema for `x`: SCHEMA()
+Schema for `y`: INT32'''
         ),
     ):
       expr_eval.eval(kde.comparison.full_equal(ENTITY_1, ds(1)))
@@ -121,8 +123,10 @@ class ComparisonFullEqualTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.comparison.equal: arguments `x` and `y` must contain values'
-            ' castable to a common type, got SCHEMA(x=INT32) and SCHEMA()'
+            r'''kd.comparison.equal: arguments do not have a common schema.
+
+Schema for `x`: SCHEMA(x=INT32)
+Schema for `y`: SCHEMA()'''
         ),
     ):
       expr_eval.eval(kde.comparison.full_equal(db.new(x=1), db.new()))
@@ -130,9 +134,10 @@ class ComparisonFullEqualTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.comparison.equal: arguments `x` and `y` must contain values'
-            ' castable to a common type, got SCHEMA(x=INT32) and OBJECT'
-            ' containing non-primitive values'
+            r'''kd.comparison.equal: arguments do not have a common schema.
+
+Schema for `x`: SCHEMA(x=INT32)
+Schema for `y`: OBJECT containing non-primitive values'''
         ),
     ):
       expr_eval.eval(kde.comparison.full_equal(db.new(x=1), db.obj()))
@@ -140,8 +145,10 @@ class ComparisonFullEqualTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.comparison.equal: arguments `x` and `y` must contain values'
-            ' castable to a common type, got SCHEMA(x=INT32) and ITEMID'
+            r'''kd.comparison.equal: arguments do not have a common schema.
+
+Schema for `x`: SCHEMA(x=INT32)
+Schema for `y`: ITEMID'''
         ),
     ):
       expr_eval.eval(

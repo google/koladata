@@ -57,10 +57,10 @@ constexpr absl::string_view DTypeName() {
   }
 }
 
-absl::Status NoCommonSchemaError(absl::string_view lhs_name,
-                                 const DataSlice& lhs,
-                                 absl::string_view rhs_name,
-                                 const DataSlice& rhs) {
+std::string DescribeSchemaDifferences(absl::string_view lhs_name,
+                                      const DataSlice& lhs,
+                                      absl::string_view rhs_name,
+                                      const DataSlice& rhs) {
   std::string lhs_schema_str = DescribeSliceSchema(lhs);
   std::string rhs_schema_str = DescribeSliceSchema(rhs);
   if (lhs_schema_str == rhs_schema_str) {
@@ -75,10 +75,10 @@ absl::Status NoCommonSchemaError(absl::string_view lhs_name,
                       rhs.GetSchemaImpl().value<internal::ObjectId>());
     }
   }
-  return absl::InvalidArgumentError(
-      absl::StrFormat("arguments `%s` and `%s` must contain values castable to "
-                      "a common type, got %s and %s",
-                      lhs_name, rhs_name, lhs_schema_str, rhs_schema_str));
+  return absl::StrFormat(
+    "Schema for `%s`: %s\n"
+    "Schema for `%s`: %s",
+    lhs_name, lhs_schema_str, rhs_name, rhs_schema_str);
 }
 
 }  // namespace
@@ -285,7 +285,9 @@ absl::Status ExpectHaveCommonSchema(
   if (schema::CommonSchema(lhs.GetSchemaImpl(), rhs.GetSchemaImpl()).ok()) {
     return absl::OkStatus();
   }
-  return NoCommonSchemaError(arg_names[0], lhs, arg_names[1], rhs);
+  return absl::InvalidArgumentError(absl::StrCat(
+      "arguments do not have a common schema.\n\n",
+      DescribeSchemaDifferences(arg_names[0], lhs, arg_names[1], rhs)));
 }
 
 absl::Status ExpectHaveCommonPrimitiveSchema(
@@ -299,20 +301,22 @@ absl::Status ExpectHaveCommonPrimitiveSchema(
   auto rhs_narrowed = GetNarrowedSchema(rhs);
   auto common_schema = schema::CommonSchema(lhs_narrowed, rhs_narrowed);
   if (!common_schema.ok()) {
-    return NoCommonSchemaError(arg_names[0], lhs, arg_names[1], rhs);
+    return absl::InvalidArgumentError(absl::StrCat(
+        "arguments do not contain values castable to a common primitive "
+        "schema, as they don't have a common schema.\n\n",
+        DescribeSchemaDifferences(arg_names[0], lhs, arg_names[1], rhs)));
   }
   if (common_schema->holds_value<internal::ObjectId>() ||
       *common_schema == schema::kObject) {
     auto common_schema_slice = DataSlice::Create(
         *common_schema, internal::DataItem(schema::kSchema), lhs.GetBag());
-    std::string common_schema_str = common_schema_slice.ok()
-                                        ? SchemaToStr(*common_schema_slice)
-                                        : absl::StrCat(*common_schema);
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "arguments `%s` and `%s` must contain values castable to a common "
-        "primitive type, got %s and %s with the common non-primitive schema %s",
-        arg_names[0], arg_names[1], DescribeSliceSchema(lhs),
-        DescribeSliceSchema(rhs), common_schema_str));
+    std::string common_schema_str = SchemaToStr(*common_schema_slice);
+    return absl::InvalidArgumentError(absl::StrCat(
+        absl::StrFormat(
+            "arguments do not contain values castable to a common primitive "
+            "schema, but have the common non-primitive schema %s.\n\n",
+            common_schema_str),
+        DescribeSchemaDifferences(arg_names[0], lhs, arg_names[1], rhs)));
   }
   return absl::OkStatus();
 }

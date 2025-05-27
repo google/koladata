@@ -204,8 +204,12 @@ class MathAddTest(parameterized.TestCase):
     y = ds(['1', '2', '3'])
     with self.assertRaisesRegex(
         ValueError,
-        'kd.math.add: arguments `x` and `y` must contain values castable to a'
-        ' common primitive type, got INT32 and STRING',
+        re.escape(
+            """kd.math.add: arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema OBJECT.
+
+Schema for `x`: INT32
+Schema for `y`: STRING"""
+        ),
     ):
       expr_eval.eval(kde.math.add(I.x, I.y), x=x, y=y)
 
@@ -219,9 +223,12 @@ class MathAddTest(parameterized.TestCase):
     z = ds([['1', '2'], ['3']])
     with self.assertRaisesRegex(
         ValueError,
-        'kd.math.add: arguments `x` and `y` must contain values castable to a'
-        ' common primitive type, got INT32 and STRING with the common'
-        ' non-primitive schema OBJECT',
+        re.escape(
+            """kd.math.add: arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema OBJECT.
+
+Schema for `x`: INT32
+Schema for `y`: STRING"""
+        ),
     ):
       expr_eval.eval(kde.math.add(I.x, I.z), x=x, z=z)
 

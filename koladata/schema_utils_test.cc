@@ -642,20 +642,21 @@ TEST(SchemaUtilsTest, ExpectHaveCommonSchema) {
   EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, integer, bytes), IsOk());
   EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, integer, schema),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "arguments `foo` and `bar` must contain values castable "
-                       "to a common type, got INT32 and SCHEMA"));
-  EXPECT_THAT(
-      ExpectHaveCommonSchema({"foo", "bar"}, entity, integer_object),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               "arguments `foo` and `bar` must contain values castable to a "
-               "common type, got SCHEMA() and OBJECT containing INT32 values"));
-  EXPECT_THAT(
-      ExpectHaveCommonSchema({"foo", "bar"}, entity, another_entity),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               MatchesRegex(
-                   "arguments `foo` and `bar` must contain values castable "
-                   "to a common type, got SCHEMA\\(\\) with id Schema:\\$.* "
-                   "and SCHEMA\\(\\) with id Schema:\\$.*")));
+                       "arguments do not have a common schema.\n\n"
+                       "Schema for `foo`: INT32\n"
+                       "Schema for `bar`: SCHEMA"));
+  EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, entity, integer_object),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "arguments do not have a common schema.\n\n"
+                       "Schema for `foo`: SCHEMA()\n"
+                       "Schema for `bar`: OBJECT containing INT32 values"));
+  EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, entity, another_entity),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       MatchesRegex(
+                           R"regex(arguments do not have a common schema.
+
+Schema for `foo`: SCHEMA\(\) with id Schema:\$.*
+Schema for `bar`: SCHEMA\(\) with id Schema:\$.*)regex")));
 }
 
 TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
@@ -684,28 +685,36 @@ TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
 
   EXPECT_THAT(ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, bytes),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "arguments `foo` and `bar` must contain values castable "
-                       "to a common primitive type, got INT32 and BYTES with "
-                       "the common non-primitive schema OBJECT"));
+                       "arguments do not contain values castable "
+                       "to a common primitive schema, but have the common "
+                       "non-primitive schema OBJECT.\n\n"
+                       "Schema for `foo`: INT32\n"
+                       "Schema for `bar`: BYTES"));
   EXPECT_THAT(
       ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, integer, bytes_obj),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "arguments `foo` and `bar` must contain values castable to a "
-               "common primitive type, got INT32 and OBJECT containing BYTES "
-               "values with the common non-primitive schema OBJECT"));
+        "arguments do not contain values castable "
+        "to a common primitive schema, but have the common "
+        "non-primitive schema OBJECT.\n\n"
+        "Schema for `foo`: INT32\n"
+        "Schema for `bar`: OBJECT containing BYTES values"));
   EXPECT_THAT(
       ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, entity, another_entity),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               MatchesRegex(
-                   "arguments `foo` and `bar` must contain values castable "
-                   "to a common type, got SCHEMA\\(\\) with id Schema:\\$.* "
-                   "and SCHEMA\\(\\) with id Schema:\\$.*")));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          MatchesRegex(
+              R"regex(arguments do not contain values castable to a common primitive schema, as they don't have a common schema\.
+
+Schema for `foo`: SCHEMA\(\) with id Schema:\$.*
+Schema for `bar`: SCHEMA\(\) with id Schema:\$.*)regex")));
   EXPECT_THAT(
       ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, entity, entity),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               StrEq("arguments `foo` and `bar` must contain values castable "
-                     "to a common primitive type, got SCHEMA() and SCHEMA() "
-                     "with the common non-primitive schema SCHEMA()")));
+        MatchesRegex(
+            R"regex(arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema SCHEMA\(\)\.
+
+Schema for `foo`: SCHEMA\(\) with id Schema:\$.*
+Schema for `bar`: SCHEMA\(\) with id Schema:\$.*)regex")));
 }
 
 }  // namespace

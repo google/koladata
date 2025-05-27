@@ -154,8 +154,10 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'kd.masking.coalesce: arguments `x` and `y` must contain values'
-            ' castable to a common type, got INT32 and SCHEMA()'
+            r'''kd.masking.coalesce: arguments do not have a common schema.
+
+Schema for `x`: INT32
+Schema for `y`: SCHEMA()'''
         ),
     ):
       expr_eval.eval(kde.masking.disjoint_coalesce(x, y))
