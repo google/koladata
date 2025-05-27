@@ -49,6 +49,47 @@
 namespace koladata::functor::parallel {
 namespace {
 
+class EmptyStreamLikeOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [output_slot = output_slot.UnsafeToSlot<StreamPtr>(),
+         value_qtype = output_slot.GetType()->value_qtype()](
+            arolla::EvaluationContext* /*ctx*/, arolla::FramePtr frame) {
+          auto [stream, writer] = MakeStream(value_qtype);
+          std::move(*writer).Close();
+          frame.Set(output_slot, std::move(stream));
+        });
+  }
+};
+
+}  // namespace
+
+// empty_stream_with_value_qtype(
+//     qtype[T], NON_DETERMINISTIC) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr>
+EmptyStreamLikeOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 1) {
+    return absl::InvalidArgumentError("requires exactly 1 argument");
+  }
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  if (input_types[0] != output_type) {
+    return absl::InvalidArgumentError(
+        "the first argument must have the same type as output");
+  }
+  return std::make_shared<EmptyStreamLikeOp>(input_types, output_type);
+}
+
+namespace {
+
 class StreamChainFromStreamOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;

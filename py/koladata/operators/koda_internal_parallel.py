@@ -103,7 +103,7 @@ def create_execution_context(executor, config):  # pylint: disable=unused-argume
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.get_executor_from_context',
-    qtype_inference_expr=arolla.M.qtype.qtype_of(get_eager_executor()),
+    qtype_inference_expr=M.qtype.qtype_of(get_eager_executor()),
     qtype_constraints=[
         qtype_utils.expect_execution_context(P.context),
     ],
@@ -1122,11 +1122,11 @@ def parallel_call(
     The parallel value containing the result of the call.
   """
   args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
-  return_type_as = arolla.M.core.default_if_unspecified(
+  return_type_as = M.core.default_if_unspecified(
       return_type_as,
       as_future(data_slice.DataSlice),
   )
-  stack_trace_frame = arolla.M.core.default_if_unspecified(
+  stack_trace_frame = M.core.default_if_unspecified(
       stack_trace_frame,
       as_future(data_slice.DataSlice.from_vals(None)),
   )
@@ -1295,6 +1295,19 @@ def stream_reduce(executor, fn, stream, initial_value):
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_from_future',
+    qtype_constraints=[
+        qtype_utils.expect_future(P.future),
+    ],
+    qtype_inference_expr=get_stream_qtype(M.qtype.get_value_qtype(P.future)),
+)
+def stream_from_future(future):
+  """Creates a stream from the given future. It has 1 element or an error."""
+  raise NotImplementedError('implemented in the backend')
+
+
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
@@ -1394,6 +1407,98 @@ def _parallel_if(
   )
 
 
+# Since the stream returned by this operator is immutable, this operator can be
+# kept deterministic.
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.empty_stream_like',
+    qtype_constraints=[
+        qtype_utils.expect_stream(P.stream),
+    ],
+    qtype_inference_expr=P.stream,
+)
+def empty_stream_like(stream):  # pylint: disable=unused-argument
+  """Returns an empty stream with the same value type as the given stream."""
+  raise NotImplementedError('implemented in the backend')
+
+
+# This operator takes executor as the second argument because we want to
+# pass it to core.map_tuple.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._single_element_stream_from_parallel',
+)
+def _single_element_stream_from_parallel(arg, executor):
+  """Composes stream_from_future and future_from_parallel."""
+  return stream_from_future(future_from_parallel(executor, arg))
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._empty_streams_from_value_type_as',
+)
+def _empty_streams_from_value_type_as(executor, value_type_as):
+  """Returns a tuple of streams corresponding to the given value_type_as.
+
+  If value_type_as is future[unspecified], returns an empty tuple.
+  Otherwise value_type_as is expected to be a valid parallel value,
+  which we convert to a future and return a tuple with a single stream
+  of the same type as that future.
+
+  Args:
+    executor: The executor to use for asynchronous operations.
+    value_type_as: The parallel value derived from the value_type_as argument to
+      an iterable operator.
+
+  Returns:
+    A tuple of streams corresponding to the given value_type_as.
+  """
+  return arolla.types.DispatchOperator(
+      'inner_executor, inner_value_type_as',
+      unspecified_case=arolla.types.DispatchCase(
+          tuple_ops.make_tuple(),
+          condition=bootstrap.is_future_qtype(P.inner_value_type_as)
+          & (
+              M.qtype.get_value_qtype(P.inner_value_type_as)
+              == arolla.UNSPECIFIED
+          ),
+      ),
+      default=tuple_ops.make_tuple(
+          empty_stream_like(
+              _single_element_stream_from_parallel(
+                  P.inner_value_type_as, P.inner_executor
+              )
+          )
+      ),
+  )(executor, value_type_as)
+
+
+# qtype constraints for everything except executor are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_make',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+    ],
+)
+def _parallel_stream_make(executor, items, value_type_as):
+  """The parallel version of stream_make."""
+  item_streams = M.core.map_tuple(
+      _single_element_stream_from_parallel,
+      items,
+      executor,
+  )
+  item_streams = M.core.concat_tuples(
+      item_streams, _empty_streams_from_value_type_as(executor, value_type_as)
+  )
+  return arolla.abc.bind_op(
+      stream_chain,
+      item_streams,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "core.make_tuple"
@@ -1474,6 +1579,15 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
       arguments: ORIGINAL_ARGUMENTS
     }
   }
+  operator_replacements {
+    from_op: "kd.iterables.make"
+    to_op: "koda_internal.parallel._parallel_stream_make"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+      arguments: NON_DETERMINISTIC_TOKEN
+    }
+  }
 """
 
 _DEFAULT_EXECUTION_CONFIG = py_expr_eval_py_ext.eval_expr(
@@ -1507,19 +1621,6 @@ def get_default_execution_context():
   return create_execution_context(
       get_default_executor(), get_default_execution_config()
   )
-
-
-@optools.add_to_registry()
-@optools.as_backend_operator(
-    'koda_internal.parallel.stream_from_future',
-    qtype_constraints=[
-        qtype_utils.expect_future(P.future),
-    ],
-    qtype_inference_expr=get_stream_qtype(M.qtype.get_value_qtype(P.future)),
-)
-def stream_from_future(future):
-  """Creates a stream from the given future. It has 1 element or an error."""
-  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()

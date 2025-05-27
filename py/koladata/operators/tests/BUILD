@@ -9026,8 +9026,10 @@ py_test(
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:tracing_decorator",
         "//py/koladata/operators:bootstrap",
+        "//py/koladata/operators:iterables",
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/operators:optools",
+        "//py/koladata/operators:tuple",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
@@ -9178,6 +9180,22 @@ py_test(
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "koda_internal_parallel_empty_stream_like_test",
+    srcs = ["koda_internal_parallel_empty_stream_like_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators/tests/util:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
 )

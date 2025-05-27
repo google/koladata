@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import threading
+import time
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -24,8 +25,10 @@ from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import bootstrap
+from koladata.operators import iterables
 from koladata.operators import koda_internal_parallel
 from koladata.operators import optools
+from koladata.operators import tuple as tuple_ops
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -38,6 +41,25 @@ ds = data_slice.DataSlice.from_vals
 class KodaInternalParallelGetDefaultExecutionContextTest(
     parameterized.TestCase
 ):
+
+  def _wait_until_n_items(self, stream, n):
+    """Waits until at least n items, end-of-stream is counted as 1 item."""
+    executor = expr_eval.eval(koda_internal_parallel.get_eager_executor())
+    reader = stream.make_reader()
+    found = 0
+    while True:
+      got = reader.read_available()
+      if got is None:
+        found += 1
+        if found >= n:
+          return
+        self.fail(f'waiting for {n} items, but stream over after {found}')
+      found += len(got)
+      if found >= n:
+        return
+      e = threading.Event()
+      reader.subscribe_once(executor, e.set)
+      self.assertTrue(e.wait(timeout=5.0))
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
@@ -295,6 +317,130 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     ).eval()
     new_y = y.updated(res.read_all(timeout=5.0)[0])
     testing.assert_equal(new_y.foo.no_bag(), ds(2))
+
+  def test_iterables_make(self):
+    e1 = threading.Event()
+    e2 = threading.Event()
+    e3 = threading.Event()
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_1():
+      self.assertTrue(e1.wait(timeout=5.0))
+      return 1
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_2():
+      self.assertTrue(e2.wait(timeout=5.0))
+      return 2
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_3():
+      self.assertTrue(e3.wait(timeout=5.0))
+      return 3
+
+    def f():
+      return iterables.make(
+          wait_and_return_1(), wait_and_return_2(), wait_and_return_3()
+      )
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res = transformed_fn(
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    reader = res.make_reader()
+    time.sleep(0.01)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+    e2.set()
+    time.sleep(0.01)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+    e1.set()
+    self._wait_until_n_items(res, 2)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(1), ds(2))
+    )
+    e3.set()
+    self._wait_until_n_items(res, 4)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(3))
+    )
+    self.assertIsNone(reader.read_available())
+
+  def test_iterables_make_empty(self):
+
+    def f():
+      return iterables.make()
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res = transformed_fn(
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
+    self.assertEqual(res.read_all(timeout=5.0), [])
+
+  def test_iterables_make_empty_bags(self):
+
+    def f():
+      return iterables.make(value_type_as=data_bag.DataBag)
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res = transformed_fn(
+        return_type_as=koda_internal_parallel.stream_make(
+            value_type_as=data_bag.DataBag
+        ),
+    ).eval()
+    self.assertEqual(res.qtype.value_qtype, qtypes.DATA_BAG)
+    self.assertEqual(res.read_all(timeout=5.0), [])
+
+  def test_iterables_make_bags(self):
+
+    def f(x):
+      return iterables.make(x, value_type_as=data_bag.DataBag)
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    db = data_bag.DataBag.empty().freeze()
+    res = transformed_fn(
+        x=koda_internal_parallel.as_future(db),
+        return_type_as=koda_internal_parallel.stream_make(
+            value_type_as=data_bag.DataBag
+        ),
+    ).eval()
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)), arolla.tuple(db)
+    )
+
+  def test_iterables_make_tuples(self):
+
+    def f(x, y):
+      return iterables.make(
+          tuple_ops.make_tuple(x, y), tuple_ops.make_tuple(y, x)
+      )
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res = transformed_fn(
+        x=koda_internal_parallel.as_future(1),
+        y=koda_internal_parallel.as_future(2),
+        return_type_as=koda_internal_parallel.stream_make(
+            value_type_as=tuple_ops.make_tuple(None, None)
+        ),
+    ).eval()
+    self.assertEqual(
+        res.qtype.value_qtype,
+        arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_SLICE),
+    )
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)),
+        arolla.tuple(arolla.tuple(ds(1), ds(2)), arolla.tuple(ds(2), ds(1))),
+    )
 
 
 if __name__ == '__main__':
