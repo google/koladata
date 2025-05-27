@@ -162,7 +162,6 @@ def mask(x, ratio, seed, key=arolla.unspecified()):
       M.array.make_dense_array_shape(
           M.jagged.size(arolla_bridge.to_arolla_jagged_shape(x_shape))
       ),
-      # TODO: allow the name to be specified in to_arolla_float64.
       arolla_bridge.to_arolla_float64(ratio),
       arolla_bridge.to_arolla_int64(seed),
       _to_dense_array_text_or_unspecified(key),
