@@ -9015,6 +9015,29 @@ py_test(
 )
 
 py_test(
+    name = "koda_internal_parallel_get_default_execution_context_test",
+    srcs = ["koda_internal_parallel_get_default_execution_context_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/functor:functor_factories",
+        "//py/koladata/functor:tracing_decorator",
+        "//py/koladata/operators:bootstrap",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "koda_internal_parallel_stream_from_future_test",
     srcs = ["koda_internal_parallel_stream_from_future_test.py"],
     deps = [
@@ -9112,6 +9135,28 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/jagged_shape",
+    ],
+)
+
+py_test(
+    name = "koda_internal_parallel_get_default_execution_config_test",
+    srcs = ["koda_internal_parallel_get_default_execution_config_test.py"],
+    deps = [
+        "//koladata/functor/parallel:execution_config_py_proto",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/functor:tracing_decorator",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

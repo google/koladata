@@ -1959,7 +1959,7 @@ arolla.abc.register_adhoc_aux_binding_policy(
         qtype_utils.expect_data_slice_or_unspecified(P.schema),
     ],
 )
-def _slice(x, schema=arolla.unspecified()):
+def slice_(x, schema=arolla.unspecified()):
   """Returns a DataSlice created from `x`.
 
   If `schema` is set, that schema is used, otherwise the schema is inferred from
@@ -2023,7 +2023,7 @@ def _slice_bind_args(x, schema=arolla.unspecified()):
 
 
 arolla.abc.register_adhoc_aux_binding_policy(
-    _slice, _slice_bind_args, make_literal_fn=py_boxing.literal
+    slice_, _slice_bind_args, make_literal_fn=py_boxing.literal
 )
 
 

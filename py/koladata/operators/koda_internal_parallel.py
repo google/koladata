@@ -15,19 +15,26 @@
 """Internal operators for parallel execution."""
 
 from arolla import arolla
+from google.protobuf import text_format
+from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import assertion
 from koladata.operators import bootstrap
 from koladata.operators import functor
 from koladata.operators import masking
 from koladata.operators import optools
+from koladata.operators import proto as proto_ops
 from koladata.operators import qtype_utils
 from koladata.operators import schema as schema_ops
 from koladata.operators import slices
 from koladata.operators import tuple as tuple_ops
+from koladata.operators import view_overloads
 from koladata.types import data_slice
+from koladata.types import literal_operator
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
+
+from koladata.functor.parallel import execution_config_pb2
 
 
 M = arolla.M
@@ -1288,6 +1295,151 @@ def stream_reduce(executor, fn, stream, initial_value):
     A stream with a single item containing the final result of the reduction.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+# since get_item is an overloadable operator, we do not have qtype constraints
+# for x/key, but rather imply them through the lambda.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_get_item',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.outer_executor),
+    ],
+)
+def _parallel_get_item(outer_executor, outer_x, outer_key):
+  """The version of get_item that works directly on parallel types.
+
+  If x is a tuple/namedtuple, gets the corresponding item directly.
+  Otherwise uses async_eval to call eager get_item asynchronously.
+
+  Args:
+    outer_executor: The executor to use for asynchronous operations.
+    outer_x: The tuple/namedtuple/DataSlice to get the item from.
+    outer_key: The key to get the item with.
+
+  Returns:
+    The item from x with the given key.
+  """
+  return arolla.types.DispatchOperator(
+      'executor, x, key',
+      direct_case=arolla.types.DispatchCase(
+          view_overloads.get_item(P.x, P.key),
+          condition=M.qtype.is_tuple_qtype(P.x)
+          | M.qtype.is_namedtuple_qtype(P.x),
+      ),
+      # Since we handled tuples above, the remaining cases are all working
+      # on data slices, so we can use async_eval directly without
+      # parallel_from_future etc. This also makes this work both with key
+      # as a future and key as a literal, which is required for our replacement.
+      default=async_eval(P.executor, view_overloads.get_item, P.x, P.key),
+  )(outer_executor, outer_x, outer_key)
+
+
+_DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
+  operator_replacements {
+    from_op: "core.make_tuple"
+    to_op: "core.make_tuple"
+  }
+  operator_replacements {
+    from_op: "kd.make_tuple"
+    to_op: "kd.make_tuple"
+  }
+  operator_replacements {
+    from_op: "core.get_nth"
+    to_op: "core.get_nth"
+    argument_transformation {
+      keep_literal_argument_indices: 1
+    }
+  }
+  operator_replacements {
+    from_op: "kd.tuple.get_nth"
+    to_op: "kd.tuple.get_nth"
+    argument_transformation {
+      keep_literal_argument_indices: 1
+    }
+  }
+  operator_replacements {
+    from_op: "koda_internal.view.get_item"
+    to_op: "koda_internal.parallel._parallel_get_item"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+      keep_literal_argument_indices: 1
+    }
+  }
+  operator_replacements {
+    from_op: "namedtuple.make"
+    to_op: "namedtuple.make"
+    argument_transformation {
+      keep_literal_argument_indices: 0
+    }
+  }
+  operator_replacements {
+    from_op: "kd.make_namedtuple"
+    to_op: "kd.make_namedtuple"
+  }
+  operator_replacements {
+    from_op: "namedtuple.get_field"
+    to_op: "namedtuple.get_field"
+    argument_transformation {
+      keep_literal_argument_indices: 1
+    }
+  }
+  operator_replacements {
+    from_op: "kd.tuple.get_namedtuple_field"
+    to_op: "kd.tuple.get_namedtuple_field"
+    argument_transformation {
+      keep_literal_argument_indices: 1
+    }
+  }
+  operator_replacements {
+    from_op: "koda_internal.non_deterministic"
+    to_op: "koda_internal.non_deterministic"
+    argument_transformation {
+      keep_literal_argument_indices: 1
+    }
+  }
+  operator_replacements {
+    from_op: "kd.functor.call"
+    to_op: "koda_internal.parallel.parallel_call"
+    argument_transformation {
+      arguments: EXECUTION_CONTEXT
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+"""
+
+_DEFAULT_EXECUTION_CONFIG = py_expr_eval_py_ext.eval_expr(
+    proto_ops.from_proto_bytes(
+        text_format.Parse(
+            _DEFAULT_EXECUTION_CONFIG_TEXTPROTO,
+            execution_config_pb2.ExecutionConfig(),
+        ).SerializeToString(),
+        'koladata.functor.parallel.ExecutionConfig',
+    )
+)
+
+
+# This is a lambda operator with a literal inside so that it's also available in
+# C++.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel.get_default_execution_config'
+)
+def get_default_execution_config():
+  """Returns the default execution config for parallel computation."""
+  return literal_operator.literal(_DEFAULT_EXECUTION_CONFIG)
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel.get_default_execution_context'
+)
+def get_default_execution_context():
+  """Returns the default execution config for parallel computation."""
+  return create_execution_context(
+      get_default_executor(), get_default_execution_config()
+  )
 
 
 @optools.add_to_registry()
