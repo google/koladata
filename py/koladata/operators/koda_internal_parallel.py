@@ -1477,6 +1477,48 @@ def _empty_streams_from_value_type_as(executor, value_type_as):
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_chain',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+    ],
+)
+def _parallel_stream_chain(executor, streams, value_type_as):
+  """The parallel version of iterables.chain."""
+  streams = M.core.concat_tuples(
+      streams, _empty_streams_from_value_type_as(executor, value_type_as)
+  )
+  return arolla.abc.bind_op(
+      stream_chain,
+      streams,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+
+# qtype constraints for everything except executor are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_interleave',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+    ],
+)
+def _parallel_stream_interleave(executor, streams, value_type_as):
+  """The parallel version of iterables.interleave."""
+  streams = M.core.concat_tuples(
+      streams, _empty_streams_from_value_type_as(executor, value_type_as)
+  )
+  return arolla.abc.bind_op(
+      stream_interleave,
+      streams,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+
+# qtype constraints for everything except executor are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
     'koda_internal.parallel._parallel_stream_make',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
@@ -1489,14 +1531,7 @@ def _parallel_stream_make(executor, items, value_type_as):
       items,
       executor,
   )
-  item_streams = M.core.concat_tuples(
-      item_streams, _empty_streams_from_value_type_as(executor, value_type_as)
-  )
-  return arolla.abc.bind_op(
-      stream_chain,
-      item_streams,
-      **optools.unified_non_deterministic_kwarg(),
-  )
+  return _parallel_stream_chain(executor, item_streams, value_type_as)
 
 
 # qtype constraints for everything except executor are omitted in favor of
@@ -1515,14 +1550,7 @@ def _parallel_stream_make_unordered(executor, items, value_type_as):
       items,
       executor,
   )
-  item_streams = M.core.concat_tuples(
-      item_streams, _empty_streams_from_value_type_as(executor, value_type_as)
-  )
-  return arolla.abc.bind_op(
-      stream_interleave,
-      item_streams,
-      **optools.unified_non_deterministic_kwarg(),
-  )
+  return _parallel_stream_interleave(executor, item_streams, value_type_as)
 
 
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
@@ -1617,6 +1645,23 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "kd.iterables.make_unordered"
     to_op: "koda_internal.parallel._parallel_stream_make_unordered"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.iterables.chain"
+    to_op: "koda_internal.parallel._parallel_stream_chain"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+      arguments: NON_DETERMINISTIC_TOKEN
+    }
+  }
+  operator_replacements {
+    from_op: "kd.iterables.interleave"
+    to_op: "koda_internal.parallel._parallel_stream_interleave"
     argument_transformation {
       arguments: EXECUTOR
       arguments: ORIGINAL_ARGUMENTS
