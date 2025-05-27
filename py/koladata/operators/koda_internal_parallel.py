@@ -1096,11 +1096,9 @@ def parallel_call(
   this operator is called directly.
 
   Example:
-    kd.call(kd.fn(I.x + I.y), x=2, y=3)
-    # returns kd.item(5)
-
-    kd.lazy.call(I.fn, x=2, y=3).eval(fn=kd.fn(I.x + I.y))
-    # returns kd.item(5)
+    parallel_call(
+        context, as_future(kd.fn(I.x + I.y)), x=as_future(2), y=as_future(3))
+    # returns a future equivalent to as_future(5)
 
   Args:
     context: The execution context to use for the parallel call.
@@ -1146,7 +1144,7 @@ def parallel_call(
           context,
           fn,
           stack_trace_frame,
-          tuple_ops.make_tuple(args, return_type_as, kwargs),
+          (args, return_type_as, kwargs),
           optools.unified_non_deterministic_arg(),
       )
   )
@@ -1297,8 +1295,8 @@ def stream_reduce(executor, fn, stream, initial_value):
   raise NotImplementedError('implemented in the backend')
 
 
-# since get_item is an overloadable operator, we do not have qtype constraints
-# for x/key, but rather imply them through the lambda.
+# qtype constraints for everything except executor are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_get_item',
@@ -1333,6 +1331,67 @@ def _parallel_get_item(outer_executor, outer_x, outer_key):
       # as a future and key as a literal, which is required for our replacement.
       default=async_eval(P.executor, view_overloads.get_item, P.x, P.key),
   )(outer_executor, outer_x, outer_key)
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_if_impl',
+)
+def _parallel_if_impl(context, cond, yes_fn, no_fn, parallel_args):
+  """Implementation helper for _parallel_if."""
+  args = parallel_args[0]
+  return_type_as = parallel_args[1]
+  kwargs = parallel_args[2]
+  cond = assertion.with_assertion(
+      cond,
+      (slices.get_ndim(cond) == 0)
+      & (schema_ops.get_schema(cond) == schema_constants.MASK),
+      'the condition in kd.if_ must be a MASK scalar',
+  )
+  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      parallel_call,
+      context,
+      # If M.core.where worked on non-array types, we could take futures
+      # to yes_fn/no_fn here and avoid unwrapping and re-wrapping. But it
+      # should not matter too much.
+      as_future(masking.cond(cond, yes_fn, no_fn)),
+      args=args,
+      return_type_as=return_type_as,
+      kwargs=kwargs,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+
+# qtype constraints for everything except executor are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_if',
+    qtype_constraints=[
+        qtype_utils.expect_execution_context(P.context),
+    ],
+)
+def _parallel_if(
+    context,
+    cond,
+    yes_fn,
+    no_fn,
+    args,
+    return_type_as,
+    kwargs,
+):
+  """The parallel version of kd.if_."""
+  return unwrap_future_to_parallel(
+      async_eval(
+          get_executor_from_context(context),
+          _parallel_if_impl,
+          context,
+          cond,
+          yes_fn,
+          no_fn,
+          (args, return_type_as, kwargs),
+          optools.unified_non_deterministic_arg(),
+      )
+  )
 
 
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
@@ -1402,6 +1461,14 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "kd.functor.call"
     to_op: "koda_internal.parallel.parallel_call"
+    argument_transformation {
+      arguments: EXECUTION_CONTEXT
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.functor.if_"
+    to_op: "koda_internal.parallel._parallel_if"
     argument_transformation {
       arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS

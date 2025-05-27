@@ -28,7 +28,9 @@ from koladata.operators import koda_internal_parallel
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
+from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import mask_constants
 
 ds = data_slice.DataSlice.from_vals
 
@@ -225,6 +227,74 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         res_as_stream.read_all(timeout=5.0)[0],
         ds(4).with_bag(x.get_bag()),
     )
+
+  @parameterized.parameters(mask_constants.missing, mask_constants.present)
+  def test_if(self, branch_to_use):
+    barrier = threading.Barrier(2)
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_x(x):
+      barrier.wait()
+      return x
+
+    @tracing_decorator.TraceAsFnDecorator()
+    def do_two_things(x):
+      return wait_and_return_x(x + 1) + wait_and_return_x(x + 2)
+
+    @tracing_decorator.TraceAsFnDecorator()
+    def do_other_two_things(x):
+      return wait_and_return_x(x + 3) + wait_and_return_x(x + 4)
+
+    fn = functor_factories.trace_py_fn(
+        lambda x: user_facing_kd.if_(
+            branch_to_use, do_two_things, do_other_two_things, x
+        )
+    )
+    context = koda_internal_parallel.get_default_execution_context()
+    transformed_fn = koda_internal_parallel.transform(context, fn)
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            koda_internal_parallel.as_future(ds(1)),
+            return_type_as=koda_internal_parallel.as_future(None),
+        )
+    ).eval()
+    if branch_to_use:
+      testing.assert_equal(res.read_all(timeout=5.0)[0], ds(5))
+    else:
+      testing.assert_equal(res.read_all(timeout=5.0)[0], ds(9))
+
+  def test_if_on_bags(self):
+    fn = functor_factories.trace_py_fn(
+        lambda x, y: user_facing_kd.if_(
+            x,
+            lambda z: user_facing_kd.attrs(z, foo=1),
+            lambda z: user_facing_kd.attrs(z, foo=2),
+            y,
+            return_type_as=data_bag.DataBag,
+        )
+    )
+    context = koda_internal_parallel.get_default_execution_context()
+    transformed_fn = koda_internal_parallel.transform(context, fn)
+    y = fns.new()
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            koda_internal_parallel.as_future(mask_constants.present),
+            koda_internal_parallel.as_future(y),
+            return_type_as=koda_internal_parallel.as_future(data_bag.DataBag),
+        )
+    ).eval()
+    new_y = y.updated(res.read_all(timeout=5.0)[0])
+    testing.assert_equal(new_y.foo.no_bag(), ds(1))
+
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            koda_internal_parallel.as_future(mask_constants.missing),
+            koda_internal_parallel.as_future(y),
+            return_type_as=koda_internal_parallel.as_future(data_bag.DataBag),
+        )
+    ).eval()
+    new_y = y.updated(res.read_all(timeout=5.0)[0])
+    testing.assert_equal(new_y.foo.no_bag(), ds(2))
 
 
 if __name__ == '__main__':
