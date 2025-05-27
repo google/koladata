@@ -59,7 +59,7 @@ using arolla::expr::ExprNodePtr;
 using arolla::expr::ExprOperatorPtr;
 using arolla::expr::ExprQuote;
 
-absl::StatusOr<bool> IsSliceOperator(const ExprNodePtr& node) {
+absl::StatusOr<bool> IsSliceOrItemOperator(const ExprNodePtr& node) {
   if (!node->is_op()) {
     return false;
   }
@@ -67,8 +67,12 @@ absl::StatusOr<bool> IsSliceOperator(const ExprNodePtr& node) {
                    arolla::expr::DecayRegisteredOperator(
                        arolla::expr::ExprOperatorRegistry::GetInstance()
                            ->LookupOperatorOrNull("kd.slice")));
+  ASSIGN_OR_RETURN(ExprOperatorPtr item_op,
+                   arolla::expr::DecayRegisteredOperator(
+                       arolla::expr::ExprOperatorRegistry::GetInstance()
+                           ->LookupOperatorOrNull("kd.item")));
   ASSIGN_OR_RETURN(auto op, arolla::expr::DecayRegisteredOperator(node->op()));
-  return op == slice_op;
+  return (op == slice_op) || (op == item_op);
 }
 
 // We want to avoid creating duplicate computations by extracting a sub-expr
@@ -164,6 +168,16 @@ bool IsSimpleSlice(const DataSlice& slice) {
           slice.GetSchemaImpl() == internal::DataItem(schema::kNone));
 };
 
+bool IsDataSliceLiteral(const ExprNodePtr& node) {
+  return expr::IsLiteral(node) && node->qvalue().has_value() &&
+         node->qvalue()->GetType() == arolla::GetQType<DataSlice>();
+}
+
+bool IsUnspecifiedLiteral(const ExprNodePtr& node) {
+  return expr::IsLiteral(node) && node->qvalue().has_value() &&
+         node->qvalue()->GetType() == arolla::GetUnspecifiedQType();
+};
+
 template <typename IsExtractNeededFn>
 absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
     const ExprNodePtr& expr, const SharedNodeTracker& shared_node_tracker,
@@ -231,16 +245,17 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
         return node;
       }
     }
-    ASSIGN_OR_RETURN(bool is_slice_op_node, IsSliceOperator(node));
+    ASSIGN_OR_RETURN(bool is_slice_op_node, IsSliceOrItemOperator(node));
     if (is_slice_op_node) {
-      // Our binding policy for kd.slice produces kd.slice(<literal slice>).
+      // Our binding policy for kd.slice/kd.item produces
+      // kd.slice/kd.item(<literal slice>).
       // When that is named we want the name to be used instead of aux_,
-      // so we remove the unnecessary slice() wrapper in that case.
+      // so we remove the unnecessary slice()/item() wrapper in that case.
       const auto& val = node->node_deps()[0];
       const auto& schema = node->node_deps()[1];
-      if (aux_variable_fingerprints.contains(val->fingerprint()) &&
-          expr::IsLiteral(schema) && schema->qvalue().has_value() &&
-          schema->qvalue()->GetType() == arolla::GetUnspecifiedQType()) {
+      if ((IsDataSliceLiteral(val) ||
+           aux_variable_fingerprints.contains(val->fingerprint())) &&
+          IsUnspecifiedLiteral(schema)) {
         return val;
       }
     }
@@ -274,6 +289,16 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
         ASSIGN_OR_RETURN(auto to, var_container.CreateInput(name));
         return arolla::expr::SubstituteByFingerprint(
             child, {{from->fingerprint(), to}});
+      }
+      if (IsDataSliceLiteral(child)) {
+        DataSlice val = child->qvalue()->UnsafeAs<DataSlice>();
+        if (!IsSimpleSlice(val)) {
+          // Non-simple slices should have been extracted above via
+          // extract_slice, so we should never reach this branch.
+          return absl::InternalError("this should never happen");
+        }
+        vars.emplace(name, std::move(val));
+        return var_container.CreateInput(name);
       }
       vars.emplace(name, DataSlice::CreateFromScalar(ExprQuote{child}));
       return var_container.CreateInput(name);

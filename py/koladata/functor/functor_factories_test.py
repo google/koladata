@@ -248,6 +248,55 @@ class FunctorFactoriesTest(absltest.TestCase):
     fn = functor_factories.trace_py_fn(lambda x, y, **unused: x + y, y=2 * I.z)
     testing.assert_equal(fn(x=2, z=3), ds(8))
 
+  def test_trace_py_fn_auto_boxed_item_name(self):
+
+    def my_model(x):
+      return user_facing_kd.with_name(57, 'foo') * x
+
+    fn = functor_factories.trace_py_fn(my_model)
+    testing.assert_equal(fn(x=2), ds(114))
+    testing.assert_equal(fn.foo.no_bag(), ds(57))
+
+  def test_trace_py_fn_explicit_item_name(self):
+
+    def my_model(x):
+      return user_facing_kd.item(57).with_name('foo') * x
+
+    fn = functor_factories.trace_py_fn(my_model)
+    testing.assert_equal(fn(x=2), ds(114))
+    testing.assert_equal(fn.foo.no_bag(), ds(57))
+
+  def test_trace_py_fn_explicit_item_as_slice_name(self):
+
+    def my_model(x):
+      return user_facing_kd.slice(57).with_name('foo') * x
+
+    fn = functor_factories.trace_py_fn(my_model)
+    testing.assert_equal(fn(x=2), ds(114))
+    testing.assert_equal(fn.foo.no_bag(), ds(57))
+
+  def test_trace_py_fn_non_primitive_item_name(self):
+
+    itemid = kd.new_itemid()
+
+    def my_model():
+      return user_facing_kd.with_name(itemid, 'foo')
+
+    fn = functor_factories.trace_py_fn(my_model)
+    testing.assert_equal(fn().no_bag(), itemid)
+    testing.assert_equal(fn.foo.no_bag(), itemid)
+
+  def test_trace_py_fn_non_primitive_item_name_with_bag(self):
+
+    my_item = kd.new(a=1)
+
+    def my_model():
+      return user_facing_kd.with_name(my_item, 'foo').a
+
+    fn = functor_factories.trace_py_fn(my_model)
+    testing.assert_equal(fn().no_bag(), ds(1))
+    testing.assert_equal(fn.foo.no_bag(), my_item.no_bag())
+
   def test_py_fn_simple(self):
     def f(x, y):
       return x + y
