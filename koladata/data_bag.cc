@@ -93,21 +93,24 @@ absl::StatusOr<DataBagPtr> DataBag::Fork(bool immutable) {
 }
 
 DataBagPtr DataBag::FreezeWithFallbacks() {
+  DCHECK(!IsMutable()) << "DataBag with fallbacks cannot be mutable.";
+  if (!HasMutableFallbacks()) {
+    return DataBagPtr::NewRef(this);
+  }
   std::vector<DataBagPtr> leaf_fallbacks;
   leaf_fallbacks.reserve(GetFallbacks().size());
-  VisitFallbacks(*this, [&leaf_fallbacks](const DataBagPtr fallback) {
-    // TODO: DCHECK that non-leaf fallbacks are empty?
+  VisitFallbacks(*this, [&leaf_fallbacks](DataBagPtr fallback) {
     if (fallback->GetFallbacks().empty()) {
-      leaf_fallbacks.push_back(fallback->FallbackFreeFork(/*immutable=*/true));
+      if (fallback->IsMutable()) {
+        // Since a leaf fallback has no fallbacks by definition, we can call
+        // FallbackFreeFork on it.
+        leaf_fallbacks.push_back(
+            fallback->FallbackFreeFork(/*immutable=*/true));
+      } else {
+        leaf_fallbacks.push_back(std::move(fallback));
+      }
     }
   });
-  for (auto& fallback : leaf_fallbacks) {
-    if (fallback->IsMutable()) {
-      // Since a leaf fallback has no fallbacks by definition, we can call
-      // FallbackFreeFork on it.
-      fallback = fallback->FallbackFreeFork(/*immutable=*/true);
-    }
-  }
   return DataBag::ImmutableEmptyWithFallbacks(std::move(leaf_fallbacks));
 }
 
@@ -206,7 +209,7 @@ absl::Status DataBag::MergeInplace(const DataBagPtr& other_db, bool overwrite,
 }
 
 void VisitFallbacks(const DataBag& bag,
-                    absl::FunctionRef<void(const DataBagPtr&)> visit_fn) {
+                    absl::FunctionRef<void(DataBagPtr)> visit_fn) {
   std::vector<DataBagPtr> stack(bag.GetFallbacks().rbegin(),
                                 bag.GetFallbacks().rend());
   absl::flat_hash_set<const DataBag*> seen_db;
@@ -218,11 +221,11 @@ void VisitFallbacks(const DataBag& bag,
     DCHECK(fallback != nullptr);
     stack.pop_back();
     if (seen_db.insert(fallback.get()).second) {
-      visit_fn(fallback);
       const auto cur_fallbacks = fallback->GetFallbacks();
       for (auto it = cur_fallbacks.rbegin(); it != cur_fallbacks.rend(); ++it) {
         stack.push_back(*it);
       }
+      visit_fn(std::move(fallback));
     }
   }
 }

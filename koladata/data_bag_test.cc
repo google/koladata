@@ -23,6 +23,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "koladata/data_bag_comparison.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
@@ -431,6 +432,46 @@ TEST(DataBagTest, DeepFallbackChainNoStackOverflow) {
   for (int i = 0; i < 1000'000; ++i) {
     db = DataBag::ImmutableEmptyWithFallbacks({db});
   }
+}
+
+TEST(DataBagTest, FreezeWithFallbacks) {
+  //     db5
+  //    /  \
+  //   db4  db3
+  //   /  \
+  // db1  db2
+  auto db1 = DataBag::Empty();
+  auto db2 = DataBag::Empty();
+  auto db3 = DataBag::Empty();
+  auto db4 = DataBag::ImmutableEmptyWithFallbacks({db1, db2});
+  auto db5 = DataBag::ImmutableEmptyWithFallbacks({db4, db3});
+  EXPECT_TRUE(db5->HasMutableFallbacks());
+  auto frozen_db5 = db5->Freeze();
+  EXPECT_FALSE(frozen_db5->HasMutableFallbacks());
+  EXPECT_THAT(frozen_db5->GetFallbacks(), ::testing::SizeIs(3));
+  EXPECT_TRUE(
+      DataBagComparison::ExactlyEqual(frozen_db5->GetFallbacks()[0], db1));
+  EXPECT_TRUE(
+      DataBagComparison::ExactlyEqual(frozen_db5->GetFallbacks()[1], db2));
+  EXPECT_TRUE(
+      DataBagComparison::ExactlyEqual(frozen_db5->GetFallbacks()[2], db3));
+}
+
+TEST(DataBagTest, FreezeWithFallbacks_ImmutableFallbacks) {
+  //     db5
+  //    /  \
+  //   db4  db3
+  //   /  \
+  // db1  db2
+  auto db1 = DataBag::Empty()->Freeze();
+  auto db2 = DataBag::Empty()->Freeze();
+  auto db3 = DataBag::Empty()->Freeze();
+  auto db4 = DataBag::ImmutableEmptyWithFallbacks({db1, db2});
+  auto db5 = DataBag::ImmutableEmptyWithFallbacks({db4, db3});
+  EXPECT_FALSE(db5->HasMutableFallbacks());
+  auto frozen_db5 = db5->Freeze();
+  EXPECT_EQ(frozen_db5, db5);
+  EXPECT_THAT(frozen_db5->GetFallbacks(), ::testing::SizeIs(2));
 }
 
 }  // namespace

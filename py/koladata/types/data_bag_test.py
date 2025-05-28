@@ -1955,35 +1955,6 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
     self.assertFalse(db3.is_mutable())
     testing.assert_equivalent(db3, db1)
 
-  def test_freeze_with_fallbacks(self):
-    ds1 = bag().new(x=1)
-    ds2 = bag().new(y=2)
-    ds3 = bag().new(z=3)
-
-    #      db5
-    #     /  \
-    #    db4  db3
-    #   /  \
-    # db1  db2
-    db1 = ds1.get_bag()
-    db2 = ds2.get_bag()
-    db3 = ds3.get_bag()
-    db4 = kde.bags.enriched(db1, db2).eval()
-    db5 = kde.bags.enriched(db4, db3).eval()
-
-    frozen_db5 = db5.freeze()
-    fallbacks = frozen_db5.get_fallbacks()
-    self.assertLen(fallbacks, 3)
-    testing.assert_equivalent(db1, fallbacks[0])
-    testing.assert_equivalent(db2, fallbacks[1])
-    testing.assert_equivalent(db3, fallbacks[2])
-    self.assertTrue(db1.is_mutable())
-    self.assertTrue(db2.is_mutable())
-    self.assertTrue(db3.is_mutable())
-    self.assertFalse(fallbacks[0].is_mutable())
-    self.assertFalse(fallbacks[1].is_mutable())
-    self.assertFalse(fallbacks[2].is_mutable())
-
   def test_with_name(self):
     x = bag()
     y = x.with_name('foo')

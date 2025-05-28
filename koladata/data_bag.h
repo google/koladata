@@ -18,6 +18,7 @@
 #include <atomic>
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
@@ -166,7 +167,7 @@ class DataBag : public arolla::RefcountedBase {
 
 // Call visit_fn on all fallbacks in pre-order DFS.
 void VisitFallbacks(const DataBag& bag,
-                    absl::FunctionRef<void(const DataBagPtr&)> visit_fn);
+                    absl::FunctionRef<void(DataBagPtr)> visit_fn);
 
 class FlattenFallbackFinder {
  public:
@@ -180,7 +181,7 @@ class FlattenFallbackFinder {
     }
 
     flattened_fallbacks_.reserve(bag.GetFallbacks().size());
-    VisitFallbacks(bag, [this](const DataBagPtr& fallback) {
+    VisitFallbacks(bag, [this](DataBagPtr fallback) {
       this->flattened_fallbacks_.push_back(&fallback->GetImpl());
     });
   }
