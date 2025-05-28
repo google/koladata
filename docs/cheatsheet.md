@@ -162,6 +162,8 @@ assert e.is_entity()
 # Use an existing schema
 s = kd.named_schema('Point', x=kd.INT32, y=kd.INT32)
 e = kd.new(x=1, y=2, schema=s)
+# which is equivalent to
+e = s.new(x=1, y=2)
 
 # When `schema=` is not provided, a new
 # schema is created for each invocation
@@ -2573,7 +2575,8 @@ db3 = kd.with_merged_bag(db) # Same as above
 s1 = kd.uu_schema(x=kd.INT32, y=kd.INT32)
 s2 = kd.uu_schema(z=s1, w=s1)
 
-i1 = s2(z=s1(x=1, y=2), w=s1(x=3, y=4))
+i1 = s2.new(z=s1.new(x=1, y=2),
+            w=s1.new(x=3, y=4))
 
 # extract creates a copy of i1 in a new
 # bag with the same ItemIds
@@ -2593,21 +2596,37 @@ assert not i3.has_attr('z')
 i4 = i1.clone()
 assert i4.get_itemid() != i1.get_itemid()
 assert i4.z.get_itemid() == i1.z.get_itemid()
-i4.z.get_attr_names(intersection=True) # ['x', 'y']
+kd.dir(i4.z) # ['x', 'y']
+
+# use specific ItemIds instead of creating new ones
+id1 = kd.new_itemid()
+i5 = i1.clone(itemid=id1)
+assert i5.get_itemid() == id1
+assert i5.z.get_itemid() == i1.z.get_itemid()
+kd.dir(i5.z) # ['x', 'y']
 
 # shallow_clone creates a copy of i1 in with a new
 # ItemId and keep same ItemIds for top-level attributes
-i5 = i1.shallow_clone()
-assert i5.get_itemid() != i1.get_itemid()
-assert i5.z.get_itemid() == i1.z.get_itemid()
-i5.z.get_attr_names(intersection=True) # []
+i6 = i1.shallow_clone()
+assert i6.get_itemid() != i1.get_itemid()
+assert i6.z.get_itemid() == i1.z.get_itemid()
+kd.dir(i6.z) # []
+
+# use specific ItemIds instead of creating new ones
+id2 = kd.new_itemid()
+i7 = i1.shallow_clone(itemid=id2)
+assert i7.get_itemid() == id2
+assert i7.z.get_itemid() == i1.z.get_itemid()
+kd.dir(i7.z) # []
 
 # deep_clone creates a copy of i1 and its attributes
 # with new ItemIds
-i6 = i1.deep_clone()
-assert i6.get_itemid() != i1.get_itemid()
-assert i6.z.get_itemid() != i1.z.get_itemid()
-i6.z.get_attr_names(intersection=True) # ['x', 'y']
+i8 = i1.deep_clone()
+assert i8.get_itemid() != i1.get_itemid()
+assert i8.z.get_itemid() != i1.z.get_itemid()
+kd.dir(i8.z) # ['x', 'y']
+
+# deep_clone does not support itemid= argument
 ```
 
 </section>
