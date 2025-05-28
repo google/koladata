@@ -211,12 +211,9 @@ def _to_data_slice(x):  # pylint: disable=unused-argument
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator(
-    'koda_internal.to_data_slice',
-    qtype_constraints=[qtype_utils.expect_jagged_shape_or_unspecified(P.shape)],
-)
-def to_data_slice(x, shape=arolla.unspecified()):
-  """Converts `x` to a DataSlice with an optional `shape`."""
+@optools.as_lambda_operator('koda_internal.to_data_slice')
+def to_data_slice(x):
+  """Converts `x` to a DataSlice."""
   to_dense_array_or_scalar = arolla.types.DispatchOperator(
       'x',
       array_case=arolla.types.DispatchCase(
@@ -224,23 +221,14 @@ def to_data_slice(x, shape=arolla.unspecified()):
       ),
       default=P.x,
   )
-  with_shape = arolla.types.DispatchOperator(
-      'x, shape',
-      shape_case=arolla.types.DispatchCase(
-          _reshape(P.x, P.shape), condition=P.shape != arolla.UNSPECIFIED
-      ),
-      default=P.x,
-  )
   to_slice = arolla.types.DispatchOperator(
-      'x, shape',
+      'x',
       passthrough_case=arolla.types.DispatchCase(
-          P.x, condition=(P.x == arolla.UNSPECIFIED)
+          P.x, condition=P.x == qtypes.DATA_SLICE
       ),
-      default=with_shape(
-          _to_data_slice(to_dense_array_or_scalar(P.x)), P.shape
-      ),
+      default=_to_data_slice(to_dense_array_or_scalar(P.x)),
   )
-  return to_slice(x, shape)
+  return to_slice(x)
 
 
 @optools.add_to_registry()

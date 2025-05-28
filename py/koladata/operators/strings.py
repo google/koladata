@@ -596,8 +596,10 @@ def regex_find_all(text, regex):  # pylint: disable=unused-argument
           group_edge,
       ),
   )
-  return arolla_bridge.to_data_slice(flat_res, shape).with_schema(
-      text.get_schema()
+  return (
+      arolla_bridge.to_data_slice(flat_res)
+      .reshape(shape)
+      .with_schema(text.get_schema())
   )
 
 
@@ -677,8 +679,10 @@ def regex_replace_all(text, regex, replacement):
   replacement_da = arolla_bridge.to_arolla_dense_array_text(replacement_a)
   regex_t = arolla_bridge.to_arolla_text(regex)
   res_da = M.strings.replace_all_regex(text_da, regex_t, replacement_da)
-  return arolla_bridge.to_data_slice(res_da, text_a.get_shape()).with_schema(
-      text.get_schema()
+  return (
+      arolla_bridge.to_data_slice(res_da)
+      .reshape(text_a.get_shape())
+      .with_schema(text.get_schema())
   )
 
 

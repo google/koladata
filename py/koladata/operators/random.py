@@ -166,7 +166,7 @@ def mask(x, ratio, seed, key=arolla.unspecified()):
       arolla_bridge.to_arolla_int64(seed),
       _to_dense_array_text_or_unspecified(key),
   )
-  return arolla_bridge.to_data_slice(flat_mask, x_shape)
+  return arolla_bridge.to_data_slice(flat_mask).reshape(x_shape)
 
 
 @optools.add_to_registry(aliases=['kd.sample'])
@@ -315,7 +315,7 @@ def sample_n(
       _to_dense_array_text_or_unspecified(key),
       M.jagged.edge_at(x_shape_upcast, -1),
   )
-  ds_mask = arolla_bridge.to_data_slice(flat_mask, x_shape)
+  ds_mask = arolla_bridge.to_data_slice(flat_mask).reshape(x_shape)
   return slices.internal_select_by_slice(x, ds_mask)
 
 
@@ -390,7 +390,7 @@ def randint_shaped(
       new_high,
       arolla_bridge.to_arolla_int64(seed),
   )
-  return arolla_bridge.to_data_slice(flat_res, shape)
+  return arolla_bridge.to_data_slice(flat_res).reshape(shape)
 
 
 @optools.add_to_registry(

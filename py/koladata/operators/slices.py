@@ -123,11 +123,10 @@ def agg_count(x, ndim=arolla.unspecified()):
   shape = jagged_shape_ops.get_shape(x)
   shape_upcast = arolla_bridge.to_arolla_jagged_shape(shape)
   flat_res = M.array.count(flat_units, into=M.jagged.edge_at(shape_upcast, -1))
-  return arolla_bridge.to_data_slice(
-      flat_res,
+  return arolla_bridge.to_data_slice(flat_res).reshape(
       arolla_bridge.from_arolla_jagged_shape(
           M.jagged.remove_dims(shape_upcast, from_dim=-1)
-      ),
+      )
   )
 
 
@@ -168,7 +167,7 @@ def cum_count(x, ndim=arolla.unspecified()):
           -1,
       ),
   )
-  return arolla_bridge.to_data_slice(flat_res, x_shape)
+  return arolla_bridge.to_data_slice(flat_res).reshape(x_shape)
 
 
 @optools.add_to_registry(aliases=['kd.count'])
@@ -882,7 +881,7 @@ def index(x, dim=-1):
           -1,
       ),
   )
-  shaped_res = arolla_bridge.to_data_slice(flat_res, shape)
+  shaped_res = arolla_bridge.to_data_slice(flat_res).reshape(shape)
   return expand_to(shaped_res, x)
 
 

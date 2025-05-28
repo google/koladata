@@ -260,4 +260,6 @@ def hash_itemid(x):
       arolla_bridge.to_arolla_dense_array_text(encode_itemid(x)),
       arolla.int64(85852539),
   )
-  return arolla_bridge.to_data_slice(hash_value, jagged_shape_ops.get_shape(x))
+  return arolla_bridge.to_data_slice(hash_value).reshape(
+      jagged_shape_ops.get_shape(x)
+  )

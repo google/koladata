@@ -26,7 +26,6 @@ from koladata.operators import kde_operators as _
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
-from koladata.types import jagged_shape
 from koladata.types import literal_operator
 
 
@@ -35,10 +34,9 @@ ds = data_slice.DataSlice.from_vals
 
 
 def gen_testcases():
-  # Unspecified cases.
-  yield arolla.unspecified(), arolla.unspecified()
-  yield arolla.unspecified(), arolla.unspecified(), arolla.unspecified()
-  yield arolla.unspecified(), jagged_shape.create_shape(1), arolla.unspecified()
+  # DataSlice fallthrough
+  yield ds(1), ds(1)
+  yield ds([1, 2, 3]), ds([1, 2, 3])
   # Standard arolla types.
   values = (None, 1.5, 0, 1, 'a', b'a', True, False)
   qtypes = pointwise_test_utils.lift_qtypes(
@@ -57,13 +55,9 @@ def gen_testcases():
     if arolla.types.is_array_qtype(x.qtype):
       ds_res = ds(res)
       yield x, ds_res
-      yield x, arolla.unspecified(), ds_res
-      yield x, ds_res.repeat(1).get_shape(), ds_res.repeat(1)
     else:
       ds_res = ds(res)
       yield x, ds_res
-      yield x, arolla.unspecified(), ds_res
-      yield x, jagged_shape.create_shape(1, 1), ds_res.repeat(1).repeat(1)
   # We also test fully missing values explicitly.
   yield arolla.array_int32([None]), ds(arolla.array_int32([None]))
   yield arolla.dense_array_int32([None]), ds(arolla.dense_array_int32([None]))
@@ -79,9 +73,8 @@ QTYPES = frozenset(tuple(arg.qtype for arg in args) for args in TEST_CASES)
 class KodaToDataSliceTest(parameterized.TestCase):
 
   @parameterized.parameters(*TEST_CASES)
-  def test_eval(self, *args_and_expected):
-    args, expected = args_and_expected[:-1], args_and_expected[-1]
-    res = expr_eval.eval(arolla_bridge.to_data_slice(*args))
+  def test_eval(self, x, expected):
+    res = expr_eval.eval(arolla_bridge.to_data_slice(x))
     testing.assert_equal(res, expected)
 
   def test_unsupported_value(self):
@@ -97,17 +90,14 @@ class KodaToDataSliceTest(parameterized.TestCase):
         arolla.abc.bind_op(
             arolla_bridge.to_data_slice,
             literal_operator.literal(arolla.int64(1)),
-            literal_operator.literal(arolla.unspecified()),
         ),
     )
 
   def test_qtype_signatures(self):
-    self.assertCountEqual(
-        arolla.testing.detect_qtype_signatures(
-            arolla_bridge.to_data_slice,
-            possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
-        ),
+    arolla.testing.assert_qtype_signatures(
+        arolla_bridge.to_data_slice,
         QTYPES,
+        possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES,
     )
 
   def test_view(self):

@@ -4248,7 +4248,6 @@ py_test(
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:jagged_shape",
         "//py/koladata/types:literal_operator",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
