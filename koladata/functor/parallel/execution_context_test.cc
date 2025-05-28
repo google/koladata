@@ -25,6 +25,7 @@
 #include "arolla/util/repr.h"
 #include "arolla/util/testing/equals_proto.h"
 #include "koladata/functor/parallel/eager_executor.h"
+#include "koladata/functor/parallel/execution_config.pb.h"
 #include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {

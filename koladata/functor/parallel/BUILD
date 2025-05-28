@@ -53,6 +53,7 @@ cc_library(
     srcs = ["transform.cc"],
     hdrs = ["transform.h"],
     deps = [
+        ":execution_config_cc_proto",
         ":execution_context",
         ":executor",
         "//koladata:data_bag",
@@ -626,6 +627,7 @@ cc_test(
     srcs = ["execution_context_test.cc"],
     deps = [
         ":eager_executor",
+        ":execution_config_cc_proto",
         ":execution_context",
         ":executor",
         "//koladata/testing:test_env",
