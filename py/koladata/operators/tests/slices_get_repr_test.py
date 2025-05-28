@@ -66,6 +66,12 @@ class SlicesGetReprTest(parameterized.TestCase):
           db.dict_schema(schema_constants.STRING, schema_constants.INT32),
           ds('DICT{STRING, INT32}'),
       ),
+      (
+          'milti_dim_entity',
+          db.new(a=ds([1, 2])),
+          ds('[Entity(a=1), Entity(a=2)]'),
+      ),
+      ('multi_dim_object', db.obj(a=ds([1, 2])), ds('[Obj(a=1), Obj(a=2)]')),
   )
   def test_eval(self, x, expected):
     res = eval_op('kd.slices.get_repr', x)

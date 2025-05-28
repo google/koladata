@@ -1061,7 +1061,8 @@ absl::StatusOr<DataSlice> Translate(const DataSlice& keys_to,
 }
 
 absl::StatusOr<DataSlice> GetRepr(const DataSlice& x) {
-  ASSIGN_OR_RETURN(auto repr, DataSliceToStr(x));
+  ASSIGN_OR_RETURN(auto repr,
+                   DataSliceToStr(x, ReprOption{.show_attributes = true}));
   return DataSlice::Create(internal::DataItem(arolla::Text(std::move(repr))),
                            internal::DataItem(schema::kString));
 }
