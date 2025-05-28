@@ -232,5 +232,23 @@ void BM_DAGObjects(benchmark::State& state) {
 
 BENCHMARK(BM_DAGObjects)->Apply(kLayersBenchmarkFn);
 
+void BM_ScalarPrimitive(benchmark::State& state) {
+  auto input_db = DataBagImpl::CreateEmptyDatabag();
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ExtractOp op(result_db.get());
+  DataItem item(1);
+  DataItem schema(schema::kInt32);
+  while (state.KeepRunning()) {
+    benchmark::DoNotOptimize(item);
+    benchmark::DoNotOptimize(schema);
+    benchmark::DoNotOptimize(input_db);
+    auto result_db = DataBagImpl::CreateEmptyDatabag();
+    op(item, schema, *input_db, {}, nullptr, {}).IgnoreError();
+    benchmark::DoNotOptimize(result_db);
+  }
+}
+
+BENCHMARK(BM_ScalarPrimitive);
+
 }  // namespace
 }  // namespace koladata::internal
