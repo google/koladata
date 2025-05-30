@@ -20,6 +20,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_format.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
@@ -309,6 +310,38 @@ TEST_P(TraverseHelperTest, TransitionByKeyEntity) {
   EXPECT_EQ(transition.schema, DataItem(int_dtype));
 }
 
+TEST_P(TraverseHelperTest, TransitionByKeyObjectToEntity) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(3);
+  auto a0 = obj_ids[0];
+  auto int_dtype = DataItem(schema::kInt32);
+  auto schema = AllocateSchema();
+
+  TriplesT schema_triples = {{schema, {{"x", int_dtype}, {"y", int_dtype}}}};
+  TriplesT data_triples = {{a0,
+                            {{schema::kSchemaAttr, schema},
+                             {"x", DataItem(1)},
+                             {"y", DataItem(4)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  DataBagImplPtr main_db = GetMainDb(db);
+  auto fallback_db = GetFallbackDb(db);
+  auto fallbacks = std::vector<const DataBagImpl*>({fallback_db.get()});
+  auto traverse_helper = TraverseHelper(*main_db, fallbacks);
+  ASSERT_OK_AND_ASSIGN(auto transition_set,
+                       traverse_helper.GetTransitions(a0, schema));
+
+  TransitionKey transition_key({.type = TransitionType::kObjectSchema});
+  ASSERT_OK_AND_ASSIGN(auto transition, traverse_helper.TransitionByKey(
+                                            a0, DataItem(schema::kObject),
+                                            transition_set, transition_key));
+  EXPECT_EQ(transition.item, schema);
+  EXPECT_EQ(transition.schema, DataItem(schema::kSchema));
+}
+
 TEST_P(TraverseHelperTest, TransitionByKeyList) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto lists = AllocateEmptyLists(3);
@@ -463,6 +496,61 @@ TEST_P(TraverseHelperTest, TransitionByKeySchema) {
                                             transition_set, transition_key));
   EXPECT_EQ(transition.item, DataItem(int_dtype));
   EXPECT_EQ(transition.schema, DataItem(schema::kSchema));
+}
+
+TEST_P(TraverseHelperTest, TransitionKeyToAccessString) {
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kListItem, .index = 2}),
+            "[2]");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kDictKey, .index = 1}),
+            ".get_keys().S[1]");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kDictValue, .index = 2}),
+            ".get_values().S[2]");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kAttributeName,
+                 .value = DataItem(arolla::Text("x"))}),
+            ".x");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kAttributeName,
+                 .value = DataItem(arolla::Text(schema::kSchemaNameAttr))}),
+            absl::StrFormat(".get_attr('%s')", schema::kSchemaNameAttr));
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kAttributeName,
+                 .value = DataItem(arolla::Text(schema::kSchemaMetadataAttr))}),
+            absl::StrFormat(".get_attr('%s')", schema::kSchemaMetadataAttr));
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kAttributeName,
+                 .value = DataItem(arolla::Text(schema::kSchemaAttr))}),
+            absl::StrFormat(".get_obj_schema()"));
+  EXPECT_EQ(
+      TraverseHelper::TransitionKeyToAccessString(
+          {.type = TransitionType::kAttributeName,
+           .value = DataItem(arolla::Text(schema::kListItemsSchemaAttr))}),
+      ".get_item_schema()");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kAttributeName,
+                 .value = DataItem(arolla::Text(schema::kDictKeysSchemaAttr))}),
+            ".get_key_schema()");
+  EXPECT_EQ(
+      TraverseHelper::TransitionKeyToAccessString(
+          {.type = TransitionType::kAttributeName,
+           .value = DataItem(arolla::Text(schema::kDictValuesSchemaAttr))}),
+      ".get_value_schema()");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kAttributeName,
+                 .value = DataItem(arolla::Text("foo"))}),
+            ".foo");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kObjectSchema}),
+            ".get_obj_schema()");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kSchema}),
+            ".get_schema()");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kSliceItem, .index = 1}),
+            ".S[1]");
 }
 
 TEST_P(TraverseHelperTest, ForEachObject) {

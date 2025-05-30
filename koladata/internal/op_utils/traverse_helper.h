@@ -19,14 +19,18 @@
 
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
+#include "absl/base/optimization.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
 #include "arolla/util/view_types.h"
@@ -51,6 +55,9 @@ class TraverseHelper {
     kDictKey,
     kDictValue,
     kAttributeName,
+    kObjectSchema,
+    kSchema,
+    kSliceItem,
   };
 
   struct Transition {
@@ -66,6 +73,49 @@ class TraverseHelper {
     // Attribute name of dict key for dict keys/values.
     DataItem value = DataItem();
   };
+
+  static std::string TransitionKeyToAccessString(const TransitionKey& key) {
+    if (key.type == TransitionType::kListItem) {
+      return absl::StrFormat("[%d]", key.index);
+    } else if (key.type == TransitionType::kDictKey) {
+      return absl::StrFormat(".get_keys().S[%d]", key.index);
+    } else if (key.type == TransitionType::kDictValue) {
+      return absl::StrFormat(".get_values().S[%d]", key.index);
+    } else if (key.type == TransitionType::kAttributeName) {
+      auto attr_name = key.value.value<arolla::Text>().view();
+      if (attr_name == schema::kSchemaNameAttr) {
+        return absl::StrFormat(".get_attr('%s')", schema::kSchemaNameAttr);
+      } else if (attr_name == schema::kSchemaMetadataAttr) {
+        return absl::StrFormat(".get_attr('%s')", schema::kSchemaMetadataAttr);
+      } else if (attr_name == schema::kSchemaAttr) {
+        return ".get_obj_schema()";
+      } else if (attr_name == schema::kListItemsSchemaAttr) {
+        return ".get_item_schema()";
+      } else if (attr_name == schema::kDictKeysSchemaAttr) {
+        return ".get_key_schema()";
+      } else if (attr_name == schema::kDictValuesSchemaAttr) {
+        return ".get_value_schema()";
+      } else {
+        return absl::StrFormat(".%s", attr_name);
+      }
+    } else if (key.type == TransitionType::kObjectSchema) {
+      return ".get_obj_schema()";
+    } else if (key.type == TransitionType::kSchema) {
+      return ".get_schema()";
+    } else if (key.type == TransitionType::kSliceItem) {
+      return absl::StrFormat(".S[%d]", key.index);
+    }
+    ABSL_UNREACHABLE();
+  }
+
+  static std::string TransitionKeySequenceToAccessPath(
+      absl::Span<TransitionKey> seq) {
+    std::string result;
+    for (const auto& key : seq) {
+      absl::StrAppend(&result, TransitionKeyToAccessString(key));
+    }
+    return result;
+  }
 
   // A view of a set of transitions for a given item with a given schema.
   //
@@ -268,6 +318,12 @@ class TraverseHelper {
         return AttributeTransition(item, schema,
                                    key.value.value<arolla::Text>());
       }
+    } else if (key.type == TransitionType::kObjectSchema) {
+      ASSIGN_OR_RETURN(auto object_schema, GetObjectSchema(item));
+      return Transition({.item = std::move(object_schema),
+                         .schema = DataItem(schema::kSchema)});
+    } else if (key.type == TransitionType::kSchema) {
+      return Transition({.item = schema, .schema = DataItem(schema::kSchema)});
     } else {
       return absl::InternalError("unsupported transition key type");
     }
