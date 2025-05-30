@@ -15,6 +15,7 @@
 #ifndef KOLADATA_INTERNAL_ERROR_H_
 #define KOLADATA_INTERNAL_ERROR_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -84,6 +85,14 @@ struct IncompatibleSchemaError {
   std::string attr;
   DataItem expected_schema;
   DataItem assigned_schema;
+};
+
+// Error when an attribute has a shape that is not broadcastable to the
+// common shape.
+struct ShapeAlignmentError {
+  size_t common_shape_id;        // index of the common shape in the input.
+  size_t incompatible_shape_id;  // index of the incompatible shape in the
+                                 // input.
 };
 
 }  // namespace koladata::internal

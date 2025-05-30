@@ -666,6 +666,16 @@ TEST(CreateUuTest, DataSlice) {
   ASSERT_OK_AND_ASSIGN(auto ds_3,
                        CreateUuObject(db, "seed", {"a", "b"}, {ds_a, ds_b}));
   EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_3.slice())));
+
+  // Aligning fails.
+  ds_b = test::DataSlice<int>({1, 2});
+  EXPECT_THAT(
+      CreateUu(db, "", {"a", "b"}, {ds_a, ds_b}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("Common shape belonging to attribute 'a': JaggedShape(3)\n"
+                    "Incompatible shape belonging to attribute 'b': "
+                    "JaggedShape(2)")));
 }
 
 TEST(CreateUuTest, DataItem) {
@@ -1188,6 +1198,17 @@ TEST(UuObjectCreatorTest, DataSlice) {
       CreateUuObject(
           db, "seed", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
   EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_3.slice())));
+
+  // Aligning fails.
+  ds_b = test::DataSlice<int>({1, 2});
+  EXPECT_THAT(
+      CreateUuObject(db, "", {std::string("a"), std::string("b")},
+                     {ds_a, ds_b}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("Common shape belonging to attribute 'a': JaggedShape(3)\n"
+                    "Incompatible shape belonging to attribute 'b': "
+                    "JaggedShape(2)")));
 }
 
 TEST(UuObjectCreatorTest, DataItem) {
@@ -1341,10 +1362,46 @@ TYPED_TEST(CreatorTest, AutoBroadcasting) {
 
   ds_b = test::AllocateDataSlice(2, schema::kObject);
   EXPECT_THAT(
-      CreatorT::FromAttrs(
-          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr("shapes are not compatible")));
+      CreatorT::FromAttrs(db, {std::string("a"), std::string("b")},
+                          {ds_a, ds_b}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("Common shape belonging to attribute 'a': JaggedShape(3)\n"
+                    "Incompatible shape belonging to attribute 'b': "
+                    "JaggedShape(2)")));
+}
+
+TEST(EntityCreatorTest, AutoBroadcasting_WithSchema) {
+  constexpr int64_t kSize = 3;
+  auto db = DataBag::Empty();
+  auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
+  auto ds_b = test::DataItem(internal::AllocateSingleObject());
+  auto int_s = test::Schema(schema::kObject);
+  DataSlice entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
+
+  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(
+                                    db, {std::string("a"), std::string("b")},
+                                    {ds_a, ds_b}, entity_schema));
+  EXPECT_EQ(ds.GetBag(), db);
+  EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
+  EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
+
+  EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsExplicitSchema());
+
+  ASSERT_OK_AND_ASSIGN(auto ds_b_get, db->GetImpl().GetAttr(ds.slice(), "b"));
+  auto obj_id = ds_b.item().value<ObjectId>();
+  EXPECT_THAT(ds_b_get.template values<ObjectId>(),
+              ElementsAre(obj_id, obj_id, obj_id));
+
+  ds_b = test::AllocateDataSlice(2, schema::kObject);
+  EXPECT_THAT(
+      EntityCreator::FromAttrs(db, {std::string("a"), std::string("b")},
+                               {ds_a, ds_b}, entity_schema),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr("Common shape belonging to attribute 'a': JaggedShape(3)\n"
+                    "Incompatible shape belonging to attribute 'b': "
+                    "JaggedShape(2)")));
 }
 
 TYPED_TEST(CreatorTest, FromAttrs_ItemId) {
@@ -1359,14 +1416,21 @@ TYPED_TEST(CreatorTest, FromAttrs_ItemId) {
       shape, internal::DataItem(schema::kItemId), db);
 
   DataSlice ds;
-  if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::FromAttrs(
-        db, {std::string("a"), std::string("b")}, {ds_a, ds_b},
-        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid));
-  } else {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::FromAttrs(
-        db, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
-  }
+
+  auto from_attrs_fn = [&](auto& ds_a, auto& ds_b,
+                           auto& itemid) -> absl::StatusOr<DataSlice> {
+    if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
+      return CreatorT::FromAttrs(
+          db, {std::string("a"), std::string("b")}, {ds_a, ds_b},
+          /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid);
+    } else {
+      return CreatorT::FromAttrs(db, {std::string("a"), std::string("b")},
+                                 {ds_a, ds_b}, itemid);
+    }
+  };
+
+  ASSERT_OK_AND_ASSIGN(ds, from_attrs_fn(ds_a, ds_b, itemid));
+
   EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
   EXPECT_THAT(ds.GetAttr("a"),
               IsOkAndHolds(IsEquivalentTo(
@@ -1374,6 +1438,12 @@ TYPED_TEST(CreatorTest, FromAttrs_ItemId) {
   EXPECT_THAT(ds.GetAttr("b"),
               IsOkAndHolds(IsEquivalentTo(
                   BroadcastToShape(ds_b, ds.GetShape())->WithBag(db))));
+
+  ds_a = test::AllocateDataSlice(3, schema::kObject);
+  ds_b = test::AllocateDataSlice(2, schema::kObject);
+  EXPECT_THAT(from_attrs_fn(ds_a, ds_b, itemid),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("cannot be expanded to shape")));
 }
 
 TYPED_TEST(CreatorTest, Shaped_WithAttrs) {

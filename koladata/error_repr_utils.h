@@ -19,6 +19,7 @@
 
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -58,6 +59,12 @@ absl::Status KodaErrorCausedByMissingObjectSchemaError(absl::Status status,
 // the status unchanged.
 absl::Status KodaErrorCausedByNoCommonSchemaError(absl::Status status,
                                                   const DataBagPtr& db);
+
+// Clarifies the error if it is caused by incompatible shapes of attributes.
+// Otherwise, returns the status unchanged.
+absl::Status KodaErrorCausedByShapeAlignmentError(
+    absl::Status status, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values);
 
 // Creates an error with the repr of the schema. The cause is propagated.
 absl::Status CreateItemCreationError(const absl::Status& status,

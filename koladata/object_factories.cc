@@ -584,7 +584,9 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
           KodaErrorCausedByIncompableSchemaError(_, db, values[i].GetBag(),
                                                  values[i]));
     }
-    ASSIGN_OR_RETURN(aligned_values, shape::Align(std::move(casted_values)));
+    ASSIGN_OR_RETURN(
+        aligned_values, shape::Align(std::move(casted_values)),
+        KodaErrorCausedByShapeAlignmentError(std::move(_), attr_names, values));
   } else {
     std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
     schemas.reserve(values.size());
@@ -596,7 +598,9 @@ absl::StatusOr<DataSlice> EntityCreator::FromAttrs(
           schema_item,
           db_mutable_impl.CreateExplicitSchemaFromFields(attr_names, schemas));
     }
-    ASSIGN_OR_RETURN(aligned_values, shape::Align(values));
+    ASSIGN_OR_RETURN(
+        aligned_values, shape::Align(values),
+        KodaErrorCausedByShapeAlignmentError(std::move(_), attr_names, values));
   }
   std::optional<DataSlice> res;
   // All DataSlices have the same shape at this point and thus the same internal
@@ -669,7 +673,9 @@ absl::StatusOr<DataSlice> ObjectCreator::FromAttrs(
     return ObjectCreator::Shaped(db, DataSlice::JaggedShape::Empty(), {}, {});
   }
   RETURN_IF_ERROR(VerifyNoSchemaArg(attr_names));
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
+  ASSIGN_OR_RETURN(
+      auto aligned_values, shape::Align(values),
+      KodaErrorCausedByShapeAlignmentError(std::move(_), attr_names, values));
   std::optional<DataSlice> res;
   // All DataSlices have the same shape at this point and thus the same internal
   // representation, so we pick any of them to dispatch the object creation by
@@ -771,7 +777,9 @@ absl::StatusOr<DataSlice> CreateUu(
         std::vector<std::reference_wrapper<const internal::DataItem>>{});
     return DataSlice::Create(uuid, std::move(schema_item), db);
   }
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
+  ASSIGN_OR_RETURN(
+      auto aligned_values, shape::Align(values),
+      KodaErrorCausedByShapeAlignmentError(std::move(_), attr_names, values));
   // All DataSlices have the same shape at this point and thus the same internal
   // representation, so we pick any of them to dispatch the object creation by
   // internal implementation type.
@@ -820,7 +828,9 @@ absl::StatusOr<DataSlice> CreateUuObject(
     RETURN_IF_ERROR(SetObjectSchema(db_mutable_impl, uuid, {}, {}));
     return DataSlice::Create(uuid, internal::DataItem(schema::kObject), db);
   }
-  ASSIGN_OR_RETURN(auto aligned_values, shape::Align(values));
+  ASSIGN_OR_RETURN(
+      auto aligned_values, shape::Align(values),
+      KodaErrorCausedByShapeAlignmentError(std::move(_), attr_names, values));
 
   std::vector<std::reference_wrapper<const internal::DataItem>> schemas;
   schemas.reserve(aligned_values.size());

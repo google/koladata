@@ -14,6 +14,7 @@
 //
 #include "koladata/shape_utils.h"
 
+#include <cstddef>
 #include <utility>
 #include <vector>
 
@@ -24,7 +25,9 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/util/repr.h"
+#include "arolla/util/status.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/errors.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::shape {
@@ -35,21 +38,28 @@ absl::StatusOr<DataSlice::JaggedShape> GetCommonShape(
     return absl::InvalidArgumentError(
         "computing a common shape requires at least 1 input");
   }
-  const DataSlice::JaggedShape* shape = nullptr;
-  for (const auto& slice : slices) {
-    if (shape == nullptr || shape->rank() < slice.GetShape().rank()) {
-      shape = &slice.GetShape();
+  size_t common_shape_id = 0;
+  for (size_t i = 1; i < slices.size(); ++i) {
+    if (slices[common_shape_id].GetShape().rank() <
+        slices[i].GetShape().rank()) {
+      common_shape_id = i;
     }
   }
-  DCHECK_NE(shape, nullptr);
-  for (const auto& slice : slices) {
-    if (!slice.GetShape().IsBroadcastableTo(*shape)) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "shapes are not compatible: %s vs %s", arolla::Repr(slice.GetShape()),
-          arolla::Repr(*shape)));
+  const auto& common_shape = slices[common_shape_id].GetShape();
+  for (size_t i = 0; i < slices.size(); ++i) {
+    const DataSlice::JaggedShape& slice_shape = slices[i].GetShape();
+    if (!slice_shape.IsBroadcastableTo(common_shape)) {
+      absl::Status status = absl::InvalidArgumentError(absl::StrFormat(
+          "shapes are not compatible: %s vs %s", arolla::Repr(slice_shape),
+          arolla::Repr(common_shape)));
+      return arolla::WithPayload(std::move(status),
+                                 internal::ShapeAlignmentError{
+                                     .common_shape_id = common_shape_id,
+                                     .incompatible_shape_id = i,
+                                 });
     }
   }
-  return *shape;
+  return common_shape;
 }
 
 absl::StatusOr<std::vector<DataSlice>> Align(std::vector<DataSlice> slices) {

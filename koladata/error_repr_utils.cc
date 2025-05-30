@@ -24,12 +24,14 @@
 #include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/functional/overload.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/status.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -206,6 +208,33 @@ absl::StatusOr<std::string> FormatIncompatibleSchemaError(
             error.attr));
   }
   return error_str;
+}
+
+absl::StatusOr<std::string> FormatShapeAlignmentError(
+    const internal::ShapeAlignmentError& error,
+    absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
+  DCHECK_EQ(attr_names.size(), values.size());
+  DCHECK_GE(error.common_shape_id, 0);
+  DCHECK_LT(error.common_shape_id, attr_names.size());
+  DCHECK_GE(error.incompatible_shape_id, 0);
+  DCHECK_LT(error.incompatible_shape_id, attr_names.size());
+
+  absl::string_view common_attr_name = attr_names[error.common_shape_id];
+  absl::string_view incompatible_attr_name =
+      attr_names[error.incompatible_shape_id];
+  const DataSlice::JaggedShape& common_shape =
+      values[error.common_shape_id].GetShape();
+  const DataSlice::JaggedShape& incompatible_shape =
+      values[error.incompatible_shape_id].GetShape();
+
+  return absl::StrFormat(
+      "cannot align shapes due to a shape not being broadcastable to the "
+      "common shape candidate.\n\n"
+      "Common shape belonging to attribute '%s': %s\n"
+      "Incompatible shape belonging to attribute '%s': %s",
+      common_attr_name, arolla::Repr(common_shape), incompatible_attr_name,
+      arolla::Repr(incompatible_shape));
 }
 
 constexpr const char* kDataBagMergeErrorSchemaConflict =
@@ -491,6 +520,22 @@ absl::Status CreateItemCreationError(const absl::Status& status,
     error_message = absl::StrFormat("cannot create Item(s)");
   }
   return internal::KodaErrorFromCause(std::move(error_message), status);
+}
+
+absl::Status KodaErrorCausedByShapeAlignmentError(
+    absl::Status status, absl::Span<const absl::string_view> attr_names,
+    absl::Span<const DataSlice> values) {
+  if (const internal::ShapeAlignmentError* shape_alignment_error =
+          arolla::GetPayload<internal::ShapeAlignmentError>(status);
+      shape_alignment_error != nullptr) {
+    ASSIGN_OR_RETURN(
+        std::string error_message,
+        FormatShapeAlignmentError(*shape_alignment_error, attr_names, values));
+    absl::Status new_status =
+        absl::Status(status.code(), std::move(error_message));
+    return arolla::WithCause(std::move(new_status), std::move(status));
+  }
+  return status;
 }
 
 }  // namespace koladata

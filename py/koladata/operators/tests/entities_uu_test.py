@@ -201,7 +201,10 @@ class EntitiesUuTest(parameterized.TestCase):
           arolla.unspecified(),
           False,
           dict(a=ds([1, 2, 3]), b=ds([1, 2])),
-          'kd.entities.uu: shapes are not compatible',
+          (
+              'kd.entities.uu: cannot align shapes due to a shape not being'
+              ' broadcastable to the common shape candidate.'
+          ),
       ),
       (
           ds(['seed1', 'seed2']),

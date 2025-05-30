@@ -1005,7 +1005,10 @@ Assigned schema for keys: INT32""",
 
     with self.assertRaisesWithPredicateMatch(
         ValueError,
-        arolla.testing.any_cause_message_regex('shapes are not compatible'),
+        arolla.testing.any_cause_message_regex(
+            'cannot align shapes due to a shape not being broadcastable to the'
+            ' common shape candidate.'
+        ),
     ):
       db.new(a=ds([1, 2, 3]), b=ds([3.14, 3.14]))
 
@@ -1021,7 +1024,10 @@ Assigned schema for keys: INT32""",
 
     with self.assertRaisesWithPredicateMatch(
         ValueError,
-        arolla.testing.any_cause_message_regex('shapes are not compatible'),
+        arolla.testing.any_cause_message_regex(
+            'cannot align shapes due to a shape not being broadcastable to the'
+            ' common shape candidate.'
+        ),
     ):
       db.obj(a=ds([1, 2, 3]), b=ds([3.14, 3.14]))
     testing.assert_equal(

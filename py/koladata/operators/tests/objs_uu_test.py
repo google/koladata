@@ -141,7 +141,10 @@ class ObjsUuTest(parameterized.TestCase):
       (
           '',
           dict(a=ds([1, 2, 3]), b=ds([1, 2])),
-          'kd.objs.uu: shapes are not compatible',
+          (
+              'kd.objs.uu: cannot align shapes due to a shape not being'
+              ' broadcastable to the common shape candidate.'
+          ),
       ),
       (
           ds(['seed1', 'seed2']),

@@ -14,21 +14,23 @@
 //
 #include "koladata/error_repr_utils.h"
 
+#include <cstdint>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/strings/string_view.h"
 #include "arolla/util/status.h"
 #include "arolla/util/testing/status_matchers.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error_utils.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
@@ -203,6 +205,50 @@ TEST(ReprUtilTest, TestKodaErrorCausedByMergeConflictError) {
   EXPECT_THAT(status.message(),
               testing::StartsWith("cannot merge DataBags due to an exception "
                                   "encountered when merging entities"));
+}
+
+TEST(ReprUtilTest, TestShapeAlignmentError) {
+  std::vector<absl::string_view> attr_names = {"x", "y"};
+  DataSlice ds_x = test::DataSlice<float>({3.0, 4.0, 5.0});
+  DataSlice ds_y = test::DataSlice<int32_t>({1, 2});
+  std::vector<DataSlice> values = {ds_x, ds_y};
+
+  absl::Status basic_status = absl::InvalidArgumentError("basic error");
+  absl::Status status_with_payload = arolla::WithPayload(
+      std::move(basic_status), internal::ShapeAlignmentError{
+                                   .common_shape_id = 0,
+                                   .incompatible_shape_id = 1,
+                               });
+
+  absl::Status status = KodaErrorCausedByShapeAlignmentError(
+      status_with_payload, attr_names, values);
+
+  EXPECT_THAT(
+      status,
+      AllOf(
+          StatusIs(
+              absl::StatusCode::kInvalidArgument,
+              "cannot align shapes due to a shape not being broadcastable "
+              "to the common shape candidate.\n\n"
+              "Common shape belonging to attribute 'x': JaggedShape(3)\n"
+              "Incompatible shape belonging to attribute 'y': JaggedShape(2)"),
+          CausedBy(
+              StatusIs(absl::StatusCode::kInvalidArgument, "basic error"))));
+}
+
+TEST(ReprUtilTest, TestShapeAlignmentError_NoPayload) {
+  std::vector<absl::string_view> attr_names = {"x", "y"};
+  DataSlice ds_x = test::DataSlice<float>({3.0, 4.0, 5.0});
+  DataSlice ds_y = test::DataSlice<int32_t>({1, 2});
+  std::vector<DataSlice> values = {ds_x, ds_y};
+
+  absl::Status basic_status = absl::InvalidArgumentError("basic error");
+
+  absl::Status status =
+      KodaErrorCausedByShapeAlignmentError(basic_status, attr_names, values);
+
+  EXPECT_THAT(status,
+              StatusIs(absl::StatusCode::kInvalidArgument, "basic error"));
 }
 
 }  // namespace

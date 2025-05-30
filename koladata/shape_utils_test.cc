@@ -24,8 +24,10 @@
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/util/status.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/errors.h"
 #include "koladata/testing/matchers.h"
 
 namespace koladata::shape {
@@ -105,9 +107,14 @@ TEST(ShapeUtilsTest, GetCommonShape) {
     ASSERT_OK_AND_ASSIGN(
         auto ds_2, DataSlice::CreateWithSchemaFromData(
                        internal::DataSliceImpl::Create(values_2), shape_2));
-    EXPECT_THAT(GetCommonShape({ds_1, ds_2}),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("shapes are not compatible")));
+    absl::Status status = GetCommonShape({ds_1, ds_2}).status();
+    EXPECT_THAT(status, StatusIs(absl::StatusCode::kInvalidArgument,
+                                 HasSubstr("shapes are not compatible")));
+    const internal::ShapeAlignmentError* shape_alignment_error =
+        arolla::GetPayload<internal::ShapeAlignmentError>(status);
+    ASSERT_NE(shape_alignment_error, nullptr);
+    EXPECT_EQ(shape_alignment_error->common_shape_id, 0);
+    EXPECT_EQ(shape_alignment_error->incompatible_shape_id, 1);
   }
   {
     // No inputs.
