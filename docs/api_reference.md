@@ -10495,12 +10495,6 @@ Returns:
   A new immutable DataBag with only the reachable attrs from 'ds'.
 ```
 
-### `DataSlice.fingerprint` {#DataSlice.fingerprint}
-
-``` {.no-copy}
-Unique identifier of the value.
-```
-
 ### `DataSlice.flatten(self, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#DataSlice.flatten}
 Aliases:
 
@@ -11053,12 +11047,6 @@ Aliases:
 
 ``` {.no-copy}
 Pop a value from each list in this DataSlice
-```
-
-### `DataSlice.qtype` {#DataSlice.qtype}
-
-``` {.no-copy}
-QType of the stored value.
 ```
 
 ### `DataSlice.ref(self)` {#DataSlice.ref}
@@ -11849,12 +11837,6 @@ Creates new Koda dicts with the given shape.
 
 Alias for [kd.bags.new](#kd.bags.new) operator.
 
-### `DataBag.fingerprint` {#DataBag.fingerprint}
-
-``` {.no-copy}
-Unique identifier of the value.
-```
-
 ### `DataBag.fork(mutable=True)` {#DataBag.fork}
 
 ``` {.no-copy}
@@ -12153,12 +12135,6 @@ Returns:
   data_slice.DataSlice with the given attrs.
 ```
 
-### `DataBag.qtype` {#DataBag.qtype}
-
-``` {.no-copy}
-QType of the stored value.
-```
-
 ### `DataBag.schema_triples_repr(self, *, triple_limit=1000)` {#DataBag.schema_triples_repr}
 
 ``` {.no-copy}
@@ -12364,12 +12340,6 @@ Alias for [DataSlice.extract](#DataSlice.extract) operator.
 
 Alias for [DataSlice.extract_bag](#DataSlice.extract_bag) operator.
 
-### `DataItem.fingerprint` {#DataItem.fingerprint}
-
-``` {.no-copy}
-Unique identifier of the value.
-```
-
 ### `DataItem.flatten(self, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#DataItem.flatten}
 
 Alias for [DataSlice.flatten](#DataSlice.flatten) operator.
@@ -12541,12 +12511,6 @@ Alias for [DataSlice.no_bag](#DataSlice.no_bag) operator.
 ### `DataItem.pop(index, /)` {#DataItem.pop}
 
 Alias for [DataSlice.pop](#DataSlice.pop) operator.
-
-### `DataItem.qtype` {#DataItem.qtype}
-
-``` {.no-copy}
-QType of the stored value.
-```
 
 ### `DataItem.ref(self)` {#DataItem.ref}
 
