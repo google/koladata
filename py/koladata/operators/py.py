@@ -250,8 +250,8 @@ def apply_py(fn, *args, return_type_as=arolla.unspecified(), **kwargs):
       as the return type of this expression. In most cases, this will be a
       literal of the corresponding type. This needs to be specified if the
       function does not return a DataSlice/DataItem or a primitive that would be
-      auto-boxed into a DataItem. kd.types.DataSlice and kd.types.DataBag can
-      also be passed here.
+      auto-boxed into a DataItem. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
     **kwargs: keyword arguments to pass to `fn`.
 
   Returns:

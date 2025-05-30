@@ -250,8 +250,8 @@ class TraceAsFnDecorator:
       return_type_as: The return type of the function is expected to be the same
         as the type of this value. This needs to be specified if the function
         does not return a DataSlice/DataItem or a primitive that would be
-        auto-boxed into a DataItem. kd.types.DataSlice and kd.types.DataBag can
-        also be passed here.
+        auto-boxed into a DataItem. kd.types.DataSlice, kd.types.DataBag and
+        kd.types.JaggedShape can also be passed here.
       wrapper: Extra wrapper to apply to the function before converting to a
         functor. I.e. can be a serialization wrapper (kd.py_reference or
         kd_ext.py_cloudpickle).

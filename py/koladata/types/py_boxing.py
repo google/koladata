@@ -26,6 +26,7 @@ from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import ellipsis
+from koladata.types import jagged_shape
 from koladata.types import literal_operator
 
 
@@ -148,6 +149,8 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
     return data_item.DataItem.from_vals(None)
   if arg is data_bag.DataBag:
     return data_bag.DataBag.empty()
+  if arg is jagged_shape.JaggedShape:
+    return jagged_shape.create_shape()
   return data_item.DataItem.from_vals(arg)
 
 

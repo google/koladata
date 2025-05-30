@@ -536,14 +536,23 @@ class KdTest(absltest.TestCase):
     kd.testing.assert_equal(res.y.no_bag(), kd.slice([1, 2, 3]))
 
   def test_call_with_kd_types_return_type(self):
-    fn = kdf.expr_fn(returns=I.x.get_bag())
     obj = kd.obj(x=1)
-    kd.testing.assert_equal(
-        fn(x=obj, return_type_as=kd.types.DataBag), obj.get_bag()
-    )
-    fn = kdf.expr_fn(returns=I.x)
-    obj = kd.obj(x=1)
-    kd.testing.assert_equal(fn(x=obj, return_type_as=kd.types.DataSlice), obj)
+
+    with self.subTest('DataBag'):
+      fn = kdf.expr_fn(returns=I.x.get_bag())
+      kd.testing.assert_equal(
+          fn(x=obj, return_type_as=kd.types.DataBag), obj.get_bag()
+      )
+
+    with self.subTest('DataSlice'):
+      fn = kdf.expr_fn(returns=I.x)
+      kd.testing.assert_equal(fn(x=obj, return_type_as=kd.types.DataSlice), obj)
+
+    with self.subTest('JaggedShape'):
+      fn = kdf.expr_fn(returns=I.x.get_shape())
+      kd.testing.assert_equal(
+          fn(x=obj, return_type_as=kd.types.JaggedShape), obj.get_shape()
+      )
 
   def test_eager_op_error_message(self):
     x = kd.slice(1)

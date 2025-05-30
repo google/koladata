@@ -25,6 +25,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import dict_item as _
 from koladata.types import ellipsis
+from koladata.types import jagged_shape
 from koladata.types import literal_operator
 from koladata.types import py_boxing
 
@@ -83,6 +84,7 @@ class PyBoxingTest(parameterized.TestCase):
       ),
       (..., ellipsis.ellipsis()),
       (data_slice.DataSlice, ds(None)),
+      (jagged_shape.JaggedShape, jagged_shape.create_shape()),
       ((), arolla.tuple()),
       ((1, 2), arolla.tuple(ds(1), ds(2))),
       (
@@ -151,8 +153,10 @@ class PyBoxingTest(parameterized.TestCase):
     )
 
     class Foo:
+
       def method(self, x):
         return x
+
     self.assertIsInstance(
         py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(
             Foo().method

@@ -180,8 +180,8 @@ def py_fn(
     return_type_as: The return type of the function is expected to be the same
       as the type of this value. This needs to be specified if the function does
       not return a DataSlice/DataItem or a primitive that would be auto-boxed
-      into a DataItem. kd.types.DataSlice and kd.types.DataBag can also be
-      passed here.
+      into a DataItem. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
     **defaults: Keyword defaults to bind to the function. The values in this map
       may be Koda expressions or DataItems (see docstring for kd.bind for more
       details). Defaults can be overridden through kd.call arguments. **defaults

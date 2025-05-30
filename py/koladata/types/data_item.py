@@ -99,8 +99,8 @@ def bind(
     self: A Koda functor.
     return_type_as: The return type of the functor is expected to be the same as
       the type of this value. This needs to be specified if the functor does not
-      return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
-      passed here.
+      return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
     **kwargs: Partial parameter binding. The values in this map may be Koda
       expressions or DataItems. When they are expressions, they must evaluate to
       a DataSlice/DataItem or a primitive that will be automatically wrapped

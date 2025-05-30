@@ -44,8 +44,8 @@ def call_multithreaded(
     return_type_as: The return type of the call is expected to be the same as
       the return type of this expression. In most cases, this will be a literal
       of the corresponding type. This needs to be specified if the functor does
-      not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
-      be passed here.
+      not return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
     max_threads: The maximum number of threads to use. None means to use the
       default executor.
     timeout: The maximum time to wait for the call to finish. None means to wait

@@ -2020,8 +2020,8 @@ Args:
   return_type_as: The return type of the call is expected to be the same as
     the return type of this expression. In most cases, this will be a literal
     of the corresponding type. This needs to be specified if the functor does
-    not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
-    be passed here.
+    not return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
+    kd.types.JaggedShape can also be passed here.
   stack_trace_frame: Optional details of a stack trace frame, to be added to
     all the exceptions raised by `fn`. Use
     `stack_trace.create_stack_trace_frame` to create it.
@@ -2334,8 +2334,8 @@ Args:
   return_type_as: The return type of the call is expected to be the same as
     the return type of this expression. In most cases, this will be a literal
     of the corresponding type. This needs to be specified if the functor does
-    not return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also
-    be passed here.
+    not return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
+    kd.types.JaggedShape can also be passed here.
   **kwargs: The keyword argument(s) to pass to the functor.
 
 Returns:
@@ -2454,8 +2454,8 @@ Returns a Koda functor wrapping a python function.
     return_type_as: The return type of the function is expected to be the same
       as the type of this value. This needs to be specified if the function does
       not return a DataSlice/DataItem or a primitive that would be auto-boxed
-      into a DataItem. kd.types.DataSlice and kd.types.DataBag can also be
-      passed here.
+      into a DataItem. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
     **defaults: Keyword defaults to bind to the function. The values in this map
       may be Koda expressions or DataItems (see docstring for kd.bind for more
       details). Defaults can be overridden through kd.call arguments. **defaults
@@ -4719,8 +4719,8 @@ Args:
     as the return type of this expression. In most cases, this will be a
     literal of the corresponding type. This needs to be specified if the
     function does not return a DataSlice/DataItem or a primitive that would be
-    auto-boxed into a DataItem. kd.types.DataSlice and kd.types.DataBag can
-    also be passed here.
+    auto-boxed into a DataItem. kd.types.DataSlice, kd.types.DataBag and
+    kd.types.JaggedShape can also be passed here.
   **kwargs: keyword arguments to pass to `fn`.
 
 Returns:
@@ -12303,8 +12303,8 @@ Returns a Koda functor that partially binds a function to `kwargs`.
     self: A Koda functor.
     return_type_as: The return type of the functor is expected to be the same as
       the type of this value. This needs to be specified if the functor does not
-      return a DataSlice. kd.types.DataSlice and kd.types.DataBag can also be
-      passed here.
+      return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
     **kwargs: Partial parameter binding. The values in this map may be Koda
       expressions or DataItems. When they are expressions, they must evaluate to
       a DataSlice/DataItem or a primitive that will be automatically wrapped
