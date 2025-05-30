@@ -15,12 +15,18 @@
 #ifndef KOLADATA_PROTO_TO_PROTO_H_
 #define KOLADATA_PROTO_TO_PROTO_H_
 
+#include <optional>
+#include <string>
+#include <vector>
 
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/data_slice.h"
 #include "google/protobuf/descriptor.h"
+#include "google/protobuf/descriptor.pb.h"
 #include "google/protobuf/message.h"
 
 namespace koladata {
@@ -45,6 +51,48 @@ namespace koladata {
 absl::Status ToProto(
     const DataSlice& slice,
     absl::Span<::google::protobuf::Message* /*absl_nonnull*/ const> messages);
+
+// Converts a schema to a proto descriptor.
+//
+// The schema must be an entity schema. Its attributes can be primitive schemas,
+// lists, dicts, and entity schemas. The following schemas are ignored when
+// encountered during the traversal of the schema:
+// * NONE
+// * ITEMID
+// * OBJECT
+// * LIST schemas whose items are not primitive or entity schemas.
+// * DICT schemas whose keys are not integral primitives or STRING.
+// * DICT schemas whose values are not primitive or entity schemas.
+// If an attribute name of an entity schema is not a valid proto field name,
+// then the attribute is ignored.
+//
+// Recursive schemas are supported.
+//
+// If `warnings` is passed in non-null, it will be populated with warnings
+// about parts of the schema that were ignored. If it is empty after the
+// function returns, then no part of the schema was ignored.
+//
+// This function returns a non-OK status for serious issues, e.g. if the given
+// schema is not an entity schema.
+//
+// The return type is a FileDescriptorProto, which is a proto representation of
+// a proto file. The remaining parameters are used to populate it:
+// * `file_name` is the name of the proto file. There is no materialized file
+//   because the FileDescriptorProto is created in memory, so you can leave it
+//   empty or set it to a dummy value.
+// * `descriptor_package_name` is the proto package name. If it is not provided,
+//   the package name will be set to
+//   "koladata.ephemeral.schema_${schema_fingerprint_string}". This makes it
+//   possible to put descriptors for various schemas in the same descriptor
+//   pool.
+// * `root_message_name` is the name of the root message in the returned "proto
+//   file", which contains a single top-level message for the given schema;
+//   sub-schemas are nested within it.
+absl::StatusOr<google::protobuf::FileDescriptorProto> ProtoDescriptorFromSchema(
+    const DataSlice& schema, std::vector<std::string>* warnings = nullptr,
+    absl::string_view file_name = "",
+    std::optional<absl::string_view> descriptor_package_name = std::nullopt,
+    absl::string_view root_message_name = "RootSchema");
 
 }  // namespace koladata
 

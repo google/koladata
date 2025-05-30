@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -27,14 +28,20 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/strings/str_cat.h"
 #include "arolla/util/bytes.h"
+#include "arolla/util/fingerprint.h"
+#include "arolla/util/testing/equals_proto.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/masking.h"
 #include "koladata/proto/from_proto.h"
@@ -44,12 +51,17 @@
 #include "google/protobuf/message.h"
 #include "google/protobuf/text_format.h"
 #include "google/protobuf/util/message_differencer.h"
+#include "arolla/util/status_macros_backport.h"
 
-using ::google::protobuf::util::MessageDifferencer;
-using ::testing::StartsWith;
-using ::google::protobuf::Message;
+using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::EqualsProto;
+using ::google::protobuf::Message;
 using ::google::protobuf::TextFormat;
+using ::google::protobuf::util::MessageDifferencer;
+using ::testing::ElementsAre;
+using ::testing::MatchesRegex;
+using ::testing::StartsWith;
 
 namespace koladata {
 namespace {
@@ -77,8 +89,7 @@ TEST(ToProtoTest, AllMissingRootInput) {
   auto db = DataBag::Empty();
   auto schema = test::EntitySchema({}, {}, db);
   auto slice = test::EmptyDataSlice(2, schema.GetSchemaImpl(), db);
-  auto [message_ptrs, messages] =
-      MakeEmptyMessages<testing::ExampleMessage>(2);
+  auto [message_ptrs, messages] = MakeEmptyMessages<testing::ExampleMessage>(2);
   EXPECT_OK(ToProto(slice, message_ptrs));
   EXPECT_EQ(messages[0]->ByteSizeLong(), 0);
   EXPECT_EQ(messages[1]->ByteSizeLong(), 0);
@@ -224,14 +235,13 @@ TEST(ToProtoTest, InvalidMapFieldNotDicts) {
 
 TEST(ToProtoTest, RepeatedPrimitiveFieldMixedDtypes) {
   auto db = DataBag::Empty();
-  auto items = *DataSlice::Create(
-      internal::DataSliceImpl::Create({
-        internal::DataItem(static_cast<int32_t>(1)),
-        internal::DataItem(static_cast<int64_t>(2)),
-      }),
-      DataSlice::JaggedShape::FlatFromSize(2),
-      internal::DataItem(schema::kObject),
-      db);
+  auto items =
+      *DataSlice::Create(internal::DataSliceImpl::Create({
+                             internal::DataItem(static_cast<int32_t>(1)),
+                             internal::DataItem(static_cast<int64_t>(2)),
+                         }),
+                         DataSlice::JaggedShape::FlatFromSize(2),
+                         internal::DataItem(schema::kObject), db);
   auto list = *CreateListsFromLastDimension(db, items);
   auto slice = *ObjectCreator::FromAttrs(db, {"repeated_int32_field"}, {list})
                     ->Reshape(DataSlice::JaggedShape::FlatFromSize(1));
@@ -480,6 +490,838 @@ TEST(ToProtoTest, InvalidInputMultipleDescriptors) {
                        "expected all messages to have the same type, got "
                        "koladata.testing.ExampleMessage and "
                        "koladata.testing.ExampleMessage2"));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, GeneratesPackageNameWithSchemaFingerprint) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema({}, {}, db);
+  ASSERT_OK_AND_ASSIGN(auto descriptor, ProtoDescriptorFromSchema(schema));
+
+  std::string expected_package_name =
+      absl::StrCat("koladata.ephemeral.schema_",
+                   schema.item().StableFingerprint().AsString());
+  EXPECT_EQ(descriptor.package(), expected_package_name);
+}
+
+absl::StatusOr<google::protobuf::FileDescriptorProto> CallProtoDescriptorFromSchema(
+    const DataSlice& schema, std::vector<std::string>* warnings = nullptr) {
+  return ProtoDescriptorFromSchema(
+      schema, /*warnings=*/warnings,
+      /*file_name=*/"", /*descriptor_package_name=*/"koladata.ephemeral",
+      /*root_message_name=*/"RootSchema");
+}
+
+TEST(ProtoDescriptorFromSchemaTest, EntitySchemaWithOnlyPrimitiveAttributes) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_string", "my_bytes", "my_int32", "my_int64", "my_float32",
+       "my_float64", "my_bool", "my_mask"},
+      {test::Schema(schema::kString), test::Schema(schema::kBytes),
+       test::Schema(schema::kInt32), test::Schema(schema::kInt64),
+       test::Schema(schema::kFloat32), test::Schema(schema::kFloat64),
+       test::Schema(schema::kBool), test::Schema(schema::kMask)},
+      db);
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  field {
+                    name: "my_bool"
+                    number: 1
+                    label: LABEL_OPTIONAL
+                    type: TYPE_BOOL
+                  }
+                  field {
+                    name: "my_bytes"
+                    number: 2
+                    label: LABEL_OPTIONAL
+                    type: TYPE_BYTES
+                  }
+                  field {
+                    name: "my_float32"
+                    number: 3
+                    label: LABEL_OPTIONAL
+                    type: TYPE_FLOAT
+                  }
+                  field {
+                    name: "my_float64"
+                    number: 4
+                    label: LABEL_OPTIONAL
+                    type: TYPE_DOUBLE
+                  }
+                  field {
+                    name: "my_int32"
+                    number: 5
+                    label: LABEL_OPTIONAL
+                    type: TYPE_INT32
+                  }
+                  field {
+                    name: "my_int64"
+                    number: 6
+                    label: LABEL_OPTIONAL
+                    type: TYPE_INT64
+                  }
+                  field {
+                    name: "my_mask"
+                    number: 7
+                    label: LABEL_OPTIONAL
+                    type: TYPE_BOOL
+                  }
+                  field {
+                    name: "my_string"
+                    number: 8
+                    label: LABEL_OPTIONAL
+                    type: TYPE_STRING
+                  }
+                }
+              )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, NestedEntities) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"value", "level_1_entity"},
+      {test::Schema(schema::kInt64),
+       test::EntitySchema(
+           {"value", "level_2_entity"},
+           {test::Schema(schema::kString),
+            test::EntitySchema({"value"}, {test::Schema(schema::kInt32)}, db)},
+           db)},
+      db);
+  EXPECT_THAT(
+      CallProtoDescriptorFromSchema(schema), IsOkAndHolds(EqualsProto(R"pb(
+        name: ""
+        package: "koladata.ephemeral"
+        message_type {
+          name: "RootSchema"
+          field {
+            name: "level_1_entity"
+            number: 1
+            label: LABEL_OPTIONAL
+            type: TYPE_MESSAGE
+            type_name: "koladata.ephemeral.RootSchema.Level1EntitySchema"
+          }
+          field {
+            name: "value"
+            number: 2
+            label: LABEL_OPTIONAL
+            type: TYPE_INT64
+          }
+          nested_type {
+            name: "Level1EntitySchema"
+            field {
+              name: "level_2_entity"
+              number: 1
+              label: LABEL_OPTIONAL
+              type: TYPE_MESSAGE
+              type_name: "koladata.ephemeral.RootSchema.Level1EntitySchema.Level2EntitySchema"
+            }
+            field {
+              name: "value"
+              number: 2
+              label: LABEL_OPTIONAL
+              type: TYPE_STRING
+            }
+            nested_type {
+              name: "Level2EntitySchema"
+              field {
+                name: "value"
+                number: 1
+                label: LABEL_OPTIONAL
+                type: TYPE_INT32
+              }
+            }
+          }
+        }
+      )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, RecursiveEntitySchemaLoopBackToRootSchema) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"value", "level_1_entity"},
+      {test::Schema(schema::kInt64),
+       test::EntitySchema(
+           {"value", "level_2_entity"},
+           {test::Schema(schema::kString),
+            test::EntitySchema({"value"}, {test::Schema(schema::kNone)}, db)},
+           db)},
+      db);
+  ASSERT_OK_AND_ASSIGN(auto level_1_entity, schema.GetAttr("level_1_entity"));
+  ASSERT_OK_AND_ASSIGN(auto level_2_entity,
+                       level_1_entity.GetAttr("level_2_entity"));
+  ASSERT_OK(level_2_entity.SetAttr("value", schema));
+  EXPECT_THAT(
+      CallProtoDescriptorFromSchema(schema), IsOkAndHolds(EqualsProto(R"pb(
+        name: ""
+        package: "koladata.ephemeral"
+        message_type {
+          name: "RootSchema"
+          field {
+            name: "level_1_entity"
+            number: 1
+            label: LABEL_OPTIONAL
+            type: TYPE_MESSAGE
+            type_name: "koladata.ephemeral.RootSchema.Level1EntitySchema"
+          }
+          field {
+            name: "value"
+            number: 2
+            label: LABEL_OPTIONAL
+            type: TYPE_INT64
+          }
+          nested_type {
+            name: "Level1EntitySchema"
+            field {
+              name: "level_2_entity"
+              number: 1
+              label: LABEL_OPTIONAL
+              type: TYPE_MESSAGE
+              type_name: "koladata.ephemeral.RootSchema.Level1EntitySchema.Level2EntitySchema"
+            }
+            field {
+              name: "value"
+              number: 2
+              label: LABEL_OPTIONAL
+              type: TYPE_STRING
+            }
+            nested_type {
+              name: "Level2EntitySchema"
+              field {
+                name: "value"
+                number: 1
+                label: LABEL_OPTIONAL
+                type: TYPE_MESSAGE
+                type_name: "koladata.ephemeral.RootSchema"
+              }
+            }
+          }
+        }
+      )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, ListsOfPrimitives) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"string_list", "bytes_list", "int32_list", "int64_list", "float32_list",
+       "float64_list", "bool_list", "mask_list"},
+      {
+          CreateListSchema(db, test::Schema(schema::kString)).value(),
+          CreateListSchema(db, test::Schema(schema::kBytes)).value(),
+          CreateListSchema(db, test::Schema(schema::kInt32)).value(),
+          CreateListSchema(db, test::Schema(schema::kInt64)).value(),
+          CreateListSchema(db, test::Schema(schema::kFloat32)).value(),
+          CreateListSchema(db, test::Schema(schema::kFloat64)).value(),
+          CreateListSchema(db, test::Schema(schema::kBool)).value(),
+          CreateListSchema(db, test::Schema(schema::kMask)).value(),
+      },
+      db);
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  field {
+                    name: "bool_list"
+                    number: 1
+                    label: LABEL_REPEATED
+                    type: TYPE_BOOL
+                  }
+                  field {
+                    name: "bytes_list"
+                    number: 2
+                    label: LABEL_REPEATED
+                    type: TYPE_BYTES
+                  }
+                  field {
+                    name: "float32_list"
+                    number: 3
+                    label: LABEL_REPEATED
+                    type: TYPE_FLOAT
+                  }
+                  field {
+                    name: "float64_list"
+                    number: 4
+                    label: LABEL_REPEATED
+                    type: TYPE_DOUBLE
+                  }
+                  field {
+                    name: "int32_list"
+                    number: 5
+                    label: LABEL_REPEATED
+                    type: TYPE_INT32
+                  }
+                  field {
+                    name: "int64_list"
+                    number: 6
+                    label: LABEL_REPEATED
+                    type: TYPE_INT64
+                  }
+                  field {
+                    name: "mask_list"
+                    number: 7
+                    label: LABEL_REPEATED
+                    type: TYPE_BOOL
+                  }
+                  field {
+                    name: "string_list"
+                    number: 8
+                    label: LABEL_REPEATED
+                    type: TYPE_STRING
+                  }
+                }
+              )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, ListOfEntities) {
+  auto db = DataBag::Empty();
+  auto list_item_schema =
+      test::EntitySchema({"x"}, {test::Schema(schema::kInt32)}, db);
+  auto schema =
+      test::EntitySchema({"my_list"},
+                         {
+                             CreateListSchema(db, list_item_schema).value(),
+                         },
+                         db);
+  EXPECT_THAT(
+      CallProtoDescriptorFromSchema(schema), IsOkAndHolds(EqualsProto(R"pb(
+        name: ""
+        package: "koladata.ephemeral"
+        message_type {
+          name: "RootSchema"
+          field {
+            name: "my_list"
+            number: 1
+            label: LABEL_REPEATED
+            type: TYPE_MESSAGE
+            type_name: "koladata.ephemeral.RootSchema.MyListSchema"
+          }
+          nested_type {
+            name: "MyListSchema"
+            field { name: "x" number: 1 label: LABEL_OPTIONAL type: TYPE_INT32 }
+          }
+        }
+      )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, ListItemSchemaIsRootSchema) {
+  // A simple recursive schema.
+  auto db = DataBag::Empty();
+  auto schema =
+      test::EntitySchema({"value"}, {test::Schema(schema::kInt64)}, db);
+  ASSERT_OK(schema.SetAttr("my_list", CreateListSchema(db, schema).value()));
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  field {
+                    name: "my_list"
+                    number: 1
+                    label: LABEL_REPEATED
+                    type: TYPE_MESSAGE
+                    type_name: "koladata.ephemeral.RootSchema"
+                  }
+                  field {
+                    name: "value"
+                    number: 2
+                    label: LABEL_OPTIONAL
+                    type: TYPE_INT64
+                  }
+                }
+              )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictOfPrimitives) {
+  auto db = DataBag::Empty();
+  auto schema =
+      test::EntitySchema({"my_dict"},
+                         {CreateDictSchema(db, test::Schema(schema::kString),
+                                           test::Schema(schema::kInt32))
+                              .value()},
+                         db);
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  field {
+                    name: "my_dict"
+                    number: 1
+                    label: LABEL_REPEATED
+                    type: TYPE_MESSAGE
+                    type_name: "koladata.ephemeral.RootSchema.MyDictSchema"
+                  }
+                  nested_type {
+                    name: "MyDictSchema"
+                    field {
+                      name: "key"
+                      number: 1
+                      label: LABEL_OPTIONAL
+                      type: TYPE_STRING
+                    }
+                    field {
+                      name: "value"
+                      number: 2
+                      label: LABEL_OPTIONAL
+                      type: TYPE_INT32
+                    }
+                    options { map_entry: true }
+                  }
+                }
+              )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictValuesAreEntities) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_dict"},
+      {CreateDictSchema(
+           db, test::Schema(schema::kString),
+           test::EntitySchema({"value"}, {test::Schema(schema::kInt32)}, db))
+           .value()},
+      db);
+  EXPECT_THAT(
+      CallProtoDescriptorFromSchema(schema), IsOkAndHolds(EqualsProto(R"pb(
+        name: ""
+        package: "koladata.ephemeral"
+        message_type {
+          name: "RootSchema"
+          field {
+            name: "my_dict"
+            number: 1
+            label: LABEL_REPEATED
+            type: TYPE_MESSAGE
+            type_name: "koladata.ephemeral.RootSchema.MyDictSchema"
+          }
+          nested_type {
+            name: "MyDictSchema"
+            field {
+              name: "key"
+              number: 1
+              label: LABEL_OPTIONAL
+              type: TYPE_STRING
+            }
+            field {
+              name: "value"
+              number: 2
+              label: LABEL_OPTIONAL
+              type: TYPE_MESSAGE
+              type_name: "koladata.ephemeral.RootSchema.MyDictSchema.ValueSchema"
+            }
+            nested_type {
+              name: "ValueSchema"
+              field {
+                name: "value"
+                number: 1
+                label: LABEL_OPTIONAL
+                type: TYPE_INT32
+              }
+            }
+            options { map_entry: true }
+          }
+        }
+      )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictOfRecursiveEntities) {
+  auto db = DataBag::Empty();
+  auto schema =
+      test::EntitySchema({"value"}, {test::Schema(schema::kInt64)}, db);
+  ASSERT_OK(schema.SetAttr(
+      "my_dict",
+      CreateDictSchema(db, test::Schema(schema::kString), schema).value()));
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  field {
+                    name: "my_dict"
+                    number: 1
+                    label: LABEL_REPEATED
+                    type: TYPE_MESSAGE
+                    type_name: "koladata.ephemeral.RootSchema.MyDictSchema"
+                  }
+                  field {
+                    name: "value"
+                    number: 2
+                    label: LABEL_OPTIONAL
+                    type: TYPE_INT64
+                  }
+                  nested_type {
+                    name: "MyDictSchema"
+                    field {
+                      name: "key"
+                      number: 1
+                      label: LABEL_OPTIONAL
+                      type: TYPE_STRING
+                    }
+                    field {
+                      name: "value"
+                      number: 2
+                      label: LABEL_OPTIONAL
+                      type: TYPE_MESSAGE
+                      type_name: "koladata.ephemeral.RootSchema"
+                    }
+                    options { map_entry: true }
+                  }
+                }
+              )pb")));
+}
+
+absl::StatusOr<DataSlice> GenerateImplicitSchema(DataBagPtr db) {
+  auto item = internal::DataItem(internal::CreateUuidWithMainObject<
+                                 internal::ObjectId::kUuidImplicitSchemaFlag>(
+      internal::AllocateSingleObject(),
+      arolla::FingerprintHasher(schema::kImplicitSchemaSeed).Finish()));
+  ASSIGN_OR_RETURN(
+      auto slice,
+      DataSlice::Create(item, internal::DataItem(schema::kSchema), db));
+  RETURN_IF_ERROR(slice.SetAttr("foo", test::Schema(schema::kString)));
+  return slice;
+}
+
+TEST(ProtoDescriptorFromSchemaTest, ImplicitSchema) {
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto implicit_schema_slice, GenerateImplicitSchema(db));
+  auto schema =
+      test::EntitySchema({"my_implicit"}, {implicit_schema_slice}, db);
+  EXPECT_THAT(
+      DataSliceRepr(schema),
+      MatchesRegex("DataItem\\(SCHEMA\\(my_implicit=IMPLICIT_SCHEMA\\(foo="
+                   "STRING\\)\\), schema: SCHEMA, bag_id: \\$[a-f0-9]+\\)"));
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  field {
+                    name: "my_implicit"
+                    number: 1
+                    label: LABEL_OPTIONAL
+                    type: TYPE_MESSAGE
+                    type_name: "koladata.ephemeral.RootSchema.MyImplicitSchema"
+                  }
+                  nested_type {
+                    name: "MyImplicitSchema"
+                    field {
+                      name: "foo"
+                      number: 1
+                      label: LABEL_OPTIONAL
+                      type: TYPE_STRING
+                    }
+                  }
+                }
+              )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, IgnoredSchemas) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_none", "my_object", "my_itemid"},
+      {test::Schema(schema::kNone), test::Schema(schema::kObject),
+       test::Schema(schema::kItemId)},
+      db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type { name: "RootSchema" }
+              )pb")));
+  EXPECT_THAT(
+      warnings,
+      ElementsAre(MatchesRegex("unsupported schema type: DataItem\\(ITEMID, "
+                               "schema: SCHEMA, bag_id: \\$[a-f0-9]+\\)"),
+                  MatchesRegex("unsupported schema type: DataItem\\(NONE, "
+                               "schema: SCHEMA, bag_id: \\$[a-f0-9]+\\)"),
+                  MatchesRegex("unsupported schema type: DataItem\\(OBJECT, "
+                               "schema: SCHEMA, bag_id: \\$[a-f0-9]+\\)")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, IgnoredPrimitiveTypes) {
+  // At the time of writing, EXPR is the only ignored primitive type.
+  auto db = DataBag::Empty();
+  auto schema =
+      test::EntitySchema({"my_expr"}, {test::Schema(schema::kExpr)}, db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type { name: "RootSchema" }
+              )pb")));
+  EXPECT_THAT(warnings,
+              ElementsAre(MatchesRegex(
+                  "ignored type: EXPR and hence not adding proto field "
+                  "koladata.ephemeral.RootSchema.my_expr")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, ListOfListsIgnored) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_list"},
+      {CreateListSchema(
+           db, CreateListSchema(db, test::Schema(schema::kInt32)).value())
+           .value()},
+      db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type { name: "RootSchema" }
+              )pb")));
+  EXPECT_THAT(warnings,
+              ElementsAre(MatchesRegex(
+                  "unsupported LIST schema type: "
+                  "DataItem\\(LIST\\[LIST\\[INT32\\]\\], schema: "
+                  "SCHEMA, bag_id: \\$[a-f0-9]+\\). Supported LIST schemas "
+                  "must have items "
+                  "with either a primitive schema or an entity schema")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, ListOfDictsIgnored) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_list"},
+      {CreateListSchema(db, CreateDictSchema(db, test::Schema(schema::kInt32),
+                                             test::Schema(schema::kInt64))
+                                .value())
+           .value()},
+      db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type { name: "RootSchema" }
+              )pb")));
+  EXPECT_THAT(warnings,
+              ElementsAre(MatchesRegex(
+                  "unsupported LIST schema type: "
+                  "DataItem\\(LIST\\[DICT\\{INT32, INT64\\}\\], schema: "
+                  "SCHEMA, bag_id: \\$[a-f0-9]+\\). Supported LIST schemas "
+                  "must have items "
+                  "with either a primitive schema or an entity schema")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictWithEntityKeysIgnored) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_dict"},
+      {CreateDictSchema(
+           db, test::EntitySchema({"key"}, {test::Schema(schema::kString)}, db),
+           test::Schema(schema::kInt32))
+           .value()},
+      db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  nested_type { name: "MyDictSchema" }
+                }
+              )pb")));
+  EXPECT_THAT(warnings,
+              ElementsAre(MatchesRegex(
+                  "unsupported DICT schema type: "
+                  "DataItem\\(DICT\\{SCHEMA\\(key=STRING\\), INT32\\}, schema: "
+                  "SCHEMA, bag_id: \\$[a-f0-9]+\\). Supported DICT schemas "
+                  "must have keys that are integral types or strings \\(floats,"
+                  " bytes and non-primitive keys are not supported\\)")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictWithListKeysIgnored) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_dict"},
+      {CreateDictSchema(
+           db, CreateListSchema(db, test::Schema(schema::kInt32)).value(),
+           test::Schema(schema::kInt64))
+           .value()},
+      db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  nested_type { name: "MyDictSchema" }
+                }
+              )pb")));
+  EXPECT_THAT(
+      warnings,
+      ElementsAre(MatchesRegex(
+          "unsupported DICT schema type: DataItem\\(DICT\\{LIST\\[INT32\\], "
+          "INT64\\}, schema: SCHEMA, bag_id: \\$[a-f0-9]+\\). Supported DICT "
+          "schemas must have keys that are integral types or strings "
+          "\\(floats, bytes and non-primitive keys are not supported\\)")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictWithListValuesIgnored) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_dict"},
+      {CreateDictSchema(
+           db, test::Schema(schema::kInt32),
+           CreateListSchema(db, test::Schema(schema::kInt64)).value())
+           .value()},
+      db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  nested_type { name: "MyDictSchema" }
+                }
+              )pb")));
+  EXPECT_THAT(
+      warnings,
+      ElementsAre(MatchesRegex(
+          "unsupported DICT schema type: DataItem\\(DICT\\{INT32, "
+          "LIST\\[INT64\\]\\}, schema: SCHEMA, bag_id: \\$[a-f0-9]+\\). "
+          "Supported DICT schemas must have values with either a primitive "
+          "schema or an entity schema")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictWithDictKeysIgnored) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_dict"},
+      {CreateDictSchema(db,
+                        CreateDictSchema(db, test::Schema(schema::kInt32),
+                                         test::Schema(schema::kInt64))
+                            .value(),
+                        test::Schema(schema::kInt64))
+           .value()},
+      db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  nested_type { name: "MyDictSchema" }
+                }
+              )pb")));
+  EXPECT_THAT(
+      warnings,
+      ElementsAre(MatchesRegex(
+          "unsupported DICT schema type: DataItem\\(DICT\\{DICT\\{INT32, "
+          "INT64\\}, INT64\\}, schema: SCHEMA, bag_id: \\$[a-f0-9]+\\). "
+          "Supported DICT schemas must have keys that are integral types or "
+          "strings \\(floats, bytes and non-primitive keys are not "
+          "supported\\)")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictWithDictValuesIgnored) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"my_dict"},
+      {CreateDictSchema(db, test::Schema(schema::kInt32),
+                        CreateDictSchema(db, test::Schema(schema::kInt64),
+                                         test::Schema(schema::kInt32))
+                            .value())
+           .value()},
+      db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type {
+                  name: "RootSchema"
+                  nested_type { name: "MyDictSchema" }
+                }
+              )pb")));
+  EXPECT_THAT(
+      warnings,
+      ElementsAre(MatchesRegex(
+          "unsupported DICT schema type: DataItem\\(DICT\\{INT32, "
+          "DICT\\{INT64, INT32\\}\\}, schema: SCHEMA, bag_id: \\$[a-f0-9]+\\). "
+          "Supported DICT schemas must have values with either a primitive "
+          "schema or an entity schema")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest,
+     AttributesWithNamesThatAreInvalidProtoFieldNamesIgnored) {
+  auto db = DataBag::Empty();
+  auto schema = test::EntitySchema(
+      {"_foo_bar", "ignoreme?", "123_for_me"},
+      {test::Schema(schema::kInt32), test::Schema(schema::kInt64),
+       test::Schema(schema::kString)},
+      db);
+  std::vector<std::string> warnings;
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema, &warnings),
+              IsOkAndHolds(EqualsProto(R"pb(
+                name: ""
+                package: "koladata.ephemeral"
+                message_type { name: "RootSchema" }
+              )pb")));
+  EXPECT_THAT(
+      warnings,
+      ElementsAre(
+          MatchesRegex(
+              "ignored attribute name 123_for_me encountered in schema "
+              "DataItem\\(SCHEMA\\(123_for_me=STRING, _foo_bar=INT32, "
+              "ignoreme\\?=INT64\\), schema: SCHEMA, bag_id: \\$[a-f0-9]+\\) "
+              "because it is not a valid proto field name"),
+          MatchesRegex(
+              "ignored attribute name _foo_bar encountered in schema "
+              "DataItem\\(SCHEMA\\(123_for_me=STRING, _foo_bar=INT32, "
+              "ignoreme\\?=INT64\\), schema: SCHEMA, bag_id: \\$[a-f0-9]+\\) "
+              "because it is not a valid proto field name"),
+          MatchesRegex(
+              "ignored attribute name ignoreme\\? encountered in schema "
+              "DataItem\\(SCHEMA\\(123_for_me=STRING, _foo_bar=INT32, "
+              "ignoreme\\?=INT64\\), schema: SCHEMA, bag_id: \\$[a-f0-9]+\\) "
+              "because it is not a valid proto field name")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, SchemaNotEntitySchema) {
+  auto schema = test::Schema(schema::kString);
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "expected Entity schema, got STRING"));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, MissingSchema) {
+  ASSERT_OK_AND_ASSIGN(auto schema,
+                       DataSlice::Create(internal::DataItem(),
+                                         internal::DataItem(schema::kSchema)));
+  EXPECT_THAT(CallProtoDescriptorFromSchema(schema),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "schema must contain either a DType or valid schema "
+                       "ItemId, got None"));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, SchemaSliceWithRank1) {
+  auto schema_slice = test::DataSlice<internal::DataItem>(
+      {
+          internal::DataItem(schema::kString),
+          internal::DataItem(schema::kInt32),
+      },
+      schema::kSchema);
+  EXPECT_THAT(
+      CallProtoDescriptorFromSchema(schema_slice),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          StartsWith("schema can only be 0-rank schema slice, got: rank(1)")));
 }
 
 }  // namespace

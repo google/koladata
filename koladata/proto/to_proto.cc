@@ -16,7 +16,7 @@
 
 #include <cstdint>
 #include <limits>
-#include <memory>
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -24,8 +24,11 @@
 
 #include "absl/base/attributes.h"
 #include "absl/base/nullability.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/ascii.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -38,12 +41,16 @@
 #include "arolla/util/view_types.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/trampoline_executor.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/operators/lists.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/slices.h"
 #include "google/protobuf/descriptor.h"
+#include "google/protobuf/descriptor.pb.h"
 #include "google/protobuf/dynamic_message.h"
 #include "google/protobuf/message.h"
 #include "arolla/util/status_macros_backport.h"
@@ -338,28 +345,28 @@ absl::Status FillProtoMessageField(
       ops::Select(attr_slice, mask, DataSlice::CreateFromScalar(false)));
 
   std::vector<Message* /*absl_nonnull*/> dense_child_messages;
-  RETURN_IF_ERROR(mask.slice().VisitValues([&](const auto& values)
-                                               -> absl::Status {
-    absl::Status status = absl::OkStatus();
-    values.ForEachPresent([&](int64_t id, auto value) {
-      if (!status.ok()) {
-        return;
-      }
+  RETURN_IF_ERROR(
+      mask.slice().VisitValues([&](const auto& values) -> absl::Status {
+        absl::Status status = absl::OkStatus();
+        values.ForEachPresent([&](int64_t id, auto value) {
+          if (!status.ok()) {
+            return;
+          }
 
-      auto& parent_message = *parent_messages[id];
-      const auto& refl = *parent_message.GetReflection();
-      auto oneof_status =
-          EnsureOneofUnset(field_descriptor, parent_message, refl);
-      if (!oneof_status.ok()) {
-        status = std::move(oneof_status);
-        return;
-      }
+          auto& parent_message = *parent_messages[id];
+          const auto& refl = *parent_message.GetReflection();
+          auto oneof_status =
+              EnsureOneofUnset(field_descriptor, parent_message, refl);
+          if (!oneof_status.ok()) {
+            status = std::move(oneof_status);
+            return;
+          }
 
-      dense_child_messages.push_back(
-          refl.MutableMessage(&parent_message, &field_descriptor));
-    });
-    return status;
-  }));
+          dense_child_messages.push_back(
+              refl.MutableMessage(&parent_message, &field_descriptor));
+        });
+        return status;
+      }));
 
   return FillProtoMessageBreakRecursion(
       std::move(dense_attr_slice), *field_descriptor.message_type(),
@@ -511,10 +518,298 @@ absl::Status FillProtoMessageBreakRecursion(
     std::vector<Message* /*absl_nonnull*/> messages,
     internal::TrampolineExecutor& executor) {
   executor.Enqueue([slice = std::move(slice), &message_descriptor,
-                           messages = std::move(messages),
-                           &executor]() -> absl::Status {
+                    messages = std::move(messages),
+                    &executor]() -> absl::Status {
     return FillProtoMessage(slice, message_descriptor, messages, executor);
   });
+  return absl::OkStatus();
+}
+
+bool SetFieldTypeFromDType(const schema::DType& dtype,
+                           google::protobuf::FieldDescriptorProto* field,
+                           std::vector<std::string>* warnings,
+                           absl::string_view message_full_name,
+                           absl::string_view attr_name) {
+  const schema::DTypeId type_id = dtype.type_id();
+  switch (type_id) {
+    case schema::kInt32.type_id():
+      field->set_type(google::protobuf::FieldDescriptorProto::TYPE_INT32);
+      return true;
+    case schema::kInt64.type_id():
+      field->set_type(google::protobuf::FieldDescriptorProto::TYPE_INT64);
+      return true;
+    case schema::kFloat32.type_id():
+      field->set_type(google::protobuf::FieldDescriptorProto::TYPE_FLOAT);
+      return true;
+    case schema::kFloat64.type_id():
+      field->set_type(google::protobuf::FieldDescriptorProto::TYPE_DOUBLE);
+      return true;
+    case schema::kBool.type_id():
+    case schema::kMask.type_id():
+      field->set_type(google::protobuf::FieldDescriptorProto::TYPE_BOOL);
+      return true;
+    case schema::kString.type_id():
+      field->set_type(google::protobuf::FieldDescriptorProto::TYPE_STRING);
+      return true;
+    case schema::kBytes.type_id():
+      field->set_type(google::protobuf::FieldDescriptorProto::TYPE_BYTES);
+      return true;
+    default:
+      if (warnings != nullptr) {
+        warnings->push_back(absl::StrCat("ignored type: ", dtype.name(),
+                                         " and hence not adding proto field ",
+                                         message_full_name, ".", attr_name));
+      }
+      return false;
+  }
+}
+
+inline bool IsUnderscore(char c) { return c == '_'; }
+
+bool IsValidProtoFieldName(absl::string_view attr_name) {
+  // According to
+  // https://protobuf.dev/reference/protobuf/proto3-spec/#identifiers, valid
+  // field names use the following grammar:
+  //
+  // letter = "A" ... "Z" | "a" ... "z"
+  //
+  // decimalDigit = "0" ... "9"
+  //
+  // ident = letter { letter | decimalDigit | "_" }
+  //
+  // fieldName = ident
+  if (attr_name.empty()) {
+    return false;
+  }
+  if (!absl::ascii_isalpha(attr_name[0])) {
+    return false;
+  }
+  for (char c : attr_name) {
+    if (!absl::ascii_isalpha(c) && !absl::ascii_isdigit(c) &&
+        !IsUnderscore(c)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+std::string NestedMessageNameFromAttributeName(absl::string_view attr_name) {
+  DCHECK(IsValidProtoFieldName(attr_name));
+
+  constexpr absl::string_view kSuffix = "Schema";
+  bool capitalize_next = true;
+  std::string result;
+  result.reserve(attr_name.size() + kSuffix.size());
+
+  for (char c : attr_name) {
+    if (IsUnderscore(c)) {
+      capitalize_next = true;
+    } else if (capitalize_next) {
+      result.push_back(absl::ascii_toupper(c));
+      capitalize_next = false;
+    } else {
+      result.push_back(c);
+    }
+  }
+  absl::StrAppend(&result, kSuffix);
+
+  return result;
+}
+
+struct DescriptorInfo {
+  google::protobuf::DescriptorProto& descriptor_proto;
+  const std::string& message_full_name;
+};
+
+std::optional<DescriptorInfo>
+SetFieldTypeAndPossiblyCreateUnpopulatedMessageDescriptor(
+    google::protobuf::DescriptorProto& descriptor_proto,
+    absl::string_view message_full_name, google::protobuf::FieldDescriptorProto& field,
+    absl::string_view attr_name, const DataSlice& attr_schema,
+    absl::flat_hash_map<internal::DataItem, std::string>& descriptor_map) {
+  field.set_type(google::protobuf::FieldDescriptorProto::TYPE_MESSAGE);
+  std::string& nested_message_full_name = descriptor_map[attr_schema.item()];
+  if (!nested_message_full_name.empty()) {
+    field.set_type_name(nested_message_full_name);
+    return std::nullopt;
+  }
+  std::string nested_message_name =
+      NestedMessageNameFromAttributeName(attr_name);
+  nested_message_full_name =
+      absl::StrCat(message_full_name, ".", nested_message_name);
+  field.set_type_name(nested_message_full_name);
+  google::protobuf::DescriptorProto& nested_descriptor_proto =
+      *descriptor_proto.add_nested_type();
+  nested_descriptor_proto.set_name(std::move(nested_message_name));
+  return DescriptorInfo{
+      .descriptor_proto = nested_descriptor_proto,
+      .message_full_name = nested_message_full_name,
+  };
+}
+
+// In Proto3, the key_type can be any integral or string type (so, any scalar
+// type except for floating point types and bytes).
+bool IsAcceptableMapKeySchema(const DataSlice& schema) {
+  if (!schema.IsPrimitiveSchema()) {
+    return false;
+  }
+  const auto& dtype = schema.item().value<schema::DType>();
+  switch (dtype.type_id()) {
+    case schema::kInt32.type_id():
+    case schema::kInt64.type_id():
+    case schema::kBool.type_id():
+    case schema::kMask.type_id():
+    case schema::kString.type_id():
+      return true;
+    default:
+      return false;
+  }
+}
+
+absl::Status PopulateDescriptor(
+    const DataSlice& schema, google::protobuf::DescriptorProto& descriptor_proto,
+    absl::string_view message_full_name,
+    absl::flat_hash_map<internal::DataItem, std::string>& descriptor_map,
+    std::vector<std::string>* warnings) {
+  RETURN_IF_ERROR(schema.VerifyIsEntitySchema());
+  ASSIGN_OR_RETURN(
+      const auto attr_names, schema.GetAttrNames(),
+      _ << "failed to get attribute names for: " << DataSliceRepr(schema));
+  for (const std::string& attr_name : attr_names) {
+    if (!IsValidProtoFieldName(attr_name)) {
+      warnings->push_back(
+          absl::StrCat("ignored attribute name ", attr_name,
+                       " encountered in schema ", DataSliceRepr(schema),
+                       " because it is not a valid proto field name"));
+      continue;
+    }
+    google::protobuf::FieldDescriptorProto field;
+    ASSIGN_OR_RETURN(DataSlice attr, schema.GetAttr(attr_name),
+                     _ << "failed to get attribute: " << attr_name
+                       << " for: " << DataSliceRepr(schema));
+    RETURN_IF_ERROR(attr.VerifyIsSchema());
+    if (attr.IsPrimitiveSchema()) {
+      field.set_label(google::protobuf::FieldDescriptorProto::LABEL_OPTIONAL);
+      if (!SetFieldTypeFromDType(attr.item().value<schema::DType>(), &field,
+                                 warnings, message_full_name, attr_name)) {
+        continue;
+      }
+    } else if (attr.IsListSchema()) {
+      field.set_label(google::protobuf::FieldDescriptorProto::LABEL_REPEATED);
+      ASSIGN_OR_RETURN(auto items_schema,
+                       attr.GetAttr(schema::kListItemsSchemaAttr));
+      RETURN_IF_ERROR(items_schema.VerifyIsSchema());
+      if (items_schema.IsPrimitiveSchema()) {
+        if (!SetFieldTypeFromDType(items_schema.item().value<schema::DType>(),
+                                   &field, warnings, message_full_name,
+                                   attr_name)) {
+          continue;
+        }
+      } else if (items_schema.IsEntitySchema()) {
+        auto info = SetFieldTypeAndPossiblyCreateUnpopulatedMessageDescriptor(
+            descriptor_proto, message_full_name, field, attr_name, items_schema,
+            descriptor_map);
+        if (info.has_value()) {
+          RETURN_IF_ERROR(PopulateDescriptor(
+              items_schema, info->descriptor_proto, info->message_full_name,
+              descriptor_map, warnings));
+        }
+      } else {
+        if (warnings != nullptr) {
+          warnings->push_back(absl::StrCat(
+              "unsupported LIST schema type: ", DataSliceRepr(attr),
+              ". Supported LIST schemas must have items with either a "
+              "primitive schema or an entity schema"));
+        }
+        continue;
+      }
+    } else if (attr.IsDictSchema()) {
+      field.set_label(google::protobuf::FieldDescriptorProto::LABEL_REPEATED);
+      auto dict_info =
+          SetFieldTypeAndPossiblyCreateUnpopulatedMessageDescriptor(
+              descriptor_proto, message_full_name, field, attr_name, attr,
+              descriptor_map);
+      if (dict_info.has_value()) {
+        ASSIGN_OR_RETURN(auto key_schema,
+                         attr.GetAttr(schema::kDictKeysSchemaAttr));
+        RETURN_IF_ERROR(key_schema.VerifyIsSchema());
+        if (!IsAcceptableMapKeySchema(key_schema)) {
+          if (warnings != nullptr) {
+            warnings->push_back(absl::StrCat(
+                "unsupported DICT schema type: ", DataSliceRepr(attr),
+                ". Supported DICT schemas must have keys that are integral "
+                "types or strings (floats, bytes and non-primitive keys are "
+                "not supported)"));
+          }
+          continue;
+        }
+        ASSIGN_OR_RETURN(auto value_schema,
+                         attr.GetAttr(schema::kDictValuesSchemaAttr));
+        RETURN_IF_ERROR(value_schema.VerifyIsSchema());
+        google::protobuf::FieldDescriptorProto key_field;
+        key_field.set_label(google::protobuf::FieldDescriptorProto::LABEL_OPTIONAL);
+        key_field.set_name("key");
+        key_field.set_number(1);
+        if (!SetFieldTypeFromDType(key_schema.item().value<schema::DType>(),
+                                   &key_field, warnings,
+                                   dict_info->message_full_name, "key")) {
+          continue;
+        }
+        google::protobuf::FieldDescriptorProto value_field;
+        value_field.set_label(google::protobuf::FieldDescriptorProto::LABEL_OPTIONAL);
+        value_field.set_name("value");
+        value_field.set_number(2);
+        if (value_schema.IsPrimitiveSchema()) {
+          if (!SetFieldTypeFromDType(value_schema.item().value<schema::DType>(),
+                                     &value_field, warnings,
+                                     dict_info->message_full_name, "value")) {
+            continue;
+          }
+        } else if (value_schema.IsEntitySchema()) {
+          auto value_info =
+              SetFieldTypeAndPossiblyCreateUnpopulatedMessageDescriptor(
+                  dict_info->descriptor_proto, dict_info->message_full_name,
+                  value_field, "value", value_schema, descriptor_map);
+          if (value_info.has_value()) {
+            RETURN_IF_ERROR(PopulateDescriptor(
+                value_schema, value_info->descriptor_proto,
+                value_info->message_full_name, descriptor_map, warnings));
+          }
+        } else {
+          if (warnings != nullptr) {
+            warnings->push_back(absl::StrCat(
+                "unsupported DICT schema type: ", DataSliceRepr(attr),
+                ". Supported DICT schemas must have values with either a "
+                "primitive schema or an entity schema"));
+          }
+          continue;
+        }
+        dict_info->descriptor_proto.mutable_options()->set_map_entry(true);
+        dict_info->descriptor_proto.mutable_field()->Add(std::move(key_field));
+        dict_info->descriptor_proto.mutable_field()->Add(
+            std::move(value_field));
+      }
+    } else if (attr.IsEntitySchema()) {
+      field.set_label(google::protobuf::FieldDescriptorProto::LABEL_OPTIONAL);
+      auto info = SetFieldTypeAndPossiblyCreateUnpopulatedMessageDescriptor(
+          descriptor_proto, message_full_name, field, attr_name, attr,
+          descriptor_map);
+      if (info.has_value()) {
+        RETURN_IF_ERROR(PopulateDescriptor(attr, info->descriptor_proto,
+                                           info->message_full_name,
+                                           descriptor_map, warnings));
+      }
+    } else {
+      if (warnings != nullptr) {
+        warnings->push_back(
+            absl::StrCat("unsupported schema type: ", DataSliceRepr(attr)));
+      }
+      continue;
+    }
+    field.set_name(attr_name);
+    field.set_number(descriptor_proto.field().size() + 1);
+    *descriptor_proto.add_field() = std::move(field);
+  }
   return absl::OkStatus();
 }
 
@@ -555,6 +850,33 @@ absl::Status ToProto(
   return internal::TrampolineExecutor::Run([&](auto& executor) -> absl::Status {
     return FillProtoMessage(slice, *message_descriptor, messages, executor);
   });
+}
+
+absl::StatusOr<google::protobuf::FileDescriptorProto> ProtoDescriptorFromSchema(
+    const DataSlice& schema, std::vector<std::string>* warnings,
+    absl::string_view file_name,
+    std::optional<absl::string_view> descriptor_package_name,
+    absl::string_view root_message_name) {
+  RETURN_IF_ERROR(schema.VerifyIsEntitySchema());
+  absl::flat_hash_map<internal::DataItem, std::string> descriptor_map;
+  google::protobuf::FileDescriptorProto descriptor;
+  descriptor.set_name(file_name);
+  if (descriptor_package_name.has_value()) {
+    descriptor.set_package(*descriptor_package_name);
+  } else {
+    descriptor.set_package(
+        absl::StrCat("koladata.ephemeral.schema_",
+                     schema.item().StableFingerprint().AsString()));
+  }
+  google::protobuf::DescriptorProto* descriptor_proto = descriptor.add_message_type();
+  descriptor_proto->set_name(root_message_name);
+  std::string message_full_name =
+      absl::StrCat(descriptor.package(), ".", root_message_name);
+  descriptor_map.insert({schema.item(), message_full_name});
+  RETURN_IF_ERROR(PopulateDescriptor(schema, *descriptor_proto,
+                                     std::move(message_full_name),
+                                     descriptor_map, warnings));
+  return descriptor;
 }
 
 }  // namespace koladata
