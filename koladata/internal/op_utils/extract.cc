@@ -1134,6 +1134,9 @@ absl::Status ExtractOp::operator()(
     const DataBagImpl* /*absl_nullable*/ schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks, int max_depth,
     const std::optional<LeafCallback>& leaf_callback) const {
+  if (!item.holds_value<ObjectId>() && !schema.holds_value<ObjectId>()) {
+    return absl::OkStatus();  // performance optimization
+  }
   return (*this)(DataSliceImpl::Create(/*size=*/1, item), schema, databag,
                  std::move(fallbacks), schema_databag,
                  std::move(schema_fallbacks), max_depth, leaf_callback);
