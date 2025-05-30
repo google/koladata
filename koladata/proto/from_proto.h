@@ -87,6 +87,21 @@ absl::StatusOr<DataSlice> FromProto(
     const std::optional<DataSlice>& itemids = std::nullopt,
     const std::optional<DataSlice>& schema = std::nullopt);
 
+// Same as above, but the result uses a new immutable DataBag, and if possible,
+// that DataBag is forked from schema->GetBag() to avoid a schema extraction.
+absl::StatusOr<DataSlice> FromProto(
+    absl::Span<const ::google::protobuf::Message* /*absl_nonnull*/ const> messages,
+    absl::Span<const std::string_view> extensions = {},
+    const std::optional<DataSlice>& itemids = std::nullopt,
+    const std::optional<DataSlice>& schema = std::nullopt);
+
+// Same as above, but takes a single proto and returns a DataItem.
+absl::StatusOr<DataSlice> FromProto(
+    const google::protobuf::Message& message,
+    absl::Span<const std::string_view> extensions = {},
+    const std::optional<DataSlice>& itemids = std::nullopt,
+    const std::optional<DataSlice>& schema = std::nullopt);
+
 // Converts a proto descriptor to an entity schema.
 //
 // This is similar to the schema of the result of FromProto when FromProto is
@@ -100,6 +115,11 @@ absl::StatusOr<DataSlice> FromProto(
 // TODO: Add a way to filter fields by name.
 absl::StatusOr<DataSlice> SchemaFromProto(
     const /*absl_nonnull*/ DataBagPtr& db,
+    const ::google::protobuf::Descriptor* /*absl_nonnull*/ descriptor,
+    absl::Span<const std::string_view> extensions = {});
+
+// Same as above, but the result uses a new immutable DataBag.
+absl::StatusOr<DataSlice> SchemaFromProto(
     const ::google::protobuf::Descriptor* /*absl_nonnull*/ descriptor,
     absl::Span<const std::string_view> extensions = {});
 

@@ -1155,6 +1155,37 @@ absl::StatusOr<DataSlice> FromProto(
   return std::move(*result);
 }
 
+// Same as above, but the result uses a new immutable DataBag, and if possible,
+// that DataBag is forked from schema->GetBag() to avoid a schema extraction.
+absl::StatusOr<DataSlice> FromProto(
+    absl::Span<const ::google::protobuf::Message* /*absl_nonnull*/ const> messages,
+    absl::Span<const std::string_view> extensions,
+    const std::optional<DataSlice>& itemids,
+    const std::optional<DataSlice>& schema) {
+  DataBagPtr bag;
+  if (schema.has_value() && schema->GetBag() != nullptr &&
+      schema->GetBag()->GetFallbacks().empty()) {
+    ASSIGN_OR_RETURN(bag, schema->GetBag()->Fork());
+  } else {
+    bag = DataBag::Empty();
+  }
+  ASSIGN_OR_RETURN(auto result,
+                   FromProto(bag, messages, extensions, itemids, schema));
+  bag->UnsafeMakeImmutable();
+  return result;
+}
+
+// Same as above, but takes a single proto and returns a DataItem.
+absl::StatusOr<DataSlice> FromProto(
+    const google::protobuf::Message& message,
+    absl::Span<const std::string_view> extensions,
+    const std::optional<DataSlice>& itemids,
+    const std::optional<DataSlice>& schema) {
+  ASSIGN_OR_RETURN(auto result_slice,
+                   FromProto({&message}, extensions, itemids, schema));
+  return result_slice.Reshape(DataSlice::JaggedShape::Empty());
+}
+
 namespace {
 
 using DescriptorWithExtensionMap =
@@ -1411,6 +1442,15 @@ absl::StatusOr<DataSlice> SchemaFromProto(
                                      converted_descriptors, executor));
         return absl::OkStatus();
       }));
+  return result;
+}
+
+absl::StatusOr<DataSlice> SchemaFromProto(
+    const ::google::protobuf::Descriptor* /*absl_nonnull*/ descriptor,
+    absl::Span<const std::string_view> extensions) {
+  auto bag = DataBag::Empty();
+  ASSIGN_OR_RETURN(auto result, SchemaFromProto(bag, descriptor, extensions));
+  bag->UnsafeMakeImmutable();
   return result;
 }
 

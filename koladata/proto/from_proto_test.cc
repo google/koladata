@@ -174,6 +174,34 @@ TEST(FromProtoTest, EmptyMessage_NoProvidedSchema) {
               IsOkAndHolds(UnorderedElementsAre()));
 }
 
+TEST(FromProtoTest, EmptyMessage_NoProvidedSchema_NoBagOverload) {
+  testing::ExampleMessage message;
+
+  ASSERT_OK_AND_ASSIGN(auto result, FromProto({&message}));
+  EXPECT_EQ(result.GetShape().rank(), 1);
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_FALSE(result.GetBag()->IsMutable());
+
+  EXPECT_THAT(result.GetAttrNames(), IsOkAndHolds(UnorderedElementsAre()));
+  EXPECT_TRUE(result.GetSchemaImpl().is_struct_schema());
+  EXPECT_THAT(result.GetSchema().GetAttrNames(),
+              IsOkAndHolds(UnorderedElementsAre()));
+}
+
+TEST(FromProtoTest, EmptyMessage_NoProvidedSchema_NoBagItemOverload) {
+  testing::ExampleMessage message;
+
+  ASSERT_OK_AND_ASSIGN(auto result, FromProto(message));
+  EXPECT_EQ(result.GetShape().rank(), 0);
+  EXPECT_EQ(result.size(), 1);
+  EXPECT_FALSE(result.GetBag()->IsMutable());
+
+  EXPECT_THAT(result.GetAttrNames(), IsOkAndHolds(UnorderedElementsAre()));
+  EXPECT_TRUE(result.GetSchemaImpl().is_struct_schema());
+  EXPECT_THAT(result.GetSchema().GetAttrNames(),
+              IsOkAndHolds(UnorderedElementsAre()));
+}
+
 TEST(FromProtoTest, EmptyMessage_ObjectSchema) {
   testing::ExampleMessage message;
 
@@ -352,9 +380,8 @@ TEST(FromProtoTest, AllFieldTypes_NoProvidedSchema) {
               IsOkAndHolds(IsEquivalentTo(test::DataSlice<int32_t>({10}, db))));
   EXPECT_THAT(result.GetAttr("int64_field"),
               IsOkAndHolds(IsEquivalentTo(test::DataSlice<int64_t>({20}, db))));
-  EXPECT_THAT(
-      result.GetAttr("uint32_field"),
-      IsOkAndHolds(IsEquivalentTo(test::DataSlice<int64_t>({30}, db))));
+  EXPECT_THAT(result.GetAttr("uint32_field"),
+              IsOkAndHolds(IsEquivalentTo(test::DataSlice<int64_t>({30}, db))));
   EXPECT_THAT(result.GetAttr("uint64_field"),
               IsOkAndHolds(IsEquivalentTo(test::DataSlice<int64_t>({40}, db))));
   EXPECT_THAT(
@@ -552,9 +579,8 @@ TEST(FromProtoTest, ObjectSchema) {
   EXPECT_THAT(
       result.GetAttr("string_field"),
       IsOkAndHolds(IsEquivalentTo(test::DataSlice<arolla::Text>({"bar"}, db))));
-  EXPECT_THAT(
-      result.GetAttr("message_field")->GetAttr("int32_field"),
-      IsOkAndHolds(IsEquivalentTo(test::DataSlice<int32_t>({70}, db))));
+  EXPECT_THAT(result.GetAttr("message_field")->GetAttr("int32_field"),
+              IsOkAndHolds(IsEquivalentTo(test::DataSlice<int32_t>({70}, db))));
 
   ASSERT_OK_AND_ASSIGN(auto repeated_int32_field,
                        result.GetAttr("repeated_int32_field"));
@@ -597,7 +623,7 @@ TEST(FromProtoTest, ExplicitSchema) {
   CHECK(TextFormat::ParseFromString(R"pb(
                                       int32_field: 1
                                       int64_field: 2
-                                      repeated_int32_field: [3, 4, 5]
+                                      repeated_int32_field: [ 3, 4, 5 ]
                                       map_int32_int32_field: { key: 6 value: 7 }
                                     )pb",
                                     &message));
@@ -618,7 +644,8 @@ TEST(FromProtoTest, ExplicitSchema) {
           *CreateDictSchema(db, test::Schema(schema::kInt64),
                             test::Schema(schema::kInt64)),
           test::Schema(schema::kBytes),
-      }, db);
+      },
+      db);
 
   ASSERT_OK_AND_ASSIGN(auto result,
                        FromProto(db, {&message}, {}, std::nullopt, schema));
@@ -639,24 +666,22 @@ TEST(FromProtoTest, ExplicitSchema) {
               *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 3),
           }),
           schema::kInt64, db))));
-  EXPECT_THAT(
-      result.GetAttr("map_int32_int32_field")->GetDictKeys(),
-      IsOkAndHolds(IsEquivalentTo(test::DataSlice<int64_t>(
-          {6},
-          *DataSlice::JaggedShape::FromEdges({
-              *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
-              *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
-          }),
-          schema::kInt64, db))));
-  EXPECT_THAT(
-      result.GetAttr("map_int32_int32_field")->GetDictValues(),
-      IsOkAndHolds(IsEquivalentTo(test::DataSlice<int64_t>(
-          {7},
-          *DataSlice::JaggedShape::FromEdges({
-              *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
-              *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
-          }),
-          schema::kInt64, db))));
+  EXPECT_THAT(result.GetAttr("map_int32_int32_field")->GetDictKeys(),
+              IsOkAndHolds(IsEquivalentTo(test::DataSlice<int64_t>(
+                  {6},
+                  *DataSlice::JaggedShape::FromEdges({
+                      *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
+                      *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
+                  }),
+                  schema::kInt64, db))));
+  EXPECT_THAT(result.GetAttr("map_int32_int32_field")->GetDictValues(),
+              IsOkAndHolds(IsEquivalentTo(test::DataSlice<int64_t>(
+                  {7},
+                  *DataSlice::JaggedShape::FromEdges({
+                      *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
+                      *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 1),
+                  }),
+                  schema::kInt64, db))));
 }
 
 TEST(FromProtoTest, Uint64Overflow) {
@@ -1204,6 +1229,16 @@ TEST(FromProtoTest, SchemaFromProtoNoExtensions) {
       schema.GetAttr("map_int32_message_field")->item(),
       CreateDictSchema(DataBag::Empty(), test::Schema(schema::kInt32), schema)
           ->item());
+}
+
+TEST(FromProtoTest, SchemaFromProtoNoExtensions_NoBagOverload) {
+  ASSERT_OK_AND_ASSIGN(auto schema,
+                       SchemaFromProto(testing::ExampleMessage::descriptor()));
+  EXPECT_FALSE(schema.GetBag()->IsMutable());
+  ASSERT_OK_AND_ASSIGN(
+      auto schema_with_bag,
+      SchemaFromProto(DataBag::Empty(), testing::ExampleMessage::descriptor()));
+  EXPECT_EQ(schema.item(), schema_with_bag.item());;
 }
 
 TEST(FromProtoTest, SchemaFromProtoWithExtensions) {
