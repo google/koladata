@@ -275,21 +275,40 @@ Args:
   primitive_schema: The expected primitive schema.
 ```
 
-### `kd.assertion.with_assertion(x, condition, message)` {#kd.assertion.with_assertion}
+### `kd.assertion.with_assertion(x, condition, message_or_fn, *args)` {#kd.assertion.with_assertion}
 
 ``` {.no-copy}
-Returns `x` if `condition` is present, else raises error `message`.
+Returns `x` if `condition` is present, else raises error `message_or_fn`.
+
+`message_or_fn` should either be a STRING message or a functor taking the
+provided `*args` and creating an error message from it. If `message_or_fn` is
+a STRING, the `*args` should be omitted. If `message_or_fn` is a functor, it
+will only be invoked if `condition` is `missing`.
 
 Example:
   x = kd.slice(1)
   y = kd.slice(2)
-  kd.assertion.with_assertion(x, x < y, 'x must be less than y') -> x.
-  kd.assertion.with_assertion(x, x > y, 'x must be greater than y') -> error.
+  kd.assertion.with_assertion(x, x < y, 'x must be less than y') # -> x.
+  kd.assertion.with_assertion(
+      x, x > y, 'x must be greater than y'
+  ) # -> error: 'x must be greater than y'.
+  kd.assertion.with_assertion(
+      x, x > y, lambda: 'x must be greater than y'
+  ) # -> error: 'x must be greater than y'.
+  kd.assertion.with_assertion(
+      x,
+      x > y,
+      lambda x, y: kd.format('x={x} must be greater than y={y}', x=x, y=y),
+      x,
+      y,
+  ) # -> error: 'x=1 must be greater than y=2'.
 
 Args:
   x: The value to return if `condition` is present.
   condition: A unit scalar, unit optional, or DataItem holding a mask.
-  message: The error message to raise if `condition` is not present.
+  message_or_fn: The error message to raise if `condition` is not present, or
+    a functor producing such an error message.
+  *args: Auxiliary data to be passed to the `message_or_fn` functor.
 ```
 
 </section>

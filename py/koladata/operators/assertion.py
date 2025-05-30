@@ -27,6 +27,19 @@ constraints = arolla.optools.constraints
 
 
 @optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.assertion._with_assertion',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.condition),
+        qtype_utils.expect_data_slice(P.message_or_fn),
+    ],
+    qtype_inference_expr=P.x,
+)
+def _with_assertion(x, condition, message_or_fn, args):  # pylint: disable=unused-argument
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
 @optools.as_lambda_operator(
     'kd.assertion.with_assertion',
     qtype_constraints=[
@@ -40,46 +53,56 @@ constraints = arolla.optools.constraints
             ),
         ),
         (
-            (P.message == arolla.TEXT)
-            | (P.message == qtypes.DATA_SLICE),
+            (P.message_or_fn == arolla.TEXT)
+            | (P.message_or_fn == qtypes.DATA_SLICE),
             (
                 'expected TEXT or DATA_SLICE, got'
-                f' {constraints.name_type_msg(P.message)}'
+                f' {constraints.name_type_msg(P.message_or_fn)}'
             ),
         ),
     ],
 )
-def with_assertion(x, condition, message):
-  """Returns `x` if `condition` is present, else raises error `message`.
+def with_assertion(x, condition, message_or_fn, *args):
+  """Returns `x` if `condition` is present, else raises error `message_or_fn`.
+
+  `message_or_fn` should either be a STRING message or a functor taking the
+  provided `*args` and creating an error message from it. If `message_or_fn` is
+  a STRING, the `*args` should be omitted. If `message_or_fn` is a functor, it
+  will only be invoked if `condition` is `missing`.
 
   Example:
     x = kd.slice(1)
     y = kd.slice(2)
-    kd.assertion.with_assertion(x, x < y, 'x must be less than y') -> x.
-    kd.assertion.with_assertion(x, x > y, 'x must be greater than y') -> error.
+    kd.assertion.with_assertion(x, x < y, 'x must be less than y') # -> x.
+    kd.assertion.with_assertion(
+        x, x > y, 'x must be greater than y'
+    ) # -> error: 'x must be greater than y'.
+    kd.assertion.with_assertion(
+        x, x > y, lambda: 'x must be greater than y'
+    ) # -> error: 'x must be greater than y'.
+    kd.assertion.with_assertion(
+        x,
+        x > y,
+        lambda x, y: kd.format('x={x} must be greater than y={y}', x=x, y=y),
+        x,
+        y,
+    ) # -> error: 'x=1 must be greater than y=2'.
 
   Args:
     x: The value to return if `condition` is present.
     condition: A unit scalar, unit optional, or DataItem holding a mask.
-    message: The error message to raise if `condition` is not present.
+    message_or_fn: The error message to raise if `condition` is not present, or
+      a functor producing such an error message.
+    *args: Auxiliary data to be passed to the `message_or_fn` functor.
   """
-  condition = arolla.types.DispatchOperator(
-      'condition',
-      data_slice_case=arolla.types.DispatchCase(
-          arolla_bridge.to_arolla_optional_unit(P.condition),
-          condition=P.condition == qtypes.DATA_SLICE,
-      ),
-      default=P.condition,
-  )(condition)
-  message = arolla.types.DispatchOperator(
-      'message',
-      data_slice_case=arolla.types.DispatchCase(
-          arolla_bridge.to_arolla_text(P.message),
-          condition=P.message == qtypes.DATA_SLICE,
-      ),
-      default=P.message,
-  )(message)
-  return M.core.with_assertion(x, condition, message)
+  args = arolla.optools.fix_trace_args(args)
+  # Note: consider optimizing the x == UNIT case.
+  return _with_assertion(
+      x,
+      arolla_bridge.to_data_slice(condition),
+      arolla_bridge.to_data_slice(message_or_fn),
+      args,
+  )
 
 
 @optools.add_to_registry()

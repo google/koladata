@@ -6136,6 +6136,8 @@ py_test(
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
+        "//py/koladata/functor:boxing",
+        "//py/koladata/functor:functor_factories",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",

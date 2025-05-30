@@ -23,6 +23,7 @@
 #include "koladata/functor/is_fn_operator.h"
 #include "koladata/functor/map_operator.h"
 #include "koladata/functor/while_operator.h"
+#include "koladata/functor/with_assertion_operator.h"
 
 namespace koladata::functor {
 namespace {
@@ -31,6 +32,8 @@ namespace {
 #define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
+OPERATOR_FAMILY("kd.assertion._with_assertion",
+                std::make_unique<WithAssertionOperatorFamily>());
 OPERATOR("kd.functor._maybe_call", MaybeCall);
 OPERATOR_FAMILY("kd.functor._while", std::make_unique<WhileOperatorFamily>());
 OPERATOR_FAMILY("kd.functor.aggregate",

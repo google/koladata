@@ -264,6 +264,28 @@ cc_library(
 )
 
 cc_library(
+    name = "with_assertion_operator",
+    srcs = ["with_assertion_operator.cc"],
+    hdrs = ["with_assertion_operator.h"],
+    deps = [
+        ":call",
+        ":functor",
+        "//koladata:arolla_utils",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
     name = "expr_fn_operator",
     srcs = ["expr_fn_operator.cc"],
     hdrs = ["expr_fn_operator.h"],
@@ -324,6 +346,7 @@ cc_library(
         ":is_fn_operator",
         ":map_operator",
         ":while_operator",
+        ":with_assertion_operator",
         "//koladata:data_slice_qtype",
         "@com_google_arolla//arolla/qexpr",
     ],
