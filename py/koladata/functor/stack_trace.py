@@ -77,7 +77,7 @@ def function_frame(func: Callable[..., Any]) -> data_slice.DataSlice | None:
   file_name, line_number, line_text = None, None, None
   search_for_source_code_in = [func, getattr(func, '__call__', None)]
   for f in search_for_source_code_in:
-    with contextlib.suppress(TypeError):
+    with contextlib.suppress(TypeError, OSError):
       file_name = inspect.getsourcefile(f)
       line_number, line_text = _guess_line(f)
       break
