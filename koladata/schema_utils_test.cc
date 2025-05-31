@@ -44,7 +44,6 @@ using ::absl_testing::StatusIs;
 using ::koladata::internal::ObjectId;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::MatchesRegex;
-using ::testing::StrEq;
 
 TEST(SchemaUtilsTest, GetNarrowedSchema_Item) {
   {
