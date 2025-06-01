@@ -372,6 +372,7 @@ cc_library(
     srcs = ["stream_reduce.cc"],
     hdrs = ["stream_reduce.h"],
     deps = [
+        ":basic_routine",
         ":executor",
         ":stream",
         "@com_google_absl//absl/base:nullability",
@@ -381,7 +382,7 @@ cc_library(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 

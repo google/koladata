@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/parallel/stream_reduce.h"
 
+#include <cstddef>
 #include <memory>
 #include <utility>
 
@@ -25,9 +26,10 @@
 #include "absl/strings/str_format.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/cancellation.h"
+#include "koladata/functor/parallel/basic_routine.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 namespace {
@@ -35,106 +37,75 @@ namespace {
 using Functor = absl::AnyInvocable<absl::StatusOr<arolla::TypedValue>(
     arolla::TypedRef, arolla::TypedRef) const>;
 
-struct State {
-  const arolla::CancellationContextPtr cancellation_context =
-      arolla::CurrentCancellationContext();
-  const ExecutorPtr /*absl_nonnull*/ executor;
-  const StreamReaderPtr /*absl_nonnull*/ reader;
-  const StreamWriterPtr /*absl_nonnull*/ writer;
-  const Functor functor;
-  arolla::TypedValue value;
+class StreamReduceHooks final : public BasicRoutineHooks {
+ public:
+  StreamReduceHooks(StreamWriterPtr /*absl_nonnull*/ writer,
+                    arolla::TypedValue initial_value,
+                    StreamPtr /*absl_nonnull*/ input_stream, Functor functor)
+      : writer_(std::move(writer)),
+        input_stream_(std::move(input_stream)),
+        functor_(std::move(functor)),
+        value_(std::move(initial_value)) {
+    DCHECK_EQ(value_.GetType(), writer_->value_qtype());
+  }
 
-  arolla::CancellationContext::Subscription cancellation_subscription;
+  bool Interrupted() const final { return writer_->Orphaned(); }
 
-  State(ExecutorPtr /*absl_nonnull*/ executor, StreamReaderPtr /*absl_nonnull*/ reader,
-        StreamWriterPtr writer, Functor functor,
-        arolla::TypedValue initial_value)
-      : executor(std::move(executor)),
-        reader(std::move(reader)),
-        writer(std::move(writer)),
-        functor(std::move(functor)),
-        value(std::move(initial_value)) {}
+  void OnCancel(absl::Status&& status) final { OnError(std::move(status)); }
+
+  StreamReaderPtr /*absl_nullable*/ Start() final {
+    return Resume(input_stream_->MakeReader());
+  }
+
+  StreamReaderPtr /*absl_nullable*/ Resume(  // clang-format hint
+      StreamReaderPtr /*absl_nonnull*/ reader) final {
+    auto try_read_result = reader->TryRead();
+    while (arolla::TypedRef* item = try_read_result.item()) {
+      if (Interrupted()) {
+        return nullptr;
+      }
+      ASSIGN_OR_RETURN(value_, functor_(value_.AsRef(), *item),
+                       OnError(std::move(_)));
+      if (value_.GetType() != writer_->value_qtype()) {
+        return OnError(absl::InvalidArgumentError(absl::StrFormat(
+            "functor returned a value of the wrong type: expected %s, got %s",
+            writer_->value_qtype()->name(), value_.GetType()->name())));
+      }
+      try_read_result = reader->TryRead();
+    }
+    if (absl::Status* status = try_read_result.close_status()) {
+      if (!status->ok() || writer_->TryWrite(value_.AsRef())) {
+        writer_->TryClose(std::move(*status));
+      }
+      return nullptr;
+    }
+    return reader;
+  }
+
+ private:
+  std::nullptr_t OnError(absl::Status&& status) {
+    writer_->TryClose(std::move(status));
+    return nullptr;
+  }
+
+  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  const StreamPtr /*absl_nonnull*/ input_stream_;
+  const Functor functor_;
+  arolla::TypedValue value_;
 };
-
-using StatePtr = std::shared_ptr<State>;
-
-[[nodiscard]] bool Interrupted(const State& state) {
-  if (state.cancellation_context != nullptr &&
-      state.cancellation_context->Cancelled()) [[unlikely]] {
-    state.writer->TryClose(state.cancellation_context->GetStatus());
-    return true;
-  }
-  if (state.writer->Orphaned()) [[unlikely]] {
-    return true;
-  }
-  return false;
-}
-
-void Process(StatePtr /*absl_nonnull*/ state) {
-  arolla::CancellationContext::ScopeGuard cancellation_scope(
-      state->cancellation_context);
-  if (Interrupted(*state)) {
-    return;
-  }
-  auto try_read_result = state->reader->TryRead();
-  while (arolla::TypedRef* item = try_read_result.item()) {
-    auto value = state->functor(state->value.AsRef(), *item);
-    if (!value.ok()) {
-      state->writer->TryClose(std::move(value).status());
-      return;
-    }
-    if (value->GetType() != state->value.GetType()) {
-      state->writer->TryClose(absl::InvalidArgumentError(absl::StrFormat(
-          "functor returned a value of the wrong type: expected %s, got %s",
-          state->value.GetType()->name(), value->GetType()->name())));
-      return;
-    }
-    state->value = *std::move(value);
-    if (Interrupted(*state)) {
-      return;
-    }
-    try_read_result = state->reader->TryRead();
-  }
-  if (absl::Status* status = try_read_result.close_status()) {
-    if (!status->ok() || state->writer->TryWrite(state->value.AsRef())) {
-      state->writer->TryClose(std::move(*status));
-    }
-    return;
-  }
-  state->reader->SubscribeOnce([state = std::move(state)]() mutable {
-    if (Interrupted(*state)) {
-      return;
-    }
-    state->executor->Schedule(
-        [state = std::move(state)]() mutable { Process(std::move(state)); });
-  });
-}
 
 }  // namespace
 
 StreamPtr /*absl_nonnull*/ StreamReduce(ExecutorPtr /*absl_nonnull*/ executor,
                                     arolla::TypedValue initial_value,
-                                    const StreamPtr /*absl_nonnull*/& input_stream,
+                                    StreamPtr /*absl_nonnull*/ input_stream,
                                     Functor functor) {
   DCHECK(functor != nullptr);
   auto [result, writer] = MakeStream(initial_value.GetType(), 1);
-  auto state = std::make_shared<State>(
-      std::move(executor), input_stream->MakeReader(), std::move(writer),
-      std::move(functor), std::move(initial_value));
-  if (state->cancellation_context != nullptr) {
-    // Note: Use a weak pointer to the state since the subscription for
-    // the cancellation notification with owning pointers is discouraged.
-    state->cancellation_subscription = state->cancellation_context->Subscribe(
-        [weak_state = std::weak_ptr<State>(state)]() {
-          if (auto state = weak_state.lock()) {
-            state->writer->TryClose(state->cancellation_context->GetStatus());
-          }
-        });
-  }
-  // Note: Consider spinning the first iteration of processing without the
-  // executor.
-  state->executor->Schedule(
-      [state = std::move(state)]() mutable { Process(std::move(state)); });
+  StartBasicRoutine(std::move(executor),
+                    std::make_unique<StreamReduceHooks>(
+                        std::move(writer), std::move(initial_value),
+                        std::move(input_stream), std::move(functor)));
   return std::move(result);
 }
 
