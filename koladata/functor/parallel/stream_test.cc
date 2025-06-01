@@ -190,16 +190,24 @@ TEST(StreamTest, CloseWithError) {
 }
 
 TEST(StreamTest, OrphanStreamWriter) {
-  auto [stream, writer] = MakeStream(GetQType<int>());
-  ASSERT_FALSE(writer->Orphaned());
-  writer->Write(TypedRef::FromValue(0));
-  ASSERT_TRUE(writer->TryWrite(TypedRef::FromValue(1)));
-  stream.reset();
-  ASSERT_TRUE(writer->Orphaned());
-  writer->Write(TypedRef::FromValue(2));
-  ASSERT_FALSE(writer->TryWrite(TypedRef::FromValue(3)));
-  std::move(*writer).Close();
-  // No crash.
+  {
+    auto [stream, writer] = MakeStream(GetQType<int>());
+    ASSERT_FALSE(writer->Orphaned());
+    writer->Write(TypedRef::FromValue(0));
+    ASSERT_TRUE(writer->TryWrite(TypedRef::FromValue(1)));
+    stream.reset();
+    ASSERT_TRUE(writer->Orphaned());
+    writer->Write(TypedRef::FromValue(2));
+    ASSERT_FALSE(writer->TryWrite(TypedRef::FromValue(3)));
+    std::move(*writer).Close();
+    // No crash.
+  }
+  {
+    auto [stream, writer] = MakeStream(GetQType<int>());
+    ASSERT_FALSE(writer->Orphaned());
+    writer->TryClose(absl::OkStatus());
+    ASSERT_TRUE(writer->Orphaned());
+  }
 }
 
 TEST(StreamTest, OrphanedStreamWriterDestructor) {

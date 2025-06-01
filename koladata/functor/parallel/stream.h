@@ -78,7 +78,8 @@ class StreamWriter {
   // Returns the value type of the stream.
   arolla::QTypePtr value_qtype() const { return value_qtype_; }
 
-  // Returns true if there are no potential readers left.
+  // Returns true if further writes can no longer reach any reader (e.g.,
+  // if no potential readers are left, or the stream has already been closed).
   virtual bool Orphaned() const = 0;
 
   // Writes a value to the stream.

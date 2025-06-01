@@ -224,7 +224,9 @@ void StreamImpl::InternalClose(absl::Status&& status) {
 StreamImpl::Writer::Writer(const std::shared_ptr<StreamImpl>& stream)
     : StreamWriter(stream->value_qtype()), weak_stream_(stream) {}
 
-bool StreamImpl::Writer::Orphaned() const { return weak_stream_.expired(); }
+bool StreamImpl::Writer::Orphaned() const {
+  return closed_.test(std::memory_order_relaxed) || weak_stream_.expired();
+}
 
 void StreamImpl::Writer::Write(TypedRef value) {
   if (value.GetType() != value_qtype()) {
