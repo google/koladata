@@ -15,6 +15,7 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_FUTURE_QTYPE_H_
 #define KOLADATA_FUNCTOR_PARALLEL_FUTURE_QTYPE_H_
 
+#include "absl/base/no_destructor.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
@@ -32,7 +33,8 @@ arolla::QTypePtr GetFutureQType(arolla::QTypePtr value_qtype);
 
 template <typename T>
 arolla::QTypePtr GetFutureQType() {
-  return GetFutureQType(arolla::GetQType<T>());
+  static const absl::NoDestructor result(GetFutureQType(arolla::GetQType<T>()));
+  return *result;
 }
 
 arolla::TypedValue MakeFutureQValue(FuturePtr future);

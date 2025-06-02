@@ -15,6 +15,7 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_STREAM_QTYPE_H_
 #define KOLADATA_FUNCTOR_PARALLEL_STREAM_QTYPE_H_
 
+#include "absl/base/no_destructor.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_value.h"
 #include "koladata/functor/parallel/stream.h"
@@ -30,7 +31,8 @@ arolla::QTypePtr GetStreamQType(arolla::QTypePtr value_qtype);
 // Returns a stream qtype for the given value type.
 template <typename T>
 arolla::QTypePtr GetStreamQType() {
-  return GetStreamQType(arolla::GetQType<T>());
+  static const absl::NoDestructor result(GetStreamQType(arolla::GetQType<T>()));
+  return *result;
 }
 
 // Wraps the given stream into a qvalue.
