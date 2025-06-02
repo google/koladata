@@ -140,10 +140,10 @@ class FromProtoTest(absltest.TestCase):
         message_b_s_metadata.get_attr('__proto_schema_metadata_full_name__'),
         'koladata.functions.testing.MessageB',
     )
-    message_b_s_default_values = message_b_s_metadata.get_attr(
+    message_b_s_default_values = message_b_s_metadata.maybe(
         '__proto_schema_metadata_default_values__'
     )
-    self.assertEqual(message_b_s_default_values.text, '')
+    self.assertIsNone(message_b_s_default_values.maybe('text').to_py())
 
   def test_single_message_explicit_schema(self):
     s = fns.schema_from_proto(test_pb2.MessageA)
