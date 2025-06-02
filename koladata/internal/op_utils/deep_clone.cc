@@ -42,7 +42,7 @@ namespace koladata::internal {
 namespace {
 
 class DeepCloneVisitor : AbstractVisitor {
-  // TODO: Keep old ObjectIds for metadata.
+  // TODO: update ObjectIds for metadata when necessary.
  public:
   explicit DeepCloneVisitor(DataBagImplPtr new_databag, bool is_schema_slice)
       : new_databag_(std::move(new_databag)),
@@ -51,6 +51,10 @@ class DeepCloneVisitor : AbstractVisitor {
 
   absl::Status Previsit(const DataItem& from_item, const DataItem& from_schema,
                         const DataItem& item, const DataItem& schema) override {
+    if (schema == schema::kObject && from_schema == schema::kSchema) {
+      // The `item` is schema_metadata for `from_item`.
+      return PrevisitSchemaMetadata(item);
+    }
     if (schema.holds_value<ObjectId>()) {
       // Entity schema.
       if (schema.is_implicit_schema()) {
@@ -176,6 +180,15 @@ class DeepCloneVisitor : AbstractVisitor {
         inserted) {
       it->second = NewAllocationIdLike(allocation_id);
     }
+    return absl::OkStatus();
+  }
+
+  absl::Status PrevisitSchemaMetadata(const DataItem& item) {
+    if (!item.holds_value<ObjectId>()) {
+      return absl::OkStatus();
+    }
+    AllocationId allocation_id = AllocationId(item.value<ObjectId>());
+    allocation_tracker_.emplace(allocation_id, allocation_id);
     return absl::OkStatus();
   }
 

@@ -607,7 +607,6 @@ TEST_P(DeepCloneTest, ObjectsSlice) {
   ASSERT_OK(expected_db->ExtendList(
       result_list1,
       DataSliceImpl::Create(CreateDenseArray<int32_t>({0, 1, 2}))));
-  ;
   TriplesT expected_data_triples = {
       {result_a0,
        {{schema::kSchemaAttr, result_item_schema}, {"x", DataItem(1)}}},
@@ -1001,6 +1000,7 @@ TEST_P(DeepCloneTest, SchemaMetadata) {
   ASSERT_OK_AND_ASSIGN(
       auto result_metadata,
       result_db->GetSchemaAttr(schema, schema::kSchemaMetadataAttr));
+  EXPECT_EQ(result_metadata, metadata);
   ASSERT_OK_AND_ASSIGN(
       auto result_metadata_schema,
       CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(

@@ -254,6 +254,44 @@ class CoreDeepCloneTest(parameterized.TestCase):
     self.assertNotEqual(res_1.y.no_bag(), res_2.y.no_bag())
     testing.assert_equal(res_1.y.a.no_bag(), res_2.y.a.no_bag())
 
+  def test_metadata(self):
+    db = bag()
+    ds_xy = db.new(x=1, y=2)
+    upd = kde.core.metadata(ds_xy.get_schema(), attrs='xy')
+    db = expr_eval.eval(kde.bags.updated(db, upd))
+    ds_xy = ds_xy.with_bag(db)
+    a = kde.core.deep_clone(ds_xy)
+    b = kde.core.deep_clone(ds_xy)
+    _ = expr_eval.eval(kde.uu(a=a, b=b))
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_schema())).no_bag(),
+        expr_eval.eval(kde.core.get_metadata(b.get_schema())).no_bag(),
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_schema())).no_bag(),
+        expr_eval.eval(kde.core.get_metadata(ds_xy.get_schema())).no_bag(),
+    )
+
+  def test_metadata_implicit_schema(self):
+    db = bag()
+    ds_xy = db.obj(x=1, y=2)
+    upd = kde.core.metadata(ds_xy.get_obj_schema(), attrs='xy')
+    db = expr_eval.eval(kde.bags.updated(db, upd))
+    ds_xy = ds_xy.with_bag(db)
+    a = kde.core.deep_clone(ds_xy)
+    b = kde.core.deep_clone(ds_xy)
+    _ = expr_eval.eval(kde.uu(a=a, b=b))
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
+        expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).no_bag(),
+    )
+    # TODO: This should be not equal, when metadata is updated
+    # properly for implicit schemas.
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
+        expr_eval.eval(kde.core.get_metadata(ds_xy.get_obj_schema())).no_bag(),
+    )
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.deep_clone(I.x)))
 
