@@ -119,19 +119,22 @@ absl::Status Vars::Update(arolla::TypedValue update) {
   }
   const auto& update_field_names = arolla::GetFieldNames(update.GetType());
   for (size_t i = 0; i < update_field_names.size(); ++i) {
-    const auto& name = update_field_names[i];
-    const auto& value = update.GetField(i);
+    absl::string_view name = update_field_names[i];
+    arolla::TypedRef value = update.GetField(i);
     const auto it = index_.find(name);
     if (it == index_.end()) {
       return absl::InvalidArgumentError(
           absl::StrFormat("unexpected variable '%s'", name));
     }
-    if (it->second.mutable_ref.GetType() != update.GetField(i).GetType()) {
+    if (it->second.mutable_ref.GetType() != value.GetType()) {
       return absl::InvalidArgumentError(absl::StrFormat(
           "variable '%s' has type %s, but the provided value has type %s", name,
           it->second.mutable_ref.GetType()->name(), value.GetType()->name()));
     }
     it->second.mutable_ref = value;
+    // Note: value is a reference to a field within the `update` value.
+    // The `update` is immutable and ref-counted. Here, we make sure that
+    // the lifetime of the `update` exceeds the lifetime of the `value`.
     it->second.holder = update;
   }
   return absl::OkStatus();

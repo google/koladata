@@ -1281,7 +1281,7 @@ def stream_reduce(executor, fn, stream, initial_value):
   The result of the reduction is the final computed value.
 
   Args:
-    executor: The executor to use for asynchronous operations (if any).
+    executor: The executor to use for computations.
     fn: A binary function that takes two positional arguments -- the current
       accumulating value and the next item from the stream -- and returns a new
       value. It's expected to return a value of the same type as
@@ -1720,5 +1720,45 @@ def future_from_single_value_stream(stream):
 
   Returns:
     A future with the single value from the stream.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_while_loop_returns',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_data_slice(P.condition_fn),
+        qtype_utils.expect_data_slice(P.body_fn),
+    ],
+    qtype_inference_expr=get_stream_qtype(P.returns),
+    deterministic=False,
+)
+def stream_while_loop_returns(
+    executor, condition_fn, body_fn, *, returns, **state
+):
+  """Repeatedly applies a body functor while a condition is met.
+
+  Each iteration, the operator passes current state variables (including
+  `returns`) as keyword arguments to `condition_fn` and `body_fn`. The loop
+  continues if `condition_fn` returns `present`. State variables are then
+  updated from `body_fn`'s namedtuple return.
+
+  Args:
+    executor: The executor to use for computations.
+    condition_fn: A functor that accepts state variables as keyword arguments
+      and returns a MASK data-item, either directly or as a single-item stream.
+      A `present` value indicates the loop should continue; `missing` indicates
+      it should stop.
+    body_fn: A functor that accepts state variables as keyword arguments and
+      returns a namedtuple (see `kd.make_namedtuple`) containing updated values
+      for a subset of the state variables. These updated values must retain
+      their original types.
+    returns: The initial value for the `returns` state variable.
+    **state: Initial values for state variables.
+
+  Returns:
+    A single-item stream with the final value of the `returns` state variable.
   """
   raise NotImplementedError('implemented in the backend')
