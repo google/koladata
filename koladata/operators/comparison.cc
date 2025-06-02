@@ -64,12 +64,12 @@ absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y) {
                              internal::DataItem(schema::kMask));
 }
 
-absl::StatusOr<DataSlice> Equal(DataSlice x, DataSlice y) {
+absl::StatusOr<DataSlice> Equal(const DataSlice& x, const DataSlice& y) {
   // NOTE: Casting is handled internally by EqualOp. The schema compatibility is
   // still verified to ensure that e.g. ITEMID and OBJECT are not compared.
   RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y));
   return DataSliceOp<internal::EqualOp>()(
-      std::move(x), std::move(y), internal::DataItem(schema::kMask), nullptr);
+      x, y, internal::DataItem(schema::kMask), nullptr);
 }
 
 }  // namespace koladata::ops
