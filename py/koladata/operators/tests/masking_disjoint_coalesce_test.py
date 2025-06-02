@@ -154,23 +154,41 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            r'''kd.masking.coalesce: arguments do not have a common schema.
+            r"""kd.masking.disjoint_coalesce: arguments do not have a common schema.
 
 Schema for `x`: INT32
-Schema for `y`: SCHEMA()'''
+Schema for `y`: SCHEMA()"""
         ),
     ):
       expr_eval.eval(kde.masking.disjoint_coalesce(x, y))
 
-  def test_intersecting_x_and_y_error(self):
-
+  @parameterized.parameters(
+      (ds(['a', 'b']), ds([None, 'd']), [1], ['b'], ['d']),
+      (ds([1, 'b']), ds([None, 1.0]), [1], ['b'], [1.0]),
+      (
+          ds([1, data_bag.DataBag.empty().obj(b=3)]),
+          ds([None, data_bag.DataBag.empty().obj(a=2)]),
+          [1],
+          '[Obj(b=3)]',
+          '[Obj(a=2)]',
+      ),
+      (ds(['a', 'b']), ds('d'), [0, 1], ['a', 'b'], ['d', 'd']),
+      (ds('d'), ds(['a', 'b']), [0, 1], ['d', 'd'], ['a', 'b']),
+      (ds('a'), ds('d'), [0], ['a'], ['d']),
+  )
+  def test_intersecting_x_and_y_error(
+      self, x, y, intersecting_i, intersecting_x, intersecting_y
+  ):
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('kd.masking.disjoint_coalesce: `x` and `y` cannot intersect'),
+        re.escape(
+            '`x` and `y` cannot overlap, but found the following intersecting'
+            ' values for the flattened and aligned inputs:\n\nintersecting'
+            f' indices: {intersecting_i}\nintersecting x-values:'
+            f' {intersecting_x}\nintersecting y-values: {intersecting_y}'
+        ),
     ):
-      _ = expr_eval.eval(
-          kde.masking.disjoint_coalesce(ds([1, 2]), ds([None, 1]))
-      )
+      _ = expr_eval.eval(kde.masking.disjoint_coalesce(x, y))
 
   def test_qtype_signatures(self):
     self.assertCountEqual(

@@ -983,8 +983,8 @@ class CopyingProcessor {
         auto new_implicit_schemas,
         CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
             implicit_slice, schema::kImplicitSchemaSeed));
-    ASSIGN_OR_RETURN(auto new_schemas,
-                     PresenceOrOp()(new_implicit_schemas, old_schemas));
+    ASSIGN_OR_RETURN(auto new_schemas, PresenceOrOp</*disjoint=*/false>()(
+                                           new_implicit_schemas, old_schemas));
     RETURN_IF_ERROR(
         new_databag_->SetAttr(ds.slice, schema::kSchemaAttr, new_schemas));
     RETURN_IF_ERROR(SetMappingToInitialIds(new_schemas, old_schemas));

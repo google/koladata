@@ -46,7 +46,7 @@ void run_benchmarks(benchmark::State& state, DataSliceImpl& ds_a,
     if constexpr (std::is_same_v<Access, DataSliceOp>) {
       benchmark::DoNotOptimize(ds_a);
       benchmark::DoNotOptimize(ds_b);
-      auto ds_ab = PresenceOrOp()(ds_a, ds_b).value();
+      auto ds_ab = PresenceOrOp</*disjoint=*/false>()(ds_a, ds_b).value();
       benchmark::DoNotOptimize(ds_ab);
     } else if constexpr (std::is_same_v<Access, DataItemOp>) {
       benchmark::DoNotOptimize(ds_a);
@@ -54,7 +54,7 @@ void run_benchmarks(benchmark::State& state, DataSliceImpl& ds_a,
       SliceBuilder builder(total_size);
       for (int64_t i = 0; i < total_size; ++i) {
         builder.InsertIfNotSetAndUpdateAllocIds(
-            i, PresenceOrOp()(ds_a[i], ds_b[i]).value());
+            i, PresenceOrOp</*disjoint=*/false>()(ds_a[i], ds_b[i]).value());
       }
       benchmark::DoNotOptimize(builder);
       auto ds_ab = std::move(builder).Build();
@@ -121,7 +121,7 @@ void BM_DataSliceOrDataItem(benchmark::State& state) {
   for (auto _ : state) {
     benchmark::DoNotOptimize(ds_a);
     benchmark::DoNotOptimize(di_b);
-    auto res_or = PresenceOrOp()(ds_a, di_b);
+    auto res_or = PresenceOrOp</*disjoint=*/false>()(ds_a, di_b);
     benchmark::DoNotOptimize(res_or);
   }
 }

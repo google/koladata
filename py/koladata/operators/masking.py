@@ -476,14 +476,14 @@ def all_(x):
 
 
 @optools.add_to_registry(aliases=['kd.disjoint_coalesce'])
-@optools.as_lambda_operator(
+@optools.as_backend_operator(
     'kd.masking.disjoint_coalesce',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.y),
     ],
 )
-def disjoint_coalesce(x, y):
+def disjoint_coalesce(x, y):  # pylint: disable=unused-argument
   """Fills in missing values of `x` with values of `y`.
 
   Raises if `x` and `y` intersect. It is equivalent to `x | y` with additional
@@ -496,12 +496,7 @@ def disjoint_coalesce(x, y):
   Returns:
     Coalesced DataSlice.
   """
-  x = assertion.with_assertion(
-      x,
-      ~any_(has(x) & has(y)),
-      'kd.masking.disjoint_coalesce: `x` and `y` cannot intersect',
-  )
-  return coalesce(x, y)
+  raise NotImplementedError('implemented in the backend')
 
 
 # NOTE: Implemented here to avoid a dependency cycle between masking and slices.

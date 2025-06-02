@@ -15,15 +15,19 @@
 #ifndef KOLADATA_INTERNAL_OP_UTILS_PRESENCE_OR_H_
 #define KOLADATA_INTERNAL_OP_UTILS_PRESENCE_OR_H_
 
+#include <cstdint>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/dense_array/ops/dense_ops.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators/dense_array/logic_ops.h"
+#include "arolla/util/status.h"
 #include "arolla/util/unit.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -35,11 +39,23 @@
 
 namespace koladata::internal {
 
+// Contains the overlap between the `lhs` and `rhs` values when calling
+// `PresenceOrOp</*disjoint*/true>`. The intersection is represented using
+// DataSliceImpl even in case all inputs are DataItems.
+struct PresenceOrIntersectionError {
+  DataSliceImpl lhs_overlap;
+  DataSliceImpl rhs_overlap;
+  DataSliceImpl indices_overlap;
+};
+
 // Elementwise returns the first argument if it is present and the
 // second argument otherwise.
+//
+// If `disjoint`, `lhs` and `rhs` are required to not intersect.
+template <bool disjoint>
 struct PresenceOrOp {
-  absl::StatusOr<DataSliceImpl> operator()(
-      const DataSliceImpl& lhs, const DataSliceImpl& rhs) const {
+  absl::StatusOr<DataSliceImpl> operator()(const DataSliceImpl& lhs,
+                                           const DataSliceImpl& rhs) const {
     if (lhs.size() != rhs.size()) {
       return absl::InvalidArgumentError(
           "coalesce requires input slices to have the same size");
@@ -71,6 +87,11 @@ struct PresenceOrOp {
     ASSIGN_OR_RETURN(
         auto rhs_filtered,  // == rhs & ~has(lhs)
         PresenceAndOp()(rhs, DataSliceImpl::Create(lhs_missing_mask)));
+    if constexpr (disjoint) {
+      if (rhs.present_count() != rhs_filtered.present_count()) {
+        return ConstructOverlappingError(lhs, rhs);
+      }
+    }
     if (rhs_filtered.present_count() == 0) {
       return lhs;
     }
@@ -116,6 +137,11 @@ struct PresenceOrOp {
 
   absl::StatusOr<DataSliceImpl> operator()(const DataSliceImpl& lhs,
                                            const DataItem& rhs) const {
+    if constexpr (disjoint) {
+      if (!lhs.is_empty_and_unknown() && rhs.has_value()) {
+        return ConstructOverlappingError(lhs, rhs);
+      }
+    }
     if (lhs.size() == lhs.present_count() || !rhs.has_value()) {
       return lhs;
     }
@@ -124,6 +150,11 @@ struct PresenceOrOp {
 
   absl::StatusOr<DataItem> operator()(const DataItem& lhs,
                                       const DataItem& rhs) const {
+    if constexpr (disjoint) {
+      if (lhs.has_value() && rhs.has_value()) {
+        return ConstructOverlappingError(lhs, rhs);
+      }
+    }
     if (lhs.has_value()) {
       return lhs;
     }
@@ -146,10 +177,59 @@ struct PresenceOrOp {
       const auto& rhs_array = rhs.values<T>();
       ASSIGN_OR_RETURN(auto merged_array, arolla::DenseArrayPresenceOrOp()(
                                               &ctx, lhs_array, rhs_array));
+      if constexpr (disjoint) {
+        if (lhs_array.PresentCount() + rhs_array.PresentCount() !=
+            merged_array.PresentCount()) {
+          return ConstructOverlappingError(lhs, rhs);
+        }
+      }
       bldr.InsertIfNotSet<T>(merged_array.bitmap, {}, merged_array.values);
       return absl::OkStatus();
     }));
     return std::move(bldr).Build();
+  }
+
+  // Returns an error with a PresenceOrIntersectionError payload marking the
+  // overlapping values in `lhs` and `rhs`.
+  absl::Status ConstructOverlappingError(const DataSliceImpl& lhs,
+                                         const DataSliceImpl& rhs) const {
+    // Note: consider optimizing this implementation in the future. This is
+    // currently considered unnecessary since it's on the slow path (error).
+    std::vector<DataItem> lhs_overlap;
+    lhs_overlap.reserve(lhs.size());
+    std::vector<DataItem> rhs_overlap;
+    rhs_overlap.reserve(rhs.size());
+    std::vector<DataItem> indices_overlap;
+    indices_overlap.reserve(lhs.size());
+    RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
+        [&](int64_t id, DataItem lhs_item, DataItem rhs_item) {
+          if (lhs_item.has_value() && rhs_item.has_value()) {
+            lhs_overlap.push_back(std::move(lhs_item));
+            rhs_overlap.push_back(std::move(rhs_item));
+            indices_overlap.push_back(DataItem(id));
+          }
+        },
+        lhs.AsDataItemDenseArray(), rhs.AsDataItemDenseArray()));
+    return arolla::WithPayload(
+        absl::InvalidArgumentError("unexpected overlap"),
+        PresenceOrIntersectionError{
+            .lhs_overlap = DataSliceImpl::Create(std::move(lhs_overlap)),
+            .rhs_overlap = DataSliceImpl::Create(std::move(rhs_overlap)),
+            .indices_overlap =
+                DataSliceImpl::Create(std::move(indices_overlap)),
+        });
+  }
+
+  absl::Status ConstructOverlappingError(const DataItem& lhs,
+                                         const DataItem& rhs) const {
+    return ConstructOverlappingError(DataSliceImpl::Create({lhs}),
+                                     DataSliceImpl::Create({rhs}));
+  }
+
+  absl::Status ConstructOverlappingError(const DataSliceImpl& lhs,
+                                         const DataItem& rhs) const {
+    return ConstructOverlappingError(lhs,
+                                     DataSliceImpl::Create(lhs.size(), rhs));
   }
 };
 

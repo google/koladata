@@ -2631,8 +2631,8 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetSchemaAttrAllowMissing(
   if (!big_alloc_result.has_value()) {
     return std::move(small_alloc_result_builder).Build();
   }
-  return PresenceOrOp{}(*big_alloc_result,
-                        std::move(small_alloc_result_builder).Build());
+  return PresenceOrOp</*disjoint=*/false>{}(
+      *big_alloc_result, std::move(small_alloc_result_builder).Build());
 }
 
 namespace {

@@ -85,6 +85,7 @@ cc_library(
         "entities.cc",
         "ids.cc",
         "lists.cc",
+        "masking.cc",
         "math.cc",
         "non_deterministic_op.cc",
         "objs.cc",

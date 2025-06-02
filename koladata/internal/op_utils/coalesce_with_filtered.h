@@ -31,7 +31,7 @@ absl::StatusOr<ImplT> CoalesceWithFiltered(const ImplT& filter,
                                            const ImplT& right) {
   ASSIGN_OR_RETURN(auto filter_mask, HasOp()(filter));
   ASSIGN_OR_RETURN(auto right_filtered, PresenceAndOp()(right, filter_mask));
-  return PresenceOrOp()(left, right_filtered);
+  return PresenceOrOp</*disjoint=*/false>()(left, right_filtered);
 }
 
 }  // namespace koladata::internal

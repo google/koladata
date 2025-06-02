@@ -228,6 +228,7 @@ OPERATOR("kd.masking._agg_any", AggAny, "kd.masking.agg_any");
 OPERATOR("kd.masking._has_not", HasNot, "kd.masking.has_not");
 OPERATOR("kd.masking.apply_mask", ApplyMask);
 OPERATOR("kd.masking.coalesce", Coalesce);
+OPERATOR("kd.masking.disjoint_coalesce", DisjointCoalesce);
 OPERATOR("kd.masking.has", Has);
 //
 OPERATOR("kd.math._agg_inverse_cdf", AggInverseCdf, "kd.math.agg_inverse_cdf");

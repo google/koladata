@@ -446,6 +446,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/dense_array/ops",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
         "@com_google_arolla//arolla/util",

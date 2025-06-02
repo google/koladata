@@ -51,10 +51,15 @@ inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
   RETURN_IF_ERROR(ExpectHaveCommonSchema({"x", "y"}, x, y));
   ASSIGN_OR_RETURN(DataBagPtr res_db, WithAdoptedValues(y.GetBag(), x));
   ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}));
-  return DataSliceOp<internal::PresenceOrOp>()(
+  return DataSliceOp<internal::PresenceOrOp</*disjoint=*/false>>()(
       aligned_slices.slices[0], aligned_slices.slices[1],
-      aligned_slices.common_schema, std::move(res_db));
+      std::move(aligned_slices.common_schema), std::move(res_db));
 }
+
+
+// kd.masking.disjoint_coalesce.
+absl::StatusOr<DataSlice> DisjointCoalesce(const DataSlice& x,
+                                           const DataSlice& y);
 
 // kd.masking.has.
 inline absl::StatusOr<DataSlice> Has(const DataSlice& obj) {

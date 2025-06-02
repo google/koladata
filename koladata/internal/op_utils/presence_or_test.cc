@@ -25,6 +25,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/util/status.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/internal/data_item.h"
@@ -55,7 +56,8 @@ TEST(PresenceOrTest, DataSlicePrimitiveValues) {
     auto lds = DataSliceImpl::Create(l);
     auto rds = DataSliceImpl::Create(r);
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint=*/false>()(lds, rds));
     EXPECT_THAT(res, ElementsAre(1, 1, 12, std::nullopt));
   }
   {
@@ -65,7 +67,8 @@ TEST(PresenceOrTest, DataSlicePrimitiveValues) {
     auto lds = DataSliceImpl::Create(l);
     auto rds = DataSliceImpl::Create(r);
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint=*/false>()(lds, rds));
     EXPECT_THAT(res, ElementsAre(1., 1.5, 12., std::nullopt));
   }
   {
@@ -75,7 +78,8 @@ TEST(PresenceOrTest, DataSlicePrimitiveValues) {
     auto lds = DataSliceImpl::Create(l);
     auto rds = DataSliceImpl::Create(r);
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint=*/false>()(lds, rds));
     EXPECT_THAT(res, ElementsAre(Text("foo"), std::nullopt, Text("bar")));
   }
 }
@@ -87,7 +91,8 @@ TEST(PresenceOrTest, EmptyInputs) {
     auto lds = SliceBuilder(3).Build();
     auto rds = DataSliceImpl::Create(r);
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, rds));
     EXPECT_THAT(res, ElementsAre(2, 1, std::nullopt));
   }
   {
@@ -96,7 +101,8 @@ TEST(PresenceOrTest, EmptyInputs) {
     auto lds = DataSliceImpl::Create(l);
     auto rds = SliceBuilder(3).Build();
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, rds));
     EXPECT_THAT(res, ElementsAre(1, 2, std::nullopt));
   }
   {
@@ -105,7 +111,8 @@ TEST(PresenceOrTest, EmptyInputs) {
     auto lds = DataSliceImpl::Create(l);
     auto rds = DataSliceImpl::CreateEmptyAndUnknownType(3);
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, rds));
     EXPECT_THAT(res, ElementsAre(1, 2, std::nullopt));
   }
   {
@@ -115,7 +122,8 @@ TEST(PresenceOrTest, EmptyInputs) {
     auto r = CreateDenseArray<float>({2.71, 3.14, std::nullopt});
     auto rds = DataSliceImpl::Create(r);
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, rds));
     EXPECT_THAT(res, ElementsAre(1, 2, std::nullopt));
   }
   {
@@ -123,7 +131,8 @@ TEST(PresenceOrTest, EmptyInputs) {
     auto lds = SliceBuilder(4).Build();
     auto rds = SliceBuilder(4).Build();
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, rds));
     EXPECT_TRUE(res.is_empty_and_unknown());
   }
 }
@@ -140,7 +149,8 @@ TEST(PresenceOrTest, DataSliceMixedPrimitiveValues) {
     auto lds = DataSliceImpl::Create(l_int, l_float);
     auto rds = DataSliceImpl::Create(r_text);
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, rds));
     ASSERT_TRUE(res.is_mixed_dtype());
     EXPECT_THAT(res, ElementsAre(1, DataItem(), 2.71f, arolla::Text("d")));
   }
@@ -150,14 +160,15 @@ TEST(PresenceOrTest, DataSliceMixedPrimitiveValues) {
         CreateDenseArray<int>({1, std::nullopt, std::nullopt, std::nullopt});
     auto l_float = CreateDenseArray<float>(
         {std::nullopt, std::nullopt, 2.71, std::nullopt});
-    auto r_float = CreateDenseArray<float>(
-        {0.5, 1.5, std::nullopt, std::nullopt});
+    auto r_float =
+        CreateDenseArray<float>({0.5, 1.5, std::nullopt, std::nullopt});
     auto r_text = CreateDenseArray<Text>(
         {std::nullopt, std::nullopt, Text("c"), Text("d")});
     auto lds = DataSliceImpl::Create(l_int, l_float);
     auto rds = DataSliceImpl::Create(r_float, r_text);
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, rds));
     ASSERT_TRUE(res.is_mixed_dtype());
     EXPECT_THAT(res, ElementsAre(1, 1.5f, 2.71f, arolla::Text("d")));
   }
@@ -167,14 +178,15 @@ TEST(PresenceOrTest, DataSliceMixedPrimitiveValues) {
         CreateDenseArray<int>({1, std::nullopt, std::nullopt, std::nullopt});
     auto l_float = CreateDenseArray<float>(
         {std::nullopt, std::nullopt, 2.71, std::nullopt});
-    auto r_float = CreateDenseArray<float>(
-        {0.5, 1.5, std::nullopt, std::nullopt});
+    auto r_float =
+        CreateDenseArray<float>({0.5, 1.5, std::nullopt, std::nullopt});
     auto r_text = CreateDenseArray<Text>(
         {std::nullopt, std::nullopt, Text("c"), std::nullopt});
     auto lds = DataSliceImpl::Create(l_int, l_float);
     auto rds = DataSliceImpl::Create(r_float, r_text);
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, rds));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, rds));
     ASSERT_TRUE(res.is_mixed_dtype());
     EXPECT_THAT(res, ElementsAre(1, 1.5f, 2.71f, std::nullopt));
   }
@@ -198,7 +210,8 @@ TEST(PresenceOrTest, DataSliceObjectId) {
     ASSERT_EQ(lhs.dtype(), arolla::GetQType<ObjectId>());
     ASSERT_EQ(rhs.dtype(), arolla::GetQType<ObjectId>());
 
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lhs, rhs));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lhs, rhs));
     EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
     EXPECT_THAT(res, ElementsAre(alloc_id_2.ObjectByOffset(0), obj_id,
                                  alloc_id_2.ObjectByOffset(1)));
@@ -212,7 +225,7 @@ TEST(PresenceOrTest, LengthMismatch) {
   auto lds = DataSliceImpl::Create(l_float);
   auto rds = DataSliceImpl::Create(r_unit);
 
-  EXPECT_THAT(PresenceOrOp()(lds, rds),
+  EXPECT_THAT(PresenceOrOp</*disjoint*/ false>()(lds, rds),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "coalesce requires input slices to have the same size"));
 }
@@ -224,7 +237,8 @@ TEST(PresenceOrTest, DataItem) {
     auto ritem = DataItem(AllocateSingleObject());
     auto robj_id = ritem.value<ObjectId>();
     auto mask = DataItem(arolla::Unit());
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(litem, ritem));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(litem, ritem));
     EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
     EXPECT_EQ(res.value<ObjectId>(), robj_id);
   }
@@ -234,7 +248,8 @@ TEST(PresenceOrTest, DataItem) {
     auto lobj_id = litem.value<ObjectId>();
     auto ritem = DataItem();
     auto mask = DataItem(arolla::Unit());
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(litem, ritem));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(litem, ritem));
     EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
     EXPECT_EQ(res.value<ObjectId>(), lobj_id);
   }
@@ -245,7 +260,8 @@ TEST(PresenceOrTest, DataItem) {
     auto ritem = DataItem(AllocateSingleObject());
     auto robj_id = ritem.value<ObjectId>();
     auto mask = DataItem(arolla::Unit());
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(litem, ritem));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(litem, ritem));
     EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
     EXPECT_EQ(res.value<ObjectId>(), lobj_id);
     EXPECT_NE(res.value<ObjectId>(), robj_id);
@@ -254,7 +270,8 @@ TEST(PresenceOrTest, DataItem) {
     // Mixed.
     auto litem = DataItem(5);
     auto ritem = DataItem(Text("a"));
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(litem, ritem));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(litem, ritem));
     EXPECT_EQ(res.dtype(), arolla::GetQType<int>());
     EXPECT_EQ(res.value<int>(), 5);
   }
@@ -269,7 +286,8 @@ TEST(PresenceOrTest, DataSliceOrDataItem) {
         {std::nullopt, std::nullopt, 2.71, std::nullopt});
     auto lds = DataSliceImpl::Create(l_int, l_float);
     auto ritem = DataItem(arolla::Text("abc"));
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, ritem));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, ritem));
     EXPECT_THAT(
         res, ElementsAre(1, arolla::Text("abc"), 2.71f, arolla::Text("abc")));
   }
@@ -281,7 +299,8 @@ TEST(PresenceOrTest, DataSliceOrDataItem) {
         {std::nullopt, std::nullopt, 2.71, std::nullopt});
     auto lds = DataSliceImpl::Create(l_int, l_float);
     auto ritem = DataItem();
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, ritem));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, ritem));
     EXPECT_THAT(res, ElementsAre(1, std::nullopt, 2.71f, std::nullopt));
   }
   {
@@ -290,17 +309,161 @@ TEST(PresenceOrTest, DataSliceOrDataItem) {
     auto alloc_id_1 = AllocationId(obj_id_1);
     auto obj_id_2 = AllocateSingleObject();  // small allocations
     auto alloc_id_2 = AllocationId(obj_id_2);
-    auto l_objects = CreateDenseArray<ObjectId>({
-      obj_id_1, std::nullopt, obj_id_2
-    });
+    auto l_objects =
+        CreateDenseArray<ObjectId>({obj_id_1, std::nullopt, obj_id_2});
     auto lds = DataSliceImpl::CreateObjectsDataSlice(
         l_objects, AllocationIdSet({alloc_id_1, alloc_id_2}));
     auto ritem = DataItem(AllocateSingleObject());
-    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp()(lds, ritem));
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ false>()(lds, ritem));
     EXPECT_THAT(res, ElementsAre(obj_id_1, ritem, obj_id_2));
     EXPECT_EQ(res.allocation_ids(),
               AllocationIdSet({alloc_id_1, alloc_id_2,
                                AllocationId(ritem.value<ObjectId>())}));
+  }
+}
+
+TEST(PresenceOrTest, Disjoint_Slices) {
+  {
+    // Non-overlapping single type -> success.
+    auto l_int =
+        CreateDenseArray<int>({1, std::nullopt, std::nullopt, std::nullopt});
+    auto r_int =
+        CreateDenseArray<int>({std::nullopt, std::nullopt, 2, std::nullopt});
+    auto lds = DataSliceImpl::Create(l_int);
+    auto rds = DataSliceImpl::Create(r_int);
+    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp</*disjoint*/ true>()(lds, rds));
+    EXPECT_THAT(res, ElementsAre(1, std::nullopt, 2, std::nullopt));
+  }
+  {
+    // Non-overlapping mixed -> success.
+    auto l_int =
+        CreateDenseArray<int>({1, std::nullopt, std::nullopt, std::nullopt});
+    auto l_float = CreateDenseArray<float>(
+        {std::nullopt, std::nullopt, 2.71f, std::nullopt});
+    auto r_text = CreateDenseArray<Text>(
+        {std::nullopt, std::nullopt, std::nullopt, Text("d")});
+    auto lds = DataSliceImpl::Create(l_int, l_float);
+    auto rds = DataSliceImpl::Create(r_text);
+    ASSERT_OK_AND_ASSIGN(auto res, PresenceOrOp</*disjoint*/ true>()(lds, rds));
+    EXPECT_THAT(res, ElementsAre(1, std::nullopt, 2.71f, arolla::Text("d")));
+  }
+  {
+    // Overlapping single type -> error.
+    auto l_int = CreateDenseArray<int>({1, std::nullopt, 0, 2});
+    auto r_int = CreateDenseArray<int>({std::nullopt, std::nullopt, 4, 0});
+    auto lds = DataSliceImpl::Create(l_int);
+    auto rds = DataSliceImpl::Create(r_int);
+    auto res = PresenceOrOp</*disjoint*/ true>()(lds, rds);
+    ASSERT_THAT(res.status(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                       "unexpected overlap"));
+    const auto* intersection_error =
+        arolla::GetPayload<internal::PresenceOrIntersectionError>(res.status());
+    EXPECT_THAT(intersection_error->lhs_overlap, ElementsAre(0, 2));
+    EXPECT_THAT(intersection_error->rhs_overlap, ElementsAre(4, 0));
+    EXPECT_THAT(intersection_error->indices_overlap, ElementsAre(2, 3));
+  }
+  {
+    // Overlapping mixed -> error.
+    auto l_int =
+        CreateDenseArray<int>({1, std::nullopt, std::nullopt, std::nullopt});
+    auto l_float = CreateDenseArray<float>(
+        {std::nullopt, std::nullopt, 2.71f, std::nullopt});
+    auto r_text = CreateDenseArray<Text>(
+        {Text("a"), std::nullopt, Text("c"), Text("d")});
+    auto lds = DataSliceImpl::Create(l_int, l_float);
+    auto rds = DataSliceImpl::Create(r_text);
+    auto res = PresenceOrOp</*disjoint*/ true>()(lds, rds);
+    ASSERT_THAT(res.status(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                       "unexpected overlap"));
+    const auto* intersection_error =
+        arolla::GetPayload<internal::PresenceOrIntersectionError>(res.status());
+    EXPECT_THAT(intersection_error->lhs_overlap, ElementsAre(1, 2.71f));
+    EXPECT_THAT(intersection_error->rhs_overlap,
+                ElementsAre(Text("a"), Text("c")));
+    EXPECT_THAT(intersection_error->indices_overlap, ElementsAre(0, 2));
+  }
+}
+
+TEST(PresenceOrTest, Disjoint_Items) {
+  {
+    // Non-overlapping items -> success.
+    auto litem = DataItem(1);
+    auto ritem = DataItem();
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ true>()(litem, ritem));
+    EXPECT_EQ(res, DataItem(1));
+  }
+  {
+    // Non-overlapping single type - present item -> success.
+    auto l_int = CreateDenseArray<int>({std::nullopt, std::nullopt});
+    auto lds = DataSliceImpl::Create(l_int);
+    auto ritem = DataItem(1);
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ true>()(lds, ritem));
+    EXPECT_THAT(res, ElementsAre(1, 1));
+  }
+  {
+    // Non-overlapping single type - missing item -> success.
+    auto l_int = CreateDenseArray<int>({1, std::nullopt});
+    auto lds = DataSliceImpl::Create(l_int);
+    auto ritem = DataItem();
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ true>()(lds, ritem));
+    EXPECT_THAT(res, ElementsAre(1, std::nullopt));
+  }
+  {
+    // Non-overlapping mixed type type - missing item -> success.
+    auto l_int = CreateDenseArray<int>({1, std::nullopt});
+    auto l_float = CreateDenseArray<float>({std::nullopt, 2.71f});
+    auto lds = DataSliceImpl::Create(l_int, l_float);
+    auto ritem = DataItem();
+    ASSERT_OK_AND_ASSIGN(auto res,
+                         PresenceOrOp</*disjoint*/ true>()(lds, ritem));
+    EXPECT_THAT(res, ElementsAre(1, 2.71f));
+  }
+  {
+    // overlapping items -> error.
+    auto litem = DataItem(1);
+    auto ritem = DataItem(2.71f);
+    auto res = PresenceOrOp</*disjoint*/ true>()(litem, ritem);
+    ASSERT_THAT(res.status(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                       "unexpected overlap"));
+    const auto* intersection_error =
+        arolla::GetPayload<internal::PresenceOrIntersectionError>(res.status());
+    EXPECT_THAT(intersection_error->lhs_overlap, ElementsAre(1));
+    EXPECT_THAT(intersection_error->rhs_overlap, ElementsAre(2.71f));
+    EXPECT_THAT(intersection_error->indices_overlap, ElementsAre(0));
+  }
+  {
+    // Overlapping single type -> error.
+    auto l_int = CreateDenseArray<int>({2, std::nullopt});
+    auto lds = DataSliceImpl::Create(l_int);
+    auto ritem = DataItem(1);
+    auto res = PresenceOrOp</*disjoint*/ true>()(lds, ritem);
+    ASSERT_THAT(res.status(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                       "unexpected overlap"));
+    const auto* intersection_error =
+        arolla::GetPayload<internal::PresenceOrIntersectionError>(res.status());
+    EXPECT_THAT(intersection_error->lhs_overlap, ElementsAre(2));
+    EXPECT_THAT(intersection_error->rhs_overlap, ElementsAre(1));
+    EXPECT_THAT(intersection_error->indices_overlap, ElementsAre(0));
+  }
+  {
+    // overlapping mixed type type -> success.
+    auto l_int = CreateDenseArray<int>({1, std::nullopt});
+    auto l_float = CreateDenseArray<float>({std::nullopt, 2.71f});
+    auto lds = DataSliceImpl::Create(l_int, l_float);
+    auto ritem = DataItem(arolla::Text("a"));
+    auto res = PresenceOrOp</*disjoint*/ true>()(lds, ritem);
+    ASSERT_THAT(res.status(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                       "unexpected overlap"));
+    const auto* intersection_error =
+        arolla::GetPayload<internal::PresenceOrIntersectionError>(res.status());
+    EXPECT_THAT(intersection_error->lhs_overlap, ElementsAre(1, 2.71f));
+    EXPECT_THAT(intersection_error->rhs_overlap,
+                ElementsAre(arolla::Text("a"), arolla::Text("a")));
+    EXPECT_THAT(intersection_error->indices_overlap, ElementsAre(0, 1));
   }
 }
 
