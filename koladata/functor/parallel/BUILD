@@ -406,6 +406,49 @@ cc_test(
 )
 
 cc_library(
+    name = "stream_loop_internal",
+    srcs = ["stream_loop_internal.cc"],
+    hdrs = ["stream_loop_internal.h"],
+    deps = [
+        ":stream",
+        ":stream_qtype",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/internal:dtype",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+    ],
+)
+
+cc_test(
+    name = "stream_loop_internal_test",
+    srcs = ["stream_loop_internal_test.cc"],
+    deps = [
+        ":stream",
+        ":stream_loop_internal",
+        ":stream_qtype",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata:test_utils",
+        "//koladata/internal:dtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "init_expr_operators",
     srcs = ["init_expr_operators.cc"],
     deps = [
