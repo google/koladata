@@ -38,11 +38,12 @@
 namespace koladata::ops {
 
 // kd.masking.apply_mask.
-inline absl::StatusOr<DataSlice> ApplyMask(const DataSlice& obj,
-                                           const DataSlice& mask) {
+inline absl::StatusOr<DataSlice> ApplyMask(DataSlice obj, DataSlice mask) {
   RETURN_IF_ERROR(ExpectMask("mask", mask));
-  return DataSliceOp<internal::PresenceAndOp>()(obj, mask, obj.GetSchemaImpl(),
-                                                obj.GetBag());
+  const auto& output_schema = obj.GetSchemaImpl();
+  const auto& output_bag = obj.GetBag();
+  return DataSliceOp<internal::PresenceAndOp>()(std::move(obj), std::move(mask),
+                                                output_schema, output_bag);
 }
 
 // kd.masking.coalesce.
@@ -52,7 +53,7 @@ inline absl::StatusOr<DataSlice> Coalesce(const DataSlice& x,
   ASSIGN_OR_RETURN(DataBagPtr res_db, WithAdoptedValues(y.GetBag(), x));
   ASSIGN_OR_RETURN(auto aligned_slices, AlignSchemas({x, y}));
   return DataSliceOp<internal::PresenceOrOp</*disjoint=*/false>>()(
-      aligned_slices.slices[0], aligned_slices.slices[1],
+      std::move(aligned_slices.slices[0]), std::move(aligned_slices.slices[1]),
       std::move(aligned_slices.common_schema), std::move(res_db));
 }
 

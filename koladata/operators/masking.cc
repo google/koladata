@@ -85,7 +85,8 @@ absl::StatusOr<DataSlice> DisjointCoalesce(const DataSlice& x,
   ASSIGN_OR_RETURN(
       auto res,
       DataSliceOp<internal::PresenceOrOp</*disjoint=*/true>>()(
-          aligned_slices.slices[0], aligned_slices.slices[1],
+          std::move(aligned_slices.slices[0]),
+          std::move(aligned_slices.slices[1]),
           std::move(aligned_slices.common_schema), std::move(res_db)),
       IntersectionErrorHandler(std::move(_), x, y));
   return res;

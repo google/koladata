@@ -33,7 +33,7 @@ absl::StatusOr<DataSlice> LessEqual(const DataSlice& x, const DataSlice& y);
 absl::StatusOr<DataSlice> GreaterEqual(const DataSlice& x, const DataSlice& y);
 
 // kd.comparison.equal.
-absl::StatusOr<DataSlice> Equal(const DataSlice& x, const DataSlice& y);
+absl::StatusOr<DataSlice> Equal(DataSlice x, DataSlice y);
 
 }  // namespace koladata::ops
 

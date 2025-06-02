@@ -65,14 +65,13 @@ struct DataSliceOp {
   // Use for operators accepting 2 DataSlices.
   // ArgType&& args... are passed unmodified to the underlying OpImpl.
   template <class DataSlice, class... ArgType>
-  absl::StatusOr<DataSlice> operator()(const DataSlice& ds_1,
-                                       const DataSlice& ds_2,
-                                       internal::DataItem schema,
-                                       DataBagPtr db,
+  absl::StatusOr<DataSlice> operator()(DataSlice ds_1, DataSlice ds_2,
+                                       internal::DataItem schema, DataBagPtr db,
                                        ArgType&&... args) {
     if constexpr (IsDefinedOnMixedImpl<OpImpl>::value) {
-      ASSIGN_OR_RETURN(auto aligned_inputs,
-                       shape::AlignNonScalars({ds_1, ds_2}));
+      ASSIGN_OR_RETURN(
+          auto aligned_inputs,
+          shape::AlignNonScalars({std::move(ds_1), std::move(ds_2)}));
       const auto& aligned_ds_1 = aligned_inputs.first[0];
       const auto& aligned_ds_2 = aligned_inputs.first[1];
       return aligned_ds_1.VisitImpl([&](const auto& impl_1) {
@@ -84,8 +83,9 @@ struct DataSliceOp {
         });
       });
     } else {
-      ASSIGN_OR_RETURN(auto aligned_inputs,
-                       shape::Align(std::vector{ds_1, ds_2}));
+      ASSIGN_OR_RETURN(
+          auto aligned_inputs,
+          shape::Align(std::vector{std::move(ds_1), std::move(ds_2)}));
       const auto& aligned_ds_1 = aligned_inputs[0];
       return aligned_ds_1.VisitImpl([&](const auto& impl_1) {
         using ImplT = typename std::decay_t<decltype(impl_1)>;

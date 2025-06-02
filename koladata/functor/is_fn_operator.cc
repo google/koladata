@@ -57,7 +57,8 @@ absl::StatusOr<DataSlice> HasFn(const DataSlice& x) {
     ASSIGN_OR_RETURN(auto returns, slice.HasAttr(kReturnsAttrName));
     ASSIGN_OR_RETURN(auto signature, slice.HasAttr(kSignatureAttrName));
     return DataSliceOp<internal::PresenceAndOp>()(
-        returns, signature, internal::DataItem(schema::kMask), /*db=*/nullptr);
+        std::move(returns), std::move(signature),
+        internal::DataItem(schema::kMask), /*db=*/nullptr);
   };
 
   if (x.GetBag() == nullptr || !(x.GetSchema().IsStructSchema() ||
