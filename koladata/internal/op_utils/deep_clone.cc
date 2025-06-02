@@ -49,7 +49,8 @@ class DeepCloneVisitor : AbstractVisitor {
         is_schema_slice_(is_schema_slice),
         allocation_tracker_() {}
 
-  absl::Status Previsit(const DataItem& item, const DataItem& schema) override {
+  absl::Status Previsit(const DataItem& from_item, const DataItem& from_schema,
+                        const DataItem& item, const DataItem& schema) override {
     if (schema.holds_value<ObjectId>()) {
       // Entity schema.
       if (schema.is_implicit_schema()) {

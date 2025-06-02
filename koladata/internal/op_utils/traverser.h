@@ -63,7 +63,9 @@ class AbstractVisitor {
   // For objects Previsit is called twice:
   // - first time with schema::kObject.
   // - second time with the schema written in kSchemaAttr attribute.
-  virtual absl::Status Previsit(const DataItem& item,
+  virtual absl::Status Previsit(const DataItem& from_item,
+                                const DataItem& from_schema,
+                                const DataItem& item,
                                 const DataItem& schema) = 0;
 
   // Called for each reachable list.
@@ -146,10 +148,11 @@ class Traverser {
 
   absl::Status TraverseSlice(const DataSliceImpl& ds, const DataItem& schema) {
     absl::Status status = absl::OkStatus();
+    ItemWithSchema root = {.item = DataItem(), .schema = DataItem()};
     RETURN_IF_ERROR(
-        Previsit({.item = schema, .schema = DataItem(schema::kSchema)}));
+        Previsit(root, {.item = schema, .schema = DataItem(schema::kSchema)}));
     for (const DataItem& item : ds) {
-      RETURN_IF_ERROR(Previsit({.item = item, .schema = schema}));
+      RETURN_IF_ERROR(Previsit(root, {.item = item, .schema = schema}));
     }
     if (!status.ok()) {
       return status;
@@ -186,14 +189,16 @@ class Traverser {
     return absl::OkStatus();
   }
 
-  absl::Status Previsit(const ItemWithSchema& item) {
+  absl::Status Previsit(const ItemWithSchema& from,
+                        const ItemWithSchema& item) {
     if (item.schema.is_primitive_schema()) {
       RETURN_IF_ERROR(ValidatePrimitiveType(item));
     }
     if (item.item.has_value() && !item.item.ContainsAnyPrimitives()) {
       previsit_stack_.push({.item = item.item, .schema = item.schema});
     }
-    return visitor_->VisitorT::Previsit(item.item, item.schema);
+    return visitor_->VisitorT::Previsit(from.item, from.schema, item.item,
+                                        item.schema);
   }
 
   struct PairOfItemsHash {
@@ -226,12 +231,14 @@ class Traverser {
         if (item.schema == schema::kObject) {
           ASSIGN_OR_RETURN(item.schema,
                            traverse_helper_.GetObjectSchema(item.item));
-          RETURN_IF_ERROR(visitor_->VisitorT::Previsit(item.item, item.schema));
+          RETURN_IF_ERROR(visitor_->VisitorT::Previsit(
+              item.item, DataItem(schema::kObject), item.item, item.schema));
         }
         if (item.item != DataItem(schema::kSchema) ||
             item.schema != DataItem(schema::kSchema)) {
           // Always call Previsit on the schema, unless it would be a loop.
           RETURN_IF_ERROR(Previsit(
+              item,
               {.item = item.schema, .schema = DataItem(schema::kSchema)}));
         }
         ASSIGN_OR_RETURN(
@@ -241,11 +248,11 @@ class Traverser {
         absl::Status status = absl::OkStatus();
         RETURN_IF_ERROR(traverse_helper_.ForEachObject(
             item.item, item.schema, transitions_set,
-            [&](const DataItem& item, const DataItem& schema) {
+            [&](const DataItem& to_item, const DataItem& to_schema) {
               if (!status.ok()) {
                 return;
               }
-              status = Previsit({.item = item, .schema = schema});
+              status = Previsit(item, {.item = to_item, .schema = to_schema});
             }));
         if (!status.ok()) {
           return status;
