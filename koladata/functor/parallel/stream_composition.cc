@@ -80,7 +80,7 @@ void StreamInterleave::Add(const StreamPtr /*absl_nonnull*/& stream) {
   }
 }
 
-void StreamInterleave::AddError(absl::Status status) && {
+void StreamInterleave::AddError(absl::Status status) {
   scheduler_->AddError(std::move(status));
 }
 
@@ -230,7 +230,7 @@ void StreamChain::Add(const StreamPtr /*absl_nonnull*/& stream) {
   }
 }
 
-void StreamChain::AddError(absl::Status status) && {
+void StreamChain::AddError(absl::Status status) {
   DCHECK(!status.ok());
   DCHECK(scheduler_ != nullptr);
   if (!status.ok() && scheduler_ != nullptr) {
