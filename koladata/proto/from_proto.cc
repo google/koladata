@@ -52,6 +52,7 @@
 #include "koladata/object_factories.h"
 #include "koladata/operators/slices.h"
 #include "koladata/proto/proto_schema_utils.h"
+#include "koladata/shape_utils.h"
 #include "koladata/uuid_utils.h"
 #include "google/protobuf/descriptor.h"
 #include "google/protobuf/message.h"
@@ -217,36 +218,6 @@ absl::StatusOr<std::optional<DataSlice>> GetPrimitiveListItemsSchema(
   return child_schema;
 }
 
-class Shape2DBuilder {
- public:
-  explicit Shape2DBuilder(int64_t num_groups) : edge_builder_(num_groups + 1) {
-    edge_builder_.Add(0, 0);
-    ++i_next_;
-  }
-
-  void Add(int64_t group_size) {
-    last_split_ += group_size;
-    edge_builder_.Add(i_next_, last_split_);
-    ++i_next_;
-  }
-
-  absl::StatusOr<DataSlice::JaggedShape> Build() && {
-    auto edge_array = std::move(edge_builder_).Build();
-    ASSIGN_OR_RETURN(auto edge0,
-                     DataSlice::JaggedShape::Edge::FromUniformGroups(
-                         1, edge_array.size() - 1));
-    ASSIGN_OR_RETURN(auto edge1, DataSlice::JaggedShape::Edge::FromSplitPoints(
-                                     std::move(edge_array)));
-    return DataSlice::JaggedShape::FromEdges(
-        {std::move(edge0), std::move(edge1)});
-  }
-
- private:
-  arolla::DenseArrayBuilder<int64_t> edge_builder_;
-  int64_t i_next_ = 0;
-  int64_t last_split_ = 0;
-};
-
 absl::StatusOr<DataSlice> CreateBareProtoUuSchema(
     const DataBagPtr& db, const Descriptor& message_descriptor) {
   return CreateUuSchema(
@@ -389,7 +360,9 @@ absl::Status ListFromProtoRepeatedMessageField(
   bool is_empty = true;
   arolla::DenseArrayBuilder<arolla::Unit> lists_mask_builder(
       parent_messages.size());
-  Shape2DBuilder shape_builder(parent_messages.size());
+  DataSlice::JaggedShape parent_shape =
+      DataSlice::JaggedShape::FlatFromSize(parent_messages.size());
+  shape::ShapeBuilder shape_builder(parent_shape);
   std::vector<const Message* /*absl_nonnull*/> flat_child_messages;
   for (int64_t i = 0; i < parent_messages.size(); ++i) {
     const auto& parent_message = *parent_messages[i];
@@ -485,7 +458,9 @@ absl::StatusOr<std::optional<DataSlice>> ListFromProtoRepeatedPrimitiveField(
     arolla::DenseArrayBuilder<T> flat_items_builder(num_items);
     arolla::DenseArrayBuilder<arolla::Unit> lists_mask_builder(
         parent_messages.size());
-    Shape2DBuilder shape_builder(parent_messages.size());
+    DataSlice::JaggedShape parent_shape =
+        DataSlice::JaggedShape::FlatFromSize(parent_messages.size());
+    shape::ShapeBuilder shape_builder(parent_shape);
     int64_t i_next_flat_item = 0;
     for (int64_t i = 0; i < parent_messages.size(); ++i) {
       const auto& parent_message = *parent_messages[i];
@@ -778,7 +753,9 @@ absl::Status DictFromProtoMapField(
   bool is_empty = true;
   arolla::DenseArrayBuilder<arolla::Unit> dicts_mask_builder(
       parent_messages.size());
-  Shape2DBuilder shape_builder(parent_messages.size());
+  DataSlice::JaggedShape parent_shape =
+      DataSlice::JaggedShape::FlatFromSize(parent_messages.size());
+  shape::ShapeBuilder shape_builder(parent_shape);
   std::vector<const Message* /*absl_nonnull*/> flat_item_messages;
   for (int64_t i = 0; i < parent_messages.size(); ++i) {
     const auto& parent_message = *parent_messages[i];

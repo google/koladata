@@ -15,12 +15,14 @@
 #ifndef KOLADATA_SHAPE_SHAPE_UTILS_H_
 #define KOLADATA_SHAPE_SHAPE_UTILS_H_
 
+#include <cstdint>
 #include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
+#include "arolla/dense_array/dense_array.h"
 #include "koladata/data_slice.h"
 
 namespace koladata::shape {
@@ -46,6 +48,38 @@ inline absl::StatusOr<std::vector<DataSlice>> Align(
 // broadcasted.
 absl::StatusOr<std::pair<std::vector<DataSlice>, DataSlice::JaggedShape>>
 AlignNonScalars(std::vector<DataSlice> slices);
+
+// Helper class for building a DataSlice::JaggedShape by adding an edge from
+// group sizes to the previous shape.
+//
+// Example usage:
+//   ShapeBuilder builder(JaggedShape::FlatFromSize(3));
+//   builder.Add(1);
+//   builder.Add(5);
+//   builder.Add(7);
+//   builder.Build(); // returns a shape with 3 edges: (0, 3) and (0, 1, 8, 12).
+// Fails if:
+//   - Some group sizes are negative.
+//   - Number of groups added is not equal to the number of groups provided in
+//     the constructor.
+class ShapeBuilder {
+ public:
+  explicit ShapeBuilder(const DataSlice::JaggedShape& shape)
+      : edge_builder_(shape.size() + 1), prev_shape_(shape) {
+    edge_builder_.Add(0, 0);
+    ++i_next_;
+  }
+
+  void Add(int64_t group_size);
+
+  absl::StatusOr<DataSlice::JaggedShape> Build() &&;
+
+ private:
+  arolla::DenseArrayBuilder<int64_t> edge_builder_;
+  const DataSlice::JaggedShape& prev_shape_;
+  int64_t i_next_ = 0;
+  int64_t last_split_ = 0;
+};
 
 }  // namespace koladata::shape
 

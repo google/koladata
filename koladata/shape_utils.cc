@@ -15,6 +15,7 @@
 #include "koladata/shape_utils.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 #include <vector>
 
@@ -79,6 +80,20 @@ AlignNonScalars(std::vector<DataSlice> slices) {
     }
   }
   return std::make_pair(std::move(slices), std::move(shape));
+}
+
+void ShapeBuilder::Add(int64_t group_size) {
+  last_split_ += group_size;
+  edge_builder_.Add(i_next_, last_split_);
+  ++i_next_;
+}
+
+absl::StatusOr<DataSlice::JaggedShape> ShapeBuilder::Build() && {
+  auto edge_array = std::move(edge_builder_).Build();
+  ASSIGN_OR_RETURN(
+      auto last_edge,
+      DataSlice::JaggedShape::Edge::FromSplitPoints(std::move(edge_array)));
+  return prev_shape_.AddDims({std::move(last_edge)});
 }
 
 }  // namespace koladata::shape

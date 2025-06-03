@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <initializer_list>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -281,6 +282,72 @@ TEST(ShapeUtilsTest, AlignNonScalars) {
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("shapes are not compatible")));
   }
+}
+
+TEST(ShapeBuilderTest, BuildWithSimpleParentShape) {
+  DataSlice::JaggedShape prev_shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ShapeBuilder builder(prev_shape);
+  builder.Add(1);
+  builder.Add(4);
+  builder.Add(7);
+  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape shape,
+                       std::move(builder).Build());
+
+  DataSlice::JaggedShape::Edge edge_1 = CreateEdge({0, 3});
+  DataSlice::JaggedShape::Edge edge_2 = CreateEdge({0, 1, 5, 12});
+  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape expected_shape,
+                       ShapeFromEdges({edge_1, edge_2}));
+  EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
+}
+
+TEST(ShapeBuilderTest, Build) {
+  DataSlice::JaggedShape::Edge edge_1 = CreateEdge({0, 3});
+  DataSlice::JaggedShape::Edge edge_2 = CreateEdge({0, 1, 2, 3});
+  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape prev_shape,
+                       ShapeFromEdges({edge_1, edge_2}));
+  ShapeBuilder builder(prev_shape);
+  builder.Add(1);
+  builder.Add(7);
+  builder.Add(4);
+  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape shape,
+                       std::move(builder).Build());
+
+  DataSlice::JaggedShape::Edge edge_3 = CreateEdge({0, 1, 8, 12});
+  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape expected_shape,
+                       ShapeFromEdges({edge_1, edge_2, edge_3}));
+  EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
+}
+
+TEST(ShapeBuilderTest, BuildWithEmptyParentShape) {
+  DataSlice::JaggedShape prev_shape;
+  ShapeBuilder builder(prev_shape);
+  builder.Add(4);
+  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape shape,
+                       std::move(builder).Build());
+  DataSlice::JaggedShape expected_shape =
+                       DataSlice::JaggedShape::FlatFromSize(4);
+  EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
+}
+
+TEST(ShapeBuilderTest, NotEnoughGroupsFails) {
+  DataSlice::JaggedShape prev_shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ShapeBuilder builder(prev_shape);
+  builder.Add(1);
+  builder.Add(2);
+  EXPECT_THAT(std::move(builder).Build(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("split points must be full")));
+}
+
+TEST(ShapeBuilderTest, NegativeGroupSizeFails) {
+  DataSlice::JaggedShape prev_shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ShapeBuilder builder(prev_shape);
+  builder.Add(1);
+  builder.Add(2);
+  builder.Add(-3);
+  EXPECT_THAT(std::move(builder).Build(),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("split points must be sorted")));
 }
 
 }  // namespace
