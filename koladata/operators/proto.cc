@@ -239,32 +239,11 @@ absl::StatusOr<DataSlice> FromProtoJson(
                            itemids, schema, on_invalid);
 }
 
-namespace {
-
-absl::StatusOr<std::vector<std::unique_ptr<google::protobuf::Message>>> ToProtoMessages(
-    const DataSlice& x, const DataSlice& proto_path) {
-  ASSIGN_OR_RETURN(const auto* message_prototype,
-                   GetMessagePrototype(proto_path));
-  ASSIGN_OR_RETURN(auto x_flat, Reshape(x, x.GetShape().FlattenDims(
-                                               0, x.GetShape().rank())));
-  std::vector<google::protobuf::Message*> messages;
-  messages.reserve(x_flat.size());
-  std::vector<std::unique_ptr<google::protobuf::Message>> owned_messages;
-  owned_messages.reserve(x_flat.size());
-  for (int64_t i = 0; i < x_flat.size(); ++i) {
-    auto message = std::unique_ptr<google::protobuf::Message>(message_prototype->New());
-    messages.push_back(message.get());
-    owned_messages.push_back(std::move(message));
-  }
-  RETURN_IF_ERROR(ToProto(std::move(x_flat), std::move(messages)));
-  return std::move(owned_messages);
-}
-
-}  // namespace
-
 absl::StatusOr<DataSlice> ToProtoBytes(const DataSlice& x,
                                        const DataSlice& proto_path) {
-  ASSIGN_OR_RETURN(auto messages, ToProtoMessages(x, proto_path));
+  ASSIGN_OR_RETURN(const auto* message_prototype,
+                   GetMessagePrototype(proto_path));
+  ASSIGN_OR_RETURN(auto messages, ToProtoMessages(x, message_prototype));
   arolla::DenseArrayBuilder<arolla::Bytes> result_builder(x.size());
   for (int64_t i = 0; i < x.size(); ++i) {
     result_builder.Add(i, messages[i]->SerializePartialAsString());
@@ -280,7 +259,9 @@ absl::StatusOr<DataSlice> ToProtoBytes(const DataSlice& x,
 
 absl::StatusOr<DataSlice> ToProtoJson(const DataSlice& x,
                                       const DataSlice& proto_path) {
-  ASSIGN_OR_RETURN(auto messages, ToProtoMessages(x, proto_path));
+  ASSIGN_OR_RETURN(const auto* message_prototype,
+                   GetMessagePrototype(proto_path));
+  ASSIGN_OR_RETURN(auto messages, ToProtoMessages(x, message_prototype));
   arolla::DenseArrayBuilder<arolla::Text> result_builder(x.size());
   for (int64_t i = 0; i < x.size(); ++i) {
     std::string json;

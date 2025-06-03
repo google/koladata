@@ -15,6 +15,7 @@
 #ifndef KOLADATA_PROTO_TO_PROTO_H_
 #define KOLADATA_PROTO_TO_PROTO_H_
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -93,6 +94,13 @@ absl::StatusOr<google::protobuf::FileDescriptorProto> ProtoDescriptorFromSchema(
     absl::string_view file_name = "",
     std::optional<absl::string_view> descriptor_package_name = std::nullopt,
     absl::string_view root_message_name = "RootSchema");
+
+// Converts a DataSlice to a list of proto messages of a single type.
+//
+// The DataSlice is flattened as a first step, and the conversion to proto is
+// then handled by `ToProto`.
+absl::StatusOr<std::vector<std::unique_ptr<google::protobuf::Message>>> ToProtoMessages(
+    const DataSlice& x, const google::protobuf::Message* /*absl_nonnull*/ message_prototype);
 
 }  // namespace koladata
 
