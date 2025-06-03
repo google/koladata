@@ -1277,7 +1277,9 @@ class DataSliceTest(parameterized.TestCase):
 
     with self.subTest('errors'):
       x = db.new(abc=ds([42], schema_constants.INT64))
-      with self.assertRaisesRegex(ValueError, 'must be a slice of STRING'):
+      with self.assertRaisesRegex(
+          TypeError, 'expecting attr_name to be a DataSlice'
+      ):
         x.set_attr(b'invalid_attr', 1)
       with self.assertRaises(ValueError):
         x.set_attr('invalid__val', ValueError)
@@ -1287,6 +1289,26 @@ class DataSliceTest(parameterized.TestCase):
           TypeError, 'accepts 2 to 3 positional arguments'
       ):
         x.set_attr('invalid__overwrite_schema_type', 1, None, 42)
+
+  def test_get_attr_ds_attr_name(self):
+    db = bag()
+    x = db.obj(a=ds([1, 2]), b=ds([3, 4], schema_constants.INT32))
+    with self.subTest('smoke_test'):
+      x1 = x.get_attr(ds(['a', 'b']))
+      testing.assert_equal(x1.no_bag(), ds([1, 4]))
+    with self.subTest('with_default'):
+      x1 = x.get_attr(ds(['a', 'c']), None)
+      testing.assert_equal(x1.no_bag(), ds([1, None]))
+    with self.subTest('invalid_attr_name'):
+      with self.assertRaisesRegex(
+          TypeError, 'expecting attr_name to be a DataSlice'
+      ):
+        x.get_attr(db)
+    with self.subTest('py_list_attr_name'):
+      with self.assertRaisesRegex(
+          TypeError, 'expecting attr_name to be a DataSlice'
+      ):
+        x.get_attr(['a', 'b'])
 
   def test_set_attr_ds_attr_name(self):
     db = bag()
@@ -1820,6 +1842,9 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     db = bag()
     obj = ds([db.obj(a=1), db.obj(x=42), db.obj(a=3)])
     testing.assert_equal(obj.maybe('a'), ds([1, None, 3]).with_bag(db))
+    testing.assert_equal(
+        obj.maybe(ds(['a', 'a', 'c'])), ds([1, None, None]).with_bag(db)
+    )
 
   def test_internal_as_arolla_value(self):
     x = ds([1, 2, 3], schema_constants.FLOAT32)

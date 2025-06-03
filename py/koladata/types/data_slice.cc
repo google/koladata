@@ -46,6 +46,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/operators/core.h"
 #include "koladata/operators/masking.h"
 #include "koladata/operators/slices.h"
 #include "koladata/proto/to_proto.h"
@@ -358,24 +359,45 @@ PyObject* /*absl_nullable*/ PyDataSlice_get_attr(PyObject* self,
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
   }
-  Py_ssize_t size;
-  const char* attr_name_ptr = PyUnicode_AsUTF8AndSize(py_args[0], &size);
-  if (attr_name_ptr == nullptr) {
-    return nullptr;
-  }
-  auto attr_name_view = absl::string_view(attr_name_ptr, size);
-  const auto& self_ds = UnsafeDataSliceRef(self);
   std::optional<DataSlice> res;
-  if (args.pos_kw_values[0] == nullptr) {
-    ASSIGN_OR_RETURN(res, self_ds.GetAttr(attr_name_view),
-                     arolla::python::SetPyErrFromStatus(_));
+  const auto& self_ds = UnsafeDataSliceRef(self);
+  if (PyUnicode_Check(args.pos_only_args[0])) {
+    Py_ssize_t size;
+    const char* attr_name_ptr =
+        PyUnicode_AsUTF8AndSize(args.pos_only_args[0], &size);
+    if (attr_name_ptr == nullptr) {
+      return nullptr;
+    }
+    auto attr_name_view = absl::string_view(attr_name_ptr, size);
+    if (args.pos_kw_values[0] == nullptr) {
+      ASSIGN_OR_RETURN(res, self_ds.GetAttr(attr_name_view),
+                       arolla::python::SetPyErrFromStatus(_));
+    } else {
+      ASSIGN_OR_RETURN(auto default_value,
+                       DataSliceFromPyValueNoAdoption(args.pos_kw_values[0]),
+                       arolla::python::SetPyErrFromStatus(_));
+      ASSIGN_OR_RETURN(
+          res, self_ds.GetAttrWithDefault(attr_name_view, default_value),
+          arolla::python::SetPyErrFromStatus(_));
+    }
   } else {
-    ASSIGN_OR_RETURN(auto default_value,
-                     DataSliceFromPyValueNoAdoption(args.pos_kw_values[0]),
-                     arolla::python::SetPyErrFromStatus(_));
-    ASSIGN_OR_RETURN(res,
-                     self_ds.GetAttrWithDefault(attr_name_view, default_value),
-                     arolla::python::SetPyErrFromStatus(_));
+    const DataSlice* attr_name =
+                     UnwrapDataSlice(args.pos_only_args[0], "attr_name");
+    if (attr_name == nullptr) {
+      return nullptr;
+    }
+    if (args.pos_kw_values[0] == nullptr) {
+      ASSIGN_OR_RETURN(res, koladata::ops::GetAttr(self_ds, *attr_name),
+                       arolla::python::SetPyErrFromStatus(_));
+    } else {
+      ASSIGN_OR_RETURN(auto default_value,
+                       DataSliceFromPyValueNoAdoption(args.pos_kw_values[0]),
+                       arolla::python::SetPyErrFromStatus(_));
+      ASSIGN_OR_RETURN(
+          res,
+          koladata::ops::GetAttrWithDefault(self_ds, *attr_name, default_value),
+          arolla::python::SetPyErrFromStatus(_));
+    }
   }
   return WrapPyDataSlice(*std::move(res));
 }
@@ -449,9 +471,10 @@ PyObject* /*absl_nullable*/ PyDataSlice_set_attr(PyObject* self,
     }
     overwrite_schema = PyObject_IsTrue(py_overwrite_schema);
   }
-  if (PyUnicode_Check(py_args[0])) {
+  if (PyUnicode_Check(args.pos_only_args[0])) {
     Py_ssize_t size;
-    const char* attr_name_ptr = PyUnicode_AsUTF8AndSize(py_args[0], &size);
+    const char* attr_name_ptr =
+        PyUnicode_AsUTF8AndSize(args.pos_only_args[0], &size);
     if (attr_name_ptr == nullptr) {
       return nullptr;
     }
@@ -464,10 +487,12 @@ PyObject* /*absl_nullable*/ PyDataSlice_set_attr(PyObject* self,
                   self_ds));
         });
   } else {
-    ASSIGN_OR_RETURN(DataSlice attr_name,
-                     DataSliceFromPyValueNoAdoption(py_args[0]),
-                     arolla::python::SetPyErrFromStatus(_));
-    RETURN_IF_ERROR(self_ds.SetAttr(attr_name, value_ds, overwrite_schema))
+    const DataSlice* attr_name =
+                     UnwrapDataSlice(args.pos_only_args[0], "attr_name");
+    if (attr_name == nullptr) {
+      return nullptr;
+    }
+    RETURN_IF_ERROR(self_ds.SetAttr(*attr_name, value_ds, overwrite_schema))
         .With([&](absl::Status status) {
           return arolla::python::SetPyErrFromStatus(
               KodaErrorCausedByIncompableSchemaError(
