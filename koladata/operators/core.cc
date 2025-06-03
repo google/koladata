@@ -55,6 +55,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/error_utils.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/coalesce_with_filtered.h"
 #include "koladata/internal/op_utils/deep_clone.h"
 #include "koladata/internal/op_utils/extract.h"
@@ -76,6 +77,105 @@ using ::koladata::internal::DataItem;
 
 namespace {
 
+// Updates the schema of the `result_db` to later be able to detect conflicts
+// when setting attributes `attr_names` on `obj`. For each attribute name we
+// prepare to set the corresponding attribute on the entire `obj` slice.
+absl::Status UpdateSchemaForConflictDetection(
+    const DataSlice& obj, absl::Span<const absl::string_view> attr_names,
+    DataBagPtr& result_db) {
+  bool object_mode = obj.GetSchemaImpl() == schema::kObject;
+  ASSIGN_OR_RETURN(auto src_schema,
+                   object_mode ? obj.GetObjSchema() : obj.GetSchema());
+  auto dst_schema = src_schema.WithBag(result_db);
+  for (const auto& attr_name : attr_names) {
+    ASSIGN_OR_RETURN(auto attr_schema, src_schema.GetAttrOrMissing(attr_name));
+    if (!attr_schema.IsEmpty()) {
+      // We remove the bag so that we don't try to adopt the schema,
+      // as it is only necessary for conflict detection.
+      RETURN_IF_ERROR(
+          dst_schema.SetAttr(attr_name, attr_schema.WithBag(nullptr)));
+    }
+  }
+  return absl::OkStatus();
+}
+
+// Updates the schema of the `result_db` to later be able to detect conflicts
+// when setting attributes `attr_names` on `obj`. For each attribute name we
+// prepare to set the corresponding attribute on the corresponding item of
+// `obj`, in a pointwise manner.
+absl::Status UpdateSchemaForConflictDetection(const DataSlice& obj,
+                                              const DataSlice& attr_names,
+                                              DataBagPtr& result_db) {
+  bool object_mode = obj.GetSchemaImpl() == schema::kObject;
+  ASSIGN_OR_RETURN(DataSlice src_schema,
+                   object_mode ? obj.GetObjSchema() : obj.GetSchema());
+  DataSlice dst_schema = src_schema.WithBag(result_db);
+
+  ASSIGN_OR_RETURN(auto aligned_slices,
+                   shape::Align(absl::Span<const DataSlice>{obj, attr_names}));
+  const auto& aligned_obj = aligned_slices[0].impl<internal::DataSliceImpl>();
+  const auto& aligned_attr_name =
+      aligned_slices[1].impl<internal::DataSliceImpl>();
+
+  absl::Status status = absl::OkStatus();
+  if (object_mode) {
+    DCHECK(!src_schema.is_item());
+    DCHECK(!dst_schema.is_item());
+    // In this case, src_schema and dst_schema are not DataItems, so we need to
+    // iterate over all sub-items.
+    DCHECK(aligned_obj.dtype() == arolla::GetQType<internal::ObjectId>());
+    RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
+        [&](int64_t offset, internal::ObjectId id, std::string_view attr_name) {
+          if (!status.ok()) {
+            return;
+          }
+          status = [&]() -> absl::Status {
+            auto schema_item =
+                src_schema.impl<internal::DataSliceImpl>()[offset];
+            ASSIGN_OR_RETURN(
+                DataSlice item_schema,
+                DataSlice::Create(schema_item, DataItem(schema::kSchema),
+                                  obj.GetBag()));
+            ASSIGN_OR_RETURN(DataSlice attr_schema,
+                             item_schema.GetAttrOrMissing(attr_name));
+            if (!attr_schema.IsEmpty()) {
+              // We remove the bag so that we don't try to adopt the schema,
+              // as it is only necessary for conflict detection.
+              ASSIGN_OR_RETURN(
+                  DataSlice dst_item_schema,
+                  DataSlice::Create(schema_item, DataItem(schema::kSchema),
+                                    result_db));
+              RETURN_IF_ERROR(dst_item_schema.SetAttr(
+                  attr_name, item_schema.WithBag(nullptr)));
+            }
+            return absl::OkStatus();
+          }();
+        },
+        aligned_obj.values<internal::ObjectId>(),
+        aligned_attr_name.values<arolla::Text>()));
+  } else {
+    aligned_attr_name.values<arolla::Text>().ForEachPresent(
+        [&](int64_t i, std::string_view attr_name) {
+          if (!status.ok()) {
+            return;
+          }
+          status = [&]() -> absl::Status {
+            ASSIGN_OR_RETURN(auto attr_schema,
+                             src_schema.GetAttrOrMissing(attr_name));
+            if (!attr_schema.IsEmpty()) {
+              // We remove the bag so that we don't try to adopt the schema,
+              // as it is only necessary for conflict detection.
+              RETURN_IF_ERROR(
+                  dst_schema.SetAttr(attr_name, attr_schema.WithBag(nullptr)));
+            }
+            return absl::OkStatus();
+          }();
+        });
+  }
+  RETURN_IF_ERROR(std::move(status));
+  return absl::OkStatus();
+}
+
 absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool overwrite_schema,
                                  absl::Span<const absl::string_view> attr_names,
                                  absl::Span<const DataSlice> attr_values) {
@@ -90,20 +190,8 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool overwrite_schema,
       obj.GetSchemaImpl() != schema::kSchema) {
     // When overwrite_schema is false, we copy the attributes from the source,
     // if they exist, so that SetAttrs can raise on conflict.
-    bool object_mode = obj.GetSchemaImpl() == schema::kObject;
-    ASSIGN_OR_RETURN(auto src_schema,
-                     object_mode ? obj.GetObjSchema() : obj.GetSchema());
-    auto dst_schema = src_schema.WithBag(result_db);
-    for (const auto& attr_name : attr_names) {
-      ASSIGN_OR_RETURN(auto attr_schema,
-                       src_schema.GetAttrOrMissing(attr_name));
-      if (!attr_schema.IsEmpty()) {
-        // We remove the bag so that we don't try to adopt the schema,
-        // as it is only necessary for conflict detection.
-        RETURN_IF_ERROR(
-            dst_schema.SetAttr(attr_name, attr_schema.WithBag(nullptr)));
-      }
-    }
+    RETURN_IF_ERROR(
+        UpdateSchemaForConflictDetection(obj, attr_names, result_db));
   }
 
   // TODO: Remove after `SetAttrs` performs its own adoption.
@@ -114,6 +202,39 @@ absl::StatusOr<DataBagPtr> Attrs(const DataSlice& obj, bool overwrite_schema,
   RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
   RETURN_IF_ERROR(obj.WithBag(result_db).SetAttrs(attr_names, attr_values,
                                                   overwrite_schema))
+      .With([&](absl::Status status) {
+        return KodaErrorCausedByIncompableSchemaError(
+            std::move(status), obj.GetBag(), result_db, obj);
+      });
+  result_db->UnsafeMakeImmutable();
+  return result_db;
+}
+
+absl::StatusOr<DataBagPtr> AttrsForAttrNameSlice(const DataSlice& obj,
+                                                 bool overwrite_schema,
+                                                 const DataSlice& attr_names,
+                                                 const DataSlice& attr_values) {
+  RETURN_IF_ERROR(CheckEligibleForSetAttr(obj)).SetPrepend()
+      << "failed to create attribute update; ";
+  DataBagPtr result_db = DataBag::Empty();
+  RETURN_IF_ERROR(AdoptStub(result_db, obj));
+
+  if (!overwrite_schema && obj.GetBag() != nullptr &&
+      obj.GetSchemaImpl() != schema::kNone &&
+      obj.GetSchemaImpl() != schema::kSchema) {
+    // When overwrite_schema is false, we copy the attributes from the source,
+    // if they exist, so that SetAttrs can raise on conflict.
+    RETURN_IF_ERROR(
+        UpdateSchemaForConflictDetection(obj, attr_names, result_db));
+  }
+
+  // TODO: Remove after `SetAttrs` performs its own adoption.
+  AdoptionQueue adoption_queue;
+  adoption_queue.Add(attr_values);
+
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
+  RETURN_IF_ERROR(
+      obj.WithBag(result_db).SetAttr(attr_names, attr_values, overwrite_schema))
       .With([&](absl::Status status) {
         return KodaErrorCausedByIncompableSchemaError(
             std::move(status), obj.GetBag(), result_db, obj);
@@ -158,6 +279,16 @@ absl::StatusOr<DataSlice> WithAttrs(
     absl::Span<const DataSlice> attr_values) {
   ASSIGN_OR_RETURN(DataBagPtr attrs_db,
                    Attrs(obj, overwrite_schema, attr_names, attr_values));
+  return obj.WithBag(
+      DataBag::CommonDataBag({std::move(attrs_db), obj.GetBag()}));
+}
+
+absl::StatusOr<DataSlice> WithAttrsForAttrNameSlice(
+    const DataSlice& obj, bool overwrite_schema, const DataSlice& attr_names,
+    const DataSlice& attr_values) {
+  ASSIGN_OR_RETURN(
+      DataBagPtr attrs_db,
+      AttrsForAttrNameSlice(obj, overwrite_schema, attr_names, attr_values));
   return obj.WithBag(
       DataBag::CommonDataBag({std::move(attrs_db), obj.GetBag()}));
 }
@@ -591,11 +722,15 @@ absl::StatusOr<arolla::OperatorPtr> AttrsOperatorFamily::DoGetOperator(
 absl::StatusOr<DataBagPtr> Attr(const DataSlice& x, const DataSlice& attr_name,
                                 const DataSlice& value,
                                 const DataSlice& overwrite_schema) {
-  ASSIGN_OR_RETURN(absl::string_view attr_name_view,
-                   GetStringArgument(attr_name, "attr_name"));
   ASSIGN_OR_RETURN(bool overwrite_schema_arg,
                    GetBoolArgument(overwrite_schema, "overwrite_schema"));
-  return Attrs(x, overwrite_schema_arg, {attr_name_view}, {value});
+  if (attr_name.is_item()) {
+    ASSIGN_OR_RETURN(absl::string_view attr_name_view,
+                    GetStringArgument(attr_name, "attr_name"));
+    return Attrs(x, overwrite_schema_arg, {attr_name_view}, {value});
+  }
+  RETURN_IF_ERROR(ExpectString("attr_name", attr_name));
+  return AttrsForAttrNameSlice(x, overwrite_schema_arg, attr_name, value);
 }
 
 absl::StatusOr<arolla::OperatorPtr> WithAttrsOperatorFamily::DoGetOperator(
@@ -622,11 +757,15 @@ absl::StatusOr<DataSlice> WithAttr(const DataSlice& x,
                                    const DataSlice& attr_name,
                                    const DataSlice& value,
                                    const DataSlice& overwrite_schema) {
-  ASSIGN_OR_RETURN(absl::string_view attr_name_view,
-                   GetStringArgument(attr_name, "attr_name"));
   ASSIGN_OR_RETURN(bool overwrite_schema_arg,
                    GetBoolArgument(overwrite_schema, "overwrite_schema"));
-  return WithAttrs(x, overwrite_schema_arg, {attr_name_view}, {value});
+  if (attr_name.is_item()) {
+    ASSIGN_OR_RETURN(absl::string_view attr_name_view,
+                     GetStringArgument(attr_name, "attr_name"));
+    return WithAttrs(x, overwrite_schema_arg, {attr_name_view}, {value});
+  }
+  RETURN_IF_ERROR(ExpectString("attr_name", attr_name));
+  return WithAttrsForAttrNameSlice(x, overwrite_schema_arg, attr_name, value);
 }
 
 absl::StatusOr<DataSlice> Follow(const DataSlice& ds) {

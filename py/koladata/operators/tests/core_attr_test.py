@@ -80,6 +80,21 @@ class CoreAttrTest(parameterized.TestCase):
     db = kde.core.attr(o, 'x', 42).eval()
     testing.assert_equal(o.updated(db).x.no_bag(), ds(42.0))
 
+  def test_attr_update_with_ds_attr(self):
+    with self.subTest('object'):
+      db = bag()
+      ds1 = kde.stack(db.obj(x=1), db.obj(y=2)).eval()
+      db = kde.core.attr(ds1, ds(['x', 'y']), 42).eval()
+      testing.assert_equal(ds1.updated(db).maybe('x').no_bag(), ds([42, None]))
+      testing.assert_equal(ds1.updated(db).maybe('y').no_bag(), ds([None, 42]))
+
+    with self.subTest('entity'):
+      db = bag()
+      ds1 = db.new(x=ds([1, 3]), y=ds([2, 4]))
+      db = kde.core.attr(ds1, ds(['x', 'y']), 42).eval()
+      testing.assert_equal(ds1.updated(db).x.no_bag(), ds([42, 3]))
+      testing.assert_equal(ds1.updated(db).y.no_bag(), ds([2, 42]))
+
   def test_invalid_attr_name(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
@@ -87,9 +102,9 @@ class CoreAttrTest(parameterized.TestCase):
     ):
       kde.core.attr(o, 42, 42).eval()
     with self.assertRaisesRegex(
-        ValueError, 'argument `attr_name` must be an item holding STRING'
+        ValueError, 'argument `attr_name` must be a slice of STRING'
     ):
-      kde.core.attr(o, ds(['a']), 42).eval()
+      kde.core.attr(o, ds([1]), 42).eval()
 
   def test_invalid_overwrite_schema(self):
     o = bag().new(x=1)

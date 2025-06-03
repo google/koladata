@@ -80,6 +80,43 @@ class CoreWithAttrTest(parameterized.TestCase):
     o1 = kde.core.with_attr(o, 'x', 42).eval()
     testing.assert_equal(o1.x.no_bag(), ds(42.0))
 
+  def test_attr_update_with_ds_attr(self):
+    with self.subTest('object'):
+      db = bag()
+      ds1 = kde.stack(db.obj(x=1), db.obj(y=2)).eval()
+      ds2 = kde.core.with_attr(ds1, ds(['x', 'y']), 42).eval()
+      testing.assert_equal(ds2.maybe('x').no_bag(), ds([42, None]))
+      testing.assert_equal(ds2.maybe('y').no_bag(), ds([None, 42]))
+
+    with self.subTest('entity'):
+      db = bag()
+      ds1 = db.new(x=ds([1, 3]), y=ds([2, 4]))
+      ds2 = kde.core.with_attr(ds1, ds(['x', 'y']), 42).eval()
+      testing.assert_equal(ds2.x.no_bag(), ds([42, 3]))
+      testing.assert_equal(ds2.y.no_bag(), ds([2, 42]))
+
+  def test_attr_update_with_ds_attr_schema_conflict(self):
+    with self.subTest('entity_as_object'):
+      o = kde.stack(
+          bag().obj(bag().new(x='1', y=10)), bag().obj(bag().new(x=2, y=20))
+      ).eval()
+      with self.assertRaisesRegex(
+          ValueError, "the schema for attribute 'x' is incompatible."
+      ):
+        _ = kde.core.with_attr(o, ds(['x', 'y']), ds([2, 3])).eval()
+      o1 = kde.core.with_attr(
+          o, ds(['x', 'y']), ds([2, 3]), overwrite_schema=True
+      ).eval()
+      testing.assert_equal(o1.x.no_bag(), ds([2, 2]))
+      testing.assert_equal(o1.y.no_bag(), ds([10, 3]))
+
+    with self.subTest('entity'):
+      o = bag().new(x=ds([1, 2]), y=ds(['a', 'b']))
+      with self.assertRaisesRegex(
+          ValueError, "the schema for attribute 'y' is incompatible."
+      ):
+        _ = kde.core.with_attr(o, ds(['x', 'y']), ds([2, 3])).eval()
+
   def test_invalid_attr_name(self):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
@@ -90,10 +127,9 @@ class CoreWithAttrTest(parameterized.TestCase):
       kde.core.with_attr(o, 42, 42).eval()
     with self.assertRaisesRegex(
         ValueError,
-        'argument `attr_name` must be an item holding STRING, got a slice of'
-        ' rank 1 > 0',
+        'argument `attr_name` must be a slice of STRING, got a slice of INT32',
     ):
-      kde.core.with_attr(o, ds(['a']), 42).eval()
+      kde.core.with_attr(o, ds([42]), 42).eval()
 
   def test_invalid_overwrite_schema(self):
     o = bag().new(x=1)
