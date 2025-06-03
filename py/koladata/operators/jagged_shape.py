@@ -526,6 +526,7 @@ def rank(shape):
       arolla_bridge.to_arolla_jagged_shape(shape)))
 
 
+# TODO: Remove this operator once the shapes.get_sizes is ready.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'kd.shapes.dim_sizes',

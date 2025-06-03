@@ -2224,3 +2224,64 @@ arolla.abc.register_adhoc_aux_binding_policy(
     lambda x: _typed_slice_bind_args(x, schema_constants.EXPR),
     make_literal_fn=py_boxing.literal,
 )
+
+
+# There is an alternative faster implementation by implementing _concat_or_stack
+# on a sequence of DataSlices at QExpr level.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.shapes.get_sizes',
+    qtype_constraints=[(
+        (P.x == qtypes.JAGGED_SHAPE) | (P.x == qtypes.DATA_SLICE),
+        (
+            'expected a JaggedShape or a DataSlice, got'
+            f' {constraints.name_type_msg(P.x)}'
+        ),
+    )],
+)
+def shape_sizes(x):
+  """Returns a DataSlice of sizes of a given shape.
+
+  Example:
+    kd.shapes.get_sizes(kd.shapes.new([2], [2, 1])) -> kd.slice([[2], [2, 1]])
+    kd.shapes.get_sizes(kd.slice([['a', 'b'], ['c']])) -> kd.slice([[2], [2,
+    1]])
+
+  Args:
+    x: a shape or a DataSlice from which the shape will be taken.
+
+  Returns:
+    A 2-dimensional DataSlice where the first dimension's size corresponds to
+    the shape's rank and the n-th subslice corresponds to the sizes of the n-th
+    dimension of the original shape.
+  """
+
+  dispatch_get_shape = arolla.types.DispatchOperator(
+      'x',
+      x_is_shape=arolla.types.DispatchCase(
+          P.x,
+          condition=P.x == qtypes.JAGGED_SHAPE,
+      ),
+      default=jagged_shape_ops.get_shape(P.x),
+  )
+
+  @optools.as_lambda_operator('size_slice')
+  def get_sizes(edge):
+    return arolla_bridge.to_data_slice(M.edge.sizes(edge))
+
+  @optools.as_lambda_operator('concat_sizes')
+  def concat_sizes(x, y):
+    return concat(x,
+                  jagged_shape_ops.flatten(y, 0, 0),  # Add an outer dimension.
+                  ndim=2)
+
+  edges = M.jagged.edges(arolla_bridge.to_arolla_jagged_shape(
+      dispatch_get_shape(x)))
+  sizes_ = M.seq.map(get_sizes, edges)
+  return M.seq.reduce(
+      concat_sizes,
+      sizes_,
+      initial=data_slice.DataSlice.from_vals([], schema_constants.INT64).repeat(
+          0
+      ),
+  )

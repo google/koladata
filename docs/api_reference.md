@@ -5910,6 +5910,25 @@ Aliases:
 Returns the shape of `x`.
 ```
 
+### `kd.shapes.get_sizes(x)` {#kd.shapes.get_sizes}
+
+``` {.no-copy}
+Returns a DataSlice of sizes of a given shape.
+
+Example:
+  kd.shapes.get_sizes(kd.shapes.new([2], [2, 1])) -> kd.slice([[2], [2, 1]])
+  kd.shapes.get_sizes(kd.slice([['a', 'b'], ['c']])) -> kd.slice([[2], [2,
+  1]])
+
+Args:
+  x: a shape or a DataSlice from which the shape will be taken.
+
+Returns:
+  A 2-dimensional DataSlice where the first dimension's size corresponds to
+  the shape's rank and the n-th subslice corresponds to the sizes of the n-th
+  dimension of the original shape.
+```
+
 ### `kd.shapes.is_expandable_to_shape(x, target_shape, ndim=unspecified)` {#kd.shapes.is_expandable_to_shape}
 
 ``` {.no-copy}
