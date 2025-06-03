@@ -65,6 +65,18 @@ def from_array(arr: np.ndarray) -> kd.types.DataSlice:
     return kdi.from_py(list(arr), from_dim=1)
 
   else:
+    # NOTE: Converting Numpy Array of integers to signed version as Arolla might
+    # not support unsigned integer in the long-term.
+    if (
+        np.issubdtype(arr.dtype, np.integer) and
+        not np.issubdtype(arr.dtype, np.signedinteger)
+    ):
+      if np.isdtype(arr.dtype, np.uint8) or np.isdtype(arr.dtype, np.uint16):
+        arr = arr.astype(np.int32)
+      else:
+        # NOTE: Values larger than max int64 will be overflown, which is
+        # consistent with the rest of Koda (e.g. from_proto).
+        arr = arr.astype(np.int64)
     return kd.slice(arolla.dense_array(arr.flatten())).reshape(arr.shape)
 
 

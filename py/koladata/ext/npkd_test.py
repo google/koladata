@@ -114,6 +114,16 @@ class NpkdTest(parameterized.TestCase):
       kd.testing.assert_equal(res_ds, expected_x)
 
   @parameterized.named_parameters(
+      ('uint8', np.array([0, 2], np.uint8), kd.int32([0, 2])),
+      ('uint16', np.array([0, 2], np.uint16), kd.int32([0, 2])),
+      ('uint32', np.array([0, 2], np.uint32), kd.int64([0, 2])),
+      ('uint64', np.array([0, 2], np.uint64), kd.int64([0, 2])),
+      ('overflow', np.array([(1 << 64) - 1, 2], np.uint64), kd.int64([-1, 2])),
+  )
+  def test_numpy_unsigned_int(self, arr, ds):
+    kd.testing.assert_equal(npkd.from_array(arr), ds)
+
+  @parameterized.named_parameters(
       ('int ds', [1, 2, 3]),
       ('float ds', [1.0, 2.0, 3.0]),
       ('float ds with inf', [1.0, float('-inf'), float('inf')]),
