@@ -1743,7 +1743,7 @@ def stream_while_loop_returns(
   Each iteration, the operator passes current state variables (including
   `returns`) as keyword arguments to `condition_fn` and `body_fn`. The loop
   continues if `condition_fn` returns `present`. State variables are then
-  updated from `body_fn`'s namedtuple return.
+  updated from `body_fn`'s namedtuple return value.
 
   Args:
     executor: The executor to use for computations.
@@ -1760,5 +1760,49 @@ def stream_while_loop_returns(
 
   Returns:
     A single-item stream with the final value of the `returns` state variable.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_while_loop_yields_chained',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_data_slice(P.condition_fn),
+        qtype_utils.expect_data_slice(P.body_fn),
+    ],
+    qtype_inference_expr=P.yields,
+    deterministic=False,
+)
+def stream_while_loop_yields_chained(
+    executor, condition_fn, body_fn, *, yields, **state
+):
+  """Repeatedly applies a body functor while a condition is met.
+
+  Each iteration, the operator passes current state variables (excluding
+  `yields`) as keyword arguments to `condition_fn` and `body_fn`. The loop
+  continues if `condition_fn` returns `present`. State variables are then
+  updated from `body_fn`'s namedtuple return value. If `body_fn` also returns
+  a `yields` variable (containing a stream), these individual streams are
+  chained together to form the overall result stream.
+
+  Args:
+    executor: The executor to use for computations.
+    condition_fn: A functor that accepts state variables (excluding `yields`) as
+      keyword arguments and returns a MASK data-item, either directly or as a
+      single-item stream. A `present` value indicates the loop should continue;
+      `missing` indicates it should stop.
+    body_fn: A functor that accepts state variables (excluding `yields`) as
+      keyword arguments and returns a namedtuple (see `kd.make_namedtuple`)
+      containing updated values for a subset of the state variables. These
+      updated values must retain their original types.
+    yields: The initial value for the `yields` state variable. This stream is
+      the starting point for the chained result.
+    **state: Initial values for state variables.
+
+  Returns:
+    A stream created by chaining the initial `yields` stream with any
+    subsequent streams produced by the `body_fn`.
   """
   raise NotImplementedError('implemented in the backend')

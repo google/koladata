@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+import random
 import re
+import threading
 import time
 
 from absl.testing import absltest
@@ -27,6 +30,7 @@ from koladata.functor.parallel import clib as stream_clib
 from koladata.operators import kde_operators
 from koladata.operators import koda_internal_parallel
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -51,112 +55,185 @@ def stream_make(*args, **kwargs):
   )
 
 
+def delayed_stream_make(*items, value_type_as=None, delay_per_item):
+  items = list(map(py_boxing.as_qvalue, items))
+  if items:
+    value_qtype = items[0].qtype
+  elif value_type_as is not None:
+    value_qtype = value_type_as.qtype
+  else:
+    value_qtype = qtypes.DATA_SLICE
+  result, writer = stream_clib.make_stream(value_qtype)
+
+  def delay_fn():
+    try:
+      for item in items:
+        # randomize using the exponential distribution
+        time.sleep(-math.log(1.0 - random.random()) * delay_per_item)
+        writer.write(item)
+      time.sleep(-math.log(1.0 - random.random()) * delay_per_item)
+      writer.close()
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      writer.close(e)
+
+  threading.Thread(target=delay_fn, daemon=True).start()
+  return result
+
+
 STREAM_OF_DATA_SLICE = stream_make(value_type_as=ds(0)).qtype
 STREAM_OF_INT32 = stream_make(value_type_as=i32(0)).qtype
 
 
-class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
+class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
+    parameterized.TestCase
+):
 
   def test_eval(self):
     condition_fn = expr_fn(I.n <= 3)
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=100, n=1
-    ).eval()
-    self.assertIsInstance(res, stream_clib.Stream)
-    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
-    self.assertEqual(res.read_all(timeout=0), [100 + 1 + 2 + 3])
 
-  def test_eval_with_async_condition(self):
-    def async_condition_fn(n, **unused):
-      del unused
-      result, writer = stream_clib.make_stream(qtypes.DATA_SLICE)
+    def body_fn(n):
+      return arolla.namedtuple(
+          yields=delayed_stream_make(*range(n), delay_per_item=0.001), n=n + 1
+      )
 
-      def impl():
-        try:
-          time.sleep(0.01)
-          writer.write(ds(n <= 3))
-          writer.close()
-        except Exception as e:  # pylint: disable=broad-exception-caught
-          writer.close(e)
-
-      default_executor.schedule(impl)
-      return result
-
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        default_executor,
-        py_fn(async_condition_fn, return_type_as=stream_make()),
-        body_fn,
-        returns=100,
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor,
+        condition_fn,
+        py_fn(
+            body_fn,
+            return_type_as=arolla.namedtuple(yields=stream_make(), n=ds(0)),
+        ),
+        yields=delayed_stream_make(-1, delay_per_item=0.001),
         n=1,
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
-    self.assertEqual(res.make_reader().read_available(), [])
-    self.assertEqual(res.read_all(timeout=1.0), [100 + 1 + 2 + 3])
+    self.assertEqual(
+        res.read_all(timeout=1),
+        [
+            -1,  # initial
+            *range(1),  # first iteration
+            *range(2),  # second iteration
+            *range(3),  # third iteration
+        ],
+    )
 
-  @parameterized.parameters(
-      (0, 0),
-      (1, 1),
-      (10, 55),
-      (20, 6765),
-      (40, 102334155),
-  )
-  def test_complex_eval(self, n, expected_result):
+  def test_eval_with_async_condition(self):
+    def condition_fn(n):
+      return delayed_stream_make(n <= 3, delay_per_item=0.001)
+
+    def body_fn(n):
+      return arolla.namedtuple(
+          yields=delayed_stream_make(*range(n), delay_per_item=0.001), n=n + 1
+      )
+
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor,
+        py_fn(condition_fn, return_type_as=stream_make()),
+        py_fn(
+            body_fn,
+            return_type_as=arolla.namedtuple(yields=stream_make(), n=ds(0)),
+        ),
+        yields=delayed_stream_make(-1, delay_per_item=0.001),
+        n=1,
+    ).eval()
+    self.assertIsInstance(res, stream_clib.Stream)
+    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
+    self.assertEqual(
+        res.read_all(timeout=1),
+        [
+            -1,  # initial
+            *range(1),  # first iteration
+            *range(2),  # second iteration
+            *range(3),  # third iteration
+        ],
+    )
+
+  def test_eval_empty_initial_yields(self):
+    condition_fn = expr_fn(I.n <= 3)
+    body_fn = expr_fn(
+        M.namedtuple.make(
+            yields=koda_internal_parallel.stream_make(I.n), n=I.n + 1
+        )
+    )
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor, condition_fn, body_fn, yields=stream_make(), n=0
+    ).eval()
+    self.assertIsInstance(res, stream_clib.Stream)
+    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
+    self.assertEqual(res.read_all(timeout=0), [0, 1, 2, 3])
+
+  def test_eval_body_not_yields(self):
+    condition_fn = expr_fn(I.n <= 3)
+    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor, condition_fn, body_fn, yields=stream_make(-1), n=0
+    ).eval()
+    self.assertIsInstance(res, stream_clib.Stream)
+    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
+    self.assertEqual(res.read_all(timeout=0), [-1])
+
+  def test_eval_complex(self):
     condition_fn = expr_fn(I.n > 0)
     body_fn = expr_fn(
         M.namedtuple.make(
-            returns=I.fib1,
+            yields=koda_internal_parallel.stream_make(I.fib1),
             fib1=M.math.add(I.fib1, I.fib0),
             fib0=I.fib1,
             n=I.n - 1,
         )
     )
-    res = koda_internal_parallel.stream_while_loop_returns(
-        default_executor,
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor,
         condition_fn,
         body_fn,
-        returns=i32(0),
+        yields=stream_make(i32(0)),
         fib0=i32(0),
         fib1=i32(1),
-        n=I.n,
-    ).eval(n=n)
+        n=10,
+    ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype, STREAM_OF_INT32)
-    self.assertEqual(res.read_all(timeout=None), [expected_result])
+    self.assertEqual(
+        res.read_all(timeout=0), [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+    )
 
   def test_functor_args_kwags(self):
     def condition_fn(*args, **kwargs):
       self.assertEmpty(args)
-      self.assertEqual(set(kwargs.keys()), {'fib0', 'fib1', 'n', 'returns'})
+      self.assertEqual(set(kwargs.keys()), {'fib0', 'fib1', 'n'})
       return kwargs['n'] > 0
 
     def body_fn(*args, **kwargs):
       self.assertEmpty(args)
-      self.assertEqual(set(kwargs.keys()), {'fib0', 'fib1', 'n', 'returns'})
+      self.assertEqual(set(kwargs.keys()), {'fib0', 'fib1', 'n'})
       return arolla.namedtuple(
-          returns=kwargs['fib1'],
+          yields=stream_make(kwargs['fib1']),
           fib0=kwargs['fib1'],
           fib1=kwargs['fib1'] + kwargs['fib0'],
           n=kwargs['n'] - 1,
       )
 
-    res = koda_internal_parallel.stream_while_loop_returns(
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
         eager_executor,
         py_fn(condition_fn),
         py_fn(
             body_fn,
             return_type_as=arolla.namedtuple(
-                returns=ds(0), fib0=ds(0), fib1=ds(0), n=ds(0)
+                yields=stream_make(), fib0=ds(0), fib1=ds(0), n=ds(0)
             ),
         ),
-        returns=0,
+        yields=stream_make(0),
         fib0=0,
         fib1=1,
         n=10,
     ).eval()
-    self.assertEqual(res.read_all(timeout=0), [55])
+
+    self.assertIsInstance(res, stream_clib.Stream)
+    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
+    self.assertEqual(
+        res.read_all(timeout=0), [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+    )
 
   @parameterized.parameters(
       [
@@ -182,25 +259,29 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
     condition_fn = expr_fn(I.condition)
     body_fn = expr_fn(
         M.namedtuple.make(
-            returns=ds(1),
+            yields=koda_internal_parallel.stream_make(1),
             condition=I.condition_1,
         )
     )
-    res = koda_internal_parallel.stream_while_loop_returns(
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
         eager_executor,
         condition_fn,
         body_fn,
-        returns=0,
+        yields=stream_make(0),
         condition=positive_condition,
         condition_1=negative_condition,
     ).eval()
-    self.assertEqual(res.read_all(timeout=0), [1])
+    self.assertEqual(res.read_all(timeout=0), [0, 1])
 
   def test_error_condition_unsupported_values(self):
     condition_fn = expr_fn(I.condition)
     body_fn = expr_fn(M.namedtuple.make(never_happens=1))
-    expr = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0, condition=I.condition
+    expr = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor,
+        condition_fn,
+        body_fn,
+        yields=stream_make(),
+        condition=I.condition,
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -224,8 +305,8 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
       raise NotImplementedError('Boom!')
 
     body_fn = expr_fn(M.namedtuple.make(never_happens=1))
-    expr = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, py_fn(condition_fn), body_fn, returns=0
+    expr = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor, py_fn(condition_fn), body_fn, yields=stream_make()
     )
     with self.assertRaisesRegex(NotImplementedError, re.escape('Boom!')):
       expr.eval(condition=1).read_all(timeout=0)
@@ -238,11 +319,11 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
       return result
 
     body_fn = expr_fn(M.namedtuple.make(never_happens=1))
-    expr = koda_internal_parallel.stream_while_loop_returns(
+    expr = koda_internal_parallel.stream_while_loop_yields_chained(
         eager_executor,
         py_fn(condition_fn, return_type_as=stream_make()),
         body_fn,
-        returns=0,
+        yields=stream_make(),
     )
     with self.assertRaisesRegex(NotImplementedError, re.escape('Boom!')):
       expr.eval().read_all(timeout=0)
@@ -267,8 +348,8 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
   def test_error_bad_condition_fn(self):
     condition_fn = ds(None)
     body_fn = expr_fn(M.namedtuple.make(never_happens=1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor, condition_fn, body_fn, yields=stream_make()
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
@@ -280,10 +361,10 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
       res.read_all(timeout=0)
 
   def test_error_body_wrong_result_type(self):
-    condition_fn = expr_fn(I.returns <= 3)
-    body_fn = expr_fn(I.returns + 1)
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0
+    condition_fn = expr_fn(I.n == 0)
+    body_fn = expr_fn(I.n + 1)
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor, condition_fn, body_fn, yields=stream_make(), n=0
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
@@ -296,10 +377,10 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
       res.read_all(timeout=0)
 
   def test_error_body_unknown_field_in_result(self):
-    condition_fn = expr_fn(I.returns <= 3)
+    condition_fn = expr_fn(I.n == 0)
     body_fn = expr_fn(M.namedtuple.make(x=1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor, condition_fn, body_fn, yields=stream_make(), n=0
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
@@ -311,15 +392,15 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
       res.read_all(timeout=0)
 
   def test_error_body_wrong_field_type_in_result(self):
-    condition_fn = expr_fn(I.returns <= 3)
-    body_fn = expr_fn(M.namedtuple.make(returns=1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0
+    condition_fn = expr_fn(I.n == 0)
+    body_fn = expr_fn(M.namedtuple.make(n=i32(1)))
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor, condition_fn, body_fn, yields=stream_make(), n=0
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "variable 'returns' has type DATA_SLICE, but the provided value has"
+            "variable 'n' has type DATA_SLICE, but the provided value has"
             ' type INT32; the body functor must return a namedtuple with a'
             ' subset of initial variables'
         ),
@@ -330,18 +411,22 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
     def body_fn(**unused):
       raise NotImplementedError('Boom!')
 
-    condition_fn = expr_fn(I.returns <= 3)
-    expr = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, py_fn(body_fn), returns=0
+    condition_fn = expr_fn(I.n == 0)
+    expr = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor,
+        condition_fn,
+        py_fn(body_fn, return_type_as=stream_make()),
+        yields=stream_make(),
+        n=0,
     )
     with self.assertRaisesRegex(NotImplementedError, re.escape('Boom!')):
       expr.eval().read_all(timeout=0)
 
   def test_error_bad_body_fn(self):
-    condition_fn = expr_fn(I.n <= 3)
+    condition_fn = expr_fn(I.n == 0)
     body_fn = ds(None)
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=100, n=1
+    res = koda_internal_parallel.stream_while_loop_yields_chained(
+        eager_executor, condition_fn, body_fn, yields=stream_make(), n=0
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
@@ -354,48 +439,46 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_in_condition(self):
-    condition_fn = expr_fn(M.core._identity_with_cancel(I.n <= 3))
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
+    condition_fn = expr_fn(M.core._identity_with_cancel(I.n == 0))
+    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
-      koda_internal_parallel.stream_while_loop_returns(
-          default_executor, condition_fn, body_fn, returns=100, n=1
+      koda_internal_parallel.stream_while_loop_yields_chained(
+          default_executor, condition_fn, body_fn, yields=stream_make(), n=0
       ).eval().read_all(timeout=1)
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_in_body(self):
-    condition_fn = expr_fn(I.n <= 3)
+    condition_fn = expr_fn(I.n == 0)
     body_fn = expr_fn(
-        M.core._identity_with_cancel(
-            M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1)
-        )
+        M.core._identity_with_cancel(M.namedtuple.make(n=I.n + 1))
     )
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
-      koda_internal_parallel.stream_while_loop_returns(
-          default_executor, condition_fn, body_fn, returns=100, n=1
+      koda_internal_parallel.stream_while_loop_yields_chained(
+          default_executor, condition_fn, body_fn, yields=stream_make(), n=0
       ).eval().read_all(timeout=1)
 
   def test_non_determinism(self):
     stream_1, stream_2 = expr_eval.eval(
         (
-            koda_internal_parallel.stream_while_loop_returns(
-                I.executor, I.condition_fn, I.body_fn, returns=I.returns
+            koda_internal_parallel.stream_while_loop_yields_chained(
+                I.executor, I.condition_fn, I.body_fn, yields=I.yields
             ),
-            koda_internal_parallel.stream_while_loop_returns(
-                I.executor, I.condition_fn, I.body_fn, returns=I.returns
+            koda_internal_parallel.stream_while_loop_yields_chained(
+                I.executor, I.condition_fn, I.body_fn, yields=I.yields
             ),
         ),
         executor=eager_executor,
         condition_fn=expr_fn(arolla.literal(ds(arolla.missing()))),
         body_fn=expr_fn(M.namedtuple.make()),
-        returns=1,
+        yields=stream_make(),
     )
     self.assertNotEqual(stream_1.fingerprint, stream_2.fingerprint)
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.stream_while_loop_returns(
-                I.executor, I.condition_fn, I.body_fn, returns=I.returns, n=I.n
+            koda_internal_parallel.stream_while_loop_yields_chained(
+                I.executor, I.condition_fn, I.body_fn, yields=I.yields, n=I.n
             )
         )
     )
@@ -403,12 +486,12 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(
-            koda_internal_parallel.stream_while_loop_returns(
-                I.executor, I.condition_fn, I.body_fn, returns=I.returns, n=I.n
+            koda_internal_parallel.stream_while_loop_yields_chained(
+                I.executor, I.condition_fn, I.body_fn, yields=I.yields, n=I.n
             )
         ),
-        'koda_internal.parallel.stream_while_loop_returns(I.executor,'
-        ' I.condition_fn, I.body_fn, returns=I.returns, n=I.n)',
+        'koda_internal.parallel.stream_while_loop_yields_chained(I.executor,'
+        ' I.condition_fn, I.body_fn, yields=I.yields, n=I.n)',
     )
 
 

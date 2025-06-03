@@ -736,4 +736,96 @@ StreamWhileLoopReturnsOperatorFamily::DoGetOperator(
   return std::make_shared<StreamWhileLoopReturnsOp>(input_types, output_type);
 }
 
+namespace {
+
+class StreamWhileLoopYieldsChainedOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
+         condition_ds_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
+         body_ds_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         initial_yields_slot = input_slots[3].UnsafeToSlot<StreamPtr>(),
+         initial_state_slot = input_slots[4],
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          ASSIGN_OR_RETURN(
+              auto stream,
+              functor::parallel::StreamWhileLoopYieldsChained(
+                  frame.Get(executor_slot),
+                  [condition_ds = frame.Get(condition_ds_slot)](
+                      absl::Span<const arolla::TypedRef> args,
+                      absl::Span<const std::string> kwnames)
+                      -> absl::StatusOr<arolla::TypedValue> {
+                    ASSIGN_OR_RETURN(
+                        auto result,
+                        CallFunctorWithCompilationCache(condition_ds, args,
+                                                        kwnames),
+                        _ << "error occurred while calling `condition_fn`");
+                    return result;
+                  },
+                  [body_ds = frame.Get(body_ds_slot)](
+                      absl::Span<const arolla::TypedRef> args,
+                      absl::Span<const std::string> kwnames)
+                      -> absl::StatusOr<arolla::TypedValue> {
+                    ASSIGN_OR_RETURN(
+                        auto result,
+                        CallFunctorWithCompilationCache(body_ds, args, kwnames),
+                        _ << "error occurred while calling `body_fn`");
+                    return result;
+                  },
+                  frame.Get(initial_yields_slot),
+                  arolla::TypedRef::FromSlot(initial_state_slot, frame)));
+          frame.Set(output_slot, std::move(stream));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+// stream_while_loop_yields_chained(
+//     executor: EXECUTOR,
+//     condition_fn: DATA_SLICE,
+//     body_fn: DATA_SLICE,
+//     yields: STREAM[T],
+//     state: NAMEDTUPLE,
+//     NON_DETERMINISTIC
+// ) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr>
+StreamWhileLoopYieldsChainedOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  if (input_types.size() != 6) {
+    return absl::InvalidArgumentError("requires exactly 6 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
+    return absl::InvalidArgumentError("1st argument must be an executor");
+  }
+  if (input_types[1] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError("2nd argument must be a functor");
+  }
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError("3rd argument must be a functor");
+  }
+  if (input_types[3] != output_type) {
+    return absl::InvalidArgumentError(
+        "4th argument must be of the same type as the output");
+  }
+  if (!arolla::IsNamedTupleQType(input_types[4])) {
+    return absl::InvalidArgumentError("5th argument must be a namedtuple");
+  }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[5]));
+  return std::make_shared<StreamWhileLoopYieldsChainedOp>(input_types,
+                                                          output_type);
+}
+
 }  // namespace koladata::functor::parallel

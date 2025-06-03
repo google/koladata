@@ -45,6 +45,24 @@ absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileLoopReturns(
     StreamLoopFunctor /*nonnull*/ body_functor,
     arolla::TypedRef initial_state_returns, arolla::TypedRef initial_state);
 
+// Repeatedly applies a body functor while a condition is met. The loop returns
+// a stream formed by chaining together any `yields` streams produced (including
+// the `initial_yields` stream).
+//
+// Each iteration, the operator passes current state variables (excluding
+// `yields`, which is for output chaining) as keyword arguments to
+// `condition_functor` and `body_functor`. The loop continues if
+// `condition_functor` returns `present`. State variables are then updated from
+// `body_functor`'s namedtuple return value. Additionally, the body functor
+// can return a `yields` variable containing a stream, and these individual
+// streams are chained together to form the overall result stream.
+absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileLoopYieldsChained(
+    ExecutorPtr /*absl_nonnull*/ executor,
+    StreamLoopFunctor /*nonnull*/ condition_functor,
+    StreamLoopFunctor /*nonnull*/ body_functor,
+    const StreamPtr /*absl_nonnull*/& initial_yields,
+    arolla::TypedRef initial_state);
+
 }  // namespace koladata::functor::parallel
 
 #endif  // KOLADATA_FUNCTOR_PARALLEL_STREAM_LOOP_H_
