@@ -44,8 +44,15 @@ using ::testing::Return;
 
 class MockBasicRoutineHooks : public BasicRoutineHooks {
  public:
-  ~MockBasicRoutineHooks() override { Destructor(); }
-  MOCK_METHOD(void, Destructor, ());
+  // Note: We're not using the gMock cookbook's destructor mocking approach
+  // (https://google.github.io/googletest/gmock_cook_book.html#mocking-destructors)
+  // because it has led to false-positive mock object leak detections in our
+  // tests. (NOLINTNEXTLINE: public member is used for testing only)
+  const std::shared_ptr<absl::Notification> destroyed =
+      std::make_shared<absl::Notification>();
+
+  ~MockBasicRoutineHooks() override { destroyed->Notify(); }
+
   MOCK_METHOD(bool, Interrupted, (), (const, override));
   MOCK_METHOD(void, OnCancel, (absl::Status && status), (override));
   MOCK_METHOD(StreamReaderPtr, Start, (), (override));
@@ -62,6 +69,7 @@ TEST(BasicRoutineTest, Basic) {
 
   MockFunction<void(std::string check_point_name)> check;
   auto routine_hooks = std::make_unique<MockBasicRoutineHooks>();
+  auto destroyed = routine_hooks->destroyed;
   EXPECT_CALL(*routine_hooks, OnCancel(_)).Times(0);
   {
     InSequence s;
@@ -80,14 +88,13 @@ TEST(BasicRoutineTest, Basic) {
     EXPECT_CALL(*routine_hooks, Interrupted()).WillOnce(Return(false));
     EXPECT_CALL(*routine_hooks, Resume(Pointer(reader2_raw_ptr)))
         .WillOnce(Return(nullptr));
-    // End.
-    EXPECT_CALL(*routine_hooks, Destructor()).Times(1);
   }
   StartBasicRoutine(GetEagerExecutor(), std::move(routine_hooks));
   check.Call("stream1_ready");
   std::move(*writer1).Close();
   check.Call("stream2_ready");
   std::move(*writer2).Close();
+  EXPECT_TRUE(destroyed->WaitForNotificationWithTimeout(absl::Seconds(1)));
 }
 
 TEST(BasicRoutineTest, CancellationContextPropagation) {
@@ -95,11 +102,13 @@ TEST(BasicRoutineTest, CancellationContextPropagation) {
   std::move(*writer).Close();
 
   auto routine_hooks = std::make_unique<MockBasicRoutineHooks>();
+  auto destroyed = routine_hooks->destroyed;
+  // Note: There is a potential timing issue when the basic routine
+  testing::Mock::AllowLeak(routine_hooks.get());
   arolla::CancellationContext::ScopeGuard cancellation_scope;
   // Note: Use a single-threaded executor to run computations on a different
   // thread, while still having predictable behaviour.
   auto executor = MakeAsioExecutor(1);
-  auto done = std::make_shared<absl::Notification>();
   EXPECT_CALL(*routine_hooks,
               OnCancel(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")))
       .Times(1);
@@ -122,13 +131,9 @@ TEST(BasicRoutineTest, CancellationContextPropagation) {
           absl::InvalidArgumentError("Boom!"));
       return reader;
     });
-    // End.
-    EXPECT_CALL(*routine_hooks, Destructor()).WillOnce([done] {
-      done->Notify();
-    });
   }
   StartBasicRoutine(executor, std::move(routine_hooks));
-  EXPECT_TRUE(done->WaitForNotificationWithTimeout(absl::Seconds(1)));
+  EXPECT_TRUE(destroyed->WaitForNotificationWithTimeout(absl::Seconds(1)));
 }
 
 TEST(BasicRoutineTest, InitiallyCancelled) {
@@ -137,17 +142,14 @@ TEST(BasicRoutineTest, InitiallyCancelled) {
       absl::InvalidArgumentError("Boom!"));
 
   auto routine_hooks = std::make_unique<MockBasicRoutineHooks>();
-  auto done = std::make_shared<absl::Notification>();
+  auto destroyed = routine_hooks->destroyed;
   EXPECT_CALL(*routine_hooks, Start()).Times(0);
   EXPECT_CALL(*routine_hooks,
               OnCancel(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")))
       .Times(1);
-  EXPECT_CALL(*routine_hooks, Destructor()).WillOnce([done] {
-    done->Notify();
-  });
 
   StartBasicRoutine(GetDefaultExecutor(), std::move(routine_hooks));
-  EXPECT_TRUE(done->WaitForNotificationWithTimeout(absl::Seconds(1)));
+  EXPECT_TRUE(destroyed->WaitForNotificationWithTimeout(absl::Seconds(1)));
 }
 
 }  // namespace
