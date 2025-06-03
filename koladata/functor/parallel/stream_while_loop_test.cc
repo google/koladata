@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/parallel/stream_loop.h"
+#include "koladata/functor/parallel/stream_while_loop.h"
 
 #include <optional>
 #include <string>
@@ -43,22 +43,23 @@ using ::testing::ElementsAre;
 // py/koladata/operators/tests/koda_internal_parallel_stream_while_loop_returns_test.py
 TEST(StreamWhileLoopReturnsTest, Basic) {
   constexpr int kN = 5;
-  StreamLoopFunctor condition_fn = [](absl::Span<const arolla::TypedRef> args,
+  StreamWhileLoopFunctor condition_fn =
+      [](absl::Span<const arolla::TypedRef> args,
+         absl::Span<const std::string> kwnames) {
+        EXPECT_EQ(args.size(), 2);
+        EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
+        EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
+        EXPECT_THAT(kwnames, ElementsAre("n", "returns"));
+        if (args[0].UnsafeAs<int>() < kN) {
+          return arolla::TypedValue::FromValue(
+              test::DataItem(arolla::kUnit, schema::kMask));
+        } else {
+          return arolla::TypedValue::FromValue(
+              test::DataItem(std::nullopt, schema::kMask));
+        }
+      };
+  StreamWhileLoopFunctor body_fn = [](absl::Span<const arolla::TypedRef> args,
                                       absl::Span<const std::string> kwnames) {
-    EXPECT_EQ(args.size(), 2);
-    EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
-    EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
-    EXPECT_THAT(kwnames, ElementsAre("n", "returns"));
-    if (args[0].UnsafeAs<int>() < kN) {
-      return arolla::TypedValue::FromValue(
-          test::DataItem(arolla::kUnit, schema::kMask));
-    } else {
-      return arolla::TypedValue::FromValue(
-          test::DataItem(std::nullopt, schema::kMask));
-    }
-  };
-  StreamLoopFunctor body_fn = [](absl::Span<const arolla::TypedRef> args,
-                                 absl::Span<const std::string> kwnames) {
     EXPECT_EQ(args.size(), 2);
     EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
     EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
@@ -91,22 +92,23 @@ TEST(StreamWhileLoopReturnsTest, Basic) {
 // py/koladata/operators/tests/koda_internal_parallel_stream_while_loop_yields_chained_test.py
 TEST(StreamWhileLoopYieldsChainedTest, Basic) {
   constexpr int kN = 3;
-  StreamLoopFunctor condition_fn = [](absl::Span<const arolla::TypedRef> args,
+  StreamWhileLoopFunctor condition_fn =
+      [](absl::Span<const arolla::TypedRef> args,
+         absl::Span<const std::string> kwnames) {
+        EXPECT_EQ(args.size(), 2);
+        EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
+        EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
+        EXPECT_THAT(kwnames, ElementsAre("n", "acc"));
+        if (args[0].UnsafeAs<int>() < kN) {
+          return arolla::TypedValue::FromValue(
+              test::DataItem(arolla::kUnit, schema::kMask));
+        } else {
+          return arolla::TypedValue::FromValue(
+              test::DataItem(std::nullopt, schema::kMask));
+        }
+      };
+  StreamWhileLoopFunctor body_fn = [](absl::Span<const arolla::TypedRef> args,
                                       absl::Span<const std::string> kwnames) {
-    EXPECT_EQ(args.size(), 2);
-    EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
-    EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
-    EXPECT_THAT(kwnames, ElementsAre("n", "acc"));
-    if (args[0].UnsafeAs<int>() < kN) {
-      return arolla::TypedValue::FromValue(
-          test::DataItem(arolla::kUnit, schema::kMask));
-    } else {
-      return arolla::TypedValue::FromValue(
-          test::DataItem(std::nullopt, schema::kMask));
-    }
-  };
-  StreamLoopFunctor body_fn = [](absl::Span<const arolla::TypedRef> args,
-                                 absl::Span<const std::string> kwnames) {
     EXPECT_EQ(args.size(), 2);
     EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
     EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
@@ -148,6 +150,79 @@ TEST(StreamWhileLoopYieldsChainedTest, Basic) {
                                        })
                                        ->AsRef()));
   EXPECT_EQ(stream->value_qtype(), arolla::GetQType<float>());
+  auto reader = stream->MakeReader();
+  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 0.0f);  // initial
+  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 0.5f);
+  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 1.0f);
+  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 1.5f);
+  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 2.0f);
+  EXPECT_OK(*reader->TryRead().close_status());
+}
+
+// Note: More comprehensive tests are in
+// py/koladata/operators/tests/koda_internal_parallel_stream_while_loop_yields_interleaved_test.py
+TEST(StreamWhileLoopYieldsInterleavedTest, Basic) {
+  constexpr int kN = 3;
+  StreamWhileLoopFunctor condition_fn =
+      [](absl::Span<const arolla::TypedRef> args,
+         absl::Span<const std::string> kwnames) {
+        EXPECT_EQ(args.size(), 2);
+        EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
+        EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
+        EXPECT_THAT(kwnames, ElementsAre("n", "acc"));
+        if (args[0].UnsafeAs<int>() < kN) {
+          return arolla::TypedValue::FromValue(
+              test::DataItem(arolla::kUnit, schema::kMask));
+        } else {
+          return arolla::TypedValue::FromValue(
+              test::DataItem(std::nullopt, schema::kMask));
+        }
+      };
+  StreamWhileLoopFunctor body_fn = [](absl::Span<const arolla::TypedRef> args,
+                                      absl::Span<const std::string> kwnames) {
+    EXPECT_EQ(args.size(), 2);
+    EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
+    EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
+    EXPECT_THAT(kwnames, ElementsAre("n", "acc"));
+    auto [stream, writer] = MakeStream(arolla::GetQType<float>());
+    writer->Write(arolla::TypedRef::FromValue(args[1].UnsafeAs<float>()));
+    writer->Write(arolla::TypedRef::FromValue(
+        static_cast<float>(args[0].UnsafeAs<int>())));
+    std::move(*writer).Close();
+    return arolla::MakeNamedTuple(
+        {
+            "n",
+            "acc",
+            "yields_interleaved",
+        },
+        {
+            arolla::TypedRef::FromValue(args[0].UnsafeAs<int>() + 1),
+            arolla::TypedRef::FromValue(args[0].UnsafeAs<int>() +
+                                        args[1].UnsafeAs<float>()),
+            MakeStreamQValue(std::move(stream)).AsRef(),
+        });
+  };
+  auto [initial_yields_stream, initial_yields_writer] =
+      MakeStream(arolla::GetQType<float>());
+  initial_yields_writer->Write(arolla::TypedRef::FromValue(0.0f));
+  std::move(*initial_yields_writer).Close();
+  ASSERT_OK_AND_ASSIGN(StreamPtr stream,
+                       StreamWhileLoopYieldsInterleaved(
+                           GetEagerExecutor(), std::move(condition_fn),
+                           std::move(body_fn), initial_yields_stream,
+                           arolla::MakeNamedTuple(
+                               {
+                                   "n",
+                                   "acc",
+                               },
+                               {
+                                   arolla::TypedRef::FromValue(1),
+                                   arolla::TypedRef::FromValue(0.5f),
+                               })
+                               ->AsRef()));
+  EXPECT_EQ(stream->value_qtype(), arolla::GetQType<float>());
+  // Note: The order of items is deterministic due to the use of an eager
+  // executor.
   auto reader = stream->MakeReader();
   EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 0.0f);  // initial
   EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 0.5f);

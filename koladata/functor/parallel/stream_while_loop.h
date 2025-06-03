@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_FUNCTOR_PARALLEL_STREAM_LOOP_H_
-#define KOLADATA_FUNCTOR_PARALLEL_STREAM_LOOP_H_
+#ifndef KOLADATA_FUNCTOR_PARALLEL_STREAM_WHILE_LOOP_H_
+#define KOLADATA_FUNCTOR_PARALLEL_STREAM_WHILE_LOOP_H_
 
 #include <string>
 
@@ -28,9 +28,10 @@
 
 namespace koladata::functor::parallel {
 
-using StreamLoopFunctor = absl::AnyInvocable<absl::StatusOr<arolla::TypedValue>(
-    absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::string> kwnames) const>;
+using StreamWhileLoopFunctor =
+    absl::AnyInvocable<absl::StatusOr<arolla::TypedValue>(
+        absl::Span<const arolla::TypedRef> args,
+        absl::Span<const std::string> kwnames) const>;
 
 // Repeatedly applies a body functor while a condition is met. Returns
 // a single-item stream with the final value of the `returns` state variable.
@@ -41,8 +42,8 @@ using StreamLoopFunctor = absl::AnyInvocable<absl::StatusOr<arolla::TypedValue>(
 // State variables are then updated from `body_functor`'s namedtuple return.
 absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileLoopReturns(
     ExecutorPtr /*absl_nonnull*/ executor,
-    StreamLoopFunctor /*nonnull*/ condition_functor,
-    StreamLoopFunctor /*nonnull*/ body_functor,
+    StreamWhileLoopFunctor /*nonnull*/ condition_functor,
+    StreamWhileLoopFunctor /*nonnull*/ body_functor,
     arolla::TypedRef initial_state_returns, arolla::TypedRef initial_state);
 
 // Repeatedly applies a body functor while a condition is met. The loop returns
@@ -58,9 +59,28 @@ absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileLoopReturns(
 // streams are chained together to form the overall result stream.
 absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileLoopYieldsChained(
     ExecutorPtr /*absl_nonnull*/ executor,
-    StreamLoopFunctor /*nonnull*/ condition_functor,
-    StreamLoopFunctor /*nonnull*/ body_functor,
+    StreamWhileLoopFunctor /*nonnull*/ condition_functor,
+    StreamWhileLoopFunctor /*nonnull*/ body_functor,
     const StreamPtr /*absl_nonnull*/& initial_yields,
+    arolla::TypedRef initial_state);
+
+// Repeatedly applies a body functor while a condition is met. The loop returns
+// a stream formed by interleaving together any `yields_interleaved` streams
+// produced (including the `initial_yields_interleaved` stream).
+//
+// Each iteration, the operator passes current state variables (excluding
+// `yields_interleaved`, which is for output interleaving) as keyword arguments
+// to `condition_functor` and `body_functor`. The loop continues if
+// `condition_functor` returns `present`. State variables are then updated from
+// `body_functor`'s namedtuple return value. Additionally, the body functor
+// can return a `yields_interleaved` variable containing a stream, and these
+// individual streams are interleaved together to form the overall result
+// stream.
+absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileLoopYieldsInterleaved(
+    ExecutorPtr /*absl_nonnull*/ executor,
+    StreamWhileLoopFunctor /*nonnull*/ condition_functor,
+    StreamWhileLoopFunctor /*nonnull*/ body_functor,
+    const StreamPtr /*absl_nonnull*/& initial_yields_interleaved,
     arolla::TypedRef initial_state);
 
 }  // namespace koladata::functor::parallel

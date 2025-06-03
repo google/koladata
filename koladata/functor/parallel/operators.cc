@@ -113,6 +113,9 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_while_loop_returns",
                 std::make_unique<StreamWhileLoopReturnsOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_while_loop_yields_chained",
                 std::make_unique<StreamWhileLoopYieldsChainedOperatorFamily>());
+OPERATOR_FAMILY(
+    "koda_internal.parallel.stream_while_loop_yields_interleaved",
+    std::make_unique<StreamWhileLoopYieldsInterleavedOperatorFamily>());
 OPERATOR("koda_internal.parallel.transform", TransformToParallel);
 OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_future",
                 std::make_unique<UnwrapFutureToFutureOperatorFamily>());

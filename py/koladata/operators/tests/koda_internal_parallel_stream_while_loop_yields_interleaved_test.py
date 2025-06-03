@@ -84,81 +84,169 @@ STREAM_OF_DATA_SLICE = stream_make(value_type_as=ds(0)).qtype
 STREAM_OF_INT32 = stream_make(value_type_as=i32(0)).qtype
 
 
-class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
+class KodaInternalParallelStreamWhileLoopYieldsInterleavedTest(
+    parameterized.TestCase
+):
 
   def test_eval(self):
     condition_fn = expr_fn(I.n <= 3)
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=100, n=1
-    ).eval()
-    self.assertIsInstance(res, stream_clib.Stream)
-    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
-    self.assertEqual(res.read_all(timeout=0), [100 + 1 + 2 + 3])
 
-  def test_eval_with_async_condition(self):
-    def condition_fn(n, **unused):
-      del unused
-      return delayed_stream_make(n <= 3)
+    def body_fn(n):
+      return arolla.namedtuple(
+          yields_interleaved=delayed_stream_make(*range(10 * n, 11 * n)),
+          n=n + 1,
+      )
 
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
-    res = koda_internal_parallel.stream_while_loop_returns(
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
         default_executor,
-        py_fn(condition_fn, return_type_as=condition_fn(n=ds(0))),
-        body_fn,
-        returns=100,
+        condition_fn,
+        py_fn(
+            body_fn,
+            return_type_as=arolla.namedtuple(
+                yields_interleaved=stream_make(), n=ds(0)
+            ),
+        ),
+        yields_interleaved=delayed_stream_make(-1),
         n=1,
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
-    self.assertEqual(res.make_reader().read_available(), [])
-    self.assertEqual(res.read_all(timeout=1.0), [100 + 1 + 2 + 3])
+    res_list = res.read_all(timeout=1)
+    self.assertLen(res_list, 1 + 1 + 2 + 3)
+    self.assertContainsSubsequence(res_list, [-1])  # initial
+    self.assertContainsSubsequence(res_list, [10])  # first iteration
+    self.assertContainsSubsequence(res_list, [20, 21])  # second iteration
+    self.assertContainsSubsequence(res_list, [30, 31, 32])  # third iteration
 
-  @parameterized.parameters(
-      (0, 0),
-      (1, 1),
-      (10, 55),
-      (20, 6765),
-      (40, 102334155),
-  )
-  def test_complex_eval(self, n, expected_result):
-    def condition_fn(*, n, fib0, fib1, returns):
-      del fib0, fib1, returns
-      return n > 0
+  def test_eval_with_async_condition(self):
+    def condition_fn(n):
+      return delayed_stream_make(n <= 3)
 
-    def body_fn(*, fib0, fib1, n, returns):
-      del returns
+    def body_fn(n):
       return arolla.namedtuple(
-          returns=fib1, fib0=fib1, fib1=fib1 + fib0, n=n - 1
+          yields_interleaved=delayed_stream_make(*range(10 * n, 11 * n)),
+          n=n + 1,
       )
 
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor,
-        py_fn(condition_fn),
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        default_executor,
+        py_fn(condition_fn, return_type_as=stream_make()),
         py_fn(
             body_fn,
-            return_type_as=(
-                body_fn(fib0=i32(0), fib1=i32(1), n=ds(1), returns=i32(1))
+            return_type_as=arolla.namedtuple(
+                yields_interleaved=stream_make(), n=ds(0)
             ),
         ),
-        returns=i32(0),
-        fib0=i32(0),
-        fib1=i32(1),
-        n=I.n,
-    ).eval(n=n)
+        yields_interleaved=delayed_stream_make(-1),
+        n=1,
+    ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
-    self.assertEqual(res.qtype, STREAM_OF_INT32)
-    self.assertEqual(res.read_all(timeout=0), [expected_result])
+    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
+    res_list = res.read_all(timeout=1)
+    self.assertLen(res_list, 1 + 1 + 2 + 3)
+    self.assertContainsSubsequence(res_list, [-1])  # initial
+    self.assertContainsSubsequence(res_list, [10])  # first iteration
+    self.assertContainsSubsequence(res_list, [20, 21])  # second iteration
+    self.assertContainsSubsequence(res_list, [30, 31, 32])  # third iteration
 
-  def test_eval_body_without_returns(self):
+  def test_eval_empty_initial_yields(self):
+    condition_fn = expr_fn(I.n <= 3)
+    body_fn = expr_fn(
+        M.namedtuple.make(
+            yields_interleaved=koda_internal_parallel.stream_make(I.n),
+            n=I.n + 1,
+        )
+    )
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        condition_fn,
+        body_fn,
+        yields_interleaved=stream_make(),
+        n=0,
+    ).eval()
+    self.assertIsInstance(res, stream_clib.Stream)
+    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
+    self.assertEqual(res.read_all(timeout=0), [0, 1, 2, 3])
+
+  def test_eval_body_without_yields_interleaved(self):
     condition_fn = expr_fn(I.n <= 3)
     body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=-1, n=0
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        condition_fn,
+        body_fn,
+        yields_interleaved=stream_make(-1),
+        n=0,
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
     self.assertEqual(res.read_all(timeout=0), [-1])
+
+  def test_eval_complex(self):
+    def condition_fn(*, fib0, fib1, n):
+      del fib0, fib1
+      return n > 0
+
+    def body_fn(*, fib0, fib1, n):
+      return arolla.namedtuple(
+          yields_interleaved=delayed_stream_make(fib1),
+          fib0=fib1,
+          fib1=fib1 + fib0,
+          n=n - 1,
+      )
+
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        default_executor,
+        py_fn(condition_fn),
+        py_fn(
+            body_fn, return_type_as=body_fn(fib0=i32(0), fib1=i32(1), n=ds(2))
+        ),
+        yields_interleaved=stream_make(i32(0)),
+        fib0=i32(0),
+        fib1=i32(1),
+        n=10,
+    ).eval()
+    self.assertIsInstance(res, stream_clib.Stream)
+    self.assertEqual(res.qtype, STREAM_OF_INT32)
+    self.assertCountEqual(
+        res.read_all(timeout=1), [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+    )
+
+  def test_composition(self):
+    stream0, writer0 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream1, writer1 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream2, writer2 = stream_clib.make_stream(qtypes.DATA_SLICE)
+
+    condition_fn = expr_fn(I.n < 2)
+
+    def body_fn(*, n):
+      return arolla.namedtuple(
+          yields_interleaved=[stream1, stream2][n],
+          n=n + 1,
+      )
+
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        condition_fn,
+        py_fn(body_fn, return_type_as=body_fn(n=ds(0))),
+        yields_interleaved=stream0,
+        n=0,
+    ).eval()
+
+    reader = res.make_reader()
+    self.assertEqual(reader.read_available(), [])
+    writer0.write(ds(1))
+    self.assertEqual(reader.read_available(), [1])
+    writer1.write(ds(2))
+    self.assertEqual(reader.read_available(), [2])
+    writer2.write(ds(3))
+    self.assertEqual(reader.read_available(), [3])
+    writer0.close()
+    self.assertEqual(reader.read_available(), [])
+    writer1.close()
+    self.assertEqual(reader.read_available(), [])
+    writer2.close()
+    self.assertIsNone(reader.read_available())
 
   @parameterized.parameters(
       [
@@ -184,25 +272,29 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
     condition_fn = expr_fn(I.condition)
     body_fn = expr_fn(
         M.namedtuple.make(
-            returns=ds(1),
+            yields_interleaved=koda_internal_parallel.stream_make(1),
             condition=I.condition_1,
         )
     )
-    res = koda_internal_parallel.stream_while_loop_returns(
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
         eager_executor,
         condition_fn,
         body_fn,
-        returns=0,
+        yields_interleaved=stream_make(0),
         condition=positive_condition,
         condition_1=negative_condition,
     ).eval()
-    self.assertEqual(res.read_all(timeout=0), [1])
+    self.assertEqual(res.read_all(timeout=0), [0, 1])
 
   def test_error_condition_unsupported_values(self):
     condition_fn = expr_fn(I.condition)
     body_fn = expr_fn(M.namedtuple.make(never_happens=1))
-    expr = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0, condition=I.condition
+    expr = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        condition_fn,
+        body_fn,
+        yields_interleaved=stream_make(),
+        condition=I.condition,
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -226,8 +318,11 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
       raise NotImplementedError('Boom!')
 
     body_fn = expr_fn(M.namedtuple.make(never_happens=1))
-    expr = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, py_fn(condition_fn), body_fn, returns=0
+    expr = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        py_fn(condition_fn),
+        body_fn,
+        yields_interleaved=stream_make(),
     )
     with self.assertRaisesRegex(NotImplementedError, re.escape('Boom!')):
       expr.eval(condition=1).read_all(timeout=0)
@@ -240,11 +335,11 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
       return result
 
     body_fn = expr_fn(M.namedtuple.make(never_happens=1))
-    expr = koda_internal_parallel.stream_while_loop_returns(
+    expr = koda_internal_parallel.stream_while_loop_yields_interleaved(
         eager_executor,
         py_fn(condition_fn, return_type_as=stream_make()),
         body_fn,
-        returns=0,
+        yields_interleaved=stream_make(),
     )
     with self.assertRaisesRegex(NotImplementedError, re.escape('Boom!')):
       expr.eval().read_all(timeout=0)
@@ -269,8 +364,8 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
   def test_error_bad_condition_fn(self):
     condition_fn = ds(None)
     body_fn = expr_fn(M.namedtuple.make(never_happens=1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor, condition_fn, body_fn, yields_interleaved=stream_make()
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
@@ -282,48 +377,60 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
       res.read_all(timeout=0)
 
   def test_error_body_wrong_result_type(self):
-    condition_fn = expr_fn(I.returns <= 3)
-    body_fn = expr_fn(I.returns + 1)
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0
+    condition_fn = expr_fn(I.n == 0)
+    body_fn = expr_fn(I.n + 1)
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        condition_fn,
+        body_fn,
+        yields_interleaved=stream_make(),
+        n=0,
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             'expected a namedtupe with a subset of initial variables, got type'
             ' DATA_SLICE; the body functor must return a namedtuple with'
-            ' a subset of initial variables'
+            " a subset of initial variables and 'yields_interleaved'"
         ),
     ):
       res.read_all(timeout=0)
 
   def test_error_body_unknown_field_in_result(self):
-    condition_fn = expr_fn(I.returns <= 3)
+    condition_fn = expr_fn(I.n == 0)
     body_fn = expr_fn(M.namedtuple.make(x=1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        condition_fn,
+        body_fn,
+        yields_interleaved=stream_make(),
+        n=0,
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
             "unexpected variable 'x'; the body functor must return a namedtuple"
-            ' with a subset of initial variables'
+            " with a subset of initial variables and 'yields_interleaved'"
         ),
     ):
       res.read_all(timeout=0)
 
   def test_error_body_wrong_field_type_in_result(self):
-    condition_fn = expr_fn(I.returns <= 3)
-    body_fn = expr_fn(M.namedtuple.make(returns=1))
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=0
+    condition_fn = expr_fn(I.n == 0)
+    body_fn = expr_fn(M.namedtuple.make(n=i32(1)))
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        condition_fn,
+        body_fn,
+        yields_interleaved=stream_make(),
+        n=0,
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "variable 'returns' has type DATA_SLICE, but the provided value has"
+            "variable 'n' has type DATA_SLICE, but the provided value has"
             ' type INT32; the body functor must return a namedtuple with a'
-            ' subset of initial variables'
+            " subset of initial variables and 'yields_interleaved'"
         ),
     ):
       res.read_all(timeout=0)
@@ -332,18 +439,26 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
     def body_fn(**unused):
       raise NotImplementedError('Boom!')
 
-    condition_fn = expr_fn(I.returns <= 3)
-    expr = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, py_fn(body_fn), returns=0
+    condition_fn = expr_fn(I.n == 0)
+    expr = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        condition_fn,
+        py_fn(body_fn, return_type_as=stream_make()),
+        yields_interleaved=stream_make(),
+        n=0,
     )
     with self.assertRaisesRegex(NotImplementedError, re.escape('Boom!')):
       expr.eval().read_all(timeout=0)
 
   def test_error_bad_body_fn(self):
-    condition_fn = expr_fn(I.n <= 3)
+    condition_fn = expr_fn(I.n == 0)
     body_fn = ds(None)
-    res = koda_internal_parallel.stream_while_loop_returns(
-        eager_executor, condition_fn, body_fn, returns=100, n=1
+    res = koda_internal_parallel.stream_while_loop_yields_interleaved(
+        eager_executor,
+        condition_fn,
+        body_fn,
+        yields_interleaved=stream_make(),
+        n=0,
     ).eval()  # no error
     with self.assertRaisesRegex(
         ValueError,
@@ -356,48 +471,64 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_in_condition(self):
-    condition_fn = expr_fn(M.core._identity_with_cancel(I.n <= 3))
-    body_fn = expr_fn(M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1))
+    condition_fn = expr_fn(M.core._identity_with_cancel(I.n == 0))
+    body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
-      koda_internal_parallel.stream_while_loop_returns(
-          default_executor, condition_fn, body_fn, returns=100, n=1
+      koda_internal_parallel.stream_while_loop_yields_interleaved(
+          default_executor,
+          condition_fn,
+          body_fn,
+          yields_interleaved=stream_make(),
+          n=0,
       ).eval().read_all(timeout=1)
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_in_body(self):
-    condition_fn = expr_fn(I.n <= 3)
+    condition_fn = expr_fn(I.n == 0)
     body_fn = expr_fn(
-        M.core._identity_with_cancel(
-            M.namedtuple.make(returns=I.returns + I.n, n=I.n + 1)
-        )
+        M.core._identity_with_cancel(M.namedtuple.make(n=I.n + 1))
     )
     with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED]')):
-      koda_internal_parallel.stream_while_loop_returns(
-          default_executor, condition_fn, body_fn, returns=100, n=1
+      koda_internal_parallel.stream_while_loop_yields_interleaved(
+          default_executor,
+          condition_fn,
+          body_fn,
+          yields_interleaved=stream_make(),
+          n=0,
       ).eval().read_all(timeout=1)
 
   def test_non_determinism(self):
     stream_1, stream_2 = expr_eval.eval(
         (
-            koda_internal_parallel.stream_while_loop_returns(
-                I.executor, I.condition_fn, I.body_fn, returns=I.returns
+            koda_internal_parallel.stream_while_loop_yields_interleaved(
+                I.executor,
+                I.condition_fn,
+                I.body_fn,
+                yields_interleaved=I.yields_interleaved,
             ),
-            koda_internal_parallel.stream_while_loop_returns(
-                I.executor, I.condition_fn, I.body_fn, returns=I.returns
+            koda_internal_parallel.stream_while_loop_yields_interleaved(
+                I.executor,
+                I.condition_fn,
+                I.body_fn,
+                yields_interleaved=I.yields_interleaved,
             ),
         ),
         executor=eager_executor,
         condition_fn=expr_fn(arolla.literal(ds(arolla.missing()))),
         body_fn=expr_fn(M.namedtuple.make()),
-        returns=1,
+        yields_interleaved=stream_make(),
     )
     self.assertNotEqual(stream_1.fingerprint, stream_2.fingerprint)
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.stream_while_loop_returns(
-                I.executor, I.condition_fn, I.body_fn, returns=I.returns, n=I.n
+            koda_internal_parallel.stream_while_loop_yields_interleaved(
+                I.executor,
+                I.condition_fn,
+                I.body_fn,
+                yields_interleaved=I.yields_interleaved,
+                n=I.n,
             )
         )
     )
@@ -405,12 +536,18 @@ class KodaInternalParallelStreamWhileLoopReturnsTest(parameterized.TestCase):
   def test_repr(self):
     self.assertEqual(
         repr(
-            koda_internal_parallel.stream_while_loop_returns(
-                I.executor, I.condition_fn, I.body_fn, returns=I.returns, n=I.n
+            koda_internal_parallel.stream_while_loop_yields_interleaved(
+                I.executor,
+                I.condition_fn,
+                I.body_fn,
+                yields_interleaved=I.yields_interleaved,
+                n=I.n,
             )
         ),
-        'koda_internal.parallel.stream_while_loop_returns(I.executor,'
-        ' I.condition_fn, I.body_fn, returns=I.returns, n=I.n)',
+        'koda_internal.parallel.stream_while_loop_yields_interleaved'
+        '(I.executor, I.condition_fn, I.body_fn,'
+        ' yields_interleaved=I.yields_interleaved,'
+        ' n=I.n)',
     )
 
 

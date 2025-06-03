@@ -449,9 +449,9 @@ cc_test(
 )
 
 cc_library(
-    name = "stream_loop",
-    srcs = ["stream_loop.cc"],
-    hdrs = ["stream_loop.h"],
+    name = "stream_while_loop",
+    srcs = ["stream_while_loop.cc"],
+    hdrs = ["stream_while_loop.h"],
     deps = [
         ":basic_routine",
         ":executor",
@@ -474,13 +474,13 @@ cc_library(
 )
 
 cc_test(
-    name = "stream_loop_test",
-    srcs = ["stream_loop_test.cc"],
+    name = "stream_while_loop_test",
+    srcs = ["stream_while_loop_test.cc"],
     deps = [
         ":eager_executor",
         ":stream",
-        ":stream_loop",
         ":stream_qtype",
+        ":stream_while_loop",
         "//koladata:data_slice_qtype",
         "//koladata:test_utils",
         "//koladata/internal:dtype",
@@ -708,10 +708,10 @@ cc_library(
         ":executor",
         ":stream",
         ":stream_composition",
-        ":stream_loop",
         ":stream_map",
         ":stream_qtype",
         ":stream_reduce",
+        ":stream_while_loop",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/functor:call",

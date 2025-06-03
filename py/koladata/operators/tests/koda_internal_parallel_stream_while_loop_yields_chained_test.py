@@ -55,7 +55,7 @@ def stream_make(*args, **kwargs):
   )
 
 
-def delayed_stream_make(*items, value_type_as=None, delay_per_item):
+def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
   items = list(map(py_boxing.as_qvalue, items))
   if items:
     value_qtype = items[0].qtype
@@ -93,17 +93,18 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
 
     def body_fn(n):
       return arolla.namedtuple(
-          yields=delayed_stream_make(*range(n), delay_per_item=0.001), n=n + 1
+          yields=delayed_stream_make(*range(10 * n, 11 * n)),
+          n=n + 1,
       )
 
     res = koda_internal_parallel.stream_while_loop_yields_chained(
-        eager_executor,
+        default_executor,
         condition_fn,
         py_fn(
             body_fn,
             return_type_as=arolla.namedtuple(yields=stream_make(), n=ds(0)),
         ),
-        yields=delayed_stream_make(-1, delay_per_item=0.001),
+        yields=delayed_stream_make(-1),
         n=1,
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
@@ -112,29 +113,30 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
         res.read_all(timeout=1),
         [
             -1,  # initial
-            *range(1),  # first iteration
-            *range(2),  # second iteration
-            *range(3),  # third iteration
+            *[10],  # first iteration
+            *[20, 21],  # second iteration
+            *[30, 31, 32],  # third iteration
         ],
     )
 
   def test_eval_with_async_condition(self):
     def condition_fn(n):
-      return delayed_stream_make(n <= 3, delay_per_item=0.001)
+      return delayed_stream_make(n <= 3)
 
     def body_fn(n):
       return arolla.namedtuple(
-          yields=delayed_stream_make(*range(n), delay_per_item=0.001), n=n + 1
+          yields=delayed_stream_make(*range(10 * n, 11 * n)),
+          n=n + 1,
       )
 
     res = koda_internal_parallel.stream_while_loop_yields_chained(
-        eager_executor,
+        default_executor,
         py_fn(condition_fn, return_type_as=stream_make()),
         py_fn(
             body_fn,
             return_type_as=arolla.namedtuple(yields=stream_make(), n=ds(0)),
         ),
-        yields=delayed_stream_make(-1, delay_per_item=0.001),
+        yields=delayed_stream_make(-1),
         n=1,
     ).eval()
     self.assertIsInstance(res, stream_clib.Stream)
@@ -143,9 +145,9 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
         res.read_all(timeout=1),
         [
             -1,  # initial
-            *range(1),  # first iteration
-            *range(2),  # second iteration
-            *range(3),  # third iteration
+            *[10],  # first iteration
+            *[20, 21],  # second iteration
+            *[30, 31, 32],  # third iteration
         ],
     )
 
@@ -163,7 +165,7 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
     self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
     self.assertEqual(res.read_all(timeout=0), [0, 1, 2, 3])
 
-  def test_eval_body_not_yields(self):
+  def test_eval_body_without_yields(self):
     condition_fn = expr_fn(I.n <= 3)
     body_fn = expr_fn(M.namedtuple.make(n=I.n + 1))
     res = koda_internal_parallel.stream_while_loop_yields_chained(
@@ -174,19 +176,24 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
     self.assertEqual(res.read_all(timeout=0), [-1])
 
   def test_eval_complex(self):
-    condition_fn = expr_fn(I.n > 0)
-    body_fn = expr_fn(
-        M.namedtuple.make(
-            yields=koda_internal_parallel.stream_make(I.fib1),
-            fib1=M.math.add(I.fib1, I.fib0),
-            fib0=I.fib1,
-            n=I.n - 1,
-        )
-    )
+    def condition_fn(*, fib0, fib1, n):
+      del fib0, fib1
+      return n > 0
+
+    def body_fn(*, fib0, fib1, n):
+      return arolla.namedtuple(
+          yields=delayed_stream_make(fib1),
+          fib0=fib1,
+          fib1=fib1 + fib0,
+          n=n - 1,
+      )
+
     res = koda_internal_parallel.stream_while_loop_yields_chained(
-        eager_executor,
-        condition_fn,
-        body_fn,
+        default_executor,
+        py_fn(condition_fn),
+        py_fn(
+            body_fn, return_type_as=body_fn(fib0=i32(0), fib1=i32(1), n=ds(2))
+        ),
         yields=stream_make(i32(0)),
         fib0=i32(0),
         fib1=i32(1),
@@ -195,45 +202,42 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
     self.assertIsInstance(res, stream_clib.Stream)
     self.assertEqual(res.qtype, STREAM_OF_INT32)
     self.assertEqual(
-        res.read_all(timeout=0), [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
+        res.read_all(timeout=1), [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
     )
 
-  def test_functor_args_kwags(self):
-    def condition_fn(*args, **kwargs):
-      self.assertEmpty(args)
-      self.assertEqual(set(kwargs.keys()), {'fib0', 'fib1', 'n'})
-      return kwargs['n'] > 0
+  def test_composition(self):
+    stream0, writer0 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream1, writer1 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream2, writer2 = stream_clib.make_stream(qtypes.DATA_SLICE)
 
-    def body_fn(*args, **kwargs):
-      self.assertEmpty(args)
-      self.assertEqual(set(kwargs.keys()), {'fib0', 'fib1', 'n'})
-      return arolla.namedtuple(
-          yields=stream_make(kwargs['fib1']),
-          fib0=kwargs['fib1'],
-          fib1=kwargs['fib1'] + kwargs['fib0'],
-          n=kwargs['n'] - 1,
-      )
+    condition_fn = expr_fn(I.n < 2)
+
+    def body_fn(*, n):
+      return arolla.namedtuple(yields=[stream1, stream2][n], n=n + 1)
 
     res = koda_internal_parallel.stream_while_loop_yields_chained(
         eager_executor,
-        py_fn(condition_fn),
-        py_fn(
-            body_fn,
-            return_type_as=arolla.namedtuple(
-                yields=stream_make(), fib0=ds(0), fib1=ds(0), n=ds(0)
-            ),
-        ),
-        yields=stream_make(0),
-        fib0=0,
-        fib1=1,
-        n=10,
+        condition_fn,
+        py_fn(body_fn, return_type_as=body_fn(n=ds(0))),
+        yields=stream0,
+        n=0,
     ).eval()
 
-    self.assertIsInstance(res, stream_clib.Stream)
-    self.assertEqual(res.qtype, STREAM_OF_DATA_SLICE)
-    self.assertEqual(
-        res.read_all(timeout=0), [0, 1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
-    )
+    reader = res.make_reader()
+    self.assertEqual(reader.read_available(), [])
+    writer0.write(ds(1))
+    self.assertEqual(reader.read_available(), [1])
+    writer1.write(ds(2))
+    self.assertEqual(reader.read_available(), [])
+    writer2.write(ds(3))
+    self.assertEqual(reader.read_available(), [])
+    writer0.close()
+    self.assertEqual(reader.read_available(), [2])
+    writer1.close()
+    self.assertEqual(reader.read_available(), [3])
+    self.assertEqual(reader.read_available(), [])
+    writer2.close()
+    self.assertIsNone(reader.read_available())
 
   @parameterized.parameters(
       [
@@ -371,7 +375,7 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
         re.escape(
             'expected a namedtupe with a subset of initial variables, got type'
             ' DATA_SLICE; the body functor must return a namedtuple with'
-            ' a subset of initial variables'
+            " a subset of initial variables and 'yields'"
         ),
     ):
       res.read_all(timeout=0)
@@ -386,7 +390,7 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
         ValueError,
         re.escape(
             "unexpected variable 'x'; the body functor must return a namedtuple"
-            ' with a subset of initial variables'
+            " with a subset of initial variables and 'yields'"
         ),
     ):
       res.read_all(timeout=0)
@@ -402,7 +406,7 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
         re.escape(
             "variable 'n' has type DATA_SLICE, but the provided value has"
             ' type INT32; the body functor must return a namedtuple with a'
-            ' subset of initial variables'
+            " subset of initial variables and 'yields'"
         ),
     ):
       res.read_all(timeout=0)
