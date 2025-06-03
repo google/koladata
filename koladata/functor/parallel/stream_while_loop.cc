@@ -313,8 +313,7 @@ absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileLoopYieldsComposed(
   for (size_t i = 0; i < field_names.size(); ++i) {
     initial_var_values.emplace_back(initial_state.GetField(i));
   }
-  initial_var_values.emplace_back(arolla::TypedRef::UnsafeFromRawPointer(
-      GetStreamQType(initial_yields->value_qtype()), &initial_yields));
+  initial_var_values.emplace_back(MakeStreamQValueRef(initial_yields));
   auto [result, writer] = MakeStream(initial_yields->value_qtype());
   auto loop_hooks = std::make_unique<StreamWhileLoopHooks<
       StreamWhileLoopYieldsComposedTraits<StreamComposition>>>(

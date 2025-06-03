@@ -150,12 +150,11 @@ TEST(ParseLoopConditionTest, Positive) {
   auto [stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
   writer->Write(arolla::TypedRef::FromValue(ds));
   std::move(*writer).Close();
-  for (auto condition : {
-           arolla::TypedValue::FromValue(std::move(ds)),
-           MakeStreamQValue(std::move(stream)),
+  for (arolla::TypedRef condition : {
+           arolla::TypedRef::FromValue(ds),
+           MakeStreamQValueRef(stream),
        }) {
-    ASSERT_OK_AND_ASSIGN(auto parsed_condition,
-                         ParseLoopCondition(condition.AsRef()));
+    ASSERT_OK_AND_ASSIGN(auto parsed_condition, ParseLoopCondition(condition));
     EXPECT_TRUE(parsed_condition.value);
     EXPECT_EQ(parsed_condition.reader, nullptr);
   }
@@ -166,12 +165,11 @@ TEST(ParseLoopConditionTest, Negative) {
   auto [stream, writer] = MakeStream(arolla::GetQType<DataSlice>());
   writer->Write(arolla::TypedRef::FromValue(ds));
   std::move(*writer).Close();
-  for (auto condition : {
-           arolla::TypedValue::FromValue(std::move(ds)),
-           MakeStreamQValue(std::move(stream)),
+  for (arolla::TypedRef condition : {
+           arolla::TypedRef::FromValue(ds),
+           MakeStreamQValueRef(stream),
        }) {
-    ASSERT_OK_AND_ASSIGN(auto parsed_condition,
-                         ParseLoopCondition(condition.AsRef()));
+    ASSERT_OK_AND_ASSIGN(auto parsed_condition, ParseLoopCondition(condition));
     EXPECT_FALSE(parsed_condition.value);
     EXPECT_EQ(parsed_condition.reader, nullptr);
   }
@@ -179,16 +177,15 @@ TEST(ParseLoopConditionTest, Negative) {
 
 TEST(ParseLoopConditionTest, Pending) {
   auto [stream, writer] = MakeStream(arolla::GetQType<DataSlice>(), 1);
-  ASSERT_OK_AND_ASSIGN(
-      auto parsed_condition,
-      ParseLoopCondition(MakeStreamQValue(std::move(stream)).AsRef()));
+  ASSERT_OK_AND_ASSIGN(auto parsed_condition,
+                       ParseLoopCondition(MakeStreamQValueRef(stream)));
   EXPECT_FALSE(parsed_condition.value);
   EXPECT_NE(parsed_condition.reader, nullptr);
 }
 
 TEST(ParseLoopConditionTest, Error) {
   auto [stream, writer] = MakeStream(arolla::GetQType<int>(), 1);
-  EXPECT_THAT(ParseLoopCondition(MakeStreamQValue(std::move(stream)).AsRef()),
+  EXPECT_THAT(ParseLoopCondition(MakeStreamQValueRef(std::move(stream))),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "the condition functor must return a DATA_SLICE or a "
                        "STREAM[DATA_SLICE], but got STREAM[INT32]"));

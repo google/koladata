@@ -15,8 +15,10 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_STREAM_QTYPE_H_
 #define KOLADATA_FUNCTOR_PARALLEL_STREAM_QTYPE_H_
 
+#include "absl/base/attributes.h"
 #include "absl/base/no_destructor.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "koladata/functor/parallel/stream.h"
 
@@ -37,6 +39,10 @@ arolla::QTypePtr GetStreamQType() {
 
 // Wraps the given stream into a qvalue.
 arolla::TypedValue MakeStreamQValue(StreamPtr stream);
+
+// Wraps the given stream into a qvalue.
+arolla::TypedRef MakeStreamQValueRef(
+    const StreamPtr& stream ABSL_ATTRIBUTE_LIFETIME_BOUND);
 
 }  // namespace koladata::functor::parallel
 

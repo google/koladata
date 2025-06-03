@@ -25,6 +25,7 @@
 #include "absl/synchronization/mutex.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/simple_qtype.h"
+#include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fast_dynamic_downcast_final.h"
 #include "arolla/util/meta.h"
@@ -35,6 +36,7 @@ namespace {
 
 using ::arolla::QTypePtr;
 using ::arolla::SimpleQType;
+using ::arolla::TypedRef;
 using ::arolla::TypedValue;
 
 class StreamQType final : public SimpleQType {
@@ -80,6 +82,12 @@ TypedValue MakeStreamQValue(StreamPtr stream) {
       std::move(stream), GetStreamQType(stream->value_qtype()));
   DCHECK_OK(result.status());
   return *std::move(result);
+}
+
+TypedRef MakeStreamQValueRef(const StreamPtr& stream) {
+  DCHECK_NE(stream, nullptr);
+  return TypedRef::UnsafeFromRawPointer(GetStreamQType(stream->value_qtype()),
+                                        &stream);
 }
 
 }  // namespace koladata::functor::parallel

@@ -128,7 +128,7 @@ TEST(StreamWhileLoopYieldsChainedTest, Basic) {
             arolla::TypedRef::FromValue(args[0].UnsafeAs<int>() + 1),
             arolla::TypedRef::FromValue(args[0].UnsafeAs<int>() +
                                         args[1].UnsafeAs<float>()),
-            MakeStreamQValue(std::move(stream)).AsRef(),
+            MakeStreamQValueRef(std::move(stream)),
         });
   };
   auto [initial_yields_stream, initial_yields_writer] =
@@ -199,7 +199,7 @@ TEST(StreamWhileLoopYieldsInterleavedTest, Basic) {
             arolla::TypedRef::FromValue(args[0].UnsafeAs<int>() + 1),
             arolla::TypedRef::FromValue(args[0].UnsafeAs<int>() +
                                         args[1].UnsafeAs<float>()),
-            MakeStreamQValue(std::move(stream)).AsRef(),
+            MakeStreamQValueRef(std::move(stream)),
         });
   };
   auto [initial_yields_stream, initial_yields_writer] =

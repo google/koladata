@@ -63,5 +63,13 @@ TEST(StreamQTypeTest, MakeStreamQValue) {
             MakeStreamQValue(stream2).GetFingerprint());
 }
 
+TEST(StreamQTypeTest, MakeStreamQValueRef) {
+  auto [stream, weak_writer] = MakeStream(arolla::GetQType<int32_t>());
+  auto qvalue = MakeStreamQValueRef(stream);
+  EXPECT_THAT(qvalue.GenReprToken(), ReprTokenEq("stream[INT32]"));
+  ASSERT_EQ(qvalue.GetType(), GetStreamQType<int32_t>());
+  ASSERT_EQ(qvalue.GetRawPointer(), &stream);
+}
+
 }  // namespace
 }  // namespace koladata::functor::parallel
