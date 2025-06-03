@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <initializer_list>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <utility>
@@ -28,6 +29,7 @@
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
+#include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/testing/matchers.h"
@@ -5660,6 +5662,161 @@ TEST(DataSliceTest, Reshape) {
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("shape size must be compatible with number of "
                            "items: shape_size=3 != items_size=1")));
+  }
+}
+
+DataSlice::JaggedShape::Edge CreateEdgeFromSizes(
+    absl::Span<const int64_t> sizes) {
+  std::vector<int64_t> split_points(sizes.size() + 1);
+  split_points[0] = 0;
+  std::partial_sum(sizes.begin(), sizes.end(), split_points.begin() + 1);
+  return *DataSlice::JaggedShape::Edge::FromSplitPoints(
+      CreateFullDenseArray(std::move(split_points)));
+}
+
+DataSlice::JaggedShape MakeShapeFromSizes(
+    absl::Span<const absl::Span<const int64_t>> all_edge_sizes) {
+  std::vector<DataSlice::JaggedShape::Edge> edges;
+  edges.reserve(all_edge_sizes.size());
+  for (const auto& edge_sizes : all_edge_sizes) {
+    edges.push_back(CreateEdgeFromSizes(edge_sizes));
+  }
+  auto shape = DataSlice::JaggedShape::FromEdges(std::move(edges));
+  CHECK_OK(shape.status());
+  return *shape;
+}
+
+TEST(DataSliceTest, Flatten) {
+  // Flatten with no args
+  {
+    auto di = test::DataItem(1);
+    ASSERT_OK_AND_ASSIGN(auto flat, di.Flatten());
+    EXPECT_THAT(flat.slice(), ElementsAre(1));
+    EXPECT_THAT(flat.GetShape(),
+                IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(1)));
+  }
+  {
+    auto ds = test::DataSlice<int>({1});
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten());
+    EXPECT_THAT(flat.slice(), ElementsAre(1));
+    EXPECT_THAT(flat.GetShape(), IsEquivalentTo(ds.GetShape()));
+  }
+  {
+    auto ds = test::MixedDataSlice<int, arolla::Text>(
+        {1, 2, std::nullopt, 4, std::nullopt},
+        {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
+        /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten());
+    EXPECT_THAT(flat.slice(),
+                ElementsAre(1, 2, arolla::Text("a"), 4, arolla::Text("b")));
+    EXPECT_THAT(flat.GetShape(),
+                IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(5)));
+  }
+
+  // Flatten with from_dim
+  {
+    auto di = test::DataItem(1);
+    ASSERT_OK_AND_ASSIGN(auto flat, di.Flatten(0));
+    EXPECT_THAT(flat.slice(), ElementsAre(1));
+    EXPECT_THAT(flat.GetShape(),
+                IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(1)));
+  }
+  {
+    auto ds = test::MixedDataSlice<int, arolla::Text>(
+        {1, 2, std::nullopt, 4, std::nullopt},
+        {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
+        /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/1));
+    EXPECT_THAT(flat.slice(),
+                ElementsAre(1, 2, arolla::Text("a"), 4, arolla::Text("b")));
+    EXPECT_THAT(flat.GetShape(),
+                IsEquivalentTo(MakeShapeFromSizes({{2}, {3, 2}})));
+  }
+  {
+    auto ds = test::MixedDataSlice<int, arolla::Text>(
+        {1, 2, std::nullopt, 4, std::nullopt},
+        {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
+        /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-1));
+    EXPECT_THAT(flat, IsEquivalentTo(ds));
+  }
+  {
+    auto ds = test::MixedDataSlice<int, arolla::Text>(
+        {1, 2, std::nullopt, 4, std::nullopt},
+        {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
+        /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-2));
+    EXPECT_THAT(flat.slice(),
+                ElementsAre(1, 2, arolla::Text("a"), 4, arolla::Text("b")));
+    EXPECT_THAT(flat.GetShape(),
+                IsEquivalentTo(MakeShapeFromSizes({{2}, {3, 2}})));
+  }
+
+  // Flatten with from_dim and to_dim
+  {
+    auto di = test::DataItem(1);
+    ASSERT_OK_AND_ASSIGN(auto flat,
+                         di.Flatten(/*from_dim=*/0, /*to_dim=*/std::nullopt));
+    EXPECT_THAT(flat.slice(), ElementsAre(1));
+    EXPECT_THAT(flat.GetShape(),
+                IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(1)));
+  }
+  {
+    auto di = test::DataItem(1);
+    ASSERT_OK_AND_ASSIGN(auto flat, di.Flatten(/*from_dim=*/0, /*to_dim=*/0));
+    EXPECT_THAT(flat.slice(), ElementsAre(1));
+    EXPECT_THAT(flat.GetShape(),
+                IsEquivalentTo(DataSlice::JaggedShape::FlatFromSize(1)));
+  }
+  auto ds = test::MixedDataSlice<int, arolla::Text>(
+      {1, 2, std::nullopt, 4, std::nullopt},
+      {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
+      /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+  {
+    ASSERT_OK_AND_ASSIGN(auto flat,
+                         ds.Flatten(/*from_dim=*/1, /*to_dim=*/std::nullopt));
+    ASSERT_OK_AND_ASSIGN(auto expected,
+                         ds.Reshape(MakeShapeFromSizes({{2}, {3, 2}})));
+    EXPECT_THAT(flat, IsEquivalentTo(expected));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/0, /*to_dim=*/2));
+    ASSERT_OK_AND_ASSIGN(auto expected,
+                         ds.Reshape(MakeShapeFromSizes({{3}, {2, 1, 2}})));
+    EXPECT_THAT(flat, IsEquivalentTo(expected));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/1, /*to_dim=*/1));
+    ASSERT_OK_AND_ASSIGN(
+        auto expected,
+        ds.Reshape(MakeShapeFromSizes({{2}, {1, 1}, {2, 1}, {2, 1, 2}})));
+    EXPECT_THAT(flat, IsEquivalentTo(expected));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/2, /*to_dim=*/2));
+    ASSERT_OK_AND_ASSIGN(
+        auto expected,
+        ds.Reshape(MakeShapeFromSizes({{2}, {2, 1}, {1, 1, 1}, {2, 1, 2}})));
+    EXPECT_THAT(flat, IsEquivalentTo(expected));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/1, /*to_dim=*/0));
+    ASSERT_OK_AND_ASSIGN(
+        auto expected,
+        ds.Reshape(MakeShapeFromSizes({{2}, {1, 1}, {2, 1}, {2, 1, 2}})));
+    EXPECT_THAT(flat, IsEquivalentTo(expected));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-2, /*to_dim=*/5));
+    ASSERT_OK_AND_ASSIGN(auto expected,
+                         ds.Reshape(MakeShapeFromSizes({{2}, {3, 2}})));
+    EXPECT_THAT(flat, IsEquivalentTo(expected));
+  }
+  {
+    ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-5, /*to_dim=*/-1));
+    ASSERT_OK_AND_ASSIGN(auto expected,
+                         ds.Reshape(MakeShapeFromSizes({{3}, {2, 1, 2}})));
+    EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
 }
 

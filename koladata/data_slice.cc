@@ -37,6 +37,7 @@
 #include "arolla/dense_array/bitmap.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/ops/dense_ops.h"
+#include "arolla/jagged_shape/qexpr/shape_operators.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
@@ -102,9 +103,9 @@ absl::Status AttrAssignmentError(absl::Status status, size_t lhs_rank,
       "kd.implode(values, ndim=%d)";
 
   if (rhs_rank > lhs_rank) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        kAttrAssignmentError,
-        lhs_rank, rhs_rank, rhs_rank - lhs_rank, rhs_rank - lhs_rank));
+    return absl::InvalidArgumentError(
+        absl::StrFormat(kAttrAssignmentError, lhs_rank, rhs_rank,
+                        rhs_rank - lhs_rank, rhs_rank - lhs_rank));
   }
   return status;
 }
@@ -121,9 +122,9 @@ absl::Status ListAssignmentError(absl::Status status, size_t lhs_rank,
       "kd.implode(items, ndim=%d)";
 
   if (rhs_rank > lhs_rank) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        kListAssignmentError,
-        lhs_rank, rhs_rank, rhs_rank - lhs_rank, rhs_rank - lhs_rank));
+    return absl::InvalidArgumentError(
+        absl::StrFormat(kListAssignmentError, lhs_rank, rhs_rank,
+                        rhs_rank - lhs_rank, rhs_rank - lhs_rank));
   }
   return status;
 }
@@ -141,9 +142,9 @@ absl::Status DictAssignmentError(absl::Status status, size_t lhs_rank,
       "kd.implode(values, ndim=%d)";
 
   if (rhs_rank > lhs_rank) {
-    return absl::InvalidArgumentError(absl::StrFormat(
-        kDictAssignmentError,
-        lhs_rank, rhs_rank, rhs_rank - lhs_rank, rhs_rank - lhs_rank));
+    return absl::InvalidArgumentError(
+        absl::StrFormat(kDictAssignmentError, lhs_rank, rhs_rank,
+                        rhs_rank - lhs_rank, rhs_rank - lhs_rank));
   }
   return status;
 }
@@ -311,8 +312,7 @@ absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSliceInSingleAllocation(
 absl::StatusOr<DataSlice::AttrNamesSet> GetAttrsFromDataSlice(
     const internal::DataSliceImpl& slice, const internal::DataItem& ds_schema,
     const internal::DataBagImpl& db_impl,
-    internal::DataBagImpl::FallbackSpan fallbacks,
-    bool union_object_attrs) {
+    internal::DataBagImpl::FallbackSpan fallbacks, bool union_object_attrs) {
   std::optional<DataSlice::AttrNamesSet> result;
   std::optional<internal::DataSliceImpl> schemas;
   if (ds_schema == schema::kSchema) {
@@ -1013,9 +1013,9 @@ absl::Status AssertIsSliceSchema(const internal::DataItem& schema) {
 
 // Aligns `impl` with `to_schema` if `from_schema` allows it (e.g. is OBJECT).
 template <class ImplT>
-absl::StatusOr<ImplT> AlignDataWithSchema(
-    ImplT impl, const internal::DataItem& from_schema,
-    const internal::DataItem& to_schema) {
+absl::StatusOr<ImplT> AlignDataWithSchema(ImplT impl,
+                                          const internal::DataItem& from_schema,
+                                          const internal::DataItem& to_schema) {
   return from_schema == schema::kObject ? schema::CastDataTo(impl, to_schema)
                                         : impl;
 }
@@ -1132,6 +1132,14 @@ absl::StatusOr<DataSlice> DataSlice::Reshape(
   return VisitImpl([&](const auto& impl) {
     return DataSlice::Create(impl, std::move(shape), GetSchemaImpl(), GetBag());
   });
+}
+
+absl::StatusOr<DataSlice> DataSlice::Flatten(
+    int64_t from_dim, std::optional<int64_t> to_dim) const {
+  const int64_t rank = GetShape().rank();
+  auto new_shape = arolla::JaggedShapeFlattenOp<JaggedShape>()(
+      GetShape(), from_dim, to_dim.value_or(rank));
+  return Reshape(std::move(new_shape));
 }
 
 DataSlice DataSlice::GetSchema() const {
@@ -1626,12 +1634,14 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
   if (GetSchemaImpl().is_itemid_schema()) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "failed to delete '%s' attribute; ITEMIDs do not allow attribute "
-        "access", attr_name));
+        "access",
+        attr_name));
   }
   if (GetBag() == nullptr) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "failed to delete '%s' attribute; the DataSlice is a reference without "
-        "a bag", attr_name));
+        "a bag",
+        attr_name));
   }
   ASSIGN_OR_RETURN(internal::DataBagImpl & db_mutable_impl,
                    GetBag()->GetMutableImpl());
@@ -1649,7 +1659,8 @@ absl::Status DataSlice::DelAttr(absl::string_view attr_name) const {
     } else {
       return absl::InvalidArgumentError(absl::StrFormat(
           "failed to delete '%s' attribute; cannot delete on a DataSlice with "
-          "%v schema", attr_name, GetSchemaImpl()));
+          "%v schema",
+          attr_name, GetSchemaImpl()));
     }
     // Remove attribute data by overwriting with empty.
     if constexpr (std::is_same_v<ImplT, internal::DataSliceImpl>) {
@@ -2299,9 +2310,8 @@ absl::Status DataSlice::VerifySchemaConsistency(
   return absl::OkStatus();
 }
 
-absl::StatusOr<DataSlice> EmptyLike(
-    const DataSlice::JaggedShape& shape, internal::DataItem schema,
-    DataBagPtr db) {
+absl::StatusOr<DataSlice> EmptyLike(const DataSlice::JaggedShape& shape,
+                                    internal::DataItem schema, DataBagPtr db) {
   return DataSlice::Create(
       internal::DataSliceImpl::CreateEmptyAndUnknownType(shape.size()), shape,
       std::move(schema), std::move(db));

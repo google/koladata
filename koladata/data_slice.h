@@ -154,6 +154,23 @@ class DataSlice {
   // error if the shape is not compatible with the existing shape.
   absl::StatusOr<DataSlice> Reshape(JaggedShape shape) const;
 
+  // Returns a new DataSlice with the same values but with dimensions
+  // `[from_dim:to_dim]` flattened.
+  //
+  // Indexing works as in Python:
+  // * If `to_dim` is unspecified, `to_dim = rank()` is used.
+  // * If `to_dim < from_dim`, `to_dim = from_dim` is used.
+  // * If `to_dim < 0`, `max(0, to_dim + rank())` is used. The same goes for
+  //   `from_dim`.
+  // * If `to_dim > rank()`, `rank()` is used. The same goes for `from_dim`.
+
+  // The above-mentioned adjustments places both `from_dim` and `to_dim` in the
+  // range `[0, rank()]`. After adjustments, the new DataSlice has `rank() ==
+  // old_rank - (to_dim - from_dim) + 1`. Note that if `from_dim == to_dim`, a
+  // "unit" dimension is inserted at `from_dim`.
+  absl::StatusOr<DataSlice> Flatten(
+      int64_t from_dim = 0, std::optional<int64_t> to_dim = std::nullopt) const;
+
   // Returns a DataSlice that represents a Schema.
   DataSlice GetSchema() const;
 
@@ -449,9 +466,7 @@ class DataSlice {
 
   // Returns true iff any present value is a primitive.
   bool ContainsAnyPrimitives() const {
-    return VisitImpl([&](auto impl) {
-      return impl.ContainsAnyPrimitives();
-    });
+    return VisitImpl([&](auto impl) { return impl.ContainsAnyPrimitives(); });
   }
 
   // Returns true iff the underlying implementation is DataItem.
@@ -532,8 +547,8 @@ class DataSlice {
   DataSlice(ImplVariant impl, JaggedShape shape, internal::DataItem schema,
             DataBagPtr db = nullptr, bool is_whole_if_db_unmodified = false)
       : internal_(arolla::RefcountPtr<Internal>::Make(
-            std::move(impl), std::move(shape), std::move(schema),
-            std::move(db), is_whole_if_db_unmodified)) {}
+            std::move(impl), std::move(shape), std::move(schema), std::move(db),
+            is_whole_if_db_unmodified)) {}
 
   // Returns an Error if `schema` cannot be used for data whose type is defined
   // by `dtype`. `dtype` has a value of NothingQType in case the contents are
@@ -591,9 +606,8 @@ class DataSlice {
 };
 
 // Creates a DataSlice with `shape` and `schema` and no data.
-absl::StatusOr<DataSlice> EmptyLike(
-    const DataSlice::JaggedShape& shape, internal::DataItem schema,
-    DataBagPtr db);
+absl::StatusOr<DataSlice> EmptyLike(const DataSlice::JaggedShape& shape,
+                                    internal::DataItem schema, DataBagPtr db);
 
 namespace internal_broadcast {
 
