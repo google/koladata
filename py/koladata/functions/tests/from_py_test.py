@@ -279,38 +279,40 @@ expected schema: FLOAT32
 assigned schema: INT32''')
     ):
       from_py_fn(3.14, schema=schema_constants.INT32)
-    # TODO: change this to from_py_fn when lists are supported.
     with self.assertRaisesRegex(
         ValueError,
         re.escape("""the schema is incompatible:
 expected schema: FLOAT32
 assigned schema: INT32"""),
     ):
-      fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.INT32)
+      from_py_fn([1, 3.14], from_dim=1, schema=schema_constants.INT32)
 
-  def test_primitives_common_schema(self):
-    res = fns.from_py([1, 3.14], from_dim=1)
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_primitives_common_schema(self, from_py_fn):
+    res = from_py_fn([1, 3.14], from_dim=1)
     testing.assert_equal(res, ds([1.0, 3.14]))
     self.assertIsNone(res.get_bag())
 
-  def test_primitives_object(self):
-    res = fns.from_py([1, 3.14], from_dim=1, schema=schema_constants.OBJECT)
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_primitives_object(self, from_py_fn):
+    res = from_py_fn([1, 3.14], from_dim=1, schema=schema_constants.OBJECT)
     testing.assert_equal(res.no_bag(), ds([1, 3.14], schema_constants.OBJECT))
     self.assertIsNotNone(res.get_bag())
     self.assertFalse(res.get_bag().is_mutable())
 
-  def test_empty_object(self):
-    res = fns.from_py(None, schema=schema_constants.OBJECT)
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_empty_object(self, from_py_fn):
+    res = from_py_fn(None, schema=schema_constants.OBJECT)
     testing.assert_equal(res.no_bag(), ds(None, schema_constants.OBJECT))
     self.assertIsNotNone(res.get_bag())
     self.assertFalse(res.get_bag().is_mutable())
 
-    res = fns.from_py([], from_dim=1, schema=schema_constants.OBJECT)
+    res = from_py_fn([], from_dim=1, schema=schema_constants.OBJECT)
     testing.assert_equal(res.no_bag(), ds([], schema_constants.OBJECT))
     self.assertIsNotNone(res.get_bag())
     self.assertFalse(res.get_bag().is_mutable())
 
-    res = fns.from_py([None, None], from_dim=1, schema=schema_constants.OBJECT)
+    res = from_py_fn([None, None], from_dim=1, schema=schema_constants.OBJECT)
     testing.assert_equal(
         res.no_bag(), ds([None, None], schema_constants.OBJECT)
     )
@@ -445,7 +447,8 @@ assigned schema: INT32"""),
     d0 = fns.from_py({})
     testing.assert_dicts_keys_equal(d0, ds([], schema_constants.OBJECT))
 
-  def test_from_dim_error(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_from_dim_error(self, from_py_fn):
     input_list = [[1, 2, 3], 4]
 
     l0 = fns.from_py(input_list, from_dim=0)
@@ -459,19 +462,19 @@ assigned schema: INT32"""),
         'input has to be a valid nested list. non-lists and lists cannot be'
         ' mixed in a level',
     ):
-      _ = fns.from_py(input_list, from_dim=2)
+      _ = from_py_fn(input_list, from_dim=2)
 
     with self.assertRaisesRegex(
         ValueError,
         'could not traverse the nested list of depth 1 up to the level 12',
     ):
-      _ = fns.from_py([1, 3.14], from_dim=12)
+      _ = from_py_fn([1, 3.14], from_dim=12)
 
     with self.assertRaisesRegex(
         ValueError,
         'could not traverse the nested list of depth 1 up to the level 2',
     ):
-      _ = fns.from_py([], from_dim=2)
+      _ = from_py_fn([], from_dim=2)
 
     schema = kde.schema.new_schema(
         a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)
@@ -499,13 +502,14 @@ assigned schema: INT32"""),
     testing.assert_equivalent(item.get_schema(), schema)
     testing.assert_equal(item.no_bag(), ds(None).with_schema(schema.no_bag()))
 
-  def test_empty_slice(self):
-    res = fns.from_py([], from_dim=1, schema=schema_constants.FLOAT32)
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_empty_slice(self, from_py_fn):
+    res = from_py_fn([], from_dim=1, schema=schema_constants.FLOAT32)
     testing.assert_equal(res.no_bag(), ds([], schema_constants.FLOAT32))
     schema = kde.schema.new_schema(
         a=schema_constants.STRING, b=kde.list_schema(schema_constants.INT32)
     ).eval()
-    res = fns.from_py([], from_dim=1, schema=schema)
+    res = from_py_fn([], from_dim=1, schema=schema)
     testing.assert_equal(res.no_bag(), ds([], schema.no_bag()))
 
   @parameterized.named_parameters(_VERSION_PARAMS)

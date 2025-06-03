@@ -16,8 +16,11 @@
 // free-functions.
 #include <Python.h>
 
+#include <cstddef>
 #include <optional>
 
+#include "arolla/qtype/typed_value.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "py/arolla/abc/pybind11_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
@@ -32,7 +35,8 @@ namespace {
 namespace py = pybind11;
 
 PYBIND11_MODULE(clib, m) {
-  m.def("_from_py_v2", [](py::handle py_obj, py::handle schema) {
+  m.def("_from_py_v2", [](py::handle py_obj, py::handle schema,
+                          size_t from_dim) {
     arolla::python::PyCancellationScope cancellation_scope;
     std::optional<DataSlice> schema_ds;
     if (!UnwrapDataSliceOptionalArg(schema.ptr(), "schema", schema_ds)) {
@@ -40,7 +44,7 @@ PYBIND11_MODULE(clib, m) {
     }
 
     return arolla::TypedValue::FromValue(arolla::python::pybind11_unstatus_or(
-        FromPy_V2(py_obj.ptr(), schema_ds)));
+        FromPy_V2(py_obj.ptr(), schema_ds, from_dim)));
   });
 }
 

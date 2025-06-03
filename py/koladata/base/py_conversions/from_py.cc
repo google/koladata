@@ -16,6 +16,7 @@
 
 #include <Python.h>
 
+#include <cstddef>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -32,10 +33,66 @@
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
+namespace {
 using internal::DataItem;
 
+// Helper class for converting Python objects to DataSlices.
+class FromPyConverter {
+ public:
+  explicit FromPyConverter(AdoptionQueue& adoption_queue)
+      : adoption_queue_(adoption_queue) {}
+
+  absl::StatusOr<DataSlice> Convert(PyObject* py_obj,
+                                    const std::optional<DataSlice>& schema,
+                                    size_t from_dim) {
+    std::vector<PyObject*> py_objects{py_obj};
+    DataSlice::JaggedShape cur_shape = DataSlice::JaggedShape::Empty();
+
+    if (from_dim > 0) {
+      ASSIGN_OR_RETURN((auto [py_objs, shape]),
+                       FlattenPyList(py_obj, from_dim));
+      py_objects = std::move(py_objs);
+      cur_shape = std::move(shape);
+    }
+    return ConvertImpl(py_objects, cur_shape, schema);
+  }
+
+ private:
+  absl::StatusOr<DataSlice> ConvertImpl(
+      const std::vector<PyObject*>& py_objects,
+      const DataSlice::JaggedShape& cur_shape,
+      const std::optional<DataSlice>& schema) {
+    DataItem schema_item;
+    if (schema && schema->item() == schema::kObject) {
+      schema_item = schema->item();
+    }
+    // We need implicit casting here, so we provide an empty schema if schema is
+    // not OBJECT.
+    ASSIGN_OR_RETURN(
+        auto res_slice,
+        DataSliceFromPyFlatList(py_objects, cur_shape, std::move(schema_item),
+                                adoption_queue_));
+    if (schema) {
+      ASSIGN_OR_RETURN(res_slice, CastToImplicit(res_slice, schema->item()),
+                       [&](absl::Status status) {
+                         return CreateIncompatibleSchemaErrorFromStatus(
+                             std::move(status),
+                             res_slice.GetSchema().WithBag(
+                                 adoption_queue_.GetBagWithFallbacks()),
+                             *schema);
+                       }(_));
+    }
+    return res_slice;
+  }
+
+  AdoptionQueue& adoption_queue_;
+};
+
+}  // namespace
+
 absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
-                                    const std::optional<DataSlice>& schema) {
+                                    const std::optional<DataSlice>& schema,
+                                    size_t from_dim) {
   AdoptionQueue adoption_queue;
   DataItem schema_item;
   if (schema) {
@@ -43,21 +100,9 @@ absl::StatusOr<DataSlice> FromPy_V2(PyObject* py_obj,
     adoption_queue.Add(*schema);
     schema_item = schema->item();
   }
-  ASSIGN_OR_RETURN(DataSlice res_slice,
-                   DataSliceFromPyFlatList(std::vector<PyObject*>{py_obj},
-                                           DataSlice::JaggedShape{},
-                                           /*schema=*/DataItem(),
-                                           adoption_queue));
-  if (schema) {
-    ASSIGN_OR_RETURN(res_slice, CastToImplicit(res_slice, schema_item),
-                     [&](absl::Status status) {
-                       return CreateIncompatibleSchemaErrorFromStatus(
-                           std::move(status),
-                           res_slice.GetSchema().WithBag(
-                               adoption_queue.GetBagWithFallbacks()),
-                           *schema);
-                     }(_));
-  }
+  ASSIGN_OR_RETURN(
+      DataSlice res_slice,
+      FromPyConverter(adoption_queue).Convert(py_obj, schema, from_dim));
 
   DataBagPtr res_db = res_slice.GetBag();
   DCHECK(res_db == nullptr || res_db->IsMutable());
