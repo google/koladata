@@ -1057,6 +1057,9 @@ TEST_P(DeepCloneTest, SchemaMetadata_SchemaSlice) {
   ASSERT_OK_AND_ASSIGN(
       auto result_metadata,
       result_db->GetSchemaAttr(result, schema::kSchemaMetadataAttr));
+  ASSERT_OK_AND_ASSIGN(auto expected_metadata,
+                       CreateUuidWithMainObject(result, schema::kMetadataSeed));
+  EXPECT_EQ(result_metadata, expected_metadata);
   ASSERT_OK_AND_ASSIGN(
       auto result_metadata_schema,
       CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(

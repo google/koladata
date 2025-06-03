@@ -281,16 +281,51 @@ class CoreDeepCloneTest(parameterized.TestCase):
     a = kde.core.deep_clone(ds_xy)
     b = kde.core.deep_clone(ds_xy)
     _ = expr_eval.eval(kde.uu(a=a, b=b))
-    testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
-        expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).no_bag(),
-    )
-    # TODO: This should be not equal, when metadata is updated
-    # properly for implicit schemas.
-    testing.assert_equal(
-        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
-        expr_eval.eval(kde.core.get_metadata(ds_xy.get_obj_schema())).no_bag(),
-    )
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(
+          expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
+          expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).no_bag(),
+      )
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(
+          expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
+          expr_eval.eval(
+              kde.core.get_metadata(ds_xy.get_obj_schema())
+          ).no_bag(),
+      )
+    kde.core.with_metadata(a.get_obj_schema(), attrs='xy')
+
+  def test_metadata_chains(self):
+    db = bag()
+    ds_root = db.new(a=db.obj(x=1, y=2), b=db.obj(foo='bar'))
+    ds_a = ds_root.a
+    for i in range(10):
+      schema = kde.core.with_metadata(
+          ds_a.get_obj_schema(), data=f'a_depth_{i}'
+      )
+      ds_a = kde.core.get_metadata(schema)
+    ds_root = ds_root.with_bag(expr_eval.eval(ds_a).get_bag())
+    ds_b = ds_root.b
+    for i in range(5):
+      schema = kde.core.with_metadata(
+          ds_b.get_obj_schema(), data=f'b_depth_{i}'
+      )
+      ds_b = kde.core.get_metadata(schema)
+    ds_root = ds_root.with_bag(expr_eval.eval(ds_b).get_bag())
+
+    cloned = expr_eval.eval(kde.core.deep_clone(ds_root))
+    a_cloned = cloned.a
+    for i in range(10):
+      # with_metadata calculate the right metadata ObjectId, so here we check
+      # that the ids in cloned databag are consistent.
+      schema = kde.core.with_metadata(a_cloned.get_obj_schema())
+      a_cloned = expr_eval.eval(kde.core.get_metadata(schema))
+      self.assertEqual(a_cloned.data, f'a_depth_{i}')
+    b_cloned = cloned.b
+    for i in range(5):
+      schema = kde.core.with_metadata(b_cloned.get_obj_schema())
+      b_cloned = expr_eval.eval(kde.core.get_metadata(schema))
+      self.assertEqual(b_cloned.data, f'b_depth_{i}')
 
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.deep_clone(I.x)))

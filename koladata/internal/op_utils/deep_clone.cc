@@ -18,8 +18,10 @@
 #include <memory>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -42,18 +44,18 @@ namespace koladata::internal {
 namespace {
 
 class DeepCloneVisitor : AbstractVisitor {
-  // TODO: update ObjectIds for metadata when necessary.
  public:
   explicit DeepCloneVisitor(DataBagImplPtr new_databag, bool is_schema_slice)
       : new_databag_(std::move(new_databag)),
         is_schema_slice_(is_schema_slice),
-        allocation_tracker_() {}
+        allocation_tracker_(),
+        allocations_with_metadata_() {}
 
   absl::Status Previsit(const DataItem& from_item, const DataItem& from_schema,
                         const DataItem& item, const DataItem& schema) override {
     if (schema == schema::kObject && from_schema == schema::kSchema) {
       // The `item` is schema_metadata for `from_item`.
-      return PrevisitSchemaMetadata(item);
+      return PrevisitSchemaMetadata(from_item, item);
     }
     if (schema.holds_value<ObjectId>()) {
       // Entity schema.
@@ -74,8 +76,98 @@ class DeepCloneVisitor : AbstractVisitor {
     return absl::InternalError("unsupported schema type");
   }
 
-  absl::StatusOr<DataItem> GetValue(const DataItem& item,
-                                    const DataItem& schema) override {
+  // Reassigns metadata ids for all allocations that have metadata.
+  //
+  // The metadata ids are derived from the parent schema ids. Thus if the
+  // schemas are cloned, the metadata ids should also be updated.
+  //
+  // Note, that for explicit schemas, new ids are also derived from the cloned
+  // object ids. And we can have a long chains of implicit schemas and metadata
+  // objects, where each next object id is derived from the previous one.
+  //
+  // To handle this, we first find the set of schemas that have metadata, but
+  // which ids are not derived from the metadata objects. These schemas are the
+  // starting points of the chains of dependent ids.
+  //
+  // Then we go through all these starting schemas, and for each of them we
+  // create a chain of new ids metadata objects and implicit schemas.
+  absl::Status AssignMetadataIds() {
+    std::vector<AllocationId> derived_allocations;
+    for (const AllocationId& schema_allocation : allocations_with_metadata_) {
+      ASSIGN_OR_RETURN(DataItem metadata,
+                       CreateUuidWithMainObject(
+                           DataItem(schema_allocation.ObjectByOffset(0)),
+                           schema::kMetadataSeed));
+      ASSIGN_OR_RETURN(
+          DataItem next_schema,
+          CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
+              metadata, schema::kImplicitSchemaSeed));
+      auto next_allocation = AllocationId(next_schema.value<ObjectId>());
+      if (allocations_with_metadata_.contains(next_allocation)) {
+        derived_allocations.push_back(next_allocation);
+      }
+    }
+    // Remove allocations that are derived from the others.
+    for (const AllocationId& schema_allocation : derived_allocations) {
+      allocations_with_metadata_.erase(schema_allocation);
+    }
+    for (AllocationId schema_allocation : allocations_with_metadata_) {
+      // For each starting schema allocation, we create a chain of alternating
+      // metadata and implicit schema allocations.
+      ASSIGN_OR_RETURN(
+          DataItem cloned_schema_starting_chain,
+          GetValueImpl(DataItem(schema_allocation.ObjectByOffset(0)),
+                       DataItem(schema::kSchema)));
+      AllocationId cloned_schema_allocation =
+          AllocationId(cloned_schema_starting_chain.value<ObjectId>());
+      while (true) {
+        allocation_tracker_[schema_allocation] = cloned_schema_allocation;
+        ASSIGN_OR_RETURN(DataItem metadata,
+                         CreateUuidWithMainObject(
+                             DataItem(schema_allocation.ObjectByOffset(0)),
+                             schema::kMetadataSeed));
+        ASSIGN_OR_RETURN(
+            DataItem cloned_metadata,
+            CreateUuidWithMainObject(
+                DataItem(cloned_schema_allocation.ObjectByOffset(0)),
+                schema::kMetadataSeed));
+        allocation_tracker_[AllocationId(metadata.value<ObjectId>())] =
+            AllocationId(cloned_metadata.value<ObjectId>());
+        ASSIGN_OR_RETURN(DataItem next_schema,
+                         CreateUuidWithMainObject<
+                             internal::ObjectId::kUuidImplicitSchemaFlag>(
+                             metadata, schema::kImplicitSchemaSeed));
+        schema_allocation = AllocationId(next_schema.value<ObjectId>());
+        auto it = allocation_tracker_.find(schema_allocation);
+        if (it == allocation_tracker_.end()) {
+          break;
+        }
+        ASSIGN_OR_RETURN(DataItem next_cloned_schema,
+                         CreateUuidWithMainObject<
+                             internal::ObjectId::kUuidImplicitSchemaFlag>(
+                             cloned_metadata, schema::kImplicitSchemaSeed));
+        cloned_schema_allocation =
+            AllocationId(next_cloned_schema.value<ObjectId>());
+        it->second = cloned_schema_allocation;
+      }
+    }
+    allocations_with_metadata_.clear();
+    return absl::OkStatus();
+  }
+
+  DataItem GetValueFromTrackedAllocation(const DataItem& item) {
+    DCHECK(item.holds_value<ObjectId>());
+    auto item_it =
+        allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
+    if (item_it == allocation_tracker_.end()) {
+      return DataItem();
+    }
+    return DataItem(
+        item_it->second.ObjectByOffset(item.value<ObjectId>().Offset()));
+  }
+
+  absl::StatusOr<DataItem> GetValueImpl(const DataItem& item,
+                                        const DataItem& schema) {
     if (!item.holds_value<ObjectId>()) {
       return item;
     }
@@ -87,24 +179,41 @@ class DeepCloneVisitor : AbstractVisitor {
     if (item.value<ObjectId>().IsNoFollowSchema()) {
       ASSIGN_OR_RETURN(
           auto original_item_clone,
-          GetValue(DataItem(GetOriginalFromNoFollow(item.value<ObjectId>())),
-                   schema));
+          GetValueImpl(
+              DataItem(GetOriginalFromNoFollow(item.value<ObjectId>())),
+              schema));
       return DataItem(
           CreateNoFollowWithMainObject(original_item_clone.value<ObjectId>()));
     }
-    auto it = allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
-    if (it == allocation_tracker_.end()) {
-      if (item.is_implicit_schema()) {
-        // No object with implicit schema in `item`'s AllocationId was cloned.
-        // Thus, we cannot determine new AllocationId for the implicit schemas
-        // and create an ExplicitSchemaAllocationId instead.
-        RETURN_IF_ERROR(CloneAsExplicitSchema(item));
-        return GetValue(item, schema);
-      }
-      return absl::InvalidArgumentError(
-          absl::StrFormat("new allocation for object %v is not found", item));
+    DataItem new_item = GetValueFromTrackedAllocation(item);
+    if (new_item.has_value()) {
+      return std::move(new_item);
     }
-    return DataItem(it->second.ObjectByOffset(item.value<ObjectId>().Offset()));
+    if (item.is_implicit_schema()) {
+      // No object with implicit schema in `item`'s AllocationId was cloned.
+      // Thus, we cannot determine new AllocationId for the implicit schemas
+      // and create an ExplicitSchemaAllocationId instead.
+      RETURN_IF_ERROR(CloneAsExplicitSchema(item));
+      return GetValueImpl(item, schema);
+    }
+    return absl::InvalidArgumentError(
+        absl::StrFormat("new allocation for object %v is not found", item));
+  }
+
+  absl::StatusOr<DataItem> GetValue(const DataItem& item,
+                                    const DataItem& schema) override {
+    if (!allocations_with_metadata_.empty()) {
+      // On first GetValue or Visit* call, we reassign metadata ids.
+      //
+      // GetValue is called only after all Previsits are done. And we call
+      // GetValue (and not GetValueImpl) from each of the Visit* methods, thus
+      // ensuring that we would reassign derived ids once, after all Previsits
+      // are done, and before we start using cloned ids to srore in the new
+      // databag.
+      RETURN_IF_ERROR(AssignMetadataIds());
+      DCHECK(allocations_with_metadata_.empty());
+    }
+    return GetValueImpl(item, schema);
   }
 
   absl::Status VisitList(const DataItem& list, const DataItem& schema,
@@ -183,12 +292,14 @@ class DeepCloneVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status PrevisitSchemaMetadata(const DataItem& item) {
-    if (!item.holds_value<ObjectId>()) {
-      return absl::OkStatus();
-    }
-    AllocationId allocation_id = AllocationId(item.value<ObjectId>());
-    allocation_tracker_.emplace(allocation_id, allocation_id);
+  absl::Status PrevisitSchemaMetadata(const DataItem& from_item,
+                                      const DataItem& item) {
+    DCHECK(item.holds_value<ObjectId>());
+    DCHECK(from_item.holds_value<ObjectId>());
+    AllocationId item_allocation = AllocationId(item.value<ObjectId>());
+    allocation_tracker_[item_allocation] = item_allocation;
+    allocations_with_metadata_.insert(
+        AllocationId(from_item.value<ObjectId>()));
     return absl::OkStatus();
   }
 
@@ -200,7 +311,13 @@ class DeepCloneVisitor : AbstractVisitor {
     if (!inserted) {
       return absl::OkStatus();
     }
-    ASSIGN_OR_RETURN(auto new_item, GetValue(item, DataItem(schema::kObject)));
+    // Don't call `GetValueImpl` here, because it may invalidate `alloc_it` by
+    // `allocation_tracker_` updates.
+    auto new_item = GetValueFromTrackedAllocation(item);
+    if (!new_item.has_value()) {
+      return absl::InvalidArgumentError(
+          absl::StrFormat("new allocation for object %v is not found", item));
+    }
     ASSIGN_OR_RETURN(
         auto new_schema,
         CreateUuidWithMainObject<internal::ObjectId::kUuidImplicitSchemaFlag>(
@@ -249,6 +366,7 @@ class DeepCloneVisitor : AbstractVisitor {
   DataBagImplPtr new_databag_;
   bool is_schema_slice_;
   absl::flat_hash_map<AllocationId, AllocationId> allocation_tracker_;
+  absl::flat_hash_set<AllocationId> allocations_with_metadata_;
 };
 
 }  // namespace
