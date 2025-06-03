@@ -203,7 +203,7 @@ absl::StatusOr<DataSlice> Subslice(const DataSlice& x,
                            std::move(std::get<Slice>(slice_arg)), edge));
     }
   }
-  ASSIGN_OR_RETURN(auto flat_x, x.Reshape(shape.FlattenDims(0, shape.rank())));
+  ASSIGN_OR_RETURN(auto flat_x, x.Flatten());
   return AtImpl(flat_x, chosen_indices);
 }
 

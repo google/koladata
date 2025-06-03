@@ -421,8 +421,7 @@ absl::StatusOr<DataSlice> Split(const DataSlice& x, const DataSlice& sep) {
   // we flatten to avoid scalar inputs.
   std::vector<arolla::TypedValue> typed_value_holder;
   typed_value_holder.reserve(2);
-  ASSIGN_OR_RETURN(auto flat_x,
-                   x.Reshape(x_shape.FlattenDims(0, x_shape.rank())));
+  ASSIGN_OR_RETURN(auto flat_x, x.Flatten());
   ASSIGN_OR_RETURN(auto x_ref,
                    DataSliceToOwnedArollaRef(flat_x, typed_value_holder,
                                              sep_primitive_schema));

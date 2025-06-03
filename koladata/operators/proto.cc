@@ -119,9 +119,7 @@ absl::StatusOr<DataSlice> FromProtoMessages(
                    GetExtensions(extensions));
   std::optional<DataSlice> itemids_value;
   if (!IsUnspecifiedDataSlice(itemids)) {
-    ASSIGN_OR_RETURN(itemids_value,
-                     Reshape(itemids, itemids.GetShape().FlattenDims(
-                                          0, itemids.GetShape().rank())));
+    ASSIGN_OR_RETURN(itemids_value, itemids.Flatten());
   }
   std::optional<DataSlice> schema_value;
   if (!IsUnspecifiedDataSlice(schema)) {
@@ -156,8 +154,7 @@ absl::StatusOr<DataSlice> FromProtoBytes(
   RETURN_IF_ERROR(ExpectBytes("x", x));
   ASSIGN_OR_RETURN(const auto* message_prototype,
                    GetMessagePrototype(proto_path));
-  ASSIGN_OR_RETURN(auto x_flat, Reshape(x, x.GetShape().FlattenDims(
-                                               0, x.GetShape().rank())));
+  ASSIGN_OR_RETURN(auto x_flat, x.Flatten());
   bool raise_on_invalid = IsUnspecifiedDataSlice(on_invalid);
 
   std::vector<std::unique_ptr<google::protobuf::Message>> messages;
@@ -202,8 +199,7 @@ absl::StatusOr<DataSlice> FromProtoJson(
   RETURN_IF_ERROR(ExpectString("x", x));
   ASSIGN_OR_RETURN(const auto* message_prototype,
                    GetMessagePrototype(proto_path));
-  ASSIGN_OR_RETURN(auto x_flat, Reshape(x, x.GetShape().FlattenDims(
-                                               0, x.GetShape().rank())));
+  ASSIGN_OR_RETURN(auto x_flat, x.Flatten());
   bool raise_on_invalid = IsUnspecifiedDataSlice(on_invalid);
 
   std::vector<std::unique_ptr<google::protobuf::Message>> messages;
