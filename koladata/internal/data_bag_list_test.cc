@@ -559,12 +559,20 @@ TEST(DataBagTest, ListWithFallback) {
                 IsOkAndHolds(DataItem(int64_t{1})));
     EXPECT_THAT(db->GetFromList(list, 0, {fb_db.get()}),
                 IsOkAndHolds(DataItem(1.0f)));
-    // fallback is not used in case list is not empty
+    // fallback is not used in case list is not unset
     EXPECT_THAT(db->GetFromList(list, 1, {fb_db.get()}),
                 IsOkAndHolds(DataItem()));
     EXPECT_THAT(
         db->ExplodeList(list, DataBagImpl::ListRange(0, 2), {fb_db.get()}),
         IsOkAndHolds(ElementsAre(1.0f)));
+  }
+  ASSERT_OK(db->PopFromList(list, 0));
+  {
+    // List is REMOVED in `db`. It is empty regardless of fallback.
+    EXPECT_THAT(db->ExplodeList(list, DataBagImpl::ListRange(), {fb_db.get()}),
+                IsOkAndHolds(ElementsAre()));
+    EXPECT_THAT(fb_db->ExplodeList(list, DataBagImpl::ListRange(), {db.get()}),
+                IsOkAndHolds(ElementsAre(2.0f, 3.0f)));
   }
   {
     EXPECT_THAT(fb_db->GetListSize(list, {db.get()}),

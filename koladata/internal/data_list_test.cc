@@ -251,26 +251,27 @@ TEST(DataListTest, AddToDataSlice) {
 TEST(DataListTest, DataListVector) {
   auto vec = std::make_shared<DataListVector>(3);
   ASSERT_EQ(vec->size(), 3);
-  EXPECT_EQ(vec->Get(2).size(), 0);
+  EXPECT_EQ(vec->Get(2), nullptr);
 
   vec->GetMutable(2).Insert(0, 7);
-  EXPECT_THAT(vec->Get(2), ElementsAre(DataItem(7)));
+  EXPECT_NE(vec->Get(2), nullptr);
+  EXPECT_THAT(*vec->Get(2), ElementsAre(DataItem(7)));
 
   auto derived_vec = std::make_shared<DataListVector>(vec);
   derived_vec->GetMutable(1).Insert(0, 5);
 
-  EXPECT_EQ(derived_vec->Get(0).size(), 0);
-  EXPECT_EQ(derived_vec->Get(1).size(), 1);
-  EXPECT_EQ(derived_vec->Get(2).size(), 1);
+  EXPECT_EQ(derived_vec->Get(0), nullptr);
+  EXPECT_EQ(derived_vec->Get(1)->size(), 1);
+  EXPECT_EQ(derived_vec->Get(2)->size(), 1);
 
-  EXPECT_NE(&vec->Get(0), &derived_vec->Get(0));  // empty list is newly created
-  EXPECT_NE(&vec->Get(1), &derived_vec->Get(1));  // list copied on modification
-  EXPECT_EQ(&vec->Get(2), &derived_vec->Get(2));
+  EXPECT_EQ(vec->Get(0), derived_vec->Get(0));  // unset list is nullptr
+  EXPECT_NE(vec->Get(1), derived_vec->Get(1));  // list copied on modification
+  EXPECT_EQ(vec->Get(2), derived_vec->Get(2));
 
   derived_vec->GetMutable(2).Insert(0, 9);
-  EXPECT_NE(&vec->Get(2), &derived_vec->Get(2));
-  EXPECT_THAT(vec->Get(2), ElementsAre(DataItem(7)));
-  EXPECT_THAT(derived_vec->Get(2), ElementsAre(DataItem(9), DataItem(7)));
+  EXPECT_NE(vec->Get(2), derived_vec->Get(2));
+  EXPECT_THAT(*vec->Get(2), ElementsAre(DataItem(7)));
+  EXPECT_THAT(*derived_vec->Get(2), ElementsAre(DataItem(9), DataItem(7)));
 }
 
 }  // namespace

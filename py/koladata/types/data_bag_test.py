@@ -1339,6 +1339,22 @@ Assigned schema for keys: INT32""",
         schema_constants.NONE.with_bag(db),
     )
 
+  def test_list_fallback(self):
+    db1 = bag()
+    db2 = bag()
+    l = db2.list([1, 2, 3]).with_bag(db1).enriched(db2)
+    testing.assert_equal(l[:].no_bag(), ds([1, 2, 3]))
+
+    db1.adopt(l)
+    l.with_bag(db1).append(4)
+    testing.assert_equal(l[:].no_bag(), ds([1, 2, 3, 4]))
+
+    for _ in range(4):
+      l.with_bag(db1).pop(0)
+
+    testing.assert_equal(l[:].no_bag(), ds([], schema=schema_constants.INT32))
+    testing.assert_equal(l.with_bag(db2)[:].no_bag(), ds([1, 2, 3]))
+
   def test_list_errors(self):
     db = bag()
     with self.assertRaisesRegex(

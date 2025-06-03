@@ -27,6 +27,7 @@
 
 #include "absl/base/attributes.h"
 #include "absl/base/no_destructor.h"
+#include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_map.h"
@@ -1087,17 +1088,18 @@ class DataBagImpl::ReadOnlyListGetter {
  public:
   explicit ReadOnlyListGetter(const DataBagImpl* bag) : bag_(bag) {}
 
-  const DataList& operator()(ObjectId list_id) {
+  // Returns nullptr if the list is UNSET.
+  const DataList* /*absl_nullable*/ operator()(ObjectId list_id) {
     AllocationId alloc_id(list_id);
     if (alloc_id != current_alloc_) {
       if (ABSL_PREDICT_FALSE(!alloc_id.IsListsAlloc())) {
         status_ = absl::FailedPreconditionError("lists expected");
-        return kEmptyList;
+        return nullptr;
       }
       lists_vec_ = bag_->GetConstListsOrNull(alloc_id);
       current_alloc_ = alloc_id;
     }
-    return lists_vec_ ? (*lists_vec_)->Get(list_id.Offset()) : kEmptyList;
+    return lists_vec_ ? (*lists_vec_)->Get(list_id.Offset()) : nullptr;
   }
 
   const absl::Status& status() { return status_; }
@@ -1157,31 +1159,34 @@ const std::shared_ptr<DataListVector>* DataBagImpl::GetConstListsOrNull(
 
 const DataList& DataBagImpl::GetFirstPresentList(ObjectId list_id,
                                                  FallbackSpan fallbacks) const {
-  const DataList* result = &kEmptyList;
+  const DataList* result = nullptr;
 
   AllocationId alloc_id(list_id);
   size_t alloc_hash = absl::HashOf(alloc_id);
 
   if (const auto* lists = GetConstListsOrNull(alloc_id, alloc_hash);
       lists != nullptr) {
-    result = &(*lists)->Get(list_id.Offset());
+    result = (*lists)->Get(list_id.Offset());
   }
 
-  if (!result->empty() || fallbacks.empty()) {
+  if (result) {
     return *result;
+  }
+  if (fallbacks.empty()) {
+    return kEmptyList;
   }
 
   for (const DataBagImpl* fallback : fallbacks) {
     if (const auto* lists = fallback->GetConstListsOrNull(alloc_id, alloc_hash);
         lists != nullptr) {
-      result = &(*lists)->Get(list_id.Offset());
-    }
-    if (!result->empty()) {
-      return *result;
+      result = (*lists)->Get(list_id.Offset());
+      if (result) {
+        break;
+      }
     }
   }
 
-  return *result;
+  return result ? *result : kEmptyList;
 }
 
 std::vector<DataBagImpl::ReadOnlyListGetter>
@@ -1197,13 +1202,13 @@ DataBagImpl::CreateFallbackListGetters(FallbackSpan fallbacks) {
 const DataList& DataBagImpl::GetFirstPresentList(
     ObjectId list_id, ReadOnlyListGetter& list_getter,
     absl::Span<ReadOnlyListGetter> fallback_list_getters) const {
-  if (const DataList& list = list_getter(list_id); !list.empty()) {
-    return list;
+  if (const DataList* list = list_getter(list_id); list != nullptr) {
+    return *list;
   }
 
   for (ReadOnlyListGetter& fallback_list_getter : fallback_list_getters) {
-    if (const DataList& list = fallback_list_getter(list_id); !list.empty()) {
-      return list;
+    if (const DataList* list = fallback_list_getter(list_id); list != nullptr) {
+      return *list;
     }
   }
 
@@ -1244,7 +1249,8 @@ absl::StatusOr<arolla::DenseArray<int64_t>> DataBagImpl::GetListSize(
 
   if (fallbacks.empty()) {
     auto op = arolla::CreateDenseOp([&](ObjectId list_id) -> int64_t {
-      return list_getter(list_id).size();
+      const auto* l = list_getter(list_id);
+      return l ? l->size() : 0;
     });
     res = op(lists.values<ObjectId>());
   } else {
@@ -1288,8 +1294,9 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::GetFromLists(
   if (fallbacks.empty()) {
     RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
         [&](int64_t offset, ObjectId list_id, int64_t pos) {
-          const DataList& list = list_getter(list_id);
-          set_from_list(offset, list, pos);
+          if (const DataList* list = list_getter(list_id); list) {
+            set_from_list(offset, *list, pos);
+          }
         },
         lists.values<ObjectId>(), indices));
   } else {
@@ -1369,8 +1376,10 @@ DataBagImpl::ExplodeLists(const DataSliceImpl& lists, ListRange range,
     lists.values<ObjectId>().ForEach(
         [&](int64_t offset, bool present, ObjectId list_id) {
           if (present) {
-            const DataList& list = list_getter(list_id);
-            process_list(offset, list);
+            const DataList* list = list_getter(list_id);
+            if (list) {
+              process_list(offset, *list);
+            }
           }
           split_points_bldr.Set(offset + 1, cum_size);
         });
@@ -3150,33 +3159,33 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
       }
       auto& this_lists = GetOrCreateMutableLists(alloc_id);
       for (size_t i = 0; i < other_lists->size(); ++i) {
-        const auto& other_list = other_lists->Get(i);
-        if (other_list.empty()) {
+        const auto* other_list = other_lists->Get(i);
+        if (!other_list || other_list->empty()) {
           continue;
         }
         auto& this_list = this_lists.GetMutable(i);
         if (options.data_conflict_policy == MergeOptions::kOverwrite ||
             this_list.empty()) {
-          this_list = other_list;
+          this_list = *other_list;
           continue;
         }
         if (options.data_conflict_policy == MergeOptions::kRaiseOnConflict) {
-          if (this_list.size() != other_list.size()) {
+          if (this_list.size() != other_list->size()) {
             return arolla::WithPayload(
                 absl::FailedPreconditionError(
                     absl::StrCat("conflicting list sizes for ", alloc_id, ": ",
-                                 this_list.size(), " vs ", other_list.size())),
+                                 this_list.size(), " vs ", other_list->size())),
                 MakeListSizeMergeError(alloc_id.ObjectByOffset(i),
-                                       this_list.size(), other_list.size()));
+                                       this_list.size(), other_list->size()));
           }
-          for (size_t j = 0; j < other_list.size(); ++j) {
-            if (ValuesAreDifferent(this_list[j], other_list[j])) {
+          for (size_t j = 0; j < other_list->size(); ++j) {
+            if (ValuesAreDifferent(this_list[j], (*other_list)[j])) {
               return arolla::WithPayload(
                   absl::FailedPreconditionError(absl::StrCat(
                       "conflicting list values for ", alloc_id, "at index ", j,
-                      ": ", this_list[j], " vs ", other_list[j])),
+                      ": ", this_list[j], " vs ", (*other_list)[j])),
                   MakeListItemMergeError(alloc_id.ObjectByOffset(i), j,
-                                         this_list[j], other_list[j]));
+                                         this_list[j], (*other_list)[j]));
             }
           }
         }
@@ -3316,9 +3325,9 @@ absl::StatusOr<DataBagContent::ListsContent> DataBagImpl::ListVectorToContent(
   size_t total_size = 0;
   std::vector<const DataList*> list_ptrs(list_vector.size());
   for (size_t i = 0; i < list_vector.size(); ++i) {
-    const DataList& l = list_vector.Get(i);
-    list_ptrs[i] = &l;
-    total_size += l.size();
+    const DataList* l = list_vector.Get(i);
+    list_ptrs[i] = l;
+    total_size += l ? l->size() : 0;
   }
   SliceBuilder bldr(total_size);
   arolla::Buffer<int64_t>::Builder splits_bldr(list_ptrs.size() + 1);
@@ -3326,8 +3335,10 @@ absl::StatusOr<DataBagContent::ListsContent> DataBagImpl::ListVectorToContent(
   splits_inserter.Add(0);
   size_t pos = 0;
   for (const DataList* l : list_ptrs) {
-    l->AddToDataSlice(bldr, pos);
-    pos += l->size();
+    if (l) {
+      l->AddToDataSlice(bldr, pos);
+      pos += l->size();
+    }
     splits_inserter.Add(pos);
   }
   ASSIGN_OR_RETURN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
@@ -3407,13 +3418,13 @@ absl::StatusOr<DataBagStatistics> DataBagImpl::GetStatistics() const {
         list_vector != nullptr) {
       for (size_t list_id = 0; list_id < (*list_vector)->size(); ++list_id) {
         // Only count non empty list to users for avoiding confusion because:
-        // 1. Emtpy lists created by `kd.list_like` are not stored in the
+        // 1. Empty lists created by `kd.list_like` are not stored in the
         // data bag.
         // 2. Allocation size is usually larger than user requested and the
         // trailing parts are empty and invisible to users.
-        if (size_t list_size = (*list_vector)->Get(list_id).size();
-            list_size != 0) {
-          stats.total_items_in_lists += list_size;
+        const DataList* list = (*list_vector)->Get(list_id);
+        if (list != nullptr && !list->empty()) {
+          stats.total_items_in_lists += list->size();
           ++stats.total_non_empty_lists;
         }
       }
@@ -3567,7 +3578,10 @@ int64_t DataBagImpl::GetApproxTotalSize() const {
 
   auto add_lists = [&size](const DataListVector& lists) {
     for (size_t i = 0; i < lists.size(); ++i) {
-      size += static_cast<int64_t>(lists.Get(i).size());
+      const DataList* list = lists.Get(i);
+      if (list) {
+        size += static_cast<int64_t>(list->size());
+      }
     }
   };
 

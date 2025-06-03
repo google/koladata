@@ -831,7 +831,9 @@ class DataBagImpl : public arolla::RefcountedBase {
   const std::shared_ptr<DataListVector>* GetConstListsOrNull(
       AllocationId alloc_id, size_t alloc_hash) const;
 
-  // Returns first present (non-empty) list or empty if nothing is present.
+  // Returns first present list (can be empty; empty is not same as UNSET).
+  // If the list is UNSET in this DataBag and in all fallbacks, then returns
+  // an empty list.
   const DataList& GetFirstPresentList(ObjectId list_id,
                                       FallbackSpan fallbacks) const;
 
@@ -839,7 +841,9 @@ class DataBagImpl : public arolla::RefcountedBase {
   static std::vector<ReadOnlyListGetter> CreateFallbackListGetters(
       FallbackSpan fallbacks);
 
-  // Returns first present (non-empty) list or empty if nothing is present.
+  // Returns first present list (can be empty; empty is not same as UNSET).
+  // If the list is UNSET in this DataBag and in all fallbacks, then returns
+  // an empty list.
   const DataList& GetFirstPresentList(
       ObjectId list_id, ReadOnlyListGetter& list_getter,
       absl::Span<ReadOnlyListGetter> fallback_list_getters) const;

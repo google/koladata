@@ -24,6 +24,7 @@
 #include <variant>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/expr/quote.h"
@@ -258,17 +259,15 @@ class DataListVector {
  public:
   explicit DataListVector(size_t size) : data_(size) {
     for (ListAndPtr& lp : data_) {
-      lp.ptr_ = &lp.list_;
+      lp.ptr = nullptr;
     }
   }
 
   explicit DataListVector(std::shared_ptr<const DataListVector> parent)
       : data_(parent->size()), parent_(std::move(parent)) {
     for (size_t i = 0; i < data_.size(); ++i) {
-      ListAndPtr& lp = data_[i];
-      const DataList& parent_list = parent_->Get(i);
-      // raw pointer is safe since `parent_` holds ownership of `parent_list`.
-      lp.ptr_ = parent_list.empty() ? &lp.list_ : &parent_list;
+      // raw pointer is safe since `parent_` holds ownership.
+      data_[i].ptr = parent_->Get(i);
     }
   }
 
@@ -279,29 +278,32 @@ class DataListVector {
 
   size_t size() const { return data_.size(); }
 
-  const DataList& Get(size_t index) const {
+  const DataList* /*absl_nullable*/ Get(size_t index) const {
     DCHECK_LT(index, size());
-    return *data_[index].ptr_;
+    return data_[index].ptr;
   }
 
   DataList& GetMutable(size_t index) {
     DCHECK_LT(index, size());
     ListAndPtr& lp = data_[index];
-    if (!lp.IsMutable()) {
-      lp.list_ = *lp.ptr_;
-      lp.ptr_ = &lp.list_;
+    if (lp.ptr == nullptr) {
+      lp.ptr = &lp.list;
+    } else if (!lp.IsMutable()) {
+      lp.list = *lp.ptr;
+      lp.ptr = &lp.list;
     }
-    return lp.list_;
+    return lp.list;
   }
 
  private:
   struct ListAndPtr {
     // ptr_ links either to list_ (mutable) or to a list owned by parent_
-    // (immutable since we are not allowed to change parent).
-    bool IsMutable() const { return ptr_ == &list_; }
+    // (immutable since we are not allowed to change parent), or to nullptr
+    // (unset).
+    bool IsMutable() const { return ptr == &list; }
 
-    DataList list_;
-    const DataList* ptr_;
+    DataList list;
+    const DataList* ptr;
   };
 
   std::vector<ListAndPtr> data_;
