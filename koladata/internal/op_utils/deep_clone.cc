@@ -155,51 +155,6 @@ class DeepCloneVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  DataItem GetValueFromTrackedAllocation(const DataItem& item) {
-    DCHECK(item.holds_value<ObjectId>());
-    auto item_it =
-        allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
-    if (item_it == allocation_tracker_.end()) {
-      return DataItem();
-    }
-    return DataItem(
-        item_it->second.ObjectByOffset(item.value<ObjectId>().Offset()));
-  }
-
-  absl::StatusOr<DataItem> GetValueImpl(const DataItem& item,
-                                        const DataItem& schema) {
-    if (!item.holds_value<ObjectId>()) {
-      return item;
-    }
-    if (item.is_schema() && !is_schema_slice_ && !item.is_implicit_schema()) {
-      // We keep explicit schemas as is, unless we `deep_clone` a schema slice.
-      // However, we keep implicit schemas in sync with parent objects.
-      return item;
-    }
-    if (item.value<ObjectId>().IsNoFollowSchema()) {
-      ASSIGN_OR_RETURN(
-          auto original_item_clone,
-          GetValueImpl(
-              DataItem(GetOriginalFromNoFollow(item.value<ObjectId>())),
-              schema));
-      return DataItem(
-          CreateNoFollowWithMainObject(original_item_clone.value<ObjectId>()));
-    }
-    DataItem new_item = GetValueFromTrackedAllocation(item);
-    if (new_item.has_value()) {
-      return std::move(new_item);
-    }
-    if (item.is_implicit_schema()) {
-      // No object with implicit schema in `item`'s AllocationId was cloned.
-      // Thus, we cannot determine new AllocationId for the implicit schemas
-      // and create an ExplicitSchemaAllocationId instead.
-      RETURN_IF_ERROR(CloneAsExplicitSchema(item));
-      return GetValueImpl(item, schema);
-    }
-    return absl::InvalidArgumentError(
-        absl::StrFormat("new allocation for object %v is not found", item));
-  }
-
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
                                     const DataItem& schema) override {
     if (!allocations_with_metadata_.empty()) {
@@ -279,6 +234,51 @@ class DeepCloneVisitor : AbstractVisitor {
   }
 
  private:
+  DataItem GetValueFromTrackedAllocation(const DataItem& item) {
+    DCHECK(item.holds_value<ObjectId>());
+    auto item_it =
+        allocation_tracker_.find(AllocationId(item.value<ObjectId>()));
+    if (item_it == allocation_tracker_.end()) {
+      return DataItem();
+    }
+    return DataItem(
+        item_it->second.ObjectByOffset(item.value<ObjectId>().Offset()));
+  }
+
+  absl::StatusOr<DataItem> GetValueImpl(const DataItem& item,
+                                        const DataItem& schema) {
+    if (!item.holds_value<ObjectId>()) {
+      return item;
+    }
+    if (item.is_schema() && !is_schema_slice_ && !item.is_implicit_schema()) {
+      // We keep explicit schemas as is, unless we `deep_clone` a schema slice.
+      // However, we keep implicit schemas in sync with parent objects.
+      return item;
+    }
+    if (item.value<ObjectId>().IsNoFollowSchema()) {
+      ASSIGN_OR_RETURN(
+          auto original_item_clone,
+          GetValueImpl(
+              DataItem(GetOriginalFromNoFollow(item.value<ObjectId>())),
+              schema));
+      return DataItem(
+          CreateNoFollowWithMainObject(original_item_clone.value<ObjectId>()));
+    }
+    DataItem new_item = GetValueFromTrackedAllocation(item);
+    if (new_item.has_value()) {
+      return std::move(new_item);
+    }
+    if (item.is_implicit_schema()) {
+      // No object with implicit schema in `item`'s AllocationId was cloned.
+      // Thus, we cannot determine new AllocationId for the implicit schemas
+      // and create an ExplicitSchemaAllocationId instead.
+      RETURN_IF_ERROR(CloneAsExplicitSchema(item));
+      return GetValueImpl(item, schema);
+    }
+    return absl::InvalidArgumentError(
+        absl::StrFormat("new allocation for object %v is not found", item));
+  }
+
   absl::Status PrevisitObject(const DataItem& item) {
     if (!item.holds_value<ObjectId>()) {
       return absl::OkStatus();
