@@ -95,8 +95,8 @@ class CoreHasAttrTest(parameterized.TestCase):
         arolla.testing.any_cause_message_regex(
             r"""cannot find a common schema
 
- the common schema\(s\) \$[0-9a-zA-Z]{22}: SCHEMA\(foo=STRING\)
- the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(foo=STRING\)""",
+ the common schema\(s\) \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)
+ the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)""",
         ),
     ) as cm:
       expr_eval.eval(kde.core.get_attr(object_2, 'b', db.new(foo='baz')))
@@ -113,7 +113,7 @@ class CoreHasAttrTest(parameterized.TestCase):
             r"""cannot find a common schema
 
  the common schema\(s\) INT32: INT32
- the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(foo=STRING\)""",
+ the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)""",
         ),
     ):
       expr_eval.eval(kde.core.get_attr(mixed_objects, 'a'))
@@ -123,7 +123,7 @@ class CoreHasAttrTest(parameterized.TestCase):
             r"""cannot find a common schema
 
  the common schema\(s\) INT32: INT32
- the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(foo=STRING\)""",
+ the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(foo=STRING\)""",
         ),
     ):
       expr_eval.eval(kde.core.maybe(mixed_objects, 'a'))

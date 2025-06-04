@@ -588,8 +588,8 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
         ValueError,
         re.escape(r"""the schema for attribute 'a' is incompatible.
 
-Expected schema for 'a': SCHEMA(b=INT32)
-Assigned schema for 'a': SCHEMA(b=STRING)"""),
+Expected schema for 'a': ENTITY(b=INT32)
+Assigned schema for 'a': ENTITY(b=STRING)"""),
     ):
       schema = db.uu_schema(a=db.uu_schema(b=schema_constants.INT32))
       _ = db.uu(a=bag().uu(b='dudulu'), schema=schema)
@@ -834,8 +834,8 @@ Assigned schema for 'a': SCHEMA(b=STRING)"""),
         arolla.testing.any_cause_message_regex(
             re.escape(r"""the schema for attribute 'a' is incompatible.
 
-Expected schema for 'a': SCHEMA(b=INT32)
-Assigned schema for 'a': SCHEMA(c=STRING)"""),
+Expected schema for 'a': ENTITY(b=INT32)
+Assigned schema for 'a': ENTITY(c=STRING)"""),
         ),
     ):
       _ = db.new(a=bag().new(c='dudulu'), schema=schema)
@@ -1594,10 +1594,10 @@ The cause is the values of attribute 'x' are different: 1 vs 2""",
         arolla.testing.any_cause_message_regex(
             r"""cannot merge DataBags due to an exception encountered when merging schemas.
 
-The conflicting schema in the first DataBag: SCHEMA\(a=SCHEMA\(x=INT32\)\)
-The conflicting schema in the second DataBag: SCHEMA\(a=SCHEMA\(c=INT32\)\)
+The conflicting schema in the first DataBag: ENTITY\(a=ENTITY\(x=INT32\)\)
+The conflicting schema in the second DataBag: ENTITY\(a=ENTITY\(c=INT32\)\)
 
-The cause is the schema for attribute 'a' is incompatible: SCHEMA\(x=INT32\) vs SCHEMA\(c=INT32\)""",
+The cause is the schema for attribute 'a' is incompatible: ENTITY\(x=INT32\) vs ENTITY\(c=INT32\)""",
         ),
     ):
       db1.merge_inplace(db2)

@@ -755,8 +755,8 @@ assigned schema: INT32"""),
         ValueError,
         re.escape(
             '''the schema is incompatible:
-expected schema: SCHEMA(x=INT32)
-assigned schema: SCHEMA(x=INT32)'''
+expected schema: ENTITY(x=INT32)
+assigned schema: ENTITY(x=INT32)'''
         ),
     ):
       fns.from_py(entity, schema=schema)

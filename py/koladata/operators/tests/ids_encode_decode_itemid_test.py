@@ -73,7 +73,7 @@ class IdsEncodeDecodeItemIdTest(parameterized.TestCase):
     ):
       kde.ids.decode_itemid(ds([1, 2, 3])).eval()
     with self.assertRaisesRegex(
-        ValueError, r'only STRING can be decoded, got SCHEMA\(a=INT32\)'
+        ValueError, r'only STRING can be decoded, got ENTITY\(a=INT32\)'
     ):
       kde.ids.decode_itemid(bag().new(a=ds([1, 2, 3]))).eval()
 

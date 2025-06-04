@@ -841,7 +841,7 @@ TEST(DataSliceTest, VerifyIsListSchema) {
                                  {test::Schema(schema::kInt32)})
               ->VerifyIsListSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("expected List schema, got SCHEMA(a=INT32)")));
+                       HasSubstr("expected List schema, got ENTITY(a=INT32)")));
 
   EXPECT_THAT(test::DataItem(42).VerifyIsListSchema(),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -5390,7 +5390,7 @@ TEST(DataSliceTest, GetItem_DataItem) {
       auto entity, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
   EXPECT_THAT(entity.GetItem(test::DataItem("a")),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "dict(s) expected, got SCHEMA(a=INT32)"));
+                       "dict(s) expected, got ENTITY(a=INT32)"));
 
   EXPECT_THAT(
       test::DataItem(internal::DataItem(), schema::kNone, db).GetItem(indices),
@@ -5418,7 +5418,7 @@ TEST(DataSliceTest, GetItem_DataSlice) {
       EntityCreator::FromAttrs(db, {"a"}, {test::DataSlice<int>({1, 2, 3})}));
   EXPECT_THAT(entities.GetItem(test::DataItem("a")),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "dict(s) expected, got SCHEMA(a=INT32)"));
+                       "dict(s) expected, got ENTITY(a=INT32)"));
 
   EXPECT_THAT(test::EmptyDataSlice(shape, schema::kNone, db).GetItem(indices),
               IsOkAndHolds(IsEquivalentTo(

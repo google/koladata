@@ -266,8 +266,8 @@ class BoxingTest(parameterized.TestCase):
         ValueError,
         r"""cannot find a common schema
 
- the common schema\(s\) \$[0-9a-zA-Z]{22}: SCHEMA\(x=INT32\)
- the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
+ the common schema\(s\) \$[0-9a-zA-Z]{22}: ENTITY\(x=INT32\)
+ the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(\)""",
     ):
       ds([db.new(x=1), db.new()])
 
@@ -276,7 +276,7 @@ class BoxingTest(parameterized.TestCase):
         r"""cannot find a common schema
 
  the common schema\(s\) OBJECT: OBJECT
- the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
+ the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(\)""",
     ):
       ds([1, 'a', db.new()])
 
@@ -285,7 +285,7 @@ class BoxingTest(parameterized.TestCase):
         r"""cannot find a common schema
 
  the common schema\(s\) OBJECT: OBJECT
- the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
+ the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(\)""",
     ):
       ds([db.new(), 1, 'a'])
 
@@ -293,8 +293,8 @@ class BoxingTest(parameterized.TestCase):
         ValueError,
         r"""cannot find a common schema
 
- the common schema\(s\) \$[0-9a-zA-Z]{22}: SCHEMA\(\)
- the first conflicting schema \$[0-9a-zA-Z]{22}: SCHEMA\(\)""",
+ the common schema\(s\) \$[0-9a-zA-Z]{22}: ENTITY\(\)
+ the first conflicting schema \$[0-9a-zA-Z]{22}: ENTITY\(\)""",
     ):
       ds([db.new(), 1, 'a', db.new()])
 
@@ -355,7 +355,7 @@ class BoxingTest(parameterized.TestCase):
 
 The conflicting entities in the both DataBags: Entity\(\):\$[0-9a-zA-Z]{22}
 
-The cause is the values of attribute '__schema__' are different: SCHEMA\(\) with ItemId \$[0-9a-zA-Z]{22} vs SCHEMA\(\) with ItemId \$[0-9a-zA-Z]{22}"""
+The cause is the values of attribute '__schema__' are different: ENTITY\(\) with ItemId \$[0-9a-zA-Z]{22} vs ENTITY\(\) with ItemId \$[0-9a-zA-Z]{22}"""
         ),
     ):
       # Try to embed a schema that conflicts with the existing one.

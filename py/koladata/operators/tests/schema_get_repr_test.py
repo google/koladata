@@ -60,12 +60,12 @@ class SchemaGetNameTest(parameterized.TestCase):
       (
           'schema',
           bag().new_schema(a=schema_constants.INT32, b=schema_constants.STRING),
-          r'SCHEMA\(a=INT32, b=STRING\) with id \$',
+          r'ENTITY\(a=INT32, b=STRING\) with id \$',
       ),
       (
           'uu_schema',
           bag().uu_schema(a=schema_constants.INT32, b=schema_constants.STRING),
-          r'SCHEMA\(a=INT32, b=STRING\) with id #',
+          r'ENTITY\(a=INT32, b=STRING\) with id #',
       ),
   )
   def test_eval_like(self, x, expected_regex):

@@ -719,9 +719,9 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
     if (!schema_name.empty()) {
       absl::StrAppend(&prefix, schema_name, "(");
     } else if (obj.IsExplicitSchema()) {
-      absl::StrAppend(&prefix, "SCHEMA(");
+      absl::StrAppend(&prefix, "ENTITY(");
     } else if (obj.IsImplicitSchema()) {
-      absl::StrAppend(&prefix, "IMPLICIT_SCHEMA(");
+      absl::StrAppend(&prefix, "IMPLICIT_ENTITY(");
     }
     size_t initial_html_char_count = wrapping.html_char_count;
     ASSIGN_OR_RETURN(

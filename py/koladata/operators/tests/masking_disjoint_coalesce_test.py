@@ -157,7 +157,7 @@ class LogicalDisjointCoalesceTest(parameterized.TestCase):
             r"""kd.masking.disjoint_coalesce: arguments do not have a common schema.
 
 Schema for `x`: INT32
-Schema for `y`: SCHEMA()"""
+Schema for `y`: ENTITY()"""
         ),
     ):
       expr_eval.eval(kde.masking.disjoint_coalesce(x, y))

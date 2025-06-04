@@ -356,8 +356,8 @@ Assigned schema for keys: STRING"""),
         ValueError,
         r"""the schema for keys is incompatible.
 
-Expected schema for keys: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
-Assigned schema for keys: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
+Expected schema for keys: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for keys: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
       db = fns.bag()
       db.dict(
@@ -370,8 +370,8 @@ Assigned schema for keys: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
         ValueError,
         r"""the schema for values is incompatible.
 
-Expected schema for values: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
-Assigned schema for values: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
+Expected schema for values: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for values: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
       db = fns.bag()
       db.dict(

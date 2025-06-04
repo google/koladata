@@ -433,7 +433,7 @@ class DataSliceTest(parameterized.TestCase):
     Entity:\$[0-9a-zA-Z]{22},
     Entity:\$[0-9a-zA-Z]{22},
   \],
-\], schema: SCHEMA\(x=INT32\), shape: JaggedShape\(4, 5\), bag_id: \$[0-9a-f]{4}\)''',
+\], schema: ENTITY\(x=INT32\), shape: JaggedShape\(4, 5\), bag_id: \$[0-9a-f]{4}\)''',
     )
     o = db.obj(x=ds([[x for x in range(5)] for y in range(4)]))
     self.assertRegex(
@@ -652,7 +652,7 @@ class DataSliceTest(parameterized.TestCase):
         repr(x),
         (
             'DataSlice([Entity(x=1), Entity(x=2), Entity(x=3)], schema:'
-            ' SCHEMA(x=INT32), ndims: 1, size: 3)'
+            ' ENTITY(x=INT32), ndims: 1, size: 3)'
         ),
     )
     self.assertEqual(
@@ -689,7 +689,7 @@ class DataSliceTest(parameterized.TestCase):
     x = db.new(x=ds([[x for x in range(5)] for y in range(4)]))
     self.assertEqual(
         repr(x),
-        'DataSlice(attrs: [x], schema: SCHEMA(x=INT32), ndims: 2, size: 20)',
+        'DataSlice(attrs: [x], schema: ENTITY(x=INT32), ndims: 2, size: 20)',
     )
 
     y = db.obj(x=ds([[x for x in range(5)] for y in range(4)]))
@@ -1384,8 +1384,8 @@ class DataSliceTest(parameterized.TestCase):
         re.escape(
             """the schema for attribute 'x' is incompatible.
 
-Expected schema for 'x': SCHEMA(c=INT32)
-Assigned schema for 'x': SCHEMA(b=STRING)
+Expected schema for 'x': ENTITY(c=INT32)
+Assigned schema for 'x': ENTITY(b=STRING)
 
 To fix this, explicitly override schema of 'x' in the original schema by passing overwrite_schema=True."""
         ),
@@ -2364,11 +2364,11 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     with self.assertRaisesRegex(ValueError, 'object with unsupported type'):
       non_dicts['a'] = ValueError
     with self.assertRaisesRegex(
-        ValueError, re.escape('dict(s) expected, got SCHEMA(x=INT32)')
+        ValueError, re.escape('dict(s) expected, got ENTITY(x=INT32)')
     ):
       non_dicts['a'] = 'b'
     with self.assertRaisesRegex(
-        ValueError, re.escape('dict(s) expected, got SCHEMA(x=INT32)')
+        ValueError, re.escape('dict(s) expected, got ENTITY(x=INT32)')
     ):
       _ = non_dicts['a']
     with self.assertRaisesRegex(
@@ -2388,7 +2388,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         ValueError,
         re.escape(
             'dict(s) expected, got an OBJECT DataSlice with the first non-dict'
-            ' schema at ds.flatten().S[0] IMPLICIT_SCHEMA(x=INT32)'
+            ' schema at ds.flatten().S[0] IMPLICIT_ENTITY(x=INT32)'
         ),
     ):
       s['a'] = 1
@@ -2430,8 +2430,8 @@ Assigned schema for values: STRING"""),
         ValueError,
         re.escape(r"""the schema for keys is incompatible.
 
-Expected schema for keys: SCHEMA(x=INT32, y=INT32)
-Assigned schema for keys: SCHEMA(x=FLOAT32, y=INT32)"""),
+Expected schema for keys: ENTITY(x=INT32, y=INT32)
+Assigned schema for keys: ENTITY(x=FLOAT32, y=INT32)"""),
     ):
       _ = d2[db.new(x=ds(3.0), y=ds(5))]
 
@@ -2439,8 +2439,8 @@ Assigned schema for keys: SCHEMA(x=FLOAT32, y=INT32)"""),
         ValueError,
         re.escape(r"""the schema for keys is incompatible.
 
-Expected schema for keys: SCHEMA(x=INT32, y=INT32)
-Assigned schema for keys: SCHEMA(x=STRING)"""),
+Expected schema for keys: ENTITY(x=INT32, y=INT32)
+Assigned schema for keys: ENTITY(x=STRING)"""),
     ):
       _ = d2[db2.new(x=ds('a'))]
 
@@ -2450,8 +2450,8 @@ Assigned schema for keys: SCHEMA(x=STRING)"""),
         ValueError,
         re.escape(r"""the schema for values is incompatible.
 
-Expected schema for values: SCHEMA(x=STRING)
-Assigned schema for values: SCHEMA(y=FLOAT32)"""),
+Expected schema for values: ENTITY(x=STRING)
+Assigned schema for values: ENTITY(y=FLOAT32)"""),
     ):
       d3[e] = db.new(y=1.0)
 
@@ -2873,8 +2873,8 @@ Assigned schema for values: SCHEMA(y=FLOAT32)"""),
         ValueError,
         re.escape(r"""the schema for list items is incompatible.
 
-Expected schema for list items: SCHEMA(x=INT32)
-Assigned schema for list items: SCHEMA(y=INT32)"""),
+Expected schema for list items: ENTITY(x=INT32)
+Assigned schema for list items: ENTITY(y=INT32)"""),
     ):
       l[0] = db.new(y=1)
 
@@ -2882,8 +2882,8 @@ Assigned schema for list items: SCHEMA(y=INT32)"""),
         ValueError,
         re.escape(r"""the schema for list items is incompatible.
 
-Expected schema for list items: SCHEMA(x=INT32)
-Assigned schema for list items: SCHEMA(y=INT32)"""),
+Expected schema for list items: ENTITY(x=INT32)
+Assigned schema for list items: ENTITY(y=INT32)"""),
     ):
       l[0] = bag().new(y=1)
 
@@ -2892,8 +2892,8 @@ Assigned schema for list items: SCHEMA(y=INT32)"""),
         ValueError,
         re.escape(r"""the schema for list items is incompatible.
 
-Expected schema for list items: SCHEMA(x=INT32)
-Assigned schema for list items: SCHEMA(a=STRING)"""),
+Expected schema for list items: ENTITY(x=INT32)
+Assigned schema for list items: ENTITY(a=STRING)"""),
     ):
       l2[0] = bag().new(a='x')
 
@@ -2902,7 +2902,7 @@ Assigned schema for list items: SCHEMA(a=STRING)"""),
     l = db.new(x=1).fork_bag()
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('list(s) expected, got SCHEMA(x=INT32)'),
+        re.escape('list(s) expected, got ENTITY(x=INT32)'),
     ):
       l.append(1)
 
@@ -2913,7 +2913,7 @@ Assigned schema for list items: SCHEMA(a=STRING)"""),
         ValueError,
         re.escape(
             'list(s) expected, got an OBJECT DataSlice with the first non-list'
-            ' schema at ds.flatten().S[0] IMPLICIT_SCHEMA(x=INT32)'
+            ' schema at ds.flatten().S[0] IMPLICIT_ENTITY(x=INT32)'
         ),
     ):
       s.append(1)

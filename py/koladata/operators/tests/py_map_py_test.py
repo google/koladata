@@ -268,8 +268,8 @@ class PyMapPyTest(parameterized.TestCase):
         ValueError,
         re.escape(
             '''the schema is incompatible:
-expected schema: SCHEMA(u=INT32, v=INT32)
-assigned schema: SCHEMA(u=INT64)'''
+expected schema: ENTITY(u=INT32, v=INT32)
+assigned schema: ENTITY(u=INT64)'''
         ),
     ):
       _ = expr_eval.eval(

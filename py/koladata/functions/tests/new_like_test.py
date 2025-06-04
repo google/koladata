@@ -353,7 +353,7 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
     self.assertRegex(
         str(cm.exception),
         re.escape(
-            'cannot create Item(s) with the provided schema: SCHEMA(a=INT32)'
+            'cannot create Item(s) with the provided schema: ENTITY(a=INT32)'
         ),
     )
 

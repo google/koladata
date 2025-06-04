@@ -550,7 +550,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ExplicitSchema) {
   ASSERT_OK_AND_ASSIGN(DataSlice empty_entity,
                        EntityCreator::FromAttrs(bag, {}, {}));
   EXPECT_THAT(DataSliceToStr(empty_entity.GetSchema()),
-              IsOkAndHolds("SCHEMA()"));
+              IsOkAndHolds("ENTITY()"));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -560,18 +560,18 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ExplicitSchema) {
       EntityCreator::FromAttrs(bag, {"a", "b"}, {value_1, value_2}));
   const auto& schema = entity.GetSchema();
   EXPECT_THAT(DataSliceToStr(schema),
-              IsOkAndHolds("SCHEMA(a=INT32, b=STRING)"));
+              IsOkAndHolds("ENTITY(a=INT32, b=STRING)"));
 
   // Low level api.
   EXPECT_THAT(
       DataItemToStr(schema.item(), schema.GetSchemaImpl(), schema.GetBag()),
-      IsOkAndHolds("SCHEMA(a=INT32, b=STRING)"));
+      IsOkAndHolds("ENTITY(a=INT32, b=STRING)"));
   EXPECT_THAT(DataItemToStr(schema.item(), schema.GetSchemaImpl(),
                             /*db=*/nullptr),
               IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
   EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
                             schema.GetBag()),
-              IsOkAndHolds("SCHEMA(a=INT32, b=STRING)"));
+              IsOkAndHolds("ENTITY(a=INT32, b=STRING)"));
 }
 
 TEST(DataSliceReprTest,
@@ -588,18 +588,18 @@ TEST(DataSliceReprTest,
                        EntityCreator::FromAttrs(bag, {"a"}, {dict}));
   const auto& schema = entity.GetSchema();
   EXPECT_THAT(DataSliceToStr(schema),
-              IsOkAndHolds("SCHEMA(a=DICT{INT32, STRING})"));
+              IsOkAndHolds("ENTITY(a=DICT{INT32, STRING})"));
 
   // Low level api.
   EXPECT_THAT(
       DataItemToStr(schema.item(), schema.GetSchemaImpl(), schema.GetBag()),
-      IsOkAndHolds("SCHEMA(a=DICT{INT32, STRING})"));
+      IsOkAndHolds("ENTITY(a=DICT{INT32, STRING})"));
   EXPECT_THAT(DataItemToStr(schema.item(), schema.GetSchemaImpl(),
                             /*db=*/nullptr),
               IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
   EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
                             schema.GetBag()),
-              IsOkAndHolds("SCHEMA(a=DICT{INT32, STRING})"));
+              IsOkAndHolds("ENTITY(a=DICT{INT32, STRING})"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_ImplicitSchema) {
@@ -608,7 +608,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ImplicitSchema) {
   ASSERT_OK_AND_ASSIGN(DataSlice empty_obj,
                        ObjectCreator::FromAttrs(bag, {}, {}));
   ASSERT_OK_AND_ASSIGN(auto schema, empty_obj.GetAttr(schema::kSchemaAttr));
-  EXPECT_THAT(DataSliceToStr(schema), IsOkAndHolds("IMPLICIT_SCHEMA()"));
+  EXPECT_THAT(DataSliceToStr(schema), IsOkAndHolds("IMPLICIT_ENTITY()"));
 
   DataSlice value_1 = test::DataItem(1);
   DataSlice value_2 = test::DataItem("b");
@@ -619,18 +619,18 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_ImplicitSchema) {
   EXPECT_THAT(DataSliceToStr(obj.GetSchema()), IsOkAndHolds("OBJECT"));
   ASSERT_OK_AND_ASSIGN(schema, obj.GetAttr(schema::kSchemaAttr));
   EXPECT_THAT(DataSliceToStr(schema),
-              IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=STRING)"));
+              IsOkAndHolds("IMPLICIT_ENTITY(a=INT32, b=STRING)"));
 
   // Low level api.
   EXPECT_THAT(
       DataItemToStr(schema.item(), schema.GetSchemaImpl(), schema.GetBag()),
-      IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=STRING)"));
+      IsOkAndHolds("IMPLICIT_ENTITY(a=INT32, b=STRING)"));
   EXPECT_THAT(DataItemToStr(schema.item(), schema.GetSchemaImpl(),
                             /*db=*/nullptr),
               IsOkAndHolds(MatchesRegex(R"regexp(\#[0-9a-zA-Z]{22})regexp")));
   EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
                             schema.GetBag()),
-              IsOkAndHolds("IMPLICIT_SCHEMA(a=INT32, b=STRING)"));
+              IsOkAndHolds("IMPLICIT_ENTITY(a=INT32, b=STRING)"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaName) {
@@ -663,7 +663,7 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaMetadata) {
   ASSERT_OK(metadata.SetAttr("foo", test::DataItem(1)));
   EXPECT_THAT(DataSliceToStr(schema),
               IsOkAndHolds(
-                  "SCHEMA(a=INT64, b=STRING, __schema_metadata__=Obj(foo=1))"));
+                  "ENTITY(a=INT64, b=STRING, __schema_metadata__=Obj(foo=1))"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_NoBag) {
@@ -712,7 +712,7 @@ TEST(DataSliceReprTest, TestDataItemStringReprWithFallbackDB) {
 
   EXPECT_THAT(DataSliceToStr(ds), IsOkAndHolds("Entity(a=1, b=2)"));
   EXPECT_THAT(DataSliceToStr(ds.GetSchema()),
-              IsOkAndHolds(("SCHEMA(a=OBJECT, b=OBJECT)")));
+              IsOkAndHolds(("ENTITY(a=OBJECT, b=OBJECT)")));
 
   // Low level api.
   EXPECT_THAT(DataItemToStr(ds.item(), ds.GetSchemaImpl(), ds.GetBag()),
@@ -1187,7 +1187,7 @@ TEST(DataSliceReprTest, CycleInEntity) {
   EXPECT_THAT(
       DataSliceToStr(schema),
       IsOkAndHolds(MatchesRegex(
-          R"regex(SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=SCHEMA\(a=\$[0-9a-zA-Z]{22}\)\)\)\)\))regex")));
+          R"regex(ENTITY\(a=ENTITY\(a=ENTITY\(a=ENTITY\(a=ENTITY\(a=\$[0-9a-zA-Z]{22}\)\)\)\)\))regex")));
 
   ASSERT_OK(entity.SetAttr("a", entity));
   EXPECT_THAT(
@@ -1209,8 +1209,8 @@ TEST(DataSliceReprTest, CycleInObject) {
   EXPECT_THAT(
       DataSliceToStr(schema),
       IsOkAndHolds(MatchesRegex(
-          R"regex(IMPLICIT_SCHEMA\(
-  a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=IMPLICIT_SCHEMA\(a=#[0-9a-zA-Z]{22}\)\)\)\),
+          R"regex(IMPLICIT_ENTITY\(
+  a=IMPLICIT_ENTITY\(a=IMPLICIT_ENTITY\(a=IMPLICIT_ENTITY\(a=IMPLICIT_ENTITY\(a=#[0-9a-zA-Z]{22}\)\)\)\),
 \))regex")));
 
   ASSERT_OK(obj.SetAttr("a", obj));
@@ -1766,7 +1766,7 @@ TEST(DataSliceReprTest, DataSliceRepr_ShowAttribute) {
                                        .show_databag_id = false,
                                        .show_shape = false}),
               Eq("DataSlice([Entity(b=Entity(a=1)), Entity(b=Entity(a=2))], "
-                 "schema: SCHEMA(b=SCHEMA(a=INT32)), ndims: 1, size: 2)"));
+                 "schema: ENTITY(b=ENTITY(a=INT32)), ndims: 1, size: 2)"));
 }
 
 TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
@@ -1782,7 +1782,7 @@ TEST(DataSliceReprTest, DataSliceRepr_OnlyShowAttrNamesOnLargeEntityDataSlice) {
                                        .show_attributes = true,
                                        .show_databag_id = false,
                                        .show_shape = false}),
-                Eq("DataSlice(attrs: [a, b], schema: SCHEMA(a=INT32, b=INT32), "
+                Eq("DataSlice(attrs: [a, b], schema: ENTITY(a=INT32, b=INT32), "
                    "ndims: 1, size: 10)"));
   }
   {

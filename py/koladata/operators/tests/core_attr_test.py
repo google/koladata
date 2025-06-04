@@ -126,8 +126,8 @@ class CoreAttrTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "Expected schema for 'x': SCHEMA(y=INT32)\nAssigned schema for 'x':"
-            ' SCHEMA(z=INT32)'
+            "Expected schema for 'x': ENTITY(y=INT32)\nAssigned schema for 'x':"
+            ' ENTITY(z=INT32)'
         ),
     ):
       _ = kde.core.attr(o, 'x', bag().new(z=3)).eval()

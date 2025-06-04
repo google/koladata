@@ -213,7 +213,7 @@ class MathAggInverseCdfTest(parameterized.TestCase):
         ValueError,
         re.escape(
             'kd.math.agg_inverse_cdf: argument `x` must be a slice of numeric'
-            ' values, got a slice of SCHEMA(x=INT32)'
+            ' values, got a slice of ENTITY(x=INT32)'
         ),
     ):
       expr_eval.eval(kde.math.agg_inverse_cdf(x, ds(0.1)))

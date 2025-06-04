@@ -69,7 +69,7 @@ TEST(ReprUtilTest, TestAssembleError_NoCommonSchema) {
           MatchesRegex(
               R"regex((.|\n)*cannot find a common schema(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*the common schema\(s\) \$[0-9a-zA-Z]{22}: SCHEMA\(a=INT32, b=STRING\)(.|\n)*)regex"),
+              R"regex((.|\n)*the common schema\(s\) \$[0-9a-zA-Z]{22}: ENTITY\(a=INT32, b=STRING\)(.|\n)*)regex"),
           MatchesRegex(
               R"regex((.|\n)*the first conflicting schema INT32: INT32(.|\n)*)regex")));
 }
@@ -100,9 +100,9 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema) {
           MatchesRegex(
               R"regex((.|\n)*the schema for attribute 'x' is incompatible(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*Expected schema for 'x': SCHEMA\(y=INT32\)(.|\n)*)regex"),
+              R"regex((.|\n)*Expected schema for 'x': ENTITY\(y=INT32\)(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*Assigned schema for 'x': SCHEMA\(y=INT64\)(.|\n)*)regex")));
+              R"regex((.|\n)*Assigned schema for 'x': ENTITY\(y=INT64\)(.|\n)*)regex")));
 }
 
 TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
@@ -131,9 +131,9 @@ TEST(ReprUtilTest, TestAssembleError_IncompatibleSchema_SameContent_DiffId) {
           MatchesRegex(
               R"regex((.|\n)*the schema for attribute 'x' is incompatible(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*Expected schema for 'x': SCHEMA\(y=INT32\) with ItemId \$[0-9a-zA-Z]{22}(.|\n)*)regex"),
+              R"regex((.|\n)*Expected schema for 'x': ENTITY\(y=INT32\) with ItemId \$[0-9a-zA-Z]{22}(.|\n)*)regex"),
           MatchesRegex(
-              R"regex((.|\n)*Assigned schema for 'x': SCHEMA\(y=INT32\) with ItemId \$[0-9a-zA-Z]{22}(.|\n)*)regex")));
+              R"regex((.|\n)*Assigned schema for 'x': ENTITY\(y=INT32\) with ItemId \$[0-9a-zA-Z]{22}(.|\n)*)regex")));
 }
 
 TEST(ReprUtilTest, TestKodaErrorCausedByNoCommonSchemaErrorMissingContextData) {

@@ -148,7 +148,7 @@ class MathAggMaxTest(parameterized.TestCase):
         ValueError,
         re.escape(
             'kd.math.agg_max: argument `x` must be a slice of numeric values,'
-            ' got a slice of SCHEMA(x=INT32)'
+            ' got a slice of ENTITY(x=INT32)'
         ),
     ):
       expr_eval.eval(kde.math.agg_max(x))

@@ -275,7 +275,7 @@ class StringsSubstrTest(parameterized.TestCase):
         ValueError,
         re.escape(
             'kd.strings.substr: argument `x` must be a slice of either STRING'
-            ' or BYTES, got a slice of SCHEMA(x=INT32)'
+            ' or BYTES, got a slice of ENTITY(x=INT32)'
         ),
     ):
       expr_eval.eval(kde.strings.substr(x))

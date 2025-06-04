@@ -996,7 +996,7 @@ TEST(ProtoDescriptorFromSchemaTest, ImplicitSchema) {
       test::EntitySchema({"my_implicit"}, {implicit_schema_slice}, db);
   EXPECT_THAT(
       DataSliceRepr(schema),
-      MatchesRegex("DataItem\\(SCHEMA\\(my_implicit=IMPLICIT_SCHEMA\\(foo="
+      MatchesRegex("DataItem\\(ENTITY\\(my_implicit=IMPLICIT_ENTITY\\(foo="
                    "STRING\\)\\), schema: SCHEMA, bag_id: \\$[a-f0-9]+\\)"));
   EXPECT_THAT(CallProtoDescriptorFromSchema(schema),
               IsOkAndHolds(EqualsProto(R"pb(
@@ -1137,7 +1137,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithEntityKeysIgnored) {
   EXPECT_THAT(warnings,
               ElementsAre(MatchesRegex(
                   "unsupported DICT schema type: "
-                  "DataItem\\(DICT\\{SCHEMA\\(key=STRING\\), INT32\\}, schema: "
+                  "DataItem\\(DICT\\{ENTITY\\(key=STRING\\), INT32\\}, schema: "
                   "SCHEMA, bag_id: \\$[a-f0-9]+\\). Supported DICT schemas "
                   "must have keys that are integral types or strings \\(floats,"
                   " bytes and non-primitive keys are not supported\\)")));
@@ -1279,17 +1279,17 @@ TEST(ProtoDescriptorFromSchemaTest,
       ElementsAre(
           MatchesRegex(
               "ignored attribute name 123_for_me encountered in schema "
-              "DataItem\\(SCHEMA\\(123_for_me=STRING, _foo_bar=INT32, "
+              "DataItem\\(ENTITY\\(123_for_me=STRING, _foo_bar=INT32, "
               "ignoreme\\?=INT64\\), schema: SCHEMA, bag_id: \\$[a-f0-9]+\\) "
               "because it is not a valid proto field name"),
           MatchesRegex(
               "ignored attribute name _foo_bar encountered in schema "
-              "DataItem\\(SCHEMA\\(123_for_me=STRING, _foo_bar=INT32, "
+              "DataItem\\(ENTITY\\(123_for_me=STRING, _foo_bar=INT32, "
               "ignoreme\\?=INT64\\), schema: SCHEMA, bag_id: \\$[a-f0-9]+\\) "
               "because it is not a valid proto field name"),
           MatchesRegex(
               "ignored attribute name ignoreme\\? encountered in schema "
-              "DataItem\\(SCHEMA\\(123_for_me=STRING, _foo_bar=INT32, "
+              "DataItem\\(ENTITY\\(123_for_me=STRING, _foo_bar=INT32, "
               "ignoreme\\?=INT64\\), schema: SCHEMA, bag_id: \\$[a-f0-9]+\\) "
               "because it is not a valid proto field name")));
 }

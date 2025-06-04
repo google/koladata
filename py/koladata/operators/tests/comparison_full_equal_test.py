@@ -113,7 +113,7 @@ class ComparisonFullEqualTest(parameterized.TestCase):
         re.escape(
             r'''kd.comparison.equal: arguments do not have a common schema.
 
-Schema for `x`: SCHEMA()
+Schema for `x`: ENTITY()
 Schema for `y`: INT32'''
         ),
     ):
@@ -125,8 +125,8 @@ Schema for `y`: INT32'''
         re.escape(
             r'''kd.comparison.equal: arguments do not have a common schema.
 
-Schema for `x`: SCHEMA(x=INT32)
-Schema for `y`: SCHEMA()'''
+Schema for `x`: ENTITY(x=INT32)
+Schema for `y`: ENTITY()'''
         ),
     ):
       expr_eval.eval(kde.comparison.full_equal(db.new(x=1), db.new()))
@@ -136,7 +136,7 @@ Schema for `y`: SCHEMA()'''
         re.escape(
             r'''kd.comparison.equal: arguments do not have a common schema.
 
-Schema for `x`: SCHEMA(x=INT32)
+Schema for `x`: ENTITY(x=INT32)
 Schema for `y`: OBJECT containing non-primitive values'''
         ),
     ):
@@ -147,7 +147,7 @@ Schema for `y`: OBJECT containing non-primitive values'''
         re.escape(
             r'''kd.comparison.equal: arguments do not have a common schema.
 
-Schema for `x`: SCHEMA(x=INT32)
+Schema for `x`: ENTITY(x=INT32)
 Schema for `y`: ITEMID'''
         ),
     ):

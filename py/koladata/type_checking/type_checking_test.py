@@ -89,8 +89,8 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         r'kd.check_inputs: type mismatch for parameter `x`. Expected type'
-        r' SCHEMA\(age=INT32, name=STRING\) with id .*, got'
-        r' SCHEMA\(age=INT32, name=STRING\) with id .*',
+        r' ENTITY\(age=INT32, name=STRING\) with id .*, got'
+        r' ENTITY\(age=INT32, name=STRING\) with id .*',
     ):
       _ = f(kd.new(age=32, name='Alice'))
 
@@ -107,8 +107,8 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         r'kd.check_output: type mismatch for output. Expected type'
-        r' SCHEMA\(age=INT32, name=STRING\) with id .*, got'
-        r' SCHEMA\(age=INT32, name=STRING\) with id .*',
+        r' ENTITY\(age=INT32, name=STRING\) with id .*, got'
+        r' ENTITY\(age=INT32, name=STRING\) with id .*',
     ):
       _ = f(kd.new(age=32, name='Alice'))
 
@@ -127,7 +127,7 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         r'kd.check_inputs: type mismatch for parameter `x`. Expected type'
-        r' Person, got SCHEMA\(age=INT32, first_name=STRING\) with id .*',
+        r' Person, got ENTITY\(age=INT32, first_name=STRING\) with id .*',
     ):
       _ = f(kd.uu(age=32, first_name='Alice'))
 
@@ -146,7 +146,7 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         r'kd.check_output: type mismatch for output. Expected type'
-        r' Person, got SCHEMA\(age=INT32, first_name=STRING\) with id .*',
+        r' Person, got ENTITY\(age=INT32, first_name=STRING\) with id .*',
     ):
       _ = f(kd.uu(age=32, first_name='Alice'))
 
@@ -164,8 +164,8 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         r'kd.check_inputs: type mismatch for parameter `x`. Expected type'
-        r' SCHEMA\(age=INT32, name=STRING\) with id .*, got'
-        r' SCHEMA\(age=FLOAT32, name=STRING\) with id .*',
+        r' ENTITY\(age=INT32, name=STRING\) with id .*, got'
+        r' ENTITY\(age=FLOAT32, name=STRING\) with id .*',
     ):
       _ = f(kd.uu(age=32.0, name='Alice'))
 
@@ -183,8 +183,8 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesRegex(
         TypeError,
         r'kd.check_output: type mismatch for output. Expected type'
-        r' SCHEMA\(age=INT32, name=STRING\) with id .*, got'
-        r' SCHEMA\(age=FLOAT32, name=STRING\) with id .*',
+        r' ENTITY\(age=INT32, name=STRING\) with id .*, got'
+        r' ENTITY\(age=FLOAT32, name=STRING\) with id .*',
     ):
       _ = f(kd.uu(age=32.0, name='Alice'))
 

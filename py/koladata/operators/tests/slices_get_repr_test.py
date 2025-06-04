@@ -53,7 +53,7 @@ class SlicesGetReprTest(parameterized.TestCase):
       (
           'entity_schema',
           db.new_schema(a=schema_constants.INT32, b=schema_constants.STRING),
-          ds('SCHEMA(a=INT32, b=STRING)'),
+          ds('ENTITY(a=INT32, b=STRING)'),
       ),
       ('list', db.list([1, 2, 3]), ds('List[1, 2, 3]')),
       (

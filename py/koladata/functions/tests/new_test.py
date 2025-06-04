@@ -352,7 +352,7 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
     self.assertRegex(
         str(cm.exception),
         re.escape(
-            'cannot create Item(s) with the provided schema: SCHEMA(a=INT32)'
+            'cannot create Item(s) with the provided schema: ENTITY(a=INT32)'
         ),
     )
 
@@ -363,8 +363,8 @@ To fix this, explicitly override schema of 'a' in the original schema by passing
         arolla.testing.any_cause_message_regex(
             r"""the schema for attribute 'b' is incompatible.
 
-Expected schema for 'b': SCHEMA\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
-Assigned schema for 'b': SCHEMA\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Expected schema for 'b': ENTITY\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for 'b': ENTITY\(a=INT32\) with ItemId \$[0-9a-zA-Z]{22}
 
 To fix this, explicitly override schema of 'b' in the original schema by passing overwrite_schema=True.""",
         ),
@@ -374,7 +374,7 @@ To fix this, explicitly override schema of 'b' in the original schema by passing
         str(cm.exception),
         re.escape(
             'cannot create Item(s) with the provided schema:'
-            ' SCHEMA(b=SCHEMA(a=INT32))'
+            ' ENTITY(b=ENTITY(a=INT32))'
         ),
     )
 

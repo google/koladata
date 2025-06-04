@@ -97,7 +97,7 @@ class CoreMetadataTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         r'failed to create metadata; cannot create for a DataSlice with'
-        r' SCHEMA\(x=INT32\) schema',
+        r' ENTITY\(x=INT32\) schema',
     ):
       db = fns.bag()
       schema = db.new_schema(x=schema_constants.INT32)

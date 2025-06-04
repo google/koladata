@@ -8710,7 +8710,7 @@ Alias for [kd.bags.enriched](#kd.bags.enriched) operator.
 
 Alias for [kd.comparison.equal](#kd.comparison.equal) operator.
 
-### `kd.eval(expr, self_input=DataItem(Entity(self_not_specified=present), schema: SCHEMA(self_not_specified=MASK)), /, **input_values)` {#kd.eval}
+### `kd.eval(expr, self_input=DataItem(Entity(self_not_specified=present), schema: ENTITY(self_not_specified=MASK)), /, **input_values)` {#kd.eval}
 
 ``` {.no-copy}
 Returns the expr evaluated on the given `input_values`.

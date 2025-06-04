@@ -190,7 +190,7 @@ TEST(SchemaUtilsTest, DescribeSliceSchema) {
   ASSERT_OK(db->GetMutableImpl()->get().SetSchemaAttr(
       internal::DataItem(entity_schema), "x",
       internal::DataItem(schema::kInt32)));
-  EXPECT_EQ(DescribeSliceSchema(entity), "SCHEMA(x=INT32)");
+  EXPECT_EQ(DescribeSliceSchema(entity), "ENTITY(x=INT32)");
   // Without a DataBag we can only print an object id.
   EXPECT_THAT(DescribeSliceSchema(entity.WithBag(nullptr)),
               MatchesRegex(R"(\$\w+)"));
@@ -260,7 +260,7 @@ TEST(SchemaUtilsTest, ExpectNumeric) {
   EXPECT_THAT(ExpectNumeric("foo", entity),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "argument `foo` must be a slice of numeric values, got "
-                       "a slice of SCHEMA()"));
+                       "a slice of ENTITY()"));
   EXPECT_THAT(
       ExpectNumeric("foo", test::MixedDataSlice<arolla::Text, std::string>(
                                {"foo", std::nullopt, std::nullopt},
@@ -309,7 +309,7 @@ TEST(SchemaUtilsTest, ExpectInteger) {
   EXPECT_THAT(ExpectInteger("foo", entity),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "argument `foo` must be a slice of integer values, got "
-                       "a slice of SCHEMA()"));
+                       "a slice of ENTITY()"));
   EXPECT_THAT(
       ExpectInteger("foo", test::MixedDataSlice<arolla::Text, std::string>(
                                {"foo", std::nullopt, std::nullopt},
@@ -598,7 +598,7 @@ TEST(SchemaUtilsTest, ExpectConsistentStringOrBytes) {
       ExpectConsistentStringOrBytes({"foo"}, entity),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "argument `foo` must be a slice of either STRING or BYTES, "
-               "got a slice of SCHEMA()"));
+               "got a slice of ENTITY()"));
 
   // Mixing bytes and string arguments.
 
@@ -647,15 +647,15 @@ TEST(SchemaUtilsTest, ExpectHaveCommonSchema) {
   EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, entity, integer_object),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "arguments do not have a common schema.\n\n"
-                       "Schema for `foo`: SCHEMA()\n"
+                       "Schema for `foo`: ENTITY()\n"
                        "Schema for `bar`: OBJECT containing INT32 values"));
   EXPECT_THAT(ExpectHaveCommonSchema({"foo", "bar"}, entity, another_entity),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        MatchesRegex(
                            R"regex(arguments do not have a common schema.
 
-Schema for `foo`: SCHEMA\(\) with id Schema:\$.*
-Schema for `bar`: SCHEMA\(\) with id Schema:\$.*)regex")));
+Schema for `foo`: ENTITY\(\) with id Schema:\$.*
+Schema for `bar`: ENTITY\(\) with id Schema:\$.*)regex")));
 }
 
 TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
@@ -704,16 +704,16 @@ TEST(SchemaUtilsTest, ExpectHaveCommonPrimitiveSchema) {
           MatchesRegex(
               R"regex(arguments do not contain values castable to a common primitive schema, as they don't have a common schema\.
 
-Schema for `foo`: SCHEMA\(\) with id Schema:\$.*
-Schema for `bar`: SCHEMA\(\) with id Schema:\$.*)regex")));
+Schema for `foo`: ENTITY\(\) with id Schema:\$.*
+Schema for `bar`: ENTITY\(\) with id Schema:\$.*)regex")));
   EXPECT_THAT(
       ExpectHaveCommonPrimitiveSchema({"foo", "bar"}, entity, entity),
       StatusIs(absl::StatusCode::kInvalidArgument,
         MatchesRegex(
-            R"regex(arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema SCHEMA\(\)\.
+            R"regex(arguments do not contain values castable to a common primitive schema, but have the common non-primitive schema ENTITY\(\)\.
 
-Schema for `foo`: SCHEMA\(\) with id Schema:\$.*
-Schema for `bar`: SCHEMA\(\) with id Schema:\$.*)regex")));
+Schema for `foo`: ENTITY\(\) with id Schema:\$.*
+Schema for `bar`: ENTITY\(\) with id Schema:\$.*)regex")));
 }
 
 }  // namespace

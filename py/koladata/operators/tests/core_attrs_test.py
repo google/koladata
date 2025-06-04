@@ -163,8 +163,8 @@ class CoreAttrsTest(absltest.TestCase):
         re.escape(
             """kd.core.attrs: the schema for attribute 'x' is incompatible.
 
-Expected schema for 'x': SCHEMA(y=INT32)
-Assigned schema for 'x': SCHEMA(z=INT32)
+Expected schema for 'x': ENTITY(y=INT32)
+Assigned schema for 'x': ENTITY(z=INT32)
 
 To fix this, explicitly override schema of 'x' in the original schema by passing overwrite_schema=True."""
         ),

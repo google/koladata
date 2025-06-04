@@ -265,7 +265,7 @@ Schema for `y`: STRING"""
         ValueError,
         re.escape(
             'kd.math.add: argument `x` must be a slice of consistent numeric,'
-            ' bytes or string values, got a slice of SCHEMA(x=INT32)'
+            ' bytes or string values, got a slice of ENTITY(x=INT32)'
         ),
     ):
       expr_eval.eval(kde.math.add(x, x))

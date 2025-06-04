@@ -212,8 +212,8 @@ Assigned schema for list items: INT32""",
         ValueError,
         r"""the schema for list items is incompatible.
 
-Expected schema for list items: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
-Assigned schema for list items: SCHEMA\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
+Expected schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}
+Assigned schema for list items: ENTITY\(x=INT32\) with ItemId \$[0-9a-zA-Z]{22}""",
     ):
       db = fns.bag()
       db.list(

@@ -223,7 +223,7 @@ class SlicesOrdinalRankTest(parameterized.TestCase):
         ValueError,
         re.escape(
             'kd.slices.dense_rank: argument `x` must be a slice of orderable'
-            ' values, got a slice of SCHEMA(x=INT32)'
+            ' values, got a slice of ENTITY(x=INT32)'
         ),
     ):
       expr_eval.eval(kde.slices.dense_rank(x))
