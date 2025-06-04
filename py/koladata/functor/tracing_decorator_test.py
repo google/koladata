@@ -149,8 +149,8 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertCountEqual(
         fn.get_attr_names(intersection=True),
         [
-            'aux_2',
-            'aux_3',
+            '_aux_2',
+            '_aux_3',
             'returns',
             '<lambda>',
             '<lambda>_0',
@@ -211,8 +211,8 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertCountEqual(
         fn.get_attr_names(intersection=True),
         [
-            'aux_1',
-            'aux_2',
+            '_aux_1',
+            '_aux_2',
             'returns',
             'f',
             'f_result',
@@ -306,7 +306,7 @@ class TracingDecoratorTest(parameterized.TestCase):
     )
     testing.assert_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.f_result),
-        V.f(I.x, return_type_as=empty_bag, stack_trace_frame=V.aux_1),
+        V.f(I.x, return_type_as=empty_bag, stack_trace_frame=V._aux_1),
     )
     testing.assert_equal(
         introspection.unpack_expr(fn.f.returns),

@@ -111,7 +111,7 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn(x=1), ds(11))
     # This should create just one auxiliary variable, for "base".
     self.assertCountEqual(
-        fns.dir(fn), ['__signature__', 'returns', 'aux_0', 'foo', 'bar']
+        fns.dir(fn), ['__signature__', 'returns', '_aux_0', 'foo', 'bar']
     )
 
   def test_dont_duplicate_computations_across_existing_variables(self):
@@ -143,14 +143,16 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn(), ds([2, 4, 6]))
     # Make sure that only one auxiliary variable for the literal is created.
     self.assertCountEqual(
-        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar', 'aux_0']
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar', '_aux_0']
     )
-    testing.assert_equal(fn.aux_0[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, 2, 3]))
     testing.assert_equal(
-        introspection.unpack_expr(fn.foo), kde.explode(V.aux_0, ndim=1)
+        introspection.unpack_expr(fn.foo),
+        kde.explode(V._aux_0, ndim=1),
     )
     testing.assert_equal(
-        introspection.unpack_expr(fn.bar), kde.explode(V.aux_0, ndim=1)
+        introspection.unpack_expr(fn.bar),
+        kde.explode(V._aux_0, ndim=1),
     )
 
   def test_shared_literal(self):
@@ -162,14 +164,16 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn(), ds([5, 7, 9]))
     # Make sure that only one auxiliary variable for the literal is created.
     self.assertCountEqual(
-        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar', 'aux_0']
+        fns.dir(fn), ['__signature__', 'returns', 'foo', 'bar', '_aux_0']
     )
-    testing.assert_equal(fn.aux_0[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, 2, 3]))
     testing.assert_equal(
-        introspection.unpack_expr(fn.foo), kde.explode(V.aux_0, ndim=1) + 1
+        introspection.unpack_expr(fn.foo),
+        kde.explode(V._aux_0, ndim=1) + 1,
     )
     testing.assert_equal(
-        introspection.unpack_expr(fn.bar), kde.explode(V.aux_0, ndim=1) + 2
+        introspection.unpack_expr(fn.bar),
+        kde.explode(V._aux_0, ndim=1) + 2,
     )
 
   def test_shared_literal_used_in_shared_node(self):
@@ -181,25 +185,25 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn(), ds([5, 8, 11]))
     self.assertCountEqual(
         fns.dir(fn),
-        ['__signature__', 'returns', 'foo', 'bar', 'aux_0', 'aux_1'],
+        ['__signature__', 'returns', 'foo', 'bar', '_aux_0', '_aux_1'],
     )
-    testing.assert_equal(fn.aux_0[:].no_bag(), ds([1, 2, 3]))
+    testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, 2, 3]))
     testing.assert_equal(
-        introspection.unpack_expr(fn.aux_1), kde.explode(V.aux_0, ndim=1) + 1
+        introspection.unpack_expr(fn.get_attr('_aux_1')),
+        kde.explode(V._aux_0, ndim=1) + 1,
     )
+    testing.assert_equal(introspection.unpack_expr(fn.foo), V._aux_1)
     testing.assert_equal(
-        introspection.unpack_expr(fn.foo), V.aux_1
-    )
-    testing.assert_equal(
-        introspection.unpack_expr(fn.bar), kde.explode(V.aux_0, ndim=1)
+        introspection.unpack_expr(fn.bar),
+        kde.explode(V._aux_0, ndim=1),
     )
 
   def test_extracts_single_object_without_bag(self):
     obj = kd.obj(bar=1).no_bag()
     foo = py_boxing.literal(obj)
     fn = functor_factories.expr_fn(foo.bar, auto_variables=True)
-    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns', 'aux_0'])
-    testing.assert_equal(fn.aux_0.no_bag(), obj)
+    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns', '_aux_0'])
+    testing.assert_equal(fn.get_attr('_aux_0').no_bag(), obj)
 
   def test_two_uses_of_input(self):
     fn = functor_factories.expr_fn(
@@ -254,8 +258,8 @@ class AutoVariablesTest(absltest.TestCase):
             'bar',
             'baz',
             'qux',
-            'aux_0',
-            'aux_1',
+            '_aux_0',
+            '_aux_1',
         ],
     )
 
@@ -270,20 +274,24 @@ class AutoVariablesTest(absltest.TestCase):
     fn0 = _py_functors_py_ext.auto_variables(fn)
     testing.assert_equal(fn0(x=1), ds(11))
     self.assertCountEqual(
-        fns.dir(fn0), ['__signature__', 'returns', 'aux_0', 'foo']
+        fns.dir(fn0), ['__signature__', 'returns', '_aux_0', 'foo']
     )
     # `base` is extracted because used in both `foo` and `returns`
-    testing.assert_equal(introspection.unpack_expr(fn0.aux_0), base)
-    testing.assert_equal(introspection.unpack_expr(fn0.foo), V.aux_0 + 1)
+    testing.assert_equal(
+        introspection.unpack_expr(fn0.get_attr('_aux_0')), base
+    )
+    testing.assert_equal(introspection.unpack_expr(fn0.foo), V._aux_0 + 1)
 
     # Doesn't change anything because `base` is already extracted
     fn1 = _py_functors_py_ext.auto_variables(fn0, [base.fingerprint])
     testing.assert_equal(fn1(x=1), ds(11))
     self.assertCountEqual(
-        fns.dir(fn1), ['__signature__', 'returns', 'aux_0', 'foo']
+        fns.dir(fn1), ['__signature__', 'returns', '_aux_0', 'foo']
     )
-    testing.assert_equal(introspection.unpack_expr(fn1.aux_0), base)
-    testing.assert_equal(introspection.unpack_expr(fn1.foo), V.aux_0 + 1)
+    testing.assert_equal(
+        introspection.unpack_expr(fn1.get_attr('_aux_0')), base
+    )
+    testing.assert_equal(introspection.unpack_expr(fn1.foo), V._aux_0 + 1)
 
     # Extract also `base+2`
     fn2 = _py_functors_py_ext.auto_variables(
@@ -292,11 +300,16 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn2(x=1), ds(11))
     self.assertCountEqual(
         fns.dir(fn2),
-        ['__signature__', 'returns', 'aux_0', 'aux_1', 'foo'],
+        ['__signature__', 'returns', '_aux_0', '_aux_1', 'foo'],
     )
-    testing.assert_equal(introspection.unpack_expr(fn2.aux_0), base)
-    testing.assert_equal(introspection.unpack_expr(fn2.aux_1), V.aux_0 + 2)
-    testing.assert_equal(introspection.unpack_expr(fn2.foo), V.aux_0 + 1)
+    testing.assert_equal(
+        introspection.unpack_expr(fn2.get_attr('_aux_0')), base
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn2.get_attr('_aux_1')),
+        V._aux_0 + 2,
+    )
+    testing.assert_equal(introspection.unpack_expr(fn2.foo), V._aux_0 + 1)
 
     # Extract input and literal
     literal_1 = user_facing_kd.expr.literal(ds(1))
@@ -306,14 +319,20 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(fn3(x=1), ds(11))
     self.assertCountEqual(
         fns.dir(fn3),
-        ['__signature__', 'returns', 'aux_0', 'aux_1', 'aux_2', 'foo'],
+        ['__signature__', 'returns', '_aux_0', '_aux_1', '_aux_2', 'foo'],
     )
-    testing.assert_equal(introspection.unpack_expr(fn3.aux_0), I.x)
-    testing.assert_equal(introspection.unpack_expr(fn3.aux_1), literal_1)
+    testing.assert_equal(introspection.unpack_expr(fn3.get_attr('_aux_0')), I.x)
     testing.assert_equal(
-        introspection.unpack_expr(fn3.aux_2), (V.aux_0 + V.aux_1) * 2
+        introspection.unpack_expr(fn3.get_attr('_aux_1')), literal_1
     )
-    testing.assert_equal(introspection.unpack_expr(fn3.foo), V.aux_2 + V.aux_1)
+    testing.assert_equal(
+        introspection.unpack_expr(fn3.get_attr('_aux_2')),
+        (V._aux_0 + V._aux_1) * 2,
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn3.foo),
+        V._aux_2 + V._aux_1,
+    )
 
 
 if __name__ == '__main__':

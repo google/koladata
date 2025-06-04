@@ -59,6 +59,8 @@ using arolla::expr::ExprNodePtr;
 using arolla::expr::ExprOperatorPtr;
 using arolla::expr::ExprQuote;
 
+absl::string_view kAuxVariablePrefix = "_aux";
+
 absl::StatusOr<bool> IsSliceOrItemOperator(const ExprNodePtr& node) {
   if (!node->is_op()) {
     return false;
@@ -189,7 +191,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
   absl::flat_hash_set<arolla::Fingerprint> aux_variable_fingerprints;
 
   absl::flat_hash_map<std::string, int> prefix_to_counter;
-  auto create_unique_variable = [&](const std::string& prefix) {
+  auto create_unique_variable = [&](absl::string_view prefix) {
     int& counter = prefix_to_counter[prefix];
     while (true) {
       std::string var_name = absl::StrCat(prefix, "_", counter++);
@@ -202,7 +204,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
   auto extract_slice = [&](DataSlice slice,
                            bool is_shared_node) -> absl::StatusOr<ExprNodePtr> {
     // We need to implode the DataSlice into lists if it is not a DataItem.
-    std::string var_name = create_unique_variable("aux");
+    std::string var_name = create_unique_variable(kAuxVariablePrefix);
     ASSIGN_OR_RETURN(auto var, var_container.CreateInput(var_name));
     int ndim = slice.GetShape().rank();
     if (ndim > 0) {
@@ -303,7 +305,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
       vars.emplace(name, DataSlice::CreateFromScalar(ExprQuote{child}));
       return var_container.CreateInput(name);
     }
-    std::string var_name = create_unique_variable("aux");
+    std::string var_name = create_unique_variable(kAuxVariablePrefix);
     vars[var_name] = DataSlice::CreateFromScalar(ExprQuote{node});
     return var_container.CreateInput(var_name);
   };

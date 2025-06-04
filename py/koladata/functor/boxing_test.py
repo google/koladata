@@ -73,16 +73,16 @@ class BoxingTest(absltest.TestCase):
         fn.get_attr_names(intersection=True),
         [
             'returns',
-            'aux_0',
-            'aux_1',
+            '_aux_0',
+            '_aux_1',
             '__signature__',
             '__stack_trace_frame__',
         ],
     )
     # We do not want to enforce which of 0/1 corresponds to which of yes/no.
     self.assertCountEqual(
-        set(fn.aux_0.get_attr_names(intersection=True))
-        | set(fn.aux_1.get_attr_names(intersection=True)),
+        set(fn.get_attr('_aux_0').get_attr_names(intersection=True))
+        | set(fn.get_attr('_aux_1').get_attr_names(intersection=True)),
         [
             'returns',
             'yes',
@@ -90,7 +90,7 @@ class BoxingTest(absltest.TestCase):
             'no',
             'no_result',
             '__signature__',
-            'aux_1',
+            '_aux_1',
             '__stack_trace_frame__',
         ],
     )

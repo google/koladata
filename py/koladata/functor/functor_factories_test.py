@@ -121,15 +121,15 @@ class FunctorFactoriesTest(absltest.TestCase):
     x = ds([1, -2, 3, -4])
     fn = functor_factories.expr_fn(I.x * x)
     testing.assert_equal(fn(x=x), ds([1, 4, 9, 16]))
-    self.assertNotIn('aux_0', kdi.dir(fn))
+    self.assertNotIn('_aux_0', kdi.dir(fn))
 
     fn = functor_factories.expr_fn(I.x * x, auto_variables=True)
     testing.assert_equal(fn(x=x), ds([1, 4, 9, 16]))
-    testing.assert_equal(fn.aux_0[:].no_bag(), ds([1, -2, 3, -4]))
+    testing.assert_equal(fn.get_attr('_aux_0')[:].no_bag(), ds([1, -2, 3, -4]))
 
     fn2 = functor_factories.expr_fn(kde.call(fn, x=I.y), auto_variables=True)
     testing.assert_equal(fn2(y=x), ds([1, 4, 9, 16]))
-    self.assertEqual(fn2.aux_0, fn)
+    self.assertEqual(fn2.get_attr('_aux_0'), fn)
 
     fn3 = functor_factories.expr_fn(
         kde.with_name(fn, 'foo')(x=I.y), auto_variables=True
@@ -154,14 +154,14 @@ class FunctorFactoriesTest(absltest.TestCase):
     )
     testing.assert_equal(fn5().no_bag(), ds([[1, 2], [3]]))
     testing.assert_equal(fn5.foo[:][:].no_bag(), ds([[1, 2], [3]]))
-    self.assertNotIn('aux_0', kdi.dir(fn5))
+    self.assertNotIn('_aux_0', kdi.dir(fn5))
 
     fn6 = functor_factories.expr_fn(
         kde.slice([1, 2, 3]).with_name('foo'), auto_variables=True
     )
     testing.assert_equal(fn6().no_bag(), ds([1, 2, 3]))
     testing.assert_equal(fn6.foo[:].no_bag(), ds([1, 2, 3]))
-    self.assertNotIn('aux_0', kdi.dir(fn6))
+    self.assertNotIn('_aux_0', kdi.dir(fn6))
 
   def test_trace_py_fn(self):
 

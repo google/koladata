@@ -125,7 +125,7 @@ class FunctorExprFnTest(absltest.TestCase):
     expected = expected * 2 + expected * expected
     testing.assert_equal(fn(x=3), ds(expected))
     self.assertCountEqual(
-        fns.dir(fn), ['a', 'b', 'aux_0', '__signature__', 'returns']
+        fns.dir(fn), ['a', 'b', '_aux_0', '__signature__', 'returns']
     )
 
   def test_auto_variables_no_extra_variables(self):
