@@ -15,19 +15,12 @@
 #ifndef KOLADATA_OPERATORS_PRINT_H_
 #define KOLADATA_OPERATORS_PRINT_H_
 
-#include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
-#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 
 namespace koladata::ops {
-
-// Sets the callback to be used for printing. This overrides the default
-// printing to std::cout.
-void SetPrintCallback(
-    absl::AnyInvocable<void(absl::string_view) const> print_callback);
 
 class WithPrintOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(

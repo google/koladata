@@ -1013,3 +1013,28 @@ cc_test(
         "@com_google_googletest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "print",
+    srcs = ["print.cc"],
+    hdrs = ["print.h"],
+    deps = [
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_test(
+    name = "print_test",
+    srcs = ["print_test.cc"],
+    deps = [
+        ":print",
+        "//koladata:data_slice_qtype",
+        "@com_google_absl//absl/cleanup",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

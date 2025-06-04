@@ -16,20 +16,15 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "absl/base/no_destructor.h"
-#include "absl/base/thread_annotations.h"
-#include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
-#include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
@@ -40,41 +35,13 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
+#include "koladata/internal/op_utils/print.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::ops {
 namespace {
-
-// A singleton class to print strings. By default it prints to stdout, but
-// it is possible to override the callback.
-class Printer {
- public:
-  static Printer& Get() {
-    static absl::NoDestructor<Printer> registry;
-    return *registry;
-  }
-
-  void SetPrintCallback(
-      absl::AnyInvocable<void(absl::string_view) const> callback) {
-    absl::MutexLock lock(&mutex_);
-    print_callback_ = std::move(callback);
-  }
-
-  void Print(absl::string_view message) const {
-    absl::MutexLock lock(&mutex_);
-    print_callback_(message);
-  }
-
- private:
-  absl::AnyInvocable<void(absl::string_view) const> print_callback_
-      ABSL_GUARDED_BY(mutex_) = [](absl::string_view message) {
-        std::cout << message;
-        std::cout.flush();
-      };
-  mutable absl::Mutex mutex_;
-};
 
 class WithPrintOperator final : public arolla::QExprOperator {
  public:
@@ -107,7 +74,7 @@ class WithPrintOperator final : public arolla::QExprOperator {
                                                       {.strip_quotes = true}));
             absl::StrAppend(&message, str);
           }
-          Printer::Get().Print(message);
+          ::koladata::internal::GetSharedPrinter().Print(message);
           input_slot.CopyTo(frame, output_slot, frame);
           return absl::OkStatus();
         });
@@ -115,11 +82,6 @@ class WithPrintOperator final : public arolla::QExprOperator {
 };
 
 }  // namespace
-
-void SetPrintCallback(
-    absl::AnyInvocable<void(absl::string_view) const> print_callback) {
-  Printer::Get().SetPrintCallback(std::move(print_callback));
-}
 
 absl::StatusOr<arolla::OperatorPtr> WithPrintOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,

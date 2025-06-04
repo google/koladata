@@ -15,7 +15,7 @@
 #include <Python.h>
 
 #include "absl/strings/string_view.h"
-#include "koladata/operators/print.h"
+#include "koladata/internal/op_utils/print.h"
 #include "py/arolla/py_utils/py_utils.h"
 
 namespace koladata::python {
@@ -24,14 +24,16 @@ namespace {
 constexpr const char* kThisModuleName = "koladata.base.init";
 
 void SetPrintCallback() {
-  koladata::ops::SetPrintCallback([](absl::string_view message) {
-    arolla::python::AcquirePyGIL gil_guard;
-    PyObject* str = PyUnicode_FromStringAndSize(message.data(), message.size());
-    if (str == nullptr) {
-      return;
-    }
-    PySys_FormatStdout("%U", str);
-  });
+  ::koladata::internal::GetSharedPrinter().SetPrintCallback(
+      [](absl::string_view message) {
+        arolla::python::AcquirePyGIL gil_guard;
+        PyObject* str =
+            PyUnicode_FromStringAndSize(message.data(), message.size());
+        if (str == nullptr) {
+          return;
+        }
+        PySys_FormatStdout("%U", str);
+      });
 }
 
 struct PyModuleDef init = {

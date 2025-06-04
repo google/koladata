@@ -28,7 +28,7 @@ koladata_py_extension(
     name = "init",
     srcs = ["init.cc"],
     deps = [
-        "//koladata/operators:lib",
+        "//koladata/internal/op_utils:print",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/util",
