@@ -29,6 +29,13 @@ class ExprFnOperatorFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const override;
 };
 
+// koda_internal.functor.pack_as_literal.
+class PackAsLiteralOperatorFamily final : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const override;
+};
+
 }  // namespace koladata::functor
 
 #endif  // KOLADATA_OPERATORS_EXPR_FN_OPERATOR_H_

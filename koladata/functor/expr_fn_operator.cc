@@ -22,13 +22,16 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/expr/quote.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/expr/expr_operators.h"
 #include "koladata/functor/auto_variables.h"
 #include "koladata/functor/functor.h"
 #include "koladata/internal/op_utils/qexpr.h"
@@ -114,6 +117,45 @@ absl::StatusOr<arolla::OperatorPtr> ExprFnOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[4]));
   return arolla::EnsureOutputQTypeMatches(
       std::make_shared<ExprFnOperator>(input_types), input_types, output_type);
+}
+
+namespace {
+
+class PackAsLiteralOperator : public arolla::QExprOperator {
+ public:
+  explicit PackAsLiteralOperator(arolla::QTypePtr input_type)
+      : QExprOperator({input_type}, arolla::GetQType<DataSlice>()) {}
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator(
+        "koda_internal.functor.pack_as_literal",
+        [input_slot = input_slots[0],
+         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          auto literal = expr::MakeLiteral(
+              arolla::TypedValue::FromSlot(input_slot, frame));
+          auto quote = arolla::expr::ExprQuote(std::move(literal));
+          frame.Set(output_slot, DataSlice::CreateFromScalar(std::move(quote)));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+// koda_internal.functor.pack_as_literal.
+absl::StatusOr<arolla::OperatorPtr> PackAsLiteralOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 1) {
+    return absl::InvalidArgumentError("requires exactly 1 argument");
+  }
+  return arolla::EnsureOutputQTypeMatches(
+      std::make_shared<PackAsLiteralOperator>(input_types[0]), input_types,
+      output_type);
 }
 
 }  // namespace koladata::functor

@@ -46,6 +46,8 @@ OPERATOR_FAMILY("kd.functor.expr_fn", std::make_unique<ExprFnOperatorFamily>());
 OPERATOR("kd.functor.has_fn", HasFn);
 OPERATOR("kd.functor.is_fn", IsFn);
 OPERATOR_FAMILY("kd.functor.map", std::make_unique<MapOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.functor.pack_as_literal",
+                std::make_unique<PackAsLiteralOperatorFamily>());
 // go/keep-sorted end
 
 }  // namespace

@@ -16,10 +16,15 @@
 
 from arolla import arolla
 from google.protobuf import text_format
+from koladata.base import py_functors_base_py_ext
+from koladata.expr import input_container
+from koladata.expr import introspection
 from koladata.expr import py_expr_eval_py_ext
 from koladata.operators import assertion
 from koladata.operators import bootstrap
+from koladata.operators import core
 from koladata.operators import functor
+from koladata.operators import koda_internal_functor
 from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import proto as proto_ops
@@ -33,6 +38,7 @@ from koladata.types import literal_operator
 from koladata.types import py_boxing
 from koladata.types import qtypes
 from koladata.types import schema_constants
+from koladata.types import signature_utils
 
 from koladata.functor.parallel import execution_config_pb2
 
@@ -1553,6 +1559,72 @@ def _parallel_stream_make_unordered(executor, items, value_type_as):
   return _parallel_stream_interleave(executor, item_streams, value_type_as)
 
 
+def _create_as_parallel_wrapping_fn():
+  """Creates a functor wrapping the argument in as_parallel before forwarding."""
+  kind_enum = signature_utils.ParameterKind
+  V = input_container.InputContainer('V')  # pylint: disable=invalid-name
+  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+  return py_functors_base_py_ext.create_functor(
+      introspection.pack_expr(
+          V.fn(as_parallel(I.x), return_type_as=V.return_type_as)
+      ),
+      signature_utils.signature([
+          signature_utils.parameter('x', kind_enum.POSITIONAL_ONLY),
+      ]),
+  )
+
+
+_AS_PARALLEL_WRAPPING_FN = _create_as_parallel_wrapping_fn()
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._internal_parallel_stream_flat_map_chain',
+)
+def _internal_parallel_stream_flat_map_chain(context, fn, parallel_args):
+  """The parallel version of iterables.flat_map_chain."""
+  stream = parallel_args[0]
+  value_type_as = parallel_args[1]
+  executor = get_executor_from_context(context)
+  stream_type_as = _single_element_stream_from_parallel(value_type_as, executor)
+  transformed_fn = transform(context, fn)
+  wrapped_fn = core.clone(
+      _AS_PARALLEL_WRAPPING_FN,
+      fn=transformed_fn,
+      return_type_as=koda_internal_functor.pack_as_literal(stream_type_as),
+  )
+  return stream_chain_from_stream(
+      stream_map(
+          executor,
+          stream,
+          wrapped_fn,
+          value_type_as=stream_type_as,
+      )
+  )
+
+
+# qtype constraints for everything except context are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_flat_map_chain',
+    qtype_constraints=[
+        qtype_utils.expect_execution_context(P.context),
+    ],
+)
+def _parallel_stream_flat_map_chain(context, stream, fn, value_type_as):
+  """The parallel version of iterables.flat_map_chain."""
+  return unwrap_future_to_parallel(
+      async_eval(
+          get_executor_from_context(context),
+          _internal_parallel_stream_flat_map_chain,
+          context,
+          fn,
+          (stream, value_type_as),
+          optools.unified_non_deterministic_arg(),
+      )
+  )
+
+
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "core.make_tuple"
@@ -1664,6 +1736,14 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "koda_internal.parallel._parallel_stream_interleave"
     argument_transformation {
       arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.functor.flat_map_chain"
+    to_op: "koda_internal.parallel._parallel_stream_flat_map_chain"
+    argument_transformation {
+      arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
     }
   }

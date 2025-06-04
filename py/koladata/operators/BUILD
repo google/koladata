@@ -855,7 +855,9 @@ py_library(
     deps = [
         ":assertion",
         ":bootstrap",
+        ":core",
         ":functor",
+        ":koda_internal_functor",
         ":masking",
         ":optools",
         ":proto",
@@ -868,14 +870,28 @@ py_library(
         "//koladata/functor/parallel:init_expr_operators",
         "//koladata/functor/parallel:operators",
         "//py:python_path",
+        "//py/koladata/base:py_functors_base_py_ext",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:introspection",
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:literal_operator",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
+        "//py/koladata/types:signature_utils",
         "@com_google_arolla//py/arolla",
         "@com_google_protobuf//:protobuf_python",
+    ],
+)
+
+py_library(
+    name = "koda_internal_functor",
+    srcs = ["koda_internal_functor.py"],
+    deps = [
+        ":optools",
+        "//py:python_path",
+        "//py/koladata/types:qtypes",
     ],
 )
 
