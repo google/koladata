@@ -81,7 +81,9 @@ class FunctorCallTest(absltest.TestCase):
         ]),
     )
     kd.testing.assert_equal(call.call_multithreaded(fn, 57), ds(57))
-    with self.assertRaisesRegex(TypeError, 'positional.*keyword'):
+    with self.assertRaisesRegex(
+        TypeError, 'positional.*keyword|positional-only argument'
+    ):
       _ = call.call_multithreaded(fn, x=57)
 
   def test_keyword_only(self):
