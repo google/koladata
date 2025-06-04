@@ -1314,6 +1314,28 @@ def stream_from_future(future):
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.future_from_single_value_stream',
+    qtype_constraints=[
+        qtype_utils.expect_stream(P.stream),
+    ],
+    qtype_inference_expr=get_future_qtype(M.qtype.get_value_qtype(P.stream)),
+)
+def future_from_single_value_stream(stream):
+  """Creates a future from the given stream.
+
+  The stream must have exactly one value, otherwise an error is raised.
+
+  Args:
+    stream: The input stream.
+
+  Returns:
+    A future with the single value from the stream.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 # qtype constraints for everything except executor are omitted in favor of
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
@@ -1673,6 +1695,76 @@ def _parallel_stream_flat_map_interleaved(context, stream, fn, value_type_as):
   )
 
 
+def _create_second_argument_as_parallel_wrapping_fn():
+  """Creates a functor wrapping second argument in as_parallel before forwarding."""
+  kind_enum = signature_utils.ParameterKind
+  V = input_container.InputContainer('V')  # pylint: disable=invalid-name
+  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+  return py_functors_base_py_ext.create_functor(
+      introspection.pack_expr(
+          V.fn(I.x, as_parallel(I.y), return_type_as=V.return_type_as)
+      ),
+      signature_utils.signature([
+          signature_utils.parameter('x', kind_enum.POSITIONAL_ONLY),
+          signature_utils.parameter('y', kind_enum.POSITIONAL_ONLY),
+      ]),
+  )
+
+
+_SECOND_ARGUMENT_AS_PARALLEL_WRAPPING_FN = (
+    _create_second_argument_as_parallel_wrapping_fn()
+)
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._internal_parallel_stream_reduce',
+)
+def _internal_parallel_stream_reduce(context, fn, parallel_args):
+  """Implementation helper for _parallel_stream_reduce."""
+  items = parallel_args[0]
+  initial_value = parallel_args[1]
+  executor = get_executor_from_context(context)
+  transformed_fn = transform(context, fn)
+  wrapped_fn = core.clone(
+      _SECOND_ARGUMENT_AS_PARALLEL_WRAPPING_FN,
+      fn=transformed_fn,
+      return_type_as=koda_internal_functor.pack_as_literal(initial_value),
+  )
+  return unwrap_future_to_parallel(
+      future_from_single_value_stream(
+          stream_reduce(
+              executor,
+              wrapped_fn,
+              items,
+              initial_value,
+          )
+      )
+  )
+
+
+# qtype constraints for everything except context are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_reduce',
+    qtype_constraints=[
+        qtype_utils.expect_execution_context(P.context),
+    ],
+)
+def _parallel_stream_reduce(context, fn, items, initial_value):
+  """The parallel version of functor.reduce."""
+  return unwrap_future_to_parallel(
+      async_eval(
+          get_executor_from_context(context),
+          _internal_parallel_stream_reduce,
+          context,
+          fn,
+          (items, initial_value),
+          optools.unified_non_deterministic_arg(),
+      )
+  )
+
+
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "core.make_tuple"
@@ -1803,6 +1895,14 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
       arguments: ORIGINAL_ARGUMENTS
     }
   }
+  operator_replacements {
+    from_op: "kd.functor.reduce"
+    to_op: "koda_internal.parallel._parallel_stream_reduce"
+    argument_transformation {
+      arguments: EXECUTION_CONTEXT
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
 """
 
 _DEFAULT_EXECUTION_CONFIG = py_expr_eval_py_ext.eval_expr(
@@ -1836,28 +1936,6 @@ def get_default_execution_context():
   return create_execution_context(
       get_default_executor(), get_default_execution_config()
   )
-
-
-@optools.add_to_registry()
-@optools.as_backend_operator(
-    'koda_internal.parallel.future_from_single_value_stream',
-    qtype_constraints=[
-        qtype_utils.expect_stream(P.stream),
-    ],
-    qtype_inference_expr=get_future_qtype(M.qtype.get_value_qtype(P.stream)),
-)
-def future_from_single_value_stream(stream):
-  """Creates a future from the given stream.
-
-  The stream must have exactly one value, otherwise an error is raised.
-
-  Args:
-    stream: The input stream.
-
-  Returns:
-    A future with the single value from the stream.
-  """
-  raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()

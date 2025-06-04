@@ -791,6 +791,50 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     self._wait_until_n_items(res, 4)
     self.assertIsNone(reader.read_available())
 
+  def test_reduce(self):
+    def f(x, y):
+      return x * 10 + y
+
+    def g(x, initial):
+      return user_facing_kd.functor.reduce(f, x, initial)
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), g
+    )
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            x=koda_internal_parallel.stream_make(1, 2, 3, 4),
+            initial=koda_internal_parallel.as_future(5),
+            return_type_as=koda_internal_parallel.as_future(None),
+        )
+    ).eval()
+
+    testing.assert_equal(res.read_all(timeout=5.0)[0], ds(51234))
+
+  def test_reduce_tuples(self):
+    def f(x, y):
+      return (x[1], x[0] * 10 + y)
+
+    def g(x, initial):
+      return user_facing_kd.functor.reduce(f, x, initial)
+
+    context = koda_internal_parallel.get_default_execution_context()
+    transformed_fn = koda_internal_parallel.transform(context, g)
+    res = koda_internal_parallel.stream_from_future(
+        koda_internal_parallel.future_from_parallel(
+            koda_internal_parallel.get_executor_from_context(context),
+            transformed_fn(
+                x=koda_internal_parallel.stream_make(1, 2, 3, 4),
+                initial=koda_internal_parallel.as_parallel((5, 6)),
+                return_type_as=koda_internal_parallel.as_parallel((None, None)),
+            ),
+        )
+    ).eval()
+
+    testing.assert_equal(
+        res.read_all(timeout=5.0)[0], arolla.tuple(ds(513), ds(624))
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
