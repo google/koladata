@@ -14,7 +14,9 @@
 //
 #include "koladata/test_utils.h"
 
+#include <cstdint>
 #include <optional>
+#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -266,6 +268,48 @@ TEST(TestUtils, DataSlice_Allocate) {
       DataSlice::Create(ds.slice(), DataSlice::JaggedShape::FlatFromSize(3),
                         internal::DataItem(schema::kObject)));
   EXPECT_THAT(ds, IsEquivalentTo(expected_ds));
+}
+
+TEST(TestUtils, EdgeFromSplitPoints) {
+  auto edge = test::EdgeFromSplitPoints({0, 1, 3, 6});
+  ASSERT_OK_AND_ASSIGN(
+      auto expected_edge,
+      DataSlice::JaggedShape::Edge::FromSplitPoints(
+          arolla::CreateFullDenseArray(std::vector<int64_t>({0, 1, 3, 6}))));
+  EXPECT_TRUE(edge.IsEquivalentTo(expected_edge));
+}
+
+TEST(TestUtils, ShapeFromSplitPoints) {
+  auto shape =
+      test::ShapeFromSplitPoints({{0, 2}, {0, 1, 2}, {0, 2, 3}, {0, 2, 3, 5}});
+  ASSERT_OK_AND_ASSIGN(auto expected_shape,
+                       DataSlice::JaggedShape::FromEdges({
+                           test::EdgeFromSplitPoints({0, 2}),
+                           test::EdgeFromSplitPoints({0, 1, 2}),
+                           test::EdgeFromSplitPoints({0, 2, 3}),
+                           test::EdgeFromSplitPoints({0, 2, 3, 5}),
+                       }));
+  EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
+}
+
+TEST(TestUtils, EdgeFromSizes) {
+  auto edge = test::EdgeFromSizes({2, 1, 3, 6});
+  ASSERT_OK_AND_ASSIGN(auto expected_edge,
+                       DataSlice::JaggedShape::Edge::FromSplitPoints(
+                           arolla::CreateFullDenseArray(
+                               std::vector<int64_t>({0, 2, 3, 6, 12}))));
+  EXPECT_TRUE(edge.IsEquivalentTo(expected_edge));
+}
+
+TEST(TestUtils, ShapeFromSizes) {
+  auto shape = test::ShapeFromSizes({{2}, {1, 1}, {2, 1}, {2, 1, 2}});
+  ASSERT_OK_AND_ASSIGN(auto expected_shape, DataSlice::JaggedShape::FromEdges({
+                                                test::EdgeFromSizes({2}),
+                                                test::EdgeFromSizes({1, 1}),
+                                                test::EdgeFromSizes({2, 1}),
+                                                test::EdgeFromSizes({2, 1, 2}),
+                                            }));
+  EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
 }
 
 }  // namespace

@@ -18,6 +18,7 @@
 #define KOLADATA_TEST_UTILS_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <optional>
 #include <type_traits>
@@ -47,11 +48,13 @@ namespace test {
 template <typename T, typename SchemaT>
 koladata::DataSlice DataItem(T data, SchemaT schema, DataBagPtr db = nullptr) {
   if constexpr (std::is_same_v<T, const char*>) {
-    return *DataSlice::Create(internal::DataItem(arolla::Text(data)),
-                              internal::DataItem(schema), db);
+    return DataSlice::Create(internal::DataItem(arolla::Text(data)),
+                             internal::DataItem(schema), db)
+        .value();
   } else {
-    return *DataSlice::Create(
-        internal::DataItem(data), internal::DataItem(schema), db);
+    return DataSlice::Create(internal::DataItem(data),
+                             internal::DataItem(schema), db)
+        .value();
   }
 }
 
@@ -147,10 +150,11 @@ koladata::DataSlice DataSlice(
         arolla::OptionalValue<typename test_val<T>::t>> values,
     DataSlice::JaggedShape shape, SchemaT schema, DataBagPtr db = nullptr) {
   auto vec_values = ToVector<T>(values);
-  return *koladata::DataSlice::Create(
-      internal::DataSliceImpl::Create(
-          arolla::CreateDenseArray<T>(absl::MakeSpan(vec_values))),
-      shape, internal::DataItem(schema), db);
+  return koladata::DataSlice::Create(
+             internal::DataSliceImpl::Create(
+                 arolla::CreateDenseArray<T>(absl::MakeSpan(vec_values))),
+             shape, internal::DataItem(schema), db)
+      .value();
 }
 
 template <typename T,
@@ -210,7 +214,8 @@ koladata::DataSlice MixedDataSlice(
     auto array_3 = arolla::CreateDenseArray<V>(absl::MakeSpan(values_3));
     ds_impl = internal::DataSliceImpl::Create(array_1, array_2, array_3);
   }
-  return *DataSlice::Create(ds_impl, shape, internal::DataItem(schema), db);
+  return DataSlice::Create(ds_impl, shape, internal::DataItem(schema), db)
+      .value();
 }
 
 template <typename T, typename U, typename V>
@@ -255,36 +260,54 @@ koladata::DataSlice MixedDataSlice(
 template <typename SchemaT>
 koladata::DataSlice EmptyDataSlice(size_t size, SchemaT schema,
                                    DataBagPtr db = nullptr) {
-  return *DataSlice::Create(
-      internal::DataSliceImpl::CreateEmptyAndUnknownType(size),
-      DataSlice::JaggedShape::FlatFromSize(size),
-      internal::DataItem(schema), db);
+  return DataSlice::Create(
+             internal::DataSliceImpl::CreateEmptyAndUnknownType(size),
+             DataSlice::JaggedShape::FlatFromSize(size),
+             internal::DataItem(schema), db)
+      .value();
 }
 
 template <typename SchemaT>
 koladata::DataSlice EmptyDataSlice(DataSlice::JaggedShape shape,
                                    SchemaT schema, DataBagPtr db = nullptr) {
-  return *DataSlice::Create(
-      internal::DataSliceImpl::CreateEmptyAndUnknownType(shape.size()), shape,
-      internal::DataItem(schema), db);
+  return DataSlice::Create(
+             internal::DataSliceImpl::CreateEmptyAndUnknownType(shape.size()),
+             shape, internal::DataItem(schema), db)
+      .value();
 }
 
 template <typename SchemaT>
 koladata::DataSlice AllocateDataSlice(size_t size, SchemaT schema,
                                       DataBagPtr db = nullptr) {
-  return *DataSlice::Create(
-      internal::DataSliceImpl::AllocateEmptyObjects(size),
-      DataSlice::JaggedShape::FlatFromSize(size),
-      internal::DataItem(schema), db);
+  return DataSlice::Create(internal::DataSliceImpl::AllocateEmptyObjects(size),
+                           DataSlice::JaggedShape::FlatFromSize(size),
+                           internal::DataItem(schema), db)
+      .value();
 }
 
 template <typename SchemaT>
 koladata::DataSlice AllocateDataSlice(DataSlice::JaggedShape shape,
                                       SchemaT schema, DataBagPtr db = nullptr) {
-  return *DataSlice::Create(
-      internal::DataSliceImpl::AllocateEmptyObjects(shape.size()),
-      shape, internal::DataItem(schema), db);
+  return DataSlice::Create(
+             internal::DataSliceImpl::AllocateEmptyObjects(shape.size()), shape,
+             internal::DataItem(schema), db)
+      .value();
 }
+
+// Utilities for creating Edges and Shapes.
+// They require inputs that are correct split points or sizes. Incorrect inputs
+// will result in exceptions (if exceptions are enabled) or otherwise crashes.
+
+DataSlice::JaggedShape::Edge EdgeFromSplitPoints(
+    absl::Span<const int64_t> split_points);
+
+DataSlice::JaggedShape ShapeFromSplitPoints(
+    absl::Span<const absl::Span<const int64_t>> all_edge_split_points);
+
+DataSlice::JaggedShape::Edge EdgeFromSizes(absl::Span<const int64_t> sizes);
+
+DataSlice::JaggedShape ShapeFromSizes(
+    absl::Span<const absl::Span<const int64_t>> all_edge_sizes);
 
 }  // namespace test
 }  // namespace koladata

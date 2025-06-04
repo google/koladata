@@ -661,6 +661,7 @@ cc_test(
 cc_library(
     name = "test_utils",
     testonly = 1,
+    srcs = ["test_utils.cc"],
     hdrs = ["test_utils.h"],
     deps = [
         ":data_bag",

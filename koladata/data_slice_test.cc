@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <initializer_list>
-#include <numeric>
 #include <optional>
 #include <string>
 #include <utility>
@@ -49,7 +48,6 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error_utils.h"
 #include "koladata/internal/errors.h"
 #include "koladata/internal/missing_value.h"
 #include "koladata/internal/object_id.h"
@@ -87,12 +85,6 @@ using ::testing::HasSubstr;
 using ::testing::MatchesRegex;
 using ::testing::NotNull;
 using ::testing::Property;
-
-DataSlice::JaggedShape::Edge CreateEdge(
-    std::initializer_list<int64_t> split_points) {
-  return *DataSlice::JaggedShape::Edge::FromSplitPoints(
-      CreateFullDenseArray(std::vector<int64_t>(split_points)));
-}
 
 ObjectId GenerateImplicitSchema() {
   return internal::CreateUuidWithMainObject<
@@ -216,9 +208,7 @@ TEST(DataSliceTest, Create_DataItem) {
   }
   {
     // DataItem with explicit non-scalar shape -> holds DataSliceImpl.
-    auto edge = CreateEdge({0, 1});
-    ASSERT_OK_AND_ASSIGN(auto shape,
-                         DataSlice::JaggedShape::FromEdges({edge, edge, edge}));
+    auto shape = test::ShapeFromSplitPoints({{0, 1}, {0, 1}, {0, 1}});
     ASSERT_OK_AND_ASSIGN(auto ds,
                          DataSlice::Create(data_item, shape, int_schema, db));
     EXPECT_THAT(ds.GetShape(), IsEquivalentTo(shape));
@@ -650,10 +640,7 @@ TEST(DataSliceTest, IsEquivalentTo) {
   EXPECT_TRUE(ds_1.IsEquivalentTo(ds_2));
 
   // Broadcasted shapes.
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 2});
-  ASSERT_OK_AND_ASSIGN(auto shape_non_flat,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape_non_flat = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 2}});
   ASSERT_OK_AND_ASSIGN(ds_2, BroadcastToShape(ds_2, shape_non_flat));
   EXPECT_FALSE(ds_1.IsEquivalentTo(ds_2));
   ASSERT_OK_AND_ASSIGN(ds_1, BroadcastToShape(ds_1, shape_non_flat));
@@ -1681,13 +1668,8 @@ TEST(DataSliceTest, PyQValueSpecializationKey) {
 }
 
 TEST(DataSliceTest, Fingerprint) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_1_1 = CreateEdge({0, 2, 3});
-  auto edge_1_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape_1,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_1_1}));
-  ASSERT_OK_AND_ASSIGN(auto shape_2,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_1_2}));
+  auto shape_1 = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 3}});
+  auto shape_2 = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto ds_impl = DataSliceImpl::AllocateEmptyObjects(3);
   ASSERT_OK_AND_ASSIGN(
       auto ds,
@@ -1765,10 +1747,7 @@ TEST(DataSliceTest, BroadcastToShape) {
   {
     // Actual expansion. More extensive tests are in:
     // koladata/internal/op_utils/expand_test.cc
-    auto edge_1 = CreateEdge({0, 3});
-    auto edge_2 = CreateEdge({0, 2, 4, 6});
-    ASSERT_OK_AND_ASSIGN(auto shape,
-                         DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+    auto shape = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
     auto ds_1 = test::DataSlice<int>({1, 2, 3});
 
     ASSERT_OK_AND_ASSIGN(auto res_ds, BroadcastToShape(ds_1, shape));
@@ -3137,10 +3116,7 @@ TEST(DataSliceTest, GetNoFollow_ListItems) {
 TEST(DataSliceTest, SetAttr_AutoBroadcasting) {
   auto ds_primitive = test::DataSlice<int>({1, 2, 3});
 
-  auto edge_1 = CreateEdge({0, 3});
-  auto edge_2 = CreateEdge({0, 2, 4, 6});
-  ASSERT_OK_AND_ASSIGN(auto res_shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto res_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, res_shape, {}, {}));
   ASSERT_OK(ds.GetSchema().SetAttr("a", ds_primitive.GetSchema()));
@@ -3156,10 +3132,7 @@ TEST(DataSliceTest, SetAttr_AutoBroadcasting) {
 }
 
 TEST(DataSliceTest, SetAttr_BroadcastingError) {
-  auto edge_1 = CreateEdge({0, 3});
-  auto edge_2 = CreateEdge({0, 2, 4, 6});
-  ASSERT_OK_AND_ASSIGN(auto res_shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto res_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
   auto ds_primitive = test::DataSlice<int>({1, 2, 3, 4, 5, 6}, res_shape);
 
   auto db = DataBag::Empty();
@@ -4003,11 +3976,7 @@ TEST(DataSliceTest, MixedSchemaSlice_ExplicitSchemaObjectIdMatch) {
 }
 
 TEST(DataSliceTest, GetFromList) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto list_schema,
@@ -4020,9 +3989,7 @@ TEST(DataSliceTest, GetFromList) {
 
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, items));
 
-  auto edge_2_1 = CreateEdge({0, 2, 5});
-  ASSERT_OK_AND_ASSIGN(auto shape_2,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2_1}));
+  auto shape_2 = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 5}});
   {
     // Normal GetFromList
     auto indices = test::DataSlice<int64_t>({0, 0, 1, std::nullopt, 1}, shape_2,
@@ -4099,11 +4066,7 @@ TEST(DataSliceTest, GetFromList) {
 }
 
 TEST(DataSliceTest, GetFromList_Int64Schema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -4115,10 +4078,7 @@ TEST(DataSliceTest, GetFromList_Int64Schema) {
   // Note that we assigned int32 items here, but the result is int64 anyway.
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
 
-  auto edge_2_1 = CreateEdge({0, 2, 5});
-  ASSERT_OK_AND_ASSIGN(auto shape_2,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2_1}));
-
+  auto shape_2 = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 5}});
   auto indices = test::DataSlice<int64_t>({0, 0, 1, std::nullopt, 1}, shape_2,
                                           schema::kInt64);
   ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
@@ -4128,11 +4088,7 @@ TEST(DataSliceTest, GetFromList_Int64Schema) {
 }
 
 TEST(DataSliceTest, GetFromList_ObjectSchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::MixedDataSlice<int, int64_t>(
       {42, std::nullopt, std::nullopt}, {std::nullopt, 12, 13}, shape,
       schema::kObject);
@@ -4145,10 +4101,7 @@ TEST(DataSliceTest, GetFromList_ObjectSchema) {
 
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
 
-  auto edge_2_1 = CreateEdge({0, 2, 5});
-  ASSERT_OK_AND_ASSIGN(auto shape_2,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2_1}));
-
+  auto shape_2 = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 5}});
   auto indices = test::DataSlice<int64_t>({0, 0, 1, std::nullopt, 1}, shape_2,
                                           schema::kInt64);
   ASSERT_OK_AND_ASSIGN(auto items, lists.GetFromList(indices));
@@ -4204,11 +4157,7 @@ TEST(DataSliceTest, GetFromList_NoneSchema_NotAList) {
 }
 
 TEST(DataSliceTest, PopFromList_Int64Schema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -4220,10 +4169,7 @@ TEST(DataSliceTest, PopFromList_Int64Schema) {
   // Note that we assigned int32 items here, but the result is int64 anyway.
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
 
-  auto edge_2_1 = CreateEdge({0, 2, 5});
-  ASSERT_OK_AND_ASSIGN(auto shape_2,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2_1}));
-
+  auto shape_2 = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 5}});
   auto indices = test::DataSlice<int64_t>({0, 0, 1, std::nullopt, 1}, shape_2,
                                           schema::kInt64);
   ASSERT_OK_AND_ASSIGN(auto items, lists.PopFromList(indices));
@@ -4236,11 +4182,7 @@ TEST(DataSliceTest, PopFromList_Int64Schema) {
 }
 
 TEST(DataSliceTest, PopFromList_ObjectSchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::MixedDataSlice<int, int64_t>(
       {42, std::nullopt, std::nullopt}, {std::nullopt, 12, 13}, shape,
       schema::kObject);
@@ -4253,10 +4195,7 @@ TEST(DataSliceTest, PopFromList_ObjectSchema) {
 
   ASSERT_OK(lists.ReplaceInList(0, std::nullopt, list_items));
 
-  auto edge_2_1 = CreateEdge({0, 2, 5});
-  ASSERT_OK_AND_ASSIGN(auto shape_2,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2_1}));
-
+  auto shape_2 = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 5}});
   auto indices = test::DataSlice<int64_t>({0, 0, 1, std::nullopt, 1}, shape_2,
                                           schema::kInt64);
   ASSERT_OK_AND_ASSIGN(auto items, lists.PopFromList(indices));
@@ -4318,12 +4257,7 @@ TEST(DataSliceTest, PopFromList_NoneSchema_NotAList) {
 }
 
 TEST(DataSliceTest, ExplodeList_Int32Schema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  auto edge_3 = CreateEdge({0, 1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(
-      auto shape, DataSlice::JaggedShape::FromEdges({edge_1, edge_2, edge_3}));
-
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}, {0, 1, 2, 3}});
   auto items = test::DataSlice<int>({42, 12, 13}, shape, schema::kInt32);
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -4338,8 +4272,7 @@ TEST(DataSliceTest, ExplodeList_Int32Schema) {
 }
 
 TEST(DataSliceTest, ExplodeList_ObjectSchema) {
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({CreateEdge({0, 3})}));
+  auto shape = test::ShapeFromSplitPoints({{0, 3}});
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto lists,
                        DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
@@ -4405,8 +4338,7 @@ TEST(DataSliceTest, ExplodeList_ImplicitCast_Object) {
 }
 
 TEST(DataSliceTest, SchemaAttr_MissingItemsAttr_ForLists) {
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({CreateEdge({0, 3})}));
+  auto shape = test::ShapeFromSplitPoints({{0, 3}});
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto lists,
                        DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
@@ -4455,18 +4387,13 @@ TEST(DataSliceTest, ExplodeList_NoneSchema_NotAList) {
   auto db = DataBag::Empty();
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
   ASSERT_OK_AND_ASSIGN(auto items, none_list.ExplodeList(0, std::nullopt));
-  ASSERT_OK_AND_ASSIGN(auto expected_shape,
-                       DataSlice::JaggedShape::FromEdges(
-                           {CreateEdge({0, 3}), CreateEdge({0, 0, 0, 0})}));
+  auto expected_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 0, 0, 0}});
   EXPECT_THAT(items, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
                                                          schema::kNone, db)));
 }
 
 TEST(DataSliceTest, ReplaceInList_NoBag) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -4482,9 +4409,9 @@ TEST(DataSliceTest, ReplaceInList_NoBag) {
 }
 
 TEST(DataSliceTest, ReplaceInList) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  auto edge_3 = CreateEdge({0, 1, 2, 3});
+  auto edge_1 = test::EdgeFromSplitPoints({0, 2});
+  auto edge_2 = test::EdgeFromSplitPoints({0, 1, 3});
+  auto edge_3 = test::EdgeFromSplitPoints({0, 1, 2, 3});
   ASSERT_OK_AND_ASSIGN(
       auto shape, DataSlice::JaggedShape::FromEdges({edge_1, edge_2, edge_3}));
 
@@ -4502,7 +4429,7 @@ TEST(DataSliceTest, ReplaceInList) {
   ASSERT_OK_AND_ASSIGN(auto res_items, lists.ExplodeList(0, std::nullopt));
   EXPECT_THAT(res_items.slice(), ElementsAre(42, 12, 13));
 
-  auto edge_2_alternative = CreateEdge({0, 2, 3});
+  auto edge_2_alternative = test::EdgeFromSplitPoints({0, 2, 3});
   ASSERT_OK_AND_ASSIGN(auto wrong_shape1,
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   ASSERT_OK_AND_ASSIGN(
@@ -4527,18 +4454,13 @@ TEST(DataSliceTest, ReplaceInList_NoneSchema) {
   auto none_list = test::EmptyDataSlice(3, schema::kNone, db);
   ASSERT_OK(none_list.ReplaceInList(0, std::nullopt, test::DataItem(1)));
   ASSERT_OK_AND_ASSIGN(auto items, none_list.ExplodeList(0, std::nullopt));
-  ASSERT_OK_AND_ASSIGN(auto expected_shape,
-                       DataSlice::JaggedShape::FromEdges(
-                           {CreateEdge({0, 3}), CreateEdge({0, 0, 0, 0})}));
+  auto expected_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 0, 0, 0}});
   EXPECT_THAT(items, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
                                                          schema::kNone, db)));
 }
 
 TEST(DataSliceTest, ReplaceInList_Int64Schema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -4554,9 +4476,8 @@ TEST(DataSliceTest, ReplaceInList_Int64Schema) {
               IsOkAndHolds(Property(&DataSlice::slice,
                                     ElementsAre(0, 0, 0, 0, 0, 0, 0, 0, 0))));
 
-  ASSERT_OK_AND_ASSIGN(auto subshape,
-                       DataSlice::JaggedShape::FromEdges(
-                           {edge_1, edge_2, CreateEdge({0, 1, 2, 3})}));
+  ASSERT_OK_AND_ASSIGN(
+      auto subshape, shape.AddDims({test::EdgeFromSplitPoints({0, 1, 2, 3})}));
   ASSERT_OK(lists.ReplaceInList(
       1, 2, test::DataSlice<int>({1, 2, 3}, subshape, schema::kInt32)));
   EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
@@ -4582,10 +4503,7 @@ TEST(DataSliceTest, ReplaceInList_Int64Schema) {
 }
 
 TEST(DataSliceTest, SetInList_NoBag) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -4606,18 +4524,13 @@ TEST(DataSliceTest, SetInList_NoneSchema) {
   auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
   ASSERT_OK(none_list.SetInList(indices, indices));
   ASSERT_OK_AND_ASSIGN(auto items, none_list.ExplodeList(0, std::nullopt));
-  ASSERT_OK_AND_ASSIGN(auto expected_shape,
-                       DataSlice::JaggedShape::FromEdges(
-                           {CreateEdge({0, 3}), CreateEdge({0, 0, 0, 0})}));
+  auto expected_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 0, 0, 0}});
   EXPECT_THAT(items, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
                                                          schema::kNone, db)));
 }
 
 TEST(DataSliceTest, SetInList_Int64Schema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -4665,18 +4578,13 @@ TEST(DataSliceTest, AppendToList_NoneSchema) {
   auto indices = test::DataSlice<int64_t>({0, 0, 1}, schema::kInt64);
   ASSERT_OK(none_list.AppendToList(indices));
   ASSERT_OK_AND_ASSIGN(auto items, none_list.ExplodeList(0, std::nullopt));
-  ASSERT_OK_AND_ASSIGN(auto expected_shape,
-                       DataSlice::JaggedShape::FromEdges(
-                           {CreateEdge({0, 3}), CreateEdge({0, 0, 0, 0})}));
+  auto expected_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 0, 0, 0}});
   EXPECT_THAT(items, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
                                                          schema::kNone, db)));
 }
 
 TEST(DataSliceTest, AppendToList_Int64Schema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -4714,8 +4622,8 @@ TEST(DataSliceTest, AppendToList_DifferentShapes) {
 
   auto values123 = test::DataSlice<int>({1, 2, 3}, schema::kInt32);
 
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
+  auto edge_1 = test::EdgeFromSplitPoints({0, 2});
+  auto edge_2 = test::EdgeFromSplitPoints({0, 1, 3});
   ASSERT_OK_AND_ASSIGN(auto values_shape,
                        DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
   auto values6_78 =
@@ -4745,7 +4653,7 @@ TEST(DataSliceTest, AppendToList_DifferentShapes) {
         internal::DataItem(1), internal::DataItem(schema::kInt32))));
     ASSERT_OK(lists.AppendToList(values6_78));
 
-    auto expected_edge_2 = CreateEdge({0, 2, 5});
+    auto expected_edge_2 = test::EdgeFromSplitPoints({0, 2, 5});
     ASSERT_OK_AND_ASSIGN(auto expected_shape, DataSlice::JaggedShape::FromEdges(
                                                   {edge_1, expected_edge_2}));
     EXPECT_THAT(
@@ -4774,11 +4682,7 @@ TEST(DataSliceTest, AppendToList_Adopt) {
 }
 
 TEST(DataSliceTest, RemoveInList) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
-
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({42, std::nullopt, 15}, shape);
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
@@ -4874,7 +4778,8 @@ TEST(DataSliceTest, DictErrors) {
 
 TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
   ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges({}));
-  ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({CreateEdge({0, 3})}));
+  ASSERT_OK_AND_ASSIGN(auto keys_shape,
+                       shape.AddDims({test::EdgeFromSplitPoints({0, 3})}));
   auto db = DataBag::Empty();
 
   ASSERT_OK_AND_ASSIGN(
@@ -4945,10 +4850,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_DataItem_ObjectSchema) {
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_ObjectSchema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 3}});
   ASSERT_OK_AND_ASSIGN(auto edge_3,
                        DataSlice::JaggedShape::Edge::FromUniformGroups(3, 1));
   ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({edge_3}));
@@ -5060,8 +4962,7 @@ TEST(DataSliceTest, GetFromDict_ImplicitCast_Object) {
 
 
 TEST(DataSliceTest, SchemaAttr_MissingValuesAttr_ForDicts) {
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({CreateEdge({0, 3})}));
+  auto shape = test::ShapeFromSplitPoints({{0, 3}});
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto dicts,
                        DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
@@ -5118,10 +5019,7 @@ TEST(DataSliceTest, SchemaAttr_MissingValuesAttr_ForDicts) {
 }
 
 TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 2, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 3}});
   ASSERT_OK_AND_ASSIGN(auto edge_3,
                        DataSlice::JaggedShape::Edge::FromUniformGroups(3, 1));
   ASSERT_OK_AND_ASSIGN(auto keys_shape, shape.AddDims({edge_3}));
@@ -5232,8 +5130,7 @@ TEST(DataSliceTest, SetInDict_GetFromDict_Int64Schema) {
 }
 
 TEST(DataSliceTest, SchemaAttr_GetFromDict_ImplicitSchemaKeys) {
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({CreateEdge({0, 3})}));
+  auto shape = test::ShapeFromSplitPoints({{0, 3}});
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto dicts,
                        DataSlice::Create(DataSliceImpl::ObjectsFromAllocation(
@@ -5368,9 +5265,7 @@ TEST(DataSliceTest, SetInDict_Adopt) {
 TEST(DataSliceTest, GetFromDict_NoneSchema_NotAList) {
   auto db = DataBag::Empty();
   auto none_dict = test::EmptyDataSlice(3, schema::kNone, db);
-  ASSERT_OK_AND_ASSIGN(auto expected_shape,
-                       DataSlice::JaggedShape::FromEdges(
-                           {CreateEdge({0, 3}), CreateEdge({0, 0, 0, 0})}));
+  auto expected_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 0, 0, 0}});
   // Keys.
   ASSERT_OK_AND_ASSIGN(auto keys, none_dict.GetDictKeys());
   EXPECT_THAT(keys, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
@@ -5393,9 +5288,7 @@ TEST(DataSliceTest, SetInDict_NoneSchema) {
   ASSERT_OK(none_dict.SetInDict(test::DataItem(arolla::Text("a")),
                                 test::DataItem(2)));
   ASSERT_OK_AND_ASSIGN(auto keys, none_dict.GetDictKeys());
-  ASSERT_OK_AND_ASSIGN(auto expected_shape,
-                       DataSlice::JaggedShape::FromEdges(
-                           {CreateEdge({0, 3}), CreateEdge({0, 0, 0, 0})}));
+  auto expected_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 0, 0, 0}});
   EXPECT_THAT(keys, IsEquivalentTo(test::EmptyDataSlice(expected_shape,
                                                         schema::kNone, db)));
 }
@@ -5437,10 +5330,7 @@ TEST(DataSliceTest, ShouldApplyListOp_DataItem) {
 
 TEST(DataSliceTest, ShouldApplyListOp_DataSlice) {
   auto db = DataBag::Empty();
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({1, 2, 3}, shape);
   ASSERT_OK_AND_ASSIGN(auto lists,
                        CreateListsFromLastDimension(db, list_items));
@@ -5509,10 +5399,7 @@ TEST(DataSliceTest, GetItem_DataItem) {
 
 TEST(DataSliceTest, GetItem_DataSlice) {
   auto db = DataBag::Empty();
-  auto edge_1 = CreateEdge({0, 2});
-  auto edge_2 = CreateEdge({0, 1, 3});
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge_1, edge_2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   auto list_items = test::DataSlice<int>({1, 2, 3}, shape);
   auto indices = test::DataSlice<int>({1, 1, 0}, shape);
   auto expected_res =
@@ -5610,9 +5497,7 @@ TEST(DataSliceTest, Reshape) {
   {
     // DataSliceImpl -> DataSliceImpl.
     auto ds = test::DataSlice<int>({1});
-    auto edge = CreateEdge({0, 1});
-    ASSERT_OK_AND_ASSIGN(auto new_shape,
-                         DataSlice::JaggedShape::FromEdges({edge, edge, edge}));
+    auto new_shape = test::ShapeFromSplitPoints({{0, 1}, {0, 1}, {0, 1}});
     ASSERT_OK_AND_ASSIGN(auto new_ds, ds.Reshape(new_shape));
     EXPECT_THAT(new_ds.slice(), ElementsAre(1));
     EXPECT_THAT(new_ds.GetShape(), IsEquivalentTo(new_shape));
@@ -5665,27 +5550,6 @@ TEST(DataSliceTest, Reshape) {
   }
 }
 
-DataSlice::JaggedShape::Edge CreateEdgeFromSizes(
-    absl::Span<const int64_t> sizes) {
-  std::vector<int64_t> split_points(sizes.size() + 1);
-  split_points[0] = 0;
-  std::partial_sum(sizes.begin(), sizes.end(), split_points.begin() + 1);
-  return *DataSlice::JaggedShape::Edge::FromSplitPoints(
-      CreateFullDenseArray(std::move(split_points)));
-}
-
-DataSlice::JaggedShape MakeShapeFromSizes(
-    absl::Span<const absl::Span<const int64_t>> all_edge_sizes) {
-  std::vector<DataSlice::JaggedShape::Edge> edges;
-  edges.reserve(all_edge_sizes.size());
-  for (const auto& edge_sizes : all_edge_sizes) {
-    edges.push_back(CreateEdgeFromSizes(edge_sizes));
-  }
-  auto shape = DataSlice::JaggedShape::FromEdges(std::move(edges));
-  CHECK_OK(shape.status());
-  return *shape;
-}
-
 TEST(DataSliceTest, Flatten) {
   // Flatten with no args
   {
@@ -5705,7 +5569,7 @@ TEST(DataSliceTest, Flatten) {
     auto ds = test::MixedDataSlice<int, arolla::Text>(
         {1, 2, std::nullopt, 4, std::nullopt},
         {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
-        /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+        /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten());
     EXPECT_THAT(flat.slice(),
                 ElementsAre(1, 2, arolla::Text("a"), 4, arolla::Text("b")));
@@ -5725,18 +5589,18 @@ TEST(DataSliceTest, Flatten) {
     auto ds = test::MixedDataSlice<int, arolla::Text>(
         {1, 2, std::nullopt, 4, std::nullopt},
         {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
-        /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+        /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/1));
     EXPECT_THAT(flat.slice(),
                 ElementsAre(1, 2, arolla::Text("a"), 4, arolla::Text("b")));
     EXPECT_THAT(flat.GetShape(),
-                IsEquivalentTo(MakeShapeFromSizes({{2}, {3, 2}})));
+                IsEquivalentTo(test::ShapeFromSizes({{2}, {3, 2}})));
   }
   {
     auto ds = test::MixedDataSlice<int, arolla::Text>(
         {1, 2, std::nullopt, 4, std::nullopt},
         {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
-        /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+        /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-1));
     EXPECT_THAT(flat, IsEquivalentTo(ds));
   }
@@ -5744,12 +5608,12 @@ TEST(DataSliceTest, Flatten) {
     auto ds = test::MixedDataSlice<int, arolla::Text>(
         {1, 2, std::nullopt, 4, std::nullopt},
         {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
-        /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+        /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-2));
     EXPECT_THAT(flat.slice(),
                 ElementsAre(1, 2, arolla::Text("a"), 4, arolla::Text("b")));
     EXPECT_THAT(flat.GetShape(),
-                IsEquivalentTo(MakeShapeFromSizes({{2}, {3, 2}})));
+                IsEquivalentTo(test::ShapeFromSizes({{2}, {3, 2}})));
   }
 
   // Flatten with from_dim and to_dim
@@ -5771,51 +5635,51 @@ TEST(DataSliceTest, Flatten) {
   auto ds = test::MixedDataSlice<int, arolla::Text>(
       {1, 2, std::nullopt, 4, std::nullopt},
       {std::nullopt, std::nullopt, "a", std::nullopt, "b"},
-      /*shape=*/MakeShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
+      /*shape=*/test::ShapeFromSizes({{2}, {2, 1}, {2, 1, 2}}));
   {
     ASSERT_OK_AND_ASSIGN(auto flat,
                          ds.Flatten(/*from_dim=*/1, /*to_dim=*/std::nullopt));
     ASSERT_OK_AND_ASSIGN(auto expected,
-                         ds.Reshape(MakeShapeFromSizes({{2}, {3, 2}})));
+                         ds.Reshape(test::ShapeFromSizes({{2}, {3, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/0, /*to_dim=*/2));
     ASSERT_OK_AND_ASSIGN(auto expected,
-                         ds.Reshape(MakeShapeFromSizes({{3}, {2, 1, 2}})));
+                         ds.Reshape(test::ShapeFromSizes({{3}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/1, /*to_dim=*/1));
     ASSERT_OK_AND_ASSIGN(
         auto expected,
-        ds.Reshape(MakeShapeFromSizes({{2}, {1, 1}, {2, 1}, {2, 1, 2}})));
+        ds.Reshape(test::ShapeFromSizes({{2}, {1, 1}, {2, 1}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/2, /*to_dim=*/2));
     ASSERT_OK_AND_ASSIGN(
         auto expected,
-        ds.Reshape(MakeShapeFromSizes({{2}, {2, 1}, {1, 1, 1}, {2, 1, 2}})));
+        ds.Reshape(test::ShapeFromSizes({{2}, {2, 1}, {1, 1, 1}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/1, /*to_dim=*/0));
     ASSERT_OK_AND_ASSIGN(
         auto expected,
-        ds.Reshape(MakeShapeFromSizes({{2}, {1, 1}, {2, 1}, {2, 1, 2}})));
+        ds.Reshape(test::ShapeFromSizes({{2}, {1, 1}, {2, 1}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-2, /*to_dim=*/5));
     ASSERT_OK_AND_ASSIGN(auto expected,
-                         ds.Reshape(MakeShapeFromSizes({{2}, {3, 2}})));
+                         ds.Reshape(test::ShapeFromSizes({{2}, {3, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
   {
     ASSERT_OK_AND_ASSIGN(auto flat, ds.Flatten(/*from_dim=*/-5, /*to_dim=*/-1));
     ASSERT_OK_AND_ASSIGN(auto expected,
-                         ds.Reshape(MakeShapeFromSizes({{3}, {2, 1, 2}})));
+                         ds.Reshape(test::ShapeFromSizes({{3}, {2, 1, 2}})));
     EXPECT_THAT(flat, IsEquivalentTo(expected));
   }
 }
