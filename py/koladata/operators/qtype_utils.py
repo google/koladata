@@ -218,3 +218,14 @@ def expect_stream(param) -> constraints.QTypeConstraint:
           f' {arolla.optools.constraints.name_type_msg(param)}'
       ),
   )
+
+
+def expect_stream_or_unspecified(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is a Stream."""
+  return (
+      bootstrap.is_stream_qtype(param) | (param == arolla.UNSPECIFIED),
+      (
+          'expected a stream, got'
+          f' {arolla.optools.constraints.name_type_msg(param)}'
+      ),
+  )
