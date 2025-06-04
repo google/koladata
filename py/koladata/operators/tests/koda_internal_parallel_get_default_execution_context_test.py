@@ -718,6 +718,79 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     self._wait_until_n_items(res, 4)
     self.assertIsNone(reader.read_available())
 
+  def test_iterables_flat_map_interleave(self):
+    e1 = threading.Event()
+    e2 = threading.Event()
+    e3 = threading.Event()
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_1():
+      self.assertTrue(e1.wait(timeout=5.0))
+      return 1
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_2():
+      self.assertTrue(e2.wait(timeout=5.0))
+      return 2
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_3():
+      self.assertTrue(e3.wait(timeout=5.0))
+      return 3
+
+    def f(x):
+      return user_facing_kd.if_(
+          x == 1,
+          lambda: user_facing_kd.iterables.make(wait_and_return_1()),
+          lambda: user_facing_kd.iterables.make(
+              wait_and_return_2(), wait_and_return_3()
+          ),
+          return_type_as=user_facing_kd.iterables.make(),
+      )
+
+    def g(x):
+      return user_facing_kd.functor.flat_map_interleaved(x, f)
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), g
+    )
+    stream, writer = clib.make_stream(qtypes.DATA_SLICE)
+    res = transformed_fn(
+        x=stream,
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+
+    reader = res.make_reader()
+    writer.write(ds(1))
+    writer.write(ds(2))
+    e2.set()
+    self._wait_until_n_items(res, 1)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(2))
+    )
+    time.sleep(0.1)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+
+    e1.set()
+    self._wait_until_n_items(res, 2)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(1))
+    )
+    time.sleep(0.1)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+
+    e3.set()
+    self._wait_until_n_items(res, 3)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(3))
+    )
+    time.sleep(0.1)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+
+    writer.close()
+    self._wait_until_n_items(res, 4)
+    self.assertIsNone(reader.read_available())
+
 
 if __name__ == '__main__':
   absltest.main()

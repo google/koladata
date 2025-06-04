@@ -1625,6 +1625,54 @@ def _parallel_stream_flat_map_chain(context, stream, fn, value_type_as):
   )
 
 
+@optools.as_lambda_operator(
+    'koda_internal.parallel._internal_parallel_stream_flat_map_interleaved',
+)
+def _internal_parallel_stream_flat_map_interleaved(context, fn, parallel_args):
+  """The parallel version of iterables.flat_map_interleave."""
+  stream = parallel_args[0]
+  value_type_as = parallel_args[1]
+  executor = get_executor_from_context(context)
+  stream_type_as = _single_element_stream_from_parallel(value_type_as, executor)
+  transformed_fn = transform(context, fn)
+  wrapped_fn = core.clone(
+      _AS_PARALLEL_WRAPPING_FN,
+      fn=transformed_fn,
+      return_type_as=koda_internal_functor.pack_as_literal(stream_type_as),
+  )
+  return stream_interleave_from_stream(
+      stream_map_unordered(
+          executor,
+          stream,
+          wrapped_fn,
+          value_type_as=stream_type_as,
+      )
+  )
+
+
+# qtype constraints for everything except context are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_flat_map_interleaved',
+    qtype_constraints=[
+        qtype_utils.expect_execution_context(P.context),
+    ],
+)
+def _parallel_stream_flat_map_interleaved(context, stream, fn, value_type_as):
+  """The parallel version of iterables.flat_map_interleaved."""
+  return unwrap_future_to_parallel(
+      async_eval(
+          get_executor_from_context(context),
+          _internal_parallel_stream_flat_map_interleaved,
+          context,
+          fn,
+          (stream, value_type_as),
+          optools.unified_non_deterministic_arg(),
+      )
+  )
+
+
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "core.make_tuple"
@@ -1742,6 +1790,14 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "kd.functor.flat_map_chain"
     to_op: "koda_internal.parallel._parallel_stream_flat_map_chain"
+    argument_transformation {
+      arguments: EXECUTION_CONTEXT
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.functor.flat_map_interleaved"
+    to_op: "koda_internal.parallel._parallel_stream_flat_map_interleaved"
     argument_transformation {
       arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
