@@ -314,7 +314,7 @@ class TraceAsFnDecorator:
             **bound.kwargs,
             return_type_as=return_type_as,
             stack_trace_frame=stack_trace.current_frame(),
-        ).with_name(f'{name}_result')
+        ).with_name(f'_{name}_result')
       else:
         res = kd_fn(*bound.args, **bound.kwargs)
         if isinstance(res, arolla.Expr):

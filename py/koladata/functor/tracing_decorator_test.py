@@ -154,8 +154,8 @@ class TracingDecoratorTest(parameterized.TestCase):
             'returns',
             '<lambda>',
             '<lambda>_0',
-            '<lambda>_result',
-            '<lambda>_result_0',
+            '_<lambda>_result',
+            '_<lambda>_result_0',
             '__signature__',
             '__stack_trace_frame__',
         ],
@@ -215,8 +215,8 @@ class TracingDecoratorTest(parameterized.TestCase):
             '_aux_2',
             'returns',
             'f',
-            'f_result',
-            'f_result_0',
+            '_f_result',
+            '_f_result_0',
             '__signature__',
             '__stack_trace_frame__',
         ],
@@ -302,10 +302,10 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertEqual(fn(x).to_pytree(), {'foo': 1, 'bar': 2})
     testing.assert_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.returns),
-        I.x.updated(V.f_result),
+        I.x.updated(V._f_result),
     )
     testing.assert_non_deterministic_exprs_equal(
-        introspection.unpack_expr(fn.f_result),
+        introspection.unpack_expr(fn.get_attr('_f_result')),
         V.f(I.x, return_type_as=empty_bag, stack_trace_frame=V._aux_1),
     )
     testing.assert_equal(

@@ -86,9 +86,9 @@ class BoxingTest(absltest.TestCase):
         [
             'returns',
             'yes',
-            'yes_result',
+            '_yes_result',
             'no',
-            'no_result',
+            '_no_result',
             '__signature__',
             '_aux_1',
             '__stack_trace_frame__',
