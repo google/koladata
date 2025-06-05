@@ -94,19 +94,6 @@ absl::StatusOr<DataBagPtr> Attr(const DataSlice& x, const DataSlice& attr_name,
                                 const DataSlice& value,
                                 const DataSlice& overwrite_schema);
 
-// kd.core.with_attrs.
-class WithAttrsOperatorFamily final : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const override;
-};
-
-// kd.core.with_attr.
-absl::StatusOr<DataSlice> WithAttr(const DataSlice& x,
-                                   const DataSlice& attr_name,
-                                   const DataSlice& value,
-                                   const DataSlice& overwrite_schema);
-
 // kd.core._get_item.
 inline absl::StatusOr<DataSlice> GetItem(const DataSlice& ds,
                                          const DataSlice& key_or_index) {

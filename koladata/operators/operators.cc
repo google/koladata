@@ -154,9 +154,6 @@ OPERATOR("kd.core.nofollow", NoFollow);
 OPERATOR("kd.core.ref", Ref);
 OPERATOR("kd.core.stub", Stub);
 OPERATOR_FAMILY("kd.core.updated", std::make_unique<UpdatedOperatorFamily>());
-OPERATOR("kd.core.with_attr", WithAttr);
-OPERATOR_FAMILY("kd.core.with_attrs",
-                std::make_unique<WithAttrsOperatorFamily>());
 OPERATOR("kd.core.with_bag", WithBag);
 OPERATOR("kd.core.with_merged_bag", WithMergedBag);
 OPERATOR_FAMILY("kd.core.with_print",

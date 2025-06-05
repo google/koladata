@@ -273,57 +273,7 @@ class AttrsOperator : public arolla::QExprOperator {
   }
 };
 
-absl::StatusOr<DataSlice> WithAttrs(
-    const DataSlice& obj, bool overwrite_schema,
-    absl::Span<const absl::string_view> attr_names,
-    absl::Span<const DataSlice> attr_values) {
-  ASSIGN_OR_RETURN(DataBagPtr attrs_db,
-                   Attrs(obj, overwrite_schema, attr_names, attr_values));
-  return obj.WithBag(
-      DataBag::CommonDataBag({std::move(attrs_db), obj.GetBag()}));
-}
-
-absl::StatusOr<DataSlice> WithAttrsForAttrNameSlice(
-    const DataSlice& obj, bool overwrite_schema, const DataSlice& attr_names,
-    const DataSlice& attr_values) {
-  ASSIGN_OR_RETURN(
-      DataBagPtr attrs_db,
-      AttrsForAttrNameSlice(obj, overwrite_schema, attr_names, attr_values));
-  return obj.WithBag(
-      DataBag::CommonDataBag({std::move(attrs_db), obj.GetBag()}));
-}
-
 }  // namespace
-
-class WithAttrsOperator : public arolla::QExprOperator {
- public:
-  explicit WithAttrsOperator(absl::Span<const arolla::QTypePtr> input_types)
-      : QExprOperator(input_types, arolla::GetQType<DataSlice>()) {}
-
-  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
-      absl::Span<const arolla::TypedSlot> input_slots,
-      arolla::TypedSlot output_slot) const final {
-    return MakeBoundOperator(
-        "kd.core.with_attrs",
-        [slice_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
-         update_schema_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
-         named_tuple_slot = input_slots[2],
-         output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx,
-            arolla::FramePtr frame) -> absl::Status {
-          const auto& slice = frame.Get(slice_slot);
-          ASSIGN_OR_RETURN(bool overwrite_schema,
-                           GetBoolArgument(frame.Get(update_schema_slot),
-                                           "overwrite_schema"));
-          const auto& attr_names = GetFieldNames(named_tuple_slot);
-          const auto& values = GetValueDataSlices(named_tuple_slot, frame);
-          ASSIGN_OR_RETURN(auto result, WithAttrs(slice, overwrite_schema,
-                                                  attr_names, values));
-          frame.Set(output_slot, std::move(result));
-          return absl::OkStatus();
-        });
-  }
-};
 
 DataSlice NoBag(const DataSlice& ds) { return ds.WithBag(nullptr); }
 
@@ -731,41 +681,6 @@ absl::StatusOr<DataBagPtr> Attr(const DataSlice& x, const DataSlice& attr_name,
   }
   RETURN_IF_ERROR(ExpectString("attr_name", attr_name));
   return AttrsForAttrNameSlice(x, overwrite_schema_arg, attr_name, value);
-}
-
-absl::StatusOr<arolla::OperatorPtr> WithAttrsOperatorFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  if (input_types.size() != 3) {
-    return absl::InvalidArgumentError("requires exactly 2 arguments");
-  }
-  if (input_types[0] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(
-        "requires first argument to be DataSlice");
-  }
-  if (input_types[1] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError(
-        "requires second argument to be DataSlice");
-  }
-  RETURN_IF_ERROR(VerifyNamedTuple(input_types[2]));
-  return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<WithAttrsOperator>(input_types), input_types,
-      output_type);
-}
-
-absl::StatusOr<DataSlice> WithAttr(const DataSlice& x,
-                                   const DataSlice& attr_name,
-                                   const DataSlice& value,
-                                   const DataSlice& overwrite_schema) {
-  ASSIGN_OR_RETURN(bool overwrite_schema_arg,
-                   GetBoolArgument(overwrite_schema, "overwrite_schema"));
-  if (attr_name.is_item()) {
-    ASSIGN_OR_RETURN(absl::string_view attr_name_view,
-                     GetStringArgument(attr_name, "attr_name"));
-    return WithAttrs(x, overwrite_schema_arg, {attr_name_view}, {value});
-  }
-  RETURN_IF_ERROR(ExpectString("attr_name", attr_name));
-  return WithAttrsForAttrNameSlice(x, overwrite_schema_arg, attr_name, value);
 }
 
 absl::StatusOr<DataSlice> Follow(const DataSlice& ds) {

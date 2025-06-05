@@ -318,6 +318,38 @@ def stub(x, attrs=data_slice.DataSlice.from_vals([])):  # pylint: disable=unused
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kd.updated'])
+@arolla.optools.as_backend_operator(
+    'kd.core.updated',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.ds),
+        qtype_utils.expect_data_bag_args(P.bag),
+    ],
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
+)
+def updated(ds, *bag):  # pylint: disable=unused-argument
+  """Returns a copy of a DataSlice with DataBag(s) of updates applied.
+
+  Values in `*bag` take precedence over the ones in the original DataBag of
+  `ds`.
+
+  The DataBag attached to the result is a new immutable DataBag that falls back
+  to the DataBag of `ds` if present and then to `*bag`.
+
+  `updated(x, a, b)` is equivalent to `updated(updated(x, b), a)`, and so on
+  for additional DataBag args.
+
+  Args:
+    ds: DataSlice.
+    *bag: DataBag(s) of updates.
+
+  Returns:
+    DataSlice with additional fallbacks.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry(aliases=['kd.attrs'])
 @optools.as_backend_operator(
     'kd.core.attrs',
@@ -391,14 +423,13 @@ def _attr(x, attr_name, value, overwrite_schema=False):
 
 
 @optools.add_to_registry(aliases=['kd.with_attrs'])
-@optools.as_backend_operator(
+@optools.as_lambda_operator(
     'kd.core.with_attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.overwrite_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def with_attrs(x, /, *, overwrite_schema=False, **attrs):
   """Returns a DataSlice with a new DataBag containing updated attrs in `x`.
@@ -428,11 +459,17 @@ def with_attrs(x, /, *, overwrite_schema=False, **attrs):
     overwrite_schema: if True, schema for attributes is always updated.
     **attrs: attrs to set in the update.
   """
-  raise NotImplementedError('implemented in the backend')
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
+  return updated(
+      x,
+      arolla.abc.bind_op(
+          _attrs, x, overwrite_schema=overwrite_schema, attrs=attrs
+      ),
+  )
 
 
 @optools.add_to_registry(aliases=['kd.with_attr'])
-@optools.as_backend_operator(
+@optools.as_lambda_operator(
     'kd.core.with_attr',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
@@ -440,7 +477,6 @@ def with_attrs(x, /, *, overwrite_schema=False, **attrs):
         qtype_utils.expect_data_slice(P.value),
         qtype_utils.expect_data_slice(P.overwrite_schema),
     ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
 )
 def with_attr(x, attr_name, value, overwrite_schema=False):
   """Returns a DataSlice with a new DataBag containing a single updated attribute.
@@ -458,7 +494,9 @@ def with_attr(x, attr_name, value, overwrite_schema=False):
     value: new value for attribute `attr_name`.
     overwrite_schema: if True, schema for attribute is always updated.
   """
-  raise NotImplementedError('implemented in the backend')
+  return updated(
+      x, _attr(x, attr_name, value, overwrite_schema=overwrite_schema)
+  )
 
 
 @optools.add_to_registry(aliases=['kd.with_bag'])
@@ -1025,38 +1063,6 @@ def enriched(ds, *bag):  # pylint: disable=unused-argument
   Args:
     ds: DataSlice.
     *bag: additional fallback DataBag(s).
-
-  Returns:
-    DataSlice with additional fallbacks.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry(aliases=['kd.updated'])
-@arolla.optools.as_backend_operator(
-    'kd.core.updated',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.ds),
-        qtype_utils.expect_data_bag_args(P.bag),
-    ],
-    qtype_inference_expr=qtypes.DATA_SLICE,
-    experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
-)
-def updated(ds, *bag):  # pylint: disable=unused-argument
-  """Returns a copy of a DataSlice with DataBag(s) of updates applied.
-
-  Values in `*bag` take precedence over the ones in the original DataBag of
-  `ds`.
-
-  The DataBag attached to the result is a new immutable DataBag that falls back
-  to the DataBag of `ds` if present and then to `*bag`.
-
-  `updated(x, a, b)` is equivalent to `updated(updated(x, b), a)`, and so on
-  for additional DataBag args.
-
-  Args:
-    ds: DataSlice.
-    *bag: DataBag(s) of updates.
 
   Returns:
     DataSlice with additional fallbacks.

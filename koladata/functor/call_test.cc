@@ -243,9 +243,10 @@ TEST(CallTest, EvalError) {
            test::DataItem(arolla::Text("my_file.cc")), test::DataItem(57),
            test::DataItem(arolla::Text("  z = x + y"))}));
   ASSERT_OK_AND_ASSIGN(
-      fn,
-      ops::WithAttr(fn, test::DataItem(arolla::Text("__stack_trace_frame__")),
-                    frame_slice, test::DataItem(false)));
+      auto update,
+      ops::Attr(fn, test::DataItem(arolla::Text("__stack_trace_frame__")),
+                frame_slice, test::DataItem(false)));
+  fn = fn.WithBag(DataBag::ImmutableEmptyWithFallbacks({update, fn.GetBag()}));
 
   // This error message should be improved, in particular it should actually
   // mention that we are evaluating a functor, which variable, etc.
