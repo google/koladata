@@ -434,6 +434,10 @@ class CopyingProcessor {
       const std::string_view attr_name) {
     DataItem old_schema_item;
     if (is_shallow_clone_) {
+      if (attr_name == schema::kSchemaMetadataAttr) {
+        // We don't copy metadata attributes in shallow clone.
+        return std::make_pair(DataItem(), false);
+      }
       ASSIGN_OR_RETURN(old_schema_item, objects_tracker_->GetAttr(
                                             schema_item, kMappingAttrName));
       if (!old_schema_item.has_value()) {
@@ -508,6 +512,10 @@ class CopyingProcessor {
     // attr_schemas, we shouldn't overwrite them.
     ASSIGN_OR_RETURN(auto new_schemas_overwrite,
                      PresenceAndOp()(new_schemas, attr_schemas_mask));
+    // For the cloned schemas, we don't set metadata attributes.
+    if (is_shallow_clone_ && attr_name == schema::kSchemaMetadataAttr) {
+      return std::make_pair(std::move(attr_schemas), false);
+    }
     RETURN_IF_ERROR(SetSchemaAttrToNewDatabagSkipMissing(
         std::move(new_schemas_overwrite), attr_name, attr_schemas));
     return std::make_pair(std::move(attr_schemas), true);

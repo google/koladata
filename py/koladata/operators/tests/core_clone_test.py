@@ -256,6 +256,44 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equal(res.b.c.no_bag(), ds(5))
     testing.assert_equal(res.d.no_bag(), ds(4))
 
+  def test_metadata_entity(self):
+    schema = kde.schema.new_schema(
+        x=schema_constants.INT32, y=schema_constants.INT32
+    )
+    schema = kde.with_metadata(schema, attrs='xy')
+    x = kde.new(x=1, y=2, schema=schema)
+    res = kde.clone(x)
+    res_metadata = expr_eval.eval(kde.get_metadata(res.get_schema()))
+    testing.assert_equal(res_metadata.attrs.no_bag(), ds('xy'))
+
+  def test_metadata_object(self):
+    schema = kde.schema.new_schema(
+        x=schema_constants.INT32, y=schema_constants.INT32
+    )
+    schema = kde.with_metadata(schema, attrs='xy')
+    x = kde.new(x=1, y=2, schema=schema)
+    res = kde.clone(kde.obj(x))
+    res_metadata = expr_eval.eval(kde.get_metadata(res.get_obj_schema()))
+    testing.assert_equal(res_metadata.attrs.no_bag(), ds('xy'))
+
+  def test_metadata_object_implicit_schema(self):
+    x = kde.obj(x=1, y=2)
+    upd = kde.metadata(x.get_obj_schema(), attrs='xy')
+    x = x.with_fallback(upd)
+    res = kde.clone(x)
+    with self.assertRaisesRegex(ValueError, 'failed to get attribute'):
+      _ = expr_eval.eval(kde.get_metadata(res.get_obj_schema()))
+
+  def test_metadata_clone_schema(self):
+    schema = kde.schema.new_schema(
+        x=schema_constants.INT32, y=schema_constants.INT32
+    )
+    schema = kde.with_metadata(schema, attrs='xy')
+    x = kde.new(x=1, y=2, schema=schema)
+    res_schema = kde.clone(x.get_schema())
+    with self.assertRaisesRegex(ValueError, 'failed to get attribute'):
+      _ = expr_eval.eval(kde.get_metadata(res_schema))
+
   def test_named_schema(self):
     db = data_bag.DataBag.empty()
     s = db.named_schema('s', x=schema_constants.INT32, y=schema_constants.INT32)

@@ -730,6 +730,52 @@ TEST_P(ShallowCloneTest, SchemaUuidSlice) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(ShallowCloneTest, SchemaMetadataDropped) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema = DataItem(AllocateSchema());
+  ASSERT_OK_AND_ASSIGN(auto metadata,
+                       CreateUuidWithMainObject(schema, schema::kMetadataSeed));
+  ASSERT_OK_AND_ASSIGN(
+      auto metadata_schema,
+      CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
+          metadata, schema::kImplicitSchemaSeed));
+  auto a1 = DataItem(AllocateSingleObject());
+  TriplesT schema_triples = {
+      {schema,
+       {{"x", DataItem(schema::kInt32)},
+        {schema::kSchemaMetadataAttr, metadata}}},
+      {metadata_schema, {{"name", DataItem(schema::kString)}}}};
+  TriplesT data_triples = {
+      {a1, {{"x", DataItem(2)}}},
+      {metadata,
+       {{schema::kSchemaAttr, metadata_schema},
+        {"name", DataItem(arolla::Text("object with metadata"))}}}};
+  auto itemid = DataItem(AllocateSingleObject());
+
+  SetSchemaTriples(*db, schema_triples);
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      (auto [result, result_schema]),
+      ShallowCloneOp(result_db.get())(a1, itemid, schema, *GetMainDb(db),
+                                      {GetFallbackDb(db).get()}, nullptr, {}));
+  ASSERT_EQ(result_schema, schema);
+  ASSERT_NE(result_db.get(), db.get());
+
+  TriplesT expected_schema_triples = {
+      {schema, {{"x", DataItem(schema::kInt32)}}}};
+  TriplesT expected_data_triples = {{itemid, {{"x", DataItem(2)}}}};
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+  SetDataTriples(*expected_db, expected_data_triples);
+
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(ShallowCloneTest, MissingInItemid) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto obj_ids = AllocateEmptyObjects(3);
