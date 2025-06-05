@@ -2350,7 +2350,7 @@ def stream_for(
       ),
       yields_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
-              stream_interleave_from_stream,
+              stream_chain_from_stream,
               _stream_for_yields(
                   P.executor,
                   P.stream,
