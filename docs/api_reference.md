@@ -1266,8 +1266,7 @@ Args:
   **attrs: attrs to set in the update.
 ```
 
-### `kd.core.with_print(x, *args, sep=' ', end='
-')` {#kd.core.with_print}
+### `kd.core.with_print(x, *args, sep=' ', end='\n')` {#kd.core.with_print}
 
 ``` {.no-copy}
 Prints *args to stdout and returns `x`.
