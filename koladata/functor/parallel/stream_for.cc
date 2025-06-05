@@ -232,7 +232,7 @@ absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamForReturns(
     StreamForFunctor /*nonnull*/ body_functor,
     StreamForFunctor /*nullable*/ finalize_functor,
     StreamForFunctor /*nullable*/ condition_functor,
-    arolla::TypedRef initial_state_returns, arolla::TypedRef initial_state) {
+    arolla::TypedRef initial_returns, arolla::TypedRef initial_state) {
   DCHECK(body_functor != nullptr);
   if (!arolla::IsNamedTupleQType(initial_state.GetType())) {
     return absl::InvalidArgumentError(
@@ -255,8 +255,8 @@ absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamForReturns(
   for (size_t i = 0; i < field_names.size(); ++i) {
     initial_var_values.emplace_back(initial_state.GetField(i));
   }
-  initial_var_values.emplace_back(initial_state_returns);
-  auto [result, writer] = MakeStream(initial_state_returns.GetType(), 1);
+  initial_var_values.emplace_back(initial_returns);
+  auto [result, writer] = MakeStream(initial_returns.GetType(), 1);
   StartBasicRoutine(
       std::move(executor),
       std::make_unique<StreamForHooks<StreamForReturnsTraits>>(
@@ -269,7 +269,7 @@ absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamForReturns(
 
 namespace {
 
-// Traits for the `StreamForYields`.
+// Traits for the `StreamForYields` operator.
 class StreamForYieldsTraits {
  public:
   StreamForYieldsTraits(StreamWriterPtr /*absl_nonnull*/ writer,

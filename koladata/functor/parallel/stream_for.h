@@ -39,7 +39,7 @@ absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamForReturns(
     StreamForFunctor /*nonnull*/ body_functor,
     StreamForFunctor /*nullable*/ finalize_functor,
     StreamForFunctor /*nullable*/ condition_functor,
-    arolla::TypedRef initial_state_returns, arolla::TypedRef initial_state);
+    arolla::TypedRef initial_returns, arolla::TypedRef initial_state);
 
 absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamForYields(
     ExecutorPtr /*absl_nonnull*/ executor,

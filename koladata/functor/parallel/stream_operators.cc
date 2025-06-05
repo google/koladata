@@ -1004,8 +1004,8 @@ class StreamForReturnsOp final : public arolla::QExprOperator {
 //     body_fn: DATA_SLICE,
 //     finalize_fn: DATA_SLICE | UNSPECIFIED,
 //     condition_fn: DATA_SLICE | UNSPECIFIED,
-//     returns: T,
-//     state: NAMEDTUPLE,
+//     initial_returns: T,
+//     initial_state: NAMEDTUPLE,
 //     NON_DETERMINISTIC
 // ) -> STREAM[T]
 absl::StatusOr<arolla::OperatorPtr>
@@ -1131,8 +1131,8 @@ class StreamForYieldsOp final : public arolla::QExprOperator {
 //     finalize_fn: DATA_SLICE | UNSPECIFIED,
 //     condition_fn: DATA_SLICE | UNSPECIFIED,
 //     yields_param_name: STRING,
-//     yields: T,
-//     state: NAMEDTUPLE,
+//     initial_yields: T,
+//     initial_state: NAMEDTUPLE,
 //     NON_DETERMINISTIC
 // ) -> STREAM[T]
 absl::StatusOr<arolla::OperatorPtr>

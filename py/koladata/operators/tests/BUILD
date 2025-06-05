@@ -9352,5 +9352,6 @@ py_test(
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )

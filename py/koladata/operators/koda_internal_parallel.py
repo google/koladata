@@ -2197,7 +2197,7 @@ def stream_while_loop(
 
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel._stream_for_returns',
-    qtype_inference_expr=get_stream_qtype(P.returns),
+    qtype_inference_expr=get_stream_qtype(P.initial_returns),
 )
 def _stream_for_returns(
     executor,
@@ -2205,8 +2205,8 @@ def _stream_for_returns(
     body_fn,
     finalize_fn,
     condition_fn,
-    returns,
-    state,
+    initial_returns,
+    initial_state,
     non_deterministic,
 ):
   """(internal) Executes a loop over the given iterable."""
@@ -2215,7 +2215,7 @@ def _stream_for_returns(
 
 @arolla.optools.as_backend_operator(
     'koda_internal.parallel._stream_for_yields',
-    qtype_inference_expr=get_stream_qtype(P.yields),
+    qtype_inference_expr=get_stream_qtype(P.initial_yields),
 )
 def _stream_for_yields(
     executor,
@@ -2224,8 +2224,8 @@ def _stream_for_yields(
     finalize_fn,
     condition_fn,
     yields_param_name,
-    yields,
-    state,
+    initial_yields,
+    initial_state,
     non_deterministic,
 ):
   """(internal) Executes a loop over the given iterable."""
@@ -2306,11 +2306,11 @@ def stream_for(
     executor: The executor to use for computations.
     stream: The stream to iterate over.
     body_fn: The function to be executed for each item in the stream. It will
-      receive the stream item as the positional argument, and the loop
-      variables as keyword arguments (excluding `yields`/`yields_interleaved` if
-      those are specified), and must return a namedtuple with the new values for
-      some or all loop variables (including `yields`/`yields_interleaved` if
-      those are specified).
+      receive the stream item as the positional argument, and the loop variables
+      as keyword arguments (excluding `yields`/`yields_interleaved` if those are
+      specified), and must return a namedtuple with the new values for some or
+      all loop variables (including `yields`/`yields_interleaved` if those are
+      specified).
     finalize_fn: The function to be executed when the stream is exhausted. It
       will receive the same arguments as `body_fn` except the positional
       argument, and must return the same namedtuple. If not specified, the state

@@ -19,6 +19,7 @@ import threading
 import time
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.expr import input_container
 from koladata.expr import view
@@ -36,6 +37,12 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 py_fn = user_facing_kd.py_fn
 I = input_container.InputContainer('I')
+
+
+def stream_make(*args, **kwargs):
+  return arolla.abc.aux_eval_op(
+      'koda_internal.parallel.stream_make', *args, **kwargs
+  )
 
 
 def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
@@ -292,6 +299,35 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
         ),
         [5, 7],
     )
+
+  def test_for_yields_interleaved_order(self):
+    n = 512
+    expr = koda_internal_parallel.stream_for(
+        koda_internal_parallel.get_default_executor(),
+        I.input_seq,
+        lambda item: user_facing_kd.make_namedtuple(yields_interleaved=item),
+        yields_interleaved=delayed_stream_make(),
+    )
+    input_seq = stream_make(
+        *map(lambda x: delayed_stream_make(x, delay_per_item=0.1), range(n))
+    )
+    res_list = expr.eval(input_seq=input_seq).read_all(timeout=2)
+    self.assertCountEqual(res_list, list(map(ds, range(n))))
+    self.assertNotEqual(res_list, sorted(res_list))
+
+  def test_for_yields_chained_order(self):
+    n = 512
+    expr = koda_internal_parallel.stream_for(
+        koda_internal_parallel.get_default_executor(),
+        I.input_seq,
+        lambda item: user_facing_kd.make_namedtuple(yields=item),
+        yields=delayed_stream_make(),
+    )
+    input_seq = stream_make(
+        *map(lambda x: delayed_stream_make(x, delay_per_item=0.1), range(n))
+    )
+    res_list = expr.eval(input_seq=input_seq).read_all(timeout=2)
+    self.assertEqual(res_list, sorted(res_list))
 
   def test_for_returns_bag(self):
     many_attrs = koda_internal_parallel.stream_for(
