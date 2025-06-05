@@ -21,7 +21,11 @@ from typing import Any
 from arolla import arolla
 from arolla.jagged_shape import jagged_shape
 from koladata.expr import py_expr_eval_py_ext
+from koladata.types import data_slice_py_ext as _data_slice_py_ext
 from koladata.types import py_misc_py_ext as _py_misc_py_ext
+
+
+DataSlice = _data_slice_py_ext.DataSlice
 
 
 def create_shape(*dimensions: Any) -> JaggedShape:
@@ -57,6 +61,9 @@ class JaggedShape(
         'koda_internal.to_arolla_jagged_shape', (self,)
     )
     return dense_array_shape.rank()
+
+  def get_sizes(self) -> DataSlice:
+    return py_expr_eval_py_ext.eval_op('kd.shapes.get_sizes', self)
 
   def __getitem__(
       self, value: Any

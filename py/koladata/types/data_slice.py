@@ -558,6 +558,11 @@ def _display(
     print(repr(self))
 
 
+@add_method(DataSlice, 'get_sizes')
+def get_sizes(self) -> DataSlice:
+  """Returns a DataSlice of sizes of the DataSlice's shape."""
+  return _eval_op('kd.shapes.get_sizes', self)
+
 ##### DataSlice Magic methods. #####
 
 

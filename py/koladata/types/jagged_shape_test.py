@@ -21,6 +21,7 @@ from koladata.operators import kde_operators as _
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import jagged_shape
+from koladata.types import schema_constants
 
 M = arolla.M
 
@@ -121,6 +122,15 @@ class JaggedShapeTest(absltest.TestCase):
     self.assertFalse(_koda_shape_3d() != _koda_shape_3d())  # pylint: disable=g-generic-assert
     with self.assertRaises(NotImplementedError):
       _ = _koda_shape_3d() != 42
+
+  def test_get_sizes(self):
+    shape = _koda_shape_3d()
+    testing.assert_equal(
+        shape.get_sizes(),
+        data_slice.DataSlice.from_vals(
+            [[2], [2, 1], [1, 2, 1]], schema=schema_constants.INT64
+        ),
+    )
 
 
 if __name__ == '__main__':

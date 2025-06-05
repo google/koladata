@@ -4129,6 +4129,12 @@ class DataSliceListSlicingTest(parameterized.TestCase):
     x = x.freeze_bag()
     self.assertFalse(x.is_mutable())
 
+  def test_get_sizes(self):
+    testing.assert_equal(
+        ds([[[1, 2]], [[3, 4], [5]]]).get_sizes(),
+        ds([[2], [1, 2], [2, 2, 1]], schema=schema_constants.INT64)
+    )
+
   def test_repr_with_params(self):
     d = fns.obj(a=fns.obj(b=fns.obj(c=fns.obj(d=1))))
     html_str = d._repr_with_params(format_html=True, depth=1)  # pylint: disable=protected-access

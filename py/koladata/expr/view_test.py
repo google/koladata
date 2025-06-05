@@ -25,6 +25,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import ellipsis
+from koladata.types import jagged_shape
 
 kde = kde_operators.kde
 C = input_container.InputContainer('C')
@@ -441,6 +442,9 @@ class KodaViewTest(parameterized.TestCase):
   def test_get_size(self):
     testing.assert_equal(C.x.get_size(), kde.size(C.x))
 
+  def test_get_sizes(self):
+    testing.assert_equal(C.x.get_sizes(), kde.shapes.get_sizes(C.x))
+
   def test_get_keys(self):
     testing.assert_equal(C.x.get_keys(), kde.get_keys(C.x))
 
@@ -716,6 +720,19 @@ class KodaViewTest(parameterized.TestCase):
   def test_consistent_signatures(self, *args, **kwargs):
     signature_test_utils.check_method_function_signature_compatibility(
         self, *args, **kwargs
+    )
+
+  def test_data_slice_qtype_view(self):
+    self.assertTrue(view.has_koda_view(arolla.literal(ds(1))))
+
+  def test_data_bag_qtype_view(self):
+    self.assertTrue(
+        view.has_koda_view(arolla.literal(data_bag.DataBag.empty()))
+    )
+
+  def test_jagged_shape_qtype_view(self):
+    self.assertTrue(
+        view.has_koda_view(arolla.literal(jagged_shape.create_shape(2)))
     )
 
 

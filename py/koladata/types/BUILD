@@ -554,6 +554,7 @@ py_library(
     name = "jagged_shape",
     srcs = ["jagged_shape.py"],
     deps = [
+        ":data_slice_py_ext",
         ":py_misc_py_ext",
         "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
@@ -589,6 +590,7 @@ py_test(
     deps = [
         ":data_slice",
         ":jagged_shape",
+        ":schema_constants",
         "//py:python_path",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",

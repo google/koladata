@@ -360,6 +360,9 @@ class KodaView(arolla.abc.ExprView):
   def get_size(self) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.size', self)
 
+  def get_sizes(self) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kd.shapes.get_sizes', self)
+
   def has_attr(self, attr_name: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.has_attr', self, attr_name)
 
@@ -660,6 +663,7 @@ def has_koda_view(node: arolla.Expr) -> bool:
 
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_SLICE, KodaView)
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_BAG, KodaView)
+arolla.abc.set_expr_view_for_qtype(qtypes.JAGGED_SHAPE, KodaView)
 arolla.abc.set_expr_view_for_registered_operator(
     'koda_internal.input', KodaView
 )

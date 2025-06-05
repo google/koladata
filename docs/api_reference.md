@@ -10787,6 +10787,15 @@ Returns:
   The size of `x`.
 ```
 
+### `DataSlice.get_sizes(self)` {#DataSlice.get_sizes}
+Aliases:
+
+- [DataItem.get_sizes](#DataItem.get_sizes)
+
+``` {.no-copy}
+Returns a DataSlice of sizes of the DataSlice's shape.
+```
+
 ### `DataSlice.get_value_schema(self)` {#DataSlice.get_value_schema}
 Aliases:
 
@@ -12434,6 +12443,10 @@ Alias for [DataSlice.get_shape](#DataSlice.get_shape) operator.
 ### `DataItem.get_size(self)` {#DataItem.get_size}
 
 Alias for [DataSlice.get_size](#DataSlice.get_size) operator.
+
+### `DataItem.get_sizes(self)` {#DataItem.get_sizes}
+
+Alias for [DataSlice.get_sizes](#DataSlice.get_sizes) operator.
 
 ### `DataItem.get_value_schema(self)` {#DataItem.get_value_schema}
 
