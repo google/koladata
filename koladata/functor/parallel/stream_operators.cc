@@ -33,13 +33,16 @@
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/sequence/sequence.h"
+#include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_composition.h"
+#include "koladata/functor/parallel/stream_for.h"
 #include "koladata/functor/parallel/stream_map.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/functor/parallel/stream_reduce.h"
@@ -660,40 +663,38 @@ class StreamWhileLoopReturnsOp final : public arolla::QExprOperator {
       arolla::TypedSlot output_slot) const final {
     return arolla::MakeBoundOperator(
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
-         condition_ds_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
-         body_ds_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
-         initial_state_returns_slot = input_slots[3],
-         initial_state_slot = input_slots[4],
+         condition_fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
+         body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         returns_slot = input_slots[3], state_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
             arolla::EvaluationContext* /*ctx*/,
             arolla::FramePtr frame) -> absl::Status {
-          ASSIGN_OR_RETURN(
-              auto stream,
-              functor::parallel::StreamWhileLoopReturns(
-                  frame.Get(executor_slot),
-                  [condition_ds = frame.Get(condition_ds_slot)](
-                      absl::Span<const arolla::TypedRef> args,
-                      absl::Span<const std::string> kwnames)
-                      -> absl::StatusOr<arolla::TypedValue> {
-                    ASSIGN_OR_RETURN(
-                        auto result,
-                        CallFunctorWithCompilationCache(condition_ds, args,
-                                                        kwnames),
-                        _ << "error occurred while calling `condition_fn`");
-                    return result;
-                  },
-                  [body_ds = frame.Get(body_ds_slot)](
-                      absl::Span<const arolla::TypedRef> args,
-                      absl::Span<const std::string> kwnames)
-                      -> absl::StatusOr<arolla::TypedValue> {
-                    ASSIGN_OR_RETURN(
-                        auto result,
-                        CallFunctorWithCompilationCache(body_ds, args, kwnames),
-                        _ << "error occurred while calling `body_fn`");
-                    return result;
-                  },
-                  arolla::TypedRef::FromSlot(initial_state_returns_slot, frame),
-                  arolla::TypedRef::FromSlot(initial_state_slot, frame)));
+          auto condition_fn = [condition_ds = frame.Get(condition_fn_slot)](
+                                  absl::Span<const arolla::TypedRef> args,
+                                  absl::Span<const std::string> kwnames)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(
+                auto result,
+                CallFunctorWithCompilationCache(condition_ds, args, kwnames),
+                _ << "error occurred while calling `condition_fn`");
+            return result;
+          };
+          auto body_fn = [body_ds = frame.Get(body_fn_slot)](
+                             absl::Span<const arolla::TypedRef> args,
+                             absl::Span<const std::string> kwnames)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(
+                auto result,
+                CallFunctorWithCompilationCache(body_ds, args, kwnames),
+                _ << "error occurred while calling `body_fn`");
+            return result;
+          };
+          ASSIGN_OR_RETURN(auto stream,
+                           functor::parallel::StreamWhileLoopReturns(
+                               frame.Get(executor_slot),
+                               std::move(condition_fn), std::move(body_fn),
+                               arolla::TypedRef::FromSlot(returns_slot, frame),
+                               arolla::TypedRef::FromSlot(state_slot, frame)));
           frame.Set(output_slot, std::move(stream));
           return absl::OkStatus();
         });
@@ -703,7 +704,12 @@ class StreamWhileLoopReturnsOp final : public arolla::QExprOperator {
 }  // namespace
 
 // stream_while_loop_returns(
-//     EXECUTOR, DATA_SLICE, DATA_SLICE, T, NAMEDTUPLE, NON_DETERMINISTIC
+//     executor: EXECUTOR,
+//     condition_fn: DATA_SLICE,
+//     body_fn: DATA_SLICE,
+//     returns: T,
+//     state: NAMEDTUPLE,
+//     NON_DETERMINISTIC
 // ) -> STREAM[T]
 absl::StatusOr<arolla::OperatorPtr>
 StreamWhileLoopReturnsOperatorFamily::DoGetOperator(
@@ -747,40 +753,39 @@ class StreamWhileLoopYieldsChainedOp final : public arolla::QExprOperator {
       arolla::TypedSlot output_slot) const final {
     return arolla::MakeBoundOperator(
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
-         condition_ds_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
-         body_ds_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
-         initial_yields_slot = input_slots[3].UnsafeToSlot<StreamPtr>(),
-         initial_state_slot = input_slots[4],
+         condition_fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
+         body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         yields_slot = input_slots[3].UnsafeToSlot<StreamPtr>(),
+         state_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
             arolla::EvaluationContext* /*ctx*/,
             arolla::FramePtr frame) -> absl::Status {
+          auto condition_fn = [condition_ds = frame.Get(condition_fn_slot)](
+                                  absl::Span<const arolla::TypedRef> args,
+                                  absl::Span<const std::string> kwnames)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(
+                auto result,
+                CallFunctorWithCompilationCache(condition_ds, args, kwnames),
+                _ << "error occurred while calling `condition_fn`");
+            return result;
+          };
+          auto body_fn = [body_ds = frame.Get(body_fn_slot)](
+                             absl::Span<const arolla::TypedRef> args,
+                             absl::Span<const std::string> kwnames)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(
+                auto result,
+                CallFunctorWithCompilationCache(body_ds, args, kwnames),
+                _ << "error occurred while calling `body_fn`");
+            return result;
+          };
           ASSIGN_OR_RETURN(
               auto stream,
               functor::parallel::StreamWhileLoopYieldsChained(
-                  frame.Get(executor_slot),
-                  [condition_ds = frame.Get(condition_ds_slot)](
-                      absl::Span<const arolla::TypedRef> args,
-                      absl::Span<const std::string> kwnames)
-                      -> absl::StatusOr<arolla::TypedValue> {
-                    ASSIGN_OR_RETURN(
-                        auto result,
-                        CallFunctorWithCompilationCache(condition_ds, args,
-                                                        kwnames),
-                        _ << "error occurred while calling `condition_fn`");
-                    return result;
-                  },
-                  [body_ds = frame.Get(body_ds_slot)](
-                      absl::Span<const arolla::TypedRef> args,
-                      absl::Span<const std::string> kwnames)
-                      -> absl::StatusOr<arolla::TypedValue> {
-                    ASSIGN_OR_RETURN(
-                        auto result,
-                        CallFunctorWithCompilationCache(body_ds, args, kwnames),
-                        _ << "error occurred while calling `body_fn`");
-                    return result;
-                  },
-                  frame.Get(initial_yields_slot),
-                  arolla::TypedRef::FromSlot(initial_state_slot, frame)));
+                  frame.Get(executor_slot), std::move(condition_fn),
+                  std::move(body_fn), frame.Get(yields_slot),
+                  arolla::TypedRef::FromSlot(state_slot, frame)));
           frame.Set(output_slot, std::move(stream));
           return absl::OkStatus();
         });
@@ -839,40 +844,39 @@ class StreamWhileLoopYieldsInterleavedOp final : public arolla::QExprOperator {
       arolla::TypedSlot output_slot) const final {
     return arolla::MakeBoundOperator(
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
-         condition_ds_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
-         body_ds_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
-         initial_yields_slot = input_slots[3].UnsafeToSlot<StreamPtr>(),
-         initial_state_slot = input_slots[4],
+         condition_fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
+         body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         yields_interleaved_slot = input_slots[3].UnsafeToSlot<StreamPtr>(),
+         state_slot = input_slots[4],
          output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
             arolla::EvaluationContext* /*ctx*/,
             arolla::FramePtr frame) -> absl::Status {
+          auto condition_fn = [condition_ds = frame.Get(condition_fn_slot)](
+                                  absl::Span<const arolla::TypedRef> args,
+                                  absl::Span<const std::string> kwnames)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(
+                auto result,
+                CallFunctorWithCompilationCache(condition_ds, args, kwnames),
+                _ << "error occurred while calling `condition_fn`");
+            return result;
+          };
+          auto body_fn = [body_ds = frame.Get(body_fn_slot)](
+                             absl::Span<const arolla::TypedRef> args,
+                             absl::Span<const std::string> kwnames)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(
+                auto result,
+                CallFunctorWithCompilationCache(body_ds, args, kwnames),
+                _ << "error occurred while calling `body_fn`");
+            return result;
+          };
           ASSIGN_OR_RETURN(
               auto stream,
               functor::parallel::StreamWhileLoopYieldsInterleaved(
-                  frame.Get(executor_slot),
-                  [condition_ds = frame.Get(condition_ds_slot)](
-                      absl::Span<const arolla::TypedRef> args,
-                      absl::Span<const std::string> kwnames)
-                      -> absl::StatusOr<arolla::TypedValue> {
-                    ASSIGN_OR_RETURN(
-                        auto result,
-                        CallFunctorWithCompilationCache(condition_ds, args,
-                                                        kwnames),
-                        _ << "error occurred while calling `condition_fn`");
-                    return result;
-                  },
-                  [body_ds = frame.Get(body_ds_slot)](
-                      absl::Span<const arolla::TypedRef> args,
-                      absl::Span<const std::string> kwnames)
-                      -> absl::StatusOr<arolla::TypedValue> {
-                    ASSIGN_OR_RETURN(
-                        auto result,
-                        CallFunctorWithCompilationCache(body_ds, args, kwnames),
-                        _ << "error occurred while calling `body_fn`");
-                    return result;
-                  },
-                  frame.Get(initial_yields_slot),
-                  arolla::TypedRef::FromSlot(initial_state_slot, frame)));
+                  frame.Get(executor_slot), std::move(condition_fn),
+                  std::move(body_fn), frame.Get(yields_interleaved_slot),
+                  arolla::TypedRef::FromSlot(state_slot, frame)));
           frame.Set(output_slot, std::move(stream));
           return absl::OkStatus();
         });
@@ -885,7 +889,7 @@ class StreamWhileLoopYieldsInterleavedOp final : public arolla::QExprOperator {
 //     executor: EXECUTOR,
 //     condition_fn: DATA_SLICE,
 //     body_fn: DATA_SLICE,
-//     yields: STREAM[T],
+//     yields_interleaved: STREAM[T],
 //     state: NAMEDTUPLE,
 //     NON_DETERMINISTIC
 // ) -> STREAM[T]
@@ -918,6 +922,260 @@ StreamWhileLoopYieldsInterleavedOperatorFamily::DoGetOperator(
   RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[5]));
   return std::make_shared<StreamWhileLoopYieldsInterleavedOp>(input_types,
                                                               output_type);
+}
+
+namespace {
+
+class StreamForReturnsOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
+         input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
+         body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         finalize_fn_slot = input_slots[3], condition_fn_slot = input_slots[4],
+         returns_slot = input_slots[5], state_slot = input_slots[6],
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          auto body_fn = [body_ds = frame.Get(body_fn_slot)](
+                             absl::Span<const arolla::TypedRef> args,
+                             absl::Span<const std::string> kwnames)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(
+                auto result,
+                CallFunctorWithCompilationCache(body_ds, args, kwnames),
+                _ << "error occurred while calling `body_fn`");
+            return result;
+          };
+          StreamForFunctor finalize_functor;
+          if (finalize_fn_slot.GetType() == arolla::GetQType<DataSlice>()) {
+            finalize_functor =
+                [finalize_ds =
+                     frame.Get(finalize_fn_slot.UnsafeToSlot<DataSlice>())](
+                    absl::Span<const arolla::TypedRef> args,
+                    absl::Span<const std::string> kwnames)
+                -> absl::StatusOr<arolla::TypedValue> {
+              ASSIGN_OR_RETURN(
+                  auto result,
+                  CallFunctorWithCompilationCache(finalize_ds, args, kwnames),
+                  _ << "error occurred while calling `finalize_fn`");
+              return result;
+            };
+          }
+          StreamForFunctor condition_functor;
+          if (condition_fn_slot.GetType() == arolla::GetQType<DataSlice>()) {
+            condition_functor =
+                [condition_ds =
+                     frame.Get(condition_fn_slot.UnsafeToSlot<DataSlice>())](
+                    absl::Span<const arolla::TypedRef> args,
+                    absl::Span<const std::string> kwnames)
+                -> absl::StatusOr<arolla::TypedValue> {
+              ASSIGN_OR_RETURN(
+                  auto result,
+                  CallFunctorWithCompilationCache(condition_ds, args, kwnames),
+                  _ << "error occurred while calling `condition_fn`");
+              return result;
+            };
+          }
+          ASSIGN_OR_RETURN(
+              auto stream,
+              StreamForReturns(frame.Get(executor_slot),
+                               frame.Get(input_stream_slot), std::move(body_fn),
+                               std::move(finalize_functor),
+                               std::move(condition_functor),
+                               arolla::TypedRef::FromSlot(returns_slot, frame),
+                               arolla::TypedRef::FromSlot(state_slot, frame)));
+          frame.Set(output_slot, std::move(stream));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+// _stream_for_returns(
+//     executor: EXECUTOR,
+//     stream: STREAM[S],
+//     body_fn: DATA_SLICE,
+//     finalize_fn: DATA_SLICE | UNSPECIFIED,
+//     condition_fn: DATA_SLICE | UNSPECIFIED,
+//     returns: T,
+//     state: NAMEDTUPLE,
+//     NON_DETERMINISTIC
+// ) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr>
+StreamForReturnsOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  if (input_types.size() != 8) {
+    return absl::InvalidArgumentError("requires exactly 8 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
+    return absl::InvalidArgumentError("1st argument must be an executor");
+  }
+  if (!IsStreamQType(input_types[1])) {
+    return absl::InvalidArgumentError("2nd argument must be a stream");
+  }
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError("3rd argument must be a functor");
+  }
+  if (input_types[3] != arolla::GetQType<DataSlice>() &&
+      input_types[3] != arolla::GetUnspecifiedQType()) {
+    return absl::InvalidArgumentError(
+        "4th argument must be a functor or unspecified");
+  }
+  if (input_types[4] != arolla::GetQType<DataSlice>() &&
+      input_types[4] != arolla::GetUnspecifiedQType()) {
+    return absl::InvalidArgumentError(
+        "5th argument must be a functor or unspecified");
+  }
+  if (input_types[5] != output_type->value_qtype()) {
+    return absl::InvalidArgumentError(
+        "6th argument must be the same as the value type of the output");
+  }
+  if (!arolla::IsNamedTupleQType(input_types[6])) {
+    return absl::InvalidArgumentError("7th argument must be a namedtuple");
+  }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[7]));
+  return std::make_shared<StreamForReturnsOp>(input_types, output_type);
+}
+
+namespace {
+
+class StreamForYieldsOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
+         input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
+         body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         finalize_fn_slot = input_slots[3], condition_fn_slot = input_slots[4],
+         yields_param_name_slot = input_slots[5].UnsafeToSlot<arolla::Text>(),
+         yields_slot = input_slots[6], state_slot = input_slots[7],
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          auto body_fn = [body_ds = frame.Get(body_fn_slot)](
+                             absl::Span<const arolla::TypedRef> args,
+                             absl::Span<const std::string> kwnames)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(
+                auto result,
+                CallFunctorWithCompilationCache(body_ds, args, kwnames),
+                _ << "error occurred while calling `body_fn`");
+            return result;
+          };
+          StreamForFunctor finalize_functor;
+          if (finalize_fn_slot.GetType() == arolla::GetQType<DataSlice>()) {
+            finalize_functor =
+                [finalize_ds =
+                     frame.Get(finalize_fn_slot.UnsafeToSlot<DataSlice>())](
+                    absl::Span<const arolla::TypedRef> args,
+                    absl::Span<const std::string> kwnames)
+                -> absl::StatusOr<arolla::TypedValue> {
+              ASSIGN_OR_RETURN(
+                  auto result,
+                  CallFunctorWithCompilationCache(finalize_ds, args, kwnames),
+                  _ << "error occurred while calling `finalize_fn`");
+              return result;
+            };
+          }
+          StreamForFunctor condition_functor;
+          if (condition_fn_slot.GetType() == arolla::GetQType<DataSlice>()) {
+            condition_functor =
+                [condition_ds =
+                     frame.Get(condition_fn_slot.UnsafeToSlot<DataSlice>())](
+                    absl::Span<const arolla::TypedRef> args,
+                    absl::Span<const std::string> kwnames)
+                -> absl::StatusOr<arolla::TypedValue> {
+              ASSIGN_OR_RETURN(
+                  auto result,
+                  CallFunctorWithCompilationCache(condition_ds, args, kwnames),
+                  _ << "error occurred while calling `condition_fn`");
+              return result;
+            };
+          }
+          ASSIGN_OR_RETURN(
+              auto stream,
+              StreamForYields(frame.Get(executor_slot),
+                              frame.Get(input_stream_slot), std::move(body_fn),
+                              std::move(finalize_functor),
+                              std::move(condition_functor),
+                              frame.Get(yields_param_name_slot).view(),
+                              arolla::TypedRef::FromSlot(yields_slot, frame),
+                              arolla::TypedRef::FromSlot(state_slot, frame)));
+          frame.Set(output_slot, std::move(stream));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+// _stream_for_yields(
+//     executor: EXECUTOR,
+//     stream: STREAM[S],
+//     body_fn: DATA_SLICE,
+//     finalize_fn: DATA_SLICE | UNSPECIFIED,
+//     condition_fn: DATA_SLICE | UNSPECIFIED,
+//     yields_param_name: STRING,
+//     yields: T,
+//     state: NAMEDTUPLE,
+//     NON_DETERMINISTIC
+// ) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr>
+StreamForYieldsOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  if (input_types.size() != 9) {
+    return absl::InvalidArgumentError("requires exactly 9 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
+    return absl::InvalidArgumentError("1st argument must be an executor");
+  }
+  if (!IsStreamQType(input_types[1])) {
+    return absl::InvalidArgumentError("2nd argument must be a stream");
+  }
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError("3rd argument must be a functor");
+  }
+  if (input_types[3] != arolla::GetQType<DataSlice>() &&
+      input_types[3] != arolla::GetUnspecifiedQType()) {
+    return absl::InvalidArgumentError(
+        "4th argument must be a functor or unspecified");
+  }
+  if (input_types[4] != arolla::GetQType<DataSlice>() &&
+      input_types[4] != arolla::GetUnspecifiedQType()) {
+    return absl::InvalidArgumentError(
+        "5th argument must be a functor or unspecified");
+  }
+  if (input_types[5] != arolla::GetQType<arolla::Text>()) {
+    return absl::InvalidArgumentError("6th argument must be a TEXT");
+  }
+  if (input_types[6] != output_type->value_qtype()) {
+    return absl::InvalidArgumentError(
+        "6th argument must be the same as the value type of the output");
+  }
+  if (!arolla::IsNamedTupleQType(input_types[7])) {
+    return absl::InvalidArgumentError("7th argument must be a namedtuple");
+  }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[8]));
+  return std::make_shared<StreamForYieldsOp>(input_types, output_type);
 }
 
 }  // namespace koladata::functor::parallel

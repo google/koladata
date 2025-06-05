@@ -492,6 +492,45 @@ cc_test(
 )
 
 cc_library(
+    name = "stream_for",
+    srcs = ["stream_for.cc"],
+    hdrs = ["stream_for.h"],
+    deps = [
+        ":basic_routine",
+        ":executor",
+        ":stream",
+        ":stream_loop_internal",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "stream_for_test",
+    srcs = ["stream_for_test.cc"],
+    deps = [
+        ":eager_executor",
+        ":stream",
+        ":stream_for",
+        "//koladata:data_slice_qtype",
+        "//koladata:test_utils",
+        "//koladata/internal:dtype",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "init_expr_operators",
     srcs = ["init_expr_operators.cc"],
     deps = [
@@ -708,6 +747,7 @@ cc_library(
         ":executor",
         ":stream",
         ":stream_composition",
+        ":stream_for",
         ":stream_map",
         ":stream_qtype",
         ":stream_reduce",
@@ -725,6 +765,7 @@ cc_library(
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/sequence",
+        "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )

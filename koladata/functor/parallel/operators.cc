@@ -42,6 +42,10 @@ namespace {
 #define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
+OPERATOR_FAMILY("koda_internal.parallel._stream_for_returns",
+                std::make_unique<StreamForReturnsOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel._stream_for_yields",
+                std::make_unique<StreamForYieldsOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.as_future",
                 std::make_unique<AsFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.async_eval",

@@ -9333,3 +9333,24 @@ py_test(
         "@com_google_arolla//py/arolla",
     ],
 )
+
+py_test(
+    name = "koda_internal_parallel_stream_for_test",
+    srcs = ["koda_internal_parallel_stream_for_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor:boxing",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
+        "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)

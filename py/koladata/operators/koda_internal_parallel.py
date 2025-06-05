@@ -2193,3 +2193,206 @@ def stream_while_loop(
       state,
       optools.unified_non_deterministic_arg(),
   )
+
+
+@arolla.optools.as_backend_operator(
+    'koda_internal.parallel._stream_for_returns',
+    qtype_inference_expr=get_stream_qtype(P.returns),
+)
+def _stream_for_returns(
+    executor,
+    stream,
+    body_fn,
+    finalize_fn,
+    condition_fn,
+    returns,
+    state,
+    non_deterministic,
+):
+  """(internal) Executes a loop over the given iterable."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@arolla.optools.as_backend_operator(
+    'koda_internal.parallel._stream_for_yields',
+    qtype_inference_expr=get_stream_qtype(P.yields),
+)
+def _stream_for_yields(
+    executor,
+    stream,
+    body_fn,
+    finalize_fn,
+    condition_fn,
+    yields_param_name,
+    yields,
+    state,
+    non_deterministic,
+):
+  """(internal) Executes a loop over the given iterable."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel.stream_for',
+    qtype_constraints=(
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_stream(P.stream),
+        qtype_utils.expect_data_slice(P.body_fn),
+        qtype_utils.expect_data_slice_or_unspecified(P.finalize_fn),
+        qtype_utils.expect_data_slice_or_unspecified(P.condition_fn),
+        (
+            (
+                ((1 & (P.returns != arolla.UNSPECIFIED)) | 0)
+                + ((1 & (P.yields != arolla.UNSPECIFIED)) | 0)
+                + ((1 & (P.yields_interleaved != arolla.UNSPECIFIED)) | 0)
+            )
+            == 1,
+            (
+                'exactly one of `returns`, `yields`, or `yields_interleaved`'
+                ' must be specified'
+            ),
+        ),
+    ),
+    deterministic=False,
+)
+def stream_for(
+    executor,
+    stream,
+    body_fn,
+    *,
+    finalize_fn=arolla.unspecified(),
+    condition_fn=arolla.unspecified(),
+    returns=arolla.unspecified(),
+    yields=arolla.unspecified(),
+    yields_interleaved=arolla.unspecified(),
+    **initial_state,
+):
+  """Executes a loop over the given stream.
+
+  Exactly one of `returns`, `yields`, `yields_interleaved` must be specified,
+  and that dictates what this operator returns.
+
+  When `returns` is specified, it is one more variable added to `initial_state`,
+  and the value of that variable at the end of the loop is returned in a single-
+  item stream.
+
+  When `yields` is specified, it must be an stream, and the value
+  passed there, as well as the values set to this variable in each
+  stream of the loop, are chained to get the resulting stream.
+
+  When `yields_interleaved` is specified, the behavior is the same as `yields`,
+  but the values are interleaved instead of chained.
+
+  The behavior of the loop is equivalent to the following pseudocode (with
+  a simplification that `stream` is an `iterable`):
+
+    state = initial_state  # Also add `returns` to it if specified.
+    while condition_fn(state):
+      item = next(iterable)
+      if item == <end-of-iterable>:
+        upd = finalize_fn(**state)
+      else:
+        upd = body_fn(item, **state)
+      if yields/yields_interleaved is specified:
+        yield the corresponding data from upd, and remove it from upd.
+      state.update(upd)
+      if item == <end-of-iterable>:
+        break
+    if returns is specified:
+      yield state['returns'])
+
+  Args:
+    executor: The executor to use for computations.
+    stream: The stream to iterate over.
+    body_fn: The function to be executed for each item in the stream. It will
+      receive the stream item as the positional argument, and the loop
+      variables as keyword arguments (excluding `yields`/`yields_interleaved` if
+      those are specified), and must return a namedtuple with the new values for
+      some or all loop variables (including `yields`/`yields_interleaved` if
+      those are specified).
+    finalize_fn: The function to be executed when the stream is exhausted. It
+      will receive the same arguments as `body_fn` except the positional
+      argument, and must return the same namedtuple. If not specified, the state
+      at the end will be the same as the state after processing the last item.
+      Note that finalize_fn is not called if condition_fn ever returns false.
+    condition_fn: The function to be executed to determine whether to continue
+      the loop. It will receive the loop variables as keyword arguments, and
+      must return a MASK scalar. Can be used to terminate the loop early without
+      processing all items in the stream. If not specified, the loop will
+      continue until the stream is exhausted.
+    returns: The loop variable that holds the return value of the loop.
+    yields: The loop variables that holds the values to yield at each iteration,
+      to be chained together.
+    yields_interleaved: The loop variables that holds the values to yield at
+      each iteration, to be interleaved.
+    **initial_state: The initial state of the loop variables.
+
+  Returns:
+    Either a stream with a single returns value or a stream of yielded values.
+  """
+  initial_state = arolla.optools.fix_trace_kwargs(initial_state)
+  return arolla.types.DispatchOperator(
+      'executor, stream, body_fn, finalize_fn, condition_fn, returns, yields,'
+      ' yields_interleaved, initial_state, non_deterministic',
+      returns_case=arolla.types.DispatchCase(
+          _stream_for_returns(
+              P.executor,
+              P.stream,
+              P.body_fn,
+              P.finalize_fn,
+              P.condition_fn,
+              P.returns,
+              P.initial_state,
+              P.non_deterministic,
+          ),
+          condition=(P.returns != arolla.UNSPECIFIED),
+      ),
+      yields_case=arolla.types.DispatchCase(
+          arolla.abc.bind_op(
+              stream_interleave_from_stream,
+              _stream_for_yields(
+                  P.executor,
+                  P.stream,
+                  P.body_fn,
+                  P.finalize_fn,
+                  P.condition_fn,
+                  arolla.text('yields'),
+                  P.yields,
+                  P.initial_state,
+                  P.non_deterministic,
+              ),
+              P.non_deterministic,
+          ),
+          condition=(P.yields != arolla.UNSPECIFIED),
+      ),
+      yields_interleaved_case=arolla.types.DispatchCase(
+          arolla.abc.bind_op(
+              stream_interleave_from_stream,
+              _stream_for_yields(
+                  P.executor,
+                  P.stream,
+                  P.body_fn,
+                  P.finalize_fn,
+                  P.condition_fn,
+                  arolla.text('yields_interleaved'),
+                  P.yields_interleaved,
+                  P.initial_state,
+                  P.non_deterministic,
+              ),
+              P.non_deterministic,
+          ),
+          condition=(P.yields_interleaved != arolla.UNSPECIFIED),
+      ),
+  )(
+      executor,
+      stream,
+      body_fn,
+      finalize_fn,
+      condition_fn,
+      returns,
+      yields,
+      yields_interleaved,
+      initial_state,
+      optools.unified_non_deterministic_arg(),
+  )
