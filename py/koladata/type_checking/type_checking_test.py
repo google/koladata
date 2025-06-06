@@ -12,14 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import contextlib
 from absl.testing import absltest
+from arolla import arolla
 from koladata import kd
+from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.testing import testing
 from koladata.type_checking import type_checking
 from koladata.types import data_slice
 
+
 ds = data_slice.DataSlice.from_vals
 kdf = kd.functor
+
+
+@contextlib.contextmanager
+def override_operator(operator_name: str, new_operator: arolla.abc.Operator):
+  old_operator = arolla.abc.decay_registered_operator(operator_name)
+  arolla.abc.unsafe_override_registered_operator(operator_name, new_operator)
+
+  try:
+    yield
+  finally:
+    arolla.abc.unsafe_override_registered_operator(operator_name, old_operator)
 
 
 class TypeCheckingTest(absltest.TestCase):
@@ -481,6 +497,39 @@ class TypeCheckingTest(absltest.TestCase):
         ' for output. Expected type Doc, got Query',
     ):
       _ = get_docs_fn(q)
+
+  def test_check_inputs_traced_two_inputs(self):
+    @type_checking.check_inputs(x=kd.INT32, y=kd.INT32)
+    def f(x, y):
+      return (x, y)
+
+    fn = kdf.fn(f)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
+        ' for parameter `x`. Expected type INT32, got FLOAT32',
+    ):
+      _ = fn(ds([1.0]), ds([1]))
+
+  def test_traced_error_messages_not_constructed_on_success(self):
+    @type_checking.check_inputs(x=kd.INT32)
+    @type_checking.check_output(kd.INT32)
+    def f(x):
+      return x
+
+    fn = kdf.fn(f)
+
+    @optools.as_lambda_operator('kd.schema.get_repr')
+    def get_repr(x):  # pylint: disable=unused-argument
+      return kde_operators.kde.assertion.with_assertion(
+          'fake repr',
+          kd.missing,
+          '`kd.schema.get_repr` should not have been called',
+      )
+
+    with override_operator('kd.schema.get_repr', get_repr):
+      _ = fn(ds([1]))  # Does not raise.
 
 
 if __name__ == '__main__':

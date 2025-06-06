@@ -44,8 +44,11 @@ py_test(
         ":type_checking",
         "//py:python_path",
         "//py/koladata:kd",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
     ],
 )

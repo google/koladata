@@ -76,6 +76,24 @@ def _verify_output_eager(
     )
 
 
+def _with_input_expr_assertion(
+    key: str,
+    arg: view.KodaView,
+    type_constraint: schema_item.SchemaItem,
+) -> view.KodaView:
+  """Adds an assertion for a single input type in tracing mode."""
+  return lazy.assertion.with_assertion(
+      arg,
+      lazy.get_schema(arg) == type_constraint,
+      lambda arg: lazy.strings.join(
+          f'kd.check_inputs: type mismatch for parameter `{key}`. Expected'
+          f' type {eager.schema.get_repr(type_constraint)}, got ',
+          lazy.schema.get_repr(arg.get_schema()),
+      ),
+      arg,
+  )
+
+
 def _with_input_expr_assertions(
     bound_args: inspect.BoundArguments,
     kw_constraints: Mapping[str, schema_item.SchemaItem],
@@ -90,36 +108,26 @@ def _with_input_expr_assertions(
       # We attempt eager verification of a static input.
       _verify_input_eager(key, arg, type_constraint)
     else:
-      # Changes to bound_args will reflect in bound_args.args and
-      # bound_args.kwargs.
-      bound_args.arguments[key] = lazy.assertion.with_assertion(
-          arg,
-          lazy.get_schema(arg) == type_constraint,
-          lazy.strings.join(
-              f'kd.check_inputs: type mismatch for parameter `{key}`.'
-              ' Expected type ',
-              lazy.schema.get_repr(type_constraint),
-              ', got ',
-              lazy.schema.get_repr(arg.get_schema()),
-          ),
+      bound_args.arguments[key] = _with_input_expr_assertion(
+          key, arg, type_constraint
       )
   return bound_args
 
 
 def _with_output_expr_assertion(
     output: data_slice.DataSlice,
-    constraint: schema_item.SchemaItem,
+    type_constraint: schema_item.SchemaItem,
 ):
   """Adds an assertion for output type in tracing mode."""
   return lazy.assertion.with_assertion(
       output,
-      lazy.get_schema(output) == constraint,
-      lazy.strings.join(
-          'kd.check_output: type mismatch for output. Expected type ',
-          lazy.schema.get_repr(constraint),
-          ', got ',
+      lazy.get_schema(output) == type_constraint,
+      lambda output: lazy.strings.join(
+          'kd.check_output: type mismatch for output. Expected type '
+          f'{eager.schema.get_repr(type_constraint)}, got ',
           lazy.schema.get_repr(output.get_schema()),
       ),
+      output,
   )
 
 
