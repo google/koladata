@@ -594,10 +594,4 @@ def make_operators_container(*namespaces: str) -> arolla.OperatorsContainer:
   Args:
     *namespaces: Namespaces to make available in the returned container.
   """
-
-  class NamespaceProvider:
-
-    def get_namespaces(self):
-      return namespaces
-
-  return arolla.OperatorsContainer(NamespaceProvider())
+  return arolla.OperatorsContainer(unsafe_extra_namespaces=namespaces)
