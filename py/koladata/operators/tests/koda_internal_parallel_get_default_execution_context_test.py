@@ -1050,6 +1050,331 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     self.assertIsNone(reader.read_available())
 
+  def test_for_returns(self):
+    factorial = functor_factories.trace_py_fn(
+        lambda vals: user_facing_kd.functor.for_(
+            vals,
+            lambda n, returns: user_facing_kd.make_namedtuple(
+                returns=returns * n,
+            ),
+            returns=1,
+        )
+    )
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), factorial
+    )
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            vals=koda_internal_parallel.stream_make(*range(1, 6)),
+            return_type_as=koda_internal_parallel.as_future(None),
+        )
+    ).eval()
+    testing.assert_equal(res.read_all(timeout=5.0)[0], ds(120))
+
+  def test_for_yields(self):
+    factorial = functor_factories.trace_py_fn(
+        lambda vals: user_facing_kd.functor.for_(
+            vals,
+            lambda n, res: user_facing_kd.make_namedtuple(
+                yields=user_facing_kd.iterables.make(res * n),
+                res=res * n,
+            ),
+            res=1,
+            yields=user_facing_kd.iterables.make(),
+        )
+    )
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), factorial
+    )
+    res = transformed_fn(
+        vals=koda_internal_parallel.stream_make(*range(1, 6)),
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)),
+        arolla.tuple(ds(1), ds(2), ds(6), ds(24), ds(120)),
+    )
+
+  def test_for_yields_interleaved(self):
+    factorial = functor_factories.trace_py_fn(
+        lambda vals: user_facing_kd.functor.for_(
+            vals,
+            lambda n, res: user_facing_kd.make_namedtuple(
+                yields_interleaved=user_facing_kd.iterables.make(res * n),
+                res=res * n,
+            ),
+            res=1,
+            yields_interleaved=user_facing_kd.iterables.make(),
+        )
+    )
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), factorial
+    )
+    res = transformed_fn(
+        vals=koda_internal_parallel.stream_make(*range(1, 6)),
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    self.assertCountEqual(
+        [x.to_py() for x in res.read_all(timeout=5.0)],
+        [1, 2, 6, 24, 120],
+    )
+
+  def test_for_yields_ordering(self):
+    e1 = threading.Event()
+    e2 = threading.Event()
+    e3 = threading.Event()
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_1():
+      self.assertTrue(e1.wait(timeout=5.0))
+      return 1
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_2():
+      self.assertTrue(e2.wait(timeout=5.0))
+      return 2
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_3():
+      self.assertTrue(e3.wait(timeout=5.0))
+      return 3
+
+    def body(i):
+      return user_facing_kd.make_namedtuple(
+          yields=user_facing_kd.if_(
+              i == 1,
+              lambda: user_facing_kd.iterables.make(wait_and_return_1()),
+              lambda: user_facing_kd.iterables.make(
+                  wait_and_return_2(), wait_and_return_3()
+              ),
+              return_type_as=user_facing_kd.iterables.make(),
+          ),
+      )
+
+    def g():
+      return user_facing_kd.functor.for_(
+          user_facing_kd.iterables.make(1, 2),
+          body,
+          yields=user_facing_kd.iterables.make(),
+      )
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), g
+    )
+    res = transformed_fn(
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+
+    reader = res.make_reader()
+    e2.set()
+    time.sleep(0.1)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+
+    e1.set()
+    self._wait_until_n_items(res, 2)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(1), ds(2))
+    )
+    time.sleep(0.1)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+
+    e3.set()
+    self._wait_until_n_items(res, 4)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(3))
+    )
+    self.assertIsNone(reader.read_available())
+
+  def test_for_yields_interleaved_ordering(self):
+    e1 = threading.Event()
+    e2 = threading.Event()
+    e3 = threading.Event()
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_1():
+      self.assertTrue(e1.wait(timeout=5.0))
+      return 1
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_2():
+      self.assertTrue(e2.wait(timeout=5.0))
+      return 2
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def wait_and_return_3():
+      self.assertTrue(e3.wait(timeout=5.0))
+      return 3
+
+    def body(i):
+      return user_facing_kd.make_namedtuple(
+          yields_interleaved=user_facing_kd.if_(
+              i == 1,
+              lambda: user_facing_kd.iterables.make(wait_and_return_1()),
+              lambda: user_facing_kd.iterables.make(
+                  wait_and_return_2(), wait_and_return_3()
+              ),
+              return_type_as=user_facing_kd.iterables.make(),
+          ),
+      )
+
+    def g():
+      return user_facing_kd.functor.for_(
+          user_facing_kd.iterables.make(1, 2),
+          body,
+          yields_interleaved=user_facing_kd.iterables.make(),
+      )
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), g
+    )
+    res = transformed_fn(
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+
+    reader = res.make_reader()
+    e2.set()
+    self._wait_until_n_items(res, 1)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(2))
+    )
+    time.sleep(0.1)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+
+    e1.set()
+    self._wait_until_n_items(res, 2)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(1))
+    )
+    time.sleep(0.1)
+    testing.assert_equal(arolla.tuple(*reader.read_available()), arolla.tuple())
+
+    e3.set()
+    self._wait_until_n_items(res, 4)
+    testing.assert_equal(
+        arolla.tuple(*reader.read_available()), arolla.tuple(ds(3))
+    )
+    self.assertIsNone(reader.read_available())
+
+  @parameterized.parameters('yields', 'yields_interleaved')
+  def test_for_yields_no_yield_statement(self, yield_mode):
+    factorial = functor_factories.trace_py_fn(
+        lambda vals: user_facing_kd.functor.for_(
+            vals,
+            lambda n, res: user_facing_kd.make_namedtuple(
+                res=res * n,
+            ),
+            res=1,
+            **{yield_mode: user_facing_kd.iterables.make(2, 3)},
+        )
+    )
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), factorial
+    )
+    res = transformed_fn(
+        vals=koda_internal_parallel.stream_make(*range(1, 6)),
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)),
+        arolla.tuple(ds(2), ds(3)),
+    )
+
+  def test_for_returns_finalize_fn(self):
+    factorial = functor_factories.trace_py_fn(
+        lambda vals: user_facing_kd.functor.for_(
+            vals,
+            lambda n, returns: user_facing_kd.make_namedtuple(
+                returns=returns + n,
+            ),
+            finalize_fn=lambda returns: user_facing_kd.make_namedtuple(
+                returns=-returns,
+            ),
+            returns=0,
+        )
+    )
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), factorial
+    )
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            vals=koda_internal_parallel.stream_make(*range(1, 6)),
+            return_type_as=koda_internal_parallel.as_future(None),
+        )
+    ).eval()
+    testing.assert_equal(res.read_all(timeout=5.0)[0], ds(-15))
+
+  @parameterized.parameters('yields', 'yields_interleaved')
+  def test_for_yields_finalize_fn(self, yield_mode):
+    factorial = functor_factories.trace_py_fn(
+        lambda vals: user_facing_kd.functor.for_(
+            vals,
+            lambda n: user_facing_kd.make_namedtuple(),
+            finalize_fn=lambda: user_facing_kd.make_namedtuple(
+                **{yield_mode: user_facing_kd.iterables.make(2, 3)}
+            ),
+            **{yield_mode: user_facing_kd.iterables.make()},
+        )
+    )
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), factorial
+    )
+    res = transformed_fn(
+        vals=koda_internal_parallel.stream_make(*range(1, 6)),
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)),
+        arolla.tuple(ds(2), ds(3)),
+    )
+
+  def test_for_returns_condition_fn(self):
+    factorial = functor_factories.trace_py_fn(
+        lambda vals: user_facing_kd.functor.for_(
+            vals,
+            lambda n, returns: user_facing_kd.make_namedtuple(
+                returns=returns + n,
+            ),
+            condition_fn=lambda returns: returns < 5,
+            returns=0,
+        )
+    )
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), factorial
+    )
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            vals=koda_internal_parallel.stream_make(*range(1, 6)),
+            return_type_as=koda_internal_parallel.as_future(None),
+        )
+    ).eval()
+    testing.assert_equal(res.read_all(timeout=5.0)[0], ds(6))
+
+  @parameterized.parameters('yields', 'yields_interleaved')
+  def test_for_yields_condition_fn(self, yield_mode):
+    factorial = functor_factories.trace_py_fn(
+        lambda vals: user_facing_kd.functor.for_(
+            vals,
+            lambda n, last_n: user_facing_kd.make_namedtuple(
+                last_n=n,
+                **{yield_mode: user_facing_kd.iterables.make(n)},
+            ),
+            condition_fn=lambda last_n: last_n < 1,
+            last_n=0,
+            **{yield_mode: user_facing_kd.iterables.make()},
+        )
+    )
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), factorial
+    )
+    res = transformed_fn(
+        vals=koda_internal_parallel.stream_make(*range(1, 6)),
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)),
+        arolla.tuple(ds(1)),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
