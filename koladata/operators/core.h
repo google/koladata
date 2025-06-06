@@ -82,8 +82,8 @@ absl::StatusOr<DataSlice> GetAttrNames(const DataSlice& ds,
 // kd.core._stub.
 absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& keep_attrs);
 
-// kd.core.attrs.
-class AttrsOperatorFamily final : public arolla::OperatorFamily {
+// kd.core._attrs_impl.
+class AttrsImplOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const override;

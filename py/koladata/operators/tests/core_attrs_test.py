@@ -110,7 +110,8 @@ class CoreAttrsTest(absltest.TestCase):
     ).eval()
     with self.assertRaisesRegex(
         ValueError,
-        "kd.core.attrs: the schema for attribute 'x' is incompatible.",
+        "kd.core.attrs: the schema for attribute 'x' is"
+        ' incompatible',
     ):
       _ = kde.core.attrs(o, x='2').eval()
     db2 = kde.core.attrs(o, x='2', overwrite_schema=True).eval()
@@ -145,14 +146,14 @@ class CoreAttrsTest(absltest.TestCase):
     o = bag().new(x=1)
     with self.assertRaisesRegex(
         ValueError,
-        'kd.core.attrs: argument `overwrite_schema` must be an item holding'
-        ' BOOLEAN, got an item of INT32',
+        'kd.core.attrs: argument `overwrite_schema` must'
+        ' be an item holding BOOLEAN, got an item of INT32',
     ):
       kde.core.attrs(o, x=2, overwrite_schema=1).eval()
     with self.assertRaisesRegex(
         ValueError,
-        'kd.core.attrs: argument `overwrite_schema` must be an item holding'
-        ' BOOLEAN, got a slice of rank 1 > 0',
+        'kd.core.attrs: argument `overwrite_schema` must'
+        ' be an item holding BOOLEAN, got a slice of rank 1 > 0',
     ):
       kde.core.attrs(o, x=2, overwrite_schema=ds([True])).eval()
 

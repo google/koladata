@@ -121,6 +121,8 @@ OPERATOR("kd.comparison.greater", Greater);
 OPERATOR("kd.comparison.greater_equal", GreaterEqual);
 OPERATOR("kd.comparison.less", Less);
 OPERATOR("kd.comparison.less_equal", LessEqual);
+OPERATOR_FAMILY("kd.core._attrs_impl",
+                std::make_unique<AttrsImplOperatorFamily>());
 //
 OPERATOR("kd.core._clone", Clone, "kd.core.clone");
 OPERATOR("kd.core._databag_freeze", Freeze<DataBagPtr>,
@@ -136,7 +138,6 @@ OPERATOR("kd.core._get_list_item_by_range", GetListItemByRange,
 OPERATOR("kd.core._new_ids_like", NewIdsLike, "kd.core.new_ids_like");
 OPERATOR("kd.core._shallow_clone", ShallowClone, "kd.core.shallow_clone");
 OPERATOR("kd.core.attr", Attr);
-OPERATOR_FAMILY("kd.core.attrs", std::make_unique<AttrsOperatorFamily>());
 OPERATOR_FAMILY("kd.core.enriched",
                 std::make_unique<EnrichedOperatorFamily>());
 OPERATOR("kd.core.follow", Follow);

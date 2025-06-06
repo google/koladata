@@ -350,15 +350,23 @@ def updated(ds, *bag):  # pylint: disable=unused-argument
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry(aliases=['kd.attrs'])
 @optools.as_backend_operator(
+    'kd.core._attrs_impl',
+    qtype_inference_expr=qtypes.DATA_BAG,
+)
+def _attrs_impl(x, overwrite_schema, extend_schema, attrs):  # pylint: disable=unused-argument
+  """Returns a new DataBag containing attribute updates for `x`."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.attrs'])
+@optools.as_lambda_operator(
     'kd.core.attrs',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.x),
         qtype_utils.expect_data_slice(P.overwrite_schema),
         qtype_utils.expect_data_slice_kwargs(P.attrs),
     ],
-    qtype_inference_expr=qtypes.DATA_BAG,
 )
 def _attrs(x, /, *, overwrite_schema=False, **attrs):
   """Returns a new DataBag containing attribute updates for `x`.
@@ -389,7 +397,40 @@ def _attrs(x, /, *, overwrite_schema=False, **attrs):
     overwrite_schema: if True, schema for attributes is always updated.
     **attrs: attrs to set in the update.
   """
-  raise NotImplementedError('implemented in the backend')
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
+  return _attrs_impl(
+      x,
+      overwrite_schema=overwrite_schema,
+      extend_schema=True,
+      attrs=attrs,
+  )
+
+
+@optools.add_to_registry(aliases=['kd.strict_attrs'])
+@optools.as_lambda_operator(
+    'kd.core.strict_attrs',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+    ],
+)
+def strict_attrs(x, /, **attrs):
+  """Returns a new DataBag containing attribute updates for `x`.
+
+  Strict version of kd.attrs disallowing adding new attributes.
+
+  Args:
+    x: Entity for which the attributes update is being created.
+    **attrs: attrs to set in the update.
+  """
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
+  return arolla.abc.bind_op(
+      _attrs_impl,
+      x,
+      overwrite_schema=py_boxing.as_qvalue(False),
+      extend_schema=py_boxing.as_qvalue(False),
+      attrs=attrs,
+  )
 
 
 @optools.add_to_registry(aliases=['kd.attr'])

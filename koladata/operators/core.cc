@@ -33,6 +33,7 @@
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
+#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/optional_qtype.h"
@@ -243,19 +244,19 @@ absl::StatusOr<DataBagPtr> AttrsForAttrNameSlice(const DataSlice& obj,
   return result_db;
 }
 
-class AttrsOperator : public arolla::QExprOperator {
+class AttrsImplOperator : public arolla::QExprOperator {
  public:
-  explicit AttrsOperator(absl::Span<const arolla::QTypePtr> input_types)
+  explicit AttrsImplOperator(absl::Span<const arolla::QTypePtr> input_types)
       : QExprOperator(input_types, arolla::GetQType<DataBagPtr>()) {}
 
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return MakeBoundOperator(
-        "kd.core.attrs",
+    return arolla::MakeBoundOperator(
         [slice_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          update_schema_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
-         named_tuple_slot = input_slots[2],
+         extend_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         named_tuple_slot = input_slots[3],
          output_slot = output_slot.UnsafeToSlot<DataBagPtr>()](
             arolla::EvaluationContext* ctx,
             arolla::FramePtr frame) -> absl::Status {
@@ -263,7 +264,29 @@ class AttrsOperator : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(bool overwrite_schema,
                            GetBoolArgument(frame.Get(update_schema_slot),
                                            "overwrite_schema"));
+
+          ASSIGN_OR_RETURN(
+              bool extend_schema,
+              GetBoolArgument(frame.Get(extend_schema_slot), "extend_schema"));
+
+          RETURN_IF_ERROR(CheckEligibleForSetAttr(slice));
           const auto& attr_names = GetFieldNames(named_tuple_slot);
+          if (!extend_schema) {
+            const auto& schema = slice.GetSchema();
+            if (!schema.IsEntitySchema()) {
+              return absl::InvalidArgumentError(
+                  absl::StrCat("x must have an Entity schema, actual schema: ",
+                               SchemaToStr(schema)));
+            }
+            for (absl::string_view attr_name : attr_names) {
+              ASSIGN_OR_RETURN(auto has_attr, schema.HasAttr(attr_name));
+              if (has_attr.IsEmpty()) {
+                return absl::InvalidArgumentError(absl::StrCat(
+                    "attribute '", attr_name,
+                    "' not found in schema: ", SchemaToStr(schema)));
+              }
+            }
+          }
           const auto& values = GetValueDataSlices(named_tuple_slot, frame);
           ASSIGN_OR_RETURN(auto result,
                            Attrs(slice, overwrite_schema, attr_names, values));
@@ -650,11 +673,11 @@ absl::StatusOr<DataSlice> Stub(const DataSlice& x, const DataSlice& attrs) {
   return x.WithBag(std::move(db));
 }
 
-absl::StatusOr<arolla::OperatorPtr> AttrsOperatorFamily::DoGetOperator(
+absl::StatusOr<arolla::OperatorPtr> AttrsImplOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
-  if (input_types.size() != 3) {
-    return absl::InvalidArgumentError("requires exactly 2 arguments");
+  if (input_types.size() != 4) {
+    return absl::InvalidArgumentError("requires exactly 3 arguments");
   }
   if (input_types[0] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError(
@@ -664,9 +687,14 @@ absl::StatusOr<arolla::OperatorPtr> AttrsOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError(
         "requires second argument to be DataSlice");
   }
-  RETURN_IF_ERROR(VerifyNamedTuple(input_types[2]));
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "requires third argument to be DataSlice");
+  }
+  RETURN_IF_ERROR(VerifyNamedTuple(input_types[3]));
   return arolla::EnsureOutputQTypeMatches(
-      std::make_shared<AttrsOperator>(input_types), input_types, output_type);
+      std::make_shared<AttrsImplOperator>(input_types), input_types,
+      output_type);
 }
 
 absl::StatusOr<DataBagPtr> Attr(const DataSlice& x, const DataSlice& attr_name,
