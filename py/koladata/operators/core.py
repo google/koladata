@@ -509,6 +509,27 @@ def with_attrs(x, /, *, overwrite_schema=False, **attrs):
   )
 
 
+@optools.add_to_registry(aliases=['kd.strict_with_attrs'])
+@optools.as_lambda_operator(
+    'kd.core.strict_with_attrs',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice_kwargs(P.attrs),
+    ],
+)
+def strict_with_attrs(x, /, **attrs):
+  """Returns a DataSlice with a new DataBag containing updated attrs in `x`.
+
+  Strict version of kd.attrs disallowing adding new attributes.
+
+  Args:
+    x: Entity for which the attributes update is being created.
+    **attrs: attrs to set in the update.
+  """
+  attrs = arolla.optools.fix_trace_kwargs(attrs)
+  return updated(x, arolla.abc.bind_op(strict_attrs, x, attrs=attrs))
+
+
 @optools.add_to_registry(aliases=['kd.with_attr'])
 @optools.as_lambda_operator(
     'kd.core.with_attr',

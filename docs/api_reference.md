@@ -1114,6 +1114,21 @@ Args:
   **attrs: attrs to set in the update.
 ```
 
+### `kd.core.strict_with_attrs(x, /, **attrs)` {#kd.core.strict_with_attrs}
+Aliases:
+
+- [kd.strict_with_attrs](#kd.strict_with_attrs)
+
+``` {.no-copy}
+Returns a DataSlice with a new DataBag containing updated attrs in `x`.
+
+Strict version of kd.attrs disallowing adding new attributes.
+
+Args:
+  x: Entity for which the attributes update is being created.
+  **attrs: attrs to set in the update.
+```
+
 ### `kd.core.stub(x, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#kd.core.stub}
 Aliases:
 
@@ -9675,6 +9690,10 @@ Alias for [kd.slices.str](#kd.slices.str) operator.
 ### `kd.strict_attrs(x, /, **attrs)` {#kd.strict_attrs}
 
 Alias for [kd.core.strict_attrs](#kd.core.strict_attrs) operator.
+
+### `kd.strict_with_attrs(x, /, **attrs)` {#kd.strict_with_attrs}
+
+Alias for [kd.core.strict_with_attrs](#kd.core.strict_with_attrs) operator.
 
 ### `kd.stub(x, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#kd.stub}
 
