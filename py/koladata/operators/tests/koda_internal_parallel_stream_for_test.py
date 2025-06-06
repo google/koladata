@@ -301,33 +301,65 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     )
 
   def test_for_yields_interleaved_order(self):
-    n = 512
-    expr = koda_internal_parallel.stream_for(
-        koda_internal_parallel.get_default_executor(),
-        I.input_seq,
-        lambda item: user_facing_kd.make_namedtuple(yields_interleaved=item),
-        yields_interleaved=delayed_stream_make(),
-    )
-    input_seq = stream_make(
-        *map(lambda x: delayed_stream_make(x, delay_per_item=0.1), range(n))
-    )
-    res_list = expr.eval(input_seq=input_seq).read_all(timeout=2)
-    self.assertCountEqual(res_list, list(map(ds, range(n))))
-    self.assertNotEqual(res_list, sorted(res_list))
+    stream0, writer0 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream1, writer1 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream2, writer2 = stream_clib.make_stream(qtypes.DATA_SLICE)
+
+    def body_fn(n):
+      return arolla.namedtuple(yields_interleaved=[stream1, stream2][n])
+
+    res = koda_internal_parallel.stream_for(
+        koda_internal_parallel.get_eager_executor(),
+        stream_make(0, 1),
+        py_fn(body_fn, return_type_as=body_fn(ds(0))),
+        yields_interleaved=stream0,
+    ).eval()
+
+    reader = res.make_reader()
+    self.assertEqual(reader.read_available(), [])
+    writer0.write(ds(1))
+    self.assertEqual(reader.read_available(), [1])
+    writer1.write(ds(2))
+    self.assertEqual(reader.read_available(), [2])
+    writer2.write(ds(3))
+    self.assertEqual(reader.read_available(), [3])
+    writer0.close()
+    self.assertEqual(reader.read_available(), [])
+    writer1.close()
+    self.assertEqual(reader.read_available(), [])
+    writer2.close()
+    self.assertIsNone(reader.read_available())
 
   def test_for_yields_chained_order(self):
-    n = 512
-    expr = koda_internal_parallel.stream_for(
-        koda_internal_parallel.get_default_executor(),
-        I.input_seq,
-        lambda item: user_facing_kd.make_namedtuple(yields=item),
-        yields=delayed_stream_make(),
-    )
-    input_seq = stream_make(
-        *map(lambda x: delayed_stream_make(x, delay_per_item=0.1), range(n))
-    )
-    res_list = expr.eval(input_seq=input_seq).read_all(timeout=2)
-    self.assertEqual(res_list, sorted(res_list))
+    stream0, writer0 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream1, writer1 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream2, writer2 = stream_clib.make_stream(qtypes.DATA_SLICE)
+
+    def body_fn(n):
+      return arolla.namedtuple(yields=[stream1, stream2][n])
+
+    res = koda_internal_parallel.stream_for(
+        koda_internal_parallel.get_eager_executor(),
+        stream_make(0, 1),
+        py_fn(body_fn, return_type_as=body_fn(ds(0))),
+        yields=stream0,
+    ).eval()
+
+    reader = res.make_reader()
+    self.assertEqual(reader.read_available(), [])
+    writer0.write(ds(1))
+    self.assertEqual(reader.read_available(), [1])
+    writer1.write(ds(2))
+    self.assertEqual(reader.read_available(), [])
+    writer2.write(ds(3))
+    self.assertEqual(reader.read_available(), [])
+    writer0.close()
+    self.assertEqual(reader.read_available(), [2])
+    writer1.close()
+    self.assertEqual(reader.read_available(), [3])
+    self.assertEqual(reader.read_available(), [])
+    writer2.close()
+    self.assertIsNone(reader.read_available())
 
   def test_for_returns_bag(self):
     many_attrs = koda_internal_parallel.stream_for(

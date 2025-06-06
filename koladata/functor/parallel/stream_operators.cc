@@ -46,7 +46,7 @@
 #include "koladata/functor/parallel/stream_map.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/functor/parallel/stream_reduce.h"
-#include "koladata/functor/parallel/stream_while_loop.h"
+#include "koladata/functor/parallel/stream_while.h"
 #include "koladata/iterables/iterable_qtype.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -654,7 +654,7 @@ absl::StatusOr<arolla::OperatorPtr> StreamReduceOperatorFamily::DoGetOperator(
 
 namespace {
 
-class StreamWhileLoopReturnsOp final : public arolla::QExprOperator {
+class StreamWhileReturnsOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;
 
@@ -690,7 +690,7 @@ class StreamWhileLoopReturnsOp final : public arolla::QExprOperator {
             return result;
           };
           ASSIGN_OR_RETURN(auto stream,
-                           functor::parallel::StreamWhileLoopReturns(
+                           functor::parallel::StreamWhileReturns(
                                frame.Get(executor_slot),
                                std::move(condition_fn), std::move(body_fn),
                                arolla::TypedRef::FromSlot(returns_slot, frame),
@@ -703,7 +703,7 @@ class StreamWhileLoopReturnsOp final : public arolla::QExprOperator {
 
 }  // namespace
 
-// stream_while_loop_returns(
+// _stream_while_returns(
 //     executor: EXECUTOR,
 //     condition_fn: DATA_SLICE,
 //     body_fn: DATA_SLICE,
@@ -712,7 +712,7 @@ class StreamWhileLoopReturnsOp final : public arolla::QExprOperator {
 //     NON_DETERMINISTIC
 // ) -> STREAM[T]
 absl::StatusOr<arolla::OperatorPtr>
-StreamWhileLoopReturnsOperatorFamily::DoGetOperator(
+StreamWhileReturnsOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
   if (!IsStreamQType(output_type)) {
@@ -739,12 +739,12 @@ StreamWhileLoopReturnsOperatorFamily::DoGetOperator(
     return absl::InvalidArgumentError(
         "output type must be a stream with the value type of the 4th argument");
   }
-  return std::make_shared<StreamWhileLoopReturnsOp>(input_types, output_type);
+  return std::make_shared<StreamWhileReturnsOp>(input_types, output_type);
 }
 
 namespace {
 
-class StreamWhileLoopYieldsChainedOp final : public arolla::QExprOperator {
+class StreamWhileYieldsOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;
 
@@ -755,8 +755,8 @@ class StreamWhileLoopYieldsChainedOp final : public arolla::QExprOperator {
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          condition_fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
-         yields_slot = input_slots[3].UnsafeToSlot<StreamPtr>(),
-         state_slot = input_slots[4],
+         yields_param_name_slot = input_slots[3].UnsafeToSlot<arolla::Text>(),
+         yields_slot = input_slots[4], state_slot = input_slots[5],
          output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
             arolla::EvaluationContext* /*ctx*/,
             arolla::FramePtr frame) -> absl::Status {
@@ -782,9 +782,10 @@ class StreamWhileLoopYieldsChainedOp final : public arolla::QExprOperator {
           };
           ASSIGN_OR_RETURN(
               auto stream,
-              functor::parallel::StreamWhileLoopYieldsChained(
+              functor::parallel::StreamWhileYields(
                   frame.Get(executor_slot), std::move(condition_fn),
-                  std::move(body_fn), frame.Get(yields_slot),
+                  std::move(body_fn), frame.Get(yields_param_name_slot),
+                  arolla::TypedRef::FromSlot(yields_slot, frame),
                   arolla::TypedRef::FromSlot(state_slot, frame)));
           frame.Set(output_slot, std::move(stream));
           return absl::OkStatus();
@@ -794,23 +795,24 @@ class StreamWhileLoopYieldsChainedOp final : public arolla::QExprOperator {
 
 }  // namespace
 
-// stream_while_loop_yields_chained(
+// _stream_while_yields(
 //     executor: EXECUTOR,
 //     condition_fn: DATA_SLICE,
 //     body_fn: DATA_SLICE,
-//     yields: STREAM[T],
+//     yields_param_name: STRING,
+//     yields: T,
 //     state: NAMEDTUPLE,
 //     NON_DETERMINISTIC
 // ) -> STREAM[T]
 absl::StatusOr<arolla::OperatorPtr>
-StreamWhileLoopYieldsChainedOperatorFamily::DoGetOperator(
+StreamWhileYieldsOperatorFamily::DoGetOperator(
     absl::Span<const arolla::QTypePtr> input_types,
     arolla::QTypePtr output_type) const {
   if (!IsStreamQType(output_type)) {
     return absl::InvalidArgumentError("output type must be a stream");
   }
-  if (input_types.size() != 6) {
-    return absl::InvalidArgumentError("requires exactly 6 arguments");
+  if (input_types.size() != 7) {
+    return absl::InvalidArgumentError("requires exactly 7 arguments");
   }
   if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
     return absl::InvalidArgumentError("1st argument must be an executor");
@@ -821,107 +823,18 @@ StreamWhileLoopYieldsChainedOperatorFamily::DoGetOperator(
   if (input_types[2] != arolla::GetQType<DataSlice>()) {
     return absl::InvalidArgumentError("3rd argument must be a functor");
   }
-  if (input_types[3] != output_type) {
+  if (input_types[3] != arolla::GetQType<arolla::Text>()) {
+    return absl::InvalidArgumentError("4th argument must be a TEXT");
+  }
+  if (input_types[4] != output_type->value_qtype()) {
     return absl::InvalidArgumentError(
-        "4th argument must be of the same type as the output");
+        "5th argument must be the same as the value type of the output");
   }
-  if (!arolla::IsNamedTupleQType(input_types[4])) {
-    return absl::InvalidArgumentError("5th argument must be a namedtuple");
+  if (!arolla::IsNamedTupleQType(input_types[5])) {
+    return absl::InvalidArgumentError("6th argument must be a namedtuple");
   }
-  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[5]));
-  return std::make_shared<StreamWhileLoopYieldsChainedOp>(input_types,
-                                                          output_type);
-}
-
-namespace {
-
-class StreamWhileLoopYieldsInterleavedOp final : public arolla::QExprOperator {
- public:
-  using QExprOperator::QExprOperator;
-
-  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
-      absl::Span<const arolla::TypedSlot> input_slots,
-      arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
-        [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
-         condition_fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
-         body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
-         yields_interleaved_slot = input_slots[3].UnsafeToSlot<StreamPtr>(),
-         state_slot = input_slots[4],
-         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
-            arolla::EvaluationContext* /*ctx*/,
-            arolla::FramePtr frame) -> absl::Status {
-          auto condition_fn = [condition_ds = frame.Get(condition_fn_slot)](
-                                  absl::Span<const arolla::TypedRef> args,
-                                  absl::Span<const std::string> kwnames)
-              -> absl::StatusOr<arolla::TypedValue> {
-            ASSIGN_OR_RETURN(
-                auto result,
-                CallFunctorWithCompilationCache(condition_ds, args, kwnames),
-                _ << "error occurred while calling `condition_fn`");
-            return result;
-          };
-          auto body_fn = [body_ds = frame.Get(body_fn_slot)](
-                             absl::Span<const arolla::TypedRef> args,
-                             absl::Span<const std::string> kwnames)
-              -> absl::StatusOr<arolla::TypedValue> {
-            ASSIGN_OR_RETURN(
-                auto result,
-                CallFunctorWithCompilationCache(body_ds, args, kwnames),
-                _ << "error occurred while calling `body_fn`");
-            return result;
-          };
-          ASSIGN_OR_RETURN(
-              auto stream,
-              functor::parallel::StreamWhileLoopYieldsInterleaved(
-                  frame.Get(executor_slot), std::move(condition_fn),
-                  std::move(body_fn), frame.Get(yields_interleaved_slot),
-                  arolla::TypedRef::FromSlot(state_slot, frame)));
-          frame.Set(output_slot, std::move(stream));
-          return absl::OkStatus();
-        });
-  }
-};
-
-}  // namespace
-
-// stream_while_loop_yields_interleaved(
-//     executor: EXECUTOR,
-//     condition_fn: DATA_SLICE,
-//     body_fn: DATA_SLICE,
-//     yields_interleaved: STREAM[T],
-//     state: NAMEDTUPLE,
-//     NON_DETERMINISTIC
-// ) -> STREAM[T]
-absl::StatusOr<arolla::OperatorPtr>
-StreamWhileLoopYieldsInterleavedOperatorFamily::DoGetOperator(
-    absl::Span<const arolla::QTypePtr> input_types,
-    arolla::QTypePtr output_type) const {
-  if (!IsStreamQType(output_type)) {
-    return absl::InvalidArgumentError("output type must be a stream");
-  }
-  if (input_types.size() != 6) {
-    return absl::InvalidArgumentError("requires exactly 6 arguments");
-  }
-  if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
-    return absl::InvalidArgumentError("1st argument must be an executor");
-  }
-  if (input_types[1] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError("2nd argument must be a functor");
-  }
-  if (input_types[2] != arolla::GetQType<DataSlice>()) {
-    return absl::InvalidArgumentError("3rd argument must be a functor");
-  }
-  if (input_types[3] != output_type) {
-    return absl::InvalidArgumentError(
-        "4th argument must be of the same type as the output");
-  }
-  if (!arolla::IsNamedTupleQType(input_types[4])) {
-    return absl::InvalidArgumentError("5th argument must be a namedtuple");
-  }
-  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[5]));
-  return std::make_shared<StreamWhileLoopYieldsInterleavedOp>(input_types,
-                                                              output_type);
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[6]));
+  return std::make_shared<StreamWhileYieldsOp>(input_types, output_type);
 }
 
 namespace {

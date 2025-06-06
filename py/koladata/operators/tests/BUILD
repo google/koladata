@@ -3428,10 +3428,8 @@ py_test(
         "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
-        "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:jagged_shape",
-        "//py/koladata/types:literal_operator",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
@@ -3775,11 +3773,8 @@ py_test(
     srcs = ["core_enriched_test.py"],
     deps = [
         "//py:python_path",
-        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
-        "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
-        "//py/koladata/functions",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -3802,7 +3797,6 @@ py_test(
         "//py:python_path",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
-        "//py/koladata/functions",
         "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
@@ -3890,7 +3884,6 @@ py_test(
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
-        "//py/koladata/operators:arolla_bridge",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
@@ -3903,7 +3896,6 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
-        "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )
 
@@ -4421,7 +4413,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -4756,7 +4747,6 @@ py_test(
         "//py/koladata/expr:py_expr_eval_py_ext",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
@@ -4903,7 +4893,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -5051,7 +5040,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -5073,7 +5061,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -5095,7 +5082,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -5117,7 +5103,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -5139,7 +5124,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -5161,7 +5145,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -5183,7 +5166,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:optools",
         "//py/koladata/operators/tests/util:qtypes",
         "//py/koladata/testing",
         "//py/koladata/types:data_slice",
@@ -5258,7 +5240,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -5277,7 +5258,6 @@ py_test(
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:literal_operator",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
@@ -6038,7 +6018,6 @@ py_test(
         "//py/koladata/operators:optools",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -6125,7 +6104,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -7958,7 +7936,6 @@ py_test(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:mask_constants",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -8386,7 +8363,6 @@ py_test(
         "//py/koladata/types:iterable_qvalue",
         "//py/koladata/types:mask_constants",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -9243,18 +9219,18 @@ py_test(
 )
 
 py_test(
-    name = "koda_internal_parallel_stream_while_loop_returns_test",
-    srcs = ["koda_internal_parallel_stream_while_loop_returns_test.py"],
+    name = "koda_internal_parallel_stream_while_returns_test",
+    srcs = ["koda_internal_parallel_stream_while_returns_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
         "//py/koladata/functor:boxing",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor/parallel:clib",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators:optools",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
@@ -9266,68 +9242,22 @@ py_test(
 )
 
 py_test(
-    name = "koda_internal_parallel_stream_while_loop_yields_chained_test",
-    srcs = ["koda_internal_parallel_stream_while_loop_yields_chained_test.py"],
+    name = "koda_internal_parallel_stream_while_yields_test",
+    srcs = ["koda_internal_parallel_stream_while_yields_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
         "//py/koladata/functor:boxing",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/functor/parallel:clib",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators:optools",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "koda_internal_parallel_stream_while_loop_yields_interleaved_test",
-    srcs = ["koda_internal_parallel_stream_while_loop_yields_interleaved_test.py"],
-    deps = [
-        "//py:python_path",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/functor:boxing",
-        "//py/koladata/functor:functor_factories",
-        "//py/koladata/functor/parallel:clib",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:koda_internal_parallel",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:py_boxing",
-        "//py/koladata/types:qtypes",
-        "//py/koladata/types:schema_constants",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
-    name = "koda_internal_parallel_stream_while_loop_test",
-    srcs = ["koda_internal_parallel_stream_while_loop_test.py"],
-    deps = [
-        "//py:python_path",
-        "//py/koladata:kd",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/functor:boxing",
-        "//py/koladata/functor:functions",
-        "//py/koladata/functor/parallel:clib",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/operators:koda_internal_parallel",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:mask_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
@@ -9352,6 +9282,31 @@ py_test(
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "koda_internal_parallel_stream_while_test",
+    srcs = ["koda_internal_parallel_stream_while_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor:boxing",
+        "//py/koladata/functor:functions",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:mask_constants",
+        "//py/koladata/types:py_boxing",
+        "//py/koladata/types:qtypes",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
     ],
 )

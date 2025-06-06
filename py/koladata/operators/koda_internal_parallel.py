@@ -1938,21 +1938,19 @@ def get_default_execution_context():
   )
 
 
-@optools.add_to_registry()
-@optools.as_backend_operator(
-    'koda_internal.parallel.stream_while_loop_returns',
-    qtype_constraints=[
-        qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_data_slice(P.condition_fn),
-        qtype_utils.expect_data_slice(P.body_fn),
-    ],
-    qtype_inference_expr=get_stream_qtype(P.returns),
-    deterministic=False,
+@arolla.optools.as_backend_operator(
+    'koda_internal.parallel._stream_while_returns',
+    qtype_inference_expr=get_stream_qtype(P.initial_returns),
 )
-def stream_while_loop_returns(
-    executor, condition_fn, body_fn, *, returns, **state
+def _stream_while_returns(
+    executor,
+    condition_fn,
+    body_fn,
+    initial_returns,
+    initial_state,
+    non_deterministic,
 ):
-  """Repeatedly applies a body functor while a condition is met.
+  """(internal) Repeatedly applies a body functor while a condition is met.
 
   Each iteration, the operator passes current state variables (including
   `returns`) as keyword arguments to `condition_fn` and `body_fn`. The loop
@@ -1969,8 +1967,9 @@ def stream_while_loop_returns(
       returns a namedtuple (see `kd.make_namedtuple`) containing updated values
       for a subset of the state variables. These updated values must retain
       their original types.
-    returns: The initial value for the `returns` state variable.
-    **state: Initial values for state variables.
+    initial_returns: The initial value for the `returns` state variable.
+    initial_state: Initial values for state variables.
+    non_deterministic: Non-deterministic token.
 
   Returns:
     A single-item stream with the final value of the `returns` state variable.
@@ -1978,29 +1977,27 @@ def stream_while_loop_returns(
   raise NotImplementedError('implemented in the backend')
 
 
-@optools.add_to_registry()
-@optools.as_backend_operator(
-    'koda_internal.parallel.stream_while_loop_yields_chained',
-    qtype_constraints=[
-        qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_data_slice(P.condition_fn),
-        qtype_utils.expect_data_slice(P.body_fn),
-        qtype_utils.expect_stream(P.yields),
-    ],
-    qtype_inference_expr=P.yields,
-    deterministic=False,
+@arolla.optools.as_backend_operator(
+    'koda_internal.parallel._stream_while_yields',
+    qtype_inference_expr=get_stream_qtype(P.initial_yields),
 )
-def stream_while_loop_yields_chained(
-    executor, condition_fn, body_fn, *, yields, **state
+def _stream_while_yields(
+    executor,
+    condition_fn,
+    body_fn,
+    yields_param_name,
+    initial_yields,
+    initial_state,
+    non_deterministic,
 ):
-  """Repeatedly applies a body functor while a condition is met.
+  """(internal) Repeatedly applies a body functor while a condition is met.
 
   Each iteration, the operator passes current state variables (excluding
   `yields`) as keyword arguments to `condition_fn` and `body_fn`. The loop
   continues if `condition_fn` returns `present`. State variables are then
   updated from `body_fn`'s namedtuple return value. If `body_fn` also returns
-  a `yields` variable (containing a stream), these individual streams are
-  chained together to form the overall result stream.
+  a `yields` variable, these individual values are appended to form
+  the resulting stream.
 
   Args:
     executor: The executor to use for computations.
@@ -2012,65 +2009,21 @@ def stream_while_loop_yields_chained(
       keyword arguments and returns a namedtuple (see `kd.make_namedtuple`)
       containing updated values for a subset of the state variables. These
       updated values must retain their original types.
-    yields: The initial value for the `yields` state variable. This stream is
-      the starting point for the chained result.
-    **state: Initial values for state variables.
+    yields_param_name: Name of the "yield" state variable.
+    initial_yields: The initial value for the "yields' state variable.
+    initial_state: Initial values for state variables.
+    non_deterministic: Non-deterministic token.
 
   Returns:
-    A stream created by chaining the initial `yields` stream with any
-    subsequent streams produced by the `body_fn`.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry()
-@optools.as_backend_operator(
-    'koda_internal.parallel.stream_while_loop_yields_interleaved',
-    qtype_constraints=[
-        qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_data_slice(P.condition_fn),
-        qtype_utils.expect_data_slice(P.body_fn),
-        qtype_utils.expect_stream(P.yields_interleaved),
-    ],
-    qtype_inference_expr=P.yields_interleaved,
-    deterministic=False,
-)
-def stream_while_loop_yields_interleaved(
-    executor, condition_fn, body_fn, *, yields_interleaved, **state
-):
-  """Repeatedly applies a body functor while a condition is met.
-
-  Each iteration, the operator passes current state variables (excluding
-  `yields_interleaved`) as keyword arguments to `condition_fn` and `body_fn`.
-  The loop continues if `condition_fn` returns `present`. State variables are
-  then updated from `body_fn`'s namedtuple return value. If `body_fn` also
-  returns a `yields_interleaved` variable (containing a stream), these
-  individual streams are interleaved together to form the overall result stream.
-
-  Args:
-    executor: The executor to use for computations.
-    condition_fn: A functor that accepts state variables (excluding
-      `yields_interleaved`) as keyword arguments and returns a MASK data-item,
-      either directly or as a single-item stream. A `present` value indicates
-      the loop should continue; `missing` indicates it should stop.
-    body_fn: A functor that accepts state variables (excluding
-      `yields_interleaved`) as keyword arguments and returns a namedtuple (see
-      `kd.make_namedtuple`) containing updated values for a subset of the state
-      variables. These updated values must retain their original types.
-    yields_interleaved: The initial value for the `yields_interleaved` state
-      variable. This stream is the starting point for the interleaved result.
-    **state: Initial values for state variables.
-
-  Returns:
-    A stream created by chaining the initial `yields_interleaved` stream with
-    any subsequent streams produced by the `body_fn`.
+    A stream formed by concatenating the initial `yields` with all
+    subsequent `yields` values produced by the `body_fn`.
   """
   raise NotImplementedError('implemented in the backend')
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'koda_internal.parallel.stream_while_loop',
+    'koda_internal.parallel.stream_while',
     qtype_constraints=(
         qtype_utils.expect_executor(P.executor),
         qtype_utils.expect_data_slice(P.condition_fn),
@@ -2092,7 +2045,7 @@ def stream_while_loop_yields_interleaved(
     ),
     deterministic=False,
 )
-def stream_while_loop(
+def stream_while(
     executor,
     condition_fn,
     body_fn,
@@ -2148,8 +2101,7 @@ def stream_while_loop(
       'executor, condition_fn, body_fn, returns, yields, yields_interleaved,'
       ' state, non_deterministic',
       returns_case=arolla.types.DispatchCase(
-          arolla.abc.bind_op(
-              stream_while_loop_returns,
+          _stream_while_returns(
               P.executor,
               P.condition_fn,
               P.body_fn,
@@ -2161,24 +2113,32 @@ def stream_while_loop(
       ),
       yields_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
-              stream_while_loop_yields_chained,
-              P.executor,
-              P.condition_fn,
-              P.body_fn,
-              P.yields,
-              P.state,
+              stream_chain_from_stream,
+              _stream_while_yields(
+                  P.executor,
+                  P.condition_fn,
+                  P.body_fn,
+                  arolla.text('yields'),
+                  P.yields,
+                  P.state,
+                  P.non_deterministic,
+              ),
               P.non_deterministic,
           ),
           condition=(P.yields != arolla.UNSPECIFIED),
       ),
       yields_interleaved_case=arolla.types.DispatchCase(
           arolla.abc.bind_op(
-              stream_while_loop_yields_interleaved,
-              P.executor,
-              P.condition_fn,
-              P.body_fn,
-              P.yields_interleaved,
-              P.state,
+              stream_interleave_from_stream,
+              _stream_while_yields(
+                  P.executor,
+                  P.condition_fn,
+                  P.body_fn,
+                  arolla.text('yields_interleaved'),
+                  P.yields_interleaved,
+                  P.state,
+                  P.non_deterministic,
+              ),
               P.non_deterministic,
           ),
           condition=(P.yields_interleaved != arolla.UNSPECIFIED),

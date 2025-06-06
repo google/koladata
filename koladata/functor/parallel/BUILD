@@ -41,7 +41,6 @@ cc_test(
     srcs = ["executor_test.cc"],
     deps = [
         ":executor",
-        "@com_google_absl//absl/status",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
@@ -449,16 +448,14 @@ cc_test(
 )
 
 cc_library(
-    name = "stream_while_loop",
-    srcs = ["stream_while_loop.cc"],
-    hdrs = ["stream_while_loop.h"],
+    name = "stream_while",
+    srcs = ["stream_while.cc"],
+    hdrs = ["stream_while.h"],
     deps = [
         ":basic_routine",
         ":executor",
         ":stream",
-        ":stream_composition",
         ":stream_loop_internal",
-        ":stream_qtype",
         "//koladata:data_slice_qtype",
         "@com_google_absl//absl/base:nullability",
         "@com_google_absl//absl/functional:any_invocable",
@@ -474,13 +471,12 @@ cc_library(
 )
 
 cc_test(
-    name = "stream_while_loop_test",
-    srcs = ["stream_while_loop_test.cc"],
+    name = "stream_while_test",
+    srcs = ["stream_while_test.cc"],
     deps = [
         ":eager_executor",
         ":stream",
-        ":stream_qtype",
-        ":stream_while_loop",
+        ":stream_while",
         "//koladata:data_slice_qtype",
         "//koladata:test_utils",
         "//koladata/internal:dtype",
@@ -751,7 +747,7 @@ cc_library(
         ":stream_map",
         ":stream_qtype",
         ":stream_reduce",
-        ":stream_while_loop",
+        ":stream_while",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/functor:call",

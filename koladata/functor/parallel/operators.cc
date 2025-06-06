@@ -46,6 +46,10 @@ OPERATOR_FAMILY("koda_internal.parallel._stream_for_returns",
                 std::make_unique<StreamForReturnsOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel._stream_for_yields",
                 std::make_unique<StreamForYieldsOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel._stream_while_returns",
+                std::make_unique<StreamWhileReturnsOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel._stream_while_yields",
+                std::make_unique<StreamWhileYieldsOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.as_future",
                 std::make_unique<AsFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.async_eval",
@@ -113,13 +117,6 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_map_unordered",
                 std::make_unique<StreamMapUnorderedOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_reduce",
                 std::make_unique<StreamReduceOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel.stream_while_loop_returns",
-                std::make_unique<StreamWhileLoopReturnsOperatorFamily>());
-OPERATOR_FAMILY("koda_internal.parallel.stream_while_loop_yields_chained",
-                std::make_unique<StreamWhileLoopYieldsChainedOperatorFamily>());
-OPERATOR_FAMILY(
-    "koda_internal.parallel.stream_while_loop_yields_interleaved",
-    std::make_unique<StreamWhileLoopYieldsInterleavedOperatorFamily>());
 OPERATOR("koda_internal.parallel.transform", TransformToParallel);
 OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_future",
                 std::make_unique<UnwrapFutureToFutureOperatorFamily>());

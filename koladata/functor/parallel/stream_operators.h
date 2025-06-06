@@ -109,25 +109,15 @@ class StreamReduceOperatorFamily final : public arolla::OperatorFamily {
       arolla::QTypePtr output_type) const final;
 };
 
-// koda_internal.parallel.stream_while_loop_returns operator.
-class StreamWhileLoopReturnsOperatorFamily final
-    : public arolla::OperatorFamily {
+// koda_internal.parallel.stream_while_returns operator.
+class StreamWhileReturnsOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
 };
 
-// koda_internal.parallel.stream_while_loop_yields_chained operator.
-class StreamWhileLoopYieldsChainedOperatorFamily final
-    : public arolla::OperatorFamily {
-  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
-      absl::Span<const arolla::QTypePtr> input_types,
-      arolla::QTypePtr output_type) const final;
-};
-
-// koda_internal.parallel.stream_while_loop_yields_interleaved operator.
-class StreamWhileLoopYieldsInterleavedOperatorFamily final
-    : public arolla::OperatorFamily {
+// koda_internal.parallel.stream_while_yields operator.
+class StreamWhileYieldsOperatorFamily final : public arolla::OperatorFamily {
   absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
       absl::Span<const arolla::QTypePtr> input_types,
       arolla::QTypePtr output_type) const final;
