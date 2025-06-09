@@ -385,6 +385,94 @@ class StreamTest(parameterized.TestCase):
     )
     barrier.wait()
 
+  @parameterized.parameters(None, 10.0)
+  def test_stream_yield_all_basic(self, timeout_seconds: float | None):
+    n = 1024
+    stream, writer = clib.make_stream(arolla.INT32)
+
+    it = stream.yield_all(timeout=timeout_seconds)
+    self.assertIs(it, iter(it))
+
+    def gen_data():
+      for i in range(n):
+        writer.write(arolla.int32(i))
+      writer.close()
+
+    default_executor.schedule(gen_data)
+    for i in range(n):
+      self.assertEqual(next(it), i)
+    with self.assertRaises(StopIteration):
+      next(it)
+
+  def test_stream_yield_all_closed_stream_with_zero_timeout(self):
+    stream, writer = clib.make_stream(arolla.INT32)
+    writer.write(arolla.int32(42))
+    writer.close()
+    self.assertEqual(list(stream.yield_all(timeout=0)), [42])
+
+  @arolla.abc.add_default_cancellation_context
+  def test_stream_yield_all_cancellation(self):
+    def cancel():
+      time.sleep(0.01)
+      cancellation_context = arolla.abc.current_cancellation_context()
+      self.assertIsNotNone(cancellation_context)
+      cancellation_context.cancel('Boom!')
+
+    stream, _ = clib.make_stream(arolla.INT32)
+    default_executor.schedule(cancel)
+    with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED] Boom!'):
+      list(stream.yield_all(timeout=1))
+
+  def test_stream_yield_all_fails(self):
+    stream, writer = clib.make_stream(arolla.INT32)
+    writer.write(arolla.int32(1))
+    with self.assertRaisesWithLiteralMatch(
+        TypeError, 'accepts 0 positional arguments but 1 was given'
+    ):
+      stream.yield_all(object())
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        "got an unexpected keyword 'foo'",
+    ):
+      stream.yield_all(foo=object())
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'Stream.yield_all() missing 1 required keyword-only argument:'
+        " 'timeout'",
+    ):
+      stream.yield_all()
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        "Stream.yield_all() 'timeout' must specify a non-negative number of"
+        " seconds (or be None), got: 'bar'",
+    ):
+      stream.yield_all(timeout='bar')
+    with self.assertRaisesWithLiteralMatch(
+        ValueError, "Stream.yield_all() 'timeout' cannot be negative"
+    ):
+      stream.yield_all(timeout=-1)
+    with self.assertRaisesWithLiteralMatch(TimeoutError, ''):
+      list(stream.yield_all(timeout=0))
+    writer.close(RuntimeError('Boom!'))
+    with self.assertRaisesWithLiteralMatch(RuntimeError, 'Boom!'):
+      list(stream.yield_all(timeout=None))
+
+  def test_stream_yield_all_timeout_without_cancellation_context(self):
+    stream, _ = clib.make_stream(arolla.INT32)
+    barrier = threading.Barrier(2)
+
+    def _impl():
+      nonlocal stream, barrier
+      self.assertIsNone(arolla.abc.current_cancellation_context())
+      with self.assertRaisesWithLiteralMatch(TimeoutError, ''):
+        list(stream.yield_all(timeout=0.001))
+      barrier.wait()
+
+    default_executor.schedule(
+        lambda: arolla.abc.run_in_cancellation_context(None, _impl)
+    )
+    barrier.wait()
+
 
 if __name__ == '__main__':
   absltest.main()

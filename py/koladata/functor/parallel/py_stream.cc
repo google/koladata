@@ -81,6 +81,7 @@ using ::koladata::functor::parallel::StreamWriterPtr;
 // Forward declare.
 extern PyTypeObject PyStreamReader_Type;
 extern PyTypeObject PyStreamWriter_Type;
+extern PyTypeObject PyStreamYieldAll_Type;
 
 struct PyStreamWriterObject final {
   PyObject_HEAD;
@@ -102,6 +103,16 @@ struct PyStreamReaderObject final {
   PyObject* weakrefs;
 };
 
+struct PyStreamYieldAllObject final {
+  PyObject_HEAD;
+  struct Fields {
+    StreamReaderPtr stream_reader;
+    absl::Time deadline;
+  };
+  Fields fields;
+  PyObject* weakrefs;
+};
+
 PyStreamWriterObject::Fields& PyStreamWriter_fields(PyObject* self) {
   DCHECK(Py_TYPE(self) == &PyStreamWriter_Type);
   return reinterpret_cast<PyStreamWriterObject*>(self)->fields;
@@ -110,6 +121,11 @@ PyStreamWriterObject::Fields& PyStreamWriter_fields(PyObject* self) {
 PyStreamReaderObject::Fields& PyStreamReader_fields(PyObject* self) {
   DCHECK(Py_TYPE(self) == &PyStreamReader_Type);
   return reinterpret_cast<PyStreamReaderObject*>(self)->fields;
+}
+
+PyStreamYieldAllObject::Fields& PyStreamYieldAll_fields(PyObject* self) {
+  DCHECK(Py_TYPE(self) == &PyStreamYieldAll_Type);
+  return reinterpret_cast<PyStreamYieldAllObject*>(self)->fields;
 }
 
 void PyStreamWriter_dealloc(PyObject* self) {
@@ -121,6 +137,12 @@ void PyStreamWriter_dealloc(PyObject* self) {
 void PyStreamReader_dealloc(PyObject* self) {
   PyObject_ClearWeakRefs(self);
   PyStreamReader_fields(self).~Fields();
+  Py_TYPE(self)->tp_free(self);
+}
+
+void PyStreamYieldAll_dealloc(PyObject* self) {
+  PyObject_ClearWeakRefs(self);
+  PyStreamYieldAll_fields(self).~Fields();
   Py_TYPE(self)->tp_free(self);
 }
 
@@ -153,6 +175,58 @@ PyObject* PyStreamReader_new(StreamReaderPtr stream_reader) {
   auto& fields = PyStreamReader_fields(self);
   new (&fields) PyStreamReaderObject::Fields{std::move(stream_reader)};
   return self;
+}
+
+PyObject* PyStreamYieldAll_new(StreamReaderPtr stream_reader,
+                               absl::Time deadline) {
+  DCheckPyGIL();
+  if (PyType_Ready(&PyStreamYieldAll_Type) < 0) {
+    return nullptr;
+  }
+  PyObject* self = PyStreamYieldAll_Type.tp_alloc(&PyStreamYieldAll_Type, 0);
+  if (self == nullptr) {
+    return nullptr;
+  }
+  auto& fields = PyStreamYieldAll_fields(self);
+  new (&fields) PyStreamYieldAllObject::Fields{std::move(stream_reader),
+                                               std::move(deadline)};
+  return self;
+}
+
+PyObject* PyStreamYieldAll_iternext(PyObject* self) {
+  DCheckPyGIL();
+  PyCancellationScope cancellation_scope;
+  auto& fields = PyStreamYieldAll_fields(self);
+  auto try_read_result = fields.stream_reader->TryRead();
+  if (try_read_result.empty()) {
+    ReleasePyGIL guard;
+    auto cancellation_context = CurrentCancellationContext();
+    while (try_read_result.empty() && !Cancelled()) {
+      auto event = PermanentEvent::Make();
+      CancellationContext::Subscription cancellation_subscription;
+      if (cancellation_context != nullptr) {
+        cancellation_subscription =
+            cancellation_context->Subscribe([event] { event->Notify(); });
+      }
+      fields.stream_reader->SubscribeOnce([event] { event->Notify(); });
+      if (!event->WaitWithDeadline(fields.deadline)) {
+        break;
+      }
+      try_read_result = fields.stream_reader->TryRead();
+    }
+  }
+  if (auto* item = try_read_result.item()) {
+    return WrapAsPyQValue(TypedValue(*item));
+  }
+  if (auto* status = try_read_result.close_status()) {
+    if (status->ok()) {
+      return nullptr;
+    }
+    return SetPyErrFromStatus(*status);
+  }
+  RETURN_IF_ERROR(CheckCancellation()).With(SetPyErrFromStatus);
+  PyErr_SetObject(PyExc_TimeoutError, nullptr);
+  return nullptr;
 }
 
 PyObject* PyStream_make_reader(PyObject* self, PyObject* /*py_args*/) {
@@ -289,6 +363,60 @@ PyObject* PyStream_read_all(PyObject* self, PyObject** py_args,
     }
   }
   return py_result.release();
+}
+
+PyObject* PyStream_yield_all(PyObject* self, PyObject** py_args,
+                             Py_ssize_t nargs, PyObject* py_tuple_kwnames) {
+  DCheckPyGIL();
+  // Check that self is a valid stream.
+  auto& qvalue = UnsafeUnwrapPyQValue(self);
+  if (!IsStreamQType(qvalue.GetType())) {
+    PyErr_SetString(
+        PyExc_RuntimeError,
+        absl::StrFormat("unexpected self.qtype: expected a stream, got %s",
+                        qvalue.GetType()->name())
+            .c_str());
+    return nullptr;
+  }
+  const auto& stream = qvalue.UnsafeAs<StreamPtr>();
+  if (stream == nullptr) {
+    PyErr_SetString(PyExc_RuntimeError, "Stream is not initialized");
+    return nullptr;
+  }
+  // Parse arguments.
+  static const absl::NoDestructor parser(FastcallArgParser(
+      /*pos_only_n=*/0, /*parse_kwargs=*/false, /*kw_only_arg_names=*/
+      {"timeout"}));
+  FastcallArgParser::Args args;
+  if (!parser->Parse(py_args, nargs, py_tuple_kwnames, args)) {
+    return nullptr;
+  }
+  double timeout_seconds = std::numeric_limits<double>::infinity();
+  PyObject* py_timeout_seconds = args.kw_only_args["timeout"];
+  if (py_timeout_seconds == nullptr) {
+    PyErr_SetString(PyExc_TypeError,
+                    "Stream.yield_all() missing 1 required keyword-only "
+                    "argument: 'timeout'");
+    return nullptr;
+  }
+  if (py_timeout_seconds != Py_None) {
+    timeout_seconds = PyFloat_AsDouble(py_timeout_seconds);
+    if (PyErr_Occurred()) {
+      PyErr_Clear();
+      return PyErr_Format(
+          PyExc_TypeError,
+          "Stream.yield_all() 'timeout' must specify a non-negative "
+          "number of seconds (or be None), got: %R",
+          py_timeout_seconds);
+    }
+  }
+  if (timeout_seconds < 0.0) {
+    PyErr_SetString(PyExc_ValueError,
+                    "Stream.yield_all() 'timeout' cannot be negative");
+    return nullptr;
+  }
+  return PyStreamYieldAll_new(stream->MakeReader(),
+                              absl::Now() + absl::Seconds(timeout_seconds));
 }
 
 PyObject* PyStreamWriter_orphaned(PyObject* self, PyObject* /*py_arg*/) {
@@ -482,12 +610,24 @@ PyMethodDef kPyStream_methods[] = {
         ("read_all(*, timeout)\n"
          "--\n\n"
          "Waits until the stream is closed and returns all its items.\n\n"
-         "If `timeout` is specified and the stream is not closed within\n"
+         "If `timeout` is not `None` and the stream is not closed within\n"
          "the given time, the method raises a `TimeoutError`.\n\n"
          "Args:\n"
          "  timeout: A timeout in seconds; None means wait indefinitely.\n\n"
          "Returns:\n"
          "  A list containing the stream items."),
+    },
+    {
+        "yield_all",
+        reinterpret_cast<PyCFunction>(&PyStream_yield_all),
+        METH_FASTCALL | METH_KEYWORDS,
+        ("yield_all(*, timeout)\n"
+         "--\n\n"
+         "Returns an iterator for the stream items.\n\n"
+         "If `timeout` is not `None` and the stream doesn't close within\n"
+         "the given time, the method raises a `TimeoutError`.\n\n"
+         "Args:\n"
+         "  timeout: A timeout in seconds. `None` means wait indefinitely."),
     },
     {nullptr} /* sentinel */
 };
@@ -585,6 +725,18 @@ PyTypeObject PyStreamReader_Type = {
     .tp_doc = ("Stream reader."),
     .tp_weaklistoffset = offsetof(PyStreamReaderObject, weakrefs),
     .tp_methods = kPyStreamReader_methods,
+};
+
+PyTypeObject PyStreamYieldAll_Type = {
+    .ob_base = {PyObject_HEAD_INIT(nullptr)},
+    .tp_name = "koladata.functor.parallel.StreamYieldAll",
+    .tp_basicsize = sizeof(PyStreamYieldAllObject),
+    .tp_dealloc = PyStreamYieldAll_dealloc,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
+    .tp_doc = ("Iterator over a Stream."),
+    .tp_weaklistoffset = offsetof(PyStreamYieldAllObject, weakrefs),
+    .tp_iter = Py_NewRef,
+    .tp_iternext = PyStreamYieldAll_iternext,
 };
 
 PyObject* PyMakeStream(PyObject* /*module*/, PyObject* py_arg) {
