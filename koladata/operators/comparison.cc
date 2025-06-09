@@ -13,7 +13,6 @@
 // limitations under the License.
 //
 #include "koladata/operators/comparison.h"
-#include <utility>
 
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
