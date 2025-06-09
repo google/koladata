@@ -62,6 +62,8 @@ OPERATOR_FAMILY("koda_internal.parallel.empty_stream_like",
                 std::make_unique<EmptyStreamLikeOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.future_from_single_value_stream",
                 std::make_unique<FutureFromSingleValueStreamOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.future_iterable_from_stream",
+                std::make_unique<FutureIterableFromStreamOperatorFamily>());
 OPERATOR("koda_internal.parallel.get_execution_context_qtype",
          []() { return arolla::GetQType<ExecutionContextPtr>(); });
 OPERATOR("koda_internal.parallel.get_executor_from_context",

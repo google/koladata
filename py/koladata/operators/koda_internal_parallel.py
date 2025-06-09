@@ -25,6 +25,7 @@ from koladata.operators import bootstrap
 from koladata.operators import core
 from koladata.operators import functor
 from koladata.operators import koda_internal_functor
+from koladata.operators import koda_internal_iterables
 from koladata.operators import masking
 from koladata.operators import optools
 from koladata.operators import proto as proto_ops
@@ -1764,6 +1765,30 @@ def future_from_single_value_stream(stream):
 
   Returns:
     A future with the single value from the stream.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.future_iterable_from_stream',
+    qtype_constraints=[
+        qtype_utils.expect_stream(P.stream),
+    ],
+    qtype_inference_expr=get_future_qtype(
+        koda_internal_iterables.get_iterable_qtype(
+            M.qtype.get_value_qtype(P.stream)
+        )
+    ),
+)
+def future_iterable_from_stream(stream):
+  """Creates a future to an iterable from the given stream.
+
+  Args:
+    stream: The input stream.
+
+  Returns:
+    A future to an iterable with the values from the stream, in the same order.
   """
   raise NotImplementedError('implemented in the backend')
 

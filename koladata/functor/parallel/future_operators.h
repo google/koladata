@@ -81,6 +81,16 @@ class FutureFromSingleValueStreamOperatorFamily
       arolla::QTypePtr output_type) const final;
 };
 
+// koda_internal.parallel.future_iterable_from_stream
+// Given a stream[X] creates a future[iterable[X]] with the same values.
+// This should be used only if subsequent processing requires all values of the
+// stream at once.
+class FutureIterableFromStreamOperatorFamily : public arolla::OperatorFamily {
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final;
+};
+
 }  // namespace koladata::functor::parallel
 
 #endif  // KOLADATA_FUNCTOR_PARALLEL_AS_FUTURE_OPERATOR_H_

@@ -14,9 +14,11 @@
 //
 #include "koladata/functor/parallel/future_operators.h"
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <utility>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -31,12 +33,14 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_slot.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/sequence/mutable_sequence.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
 #include "koladata/functor/parallel/stream.h"
 #include "koladata/functor/parallel/stream_composition.h"
 #include "koladata/functor/parallel/stream_qtype.h"
+#include "koladata/iterables/iterable_qtype.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
@@ -399,6 +403,103 @@ FutureFromSingleValueStreamOperatorFamily::DoGetOperator(
   }
   return std::make_shared<FutureFromSingleValueStreamOperator>(input_types,
                                                                output_type);
+}
+
+namespace {
+
+class FutureIterableFromStreamOperator : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [input_slot = input_slots[0].UnsafeToSlot<StreamPtr>(),
+         output_slot = output_slot.UnsafeToSlot<FuturePtr>()](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          const auto& stream = frame.Get(input_slot);
+          if (stream == nullptr) {
+            return absl::InvalidArgumentError("stream is null");
+          }
+          auto [result_future, result_writer] =
+              MakeFuture(iterables::GetIterableQType(stream->value_qtype()));
+          Process(std::make_unique<State>(
+              stream->MakeReader(), std::vector<arolla::TypedRef>(),
+              std::move(result_writer), stream->value_qtype()));
+          frame.Set(output_slot, std::move(result_future));
+          return absl::OkStatus();
+        });
+  }
+
+ private:
+  struct State {
+    StreamReaderPtr reader;
+    std::vector<arolla::TypedRef> values;
+    FutureWriter writer;
+    arolla::QTypePtr value_qtype;
+
+    auto OnError() {
+      return [this](absl::Status&& status) {
+        std::move(writer).SetValue(std::move(status));
+      };
+    }
+  };
+
+  static void Process(std::unique_ptr<State> state) {
+    auto try_read_result = state->reader->TryRead();
+    while (arolla::TypedRef* item = try_read_result.item()) {
+      state->values.push_back(*item);
+      try_read_result = state->reader->TryRead();
+    }
+    if (absl::Status* status = try_read_result.close_status()) {
+      if (!status->ok()) {
+        return state->OnError()(std::move(*status));
+      }
+      ASSIGN_OR_RETURN(auto sequence,
+                       arolla::MutableSequence::Make(state->value_qtype,
+                                                     state->values.size()),
+                       state->OnError()(std::move(_)));
+      for (int64_t i = 0; i < state->values.size(); ++i) {
+        sequence.UnsafeSetRef(i, state->values[i]);
+      }
+      std::move(state->writer)
+          .SetValue(arolla::TypedValue::FromValueWithQType(
+              std::move(sequence).Finish(),
+              iterables::GetIterableQType(state->value_qtype)));
+      return;
+    }
+    state->reader->SubscribeOnce(
+        [state = std::move(state)]() mutable { Process(std::move(state)); });
+  }
+};
+
+}  // namespace
+
+absl::StatusOr<arolla::OperatorPtr>
+FutureIterableFromStreamOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 1) {
+    return absl::InvalidArgumentError("requires exactly 1 argument");
+  }
+  if (!IsStreamQType(input_types[0])) {
+    return absl::InvalidArgumentError("input type must be a stream");
+  }
+  if (!IsFutureQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a future");
+  }
+  if (!iterables::IsIterableQType(output_type->value_qtype())) {
+    return absl::InvalidArgumentError(
+        "output type must be a future to an iterable");
+  }
+  if (input_types[0]->value_qtype() !=
+      output_type->value_qtype()->value_qtype()) {
+    return absl::InvalidArgumentError("stream and iterable types must match");
+  }
+  return std::make_shared<FutureIterableFromStreamOperator>(input_types,
+                                                            output_type);
 }
 
 }  // namespace koladata::functor::parallel
