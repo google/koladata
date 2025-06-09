@@ -23,7 +23,9 @@ from arolla import arolla
 from koladata.operators import bootstrap
 from koladata.operators import koda_internal_iterables
 from koladata.operators import optools
+from koladata.operators import qtype_utils
 from koladata.types import data_slice
+from koladata.types import qtypes
 
 P = arolla.P
 M = arolla.M
@@ -241,3 +243,75 @@ def interleave(*iterables, value_type_as=arolla.unspecified()):
           )
       ),
   )(iterables, value_type_as, optools.unified_non_deterministic_arg())
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.iterables.reduce_concat',
+    qtype_inference_expr=qtypes.DATA_SLICE,
+    qtype_constraints=[
+        qtype_utils.expect_iterable(P.items),
+        (
+            M.qtype.get_value_qtype(P.items) == qtypes.DATA_SLICE,
+            (
+                'expected an iterable of DATA_SLICE, got'
+                f' {arolla.optools.constraints.name_type_msg(P.items)}'
+            ),
+        ),
+        qtype_utils.expect_data_slice(P.initial_value),
+        qtype_utils.expect_data_slice(P.ndim),
+    ],
+)
+def reduce_concat(items, initial_value, ndim=1):  # pylint: disable=unused-argument
+  """Concatenates the values of the given iterable.
+
+  This operator is a concrete case of the more general kd.functor.reduce, which
+  exists to speed up such concatenation from O(N^2) that the general reduce
+  would provide to O(N). See the docstring of kd.concat for more details about
+  the concatenation semantics.
+
+  Args:
+    items: An iterable of data slices to be concatenated.
+    initial_value: The initial value to be concatenated before items.
+    ndim: The number of last dimensions to concatenate.
+
+  Returns:
+    The concatenated data slice.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'kd.iterables.reduce_updated_bag',
+    qtype_inference_expr=qtypes.DATA_BAG,
+    qtype_constraints=[
+        qtype_utils.expect_iterable(P.items),
+        (
+            M.qtype.get_value_qtype(P.items) == qtypes.DATA_BAG,
+            (
+                'expected an iterable of DATA_BAG, got'
+                f' {arolla.optools.constraints.name_type_msg(P.items)}'
+            ),
+        ),
+        qtype_utils.expect_data_bag(P.initial_value),
+    ],
+)
+def reduce_updated_bag(items, initial_value):  # pylint: disable=unused-argument
+  """Merges the bags from the given iterable into one.
+
+  This operator is a concrete case of the more general kd.functor.reduce, which
+  exists to speed up such merging from O(N^2) that the general reduce
+  would provide to O(N). See the docstring of kd.updated_bag for more details
+  about the merging semantics.
+
+  Args:
+    items: An iterable of data bags to be merged.
+    initial_value: The data bag to be merged with the items. Note that the items
+      will be merged as updates to this bag, meaning that they will take
+      precedence over the initial_value on conflicts.
+
+  Returns:
+    The merged data bag.
+  """
+  raise NotImplementedError('implemented in the backend')

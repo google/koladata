@@ -655,41 +655,6 @@ def reduce(fn, items, initial_value):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
-    'kd.functor.aggregate',
-    qtype_inference_expr=P.return_type_as,
-    qtype_constraints=[
-        qtype_utils.expect_iterable(P.items),
-        qtype_utils.expect_data_slice(P.fn),
-    ],
-    deterministic=False,
-)
-def aggregate(fn, items, return_type_as=data_slice.DataSlice):  # pylint: disable=unused-argument
-  """Aggregates the values of the iterable.
-
-  Applies a given functor using the items in the iterable as arguments.
-  Non-streaming operator. Raises if the number of items does not correspond to
-  the number of arguments of the functor.
-
-  This operator might look similar to kd.functor.call or kd.functor.reduce, but
-  they have different semantics:
-    - kd.functor.call: supports kwargs, but does not operate on iterables.
-    - kd.functor.reduce: takes a binary functor and an initial value
-    and then applies the functor N times, where N is the number of items in the
-    iterable.
-
-  Args:
-    fn: A functor to be applied to the items in the iterable.
-    items: An iterable of items to be passed to the functor as arguments.
-    return_type_as: The type of the result.
-
-  Returns:
-    The result of applying the functor to the items in the iterable.
-  """
-  raise NotImplementedError('implemented in the backend')
-
-
-@optools.add_to_registry()
-@optools.as_backend_operator(
     'kd.functor.expr_fn',
     qtype_constraints=[
         qtype_utils.expect_data_slice(P.returns),

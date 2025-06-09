@@ -834,8 +834,10 @@ py_library(
         ":bootstrap",
         ":koda_internal_iterables",
         ":optools",
+        ":qtype_utils",
         "//py:python_path",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )

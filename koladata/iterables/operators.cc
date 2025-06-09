@@ -19,6 +19,7 @@
 #include "arolla/qtype/qtype.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/iterables/iterable_qtype.h"
+#include "koladata/iterables/reduce_operators.h"
 #include "koladata/iterables/sequence_operators.h"
 
 namespace koladata::iterables {
@@ -29,6 +30,10 @@ namespace {
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
 
+OPERATOR_FAMILY("kd.iterables.reduce_concat",
+                std::make_unique<ReduceConcatOperatorFamily>());
+OPERATOR_FAMILY("kd.iterables.reduce_updated_bag",
+                std::make_unique<ReduceUpdatedBagOperatorFamily>());
 OPERATOR("koda_internal.iterables.get_iterable_qtype",
          // Since there is a templated overload, we need to wrap in a lambda.
          [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {

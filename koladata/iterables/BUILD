@@ -47,6 +47,7 @@ cc_library(
     srcs = ["operators.cc"],
     deps = [
         ":iterable_qtype",
+        ":reduce_operators",
         ":sequence_operators",
         "//koladata:data_slice_qtype",
         "@com_google_arolla//arolla/memory",
@@ -101,6 +102,28 @@ cc_library(
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/sequence",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "reduce_operators",
+    srcs = ["reduce_operators.cc"],
+    hdrs = ["reduce_operators.h"],
+    deps = [
+        ":iterable_qtype",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/internal/op_utils:qexpr",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",

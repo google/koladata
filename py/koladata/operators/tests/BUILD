@@ -8258,27 +8258,6 @@ py_test(
 )
 
 py_test(
-    name = "functor_aggregate_test",
-    srcs = ["functor_aggregate_test.py"],
-    deps = [
-        "//py:python_path",
-        "//py/koladata/expr:expr_eval",
-        "//py/koladata/expr:input_container",
-        "//py/koladata/expr:view",
-        "//py/koladata/functor:boxing",
-        "//py/koladata/functor:functor_factories",
-        "//py/koladata/operators:eager_op_utils",
-        "//py/koladata/operators:kde_operators",
-        "//py/koladata/testing",
-        "//py/koladata/types:data_bag",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/types:signature_utils",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-py_test(
     name = "functor_call_and_update_namedtuple_test",
     srcs = ["functor_call_and_update_namedtuple_test.py"],
     deps = [
@@ -9347,6 +9326,45 @@ py_test(
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "iterables_reduce_concat_test",
+    srcs = ["iterables_reduce_concat_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:koda_internal_iterables",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "iterables_reduce_updated_bag_test",
+    srcs = ["iterables_reduce_updated_bag_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/operators:eager_op_utils",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:koda_internal_iterables",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
 )

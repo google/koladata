@@ -1931,31 +1931,6 @@ Operators to create and call functors.
 Describes handling a given user Python type as input/output when tracing.
 ```
 
-### `kd.functor.aggregate(fn, items, return_type_as=DataItem(None, schema: NONE))` {#kd.functor.aggregate}
-
-``` {.no-copy}
-Aggregates the values of the iterable.
-
-Applies a given functor using the items in the iterable as arguments.
-Non-streaming operator. Raises if the number of items does not correspond to
-the number of arguments of the functor.
-
-This operator might look similar to kd.functor.call or kd.functor.reduce, but
-they have different semantics:
-  - kd.functor.call: supports kwargs, but does not operate on iterables.
-  - kd.functor.reduce: takes a binary functor and an initial value
-  and then applies the functor N times, where N is the number of items in the
-  iterable.
-
-Args:
-  fn: A functor to be applied to the items in the iterable.
-  items: An iterable of items to be passed to the functor as arguments.
-  return_type_as: The type of the result.
-
-Returns:
-  The result of applying the functor to the items in the iterable.
-```
-
 ### `kd.functor.allow_arbitrary_unused_inputs(fn_def)` {#kd.functor.allow_arbitrary_unused_inputs}
 
 ``` {.no-copy}
@@ -2911,6 +2886,45 @@ Args:
 
 Returns:
   An iterable with the given items, in an arbitrary order.
+```
+
+### `kd.iterables.reduce_concat(items, initial_value, ndim=1)` {#kd.iterables.reduce_concat}
+
+``` {.no-copy}
+Concatenates the values of the given iterable.
+
+This operator is a concrete case of the more general kd.functor.reduce, which
+exists to speed up such concatenation from O(N^2) that the general reduce
+would provide to O(N). See the docstring of kd.concat for more details about
+the concatenation semantics.
+
+Args:
+  items: An iterable of data slices to be concatenated.
+  initial_value: The initial value to be concatenated before items.
+  ndim: The number of last dimensions to concatenate.
+
+Returns:
+  The concatenated data slice.
+```
+
+### `kd.iterables.reduce_updated_bag(items, initial_value)` {#kd.iterables.reduce_updated_bag}
+
+``` {.no-copy}
+Merges the bags from the given iterable into one.
+
+This operator is a concrete case of the more general kd.functor.reduce, which
+exists to speed up such merging from O(N^2) that the general reduce
+would provide to O(N). See the docstring of kd.updated_bag for more details
+about the merging semantics.
+
+Args:
+  items: An iterable of data bags to be merged.
+  initial_value: The data bag to be merged with the items. Note that the items
+    will be merged as updates to this bag, meaning that they will take
+    precedence over the initial_value on conflicts.
+
+Returns:
+  The merged data bag.
 ```
 
 </section>
