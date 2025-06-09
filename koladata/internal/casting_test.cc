@@ -754,7 +754,11 @@ TEST(CastingTest, ToBool_DataItem) {
               IsOkAndHolds(IsEquivalentTo(DataItem(true))));
   EXPECT_THAT(to_bool(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BOOLEAN"));
+                       "cannot cast MASK to BOOLEAN; try `kd.cond(slice, True, "
+                       "False)` instead"));
+  EXPECT_THAT(to_bool(DataItem(arolla::Text("abc"))),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast STRING to BOOLEAN"));
 }
 
 TEST(CastingTest, ToBool_DataSlice) {
@@ -784,7 +788,12 @@ TEST(CastingTest, ToBool_DataSlice) {
   EXPECT_THAT(
       to_bool(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to BOOLEAN"));
+               "cannot cast MASK to BOOLEAN; try `kd.cond(slice, True, False)` "
+               "instead"));
+  EXPECT_THAT(to_bool(DataSliceImpl::Create(
+                  {DataItem(arolla::Text("abc")), DataItem()})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast STRING to BOOLEAN"));
 }
 
 TEST(CastingTest, ToItemId_DataItem) {

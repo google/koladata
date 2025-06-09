@@ -924,17 +924,32 @@ TEST(Casting, BoolErrors) {
                                                    schema::kString)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unsupported schema: STRING"));
+  EXPECT_THAT(ToBool(test::DataSlice<arolla::Unit>(
+                  {arolla::kUnit, std::nullopt}, schema::kMask)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "unsupported schema: MASK; try `kd.cond(slice, "
+                       "True, False)` to convert MASK to BOOLEAN instead"));
   EXPECT_THAT(ToBool(test::MixedDataSlice<arolla::Text, bool>(
                   {"foo", std::nullopt, std::nullopt},
                   {std::nullopt, true, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast STRING to BOOLEAN"));
+  EXPECT_THAT(ToBool(test::MixedDataSlice<arolla::Unit, bool>(
+                  {arolla::kUnit, std::nullopt, std::nullopt},
+                  {std::nullopt, true, std::nullopt})),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast MASK to BOOLEAN; try `kd.cond(slice, "
+                       "True, False)` instead"));
   EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kString)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unsupported schema: STRING"));
   EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "cannot cast STRING to BOOLEAN"));
+  EXPECT_THAT(ToBool(test::DataItem(arolla::kUnit, schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "cannot cast MASK to BOOLEAN; try `kd.cond(slice, "
+                       "True, False)` instead"));
 }
 
 TEST_P(CastingToItemIdTest, Casting) {

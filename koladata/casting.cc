@@ -214,7 +214,16 @@ absl::StatusOr<DataSlice> ToBool(const DataSlice& slice) {
   constexpr DTypeMask kAllowedSchemas = GetDTypeMask(
       schema::kNone, schema::kInt32, schema::kInt64, schema::kFloat32,
       schema::kFloat64, schema::kBool, schema::kObject);
-  RETURN_IF_ERROR(VerifyCompatibleSchema(slice, kAllowedSchemas));
+  if (auto status = VerifyCompatibleSchema(slice, kAllowedSchemas);
+      !status.ok()) {
+    if (slice.GetSchemaImpl() == schema::kMask) {
+      RETURN_IF_ERROR(std::move(status))
+          << "try `kd.cond(slice, True, False)` to convert "
+          << schema::kMask.name() << " to " << schema::kBool.name()
+          << " instead";
+    }
+    return status;
+  }
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     ASSIGN_OR_RETURN(auto impl_res, schema::ToBool()(impl));
     return DataSlice::Create(std::move(impl_res), slice.GetShape(),

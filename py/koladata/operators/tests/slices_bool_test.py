@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -53,6 +55,17 @@ class SlicesBoolTest(parameterized.TestCase):
   def test_error(self):
     x = ds("a", schema_constants.OBJECT)
     with self.assertRaisesRegex(ValueError, "cannot cast STRING to BOOLEAN"):
+      expr_eval.eval(kde.slices.bool(x))
+
+  def test_mask_error(self):
+    x = ds(arolla.present(), schema_constants.OBJECT)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "cannot cast MASK to BOOLEAN; try `kd.cond(slice, True,"
+            " False)` instead"
+        ),
+    ):
       expr_eval.eval(kde.slices.bool(x))
 
   def test_boxing(self):

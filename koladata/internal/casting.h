@@ -108,9 +108,7 @@ struct ToDST {
           } else if constexpr (arolla::meta::contains_v<SRCs, T>) {
             return CastOp()(value);
           } else {
-            return absl::InvalidArgumentError(
-                absl::StrFormat("cannot cast %s to %v",
-                                GetQTypeName(item.dtype()), GetDType<DST>()));
+            return MakeCastError<T>(item.dtype(), schema::GetDType<DST>());
           }
         }));
     return internal::DataItem(res);
@@ -146,12 +144,26 @@ struct ToDST {
             });
             return status;
           } else {
-            return absl::InvalidArgumentError(absl::StrFormat(
-                "cannot cast %s to %v", GetQTypeName(arolla::GetQType<T>()),
-                GetDType<DST>()));
+            return MakeCastError<T>(arolla::GetQType<T>(),
+                                    schema::GetDType<DST>());
           }
         }));
     return internal::DataSliceImpl::Create(std::move(bldr).Build());
+  }
+
+ private:
+  template <typename SRC>
+  absl::Status MakeCastError(arolla::QTypePtr from_qtype,
+                             schema::DType to_dtype) const {
+    if constexpr (std::is_same_v<SRC, arolla::Unit> &&
+                  std::is_same_v<DST, bool>) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "cannot cast %s to %v; try `kd.cond(slice, True, False)` instead",
+          GetQTypeName(from_qtype), GetDType<DST>()));
+    } else {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "cannot cast %s to %v", GetQTypeName(from_qtype), GetDType<DST>()));
+    }
   }
 };
 

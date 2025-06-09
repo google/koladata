@@ -17,6 +17,8 @@
 Extensive testing is done in C++.
 """
 
+import re
+
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
@@ -58,18 +60,33 @@ class SchemaToBoolTest(parameterized.TestCase):
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
-      ds(None, schema_constants.STRING), ds("a"), ds(arolla.present())
+      (ds(None, schema_constants.STRING), "unsupported schema: STRING"),
+      (ds("a"), "unsupported schema: STRING"),
+      (
+          ds(arolla.present()),
+          (
+              "unsupported schema: MASK; try `kd.cond(slice, True, False)`"
+              " to convert MASK to BOOLEAN instead"
+          ),
+      ),
   )
-  def test_not_castable_error(self, value):
-    with self.assertRaisesRegex(
-        ValueError, f"unsupported schema: {value.get_schema()}"
-    ):
+  def test_not_castable_error(self, value, expected_error):
+    with self.assertRaisesRegex(ValueError, re.escape(expected_error)):
       expr_eval.eval(kde.schema.to_bool(value))
 
-  def test_not_castable_internal_value(self):
-    x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast STRING to BOOLEAN"):
-      expr_eval.eval(kde.schema.to_bool(x))
+  @parameterized.parameters(
+      (ds("a", schema_constants.OBJECT), "cannot cast STRING to BOOLEAN"),
+      (
+          ds(arolla.present(), schema_constants.OBJECT),
+          (
+              "cannot cast MASK to BOOLEAN; try `kd.cond(slice, True, False)`"
+              " instead"
+          ),
+      ),
+  )
+  def test_not_castable_internal_value(self, value, expected_error):
+    with self.assertRaisesRegex(ValueError, re.escape(expected_error)):
+      expr_eval.eval(kde.schema.to_bool(value))
 
   def test_boxing(self):
     testing.assert_equal(
