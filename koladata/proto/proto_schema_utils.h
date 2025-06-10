@@ -24,11 +24,11 @@ namespace schema {
 constexpr absl::string_view kProtoSchemaMetadataFullNameAttr =
     "__proto_schema_metadata_full_name__";
 
-// Stores an entity with default values for all primitive scalar fields in the
-// proto message. The entity attributes have the same names as the message
-// fields.
-constexpr absl::string_view kProtoSchemaMetadataDefaultValuesAttr =
-    "__proto_schema_metadata_default_values__";
+// For all primitive scalar fields with custom default values in a proto
+// message, there will be a metadata attr `proto_default_value_<field_name>`
+// containing that default value.
+constexpr absl::string_view kProtoSchemaMetadataDefaultValueAttrPrefix =
+    "proto_default_value_";
 
 }  // namespace schema
 

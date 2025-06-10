@@ -127,11 +127,12 @@ class FromProtoTest(absltest.TestCase):
         s_metadata.get_attr('__proto_schema_metadata_full_name__'),
         'koladata.functions.testing.MessageA',
     )
-    s_default_values = s_metadata.get_attr(
-        '__proto_schema_metadata_default_values__'
+    self.assertEqual(
+        s_metadata.get_attr('proto_default_value_some_text'), 'aaa'
     )
-    self.assertEqual(s_default_values.some_text, 'aaa')
-    self.assertEqual(s_default_values.some_float, 123.4)
+    self.assertEqual(
+        s_metadata.get_attr('proto_default_value_some_float'), 123.4
+    )
 
     message_b_s_metadata = s.message_b_list.get_attr('__items__').get_attr(
         '__schema_metadata__'
@@ -140,10 +141,9 @@ class FromProtoTest(absltest.TestCase):
         message_b_s_metadata.get_attr('__proto_schema_metadata_full_name__'),
         'koladata.functions.testing.MessageB',
     )
-    message_b_s_default_values = message_b_s_metadata.maybe(
-        '__proto_schema_metadata_default_values__'
+    self.assertIsNone(
+        message_b_s_metadata.maybe('_proto_default_value_text').to_py()
     )
-    self.assertIsNone(message_b_s_default_values.maybe('text').to_py())
 
   def test_single_message_explicit_schema(self):
     s = fns.schema_from_proto(test_pb2.MessageA)
