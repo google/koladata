@@ -65,11 +65,11 @@ class StreamTest(parameterized.TestCase):
         'koladata.functor.parallel.clib.make_stream() takes exactly one'
         ' argument (0 given)',
     ):
-      clib.make_stream()
+      clib.make_stream()  # pytype: disable=missing-parameter
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'expected QType, got object'
     ):
-      clib.make_stream(object())
+      clib.make_stream(object())  # pytype: disable=wrong-arg-types
 
   def test_stream_writer_close_with_error(self):
     stream, stream_writer = clib.make_stream(arolla.INT32)
@@ -98,11 +98,11 @@ class StreamTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'StreamWriter.write() takes exactly one argument (2 given)'
     ):
-      stream_writer.write(arolla.int32(0), arolla.int32(0))
+      stream_writer.write(arolla.int32(0), arolla.int32(0))  # pytype: disable=wrong-arg-count
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'expected a qvalue, got int'
     ):
-      stream_writer.write(0)
+      stream_writer.write(0)  # pytype: disable=wrong-arg-types
     with self.assertRaisesWithLiteralMatch(
         ValueError, 'expected a value of type INT32, got FLOAT32'
     ):
@@ -122,12 +122,12 @@ class StreamTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'expected an exception, got object'
     ):
-      stream_writer.close(object())
+      stream_writer.close(object())  # pytype: disable=wrong-arg-types
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'StreamWriter.close() takes at most 1 argument (2 given)',
     ):
-      stream_writer.close(1, 2)
+      stream_writer.close(1, 2)  # pytype: disable=wrong-arg-count
     stream_writer.close(None)
     with self.assertRaisesWithLiteralMatch(
         RuntimeError, 'stream is already closed'
@@ -163,9 +163,9 @@ class StreamTest(parameterized.TestCase):
         TypeError,
         'StreamReader.read_available() takes at most 1 argument (2 given)',
     ):
-      stream.make_reader().read_available(object(), object())
+      stream.make_reader().read_available(object(), object())  # pytype: disable=wrong-arg-count
     with self.assertRaises(TypeError):
-      stream.make_reader().read_available(object())
+      stream.make_reader().read_available(object())  # pytype: disable=wrong-arg-types
 
     with self.assertRaises(OverflowError):
       stream.make_reader().read_available(-1)
@@ -224,27 +224,27 @@ class StreamTest(parameterized.TestCase):
         TypeError,
         'StreamReader.subscribe_once() takes at most 2 arguments (3 given)',
     ):
-      stream_reader.subscribe_once(object(), object(), object())
+      stream_reader.subscribe_once(object(), object(), object())  # pytype: disable=wrong-arg-count
     with self.assertRaisesRegex(
         TypeError, re.escape("missing required argument 'executor'")
     ):
-      stream_reader.subscribe_once()
+      stream_reader.subscribe_once()  # pytype: disable=missing-parameter
     with self.assertRaisesRegex(
         TypeError, re.escape("missing required argument 'callback'")
     ):
-      stream_reader.subscribe_once(object())
+      stream_reader.subscribe_once(object())  # pytype: disable=missing-parameter
     with self.assertRaisesRegex(
         TypeError, re.escape('expected an executor, got object')
     ):
-      stream_reader.subscribe_once(object(), object())
+      stream_reader.subscribe_once(object(), object())  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError, re.escape('expected an executor, got arolla.abc.qtype.QType')
     ):
-      stream_reader.subscribe_once(arolla.INT32, object())
+      stream_reader.subscribe_once(arolla.INT32, object())  # pytype: disable=wrong-arg-types
     with self.assertRaisesRegex(
         TypeError, re.escape('expected a callable, got object')
     ):
-      stream_reader.subscribe_once(eager_executor, object())
+      stream_reader.subscribe_once(eager_executor, object())  # pytype: disable=wrong-arg-types
 
   @mock.patch.object(sys, 'unraisablehook', autospec=True)
   def test_stream_reader_subscribe_once_callback_raises(
@@ -342,23 +342,23 @@ class StreamTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'accepts 0 positional arguments but 1 was given'
     ):
-      stream.read_all(object())
+      stream.read_all(object())  # pytype: disable=wrong-arg-count
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "got an unexpected keyword 'foo'",
     ):
-      stream.read_all(foo=object())
+      stream.read_all(foo=object())  # pytype: disable=wrong-keyword-args
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "Stream.read_all() missing 1 required keyword-only argument: 'timeout'",
     ):
-      stream.read_all()
+      stream.read_all()  # pytype: disable=missing-parameter
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "Stream.read_all() 'timeout' must specify a non-negative number of"
         " seconds (or be None), got: 'bar'",
     ):
-      stream.read_all(timeout='bar')
+      stream.read_all(timeout='bar')  # pytype: disable=wrong-arg-types
     with self.assertRaisesWithLiteralMatch(
         ValueError, "Stream.read_all() 'timeout' cannot be negative"
     ):
@@ -429,24 +429,24 @@ class StreamTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'accepts 0 positional arguments but 1 was given'
     ):
-      stream.yield_all(object())
+      stream.yield_all(object())  # pytype: disable=wrong-arg-count
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "got an unexpected keyword 'foo'",
     ):
-      stream.yield_all(foo=object())
+      stream.yield_all(foo=object())  # pytype: disable=wrong-keyword-args
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'Stream.yield_all() missing 1 required keyword-only argument:'
         " 'timeout'",
     ):
-      stream.yield_all()
+      stream.yield_all()  # pytype: disable=missing-parameter
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         "Stream.yield_all() 'timeout' must specify a non-negative number of"
         " seconds (or be None), got: 'bar'",
     ):
-      stream.yield_all(timeout='bar')
+      stream.yield_all(timeout='bar')  # pytype: disable=wrong-arg-types
     with self.assertRaisesWithLiteralMatch(
         ValueError, "Stream.yield_all() 'timeout' cannot be negative"
     ):

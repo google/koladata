@@ -653,7 +653,7 @@ PyMethodDef kPyStreamWriter_methods[] = {
         "close",
         reinterpret_cast<PyCFunction>(&PyStreamWriter_close),
         METH_VARARGS | METH_KEYWORDS,
-        ("close(error=None)\n"
+        ("close(exception=None)\n"
          "--\n\n"
          "Closes the stream."),
     },

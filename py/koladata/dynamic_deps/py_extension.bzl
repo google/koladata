@@ -105,7 +105,9 @@ def koladata_pybind_extension(
         visibility = None,
         testonly = False,
         tags = [],
-        deps = None):
+        deps = None,
+        pytype_deps = (),
+        pytype_srcs = ()):
     """Builds a Koladata pybind extension module.
 
     All extensions created using this rule share the same instance of
@@ -121,11 +123,12 @@ def koladata_pybind_extension(
     incorrectly if each Python extension statically links to a "private" copy
     of the library (even when the symbols are hidden).
     """
+
     pybind_extension(
         name = name,
         srcs = srcs,
         dynamic_deps = [
-             "//py/koladata/dynamic_deps:koladata_so",
+            "//py/koladata/dynamic_deps:koladata_so",
         ],
         visibility = visibility,
         testonly = testonly,

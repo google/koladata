@@ -27,6 +27,7 @@ licenses(["notice"])
 koladata_pybind_extension(
     name = "clib",
     srcs = ["clib.cc"],
+    pytype_srcs = ["clib.pyi"],
     visibility = ["//koladata:internal"],
     deps = [
         ":py_executor",
