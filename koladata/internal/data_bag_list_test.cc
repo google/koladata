@@ -33,6 +33,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/test_utils.h"
 
 namespace koladata::internal {
 namespace {
@@ -226,18 +227,14 @@ TEST(DataBagTest, ExtendAndReplaceInLists) {
   {  // extend
     auto values = DataSliceImpl::Create(arolla::CreateDenseArray<int>(
         {2, std::nullopt, 8, 10, 11, 12}));
-    ASSERT_OK_AND_ASSIGN(auto edge,
-                         arolla::DenseArrayEdge::FromSplitPoints(
-                             arolla::CreateDenseArray<int64_t>({0, 2, 3, 6})));
+    auto edge = test::EdgeFromSplitPoints({0, 2, 3, 6});
     ASSERT_OK(db->ExtendLists(lists, values, edge));
   }
 
   {  // replace [0:0]
     auto values = DataSliceImpl::Create(
         arolla::CreateDenseArray<int>({1, std::nullopt, 9}));
-    ASSERT_OK_AND_ASSIGN(auto edge,
-                         arolla::DenseArrayEdge::FromSplitPoints(
-                             arolla::CreateDenseArray<int64_t>({0, 1, 2, 3})));
+    auto edge = test::EdgeFromSplitPoints({0, 1, 2, 3});
     ASSERT_OK(
         db->ReplaceInLists(lists, DataBagImpl::ListRange(0, 0), values, edge));
   }
@@ -253,9 +250,7 @@ TEST(DataBagTest, ExtendAndReplaceInLists) {
     auto values = DataSliceImpl::Create(
         arolla::CreateDenseArray<int>({{}, 1, {}, {}}),
         arolla::CreateDenseArray<float>({3.0f, {}, 2.0f, {}}));
-    ASSERT_OK_AND_ASSIGN(auto edge,
-                         arolla::DenseArrayEdge::FromSplitPoints(
-                             arolla::CreateDenseArray<int64_t>({0, 1, 3, 4})));
+    auto edge = test::EdgeFromSplitPoints({0, 1, 3, 4});
     ASSERT_OK(db->ReplaceInLists(lists, DataBagImpl::ListRange(1, 3),
                                  values, edge));
   }
@@ -272,9 +267,7 @@ TEST(DataBagTest, ExtendAndReplaceInLists) {
          alloc_id.ObjectByOffset(2)}));
     auto values = DataSliceImpl::Create(arolla::CreateDenseArray<arolla::Text>(
         {arolla::Text("aaa"), arolla::Text("bbb")}));
-    ASSERT_OK_AND_ASSIGN(auto edge,
-                         arolla::DenseArrayEdge::FromSplitPoints(
-                             arolla::CreateDenseArray<int64_t>({0, 1, 1, 2})));
+    auto edge = test::EdgeFromSplitPoints({0, 1, 1, 2});
     ASSERT_OK(db->ExtendLists(lists2, values, edge));
   }
 
@@ -288,9 +281,7 @@ TEST(DataBagTest, ExtendAndReplaceInLists) {
   {  // replace [-1:] (last element)
     auto values =
         DataSliceImpl::Create(arolla::CreateConstDenseArray<int>(6, 57));
-    ASSERT_OK_AND_ASSIGN(auto edge,
-                         arolla::DenseArrayEdge::FromSplitPoints(
-                             arolla::CreateDenseArray<int64_t>({0, 2, 4, 6})));
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 6});
     ASSERT_OK(
         db->ReplaceInLists(lists, DataBagImpl::ListRange(-1), values, edge));
   }
@@ -304,9 +295,7 @@ TEST(DataBagTest, ExtendAndReplaceInLists) {
 
   {  // replace [1:] with 2 missing
     auto values = DataSliceImpl::CreateEmptyAndUnknownType(6);
-    ASSERT_OK_AND_ASSIGN(auto edge,
-                         arolla::DenseArrayEdge::FromSplitPoints(
-                             arolla::CreateDenseArray<int64_t>({0, 2, 4, 6})));
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 6});
     ASSERT_OK(
         db->ReplaceInLists(lists, DataBagImpl::ListRange(1), values, edge));
   }
@@ -322,9 +311,7 @@ TEST(DataBagTest, ExtendAndReplaceInLists) {
   {  // replace [1:0]
     auto values = DataSliceImpl::Create(
         arolla::CreateDenseArray<int>({2, 3, std::nullopt, 10}));
-    ASSERT_OK_AND_ASSIGN(auto edge,
-                         arolla::DenseArrayEdge::FromSplitPoints(
-                             arolla::CreateDenseArray<int64_t>({0, 1, 3, 4})));
+    auto edge = test::EdgeFromSplitPoints({0, 1, 3, 4});
     ASSERT_OK(
         db->ReplaceInLists(lists, DataBagImpl::ListRange(1, 0), values, edge));
   }
@@ -345,9 +332,7 @@ TEST(DataBagTest, ReplaceInListsEmptyAndUnknown) {
   auto empty_values = DataSliceImpl::CreateEmptyAndUnknownType(3);
   auto values = DataSliceImpl::Create(
       arolla::CreateDenseArray<int>({1, std::nullopt, 9}));
-  ASSERT_OK_AND_ASSIGN(auto edge,
-                       arolla::DenseArrayEdge::FromSplitPoints(
-                           arolla::CreateDenseArray<int64_t>({0, 1, 2, 3})));
+  auto edge = test::EdgeFromSplitPoints({0, 1, 2, 3});
 
   {  // replace [:]
     SCOPED_TRACE("replace [:]");

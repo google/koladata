@@ -27,11 +27,9 @@
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/bytes.h"
-#include "arolla/util/status.h"
 #include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
@@ -39,7 +37,6 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/error_utils.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/object_factories.h"
@@ -58,23 +55,11 @@ using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
 
-DataSliceEdge EdgeFromSizes(absl::Span<const int64_t> sizes) {
-  std::vector<arolla::OptionalValue<int64_t>> split_points;
-  split_points.reserve(sizes.size() + 1);
-  split_points.push_back(0);
-  for (int64_t size : sizes) {
-    split_points.push_back(split_points.back().value + size);
-  }
-  return *DataSliceEdge::FromSplitPoints(
-      arolla::CreateDenseArray<int64_t>(split_points));
-}
-
 TEST(ArollaEval, SimplePointwiseEval) {
   {
     // Eval through operator.
     DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
-    DataSlice::JaggedShape y_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape y_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice y = test::DataSlice<int64_t>(
         {int64_t{3}, int64_t{-3}, std::nullopt, int64_t{-1}}, y_shape,
         schema::kObject);
@@ -95,8 +80,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
   {
     // One empty and unknown slice.
     DataSlice x = test::EmptyDataSlice(3, schema::kObject);
-    DataSlice::JaggedShape y_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape y_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice y = test::DataSlice<int64_t>(
         {int64_t{3}, int64_t{-3}, std::nullopt, int64_t{-1}}, y_shape,
         schema::kObject);
@@ -110,8 +94,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
   {
     // One empty and unknown slice - not supported type error.
     DataSlice x = test::EmptyDataSlice(3, schema::kObject);
-    DataSlice::JaggedShape y_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape y_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice y = test::DataSlice<arolla::Text>(
         {"foo", "bar", std::nullopt, "baz"}, y_shape, schema::kObject);
     EXPECT_THAT(
@@ -122,8 +105,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
   {
     // All empty and unknown slice - schema and shape broadcasting works.
     DataSlice x = test::EmptyDataSlice(3, schema::kObject);
-    DataSlice::JaggedShape y_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape y_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice y = *test::EmptyDataSlice(4, schema::kInt32).Reshape(y_shape);
     ASSERT_OK_AND_ASSIGN(auto result, SimplePointwiseEval("math.add", {x, y}));
     EXPECT_THAT(
@@ -141,8 +123,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
   {
     // Schema derived from Arolla output is different from inputs' schemas.
     DataSlice x = test::DataSlice<int>({6, 6, std::nullopt}, schema::kInt32);
-    DataSlice::JaggedShape y_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape y_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice y = test::DataSlice<int64_t>(
         {int64_t{2}, int64_t{3}, std::nullopt, int64_t{-1}}, y_shape,
         schema::kInt64);
@@ -175,8 +156,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
   {
     // invalid input: entity.
     DataSlice x = test::DataSlice<int>({1, 2, std::nullopt}, schema::kInt32);
-    DataSlice::JaggedShape y_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape y_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     auto db = DataBag::Empty();
     ASSERT_OK_AND_ASSIGN(auto y, EntityCreator::Shaped(db, y_shape, {}, {}));
     auto status = SimplePointwiseEval("math.add", {x, y}).status();
@@ -258,8 +238,7 @@ TEST(ArollaEval, SimplePointwiseEval) {
 TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
   {
     // Specifying two primary operands: normal operation.
-    DataSlice::JaggedShape x_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape x_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<arolla::Text>(
         {"foo", "bar", std::nullopt, "baz"}, x_shape, schema::kObject);
     DataSlice substr = test::DataSlice<arolla::Text>({"oo", "ar", "ee", "baz"},
@@ -277,8 +256,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
   }
   {
     // Specifying two primary operands with mismatching types STRING and BYTES.
-    DataSlice::JaggedShape x_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape x_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<arolla::Text>(
         {"foo", "bar", std::nullopt, "baz"}, x_shape, schema::kObject);
     DataSlice substr = test::DataSlice<arolla::Bytes>({"oo", "ar", "ee", "baz"},
@@ -296,8 +274,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
   }
   {
     // Passing a non-primary operand with unknown schema.
-    DataSlice::JaggedShape x_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape x_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<arolla::Text>(
         {"foo", "bar", std::nullopt, "baz"}, x_shape, schema::kObject);
     DataSlice substr = test::DataSlice<arolla::Text>({"oo", "ar", "ee", "baz"},
@@ -316,8 +293,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
   }
   {
     // Passing a non-primary operand that does not have a primitive schema.
-    DataSlice::JaggedShape x_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape x_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<arolla::Text>(
         {"foo", "bar", std::nullopt, "baz"}, x_shape, schema::kObject);
     DataSlice substr = test::DataSlice<arolla::Text>({"oo", "ar", "ee", "baz"},
@@ -339,8 +315,7 @@ TEST(ArollaEval, SimplePointwiseEvalWithPrimaryOperands) {
 TEST(ArollaEval, SimpleAggIntoEval) {
   {
     // Eval through operator.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x =
         test::DataSlice<int>({1, 2, 3, std::nullopt}, shape, schema::kObject);
     ASSERT_OK_AND_ASSIGN(auto result, SimpleAggIntoEval("math.sum", {x}));
@@ -355,8 +330,7 @@ TEST(ArollaEval, SimpleAggIntoEval) {
   }
   {
     // Computes common schema for input and output
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x =
         test::DataSlice<int>({1, 2, 3, std::nullopt}, shape, schema::kInt32);
     ASSERT_OK_AND_ASSIGN(auto result, SimpleAggIntoEval("math.mean", {x}));
@@ -366,8 +340,7 @@ TEST(ArollaEval, SimpleAggIntoEval) {
   }
   {
     // Empty and unknown slice.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     ASSERT_OK_AND_ASSIGN(
         DataSlice x, test::EmptyDataSlice(4, schema::kObject).Reshape(shape));
     ASSERT_OK_AND_ASSIGN(auto result,
@@ -409,8 +382,7 @@ TEST(ArollaEval, SimpleAggIntoEval) {
   }
   {
     // Eval with several inputs - default edge index.
-    DataSlice::JaggedShape x_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape x_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<arolla::Text>(
         {"foo", "bar", "baz", std::nullopt}, x_shape);
     DataSlice sep = test::DataItem(arolla::Text(","));
@@ -423,8 +395,7 @@ TEST(ArollaEval, SimpleAggIntoEval) {
   }
   {
     // Eval with several inputs - non-default edge index.
-    DataSlice::JaggedShape x_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 2, 1})});
+    DataSlice::JaggedShape x_shape = test::ShapeFromSizes({{3}, {2, 2, 1}});
     DataSlice x =
         test::DataSlice<float>({1.0f, 2.0f, 3.0f, 4.0f, std::nullopt}, x_shape);
     // `math.correlation` takes args: (x, y, edge).
@@ -441,8 +412,7 @@ TEST(ArollaEval, SimpleAggIntoEval) {
 TEST(ArollaEval, SimpleAggIntoEvalWithPrimaryOperands) {
   {
     // Specifying all primary operands: normal operation.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x =
         test::DataSlice<int>({1, 2, 3, std::nullopt}, shape, schema::kObject);
     ASSERT_OK_AND_ASSIGN(
@@ -456,8 +426,7 @@ TEST(ArollaEval, SimpleAggIntoEvalWithPrimaryOperands) {
   {
     // Specifying one primary operand. The second argument is not used to set
     // the schema of the first value.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<int>(
         {std::nullopt, std::nullopt, std::nullopt, std::nullopt}, shape,
         schema::kObject);
@@ -473,8 +442,7 @@ TEST(ArollaEval, SimpleAggIntoEvalWithPrimaryOperands) {
   }
   {
     // Non-primitive schema for non-primary data.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<int>(
         {std::nullopt, std::nullopt, std::nullopt, std::nullopt}, shape,
         schema::kObject);
@@ -492,8 +460,7 @@ TEST(ArollaEval, SimpleAggIntoEvalWithPrimaryOperands) {
 TEST(ArollaEval, SimpleAggOverEval) {
   {
     // Eval through operator.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({2}), EdgeFromSizes({3, 2})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{2}, {3, 2}});
     DataSlice x = test::DataSlice<int>({1, 2, 0, 1, std::nullopt}, shape,
                                        schema::kObject);
     ASSERT_OK_AND_ASSIGN(auto result,
@@ -511,8 +478,7 @@ TEST(ArollaEval, SimpleAggOverEval) {
   }
   {
     // Empty and unknown slice.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({2}), EdgeFromSizes({3, 2})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{2}, {3, 2}});
     ASSERT_OK_AND_ASSIGN(
         DataSlice x, test::EmptyDataSlice(5, schema::kObject).Reshape(shape));
     ASSERT_OK_AND_ASSIGN(auto result,
@@ -545,8 +511,7 @@ TEST(ArollaEval, SimpleAggOverEval) {
   }
   {
     // Eval with several inputs - default edge index.
-    DataSlice::JaggedShape x_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape x_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<int>({1, 2, 3, std::nullopt}, x_shape);
     DataSlice desc = test::DataItem(true);
     // `array.dense_rank` takes args: (x, edge, descending).
@@ -560,8 +525,7 @@ TEST(ArollaEval, SimpleAggOverEval) {
   }
   {
     // Eval with several inputs - non-default edge index.
-    DataSlice::JaggedShape x_shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape x_shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<int>({1, 2, 3, std::nullopt}, x_shape);
     DataSlice desc = test::DataItem(true);
     // `array.ordinal_rank` takes args: (x, tie_breaker, edge, descending).
@@ -579,8 +543,7 @@ TEST(ArollaEval, SimpleAggOverEval) {
 TEST(ArollaEval, SimpleAggOverEvalWithPrimaryOperands) {
   {
     // Specifying all primary operands: normal operation.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x =
         test::DataSlice<int>({1, 2, 3, std::nullopt}, shape, schema::kObject);
     ASSERT_OK_AND_ASSIGN(
@@ -595,8 +558,7 @@ TEST(ArollaEval, SimpleAggOverEvalWithPrimaryOperands) {
   {
     // Specifying one primary operand. The second argument is not used to set
     // the schema of the first value.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<int>(
         {std::nullopt, std::nullopt, std::nullopt, std::nullopt}, shape,
         schema::kObject);
@@ -613,8 +575,7 @@ TEST(ArollaEval, SimpleAggOverEvalWithPrimaryOperands) {
   }
   {
     // Non-primitive schema for non-primary data.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     DataSlice x = test::DataSlice<int>(
         {std::nullopt, std::nullopt, std::nullopt, std::nullopt}, shape,
         schema::kObject);

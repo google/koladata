@@ -17,7 +17,6 @@
 
 #include "koladata/functor/map.h"
 
-#include <cstdint>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -29,7 +28,6 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_node.h"
 #include "arolla/expr/quote.h"
@@ -136,14 +134,7 @@ TEST(MapTest, Alignment) {
   auto merged_bag = DataBag::CommonDataBag({fn_a.GetBag(), fn_b.GetBag()});
   auto fn = test::DataSlice<internal::DataItem>({fn_a.item(), fn_b.item()},
                                                 merged_bag);
-  ASSERT_OK_AND_ASSIGN(auto edge1,
-                       arolla::DenseArrayEdge::FromSplitPoints(
-                           arolla::CreateFullDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2,
-                       arolla::DenseArrayEdge::FromSplitPoints(
-                           arolla::CreateFullDenseArray<int64_t>({0, 3, 7})));
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       DataSlice::JaggedShape::FromEdges({edge1, edge2}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 3, 7}});
   auto a_input = test::DataSlice<int>({1, 2, 3, 4, 5, 6, 7}, shape);
   auto b_input = test::DataItem(8);
   auto expected = test::DataSlice<int>({1, 2, 3, 8, 8, 8, 8}, shape);

@@ -14,15 +14,12 @@
 //
 #include "koladata/internal/op_utils/select.h"
 
-#include <cstdint>
 #include <optional>
-#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
@@ -34,6 +31,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/test_utils.h"
 
 namespace koladata::internal {
 namespace {
@@ -51,21 +49,12 @@ using ::arolla::OptionalValue;
 using ::arolla::Text;
 using ::arolla::Unit;
 
-absl::StatusOr<DenseArrayEdge> EdgeFromSplitPoints(
-    absl::Span<const OptionalValue<int64_t>> split_points) {
-  return DenseArrayEdge::FromSplitPoints(
-      CreateDenseArray<int64_t>(split_points));
-}
-
 TEST(SelectTest, DataSlicePrimitiveValues_Int_NoExpand) {
   auto ds = DataSliceImpl::Create(
       CreateDenseArray<int>({1, std::nullopt, 4, std::nullopt, 2, 8}));
 
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 3, 4, 6}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  JaggedDenseArrayShape ds_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 3, 4, 6}});
 
   auto filter = DataSliceImpl::Create(
       CreateDenseArray<Unit>({kPresent, kPresent, kMissing}));
@@ -88,11 +77,8 @@ TEST(SelectTest, DataSlicePrimitiveValues_Int_ExpandFilter) {
   auto ds = DataSliceImpl::Create(CreateDenseArray<int>({1, std::nullopt, 2}));
   auto filter = DataSliceImpl::Create(
       CreateDenseArray<Unit>({kPresent, kPresent, kMissing}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  JaggedDenseArrayShape shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}});
 
   ASSERT_OK_AND_ASSIGN((auto [res_ds, res_shape]),
                        SelectOp()(ds, shape, filter, shape));
@@ -108,11 +94,8 @@ TEST(SelectTest, DataSlicePrimitiveValues_Int_ExpandFilter) {
 TEST(SelectTest, DataSlicePrimitiveValues_Float_NoExpand) {
   auto ds = DataSliceImpl::Create(CreateDenseArray<float>(
       {0.618, std::nullopt, 6.21, std::nullopt, 3.14, 114.514}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 3, 4, 6}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  JaggedDenseArrayShape ds_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 3, 4, 6}});
 
   auto filter = DataSliceImpl::Create(
       CreateDenseArray<Unit>({kPresent, kMissing, kPresent}));
@@ -155,11 +138,8 @@ TEST(SelectTest, DataSlicePrimitiveValues_Float_ExpandFilter) {
 TEST(SelectTest, DataSlicePrimitiveValues_Text_NoExpand) {
   auto ds = DataSliceImpl::Create(CreateDenseArray<Text>(
       {Text("abc"), std::nullopt, Text("zyx"), std::nullopt, Text("el")}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 3, 4, 6}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  JaggedDenseArrayShape ds_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 3, 4, 6}});
 
   auto filter = DataSliceImpl::Create(
       CreateDenseArray<Unit>({kPresent, kPresent, kMissing}));
@@ -183,11 +163,8 @@ TEST(SelectTest, DataSlicePrimitiveValues_Text_ExpandFilter) {
       CreateDenseArray<Text>({Text("abc"), std::nullopt, Text("zyx")}));
   auto filter = DataSliceImpl::Create(
       CreateDenseArray<Unit>({kPresent, kPresent, kMissing}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  JaggedDenseArrayShape shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}});
 
   ASSERT_OK_AND_ASSIGN((auto [res_ds, res_shape]),
                        SelectOp()(ds, shape, filter, shape));
@@ -236,11 +213,8 @@ TEST(SelectTest, DataSlicePrimitiveValues_EmptyFilter_TypedDataSliceImpl) {
 TEST(SelectTest,
      DataSlicePrimitiveValues_EmptyFilter_UnkownDataSliceImpl_NoExpand) {
   auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  JaggedDenseArrayShape ds_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}});
 
   auto filter = DataSliceImpl::CreateEmptyAndUnknownType(3);
   arolla::JaggedDenseArrayShape filter_shape =
@@ -258,15 +232,12 @@ TEST(SelectTest,
 TEST(SelectTest,
      DataSlicePrimitiveValues_EmptyFilter_NoExpand_NoExtraDimension) {
   auto ds = DataSliceImpl::CreateEmptyAndUnknownType(0);
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge3, EdgeFromSplitPoints({0, 0, 0, 0}));
-  ASSERT_OK_AND_ASSIGN(JaggedDenseArrayShape ds_shape,
-                       JaggedDenseArrayShape::FromEdges({edge1, edge2, edge3}));
+  JaggedDenseArrayShape ds_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}, {0, 0, 0, 0}});
 
   auto filter = DataSliceImpl::CreateEmptyAndUnknownType(3);
-  ASSERT_OK_AND_ASSIGN(JaggedDenseArrayShape filter_shape,
-                       JaggedDenseArrayShape::FromEdges({edge1, edge2}));
+  JaggedDenseArrayShape filter_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}});
 
   ASSERT_OK_AND_ASSIGN((auto [res_ds, res_shape]),
                        SelectOp()(ds, ds_shape, filter, filter_shape));
@@ -298,18 +269,11 @@ TEST(SelectTest, DataSlicePrimitiveValues_AllMissingFilter) {
 TEST(SelectTest, DataSlicePrimitiveValues_EmptyResult_MultiDimension) {
   auto ds = DataSliceImpl::Create(
       CreateDenseArray<Text>({Text("abc"), Text("xyz"), std::nullopt}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  JaggedDenseArrayShape ds_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}});
 
   auto filter = DataSliceImpl::CreateEmptyAndUnknownType(3);
-  ASSERT_OK_AND_ASSIGN(edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(edge2, EdgeFromSplitPoints({0, 1, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      auto filter_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto filter_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}});
 
   ASSERT_OK_AND_ASSIGN((auto [res_ds, res_shape]),
                        SelectOp()(ds, ds_shape, filter, filter_shape));
@@ -453,12 +417,7 @@ TEST(SelectTest, ShapeMismatch) {
 
   auto filter = DataSliceImpl::Create(
       CreateDenseArray<Unit>({kPresent, kPresent, kPresent}));
-
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      auto filter_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto filter_shape = test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}});
 
   EXPECT_THAT(SelectOp()(ds, ds_shape, filter, filter_shape),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -545,9 +504,7 @@ TEST(SelectTest, DataSliceAndDataItemObjectId_EmptyFilter) {
 TEST(SelectTest, DataSliceAndDataItemObjectId_EmptyDataSlice_EmptyFilter) {
   // Empty object and mask.
   auto ds = DataSliceImpl::CreateEmptyAndUnknownType(2);
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
-  ASSERT_OK_AND_ASSIGN(JaggedDenseArrayShape ds_shape,
-                       JaggedDenseArrayShape::FromEdges({std::move(edge1)}));
+  JaggedDenseArrayShape ds_shape = test::ShapeFromSplitPoints({{0, 2}});
   auto mask = DataItem();
   JaggedDenseArrayShape shape = JaggedDenseArrayShape::Empty();
   ASSERT_OK_AND_ASSIGN((auto [res, res_shape]),

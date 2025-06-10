@@ -157,6 +157,7 @@ cc_test(
     deps = [
         ":extract",
         ":new_ids_like",
+        "//koladata:test_utils",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -249,6 +250,7 @@ cc_test(
     srcs = ["traverser_test.cc"],
     deps = [
         ":traverser",
+        "//koladata:test_utils",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -301,6 +303,7 @@ cc_test(
     srcs = ["deep_clone_test.cc"],
     deps = [
         ":deep_clone",
+        "//koladata:test_utils",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -346,6 +349,7 @@ cc_test(
     srcs = ["deep_uuid_test.cc"],
     deps = [
         ":deep_uuid",
+        "//koladata:test_utils",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -387,6 +391,7 @@ cc_test(
     srcs = ["expand_test.cc"],
     deps = [
         ":expand",
+        "//koladata:test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
@@ -465,12 +470,12 @@ cc_test(
     srcs = ["select_test.cc"],
     deps = [
         ":select",
+        "//koladata:test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
-        "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/jagged_shape/dense_array",
@@ -751,9 +756,9 @@ cc_test(
     srcs = ["reverse_test.cc"],
     deps = [
         ":reverse",
+        "//koladata:test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
-        "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/jagged_shape/dense_array",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",
         "@com_google_arolla//arolla/util",
@@ -766,6 +771,7 @@ cc_test(
     srcs = ["collapse_test.cc"],
     deps = [
         ":collapse",
+        "//koladata:test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
@@ -870,17 +876,15 @@ cc_test(
     srcs = ["inverse_select_test.cc"],
     deps = [
         ":inverse_select",
+        "//koladata:test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:object_id",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/jagged_shape/dense_array",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -932,6 +936,7 @@ cc_test(
     srcs = ["agg_common_schema_test.cc"],
     deps = [
         ":agg_common_schema",
+        "//koladata:test_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
         "//koladata/internal:dtype",
@@ -1048,6 +1053,7 @@ cc_test(
     srcs = ["traverse_helper_test.cc"],
     deps = [
         ":traverse_helper",
+        "//koladata:test_utils",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -1055,7 +1061,6 @@ cc_test(
         "//koladata/internal:schema_attrs",
         "//koladata/internal/testing:deep_op_utils",
         "@com_google_absl//absl/strings:str_format",
-        "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],

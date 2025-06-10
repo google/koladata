@@ -15,21 +15,19 @@
 #include "koladata/internal/op_utils/expand.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <initializer_list>
 #include <optional>
-#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/test_utils.h"
 
 namespace koladata::internal {
 namespace {
@@ -43,17 +41,12 @@ constexpr size_t kLargeAllocSize = 2000;
 
 static_assert(kLargeAllocSize > kSmallAllocMaxCapacity);
 
-arolla::DenseArrayEdge CreateEdge(std::initializer_list<int64_t> split_points) {
-  return *arolla::DenseArrayEdge::FromSplitPoints(
-      arolla::CreateFullDenseArray(std::vector<int64_t>(split_points)));
-}
-
 TEST(ExpandTest, DataSlicePrimitiveValues) {
   {
     // Int.
     auto values = CreateDenseArray<int>({1, std::nullopt, 12});
     auto ds = DataSliceImpl::Create(values);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(ds, edge));
     EXPECT_THAT(res.values<int>(),
@@ -63,7 +56,7 @@ TEST(ExpandTest, DataSlicePrimitiveValues) {
     // Float.
     auto values = CreateDenseArray<float>({3.14, std::nullopt, 2.71});
     auto ds = DataSliceImpl::Create(values);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(ds, edge));
     EXPECT_THAT(
@@ -75,7 +68,7 @@ TEST(ExpandTest, DataSlicePrimitiveValues) {
     auto values =
         CreateDenseArray<Text>({Text("abc"), Text("xyz"), std::nullopt});
     auto ds = DataSliceImpl::Create(values);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(ds, edge));
     EXPECT_THAT(res.values<Text>(),
@@ -90,7 +83,7 @@ TEST(ExpandTest, DataSliceMixedPrimitiveValues) {
       CreateDenseArray<float>({std::nullopt, std::nullopt, std::nullopt, 2.71});
   auto ds = DataSliceImpl::Create(values_int, values_float);
   ASSERT_TRUE(ds.is_mixed_dtype());
-  auto edge = CreateEdge({0, 2, 4, 6, 7});
+  auto edge = test::EdgeFromSplitPoints({0, 2, 4, 6, 7});
 
   ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(ds, edge));
   ASSERT_TRUE(res.is_mixed_dtype());
@@ -106,7 +99,7 @@ TEST(ExpandTest, DataSliceObjectId) {
     auto ds = DataSliceImpl::CreateObjectsDataSlice(
         objects, AllocationIdSet({alloc_id}));
     ASSERT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(ds, edge));
     EXPECT_EQ(res.dtype(), ds.dtype());
@@ -129,7 +122,7 @@ TEST(ExpandTest, DataSliceObjectId) {
     ASSERT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
     ASSERT_EQ(ds.allocation_ids(),
               AllocationIdSet({alloc_id_2, AllocationId(obj_id)}));
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(ds, edge));
     EXPECT_EQ(res.dtype(), ds.dtype());
@@ -154,7 +147,7 @@ TEST(ExpandTest, DataSliceObjectId) {
     auto ds = DataSliceImpl::CreateWithAllocIds(
         AllocationIdSet({alloc_id_1, alloc_id_2}), objects, values_int);
     ASSERT_TRUE(ds.is_mixed_dtype());
-    auto edge = CreateEdge({0, 2, 4, 5, 6});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 5, 6});
 
     ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(ds, edge));
     ASSERT_TRUE(res.is_mixed_dtype());
@@ -166,7 +159,7 @@ TEST(ExpandTest, DataSliceObjectId) {
 
 TEST(ExpandTest, DataItemPrimitiveValue) {
   auto item = DataItem(12);
-  auto edge = CreateEdge({0, 3});
+  auto edge = test::EdgeFromSplitPoints({0, 3});
   ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(item, edge));
   ASSERT_EQ(res.dtype(), arolla::GetQType<int>());
   EXPECT_TRUE(res.allocation_ids().empty());
@@ -192,7 +185,7 @@ TEST(ExpandTest, DataItemObjectId) {
     auto item = DataItem(AllocateSingleObject());
     auto obj_id = item.value<ObjectId>();
     auto alloc_id = AllocationId(obj_id);
-    auto edge = CreateEdge({0, 3});
+    auto edge = test::EdgeFromSplitPoints({0, 3});
     ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(item, edge));
     EXPECT_EQ(res.dtype(), arolla::GetQType<ObjectId>());
     EXPECT_EQ(res.allocation_ids(), AllocationIdSet(alloc_id));
@@ -202,7 +195,7 @@ TEST(ExpandTest, DataItemObjectId) {
   {
     // Empty.
     auto item = DataItem();
-    auto edge = CreateEdge({0, 3});
+    auto edge = test::EdgeFromSplitPoints({0, 3});
     ASSERT_OK_AND_ASSIGN(auto res, ExpandOp()(item, edge));
     EXPECT_EQ(res.dtype(), arolla::GetNothingQType());
     EXPECT_EQ(res.size(), 3);

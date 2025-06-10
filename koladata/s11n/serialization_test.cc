@@ -23,7 +23,6 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
@@ -45,6 +44,7 @@
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
 #include "koladata/jagged_shape_qtype.h"
+#include "koladata/test_utils.h"
 
 namespace koladata {
 namespace {
@@ -161,11 +161,7 @@ TEST(SerializationTest, JaggedShapeQType) {
 }
 
 TEST(SerializationTest, JaggedShapeQValue) {
-  ASSERT_OK_AND_ASSIGN(auto edge,
-                       arolla::DenseArrayEdge::FromSplitPoints(
-                           arolla::CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto shape,
-                       arolla::JaggedDenseArrayShape::FromEdges({edge}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}});
   ASSERT_OK_AND_ASSIGN(
       auto tv, TypedValue::FromValueWithQType(shape, GetJaggedShapeQType()));
   ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode({tv}, {}));

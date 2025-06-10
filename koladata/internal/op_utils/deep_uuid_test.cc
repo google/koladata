@@ -23,7 +23,6 @@
 #include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -33,6 +32,7 @@
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/testing/deep_op_utils.h"
 #include "koladata/internal/uuid_object.h"
+#include "koladata/test_utils.h"
 
 namespace koladata::internal {
 namespace {
@@ -184,8 +184,7 @@ TEST_P(DeepUuidTest, ListsSlice) {
   auto lists = AllocateEmptyLists(3);
   auto values =
       DataSliceImpl::Create(CreateDenseArray<int32_t>({1, 2, 3, 4, 5, 6, 7}));
-  ASSERT_OK_AND_ASSIGN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
-                                      CreateDenseArray<int64_t>({0, 3, 5, 7})));
+  auto edge = test::EdgeFromSplitPoints({0, 3, 5, 7});
   ASSERT_OK(db->ExtendLists(lists, values, edge));
   auto list_schema = AllocateSchema();
   TriplesT schema_triples = {

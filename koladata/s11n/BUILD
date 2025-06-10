@@ -82,6 +82,7 @@ cc_test(
         ":s11n",
         "//koladata:data_bag",
         "//koladata:jagged_shape_qtype",
+        "//koladata:test_utils",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",

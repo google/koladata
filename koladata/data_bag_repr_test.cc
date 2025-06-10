@@ -20,16 +20,12 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/log/log.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "absl/status/statusor.h"
 #include "absl/types/optional.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
-#include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -47,16 +43,8 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
-using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
-using ::arolla::OptionalValue;
 using ::testing::MatchesRegex;
-
-absl::StatusOr<DenseArrayEdge> EdgeFromSplitPoints(
-    absl::Span<const OptionalValue<int64_t>> split_points) {
-  return DenseArrayEdge::FromSplitPoints(
-      CreateDenseArray<int64_t>(split_points));
-}
 
 TEST(DataBagReprTest, TestDataBagStringRepresentation_Entities) {
   DataBagPtr bag = DataBag::Empty();
@@ -519,13 +507,9 @@ SchemaBag:
 TEST(DataBagReprTest, TestDataBagStringRepresentation_ListSchema) {
   DataBagPtr bag = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 4}));
   internal::DataSliceImpl ds =
       internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3, 4}));
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto ds_shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   ASSERT_OK_AND_ASSIGN(DataSlice nested_list,
                        DataSlice::Create(std::move(ds), std::move(ds_shape),
                                          internal::DataItem(schema::kInt32)));
@@ -713,13 +697,9 @@ TEST(DataBagReprTest, TestDataBagStatistics_Object) {
 TEST(DataBagReprTest, TestDataBagStatistics_NestedList) {
   DataBagPtr bag = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 4}));
   internal::DataSliceImpl ds =
       internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3, 4}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto ds_shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   ASSERT_OK_AND_ASSIGN(DataSlice nested_list,
                        DataSlice::Create(std::move(ds), std::move(ds_shape),
                                          internal::DataItem(schema::kObject)));

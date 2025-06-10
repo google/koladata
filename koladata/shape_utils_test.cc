@@ -14,7 +14,6 @@
 //
 #include "koladata/shape_utils.h"
 
-#include <cstdint>
 #include <initializer_list>
 #include <utility>
 #include <vector>
@@ -29,6 +28,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/errors.h"
+#include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 
 namespace koladata::shape {
@@ -39,17 +39,6 @@ using ::arolla::CreateFullDenseArray;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
-
-DataSlice::JaggedShape::Edge CreateEdge(
-    std::initializer_list<int64_t> split_points) {
-  return *DataSlice::JaggedShape::Edge::FromSplitPoints(
-      CreateFullDenseArray(std::vector<int64_t>(split_points)));
-}
-
-absl::StatusOr<DataSlice::JaggedShape> ShapeFromEdges(
-    std::initializer_list<DataSlice::JaggedShape::Edge> edges) {
-  return DataSlice::JaggedShape::FromEdges(edges);
-}
 
 TEST(ShapeUtilsTest, GetCommonShape) {
   {
@@ -79,9 +68,7 @@ TEST(ShapeUtilsTest, GetCommonShape) {
   {
     // Normal expansion required.
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
-    auto edge_1 = CreateEdge({0, 3});
-    auto edge_2 = CreateEdge({0, 2, 4, 6});
-    ASSERT_OK_AND_ASSIGN(auto shape_2, ShapeFromEdges({edge_1, edge_2}));
+    auto shape_2 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
     ASSERT_OK_AND_ASSIGN(
         auto ds_1, DataSlice::CreateWithSchemaFromData(
@@ -95,11 +82,8 @@ TEST(ShapeUtilsTest, GetCommonShape) {
   }
   {
     // Non-compatible shapes.
-    auto edge_1 = CreateEdge({0, 3});
-    auto edge_2_1 = CreateEdge({0, 2, 4, 6});
-    auto edge_2_2 = CreateEdge({0, 2, 4, 5});
-    ASSERT_OK_AND_ASSIGN(auto shape_1, ShapeFromEdges({edge_1, edge_2_1}));
-    ASSERT_OK_AND_ASSIGN(auto shape_2, ShapeFromEdges({edge_1, edge_2_2}));
+    auto shape_1 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
+    auto shape_2 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 5}});
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
     ASSERT_OK_AND_ASSIGN(
         auto ds_1, DataSlice::CreateWithSchemaFromData(
@@ -158,11 +142,8 @@ TEST(ShapeUtilsTest, Align) {
   }
   {
     // Non-compatible shapes.
-    auto edge_1 = CreateEdge({0, 3});
-    auto edge_2_1 = CreateEdge({0, 2, 4, 6});
-    auto edge_2_2 = CreateEdge({0, 2, 4, 5});
-    ASSERT_OK_AND_ASSIGN(auto shape_1, ShapeFromEdges({edge_1, edge_2_1}));
-    ASSERT_OK_AND_ASSIGN(auto shape_2, ShapeFromEdges({edge_1, edge_2_2}));
+    auto shape_1 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
+    auto shape_2 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 5}});
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3, 4, 5, 6});
     ASSERT_OK_AND_ASSIGN(
         auto ds_1, DataSlice::CreateWithSchemaFromData(
@@ -178,9 +159,7 @@ TEST(ShapeUtilsTest, Align) {
   {
     // Compatible, but different shapes that are being aligned.
     auto shape_1 = DataSlice::JaggedShape::FlatFromSize(3);
-    auto edge_1 = CreateEdge({0, 3});
-    auto edge_2 = CreateEdge({0, 2, 4, 6});
-    ASSERT_OK_AND_ASSIGN(auto shape_2, ShapeFromEdges({edge_1, edge_2}));
+    auto shape_2 = test::ShapeFromSplitPoints({{0, 3}, {0, 2, 4, 6}});
     auto values_1 = CreateFullDenseArray<int>({1, 2, 3});
     ASSERT_OK_AND_ASSIGN(
         auto ds_1, DataSlice::CreateWithSchemaFromData(
@@ -293,18 +272,14 @@ TEST(ShapeBuilderTest, BuildWithSimpleParentShape) {
   ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape shape,
                        std::move(builder).Build());
 
-  DataSlice::JaggedShape::Edge edge_1 = CreateEdge({0, 3});
-  DataSlice::JaggedShape::Edge edge_2 = CreateEdge({0, 1, 5, 12});
-  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape expected_shape,
-                       ShapeFromEdges({edge_1, edge_2}));
+  DataSlice::JaggedShape expected_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 1, 5, 12}});
   EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
 }
 
 TEST(ShapeBuilderTest, Build) {
-  DataSlice::JaggedShape::Edge edge_1 = CreateEdge({0, 3});
-  DataSlice::JaggedShape::Edge edge_2 = CreateEdge({0, 1, 2, 3});
-  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape prev_shape,
-                       ShapeFromEdges({edge_1, edge_2}));
+  DataSlice::JaggedShape prev_shape =
+      test::ShapeFromSplitPoints({{0, 3}, {0, 1, 2, 3}});
   ShapeBuilder builder(prev_shape);
   builder.Add(1);
   builder.Add(7);
@@ -312,9 +287,10 @@ TEST(ShapeBuilderTest, Build) {
   ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape shape,
                        std::move(builder).Build());
 
-  DataSlice::JaggedShape::Edge edge_3 = CreateEdge({0, 1, 8, 12});
-  ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape expected_shape,
-                       ShapeFromEdges({edge_1, edge_2, edge_3}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice::JaggedShape expected_shape,
+      prev_shape.AddDims({test::EdgeFromSplitPoints({0, 1, 8, 12})}));
+
   EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
 }
 
@@ -325,7 +301,7 @@ TEST(ShapeBuilderTest, BuildWithEmptyParentShape) {
   ASSERT_OK_AND_ASSIGN(DataSlice::JaggedShape shape,
                        std::move(builder).Build());
   DataSlice::JaggedShape expected_shape =
-                       DataSlice::JaggedShape::FlatFromSize(4);
+      DataSlice::JaggedShape::FlatFromSize(4);
   EXPECT_THAT(shape, IsEquivalentTo(expected_shape));
 }
 

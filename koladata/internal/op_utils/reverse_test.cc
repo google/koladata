@@ -15,17 +15,15 @@
 #include "koladata/internal/op_utils/reverse.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/test_utils.h"
 
 namespace koladata::internal {
 namespace {
@@ -48,11 +46,7 @@ TEST(ReverseTest, EmptyWithTypeAndRank1) {
 
 TEST(ReverseTest, EmptyWithTypeAndRank2NoParent) {
   EXPECT_THAT(ReverseOp{}(DataSliceImpl::CreateEmptyAndUnknownType(0),
-                          *arolla::JaggedDenseArrayShape::FromEdges(
-                              {arolla::DenseArrayEdge::UnsafeFromSplitPoints(
-                                   arolla::CreateDenseArray<int64_t>({0, 0})),
-                               arolla::DenseArrayEdge::UnsafeFromSplitPoints(
-                                   arolla::CreateDenseArray<int64_t>({0}))})),
+                          test::ShapeFromSplitPoints({{0, 0}, {0}})),
               ElementsAreArray(std::vector<DataItem>(0)));
 }
 
@@ -84,11 +78,7 @@ TEST(ReverseTest, TwoDim) {
       ReverseOp{}(DataSliceImpl::Create({DataItem(1), DataItem(2), DataItem(3),
                                          DataItem(4), DataItem(5), DataItem(6),
                                          DataItem(7)}),
-                  *arolla::JaggedDenseArrayShape::FromEdges(
-                      {arolla::DenseArrayEdge::UnsafeFromSplitPoints(
-                           arolla::CreateDenseArray<int64_t>({0, 2})),
-                       arolla::DenseArrayEdge::UnsafeFromSplitPoints(
-                           arolla::CreateDenseArray<int64_t>({0, 4, 7}))})),
+                  test::ShapeFromSplitPoints({{0, 2}, {0, 4, 7}})),
       ElementsAre(DataItem(4), DataItem(3), DataItem(2), DataItem(1),
                   DataItem(7), DataItem(6), DataItem(5)));
 }

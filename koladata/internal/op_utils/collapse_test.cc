@@ -15,22 +15,20 @@
 #include "koladata/internal/op_utils/collapse.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <initializer_list>
 #include <optional>
-#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/test_utils.h"
 
 namespace koladata::internal {
 namespace {
@@ -45,18 +43,13 @@ constexpr size_t kLargeAllocSize = 2000;
 
 static_assert(kLargeAllocSize > kSmallAllocMaxCapacity);
 
-arolla::DenseArrayEdge CreateEdge(std::initializer_list<int64_t> split_points) {
-  return *arolla::DenseArrayEdge::FromSplitPoints(
-      arolla::CreateFullDenseArray(std::vector<int64_t>(split_points)));
-}
-
 TEST(CollapseTest, DataSlicePrimitiveValues) {
   {
     // Int.
     auto values =
         CreateDenseArray<int>({1, 1, std::nullopt, std::nullopt, 12, 12, 12});
     auto ds = DataSliceImpl::Create(values);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     EXPECT_THAT(res.values<int>(), ElementsAre(1, std::nullopt, 12));
@@ -66,7 +59,7 @@ TEST(CollapseTest, DataSlicePrimitiveValues) {
     auto values = CreateDenseArray<float>(
         {3.14, 3.14, std::nullopt, std::nullopt, 2.71, 2.71, 2.71});
     auto ds = DataSliceImpl::Create(values);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     EXPECT_THAT(res.values<float>(), ElementsAre(3.14, std::nullopt, 2.71));
@@ -77,7 +70,7 @@ TEST(CollapseTest, DataSlicePrimitiveValues) {
                                           Text("xyz"), std::nullopt,
                                           std::nullopt, std::nullopt});
     auto ds = DataSliceImpl::Create(values);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     EXPECT_THAT(res.values<Text>(),
@@ -88,7 +81,7 @@ TEST(CollapseTest, DataSlicePrimitiveValues) {
     auto values =
         CreateDenseArray<int>({1, 12, std::nullopt, std::nullopt, 12, 1, 12});
     auto ds = DataSliceImpl::Create(values);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     ASSERT_TRUE(res.is_empty_and_unknown());
@@ -105,7 +98,7 @@ TEST(CollapseTest, DataSliceMixedPrimitiveValues) {
         {std::nullopt, std::nullopt, 3.14, 3.14, std::nullopt, 2.71, 2.71});
     auto ds = DataSliceImpl::Create(values_int, values_float);
     ASSERT_TRUE(ds.is_mixed_dtype());
-    auto edge = CreateEdge({0, 2, 4, 6, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 6, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     ASSERT_TRUE(res.is_mixed_dtype());
@@ -120,7 +113,7 @@ TEST(CollapseTest, DataSliceMixedPrimitiveValues) {
         {std::nullopt, 3.14, 3.14, 3.14, std::nullopt, 2.71, 2.71});
     auto ds = DataSliceImpl::Create(values_int, values_float);
     ASSERT_TRUE(ds.is_mixed_dtype());
-    auto edge = CreateEdge({0, 2, 4, 6, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 6, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     ASSERT_TRUE(res.is_single_dtype());
@@ -133,7 +126,7 @@ TEST(CollapseTest, DataSliceMixedPrimitiveValues) {
         {std::nullopt, 3.14, std::nullopt, std::nullopt});
     auto ds = DataSliceImpl::Create(values_int, values_float);
     ASSERT_TRUE(ds.is_mixed_dtype());
-    auto edge = CreateEdge({0, 4});
+    auto edge = test::EdgeFromSplitPoints({0, 4});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     ASSERT_TRUE(res.is_empty_and_unknown());
@@ -152,7 +145,7 @@ TEST(CollapseTest, DataSliceObjectId) {
     auto ds = DataSliceImpl::CreateObjectsDataSlice(
         objects, AllocationIdSet({alloc_id}));
     ASSERT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     EXPECT_EQ(res.dtype(), ds.dtype());
@@ -175,7 +168,7 @@ TEST(CollapseTest, DataSliceObjectId) {
     ASSERT_EQ(ds.dtype(), arolla::GetQType<ObjectId>());
     ASSERT_EQ(ds.allocation_ids(),
               AllocationIdSet({alloc_id_2, AllocationId(obj_id)}));
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     EXPECT_EQ(res.dtype(), ds.dtype());
@@ -198,7 +191,7 @@ TEST(CollapseTest, DataSliceObjectId) {
     auto ds = DataSliceImpl::CreateWithAllocIds(
         AllocationIdSet({alloc_id_1, alloc_id_2}), objects, values_int);
     ASSERT_TRUE(ds.is_mixed_dtype());
-    auto edge = CreateEdge({0, 2, 4, 6, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 6, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     ASSERT_TRUE(res.is_mixed_dtype());
@@ -212,7 +205,7 @@ TEST(CollapseTest, EmptyDataSlice) {
   {
     // No variant.
     auto ds = DataSliceImpl::CreateEmptyAndUnknownType(7);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     ASSERT_TRUE(res.is_empty_and_unknown());
@@ -222,7 +215,7 @@ TEST(CollapseTest, EmptyDataSlice) {
     // Single variant.
     auto int_values = arolla::CreateEmptyDenseArray<int>(/*size=*/7);
     auto ds = DataSliceImpl::Create(int_values);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     ASSERT_TRUE(res.is_empty_and_unknown());
@@ -233,7 +226,7 @@ TEST(CollapseTest, EmptyDataSlice) {
     auto int_values = arolla::CreateEmptyDenseArray<int>(/*size=*/7);
     auto float_values = arolla::CreateEmptyDenseArray<float>(/*size=*/7);
     auto ds = DataSliceImpl::Create(int_values, float_values);
-    auto edge = CreateEdge({0, 2, 4, 7});
+    auto edge = test::EdgeFromSplitPoints({0, 2, 4, 7});
 
     ASSERT_OK_AND_ASSIGN(auto res, CollapseOp()(ds, edge));
     ASSERT_TRUE(res.is_empty_and_unknown());
@@ -243,7 +236,7 @@ TEST(CollapseTest, EmptyDataSlice) {
 
 TEST(CollapseTest, DataItemPrimitiveValue) {
   auto item = DataItem(12);
-  auto edge = CreateEdge({0, 3});
+  auto edge = test::EdgeFromSplitPoints({0, 3});
   EXPECT_THAT(CollapseOp()(item, edge),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "kd.collapse is not supported for DataItem."));

@@ -28,7 +28,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/typed_value.h"
@@ -50,19 +49,12 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::arolla::CreateDenseArray;
-using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
 using ::arolla::OptionalValue;
 using ::koladata::internal::ObjectId;
 using ::testing::Eq;
 using ::testing::HasSubstr;
 using ::testing::MatchesRegex;
-
-absl::StatusOr<DenseArrayEdge> EdgeFromSplitPoints(
-    absl::Span<const OptionalValue<int64_t>> split_points) {
-  return DenseArrayEdge::FromSplitPoints(
-      CreateDenseArray<int64_t>(split_points));
-}
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_Primitives) {
   DataSlice item = test::DataItem(1);
@@ -113,13 +105,11 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict) {
                             data_slice.GetBag()),
               IsOkAndHolds(MatchesRegex(
                   R"regexp(Dict\{('x'=4, 'a'=1|'a'=1, 'x'=4)\})regexp")));
-  EXPECT_THAT(
-      DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
-                    /*db=*/nullptr),
-      IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
-  EXPECT_THAT(
-      DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
-                    data_slice.GetBag()),
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                            data_slice.GetBag()),
               IsOkAndHolds(MatchesRegex(
                   R"regexp(Dict\{('x'=4, 'a'=1|'a'=1, 'x'=4)\})regexp")));
 }
@@ -147,10 +137,9 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Dict_Text) {
                     data_slice.GetBag()),
       IsOkAndHolds(MatchesRegex(
           R"regexp(Dict\{('x'='4', 'a'='a'|'a'='a', 'x'='4')\})regexp")));
-  EXPECT_THAT(
-      DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
-                    /*db=*/nullptr),
-      IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
+  EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
+                            /*db=*/nullptr),
+              IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
   EXPECT_THAT(
       DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
                     data_slice.GetBag()),
@@ -203,19 +192,17 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictMultiline) {
 
   std::string large_key0(50, 'a');
   std::string large_key1(50, 'x');
-  DataSlice keys = test::DataSlice<arolla::Text>(
-      {large_key0.c_str(), large_key1.c_str()});
+  DataSlice keys =
+      test::DataSlice<arolla::Text>({large_key0.c_str(), large_key1.c_str()});
   DataSlice values = test::DataSlice<int>({1, 1});
 
   DataSlice data_slice = test::DataItem(dict_id, dict_schema.item(), bag);
   ASSERT_OK(data_slice.SetInDict(keys, values));
 
-  EXPECT_THAT(
-      DataSliceToStr(data_slice),
-      IsOkAndHolds(MatchesRegex(
-          absl::StrFormat(
-              "Dict\\{(\n  '%s'=1,\n  '%s'=1|\n  '%s'=1,\n  '%s'=1),\n\\}",
-              large_key0, large_key1, large_key1, large_key0))));
+  EXPECT_THAT(DataSliceToStr(data_slice),
+              IsOkAndHolds(MatchesRegex(absl::StrFormat(
+                  "Dict\\{(\n  '%s'=1,\n  '%s'=1|\n  '%s'=1,\n  '%s'=1),\n\\}",
+                  large_key0, large_key1, large_key1, large_key0))));
 
   // Low level api.
   EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
@@ -285,13 +272,10 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_List_Text) {
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_NestedList) {
   DataBagPtr bag = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 3}));
   internal::DataSliceImpl ds =
       internal::DataSliceImpl::Create(CreateDenseArray<int>({1, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  JaggedDenseArrayShape ds_shape =
+      test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
   ASSERT_OK_AND_ASSIGN(DataSlice nested_list,
                        DataSlice::Create(std::move(ds), std::move(ds_shape),
                                          internal::DataItem(schema::kObject)));
@@ -324,21 +308,17 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_DictInList) {
   internal::DataSliceImpl dict_slice_impl =
       internal::DataSliceImpl::ObjectsFromAllocation(internal::AllocateDicts(3),
                                                      3);
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice dict_slice,
-      DataSlice::Create(std::move(dict_slice_impl),
-                        JaggedDenseArrayShape::FlatFromSize(3),
-                        dict_schema.item(), bag));
+  ASSERT_OK_AND_ASSIGN(DataSlice dict_slice,
+                       DataSlice::Create(std::move(dict_slice_impl),
+                                         JaggedDenseArrayShape::FlatFromSize(3),
+                                         dict_schema.item(), bag));
 
   DataSlice keys = test::DataItem("a");
   DataSlice values = test::DataItem(1);
   ASSERT_OK(dict_slice.SetInDict(keys, values));
 
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 1, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      JaggedDenseArrayShape ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  JaggedDenseArrayShape ds_shape =
+      test::ShapeFromSplitPoints({{0, 2}, {0, 1, 3}});
 
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
@@ -410,8 +390,9 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_EntitiesInList) {
   EXPECT_THAT(DataItemToStr(data_slice.item(), data_slice.GetSchemaImpl(),
                             /*db=*/nullptr),
               IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
-  EXPECT_THAT(DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
-                            data_slice.GetBag()),
+  EXPECT_THAT(
+      DataItemToStr(data_slice.item(), /*schema=*/internal::DataItem(),
+                    data_slice.GetBag()),
       IsOkAndHolds(MatchesRegex(
           R"regexp(List\[Entity\(\):\$[0-9a-zA-Z]{22}, Entity\(\):\$[0-9a-zA-Z]{22}\])regexp")));
 }
@@ -470,8 +451,8 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Entity) {
               IsOkAndHolds(MatchesRegex(R"regexp(\$[0-9a-zA-Z]{22})regexp")));
   EXPECT_THAT(DataItemToStr(entity.item(), /*schema=*/internal::DataItem(),
                             entity.GetBag()),
-      IsOkAndHolds(
-          MatchesRegex(R"regexp(Entity\(\):\$[0-9a-zA-Z]{22})regexp")));
+              IsOkAndHolds(
+                  MatchesRegex(R"regexp(Entity\(\):\$[0-9a-zA-Z]{22})regexp")));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_ListSchema) {
@@ -739,12 +720,10 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_Primitives) {
   EXPECT_THAT(DataSliceToStr(ds4), IsOkAndHolds("[1, present, None]"));
 
   DataSlice ds5 = test::DataSlice<int>({1, 2, 3});
-  EXPECT_THAT(DataSliceToStr(ds5, {.item_limit = 0}),
-              IsOkAndHolds("[...]"));
+  EXPECT_THAT(DataSliceToStr(ds5, {.item_limit = 0}), IsOkAndHolds("[...]"));
 
   DataSlice ds6 = test::DataSlice<arolla::Text>({"ab", "cd", "ef"});
-  EXPECT_THAT(DataSliceToStr(ds6),
-              IsOkAndHolds("['ab', 'cd', 'ef']"));
+  EXPECT_THAT(DataSliceToStr(ds6), IsOkAndHolds("['ab', 'cd', 'ef']"));
 }
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_EntitySlices) {
@@ -795,11 +774,7 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_DictSlices) {
 
 TEST(DataSliceReprTest,
      TestDataSliceImplStringRepresentation_TwoDimensionsSlice) {
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto ds_shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 3}});
 
   DataSlice ds = test::DataSlice<int>({1, 2, 3}, std::move(ds_shape));
 
@@ -808,12 +783,7 @@ TEST(DataSliceReprTest,
 
 TEST(DataSliceReprTest,
      TestDataSliceImplStringRepresentation_ThreeDimensionsSlice) {
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge3, EdgeFromSplitPoints({0, 2, 3, 4}));
-  ASSERT_OK_AND_ASSIGN(auto ds_shape, JaggedDenseArrayShape::FromEdges(
-                                          {std::move(edge1), std::move(edge2),
-                                           std::move(edge3)}));
+  auto ds_shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 3}, {0, 2, 3, 4}});
 
   DataSlice ds =
       test::DataSlice<int>({1, std::nullopt, 2, 3}, std::move(ds_shape));
@@ -823,13 +793,8 @@ TEST(DataSliceReprTest,
 
 TEST(DataSliceReprTest,
      TestDataSliceImplStringRepresentation_SameChildSizeEdges) {
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 5}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge3,
-                       EdgeFromSplitPoints({0, 1, 2, 3, 4, 5}));
-  ASSERT_OK_AND_ASSIGN(auto ds_shape, JaggedDenseArrayShape::FromEdges(
-                                          {std::move(edge1), std::move(edge2),
-                                           std::move(edge3)}));
+  auto ds_shape =
+      test::ShapeFromSplitPoints({{0, 2}, {0, 2, 5}, {0, 1, 2, 3, 4, 5}});
 
   EXPECT_THAT(DataSliceToStr(
                   test::DataSlice<int>({1, 2, 3, 4, 5}, std::move(ds_shape))),
@@ -844,20 +809,11 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
     }
   }
 
-  std::vector<arolla::OptionalValue<int64_t>> edge2_input;
+  std::vector<int64_t> edge2_split_points;
   for (int i = 0; i <= 10; ++i) {
-    edge2_input.emplace_back(i * 10);
+    edge2_split_points.emplace_back(i * 10);
   }
-
-  arolla::DenseArray<int64_t> edge2_array =
-      arolla::CreateDenseArray<int64_t>(absl::MakeSpan(edge2_input));
-
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 10}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
-                       DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto ds_shape = test::ShapeFromSplitPoints({{0, 10}, edge2_split_points});
 
   arolla::DenseArray<int64_t> ds_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
@@ -878,24 +834,16 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_SplitLines) {
 
 TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_ApplyLimit) {
   std::vector<arolla::OptionalValue<int64_t>> input;
-  std::vector<arolla::OptionalValue<int64_t>> edge2_input;
-  edge2_input.emplace_back(0);
+  std::vector<int64_t> edge2_split_points;
+  edge2_split_points.emplace_back(0);
   for (int i = 0; i < 10; ++i) {
     for (int j = 0; j < (i + 4); ++j) {
       input.emplace_back(j);
     }
-    edge2_input.emplace_back(edge2_input.back().value + i + 4);
+    edge2_split_points.emplace_back(edge2_split_points.back() + i + 4);
   }
 
-  arolla::DenseArray<int64_t> edge2_array =
-      arolla::CreateDenseArray<int64_t>(absl::MakeSpan(edge2_input));
-
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 10}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
-                       DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto ds_shape = test::ShapeFromSplitPoints({{0, 10}, edge2_split_points});
 
   arolla::DenseArray<int64_t> ds_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
@@ -918,20 +866,12 @@ TEST(DataSliceReprTest,
     }
   }
 
-  std::vector<arolla::OptionalValue<int64_t>> edge2_input;
+  std::vector<int64_t> edge2_split_points;
   for (int i = 0; i <= 3; ++i) {
-    edge2_input.emplace_back(i * 6);
+    edge2_split_points.emplace_back(i * 6);
   }
 
-  arolla::DenseArray<int64_t> edge2_array =
-      arolla::CreateDenseArray<int64_t>(absl::MakeSpan(edge2_input));
-
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 3}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
-                       DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto ds_shape = test::ShapeFromSplitPoints({{0, 3}, edge2_split_points});
 
   arolla::DenseArray<int64_t> ds_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
@@ -998,9 +938,8 @@ TEST(DataSliceReprTest, TestDataSliceImplStringRepresentation_NoFollowSchema) {
   DataSlice ds = test::DataSlice<ObjectId>(
       {ObjectId::NoFollowObjectSchemaId(), ObjectId::NoFollowObjectSchemaId()},
       schema::kSchema);
-  EXPECT_THAT(
-      DataSliceToStr(ds),
-      IsOkAndHolds("[NOFOLLOW(OBJECT), NOFOLLOW(OBJECT)]"));
+  EXPECT_THAT(DataSliceToStr(ds),
+              IsOkAndHolds("[NOFOLLOW(OBJECT), NOFOLLOW(OBJECT)]"));
 }
 
 TEST(DataSliceReprTest, TestStringRepresentation_NoFollow) {
@@ -1206,10 +1145,8 @@ TEST(DataSliceReprTest, CycleInObject) {
 
   ASSERT_OK(schema.SetAttr("a", schema));
 
-  EXPECT_THAT(
-      DataSliceToStr(schema),
-      IsOkAndHolds(MatchesRegex(
-          R"regex(IMPLICIT_ENTITY\(
+  EXPECT_THAT(DataSliceToStr(schema), IsOkAndHolds(MatchesRegex(
+                                          R"regex(IMPLICIT_ENTITY\(
   a=IMPLICIT_ENTITY\(a=IMPLICIT_ENTITY\(a=IMPLICIT_ENTITY\(a=IMPLICIT_ENTITY\(a=#[0-9a-zA-Z]{22}\)\)\)\),
 \))regex")));
 
@@ -1256,20 +1193,11 @@ TEST(DataSliceReprTest, NestedListExceedReprItemLimit) {
     }
   }
 
-  std::vector<arolla::OptionalValue<int64_t>> edge2_input;
+  std::vector<int64_t> edge2_split_points;
   for (int i = 0; i <= 10; ++i) {
-    edge2_input.emplace_back(i * 10);
+    edge2_split_points.emplace_back(i * 10);
   }
-
-  arolla::DenseArray<int64_t> edge2_array =
-      arolla::CreateDenseArray<int64_t>(edge2_input);
-
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 10}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2,
-                       DenseArrayEdge::FromSplitPoints(std::move(edge2_array)));
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto ds_shape = test::ShapeFromSplitPoints({{0, 10}, edge2_split_points});
 
   arolla::DenseArray<int64_t> ds_array =
       arolla::CreateDenseArray<int64_t>(absl::MakeSpan(input));
@@ -1319,8 +1247,8 @@ TEST(DataSliceReprTest, ObjEntityMultiline) {
                                std::vector<DataSlice>(2, test::DataItem(1))));
 
   EXPECT_THAT(DataSliceToStr(obj, {.item_limit = 5}),
-              IsOkAndHolds(absl::StrFormat(
-                  "Obj(\n  %s=1,\n  %s=1,\n)", large_attr0, large_attr1)));
+              IsOkAndHolds(absl::StrFormat("Obj(\n  %s=1,\n  %s=1,\n)",
+                                           large_attr0, large_attr1)));
 }
 
 TEST(DataSliceReprTest, FormatHtml_AttrSpan) {
@@ -1331,41 +1259,34 @@ TEST(DataSliceReprTest, FormatHtml_AttrSpan) {
                        /*schema=*/std::nullopt, test::Schema(schema::kObject)));
 
   std::vector<DataSlice> attr_values = {test::DataItem(1), data_slice};
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice obj,
-      ObjectCreator::FromAttrs(bag, {"a", "b"}, attr_values));
+  ASSERT_OK_AND_ASSIGN(DataSlice obj,
+                       ObjectCreator::FromAttrs(bag, {"a", "b"}, attr_values));
 
-  ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(obj, {.format_html = true}));
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(obj, {.format_html = true}));
   EXPECT_THAT(result, HasSubstr("<span class=\"attr\">a</span>=1"));
-  EXPECT_THAT(result, HasSubstr(
-      "<span class=\"attr\">b</span>=List[]"));
+  EXPECT_THAT(result, HasSubstr("<span class=\"attr\">b</span>=List[]"));
 
   // Sanity check that the low level api works.
   ASSERT_OK_AND_ASSIGN(
       result, DataItemToStr(obj.item(), obj.GetSchemaImpl(), obj.GetBag(),
                             {.format_html = true}));
   EXPECT_THAT(result, HasSubstr("<span class=\"attr\">a</span>=1"));
-  EXPECT_THAT(result, HasSubstr(
-      "<span class=\"attr\">b</span>=List[]"));
+  EXPECT_THAT(result, HasSubstr("<span class=\"attr\">b</span>=List[]"));
 }
 
 TEST(DataSliceReprTest, FormatHtml_SliceIndices) {
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge1, EdgeFromSplitPoints({0, 2}));
-  ASSERT_OK_AND_ASSIGN(DenseArrayEdge edge2, EdgeFromSplitPoints({0, 2, 3}));
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_shape,
-      JaggedDenseArrayShape::FromEdges({std::move(edge1), std::move(edge2)}));
+  auto ds_shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 3}});
 
   DataSlice ds = test::DataSlice<int>({1, 2, 3}, std::move(ds_shape));
 
-  ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(ds, {.format_html = true}));
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(ds, {.format_html = true}));
   EXPECT_EQ(
       result,
       "[<span slice-index=\"0\">["
-        "<span slice-index=\"0\">1</span>, <span slice-index=\"1\">2</span>"
-        "]</span>, "
+      "<span slice-index=\"0\">1</span>, <span slice-index=\"1\">2</span>"
+      "]</span>, "
       "<span slice-index=\"1\">[<span slice-index=\"0\">3</span>]</span>]");
 }
 
@@ -1385,15 +1306,15 @@ TEST(DataSliceReprTest, FormatHtml_ListIndices) {
                             list_item.item().value<ObjectId>()},
                            DataSlice::JaggedShape::FlatFromSize(2),
                            list_item.GetSchema().item().value<ObjectId>())));
-  ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(ds, {.format_html = true}));
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(ds, {.format_html = true}));
   EXPECT_EQ(result,
             "List["
-              "<span list-index=\"0\">List[]</span>, "
-              "<span list-index=\"1\">List["
-              "<span list-index=\"0\">1</span>, "
-              "<span list-index=\"1\">2</span>, "
-              "<span list-index=\"2\">3</span>"
+            "<span list-index=\"0\">List[]</span>, "
+            "<span list-index=\"1\">List["
+            "<span list-index=\"0\">1</span>, "
+            "<span list-index=\"1\">2</span>, "
+            "<span list-index=\"2\">3</span>"
             "]</span>]");
 }
 
@@ -1404,8 +1325,8 @@ TEST(DataSliceReprTest, FormatHtml_ListSchema) {
       CreateNestedList(bag, test::DataSlice<int>({1, 2, 3}),
                        /*schema=*/std::nullopt, test::Schema(schema::kObject)));
   ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(
-        list_item.GetSchema(), {.format_html = true}));
+      std::string result,
+      DataSliceToStr(list_item.GetSchema(), {.format_html = true}));
   EXPECT_EQ(result, "LIST[<span item-schema=\"\">OBJECT</span>]");
 }
 
@@ -1415,8 +1336,8 @@ TEST(DataSliceReprTest, FormatHtml_ObjEntity) {
       DataSlice obj,
       ObjectCreator::FromAttrs(bag, {"a<>", "b\"&"},
                                std::vector<DataSlice>(2, test::DataItem(1))));
-  ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(obj, {.format_html = true}));
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(obj, {.format_html = true}));
   EXPECT_EQ(
       result,
       "Obj("
@@ -1431,11 +1352,10 @@ TEST(DataSliceReprTest, FormatHtml_ObjEntity_NoMultiLineForKeyNearLimit) {
   std::string lots_of_amps(80, '&');
   ASSERT_OK_AND_ASSIGN(
       DataSlice obj,
-      ObjectCreator::FromAttrs(
-          bag, {lots_of_amps},
-          std::vector<DataSlice>(1, test::DataItem(1))));
-  ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(obj, {.format_html = true}));
+      ObjectCreator::FromAttrs(bag, {lots_of_amps},
+                               std::vector<DataSlice>(1, test::DataItem(1))));
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(obj, {.format_html = true}));
   EXPECT_THAT(result, Not(HasSubstr("\n")));
 }
 
@@ -1451,8 +1371,8 @@ TEST(DataSliceReprTest, FormatHtml_Dict) {
   DataSlice values = test::DataSlice<int>({1});
   ASSERT_OK(data_slice.SetInDict(keys, values));
 
-  ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(data_slice, {.format_html = true}));
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(data_slice, {.format_html = true}));
   EXPECT_EQ(result,
             "Dict{"
             "<span dict-key-index=\"0\">'\\n\\t&lt;&gt;&amp;&quot;'</span>="
@@ -1474,12 +1394,12 @@ TEST(DataSliceReprTest, FormatHtml_DictLongStrings) {
   ASSERT_OK(data_slice.SetInDict(keys, values));
 
   ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(
-        data_slice, {.format_html = true, .unbounded_type_max_len = 10}));
+      std::string result,
+      DataSliceToStr(data_slice,
+                     {.format_html = true, .unbounded_type_max_len = 10}));
   EXPECT_THAT(result, HasSubstr("a'<span class=\"truncated\">...</span>'"));
   EXPECT_THAT(result, HasSubstr("b'<span class=\"truncated\">...</span>'"));
 }
-
 
 TEST(DataSliceReprTest, FormatHtml_TruncationEscaping) {
   // Sanity check that we don't accidentally match `'...'` already in the
@@ -1533,14 +1453,13 @@ TEST(DataSliceReprTest, FormatHtml_DictObjectIdKey) {
       test::DataSlice<ObjectId>({dict_as_key},
                                 dict_key_schema.item().value<ObjectId>(), bag),
       values));
-  EXPECT_THAT(
-      DataSliceToStr(data_slice, {.format_html = true}),
-      IsOkAndHolds(absl::StrFormat(
-          "Dict{"
-          "<span dict-key-index=\"0\"><span class=\"object-id\">"
-              "%s</span></span>="
-          "<span dict-value-index=\"0\">1</span>}",
-          ObjectIdStr(dict_as_key))));
+  EXPECT_THAT(DataSliceToStr(data_slice, {.format_html = true}),
+              IsOkAndHolds(absl::StrFormat(
+                  "Dict{"
+                  "<span dict-key-index=\"0\"><span class=\"object-id\">"
+                  "%s</span></span>="
+                  "<span dict-value-index=\"0\">1</span>}",
+                  ObjectIdStr(dict_as_key))));
 }
 
 TEST(DataSliceReprTest, FormatHtml_Dict_NoMultiLineForKeyNearLimit) {
@@ -1554,27 +1473,28 @@ TEST(DataSliceReprTest, FormatHtml_Dict_NoMultiLineForKeyNearLimit) {
   DataSlice keys = test::DataSlice<arolla::Text>({lots_of_amps.c_str()});
   DataSlice values = test::DataSlice<int>({1});
   ASSERT_OK(data_slice.SetInDict(keys, values));
-  ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(data_slice, {.format_html = true}));
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(data_slice, {.format_html = true}));
   EXPECT_THAT(result, Not(HasSubstr("\n")));
 }
 
 TEST(DataSliceReprTest, FormatHtml_DictSchema) {
   DataBagPtr bag = DataBag::Empty();
-  auto dict_schema = *CreateDictSchema(
-      bag, test::Schema(schema::kInt32), test::Schema(schema::kInt32));
+  auto dict_schema = *CreateDictSchema(bag, test::Schema(schema::kInt32),
+                                       test::Schema(schema::kInt32));
   ASSERT_OK_AND_ASSIGN(
       DataSlice data_slice,
-      test::DataSlice<ObjectId>(
-          {internal::AllocateSingleDict()}, bag).WithSchema(dict_schema));
+      test::DataSlice<ObjectId>({internal::AllocateSingleDict()}, bag)
+          .WithSchema(dict_schema));
   DataSlice keys = test::DataSlice<int>({0});
   DataSlice values = test::DataSlice<int>({1});
   ASSERT_OK(data_slice.SetInDict(keys, values));
   ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(
-        data_slice.GetSchema(), {.format_html = true}));
-  EXPECT_EQ(result, "DICT{<span key-schema=\"\">INT32</span>, "
-                    "<span value-schema=\"\">INT32</span>}");
+      std::string result,
+      DataSliceToStr(data_slice.GetSchema(), {.format_html = true}));
+  EXPECT_EQ(result,
+            "DICT{<span key-schema=\"\">INT32</span>, "
+            "<span value-schema=\"\">INT32</span>}");
 }
 
 TEST(DataSliceReprTest, FormatHtml_ByteValues) {
@@ -1590,8 +1510,8 @@ TEST(DataSliceReprTest, FormatHtml_ByteValues) {
   DataSlice values = test::DataSlice<arolla::Bytes>({bytes});
   ASSERT_OK(data_slice.SetInDict(keys, values));
 
-  ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(data_slice, {.format_html = true}));
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(data_slice, {.format_html = true}));
   EXPECT_EQ(
       result,
       R"RAW(Dict{<span dict-key-index="0">1</span>=<span dict-value-index="0">b'\x10\x7f&lt;'</span>})RAW");
@@ -1601,8 +1521,8 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_Slice) {
   ObjectId list_id_1 = internal::AllocateSingleList();
   DataSlice ds = test::DataSlice<ObjectId>({list_id_1});
 
-  ASSERT_OK_AND_ASSIGN(
-    std::string result, DataSliceToStr(ds, {.format_html = true}));
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(ds, {.format_html = true}));
   EXPECT_THAT(result, HasSubstr("object-id"));
 }
 
@@ -1612,22 +1532,21 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_MaxDepth) {
                        CreateEmptyList(bag, /*schema=*/std::nullopt,
                                        test::Schema(schema::kObject)));
   ASSERT_OK_AND_ASSIGN(
-      std::string result, DataSliceToStr(
-          empty_list, {.depth = 0, .format_html = true}));
+      std::string result,
+      DataSliceToStr(empty_list, {.depth = 0, .format_html = true}));
   EXPECT_THAT(result, HasSubstr("object-id"));
 }
 
 TEST(DataSliceReprTest, FormatHtml_ObjectId_NoBag) {
   DataBagPtr bag = DataBag::Empty();
   DataSlice value_1 = test::DataItem(1);
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice entity,
-      EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
+  ASSERT_OK_AND_ASSIGN(DataSlice entity,
+                       EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
 
   entity = entity.WithBag(/*db=*/nullptr);
   ASSERT_OK_AND_ASSIGN(
-      std::string result, DataSliceToStr(
-          entity, {.depth = 100, .format_html = true}));
+      std::string result,
+      DataSliceToStr(entity, {.depth = 100, .format_html = true}));
   EXPECT_THAT(result, HasSubstr("object-id"));
 }
 
@@ -1639,8 +1558,8 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_NoFollow) {
   ASSERT_OK_AND_ASSIGN(DataSlice nofollow_entity, NoFollow(entity));
 
   ASSERT_OK_AND_ASSIGN(
-      std::string result, DataSliceToStr(
-          nofollow_entity, {.depth = 100, .format_html = true}));
+      std::string result,
+      DataSliceToStr(nofollow_entity, {.depth = 100, .format_html = true}));
   // NoFollow entities shows normal text.
   EXPECT_THAT(result, Not(HasSubstr("object-id")));
 }
@@ -1648,13 +1567,12 @@ TEST(DataSliceReprTest, FormatHtml_ObjectId_NoFollow) {
 TEST(DataSliceReprTest, FormatHtml_ObjectId_ItemId_NoObjctIdHtmlAttr) {
   DataBagPtr bag = DataBag::Empty();
   DataSlice value_1 = test::DataItem(1);
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice entity,
-      EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
+  ASSERT_OK_AND_ASSIGN(DataSlice entity,
+                       EntityCreator::FromAttrs(bag, {"a"}, {value_1}));
   DataSlice item = test::DataItem<ObjectId>(entity.item().value<ObjectId>(),
-                                           schema::kItemId);
-  ASSERT_OK_AND_ASSIGN(
-      std::string result, DataSliceToStr(item, {.format_html = true}));
+                                            schema::kItemId);
+  ASSERT_OK_AND_ASSIGN(std::string result,
+                       DataSliceToStr(item, {.format_html = true}));
   EXPECT_THAT(result, Not(HasSubstr("object-id")));
 }
 
@@ -1684,11 +1602,12 @@ TEST(DataSliceReprTest, FormatHtml_ItemLimit) {
   DataBagPtr bag = DataBag::Empty();
 
   // DataSlice case
-  EXPECT_THAT(
-      DataSliceToStr(
-          test::DataSlice<int>({1, 2, 3}),
-          {.item_limit = 1, .format_html = true, }),
-      IsOkAndHolds(HasSubstr("<span class=\"limited\">...</span>")));
+  EXPECT_THAT(DataSliceToStr(test::DataSlice<int>({1, 2, 3}),
+                             {
+                                 .item_limit = 1,
+                                 .format_html = true,
+                             }),
+              IsOkAndHolds(HasSubstr("<span class=\"limited\">...</span>")));
 
   // List case
   DataSlice list_item = test::DataSlice<int>({1, 2, 3});
@@ -1856,10 +1775,9 @@ TEST(DataSliceReprTest, DataSliceRepr_WithNamedSchema) {
 TEST(DataSliceReprTest, SchemaToStr) {
   EXPECT_THAT(SchemaToStr(test::Schema(schema::kObject)), Eq("OBJECT"));
   EXPECT_THAT(SchemaToStr(test::Schema(schema::kInt32)), Eq("INT32"));
-  EXPECT_THAT(
-      SchemaToStr(
-          *CreateListSchema(DataBag::Empty(), test::Schema(schema::kInt32))),
-      Eq("LIST[INT32]"));
+  EXPECT_THAT(SchemaToStr(*CreateListSchema(DataBag::Empty(),
+                                            test::Schema(schema::kInt32))),
+              Eq("LIST[INT32]"));
 }
 
 }  // namespace

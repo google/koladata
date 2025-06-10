@@ -17,7 +17,6 @@
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <utility>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -1916,10 +1915,9 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension) {
 
 TEST(ObjectFactoriesTest, CreateListsFromLastDimension_FromDataSlice) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(
-                                      CreateDenseArray<int64_t>({0, 3, 5})));
-  ASSERT_OK_AND_ASSIGN(
-      auto shape, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge}));
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 3, 5})}));
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
 
   {
@@ -1993,10 +1991,9 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension_FromDataSlice) {
 
 TEST(ObjectFactoriesTest, CreateListsFromLastDimension_ItemId) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(
-                                      CreateDenseArray<int64_t>({0, 3, 5})));
-  ASSERT_OK_AND_ASSIGN(
-      auto shape, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge}));
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 3, 5})}));
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
 
   ASSERT_OK_AND_ASSIGN(
@@ -2028,10 +2025,9 @@ TEST(ObjectFactoriesTest, Implode) {
   auto db = DataBag::Empty();
 
   // values: [[1, 2, 3], [4, 5]]
-  ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(
-                                      CreateDenseArray<int64_t>({0, 3, 5})));
-  ASSERT_OK_AND_ASSIGN(
-      auto shape, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge}));
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 3, 5})}));
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
 
   {
@@ -2208,19 +2204,17 @@ TEST(ObjectFactoriesTest, ConcatLists_InputsAreNotLists) {
 TEST(ObjectFactoriesTest, ConcatLists) {
   // values1: [[1, 2, 3], [4, 5]]
   auto db1 = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                      CreateDenseArray<int64_t>({0, 3, 5})));
-  ASSERT_OK_AND_ASSIGN(
-      auto shape1, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge1}));
+  ASSERT_OK_AND_ASSIGN(auto shape1,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 3, 5})}));
   auto values1 = test::DataSlice<int>({1, 2, 3, 4, 5}, shape1);
   ASSERT_OK_AND_ASSIGN(values1, Implode(db1, values1, 1));
 
   // values2: [[6, 7], [8, 9]]
   auto db2 = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                      CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(
-      auto shape2, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge2}));
+  ASSERT_OK_AND_ASSIGN(auto shape2,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 2, 4})}));
   auto values2 = test::DataSlice<int>({6, 7, 8, 9}, shape2);
   ASSERT_OK_AND_ASSIGN(values2, Implode(db2, values2, 1));
 
@@ -2236,10 +2230,9 @@ TEST(ObjectFactoriesTest, ConcatLists) {
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
 
   // values3: [[1, 2, 3, 6, 7], [4, 5, 8, 9]]
-  ASSERT_OK_AND_ASSIGN(auto edge3, DenseArrayEdge::FromSplitPoints(
-                                      CreateDenseArray<int64_t>({0, 5, 9})));
-  ASSERT_OK_AND_ASSIGN(
-      auto shape3, DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge3}));
+  ASSERT_OK_AND_ASSIGN(auto shape3,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 5, 9})}));
   auto values3 = test::DataSlice<int>({1, 2, 3, 6, 7, 4, 5, 8, 9}, shape3);
 
   EXPECT_THAT(result.ExplodeList(0, std::nullopt)->WithBag(nullptr),
@@ -2268,10 +2261,9 @@ TEST(ObjectFactoriesTest, CreateListShaped) {
 TEST(ObjectFactoriesTest, CreateListShaped_WithValues) {
   auto db = DataBag::Empty();
 
-  ASSERT_OK_AND_ASSIGN(auto edge, DenseArrayEdge::FromSplitPoints(
-                                      CreateDenseArray<int64_t>({0, 1, 3})));
   auto shape = DataSlice::JaggedShape::FlatFromSize(2);
-  ASSERT_OK_AND_ASSIGN(auto values_shape, shape.AddDims({edge}));
+  ASSERT_OK_AND_ASSIGN(auto values_shape,
+                       shape.AddDims({test::EdgeFromSplitPoints({0, 1, 3})}));
   auto values = test::DataSlice<int>({1, 2, 3}, values_shape, db);
 
   ASSERT_OK_AND_ASSIGN(auto ds, CreateListShaped(db, shape, values));
@@ -2290,12 +2282,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_WithValues) {
 }
 
 TEST(ObjectFactoriesTest, CreateListShaped_ListSchema) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto db = DataBag::Empty();
 
   auto schema_db = DataBag::Empty();
@@ -2316,12 +2303,7 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchema) {
 }
 
 TEST(ObjectFactoriesTest, CreateListShaped_ListSchema_Adopt) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto schema_db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto entity_schema,
@@ -2390,15 +2372,10 @@ TEST(ObjectFactoriesTest, CreateListShaped_ListSchemaError) {
 
 TEST(ObjectFactoriesTest, CreateNestedList) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto edge_1,
-      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3})));
-  ASSERT_OK_AND_ASSIGN(
-      auto edge_2,
-      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3, 5})));
-  ASSERT_OK_AND_ASSIGN(
-      auto shape,
-      DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge_1, edge_2}));
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 2, 3}),
+                            test::EdgeFromSplitPoints({0, 2, 3, 5})}));
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
 
   {
@@ -2435,15 +2412,10 @@ TEST(ObjectFactoriesTest, CreateNestedList) {
 
 TEST(ObjectFactoriesTest, CreateNestedList_ItemId_Nested) {
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto edge_1,
-      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3})));
-  ASSERT_OK_AND_ASSIGN(
-      auto edge_2,
-      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3, 5})));
-  ASSERT_OK_AND_ASSIGN(
-      auto shape,
-      DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge_1, edge_2}));
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 2, 3}),
+                            test::EdgeFromSplitPoints({0, 2, 3, 5})}));
   auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, db);
 
   auto itemid = *DataSlice::Create(
@@ -2515,15 +2487,10 @@ TEST(ObjectFactoriesTest, CreateNestedList_ItemId_ShapeError) {
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("different from the shape")));
 
-  ASSERT_OK_AND_ASSIGN(
-      auto edge_1,
-      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3})));
-  ASSERT_OK_AND_ASSIGN(
-      auto edge_2,
-      DenseArrayEdge::FromSplitPoints(CreateDenseArray<int64_t>({0, 2, 3, 5})));
-  ASSERT_OK_AND_ASSIGN(
-      auto shape,
-      DataSlice::JaggedShape::FlatFromSize(2).AddDims({edge_1, edge_2}));
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 2, 3}),
+                            test::EdgeFromSplitPoints({0, 2, 3, 5})}));
   ASSERT_OK_AND_ASSIGN(values, values.Reshape(shape));
 
   EXPECT_THAT(CreateNestedList(db, values, /*schema=*/std::nullopt,
@@ -2961,12 +2928,7 @@ TEST(ObjectFactoriesTest, CreateDictShaped_DictSchemaError) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
@@ -2995,12 +2957,7 @@ TEST(ObjectFactoriesTest, CreateDictLike) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike_WithValues) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
@@ -3028,9 +2985,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues) {
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt32)));
   ASSERT_OK_AND_ASSIGN(
       auto expected_keys_shape,
-      shape.AddDims({DenseArrayEdge::FromSplitPoints(
-                          CreateDenseArray<int64_t>({0, 1, 2, 2, 3}))
-                          .value()}));
+      shape.AddDims({test::EdgeFromSplitPoints({0, 1, 2, 2, 3})}));
   EXPECT_THAT(
       ds.GetDictKeys(),
       IsOkAndHolds(AllOf(
@@ -3040,12 +2995,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike_WithValues_WithSchema) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
@@ -3076,9 +3026,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues_WithSchema) {
               IsOkAndHolds(Property(&DataSlice::item, schema::kInt64)));
   ASSERT_OK_AND_ASSIGN(
       auto expected_keys_shape,
-      shape.AddDims({DenseArrayEdge::FromSplitPoints(
-                         CreateDenseArray<int64_t>({0, 1, 2, 2, 3}))
-                         .value()}));
+      shape.AddDims({test::EdgeFromSplitPoints({0, 1, 2, 2, 3})}));
   EXPECT_THAT(
       ds.GetDictKeys(),
       IsOkAndHolds(AllOf(Property(&DataSlice::slice,
@@ -3088,12 +3036,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_WithValues_WithSchema) {
 }
 
 TEST(ObjectFactoriesTest, CreateDictLike_DictSchema_Adopt) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);
@@ -3385,12 +3328,7 @@ TEST(ObjectFactoriesTest, CreateDictLike_ItemId_Errors) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
@@ -3417,12 +3355,7 @@ TEST(ObjectFactoriesTest, CreateListLike) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_WithValues) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
@@ -3483,12 +3416,7 @@ TEST(ObjectFactoriesTest, CreateListLike_MissingDataItem) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ListSchema) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto db = DataBag::Empty();
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
@@ -3512,12 +3440,7 @@ TEST(ObjectFactoriesTest, CreateListLike_ListSchema) {
 }
 
 TEST(ObjectFactoriesTest, CreateListLike_ListSchema_Adopt) {
-  ASSERT_OK_AND_ASSIGN(auto edge1, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2})));
-  ASSERT_OK_AND_ASSIGN(auto edge2, DenseArrayEdge::FromSplitPoints(
-                                       CreateDenseArray<int64_t>({0, 2, 4})));
-  ASSERT_OK_AND_ASSIGN(auto shape, DataSlice::JaggedShape::FromEdges(
-                                       {std::move(edge1), std::move(edge2)}));
+  auto shape = test::ShapeFromSplitPoints({{0, 2}, {0, 2, 4}});
   auto shape_and_mask_from = test::MixedDataSlice<int, Text>(
       {1, std::nullopt, std::nullopt, 3},
       {std::nullopt, "foo", std::nullopt, std::nullopt}, shape);

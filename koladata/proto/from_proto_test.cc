@@ -22,7 +22,6 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
-#include "arolla/dense_array/dense_array.h"
 #include "arolla/jagged_shape/testing/matchers.h"
 #include "arolla/util/bytes.h"
 #include "arolla/util/text.h"
@@ -774,8 +773,7 @@ TEST(FromProtoTest, MixedMessageStructure) {
           {1, 2, 3, 4, 5},
           *DataSlice::JaggedShape::FromEdges({
               *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 3),
-              *DataSlice::JaggedShape::Edge::FromSplitPoints(
-                  arolla::CreateDenseArray<int64_t>({0, 3, 5, 5})),
+              test::EdgeFromSplitPoints({0, 3, 5, 5}),
           }),
           schema::kInt32, db))));
 
@@ -838,8 +836,7 @@ TEST(FromProtoTest, MixedMessageStructure) {
                   *DataSlice::JaggedShape::FromEdges({
                       *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 3),
                       // [0, 0, 4]
-                      *DataSlice::JaggedShape::Edge::FromSplitPoints(
-                          arolla::CreateDenseArray<int64_t>({0, 0, 0, 4})),
+                      test::EdgeFromSplitPoints({0, 0, 0, 4}),
                   }),
                   schema::kInt32, db))));
 
@@ -857,29 +854,25 @@ TEST(FromProtoTest, MixedMessageStructure) {
                   *DataSlice::JaggedShape::FromEdges({
                       *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 3),
                       // [1, 4, 0]
-                      *DataSlice::JaggedShape::Edge::FromSplitPoints(
-                          arolla::CreateDenseArray<int64_t>({0, 1, 5, 5})),
+                      test::EdgeFromSplitPoints({0, 1, 5, 5}),
                   }),
                   schema::kInt32, db))));
 
   // repeated_message_field.repeated_int32_field items
-  EXPECT_THAT(
-      result.GetAttr("repeated_message_field")
-          ->ExplodeList(0, std::nullopt)
-          ->GetAttr("repeated_int32_field")
-          ->ExplodeList(0, std::nullopt),
-      IsOkAndHolds(IsEquivalentTo(test::DataSlice<int32_t>(
-          {100, 101, 102, 103, 104},
-          *DataSlice::JaggedShape::FromEdges({
-              *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 3),
-              // [1, 4, 0]
-              *DataSlice::JaggedShape::Edge::FromSplitPoints(
-                  arolla::CreateDenseArray<int64_t>({0, 1, 5, 5})),
-              // [2, 0, 1, 0, 2]
-              *DataSlice::JaggedShape::Edge::FromSplitPoints(
-                  arolla::CreateDenseArray<int64_t>({0, 2, 2, 3, 3, 5})),
-          }),
-          schema::kInt32, db))));
+  EXPECT_THAT(result.GetAttr("repeated_message_field")
+                  ->ExplodeList(0, std::nullopt)
+                  ->GetAttr("repeated_int32_field")
+                  ->ExplodeList(0, std::nullopt),
+              IsOkAndHolds(IsEquivalentTo(test::DataSlice<int32_t>(
+                  {100, 101, 102, 103, 104},
+                  *DataSlice::JaggedShape::FromEdges({
+                      *DataSlice::JaggedShape::Edge::FromUniformGroups(1, 3),
+                      // [1, 4, 0]
+                      test::EdgeFromSplitPoints({0, 1, 5, 5}),
+                      // [2, 0, 1, 0, 2]
+                      test::EdgeFromSplitPoints({0, 2, 2, 3, 3, 5}),
+                  }),
+                  schema::kInt32, db))));
 
   // map_int32_message_field presence
   EXPECT_THAT(ops::Has(*result.GetAttr("map_int32_message_field")),

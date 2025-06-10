@@ -68,17 +68,6 @@ using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
 using DataSliceEdge = ::koladata::DataSlice::JaggedShape::Edge;
 
-DataSliceEdge EdgeFromSizes(absl::Span<const int64_t> sizes) {
-  std::vector<arolla::OptionalValue<int64_t>> split_points;
-  split_points.reserve(sizes.size() + 1);
-  split_points.push_back(0);
-  for (int64_t size : sizes) {
-    split_points.push_back(split_points.back().value + size);
-  }
-  return *DataSliceEdge::FromSplitPoints(
-      arolla::CreateDenseArray<int64_t>(split_points));
-}
-
 TEST(DataSliceUtils, ToArollaArray) {
   std::vector<arolla::TypedValue> typed_value_holder;
   auto values_1 = CreateDenseArray<int>({1, std::nullopt, 3});
@@ -362,8 +351,7 @@ TEST(DataSliceUtils, FromArollaValue) {
     // DenseArray: Schema from data.
     auto values = CreateFullDenseArray<int>({1, 2, 3});
     auto typed_value = arolla::TypedValue::FromValue(values);
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({2}), EdgeFromSizes({2, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{2}, {2, 1}});
     ASSERT_OK_AND_ASSIGN(auto ds,
                          DataSliceFromArollaValue(typed_value.AsRef(), shape));
     EXPECT_THAT(ds, IsEquivalentTo(test::DataSlice<int>({1, 2, 3}, shape,
@@ -373,8 +361,7 @@ TEST(DataSliceUtils, FromArollaValue) {
     // DenseArray: Explicitly set schema.
     auto values = CreateFullDenseArray<int>({1, 2, 3});
     auto typed_value = arolla::TypedValue::FromValue(values);
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({2}), EdgeFromSizes({2, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{2}, {2, 1}});
     ASSERT_OK_AND_ASSIGN(
         auto ds, DataSliceFromArollaValue(typed_value.AsRef(), shape,
                                           internal::DataItem(schema::kObject)));
@@ -410,8 +397,7 @@ TEST(DataSliceUtils, FromArollaValue) {
   {
     // Scalar error: Not a scalar shape.
     auto typed_value = arolla::TypedValue::FromValue(1);
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({2}), EdgeFromSizes({2, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{2}, {2, 1}});
     EXPECT_THAT(
         DataSliceFromArollaValue(typed_value.AsRef(), shape),
         StatusIs(
@@ -423,8 +409,7 @@ TEST(DataSliceUtils, FromArollaValue) {
     // DenseArray error: Incompatible shape.
     auto values = CreateFullDenseArray<int>({1, 2, 3});
     auto typed_value = arolla::TypedValue::FromValue(values);
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({2}), EdgeFromSizes({2, 2})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{2}, {2, 2}});
     EXPECT_THAT(
         DataSliceFromArollaValue(typed_value.AsRef(), shape),
         StatusIs(
@@ -618,8 +603,7 @@ TEST(DataSliceUtils, ToArollaDenseArray) {
                     test::DataSlice<int32_t>({1, std::nullopt})),
                 IsOkAndHolds(ElementsAre(int64_t{1}, std::nullopt)));
     // Multi-dimensional.
-    DataSlice::JaggedShape shape = *DataSlice::JaggedShape::FromEdges(
-        {EdgeFromSizes({3}), EdgeFromSizes({2, 1, 1})});
+    DataSlice::JaggedShape shape = test::ShapeFromSizes({{3}, {2, 1, 1}});
     auto x = test::DataSlice<int32_t>({1, 2, 3, 4}, shape);
     EXPECT_THAT(ToArollaDenseArray<int64_t>(x),
                 IsOkAndHolds(ElementsAre(int64_t{1}, int64_t{2}, int64_t{3},

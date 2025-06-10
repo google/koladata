@@ -14,22 +14,20 @@
 //
 #include "koladata/internal/op_utils/agg_common_schema.h"
 
-#include <cstdint>
 #include <initializer_list>
 #include <optional>
-#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "arolla/dense_array/dense_array.h"
-#include "arolla/dense_array/edge.h"
 #include "arolla/util/init_arolla.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/test_utils.h"
 
 namespace koladata::internal {
 namespace {
@@ -40,18 +38,13 @@ using ::arolla::CreateDenseArray;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 
-arolla::DenseArrayEdge CreateEdge(std::initializer_list<int64_t> split_points) {
-  return *arolla::DenseArrayEdge::FromSplitPoints(
-      arolla::CreateFullDenseArray(std::vector<int64_t>(split_points)));
-}
-
 TEST(AggCommonSchemaTest, WithCommonSchema) {
   {
     // DTypes.
     auto ds = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
         {schema::kInt32, std::nullopt, schema::kInt64, std::nullopt,
          schema::kInt32}));
-    auto edge = CreateEdge({0, 3, 4, 5});
+    auto edge = test::EdgeFromSplitPoints({0, 3, 4, 5});
     EXPECT_THAT(AggCommonSchemaOp(ds, edge),
                 IsOkAndHolds(
                     ElementsAre(schema::kInt64, std::nullopt, schema::kInt32)));
@@ -61,7 +54,7 @@ TEST(AggCommonSchemaTest, WithCommonSchema) {
     auto schema = AllocateExplicitSchema();
     auto ds = DataSliceImpl::Create(CreateDenseArray<ObjectId>(
         {schema, std::nullopt, schema, std::nullopt, schema}));
-    auto edge = CreateEdge({0, 3, 4, 5});
+    auto edge = test::EdgeFromSplitPoints({0, 3, 4, 5});
     EXPECT_THAT(AggCommonSchemaOp(ds, edge),
                 IsOkAndHolds(ElementsAre(schema, std::nullopt, schema)));
   }
@@ -71,7 +64,7 @@ TEST(AggCommonSchemaTest, WithCommonSchema) {
     auto ds = DataSliceImpl::Create(CreateDenseArray<DataItem>(
         {DataItem(schema::kInt32), std::nullopt, DataItem(schema::kInt64),
          std::nullopt, DataItem(schema)}));
-    auto edge = CreateEdge({0, 3, 4, 5});
+    auto edge = test::EdgeFromSplitPoints({0, 3, 4, 5});
     EXPECT_THAT(
         AggCommonSchemaOp(ds, edge),
         IsOkAndHolds(ElementsAre(schema::kInt64, std::nullopt, schema)));
@@ -85,7 +78,7 @@ TEST(AggCommonSchemaTest, NoCommonSchema) {
     auto ds = DataSliceImpl::Create(CreateDenseArray<schema::DType>(
         {schema::kInt32, std::nullopt, schema::kItemId, std::nullopt,
          schema::kInt32}));
-    auto edge = CreateEdge({0, 3, 4, 5});
+    auto edge = test::EdgeFromSplitPoints({0, 3, 4, 5});
     EXPECT_THAT(AggCommonSchemaOp(ds, edge),
                 StatusIs(absl::StatusCode::kInvalidArgument,
                          HasSubstr("no common schema")));
@@ -96,17 +89,17 @@ TEST(AggCommonSchemaTest, NoCommonSchema) {
     auto schema2 = AllocateExplicitSchema();
      auto ds = DataSliceImpl::Create(CreateDenseArray<ObjectId>(
         {schema1, std::nullopt, schema2, std::nullopt, schema1}));
-    auto edge = CreateEdge({0, 3, 4, 5});
-    EXPECT_THAT(AggCommonSchemaOp(ds, edge),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("no common schema")));
+     auto edge = test::EdgeFromSplitPoints({0, 3, 4, 5});
+     EXPECT_THAT(AggCommonSchemaOp(ds, edge),
+                 StatusIs(absl::StatusCode::kInvalidArgument,
+                          HasSubstr("no common schema")));
   }
 }
 
 TEST(AggCommonSchemaTest, InvalidEdge) {
   auto ds =
       DataSliceImpl::Create(CreateDenseArray<schema::DType>({schema::kInt32}));
-  auto edge = CreateEdge({0, 10});
+  auto edge = test::EdgeFromSplitPoints({0, 10});
   EXPECT_THAT(AggCommonSchemaOp(ds, edge),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("argument sizes mismatch")));
@@ -114,7 +107,7 @@ TEST(AggCommonSchemaTest, InvalidEdge) {
 
 TEST(AggCommonSchemaTest, NonSchemaValue) {
   auto ds = DataSliceImpl::Create(CreateDenseArray<int>({1}));
-  auto edge = CreateEdge({0, 1});
+  auto edge = test::EdgeFromSplitPoints({0, 1});
   EXPECT_THAT(AggCommonSchemaOp(ds, edge),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected Schema, got: 1")));
