@@ -28,7 +28,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.OperatorsContainer(jagged_shape)
+M = arolla.M | jagged_shape.M
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
@@ -239,7 +239,7 @@ def _implode(x, ndim, itemid):  # pylint: disable=unused-argument
 def implode(
     x,
     ndim=data_slice.DataSlice.from_vals(1, schema_constants.INT64),
-    itemid=arolla.unspecified()
+    itemid=arolla.unspecified(),
 ):
   """Implodes a Dataslice `x` a specified number of times.
 

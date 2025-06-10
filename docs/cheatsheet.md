@@ -3161,7 +3161,7 @@ def my_func(a):
   return kd.lazy.add(a, a)
 
 # Create the operator container 'E'
-E = kd.optools.make_operators_container('E').E
+E = arolla.OperatorsContainer(unsafe_extra_namespaces=['E']).E
 kd.eval(E.my_func(I.a), a=1)
 
 expect_data_slice =

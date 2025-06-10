@@ -26,7 +26,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.OperatorsContainer(jagged_shape)
+M = arolla.M | jagged_shape.M
 P = arolla.P
 INT64 = schema_constants.INT64
 constraints = arolla.optools.constraints
@@ -127,9 +127,7 @@ def _new_with_size(result_size, *dimensions):  # pylint: disable=unused-argument
 def size(shape):
   """Returns the total number of elements the jagged shape represents."""
   return arolla_bridge.to_data_slice(
-      M.jagged.size(
-          arolla_bridge.to_arolla_jagged_shape(shape)
-      )
+      M.jagged.size(arolla_bridge.to_arolla_jagged_shape(shape))
   )
 
 
@@ -441,7 +439,7 @@ def is_expandable_to_shape(x, target_shape, ndim=arolla.unspecified()):
   return arolla_bridge.to_data_slice(
       M.jagged.is_broadcastable_to(
           arolla_bridge.to_arolla_jagged_shape(shape),
-          arolla_bridge.to_arolla_jagged_shape(target_shape)
+          arolla_bridge.to_arolla_jagged_shape(target_shape),
       )
   )
 
@@ -522,8 +520,9 @@ def flatten(
 )
 def rank(shape):
   """Returns the rank of the jagged shape."""
-  return arolla_bridge.to_data_slice(M.jagged.rank(
-      arolla_bridge.to_arolla_jagged_shape(shape)))
+  return arolla_bridge.to_data_slice(
+      M.jagged.rank(arolla_bridge.to_arolla_jagged_shape(shape))
+  )
 
 
 # TODO: Remove this operator once the shapes.get_sizes is ready.

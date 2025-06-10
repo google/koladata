@@ -27,7 +27,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.OperatorsContainer(jagged_shape)
+M = arolla.M | jagged_shape.M
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
@@ -514,9 +514,7 @@ def dict_update(x, keys, values=arolla.unspecified()):
   )(x, keys, values)
 
 
-@optools.add_to_registry(
-    aliases=['kd.with_dict_update']
-)
+@optools.add_to_registry(aliases=['kd.with_dict_update'])
 @optools.as_lambda_operator(
     'kd.dicts.with_dict_update',
     qtype_constraints=[

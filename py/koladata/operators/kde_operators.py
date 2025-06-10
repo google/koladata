@@ -14,42 +14,40 @@
 
 """Initializes Koda operators."""
 
+from arolla import arolla
 from koladata.operators import base_cc_operators as _
 from koladata.operators import extra_cc_operators as _
-from koladata.operators import optools
+from koladata.operators import koda_internal_parallel as _
 from koladata.operators import py as _
 
 
-def get_namespaces() -> list[str]:
-  return [
-      # go/keep-sorted start
-      'kd',
-      'kd.allocation',
-      'kd.annotation',
-      'kd.assertion',
-      'kd.bags',
-      'kd.comparison',
-      'kd.core',
-      'kd.dicts',
-      'kd.entities',
-      'kd.functor',
-      'kd.ids',
-      'kd.iterables',
-      'kd.json',
-      'kd.lists',
-      'kd.masking',
-      'kd.math',
-      'kd.objs',
-      'kd.proto',
-      'kd.py',
-      'kd.random',
-      'kd.schema',
-      'kd.shapes',
-      'kd.slices',
-      'kd.strings',
-      'kd.tuple',
-      # go/keep-sorted end
-  ]
-
-
-kde = optools.make_operators_container(*get_namespaces()).kd
+kde = arolla.OperatorsContainer(
+    unsafe_extra_namespaces=[
+        # go/keep-sorted start
+        'kd.allocation',
+        'kd.annotation',
+        'kd.assertion',
+        'kd.bags',
+        'kd.comparison',
+        'kd.core',
+        'kd.dicts',
+        'kd.entities',
+        'kd.functor',
+        'kd.ids',
+        'kd.iterables',
+        'kd.json',
+        'kd.lists',
+        'kd.masking',
+        'kd.math',
+        'kd.objs',
+        'kd.proto',
+        'kd.py',
+        'kd.random',
+        'kd.schema',
+        'kd.shapes',
+        'kd.slices',
+        'kd.strings',
+        'kd.tuple',
+        # go/keep-sorted end
+    ]
+).kd

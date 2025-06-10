@@ -53,14 +53,15 @@ class EagerOpUtilsTest(parameterized.TestCase):
     def op_4(a, b):
       return (b, a)
 
-    module = types.ModuleType('test')
-
-    def get_namespaces():
-      return ['test', 'test.namespace_1', 'test.namespace_2']
-
-    module.get_namespaces = get_namespaces
     eager_op_utils._GLOBAL_OPERATORS_CONTAINER = (
-        eager_op_utils._OperatorsContainer(arolla.OperatorsContainer(module))
+        eager_op_utils._OperatorsContainer(
+            arolla.OperatorsContainer(
+                unsafe_extra_namespaces=[
+                    'test.namespace_1',
+                    'test.namespace_2',
+                ]
+            )
+        )
     )
 
     self.x = ds(arolla.dense_array([1, 2, 3]))
@@ -196,13 +197,9 @@ class EagerOpUtilsTest(parameterized.TestCase):
     )
 
   def test_custom_arolla_container(self):
-    module = types.ModuleType('test')
-
-    def get_namespaces():
-      return ['test', 'test.namespace_2']
-
-    module.get_namespaces = get_namespaces
-    arolla_container = arolla.OperatorsContainer(module)
+    arolla_container = arolla.OperatorsContainer(
+        unsafe_extra_namespaces=['test.namespace_2']
+    )
 
     self.assertTrue(
         # Testing for subset here, in order to not depend on registered

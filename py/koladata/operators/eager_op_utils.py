@@ -118,9 +118,7 @@ class _OperatorsContainer:
     return ret
 
 
-_GLOBAL_OPERATORS_CONTAINER = _OperatorsContainer(
-    arolla.OperatorsContainer(kde_operators)
-)
+_GLOBAL_OPERATORS_CONTAINER = _OperatorsContainer(arolla.M | kde_operators.kde)
 
 
 def reset_operators_container():

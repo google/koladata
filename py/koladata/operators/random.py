@@ -33,7 +33,7 @@ from koladata.types import py_boxing
 from koladata.types import schema_constants
 
 
-M = arolla.OperatorsContainer(jagged_shape)
+M = arolla.M | jagged_shape.M
 P = arolla.P
 constraints = arolla.optools.constraints
 
@@ -319,9 +319,7 @@ def sample_n(
   return slices.internal_select_by_slice(x, ds_mask)
 
 
-@optools.add_to_registry(
-    aliases=['kd.randint_shaped']
-)
+@optools.add_to_registry(aliases=['kd.randint_shaped'])
 @optools.as_lambda_operator(
     'kd.random.randint_shaped',
     qtype_constraints=[
@@ -375,7 +373,7 @@ def randint_shaped(
                   low, data_slice.DataSlice.from_vals(2**63 - 1)
               ),
           ),
-          schema_constants.INT64
+          schema_constants.INT64,
       )
   )
   seed = M.core.default_if_unspecified(
@@ -384,8 +382,9 @@ def randint_shaped(
   seed = assertion.assert_present_scalar('seed', seed, schema_constants.INT64)
 
   flat_res = M.array.randint_with_shape(
-      M.array.make_dense_array_shape(M.jagged.size(
-          arolla_bridge.to_arolla_jagged_shape(shape))),
+      M.array.make_dense_array_shape(
+          M.jagged.size(arolla_bridge.to_arolla_jagged_shape(shape))
+      ),
       new_low,
       new_high,
       arolla_bridge.to_arolla_int64(seed),
@@ -393,9 +392,7 @@ def randint_shaped(
   return arolla_bridge.to_data_slice(flat_res).reshape(shape)
 
 
-@optools.add_to_registry(
-    aliases=['kd.randint_shaped_as']
-)
+@optools.add_to_registry(aliases=['kd.randint_shaped_as'])
 @optools.as_lambda_operator(
     'kd.random.randint_shaped_as',
     qtype_constraints=[
@@ -431,9 +428,7 @@ def randint_shaped_as(
   return randint_shaped(jagged_shape_ops.get_shape(x), low, high, seed)
 
 
-@optools.add_to_registry(
-    aliases=['kd.randint_like']
-)
+@optools.add_to_registry(aliases=['kd.randint_like'])
 @optools.as_lambda_operator(
     'kd.random.randint_like',
     qtype_constraints=[

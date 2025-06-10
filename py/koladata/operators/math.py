@@ -22,7 +22,7 @@ from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import data_slice
 
-M = arolla.OperatorsContainer(jagged_shape)
+M = arolla.M | jagged_shape.M
 P = arolla.P
 
 

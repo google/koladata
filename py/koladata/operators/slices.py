@@ -35,7 +35,7 @@ from koladata.types import qtypes
 from koladata.types import schema_constants
 
 
-M = arolla.OperatorsContainer(jagged_shape)
+M = arolla.M | jagged_shape.M
 P = arolla.P
 MASK = schema_constants.MASK
 constraints = arolla.optools.constraints
