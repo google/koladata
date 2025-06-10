@@ -26,6 +26,7 @@ from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.functor.parallel import clib
 from koladata.operators import bootstrap
+from koladata.operators import eager_op_utils
 from koladata.operators import iterables
 from koladata.operators import koda_internal_parallel
 from koladata.operators import optools
@@ -37,6 +38,7 @@ from koladata.types import data_slice
 from koladata.types import mask_constants
 
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
 
 
 class KodaInternalParallelGetDefaultExecutionContextTest(
@@ -834,6 +836,65 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     testing.assert_equal(
         res.read_all(timeout=5.0)[0], arolla.tuple(ds(513), ds(624))
     )
+
+  def test_reduce_concat(self):
+    def g(x, initial):
+      return user_facing_kd.iterables.reduce_concat(x, initial)
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), g
+    )
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            x=koda_internal_parallel.stream_make(ds([1]), ds([2])),
+            initial=koda_internal_parallel.as_future(ds([5])),
+            return_type_as=koda_internal_parallel.as_future(None),
+        )
+    ).eval()
+
+    testing.assert_equal(res.read_all(timeout=5.0)[0], ds([5, 1, 2]))
+
+  def test_reduce_concat_ndim(self):
+    def g(x, initial, ndim):
+      return user_facing_kd.iterables.reduce_concat(x, initial, ndim=ndim)
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), g
+    )
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            x=koda_internal_parallel.stream_make(ds([[1]]), ds([[2]])),
+            initial=koda_internal_parallel.as_future(ds([[5]])),
+            ndim=koda_internal_parallel.as_future(ds(2)),
+            return_type_as=koda_internal_parallel.as_future(None),
+        )
+    ).eval()
+
+    testing.assert_equal(res.read_all(timeout=5.0)[0], ds([[5], [1], [2]]))
+
+  def test_reduce_updated_bag(self):
+    def g(x, initial):
+      return user_facing_kd.iterables.reduce_updated_bag(x, initial)
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), g
+    )
+    o = fns.new()
+    b1 = kd.attrs(o, a=1, b=5)
+    b2 = kd.attrs(o, b=2)
+    b3 = kd.attrs(o, c=3, a=4)
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            x=koda_internal_parallel.stream_make(b1, b2),
+            initial=koda_internal_parallel.as_future(b3),
+            return_type_as=koda_internal_parallel.as_future(b1),
+        )
+    ).eval()
+
+    o_res = o.with_bag(res.read_all(timeout=5.0)[0])
+    testing.assert_equal(o_res.a.no_bag(), ds(1))
+    testing.assert_equal(o_res.b.no_bag(), ds(2))
+    testing.assert_equal(o_res.c.no_bag(), ds(3))
 
   def test_while_returns(self):
     factorial = functor_factories.trace_py_fn(

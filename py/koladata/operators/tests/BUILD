@@ -9045,6 +9045,7 @@ py_test(
         "//py/koladata/functor:tracing_decorator",
         "//py/koladata/functor/parallel:clib",
         "//py/koladata/operators:bootstrap",
+        "//py/koladata/operators:eager_op_utils",
         "//py/koladata/operators:iterables",
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/operators:optools",

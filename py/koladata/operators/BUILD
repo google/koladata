@@ -859,6 +859,7 @@ py_library(
         ":bootstrap",
         ":core",
         ":functor",
+        ":iterables",
         ":koda_internal_functor",
         ":koda_internal_iterables",
         ":masking",

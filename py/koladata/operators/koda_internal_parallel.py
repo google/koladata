@@ -24,6 +24,7 @@ from koladata.operators import assertion
 from koladata.operators import bootstrap
 from koladata.operators import core
 from koladata.operators import functor
+from koladata.operators import iterables
 from koladata.operators import koda_internal_functor
 from koladata.operators import koda_internal_iterables
 from koladata.operators import masking
@@ -2222,6 +2223,45 @@ def _parallel_stream_reduce(context, fn, items, initial_value):
   )
 
 
+# qtype constraints for everything except executor are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_reduce_concat',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+    ],
+)
+def _parallel_stream_reduce_concat(executor, items, initial_value, ndim):
+  """The parallel version of iterables.reduce_concat."""
+  return async_eval(
+      executor,
+      iterables.reduce_concat,
+      future_iterable_from_stream(items),
+      initial_value,
+      ndim,
+  )
+
+
+# qtype constraints for everything except executor are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_reduce_updated_bag',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+    ],
+)
+def _parallel_stream_reduce_updated_bag(executor, items, initial_value):
+  """The parallel version of iterables.reduce_updated_bag."""
+  return async_eval(
+      executor,
+      iterables.reduce_updated_bag,
+      future_iterable_from_stream(items),
+      initial_value,
+  )
+
+
 def _create_convert_result_slice_future_to_stream_fn():
   """Adds converting a result slice future to a stream to a child functor."""
   V = input_container.InputContainer('V')  # pylint: disable=invalid-name
@@ -2703,6 +2743,22 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "koda_internal.parallel._parallel_stream_reduce"
     argument_transformation {
       arguments: EXECUTION_CONTEXT
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.iterables.reduce_concat"
+    to_op: "koda_internal.parallel._parallel_stream_reduce_concat"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.iterables.reduce_updated_bag"
+    to_op: "koda_internal.parallel._parallel_stream_reduce_updated_bag"
+    argument_transformation {
+      arguments: EXECUTOR
       arguments: ORIGINAL_ARGUMENTS
     }
   }
