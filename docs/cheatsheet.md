@@ -3204,13 +3204,15 @@ simply `fn(**inputs)`.
 
 Koda Functors can be **created** from the following objects:
 
--   **Koda Expr** using `kd.functor.expr_fn(expr, **vars)`
--   **Format string** similar to Python f-string `f'text {input:s} text'` using
-    `kd.functor.fstr_fn(str_fmt, **vars)`
--   **Python function** using `kd.functor.py_fn(pfn, **vars)`
+-   **Koda Expr** (e.g. `kd.functor.expr_fn(expr, **vars)`)
+-   **Format string** similar to Python f-string `f'text {input:s} text'` (e.g.
+    `kd.functor.fstr_fn(str_fmt, **vars)`)
+-   **Python function** (e.g. `kd.trace_py_fn(pfn)`) through **tracing**
+-   **Python function** (e.g. `kd.py_fn(pfn, **vars)`, `kd.trace_py_fn(pfn,
+    tracing=False)`) by wrapping the Python function directly
 
 `kd.fn(fn_obj, **vars)` is the **universal adaptor** for `kd.functor.expr_fn`,
-and `kd.functor.py_fn` where `fn_obj` can be `expr` or `py_fn`.
+and `kd.trace_py_fn` where `fn_obj` can be `expr` or `py_fn`.
 
 **Conceptually**, creating a functor is equivalent to declaring a Python
 function where the function signature consists of a function name and parameters
@@ -3248,21 +3250,26 @@ fn5 = kd.functor.fstr_fn(f'A: {V.fn(s=I.s1):s}'
                          f'B: {V.fn(s=I.s2):s}',
                          fn=fn4)
 
+def foo(a, b):
+  return a.get_size() + b.get_size()
+
 # Create a Functor from Py function
-fn6 = kd.functor.py_fn(
-  lambda a, b: a.get_size() + b.get_size())
+fn6 = kd.trace_py_fn(foo)  # with tracing
+fn7 = kd.py_fn(foo)  # no tracing
+# Equivalent to the above
+fn7 = kd.trace_py_fn(foo, tracing=False)
 
 # With default value for 'y'
-fn7 = kd.functor.py_fn(lambda x, y: x + y, y=1)
+fn8 = kd.py_fn(lambda x, y: x + y, y=1)
 
 # Use the universal adapter kd.fn
-fn8 = kd.fn(I.a + I.b)
-fn9 = kd.fn(lambda x, y: x + y)
-fn10 = kd.fn(fn8)
+fn9 = kd.fn(I.a + I.b)
+fn10 = kd.fn(lambda x, y: x + y)
+fn11 = kd.fn(fn9)  # no-op
 
 # Create a functor calling another functor
-fn11 = kd.fn(kd.lazy.call(fn1, a=I.c, b=I.d))
-fn12 = kd.functor.fstr_fn(
+fn12 = kd.fn(kd.lazy.call(fn1, a=I.c, b=I.d))
+fn13 = kd.functor.fstr_fn(
   f'result {V.f(a=I.c, b=I.d):s}', f=fn1)
 ```
 
