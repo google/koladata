@@ -27,6 +27,7 @@ Category  | Subcategory | Description
  | [math](#kd.math) | Arithmetic operators.
  | [objs](#kd.objs) | Operators that work solely with objects.
  | [proto](#kd.proto) | Protocol buffer serialization operators.
+ | [parallel](#kd.parallel) | Operators for parallel computation.
  | [py](#kd.py) | Operators that call Python functions.
  | [random](#kd.random) | Random and sampling operators.
  | [schema](#kd.schema) | Schema-related operators.
@@ -4749,6 +4750,46 @@ Args:
 
 Returns:
   A DataSlice of STRING with the same shape and sparsity as `x`.
+```
+
+</section>
+
+### kd.parallel {#kd.parallel}
+
+Operators for parallel computation.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.parallel.call_multithreaded(fn, /, *args, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, max_threads=None, timeout=None, **kwargs)` {#kd.parallel.call_multithreaded}
+
+``` {.no-copy}
+Calls a functor with the given arguments.
+
+  Variables of the functor or of its sub-functors will be computed in parallel
+  when they don't depend on each other. If the internal computation involves
+  iterables, the corresponding computations will be done in a streaming fashion.
+
+  Args:
+    fn: The functor to call.
+    *args: The positional arguments to pass to the functor.
+    return_type_as: The return type of the call is expected to be the same as
+      the return type of this expression. In most cases, this will be a literal
+      of the corresponding type. This needs to be specified if the functor does
+      not return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
+    max_threads: The maximum number of threads to use. None means to use the
+      default executor.
+    timeout: The maximum time to wait for the call to finish. None means to wait
+      indefinitely.
+    **kwargs: The keyword arguments to pass to the functor.
+
+  Returns:
+    The result of the call. Iterables and tuples/namedtuples of iterables are
+    not yet supported for the result, since that would mean that the result
+    is/has a stream, and this method needs to return multiple values at
+    different times instead of one value at the end.
 ```
 
 </section>
