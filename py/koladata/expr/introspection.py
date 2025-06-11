@@ -20,12 +20,14 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import literal_operator
 from koladata.types import mask_constants
 from koladata.types import py_boxing
 from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 _KODA_INPUT_OP = arolla.abc.lookup_operator('koda_internal.input')
+_KODA_LITERAL_OP_NAME = 'koda_internal.literal'
 
 ExprLike = Any  # Expr-convertible type.
 
@@ -81,6 +83,27 @@ def get_input_names(
     ) is not None:
       input_names.append(input_name)
   return sorted(input_names)
+
+
+def is_input(expr: arolla.Expr) -> bool:
+  """Returns True if `expr` is an input `I`."""
+  return (
+      expr.op == _KODA_INPUT_OP and
+      expr.node_deps[0].qvalue.py_value() == 'I'
+  )
+
+
+def is_variable(expr: arolla.Expr) -> bool:
+  """Returns True if `expr` is a variable `V`."""
+  return (
+      expr.op == _KODA_INPUT_OP and
+      expr.node_deps[0].qvalue.py_value() == 'V'
+  )
+
+
+def is_literal(expr: arolla.Expr) -> bool:
+  """Returns True if `expr` is a Koda Literal."""
+  return isinstance(expr.op, literal_operator.LiteralOperator)
 
 
 def sub_inputs(

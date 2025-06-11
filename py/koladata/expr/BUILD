@@ -91,6 +91,7 @@ py_library(
         "//py:python_path",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:literal_operator",
         "//py/koladata/types:mask_constants",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",

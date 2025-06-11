@@ -1339,10 +1339,28 @@ Returns names of `container` inputs used in `expr`.
 Returns the name of the given Expr, or None if it does not have one.
 ```
 
+### `kd.expr.is_input(expr)` {#kd.expr.is_input}
+
+``` {.no-copy}
+Returns True if `expr` is an input `I`.
+```
+
+### `kd.expr.is_literal(expr)` {#kd.expr.is_literal}
+
+``` {.no-copy}
+Returns True if `expr` is a Koda Literal.
+```
+
 ### `kd.expr.is_packed_expr(ds)` {#kd.expr.is_packed_expr}
 
 ``` {.no-copy}
 Returns kd.present if the argument is a DataItem containing an Expr.
+```
+
+### `kd.expr.is_variable(expr)` {#kd.expr.is_variable}
+
+``` {.no-copy}
+Returns True if `expr` is a variable `V`.
 ```
 
 ### `kd.expr.literal(value)` {#kd.expr.literal}

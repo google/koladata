@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for introspection."""
-
 from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
@@ -106,6 +104,28 @@ class IntrospectionTest(absltest.TestCase):
     self.assertEqual(introspection.get_input_names(expr, I), ['x', 'y', 'z'])
     # Note: decayed inputs are _not_ supported.
     self.assertEqual(introspection.get_input_names(expr, V), ['w'])
+
+  def test_is_input(self):
+    self.assertTrue(introspection.is_input(I.x))
+    self.assertTrue(introspection.is_input(I.y))
+    self.assertFalse(introspection.is_input(V.a))
+    self.assertFalse(introspection.is_input(literal_operator.literal(ds(42))))
+    self.assertFalse(introspection.is_input(I.x + I.y))
+
+  def test_is_variable(self):
+    self.assertTrue(introspection.is_variable(V.x))
+    self.assertTrue(introspection.is_variable(V.y))
+    self.assertFalse(introspection.is_variable(I.a))
+    self.assertFalse(
+        introspection.is_variable(literal_operator.literal(ds(42)))
+    )
+    self.assertFalse(introspection.is_variable(V.x + V.y))
+
+  def test_is_literal(self):
+    expr = literal_operator.literal(ds(42))
+    self.assertTrue(introspection.is_literal(expr))
+    self.assertFalse(introspection.is_literal(arolla.L.x))
+    self.assertFalse(introspection.is_literal(arolla.L.x + 1))
 
   def test_sub_inputs(self):
     decayed_input_op = arolla.abc.decay_registered_operator(

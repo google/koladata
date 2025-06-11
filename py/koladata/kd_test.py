@@ -259,6 +259,18 @@ class KdTest(absltest.TestCase):
     self.assertEqual(kd.expr.get_input_names(expr), ['x', 'y'])
     self.assertEqual(kd.expr.get_input_names(expr, container=V), ['z'])
 
+  def test_is_input(self):
+    self.assertTrue(kd.expr.is_input(kd.I.x))
+    self.assertFalse(kd.expr.is_input(kd.V.x))
+
+  def test_is_variable(self):
+    self.assertTrue(kd.expr.is_variable(kd.V.x))
+    self.assertFalse(kd.expr.is_variable(kd.I.x))
+
+  def test_is_literal(self):
+    self.assertTrue(kd.expr.is_literal(kd.expr.literal(kd.item(42))))
+    self.assertFalse(kd.expr.is_literal(kd.I.x))
+
   def test_named_container(self):
     c = kd.named_container()
     c.x = I.x

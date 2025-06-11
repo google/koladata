@@ -203,6 +203,9 @@ expr.sub_inputs = _introspection.sub_inputs
 expr.sub_by_name = _introspection.sub_by_name
 expr.sub = _introspection.sub
 expr.get_input_names = _introspection.get_input_names
+expr.is_input = _introspection.is_input
+expr.is_variable = _introspection.is_variable
+expr.is_literal = _introspection.is_literal
 
 
 ### Koda constants.
