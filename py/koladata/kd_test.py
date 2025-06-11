@@ -296,11 +296,7 @@ class KdTest(absltest.TestCase):
 
     # Assert does not raise.
     _ = f(kd.slice([1, 2]))
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
-        ' got FLOAT32',
-    ):
+    with self.assertRaises(TypeError):
       _ = f(kd.slice([1.0, 2]))
 
   def test_check_output(self):
@@ -310,11 +306,7 @@ class KdTest(absltest.TestCase):
 
     # Assert does not raise.
     _ = f(kd.slice([1, 2]))
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_output: type mismatch for output. Expected type INT32, got'
-        ' FLOAT32',
-    ):
+    with self.assertRaises(TypeError):
       _ = f(kd.slice([1.0, 2]))
 
   def test_check_inputs_is_traceable(self):
@@ -328,7 +320,9 @@ class KdTest(absltest.TestCase):
     fn = kd.fn(f)
     # Assert does not raise.
     kd.testing.assert_equal(fn(kd.slice([1, 2])), kd.slice([3, 4]))
-    # TODO: Support and test traced constraints.
+
+    with self.assertRaises(ValueError):
+      _ = fn(kd.slice([1.0, 2.0]))
 
   def test_check_output_is_traceable(self):
     def f(x):
@@ -341,7 +335,93 @@ class KdTest(absltest.TestCase):
     fn = kd.fn(f)
     # Assert does not raise.
     kd.testing.assert_equal(fn(kd.slice([1, 2])), kd.slice([3, 4]))
-    # TODO: Support and test traced constraints.
+    with self.assertRaises(ValueError):
+      _ = fn(kd.slice([1.0, 2.0]))
+
+  def test_duck_type(self):
+    @kd.check_inputs(x=kd.duck_type(a=kd.INT32, b=kd.STRING))
+    def f(x):
+      return x.b
+
+    kd.testing.assert_equal(
+        f(kd.new(a=kd.slice([1, 2]), b=kd.slice(['a', 'b']))).no_bag(),
+        kd.slice(['a', 'b']),
+    )
+
+    with self.assertRaises(TypeError):
+      _ = f(kd.new(a=kd.slice([1, 2])))
+
+  def test_duck_type_is_traceable(self):
+    def f(x):
+      @kd.check_inputs(x=kd.duck_type(a=kd.INT32, b=kd.STRING))
+      def g(x):
+        return x.b
+      return g(x)
+
+    fn = kd.fn(f)
+    kd.testing.assert_equal(
+        fn(kd.new(a=kd.slice([1, 2]), b=kd.slice(['a', 'b']))).no_bag(),
+        kd.slice(['a', 'b']),
+    )
+
+    with self.assertRaises(ValueError):
+      _ = fn(kd.new(a=kd.slice([1, 2])))
+
+  def test_duck_list(self):
+    @kd.check_inputs(x=kd.duck_list(kd.INT32))
+    def f(x):
+      return x[:]
+
+    kd.testing.assert_equal(f(kd.list([1, 2])).no_bag(), kd.slice([1, 2]))
+
+    with self.assertRaises(TypeError):
+      _ = f(kd.list([1.0, 2.0]))
+
+    # Tracing mode
+    fn = kd.fn(f)
+    kd.testing.assert_equal(fn(kd.list([1, 2])).no_bag(), kd.slice([1, 2]))
+
+    with self.assertRaises(ValueError):
+      _ = fn(kd.list([1.0, 2.0]))
+
+  def test_duck_list_is_traceable(self):
+    def f(x):
+      @kd.check_inputs(x=kd.duck_list(kd.INT32))
+      def g(x):
+        return x[:]
+      return g(x)
+
+    fn = kd.fn(f)
+    kd.testing.assert_equal(fn(kd.list([1, 2])).no_bag(), kd.slice([1, 2]))
+
+    with self.assertRaises(ValueError):
+      _ = fn(kd.list([1.0, 2.0]))
+
+  def test_duck_dict(self):
+    @kd.check_inputs(x=kd.duck_dict(kd.STRING, kd.INT32))
+    def f(x):
+      return kd.sort(x.get_values())
+
+    kd.testing.assert_equal(
+        f(kd.dict({'a': 1, 'b': 2})).no_bag(), kd.slice([1, 2]))
+
+    with self.assertRaises(TypeError):
+      _ = f(kd.dict({'a': '1', 'b': '2'}))
+
+  def test_duck_dict_is_traceable(self):
+    def f(x):
+      @kd.check_inputs(x=kd.duck_dict(kd.STRING, kd.INT32))
+      def g(x):
+        return kd.sort(x.get_values())
+      return g(x)
+
+    fn = kd.fn(f)
+    kd.testing.assert_equal(
+        fn(kd.dict({'a': 1, 'b': 2})).no_bag(), kd.slice([1, 2])
+    )
+
+    with self.assertRaises(ValueError):
+      _ = fn(kd.dict({'a': '1', 'b': '2'}))
 
   def test_sub_inputs(self):
     expr = I.x + I.y + V.x

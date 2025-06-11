@@ -8534,9 +8534,11 @@ Decorator factory for adding runtime input type checking to Koda functions.
       return query.docs[:]
 
   Args:
-    **kw_constraints: mapping of parameter names to DataItem schemas. Names must
+    **kw_constraints: mapping of parameter names to type constraints. Names must
       match parameter names in the decorated function. Arguments for the given
-      parameters must be DataSlices/DataItems with the corresponding schemas.
+      parameters must be DataSlices/DataItems that match the given type
+      constraint(in particular, for SchemaItems, they must have the
+      corresponding schema).
 
   Returns:
     A decorator that can be used to type annotate a function that accepts
@@ -8585,8 +8587,9 @@ Decorator factory for adding runtime output type checking to Koda functions.
       return query.docs[:]
 
   Args:
-    constraint: A DataItem schema for the output. Output of the decorated
-      function must be a DataSlice/DataItem with the corresponding schema.
+    constraint: A type constraint for the output. Output of the decorated
+      function must be a DataSlice/DataItem that matches the constraint(in
+      particular, for SchemaItems, they must have the corresponding schema).
 
   Returns:
     A decorator that can be used to annotate a function returning a
@@ -8711,6 +8714,84 @@ Returns a sorted list of unique attribute names of the given DataSlice.
 ### `kd.disjoint_coalesce(x, y)` {#kd.disjoint_coalesce}
 
 Alias for [kd.masking.disjoint_coalesce](#kd.masking.disjoint_coalesce) operator.
+
+### `kd.duck_dict(key_constraint, value_constraint)` {#kd.duck_dict}
+
+``` {.no-copy}
+Creates a duck dict constraint to be used in kd.check_inputs/output.
+
+  A duck_dict constraint will assert a DataSlice is a dict, checking the
+  key_constraint on the keys and value_constraint on the values. Use it if you
+  need to nest duck type constraints in dict constraints.
+
+  Example:
+    @kd.check_inputs(mapping=kd.duck_dict(kd.STRING,
+        kd.duck_type(doc_id=kd.INT64, score=kd.FLOAT32)))
+    def f(query):
+      pass
+
+  Args:
+    key_constraint:  DuckType or SchemaItem representing the constraint to be
+      checked on the keys of the dict.
+    value_constraint:  DuckType or SchemaItem representing the constraint to be
+      checked on the values of the dict.
+
+  Returns:
+    A duck type constraint to be used in kd.check_inputs or kd.check_output.
+```
+
+### `kd.duck_list(item_constraint)` {#kd.duck_list}
+
+``` {.no-copy}
+Creates a duck list constraint to be used in kd.check_inputs/output.
+
+  A duck_list constraint will assert a DataSlice is a list, checking the
+  item_constraint on the items. Use it if you need to nest
+  duck type constraints in list constraints.
+
+  Example:
+    @kd.check_inputs(query=kd.duck_type(docs=kd.duck_list(
+        kd.duck_type(doc_id=kd.INT64, score=kd.FLOAT32)
+    )))
+    def f(query):
+      pass
+
+  Args:
+    item_constraint:  DuckType or SchemaItem representing the constraint to be
+      checked on the items of the list.
+
+  Returns:
+    A duck type constraint to be used in kd.check_inputs or kd.check_output.
+```
+
+### `kd.duck_type(**kwargs)` {#kd.duck_type}
+
+``` {.no-copy}
+Creates a duck type constraint to be used in kd.check_inputs/output.
+
+  A duck type constraint will assert that the DataSlice input/output of a
+  function has (at least) a certain set of attributes, as well as to specify
+  recursive constraints for those attributes.
+
+  Example:
+    @kd.check_inputs(query=kd.duck_type(query_text=kd.STRING,
+       docs=kd.duck_type()))
+    def f(query):
+      pass
+
+    Checks that the DataSlice input parameter `query` has a STRING attribute
+    `query_text`, and an attribute `docs` of any schema. `query` may also have
+    additional unspecified attributes.
+
+  Args:
+    **kwargs: mapping of attribute names to constraints. The constraints must be
+      either DuckTypes or SchemaItems. To assert only the presence of an
+      attribute, without specifying additional constraints on that attribute,
+      pass an empty duck type for that attribute.
+
+  Returns:
+    A duck type constraint to be used in kd.check_inputs or kd.check_output.
+```
 
 ### `kd.dumps(x, /, *, riegeli_options='')` {#kd.dumps}
 

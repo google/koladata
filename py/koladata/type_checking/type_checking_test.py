@@ -14,6 +14,7 @@
 
 import contextlib
 from absl.testing import absltest
+from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd
 from koladata.operators import kde_operators
@@ -25,6 +26,11 @@ from koladata.types import data_slice
 
 ds = data_slice.DataSlice.from_vals
 kdf = kd.functor
+Person = kd.schema.new_schema(age=kd.INT32, name=kd.STRING)
+Person_named = kd.schema.named_schema(
+    'Person', age=kd.INT32, first_name=kd.STRING
+)
+UuPerson = kd.schema.uu_schema(age=kd.INT32, name=kd.STRING)
 
 
 @contextlib.contextmanager
@@ -38,171 +44,387 @@ def override_operator(operator_name: str, new_operator: arolla.abc.Operator):
     arolla.abc.unsafe_override_registered_operator(operator_name, old_operator)
 
 
-class TypeCheckingTest(absltest.TestCase):
+ERROR_CASES = (
+    (
+        '_primitive',
+        kd.INT32,
+        ds([1.0, 2, 3]),
+        (
+            r'{decorator}: type mismatch for {parameter}; expected type'
+            r' INT32, got FLOAT32'
+        ),
+    ),
+    (
+        '_data_item',
+        kd.INT32,
+        ds(1.0),
+        (
+            '{decorator}: type mismatch for {parameter}; expected'
+            ' type INT32, got FLOAT32'
+        ),
+    ),
+    (
+        '_entity_schema',
+        Person,
+        kd.new(age=30, name='Alice'),
+        (
+            '{decorator}: type mismatch for {parameter}; expected'
+            r' type ENTITY\(age=INT32, name=STRING\) with id .*, got'
+            r' ENTITY\(age=INT32, name=STRING\) with id .*'
+        ),
+    ),
+    (
+        '_named_schema',
+        Person_named,
+        kd.new(age=30, name='Alice'),
+        (
+            '{decorator}: type mismatch for {parameter}; expected'
+            r' type Person, got ENTITY\(age=INT32, name=STRING\) with id .*'
+        ),
+    ),
+    (
+        '_uu_entity_schema',
+        UuPerson,
+        kd.uu(age=30.0, name='Alice'),
+        (
+            '{decorator}: type mismatch for {parameter}; expected'
+            r' type ENTITY\(age=INT32, name=STRING\) with id .*, got'
+            r' ENTITY\(age=FLOAT32, name=STRING\) with id .*'
+        ),
+    ),
+    (
+        '_list_schema',
+        kd.list_schema(kd.INT32),
+        kd.list([1.0, 2, 3]),
+        (
+            '{decorator}: type mismatch for {parameter}; expected'
+            r' type LIST\[INT32\] with id .*,'
+            r' got LIST\[FLOAT32\] with id .*'
+        ),
+    ),
+    (
+        '_duck_type_and_primitive',
+        type_checking.duck_type(
+            a=type_checking.duck_type(),
+        ),
+        ds(1),
+        (
+            '{decorator}: expected {parameter} to have attribute `a`;'
+            ' no attribute `a` on {parameter}=INT32'
+        ),
+    ),
+    (
+        '_duck_type_and_non_scalar',
+        type_checking.duck_type(
+            a=type_checking.duck_type(),
+        ),
+        kd.new(b=ds([1, 2, 3])),
+        (
+            '{decorator}: expected {parameter} to have attribute `a`;'
+            r' no attribute `a` on {parameter}=ENTITY\(b=INT32\)'
+        ),
+    ),
+    (
+        '_duck_type_and_entity_schema',
+        type_checking.duck_type(
+            age=kd.INT32,
+            name=kd.STRING,
+            address=kd.STRING,
+        ),
+        kd.new(age=30, name='John', schema=Person),
+        (
+            '{decorator}: expected {parameter} to have attribute `address`;'
+            r' no attribute `address` on {parameter}=ENTITY\(age=INT32,'
+            r' name=STRING\)'
+        ),
+    ),
+    (
+        '_duck_type_and_named_schema',
+        type_checking.duck_type(
+            age=kd.INT32,
+            name=kd.STRING,
+            address=kd.STRING,
+        ),
+        kd.new(age=30, name='John', schema=Person_named),
+        (
+            '{decorator}: expected {parameter} to have attribute `address`;'
+            r' no attribute `address` on {parameter}=Person$'
+        ),
+    ),
+    (
+        '_wrong_schema_nested_in_duck_type',
+        type_checking.duck_type(
+            a=kd.INT32,
+        ),
+        kd.new(a='hello'),
+        (
+            r'{decorator}: type mismatch for {parameter}\.a; expected type'
+            ' INT32, got STRING'
+        ),
+    ),
+    (
+        '_duck_type_and_entity_with_wrong_attr',
+        type_checking.duck_type(
+            a=kd.INT32,
+        ),
+        kd.new(b=1),
+        (
+            '{decorator}: expected {parameter} to have attribute `a`;'
+            r' no attribute `a` on {parameter}=ENTITY\(b=INT32\)'
+        ),
+    ),
+    (
+        '_duck_type_and_nested_entity_with_wrong_attr',
+        type_checking.duck_type(
+            a=type_checking.duck_type(aa=kd.INT32),
+        ),
+        kd.new(a=kd.new(b=1)),
+        (
+            r'{decorator}: expected {parameter}\.a to have attribute `aa`;'
+            r' no attribute `aa` on {parameter}\.a=ENTITY\(b=INT32\)'
+        ),
+    ),
+    (
+        '_duck_type_and_nested_entity_with_wrong_schema',
+        type_checking.duck_type(
+            a=type_checking.duck_type(aa=kd.INT32),
+        ),
+        kd.new(a=kd.new(aa='hello')),
+        (
+            r'{decorator}: type mismatch for {parameter}\.a\.aa; expected type'
+            ' INT32, got STRING'
+        ),
+    ),
+    (
+        '_duck_type_and_object',
+        type_checking.duck_type(
+            a=kd.INT32,
+        ),
+        kd.obj(a=1),
+        (
+            '{decorator}: expected {parameter} to have attribute `a`;'
+            ' no attribute `a` on {parameter}=OBJECT'
+        ),
+    ),
+    (
+        '_duck_list',
+        type_checking.duck_list(type_checking.duck_type(a=kd.INT32)),
+        kd.list([kd.uu(b=1), kd.uu(b=1)]),
+        (
+            r'{decorator}: expected {parameter}\.get_items\(\) to have'
+            r' attribute `a`;'
+            r' no attribute `a` on {parameter}\.get_items\(\)=ENTITY\(b=INT32\)'
+        ),
+    ),
+    (
+        '_duck_dict_key_error',
+        type_checking.duck_dict(
+            key_constraint=type_checking.duck_type(a=kd.INT32),
+            value_constraint=type_checking.duck_type(a=kd.INT32),
+        ),
+        kd.dict({kd.uu(b=1): kd.uu(a=1)}),
+        (
+            r'{decorator}: expected {parameter}\.get_keys\(\) to have'
+            r' attribute `a`; no attribute `a` on'
+            r' {parameter}\.get_keys\(\)=ENTITY\(b=INT32\)'
+        ),
+    ),
+    (
+        '_duck_dict_value_error',
+        type_checking.duck_dict(
+            key_constraint=type_checking.duck_type(a=kd.INT32),
+            value_constraint=type_checking.duck_type(a=kd.INT32),
+        ),
+        kd.dict({kd.uu(a=1): kd.uu(b=1)}),
+        (
+            r'{decorator}: expected {parameter}\.get_values\(\) to have'
+            r' attribute `a`; no attribute `a` on'
+            r' {parameter}\.get_values\(\)=ENTITY\(b=INT32\)'
+        ),
+    ),
+)
 
-  def test_primitive_input_type(self):
-    @type_checking.check_inputs(x=kd.INT32)
+OK_CASES = (
+    (
+        '_primitive',
+        kd.INT32,
+        ds(1),
+    ),
+    (
+        '_entity_schema',
+        Person,
+        kd.new(age=30, name='John', schema=Person),
+    ),
+    (
+        '_named_entity_schema',
+        Person_named,
+        kd.new(age=30, name='John', schema=Person_named),
+    ),
+    (
+        '_uu_entity_schema',
+        UuPerson,
+        kd.uu(age=30, name='John'),
+    ),
+    (
+        '_list_schema',
+        kd.list_schema(kd.INT32),
+        kd.list([1, 2, 3]),
+    ),
+    (
+        '_empty_duck_type_matches_string',
+        type_checking.duck_type(),
+        ds('hello'),
+    ),
+    (
+        '_empty_duck_type_matches_int',
+        type_checking.duck_type(),
+        ds(0),
+    ),
+    (
+        '_empty_duck_type_matches_entity',
+        type_checking.duck_type(),
+        kd.new(),
+    ),
+    (
+        '_nested_duck_type',
+        type_checking.duck_type(
+            a=type_checking.duck_type(),
+        ),
+        kd.new(a=1),
+    ),
+    (
+        '_schema_nested_in_duck_type',
+        type_checking.duck_type(
+            a=kd.INT32,
+        ),
+        kd.new(a=1),
+    ),
+    (
+        '_deeply_nested_duck_type',
+        type_checking.duck_type(
+            a=type_checking.duck_type(
+                aa=kd.INT32,
+            ),
+        ),
+        kd.new(a=kd.new(aa=1)),
+    ),
+    (
+        '_duck_list',
+        type_checking.duck_list(type_checking.duck_type(a=kd.INT32)),
+        kd.list([kd.uu(a=1), kd.uu(a=1)]),
+    ),
+    (
+        '_duck_dict',
+        type_checking.duck_dict(
+            key_constraint=type_checking.duck_type(a=kd.INT32),
+            value_constraint=type_checking.duck_type(a=kd.INT32),
+        ),
+        kd.dict({kd.uu(a=1): kd.uu(a=1)}),
+    ),
+    (
+        '_partial_match',
+        type_checking.duck_type(
+            a=kd.INT32,
+            b=kd.INT32,
+        ),
+        kd.new(a=1, b=2, c=3),
+    ),
+)
+
+
+class TypeCheckingTest(parameterized.TestCase):
+
+  @parameterized.named_parameters(*ERROR_CASES)
+  def test_check_inputs_error(self, constraint, value, error_message):
+    @type_checking.check_inputs(x=constraint)
     def f(x):
       return x
-
-    testing.assert_equal(f(ds([1, 2, 3])), ds([1, 2, 3]))
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
-        ' got FLOAT32',
-    ):
-      _ = f(ds([1.0, 2, 3]))
-
-  def test_primitive_output_type(self):
-    @type_checking.check_output(kd.INT32)
-    def f(x):
-      return x
-
-    testing.assert_equal(f(ds([1, 2, 3])), ds([1, 2, 3]))
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_output: type mismatch for output. Expected type INT32, got'
-        ' FLOAT32',
-    ):
-      _ = f(ds([1.0, 2, 3]))
-
-  def test_check_inputs_data_item(self):
-    @type_checking.check_inputs(x=kd.INT32)
-    def f(x):
-      return x
-
-    testing.assert_equal(f(ds(1)), ds(1))
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
-        ' got FLOAT32',
-    ):
-      _ = f(ds(1.0))
-
-  def test_check_output_data_item(self):
-    @type_checking.check_output(kd.INT32)
-    def f(x):
-      return x
-
-    testing.assert_equal(f(ds(1)), ds(1))
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_output: type mismatch for output. Expected type INT32, got'
-        ' FLOAT32',
-    ):
-      _ = f(ds(1.0))
-
-  def test_check_inputs_entity_schema(self):
-    person = kd.schema.new_schema(age=kd.INT32, name=kd.STRING)
-
-    @type_checking.check_inputs(x=person)
-    def f(x):
-      return x
-
-    # Assert does not raise.
-    _ = f(kd.new(age=30, name='John', schema=person))
 
     with self.assertRaisesRegex(
         TypeError,
-        r'kd.check_inputs: type mismatch for parameter `x`. Expected type'
-        r' ENTITY\(age=INT32, name=STRING\) with id .*, got'
-        r' ENTITY\(age=INT32, name=STRING\) with id .*',
+        error_message.format(
+            decorator='kd.check_inputs', parameter=r'(parameter\s)?x'
+        ),
     ):
-      _ = f(kd.new(age=32, name='Alice'))
+      _ = f(value)
 
-  def test_check_output_entity_schema(self):
-    person = kd.schema.new_schema(age=kd.INT32, name=kd.STRING)
-
-    @type_checking.check_output(person)
+  @parameterized.named_parameters(*ERROR_CASES)
+  def test_check_inputs_traced_error(self, constraint, value, error_message):
+    @type_checking.check_inputs(x=constraint)
     def f(x):
       return x
 
-    # Assert does not raise.
-    _ = f(kd.new(age=30, name='John', schema=person))
-
+    fn = kdf.fn(f)
     with self.assertRaisesRegex(
-        TypeError,
-        r'kd.check_output: type mismatch for output. Expected type'
-        r' ENTITY\(age=INT32, name=STRING\) with id .*, got'
-        r' ENTITY\(age=INT32, name=STRING\) with id .*',
+        ValueError,
+        # TODO: Could the .*assertion.* prefix be removed?
+        'kd.assertion.with_assertion: '
+        + error_message.format(
+            decorator='kd.check_inputs', parameter=r'(parameter\s)?x'
+        ),
     ):
-      _ = f(kd.new(age=32, name='Alice'))
+      _ = fn(value)
 
-  def test_check_inputs_named_entity_schema(self):
-    person = kd.schema.named_schema(
-        'Person', age=kd.INT32, first_name=kd.STRING
-    )
-
-    @type_checking.check_inputs(x=person)
+  @parameterized.named_parameters(*ERROR_CASES)
+  def test_check_output_error(self, constraint, value, error_message):
+    @type_checking.check_output(constraint)
     def f(x):
       return x
 
-    # Assert does not raise.
-    _ = f(kd.new(age=30, first_name='John', schema=person))
-
     with self.assertRaisesRegex(
         TypeError,
-        r'kd.check_inputs: type mismatch for parameter `x`. Expected type'
-        r' Person, got ENTITY\(age=INT32, first_name=STRING\) with id .*',
+        error_message.format(decorator='kd.check_output', parameter='output'),
     ):
-      _ = f(kd.uu(age=32, first_name='Alice'))
+      _ = f(value)
 
-  def test_check_output_named_entity_schema(self):
-    person = kd.schema.named_schema(
-        'Person', age=kd.INT32, first_name=kd.STRING
-    )
-
-    @type_checking.check_output(person)
+  @parameterized.named_parameters(*ERROR_CASES)
+  def test_check_output_traced_error(self, constraint, value, error_message):
+    @type_checking.check_output(constraint)
     def f(x):
       return x
 
-    # Assert does not raise.
-    _ = f(kd.new(age=30, first_name='John', schema=person))
-
+    fn = kdf.fn(f)
     with self.assertRaisesRegex(
-        TypeError,
-        r'kd.check_output: type mismatch for output. Expected type'
-        r' Person, got ENTITY\(age=INT32, first_name=STRING\) with id .*',
+        ValueError,
+        # TODO: Could the .*assertion.* prefix be removed?
+        'kd.assertion.with_assertion: '
+        + error_message.format(decorator='kd.check_output', parameter='output'),
     ):
-      _ = f(kd.uu(age=32, first_name='Alice'))
+      _ = fn(value)
 
-  def test_check_inputs_uu_entity_schema(self):
-    person = kd.schema.uu_schema(age=kd.INT32, name=kd.STRING)
-
-    @type_checking.check_inputs(x=person)
+  @parameterized.named_parameters(*OK_CASES)
+  def test_check_inputs_ok(self, constraint, value):
+    @type_checking.check_inputs(x=constraint)
     def f(x):
       return x
 
-    # Assert does not raise.
-    _ = f(kd.new(age=30, name='John', schema=person))
-    _ = f(kd.uu(age=32, name='Alice'))
+    testing.assert_equal(value, f(value))  # Assert does not raise.
 
-    with self.assertRaisesRegex(
-        TypeError,
-        r'kd.check_inputs: type mismatch for parameter `x`. Expected type'
-        r' ENTITY\(age=INT32, name=STRING\) with id .*, got'
-        r' ENTITY\(age=FLOAT32, name=STRING\) with id .*',
-    ):
-      _ = f(kd.uu(age=32.0, name='Alice'))
-
-  def test_check_output_uu_entity_schema(self):
-    person = kd.schema.uu_schema(age=kd.INT32, name=kd.STRING)
-
-    @type_checking.check_output(person)
+  @parameterized.named_parameters(*OK_CASES)
+  def test_check_inputs_traced_ok(self, constraint, value):
+    @type_checking.check_inputs(x=constraint)
     def f(x):
       return x
 
-    # Assert does not raise.
-    _ = f(kd.new(age=30, name='John', schema=person))
-    _ = f(kd.uu(age=32, name='Alice'))
+    fn = kdf.fn(f)
+    testing.assert_equal(value, fn(value))  # Assert does not raise.
 
-    with self.assertRaisesRegex(
-        TypeError,
-        r'kd.check_output: type mismatch for output. Expected type'
-        r' ENTITY\(age=INT32, name=STRING\) with id .*, got'
-        r' ENTITY\(age=FLOAT32, name=STRING\) with id .*',
-    ):
-      _ = f(kd.uu(age=32.0, name='Alice'))
+  @parameterized.named_parameters(*OK_CASES)
+  def test_check_output_ok(self, constraint, value):
+    @type_checking.check_output(constraint)
+    def f(x):
+      return x
+
+    testing.assert_equal(value, f(value))  # Assert does not raise.
+
+  @parameterized.named_parameters(*OK_CASES)
+  def test_check_output_traced_ok(self, constraint, value):
+    @type_checking.check_output(constraint)
+    def f(x):
+      return x
+
+    fn = kdf.fn(f)
+    testing.assert_equal(value, fn(value))  # Assert does not raise.
 
   def test_check_inputs_default_argument(self):
     @type_checking.check_inputs(x=kd.INT32)
@@ -211,7 +433,7 @@ class TypeCheckingTest(absltest.TestCase):
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
+        'kd.check_inputs: type mismatch for parameter x; expected type INT32,'
         ' got FLOAT32',
     ):
       _ = f()
@@ -224,12 +446,12 @@ class TypeCheckingTest(absltest.TestCase):
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
+        'kd.check_inputs: type mismatch for parameter x; expected type INT32,'
         ' got FLOAT32',
     ):
       _ = f(ds([1.0, 2, 3]))
 
-  def test_list_schemas(self):
+  def test_query_doc_example(self):
     doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
 
     query = kd.schema.named_schema('Query', docs=kd.list_schema(doc))
@@ -251,7 +473,7 @@ class TypeCheckingTest(absltest.TestCase):
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.check_inputs: type mismatch for parameter `query`. Expected type'
+        'kd.check_inputs: type mismatch for parameter query; expected type'
         ' Query, got INT32',
     ):
       _ = get_docs(ds([1, 2, 3]))
@@ -272,7 +494,7 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.check_inputs: invalid constraint: expected constraint for parameter'
-        ' `x` to be a schema DataItem, got 0',
+        ' x to be a schema DataItem or a DuckType, got 0',
     ):
 
       @type_checking.check_inputs(x=kd.int32(0))
@@ -283,7 +505,7 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.check_output: invalid constraint: expected constraint for output to'
-        ' be a schema DataItem, got 0',
+        ' be a schema DataItem or a DuckType, got 0',
     ):
 
       @type_checking.check_output(kd.int32(0))
@@ -328,7 +550,7 @@ class TypeCheckingTest(absltest.TestCase):
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
+        'kd.check_inputs: type mismatch for parameter x; expected type INT32,'
         ' got STRING',
     ):
       _ = f('hello')
@@ -364,28 +586,6 @@ class TypeCheckingTest(absltest.TestCase):
 
     self.assertEqual(f.__doc__, decorated_f.__doc__)
 
-  def test_check_inputs_traced(self):
-    @type_checking.check_inputs(x=kd.INT32)
-    def f(x):
-      return x
-
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_inputs: type mismatch for parameter `x`. Expected type INT32,'
-        ' got FLOAT32',
-    ):
-      _ = f(ds([1.0, 2, 3]))
-
-    fn = kdf.fn(f)
-
-    with self.assertRaisesRegex(
-        ValueError,
-        # TODO: Could the .*assertion.* prefix be removed?
-        'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
-        ' for parameter `x`. Expected type INT32, got FLOAT32',
-    ):
-      _ = fn(ds([1.0, 2, 3]))
-
   def test_check_inputs_traced_does_not_reserve_keywords(self):
     @type_checking.check_inputs(traced=kd.INT32)
     def f(traced):
@@ -393,7 +593,7 @@ class TypeCheckingTest(absltest.TestCase):
 
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'kd.check_inputs: type mismatch for parameter `traced`. Expected type'
+        'kd.check_inputs: type mismatch for parameter traced; expected type'
         ' INT32, got FLOAT32',
     ):
       _ = f(ds([1.0, 2, 3]))
@@ -404,59 +604,9 @@ class TypeCheckingTest(absltest.TestCase):
         ValueError,
         # TODO: Could the .*assertion.* prefix be removed?
         'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
-        ' for parameter `traced`. Expected type INT32, got FLOAT32',
+        ' for parameter traced; expected type INT32, got FLOAT32',
     ):
       _ = fn(ds([1.0, 2, 3]))
-
-  def test_check_output_traced(self):
-    @type_checking.check_output(kd.INT32)
-    def f(x):
-      return x
-
-    with self.assertRaisesWithLiteralMatch(
-        TypeError,
-        'kd.check_output: type mismatch for output. Expected type INT32,'
-        ' got FLOAT32',
-    ):
-      _ = f(ds([1.0, 2, 3]))
-
-    fn = kdf.fn(f)
-
-    with self.assertRaisesRegex(
-        ValueError,
-        # TODO: Could the .*assertion.* prefix be removed?
-        'kd.assertion.with_assertion: kd.check_output: type mismatch'
-        ' for output. Expected type INT32, got FLOAT32',
-    ):
-      _ = fn(ds([1.0, 2, 3]))
-
-  def test_check_inputs_traced_named_schema(self):
-    doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
-    query = kd.schema.named_schema('Query', docs=kd.list_schema(doc))
-
-    docs = ds([
-        kd.new(doc_id=1, score=0.5, schema=doc),
-        kd.new(doc_id=2, score=0.7, schema=doc),
-    ])
-    q = kd.new(
-        docs=kd.implode(docs),
-        schema=query,
-    )
-
-    @type_checking.check_inputs(q=query)
-    def get_docs(q):
-      return q.docs[:]
-
-    get_docs_fn = kdf.fn(get_docs)
-    # Assert does not raise.
-    _ = get_docs_fn(q)
-
-    with self.assertRaisesRegex(
-        ValueError,
-        'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
-        ' for parameter `q`. Expected type Query, got Doc',
-    ):
-      _ = get_docs_fn(docs)
 
   def test_check_inputs_traced_static_input(self):
     @type_checking.check_inputs(pick_a=kd.BOOLEAN)
@@ -472,32 +622,6 @@ class TypeCheckingTest(absltest.TestCase):
     # Assert does not raise.
     _ = kdf.fn(f)
 
-  def test_check_output_traced_named_schema(self):
-    doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
-    query = kd.schema.named_schema('Query', docs=kd.list_schema(doc))
-
-    docs = ds([
-        kd.new(doc_id=1, score=0.5, schema=doc),
-        kd.new(doc_id=2, score=0.7, schema=doc),
-    ])
-    q = kd.new(
-        docs=kd.implode(docs),
-        schema=query,
-    )
-
-    @type_checking.check_output(doc)
-    def get_docs(q):
-      return q
-
-    get_docs_fn = kdf.fn(get_docs)
-
-    with self.assertRaisesRegex(
-        ValueError,
-        'kd.assertion.with_assertion: kd.check_output: type mismatch'
-        ' for output. Expected type Doc, got Query',
-    ):
-      _ = get_docs_fn(q)
-
   def test_check_inputs_traced_two_inputs(self):
     @type_checking.check_inputs(x=kd.INT32, y=kd.INT32)
     def f(x, y):
@@ -508,7 +632,7 @@ class TypeCheckingTest(absltest.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         'kd.assertion.with_assertion: kd.check_inputs: type mismatch'
-        ' for parameter `x`. Expected type INT32, got FLOAT32',
+        ' for parameter x; expected type INT32, got FLOAT32',
     ):
       _ = fn(ds([1.0]), ds([1]))
 
