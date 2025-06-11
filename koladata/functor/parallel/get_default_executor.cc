@@ -12,40 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/parallel/default_asio_executor.h"
+#include "koladata/functor/parallel/get_default_executor.h"
 
-#include <memory>
-#include <string>
-#include <utility>
-
-#include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "koladata/functor/parallel/executor.h"
 
-#include "boost/asio/post.hpp"
-#include "boost/asio/thread_pool.hpp"
+#include "koladata/functor/parallel/default_asio_executor.h"
 
 namespace koladata::functor::parallel {
-namespace {
 
-class DefaultAsioExecutor final : public Executor {
- public:
-  void Schedule(TaskFn task_fn) final {
-    boost::asio::post(thread_pool_, std::move(task_fn));
-  }
-
-  std::string Repr() const final { return "default_asio_executor"; }
-
- private:
-  boost::asio::thread_pool thread_pool_;
-};
-
-}  // namespace
-
-const ExecutorPtr /*absl_nonnull*/& GetDefaultAsioExecutor() {
-  static absl::NoDestructor<ExecutorPtr> executor(
-      std::make_shared<DefaultAsioExecutor>());
-  return *executor;
+const ExecutorPtr /*absl_nonnull*/& GetDefaultExecutor() {
+  return GetDefaultAsioExecutor();
 }
 
 }  // namespace koladata::functor::parallel

@@ -29,10 +29,10 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
-#include "koladata/functor/parallel/asio_executor.h"
-#include "koladata/functor/parallel/default_executor.h"
 #include "koladata/functor/parallel/eager_executor.h"
 #include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/get_default_executor.h"
+#include "koladata/functor/parallel/make_executor.h"
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
@@ -126,7 +126,7 @@ TEST(StreamMapTest, OrphanedOutputStream) {
 TEST(StreamMapTest, FunctorCancellationContextPropagation) {
   // Note: Use a single-threaded executor to run computations on a different
   // thread, while still having predictable behaviour.
-  auto executor = MakeAsioExecutor(1);
+  auto executor = MakeExecutor(1);
   arolla::CancellationContext::ScopeGuard cancellation_scope;
   auto [stream, writer] = MakeStream(arolla::GetQType<int>());
   int count_down = 1;
@@ -312,7 +312,7 @@ TEST(StreamMapUnorderedTest, OrphanedOutputStream) {
 TEST(StreamMapUnorderedTest, FunctorCancellationContextPropagation) {
   // Note: Use a single-threaded executor to run computations on a different
   // thread, while still having predictable behaviour.
-  auto executor = MakeAsioExecutor(1);
+  auto executor = MakeExecutor(1);
   arolla::CancellationContext::ScopeGuard cancellation_scope;
   auto [stream, writer] = MakeStream(arolla::GetQType<int>());
   writer->Write(arolla::TypedRef::FromValue(1));

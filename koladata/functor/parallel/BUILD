@@ -142,12 +142,24 @@ cc_test(
 )
 
 cc_library(
-    name = "default_executor",
-    srcs = ["default_executor.cc"],
-    hdrs = ["default_executor.h"],
+    name = "get_default_executor",
+    srcs = ["get_default_executor.cc"],
+    hdrs = ["get_default_executor.h"],
     deps = [
         ":default_asio_executor",
         ":executor",
+        "@com_google_absl//absl/base:nullability",
+    ],
+)
+
+cc_library(
+    name = "make_executor",
+    srcs = ["make_executor.cc"],
+    hdrs = ["make_executor.h"],
+    deps = [
+        ":asio_executor",
+        ":executor",
+        "@com_google_absl//absl/base:nullability",
     ],
 )
 
@@ -160,6 +172,7 @@ cc_library(
         "@boost.asio//:boost.asio",
         "@boost.throw_exception//:boost.throw_exception",
         "@com_google_absl//absl/base:no_destructor",
+        "@com_google_absl//absl/base:nullability",
     ],
 )
 
@@ -179,8 +192,8 @@ cc_library(
     srcs = ["asio_executor.cc"],
     hdrs = ["asio_executor.h"],
     deps = [
-        ":default_executor",
         ":executor",
+        ":get_default_executor",
         "@boost.asio//:boost.asio",
         "@boost.throw_exception//:boost.throw_exception",
         "@com_google_absl//absl/base:nullability",
@@ -221,8 +234,8 @@ cc_test(
     name = "stream_test",
     srcs = ["stream_test.cc"],
     deps = [
-        ":default_executor",
         ":executor",
+        ":get_default_executor",
         ":stream",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
@@ -280,10 +293,10 @@ cc_test(
     name = "basic_routine_test",
     srcs = ["basic_routine_test.cc"],
     deps = [
-        ":asio_executor",
         ":basic_routine",
-        ":default_executor",
         ":eager_executor",
+        ":get_default_executor",
+        ":make_executor",
         ":stream",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
@@ -313,8 +326,8 @@ cc_test(
     name = "stream_composition_test",
     srcs = ["stream_composition_test.cc"],
     deps = [
-        ":asio_executor",
-        ":default_executor",
+        ":get_default_executor",
+        ":make_executor",
         ":stream",
         ":stream_composition",
         "@com_google_absl//absl/random",
@@ -350,10 +363,10 @@ cc_test(
     name = "stream_map_test",
     srcs = ["stream_map_test.cc"],
     deps = [
-        ":asio_executor",
-        ":default_executor",
         ":eager_executor",
         ":executor",
+        ":get_default_executor",
+        ":make_executor",
         ":stream",
         ":stream_map",
         "@com_google_absl//absl/status",
@@ -389,10 +402,10 @@ cc_test(
     name = "stream_reduce_test",
     srcs = ["stream_reduce_test.cc"],
     deps = [
-        ":asio_executor",
-        ":default_executor",
         ":eager_executor",
         ":executor",
+        ":get_default_executor",
+        ":make_executor",
         ":stream",
         ":stream_reduce",
         "@com_google_absl//absl/status",
@@ -530,9 +543,9 @@ cc_library(
     name = "init_expr_operators",
     srcs = ["init_expr_operators.cc"],
     deps = [
-        ":default_executor",
         ":eager_executor",
         ":expr_operators",
+        ":get_default_executor",
         "//koladata/expr:expr_operators",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -549,13 +562,14 @@ cc_library(
     name = "operators",
     srcs = ["operators.cc"],
     deps = [
-        ":asio_executor",
         ":async_eval_operator",
         ":create_execution_context",
         ":execution_context",
         ":executor",
         ":future_operators",
         ":future_qtype",
+        ":get_default_executor",
+        ":make_executor",
         ":stream_operators",
         ":stream_qtype",
         ":transform",
@@ -711,11 +725,11 @@ cc_test(
     name = "async_eval_test",
     srcs = ["async_eval_test.cc"],
     deps = [
-        ":asio_executor",
         ":async_eval",
         ":eager_executor",
         ":future",
         ":future_qtype",
+        ":make_executor",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",

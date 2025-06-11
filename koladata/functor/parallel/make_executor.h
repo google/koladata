@@ -12,40 +12,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/parallel/default_asio_executor.h"
+#ifndef KOLADATA_FUNCTOR_PARALLEL_MAKE_EXECUTOR_H_
+#define KOLADATA_FUNCTOR_PARALLEL_MAKE_EXECUTOR_H_
 
-#include <memory>
-#include <string>
-#include <utility>
+#include <cstddef>
 
-#include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
 #include "koladata/functor/parallel/executor.h"
 
-#include "boost/asio/post.hpp"
-#include "boost/asio/thread_pool.hpp"
-
 namespace koladata::functor::parallel {
-namespace {
 
-class DefaultAsioExecutor final : public Executor {
- public:
-  void Schedule(TaskFn task_fn) final {
-    boost::asio::post(thread_pool_, std::move(task_fn));
-  }
-
-  std::string Repr() const final { return "default_asio_executor"; }
-
- private:
-  boost::asio::thread_pool thread_pool_;
-};
-
-}  // namespace
-
-const ExecutorPtr /*absl_nonnull*/& GetDefaultAsioExecutor() {
-  static absl::NoDestructor<ExecutorPtr> executor(
-      std::make_shared<DefaultAsioExecutor>());
-  return *executor;
-}
+// Returns a new executor with a limited number of threads.
+//
+// If `thread_limit` is 0, number of threads is selected automatically.
+//
+// Note: The `thread_limit` limits the concurrency; however, the executor may
+// have no dedicated threads, and the actual concurrency limit might be lower.
+ExecutorPtr /*absl_nonnull*/ MakeExecutor(size_t thread_limit);
 
 }  // namespace koladata::functor::parallel
+
+#endif  // KOLADATA_FUNCTOR_PARALLEL_MAKE_EXECUTOR_H_

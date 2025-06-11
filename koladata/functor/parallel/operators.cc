@@ -23,13 +23,14 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/functor/parallel/asio_executor.h"
 #include "koladata/functor/parallel/async_eval_operator.h"
 #include "koladata/functor/parallel/create_execution_context.h"
 #include "koladata/functor/parallel/execution_context.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future_operators.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/functor/parallel/get_default_executor.h"
+#include "koladata/functor/parallel/make_executor.h"
 #include "koladata/functor/parallel/stream_operators.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/functor/parallel/transform.h"
@@ -90,14 +91,15 @@ OPERATOR("koda_internal.parallel.is_stream_qtype",
          [](arolla::QTypePtr qtype) -> arolla::OptionalUnit {
            return arolla::OptionalUnit(IsStreamQType(qtype));
          });
-OPERATOR("koda_internal.parallel.make_asio_executor",
-         [](int64_t num_threads,
+OPERATOR("koda_internal.parallel.make_executor",
+         [](int64_t thread_limit,
             internal::NonDeterministicToken) -> absl::StatusOr<ExecutorPtr> {
-           if (num_threads < 0) {
-             return absl::InvalidArgumentError(absl::StrCat(
-                 "`num_threads` must be non-negative, but got: ", num_threads));
+           if (thread_limit < 0) {
+             return absl::InvalidArgumentError(
+                 absl::StrCat("`thread_limit` must be non-negative, but got: ",
+                              thread_limit));
            }
-           return MakeAsioExecutor(num_threads);
+           return MakeExecutor(thread_limit);
          });
 OPERATOR_FAMILY("koda_internal.parallel.stream_chain",
                 std::make_unique<StreamChainOperatorFamily>());

@@ -15,14 +15,13 @@
 #ifndef THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_DEFAULT_ASIO_EXECUTOR_H_
 #define THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_DEFAULT_ASIO_EXECUTOR_H_
 
-#include <cstddef>
-
+#include "absl/base/nullability.h"
 #include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 
 // Returns the default asio executor.
-const ExecutorPtr& GetDefaultAsioExecutor();
+const ExecutorPtr /*absl_nonnull*/& GetDefaultAsioExecutor();
 
 }  // namespace koladata::functor::parallel
 

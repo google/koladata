@@ -20,8 +20,8 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
-#include "koladata/functor/parallel/default_executor.h"
 #include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/get_default_executor.h"
 
 #include "boost/asio/post.hpp"
 #include "boost/asio/thread_pool.hpp"
@@ -57,7 +57,7 @@ class AsioExecutor final : public Executor {
 
 }  // namespace
 
-ExecutorPtr MakeAsioExecutor(size_t num_threads) {
+ExecutorPtr /*absl_nonnull*/ MakeAsioExecutor(size_t num_threads) {
   return std::make_shared<AsioExecutor>(num_threads);
 }
 

@@ -76,21 +76,24 @@ def _replace_non_deterministic_leaf_with_param(expr):
 
 @arolla.optools.add_to_registry()
 @optools.as_backend_operator(
-    'koda_internal.parallel.make_asio_executor',
+    'koda_internal.parallel.make_executor',
     qtype_constraints=[
-        constraints.expect_scalar_integer(P.num_threads),
+        constraints.expect_scalar_integer(P.thread_limit),
     ],
     qtype_inference_expr=EXECUTOR,
     custom_boxing_fn_name_per_parameter=dict(
-        num_threads=py_boxing.WITH_AROLLA_BOXING,
+        thread_limit=py_boxing.WITH_AROLLA_BOXING,
     ),
     deterministic=False,
 )
-def make_asio_executor(num_threads=0):
-  """Returns a new executor based on boost::asio::thread_pool.
+def make_executor(thread_limit=0):
+  """Returns a new executor.
+
+  Note: The `thread_limit` limits the concurrency; however, the executor may
+  have no dedicated threads, and the actual concurrency limit might be lower.
 
   Args:
-    num_threads: The number of threads to use. Must be non-negative; 0 means
+    thread_limit: The number of threads to use. Must be non-negative; 0 means
       that the number of threads is selected automatically.
   """
   raise NotImplementedError('implemented in the backend')

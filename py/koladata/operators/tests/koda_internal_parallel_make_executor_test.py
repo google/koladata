@@ -21,18 +21,21 @@ from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.types import qtypes
 
 
-class ParallelMakeAsioExecutorTest(absltest.TestCase):
+class ParallelMakeExecutorTest(absltest.TestCase):
 
   def test_simple(self):
     # We do not have a Python API to add tasks to an executor, so we just
     # test basic properties.
-    executor = expr_eval.eval(koda_internal_parallel.make_asio_executor())
+    executor = expr_eval.eval(koda_internal_parallel.make_executor())
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
-    self.assertEqual(str(executor), 'asio_executor')
+    self.assertEqual(
+        repr(executor),
+        'asio_executor',
+    )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        koda_internal_parallel.make_asio_executor,
+        koda_internal_parallel.make_executor,
         [
             (arolla.INT32, qtypes.NON_DETERMINISTIC_TOKEN, qtypes.EXECUTOR),
             (arolla.INT64, qtypes.NON_DETERMINISTIC_TOKEN, qtypes.EXECUTOR),
@@ -41,9 +44,7 @@ class ParallelMakeAsioExecutorTest(absltest.TestCase):
     )
 
   def test_view(self):
-    self.assertFalse(
-        view.has_koda_view(koda_internal_parallel.make_asio_executor())
-    )
+    self.assertFalse(view.has_koda_view(koda_internal_parallel.make_executor()))
 
 
 if __name__ == '__main__':

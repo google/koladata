@@ -61,11 +61,8 @@ def call_multithreaded(
   if max_threads is None:
     execution_context = koda_internal_parallel.get_default_execution_context()
   else:
-    # TODO: Instead of using asio executor here, we probably should
-    # add an option to control the number of threads to the managed-queue-based
-    # executor.
     execution_context = koda_internal_parallel.create_execution_context(
-        koda_internal_parallel.make_asio_executor(max_threads),
+        koda_internal_parallel.make_executor(max_threads),
         koda_internal_parallel.get_default_execution_config(),
     )
   res_stream = koda_internal_parallel.stream_from_future(

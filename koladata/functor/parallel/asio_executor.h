@@ -17,14 +17,16 @@
 
 #include <cstddef>
 
+#include "absl/base/nullability.h"
 #include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 
-// Creates an executor that uses boost::asio::thread_pool. If num_threads is 0,
-// then the default number of threads is used. (See:
+// Creates an executor that uses boost::asio::thread_pool.
+//
+// If `num_threads` is 0, then the default number of threads is used. (See:
 // https://live.boost.org/doc/libs/1_85_0/doc/html/boost_asio/reference/thread_pool/thread_pool.html)
-ExecutorPtr MakeAsioExecutor(size_t num_threads = 0);
+ExecutorPtr /*absl_nonnull*/ MakeAsioExecutor(size_t num_threads = 0);
 
 }  // namespace koladata::functor::parallel
 

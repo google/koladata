@@ -98,7 +98,7 @@ class ParallelCallTest(absltest.TestCase):
       barrier.wait()
       return x
 
-    executor = koda_internal_parallel.make_asio_executor(num_threads=2)
+    executor = koda_internal_parallel.make_executor(thread_limit=2)
     context = koda_internal_parallel.create_execution_context(executor, None)
     fn = functor_factories.expr_fn(V.x + V.y, x=my_op(I.x), y=my_op(I.y))
     call_expr = koda_internal_parallel.parallel_call(
@@ -144,7 +144,7 @@ class ParallelCallTest(absltest.TestCase):
       barrier.wait()
       return x
 
-    executor = koda_internal_parallel.make_asio_executor(num_threads=3)
+    executor = koda_internal_parallel.make_executor(thread_limit=3)
     context = koda_internal_parallel.create_execution_context(
         executor, _REPLACEMENTS
     )

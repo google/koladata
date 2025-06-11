@@ -27,9 +27,9 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/cancellation.h"
-#include "koladata/functor/parallel/asio_executor.h"
-#include "koladata/functor/parallel/default_executor.h"
 #include "koladata/functor/parallel/eager_executor.h"
+#include "koladata/functor/parallel/get_default_executor.h"
+#include "koladata/functor/parallel/make_executor.h"
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
@@ -108,7 +108,7 @@ TEST(BasicRoutineTest, CancellationContextPropagation) {
   arolla::CancellationContext::ScopeGuard cancellation_scope;
   // Note: Use a single-threaded executor to run computations on a different
   // thread, while still having predictable behaviour.
-  auto executor = MakeAsioExecutor(1);
+  auto executor = MakeExecutor(1);
   EXPECT_CALL(*routine_hooks,
               OnCancel(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")))
       .Times(1);

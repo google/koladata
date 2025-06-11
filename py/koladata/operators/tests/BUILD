@@ -8563,8 +8563,8 @@ py_test(
 )
 
 py_test(
-    name = "koda_internal_parallel_make_asio_executor_test",
-    srcs = ["koda_internal_parallel_make_asio_executor_test.py"],
+    name = "koda_internal_parallel_make_executor_test",
+    srcs = ["koda_internal_parallel_make_executor_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:expr_eval",

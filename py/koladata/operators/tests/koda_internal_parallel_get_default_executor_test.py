@@ -27,6 +27,10 @@ class KodaInternalParallelGetDefaultExecutorTest(absltest.TestCase):
     # test basic properties.
     executor = arolla.eval(koda_internal_parallel.get_default_executor())
     self.assertEqual(executor.qtype, qtypes.EXECUTOR)
+    self.assertEqual(
+        repr(executor),
+        'default_asio_executor',
+    )
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

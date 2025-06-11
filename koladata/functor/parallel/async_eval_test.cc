@@ -46,10 +46,10 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/functor/parallel/asio_executor.h"
 #include "koladata/functor/parallel/eager_executor.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/functor/parallel/make_executor.h"
 #include "koladata/object_factories.h"
 #include "koladata/testing/matchers.h"
 
@@ -236,7 +236,7 @@ TEST(AsyncEvalTest, Multithreaded) {
 
   // Make sure that the executor has exactly enough threads to execute all
   // items in parallel.
-  auto executor = MakeAsioExecutor(kWaveSize);
+  auto executor = MakeExecutor(kWaveSize);
 
   ASSERT_OK_AND_ASSIGN(
       auto add_modulo_op,
@@ -317,7 +317,7 @@ TEST(AsyncEvalTest, Multithreaded) {
 TEST(AsyncEvalTest, CancellationContextPropagation) {
   // Note: Use a single-threaded executor to run computations on a different
   // thread, while still having predictable behaviour.
-  auto executor = MakeAsioExecutor(1);
+  auto executor = MakeExecutor(1);
   arolla::CancellationContext::ScopeGuard cancellation_scope;
   auto get_int_output_type = [](absl::Span<const QType* const> input_qtypes) {
     return GetQType<int>();

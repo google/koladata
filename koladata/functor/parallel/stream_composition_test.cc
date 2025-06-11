@@ -32,8 +32,8 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
-#include "koladata/functor/parallel/asio_executor.h"
-#include "koladata/functor/parallel/default_executor.h"
+#include "koladata/functor/parallel/get_default_executor.h"
+#include "koladata/functor/parallel/make_executor.h"
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
@@ -319,7 +319,7 @@ TEST(StreamChainTest, MultithreadedChaining) {
   ASSERT_TRUE(alive_streams.empty());
 
   // Make sure that we have enough threads to execute.
-  auto executor = MakeAsioExecutor(kMaxParallelism + 1);
+  auto executor = MakeExecutor(kMaxParallelism + 1);
 
   auto [output_stream, output_writer] = MakeStream(GetQType<int>());
   auto chain_helper = std::make_unique<StreamChain>(std::move(output_writer));

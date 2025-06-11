@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef KOLADATA_FUNCTOR_PARALLEL_DEFAULT_EXECUTOR_H_
-#define KOLADATA_FUNCTOR_PARALLEL_DEFAULT_EXECUTOR_H_
+#ifndef KOLADATA_FUNCTOR_PARALLEL_GET_DEFAULT_EXECUTOR_H_
+#define KOLADATA_FUNCTOR_PARALLEL_GET_DEFAULT_EXECUTOR_H_
 
+#include "absl/base/nullability.h"
 #include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 
 // Returns the default executor.
-const ExecutorPtr& GetDefaultExecutor();
+const ExecutorPtr /*absl_nonnull*/& GetDefaultExecutor();
 
 }  // namespace koladata::functor::parallel
 
-#endif  // KOLADATA_FUNCTOR_PARALLEL_DEFAULT_EXECUTOR_H_
+#endif  // KOLADATA_FUNCTOR_PARALLEL_GET_DEFAULT_EXECUTOR_H_

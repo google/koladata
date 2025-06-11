@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/parallel/default_executor.h"
+#include "koladata/functor/parallel/make_executor.h"
 
+#include <cstddef>
+
+#include "absl/base/nullability.h"
 #include "koladata/functor/parallel/executor.h"
 
-#include "koladata/functor/parallel/default_asio_executor.h"
+#include "koladata/functor/parallel/asio_executor.h"
 
 namespace koladata::functor::parallel {
 
-const ExecutorPtr& GetDefaultExecutor() {
-  return GetDefaultAsioExecutor();
+ExecutorPtr /*absl_nonnull*/ MakeExecutor(size_t thread_limit) {
+  return MakeAsioExecutor(thread_limit);
 }
 
 }  // namespace koladata::functor::parallel
