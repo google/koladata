@@ -1056,7 +1056,7 @@ recursive manner.
 2.  *Evaluation of the `returns` Attribute*: Invoking a Functor (through
     `kd.call` or `__call__`) triggers the evaluation process, starting with the
     Functor's `returns` attribute. This attribute holds the primary Expression
-    that defines the Functor's output computation. The Exprression evaluation is
+    that defines the Functor's output computation. The Expression evaluation is
     done as previously described, with extended handling of the variables in the
     `V` namespace that reference other attributes defined within the same
     functor. These internal `V` attributes are resolved before the evaluation
