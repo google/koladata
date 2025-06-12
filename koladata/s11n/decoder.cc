@@ -139,6 +139,7 @@ absl::StatusOr<internal::DataItem> DecodeDataItemProto(
     case KodaV1Proto::DataItemProto::VALUE_NOT_SET:
       return absl::InvalidArgumentError("value not set");
   }
+  ABSL_UNREACHABLE();
 }
 
 absl::StatusOr<ValueDecoderResult> DecodeDataItemValue(
