@@ -1493,9 +1493,10 @@ Assigned schema for keys: INT32""",
       db4 = res1.get_bag()
       res2 = res1.enriched(db3)
       fallbacks = res2.get_bag().get_fallbacks()
-      self.assertLen(fallbacks, 2)
-      testing.assert_equal(fallbacks[0], db4)
-      testing.assert_equal(fallbacks[1], db3)
+      self.assertLen(fallbacks, 3)
+      testing.assert_equal(fallbacks[0], db1)
+      testing.assert_equal(fallbacks[1], db2)
+      testing.assert_equal(fallbacks[2], db3)
       self.assertLen(db4.get_fallbacks(), 2)
       testing.assert_equal(db4.get_fallbacks()[0], db1)
       testing.assert_equal(db4.get_fallbacks()[1], db2)
@@ -1519,13 +1520,13 @@ Assigned schema for keys: INT32""",
     x = data_slice.DataSlice.from_vals([1, 2, 3])
     ds12 = x.with_bag(db1).enriched(db2)
     ds1 = x.with_bag(db1)
-    self.assertFalse(ds12.get_bag()._exactly_equal(ds1.get_bag()))
+    self.assertTrue(ds12.get_bag()._exactly_equal(ds1.get_bag()))
 
     ds21 = x.with_bag(db2).enriched(db1)
     self.assertTrue(ds12.get_bag()._exactly_equal(ds21.get_bag()))
 
     _ = db1.obj(x=1)
-    self.assertFalse(ds12.get_bag()._exactly_equal(ds21.get_bag()))
+    self.assertTrue(ds12.get_bag()._exactly_equal(ds21.get_bag()))
 
   def test_merge_inplace(self):
     db1 = bag()

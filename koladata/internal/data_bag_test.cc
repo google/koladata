@@ -2055,13 +2055,16 @@ TEST(DataBagTest, GetStatistics_Attrs) {
   }
 }
 
-// Note that this test is testing the implementation of GetApproxTotalSize that
-// can be changed. It is fine to change numbers here.
-TEST(DataBagTest, GetApproxTotalSize) {
+// Note that this test is testing the implementation of GetApproxTotalSize and
+// GetApproxTotalComplexity that can be changed. It is fine to change numbers
+// here.
+TEST(DataBagTest, GetApproxTotalSize_GetApproxTotalComplexity) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   EXPECT_EQ(db->GetApproxTotalSize(), 0);
+  EXPECT_EQ(db->GetApproxTotalComplexity(), 0);
   db = db->PartiallyPersistentFork();
   EXPECT_EQ(db->GetApproxTotalSize(), 0);
+  EXPECT_EQ(db->GetApproxTotalComplexity(), 0);
 
   {
     SCOPED_TRACE("big allocs");
@@ -2074,6 +2077,8 @@ TEST(DataBagTest, GetApproxTotalSize) {
     // Big allocs are counted not precisely.
     EXPECT_LE(approx_size, kBigSize * 2);
     EXPECT_GE(approx_size, kBigSize);
+    // Only 1 source key.
+    EXPECT_EQ(db_cur->GetApproxTotalComplexity(), 1);
   }
   {
     SCOPED_TRACE("small allocs");
@@ -2086,6 +2091,8 @@ TEST(DataBagTest, GetApproxTotalSize) {
     // Small allocs are counted more precisely.
     int64_t approx_size = db_cur->GetApproxTotalSize();
     EXPECT_EQ(approx_size, 1000);
+    // Each small alloc has a separate source key.
+    EXPECT_EQ(db_cur->GetApproxTotalComplexity(), 1000);
   }
 
   {
@@ -2103,6 +2110,8 @@ TEST(DataBagTest, GetApproxTotalSize) {
         lists[2], DataSliceImpl::Create({DataItem(7), DataItem(8)})));
     // List sizes are estimated as length.
     EXPECT_EQ(db_cur->GetApproxTotalSize(), 6);
+    // Single allocation.
+    EXPECT_EQ(db_cur->GetApproxTotalComplexity(), 1);
   }
 
   {
@@ -2120,6 +2129,8 @@ TEST(DataBagTest, GetApproxTotalSize) {
 
     // Dict sizes are estimated as length.
     EXPECT_EQ(db_cur->GetApproxTotalSize(), 6);
+    // Single allocation.
+    EXPECT_EQ(db_cur->GetApproxTotalComplexity(), 1);
   }
 
   {
@@ -2138,6 +2149,9 @@ TEST(DataBagTest, GetApproxTotalSize) {
 
     // Dict sizes are estimated as length.
     EXPECT_EQ(db_cur->GetApproxTotalSize(), 3);
+    // One allocation each for lists and dicts. The dict allocation is in the
+    // parent but is counted.
+    EXPECT_EQ(db_cur->GetApproxTotalComplexity(), 2);
   }
 }
 

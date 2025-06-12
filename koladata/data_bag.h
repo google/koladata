@@ -18,11 +18,9 @@
 #include <atomic>
 #include <functional>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
-#include "absl/functional/function_ref.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
@@ -95,7 +93,7 @@ class DataBag : public arolla::RefcountedBase {
   // Use this function with caution because if the data bag is shared between
   // several users, some of them might not expect that it suddenly becomes
   // immutable.
-  void UnsafeMakeImmutable() { is_mutable_ = false; }
+  void UnsafeMakeImmutable();
 
   // Returns fallbacks in priority order.
   const std::vector<DataBagPtr>& GetFallbacks() const { return fallbacks_; }
@@ -107,6 +105,10 @@ class DataBag : public arolla::RefcountedBase {
   bool HasMutableFallbacks() const { return has_mutable_fallbacks_; }
 
   // Returns a newly created immutable DataBag with fallbacks.
+  //
+  // The sequence of fallbacks returned by GetFallbacks() on the resulting
+  // DataBag may differ from `fallbacks`, but the effective contents of the
+  // result DataBag will be preserved.
   static DataBagPtr ImmutableEmptyWithFallbacks(
       absl::Span<const DataBagPtr> fallbacks);
 
@@ -140,6 +142,7 @@ class DataBag : public arolla::RefcountedBase {
       : impl_(internal::DataBagImpl::CreateEmptyDatabag()),
         is_mutable_(is_mutable),
         has_mutable_fallbacks_(false),
+        is_compactable_(!is_mutable),
         // NOTE: consider lazy initialization of the fingerprint if it becomes
         // expensive to compute.
         fingerprint_(arolla::RandomFingerprint()) {}
@@ -155,19 +158,20 @@ class DataBag : public arolla::RefcountedBase {
   // Freezes a DataBag that may have fallbacks.
   DataBagPtr FreezeWithFallbacks();
 
+  // Must be called to update the is_compactable_ flag whenever a non-empty
+  // immutable bag impl is created or a mutable bag is marked immutable.
+  void UpdateIsCompactable();
+
   internal::DataBagImplPtr impl_;
   std::vector<DataBagPtr> fallbacks_;
   bool is_mutable_;
   bool has_mutable_fallbacks_;
+  bool is_compactable_;
   arolla::Fingerprint fingerprint_;
 
   // Used to implement lazy forking for immutable DataBags.
   std::atomic<bool> forked_ = false;
 };
-
-// Call visit_fn on all fallbacks in pre-order DFS.
-void VisitFallbacks(const DataBag& bag,
-                    absl::FunctionRef<void(DataBagPtr)> visit_fn);
 
 class FlattenFallbackFinder {
  public:
@@ -181,13 +185,13 @@ class FlattenFallbackFinder {
     }
 
     flattened_fallbacks_.reserve(bag.GetFallbacks().size());
-    VisitFallbacks(bag, [this](DataBagPtr fallback) {
-      this->flattened_fallbacks_.push_back(&fallback->GetImpl());
-    });
+    for (const auto& fallback : bag.GetFallbacks()) {
+      flattened_fallbacks_.push_back(&fallback->GetImpl());
+    }
   }
 
   // Returns DatBagImpl fallbacks in the decreasing priority order.
-  // All duplicates are removed.
+  //
   // The returned span is valid as long as the FlattenFallbackFinder is alive.
   internal::DataBagImpl::FallbackSpan GetFlattenFallbacks() const {
     return flattened_fallbacks_;

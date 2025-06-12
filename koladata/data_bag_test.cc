@@ -24,6 +24,7 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "koladata/data_bag_comparison.h"
+#include "koladata/data_slice.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
@@ -123,9 +124,8 @@ TEST(DataBagTest, CollectFlattenFallbacks) {
     auto db_fb = DataBag::ImmutableEmptyWithFallbacks({db_fb2});
     auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, db_fb});
     FlattenFallbackFinder fbf(*new_db);
-    EXPECT_THAT(
-        fbf.GetFlattenFallbacks(),
-        ElementsAre(&db->GetImpl(), &db_fb->GetImpl(), &db_fb2->GetImpl()));
+    EXPECT_THAT(fbf.GetFlattenFallbacks(),
+                ElementsAre(&db->GetImpl(), &db_fb2->GetImpl()));
   }
 
   {  // diamond
@@ -135,8 +135,7 @@ TEST(DataBagTest, CollectFlattenFallbacks) {
     auto new_db = DataBag::ImmutableEmptyWithFallbacks({db, db_fb, db_fb2});
     FlattenFallbackFinder fbf(*new_db);
     EXPECT_THAT(fbf.GetFlattenFallbacks(),
-                ElementsAre(&db->GetImpl(), &db_fb->GetImpl(),
-                            &db_fb3->GetImpl(), &db_fb2->GetImpl()));
+                ElementsAre(&db->GetImpl(), &db_fb3->GetImpl()));
   }
 
   {  // exponential
@@ -149,7 +148,104 @@ TEST(DataBagTest, CollectFlattenFallbacks) {
       db = dbx;
     }
     FlattenFallbackFinder fbf(*db);
-    EXPECT_EQ(fbf.GetFlattenFallbacks().size(), kSteps * 2);
+    EXPECT_EQ(fbf.GetFlattenFallbacks().size(), 2);
+  }
+
+  {  // compaction of small immutable bags
+    auto db = DataBag::Empty();
+    EXPECT_OK(
+        EntityCreator::FromAttrs(db, {"x"}, {DataSlice::CreateFromScalar(1)})
+            .status());
+    db->UnsafeMakeImmutable();
+    auto db2 = DataBag::Empty();
+    EXPECT_OK(
+        EntityCreator::FromAttrs(db2, {"x"}, {DataSlice::CreateFromScalar(1)})
+            .status());
+    db2->UnsafeMakeImmutable();
+    auto db3 = DataBag::ImmutableEmptyWithFallbacks({db, db2});
+    FlattenFallbackFinder fbf(*db3);
+    EXPECT_EQ(fbf.GetFlattenFallbacks().size(), 1);
+  }
+
+  {  // compaction of small immutable bags between mutable bags
+    auto db = DataBag::Empty();
+    EXPECT_OK(
+        EntityCreator::FromAttrs(db, {"x"}, {DataSlice::CreateFromScalar(1)})
+            .status());
+    db->UnsafeMakeImmutable();
+    auto db2 = DataBag::Empty();
+    EXPECT_OK(
+        EntityCreator::FromAttrs(db2, {"x"}, {DataSlice::CreateFromScalar(1)})
+            .status());
+    db2->UnsafeMakeImmutable();
+    auto db3 = DataBag::ImmutableEmptyWithFallbacks(
+        {DataBag::Empty(), db, db2, DataBag::Empty()});
+    FlattenFallbackFinder fbf(*db3);
+    EXPECT_EQ(fbf.GetFlattenFallbacks().size(), 3);
+  }
+
+  {  // no compaction of small immutable bags separated by mutable bags
+    auto db1 = DataBag::Empty();
+    auto db2 = DataBag::Empty();
+    EXPECT_OK(
+        EntityCreator::FromAttrs(db2, {"x"}, {DataSlice::CreateFromScalar(1)})
+            .status());
+    db2->UnsafeMakeImmutable();
+    auto db3 = DataBag::Empty();
+    auto db4 = DataBag::Empty();
+    EXPECT_OK(
+        EntityCreator::FromAttrs(db4, {"x"}, {DataSlice::CreateFromScalar(1)})
+            .status());
+    db4->UnsafeMakeImmutable();
+    auto final_db = DataBag::ImmutableEmptyWithFallbacks({db1, db2, db3, db4});
+    FlattenFallbackFinder fbf(*final_db);
+    EXPECT_THAT(fbf.GetFlattenFallbacks(),
+                ElementsAre(&db1->GetImpl(), &db2->GetImpl(), &db3->GetImpl(),
+                            &db4->GetImpl()));
+  }
+
+  {  // no compaction of large immutable bags
+    auto db = DataBag::Empty();
+    EXPECT_OK(
+        EntityCreator::FromAttrs(db, {"x"}, {DataSlice::CreateFromScalar(1)})
+            .status());
+    db->UnsafeMakeImmutable();
+    auto db2 = DataBag::Empty();
+    for (int i = 0; i < 5000; ++i) {
+      EXPECT_OK(
+          EntityCreator::FromAttrs(db2, {"x"}, {DataSlice::CreateFromScalar(1)})
+              .status());
+    }
+    db2->UnsafeMakeImmutable();
+    auto db3 = DataBag::ImmutableEmptyWithFallbacks(
+        {DataBag::Empty(), db, db2, DataBag::Empty()});
+    FlattenFallbackFinder fbf(*db3);
+    EXPECT_EQ(fbf.GetFlattenFallbacks().size(), 4);
+  }
+
+  {  // compaction of small immutable bags, multiple separate spans.
+    const auto& make_nonempty_immutable_bag = []() {
+      auto db = DataBag::Empty();
+      EXPECT_OK(
+          EntityCreator::FromAttrs(db, {"x"}, {DataSlice::CreateFromScalar(1)})
+              .status());
+      db->UnsafeMakeImmutable();
+      return db;
+    };
+    auto db1 = make_nonempty_immutable_bag();
+    auto db2 = make_nonempty_immutable_bag();
+    auto db3 = make_nonempty_immutable_bag();
+    auto db4 = make_nonempty_immutable_bag();
+    auto db5 = make_nonempty_immutable_bag();
+    auto merged_db1 = DataBag::ImmutableEmptyWithFallbacks(
+        {DataBag::Empty(), db1, db2, DataBag::Empty(), db3});
+    auto merged_db2 =
+        DataBag::ImmutableEmptyWithFallbacks({db4, db5, DataBag::Empty()});
+    auto final_db =
+        DataBag::ImmutableEmptyWithFallbacks({merged_db1, merged_db2});
+    FlattenFallbackFinder fbf(*final_db);
+    // {mutable, db1 >> db2, mutable, db3 >> db4 >> db5, mutable}
+    EXPECT_EQ(fbf.GetFlattenFallbacks().size(), 5);
   }
 }
 
@@ -430,25 +526,40 @@ TEST(DataBagTest, UnsafeMakeImmutable) {
 TEST(DataBagTest, DeepFallbackChainNoStackOverflow) {
   auto db = DataBag::Empty();
   for (int i = 0; i < 1000'000; ++i) {
-    db = DataBag::ImmutableEmptyWithFallbacks({db});
+    auto new_bag = DataBag::Empty();
+    EXPECT_OK(EntityCreator::FromAttrs(new_bag, {}, {}).status());
+    new_bag->UnsafeMakeImmutable();
+    db = DataBag::ImmutableEmptyWithFallbacks({new_bag, db});
   }
 }
 
 TEST(DataBagTest, FreezeWithFallbacks) {
+  auto make_large_nonempty_mutable_bag = []() {
+    auto db = DataBag::Empty();
+    // This will be large enough to prevent automatic compaction.
+    for (int i = 0; i < 5000; ++i) {
+      EXPECT_OK(
+          EntityCreator::FromAttrs(db, {"x"}, {DataSlice::CreateFromScalar(1)})
+              .status());
+    }
+    return db;
+  };
+
   //     db5
   //    /  \
   //   db4  db3
   //   /  \
   // db1  db2
-  auto db1 = DataBag::Empty();
-  auto db2 = DataBag::Empty();
-  auto db3 = DataBag::Empty();
+  auto db1 = make_large_nonempty_mutable_bag();
+  auto db2 = make_large_nonempty_mutable_bag();
+  auto db3 = make_large_nonempty_mutable_bag();
   auto db4 = DataBag::ImmutableEmptyWithFallbacks({db1, db2});
   auto db5 = DataBag::ImmutableEmptyWithFallbacks({db4, db3});
   EXPECT_TRUE(db5->HasMutableFallbacks());
+  EXPECT_THAT(db5->GetFallbacks(), ::testing::SizeIs(3));
   auto frozen_db5 = db5->Freeze();
   EXPECT_FALSE(frozen_db5->HasMutableFallbacks());
-  EXPECT_THAT(frozen_db5->GetFallbacks(), ::testing::SizeIs(3));
+  ASSERT_THAT(frozen_db5->GetFallbacks(), ::testing::SizeIs(3));
   EXPECT_TRUE(
       DataBagComparison::ExactlyEqual(frozen_db5->GetFallbacks()[0], db1));
   EXPECT_TRUE(
@@ -458,20 +569,31 @@ TEST(DataBagTest, FreezeWithFallbacks) {
 }
 
 TEST(DataBagTest, FreezeWithFallbacks_ImmutableFallbacks) {
+  auto make_nonempty_immutable_bag = []() {
+    auto db = DataBag::Empty();
+    for (int i = 0; i < 5000; ++i) {
+      EXPECT_OK(
+          EntityCreator::FromAttrs(db, {"x"}, {DataSlice::CreateFromScalar(1)})
+              .status());
+    }
+    db->UnsafeMakeImmutable();
+    return db;
+  };
+
   //     db5
   //    /  \
   //   db4  db3
   //   /  \
   // db1  db2
-  auto db1 = DataBag::Empty()->Freeze();
-  auto db2 = DataBag::Empty()->Freeze();
-  auto db3 = DataBag::Empty()->Freeze();
+  auto db1 = make_nonempty_immutable_bag();
+  auto db2 = make_nonempty_immutable_bag();
+  auto db3 = make_nonempty_immutable_bag();
   auto db4 = DataBag::ImmutableEmptyWithFallbacks({db1, db2});
   auto db5 = DataBag::ImmutableEmptyWithFallbacks({db4, db3});
   EXPECT_FALSE(db5->HasMutableFallbacks());
   auto frozen_db5 = db5->Freeze();
   EXPECT_EQ(frozen_db5, db5);
-  EXPECT_THAT(frozen_db5->GetFallbacks(), ::testing::SizeIs(2));
+  EXPECT_THAT(frozen_db5->GetFallbacks(), ElementsAre(db1, db2, db3));
 }
 
 }  // namespace

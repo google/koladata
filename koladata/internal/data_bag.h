@@ -163,6 +163,10 @@ class DataBagImpl : public arolla::RefcountedBase {
   // forked, or has been modified back to a just-created or just-forked state.
   bool IsPristine() const;
 
+  // Returns true if this DataBag is pristine and empty. A non-pristine DataBag
+  // can't be easily checked for emptiness because of removed values.
+  bool IsPristineAndEmpty() const;
+
   // Returns DataSliceImpl with attribute for every object.
   // Missing (not removed) values are looked up in the fallback databags.
   absl::StatusOr<DataSliceImpl> GetAttr(
@@ -646,6 +650,12 @@ class DataBagImpl : public arolla::RefcountedBase {
   //
   // This is an estimate because some allocs are counted not precisely.
   int64_t GetApproxTotalSize() const;
+
+  // Approximate "complexity" of the DataBag, for heuristic use only.
+  //
+  // This currently counts the number of (attr, allocation) pairs plus the
+  // number of list and dict allocations.
+  int64_t GetApproxTotalComplexity() const;
 
  private:
   DataBagImpl() = default;

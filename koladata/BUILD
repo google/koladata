@@ -110,6 +110,7 @@ cc_test(
     deps = [
         ":data_bag",
         ":data_bag_comparison",
+        ":data_slice",
         ":object_factories",
         ":test_utils",
         "//koladata/internal:data_bag",
@@ -684,6 +685,7 @@ cc_library(
     deps = [
         ":data_bag",
         "//koladata/internal:triples",
+        "@com_google_absl//absl/log:check",
     ],
 )
 
