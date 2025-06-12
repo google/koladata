@@ -432,6 +432,20 @@ def _with_attrs(
   )
 
 
+@add_method(
+    DataSlice, 'strict_with_attrs', docstring_from='kd.strict_with_attrs'
+)
+def _strict_with_attrs(
+    self,
+    **attrs,
+) -> DataSlice:
+  return _eval_op(
+      'kd.strict_with_attrs',
+      self,
+      **attrs,
+  )
+
+
 @add_method(DataSlice, 'with_attr', docstring_from='kd.with_attr')
 def _with_attr(
     self,

@@ -3997,6 +3997,19 @@ class DataSliceFallbackTest(parameterized.TestCase):
     testing.assert_equal(obj2.y.no_bag(), ds(2))
     testing.assert_equal(obj2.z.no_bag(), ds(4))
 
+  # More comprehensive tests are in the core_strict_with_attrs_test.py.
+  def test_strict_with_attrs(self):
+    e1 = bag().new(x=1, y=2)
+    e2 = e1.strict_with_attrs(x=3, y=4)
+    testing.assert_equal(e2.x.no_bag(), ds(3))
+    testing.assert_equal(e2.y.no_bag(), ds(4))
+
+    obj1 = bag().obj(x=1, y=2)
+    with self.assertRaisesRegex(
+        ValueError, 'x must have an Entity schema, actual schema: OBJECT'
+    ):
+      obj1.strict_with_attrs(x=3, y=4)
+
   # More comprehensive tests are in the core_with_attr_test.py.
   def test_with_attr(self):
     obj1 = bag().obj(x=1, y=2)

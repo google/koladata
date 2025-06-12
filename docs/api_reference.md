@@ -11559,6 +11559,21 @@ Returns:
   copied by reference.
 ```
 
+### `DataSlice.strict_with_attrs(self, **attrs)` {#DataSlice.strict_with_attrs}
+Aliases:
+
+- [DataItem.strict_with_attrs](#DataItem.strict_with_attrs)
+
+``` {.no-copy}
+Returns a DataSlice with a new DataBag containing updated attrs in `x`.
+
+Strict version of kd.attrs disallowing adding new attributes.
+
+Args:
+  x: Entity for which the attributes update is being created.
+  **attrs: attrs to set in the update.
+```
+
 ### `DataSlice.stub(self, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#DataSlice.stub}
 Aliases:
 
@@ -12786,6 +12801,10 @@ Alias for [DataSlice.set_schema](#DataSlice.set_schema) operator.
 ### `DataItem.shallow_clone(self, *, itemid=unspecified, schema=unspecified, **overrides)` {#DataItem.shallow_clone}
 
 Alias for [DataSlice.shallow_clone](#DataSlice.shallow_clone) operator.
+
+### `DataItem.strict_with_attrs(self, **attrs)` {#DataItem.strict_with_attrs}
+
+Alias for [DataSlice.strict_with_attrs](#DataSlice.strict_with_attrs) operator.
 
 ### `DataItem.stub(self, attrs=DataSlice([], schema: NONE, ndims: 1, size: 0))` {#DataItem.stub}
 

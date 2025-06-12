@@ -386,6 +386,14 @@ class KodaView(arolla.abc.ExprView):
         'kd.with_attrs', self, overwrite_schema=overwrite_schema, **attrs
     )
 
+  def strict_with_attrs(
+      self,
+      **attrs: Any,
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op(
+        'kd.strict_with_attrs', self, **attrs
+    )
+
   def with_attr(
       self,
       attr_name: Any,
