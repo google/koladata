@@ -527,10 +527,10 @@ std::optional<QValueOrExpr> AsQValueOrExprVarKwargs(
     }
   }
   node_deps[0] = arolla::expr::Literal(Text(std::move(field_names)));
-  static const absl::NoDestructor make_namedtuple_op(
+  static const absl::NoDestructor namedtuple_op(
       std::make_shared<RegisteredOperator>("namedtuple.make"));
   ASSIGN_OR_RETURN(auto result,
-                   MakeOpNode(*make_namedtuple_op, std::move(node_deps)),
+                   MakeOpNode(*namedtuple_op, std::move(node_deps)),
                    (SetPyErrFromStatus(_), std::nullopt));
   return result;
 }

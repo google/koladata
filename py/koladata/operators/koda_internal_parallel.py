@@ -565,9 +565,9 @@ def as_parallel(arg):
 
 
 @arolla.optools.as_lambda_operator(
-    'koda_internal.parallel._internal_make_namedtuple_with_names_from',
+    'koda_internal.parallel._internal_namedtuple_with_names_from',
 )
-def _internal_make_namedtuple_with_names_from(example_namedtuple, *args):
+def _internal_namedtuple_with_names_from(example_namedtuple, *args):
   """Creates a namedtuple with the same field names as the given example.
 
   This helper is needed so that we can evaluate M.namedtuple.make
@@ -647,7 +647,7 @@ def _internal_future_from_parallel(outer_arg, outer_executor, outer_self_op):
           M.core.apply_varargs(
               async_eval,
               P.executor,
-              tuple_ops.make_tuple,
+              tuple_ops.tuple_,
               M.core.map_tuple(
                   P.self_op,
                   P.arg,
@@ -661,7 +661,7 @@ def _internal_future_from_parallel(outer_arg, outer_executor, outer_self_op):
           M.core.apply_varargs(
               async_eval,
               P.executor,
-              _internal_make_namedtuple_with_names_from,
+              _internal_namedtuple_with_names_from,
               P.arg,
               M.core.map_tuple(
                   P.self_op,
@@ -1344,9 +1344,9 @@ def _stream_while_returns(
       A `present` value indicates the loop should continue; `missing` indicates
       it should stop.
     body_fn: A functor that accepts state variables as keyword arguments and
-      returns a namedtuple (see `kd.make_namedtuple`) containing updated values
-      for a subset of the state variables. These updated values must retain
-      their original types.
+      returns a namedtuple (see `kd.namedtuple`) containing updated values for a
+      subset of the state variables. These updated values must retain their
+      original types.
     initial_returns: The initial value for the `returns` state variable.
     initial_state: Initial values for state variables.
     non_deterministic: Non-deterministic token.
@@ -1386,7 +1386,7 @@ def _stream_while_yields(
       single-item stream. A `present` value indicates the loop should continue;
       `missing` indicates it should stop.
     body_fn: A functor that accepts state variables (excluding `yields`) as
-      keyword arguments and returns a namedtuple (see `kd.make_namedtuple`)
+      keyword arguments and returns a namedtuple (see `kd.namedtuple`)
       containing updated values for a subset of the state variables. These
       updated values must retain their original types.
     yields_param_name: Name of the "yield" state variable.
@@ -1463,7 +1463,7 @@ def stream_while(
       should continue; `missing` indicates it should stop.
     body_fn: A functor that accepts state variables *including `returns`, if
       specified) as keyword arguments and returns a namedtuple (see
-      `kd.make_namedtuple`) containing updated values for a subset of the state
+      `kd.namedtuple`) containing updated values for a subset of the state
       variables. These updated values must retain their original types.
     returns: If present, the initial value of the 'returns' state variable.
     yields: If present, the initial value of the 'yields' state variable.
@@ -1945,14 +1945,14 @@ def _empty_streams_from_value_type_as(executor, value_type_as):
   return arolla.types.DispatchOperator(
       'inner_executor, inner_value_type_as',
       unspecified_case=arolla.types.DispatchCase(
-          tuple_ops.make_tuple(),
+          tuple_ops.tuple_(),
           condition=bootstrap.is_future_qtype(P.inner_value_type_as)
           & (
               M.qtype.get_value_qtype(P.inner_value_type_as)
               == arolla.UNSPECIFIED
           ),
       ),
-      default=tuple_ops.make_tuple(
+      default=tuple_ops.tuple_(
           empty_stream_like(
               _single_element_stream_from_parallel(
                   P.inner_value_type_as, P.inner_executor
@@ -2419,7 +2419,7 @@ def _create_for_body_wrapping_fn():
           arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
               functor.call_and_update_namedtuple,
               V.fn,
-              args=tuple_ops.make_tuple(as_parallel(I.x)),
+              args=tuple_ops.tuple_(as_parallel(I.x)),
               namedtuple_to_update=arolla.M.namedtuple.union(
                   I.kwargs,
                   V.empty_yields_namedtuple,
@@ -2617,8 +2617,8 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "core.make_tuple"
   }
   operator_replacements {
-    from_op: "kd.make_tuple"
-    to_op: "kd.make_tuple"
+    from_op: "kd.tuple"
+    to_op: "kd.tuple"
   }
   operator_replacements {
     from_op: "core.get_nth"
@@ -2628,8 +2628,8 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     }
   }
   operator_replacements {
-    from_op: "kd.tuple.get_nth"
-    to_op: "kd.tuple.get_nth"
+    from_op: "kd.tuples.get_nth"
+    to_op: "kd.tuples.get_nth"
     argument_transformation {
       keep_literal_argument_indices: 1
     }
@@ -2651,8 +2651,8 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     }
   }
   operator_replacements {
-    from_op: "kd.make_namedtuple"
-    to_op: "kd.make_namedtuple"
+    from_op: "kd.namedtuple"
+    to_op: "kd.namedtuple"
   }
   operator_replacements {
     from_op: "namedtuple.get_field"
@@ -2662,8 +2662,8 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     }
   }
   operator_replacements {
-    from_op: "kd.tuple.get_namedtuple_field"
-    to_op: "kd.tuple.get_namedtuple_field"
+    from_op: "kd.tuples.get_namedtuple_field"
+    to_op: "kd.tuples.get_namedtuple_field"
     argument_transformation {
       keep_literal_argument_indices: 1
     }

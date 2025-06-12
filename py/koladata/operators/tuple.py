@@ -31,21 +31,19 @@ constraints = arolla.optools.constraints
 
 # Note that we use the lambda operator instead of an alias so that the operator
 # implemented Koladata-specific boxing rules.
-@optools.add_to_registry(aliases=['kd.make_tuple'])
+@optools.add_to_registry(aliases=['kd.tuple'])
 @arolla.optools.as_lambda_operator(
-    'kd.tuple.make_tuple',
+    'kd.tuples.tuple',
     experimental_aux_policy=py_boxing.DEFAULT_BOXING_POLICY,
 )
-def make_tuple(*args):
+def tuple_(*args):
   """Returns a tuple-like object containing the given `*args`."""
   return arolla.optools.fix_trace_args(args)
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator(
-    'kd.tuple.make_slice',
-)
-def make_slice(
+@optools.as_lambda_operator('kd.tuples.slice')
+def slice_(
     start=arolla.unspecified(),
     stop=arolla.unspecified(),
     step=arolla.unspecified(),
@@ -60,9 +58,9 @@ def make_slice(
   return arolla.M.core.make_slice(start, stop, step)
 
 
-@optools.add_to_registry(aliases=['kd.make_namedtuple'])
-@optools.as_lambda_operator('kd.tuple.make_namedtuple')
-def make_namedtuple(**kwargs):
+@optools.add_to_registry(aliases=['kd.namedtuple'])
+@optools.as_lambda_operator('kd.tuples.namedtuple')
+def namedtuple_(**kwargs):
   """Returns a namedtuple-like object containing the given `**kwargs`."""
   return arolla.optools.fix_trace_kwargs(kwargs)
 
@@ -74,7 +72,7 @@ def make_namedtuple(**kwargs):
 )
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kd.tuple.get_nth',
+    'kd.tuples.get_nth',
     qtype_constraints=[qtype_utils.expect_data_slice(P.n)],
 )
 def get_nth(x, n):
@@ -97,7 +95,7 @@ def get_nth(x, n):
 )
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'kd.tuple.get_namedtuple_field',
+    'kd.tuples.get_namedtuple_field',
     qtype_constraints=[qtype_utils.expect_data_slice(P.field_name)],
 )
 def get_namedtuple_field(namedtuple, field_name):

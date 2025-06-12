@@ -55,7 +55,7 @@ QTYPES = frozenset([
 ])
 
 
-class TupleMakeSliceTest(parameterized.TestCase):
+class TuplesSliceTest(parameterized.TestCase):
 
   @parameterized.parameters(
       ((), arolla.types.Slice()),
@@ -78,23 +78,23 @@ class TupleMakeSliceTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, args, expected):
-    result = expr_eval.eval(kde.tuple.make_slice(*args))
+    result = expr_eval.eval(kde.tuples.slice(*args))
     testing.assert_equal(result, expected)
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.tuple.make_slice(1, 2, 3),
+        kde.tuples.slice(1, 2, 3),
         arolla.abc.bind_op(
-            kde.tuple.make_slice,
+            kde.tuples.slice,
             literal_operator.literal(ds(1)),
             literal_operator.literal(ds(2)),
             literal_operator.literal(ds(3)),
         ),
     )
     testing.assert_equal(
-        kde.tuple.make_slice(stop=2),
+        kde.tuples.slice(stop=2),
         arolla.abc.bind_op(
-            kde.tuple.make_slice,
+            kde.tuples.slice,
             literal_operator.literal(arolla.unspecified()),
             literal_operator.literal(ds(2)),
             literal_operator.literal(arolla.unspecified()),
@@ -103,7 +103,7 @@ class TupleMakeSliceTest(parameterized.TestCase):
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.tuple.make_slice,
+        kde.tuples.slice,
         QTYPES,
         # only DATA_SLICE to avoid blowup, since this operator accepts any input
         # qtypes.
@@ -113,7 +113,7 @@ class TupleMakeSliceTest(parameterized.TestCase):
     )
 
   def test_view(self):
-    x_slice = kde.tuple.make_slice(I.x, I.y)
+    x_slice = kde.tuples.slice(I.x, I.y)
     self.assertTrue(view.has_koda_view(x_slice))
     self.assertLen(x_slice.node_deps, 3)
     self.assertTrue(view.has_koda_view(x_slice[0]))

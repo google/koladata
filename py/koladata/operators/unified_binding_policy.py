@@ -200,7 +200,7 @@ def make_unified_signature(
 
 
 _make_tuple_op = arolla.abc.decay_registered_operator('core.make_tuple')
-_make_namedtuple_op = arolla.abc.decay_registered_operator('namedtuple.make')
+_namedtuple_op = arolla.abc.decay_registered_operator('namedtuple.make')
 
 
 def _is_make_tuple_op(op: arolla.abc.Operator | None) -> bool:
@@ -210,10 +210,10 @@ def _is_make_tuple_op(op: arolla.abc.Operator | None) -> bool:
   )
 
 
-def _is_make_namedtuple_op(op: arolla.abc.Operator | None) -> bool:
+def _is_namedtuple_op(op: arolla.abc.Operator | None) -> bool:
   return (
       op is not None
-      and arolla.abc.decay_registered_operator(op) == _make_namedtuple_op
+      and arolla.abc.decay_registered_operator(op) == _namedtuple_op
   )
 
 
@@ -235,7 +235,7 @@ def _unified_op_repr_var_keyword(
     var_keyword_node: arolla.Expr, tokens: arolla.abc.NodeTokenView
 ) -> list[str]:
   """Repr for varkwargs. Assumes node is a namedtuple (op or qvalue)."""
-  if _is_make_namedtuple_op(var_keyword_node.op):
+  if _is_namedtuple_op(var_keyword_node.op):
     keys = var_keyword_node.node_deps[0].qvalue.py_value().split(',')
     values = (tokens[dep] for dep in var_keyword_node.node_deps[1:])
     return [f'{k.strip()}={v.text}' for k, v in zip(keys, values)]

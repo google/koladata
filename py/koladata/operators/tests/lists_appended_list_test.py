@@ -100,7 +100,7 @@ class KodaAppendedListTest(parameterized.TestCase):
     # Evaluating different identical exprs.
     x = db.list([1, 2])
     append = ds([3])
-    expr = kde.make_tuple(
+    expr = kde.tuple(
         kde.lists.appended_list(x, append),
         kde.lists.appended_list(x, append),
     )

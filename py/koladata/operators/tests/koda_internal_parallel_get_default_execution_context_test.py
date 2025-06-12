@@ -100,9 +100,9 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       ),
       (
           'koda_tuple',
-          lambda x, y: user_facing_kd.make_tuple(x, y),  # pylint: disable=unnecessary-lambda
-          lambda x: user_facing_kd.tuple.get_nth(x, 0),
-          lambda x: user_facing_kd.tuple.get_nth(x, 1),
+          lambda x, y: user_facing_kd.tuple(x, y),  # pylint: disable=unnecessary-lambda
+          lambda x: user_facing_kd.tuples.get_nth(x, 0),
+          lambda x: user_facing_kd.tuples.get_nth(x, 1),
       ),
       ('python_tuple', lambda x, y: (x, y), lambda x: x[0], lambda x: x[1]),
       (
@@ -113,13 +113,13 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       ),
       (
           'koda_namedtuple',
-          lambda x, y: user_facing_kd.make_namedtuple(a=x, b=y),
-          lambda x: user_facing_kd.tuple.get_namedtuple_field(x, 'a'),
-          lambda x: user_facing_kd.tuple.get_namedtuple_field(x, 'b'),
+          lambda x, y: user_facing_kd.namedtuple(a=x, b=y),
+          lambda x: user_facing_kd.tuples.get_namedtuple_field(x, 'a'),
+          lambda x: user_facing_kd.tuples.get_namedtuple_field(x, 'b'),
       ),
       (
           'koda_namedtuple_with_python_access',
-          lambda x, y: user_facing_kd.make_namedtuple(a=x, b=y),
+          lambda x, y: user_facing_kd.namedtuple(a=x, b=y),
           lambda x: x['a'],
           lambda x: x['b'],
       ),
@@ -487,7 +487,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
   def test_iterables_make_tuples(self, op):
 
     def f(x, y):
-      return op(tuple_ops.make_tuple(x, y))
+      return op(tuple_ops.tuple_(x, y))
 
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f
@@ -496,7 +496,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         x=koda_internal_parallel.as_future(1),
         y=koda_internal_parallel.as_future(2),
         return_type_as=koda_internal_parallel.stream_make(
-            value_type_as=tuple_ops.make_tuple(None, None)
+            value_type_as=tuple_ops.tuple_(None, None)
         ),
     ).eval()
     self.assertEqual(
@@ -900,7 +900,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda n: user_facing_kd.functor.while_(
             lambda n, returns: n > 0,
-            lambda n, returns: user_facing_kd.make_namedtuple(
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns * n,
                 n=n - 1,
             ),
@@ -923,7 +923,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda n: user_facing_kd.functor.while_(
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 yields=user_facing_kd.iterables.make(res * n),
                 n=n - 1,
                 res=res * n,
@@ -949,7 +949,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda n: user_facing_kd.functor.while_(
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 yields_interleaved=user_facing_kd.iterables.make(res * n),
                 n=n - 1,
                 res=res * n,
@@ -992,7 +992,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       return 3
 
     def body(i):
-      return user_facing_kd.make_namedtuple(
+      return user_facing_kd.namedtuple(
           yields=user_facing_kd.if_(
               i == 1,
               lambda: user_facing_kd.iterables.make(wait_and_return_1()),
@@ -1060,7 +1060,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       return 3
 
     def body(i):
-      return user_facing_kd.make_namedtuple(
+      return user_facing_kd.namedtuple(
           yields_interleaved=user_facing_kd.if_(
               i == 1,
               lambda: user_facing_kd.iterables.make(wait_and_return_1()),
@@ -1115,7 +1115,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, returns: user_facing_kd.make_namedtuple(
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns * n,
             ),
             returns=1,
@@ -1136,7 +1136,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 yields=user_facing_kd.iterables.make(res * n),
                 res=res * n,
             ),
@@ -1160,7 +1160,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 yields_interleaved=user_facing_kd.iterables.make(res * n),
                 res=res * n,
             ),
@@ -1201,7 +1201,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       return 3
 
     def body(i):
-      return user_facing_kd.make_namedtuple(
+      return user_facing_kd.namedtuple(
           yields=user_facing_kd.if_(
               i == 1,
               lambda: user_facing_kd.iterables.make(wait_and_return_1()),
@@ -1267,7 +1267,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
       return 3
 
     def body(i):
-      return user_facing_kd.make_namedtuple(
+      return user_facing_kd.namedtuple(
           yields_interleaved=user_facing_kd.if_(
               i == 1,
               lambda: user_facing_kd.iterables.make(wait_and_return_1()),
@@ -1321,7 +1321,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 res=res * n,
             ),
             res=1,
@@ -1344,10 +1344,10 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, returns: user_facing_kd.make_namedtuple(
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns + n,
             ),
-            finalize_fn=lambda returns: user_facing_kd.make_namedtuple(
+            finalize_fn=lambda returns: user_facing_kd.namedtuple(
                 returns=-returns,
             ),
             returns=0,
@@ -1369,8 +1369,8 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n: user_facing_kd.make_namedtuple(),
-            finalize_fn=lambda: user_facing_kd.make_namedtuple(
+            lambda n: user_facing_kd.namedtuple(),
+            finalize_fn=lambda: user_facing_kd.namedtuple(
                 **{yield_mode: user_facing_kd.iterables.make(2, 3)}
             ),
             **{yield_mode: user_facing_kd.iterables.make()},
@@ -1392,7 +1392,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, returns: user_facing_kd.make_namedtuple(
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns + n,
             ),
             condition_fn=lambda returns: returns < 5,
@@ -1415,7 +1415,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     factorial = functor_factories.trace_py_fn(
         lambda vals: user_facing_kd.functor.for_(
             vals,
-            lambda n, last_n: user_facing_kd.make_namedtuple(
+            lambda n, last_n: user_facing_kd.namedtuple(
                 last_n=n,
                 **{yield_mode: user_facing_kd.iterables.make(n)},
             ),

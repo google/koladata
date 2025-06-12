@@ -43,7 +43,7 @@ class FunctorWhileTest(parameterized.TestCase):
     factorial = kdf.fn(
         lambda n: user_facing_kd.functor.while_(
             lambda n, returns: n > 0,
-            lambda n, returns: user_facing_kd.make_namedtuple(
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns * n,
                 n=n - 1,
             ),
@@ -57,7 +57,7 @@ class FunctorWhileTest(parameterized.TestCase):
     factorial = kdf.fn(
         lambda n, x: user_facing_kd.functor.while_(
             lambda x, returns: x.updated(returns).n > 0,
-            lambda x, returns: user_facing_kd.make_namedtuple(
+            lambda x, returns: user_facing_kd.namedtuple(
                 returns=user_facing_kd.attrs(
                     x,
                     n=x.updated(returns).n - 1,
@@ -95,7 +95,7 @@ class FunctorWhileTest(parameterized.TestCase):
             n=last_x.n - 1,
             result=last_x.result * last_x.n,
         )
-        return user_facing_kd.make_namedtuple(
+        return user_facing_kd.namedtuple(
             state_bag=next_state_bag,
             returns=x.updated(next_state_bag).result,
         )
@@ -115,7 +115,7 @@ class FunctorWhileTest(parameterized.TestCase):
     factorial = kdf.fn(
         lambda n: user_facing_kd.functor.while_(
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 yields=user_facing_kd.iterables.make(res * n),
                 n=n - 1,
                 res=res * n,
@@ -134,7 +134,7 @@ class FunctorWhileTest(parameterized.TestCase):
     factorial = kdf.fn(
         lambda n: user_facing_kd.functor.while_(
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 n=n - 1,
                 res=res * n,
             ),
@@ -158,7 +158,7 @@ class FunctorWhileTest(parameterized.TestCase):
 
       def _body_fn(x):
         update_bag = user_facing_kd.attrs(x, n=x.n - 1, result=x.result * x.n)
-        return user_facing_kd.make_namedtuple(
+        return user_facing_kd.namedtuple(
             x=x.updated(update_bag),
             yields=user_facing_kd.iterables.make(update_bag),
         )
@@ -197,7 +197,7 @@ class FunctorWhileTest(parameterized.TestCase):
     factorial = kdf.fn(
         lambda n: user_facing_kd.functor.while_(
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 yields_interleaved=user_facing_kd.iterables.make(res * n),
                 n=n - 1,
                 res=res * n,
@@ -221,7 +221,7 @@ class FunctorWhileTest(parameterized.TestCase):
     factorial = kdf.fn(
         lambda n: user_facing_kd.functor.while_(
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 n=n - 1,
                 res=res * n,
             ),
@@ -240,7 +240,7 @@ class FunctorWhileTest(parameterized.TestCase):
         kdf.fn(lambda returns: mask_constants.present),
         kdf.fn(
             lambda returns: arolla.M.core._identity_with_cancel(
-                user_facing_kd.make_namedtuple(), 'cancelled'
+                user_facing_kd.namedtuple(), 'cancelled'
             )
         ),
         returns=None,
@@ -254,7 +254,7 @@ class FunctorWhileTest(parameterized.TestCase):
       return kde.functor.while_(
           kdf.fn(lambda i, n: i < n),
           kdf.fn(
-              lambda i, n: user_facing_kd.make_namedtuple(
+              lambda i, n: user_facing_kd.namedtuple(
                   i=i + 1, yields_interleaved=user_facing_kd.iterables.make(i)
               )
           ),
@@ -288,7 +288,7 @@ class FunctorWhileTest(parameterized.TestCase):
     ):
       _ = kde.functor.while_(
           lambda **unused_kwargs: user_facing_kd.present,
-          lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+          lambda **unused_kwargs: user_facing_kd.namedtuple(),
       )
 
   def test_return_and_yield(self):
@@ -299,7 +299,7 @@ class FunctorWhileTest(parameterized.TestCase):
     ):
       _ = kde.functor.while_(
           lambda **unused_kwargs: user_facing_kd.present,
-          lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+          lambda **unused_kwargs: user_facing_kd.namedtuple(),
           returns=1,
           yields=kde.iterables.make(),
       )
@@ -307,7 +307,7 @@ class FunctorWhileTest(parameterized.TestCase):
   def test_return_outside_yield_inside_body(self):
     loop_expr = kde.functor.while_(
         lambda **unused_kwargs: user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda **unused_kwargs: user_facing_kd.namedtuple(
             yields=kde.iterables.make()
         ),
         returns=1,
@@ -325,8 +325,8 @@ class FunctorWhileTest(parameterized.TestCase):
   def test_wrong_type_for_variable(self):
     loop_expr = kde.functor.while_(
         lambda **unused_kwargs: user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(
-            returns=user_facing_kd.make_tuple(1, 2)
+        lambda **unused_kwargs: user_facing_kd.namedtuple(
+            returns=user_facing_kd.tuple(1, 2)
         ),
         returns=1,
     )
@@ -342,7 +342,7 @@ class FunctorWhileTest(parameterized.TestCase):
   def test_wrong_inner_type_for_yields(self):
     loop_expr = kde.functor.while_(
         lambda **unused_kwargs: user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda **unused_kwargs: user_facing_kd.namedtuple(
             yields=user_facing_kd.iterables.make(user_facing_kd.bag())
         ),
         yields=kde.iterables.make(),
@@ -389,7 +389,7 @@ class FunctorWhileTest(parameterized.TestCase):
   def test_non_mask_condition(self):
     loop_expr = kde.functor.while_(
         lambda **unused_kwargs: 1,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda **unused_kwargs: user_facing_kd.namedtuple(),
         returns=1,
     )
     with self.assertRaisesRegex(
@@ -406,7 +406,7 @@ class FunctorWhileTest(parameterized.TestCase):
         lambda **unused_kwargs: user_facing_kd.slice(
             [user_facing_kd.missing]
         ).no_bag(),
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda **unused_kwargs: user_facing_kd.namedtuple(),
         returns=1,
     )
     with self.assertRaisesRegex(
@@ -425,7 +425,7 @@ class FunctorWhileTest(parameterized.TestCase):
     ):
       _ = kde.functor.while_(
           lambda **unused_kwargs: user_facing_kd.present,
-          kde.make_namedtuple(),
+          kde.namedtuple(),
           returns=1,
       )
 
@@ -447,15 +447,15 @@ class FunctorWhileTest(parameterized.TestCase):
         'expected DATA_SLICE, got condition_fn: namedtuple<>',
     ):
       _ = kde.functor.while_(
-          kde.make_namedtuple(),
-          lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+          kde.namedtuple(),
+          lambda **unused_kwargs: user_facing_kd.namedtuple(),
           returns=1,
       )
 
   def test_non_functor_condition(self):
     loop_expr = kde.functor.while_(
         user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda **unused_kwargs: user_facing_kd.namedtuple(),
         returns=1,
     )
     with self.assertRaisesRegex(

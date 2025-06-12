@@ -154,23 +154,23 @@ def reshape(x, shape):
     kd.reshape(x, kd.shapes.new(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
     # Using a tuple of sizes.
-    kd.reshape(x, kd.make_tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
+    kd.reshape(x, kd.tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
     # Using a tuple of sizes and a placeholder dimension.
-    kd.reshape(x, kd.make_tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
+    kd.reshape(x, kd.tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
     # Using a tuple of sizes and a placeholder dimension.
-    kd.reshape(x, kd.make_tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
+    kd.reshape(x, kd.tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
     # Using a tuple of slices and a placeholder dimension.
-    kd.reshape(x, kd.make_tuple(-1, kd.slice([3, 1])))
+    kd.reshape(x, kd.tuple(-1, kd.slice([3, 1])))
         # -> kd.slice([[1, 2, 3], [4]])
 
     # Reshaping a scalar.
-    kd.reshape(1, kd.make_tuple(1, 1))  # -> kd.slice([[1]])
+    kd.reshape(1, kd.tuple(1, 1))  # -> kd.slice([[1]])
 
     # Reshaping an empty slice.
-    kd.reshape(kd.slice([]), kd.make_tuple(2, 0))  # -> kd.slice([[], []])
+    kd.reshape(kd.slice([]), kd.tuple(2, 0))  # -> kd.slice([[], []])
 
   Args:
     x: a DataSlice.

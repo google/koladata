@@ -37,12 +37,12 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
 
   def test_simple(self):
     fn = functor_factories.expr_fn(
-        returns=kde.make_namedtuple(x=I.x * 2),
+        returns=kde.namedtuple(x=I.x * 2),
     )
     testing.assert_equal(
         expr_eval.eval(
             kde.functor.call_and_update_namedtuple(
-                fn, x=2, namedtuple_to_update=kde.make_namedtuple(x=1, y=2)
+                fn, x=2, namedtuple_to_update=kde.namedtuple(x=1, y=2)
             )
         ),
         arolla.namedtuple(x=ds(4), y=ds(2)),
@@ -51,7 +51,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     testing.assert_equal(
         expr_eval.eval(
             kde.functor.call_and_update_namedtuple(
-                fn, x=2, y=3, namedtuple_to_update=kde.make_namedtuple(y=1, x=2)
+                fn, x=2, y=3, namedtuple_to_update=kde.namedtuple(y=1, x=2)
             )
         ),
         arolla.namedtuple(y=ds(1), x=ds(4)),
@@ -59,38 +59,34 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
 
   def test_empty_return(self):
     fn = functor_factories.expr_fn(
-        returns=kde.make_namedtuple(),
+        returns=kde.namedtuple(),
     )
     testing.assert_equal(
         expr_eval.eval(
             kde.functor.call_and_update_namedtuple(
-                fn, namedtuple_to_update=kde.make_namedtuple(x=1, y=2)
+                fn, namedtuple_to_update=kde.namedtuple(x=1, y=2)
             )
         ),
         arolla.namedtuple(x=ds(1), y=ds(2)),
     )
 
   def test_empty_return_empty_to_update(self):
-    fn = functor_factories.expr_fn(
-        returns=kde.make_namedtuple(),
-    )
+    fn = functor_factories.expr_fn(returns=kde.namedtuple())
     testing.assert_equal(
         expr_eval.eval(
             kde.functor.call_and_update_namedtuple(
-                fn, namedtuple_to_update=kde.make_namedtuple()
+                fn, namedtuple_to_update=kde.namedtuple()
             )
         ),
         arolla.namedtuple(),
     )
 
   def test_full_return(self):
-    fn = functor_factories.expr_fn(
-        returns=kde.make_namedtuple(y=3, x=5),
-    )
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(y=3, x=5))
     testing.assert_equal(
         expr_eval.eval(
             kde.functor.call_and_update_namedtuple(
-                fn, namedtuple_to_update=kde.make_namedtuple(x=1, y=2)
+                fn, namedtuple_to_update=kde.namedtuple(x=1, y=2)
             )
         ),
         arolla.namedtuple(x=ds(5), y=ds(3)),
@@ -98,7 +94,7 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
 
   def test_non_named_tuple_returned(self):
     fn = functor_factories.expr_fn(
-        returns=kde.make_tuple(I.x * 2),
+        returns=kde.tuple(I.x * 2),
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -107,14 +103,12 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     ):
       _ = expr_eval.eval(
           kde.functor.call_and_update_namedtuple(
-              fn, x=2, namedtuple_to_update=kde.make_namedtuple(x=1, y=2)
+              fn, x=2, namedtuple_to_update=kde.namedtuple(x=1, y=2)
           )
       )
 
   def test_non_named_tuple_to_update(self):
-    fn = functor_factories.expr_fn(
-        returns=kde.make_namedtuple(x=I.x * 2),
-    )
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(x=I.x * 2))
     with self.assertRaisesRegex(
         ValueError,
         'expected a namedtuple, got namedtuple_to_update:'
@@ -122,14 +116,12 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     ):
       _ = expr_eval.eval(
           kde.functor.call_and_update_namedtuple(
-              fn, x=2, namedtuple_to_update=kde.make_tuple(1, 2)
+              fn, x=2, namedtuple_to_update=kde.tuple(1, 2)
           )
       )
 
   def test_unknown_field_returned(self):
-    fn = functor_factories.expr_fn(
-        returns=kde.make_namedtuple(z=I.x * 2),
-    )
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(z=I.x * 2))
     with self.assertRaisesRegex(
         ValueError,
         'the functor returned a namedtuple with field `z`, but the original'
@@ -137,13 +129,13 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     ):
       _ = expr_eval.eval(
           kde.functor.call_and_update_namedtuple(
-              fn, x=2, namedtuple_to_update=kde.make_namedtuple(x=1, y=2)
+              fn, x=2, namedtuple_to_update=kde.namedtuple(x=1, y=2)
           )
       )
 
   def test_wrong_type_returned(self):
     fn = functor_factories.expr_fn(
-        returns=kde.make_namedtuple(x=data_bag.DataBag.empty()),
+        returns=kde.namedtuple(x=data_bag.DataBag.empty())
     )
     with self.assertRaisesRegex(
         ValueError,
@@ -152,20 +144,20 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     ):
       _ = expr_eval.eval(
           kde.functor.call_and_update_namedtuple(
-              fn, x=2, namedtuple_to_update=kde.make_namedtuple(x=1, y=2)
+              fn, x=2, namedtuple_to_update=kde.namedtuple(x=1, y=2)
           )
       )
 
   def test_databag_values(self):
     x = fns.new()
     fn = functor_factories.expr_fn(
-        returns=kde.make_namedtuple(a=kde.attrs(I.x, foo=1)),
+        returns=kde.namedtuple(a=kde.attrs(I.x, foo=1)),
     )
     res = expr_eval.eval(
         kde.functor.call_and_update_namedtuple(
             fn,
             x=I.x,
-            namedtuple_to_update=kde.make_namedtuple(
+            namedtuple_to_update=kde.namedtuple(
                 a=kde.attrs(I.x, foo=2), b=kde.attrs(I.x, foo=3)
             ),
         ),
@@ -175,16 +167,14 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
     testing.assert_equal(x.updated(res['b']).foo.no_bag(), ds(3))
 
   def test_non_determinism(self):
-    fn = functor_factories.expr_fn(
-        returns=kde.make_namedtuple(a=kde.new()),
-    )
+    fn = functor_factories.expr_fn(returns=kde.namedtuple(a=kde.new()))
 
-    expr = kde.tuple.make_tuple(
+    expr = kde.tuples.tuple(
         kde.functor.call_and_update_namedtuple(
-            fn, namedtuple_to_update=kde.make_namedtuple(a=0)
+            fn, namedtuple_to_update=kde.namedtuple(a=0)
         ),
         kde.functor.call_and_update_namedtuple(
-            fn, namedtuple_to_update=kde.make_namedtuple(a=0)
+            fn, namedtuple_to_update=kde.namedtuple(a=0)
         ),
     )
     res = expr_eval.eval(expr)
@@ -195,12 +185,12 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
   def test_cancellable(self):
     expr = kde.functor.call_and_update_namedtuple(
         functor_factories.expr_fn(
-            kde.make_namedtuple(
+            kde.namedtuple(
                 a=arolla.M.core._identity_with_cancel(I.self, 'cancelled')
             )
         ),
         x=I.x,
-        namedtuple_to_update=kde.make_namedtuple(a=0),
+        namedtuple_to_update=kde.namedtuple(a=0),
     )
     x = ds([1, 2, 3])
     with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
@@ -211,14 +201,14 @@ class FunctorCallAndUpdateNamedTupleTest(absltest.TestCase):
         ValueError, 'expected a functor DATA_SLICE, got fn: INT32'
     ):
       kde.functor.call_and_update_namedtuple(
-          arolla.int32(1), namedtuple_to_update=kde.make_namedtuple()
+          arolla.int32(1), namedtuple_to_update=kde.namedtuple()
       )
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
             kde.functor.call_and_update_namedtuple(
-                I.fn, namedtuple_to_update=kde.make_namedtuple()
+                I.fn, namedtuple_to_update=kde.namedtuple()
             )
         )
     )

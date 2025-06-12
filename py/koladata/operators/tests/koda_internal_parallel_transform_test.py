@@ -247,7 +247,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'koda_internal.parallel.transform_test.my_decode3',
     )
     def my_decode3(x, y, z):
-      return tuple_ops.make_tuple(x, y, z)
+      return tuple_ops.tuple_(x, y, z)
 
     @optools.add_to_registry()
     @optools.as_lambda_operator(
@@ -255,7 +255,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     )
     def my_decode4(executor, x, y, z):
       del executor  # Unused.
-      return tuple_ops.make_tuple(
+      return tuple_ops.tuple_(
           koda_internal_parallel.as_future(arolla.M.strings.static_decode(x)),
           y,
           koda_internal_parallel.as_future(arolla.M.strings.static_decode(z)),
@@ -290,7 +290,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     transformed_fn = koda_internal_parallel.transform(context, fn)
     res = expr_eval.eval(
         transformed_fn(
-            return_type_as=tuple_ops.make_tuple(
+            return_type_as=tuple_ops.tuple_(
                 koda_internal_parallel.as_future(arolla.text('')),
                 koda_internal_parallel.as_future(arolla.bytes(b'')),
                 koda_internal_parallel.as_future(arolla.text('')),
@@ -394,7 +394,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
       return arolla.tuple(y, x)
 
     fn = functor_factories.trace_py_fn(
-        lambda x, y: user_facing_kd.make_tuple(x, y)  # pylint: disable=unnecessary-lambda
+        lambda x, y: user_facing_kd.tuple(x, y)  # pylint: disable=unnecessary-lambda
     )
     context = expr_eval.eval(
         koda_internal_parallel.create_execution_context(
@@ -402,7 +402,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             fns.obj(
                 operator_replacements=[
                     fns.obj(
-                        from_op='kd.make_tuple',
+                        from_op='kd.tuple',
                         to_op=(
                             'koda_internal.parallel.transform_test.make_tuple'
                         ),
@@ -414,14 +414,14 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
     transformed_fn = koda_internal_parallel.transform(context, fn)
     res = expr_eval.eval(
         transformed_fn(
-            tuple_ops.make_tuple(
+            tuple_ops.tuple_(
                 koda_internal_parallel.as_future(ds(1)),
                 koda_internal_parallel.as_future(ds(2)),
             ),
             koda_internal_parallel.as_future(ds(3)),
-            return_type_as=tuple_ops.make_tuple(
+            return_type_as=tuple_ops.tuple_(
                 koda_internal_parallel.as_future(ds(0)),
-                tuple_ops.make_tuple(
+                tuple_ops.tuple_(
                     koda_internal_parallel.as_future(ds(0)),
                     koda_internal_parallel.as_future(ds(0)),
                 ),

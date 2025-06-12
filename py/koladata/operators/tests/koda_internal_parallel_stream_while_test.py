@@ -77,7 +77,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         lambda n: koda_internal_parallel.stream_while(
             koda_internal_parallel.get_default_executor(),
             lambda n, returns: n > 0,
-            lambda n, returns: user_facing_kd.make_namedtuple(
+            lambda n, returns: user_facing_kd.namedtuple(
                 returns=returns * n,
                 n=n - 1,
             ),
@@ -95,7 +95,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         lambda n, x: koda_internal_parallel.stream_while(
             koda_internal_parallel.get_default_executor(),
             lambda x, returns: x.updated(returns).n > 0,
-            lambda x, returns: user_facing_kd.make_namedtuple(
+            lambda x, returns: user_facing_kd.namedtuple(
                 returns=user_facing_kd.attrs(
                     x,
                     n=x.updated(returns).n - 1,
@@ -130,7 +130,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
             n=last_x.n - 1,
             result=last_x.result * last_x.n,
         )
-        return user_facing_kd.make_namedtuple(
+        return user_facing_kd.namedtuple(
             state_bag=next_state_bag,
             returns=x.updated(next_state_bag).result,
         )
@@ -155,7 +155,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         lambda n: koda_internal_parallel.stream_while(
             koda_internal_parallel.get_default_executor(),
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 yields=koda_internal_parallel.stream_make(res * n),
                 n=n - 1,
                 res=res * n,
@@ -177,7 +177,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         lambda n: koda_internal_parallel.stream_while(
             koda_internal_parallel.get_default_executor(),
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 n=n - 1,
                 res=res * n,
             ),
@@ -203,7 +203,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
 
       def _body_fn(x):
         update_bag = user_facing_kd.attrs(x, n=x.n - 1, result=x.result * x.n)
-        return user_facing_kd.make_namedtuple(
+        return user_facing_kd.namedtuple(
             x=x.updated(update_bag),
             yields=koda_internal_parallel.stream_make(update_bag),
         )
@@ -244,7 +244,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         lambda n: koda_internal_parallel.stream_while(
             koda_internal_parallel.get_default_executor(),
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 yields_interleaved=koda_internal_parallel.stream_make(res * n),
                 n=n - 1,
                 res=res * n,
@@ -269,7 +269,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         lambda n: koda_internal_parallel.stream_while(
             koda_internal_parallel.get_default_executor(),
             lambda n, res: n > 0,
-            lambda n, res: user_facing_kd.make_namedtuple(
+            lambda n, res: user_facing_kd.namedtuple(
                 n=n - 1,
                 res=res * n,
             ),
@@ -360,7 +360,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         kdf.fn(lambda returns: mask_constants.present),
         kdf.fn(
             lambda returns: arolla.M.core._identity_with_cancel(
-                user_facing_kd.make_namedtuple(), 'cancelled'
+                user_facing_kd.namedtuple(), 'cancelled'
             )
         ),
         returns=None,
@@ -379,7 +379,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       _ = koda_internal_parallel.stream_while(
           koda_internal_parallel.get_default_executor(),
           lambda **unused_kwargs: user_facing_kd.present,
-          lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+          lambda **unused_kwargs: user_facing_kd.namedtuple(),
       )
 
   def test_return_and_yield(self):
@@ -393,7 +393,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       _ = koda_internal_parallel.stream_while(
           koda_internal_parallel.get_default_executor(),
           lambda **unused_kwargs: user_facing_kd.present,
-          lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+          lambda **unused_kwargs: user_facing_kd.namedtuple(),
           returns=1,
           yields=delayed_stream_make(),
       )
@@ -402,7 +402,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     loop_expr = koda_internal_parallel.stream_while(
         koda_internal_parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda **unused_kwargs: user_facing_kd.namedtuple(
             yields=koda_internal_parallel.stream_make()
         ),
         returns=1,
@@ -420,8 +420,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     loop_expr = koda_internal_parallel.stream_while(
         koda_internal_parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(
-            returns=user_facing_kd.make_tuple(1, 2)
+        lambda **unused_kwargs: user_facing_kd.namedtuple(
+            returns=user_facing_kd.tuple(1, 2)
         ),
         returns=1,
     )
@@ -439,7 +439,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     loop_expr = koda_internal_parallel.stream_while(
         koda_internal_parallel.get_default_executor(),
         lambda **unused_kwargs: user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda **unused_kwargs: user_facing_kd.namedtuple(
             yields=koda_internal_parallel.stream_make(user_facing_kd.bag())
         ),
         yields=koda_internal_parallel.stream_make(),
@@ -492,7 +492,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     loop_expr = koda_internal_parallel.stream_while(
         koda_internal_parallel.get_default_executor(),
         lambda **unused_kwargs: 1,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda **unused_kwargs: user_facing_kd.namedtuple(),
         returns=1,
     )
     with self.assertRaisesRegex(
@@ -510,7 +510,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
         lambda **unused_kwargs: user_facing_kd.slice(
             [user_facing_kd.missing]
         ).no_bag(),
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda **unused_kwargs: user_facing_kd.namedtuple(),
         returns=1,
     )
     with self.assertRaisesRegex(
@@ -530,7 +530,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
       _ = koda_internal_parallel.stream_while(
           koda_internal_parallel.get_default_executor(),
           lambda **unused_kwargs: user_facing_kd.present,
-          kde.make_namedtuple(),
+          kde.namedtuple(),
           returns=1,
       )
 
@@ -554,8 +554,8 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     ):
       _ = koda_internal_parallel.stream_while(
           koda_internal_parallel.get_default_executor(),
-          kde.make_namedtuple(),
-          lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+          kde.namedtuple(),
+          lambda **unused_kwargs: user_facing_kd.namedtuple(),
           returns=1,
       )
 
@@ -563,7 +563,7 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     loop_expr = koda_internal_parallel.stream_while(
         koda_internal_parallel.get_default_executor(),
         user_facing_kd.present,
-        lambda **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda **unused_kwargs: user_facing_kd.namedtuple(),
         returns=1,
     )
     with self.assertRaisesRegex(

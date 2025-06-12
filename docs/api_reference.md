@@ -34,7 +34,7 @@ Category  | Subcategory | Description
  | [shapes](#kd.shapes) | Operators that work on shapes
  | [slices](#kd.slices) | Operators that perform DataSlice transformations.
  | [strings](#kd.strings) | Operators that work with strings data.
- | [tuple](#kd.tuple) | Operators to create tuples.
+ | [tuples](#kd.tuples) | Operators to create tuples.
 [kd_ext](#kd_ext_category) | | `kd_ext` operators
 [DataSlice](#DataSlice_category) | | `DataSlice` methods
 [DataBag](#DataBag_category) | | `DataBag` methods
@@ -2066,10 +2066,10 @@ original namedtuple, potentially in a different order).
 
 Example:
   kd.functor.call_and_update_namedtuple(
-      kd.fn(lambda x: kd.make_namedtuple(x=x * 2)),
+      kd.fn(lambda x: kd.namedtuple(x=x * 2)),
       x=2,
-      namedtuple_to_update=kd.make_namedtuple(x=1, y=2))
-  # returns kd.make_namedtuple(x=4, y=2)
+      namedtuple_to_update=kd.namedtuple(x=1, y=2))
+  # returns kd.namedtuple(x=4, y=2)
 
 Args:
   fn: The functor to be called, typically created via kd.fn().
@@ -2605,7 +2605,7 @@ While a condition functor returns present, runs a body functor repeatedly.
 The items in `initial_state` (and `returns`, if specified) are used to
 initialize a dict of state variables, which are passed as keyword arguments
 to `condition_fn` and `body_fn` on each loop iteration, and updated from the
-namedtuple (see kd.make_namedtuple) return value of `body_fn`.
+namedtuple (see kd.namedtuple) return value of `body_fn`.
 
 Exactly one of `returns`, `yields`, or `yields_interleaved` must be specified.
 The return value of this operator depends on which one is present:
@@ -2622,7 +2622,7 @@ Args:
   condition_fn: A functor with keyword argument names matching the state
     variable names and returning a MASK DataItem.
   body_fn: A functor with argument names matching the state variable names and
-    returning a namedtuple (see kd.make_namedtuple) with a subset of the keys
+    returning a namedtuple (see kd.namedtuple) with a subset of the keys
     of `initial_state`.
   returns: If present, the initial value of the 'returns' state variable.
   yields: If present, the initial value of the 'yields' state variable.
@@ -6106,23 +6106,23 @@ Examples:
   kd.reshape(x, kd.shapes.new(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of sizes.
-  kd.reshape(x, kd.make_tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
+  kd.reshape(x, kd.tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of sizes and a placeholder dimension.
-  kd.reshape(x, kd.make_tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
+  kd.reshape(x, kd.tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of sizes and a placeholder dimension.
-  kd.reshape(x, kd.make_tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
+  kd.reshape(x, kd.tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of slices and a placeholder dimension.
-  kd.reshape(x, kd.make_tuple(-1, kd.slice([3, 1])))
+  kd.reshape(x, kd.tuple(-1, kd.slice([3, 1])))
       # -> kd.slice([[1, 2, 3], [4]])
 
   # Reshaping a scalar.
-  kd.reshape(1, kd.make_tuple(1, 1))  # -> kd.slice([[1]])
+  kd.reshape(1, kd.tuple(1, 1))  # -> kd.slice([[1]])
 
   # Reshaping an empty slice.
-  kd.reshape(kd.slice([]), kd.make_tuple(2, 0))  # -> kd.slice([[], []])
+  kd.reshape(kd.slice([]), kd.tuple(2, 0))  # -> kd.slice([[], []])
 
 Args:
   x: a DataSlice.
@@ -8348,7 +8348,7 @@ Returns:
 
 </section>
 
-### kd.tuple {#kd.tuple}
+### kd.tuples {#kd.tuples}
 
 Operators to create tuples.
 
@@ -8356,7 +8356,7 @@ Operators to create tuples.
 
 **Operators**
 
-### `kd.tuple.get_namedtuple_field(namedtuple, field_name)` {#kd.tuple.get_namedtuple_field}
+### `kd.tuples.get_namedtuple_field(namedtuple, field_name)` {#kd.tuples.get_namedtuple_field}
 
 ``` {.no-copy}
 Returns the value of the specified `field_name` from the `namedtuple`.
@@ -8369,7 +8369,7 @@ Args:
     string.
 ```
 
-### `kd.tuple.get_nth(x, n)` {#kd.tuple.get_nth}
+### `kd.tuples.get_nth(x, n)` {#kd.tuples.get_nth}
 
 ``` {.no-copy}
 Returns the nth element of the tuple `x`.
@@ -8382,16 +8382,16 @@ Args:
     range [0, len(x)).
 ```
 
-### `kd.tuple.make_namedtuple(**kwargs)` {#kd.tuple.make_namedtuple}
+### `kd.tuples.namedtuple(**kwargs)` {#kd.tuples.namedtuple}
 Aliases:
 
-- [kd.make_namedtuple](#kd.make_namedtuple)
+- [kd.namedtuple](#kd.namedtuple)
 
 ``` {.no-copy}
 Returns a namedtuple-like object containing the given `**kwargs`.
 ```
 
-### `kd.tuple.make_slice(start=unspecified, stop=unspecified, step=unspecified)` {#kd.tuple.make_slice}
+### `kd.tuples.slice(start=unspecified, stop=unspecified, step=unspecified)` {#kd.tuples.slice}
 
 ``` {.no-copy}
 Returns a slice for the Python indexing syntax foo[start:stop:step].
@@ -8402,10 +8402,10 @@ Args:
   step: (optional) Indexing step size.
 ```
 
-### `kd.tuple.make_tuple(*args)` {#kd.tuple.make_tuple}
+### `kd.tuples.tuple(*args)` {#kd.tuples.tuple}
 Aliases:
 
-- [kd.make_tuple](#kd.make_tuple)
+- [kd.tuple](#kd.tuple)
 
 ``` {.no-copy}
 Returns a tuple-like object containing the given `*args`.
@@ -9394,14 +9394,6 @@ Alias for [kd.lists.size](#kd.lists.size) operator.
 Deserializes a DataSlice or a DataBag.
 ```
 
-### `kd.make_namedtuple(**kwargs)` {#kd.make_namedtuple}
-
-Alias for [kd.tuple.make_namedtuple](#kd.tuple.make_namedtuple) operator.
-
-### `kd.make_tuple(*args)` {#kd.make_tuple}
-
-Alias for [kd.tuple.make_tuple](#kd.tuple.make_tuple) operator.
-
 ### `kd.map(fn, *args, include_missing=False, **kwargs)` {#kd.map}
 
 Alias for [kd.functor.map](#kd.functor.map) operator.
@@ -9494,6 +9486,10 @@ Container that automatically names Exprs.
 ### `kd.named_schema(name, **kwargs)` {#kd.named_schema}
 
 Alias for [kd.schema.named_schema](#kd.schema.named_schema) operator.
+
+### `kd.namedtuple(**kwargs)` {#kd.namedtuple}
+
+Alias for [kd.tuples.namedtuple](#kd.tuples.namedtuple) operator.
 
 ### `kd.new(arg=unspecified, /, *, schema=None, overwrite_schema=False, itemid=None, **attrs)` {#kd.new}
 
@@ -9974,6 +9970,10 @@ Alias for [kd.slices.translate](#kd.slices.translate) operator.
 ### `kd.translate_group(keys_to, keys_from, values_from)` {#kd.translate_group}
 
 Alias for [kd.slices.translate_group](#kd.slices.translate_group) operator.
+
+### `kd.tuple(*args)` {#kd.tuple}
+
+Alias for [kd.tuples.tuple](#kd.tuples.tuple) operator.
 
 ### `kd.unique(x, sort=False)` {#kd.unique}
 
@@ -11331,23 +11331,23 @@ Examples:
   kd.reshape(x, kd.shapes.new(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of sizes.
-  kd.reshape(x, kd.make_tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
+  kd.reshape(x, kd.tuple(2, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of sizes and a placeholder dimension.
-  kd.reshape(x, kd.make_tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
+  kd.reshape(x, kd.tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of sizes and a placeholder dimension.
-  kd.reshape(x, kd.make_tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
+  kd.reshape(x, kd.tuple(-1, 2))  # -> kd.slice([[1, 2], [3, 4]])
 
   # Using a tuple of slices and a placeholder dimension.
-  kd.reshape(x, kd.make_tuple(-1, kd.slice([3, 1])))
+  kd.reshape(x, kd.tuple(-1, kd.slice([3, 1])))
       # -> kd.slice([[1, 2, 3], [4]])
 
   # Reshaping a scalar.
-  kd.reshape(1, kd.make_tuple(1, 1))  # -> kd.slice([[1]])
+  kd.reshape(1, kd.tuple(1, 1))  # -> kd.slice([[1]])
 
   # Reshaping an empty slice.
-  kd.reshape(kd.slice([]), kd.make_tuple(2, 0))  # -> kd.slice([[], []])
+  kd.reshape(kd.slice([]), kd.tuple(2, 0))  # -> kd.slice([[], []])
 
 Args:
   x: a DataSlice.

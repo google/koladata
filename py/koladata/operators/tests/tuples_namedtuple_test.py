@@ -31,7 +31,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class TupleMakeNamedtupleTest(parameterized.TestCase):
+class TuplesNamedtupleTest(parameterized.TestCase):
 
   @parameterized.parameters(
       ({}, arolla.namedtuple()),
@@ -58,22 +58,22 @@ class TupleMakeNamedtupleTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, kwargs, expected):
-    result = expr_eval.eval(kde.tuple.make_namedtuple(**kwargs))
+    result = expr_eval.eval(kde.tuples.namedtuple(**kwargs))
     testing.assert_equal(result, expected)
 
   def test_boxing(self):
     testing.assert_equal(
-        kde.tuple.make_namedtuple(x=42).node_deps[0].qvalue,
+        kde.tuples.namedtuple(x=42).node_deps[0].qvalue,
         arolla.namedtuple(x=ds(42)),
     )
 
   def test_view(self):
-    x_namedtuple = kde.tuple.make_namedtuple(x=I.x, y=I.y)
+    x_namedtuple = kde.tuples.namedtuple(x=I.x, y=I.y)
     self.assertTrue(view.has_koda_view(x_namedtuple))
 
   def test_alias(self):
     self.assertTrue(
-        optools.equiv_to_op(kde.tuple.make_namedtuple, kde.make_namedtuple)
+        optools.equiv_to_op(kde.tuples.namedtuple, kde.namedtuple)
     )
 
 

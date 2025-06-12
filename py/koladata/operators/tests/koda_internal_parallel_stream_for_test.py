@@ -76,7 +76,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, other, returns: user_facing_kd.make_namedtuple(
+        lambda item, other, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         returns=1,
@@ -91,7 +91,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         condition_fn=lambda returns: returns < 10,
@@ -109,7 +109,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         condition_fn=py_fn(condition_fn, return_type_as=condition_fn(ds(0))),
@@ -124,10 +124,10 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.make_namedtuple(
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(
             returns=-returns
         ),
         returns=1,
@@ -141,10 +141,10 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.make_namedtuple(
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(
             returns=-returns
         ),
         returns=1,
@@ -158,7 +158,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         condition_fn=lambda returns: returns < 0,
@@ -173,10 +173,10 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.make_namedtuple(
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(
             returns=-returns
         ),
         condition_fn=lambda returns: returns < 120,
@@ -191,7 +191,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, other, returns: user_facing_kd.make_namedtuple(
+        lambda item, other, returns: user_facing_kd.namedtuple(
             other=other * item,
         ),
         returns=1,
@@ -206,7 +206,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, res: user_facing_kd.make_namedtuple(
+        lambda item, res: user_facing_kd.namedtuple(
             yields=koda_internal_parallel.stream_make(res * item),
             res=res * item,
         ),
@@ -224,7 +224,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, res: user_facing_kd.make_namedtuple(
+        lambda item, res: user_facing_kd.namedtuple(
             yields_interleaved=koda_internal_parallel.stream_make(res * item),
             res=res * item,
         ),
@@ -242,11 +242,11 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, count: user_facing_kd.make_namedtuple(
+        lambda item, count: user_facing_kd.namedtuple(
             yields=koda_internal_parallel.stream_make(item),
             count=count + 1,
         ),
-        finalize_fn=lambda count: user_facing_kd.make_namedtuple(
+        finalize_fn=lambda count: user_facing_kd.namedtuple(
             yields=koda_internal_parallel.stream_make(-1)
         ),
         condition_fn=lambda count: (count < 3),
@@ -270,7 +270,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, res: user_facing_kd.make_namedtuple(
+        lambda item, res: user_facing_kd.namedtuple(
             res=res * item,
         ),
         res=1,
@@ -287,7 +287,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     product = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, res: user_facing_kd.make_namedtuple(
+        lambda item, res: user_facing_kd.namedtuple(
             res=res * item,
         ),
         res=1,
@@ -365,7 +365,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     many_attrs = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, root, returns: user_facing_kd.make_namedtuple(
+        lambda item, root, returns: user_facing_kd.namedtuple(
             returns=user_facing_kd.enriched_bag(
                 returns,
                 user_facing_kd.attr(
@@ -389,7 +389,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     many_attrs = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, root: user_facing_kd.make_namedtuple(
+        lambda item, root: user_facing_kd.namedtuple(
             yields=koda_internal_parallel.stream_make(
                 user_facing_kd.attr(
                     root, user_facing_kd.fstr(f'x{item:s}'), item
@@ -420,7 +420,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = koda_internal_parallel.stream_for(
           koda_internal_parallel.get_default_executor(),
           I.input_seq,
-          lambda item: user_facing_kd.make_namedtuple(),
+          lambda item: user_facing_kd.namedtuple(),
       )
 
   def test_return_and_yield(self):
@@ -434,7 +434,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = koda_internal_parallel.stream_for(
           koda_internal_parallel.get_default_executor(),
           I.input_seq,
-          lambda item: user_facing_kd.make_namedtuple(),
+          lambda item: user_facing_kd.namedtuple(),
           returns=1,
           yields=delayed_stream_make(),
       )
@@ -443,7 +443,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(
             yields=delayed_stream_make()
         ),
         returns=1,
@@ -463,8 +463,8 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
-        finalize_fn=lambda **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
+        finalize_fn=lambda **unused_kwargs: user_facing_kd.namedtuple(
             foo=1
         ),
         returns=1,
@@ -484,8 +484,8 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(
-            returns=user_facing_kd.make_tuple(1, 2)
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(
+            returns=user_facing_kd.tuple(1, 2)
         ),
         returns=1,
     )
@@ -505,7 +505,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(
             yields_interleaved=koda_internal_parallel.stream_make(
                 user_facing_kd.bag()
             )
@@ -548,7 +548,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         condition_fn=lambda **unused_kwargs: 1,
         returns=1,
     )
@@ -567,7 +567,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         condition_fn=lambda **unused_kwargs: user_facing_kd.slice(
             [mask_constants.missing]
         ),
@@ -592,7 +592,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = koda_internal_parallel.stream_for(
           koda_internal_parallel.get_default_executor(),
           kde.slice([1, 2, 3]),
-          lambda item: user_facing_kd.make_namedtuple(),
+          lambda item: user_facing_kd.namedtuple(),
           returns=1,
       )
 
@@ -604,7 +604,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = koda_internal_parallel.stream_for(
           koda_internal_parallel.get_default_executor(),
           I.input_seq,
-          kde.make_namedtuple(),
+          kde.namedtuple(),
           returns=1,
       )
 
@@ -631,8 +631,8 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = koda_internal_parallel.stream_for(
           koda_internal_parallel.get_default_executor(),
           I.input_seq,
-          lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
-          condition_fn=kde.make_namedtuple(),
+          lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
+          condition_fn=kde.namedtuple(),
           returns=1,
       )
 
@@ -640,7 +640,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         condition_fn=mask_constants.present,
         returns=1,
     )
@@ -660,8 +660,8 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
       _ = koda_internal_parallel.stream_for(
           koda_internal_parallel.get_default_executor(),
           I.input_seq,
-          lambda item: user_facing_kd.make_namedtuple(),
-          finalize_fn=kde.make_namedtuple(),
+          lambda item: user_facing_kd.namedtuple(),
+          finalize_fn=kde.namedtuple(),
           returns=1,
       )
 
@@ -669,7 +669,7 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     loop_expr = koda_internal_parallel.stream_for(
         koda_internal_parallel.get_default_executor(),
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         finalize_fn=mask_constants.present,
         returns=1,
     )

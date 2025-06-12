@@ -5962,8 +5962,8 @@ py_test(
 )
 
 py_test(
-    name = "tuple_make_tuple_test",
-    srcs = ["tuple_make_tuple_test.py"],
+    name = "tuples_tuple_test",
+    srcs = ["tuples_tuple_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:expr_eval",
@@ -7330,8 +7330,8 @@ py_test(
 )
 
 py_test(
-    name = "tuple_get_nth_test",
-    srcs = ["tuple_get_nth_test.py"],
+    name = "tuples_get_nth_test",
+    srcs = ["tuples_get_nth_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:expr_eval",
@@ -7742,8 +7742,8 @@ py_test(
 )
 
 py_test(
-    name = "tuple_make_slice_test",
-    srcs = ["tuple_make_slice_test.py"],
+    name = "tuples_slice_test",
+    srcs = ["tuples_slice_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:expr_eval",
@@ -7783,8 +7783,8 @@ py_test(
 )
 
 py_test(
-    name = "tuple_make_namedtuple_test",
-    srcs = ["tuple_make_namedtuple_test.py"],
+    name = "tuples_namedtuple_test",
+    srcs = ["tuples_namedtuple_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:expr_eval",
@@ -7802,8 +7802,8 @@ py_test(
 )
 
 py_test(
-    name = "tuple_get_namedtuple_field_test",
-    srcs = ["tuple_get_namedtuple_field_test.py"],
+    name = "tuples_get_namedtuple_field_test",
+    srcs = ["tuples_get_namedtuple_field_test.py"],
     deps = [
         "//py:python_path",
         "//py/koladata/expr:expr_eval",

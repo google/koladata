@@ -34,9 +34,7 @@ kd = eager_op_utils.operators_container('kd')
 class KodaInternalParallelAsyncUnpackTupleTest(absltest.TestCase):
 
   def test_tuple(self):
-    input_future = koda_internal_parallel.as_future(
-        tuple_ops.make_tuple(10, 20.0)
-    )
+    input_future = koda_internal_parallel.as_future(tuple_ops.tuple_(10, 20.0))
     unpacked_future = koda_internal_parallel.async_unpack_tuple(input_future)
     res = expr_eval.eval(unpacked_future)
     self.assertTrue(arolla.is_tuple_qtype(res.qtype))
@@ -55,7 +53,7 @@ class KodaInternalParallelAsyncUnpackTupleTest(absltest.TestCase):
 
   def test_namedtuple(self):
     input_future = koda_internal_parallel.as_future(
-        tuple_ops.make_namedtuple(foo=10, bar=20.0)
+        tuple_ops.namedtuple_(foo=10, bar=20.0)
     )
     unpacked_future = koda_internal_parallel.async_unpack_tuple(input_future)
     res = expr_eval.eval(unpacked_future)
@@ -80,7 +78,7 @@ class KodaInternalParallelAsyncUnpackTupleTest(absltest.TestCase):
         qtype_inference_expr=arolla.make_tuple_qtype(
             qtypes.DATA_SLICE, qtypes.DATA_SLICE
         ),
-    )(lambda x, y: kd.make_tuple(x // y, x + y))
+    )(lambda x, y: kd.tuple(x // y, x + y))
     inner_future = koda_internal_parallel.async_eval(
         executor, inner_op, I.foo, I.bar
     )
@@ -106,7 +104,7 @@ class KodaInternalParallelAsyncUnpackTupleTest(absltest.TestCase):
         qtype_inference_expr=arolla.make_tuple_qtype(
             qtypes.DATA_SLICE, qtypes.DATA_SLICE
         ),
-    )(lambda x, y: kd.make_tuple(x // y, x + y))
+    )(lambda x, y: kd.tuple(x // y, x + y))
     error_future = koda_internal_parallel.async_eval(
         executor, inner_op, I.foo, I.bar
     )

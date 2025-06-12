@@ -49,7 +49,7 @@ class KodaInternalParallelAsParallelTest(absltest.TestCase):
 
   def test_future_input(self):
     expr = koda_internal_parallel.as_parallel(
-        tuple_ops.make_tuple(koda_internal_parallel.as_future(I.x))
+        tuple_ops.tuple_(koda_internal_parallel.as_future(I.x))
     )
     with self.assertRaisesRegex(
         ValueError, 'as_parallel cannot be applied to a future'

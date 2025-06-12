@@ -106,7 +106,7 @@ class FunctorCallTest(absltest.TestCase):
 
   def test_var_positional(self):
     fn = functor_factories.expr_fn(
-        returns=kde.tuple.get_nth(I.x, 1),
+        returns=kde.tuples.get_nth(I.x, 1),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_POSITIONAL
@@ -215,7 +215,7 @@ class FunctorCallTest(absltest.TestCase):
     self.assertIn('py/koladata/expr/expr_eval.py', tb)
 
   def test_call_non_dataslice_inputs(self):
-    fn = functor_factories.expr_fn(kde.tuple.get_nth(I.x, 1))
+    fn = functor_factories.expr_fn(kde.tuples.get_nth(I.x, 1))
     testing.assert_equal(
         expr_eval.eval(kde.call(fn, x=arolla.tuple(ds(1), ds(2), ds(3)))), ds(2)
     )
@@ -285,7 +285,7 @@ class FunctorCallTest(absltest.TestCase):
   def test_non_determinism(self):
     fn = functor_factories.fn(kde.new(a=42, schema='new'))
 
-    expr = kde.tuple.make_tuple(kde.call(fn), kde.call(fn))
+    expr = kde.tuples.tuple(kde.call(fn), kde.call(fn))
     res = expr_eval.eval(expr)
     self.assertNotEqual(res[0].no_bag(), res[1].no_bag())
     testing.assert_equal(res[0].a.no_bag(), res[1].a.no_bag())

@@ -118,10 +118,10 @@ def call_and_update_namedtuple(fn, *args, namedtuple_to_update, **kwargs):  # py
 
   Example:
     kd.functor.call_and_update_namedtuple(
-        kd.fn(lambda x: kd.make_namedtuple(x=x * 2)),
+        kd.fn(lambda x: kd.namedtuple(x=x * 2)),
         x=2,
-        namedtuple_to_update=kd.make_namedtuple(x=1, y=2))
-    # returns kd.make_namedtuple(x=4, y=2)
+        namedtuple_to_update=kd.namedtuple(x=1, y=2))
+    # returns kd.namedtuple(x=4, y=2)
 
   Args:
     fn: The functor to be called, typically created via kd.fn().
@@ -496,7 +496,7 @@ def while_(
   The items in `initial_state` (and `returns`, if specified) are used to
   initialize a dict of state variables, which are passed as keyword arguments
   to `condition_fn` and `body_fn` on each loop iteration, and updated from the
-  namedtuple (see kd.make_namedtuple) return value of `body_fn`.
+  namedtuple (see kd.namedtuple) return value of `body_fn`.
 
   Exactly one of `returns`, `yields`, or `yields_interleaved` must be specified.
   The return value of this operator depends on which one is present:
@@ -513,7 +513,7 @@ def while_(
     condition_fn: A functor with keyword argument names matching the state
       variable names and returning a MASK DataItem.
     body_fn: A functor with argument names matching the state variable names and
-      returning a namedtuple (see kd.make_namedtuple) with a subset of the keys
+      returning a namedtuple (see kd.namedtuple) with a subset of the keys
       of `initial_state`.
     returns: If present, the initial value of the 'returns' state variable.
     yields: If present, the initial value of the 'yields' state variable.
@@ -1082,9 +1082,9 @@ def _create_for_flat_map_step_fn(interleaved=False):
   )
 
   if interleaved:
-    returns = tuple_operators.make_namedtuple(yields_interleaved=internal_call)
+    returns = tuple_operators.namedtuple_(yields_interleaved=internal_call)
   else:
-    returns = tuple_operators.make_namedtuple(yields=internal_call)
+    returns = tuple_operators.namedtuple_(yields=internal_call)
   return py_functors_base_py_ext.create_functor(
       introspection.pack_expr(returns),
       _create_for_flat_map_step_signature(),

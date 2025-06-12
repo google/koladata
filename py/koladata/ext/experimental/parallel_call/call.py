@@ -295,7 +295,7 @@ def _schedule_expr_execution(
   if expr.op is not None and kd.optools.equiv_to_op(
       expr.op, kd.lazy.functor.call
   ):
-    call_deps_expr = kd.lazy.make_tuple(*expr.node_deps)
+    call_deps_expr = kd.lazy.tuple(*expr.node_deps)
     call_deps_task = repo.add(
         task_repository.Task(
             functools.partial(

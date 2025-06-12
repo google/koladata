@@ -66,21 +66,21 @@ class PyBoxingTest(parameterized.TestCase):
       (slice(1, 2, 3), arolla.types.Slice(ds(1), ds(2), ds(3))),
       (
           slice(arolla.L.x),
-          kde.tuple.make_slice(
+          kde.tuples.slice(
               arolla.unspecified(), arolla.L.x, arolla.unspecified()
           ),
       ),
       (
           slice(arolla.L.x, 2, 3),
-          kde.tuple.make_slice(arolla.L.x, 2, 3),
+          kde.tuples.slice(arolla.L.x, 2, 3),
       ),
       (
           slice(1, arolla.L.x, 3),
-          kde.tuple.make_slice(1, arolla.L.x, 3),
+          kde.tuples.slice(1, arolla.L.x, 3),
       ),
       (
           slice(1, 2, arolla.L.x),
-          kde.tuple.make_slice(1, 2, arolla.L.x),
+          kde.tuples.slice(1, 2, arolla.L.x),
       ),
       (..., ellipsis.ellipsis()),
       (data_slice.DataSlice, ds(None)),
@@ -89,9 +89,9 @@ class PyBoxingTest(parameterized.TestCase):
       ((1, 2), arolla.tuple(ds(1), ds(2))),
       (
           (1, (arolla.L.x, 2)),
-          kde.tuple.make_tuple(
+          kde.tuples.tuple(
               literal_operator.literal(ds(1)),
-              kde.tuple.make_tuple(arolla.L.x, literal_operator.literal(ds(2))),
+              kde.tuples.tuple(arolla.L.x, literal_operator.literal(ds(2))),
           ),
       ),
   )
@@ -221,7 +221,7 @@ class PyBoxingTest(parameterized.TestCase):
       (arolla.L.x, arolla.L.x),
       (
           slice(arolla.L.x, 2, 3),
-          kde.tuple.make_slice(arolla.L.x, 2, 3),
+          kde.tuples.slice(arolla.L.x, 2, 3),
       ),
   )
   def test_as_expr(self, value, expected_res):

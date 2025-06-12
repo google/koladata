@@ -61,7 +61,7 @@ QTYPES = frozenset([
 ])
 
 
-class TupleMakeTupleTest(parameterized.TestCase):
+class TuplesTupleTest(parameterized.TestCase):
 
   @parameterized.parameters(
       ((), arolla.tuple()),
@@ -84,12 +84,12 @@ class TupleMakeTupleTest(parameterized.TestCase):
       ),
   )
   def test_eval(self, args, expected):
-    result = expr_eval.eval(kde.tuple.make_tuple(*args))
+    result = expr_eval.eval(kde.tuples.tuple(*args))
     testing.assert_equal(result, expected)
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(
-        kde.tuple.make_tuple,
+        kde.tuples.tuple,
         QTYPES,
         # DATA_SLICE + arbitrary other qtype (INT64) to avoid blowup, since
         # this operator accepts any tuple of input qtypes.
@@ -98,14 +98,14 @@ class TupleMakeTupleTest(parameterized.TestCase):
     )
 
   def test_boxing_rules_regression(self):
-    testing.assert_equal(kde.tuple.make_tuple(42).node_deps[0].qvalue, ds(42))
+    testing.assert_equal(kde.tuples.tuple(42).node_deps[0].qvalue, ds(42))
 
   def test_view(self):
-    x_tuple = kde.tuple.make_tuple(I.x, I.y)
+    x_tuple = kde.tuples.tuple(I.x, I.y)
     self.assertTrue(view.has_koda_view(x_tuple))
     self.assertLen(x_tuple.node_deps, 2)
 
-    x_tuple = kde.tuple.make_tuple(I.x, I.y)
+    x_tuple = kde.tuples.tuple(I.x, I.y)
     self.assertTrue(view.has_koda_view(x_tuple[0]))
     self.assertTrue(view.has_koda_view(x_tuple[1]))
     x, y = x_tuple
@@ -113,7 +113,7 @@ class TupleMakeTupleTest(parameterized.TestCase):
     self.assertTrue(view.has_koda_view(y))
 
   def test_alias(self):
-    self.assertTrue(optools.equiv_to_op(kde.tuple.make_tuple, kde.make_tuple))
+    self.assertTrue(optools.equiv_to_op(kde.tuples.tuple, kde.tuple))
 
 
 if __name__ == '__main__':

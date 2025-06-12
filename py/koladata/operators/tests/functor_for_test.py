@@ -34,7 +34,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_simple(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, other, returns: user_facing_kd.make_namedtuple(
+        lambda item, other, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         returns=1,
@@ -47,7 +47,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_early_stop(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         condition_fn=lambda returns: returns < 10,
@@ -60,10 +60,10 @@ class FunctorForTest(absltest.TestCase):
   def test_for_finalize(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.make_namedtuple(
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(
             returns=-returns
         ),
         returns=1,
@@ -75,10 +75,10 @@ class FunctorForTest(absltest.TestCase):
   def test_for_finalize_empty_iterable(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.make_namedtuple(
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(
             returns=-returns
         ),
         returns=1,
@@ -90,7 +90,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_early_stop_before_first_iteration(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
         condition_fn=lambda returns: returns < 0,
@@ -103,10 +103,10 @@ class FunctorForTest(absltest.TestCase):
   def test_for_early_stop_after_last_iteration_finalize_not_called(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, returns: user_facing_kd.make_namedtuple(
+        lambda item, returns: user_facing_kd.namedtuple(
             returns=returns * item,
         ),
-        finalize_fn=lambda returns: user_facing_kd.make_namedtuple(
+        finalize_fn=lambda returns: user_facing_kd.namedtuple(
             returns=-returns
         ),
         condition_fn=lambda returns: returns < 120,
@@ -119,7 +119,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_no_return_statement(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, other, returns: user_facing_kd.make_namedtuple(
+        lambda item, other, returns: user_facing_kd.namedtuple(
             other=other * item,
         ),
         returns=1,
@@ -132,7 +132,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_yields(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, res: user_facing_kd.make_namedtuple(
+        lambda item, res: user_facing_kd.namedtuple(
             yields=user_facing_kd.iterables.make(res * item),
             res=res * item,
         ),
@@ -147,7 +147,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_yields_interleaved(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, res: user_facing_kd.make_namedtuple(
+        lambda item, res: user_facing_kd.namedtuple(
             yields_interleaved=user_facing_kd.iterables.make(res * item),
             res=res * item,
         ),
@@ -167,7 +167,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_yields_no_yield_statement(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, res: user_facing_kd.make_namedtuple(
+        lambda item, res: user_facing_kd.namedtuple(
             res=res * item,
         ),
         res=1,
@@ -181,7 +181,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_yields_interleaved_no_yield_statement(self):
     product = kde.functor.for_(
         I.input_seq,
-        lambda item, res: user_facing_kd.make_namedtuple(
+        lambda item, res: user_facing_kd.namedtuple(
             res=res * item,
         ),
         res=1,
@@ -195,7 +195,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_returns_bag(self):
     many_attrs = kde.functor.for_(
         I.input_seq,
-        lambda item, root, returns: user_facing_kd.make_namedtuple(
+        lambda item, root, returns: user_facing_kd.namedtuple(
             returns=user_facing_kd.enriched_bag(
                 returns,
                 user_facing_kd.attr(
@@ -219,7 +219,7 @@ class FunctorForTest(absltest.TestCase):
   def test_for_yields_bag(self):
     many_attrs = kde.functor.for_(
         I.input_seq,
-        lambda item, root: user_facing_kd.make_namedtuple(
+        lambda item, root: user_facing_kd.namedtuple(
             yields=user_facing_kd.iterables.make(
                 user_facing_kd.attr(
                     root, user_facing_kd.fstr(f'x{item:s}'), item
@@ -247,7 +247,7 @@ class FunctorForTest(absltest.TestCase):
     ):
       _ = kde.functor.for_(
           I.input_seq,
-          lambda item: user_facing_kd.make_namedtuple(),
+          lambda item: user_facing_kd.namedtuple(),
       )
 
   def test_return_and_yield(self):
@@ -258,7 +258,7 @@ class FunctorForTest(absltest.TestCase):
     ):
       _ = kde.functor.for_(
           I.input_seq,
-          lambda item: user_facing_kd.make_namedtuple(),
+          lambda item: user_facing_kd.namedtuple(),
           returns=1,
           yields=kde.iterables.make(),
       )
@@ -266,7 +266,7 @@ class FunctorForTest(absltest.TestCase):
   def test_return_outside_yield_inside_body(self):
     loop_expr = kde.functor.for_(
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(
             yields=kde.iterables.make()
         ),
         returns=1,
@@ -281,8 +281,8 @@ class FunctorForTest(absltest.TestCase):
   def test_unknown_variable_inside_finalize(self):
     loop_expr = kde.functor.for_(
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
-        finalize_fn=lambda **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
+        finalize_fn=lambda **unused_kwargs: user_facing_kd.namedtuple(
             foo=1
         ),
         returns=1,
@@ -297,8 +297,8 @@ class FunctorForTest(absltest.TestCase):
   def test_wrong_type_for_variable(self):
     loop_expr = kde.functor.for_(
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(
-            returns=user_facing_kd.make_tuple(1, 2)
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(
+            returns=user_facing_kd.tuple(1, 2)
         ),
         returns=1,
     )
@@ -313,7 +313,7 @@ class FunctorForTest(absltest.TestCase):
   def test_wrong_type_for_yields_interleaved(self):
     loop_expr = kde.functor.for_(
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(
             yields_interleaved=user_facing_kd.iterables.make(
                 user_facing_kd.bag()
             )
@@ -345,7 +345,7 @@ class FunctorForTest(absltest.TestCase):
   def test_non_mask_condition(self):
     loop_expr = kde.functor.for_(
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         condition_fn=lambda **unused_kwargs: 1,
         returns=1,
     )
@@ -361,7 +361,7 @@ class FunctorForTest(absltest.TestCase):
   def test_non_scalar_condition(self):
     loop_expr = kde.functor.for_(
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         condition_fn=lambda **unused_kwargs: user_facing_kd.slice(
             [mask_constants.missing]
         ),
@@ -382,7 +382,7 @@ class FunctorForTest(absltest.TestCase):
     ):
       _ = kde.functor.for_(
           kde.slice([1, 2, 3]),
-          lambda item: user_facing_kd.make_namedtuple(),
+          lambda item: user_facing_kd.namedtuple(),
           returns=1,
       )
 
@@ -393,7 +393,7 @@ class FunctorForTest(absltest.TestCase):
     ):
       _ = kde.functor.for_(
           I.input_seq,
-          kde.make_namedtuple(),
+          kde.namedtuple(),
           returns=1,
       )
 
@@ -416,15 +416,15 @@ class FunctorForTest(absltest.TestCase):
     ):
       _ = kde.functor.for_(
           I.input_seq,
-          lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
-          condition_fn=kde.make_namedtuple(),
+          lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
+          condition_fn=kde.namedtuple(),
           returns=1,
       )
 
   def test_non_functor_condition(self):
     loop_expr = kde.functor.for_(
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         condition_fn=mask_constants.present,
         returns=1,
     )
@@ -441,15 +441,15 @@ class FunctorForTest(absltest.TestCase):
     ):
       _ = kde.functor.for_(
           I.input_seq,
-          lambda item: user_facing_kd.make_namedtuple(),
-          finalize_fn=kde.make_namedtuple(),
+          lambda item: user_facing_kd.namedtuple(),
+          finalize_fn=kde.namedtuple(),
           returns=1,
       )
 
   def test_non_functor_finalize(self):
     loop_expr = kde.functor.for_(
         I.input_seq,
-        lambda item, **unused_kwargs: user_facing_kd.make_namedtuple(),
+        lambda item, **unused_kwargs: user_facing_kd.namedtuple(),
         finalize_fn=mask_constants.present,
         returns=1,
     )

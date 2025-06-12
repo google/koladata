@@ -334,8 +334,8 @@ class OpReprTest(parameterized.TestCase):
           'I.x[DataItem(1, schema: INT32):DataItem(-1, schema: INT32)]',
       ),
       (
-          kde.get_item(I.x, kde.tuple.make_slice(I.start, I.end)),
-          'I.x[kd.tuple.make_slice(I.start, I.end, unspecified)]',
+          kde.get_item(I.x, kde.tuples.slice(I.start, I.end)),
+          'I.x[kd.tuples.slice(I.start, I.end, unspecified)]',
       ),
       (
           kde.get_item(I.x, ds(1).no_bag()),

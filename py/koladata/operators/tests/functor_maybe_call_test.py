@@ -88,7 +88,7 @@ class FunctorMaybeCallTest(parameterized.TestCase):
     fn = functor_factories.fn(kde.new(x=I.self, schema='new'))
     x = ds(42)
 
-    expr = kde.tuple.make_tuple(
+    expr = kde.tuples.tuple(
         kde.functor._maybe_call(fn, x), kde.functor._maybe_call(fn, x)
     )
     res = expr_eval.eval(expr)

@@ -337,7 +337,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_structured_return_value(self):
     fn = functor_factories.expr_fn(
-        tuple_ops.make_tuple(I.x, tuple_ops.make_namedtuple(y=I.y, z=I.z))
+        tuple_ops.tuple_(I.x, tuple_ops.namedtuple_(y=I.y, z=I.z))
     )
     res = fns.parallel.call_multithreaded(
         fn,

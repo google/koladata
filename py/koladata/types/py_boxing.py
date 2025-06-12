@@ -122,7 +122,7 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
     step = _wrap(arg.step)
     if arolla.Expr in (type(start), type(stop), type(step)):
       return arolla.abc.bind_op(
-          'kd.tuple.make_slice', as_expr(start), as_expr(stop), as_expr(step)
+          'kd.tuples.slice', as_expr(start), as_expr(stop), as_expr(step)
       )
     else:
       return arolla.types.Slice(start, stop, step)
@@ -130,7 +130,7 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
     tpl = tuple(as_qvalue_or_expr(v) for v in arg)
     if arolla.Expr in (type(v) for v in tpl):
       return arolla.abc.make_operator_node(
-          'kd.tuple.make_tuple', tuple(map(as_expr, tpl))
+          'kd.tuples.tuple', tuple(map(as_expr, tpl))
       )
     else:
       return arolla.tuple(*tpl)

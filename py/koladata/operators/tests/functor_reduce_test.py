@@ -159,7 +159,7 @@ class IterablesReduceTest(absltest.TestCase):
     items = kde.iterables.make(2, 3)
     initial_value = kd.bag().list([1])
 
-    expr = kde.make_tuple(
+    expr = kde.tuple(
         kde.functor.reduce(fn, items, initial_value=initial_value),
         kde.functor.reduce(fn, items, initial_value=initial_value),
     )

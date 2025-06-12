@@ -79,7 +79,7 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
     executor = koda_internal_parallel.get_eager_executor()
     expr = koda_internal_parallel.future_from_parallel(
         executor,
-        tuple_ops.make_tuple(
+        tuple_ops.tuple_(
             koda_internal_parallel.as_future(I.x),
             koda_internal_parallel.as_future(I.y),
         ),
@@ -104,9 +104,9 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
     executor = koda_internal_parallel.get_eager_executor()
     expr = koda_internal_parallel.future_from_parallel(
         executor,
-        tuple_ops.make_tuple(
+        tuple_ops.tuple_(
             koda_internal_parallel.as_future(I.x),
-            tuple_ops.make_tuple(koda_internal_parallel.as_future(I.y)),
+            tuple_ops.tuple_(koda_internal_parallel.as_future(I.y)),
         ),
     )
     res = expr_eval.eval(expr, x=arolla.int32(10), y=arolla.float32(20.0))
@@ -131,7 +131,7 @@ class KodaInternalParallelFutureFromParallelTest(absltest.TestCase):
     executor = koda_internal_parallel.get_eager_executor()
     expr = koda_internal_parallel.future_from_parallel(
         executor,
-        tuple_ops.make_namedtuple(
+        tuple_ops.namedtuple_(
             foo=koda_internal_parallel.as_future(I.x),
             bar=koda_internal_parallel.as_future(I.y),
         ),

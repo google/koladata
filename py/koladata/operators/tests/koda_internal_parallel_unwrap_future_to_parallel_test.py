@@ -70,7 +70,7 @@ class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
 
   def test_tuple_input(self):
     future_to_tuple = koda_internal_parallel.as_future(
-        tuple_ops.make_tuple(
+        tuple_ops.tuple_(
             koda_internal_parallel.as_future(I.x),
             koda_internal_parallel.stream_make(I.y),
         )
@@ -101,8 +101,8 @@ class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
 
   def test_nested_tuple_input(self):
     future_to_nested_tuple = koda_internal_parallel.as_future(
-        tuple_ops.make_tuple(
-            tuple_ops.make_tuple(koda_internal_parallel.as_future(I.x))
+        tuple_ops.tuple_(
+            tuple_ops.tuple_(koda_internal_parallel.as_future(I.x))
         )
     )
     expr = koda_internal_parallel.unwrap_future_to_parallel(
@@ -118,7 +118,7 @@ class KodaInternalParallelUnwrapFutureToParallelTest(absltest.TestCase):
 
   def test_namedtuple_input(self):
     future_to_namedtuple = koda_internal_parallel.as_future(
-        tuple_ops.make_namedtuple(a=koda_internal_parallel.as_future(I.x))
+        tuple_ops.namedtuple_(a=koda_internal_parallel.as_future(I.x))
     )
     expr = koda_internal_parallel.unwrap_future_to_parallel(
         future_to_namedtuple

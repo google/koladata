@@ -101,7 +101,7 @@ class FunctorCallTest(absltest.TestCase):
 
   def test_var_positional(self):
     fn = kd.functor.expr_fn(
-        returns=kde.tuple.get_nth(I.x, 1),
+        returns=kde.tuples.get_nth(I.x, 1),
         signature=signature_utils.signature([
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.VAR_POSITIONAL
@@ -168,7 +168,7 @@ class FunctorCallTest(absltest.TestCase):
       _ = call.call_multithreaded(fn, kd.new(bar=57))
 
   def test_call_non_dataslice_inputs(self):
-    fn = kd.functor.expr_fn(kde.tuple.get_nth(I.x, 1))
+    fn = kd.functor.expr_fn(kde.tuples.get_nth(I.x, 1))
     kd.testing.assert_equal(
         call.call_multithreaded(fn, x=arolla.tuple(ds(1), ds(2), ds(3))), ds(2)
     )

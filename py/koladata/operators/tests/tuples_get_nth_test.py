@@ -32,7 +32,7 @@ ds = data_slice.DataSlice.from_vals
 DATA_SLICE = qtypes.DATA_SLICE
 
 
-class TupleGetNthTest(parameterized.TestCase):
+class TuplesGetNthTest(parameterized.TestCase):
 
   @parameterized.parameters(
       (arolla.tuple(ds(0), ds([1, 2, 3]), arolla.int32(1)), ds(0), ds(0)),
@@ -50,33 +50,33 @@ class TupleGetNthTest(parameterized.TestCase):
       (arolla.types.Slice(ds(0), ds(1)), ds(1), ds(1)),
   )
   def test_eval(self, tpl, n, expected):
-    result = expr_eval.eval(kde.tuple.get_nth(tpl, n))
+    result = expr_eval.eval(kde.tuples.get_nth(tpl, n))
     view_result = expr_eval.eval(view_overloads.get_item(tpl, n))
     testing.assert_equal(result, expected)
     testing.assert_equal(view_result, expected)
 
   def test_eval_non_literal_x(self):
-    result = expr_eval.eval(kde.tuple.get_nth(I.tpl, 0), tpl=(1, 2, 3))
+    result = expr_eval.eval(kde.tuples.get_nth(I.tpl, 0), tpl=(1, 2, 3))
     testing.assert_equal(result, ds(1))
 
   def test_non_literal_n_error(self):
     with self.assertRaisesRegex(ValueError, '`n` must be literal'):
-      expr_eval.eval(kde.tuple.get_nth((1, 2, 3), I.n), n=ds(1))
+      expr_eval.eval(kde.tuples.get_nth((1, 2, 3), I.n), n=ds(1))
 
   def test_negative_n_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape('expected a non-negative integer, got n=-1')
     ):
-      expr_eval.eval(kde.tuple.get_nth((1, 2, 3), -1))
+      expr_eval.eval(kde.tuples.get_nth((1, 2, 3), -1))
 
   def test_oob_n_error(self):
     with self.assertRaisesRegex(
         ValueError, re.escape('index out of range: n=3')
     ):
-      expr_eval.eval(kde.tuple.get_nth((1, 2, 3), 3))
+      expr_eval.eval(kde.tuples.get_nth((1, 2, 3), 3))
 
   def test_view(self):
-    self.assertTrue(view.has_koda_view(kde.tuple.get_nth(I.x, 0)))
+    self.assertTrue(view.has_koda_view(kde.tuples.get_nth(I.x, 0)))
 
 
 if __name__ == '__main__':
