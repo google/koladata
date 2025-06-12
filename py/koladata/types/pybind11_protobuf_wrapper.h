@@ -48,11 +48,11 @@ void ImportNativeProtoCasters();
 // Requires the calling thread to be holding the GIL, and to continue holding
 // the GIL until the opaque object (and all copies, if any have been made) is
 // deleted.
-absl::StatusOr<std::tuple<const ::google::protobuf::Message* /*absl_nonnull*/, std::any>>
-UnwrapPyProtoMessage(PyObject* /*absl_nonnull*/ py_object);
+absl::StatusOr<std::tuple<const ::google::protobuf::Message* absl_nonnull, std::any>>
+UnwrapPyProtoMessage(PyObject* absl_nonnull py_object);
 
 // Returns true if the given python object is a fast C++ proto.
-bool IsFastCppPyProtoMessage(PyObject* /*absl_nonnull*/ py_object);
+bool IsFastCppPyProtoMessage(PyObject* absl_nonnull py_object);
 
 // Converts a C++ proto message to a python proto message.
 //

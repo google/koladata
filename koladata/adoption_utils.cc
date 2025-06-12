@@ -66,7 +66,7 @@ absl::Status AdoptionQueue::AdoptInto(DataBag& db) const {
   return absl::OkStatus();
 }
 
-absl::StatusOr</*absl_nullable*/ DataBagPtr> AdoptionQueue::GetCommonOrMergedDb()
+absl::StatusOr<absl_nullable DataBagPtr> AdoptionQueue::GetCommonOrMergedDb()
     const {
   // Check whether all bags (and slices' bags) are the same bag. If so, we
   // return that bag instead of merging.
@@ -106,7 +106,7 @@ absl::StatusOr</*absl_nullable*/ DataBagPtr> AdoptionQueue::GetCommonOrMergedDb(
   }
 }
 
-/*absl_nonnull*/ DataBagPtr AdoptionQueue::GetBagWithFallbacks() const {
+absl_nonnull DataBagPtr AdoptionQueue::GetBagWithFallbacks() const {
   // Collect unique DataBags from all Add calls.
   absl::flat_hash_set<const DataBag*> visited_bags;
   std::vector<DataBagPtr> fallbacks;
@@ -172,8 +172,8 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
   return absl::OkStatus();
 }
 
-absl::StatusOr</*absl_nullable*/ DataBagPtr> WithAdoptedValues(
-    const /*absl_nullable*/ DataBagPtr& db, const DataSlice& slice) {
+absl::StatusOr<absl_nullable DataBagPtr> WithAdoptedValues(
+    const absl_nullable DataBagPtr& db, const DataSlice& slice) {
   if (db == nullptr || db == slice.GetBag()) {
     return slice.GetBag();
   } else if (slice.GetBag() == nullptr) {

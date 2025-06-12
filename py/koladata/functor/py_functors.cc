@@ -34,7 +34,7 @@
 
 namespace koladata::python {
 
-PyObject* /*absl_nullable*/ PyAutoVariables(PyObject* /*self*/, PyObject** py_args,
+PyObject* absl_nullable PyAutoVariables(PyObject* /*self*/, PyObject** py_args,
                                         Py_ssize_t nargs) {
   static const absl::NoDestructor<FastcallArgParser> parser(
       /*pos_only_n=*/1, /*parse_kwargs=*/false, "fn", "extra_nodes_to_extract");

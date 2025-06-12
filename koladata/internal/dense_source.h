@@ -123,7 +123,7 @@ class DenseSource {
   // there are no values of other types (and slower if there are).
   static absl::StatusOr<std::shared_ptr<DenseSource>> CreateMutable(
       AllocationId alloc, int64_t size,
-      const arolla::QType* /*absl_nullable*/ main_type = nullptr);
+      const arolla::QType* absl_nullable main_type = nullptr);
 
  private:
   // It is private because it can return internal data of a mutable

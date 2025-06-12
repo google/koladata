@@ -29,7 +29,7 @@ PyObject* PyFStringExprPlaceholder(PyObject* /*module*/, PyObject* const* args,
 PyObject* PyEagerFStringEval(PyObject* /*module*/, PyObject* arg);
 
 // Evaluates transformed f-string into expression.
-PyObject* /*absl_nullable*/ PyCreateFstrExpr(PyObject* /*module*/, PyObject* arg);
+PyObject* absl_nullable PyCreateFstrExpr(PyObject* /*module*/, PyObject* arg);
 
 }  // namespace koladata::python
 

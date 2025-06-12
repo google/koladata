@@ -39,14 +39,14 @@ class ExtractOp {
   absl::Status operator()(
       const DataSliceImpl& ds, const DataItem& schema,
       const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
-      const DataBagImpl* /*absl_nullable*/ schema_databag,
+      const DataBagImpl* absl_nullable schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks, int max_depth = -1,
       const std::optional<LeafCallback>& leaf_callback = std::nullopt) const;
 
   absl::Status operator()(
       const DataItem& item, const DataItem& schema, const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks,
-      const DataBagImpl* /*absl_nullable*/ schema_databag,
+      const DataBagImpl* absl_nullable schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks, int max_depth = -1,
       const std::optional<LeafCallback>& leaf_callback = std::nullopt) const;
 
@@ -68,13 +68,13 @@ class ShallowCloneOp {
       const DataSliceImpl& ds, const DataSliceImpl& itemid,
       const DataItem& schema, const DataBagImpl& databag,
       DataBagImpl::FallbackSpan fallbacks,
-      const DataBagImpl* /*absl_nullable*/ schema_databag,
+      const DataBagImpl* absl_nullable schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks) const;
 
   absl::StatusOr<std::pair<DataItem, DataItem>> operator()(
       const DataItem& item, const DataItem& itemid, const DataItem& schema,
       const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
-      const DataBagImpl* /*absl_nullable*/ schema_databag,
+      const DataBagImpl* absl_nullable schema_databag,
       DataBagImpl::FallbackSpan schema_fallbacks) const;
 
  private:

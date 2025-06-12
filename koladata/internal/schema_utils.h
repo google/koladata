@@ -160,11 +160,11 @@ absl::Status VerifyDictKeySchema(const internal::DataItem& schema_item);
 // returned.
 internal::DataItem GetDataSchema(
     const internal::DataItem& item,
-    const internal::DataBagImpl* /*absl_nullable*/ db_impl = nullptr,
+    const internal::DataBagImpl* absl_nullable db_impl = nullptr,
     internal::DataBagImpl::FallbackSpan fallbacks = {});
 internal::DataItem GetDataSchema(
     const internal::DataSliceImpl& slice,
-    const internal::DataBagImpl* /*absl_nullable*/ db_impl = nullptr,
+    const internal::DataBagImpl* absl_nullable db_impl = nullptr,
     internal::DataBagImpl::FallbackSpan fallbacks = {});
 
 }  // namespace koladata::schema

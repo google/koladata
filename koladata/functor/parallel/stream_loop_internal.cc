@@ -73,7 +73,7 @@ absl::StatusOr<ParsedLoopCondition> ParseLoopConditionDataSlice(
 }
 
 absl::StatusOr<ParsedLoopCondition> ParseLoopConditionStream(
-    StreamReaderPtr /*absl_nonnull*/ condition) {
+    StreamReaderPtr absl_nonnull condition) {
   auto try_read_result = condition->TryRead();
   if (auto* item = try_read_result.item()) {
     if (item->GetType() != arolla::GetQType<DataSlice>()) {

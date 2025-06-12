@@ -29,7 +29,7 @@ namespace koladata::functor::parallel {
 
 class StreamInterleave::Scheduler {
  public:
-  explicit Scheduler(StreamWriterPtr /*absl_nonnull*/ writer)
+  explicit Scheduler(StreamWriterPtr absl_nonnull writer)
       : writer_(std::move(writer)) {}
 
   ~Scheduler() { writer_->TryClose(absl::OkStatus()); }
@@ -66,13 +66,13 @@ class StreamInterleave::Scheduler {
   }
 
  private:
-  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  const StreamWriterPtr absl_nonnull writer_;
 };
 
-StreamInterleave::StreamInterleave(StreamWriterPtr /*absl_nonnull*/ writer)
+StreamInterleave::StreamInterleave(StreamWriterPtr absl_nonnull writer)
     : scheduler_(std::make_shared<Scheduler>(std::move(writer))) {}
 
-void StreamInterleave::Add(const StreamPtr /*absl_nonnull*/& stream) {
+void StreamInterleave::Add(const StreamPtr absl_nonnull& stream) {
   DCHECK(stream != nullptr);
   DCHECK(scheduler_ != nullptr);
   if (stream != nullptr && scheduler_ != nullptr) {
@@ -88,7 +88,7 @@ void StreamInterleave::AddError(absl::Status status) {
 // hold a pointer to it. It is thread-safe.
 class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
  public:
-  explicit Scheduler(StreamWriterPtr /*absl_nonnull*/ writer)
+  explicit Scheduler(StreamWriterPtr absl_nonnull writer)
       : writer_(std::move(writer)) {}
 
   // Adds one more input stream to the chain.
@@ -208,7 +208,7 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
   // protect it with a mutex. If we did, we should have used a separate mutex
   // since we don't want to deadlock when downstream processing of the writer
   // tries to add one more stream to the chain.
-  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  const StreamWriterPtr absl_nonnull writer_;
 
   // There are three possible states when mutex_ is not held:
   // - the queue is empty.
@@ -219,10 +219,10 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
   bool error_reported_ ABSL_GUARDED_BY(mutex_) = false;
 };
 
-StreamChain::StreamChain(StreamWriterPtr /*absl_nonnull*/ writer)
+StreamChain::StreamChain(StreamWriterPtr absl_nonnull writer)
     : scheduler_(std::make_shared<Scheduler>(std::move(writer))) {}
 
-void StreamChain::Add(const StreamPtr /*absl_nonnull*/& stream) {
+void StreamChain::Add(const StreamPtr absl_nonnull& stream) {
   DCHECK(stream != nullptr);
   DCHECK(scheduler_ != nullptr);
   if (stream != nullptr && scheduler_ != nullptr) {

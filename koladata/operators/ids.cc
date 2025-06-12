@@ -146,7 +146,7 @@ class UuidForDictOperator : public arolla::QExprOperator {
 
 absl::StatusOr<DataSlice> DeepUuid(const DataSlice& ds, const DataSlice& schema,
                                    const DataSlice& seed) {
-  /*absl_nullable*/ DataBagPtr db = ds.GetBag();
+  absl_nullable DataBagPtr db = ds.GetBag();
   if (db == nullptr) {
     if (schema.IsStructSchema()) {
       return absl::InvalidArgumentError(

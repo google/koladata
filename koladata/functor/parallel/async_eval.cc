@@ -159,7 +159,7 @@ class AsyncCountdown {
       ABSL_GUARDED_BY(lock_);
   FutureWriter result_writer_;
   absl::Mutex lock_;
-  arolla::CancellationContextPtr /*absl_nullable*/ cancellation_context_ =
+  arolla::CancellationContextPtr absl_nullable cancellation_context_ =
       arolla::CurrentCancellationContext();
 };
 

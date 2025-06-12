@@ -392,7 +392,7 @@ class ToPyVisitor : internal::AbstractVisitor {
   internal::DataBagImpl::FallbackSpan fallback_span_;
 };
 
-PyObject* /*absl_nullable*/ ToPyImplInternal(
+PyObject* absl_nullable ToPyImplInternal(
     const DataSlice& ds, DataBagPtr bag, bool obj_as_dict,
     bool include_missing_attrs, const absl::flat_hash_set<ObjectId>& leaf_ids) {
   if (ds.IsEmpty() || bag == nullptr ||
@@ -429,7 +429,7 @@ PyObject* /*absl_nullable*/ ToPyImplInternal(
   return res.release();
 }
 
-PyObject* /*absl_nullable*/ ToPyImpl(const DataSlice& ds, DataBagPtr bag,
+PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
                                  int max_depth, bool obj_as_dict,
                                  bool include_missing_attrs) {
   // When `max_depth != -1`, we want objects/dicts/lists at `max_depth`
@@ -460,7 +460,7 @@ PyObject* /*absl_nullable*/ ToPyImpl(const DataSlice& ds, DataBagPtr bag,
 
 }  // namespace
 
-PyObject* /*absl_nullable*/ PyDataSlice_to_py(PyObject* self,
+PyObject* absl_nullable PyDataSlice_to_py(PyObject* self,
                                           PyObject* const* py_args,
                                           Py_ssize_t nargs) {
   arolla::python::DCheckPyGIL();

@@ -22,11 +22,11 @@
 namespace koladata::python {
 
 // Returns a PyType of Python DataSlice.
-PyTypeObject* /*absl_nullable*/ PyDataSlice_Type();
+PyTypeObject* absl_nullable PyDataSlice_Type();
 
 // Returns true iff `attr_name` can be accessed through:
 //   getattr(slice, attr_name)
-PyObject* /*absl_nullable*/ PyDataSliceModule_is_compliant_attr_name(
+PyObject* absl_nullable PyDataSliceModule_is_compliant_attr_name(
     PyObject* /*module*/, PyObject* attr_name);
 
 // Registers a name in method_name to be reserved as a method of the DataSlice
@@ -35,13 +35,13 @@ PyObject* /*absl_nullable*/ PyDataSliceModule_is_compliant_attr_name(
 //
 // This must be called when adding new methods to the class or its subclasses in
 // Python.
-PyObject* /*absl_nullable*/ PyDataSliceModule_register_reserved_class_method_name(
+PyObject* absl_nullable PyDataSliceModule_register_reserved_class_method_name(
     PyObject* /*module*/, PyObject* method_name);
 
 // Returns a frozenset of method names that are either defined on the CPython
 // DataSlice implementation or specifically reserved using
 // register_reserved_class_method_name.
-PyObject* /*absl_nullable*/ PyDataSliceModule_get_reserved_attrs(
+PyObject* absl_nullable PyDataSliceModule_get_reserved_attrs(
     PyObject* /*module*/);
 
 }  // namespace koladata::python

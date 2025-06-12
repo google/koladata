@@ -31,9 +31,9 @@ namespace koladata::functor::parallel {
 //
 //    functor(functor(initial_value, stream[0]), stream[1]), ...)
 //
-StreamPtr /*absl_nonnull*/ StreamReduce(
-    ExecutorPtr /*absl_nonnull*/ executor, arolla::TypedValue initial_value,
-    StreamPtr /*absl_nonnull*/ input_stream,
+StreamPtr absl_nonnull StreamReduce(
+    ExecutorPtr absl_nonnull executor, arolla::TypedValue initial_value,
+    StreamPtr absl_nonnull input_stream,
     absl::AnyInvocable<absl::StatusOr<arolla::TypedValue>(
         arolla::TypedRef, arolla::TypedRef) const>
         functor);

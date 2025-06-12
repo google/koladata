@@ -22,11 +22,11 @@
 namespace koladata::python {
 
 // Evaluates an expression on provided input QValues.
-PyObject* /*absl_nullable*/ PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
+PyObject* absl_nullable PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
                                    Py_ssize_t nargs, PyObject* py_kwnames);
 
 // Evaluates an operator on the provided arguments.
-PyObject* /*absl_nullable*/ PyEvalOp(PyObject* /*self*/, PyObject** py_args,
+PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
                                  Py_ssize_t nargs, PyObject* py_kwnames);
 
 // Returns the constant representing the unspecified self input.

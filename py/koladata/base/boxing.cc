@@ -133,10 +133,10 @@ class EmbeddingDataBag {
     return ds.WithBag(db_).EmbedSchema(/*overwrite=*/false).status();
   }
 
-  const /*absl_nullable*/ DataBagPtr& GetBag() { return db_; }
+  const absl_nullable DataBagPtr& GetBag() { return db_; }
 
  private:
-  /*absl_nullable*/ DataBagPtr db_ = nullptr;
+  absl_nullable DataBagPtr db_ = nullptr;
 };
 
 /****************** Building blocks for "From Python" ******************/
@@ -746,7 +746,7 @@ absl::StatusOr<std::optional<DataSlice>> MaybeMakeChildListAttrItemId(
 template <typename Factory>
 class UniversalConverter {
  public:
-  UniversalConverter(const /*absl_nullable*/ DataBagPtr& db,
+  UniversalConverter(const absl_nullable DataBagPtr& db,
                      AdoptionQueue& adoption_queue, bool dict_as_obj = false)
       : db_(db), adoption_queue_(adoption_queue), dict_as_obj_(dict_as_obj) {}
 
@@ -1308,7 +1308,7 @@ class UniversalConverter {
     }
   }
 
-  /*absl_nullable*/ DataBagPtr db_;
+  absl_nullable DataBagPtr db_;
 
   AdoptionQueue& adoption_queue_;
   bool dict_as_obj_;

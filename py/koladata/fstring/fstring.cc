@@ -81,7 +81,7 @@ PyObject* PyEagerFStringEval(PyObject* /*module*/, PyObject* arg) {
   return arolla::python::WrapAsPyQValue(std::move(tv));
 }
 
-PyObject* /*absl_nullable*/ PyCreateFstrExpr(PyObject* /*module*/, PyObject* arg) {
+PyObject* absl_nullable PyCreateFstrExpr(PyObject* /*module*/, PyObject* arg) {
   arolla::python::DCheckPyGIL();
   Py_ssize_t size;
   const char* fstr = PyUnicode_AsUTF8AndSize(arg, &size);

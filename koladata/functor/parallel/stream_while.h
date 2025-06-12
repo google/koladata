@@ -41,8 +41,8 @@ using StreamWhileFunctor =
 // `returns`) as keyword arguments to `condition_functor` and
 // `body_functor`. The loop continues if `condition_functor` returns `present`.
 // State variables are then updated from `body_functor`'s namedtuple return.
-absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileReturns(
-    ExecutorPtr /*absl_nonnull*/ executor,
+absl::StatusOr<StreamPtr absl_nonnull> StreamWhileReturns(
+    ExecutorPtr absl_nonnull executor,
     StreamWhileFunctor /*nonnull*/ condition_functor,
     StreamWhileFunctor /*nonnull*/ body_functor,
     arolla::TypedRef initial_state_returns, arolla::TypedRef initial_state);
@@ -57,8 +57,8 @@ absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileReturns(
 // `condition_functor` returns `present`. State variables are then updated from
 // `body_functor`'s namedtuple return value. Additionally, `body_functor` can
 // return a `yields` value, which is appended to the resulting stream.
-absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileYields(
-    ExecutorPtr /*absl_nonnull*/ executor,
+absl::StatusOr<StreamPtr absl_nonnull> StreamWhileYields(
+    ExecutorPtr absl_nonnull executor,
     StreamWhileFunctor /*nonnull*/ condition_functor,
     StreamWhileFunctor /*nonnull*/ body_functor,
     absl::string_view yields_param_name, arolla::TypedRef initial_yields,

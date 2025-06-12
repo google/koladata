@@ -1,22 +1,23 @@
 module(name = "koladata")
 
-bazel_dep(name = "abseil-cpp", version = "20240722.0", repo_name = "com_google_absl")
+bazel_dep(name = "abseil-cpp", version = "20250512.0", repo_name = "com_google_absl")
 bazel_dep(name = "abseil-py", version = "2.1.0", repo_name = "com_google_absl_py")
 bazel_dep(name = "arolla", version = "empty", repo_name = "com_google_arolla")
-bazel_dep(name = "aspect_rules_esbuild", version = "0.20.0")
+bazel_dep(name = "aspect_rules_esbuild", version = "0.22.1")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "boost.asio", version = "1.83.0.bcr.2")
-bazel_dep(name = "boost.throw_exception", version = "1.83.0.bcr.1")
-bazel_dep(name = "google_benchmark", version = "1.8.5", repo_name = "com_google_benchmark")
-bazel_dep(name = "googletest", version = "1.15.2", repo_name = "com_google_googletest")
-bazel_dep(name = "nlohmann_json", version = "3.11.3.bcr.1", repo_name = "com_github_nlohmann_json")
-bazel_dep(name = "platforms", version = "0.0.10")
-bazel_dep(name = "protobuf", version = "29.1", repo_name = "com_google_protobuf")
+bazel_dep(name = "boost.asio", version = "1.87.0")
+bazel_dep(name = "boost.throw_exception", version = "1.87.0")
+bazel_dep(name = "double-conversion", version = "3.3.0", repo_name = "com_google_double_conversion")
+bazel_dep(name = "google_benchmark", version = "1.9.4", repo_name = "com_google_benchmark")
+bazel_dep(name = "googletest", version = "1.17.0", repo_name = "com_google_googletest")
+bazel_dep(name = "nlohmann_json", version = "3.12.0", repo_name = "com_github_nlohmann_json")
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "protobuf", version = "31.1", repo_name = "com_google_protobuf")
 bazel_dep(name = "pybind11_abseil", version = "202402.0")
 bazel_dep(name = "pybind11_bazel", version = "2.13.6")
-bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20240524-1d7a729")
-bazel_dep(name = "rules_cc", version = "0.0.15")
-bazel_dep(name = "rules_python", version = "1.0.0")
+bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20250210-f02a2b7")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "rules_python", version = "1.4.1")
 
 # Note: We would like to use the latest version of Arolla during development.
 archive_override(
@@ -30,7 +31,7 @@ archive_override(
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(
     ignore_root_user_error = True,  # Required for our containerized CI environments.
-    is_default=True,
+    is_default = True,
     python_version = "3.11",
 )
 python.toolchain(
@@ -52,13 +53,6 @@ pip.parse(
 use_repo(pip, pip_deps = "koladata_pip_deps")
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
-http_archive(
-    name = "com_google_double_conversion",
-    integrity = "sha256-BOxERhhQq78zgk2oSXgEOyJVSJa1UsX9EanFrktNKW4=",
-    strip_prefix = "double-conversion-3.3.0",
-    url = "https://github.com/google/double-conversion/archive/refs/tags/v3.3.0.tar.gz",
-)
 
 http_archive(
     name = "icu4c",

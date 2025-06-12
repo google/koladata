@@ -42,7 +42,7 @@ class DefaultAsioExecutor final : public Executor {
 
 }  // namespace
 
-const ExecutorPtr /*absl_nonnull*/& GetDefaultAsioExecutor() {
+const ExecutorPtr absl_nonnull& GetDefaultAsioExecutor() {
   static absl::NoDestructor<ExecutorPtr> executor(
       std::make_shared<DefaultAsioExecutor>());
   return *executor;

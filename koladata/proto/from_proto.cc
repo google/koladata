@@ -74,7 +74,7 @@ struct ExtensionMap {
   // Extension fields that should be converted in this message.
   //
   // Key: "(" + field->full_name() + ")"
-  absl::flat_hash_map<std::string, const FieldDescriptor* /*absl_nonnull*/>
+  absl::flat_hash_map<std::string, const FieldDescriptor* absl_nonnull>
       extension_fields;
 
   // Extension maps for sub-messages of this message.
@@ -88,7 +88,7 @@ struct ExtensionMap {
 absl::Status ParseExtensionInto(const google::protobuf::DescriptorPool& pool,
                                 absl::string_view extension_specifier,
                                 ExtensionMap& root_extension_map) {
-  ExtensionMap* /*absl_nonnull*/ extension_map = &root_extension_map;
+  ExtensionMap* absl_nonnull extension_map = &root_extension_map;
 
   auto get_or_create_sub_map = [](ExtensionMap& map,
                                   absl::string_view ext_name) {
@@ -328,21 +328,21 @@ absl::StatusOr<DataSlice> DefaultValueFromProtoPrimitiveField(
 
 // Forward declarations for "recursion" via an enqueued callback.
 absl::Status FromProtoMessageBreakRecursion(
-    const /*absl_nonnull*/ DataBagPtr& db, const Descriptor& message_descriptor,
-    std::vector<const Message* /*absl_nonnull*/> messages,
+    const absl_nonnull DataBagPtr& db, const Descriptor& message_descriptor,
+    std::vector<const Message* absl_nonnull> messages,
     std::optional<DataSlice> itemid, std::optional<DataSlice> schema,
-    const ExtensionMap* /*absl_nullable*/ extension_map,
+    const ExtensionMap* absl_nullable extension_map,
     internal::TrampolineExecutor& executor, std::optional<DataSlice>& result);
 
 // Returns a rank-1 DataSlice of Lists converted from a repeated message field
 // on a vector of messages.
 absl::Status ListFromProtoRepeatedMessageField(
-    const /*absl_nonnull*/ DataBagPtr& db, absl::string_view attr_name,
+    const absl_nonnull DataBagPtr& db, absl::string_view attr_name,
     absl::string_view field_name, const FieldDescriptor& field_descriptor,
-    absl::Span<const Message* /*absl_nonnull*/ const> parent_messages,
+    absl::Span<const Message* absl_nonnull const> parent_messages,
     const std::optional<DataSlice>& parent_itemid,
     const std::optional<DataSlice>& parent_schema,
-    const ExtensionMap* /*absl_nullable*/ parent_extension_map,
+    const ExtensionMap* absl_nullable parent_extension_map,
     internal::TrampolineExecutor& executor, std::optional<DataSlice>& result) {
   bool is_empty = true;
   arolla::DenseArrayBuilder<arolla::Unit> lists_mask_builder(
@@ -350,7 +350,7 @@ absl::Status ListFromProtoRepeatedMessageField(
   DataSlice::JaggedShape parent_shape =
       DataSlice::JaggedShape::FlatFromSize(parent_messages.size());
   shape::ShapeBuilder shape_builder(parent_shape);
-  std::vector<const Message* /*absl_nonnull*/> flat_child_messages;
+  std::vector<const Message* absl_nonnull> flat_child_messages;
   for (int64_t i = 0; i < parent_messages.size(); ++i) {
     const auto& parent_message = *parent_messages[i];
     const auto& refl = *parent_message.GetReflection();
@@ -423,9 +423,9 @@ absl::Status ListFromProtoRepeatedMessageField(
 // Returns a rank-1 DataSlice of Lists of primitives converted from a repeated
 // primitive field on a vector of messages.
 absl::StatusOr<std::optional<DataSlice>> ListFromProtoRepeatedPrimitiveField(
-    const /*absl_nonnull*/ DataBagPtr& db, absl::string_view attr_name,
+    const absl_nonnull DataBagPtr& db, absl::string_view attr_name,
     absl::string_view field_name, const FieldDescriptor& field_descriptor,
-    absl::Span<const Message* /*absl_nonnull*/ const> parent_messages,
+    absl::Span<const Message* absl_nonnull const> parent_messages,
     const std::optional<DataSlice>& parent_itemid,
     const std::optional<DataSlice>& parent_schema) {
   auto to_slice = [&]<typename T, typename U>()
@@ -537,17 +537,17 @@ absl::StatusOr<std::optional<DataSlice>> ListFromProtoRepeatedPrimitiveField(
 // Returns a rank-1 DataSlice of objects or entities converted from a proto
 // non-repeated message field on a vector of messages.
 absl::Status FromProtoMessageField(
-    const /*absl_nonnull*/ DataBagPtr& db, absl::string_view attr_name,
+    const absl_nonnull DataBagPtr& db, absl::string_view attr_name,
     absl::string_view field_name, const FieldDescriptor& field_descriptor,
-    absl::Span<const Message* /*absl_nonnull*/ const> parent_messages,
+    absl::Span<const Message* absl_nonnull const> parent_messages,
     const std::optional<DataSlice>& parent_itemid,
     const std::optional<DataSlice>& parent_schema,
-    const ExtensionMap* /*absl_nullable*/ parent_extension_map,
+    const ExtensionMap* absl_nullable parent_extension_map,
     bool ignore_field_presence, internal::TrampolineExecutor& executor,
     std::optional<DataSlice>& result) {
   bool is_empty = true;
   arolla::DenseArrayBuilder<arolla::Unit> mask_builder(parent_messages.size());
-  std::vector<const Message* /*absl_nonnull*/> packed_child_messages;
+  std::vector<const Message* absl_nonnull> packed_child_messages;
   packed_child_messages.reserve(parent_messages.size());
   for (int64_t i = 0; i < parent_messages.size(); ++i) {
     const auto* parent_message = parent_messages[i];
@@ -614,7 +614,7 @@ absl::Status FromProtoMessageField(
 // primitive field on a vector of messages.
 absl::StatusOr<std::optional<DataSlice>> FromProtoPrimitiveField(
     absl::string_view attr_name, const FieldDescriptor& field_descriptor,
-    absl::Span<const Message* /*absl_nonnull*/ const> parent_messages,
+    absl::Span<const Message* absl_nonnull const> parent_messages,
     const std::optional<DataSlice>& parent_schema,
     const std::optional<DataSlice>& parent_schema_metadata,
     bool ignore_field_presence = false) {
@@ -733,12 +733,12 @@ absl::StatusOr<std::optional<DataSlice>> FromProtoPrimitiveField(
 // Returns a rank-1 DataSlice of Dicts converted from a proto map field on a
 // vector of messages.
 absl::Status DictFromProtoMapField(
-    const /*absl_nonnull*/ DataBagPtr& db, absl::string_view attr_name,
+    const absl_nonnull DataBagPtr& db, absl::string_view attr_name,
     absl::string_view field_name, const FieldDescriptor& field_descriptor,
-    absl::Span<const Message* /*absl_nonnull*/ const> parent_messages,
+    absl::Span<const Message* absl_nonnull const> parent_messages,
     const std::optional<DataSlice>& parent_itemid,
     const std::optional<DataSlice>& parent_schema,
-    const ExtensionMap* /*absl_nullable*/ parent_extension_map,
+    const ExtensionMap* absl_nullable parent_extension_map,
     internal::TrampolineExecutor& executor, std::optional<DataSlice>& result) {
   bool is_empty = true;
   arolla::DenseArrayBuilder<arolla::Unit> dicts_mask_builder(
@@ -746,7 +746,7 @@ absl::Status DictFromProtoMapField(
   DataSlice::JaggedShape parent_shape =
       DataSlice::JaggedShape::FlatFromSize(parent_messages.size());
   shape::ShapeBuilder shape_builder(parent_shape);
-  std::vector<const Message* /*absl_nonnull*/> flat_item_messages;
+  std::vector<const Message* absl_nonnull> flat_item_messages;
   for (int64_t i = 0; i < parent_messages.size(); ++i) {
     const auto& parent_message = *parent_messages[i];
     const auto* refl = parent_message.GetReflection();
@@ -851,13 +851,13 @@ absl::Status DictFromProtoMapField(
 // Returns a rank-1 DataSlice converted from a proto field (of any kind) on a
 // vector of messages.
 absl::Status FromProtoField(
-    const /*absl_nonnull*/ DataBagPtr& db, absl::string_view attr_name,
+    const absl_nonnull DataBagPtr& db, absl::string_view attr_name,
     absl::string_view field_name, const FieldDescriptor& field_descriptor,
-    absl::Span<const Message* /*absl_nonnull*/ const> parent_messages,
+    absl::Span<const Message* absl_nonnull const> parent_messages,
     const std::optional<DataSlice>& parent_itemid,
     const std::optional<DataSlice>& parent_schema,
     const std::optional<DataSlice>& parent_schema_metadata,
-    const ExtensionMap* /*absl_nullable*/ parent_extension_map,
+    const ExtensionMap* absl_nullable parent_extension_map,
     bool ignore_field_presence, internal::TrampolineExecutor& executor,
     std::optional<DataSlice>& result) {
   if (field_descriptor.is_map()) {
@@ -896,7 +896,7 @@ absl::Status FromProtoField(
 // Returns a size-0 rank-1 DataSlice "converted" from a vector of 0 proto
 // messages.
 absl::StatusOr<DataSlice> FromZeroProtoMessages(
-    const /*absl_nonnull*/ DataBagPtr& db, const std::optional<DataSlice>& schema) {
+    const absl_nonnull DataBagPtr& db, const std::optional<DataSlice>& schema) {
   if (schema.has_value()) {
     return DataSlice::Create(
         internal::DataSliceImpl::CreateEmptyAndUnknownType(0),
@@ -911,16 +911,16 @@ absl::StatusOr<DataSlice> FromZeroProtoMessages(
 // Returns a rank-1 DataSlice of objects or entities converted from a vector of
 // uniform-type proto messages.
 absl::Status FromProtoMessage(
-    const /*absl_nonnull*/ DataBagPtr& db, const Descriptor& message_descriptor,
-    absl::Span<const Message* /*absl_nonnull*/ const> messages,
+    const absl_nonnull DataBagPtr& db, const Descriptor& message_descriptor,
+    absl::Span<const Message* absl_nonnull const> messages,
     const std::optional<DataSlice>& itemid,
     const std::optional<DataSlice>& schema,
-    const ExtensionMap* /*absl_nullable*/ extension_map,
+    const ExtensionMap* absl_nullable extension_map,
     internal::TrampolineExecutor& executor, std::optional<DataSlice>& result) {
   DCHECK(!messages.empty());
 
   struct FieldVars {
-    const FieldDescriptor* /*absl_nonnull*/ field_descriptor;
+    const FieldDescriptor* absl_nonnull field_descriptor;
     absl::string_view attr_name;
     std::optional<DataSlice> value;
   };
@@ -1065,10 +1065,10 @@ absl::Status FromProtoMessage(
 }
 
 absl::Status FromProtoMessageBreakRecursion(
-    const /*absl_nonnull*/ DataBagPtr& db, const Descriptor& message_descriptor,
-    std::vector<const Message* /*absl_nonnull*/> messages,
+    const absl_nonnull DataBagPtr& db, const Descriptor& message_descriptor,
+    std::vector<const Message* absl_nonnull> messages,
     std::optional<DataSlice> itemid, std::optional<DataSlice> schema,
-    const ExtensionMap* /*absl_nullable*/ extension_map,
+    const ExtensionMap* absl_nullable extension_map,
     internal::TrampolineExecutor& executor, std::optional<DataSlice>& result) {
   executor.Enqueue([db = db, message_descriptor = &message_descriptor,
                     messages = std::move(messages), itemid = std::move(itemid),
@@ -1083,8 +1083,8 @@ absl::Status FromProtoMessageBreakRecursion(
 }  // namespace
 
 absl::StatusOr<DataSlice> FromProto(
-    const /*absl_nonnull*/ DataBagPtr& db,
-    absl::Span<const Message* /*absl_nonnull*/ const> messages,
+    const absl_nonnull DataBagPtr& db,
+    absl::Span<const Message* absl_nonnull const> messages,
     absl::Span<const absl::string_view> extensions,
     const std::optional<DataSlice>& itemid,
     const std::optional<DataSlice>& schema) {
@@ -1132,7 +1132,7 @@ absl::StatusOr<DataSlice> FromProto(
 // Same as above, but the result uses a new immutable DataBag, and if possible,
 // that DataBag is forked from schema->GetBag() to avoid a schema extraction.
 absl::StatusOr<DataSlice> FromProto(
-    absl::Span<const ::google::protobuf::Message* /*absl_nonnull*/ const> messages,
+    absl::Span<const ::google::protobuf::Message* absl_nonnull const> messages,
     absl::Span<const std::string_view> extensions,
     const std::optional<DataSlice>& itemids,
     const std::optional<DataSlice>& schema) {
@@ -1206,8 +1206,8 @@ absl::StatusOr<DataSlice> SchemaFromProtoPrimitiveField(
 
 // Forward declaration for recursion.
 absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptorBreakRecursion(
-    const /*absl_nonnull*/ DataBagPtr& bag, const Descriptor& message_descriptor,
-    const ExtensionMap* /*absl_nullable*/ extension_map,
+    const absl_nonnull DataBagPtr& bag, const Descriptor& message_descriptor,
+    const ExtensionMap* absl_nullable extension_map,
     absl::flat_hash_set<DescriptorWithExtensionMap>&
         converted_message_descriptors,
     internal::TrampolineExecutor& executor);
@@ -1217,7 +1217,7 @@ absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptorBreakRecursion(
 absl::Status FillDictSchemaFromProtoMapFieldDescriptor(
     const DataSlice& parent_message_schema, absl::string_view attr_name,
     const FieldDescriptor& field_descriptor,
-    const ExtensionMap* /*absl_nullable*/ parent_extension_map,
+    const ExtensionMap* absl_nullable parent_extension_map,
     absl::flat_hash_set<DescriptorWithExtensionMap>&
         converted_message_descriptors,
     internal::TrampolineExecutor& executor) {
@@ -1252,7 +1252,7 @@ absl::Status FillDictSchemaFromProtoMapFieldDescriptor(
 absl::Status FillListSchemaFromProtoRepeatedMessageFieldDescriptor(
     const DataSlice& parent_message_schema, absl::string_view attr_name,
     const FieldDescriptor& field_descriptor,
-    const ExtensionMap* /*absl_nullable*/ parent_extension_map,
+    const ExtensionMap* absl_nullable parent_extension_map,
     absl::flat_hash_set<DescriptorWithExtensionMap>&
         converted_message_descriptors,
     internal::TrampolineExecutor& executor) {
@@ -1275,7 +1275,7 @@ absl::Status FillListSchemaFromProtoRepeatedMessageFieldDescriptor(
 absl::Status FillSchemaFromProtoMessageFieldDescriptor(
     const DataSlice& parent_message_schema, absl::string_view attr_name,
     const FieldDescriptor& field_descriptor,
-    const ExtensionMap* /*absl_nullable*/ parent_extension_map,
+    const ExtensionMap* absl_nullable parent_extension_map,
     absl::flat_hash_set<DescriptorWithExtensionMap>&
         converted_message_descriptors,
     internal::TrampolineExecutor& executor) {
@@ -1298,7 +1298,7 @@ absl::Status FillSchemaFromProtoFieldDescriptor(
     const DataSlice& parent_message_schema,
     const DataSlice& parent_schema_metadata,
     absl::string_view attr_name, const FieldDescriptor& field_descriptor,
-    const ExtensionMap* /*absl_nullable*/ parent_extension_map,
+    const ExtensionMap* absl_nullable parent_extension_map,
     absl::flat_hash_set<DescriptorWithExtensionMap>&
         converted_message_descriptors,
     internal::TrampolineExecutor& executor) {
@@ -1340,8 +1340,8 @@ absl::Status FillSchemaFromProtoFieldDescriptor(
 
 // Populates fields on `schema` for the given proto message.
 absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptor(
-    const /*absl_nonnull*/ DataBagPtr& bag, const Descriptor& message_descriptor,
-    const ExtensionMap* /*absl_nullable*/ extension_map,
+    const absl_nonnull DataBagPtr& bag, const Descriptor& message_descriptor,
+    const ExtensionMap* absl_nullable extension_map,
     absl::flat_hash_set<DescriptorWithExtensionMap>&
         converted_message_descriptors,
     internal::TrampolineExecutor& executor) {
@@ -1379,8 +1379,8 @@ absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptor(
 }
 
 absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptorBreakRecursion(
-    const /*absl_nonnull*/ DataBagPtr& bag, const Descriptor& message_descriptor,
-    const ExtensionMap* /*absl_nullable*/ extension_map,
+    const absl_nonnull DataBagPtr& bag, const Descriptor& message_descriptor,
+    const ExtensionMap* absl_nullable extension_map,
     absl::flat_hash_set<DescriptorWithExtensionMap>&
         converted_message_descriptors,
     internal::TrampolineExecutor& executor) {
@@ -1404,8 +1404,8 @@ absl::StatusOr<DataSlice> SchemaFromProtoMessageDescriptorBreakRecursion(
 }  // namespace
 
 absl::StatusOr<DataSlice> SchemaFromProto(
-    const /*absl_nonnull*/ DataBagPtr& db,
-    const ::google::protobuf::Descriptor* /*absl_nonnull*/ descriptor,
+    const absl_nonnull DataBagPtr& db,
+    const ::google::protobuf::Descriptor* absl_nonnull descriptor,
     absl::Span<const std::string_view> extensions) {
   ASSIGN_OR_RETURN(const ExtensionMap extension_map,
                    ParseExtensions(extensions, *descriptor->file()->pool()));
@@ -1422,7 +1422,7 @@ absl::StatusOr<DataSlice> SchemaFromProto(
 }
 
 absl::StatusOr<DataSlice> SchemaFromProto(
-    const ::google::protobuf::Descriptor* /*absl_nonnull*/ descriptor,
+    const ::google::protobuf::Descriptor* absl_nonnull descriptor,
     absl::Span<const std::string_view> extensions) {
   auto bag = DataBag::Empty();
   ASSIGN_OR_RETURN(auto result, SchemaFromProto(bag, descriptor, extensions));

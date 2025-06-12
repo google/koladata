@@ -34,13 +34,14 @@ class AsioExecutor final : public Executor {
   explicit AsioExecutor(size_t num_threads)
       : thread_pool_(
             num_threads > 0
-                ? std::make_shared<boost::asio::thread_pool>(num_threads)
-                : std::make_shared<boost::asio::thread_pool>()) {}
+                ? std::make_unique<boost::asio::thread_pool>(num_threads)
+                : std::make_unique<boost::asio::thread_pool>()) {}
 
   ~AsioExecutor() final {
-    thread_pool_->stop();
-    GetDefaultExecutor()->Schedule(
-        [thread_pool_ = thread_pool_] { thread_pool_->join(); });
+    GetDefaultExecutor()->Schedule([thread_pool = std::move(thread_pool_)] {
+      thread_pool->stop();
+      thread_pool->join();
+    });
   }
 
   void Schedule(TaskFn task_fn) final {
@@ -50,14 +51,13 @@ class AsioExecutor final : public Executor {
   std::string Repr() const final { return "asio_executor"; }
 
  private:
-  // Note: Use shared_ptr to have additional flexibility within
-  // the destructor.
-  const std::shared_ptr<boost::asio::thread_pool> /*absl_nonnull*/ thread_pool_;
+  // Note: Use unique_ptr to have additional flexibility within the destructor.
+  std::unique_ptr<boost::asio::thread_pool> absl_nonnull thread_pool_;
 };
 
 }  // namespace
 
-ExecutorPtr /*absl_nonnull*/ MakeAsioExecutor(size_t num_threads) {
+ExecutorPtr absl_nonnull MakeAsioExecutor(size_t num_threads) {
   return std::make_shared<AsioExecutor>(num_threads);
 }
 

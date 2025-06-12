@@ -52,7 +52,7 @@ template <class Traits>
 class StreamForHooks final : public BasicRoutineHooks {
  public:
   template <typename... Args>
-  explicit StreamForHooks(StreamReaderPtr /*absl_nonnull*/ reader, Args&&... args)
+  explicit StreamForHooks(StreamReaderPtr absl_nonnull reader, Args&&... args)
       : reader_(std::move(reader)), traits_(std::forward<Args>(args)...) {}
 
   bool Interrupted() const final { return traits_.Interrupted(); }
@@ -61,14 +61,14 @@ class StreamForHooks final : public BasicRoutineHooks {
     traits_.OnError(std::move(status));
   }
 
-  StreamReaderPtr /*absl_nullable*/ Start() final {
+  StreamReaderPtr absl_nullable Start() final {
     ASSIGN_OR_RETURN(auto parsed_condition, CallLoopCondition(),
                      OnError(std::move(_)));
     return Run(std::move(parsed_condition));
   }
 
-  StreamReaderPtr /*absl_nullable*/ Resume(  // clang-format hint
-      StreamReaderPtr /*absl_nonnull*/ reader) final {
+  StreamReaderPtr absl_nullable Resume(  // clang-format hint
+      StreamReaderPtr absl_nonnull reader) final {
     // Note: This method might be called when the loop is waiting
     // on either the input stream or the loop condition. If it's
     // waiting on the input stream, the stored `reader_` will be null;
@@ -94,7 +94,7 @@ class StreamForHooks final : public BasicRoutineHooks {
     return [this](absl::Status&& status) { return OnError(std::move(status)); };
   }
 
-  StreamReaderPtr /*absl_nullable*/ Run(ParsedLoopCondition parsed_condition) {
+  StreamReaderPtr absl_nullable Run(ParsedLoopCondition parsed_condition) {
     DCHECK(reader_ != nullptr);
     StreamReader::TryReadResult try_read_result;
     for (;;) {
@@ -152,14 +152,14 @@ class StreamForHooks final : public BasicRoutineHooks {
     return traits_.CallLoopCondition();
   }
 
-  StreamReaderPtr /*absl_nullable*/ reader_;
+  StreamReaderPtr absl_nullable reader_;
   Traits traits_;
 };
 
 // Traits for the `StreamForReturns` operator.
 class StreamForReturnsTraits {
  public:
-  StreamForReturnsTraits(StreamWriterPtr /*absl_nonnull*/ writer,
+  StreamForReturnsTraits(StreamWriterPtr absl_nonnull writer,
                          StreamForFunctor /*nonnull*/ body_functor,
                          StreamForFunctor /*nullable*/ finalize_functor,
                          StreamForFunctor /*nullable*/ condition_functor,
@@ -216,19 +216,19 @@ class StreamForReturnsTraits {
   }
 
  private:
-  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  const StreamWriterPtr absl_nonnull writer_;
   const StreamForFunctor /*nonnull*/ body_functor_;
   const StreamForFunctor /*nullable*/ finalize_functor_;
   const StreamForFunctor /*nullable*/ condition_functor_;
-  StreamReaderPtr /*absl_nullable*/ reader_;
+  StreamReaderPtr absl_nullable reader_;
   Vars vars_;
 };
 
 }  // namespace
 
-absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamForReturns(
-    ExecutorPtr /*absl_nonnull*/ executor,
-    const StreamPtr /*absl_nonnull*/& input_stream,
+absl::StatusOr<StreamPtr absl_nonnull> StreamForReturns(
+    ExecutorPtr absl_nonnull executor,
+    const StreamPtr absl_nonnull& input_stream,
     StreamForFunctor /*nonnull*/ body_functor,
     StreamForFunctor /*nullable*/ finalize_functor,
     StreamForFunctor /*nullable*/ condition_functor,
@@ -272,7 +272,7 @@ namespace {
 // Traits for the `StreamForYields` operator.
 class StreamForYieldsTraits {
  public:
-  StreamForYieldsTraits(StreamWriterPtr /*absl_nonnull*/ writer,
+  StreamForYieldsTraits(StreamWriterPtr absl_nonnull writer,
                         StreamForFunctor /*nonnull*/ body_functor,
                         StreamForFunctor /*nullable*/ finalize_functor,
                         StreamForFunctor /*nullable*/ condition_functor,
@@ -350,7 +350,7 @@ class StreamForYieldsTraits {
     }
   }
 
-  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  const StreamWriterPtr absl_nonnull writer_;
   const StreamForFunctor /*nonnull*/ body_functor_;
   const StreamForFunctor /*nullable*/ finalize_functor_;
   const StreamForFunctor /*nullable*/ condition_functor_;
@@ -360,9 +360,9 @@ class StreamForYieldsTraits {
 
 }  // namespace
 
-absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamForYields(
-    ExecutorPtr /*absl_nonnull*/ executor,
-    const StreamPtr /*absl_nonnull*/& input_stream,
+absl::StatusOr<StreamPtr absl_nonnull> StreamForYields(
+    ExecutorPtr absl_nonnull executor,
+    const StreamPtr absl_nonnull& input_stream,
     StreamForFunctor /*nonnull*/ body_functor,
     StreamForFunctor /*nullable*/ finalize_functor,
     StreamForFunctor /*nullable*/ condition_functor,

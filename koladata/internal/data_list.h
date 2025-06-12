@@ -278,7 +278,7 @@ class DataListVector {
 
   size_t size() const { return data_.size(); }
 
-  const DataList* /*absl_nullable*/ Get(size_t index) const {
+  const DataList* absl_nullable Get(size_t index) const {
     DCHECK_LT(index, size());
     return data_[index].ptr;
   }

@@ -69,7 +69,7 @@ using ::arolla::python::UnwrapPyExpr;
 using ::arolla::python::UnwrapPyQValue;
 using ::arolla::python::WrapAsPyQValue;
 
-PyObject* /*absl_nullable*/ PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
+PyObject* absl_nullable PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
                                    Py_ssize_t nargs, PyObject* py_kwnames) {
   DCheckPyGIL();
   PyCancellationScope cancellation_scope;
@@ -146,7 +146,7 @@ PyObject* PyClearArollaOpCache(PyObject* /*self*/, PyObject* /*py_args*/) {
   Py_RETURN_NONE;
 }
 
-PyObject* /*absl_nullable*/ PyEvalOp(PyObject* /*self*/, PyObject** py_args,
+PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
                                  Py_ssize_t nargs, PyObject* py_kwnames) {
   DCheckPyGIL();
   PyCancellationScope cancellation_scope;

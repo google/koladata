@@ -81,8 +81,8 @@ namespace koladata {
 // "(package_name.some_extension)" or
 // "(package_name.SomeMessage.some_extension)".)
 absl::StatusOr<DataSlice> FromProto(
-    const /*absl_nonnull*/ DataBagPtr& db,
-    absl::Span<const ::google::protobuf::Message* /*absl_nonnull*/ const> messages,
+    const absl_nonnull DataBagPtr& db,
+    absl::Span<const ::google::protobuf::Message* absl_nonnull const> messages,
     absl::Span<const std::string_view> extensions = {},
     const std::optional<DataSlice>& itemids = std::nullopt,
     const std::optional<DataSlice>& schema = std::nullopt);
@@ -90,7 +90,7 @@ absl::StatusOr<DataSlice> FromProto(
 // Same as above, but the result uses a new immutable DataBag, and if possible,
 // that DataBag is forked from schema->GetBag() to avoid a schema extraction.
 absl::StatusOr<DataSlice> FromProto(
-    absl::Span<const ::google::protobuf::Message* /*absl_nonnull*/ const> messages,
+    absl::Span<const ::google::protobuf::Message* absl_nonnull const> messages,
     absl::Span<const std::string_view> extensions = {},
     const std::optional<DataSlice>& itemids = std::nullopt,
     const std::optional<DataSlice>& schema = std::nullopt);
@@ -114,13 +114,13 @@ absl::StatusOr<DataSlice> FromProto(
 //
 // TODO: Add a way to filter fields by name.
 absl::StatusOr<DataSlice> SchemaFromProto(
-    const /*absl_nonnull*/ DataBagPtr& db,
-    const ::google::protobuf::Descriptor* /*absl_nonnull*/ descriptor,
+    const absl_nonnull DataBagPtr& db,
+    const ::google::protobuf::Descriptor* absl_nonnull descriptor,
     absl::Span<const std::string_view> extensions = {});
 
 // Same as above, but the result uses a new immutable DataBag.
 absl::StatusOr<DataSlice> SchemaFromProto(
-    const ::google::protobuf::Descriptor* /*absl_nonnull*/ descriptor,
+    const ::google::protobuf::Descriptor* absl_nonnull descriptor,
     absl::Span<const std::string_view> extensions = {});
 
 }  // namespace koladata

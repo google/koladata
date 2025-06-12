@@ -14,9 +14,10 @@
 
 # Tests for Koda functions.
 
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
+load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
 load("@rules_python//python:defs.bzl", "py_test")
-load("@rules_python//python:proto.bzl", "py_proto_library")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
@@ -35,7 +36,6 @@ py_test(
         "//py/koladata/types:data_bag",
         "//py/koladata/types:qtypes",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -161,7 +161,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -264,7 +263,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -580,7 +578,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -606,7 +603,6 @@ py_test(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -837,7 +833,6 @@ py_test(
         "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
-        "@com_google_arolla//py/arolla",
     ],
 )
 

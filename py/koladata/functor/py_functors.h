@@ -21,7 +21,7 @@
 
 namespace koladata::python {
 
-PyObject* /*absl_nullable*/ PyAutoVariables(PyObject* /*self*/, PyObject** py_args,
+PyObject* absl_nullable PyAutoVariables(PyObject* /*self*/, PyObject** py_args,
                                         Py_ssize_t nargs);
 
 }  // namespace koladata::python

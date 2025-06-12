@@ -44,7 +44,7 @@ struct SliceRegistry {
 
 }  // namespace
 
-const DataSlice* /*absl_nullable*/ GetRegisteredSlice(absl::string_view key) {
+const DataSlice* absl_nullable GetRegisteredSlice(absl::string_view key) {
   SliceRegistry& r = SliceRegistry::get();
   absl::MutexLock lock(&r.m);
   auto it = r.slices.find(key);

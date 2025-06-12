@@ -23,6 +23,7 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "koladata/functor/parallel/executor.h"
+#include "koladata/functor/parallel/get_default_executor.h"
 
 namespace koladata::functor::parallel {
 namespace {
@@ -61,6 +62,7 @@ TEST(AsioExecutorTest, NumberOfThreadsUpperBound) {
 }
 
 TEST(AsioExecutorTest, NonBlockingDestructor) {
+  GetDefaultExecutor()->Schedule([] {});  // Spin up the default executor.
   auto executor = MakeAsioExecutor();
   auto barrier = std::make_shared<absl::Barrier>(2);
   executor->Schedule([barrier] {
@@ -71,7 +73,7 @@ TEST(AsioExecutorTest, NonBlockingDestructor) {
   const auto start = absl::Now();
   executor.reset();
   const auto stop = absl::Now();
-  EXPECT_LE(stop - start, absl::Milliseconds(95));
+  EXPECT_LE(stop - start, absl::Milliseconds(50));
 }
 
 }  // namespace

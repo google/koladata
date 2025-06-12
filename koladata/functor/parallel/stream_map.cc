@@ -95,26 +95,26 @@ using SinkPtr = std::unique_ptr<Sink>;
 // A structure with the state shared between different routines implementing
 // the stream.map* operations. Only the routines in this file have access to it.
 struct State {
-  const arolla::CancellationContextPtr /*absl_nullable*/ cancellation_context =
+  const arolla::CancellationContextPtr absl_nullable cancellation_context =
       arolla::CurrentCancellationContext();
   arolla::CancellationContext::Subscription cancellation_subscription;
 
-  const ExecutorPtr /*absl_nonnull*/ executor;
+  const ExecutorPtr absl_nonnull executor;
   const Functor functor;
 
   // Note: There is only one reading routine, thus no extra synchronization
   // needed.
-  const StreamReaderPtr /*absl_nonnull*/ reader;
+  const StreamReaderPtr absl_nonnull reader;
   size_t read_count = 0;
   std::atomic_flag stop_reader;
 
-  const arolla::QTypePtr /*absl_nonnull*/ value_qtype;
-  SinkPtr /*absl_nonnull*/ sink;
+  const arolla::QTypePtr absl_nonnull value_qtype;
+  SinkPtr absl_nonnull sink;
 
   // Note: A constructor for compatibility with std::make_shared.
-  State(ExecutorPtr /*absl_nonnull*/ executor, Functor functor,
-        StreamReaderPtr /*absl_nonnull*/ reader,
-        arolla::QTypePtr /*absl_nonnull*/ value_qtype, SinkPtr /*absl_nonnull*/ sink)
+  State(ExecutorPtr absl_nonnull executor, Functor functor,
+        StreamReaderPtr absl_nonnull reader,
+        arolla::QTypePtr absl_nonnull value_qtype, SinkPtr absl_nonnull sink)
       : executor(std::move(executor)),
         functor(std::move(functor)),
         reader(std::move(reader)),
@@ -125,7 +125,7 @@ struct State {
 using StatePtr = std::shared_ptr<State>;
 
 // Calls the functor on the given item, and forwards the result to the sink.
-void ProcessItem(StatePtr /*absl_nonnull*/ state, size_t offset,
+void ProcessItem(StatePtr absl_nonnull state, size_t offset,
                  arolla::TypedRef item) {
   if (!state->sink->Accepts(offset)) {
     return;
@@ -151,7 +151,7 @@ void ProcessItem(StatePtr /*absl_nonnull*/ state, size_t offset,
 }
 
 // Reads the items from the stream and schedules their processing.
-void ReadItems(StatePtr /*absl_nonnull*/ state) {
+void ReadItems(StatePtr absl_nonnull state) {
   if (state->stop_reader.test(std::memory_order_relaxed)) {
     return;
   }
@@ -188,9 +188,9 @@ void ReadItems(StatePtr /*absl_nonnull*/ state) {
   });
 }
 
-void StartStreamMap(ExecutorPtr /*absl_nonnull*/ executor,
-                    const StreamPtr /*absl_nonnull*/& input_stream, SinkPtr sink,
-                    arolla::QTypePtr /*absl_nonnull*/ return_value_type,
+void StartStreamMap(ExecutorPtr absl_nonnull executor,
+                    const StreamPtr absl_nonnull& input_stream, SinkPtr sink,
+                    arolla::QTypePtr absl_nonnull return_value_type,
                     Functor functor) {
   DCHECK(functor != nullptr);
   auto state = std::make_shared<State>(std::move(executor), std::move(functor),
@@ -215,7 +215,7 @@ void StartStreamMap(ExecutorPtr /*absl_nonnull*/ executor,
 
 class OrderedSink final : public Sink {
  public:
-  explicit OrderedSink(StreamWriterPtr /*absl_nonnull*/ writer)
+  explicit OrderedSink(StreamWriterPtr absl_nonnull writer)
       : writer_(std::move(writer)) {}
 
   bool Accepts(size_t offset) const final {
@@ -270,7 +270,7 @@ class OrderedSink final : public Sink {
   }
 
  private:
-  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  const StreamWriterPtr absl_nonnull writer_;
   // Note: While `final_offset_` is not protected by the `mutex_`,
   // writing to it always happens under the mutex.
   std::atomic<size_t> final_offset_ = std::numeric_limits<size_t>::max();
@@ -282,7 +282,7 @@ class OrderedSink final : public Sink {
 
 class UnorderedSink final : public Sink {
  public:
-  explicit UnorderedSink(StreamWriterPtr /*absl_nonnull*/ writer)
+  explicit UnorderedSink(StreamWriterPtr absl_nonnull writer)
       : writer_(std::move(writer)) {}
 
   ~UnorderedSink() final {
@@ -327,7 +327,7 @@ class UnorderedSink final : public Sink {
   }
 
  private:
-  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  const StreamWriterPtr absl_nonnull writer_;
   std::atomic_flag failed_;
   std::atomic<size_t> write_count_ = 0;
   std::optional<size_t> input_stream_size_;
@@ -335,10 +335,10 @@ class UnorderedSink final : public Sink {
 
 }  // namespace
 
-StreamPtr /*absl_nonnull*/ StreamMap(
-    ExecutorPtr /*absl_nonnull*/ executor,
-    const StreamPtr /*absl_nonnull*/& input_stream,
-    arolla::QTypePtr /*absl_nonnull*/ return_value_type,  // clang-format hint
+StreamPtr absl_nonnull StreamMap(
+    ExecutorPtr absl_nonnull executor,
+    const StreamPtr absl_nonnull& input_stream,
+    arolla::QTypePtr absl_nonnull return_value_type,  // clang-format hint
     Functor functor) {
   auto [stream, writer] = MakeStream(return_value_type);
   StartStreamMap(std::move(executor), input_stream,
@@ -347,10 +347,10 @@ StreamPtr /*absl_nonnull*/ StreamMap(
   return std::move(stream);
 }
 
-StreamPtr /*absl_nonnull*/ StreamMapUnordered(
-    ExecutorPtr /*absl_nonnull*/ executor,
-    const StreamPtr /*absl_nonnull*/& input_stream,
-    arolla::QTypePtr /*absl_nonnull*/ return_value_type,  // clang-format hint
+StreamPtr absl_nonnull StreamMapUnordered(
+    ExecutorPtr absl_nonnull executor,
+    const StreamPtr absl_nonnull& input_stream,
+    arolla::QTypePtr absl_nonnull return_value_type,  // clang-format hint
     Functor functor) {
   auto [stream, writer] = MakeStream(return_value_type);
   StartStreamMap(std::move(executor), input_stream,

@@ -27,7 +27,7 @@ namespace koladata {
 // Returns nullptr if the message_name is not found in the generated descriptor
 // pool.
 // The proto must be linked in the binary, otherwise returns nullptr.
-std::unique_ptr<::google::protobuf::Message> /*absl_nullable*/ CreateProtoMessagePrototype(
+std::unique_ptr<::google::protobuf::Message> absl_nullable CreateProtoMessagePrototype(
     absl::string_view message_name);
 
 // Finds a proto message with the given name and deserializes it from the

@@ -53,7 +53,7 @@ namespace koladata::ops {
 
 namespace {
 
-absl::StatusOr<const google::protobuf::Message* /*absl_nonnull*/> GetMessagePrototype(
+absl::StatusOr<const google::protobuf::Message* absl_nonnull> GetMessagePrototype(
     const DataSlice& proto_path) {
   RETURN_IF_ERROR(
       ExpectPresentScalar("proto_path", proto_path, schema::kString));

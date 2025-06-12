@@ -115,7 +115,7 @@ class FutureWriter {
   FutureWriter& operator=(const FutureWriter&) = delete;
 
  private:
-  explicit FutureWriter(FuturePtr /*absl_nonnull*/ future)
+  explicit FutureWriter(FuturePtr absl_nonnull future)
       : future_(std::move(future)) {}
 
   FuturePtr future_;

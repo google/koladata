@@ -63,7 +63,7 @@ std::nullptr_t NotJaggedShapeError(PyObject* py_obj,
 
 }  // namespace
 
-const DataSlice* /*absl_nullable*/ UnwrapDataSlice(
+const DataSlice* absl_nullable UnwrapDataSlice(
     PyObject* py_obj, absl::string_view name_for_error) {
   if (!arolla::python::IsPyQValueInstance(py_obj)) {
     return NotDataSliceError(py_obj, name_for_error);
@@ -75,12 +75,12 @@ const DataSlice* /*absl_nullable*/ UnwrapDataSlice(
   return &typed_value.UnsafeAs<DataSlice>();
 }
 
-PyObject* /*absl_nullable*/ WrapPyDataSlice(DataSlice&& ds) {
+PyObject* absl_nullable WrapPyDataSlice(DataSlice&& ds) {
   return arolla::python::WrapAsPyQValue(
       arolla::TypedValue::FromValue(std::move(ds)));
 }
 
-PyObject* /*absl_nullable*/ WrapPyDataSliceAsWholeWithFrozenDataBag(
+PyObject* absl_nullable WrapPyDataSliceAsWholeWithFrozenDataBag(
     DataSlice&& ds) {
   auto db = ds.GetBag();
   ASSIGN_OR_RETURN(ds,
@@ -110,7 +110,7 @@ const DataSlice& UnsafeDataSliceRef(PyObject* py_obj) {
   return arolla::python::UnsafeUnwrapPyQValue(py_obj).UnsafeAs<DataSlice>();
 }
 
-PyObject* /*absl_nullable*/ WrapDataBagPtr(DataBagPtr db) {
+PyObject* absl_nullable WrapDataBagPtr(DataBagPtr db) {
   return arolla::python::WrapAsPyQValue(
       arolla::TypedValue::FromValue(std::move(db)));
 }
@@ -134,7 +134,7 @@ const DataBagPtr& UnsafeDataBagPtr(PyObject* py_obj) {
   return arolla::python::UnsafeUnwrapPyQValue(py_obj).UnsafeAs<DataBagPtr>();
 }
 
-const DataSlice::JaggedShape* /*absl_nullable*/ UnwrapJaggedShape(
+const DataSlice::JaggedShape* absl_nullable UnwrapJaggedShape(
     PyObject* py_obj, absl::string_view name_for_error) {
   if (!arolla::python::IsPyQValueInstance(py_obj)) {
     return NotJaggedShapeError(py_obj, name_for_error);
@@ -146,7 +146,7 @@ const DataSlice::JaggedShape* /*absl_nullable*/ UnwrapJaggedShape(
   return &shape_typed_value.UnsafeAs<DataSlice::JaggedShape>();
 }
 
-PyObject* /*absl_nullable*/ WrapPyJaggedShape(DataSlice::JaggedShape shape) {
+PyObject* absl_nullable WrapPyJaggedShape(DataSlice::JaggedShape shape) {
   ASSIGN_OR_RETURN(auto typed_value,
                    arolla::TypedValue::FromValueWithQType(
                        std::move(shape), GetJaggedShapeQType()),

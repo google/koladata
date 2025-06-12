@@ -36,11 +36,11 @@ namespace {
 // beyond the scope of this file.
 
 struct BasicRoutineState {
-  const ExecutorPtr /*absl_nonnull*/ executor;
-  const std::unique_ptr<BasicRoutineHooks> /*absl_nonnull*/ hooks;
-  StreamReaderPtr /*absl_nullable*/ reader;
+  const ExecutorPtr absl_nonnull executor;
+  const std::unique_ptr<BasicRoutineHooks> absl_nonnull hooks;
+  StreamReaderPtr absl_nullable reader;
 
-  const arolla::CancellationContextPtr /*absl_nonnull*/ cancellation_context =
+  const arolla::CancellationContextPtr absl_nonnull cancellation_context =
       arolla::CurrentCancellationContext();
   arolla::CancellationContext::Subscription cancellation_subscription;
 };
@@ -53,7 +53,7 @@ using BasicRoutineStatePtr = std::shared_ptr<BasicRoutineState>;
          state.hooks->Interrupted();
 }
 
-void Run(BasicRoutineStatePtr /*absl_nonnull*/&& state) {
+void Run(BasicRoutineStatePtr absl_nonnull&& state) {
   arolla::CancellationContext::ScopeGuard cancellation_scope(
       state->cancellation_context);
   if (state->reader == nullptr) {
@@ -79,8 +79,8 @@ void Run(BasicRoutineStatePtr /*absl_nonnull*/&& state) {
 }  // namespace
 
 void StartBasicRoutine(
-    ExecutorPtr /*absl_nonnull*/ executor,
-    std::unique_ptr<BasicRoutineHooks> /*absl_nonnull*/ routine_hooks) {
+    ExecutorPtr absl_nonnull executor,
+    std::unique_ptr<BasicRoutineHooks> absl_nonnull routine_hooks) {
   auto state = std::make_shared<BasicRoutineState>(std::move(executor),
                                                    std::move(routine_hooks));
   if (state->cancellation_context != nullptr) {

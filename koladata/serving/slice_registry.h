@@ -24,7 +24,7 @@ namespace koladata::serving {
 
 // Returns a slice with the given key from the global registry or nullptr if the
 // key is not found.
-const DataSlice* /*absl_nullable*/ GetRegisteredSlice(absl::string_view key);
+const DataSlice* absl_nullable GetRegisteredSlice(absl::string_view key);
 
 // Registers a slice with the given key in a global registry. Returns an error
 // if the name is already taken.

@@ -64,14 +64,14 @@ class StreamWhileHooks final : public BasicRoutineHooks {
     traits_.OnError(std::move(status));
   }
 
-  StreamReaderPtr /*absl_nullable*/ Start() final {
+  StreamReaderPtr absl_nullable Start() final {
     ASSIGN_OR_RETURN(auto parsed_condition, CallLoopCondition(),
                      OnError(std::move(_)));
     return Run(std::move(parsed_condition));
   }
 
-  StreamReaderPtr /*absl_nullable*/ Resume(  // clang-format hint
-      StreamReaderPtr /*absl_nonnull*/ condition) final {
+  StreamReaderPtr absl_nullable Resume(  // clang-format hint
+      StreamReaderPtr absl_nonnull condition) final {
     ASSIGN_OR_RETURN(auto parsed_condition,
                      ParseLoopConditionStream(std::move(condition)),
                      OnError(std::move(_)));
@@ -88,7 +88,7 @@ class StreamWhileHooks final : public BasicRoutineHooks {
     return [this](absl::Status&& status) { return OnError(std::move(status)); };
   }
 
-  StreamReaderPtr /*absl_nullable*/ Run(ParsedLoopCondition parsed_condition) {
+  StreamReaderPtr absl_nullable Run(ParsedLoopCondition parsed_condition) {
     while (parsed_condition.value) {
       RETURN_IF_ERROR(CallLoopBody()).With(OnError());
       ASSIGN_OR_RETURN(parsed_condition, CallLoopCondition(),
@@ -122,7 +122,7 @@ class StreamWhileHooks final : public BasicRoutineHooks {
 // Traits for the `StreamWhileReturns` operator.
 class StreamWhileReturnsTraits {
  public:
-  StreamWhileReturnsTraits(StreamWriterPtr /*absl_nonnull*/ writer,
+  StreamWhileReturnsTraits(StreamWriterPtr absl_nonnull writer,
                            StreamWhileFunctor /*nonnull*/ condition_functor,
                            StreamWhileFunctor /*nonnull*/ body_functor,
                            Vars vars)
@@ -160,7 +160,7 @@ class StreamWhileReturnsTraits {
   }
 
  private:
-  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  const StreamWriterPtr absl_nonnull writer_;
   const StreamWhileFunctor /*nonnull*/ condition_functor_;
   const StreamWhileFunctor /*nonnull*/ body_functor_;
   Vars vars_;
@@ -168,8 +168,8 @@ class StreamWhileReturnsTraits {
 
 }  // namespace
 
-absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileReturns(
-    ExecutorPtr /*absl_nonnull*/ executor,
+absl::StatusOr<StreamPtr absl_nonnull> StreamWhileReturns(
+    ExecutorPtr absl_nonnull executor,
     StreamWhileFunctor /*nonnull*/ condition_functor,
     StreamWhileFunctor /*nonnull*/ body_functor,
     arolla::TypedRef initial_state_returns, arolla::TypedRef initial_state) {
@@ -211,7 +211,7 @@ namespace {
 // Traits for the `StreamWhileYields` operator.
 class StreamWhileYieldsTraits {
  public:
-  StreamWhileYieldsTraits(StreamWriterPtr /*absl_nonnull*/ writer,
+  StreamWhileYieldsTraits(StreamWriterPtr absl_nonnull writer,
                           StreamWhileFunctor /*nonnull*/ condition_functor,
                           StreamWhileFunctor /*nonnull*/ body_functor,
                           Vars vars)
@@ -266,7 +266,7 @@ class StreamWhileYieldsTraits {
     }
   }
 
-  const StreamWriterPtr /*absl_nonnull*/ writer_;
+  const StreamWriterPtr absl_nonnull writer_;
   const StreamWhileFunctor /*nonnull*/ condition_functor_;
   const StreamWhileFunctor /*nonnull*/ body_functor_;
   Vars vars_;
@@ -275,8 +275,8 @@ class StreamWhileYieldsTraits {
 
 }  // namespace
 
-absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamWhileYields(
-    ExecutorPtr /*absl_nonnull*/ executor,
+absl::StatusOr<StreamPtr absl_nonnull> StreamWhileYields(
+    ExecutorPtr absl_nonnull executor,
     StreamWhileFunctor /*nonnull*/ condition_functor,
     StreamWhileFunctor /*nonnull*/ body_functor,
     absl::string_view yields_param_name, arolla::TypedRef initial_yields,

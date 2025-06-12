@@ -1089,7 +1089,7 @@ class DataBagImpl::ReadOnlyListGetter {
   explicit ReadOnlyListGetter(const DataBagImpl* bag) : bag_(bag) {}
 
   // Returns nullptr if the list is UNSET.
-  const DataList* /*absl_nullable*/ operator()(ObjectId list_id) {
+  const DataList* absl_nullable operator()(ObjectId list_id) {
     AllocationId alloc_id(list_id);
     if (alloc_id != current_alloc_) {
       if (ABSL_PREDICT_FALSE(!alloc_id.IsListsAlloc())) {

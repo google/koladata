@@ -42,7 +42,7 @@ namespace koladata::functor::parallel::stream_loop_internal {
 //                            retried once the reader is ready.
 struct ParsedLoopCondition {
   bool value;
-  StreamReaderPtr /*absl_nullable*/ reader;
+  StreamReaderPtr absl_nullable reader;
 };
 
 // Parses a loop condition value, which must be either a `DATA_SLICE` storing
@@ -57,7 +57,7 @@ absl::StatusOr<ParsedLoopCondition> ParseLoopConditionDataSlice(
 
 // Parses the given loop condition given as a stream storing a mask data-item.
 absl::StatusOr<ParsedLoopCondition> ParseLoopConditionStream(
-    StreamReaderPtr /*absl_nonnull*/ condition);
+    StreamReaderPtr absl_nonnull condition);
 
 // A helper class for managing loop variables.
 //

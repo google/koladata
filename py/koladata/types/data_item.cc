@@ -68,7 +68,7 @@ int PyDataItem_bool(PyObject* self) {
   return error();
 }
 
-PyObject* /*absl_nullable*/ PyDataItem_index(PyObject* self) {
+PyObject* absl_nullable PyDataItem_index(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   if (ds.item().holds_value<int>()) {
@@ -83,7 +83,7 @@ PyObject* /*absl_nullable*/ PyDataItem_index(PyObject* self) {
       "got %s", arolla::Repr(ds).c_str());
 }
 
-PyObject* /*absl_nullable*/ PyDataItem_int(PyObject* self) {
+PyObject* absl_nullable PyDataItem_int(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   DCHECK_EQ(ds.GetShape().rank(), 0);
@@ -99,7 +99,7 @@ PyObject* /*absl_nullable*/ PyDataItem_int(PyObject* self) {
   return PyNumber_Long(py_obj.get());
 }
 
-PyObject* /*absl_nullable*/ PyDataItem_float(PyObject* self) {
+PyObject* absl_nullable PyDataItem_float(PyObject* self) {
   arolla::python::DCheckPyGIL();
   const auto& ds = UnsafeDataSliceRef(self);
   DCHECK_EQ(ds.GetShape().rank(), 0);
@@ -116,7 +116,7 @@ PyObject* /*absl_nullable*/ PyDataItem_float(PyObject* self) {
 }
 
 // classmethod
-PyObject* /*absl_nullable*/ PyDataItem_from_vals(PyTypeObject* cls,
+PyObject* absl_nullable PyDataItem_from_vals(PyTypeObject* cls,
                                              PyObject* const* py_args,
                                              Py_ssize_t nargs,
                                              PyObject* py_kwnames) {

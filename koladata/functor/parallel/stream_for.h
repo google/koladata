@@ -33,17 +33,17 @@ using StreamForFunctor = absl::AnyInvocable<absl::StatusOr<arolla::TypedValue>(
     absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames) const>;
 
-absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamForReturns(
-    ExecutorPtr /*absl_nonnull*/ executor,
-    const StreamPtr /*absl_nonnull*/& input_stream,
+absl::StatusOr<StreamPtr absl_nonnull> StreamForReturns(
+    ExecutorPtr absl_nonnull executor,
+    const StreamPtr absl_nonnull& input_stream,
     StreamForFunctor /*nonnull*/ body_functor,
     StreamForFunctor /*nullable*/ finalize_functor,
     StreamForFunctor /*nullable*/ condition_functor,
     arolla::TypedRef initial_returns, arolla::TypedRef initial_state);
 
-absl::StatusOr<StreamPtr /*absl_nonnull*/> StreamForYields(
-    ExecutorPtr /*absl_nonnull*/ executor,
-    const StreamPtr /*absl_nonnull*/& input_stream,
+absl::StatusOr<StreamPtr absl_nonnull> StreamForYields(
+    ExecutorPtr absl_nonnull executor,
+    const StreamPtr absl_nonnull& input_stream,
     StreamForFunctor /*nonnull*/ body_functor,
     StreamForFunctor /*nullable*/ finalize_functor,
     StreamForFunctor /*nullable*/ condition_functor,

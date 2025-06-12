@@ -238,7 +238,7 @@ namespace schema_utils_internal {
 
 absl::Status ExpectConsistentStringOrBytesImpl(
     absl::Span<const absl::string_view> arg_names,
-    absl::Span<const DataSlice* /*absl_nonnull*/ const> args) {
+    absl::Span<const DataSlice* absl_nonnull const> args) {
   if (args.size() != arg_names.size()) {
     return absl::InternalError("size mismatch between args and arg_names");
   }

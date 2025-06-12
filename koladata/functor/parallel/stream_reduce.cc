@@ -39,9 +39,9 @@ using Functor = absl::AnyInvocable<absl::StatusOr<arolla::TypedValue>(
 
 class StreamReduceHooks final : public BasicRoutineHooks {
  public:
-  StreamReduceHooks(StreamWriterPtr /*absl_nonnull*/ writer,
+  StreamReduceHooks(StreamWriterPtr absl_nonnull writer,
                     arolla::TypedValue initial_value,
-                    StreamPtr /*absl_nonnull*/ input_stream, Functor functor)
+                    StreamPtr absl_nonnull input_stream, Functor functor)
       : writer_(std::move(writer)),
         input_stream_(std::move(input_stream)),
         functor_(std::move(functor)),
@@ -53,12 +53,12 @@ class StreamReduceHooks final : public BasicRoutineHooks {
 
   void OnCancel(absl::Status&& status) final { OnError(std::move(status)); }
 
-  StreamReaderPtr /*absl_nullable*/ Start() final {
+  StreamReaderPtr absl_nullable Start() final {
     return Resume(input_stream_->MakeReader());
   }
 
-  StreamReaderPtr /*absl_nullable*/ Resume(  // clang-format hint
-      StreamReaderPtr /*absl_nonnull*/ reader) final {
+  StreamReaderPtr absl_nullable Resume(  // clang-format hint
+      StreamReaderPtr absl_nonnull reader) final {
     auto try_read_result = reader->TryRead();
     while (arolla::TypedRef* item = try_read_result.item()) {
       if (Interrupted()) {
@@ -88,17 +88,17 @@ class StreamReduceHooks final : public BasicRoutineHooks {
     return nullptr;
   }
 
-  const StreamWriterPtr /*absl_nonnull*/ writer_;
-  const StreamPtr /*absl_nonnull*/ input_stream_;
+  const StreamWriterPtr absl_nonnull writer_;
+  const StreamPtr absl_nonnull input_stream_;
   const Functor functor_;
   arolla::TypedValue value_;
 };
 
 }  // namespace
 
-StreamPtr /*absl_nonnull*/ StreamReduce(ExecutorPtr /*absl_nonnull*/ executor,
+StreamPtr absl_nonnull StreamReduce(ExecutorPtr absl_nonnull executor,
                                     arolla::TypedValue initial_value,
-                                    StreamPtr /*absl_nonnull*/ input_stream,
+                                    StreamPtr absl_nonnull input_stream,
                                     Functor functor) {
   DCHECK(functor != nullptr);
   auto [result, writer] = MakeStream(initial_value.GetType(), 1);

@@ -45,7 +45,7 @@ class AdoptionQueue {
   }
 
   // Tracks all triples in `db`, which will be present in the result databag.
-  void Add(/*absl_nullable*/ DataBagPtr db) {
+  void Add(absl_nullable DataBagPtr db) {
     if (db != nullptr) {
       bags_to_merge_.push_back(std::move(db));
     }
@@ -64,14 +64,14 @@ class AdoptionQueue {
   // 2. If all tracked triples are from the same DataBag, returns that DataBag.
   // 3. Else, returns a new immutable DataBag containing all tracked triples, or
   //    an error if this causes a merge conflict.
-  absl::StatusOr</*absl_nullable*/ DataBagPtr> GetCommonOrMergedDb() const;
+  absl::StatusOr<absl_nullable DataBagPtr> GetCommonOrMergedDb() const;
 
   // Returns a new empty immutable DataBag with all tracked DataBags and tracked
   // slices' DataBags as fallbacks. The fallback order is unspecified but
   // deterministic. This is useful for cheaply and reliably getting a complete
   // DataBag for error messages, but does not check for merge conflicts, and
   // should not be used to define user-facing operator behavior.
-  /*absl_nonnull*/ DataBagPtr GetBagWithFallbacks() const;
+  absl_nonnull DataBagPtr GetBagWithFallbacks() const;
 
  private:
   std::vector<DataSlice> slices_to_merge_;
@@ -87,8 +87,8 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x);
 // 2. Else if `slice.GetBag() == nullptr`, returns `db`.
 // 3. Else, `slice` is extracted, and the "common bag" is computed and returned
 //    with `slice` having a higher precedence.
-absl::StatusOr</*absl_nullable*/ DataBagPtr> WithAdoptedValues(
-    const /*absl_nullable*/ DataBagPtr& db, const DataSlice& slice);
+absl::StatusOr<absl_nullable DataBagPtr> WithAdoptedValues(
+    const absl_nullable DataBagPtr& db, const DataSlice& slice);
 
 }  // namespace koladata
 

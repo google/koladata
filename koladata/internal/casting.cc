@@ -171,7 +171,7 @@ absl::StatusOr<internal::DataSliceImpl> ToSchema::operator()(
 
 absl::StatusOr<ToObject> ToObject::Make(
     internal::DataItem schema, bool validate_schema,
-    internal::DataBagImpl* /*absl_nullable*/ db_impl) {
+    internal::DataBagImpl* absl_nullable db_impl) {
   if (schema.is_struct_schema()) {
     if (schema.value<internal::ObjectId>().IsNoFollowSchema()) {
       return absl::InvalidArgumentError("schema must not be a NoFollow schema");
@@ -186,7 +186,7 @@ absl::StatusOr<ToObject> ToObject::Make(
 }
 
 absl::StatusOr<ToObject> ToObject::Make(
-    bool validate_schema, internal::DataBagImpl* /*absl_nullable*/ db_impl) {
+    bool validate_schema, internal::DataBagImpl* absl_nullable db_impl) {
   return ToObject::Make(internal::DataItem(), validate_schema,
                         std::move(db_impl));
 }

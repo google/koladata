@@ -28,14 +28,14 @@ namespace koladata::functor::parallel {
 // one. This class is thread-safe.
 class StreamInterleave {
  public:
-  explicit StreamInterleave(StreamWriterPtr /*absl_nonnull*/ writer);
+  explicit StreamInterleave(StreamWriterPtr absl_nonnull writer);
 
   // Movable but non-copyable.
   StreamInterleave(StreamInterleave&&) = default;
   StreamInterleave& operator=(StreamInterleave&&) = default;
 
   // Adds one more input stream to the interleave.
-  void Add(const StreamPtr /*absl_nonnull*/& stream);
+  void Add(const StreamPtr absl_nonnull& stream);
 
   // Adds an error to the interleaved stream; `status` must be non-OK.
   void AddError(absl::Status status);
@@ -60,14 +60,14 @@ class StreamInterleave {
 // on a race).
 class StreamChain {
  public:
-  explicit StreamChain(StreamWriterPtr /*absl_nonnull*/ writer);
+  explicit StreamChain(StreamWriterPtr absl_nonnull writer);
 
   // Movable but non-copyable.
   StreamChain(StreamChain&&) = default;
   StreamChain& operator=(StreamChain&&) = default;
 
   // Adds one more input stream to the chain.
-  void Add(const StreamPtr /*absl_nonnull*/& stream);
+  void Add(const StreamPtr absl_nonnull& stream);
 
   // Adds an error to the chain stream; `status` must be non-OK.
   void AddError(absl::Status status);

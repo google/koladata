@@ -21,7 +21,7 @@
 
 namespace koladata::functor::parallel {
 
-const ExecutorPtr /*absl_nonnull*/& GetDefaultExecutor() {
+const ExecutorPtr absl_nonnull& GetDefaultExecutor() {
   return GetDefaultAsioExecutor();
 }
 

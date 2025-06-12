@@ -281,7 +281,7 @@ std::string PrettyFormatStr(const std::vector<std::string>& parts,
 // DataSlice contains only DataItem.
 absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
                                           const DataItem& schema,
-                                          const /*absl_nullable*/ DataBagPtr& db,
+                                          const absl_nullable DataBagPtr& db,
                                           const ReprOption& option,
                                           WrappingBehavior& wrapping);
 // Helper function for calling above function. Requires `item` to hold a
@@ -663,7 +663,7 @@ std::string GetSchemaMetadataOrEmpty(const DataBagPtr& bag,
 
 absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
                                           const DataItem& schema,
-                                          const /*absl_nullable*/ DataBagPtr& db,
+                                          const absl_nullable DataBagPtr& db,
                                           const ReprOption& option,
                                           WrappingBehavior& wrapping) {
   // Helper that applies the wrapping to DataItemRepr to be used when
@@ -791,7 +791,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
 
 absl::StatusOr<std::string> DataItemToStr(const internal::DataItem& data_item,
                                           const internal::DataItem& schema,
-                                          const /*absl_nullable*/ DataBagPtr& db,
+                                          const absl_nullable DataBagPtr& db,
                                           const ReprOption& option) {
   DCHECK_GE(option.depth, 0);
   WrappingBehavior wrapping{.format_html = option.format_html};

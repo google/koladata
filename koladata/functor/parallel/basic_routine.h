@@ -77,19 +77,19 @@ class BasicRoutineHooks {
   // the routine. The routine calls `Start` the first time, and `Resume` every
   // time the previously returned stream reader becomes ready. Returning
   // `nullptr` indicates that the routine should stop.
-  virtual StreamReaderPtr /*absl_nullable*/ Start() = 0;
+  virtual StreamReaderPtr absl_nullable Start() = 0;
 
   // The routine calls this method when previously returned stream reader
   // becomes ready.
-  virtual StreamReaderPtr /*absl_nullable*/ Resume(  // clang-format hint
-      StreamReaderPtr /*absl_nonnull*/ reader) = 0;
+  virtual StreamReaderPtr absl_nullable Resume(  // clang-format hint
+      StreamReaderPtr absl_nonnull reader) = 0;
 };
 
 // Starts a basic routine on the given executor within the current cancellation
 // context.
 void StartBasicRoutine(
-    ExecutorPtr /*absl_nonnull*/ executor,
-    std::unique_ptr<BasicRoutineHooks> /*absl_nonnull*/ routine_hooks);
+    ExecutorPtr absl_nonnull executor,
+    std::unique_ptr<BasicRoutineHooks> absl_nonnull routine_hooks);
 
 }  // namespace koladata::functor::parallel
 

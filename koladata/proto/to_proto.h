@@ -51,7 +51,7 @@ namespace koladata {
 // to by `messages` are unspecified but valid.
 absl::Status ToProto(
     const DataSlice& slice,
-    absl::Span<::google::protobuf::Message* /*absl_nonnull*/ const> messages);
+    absl::Span<::google::protobuf::Message* absl_nonnull const> messages);
 
 // Converts a schema to a proto descriptor.
 //
@@ -100,7 +100,7 @@ absl::StatusOr<google::protobuf::FileDescriptorProto> ProtoDescriptorFromSchema(
 // The DataSlice is flattened as a first step, and the conversion to proto is
 // then handled by `ToProto`.
 absl::StatusOr<std::vector<std::unique_ptr<google::protobuf::Message>>> ToProtoMessages(
-    const DataSlice& x, const google::protobuf::Message* /*absl_nonnull*/ message_prototype);
+    const DataSlice& x, const google::protobuf::Message* absl_nonnull message_prototype);
 
 }  // namespace koladata
 

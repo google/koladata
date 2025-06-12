@@ -14,10 +14,11 @@
 
 # Parallel execution tools for Koda.
 
+load("@com_google_protobuf//bazel:cc_proto_library.bzl", "cc_proto_library")
 load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
+load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
-load("@rules_python//python:proto.bzl", "py_proto_library")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -206,6 +207,7 @@ cc_test(
     deps = [
         ":asio_executor",
         ":executor",
+        ":get_default_executor",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_googletest//:gtest_main",

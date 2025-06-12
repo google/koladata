@@ -352,7 +352,7 @@ absl::Status VerifyDictKeySchema(const internal::DataItem& schema_item) {
 
 internal::DataItem GetDataSchema(
     const internal::DataItem& item,
-    const internal::DataBagImpl* /*absl_nullable*/ db_impl,
+    const internal::DataBagImpl* absl_nullable db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks) {
   return item.VisitValue([&]<class T>(const T& value) {
     if constexpr (arolla::meta::contains_v<supported_primitive_dtypes, T>) {
@@ -374,7 +374,7 @@ internal::DataItem GetDataSchema(
 
 internal::DataItem GetDataSchema(
     const internal::DataSliceImpl& slice,
-    const internal::DataBagImpl* /*absl_nullable*/ db_impl,
+    const internal::DataBagImpl* absl_nullable db_impl,
     internal::DataBagImpl::FallbackSpan fallbacks) {
   CommonSchemaAggregator schema_agg;
   schema_agg.Add(kNone);  // All missing -> NONE.

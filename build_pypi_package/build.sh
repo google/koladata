@@ -45,9 +45,9 @@ bazel_flags+=' --@rules_python//python/config_settings:python_version='$PYTHON_V
 
 # Building a version of `protoc` compatible with Google Colab.
 (
-  # (The current version is google.protobuf.__version__ == '5.29.4'.)
+  # (The current version is google.protobuf.__version__ == '5.29.5'.)
   #             vvvv                                          ^^^^
-  git clone -b v29.4 --depth 1 https://github.com/protocolbuffers/protobuf.git /build/protobuf
+  git clone -b v29.5 --depth 1 https://github.com/protocolbuffers/protobuf.git /build/protobuf
   cd /build/protobuf
   bazel build $bazel_flags //src/google/protobuf/compiler:protoc
 )

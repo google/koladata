@@ -29,7 +29,7 @@ namespace koladata {
 using ::google::protobuf::Descriptor;
 using ::google::protobuf::Message;
 
-std::unique_ptr<::google::protobuf::Message> /*absl_nullable*/ CreateProtoMessagePrototype(
+std::unique_ptr<::google::protobuf::Message> absl_nullable CreateProtoMessagePrototype(
     absl::string_view message_name) {
   const Descriptor* descriptor =
       google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
