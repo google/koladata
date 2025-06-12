@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "absl/base/no_destructor.h"
+#include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/any_invocable.h"
@@ -46,7 +47,7 @@ using ::arolla::MallocPtr;
 using ::arolla::QTypePtr;
 using ::arolla::TypedRef;
 
-size_t GetDefaultChunkCapacity(QTypePtr value_qtype) {
+size_t GetDefaultChunkCapacity(QTypePtr /*absl_nonnull*/ value_qtype) {
   constexpr size_t kDefaultByteCapacity = 512;
   const size_t bytesize = value_qtype->type_layout().AllocSize();
   return bytesize ? (kDefaultByteCapacity + bytesize - 1) / bytesize
@@ -55,7 +56,7 @@ size_t GetDefaultChunkCapacity(QTypePtr value_qtype) {
 
 class Chunk {
  public:
-  Chunk(QTypePtr value_qtype, size_t capacity);
+  Chunk(QTypePtr /*absl_nonnull*/ value_qtype, size_t capacity);
   ~Chunk();
 
   // Disallow copy and move.
@@ -68,10 +69,10 @@ class Chunk {
   void SetRef(size_t i, TypedRef ref);
 
  private:
-  const QTypePtr value_qtype_;
+  const QTypePtr /*absl_nonnull*/ value_qtype_;
   const size_t capacity_;
   const size_t value_bytesize_;
-  const MallocPtr storage_;
+  const MallocPtr /*absl_nonnull*/ storage_;
 };
 
 // Combined implementation of Stream and StreamWriter.
@@ -81,9 +82,9 @@ class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
   class Writer;
   class Reader;
 
-  StreamImpl(QTypePtr value_qtype, size_t initial_capacity);
+  StreamImpl(QTypePtr /*absl_nonnull*/ value_qtype, size_t initial_capacity);
 
-  StreamReaderPtr MakeReader() final ABSL_LOCKS_EXCLUDED(mutex_);
+  StreamReaderPtr /*absl_nonnull*/ MakeReader() final ABSL_LOCKS_EXCLUDED(mutex_);
 
  private:
   enum class [[nodiscard]] InternalWriteResult { kOk, kClosed };
@@ -103,7 +104,7 @@ class StreamImpl final : public std::enable_shared_from_this<StreamImpl>,
 // A stream writer implementation.
 class StreamImpl::Writer final : public StreamWriter {
  public:
-  explicit Writer(const std::shared_ptr<StreamImpl>& stream);
+  explicit Writer(const std::shared_ptr<StreamImpl> /*absl_nonnull*/& stream);
   ~Writer() final;
 
   bool Orphaned() const final;
@@ -124,7 +125,7 @@ class StreamImpl::Writer final : public StreamWriter {
 // A stream reader implementation.
 class StreamImpl::Reader final : public StreamReader {
  public:
-  explicit Reader(std::shared_ptr<StreamImpl> stream);
+  explicit Reader(std::shared_ptr<StreamImpl> /*absl_nonnull*/ stream);
 
   TryReadResult TryRead() final;
 
@@ -133,15 +134,15 @@ class StreamImpl::Reader final : public StreamReader {
  private:
   void Update() ABSL_EXCLUSIVE_LOCKS_REQUIRED(stream_->mutex_);
 
-  const std::shared_ptr<StreamImpl> stream_;
+  const std::shared_ptr<StreamImpl> /*absl_nonnull*/ stream_;
 
   size_t next_chunk_index_ = 0;
-  Chunk* chunk_;
+  Chunk* /*absl_nonnull*/ chunk_;
   size_t offset_ = 0;
   size_t known_size_ = 0;
 };
 
-Chunk::Chunk(QTypePtr value_qtype, size_t capacity)
+Chunk::Chunk(QTypePtr /*absl_nonnull*/ value_qtype, size_t capacity)
     : value_qtype_(value_qtype),
       capacity_(capacity),
       value_bytesize_(value_qtype->type_layout().AllocSize()),
@@ -171,7 +172,8 @@ void Chunk::SetRef(size_t i, TypedRef ref) {
       reinterpret_cast<char*>(storage_.get()) + i * value_bytesize_);
 }
 
-StreamImpl::StreamImpl(QTypePtr value_qtype, size_t initial_capacity)
+StreamImpl::StreamImpl(QTypePtr /*absl_nonnull*/ value_qtype,
+                       size_t initial_capacity)
     : Stream(value_qtype),
       default_chunk_capacity_(GetDefaultChunkCapacity(value_qtype)) {
   if (initial_capacity > 0) {
@@ -179,7 +181,7 @@ StreamImpl::StreamImpl(QTypePtr value_qtype, size_t initial_capacity)
   }
 }
 
-StreamReaderPtr StreamImpl::MakeReader() {
+StreamReaderPtr /*absl_nonnull*/ StreamImpl::MakeReader() {
   return std::make_unique<Reader>(shared_from_this());
 }
 
@@ -221,7 +223,8 @@ void StreamImpl::InternalClose(absl::Status&& status) {
   }
 }
 
-StreamImpl::Writer::Writer(const std::shared_ptr<StreamImpl>& stream)
+StreamImpl::Writer::Writer(
+    const std::shared_ptr<StreamImpl> /*absl_nonnull*/& stream)
     : StreamWriter(stream->value_qtype()), weak_stream_(stream) {}
 
 bool StreamImpl::Writer::Orphaned() const {
@@ -292,7 +295,7 @@ StreamImpl::Writer::~Writer() {
   }
 }
 
-StreamImpl::Reader::Reader(std::shared_ptr<StreamImpl> stream)
+StreamImpl::Reader::Reader(std::shared_ptr<StreamImpl> /*absl_nonnull*/ stream)
     : stream_(std::move(stream)) {
   static absl::NoDestructor<Chunk> kEmptyUnitChunk(GetNothingQType(), 0);
   chunk_ = kEmptyUnitChunk.get();
@@ -344,8 +347,8 @@ void StreamImpl::Reader::SubscribeOnce(
 
 }  // namespace
 
-std::pair<StreamPtr, StreamWriterPtr> MakeStream(arolla::QTypePtr value_qtype,
-                                                 size_t initial_capacity) {
+std::pair<StreamPtr /*absl_nonnull*/, StreamWriterPtr /*absl_nonnull*/> MakeStream(
+    arolla::QTypePtr /*absl_nonnull*/ value_qtype, size_t initial_capacity) {
   auto stream_impl =
       std::make_shared<StreamImpl>(value_qtype, initial_capacity);
   std::pair<StreamPtr, StreamWriterPtr> result;

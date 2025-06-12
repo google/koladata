@@ -21,6 +21,7 @@
 #include <variant>
 
 #include "absl/base/attributes.h"
+#include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/status.h"
 #include "arolla/qtype/qtype.h"
@@ -45,13 +46,13 @@ using StreamWriterPtr = std::unique_ptr<StreamWriter>;
 class Stream {
  public:
   // Returns the value type of the stream.
-  arolla::QTypePtr value_qtype() const { return value_qtype_; }
+  arolla::QTypePtr /*absl_nonnull*/ value_qtype() const { return value_qtype_; }
 
   // Returns a unique identifier for the stream.
   arolla::Fingerprint uuid() const { return uuid_; };
 
   // Creates a new reader for the stream.
-  virtual StreamReaderPtr MakeReader() = 0;
+  virtual StreamReaderPtr /*absl_nonnull*/ MakeReader() = 0;
 
   // Disallow copy and move.
   Stream(const Stream&) = delete;
@@ -60,11 +61,12 @@ class Stream {
   virtual ~Stream() = default;
 
  protected:
-  explicit Stream(arolla::QTypePtr value_qtype) : value_qtype_(value_qtype) {}
+  explicit Stream(arolla::QTypePtr /*absl_nonnull*/ value_qtype)
+      : value_qtype_(value_qtype) {}
 
  private:
   // Value type of the stream.
-  const arolla::QTypePtr value_qtype_;
+  const arolla::QTypePtr /*absl_nonnull*/ value_qtype_;
 
   // Unique identifier for the stream.
   const arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
@@ -76,7 +78,7 @@ class Stream {
 class StreamWriter {
  public:
   // Returns the value type of the stream.
-  arolla::QTypePtr value_qtype() const { return value_qtype_; }
+  arolla::QTypePtr /*absl_nonnull*/ value_qtype() const { return value_qtype_; }
 
   // Returns true if further writes can no longer reach any reader (e.g.,
   // if no potential readers are left, or the stream has already been closed).
@@ -117,12 +119,12 @@ class StreamWriter {
   virtual ~StreamWriter() = default;
 
  protected:
-  explicit StreamWriter(arolla::QTypePtr value_qtype)
+  explicit StreamWriter(arolla::QTypePtr /*absl_nonnull*/ value_qtype)
       : value_qtype_(value_qtype) {}
 
  private:
   // Value type of the stream.
-  const arolla::QTypePtr value_qtype_;
+  const arolla::QTypePtr /*absl_nonnull*/ value_qtype_;
 };
 
 // Reader interface for the stream.
@@ -162,13 +164,13 @@ struct StreamReader::TryReadResult
 
   // Returns a pointer to the next stream element; `nullptr` indicates that no
   // data were immediately available.
-  arolla::TypedRef* item() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  arolla::TypedRef* /*absl_nullable*/ item() ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return std::get_if<1>(this);
   }
 
   // Returns a pointer to the stream close status; `nullptr` indicates that
   // the stream may have more data to read.
-  absl::Status* close_status() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  absl::Status* /*absl_nullable*/ close_status() ABSL_ATTRIBUTE_LIFETIME_BOUND {
     return std::get_if<2>(this);
   }
 };
@@ -178,8 +180,8 @@ struct StreamReader::TryReadResult
 // The initial capacity can be specified to avoid additional allocations if
 // the stream size is known in advance. However, the initial capacity can be
 // exceeded.
-std::pair<StreamPtr, StreamWriterPtr> MakeStream(arolla::QTypePtr value_qtype,
-                                                 size_t initial_capacity = 0);
+std::pair<StreamPtr /*absl_nonnull*/, StreamWriterPtr /*absl_nonnull*/> MakeStream(
+    arolla::QTypePtr /*absl_nonnull*/ value_qtype, size_t initial_capacity = 0);
 
 }  // namespace koladata::functor::parallel
 
