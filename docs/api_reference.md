@@ -26,6 +26,7 @@ Category  | Subcategory | Description
  | [masking](#kd.masking) | Masking operators.
  | [math](#kd.math) | Arithmetic operators.
  | [objs](#kd.objs) | Operators that work solely with objects.
+ | [optools](#kd.optools) | Operator definition and registration tooling.
  | [proto](#kd.proto) | Protocol buffer serialization operators.
  | [parallel](#kd.parallel) | Operators for parallel computation.
  | [py](#kd.py) | Operators that call Python functions.
@@ -4575,6 +4576,151 @@ Creates object(s) whose ids are uuid(s) with the provided attributes.
 
   Returns:
     data_slice.DataSlice
+```
+
+</section>
+
+### kd.optools {#kd.optools}
+
+Operator definition and registration tooling.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.optools.add_alias(name, alias)` {#kd.optools.add_alias}
+*No description*
+
+### `kd.optools.add_to_registry(name=None, *, aliases=(), unsafe_override=False, view=<class 'koladata.expr.view.KodaView'>, repr_fn=None)` {#kd.optools.add_to_registry}
+
+``` {.no-copy}
+Wrapper around Arolla's add_to_registry with Koda functionality.
+
+  Args:
+    name: Optional name of the operator. Otherwise, inferred from the op.
+    aliases: Optional aliases for the operator.
+    unsafe_override: Whether to override an existing operator.
+    view: Optional view to use for the operator. If None, the default arolla
+      ExprView will be used.
+    repr_fn: Optional repr function to use for the operator and its aliases. In
+      case of None, a default repr function will be used.
+
+  Returns:
+    Registered operator.
+```
+
+### `kd.optools.as_backend_operator(name, *, qtype_inference_expr=DATA_SLICE, qtype_constraints=(), deterministic=True, custom_boxing_fn_name_per_parameter=None)` {#kd.optools.as_backend_operator}
+
+``` {.no-copy}
+Decorator for Koladata backend operators with a unified binding policy.
+
+  Args:
+    name: The name of the operator.
+    qtype_inference_expr: Expression that computes operator's output type.
+      Argument types can be referenced using `arolla.P.arg_name`.
+    qtype_constraints: List of `(predicate_expr, error_message)` pairs.
+      `predicate_expr` may refer to the argument QType using
+      `arolla.P.arg_name`. If a type constraint is not fulfilled, the
+      corresponding `error_message` is used. Placeholders, like `{arg_name}`,
+      get replaced with the actual type names during the error message
+      formatting.
+    deterministic: If set to False, a hidden parameter (with the name
+      `optools.UNIFIED_NON_DETERMINISTIC_PARAM_NAME`) is added to the end of the
+      signature. This parameter receives special handling by the binding policy
+      implementation.
+    custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
+      function per parameter (constants with the boxing functions look like:
+      `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
+
+  Returns:
+    A decorator that constructs a backend operator based on the provided Python
+    function signature.
+```
+
+### `kd.optools.as_lambda_operator(name, *, qtype_constraints=(), deterministic=None, custom_boxing_fn_name_per_parameter=None, suppress_unused_parameter_warning=False)` {#kd.optools.as_lambda_operator}
+
+``` {.no-copy}
+Decorator for Koladata lambda operators with a unified binding policy.
+
+  Args:
+    name: The name of the operator.
+    qtype_constraints: List of `(predicate_expr, error_message)` pairs.
+      `predicate_expr` may refer to the argument QType using
+      `arolla.P.arg_name`. If a type constraint is not fulfilled, the
+      corresponding `error_message` is used. Placeholders, like `{arg_name}`,
+      get replaced with the actual type names during the error message
+      formatting.
+    deterministic: If True, the resulting operator will be deterministic and may
+      only use deterministic operators. If False, the operator will be declared
+      non-deterministic. By default, the decorator attempts to detect the
+      operator's determinism.
+    custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
+      function per parameter (constants with the boxing functions look like:
+      `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
+    suppress_unused_parameter_warning: If True, unused parameters will not cause
+      a warning.
+
+  Returns:
+    A decorator that constructs a lambda operator by tracing a Python function.
+```
+
+### `kd.optools.as_py_function_operator(name, *, qtype_inference_expr=DATA_SLICE, qtype_constraints=(), codec=None, deterministic=True, custom_boxing_fn_name_per_parameter=None)` {#kd.optools.as_py_function_operator}
+
+``` {.no-copy}
+Returns a decorator for defining Koladata-specific py-function operators.
+
+  The decorated function should accept QValues as input and returns a single
+  QValue. Variadic positional and keyword arguments are passed as tuples and
+  dictionaries of QValues, respectively.
+
+  Importantly, it is recommended that the function on which the operator is
+  based be pure -- that is, deterministic and without side effects.
+  If the function is not pure, please specify deterministic=False.
+
+  Args:
+    name: The name of the operator.
+    qtype_inference_expr: expression that computes operator's output qtype; an
+      argument qtype can be referenced as P.arg_name.
+    qtype_constraints: QType constraints for the operator.
+    codec: A PyObject serialization codec for the wrapped function, compatible
+      with `arolla.types.encode_py_object`. The resulting operator is
+      serializable only if the codec is specified.
+    deterministic: Set this to `False` if the wrapped function is not pure
+      (i.e., non-deterministic or has side effects).
+    custom_boxing_fn_name_per_parameter: A dictionary specifying a custom boxing
+      function per parameter (constants with the boxing functions look like:
+      `koladata.types.py_boxing.WITH_*`, e.g. `WITH_PY_FUNCTION_TO_PY_OBJECT`).
+```
+
+### `kd.optools.as_qvalue(arg)` {#kd.optools.as_qvalue}
+
+``` {.no-copy}
+Converts Python values into QValues.
+```
+
+### `kd.optools.as_qvalue_or_expr(arg)` {#kd.optools.as_qvalue_or_expr}
+
+``` {.no-copy}
+Converts Python values into QValues or Exprs.
+```
+
+### `kd.optools.equiv_to_op(this_op, that_op)` {#kd.optools.equiv_to_op}
+
+``` {.no-copy}
+Returns true iff the impl of `this_op` equals the impl of `that_op`.
+```
+
+### `kd.optools.make_operators_container(*namespaces)` {#kd.optools.make_operators_container}
+
+``` {.no-copy}
+Returns an OperatorsContainer for the given namespaces.
+
+  Note that the returned container accesses the global namespace. A common
+  pattern is therefore:
+    foo = make_operators_container('foo', 'foo.bar', 'foo.baz').foo
+
+  Args:
+    *namespaces: Namespaces to make available in the returned container.
 ```
 
 </section>

@@ -53,7 +53,7 @@ def add_to_registry(
     aliases: Collection[str] = (),
     unsafe_override: bool = False,
     view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
-    repr_fn: op_repr.OperatorReprFn = op_repr.default_op_repr,
+    repr_fn: op_repr.OperatorReprFn | None = None,
 ):
   """Wrapper around Arolla's add_to_registry with Koda functionality.
 
@@ -63,11 +63,13 @@ def add_to_registry(
     unsafe_override: Whether to override an existing operator.
     view: Optional view to use for the operator. If None, the default arolla
       ExprView will be used.
-    repr_fn: Optional repr function to use for the operator and its aliases.
+    repr_fn: Optional repr function to use for the operator and its aliases. In
+      case of None, a default repr function will be used.
 
   Returns:
     Registered operator.
   """
+  repr_fn = repr_fn or op_repr.default_op_repr
 
   def impl(op: arolla.types.Operator) -> arolla.types.RegisteredOperator:
     def _register_op(op, name):

@@ -242,6 +242,19 @@ class OptoolsTest(parameterized.TestCase):
         'test.op_3_alias(42)',
     )
 
+  def test_add_to_registry_repr_fn_none(self):
+
+    @optools.add_to_registry(aliases=['test.op_none_repr_alias'], repr_fn=None)
+    @arolla.optools.as_lambda_operator('test.op_none_repr')
+    def op_none_repr(x):
+      return x
+
+    self.assertEqual(repr(op_none_repr(42)), 'test.op_none_repr(42)')
+    self.assertEqual(
+        repr(arolla.abc.lookup_operator('test.op_none_repr_alias')(42)),
+        'test.op_none_repr_alias(42)',
+    )
+
   def test_add_to_registry_with_repr_fn(self):
     @optools.add_to_registry(aliases=['test.op_4_alias'], repr_fn=repr_fn)
     @arolla.optools.as_lambda_operator('test.op_4')
