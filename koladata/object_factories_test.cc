@@ -2021,7 +2021,47 @@ TEST(ObjectFactoriesTest, CreateListsFromLastDimension_ItemId) {
   EXPECT_EQ(ds.slice()[1], itemid.slice()[1]);
 }
 
-TEST(ObjectFactoriesTest, Implode) {
+TEST(ObjectFactoriesTest, ImplodePrimitive) {
+  // values: [[1, 2, 3], [4, 5]]
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 3, 5})}));
+  auto values = test::DataSlice<int>({1, 2, 3, 4, 5}, shape, nullptr);
+
+  ASSERT_OK_AND_ASSIGN(auto lists, Implode(values, -1));
+  EXPECT_EQ(lists.GetShape().rank(), 0);
+
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
+                       lists.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists2,
+                       exploded_lists1.ExplodeList(0, std::nullopt));
+  EXPECT_THAT(exploded_lists2.slice(), ElementsAreArray(values.slice()));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists2.GetShape()));
+}
+
+TEST(ObjectFactoriesTest, ImplodeList) {
+  ASSERT_OK_AND_ASSIGN(auto shape,
+                       DataSlice::JaggedShape::FlatFromSize(2).AddDims(
+                           {test::EdgeFromSplitPoints({0, 3, 5}),
+                            test::EdgeFromSplitPoints({0, 1, 3, 6, 10, 15})}));
+  auto values = test::DataSlice<int>(
+      {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}, shape, nullptr);
+
+  ASSERT_OK_AND_ASSIGN(auto lists1, Implode(values, 1));
+  ASSERT_OK_AND_ASSIGN(auto lists2, Implode(lists1, -1));
+  EXPECT_EQ(lists2.GetShape().rank(), 0);
+
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists1,
+                       lists2.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists2,
+                       exploded_lists1.ExplodeList(0, std::nullopt));
+  ASSERT_OK_AND_ASSIGN(auto exploded_lists3,
+                       exploded_lists2.ExplodeList(0, std::nullopt));
+  EXPECT_THAT(exploded_lists3.slice(), ElementsAreArray(values.slice()));
+  EXPECT_THAT(values.GetShape(), IsEquivalentTo(exploded_lists3.GetShape()));
+}
+
+TEST(ObjectFactoriesTest, ImplodeInplace) {
   auto db = DataBag::Empty();
 
   // values: [[1, 2, 3], [4, 5]]
@@ -2032,8 +2072,7 @@ TEST(ObjectFactoriesTest, Implode) {
 
   {
     // ndim=-1, same db
-    ASSERT_OK_AND_ASSIGN(auto lists,
-                         Implode(db, values, -1));
+    ASSERT_OK_AND_ASSIGN(auto lists, ImplodeInplace(db, values, -1));
     EXPECT_EQ(lists.GetShape().rank(), 0);
     EXPECT_EQ(lists.GetBag(), db);
 
@@ -2047,8 +2086,7 @@ TEST(ObjectFactoriesTest, Implode) {
   {
     // ndim=-1, new db
     auto db2 = DataBag::Empty();
-    ASSERT_OK_AND_ASSIGN(auto lists,
-                         Implode(db2, values, -1));
+    ASSERT_OK_AND_ASSIGN(auto lists, ImplodeInplace(db2, values, -1));
     EXPECT_EQ(lists.GetShape().rank(), 0);
     EXPECT_EQ(lists.GetBag(), db2);
 
@@ -2061,8 +2099,7 @@ TEST(ObjectFactoriesTest, Implode) {
   }
   {
     // ndim=0, same db
-    ASSERT_OK_AND_ASSIGN(auto lists,
-                         Implode(db, values, 0));
+    ASSERT_OK_AND_ASSIGN(auto lists, ImplodeInplace(db, values, 0));
     EXPECT_EQ(lists.GetShape().rank(), 2);
     EXPECT_EQ(lists.GetBag(), db);
 
@@ -2074,8 +2111,7 @@ TEST(ObjectFactoriesTest, Implode) {
   {
     // ndim=0, new db
     auto db2 = DataBag::Empty();
-    ASSERT_OK_AND_ASSIGN(auto lists,
-                         Implode(db2, values, 0));
+    ASSERT_OK_AND_ASSIGN(auto lists, ImplodeInplace(db2, values, 0));
     EXPECT_EQ(lists.GetShape().rank(), 2);
     EXPECT_EQ(lists.GetBag(), db2);
 
@@ -2085,8 +2121,7 @@ TEST(ObjectFactoriesTest, Implode) {
   }
   {
     // ndim=1, same db
-    ASSERT_OK_AND_ASSIGN(auto lists,
-                         Implode(db, values, 1));
+    ASSERT_OK_AND_ASSIGN(auto lists, ImplodeInplace(db, values, 1));
     EXPECT_EQ(lists.GetShape().rank(), 1);
     EXPECT_EQ(lists.GetBag(), db);
 
@@ -2098,8 +2133,7 @@ TEST(ObjectFactoriesTest, Implode) {
   {
     // ndim=1, new db
     auto db2 = DataBag::Empty();
-    ASSERT_OK_AND_ASSIGN(auto lists,
-                         Implode(db2, values, 1));
+    ASSERT_OK_AND_ASSIGN(auto lists, ImplodeInplace(db2, values, 1));
     EXPECT_EQ(lists.GetShape().rank(), 1);
     EXPECT_EQ(lists.GetBag(), db2);
 
@@ -2110,8 +2144,7 @@ TEST(ObjectFactoriesTest, Implode) {
   }
   {
     // ndim=2, same db
-    ASSERT_OK_AND_ASSIGN(auto lists,
-                         Implode(db, values, 2));
+    ASSERT_OK_AND_ASSIGN(auto lists, ImplodeInplace(db, values, 2));
     EXPECT_EQ(lists.GetShape().rank(), 0);
     EXPECT_EQ(lists.GetBag(), db);
 
@@ -2125,8 +2158,7 @@ TEST(ObjectFactoriesTest, Implode) {
   {
     // ndim=2, new db
     auto db2 = DataBag::Empty();
-    ASSERT_OK_AND_ASSIGN(auto lists,
-                         Implode(db2, values, 2));
+    ASSERT_OK_AND_ASSIGN(auto lists, ImplodeInplace(db2, values, 2));
     EXPECT_EQ(lists.GetShape().rank(), 0);
     EXPECT_EQ(lists.GetBag(), db2);
 
@@ -2140,7 +2172,7 @@ TEST(ObjectFactoriesTest, Implode) {
   {
     // ndim=3, same db
     EXPECT_THAT(
-        Implode(db, values, 3),
+        ImplodeInplace(db, values, 3),
         StatusIs(absl::StatusCode::kInvalidArgument,
                  HasSubstr("cannot implode 'x' to fold the last 3 dimension(s) "
                            "because 'x' only has 2 dimensions")));
@@ -2152,7 +2184,8 @@ TEST(ObjectFactoriesTest, Implode) {
             internal::AllocateLists(2), 2),
         DataSlice::JaggedShape::FlatFromSize(2),
         internal::DataItem(schema::kItemId));
-    ASSERT_OK_AND_ASSIGN(auto lists, Implode(db, values, /*ndim=*/1, itemid));
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         ImplodeInplace(db, values, /*ndim=*/1, itemid));
     EXPECT_EQ(lists.GetShape().rank(), 1);
     EXPECT_THAT(lists.slice(), ElementsAreArray(itemid.slice()));
     EXPECT_THAT(lists.ExplodeList(0, std::nullopt),
@@ -2163,7 +2196,8 @@ TEST(ObjectFactoriesTest, Implode) {
       internal::DataItem(schema::kItemId));
   {
     // itemid, ndim=2
-    ASSERT_OK_AND_ASSIGN(auto lists, Implode(db, values, /*ndim=*/2, itemid));
+    ASSERT_OK_AND_ASSIGN(auto lists,
+                         ImplodeInplace(db, values, /*ndim=*/2, itemid));
     EXPECT_EQ(lists.GetShape().rank(), 0);
     EXPECT_EQ(lists.item(), itemid.item());
     EXPECT_THAT(
@@ -2171,10 +2205,10 @@ TEST(ObjectFactoriesTest, Implode) {
         IsOkAndHolds(IsEquivalentTo(values.WithBag(db))));
   }
     // itemid, ndim=0
-    EXPECT_THAT(
-        Implode(db, values, 0, itemid),
-        StatusIs(absl::StatusCode::kInvalidArgument,
-                 HasSubstr("does not accept 'itemid' argument when ndim==0")));
+  EXPECT_THAT(
+      ImplodeInplace(db, values, 0, itemid),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("does not accept 'itemid' argument when ndim==0")));
 }
 
 TEST(ObjectFactoriesTest, ConcatLists_NoInputs) {
@@ -2208,7 +2242,7 @@ TEST(ObjectFactoriesTest, ConcatLists) {
                        DataSlice::JaggedShape::FlatFromSize(2).AddDims(
                            {test::EdgeFromSplitPoints({0, 3, 5})}));
   auto values1 = test::DataSlice<int>({1, 2, 3, 4, 5}, shape1);
-  ASSERT_OK_AND_ASSIGN(values1, Implode(db1, values1, 1));
+  ASSERT_OK_AND_ASSIGN(values1, ImplodeInplace(db1, values1, 1));
 
   // values2: [[6, 7], [8, 9]]
   auto db2 = DataBag::Empty();
@@ -2216,7 +2250,7 @@ TEST(ObjectFactoriesTest, ConcatLists) {
                        DataSlice::JaggedShape::FlatFromSize(2).AddDims(
                            {test::EdgeFromSplitPoints({0, 2, 4})}));
   auto values2 = test::DataSlice<int>({6, 7, 8, 9}, shape2);
-  ASSERT_OK_AND_ASSIGN(values2, Implode(db2, values2, 1));
+  ASSERT_OK_AND_ASSIGN(values2, ImplodeInplace(db2, values2, 1));
 
   auto db3 = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(auto result, ConcatLists(db3, {values1, values2}));

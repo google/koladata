@@ -2691,7 +2691,8 @@ Assigned schema for values: ENTITY(y=FLOAT32)"""),
       del l[0:2]
 
   def test_list_pop(self):
-    l = kde.implode(ds([[1, 2, 3], [4, 5]])).eval().fork_bag()
+    l = kde.implode(ds([[1, 2, 3], [4, 5]])).eval()
+    l = l.with_bag(l.get_bag().merge_fallbacks())
     testing.assert_equal(l.pop(1), ds([2, 5]).with_bag(l.get_bag()))
     testing.assert_equal(l.pop(ds([1, -1])), ds([3, 4]).with_bag(l.get_bag()))
     testing.assert_equal(l[:], ds([[1], []]).with_bag(l.get_bag()))

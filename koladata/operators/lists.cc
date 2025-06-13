@@ -88,14 +88,12 @@ absl::StatusOr<DataSlice> Explode(const DataSlice& x, const int64_t ndim) {
 absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
                                   const DataSlice& itemid,
                                   internal::NonDeterministicToken) {
-  auto db = DataBag::Empty();
   ASSIGN_OR_RETURN(
       auto result,
       Implode(
-          db, x, ndim,
+          x, ndim,
           IsUnspecifiedDataSlice(itemid) ? std::nullopt
                                          : std::make_optional(itemid)));
-  db->UnsafeMakeImmutable();
   return result;
 }
 
