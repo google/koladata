@@ -94,6 +94,7 @@ struct DataBagContent {
     AllocationId alloc_id;
     DataSliceImpl values;
     arolla::DenseArrayEdge lists_to_values_edge;
+    std::vector<bool> unset_lists;
   };
   struct DictContent {
     ObjectId dict_id;

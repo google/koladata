@@ -280,7 +280,11 @@ absl::Status EncodeLists(const internal::DataBagContent::ListsContent& lists,
       lists.lists_to_values_edge.edge_values().values.span();
   DCHECK_GT(splits.size(), 0);
   int64_t size = splits.size() - 1;
+  DCHECK_EQ(lists.unset_lists.size(), size);
   for (int64_t i = 0; i < size; ++i) {
+    if (lists.unset_lists[i]) {
+      continue;
+    }
     KodaV1Proto::ListProto* list_proto = db_proto.add_lists();
     EncodeObjectId(lists.alloc_id.ObjectByOffset(i),
                    list_proto->mutable_list_id());

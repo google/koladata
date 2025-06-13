@@ -49,11 +49,15 @@ void Triples::CollectLists(
     absl::btree_map<ObjectId, std::vector<DataItem>>& lists) {
   size_t list_count = lc.lists_to_values_edge.parent_size();
   DCHECK_EQ(lc.values.size(), lc.lists_to_values_edge.child_size());
+  DCHECK_EQ(lc.unset_lists.size(), list_count);
   DCHECK_EQ(lc.lists_to_values_edge.edge_type(),
             arolla::DenseArrayEdge::SPLIT_POINTS);
   absl::Span<const int64_t> split_points =
       lc.lists_to_values_edge.edge_values().values.span();
   for (size_t i = 0; i < list_count; ++i) {
+    if (lc.unset_lists.size() > i && lc.unset_lists[i]) {
+      continue;
+    }
     ObjectId list_id = lc.alloc_id.ObjectByOffset(i);
     int64_t from = split_points[i];
     int64_t to = split_points[i + 1];

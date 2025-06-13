@@ -768,11 +768,18 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
 
       ASSERT_OK(db2->AppendToList(lists[i], DataItem(i)));
     }
-    ASSERT_OK(db->MergeInplace(*db2, merge_options));
+    MergeOptions raise_on_conflict = this->merge_options();
+    raise_on_conflict.data_conflict_policy = MergeOptions::kRaiseOnConflict;
+    EXPECT_THAT(db->MergeInplace(*db2, raise_on_conflict),
+                StatusIs(absl::StatusCode::kFailedPrecondition,
+                         HasSubstr("conflicting list sizes")));
+    MergeOptions allow_override = this->merge_options();
+    allow_override.data_conflict_policy = MergeOptions::kOverwrite;
+    ASSERT_OK(db->MergeInplace(*db2, allow_override));
     verify_lists(lists, db.get());
   }
   {
-    SCOPED_TRACE("merge non existing or empty both sides");
+    SCOPED_TRACE("merge non existing");
     auto db = DataBagImpl::CreateEmptyDatabag();
     auto db2 = DataBagImpl::CreateEmptyDatabag();
     std::vector<DataItem> lists(kSize);
@@ -781,16 +788,8 @@ TYPED_TEST(DataBagMergeTest, MergeLists) {
       // create empty lists in db
       if (i % 2 == 0) {
         ASSERT_OK(db->AppendToList(lists[i], DataItem(i)));
-        if (i % 6 == 0) {
-          ASSERT_OK(db2->AppendToList(lists[i], DataItem(i)));
-          ASSERT_OK(db2->RemoveInList(lists[i], DataBagImpl::ListRange(0)));
-        }
       } else {
         ASSERT_OK(db2->AppendToList(lists[i], DataItem(i)));
-        if (i % 6 == 5) {
-          ASSERT_OK(db->AppendToList(lists[i], DataItem(i)));
-          ASSERT_OK(db->RemoveInList(lists[i], DataBagImpl::ListRange(0)));
-        }
       }
     }
     ASSERT_OK(db->MergeInplace(*db2, merge_options));

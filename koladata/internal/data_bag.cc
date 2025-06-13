@@ -1801,11 +1801,15 @@ absl::Status DataBagImpl::ExtendList(const DataItem& list,
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(ObjectId list_id, ItemToListObjectId(list));
+
+  // `GetMutable` triggers creation of the list if it was UNSET.
+  // We do it even if `values.size() == 0`.
+  DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
+                        .GetMutable(list_id.Offset());
+
   if (values.size() == 0) {
     return absl::OkStatus();
   }
-  DataList& dlist = GetOrCreateMutableLists(AllocationId(list_id))
-                        .GetMutable(list_id.Offset());
   size_t offset = dlist.size();
   dlist.Resize(offset + values.size());
   values.VisitValues([&](const auto& vec) {
@@ -3171,12 +3175,13 @@ absl::Status DataBagImpl::MergeListsInplace(const DataBagImpl& other,
       auto& this_lists = GetOrCreateMutableLists(alloc_id);
       for (size_t i = 0; i < other_lists->size(); ++i) {
         const auto* other_list = other_lists->Get(i);
-        if (!other_list || other_list->empty()) {
+        if (other_list == nullptr) {
           continue;
         }
+        bool this_list_unset = this_lists.Get(i) == nullptr;
         auto& this_list = this_lists.GetMutable(i);
         if (options.data_conflict_policy == MergeOptions::kOverwrite ||
-            this_list.empty()) {
+            this_list_unset) {
           this_list = *other_list;
           continue;
         }
@@ -3335,10 +3340,15 @@ absl::StatusOr<DataBagContent::ListsContent> DataBagImpl::ListVectorToContent(
     AllocationId alloc, const DataListVector& list_vector) const {
   size_t total_size = 0;
   std::vector<const DataList*> list_ptrs(list_vector.size());
+  std::vector<bool> unset_lists(list_vector.size(), false);
   for (size_t i = 0; i < list_vector.size(); ++i) {
     const DataList* l = list_vector.Get(i);
     list_ptrs[i] = l;
-    total_size += l ? l->size() : 0;
+    if (l == nullptr) {
+      unset_lists[i] = true;
+    } else {
+      total_size += l->size();
+    }
   }
   SliceBuilder bldr(total_size);
   arolla::Buffer<int64_t>::Builder splits_bldr(list_ptrs.size() + 1);
@@ -3354,7 +3364,8 @@ absl::StatusOr<DataBagContent::ListsContent> DataBagImpl::ListVectorToContent(
   }
   ASSIGN_OR_RETURN(auto edge, arolla::DenseArrayEdge::FromSplitPoints(
                                   {std::move(splits_bldr).Build()}));
-  return DataBagContent::ListsContent{alloc, std::move(bldr).Build(), edge};
+  return DataBagContent::ListsContent{alloc, std::move(bldr).Build(),
+                                      std::move(edge), std::move(unset_lists)};
 }
 
 void DataBagImpl::AddDictToContent(

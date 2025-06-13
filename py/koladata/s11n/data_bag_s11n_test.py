@@ -166,6 +166,34 @@ class DataBagS11NTest(codec_test_case.S11nCodecTestCase):
     self.assertIsNone(actual_d['c'].to_py())
     self.assertEqual(actual_d['d'].to_py(), 57)
 
+  def test_removed_lists(self):
+    lists = kd.implode(kd.slice([[1, 2], [3], [4, 5]]))
+
+    l1, l2, l3 = lists.S[0], lists.S[1], lists.S[2]
+
+    db = kd.bag()
+    fb = kd.bag()
+
+    db.adopt(l1.get_schema())
+    fb.adopt(l1.get_schema())
+
+    # lists in db: [[1], [], None]
+    l1.with_bag(db).append(1)
+    l2.with_bag(db).append(2)
+    l2.with_bag(db).pop(0)
+
+    # lists in fb: [[3], [4], [5]]
+    l1.with_bag(fb).append(3)
+    l2.with_bag(fb).append(4)
+    l3.with_bag(fb).append(5)
+
+    self.assertEqual(lists.with_bag(db).enriched(fb).to_py(), [[1], [], [5]])
+
+    data = kd.dumps(db)
+    db2 = kd.loads(data)
+
+    self.assertEqual(lists.with_bag(db2).enriched(fb).to_py(), [[1], [], [5]])
+
   def test_obj_with_databag(self):
     v = kd.obj(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     data = arolla.s11n.dumps(v)
