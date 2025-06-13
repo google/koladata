@@ -242,7 +242,7 @@ TEST(DataItem, DebugString_float64) {
               "nan");
   EXPECT_THAT(DataItem(-std::numeric_limits<double>::quiet_NaN()).DebugString(),
               "nan");
-  EXPECT_THAT(DataItem(double{0.2f}).DebugString(), "0.2");
+  EXPECT_THAT(DataItem(double{0.2f}).DebugString(), "0.20000000298023224");
 }
 
 TEST(DataItemTest, AbslStringify) {
@@ -633,7 +633,7 @@ TEST(DataItemTest, TestRepr) {
                   arolla::FingerprintHasher("").Combine(57).Finish()))),
               MatchesRegex(R"regex(#[0-9a-zA-Z]{22})regex"));
   EXPECT_EQ(DataItemRepr(DataItem(double{1.23456789}), {.show_dtype = true}),
-            "float64{1.2345679}");
+            "float64{1.23456789}");
   EXPECT_EQ(DataItemRepr(DataItem(int64_t{123}), {.show_dtype = true}),
             "int64{123}");
   EXPECT_EQ(DataItemRepr(DataItem(arolla::Unit())), "present");

@@ -213,14 +213,15 @@ std::string DataItemRepr(const DataItem& item,
               "inf", "nan", 'e', -6, 21, 6, 0);
           char buf[128];
           double_conversion::StringBuilder builder(buf, sizeof(buf));
-          converter.ToShortestSingle(val, &builder);
-          std::string result = std::string(builder.Finalize());
-          if constexpr (std::is_same_v<T, double>) {
+          if (std::is_same_v<T, float>) {
+            converter.ToShortestSingle(val, &builder);
+          } else {
+            converter.ToShortest(val, &builder);
             if (option.show_dtype) {
-              return absl::StrCat("float64{", result, "}");
+              return absl::StrCat("float64{", builder.Finalize(), "}");
             }
           }
-          return result;
+          return builder.Finalize();
         } else if constexpr (std::is_same_v<T, int64_t>) {
           return option.show_dtype
               ? absl::StrCat("int64{", val, "}") : absl::StrCat(val);
