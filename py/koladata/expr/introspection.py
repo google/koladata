@@ -27,7 +27,6 @@ from koladata.types import schema_constants
 
 I = input_container.InputContainer('I')
 _KODA_INPUT_OP = arolla.abc.lookup_operator('koda_internal.input')
-_KODA_LITERAL_OP_NAME = 'koda_internal.literal'
 
 ExprLike = Any  # Expr-convertible type.
 
