@@ -89,6 +89,9 @@ types.Iterable = _iterable_qvalue.Iterable
 types.JaggedShape = _jagged_shape.JaggedShape
 types.ListItem = _list_item.ListItem
 types.SchemaItem = _schema_item.SchemaItem
+types.Stream = _functor_parallel_clib.Stream
+types.StreamReader = _functor_parallel_clib.StreamReader
+types.StreamWriter = _functor_parallel_clib.StreamWriter
 
 ### Koda QTypes.
 qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))

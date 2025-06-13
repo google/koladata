@@ -109,7 +109,9 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
     writer.close()
     with self.assertRaisesRegex(
         ValueError,
-        re.escape('expected a stream of streams, got sstream: STREAM[INT32]'),
+        re.escape(
+            'expected a stream of streams, got stream_of_streams: STREAM[INT32]'
+        ),
     ):
       koda_internal_parallel.stream_interleave_from_stream(stream)
 

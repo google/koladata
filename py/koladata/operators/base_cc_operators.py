@@ -38,5 +38,6 @@ from koladata.operators import proto as _
 from koladata.operators import random as _
 from koladata.operators import schema as _
 from koladata.operators import slices as _
+from koladata.operators import streams as _
 from koladata.operators import strings as _
 from koladata.operators import tuple as _

@@ -46,6 +46,7 @@ kde = arolla.OperatorsContainer(
         'kd.schema',
         'kd.shapes',
         'kd.slices',
+        'kd.streams',
         'kd.strings',
         'kd.tuples',
         # go/keep-sorted end

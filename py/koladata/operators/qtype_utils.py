@@ -187,6 +187,23 @@ def expect_executor(param) -> constraints.QTypeConstraint:
   )
 
 
+def expect_executor_or_unspecified(param) -> constraints.QTypeConstraint:
+  """Returns a constraint that the argument is an Executor."""
+  return (
+      (param == arolla.UNSPECIFIED)
+      | (
+          param
+          == M.qtype.qtype_of(
+              arolla.abc.bind_op('koda_internal.parallel.get_eager_executor')
+          )
+      ),
+      (
+          'expected an executor, got'
+          f' {arolla.optools.constraints.name_type_msg(param)}'
+      ),
+  )
+
+
 def expect_execution_context(param) -> constraints.QTypeConstraint:
   """Returns a constraint that the argument is an ExecutionContext."""
   return (

@@ -44,7 +44,8 @@ AROLLA_INITIALIZER(
                   LambdaOperator::Make(
                       "kd.parallel.get_eager_executor", ExprOperatorSignature{},
                       MakeLiteral(TypedValue::FromValue(GetEagerExecutor())),
-                      "Returns the eager executor."))
+                      "Returns an executor that runs tasks right away on the "
+                      "same thread."))
                   .status());
           RETURN_IF_ERROR(
               RegisterOperator(

@@ -45,12 +45,15 @@ arolla_cc_operator_package(
             "arolla_operators/jagged_shape",
             "arolla_operators/koda_internal",
             "arolla_operators/koda_iterables",
+            "arolla_operators/koda_functor_parallel",
         ],
     },
     snapshot = ":operator_package.pb2",
     visibility = ["//visibility:public"],
     deps = [
         "//koladata/expr:init",
+        "//koladata/functor/parallel:init_expr_operators",
+        "//koladata/functor/parallel:operators",
         "//koladata/iterables:init_expr_operators",
         "//koladata/iterables:operators",
         "//koladata/operators",
@@ -164,10 +167,10 @@ py_library(
         ":random",
         ":schema",
         ":slices",
+        ":streams",
         ":strings",
         ":tuple",
         "//py:python_path",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -836,6 +839,19 @@ py_library(
         "//py:python_path",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "streams",
+    srcs = ["streams.py"],
+    deps = [
+        ":koda_internal_parallel",
+        ":optools",
+        ":qtype_utils",
+        "//py:python_path",
+        "//py/koladata/types:data_slice",
         "@com_google_arolla//py/arolla",
     ],
 )

@@ -332,20 +332,22 @@ def stream_interleave(*streams, value_type_as=arolla.unspecified()):
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_chain_from_stream',
-    qtype_inference_expr=M.qtype.get_value_qtype(P.sstream),
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_of_streams),
     qtype_constraints=[
-        qtype_utils.expect_stream(P.sstream),
+        qtype_utils.expect_stream(P.stream_of_streams),
         (
-            bootstrap.is_stream_qtype(M.qtype.get_value_qtype(P.sstream)),
+            bootstrap.is_stream_qtype(
+                M.qtype.get_value_qtype(P.stream_of_streams)
+            ),
             (
                 'expected a stream of streams, got'
-                f' {constraints.name_type_msg(P.sstream)}'
+                f' {constraints.name_type_msg(P.stream_of_streams)}'
             ),
         ),
     ],
     deterministic=False,
 )
-def stream_chain_from_stream(sstream):
+def stream_chain_from_stream(stream_of_streams):
   """Creates a stream that chains the given streams.
 
   The resulting stream has all items from the first sub-stream, then all items
@@ -364,7 +366,7 @@ def stream_chain_from_stream(sstream):
       result: A stream with items [1, 2, 3, 4, 5, 6].
 
   Args:
-    sstream: A stream of input streams.
+    stream_of_streams: A stream of input streams.
 
   Returns:
     A stream that chains the input streams.
@@ -375,20 +377,22 @@ def stream_chain_from_stream(sstream):
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_interleave_from_stream',
-    qtype_inference_expr=M.qtype.get_value_qtype(P.sstream),
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream_of_streams),
     qtype_constraints=[
-        qtype_utils.expect_stream(P.sstream),
+        qtype_utils.expect_stream(P.stream_of_streams),
         (
-            bootstrap.is_stream_qtype(M.qtype.get_value_qtype(P.sstream)),
+            bootstrap.is_stream_qtype(
+                M.qtype.get_value_qtype(P.stream_of_streams)
+            ),
             (
                 'expected a stream of streams, got'
-                f' {constraints.name_type_msg(P.sstream)}'
+                f' {constraints.name_type_msg(P.stream_of_streams)}'
             ),
         ),
     ],
     deterministic=False,
 )
-def stream_interleave_from_stream(sstream):
+def stream_interleave_from_stream(stream_of_streams):
   """Creates a stream that interleaves the given streams.
 
   The resulting stream has all items from all input streams, and the order of
@@ -400,7 +404,7 @@ def stream_interleave_from_stream(sstream):
   of parallel processing done.
 
   Args:
-    sstream: A stream of input streams.
+    stream_of_streams: A stream of input streams.
 
   Returns:
     A stream that interleaves the input streams in an unspecified order.
@@ -809,25 +813,23 @@ def parallel_from_future(arg):
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
         qtype_utils.expect_stream(P.stream),
-        qtype_utils.expect_data_slice(P.body_fn),
+        qtype_utils.expect_data_slice(P.fn),
     ],
     qtype_inference_expr=get_stream_qtype(P.value_type_as),
     deterministic=False,
 )
-def stream_map(
-    executor, stream, body_fn, *, value_type_as=data_slice.DataSlice
-):
-  """Returns a new stream by applying body_fn to each item in the input stream.
+def stream_map(executor, stream, fn, *, value_type_as=data_slice.DataSlice):
+  """Returns a new stream by applying `fn` to each item in the input stream.
 
-  For each item of the input `stream`, the `body_fn` is called. The single
+  For each item of the input `stream`, the `fn` is called. The single
   resulting item from each call is then written into the new output stream.
 
   Args:
     executor: An executor for scheduling asynchronous operations.
     stream: The input stream.
-    body_fn: The function to be executed for each item of the input stream. It
-      will receive an item as the positional argument and its result must be of
-      the same type as `value_type_as`.
+    fn: The function to be executed for each item of the input stream. It will
+      receive an item as the positional argument and its result must be of the
+      same type as `value_type_as`.
     value_type_as: The type to use as value type of the resulting stream.
 
   Returns:
@@ -1058,7 +1060,7 @@ def _expect_future_data_slice_or_unspecified(arg):
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.parallel.parallel_call',
-    qtype_constraints=(
+    qtype_constraints=[
         qtype_utils.expect_execution_context(P.context),
         _expect_future_data_slice(P.fn),
         _expect_future_data_slice_or_unspecified(P.stack_trace_frame),
@@ -1097,7 +1099,7 @@ def _expect_future_data_slice_or_unspecified(arg):
                 f' {constraints.name_type_msg(P.return_type_as)}'
             ),
         ),
-    ),
+    ],
 )
 def parallel_call(
     context,
@@ -1176,11 +1178,11 @@ def parallel_call(
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.parallel.stream_flat_map_chain',
-    qtype_constraints=(
+    qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
         qtype_utils.expect_stream(P.stream),
         qtype_utils.expect_data_slice(P.fn),
-    ),
+    ],
 )
 def stream_flat_map_chain(
     executor, stream, fn, *, value_type_as=data_slice.DataSlice
@@ -1225,11 +1227,11 @@ def stream_flat_map_chain(
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.parallel.stream_flat_map_interleaved',
-    qtype_constraints=(
+    qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
         qtype_utils.expect_stream(P.stream),
         qtype_utils.expect_data_slice(P.fn),
-    ),
+    ],
 )
 def stream_flat_map_interleaved(
     executor, stream, fn, *, value_type_as=data_slice.DataSlice
@@ -1251,7 +1253,7 @@ def stream_flat_map_interleaved(
       )
       ```
       result: A stream with items {1, 2, 3, 10, 20, 30}. While the relative
-        order within {1, 2, 3} and {10, 20, 30} is guarnteed, the overall order
+        order within {1, 2, 3} and {10, 20, 30} is guaranteed, the overall order
         of items is unspecified. For instance, the following orderings are both
         possible:
          * [1, 10, 2, 20, 3, 30]
@@ -1404,7 +1406,7 @@ def _stream_while_yields(
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.parallel.stream_while',
-    qtype_constraints=(
+    qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
         qtype_utils.expect_data_slice(P.condition_fn),
         qtype_utils.expect_data_slice(P.body_fn),
@@ -1422,7 +1424,7 @@ def _stream_while_yields(
                 ' must be specified'
             ),
         ),
-    ),
+    ],
     deterministic=False,
 )
 def stream_while(
@@ -1433,7 +1435,7 @@ def stream_while(
     returns=arolla.unspecified(),
     yields=arolla.unspecified(),
     yields_interleaved=arolla.unspecified(),
-    **state,
+    **initial_state,
 ):
   """Repeatedly applies a body functor while a condition is met.
 
@@ -1469,24 +1471,24 @@ def stream_while(
     yields: If present, the initial value of the 'yields' state variable.
     yields_interleaved: If present, the initial value of the
       `yields_interleaved` state variable.
-    **state: Initial values for state variables.
+    **initial_state: Initial values for state variables.
 
   Returns:
     If `returns` is a state variable, the value of `returns` when the loop
     ended. Otherwise, a stream combining the values of `yields` or
     `yields_interleaved` from each body invocation.
   """
-  state = arolla.optools.fix_trace_kwargs(state)
+  initial_state = arolla.optools.fix_trace_kwargs(initial_state)
   return arolla.types.DispatchOperator(
       'executor, condition_fn, body_fn, returns, yields, yields_interleaved,'
-      ' state, non_deterministic',
+      ' initial_state, non_deterministic',
       returns_case=arolla.types.DispatchCase(
           _stream_while_returns(
               P.executor,
               P.condition_fn,
               P.body_fn,
               P.returns,
-              P.state,
+              P.initial_state,
               P.non_deterministic,
           ),
           condition=(P.returns != arolla.UNSPECIFIED),
@@ -1500,7 +1502,7 @@ def stream_while(
                   P.body_fn,
                   arolla.text('yields'),
                   P.yields,
-                  P.state,
+                  P.initial_state,
                   P.non_deterministic,
               ),
               P.non_deterministic,
@@ -1516,7 +1518,7 @@ def stream_while(
                   P.body_fn,
                   arolla.text('yields_interleaved'),
                   P.yields_interleaved,
-                  P.state,
+                  P.initial_state,
                   P.non_deterministic,
               ),
               P.non_deterministic,
@@ -1530,7 +1532,7 @@ def stream_while(
       returns,
       yields,
       yields_interleaved,
-      state,
+      initial_state,
       optools.unified_non_deterministic_arg(),
   )
 
@@ -1575,7 +1577,7 @@ def _stream_for_yields(
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.parallel.stream_for',
-    qtype_constraints=(
+    qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
         qtype_utils.expect_stream(P.stream),
         qtype_utils.expect_data_slice(P.body_fn),
@@ -1593,7 +1595,7 @@ def _stream_for_yields(
                 ' must be specified'
             ),
         ),
-    ),
+    ],
     deterministic=False,
 )
 def stream_for(
@@ -1640,7 +1642,7 @@ def stream_for(
       if item == <end-of-iterable>:
         break
     if returns is specified:
-      yield state['returns'])
+      yield state['returns']
 
   Args:
     executor: The executor to use for computations.
