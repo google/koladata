@@ -9,6 +9,9 @@ is already familiar with Koda before proceeding. Please read
 [Koda Overview](overview.md) and [Koda Fundamentals](fundamentals.md) to gain
 familiarity with Koda.
 
+WARNING: This page is under construction. Some sections, such as those covering
+"DataSlice" and "DataBag", have yet to be added.
+
 * TOC
 {:toc}
 
