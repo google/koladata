@@ -50,7 +50,6 @@ class CoreUpdatedTest(parameterized.TestCase):
     db1 = bag()
     result = eager.core.updated(x, db1)
     testing.assert_equal(x, result.no_bag())
-    testing.assert_equal(result.get_bag().get_fallbacks()[0], db1)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())
 
@@ -59,7 +58,6 @@ class CoreUpdatedTest(parameterized.TestCase):
     x = ds([1, 2, 3]).with_bag(db1)
     result = eager.core.updated(x, db1)
     testing.assert_equal(x.no_bag(), result.no_bag())
-    testing.assert_equal(result.get_bag().get_fallbacks()[0], db1)
     self.assertNotEqual(result.get_bag().fingerprint, db1.fingerprint)
     self.assertFalse(result.get_bag().is_mutable())
 

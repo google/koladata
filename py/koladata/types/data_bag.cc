@@ -1381,21 +1381,6 @@ PyObject* absl_nullable PyDataBag_contents_repr(PyObject* self,
   return PyUnicode_FromStringAndSize(str.c_str(), str.size());
 }
 
-PyObject* absl_nullable PyDataBag_get_fallbacks(PyObject* self, PyObject*) {
-  arolla::python::DCheckPyGIL();
-  arolla::python::PyCancellationScope cancellation_scope;
-  const DataBagPtr& db = UnsafeDataBagPtr(self);
-
-  const std::vector<DataBagPtr>& fallbacks = db->GetFallbacks();
-  auto fallback_list =
-      arolla::python::PyObjectPtr::Own(PyList_New(/*len=*/fallbacks.size()));
-  int i = 0;
-  for (const auto& bag : fallbacks) {
-    PyList_SetItem(fallback_list.get(), i++, WrapDataBagPtr(bag));
-  }
-  return fallback_list.release();
-}
-
 PyObject* absl_nullable PyDataBag_from_proto(PyObject* self,
                                              PyObject* const* args,
                                              Py_ssize_t nargs) {
@@ -1884,12 +1869,6 @@ Returns:
      "_schema_triples_repr(triple_limit=1000)\n"
      "--\n\n"
      "Returns a string representation of the schema contents of this DataBag"},
-    {"get_fallbacks", PyDataBag_get_fallbacks, METH_NOARGS,
-     "get_fallbacks()\n"
-     "--\n\n"
-     R"""(Returns the list of fallback DataBags in this DataBag.
-
-The list will be empty if the DataBag does not have fallbacks.)"""},
     {"_from_proto", (PyCFunction)PyDataBag_from_proto, METH_FASTCALL,
      "_from_proto(message_list, extensions_list, itemid, schema, /)\n"
      "--\n\n"

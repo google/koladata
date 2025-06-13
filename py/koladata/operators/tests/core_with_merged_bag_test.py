@@ -52,7 +52,6 @@ class CoreWithMergedBagTest(parameterized.TestCase):
     self.assertIsNot(new_z.get_bag(), db2)
     self.assertIsNot(new_z.get_bag(), z.get_bag())
     self.assertFalse(new_z.get_bag().is_mutable())
-    self.assertEmpty(new_z.get_bag().get_fallbacks())
     testing.assert_equal(new_z.a.no_bag(), ds(1))
     testing.assert_equal(new_z.b.no_bag(), ds(2))
 

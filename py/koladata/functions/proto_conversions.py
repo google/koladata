@@ -118,14 +118,16 @@ def from_proto(
             'itemid must be a 1-D DataSlice if messages is a list of messages'
         )
 
-  if (
-      schema is not None
-      and schema.get_bag() is not None
-      and not schema.get_bag().get_fallbacks()
-  ):
+  if schema is not None and schema.get_bag() is not None:
     # Avoid schema adoption.
-    bag = schema.get_bag().fork()
-    schema = schema.with_bag(bag)
+    schema_bag = schema.get_bag()
+    try:
+      bag = schema_bag.fork()
+    except ValueError:
+      # Fork may fail with ValueError if the schema bag has fallbacks.
+      bag = data_bag.DataBag.empty()
+    else:
+      schema = schema.with_bag(bag)
   else:
     bag = data_bag.DataBag.empty()
   result = bag._from_proto(  # pylint: disable=protected-access

@@ -1474,37 +1474,6 @@ Assigned schema for keys: INT32""",
     with self.assertRaisesRegex(TypeError, 'cannot compare DataBag with int'):
       bag()._exactly_equal(42)
 
-  def test_get_fallbacks(self):
-    db1 = bag()
-    db2 = bag()
-    o = db1.obj(a=1)
-    res = o.with_bag(db2).enriched(db1)
-    fallbacks = res.get_bag().get_fallbacks()
-    self.assertLen(fallbacks, 2)
-    testing.assert_equal(fallbacks[0], db2)
-    testing.assert_equal(fallbacks[1], db1)
-
-    with self.subTest('three-fallbacks'):
-      db1 = bag()
-      db2 = bag()
-      db3 = bag()
-      o = db1.obj(a=1)
-      res1 = o.enriched(db2)
-      db4 = res1.get_bag()
-      res2 = res1.enriched(db3)
-      fallbacks = res2.get_bag().get_fallbacks()
-      self.assertLen(fallbacks, 3)
-      testing.assert_equal(fallbacks[0], db1)
-      testing.assert_equal(fallbacks[1], db2)
-      testing.assert_equal(fallbacks[2], db3)
-      self.assertLen(db4.get_fallbacks(), 2)
-      testing.assert_equal(db4.get_fallbacks()[0], db1)
-      testing.assert_equal(db4.get_fallbacks()[1], db2)
-
-    with self.subTest('no-fallbacks'):
-      db = bag()
-      self.assertEmpty(db.get_fallbacks())
-
   def test_exactly_equal_impl(self):
     db1 = bag()
     db2 = bag()

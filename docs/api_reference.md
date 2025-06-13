@@ -12648,14 +12648,6 @@ Returns a frozen DataBag equivalent to `self`.
 Returns approximate size of the DataBag.
 ```
 
-### `DataBag.get_fallbacks()` {#DataBag.get_fallbacks}
-
-``` {.no-copy}
-Returns the list of fallback DataBags in this DataBag.
-
-The list will be empty if the DataBag does not have fallbacks.
-```
-
 ### `DataBag.implode(self, x, /, ndim=1, itemid=None)` {#DataBag.implode}
 
 ``` {.no-copy}

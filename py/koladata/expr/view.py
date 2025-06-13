@@ -609,9 +609,6 @@ class KodaView(arolla.abc.ExprView):
   def get_approx_size(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('get_approx_size', 'DataBag')
 
-  def get_fallbacks(self, *args, **kwargs):  # pylint: disable=unused-argument
-    _raise_eager_only_method('get_fallbacks', 'DataBag')
-
   def list(self, *args, **kwargs):  # pylint: disable=unused-argument
     _raise_eager_only_method('list', 'DataBag')
 
