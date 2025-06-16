@@ -159,10 +159,6 @@ PYBIND11_MODULE(wrap_utils_testing_clib, m) {
 
   m.def("make_data_bag", []() {
     DataBagPtr db = DataBag::Empty();
-    auto ds_impl = internal::DataSliceImpl::Create(
-        arolla::CreateFullDenseArray<int>({1, 2, 3}));
-    DataSlice::Create(ds_impl, JaggedShape::FlatFromSize(3),
-                      DataItem(schema::kInt32), db);
     return arolla::TypedValue::FromValue(std::move(db));
   });
 }
