@@ -77,21 +77,23 @@ class FromPyTest(parameterized.TestCase):
     ref = fns.obj().ref()
     testing.assert_equal(fns.from_py([ref], from_dim=1), ds([ref]))
 
-  def test_same_bag(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_same_bag(self, from_py_fn):
     db = fns.bag()
     o1 = db.obj()
     o2 = db.obj()
 
-    res = fns.from_py(o1)
+    res = from_py_fn(o1)
     testing.assert_equal(res.get_bag(), db)
 
-    res = fns.from_py([[o1, o2], [42]], from_dim=2)
+    res = from_py_fn([[o1, o2], [42]], from_dim=2)
     self.assertTrue(res.get_bag().is_mutable())
     testing.assert_equal(
         res, ds([[o1, o2], [42]], schema_constants.OBJECT).with_bag(db)
     )
 
     # The result databag is not the same in case of entity schema.
+    # TODO: make it work in v2.
     l1 = db.list()
     l2 = db.list()
     res = fns.from_py([[l1, l2], [o1, o2]], from_dim=2)
@@ -105,20 +107,22 @@ class FromPyTest(parameterized.TestCase):
         ds([[o1, o2], [l1, l2], [42]], schema_constants.OBJECT),
     )
 
-  def test_does_not_borrow_data_from_input_db(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_does_not_borrow_data_from_input_db(self, from_py_fn):
     db = fns.bag()
     e1 = db.new(a=42, schema='S')
     e2 = db.new(a=12, schema='S')
     lst = [e1, e2]
-    res = fns.from_py(lst)
+    res = from_py_fn(lst)
     self.assertNotEqual(e1.get_bag().fingerprint, res.get_bag().fingerprint)
     self.assertFalse(res.get_bag().is_mutable())
 
-  def test_can_use_frozen_input_bag(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_can_use_frozen_input_bag(self, from_py_fn):
     db = fns.bag()
     e = db.new(a=12, schema='S').freeze_bag()
     lst = [e]
-    res = fns.from_py(lst)
+    res = from_py_fn(lst)
     testing.assert_equal(res[:].a.no_bag(), ds([12], schema_constants.INT32))
 
   def test_different_bags(self):
@@ -131,25 +135,66 @@ class FromPyTest(parameterized.TestCase):
         ds([[o1, o2], [42]], schema_constants.OBJECT).no_bag(),
     )
 
-  def test_list(self):
-    l = fns.from_py([1, 2, 3])
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_list(self, from_py_fn):
+    l = from_py_fn([1, 2, 3])
     testing.assert_equal(l[:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT))
     self.assertFalse(l.get_bag().is_mutable())
 
-    l = fns.from_py([1, 3.14])
+    l = from_py_fn([1, 3.14])
     testing.assert_equal(l[:].no_bag(), ds([1, 3.14], schema_constants.OBJECT))
+
+    l = from_py_fn([[1, 2, 3], 4], from_dim=0)
+    self.assertEqual(l.get_ndim(), 0)
+    testing.assert_equal(
+        l[:].S[0][:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        l[:].S[1], ds(4, schema_constants.OBJECT).with_bag(l.get_bag())
+    )
+
+    l = from_py_fn([[1, 2, 3], 4], from_dim=1)
+    testing.assert_equal(
+        l.S[0][:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        l.S[1], ds(4, schema_constants.OBJECT).with_bag(l.get_bag())
+    )
+
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_list_with_none(self, from_py_fn):
+    l = from_py_fn([None, [1, 2, 3], [4, 5]])
+    testing.assert_equal(l[:].S[0].no_bag(), ds(None, schema_constants.OBJECT))
+    testing.assert_equal(
+        l[:].S[1][:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        l[:].S[2][:].no_bag(), ds([4, 5], schema_constants.OBJECT)
+    )
+    self.assertFalse(l.get_bag().is_mutable())
+
+    l = from_py_fn([[1, 2, 3], [4, 5], None])
+    testing.assert_equal(l[:].S[2].no_bag(), ds(None, schema_constants.OBJECT))
+    testing.assert_equal(
+        l[:].S[0][:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        l[:].S[1][:].no_bag(), ds([4, 5], schema_constants.OBJECT)
+    )
+    self.assertFalse(l.get_bag().is_mutable())
 
   # More detailed tests for conversions to Koda Entities for Lists are located
   # in new_test.py.
-  def test_list_with_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_list_with_schema(self, from_py_fn):
     # Python list items can be various Python / Koda objects that are normalized
     # to Koda Items.
-    l = fns.from_py(
+    l = from_py_fn(
         [1, 2, 3], schema=kde.list_schema(schema_constants.FLOAT32).eval()
     )
     testing.assert_allclose(l[:].no_bag(), ds([1.0, 2.0, 3.0]))
 
-    l = fns.from_py(
+    l = from_py_fn(
         [[1, 2], [ds(42, schema_constants.INT64)]],
         schema=kde.list_schema(
             kde.list_schema(schema_constants.FLOAT64)
@@ -159,11 +204,12 @@ class FromPyTest(parameterized.TestCase):
         l[:][:].no_bag(), ds([[1.0, 2.0], [42.0]], schema_constants.FLOAT64)
     )
 
-    l = fns.from_py(
+    l = from_py_fn(
         [1, 3.14], schema=kde.list_schema(schema_constants.OBJECT).eval()
     )
     testing.assert_equal(l[:].no_bag(), ds([1, 3.14], schema_constants.OBJECT))
 
+    # TODO: change this to from_py_fn when dicts are supported.
     l = fns.from_py(
         [{'a': 2, 'b': 4}, {'c': 6, 'd': 8}],
         schema=kde.list_schema(
@@ -262,14 +308,15 @@ class FromPyTest(parameterized.TestCase):
     testing.assert_equal(from_py_fn(MyStrEnum.A), ds('a'))
     testing.assert_equal(from_py_fn(MyStrEnum.B), ds('b'))
 
-  def test_primitive_casting_error(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_primitive_casting_error(self, from_py_fn):
     with self.assertRaisesRegex(
         ValueError,
         re.escape("""the schema is incompatible:
 expected schema: BYTES
 assigned schema: MASK"""),
     ):
-      fns.from_py(b'xyz', schema=schema_constants.MASK)
+      from_py_fn(b'xyz', schema=schema_constants.MASK)
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_primitive_down_casting_error(self, from_py_fn):
@@ -319,43 +366,46 @@ assigned schema: INT32"""),
     self.assertIsNotNone(res.get_bag())
     self.assertFalse(res.get_bag().is_mutable())
 
-  def test_list_from_dim(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_list_from_dim(self, from_py_fn):
     input_list = [[1, 2.0], [3, 4]]
 
-    l0 = fns.from_py(input_list, from_dim=0)
+    l0 = from_py_fn(input_list, from_dim=0)
     self.assertEqual(l0.get_ndim(), 0)
     testing.assert_equal(
         l0[:][:],
         ds([[1, 2.0], [3, 4]], schema_constants.OBJECT).with_bag(l0.get_bag()),
     )
 
-    l1 = fns.from_py(input_list, from_dim=1)
+    l1 = from_py_fn(input_list, from_dim=1)
     self.assertEqual(l1.get_ndim(), 1)
     testing.assert_equal(
         l1[:],
         ds([[1, 2.0], [3, 4]], schema_constants.OBJECT).with_bag(l1.get_bag()),
     )
 
-    l2 = fns.from_py(input_list, from_dim=2)
+    l2 = from_py_fn(input_list, from_dim=2)
     self.assertEqual(l2.get_ndim(), 2)
     testing.assert_equal(l2, ds([[1.0, 2.0], [3.0, 4.0]]))
 
-    l3 = fns.from_py([1, 2], from_dim=1)
+    l3 = from_py_fn([1, 2], from_dim=1)
     testing.assert_equal(l3, ds([1, 2]))
 
-  def test_empty_from_dim(self):
-    l0 = fns.from_py([], from_dim=0)
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_empty_from_dim(self, from_py_fn):
+    l0 = from_py_fn([], from_dim=0)
     testing.assert_equal(
         l0[:], ds([], schema_constants.OBJECT).with_bag(l0.get_bag())
     )
 
-    l1 = fns.from_py([], from_dim=1)
+    l1 = from_py_fn([], from_dim=1)
     testing.assert_equal(l1, ds([]).with_bag(l1.get_bag()))
 
-  def test_empty_list_of_lists_with_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_empty_list_of_lists_with_schema(self, from_py_fn):
     schema1 = kde.list_schema(schema_constants.FLOAT64).eval()
     schema2 = kde.list_schema(schema1).eval()
-    l0 = fns.from_py([], schema=schema2)
+    l0 = from_py_fn([], schema=schema2)
     testing.assert_equal(
         l0[:],
         ds([], schema1).with_bag(l0.get_bag()),
@@ -375,10 +425,11 @@ assigned schema: INT32"""),
         ds([], schema1).with_bag(l0.get_bag()),
     )
 
-  def test_list_from_dim_with_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_list_from_dim_with_schema(self, from_py_fn):
     input_list = [[1, 2.0], [3, 4]]
 
-    l0 = fns.from_py(
+    l0 = from_py_fn(
         input_list,
         schema=kde.list_schema(
             kde.list_schema(schema_constants.FLOAT64)
@@ -390,7 +441,7 @@ assigned schema: INT32"""),
         l0[:][:].no_bag(), ds([[1, 2], [3, 4]], schema_constants.FLOAT64)
     )
 
-    l0_object = fns.from_py(
+    l0_object = from_py_fn(
         input_list,
         schema=schema_constants.OBJECT,
         from_dim=0,
@@ -402,20 +453,21 @@ assigned schema: INT32"""),
         ds([[1, 2.0], [3, 4]], schema_constants.OBJECT),
     )
 
-    l1 = fns.from_py(
-        input_list, schema=kde.list_schema(schema_constants.FLOAT32).eval(),
-        from_dim=1
+    l1 = from_py_fn(
+        input_list,
+        schema=kde.list_schema(schema_constants.FLOAT32).eval(),
+        from_dim=1,
     )
     self.assertEqual(l1.get_ndim(), 1)
     testing.assert_equal(
         l1[:].no_bag(), ds([[1, 2], [3, 4]], schema_constants.FLOAT32)
     )
 
-    l2 = fns.from_py(input_list, schema=schema_constants.FLOAT64, from_dim=2)
+    l2 = from_py_fn(input_list, schema=schema_constants.FLOAT64, from_dim=2)
     self.assertEqual(l2.get_ndim(), 2)
     testing.assert_equal(l2, ds([[1, 2], [3, 4]], schema_constants.FLOAT64))
 
-    l3 = fns.from_py(input_list, schema=schema_constants.OBJECT, from_dim=2)
+    l3 = from_py_fn(input_list, schema=schema_constants.OBJECT, from_dim=2)
     self.assertEqual(l3.get_ndim(), 2)
     testing.assert_equal(
         l3.no_bag(), ds([[1, 2.0], [3, 4]], schema_constants.OBJECT)
@@ -451,12 +503,6 @@ assigned schema: INT32"""),
   def test_from_dim_error(self, from_py_fn):
     input_list = [[1, 2, 3], 4]
 
-    l0 = fns.from_py(input_list, from_dim=0)
-    self.assertEqual(l0.get_ndim(), 0)
-
-    l1 = fns.from_py(input_list, from_dim=1)
-    self.assertEqual(l1.get_ndim(), 1)
-
     with self.assertRaisesRegex(
         ValueError,
         'input has to be a valid nested list. non-lists and lists cannot be'
@@ -483,7 +529,7 @@ assigned schema: INT32"""),
         ValueError,
         'could not traverse the nested list of depth 1 up to the level 2',
     ):
-      _ = fns.from_py([], from_dim=2, schema=schema)
+      _ = from_py_fn([], from_dim=2, schema=schema)
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_none(self, from_py_fn):
@@ -1275,7 +1321,8 @@ assigned schema: ENTITY(x=INT32)'''
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
       fns.from_py(py_d, schema=schema)
 
-  def test_deep_list_with_repetitions(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_deep_list_with_repetitions(self, from_py_fn):
     py_l = [1, 2, 3]
     schema = kde.list_schema(schema_constants.INT32).eval()
     for _ in range(2):
@@ -1283,19 +1330,20 @@ assigned schema: ENTITY(x=INT32)'''
       schema = kde.list_schema(schema).eval()
 
     testing.assert_equal(
-        fns.from_py(py_l)[:][:][:].no_bag(),
+        from_py_fn(py_l)[:][:][:].no_bag(),
         ds(
             [[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]],
-            schema_constants.OBJECT
-        )
+            schema_constants.OBJECT,
+        ),
     )
 
     testing.assert_equal(
-        fns.from_py(py_l, schema=schema)[:][:][:].no_bag(),
-        ds([[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]])
+        from_py_fn(py_l, schema=schema)[:][:][:].no_bag(),
+        ds([[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]]),
     )
 
-  def test_deep_list_recursive_error(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_deep_list_recursive_error(self, from_py_fn):
     py_l = [1, 2, 3]
     schema = kde.list_schema(schema_constants.INT32).eval()
     bottom_l = py_l
@@ -1305,10 +1353,16 @@ assigned schema: ENTITY(x=INT32)'''
     level_1_l = py_l
     py_l = [level_1_l]
     bottom_l.append(level_1_l)
+    # TODO: handle recursion in v2.
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
       fns.from_py(py_l)
-    with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
-      fns.from_py(py_l, schema=schema)
+    error_msg = (
+        'recursive .* cannot be converted'
+        if from_py_fn == fns.from_py
+        else 'object with unsupported type: list'
+    )
+    with self.assertRaisesRegex(ValueError, error_msg):
+      from_py_fn(py_l, schema=schema)
 
   def test_deep_object_repetitions(self):
     py_d = {'abc': 42}
