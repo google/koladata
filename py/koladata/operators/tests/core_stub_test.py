@@ -62,6 +62,14 @@ class CoreStubTest(parameterized.TestCase):
         x_stub.get_schema().get_attr_names(intersection=True), []
     )
 
+  def test_object_primitive(self):
+    x = ds([1, 2, 3]).with_bag(bag()).embed_schema()
+    x_stub = kde.core.stub(x).eval()
+    testing.assert_equal(x_stub.no_bag(), x.no_bag())
+    testing.assert_equal(
+        x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
+    )
+
   def test_object_entity(self):
     x = bag().obj(x=ds([1, 2, 3]))
     x_stub = kde.core.stub(x).eval()
@@ -74,6 +82,27 @@ class CoreStubTest(parameterized.TestCase):
     )
     self.assertSameElements(
         x_stub.get_schema().get_attr_names(intersection=True), []
+    )
+
+  def test_object_mixed_dtype(self):
+    bag1 = bag()
+    x1 = ds([1, 2, 3]).with_bag(bag1).embed_schema()
+    x2 = bag1.obj(x=ds([4, 5, 6]))
+    x3 = bag1.list([7, 8, 9]).repeat(1).embed_schema()
+    x = kde.slices.concat(x1, x2, x3).eval()
+    x_stub = kde.core.stub(x).eval()
+    testing.assert_equal(x_stub.no_bag(), x.no_bag())
+    testing.assert_equal(
+        x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
+    )
+
+  def test_object_mixed_dtype_only_primitives(self):
+    bag1 = bag()
+    x = ds([1, 'x', 3.0]).with_bag(bag1)
+    x_stub = kde.core.stub(x).eval()
+    testing.assert_equal(x_stub.no_bag(), x.no_bag())
+    testing.assert_equal(
+        x_stub.get_obj_schema().no_bag(), x.get_obj_schema().no_bag()
     )
 
   def test_list_no_nesting(self):

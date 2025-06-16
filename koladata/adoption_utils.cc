@@ -15,6 +15,7 @@
 #include "koladata/adoption_utils.h"
 
 #include <optional>
+#include <type_traits>
 #include <vector>
 
 #include "absl/base/nullability.h"
@@ -23,12 +24,16 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "arolla/dense_array/dense_array.h"
 #include "arolla/util/cancellation.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/error_repr_utils.h"
 #include "koladata/extract_utils.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -148,6 +153,31 @@ absl::Status AdoptStub(const DataBagPtr& db, const DataSlice& x) {
     }
 
     if (schema.item() == schema::kObject) {
+      if (slice.IsEmpty() ||
+          (!slice.impl_has_mixed_dtype() && slice.ContainsAnyPrimitives())) {
+        break;  // No object ids left to process.
+      }
+
+      // If slice contains a mixture of object ids and primitives, isolate just
+      // the object ids so we can successfully set kSchemaAttr.
+      if (slice.impl_has_mixed_dtype() && slice.ContainsAnyPrimitives()) {
+        DCHECK(!slice.is_item());  // Item cannot have mixed dtype.
+        const arolla::DenseArray<internal::ObjectId>* object_ids = nullptr;
+        slice.slice().VisitValues(
+            [&]<typename T>(const arolla::DenseArray<T>& values) {
+              if constexpr (std::is_same_v<T, internal::ObjectId>) {
+                object_ids = &values;
+              }
+            });
+        if (object_ids == nullptr) {
+          break;  // No object ids left to process.
+        }
+        ASSIGN_OR_RETURN(
+            result_slice,
+            DataSlice::Create(internal::DataSliceImpl::Create(*object_ids),
+                              slice.GetShape(), schema.item(), db));
+      }
+
       ASSIGN_OR_RETURN(schema, slice.GetObjSchema());
       RETURN_IF_ERROR(result_slice.SetAttr(schema::kSchemaAttr, schema));
     }

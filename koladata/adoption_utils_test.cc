@@ -306,6 +306,22 @@ TEST(AdoptStubTest, Object) {
   }
 }
 
+TEST(AdoptStubTest, ObjectWithMixedDtype) {
+  auto bag1 = DataBag::Empty();
+  auto item1 = *EntityCreator::FromAttrs(bag1, {}, {})->EmbedSchema();
+  auto item2 = *DataSlice::CreateFromScalar(2).WithBag(bag1).EmbedSchema();
+  auto slice = *DataSlice::CreateWithFlatShape(
+      internal::DataSliceImpl::Create({item1.item(), item2.item()}),
+      item1.GetSchemaImpl(), bag1);
+
+  auto stub_bag = DataBag::Empty();
+  ASSERT_OK(AdoptStub(stub_bag, slice));
+
+  EXPECT_TRUE(
+      slice.WithBag(stub_bag).GetObjSchema()->WithBag(nullptr).IsEquivalentTo(
+          slice.GetObjSchema()->WithBag(nullptr)));
+}
+
 TEST(AdoptStubTest, List) {
   {
     // Holding primitives.
