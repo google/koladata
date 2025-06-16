@@ -305,5 +305,24 @@ def kd_expr_fn(state):
     del fn
 
 
+@kd.trace_as_fn()
+def kd_is_prime(n):
+  k = kd.while_(
+      lambda n, returns: (n % returns != 0) & (returns * returns <= n),
+      lambda n, returns: kd.namedtuple(
+          returns=returns + 2
+      ),
+      n=n,
+      returns=3
+    )
+  return (n >= 2) & ((n == 2) | (n % 2 != 0)) & (k * k > n)
+
+
+@google_benchmark.register
+def kd_functor_is_prime(state):
+  while state:
+    kd_is_prime(998244353)
+
+
 if __name__ == '__main__':
   google_benchmark.main()
