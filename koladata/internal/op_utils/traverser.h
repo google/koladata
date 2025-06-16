@@ -63,10 +63,12 @@ class AbstractVisitor {
   // For objects Previsit is called twice:
   // - first time with schema::kObject.
   // - second time with the schema written in kSchemaAttr attribute.
-  virtual absl::Status Previsit(const DataItem& from_item,
-                                const DataItem& from_schema,
-                                const DataItem& item,
-                                const DataItem& schema) = 0;
+  // Returns if the item should be traversed further. If false is returned,
+  // this item would not be listed for the Visit* methods.
+  virtual absl::StatusOr<bool> Previsit(const DataItem& from_item,
+                                        const DataItem& from_schema,
+                                        const DataItem& item,
+                                        const DataItem& schema) = 0;
 
   // Called for each reachable list.
   // Args:
@@ -194,11 +196,14 @@ class Traverser {
     if (item.schema.is_primitive_schema()) {
       RETURN_IF_ERROR(ValidatePrimitiveType(item));
     }
-    if (item.item.has_value() && !item.item.ContainsAnyPrimitives()) {
+    ASSIGN_OR_RETURN(bool should_visit,
+                     visitor_->VisitorT::Previsit(from.item, from.schema,
+                                                  item.item, item.schema));
+    if (should_visit && item.item.has_value() &&
+        !item.item.ContainsAnyPrimitives()) {
       previsit_stack_.push({.item = item.item, .schema = item.schema});
     }
-    return visitor_->VisitorT::Previsit(from.item, from.schema, item.item,
-                                        item.schema);
+    return absl::OkStatus();
   }
 
   struct PairOfItemsHash {
@@ -231,8 +236,12 @@ class Traverser {
         if (item.schema == schema::kObject) {
           ASSIGN_OR_RETURN(item.schema,
                            traverse_helper_.GetObjectSchema(item.item));
-          RETURN_IF_ERROR(visitor_->VisitorT::Previsit(
+          ASSIGN_OR_RETURN(auto should_visit,
+                           visitor_->VisitorT::Previsit(
               item.item, DataItem(schema::kObject), item.item, item.schema));
+          if (!should_visit) {
+            continue;
+          }
         }
         if (item.item != DataItem(schema::kSchema) ||
             item.schema != DataItem(schema::kSchema)) {

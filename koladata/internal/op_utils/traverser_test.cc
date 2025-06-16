@@ -14,6 +14,7 @@
 //
 #include "koladata/internal/op_utils/traverser.h"
 
+
 #include <algorithm>
 #include <cstdint>
 #include <initializer_list>
@@ -74,17 +75,23 @@ INSTANTIATE_TEST_SUITE_P(MainOrFallback, ParentsTraverserTest,
 
 class NoOpVisitor : AbstractVisitor {
  public:
-  explicit NoOpVisitor()
-      : previsited_(), value_item_(DataItem("get value result")) {}
+  explicit NoOpVisitor(std::vector<std::pair<DataItem, DataItem>> skip = {})
+      : previsited_(), skip_(skip), value_item_(DataItem("get value result")) {}
 
-  absl::Status Previsit(const DataItem& from_item, const DataItem& from_schema,
-                        const DataItem& item, const DataItem& schema) override {
+  absl::StatusOr<bool> Previsit(const DataItem& from_item,
+                                const DataItem& from_schema,
+                                const DataItem& item,
+                                const DataItem& schema) override {
     if (!schema.is_schema()) {
       return absl::InvalidArgumentError(
           absl::StrFormat("%v is not a schema", schema));
     }
+    if (std::find(skip_.begin(), skip_.end(), std::make_pair(item, schema)) !=
+        skip_.end()) {
+      return false;
+    }
     previsited_.push_back({item, schema});
-    return absl::OkStatus();
+    return true;
   }
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
@@ -145,13 +152,17 @@ class NoOpVisitor : AbstractVisitor {
   }
 
   std::vector<std::pair<DataItem, DataItem>> previsited_;
+  std::vector<std::pair<DataItem, DataItem>> skip_;
   DataItem value_item_;
 };
 
 absl::Status TraverseSlice(const DataSliceImpl& ds, const DataItem& schema,
                            const DataBagImpl& databag,
-                           DataBagImpl::FallbackSpan fallbacks) {
-  auto visitor = std::make_shared<NoOpVisitor>();
+                           DataBagImpl::FallbackSpan fallbacks,
+                           std::shared_ptr<NoOpVisitor> visitor = nullptr) {
+  if (visitor == nullptr) {
+    visitor = std::make_shared<NoOpVisitor>();
+  }
   auto traverse_op = Traverser<NoOpVisitor>(databag, fallbacks, visitor);
   RETURN_IF_ERROR(traverse_op.TraverseSlice(ds, schema));
   return absl::OkStatus();
@@ -161,10 +172,12 @@ class ObjectVisitor : AbstractVisitor {
  public:
   explicit ObjectVisitor() = default;
 
-  absl::Status Previsit(const DataItem& from_item, const DataItem& from_schema,
-                        const DataItem& item, const DataItem& schema) override {
+  absl::StatusOr<bool> Previsit(const DataItem& from_item,
+                                const DataItem& from_schema,
+                                const DataItem& item,
+                                const DataItem& schema) override {
     if (!item.holds_value<ObjectId>()) {
-      return absl::OkStatus();
+      return false;
     }
     if (schema == schema::kObject) {
       previsited_objects_.insert(item.value<ObjectId>());
@@ -175,7 +188,7 @@ class ObjectVisitor : AbstractVisitor {
       }
       previsited_with_schema_.insert(item.value<ObjectId>());
     }
-    return absl::OkStatus();
+    return true;
   }
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
@@ -234,15 +247,17 @@ class SaveParentVisitor : AbstractVisitor {
  public:
   explicit SaveParentVisitor() : previsited_(), previsited_parents_() {}
 
-  absl::Status Previsit(const DataItem& from_item, const DataItem& from_schema,
-                        const DataItem& item, const DataItem& schema) override {
+  absl::StatusOr<bool> Previsit(const DataItem& from_item,
+                                const DataItem& from_schema,
+                                const DataItem& item,
+                                const DataItem& schema) override {
     if (!schema.is_schema()) {
       return absl::InvalidArgumentError(
           absl::StrFormat("%v is not a schema", schema));
     }
     previsited_.push_back({item, schema});
     previsited_parents_.push_back({from_item, from_schema});
-    return absl::OkStatus();
+    return true;
   }
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,
@@ -385,6 +400,44 @@ TEST_P(NoOpTraverserTest, DeepEntitySlice) {
 
   EXPECT_OK(
       TraverseSlice(ds, schema_a, *GetMainDb(db), {GetFallbackDb(db).get()}));
+}
+
+TEST_P(NoOpTraverserTest, SkipTraversing) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto b0 = obj_ids[3];
+  auto b1 = obj_ids[4];
+  auto b2 = obj_ids[5];
+  auto ds =
+      DataSliceImpl::Create(arolla::CreateDenseArray<DataItem>({a0, a1, a2}));
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  TriplesT data_triples = {{a0, {{"self", a0}, {"b", b0}}},
+                           {a1, {{"self", DataItem()}, {"b", b1}}},
+                           {a2, {{"self", a2}, {"b", b2}}},
+                           {b0, {{"self", b0}}},
+                           {b1, {{"self", b1}}},
+                           {b2, {{"self", b2}}}};
+  TriplesT schema_triples = {{schema_a, {{"self", schema_a}, {"b", schema_b}}},
+                             {schema_b, {{"self", schema_b}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto visitor = std::make_shared<NoOpVisitor>(
+    std::vector<std::pair<DataItem, DataItem>>{{a2, schema_a}});
+  EXPECT_OK(TraverseSlice(ds, schema_a, *GetMainDb(db),
+                          {GetFallbackDb(db).get()}, visitor));
+
+  ASSERT_OK_AND_ASSIGN(auto value, visitor->GetValue(b0, schema_b));
+  EXPECT_EQ(value, DataItem("get value result"));
+  EXPECT_THAT(visitor->GetValue(b2, schema_b),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       ::testing::HasSubstr("is not previsited")));
 }
 
 TEST_P(NoOpTraverserTest, ShallowListsSlice) {

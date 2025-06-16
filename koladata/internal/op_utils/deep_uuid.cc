@@ -48,9 +48,11 @@ class DeepUuidVisitor : AbstractVisitor {
  public:
   explicit DeepUuidVisitor(absl::string_view seed) : seed_(seed) {}
 
-  absl::Status Previsit(const DataItem& from_item, const DataItem& from_schema,
-                        const DataItem& item, const DataItem& schema) override {
-    return absl::OkStatus();
+  absl::StatusOr<bool> Previsit(const DataItem& from_item,
+                                const DataItem& from_schema,
+                                const DataItem& item,
+                                const DataItem& schema) override {
+    return true;
   }
 
   absl::StatusOr<DataItem> GetValue(const DataItem& item,

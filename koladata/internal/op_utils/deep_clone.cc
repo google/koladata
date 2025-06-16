@@ -51,27 +51,34 @@ class DeepCloneVisitor : AbstractVisitor {
         allocation_tracker_(),
         allocations_with_metadata_() {}
 
-  absl::Status Previsit(const DataItem& from_item, const DataItem& from_schema,
-                        const DataItem& item, const DataItem& schema) override {
+  absl::StatusOr<bool> Previsit(const DataItem& from_item,
+                                const DataItem& from_schema,
+                                const DataItem& item,
+                                const DataItem& schema) override {
     if (schema == schema::kObject && from_schema == schema::kSchema) {
       // The `item` is schema_metadata for `from_item`.
-      return PrevisitSchemaMetadata(from_item, item);
+      RETURN_IF_ERROR(PrevisitSchemaMetadata(from_item, item));
+      return true;
     }
     if (schema.holds_value<ObjectId>()) {
       // Entity schema.
       if (schema.is_implicit_schema()) {
         // The item was already previsited with `schema::kObject`, thus we only
         // need to "clone" the implicit schema.
-        return PrevisitItemWithImplicitSchema(item, schema);
+        RETURN_IF_ERROR(PrevisitItemWithImplicitSchema(item, schema));
+        return true;
       }
-      return PrevisitObject(item);
+      RETURN_IF_ERROR(PrevisitObject(item));
+      return true;
     } else if (schema.holds_value<schema::DType>()) {
       if (schema == schema::kObject) {
-        return PrevisitObject(item);
+        RETURN_IF_ERROR(PrevisitObject(item));
+        return true;
       } else if (schema == schema::kSchema) {
-        return PrevisitSchema(item);
+        RETURN_IF_ERROR(PrevisitSchema(item));
+        return true;
       }
-      return absl::OkStatus();
+      return true;
     }
     return absl::InternalError("unsupported schema type");
   }

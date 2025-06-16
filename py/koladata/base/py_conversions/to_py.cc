@@ -129,8 +129,17 @@ class ToPyVisitor : internal::AbstractVisitor {
   // a cache hit and just populate the attributes. Alternatively, when
   // populating object attributes in `VisitObject`, `VisitDict` and `VisitList`,
   // we could check that it is an entity and if so, query its attributes.
-  absl::Status Previsit(const DataItem& from_item, const DataItem& from_schema,
-                        const DataItem& item, const DataItem& schema) final {
+  absl::StatusOr<bool> Previsit(const DataItem& from_item,
+                                const DataItem& from_schema,
+                                const DataItem& item,
+                                const DataItem& schema) final {
+    RETURN_IF_ERROR(PrevisitImpl(from_item, from_schema, item, schema));
+    return true;
+  }
+
+  absl::Status PrevisitImpl(const DataItem& from_item,
+                            const DataItem& from_schema, const DataItem& item,
+                            const DataItem& schema) {
     if (!item.holds_value<ObjectId>()) {
       return absl::OkStatus();
     }
