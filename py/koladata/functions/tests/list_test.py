@@ -107,7 +107,7 @@ class ListTest(parameterized.TestCase):
     x = fns.list([1, 2, 3], itemid=itemid.get_itemid())
     # ITEMID's triples are stripped in the new DataBag.
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex(
             "attribute 'non_existent' is missing"
         ),

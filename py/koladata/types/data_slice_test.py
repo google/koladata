@@ -1469,7 +1469,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
   def test_set_get_attr_object_missing_schema_attr(self):
     obj = bag().obj(a=1)
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex(
             'object schema is missing for the DataItem'
         ),
@@ -1496,7 +1496,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     obj_2 = db.new(a=1).with_schema(schema_constants.OBJECT)
     obj = ds([obj_1, obj_2])
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex(
             re.escape('object schema(s) are missing')
         ),
@@ -1521,7 +1521,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     obj = bag().obj(a=1)
     obj.set_attr('__schema__', schema_constants.INT32)
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex(
             'cannot get or set attributes on schema: INT32'
         ),
@@ -1581,8 +1581,8 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
   def test_getattr_errors(self):
     x = ds([1, 2, 3])
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
-        arolla.testing.any_cause_message_regex("failed to get 'abc' attribute"),
+        AttributeError,
+        arolla.testing.any_cause_message_regex("failed to get attribute 'abc'"),
     ):
       _ = x.abc
     with self.assertRaisesRegex(TypeError, r'attribute name must be string'):
@@ -1595,9 +1595,10 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
     entity = db.new(a=db.new(x=1, y=3.14))
     entity.get_schema().a = obj.a.get_attr('__schema__')
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex(
-            'DataSlice cannot have an implicit schema as its schema'
+            "failed to get attribute 'a': DataSlice cannot have an implicit"
+            ' schema as its schema'
         ),
     ):
       _ = entity.a  # Has implicit schema.
@@ -1754,7 +1755,7 @@ To fix this, explicitly override schema of 'x' in the Object schema by passing o
       )
       del e.get_schema().b
       with self.assertRaisesWithPredicateMatch(
-          ValueError,
+          AttributeError,
           arolla.testing.any_cause_message_regex(
               re.escape(
                   """the attribute 'b' is missing on the schema.
@@ -1791,7 +1792,7 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
       o = db.obj(a=1, b=2)
       del o.a
       with self.assertRaisesWithPredicateMatch(
-          ValueError,
+          AttributeError,
           arolla.testing.any_cause_message_regex(
               re.escape(
                   """the attribute 'a' is missing on the schema.
@@ -1826,10 +1827,10 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
         del o.c
 
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex(
             re.escape(
-                """the attribute 'a' is missing for at least one object at ds.flatten().S[1]
+                """failed to get attribute 'a': the attribute 'a' is missing for at least one object at ds.flatten().S[1]
 
 If it is not a typo, perhaps ignore the schema when getting the attribute. For example, ds.maybe('a')"""
             )
@@ -3482,7 +3483,7 @@ Assigned schema for list items: ENTITY(a=STRING)"""),
     testing.assert_equal(result.b.no_bag(), o.b.no_bag())
     testing.assert_equal(result.c.no_bag(), o.c.no_bag())
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex("attribute 'a' is missing"),
     ):
       _ = result.b.a

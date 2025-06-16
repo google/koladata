@@ -44,7 +44,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     result = expr_eval.eval(kde.shallow_clone(x))
     testing.assert_equal(result.y.no_bag(), y.no_bag())
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex(
             re.escape('object schema is missing for the DataItem')
         ),
@@ -58,7 +58,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     result = expr_eval.eval(kde.shallow_clone(x))
     testing.assert_equal(result.y.no_bag(), y.no_bag())
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex("the attribute 'x' is missing"),
     ):
       _ = result.y.x
@@ -154,7 +154,7 @@ class CoreShallowCloneTest(parameterized.TestCase):
     testing.assert_equal(res.x.no_bag(), ds(42))
     testing.assert_equal(res.z.no_bag(), ds(12))
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex("attribute 'y' is missing"),
     ):
       _ = res.y

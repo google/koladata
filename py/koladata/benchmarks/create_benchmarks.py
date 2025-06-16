@@ -184,7 +184,7 @@ def kd_new_10000_with_whole_value(state):
   })
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     new_ds = kd.new(x=ds)

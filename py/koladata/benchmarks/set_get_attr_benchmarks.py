@@ -47,7 +47,7 @@ def set_get_attr_entity_with_merging(state):
   ds.get_schema().abc = val.get_schema().no_bag()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     ds.with_bag(kd.bag()).set_attr('abc', val)
@@ -60,7 +60,7 @@ def set_get_attr_entity(state):
   val = kd.slice(12)
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     ds.abc = val
@@ -74,7 +74,7 @@ def set_get_attr_data_slice_single_entity(state):
   val = kd.slice([12])
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     ds.abc = val
@@ -88,7 +88,7 @@ def set_get_attr_10000_entity(state):
   val = kd.slice([12] * 10000)
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     ds.abc = val
@@ -101,7 +101,7 @@ def set_get_attr_object(state):
   val = kd.slice(12)
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     ds.abc = val
@@ -114,7 +114,7 @@ def set_get_attr_data_slice_single_object(state):
   val = kd.slice([12])
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     ds.abc = val
@@ -127,7 +127,7 @@ def set_get_attr_10000_object(state):
   val = kd.slice([12] * 10000)
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     ds.abc = val
@@ -167,7 +167,7 @@ def get_attr_eager(state):
   try:
     # To initialize all lazy initializers and reduce variance.
     ds.missing
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     _ = ds.get_attr('abc')
@@ -179,7 +179,7 @@ def get_attr_native(state):
   try:
     # To initialize all lazy initializers and reduce variance.
     ds.missing
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     _ = ds.abc
@@ -202,7 +202,7 @@ def set_get_multiple_attrs_entity(state):
   val = kd.slice(12)
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     merged_ds = ds.with_bag(kd.bag())
@@ -229,7 +229,7 @@ def set_get_multiple_attrs_entity_with_merging(state):
   ds.get_schema().abc = val.get_schema().no_bag()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     merged_ds = ds.with_bag(kd.bag())
@@ -262,7 +262,7 @@ def set_get_multiple_attrs_entity_via_extract_plus_merge(state):
     updates.append((arg_name, update_ds))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     merged_ds = ds.with_bag(kd.bag())
@@ -294,7 +294,7 @@ def set_get_multiple_attrs_entity_via_fallback(state):
     updates.append((arg_name, update_ds))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     merged_ds = ds.with_bag(kd.bag())
@@ -320,7 +320,7 @@ def set_get_multiple_attrs_10000_entity(state):
   val = kd.slice([12] * 10000)
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     merged_ds = ds.with_bag(kd.bag())
@@ -348,7 +348,7 @@ def set_get_multiple_attrs_10000_entity_with_merging(state):
   ds.get_schema().abc = val.get_schema().no_bag()
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     merged_ds = ds.with_bag(kd.bag())
@@ -381,7 +381,7 @@ def set_get_multiple_attrs_10000_entity_via_extract_plus_merge(state):
     updates.append((arg_name, update_ds))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     merged_ds = ds.with_bag(kd.bag())
@@ -413,7 +413,7 @@ def set_get_multiple_attrs_10000_entity_via_fallback(state):
     updates.append((arg_name, update_ds))
   try:
     _ = ds.missing  # To initialize all lazy initializers and reduce variance.
-  except ValueError:
+  except AttributeError:
     pass
   while state:
     merged_ds = ds.with_bag(kd.bag())

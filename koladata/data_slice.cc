@@ -551,8 +551,7 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
                                   absl::string_view attr_name,
                                   internal::DataItem& res_schema,
                                   bool allow_missing_schema) {
-  RETURN_IF_ERROR(ValidateAttrLookupAllowed(db, impl, schema)).SetPrepend()
-      << "failed to get '" << attr_name << "' attribute; ";
+  RETURN_IF_ERROR(ValidateAttrLookupAllowed(db, impl, schema));
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
@@ -606,8 +605,7 @@ template <typename ImplT>
 absl::StatusOr<ImplT> HasAttrImpl(const DataBagPtr& db, const ImplT& impl,
                                   const internal::DataItem& schema,
                                   absl::string_view attr_name) {
-  RETURN_IF_ERROR(ValidateAttrLookupAllowed(db, impl, schema)).SetPrepend()
-      << "failed to get '" << attr_name << "' attribute; ";
+  RETURN_IF_ERROR(ValidateAttrLookupAllowed(db, impl, schema));
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
@@ -1403,8 +1401,7 @@ absl::StatusOr<DataSlice> DataSlice::GetAttr(
         return DataSlice::Create(std::move(res), GetShape(),
                                  std::move(res_schema), GetBag());
       }),
-      internal::KodaErrorFromCause(
-          absl::StrFormat("failed to get attribute '%s'", attr_name), _));
+      _.SetPrepend() << "failed to get attribute '" << attr_name << "': ");
   return result;
 }
 
@@ -1425,8 +1422,7 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrOrMissing(
         return DataSlice::Create(std::move(res), GetShape(),
                                  std::move(res_schema), GetBag());
       }),
-      internal::KodaErrorFromCause(
-          absl::StrFormat("failed to get attribute '%s'", attr_name), _));
+      _.SetPrepend() << "failed to get attribute '" << attr_name << "': ");
   return result;
 }
 
@@ -1458,12 +1454,16 @@ absl::StatusOr<DataSlice> DataSlice::GetAttrWithDefault(
 
 absl::StatusOr<DataSlice> DataSlice::HasAttr(
     absl::string_view attr_name) const {
-  return VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto res,
-                     HasAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name));
-    return DataSlice::Create(std::move(res), GetShape(),
-                             internal::DataItem(schema::kMask));
-  });
+  ASSIGN_OR_RETURN(
+      auto result,
+      VisitImpl([&]<class T>(const T& impl) -> absl::StatusOr<DataSlice> {
+        ASSIGN_OR_RETURN(
+            auto res, HasAttrImpl(GetBag(), impl, GetSchemaImpl(), attr_name));
+        return DataSlice::Create(std::move(res), GetShape(),
+                                 internal::DataItem(schema::kMask));
+      }),
+      _.SetPrepend() << "failed to check attribute '" << attr_name << "': ");
+  return result;
 }
 
 absl::Status DataSlice::SetSchemaAttr(absl::string_view attr_name,
@@ -1527,7 +1527,7 @@ absl::Status DataSlice::SetAttr(absl::string_view attr_name,
                                 const DataSlice& values,
                                 bool overwrite_schema) const {
   RETURN_IF_ERROR(CheckEligibleForSetAttr(*this)).SetPrepend()
-      << "failed to set '" << attr_name << "' attribute; ";
+      << "failed to set attribute '" << attr_name << "': ";
   ASSIGN_OR_RETURN(auto expanded_values, BroadcastToShape(values, GetShape()),
                    _.With([&](auto status) {
                      return AttrAssignmentError(std::move(status),
@@ -1544,7 +1544,7 @@ absl::Status DataSlice::SetAttr(const DataSlice& attr_name,
                                 const DataSlice& values,
                                 bool overwrite_schema) const {
   RETURN_IF_ERROR(CheckEligibleForSetAttr(*this)).SetPrepend()
-      << "failed to set attribute; ";
+      << "failed to set attribute: ";
   if (attr_name.IsEmpty()) {
     return absl::OkStatus();
   }

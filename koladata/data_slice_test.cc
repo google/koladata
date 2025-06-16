@@ -1504,50 +1504,38 @@ TEST(DataSliceTest, GetAttrErrors) {
     // No db.
     auto x =
         test::DataSlice<internal::ObjectId>({std::nullopt}, schema::kObject);
-    EXPECT_THAT(
-        x.GetAttr("a"),
-        AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                       HasSubstr("failed to get attribute 'a'")),
-              CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                HasSubstr("DataSlice is a reference")))));
+    EXPECT_THAT(x.GetAttr("a"),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         HasSubstr("failed to get attribute 'a': the DataSlice "
+                                   "is a reference without a bag")));
   }
   {
     // Primitive schema.
     auto db = DataBag::Empty();
     auto x = test::DataSlice<int>({std::nullopt}, schema::kInt32, db);
-    EXPECT_THAT(
-        x.GetAttr("a"),
-        AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                       "failed to get attribute 'a'"),
-              CausedBy(StatusIs(
-                  absl::StatusCode::kInvalidArgument,
-                  HasSubstr("primitives do not have attributes, got INT32")))));
+    EXPECT_THAT(x.GetAttr("a"),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "failed to get attribute 'a': primitives do not have "
+                         "attributes, got INT32"));
   }
   {  // Primitive data - slice.
     auto db = DataBag::Empty();
     auto x = test::DataSlice<int>({1}, schema::kObject, db);
-    EXPECT_THAT(
-        x.GetAttr("a"),
-        AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                       "failed to get attribute 'a'"),
-              CausedBy(StatusIs(
-                  absl::StatusCode::kInvalidArgument,
-                  "failed to get 'a' attribute; primitives do not have "
-                  "attributes, "
-                  "got OBJECT DataSlice with at least one primitive 1 at "
-                  "ds.flatten().S[0]"))));
+    EXPECT_THAT(x.GetAttr("a"),
+                StatusIs(absl::StatusCode::kInvalidArgument,
+                         "failed to get attribute 'a': primitives do not have "
+                         "attributes, got OBJECT DataSlice with at least one "
+                         "primitive 1 at ds.flatten().S[0]"));
   }
   {  // Primitive data - item.
     auto db = DataBag::Empty();
     auto x = test::DataItem(1, schema::kObject, db);
     EXPECT_THAT(
         x.GetAttr("a"),
-        AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                       "failed to get attribute 'a'"),
-              CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                "failed to get 'a' attribute; primitives "
-                                "do not have attributes, "
-                                "got OBJECT DataItem with primitive 1"))));
+        StatusIs(
+            absl::StatusCode::kInvalidArgument,
+            "failed to get attribute 'a': primitives do not have attributes, "
+            "got OBJECT DataItem with primitive 1"));
   }
 }
 
@@ -2263,12 +2251,10 @@ TEST(DataSliceTest, GetAttr_ImplicitCasting_Entity) {
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kFloat32)));
   EXPECT_THAT(
       entity.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(
-                absl::StatusCode::kInvalidArgument,
-                HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
-                          "that contains only primitives of FLOAT32")))));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "failed to get attribute 'a': FLOAT32 schema can only be assigned to "
+          "a DataSlice that contains only primitives of FLOAT32"));
 }
 
 TEST(DataSliceTest, SetGetAttr_FromEmptyItem_EntityCreator) {
@@ -2362,30 +2348,22 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr) {
 
   EXPECT_THAT(
       ds_2.GetAttr("a"),
-      AllOf(
-          StatusIs(absl::StatusCode::kInvalidArgument,
-                   "failed to get attribute 'a'"),
-          CausedBy(StatusIs(
-              absl::StatusCode::kInvalidArgument,
-              HasSubstr("object schema(s) are missing for some Object(s)")))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("failed to get attribute 'a': object schema(s) are "
+                         "missing for some Object(s)")));
   EXPECT_THAT(
       ds_2.GetAttrWithDefault("a", test::DataItem(42)),
-      AllOf(
-          StatusIs(absl::StatusCode::kInvalidArgument,
-                   "failed to get attribute 'a'"),
-          CausedBy(StatusIs(
-              absl::StatusCode::kInvalidArgument,
-              HasSubstr("object schema(s) are missing for some Object(s)")))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("failed to get attribute 'a': object schema(s) "
+                         "are missing for some Object(s)")));
   EXPECT_THAT(
       ds_2.SetAttr("a", test::DataSlice<int>({1, 1, 1})),
-      AllOf(StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          HasSubstr("object schema(s) are missing for some Object(s)"))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("object schema(s) are missing for some Object(s)")));
   EXPECT_THAT(
       ds_2.DelAttr("a"),
-      AllOf(StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          HasSubstr("object schema(s) are missing for some Object(s)"))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("object schema(s) are missing for some Object(s)")));
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {
@@ -2396,11 +2374,9 @@ TEST(DataSliceTest, ObjectMissingSchemaAttr_Primitive) {
 
   EXPECT_THAT(
       obj.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(
-                absl::StatusCode::kInvalidArgument,
-                HasSubstr("failed to get 'a' attribute; primitives")))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("failed to get attribute 'a': primitives do not have "
+                         "attributes, got OBJECT DataSlice with")));
 }
 
 TEST(DataSliceTest, ObjectMissingSchemaAttr_List) {
@@ -2528,19 +2504,14 @@ TEST(DataSliceTest, SetAttr_OnItemIdNotAllowed) {
     internal::AllocateSingleObject()}, db);
   ASSERT_OK_AND_ASSIGN(ds_object_id,
                        ds_object_id.WithSchema(test::Schema(schema::kItemId)));
-  EXPECT_THAT(
-      ds_object_id.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(
-                absl::StatusCode::kInvalidArgument,
-                AllOf(HasSubstr("failed to get 'a' attribute;"),
-                      HasSubstr("ITEMIDs do not allow attribute access"))))));
-  EXPECT_THAT(
-      ds_object_id.SetAttr("a", ds_primitive),
-      StatusIs(absl::StatusCode::kInvalidArgument,
-               AllOf(HasSubstr("failed to set 'a' attribute;"),
-                     HasSubstr("ITEMIDs do not allow attribute access"))));
+  EXPECT_THAT(ds_object_id.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "failed to get attribute 'a': ITEMIDs do not allow "
+                       "attribute access"));
+  EXPECT_THAT(ds_object_id.SetAttr("a", ds_primitive),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "failed to set attribute 'a': ITEMIDs do not allow "
+                       "attribute access"));
 }
 
 TEST(DataSliceTest, SetAttr_ObjectWithExplicitSchema_Incompatible) {
@@ -2969,18 +2940,16 @@ TEST(DataSliceTest, OverwriteSchemaAndAttributes_ObjectCreator) {
                        ds_schema.GetBag()->GetMutableImpl());
   ASSERT_OK(db_mutable_impl.DelSchemaAttr(ds_schema.slice()[1], "a"));
   auto ds_1 = test::DataItem(ds.slice()[1], ds.GetSchemaImpl(), db);
-  EXPECT_THAT(
-      ds_1.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("the attribute 'a' is missing")))));
+  EXPECT_THAT(ds_1.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("failed to get attribute 'a': the attribute "
+                                 "'a' is missing")));
   EXPECT_THAT(
       ds.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("the attribute 'a' is missing")))));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          HasSubstr(
+              "failed to get attribute 'a': the attribute 'a' is missing")));
 
   // Overwrite schema even when some schema items is missing (1st).
   ASSERT_OK_AND_ASSIGN(ds_a_prim,
@@ -3152,23 +3121,20 @@ TEST(DataSliceTest, SetGetError) {
   auto ds_a = test::AllocateDataSlice(2, schema::kObject);
   EXPECT_THAT(ds.SetAttr("QQQ", ds_a),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       AllOf(HasSubstr("failed to set 'QQQ' attribute;"),
-                             HasSubstr("reference"))));
-  EXPECT_THAT(
-      ds.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              AllOf(HasSubstr("failed to get 'a' attribute;"),
-                                    HasSubstr("reference"))))));
+                       "failed to set attribute 'QQQ': the DataSlice is a "
+                       "reference without a bag"));
+  EXPECT_THAT(ds.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "failed to get attribute 'a': the DataSlice is a "
+                       "reference without a bag"));
 
   ds = ds.WithBag(DataBag::Empty());
 
   auto ds_primitive = test::DataSlice<int>({42, 42}, ds.GetBag());
   EXPECT_THAT(ds_primitive.SetAttr("a", ds_a),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       AllOf(HasSubstr("failed to set 'a' attribute;"),
-                             HasSubstr("primitives do not have attributes"))));
+                       "failed to set attribute 'a': primitives do not have "
+                       "attributes, got INT32"));
 
   EXPECT_THAT(
       ds_a.WithBag(ds.GetBag()).SetAttr(schema::kSchemaAttr, ds_primitive),
@@ -3178,12 +3144,9 @@ TEST(DataSliceTest, SetGetError) {
 
   auto allocated_schema = test::Schema(internal::AllocateExplicitSchema());
   ASSERT_OK_AND_ASSIGN(ds, ds.WithSchema(allocated_schema));
-  EXPECT_THAT(
-      ds.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("the attribute 'a' is missing")))));
+  EXPECT_THAT(ds.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("the attribute 'a' is missing")));
   EXPECT_THAT(
       ds.SetAttr("a", ds_a),
       StatusIs(
@@ -3336,11 +3299,8 @@ TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_EntityCreator) {
   auto shape = DataSlice::JaggedShape::FlatFromSize(3);
   ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::Shaped(db, shape, {}, {}));
 
-  EXPECT_THAT(ds.GetAttr("a"),
-              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                             "failed to get attribute 'a'"),
-                    CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                      HasSubstr("attribute 'a' is missing")))));
+  EXPECT_THAT(ds.GetAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
+                                        HasSubstr("attribute 'a' is missing")));
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
                        ds.GetAttrWithDefault("a", test::DataItem(4)));
   EXPECT_THAT(ds_primitive_get.slice(), ElementsAre(4, 4, 4));
@@ -3416,11 +3376,8 @@ TEST(DataSliceTest, GetAttrWithDefault_ResultIsDefault_ObjectCreator) {
 
   auto default_val = test::DataSlice<arolla::Text>(
       {std::nullopt, "a", std::nullopt});
-  EXPECT_THAT(ds.GetAttr("a"),
-              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                             "failed to get attribute 'a'"),
-                    CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                                      HasSubstr("attribute 'a' is missing")))));
+  EXPECT_THAT(ds.GetAttr("a"), StatusIs(absl::StatusCode::kInvalidArgument,
+                                        HasSubstr("attribute 'a' is missing")));
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get,
                        ds.GetAttrWithDefault("a", default_val));
   EXPECT_THAT(ds_primitive_get.slice(),
@@ -3563,12 +3520,10 @@ TEST(DataSliceTest, GetAttrOrMissing_ImplicitCasting_Entity) {
   ASSERT_OK(entity.GetSchema().SetAttr("a", test::Schema(schema::kFloat32)));
   EXPECT_THAT(
       entity.GetAttrOrMissing("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(
-                absl::StatusCode::kInvalidArgument,
-                HasSubstr("FLOAT32 schema can only be assigned to a DataSlice "
-                          "that contains only primitives of FLOAT32")))));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "failed to get attribute 'a': FLOAT32 schema can only be assigned to "
+          "a DataSlice that contains only primitives of FLOAT32"));
 }
 
 TEST(DataSliceTest, GetAttrOrMissing_NoAttrOnSchema_Entity) {
@@ -3782,12 +3737,9 @@ TEST(DataSliceTest, DelAttr_EntityCreator) {
   // Deleting a schema attribute, updates schema.
   ASSERT_OK(ds.GetSchema().GetAttr("b").status());
   ASSERT_OK(ds.GetSchema().DelAttr("b"));
-  EXPECT_THAT(
-      ds.GetAttr("b"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'b'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("the attribute 'b' is missing")))));
+  EXPECT_THAT(ds.GetAttr("b"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("the attribute 'b' is missing")));
   // Missing attributes cannot be deleted on Entities.
   EXPECT_THAT(ds.DelAttr("c"),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -3805,12 +3757,9 @@ TEST(DataSliceTest, DelAttr_Slice_ObjectCreator) {
   // Removes it from Schema as well.
   ASSERT_OK(ds.GetAttr("a").status());
   ASSERT_OK(ds.DelAttr("a"));
-  EXPECT_THAT(
-      ds.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("the attribute 'a' is missing")))));
+  EXPECT_THAT(ds.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("the attribute 'a' is missing")));
   // Missing attributes cannot be deleted on Entities.
   EXPECT_THAT(ds.DelAttr("b"),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -3825,12 +3774,9 @@ TEST(DataSliceTest, DelAttr_Item_ObjectCreator) {
   ASSERT_EQ(ds.GetShape().rank(), 0);
   // Removes it from Schema as well.
   ASSERT_OK(ds.DelAttr("a"));
-  EXPECT_THAT(
-      ds.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("the attribute 'a' is missing")))));
+  EXPECT_THAT(ds.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("the attribute 'a' is missing")));
   // Missing attribute deletion.
   EXPECT_THAT(ds.DelAttr("b"),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -3852,12 +3798,9 @@ TEST(DataSliceTest, DelAttr_Object_ExplicitSchema) {
   EXPECT_EQ(ds_a_get.GetSchemaImpl(), schema::kInt32);
   // Removing from __schema__ attribute, causes the missing attribute.
   ASSERT_OK(ds.GetAttr(schema::kSchemaAttr)->DelAttr("a"));
-  EXPECT_THAT(
-      ds.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("the attribute 'a' is missing")))));
+  EXPECT_THAT(ds.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("the attribute 'a' is missing")));
   EXPECT_THAT(ds.DelAttr("b"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'b' is missing")));
@@ -3883,12 +3826,9 @@ TEST(DataSliceTest, DelAttr_MixedImplicitAndExplicitSchema_InObject) {
   ASSERT_OK(ds.SetAttr("a", test::DataSlice<int>({1, 2})));
 
   ASSERT_OK(ds.DelAttr("a"));
-  EXPECT_THAT(
-      ds.GetAttr("a"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'a'"),
-            CausedBy(StatusIs(absl::StatusCode::kInvalidArgument,
-                              HasSubstr("the attribute 'a' is missing")))));
+  EXPECT_THAT(ds.GetAttr("a"),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("the attribute 'a' is missing")));
   EXPECT_THAT(ds.DelAttr("a"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("the attribute 'a' is missing")));
@@ -5453,33 +5393,26 @@ TEST(DataSliceTest, SchemaSlice) {
   // Getting and Setting attributes on Schema constants is not allowed.
   EXPECT_THAT(
       x_schema.GetAttr("not_allowed"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     HasSubstr("failed to get attribute 'not_allowed'")),
-            CausedBy(
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         HasSubstr("SCHEMA DataItem with primitive INT32")))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "failed to get attribute 'not_allowed': primitives do not have "
+               "attributes, got SCHEMA DataItem with primitive INT32"));
   EXPECT_THAT(
       x_schema.SetAttr("not_allowed", y_schema),
-      StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          AllOf(HasSubstr("failed to set 'not_allowed' attribute;"),
-                HasSubstr("SCHEMA DataItem with primitive INT32"))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "failed to set attribute 'not_allowed': primitives do not have "
+               "attributes, got SCHEMA DataItem with primitive INT32"));
 
   auto object_schema = test::DataItem(schema::kObject, schema::kSchema, db);
   EXPECT_THAT(
       object_schema.GetAttr("not_allowed"),
-      AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                     "failed to get attribute 'not_allowed'"),
-            CausedBy(StatusIs(
-                absl::StatusCode::kInvalidArgument,
-                AllOf(HasSubstr("failed to get 'not_allowed' attribute;"),
-                      HasSubstr("SCHEMA DataItem with primitive OBJECT"))))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "failed to get attribute 'not_allowed': primitives do not have "
+               "attributes, got SCHEMA DataItem with primitive OBJECT"));
   EXPECT_THAT(
       object_schema.SetAttr("not_allowed", schema),
-      StatusIs(
-          absl::StatusCode::kInvalidArgument,
-          AllOf(HasSubstr("failed to set 'not_allowed' attribute;"),
-                HasSubstr("SCHEMA DataItem with primitive OBJECT"))));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "failed to set attribute 'not_allowed': primitives do not have "
+               "attributes, got SCHEMA DataItem with primitive OBJECT"));
 
   // Setting a non-schema as a schema attribute.
   EXPECT_THAT(y_schema.SetAttr("non_schema", x),

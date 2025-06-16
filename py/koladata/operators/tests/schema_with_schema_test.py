@@ -83,7 +83,7 @@ class SchemaWithSchemaTest(parameterized.TestCase):
   def test_schema_from_different_bag(self):
     entity = bag().new(a=1, b='x')
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex("the attribute 'c' is missing"),
     ):
       _ = entity.c

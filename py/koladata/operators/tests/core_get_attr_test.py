@@ -277,18 +277,16 @@ class CoreGetAttrTest(parameterized.TestCase):
     )
 
   def test_non_object_schema(self):
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesWithLiteralMatch(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            "failed to get 'a' attribute; primitives do not have attributes"
-        ),
+        "kd.core.get_attr: failed to get attribute 'a': primitives do not have"
+        ' attributes, got INT32',
     ):
       eager.core.get_attr(ds([1, 2, 3]), 'a')
-    with self.assertRaisesWithPredicateMatch(
+    with self.assertRaisesWithLiteralMatch(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            'failed to get attribute; primitives do not have attributes'
-        ),
+        'kd.core.get_attr: failed to get attribute; primitives do not have'
+        ' attributes, got INT32',
     ):
       eager.core.get_attr(ds([1, 2, 3]), ds(['a', 'b', 'c']))
 

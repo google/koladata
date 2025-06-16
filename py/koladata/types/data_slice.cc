@@ -342,8 +342,16 @@ PyObject* absl_nullable PyDataSlice_getattro(PyObject* self,
     return PyObject_GenericGetAttr(self, attr_name);
   }
   DataSlice self_ds = UnsafeDataSliceRef(self);
-  ASSIGN_OR_RETURN(auto res, self_ds.GetAttr(attr_name_view),
-                   arolla::python::SetPyErrFromStatus(_));
+  // NOTE: we don't SetPyErrFromStatus if self_ds.GetAttr returns an error. This
+  // results ignoring all the special payloads and error causes. Generally, it
+  // is not a clean solution, a better one would be to add a special payload to
+  // raise an AttributeError. However, we want this behavior only for getattro,
+  // and not for the other GetAttr calls + set of errors that GetAttr. So a
+  // simpler local option seems to be sufficient here.
+  ASSIGN_OR_RETURN(
+      auto res, self_ds.GetAttr(attr_name_view),
+      PyErr_Format(PyExc_AttributeError, "%s",
+                   std::string(absl::Status(std::move(_)).message()).c_str()));
   return WrapPyDataSlice(std::move(res));
 }
 

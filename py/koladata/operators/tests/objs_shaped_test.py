@@ -90,7 +90,7 @@ class ObjsShapedTest(absltest.TestCase):
     assert itemid.get_bag() is not None
     x = kde.objs.shaped(itemid.get_shape(), a=42, itemid=itemid).eval()
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex(
             "attribute 'non_existent' is missing"
         ),

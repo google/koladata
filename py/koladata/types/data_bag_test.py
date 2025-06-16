@@ -538,7 +538,7 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
         seed='seed',
     )
     testing.assert_equal(u, v)
-    with self.assertRaises(ValueError):
+    with self.assertRaises(AttributeError):
       # seed is not an attribute.
       _ = v.seed
 
@@ -635,7 +635,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
         seed='seed',
     )
     testing.assert_equal(u, v)
-    with self.assertRaises(ValueError):
+    with self.assertRaises(AttributeError):
       # seed is not an attribute.
       _ = v.seed
 
@@ -680,7 +680,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
         a=schema_constants.INT32, b=schema_constants.STRING, seed='seed'
     )
     testing.assert_equal(u, v)
-    with self.assertRaises(ValueError):
+    with self.assertRaises(AttributeError):
       # seed is not an attribute.
       _ = v.seed
 

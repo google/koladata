@@ -184,7 +184,7 @@ class CoreCloneTest(parameterized.TestCase):
     testing.assert_equal(res.x.no_bag(), ds(42))
     testing.assert_equal(res.z.no_bag(), ds(12))
     with self.assertRaisesWithPredicateMatch(
-        ValueError,
+        AttributeError,
         arolla.testing.any_cause_message_regex("attribute 'y' is missing"),
     ):
       _ = res.y
