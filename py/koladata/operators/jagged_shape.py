@@ -521,7 +521,7 @@ def flatten(
         qtype_utils.expect_data_slice(P.n_times),
     ],
 )
-def flatten_end(x, n_times=1):
+def flatten_end(x, n_times=data_slice.DataSlice.from_vals(1, INT64)):
   """Returns `x` with a shape flattened `n_times` from the end.
 
   The new shape has x.get_ndim() - n_times dimensions.

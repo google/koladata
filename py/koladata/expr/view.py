@@ -235,6 +235,12 @@ class KodaView(arolla.abc.ExprView):
   ) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.flatten', self, from_dim, to_dim)
 
+  def flatten_end(
+      self,
+      n_times: Any = data_slice.DataSlice.from_vals(1, schema_constants.INT64),
+  ) -> arolla.Expr:
+    return arolla.abc.aux_bind_op('kd.flatten_end', self, n_times)
+
   def repeat(self, sizes: Any) -> arolla.Expr:
     return arolla.abc.aux_bind_op('kd.repeat', self, sizes)
 

@@ -185,6 +185,14 @@ def _flatten(
   return _eval_op('kd.flatten', self, from_dim, to_dim)
 
 
+@add_method(DataSlice, 'flatten_end', docstring_from='kd.flatten_end')
+def _flatten_end(
+    self,
+    n_times: int | DataSlice = DataSlice.from_vals(arolla.int64(1)),
+) -> DataSlice:
+  return _eval_op('kd.flatten_end', self, n_times)
+
+
 @add_method(DataSlice, 'repeat', docstring_from='kd.repeat')
 def _repeat(self, sizes: Any) -> DataSlice:
   return _eval_op('kd.repeat', self, sizes)

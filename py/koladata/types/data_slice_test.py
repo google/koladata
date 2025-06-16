@@ -1956,6 +1956,16 @@ If it is not a typo, perhaps ignore the schema when getting the attribute. For e
     testing.assert_equal(flattened, expected)
 
   @parameterized.parameters(
+      (ds([[1, 2], [3, 4]]), ds([1, 2, 3, 4])),
+      (ds([[[1], [2]], [[3], [4]]]), 1, ds([[1, 2], [3, 4]])),
+      (ds([[[1], [2]], [[3], [4]]]), 2, ds([1, 2, 3, 4])),
+  )
+  def test_flatten_end(self, *inputs_and_expected):
+    args, expected = inputs_and_expected[:-1], inputs_and_expected[-1]
+    flattened = args[0].flatten_end(*args[1:])
+    testing.assert_equal(flattened, expected)
+
+  @parameterized.parameters(
       (ds(1), 2, ds([1, 1])),
       (ds([1, 2]), 2, ds([[1, 1], [2, 2]])),
       (ds([[1, 2], [3]]), ds([2, 3]), ds([[[1, 1], [2, 2]], [[3, 3, 3]]])),

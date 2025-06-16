@@ -11323,6 +11323,25 @@ Args:
   to_dim: end of dimensions to flatten. Defaults to `rank()` if unspecified.
 ```
 
+### `DataSlice.flatten_end(self, n_times=DataItem(1, schema: INT64))` {#DataSlice.flatten_end}
+Aliases:
+
+- [DataItem.flatten_end](#DataItem.flatten_end)
+
+``` {.no-copy}
+Returns `x` with a shape flattened `n_times` from the end.
+
+The new shape has x.get_ndim() - n_times dimensions.
+
+Given that flattening happens from the end, only positive integers are
+allowed. For more control over flattening, please use `kd.flatten`, instead.
+
+Args:
+  x: a DataSlice.
+  n_times: number of dimensions to flatten from the end
+    (0 <= n_times <= rank).
+```
+
 ### `DataSlice.follow(self)` {#DataSlice.follow}
 Aliases:
 
@@ -13143,6 +13162,10 @@ Alias for [DataSlice.extract_bag](#DataSlice.extract_bag) operator.
 ### `DataItem.flatten(self, from_dim=DataItem(0, schema: INT64), to_dim=unspecified)` {#DataItem.flatten}
 
 Alias for [DataSlice.flatten](#DataSlice.flatten) operator.
+
+### `DataItem.flatten_end(self, n_times=DataItem(1, schema: INT64))` {#DataItem.flatten_end}
+
+Alias for [DataSlice.flatten_end](#DataSlice.flatten_end) operator.
 
 ### `DataItem.follow(self)` {#DataItem.follow}
 

@@ -265,6 +265,12 @@ class KodaViewTest(parameterized.TestCase):
         C.x.flatten(to_dim=C.to_dim), kde.flatten(C.x, to_dim=C.to_dim)
     )
 
+  def test_flatten_end(self):
+    testing.assert_equal(C.x.flatten_end(), kde.flatten_end(C.x))
+    testing.assert_equal(
+        C.x.flatten_end(C.n_times), kde.flatten_end(C.x, C.n_times)
+    )
+
   def test_repeat(self):
     testing.assert_equal(C.x.repeat(C.sizes), kde.repeat(C.x, C.sizes))
 
