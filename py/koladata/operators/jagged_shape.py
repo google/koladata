@@ -513,6 +513,49 @@ def flatten(
   )
 
 
+@optools.add_to_registry(aliases=['kd.flatten_end'])
+@optools.as_lambda_operator(
+    'kd.shapes.flatten_end',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+        qtype_utils.expect_data_slice(P.n_times),
+    ],
+)
+def flatten_end(x, n_times=1):
+  """Returns `x` with a shape flattened `n_times` from the end.
+
+  The new shape has x.get_ndim() - n_times dimensions.
+
+  Given that flattening happens from the end, only positive integers are
+  allowed. For more control over flattening, please use `kd.flatten`, instead.
+
+  Args:
+    x: a DataSlice.
+    n_times: number of dimensions to flatten from the end
+      (0 <= n_times <= rank).
+  """
+  x_shape = arolla_bridge.to_arolla_jagged_shape(get_shape(x))
+  x_ndim = M.jagged.rank(x_shape)
+  x_ndim = assertion.with_assertion(
+      x_ndim, x_ndim > 0, 'expected multidim DataSlice, got DataItem'
+  )
+  n_times = arolla_bridge.to_arolla_int64(n_times)
+  n_times = assertion.with_assertion(
+      n_times, (n_times >= 0) & (n_times <= x_ndim),
+      'expected 0 <= n_times <= rank'
+  )
+  return reshape(
+      x,
+      arolla_bridge.from_arolla_jagged_shape(
+          M.jagged.flatten(
+              x_shape,
+              arolla.M.math.neg(n_times) - 1,
+              arolla.unspecified(),
+          ),
+      ),
+  )
+
+
 @optools.add_to_registry(aliases=['kd.shapes.ndim'])
 @optools.as_lambda_operator(
     'kd.shapes.rank',

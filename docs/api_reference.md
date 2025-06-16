@@ -6150,6 +6150,25 @@ Args:
   to_dim: end of dimensions to flatten. Defaults to `rank()` if unspecified.
 ```
 
+### `kd.shapes.flatten_end(x, n_times=1)` {#kd.shapes.flatten_end}
+Aliases:
+
+- [kd.flatten_end](#kd.flatten_end)
+
+``` {.no-copy}
+Returns `x` with a shape flattened `n_times` from the end.
+
+The new shape has x.get_ndim() - n_times dimensions.
+
+Given that flattening happens from the end, only positive integers are
+allowed. For more control over flattening, please use `kd.flatten`, instead.
+
+Args:
+  x: a DataSlice.
+  n_times: number of dimensions to flatten from the end
+    (0 <= n_times <= rank).
+```
+
 ### `kd.shapes.get_shape(x)` {#kd.shapes.get_shape}
 Aliases:
 
@@ -9496,6 +9515,10 @@ Alias for [kd.functor.flat_map_interleaved](#kd.functor.flat_map_interleaved) op
 ### `kd.flatten(x, from_dim=0, to_dim=unspecified)` {#kd.flatten}
 
 Alias for [kd.shapes.flatten](#kd.shapes.flatten) operator.
+
+### `kd.flatten_end(x, n_times=1)` {#kd.flatten_end}
+
+Alias for [kd.shapes.flatten_end](#kd.shapes.flatten_end) operator.
 
 ### `kd.float32(x)` {#kd.float32}
 
