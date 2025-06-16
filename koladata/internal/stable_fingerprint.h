@@ -39,14 +39,14 @@ namespace koladata::internal {
 // stable and equal in all:
 // * in the same runtime
 // * across different runtimes
-// * across different BUILD(s) (as long as the underlying CityHash does not
-//                              change).
+// * across different BUILD(s), because the underlying CityHash algorithm
+//   is frozen, i.e. unchanging forever.
 class StableFingerprintHasher {
  public:
   explicit StableFingerprintHasher(absl::string_view salt);
   explicit StableFingerprintHasher(const arolla::Fingerprint& salt);
 
-  // Returns the resulting fingeprint.
+  // Returns the resulting fingerprint.
   arolla::Fingerprint Finish() &&;
 
   // Combines a list of values to the fingerprint state.
