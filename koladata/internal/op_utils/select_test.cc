@@ -45,7 +45,6 @@ using ::arolla::DenseArrayEdge;
 using ::arolla::JaggedDenseArrayShape;
 using ::arolla::kMissing;
 using ::arolla::kPresent;
-using ::arolla::OptionalValue;
 using ::arolla::Text;
 using ::arolla::Unit;
 
