@@ -127,19 +127,20 @@ class ObjectsGroupBy {
     if (schemas.dtype() == arolla::GetQType<ObjectId>()) {
       return EdgeFromSchemasArray(schemas.values<ObjectId>());
     }
-    ASSIGN_OR_RETURN(
-        auto edge,
-        arolla::DenseArrayEdge::FromSplitPoints(
-            arolla::CreateDenseArray<int64_t>({0, schemas.size()})));
+    ASSIGN_OR_RETURN(auto edge,
+                     arolla::DenseArrayEdge::FromSplitPoints(
+                         arolla::CreateDenseArray<int64_t>(
+                             {0, static_cast<int64_t>(schemas.size())})));
     return SplitEdgeBySchemas(std::move(edge), schemas);
   }
 
   // Creates an edge from the given schemas array.
   absl::StatusOr<arolla::DenseArrayEdge> EdgeFromSchemasArray(
       const arolla::DenseArray<ObjectId>& schemas) {
-    ASSIGN_OR_RETURN(
-        auto edge, arolla::DenseArrayEdge::FromSplitPoints(
-                       arolla::CreateDenseArray<int64_t>({0, schemas.size()})));
+    ASSIGN_OR_RETURN(auto edge,
+                     arolla::DenseArrayEdge::FromSplitPoints(
+                         arolla::CreateDenseArray<int64_t>(
+                             {0, static_cast<int64_t>(schemas.size())})));
 
     return arolla::DenseArrayGroupByOp()(&ctx_, schemas, edge);
   }
