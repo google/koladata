@@ -24,10 +24,10 @@
 namespace koladata::functor {
 
 // The attribute name used to store the returns expression in a functor.
-constexpr absl::string_view kReturnsAttrName = "returns";
+inline constexpr absl::string_view kReturnsAttrName = "returns";
 
 // The attribute name used to store the signature in a functor.
-constexpr absl::string_view kSignatureAttrName = "__signature__";
+inline constexpr absl::string_view kSignatureAttrName = "__signature__";
 
 // Creates a functor with the given returns expression, signature,
 // and variables.

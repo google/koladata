@@ -79,15 +79,16 @@
 
 namespace koladata::python {
 
-constexpr absl::string_view kUnifiedPolicy = "koladata_unified_binding_policy";
+inline constexpr absl::string_view kUnifiedPolicy =
+    "koladata_unified_binding_policy";
 
-constexpr char kUnifiedPolicyOptPositionalOnly = '_';
-constexpr char kUnifiedPolicyOptPositionalOrKeyword = 'p';
-constexpr char kUnifiedPolicyOptVarPositional = 'P';
-constexpr char kUnifiedPolicyOptRequiredKeywordOnly = 'k';
-constexpr char kUnifiedPolicyOptOptionalKeywordOnly = 'd';
-constexpr char kUnifiedPolicyOptVarKeyword = 'K';
-constexpr char kUnifiedPolicyOptNonDeterministic = 'H';
+inline constexpr char kUnifiedPolicyOptPositionalOnly = '_';
+inline constexpr char kUnifiedPolicyOptPositionalOrKeyword = 'p';
+inline constexpr char kUnifiedPolicyOptVarPositional = 'P';
+inline constexpr char kUnifiedPolicyOptRequiredKeywordOnly = 'k';
+inline constexpr char kUnifiedPolicyOptOptionalKeywordOnly = 'd';
+inline constexpr char kUnifiedPolicyOptVarKeyword = 'K';
+inline constexpr char kUnifiedPolicyOptNonDeterministic = 'H';
 
 // Registers the unified binding policy. If the function fails, it returns
 // `false` and sets a Python exception.

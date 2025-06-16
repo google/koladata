@@ -111,7 +111,7 @@ static constexpr DTypeId GetDTypeId() {
 }
 
 // Maximal possible int value DType can be initialized with (exclusive).
-constexpr int8_t kNextDTypeId = 14;
+inline constexpr int8_t kNextDTypeId = 14;
 
 // Used to represent a terminal value of Schema within DataSlice. The "terminal"
 // here means that it has no further attributes and practically means that a
@@ -266,22 +266,22 @@ constexpr DType GetDType() {
 }
 
 // Primitive dtypes.
-constexpr DType kInt32 = GetDType<int>();
-constexpr DType kInt64 = GetDType<int64_t>();
-constexpr DType kFloat32 = GetDType<float>();
-constexpr DType kFloat64 = GetDType<double>();
-constexpr DType kBool = GetDType<bool>();
-constexpr DType kMask = GetDType<arolla::Unit>();
-constexpr DType kBytes = GetDType<arolla::Bytes>();
-constexpr DType kString = GetDType<arolla::Text>();
-constexpr DType kExpr = GetDType<arolla::expr::ExprQuote>();
+inline constexpr DType kInt32 = GetDType<int>();
+inline constexpr DType kInt64 = GetDType<int64_t>();
+inline constexpr DType kFloat32 = GetDType<float>();
+inline constexpr DType kFloat64 = GetDType<double>();
+inline constexpr DType kBool = GetDType<bool>();
+inline constexpr DType kMask = GetDType<arolla::Unit>();
+inline constexpr DType kBytes = GetDType<arolla::Bytes>();
+inline constexpr DType kString = GetDType<arolla::Text>();
+inline constexpr DType kExpr = GetDType<arolla::expr::ExprQuote>();
 
 // Special meaning DTypes.
-constexpr DType kObject = GetDType<schema::ObjectDType>();
-constexpr DType kSchema = GetDType<schema::SchemaDType>();
-constexpr DType kItemId = GetDType<schema::ItemIdDType>();
+inline constexpr DType kObject = GetDType<schema::ObjectDType>();
+inline constexpr DType kSchema = GetDType<schema::SchemaDType>();
+inline constexpr DType kItemId = GetDType<schema::ItemIdDType>();
 // Kept as non-primitive since one cannot have values of MissingValue.
-constexpr DType kNone = GetDType<internal::MissingValue>();
+inline constexpr DType kNone = GetDType<internal::MissingValue>();
 
 }  // namespace koladata::schema
 

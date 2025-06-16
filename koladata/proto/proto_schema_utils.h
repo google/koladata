@@ -21,13 +21,13 @@ namespace koladata {
 namespace schema {
 
 // Stores a STRING containing the full name of the proto message.
-constexpr absl::string_view kProtoSchemaMetadataFullNameAttr =
+inline constexpr absl::string_view kProtoSchemaMetadataFullNameAttr =
     "__proto_schema_metadata_full_name__";
 
 // For all primitive scalar fields with custom default values in a proto
 // message, there will be a metadata attr `proto_default_value_<field_name>`
 // containing that default value.
-constexpr absl::string_view kProtoSchemaMetadataDefaultValueAttrPrefix =
+inline constexpr absl::string_view kProtoSchemaMetadataDefaultValueAttrPrefix =
     "proto_default_value_";
 
 }  // namespace schema

@@ -26,10 +26,10 @@
 namespace koladata::functor {
 
 // LINT.IfChange
-constexpr absl::string_view kFunctionNameAttrName = "function_name";
-constexpr absl::string_view kFileNameAttrName = "file_name";
-constexpr absl::string_view kLineNumberAttrName = "line_number";
-constexpr absl::string_view kLineTextAttrName = "line_text";
+inline constexpr absl::string_view kFunctionNameAttrName = "function_name";
+inline constexpr absl::string_view kFileNameAttrName = "file_name";
+inline constexpr absl::string_view kLineNumberAttrName = "line_number";
+inline constexpr absl::string_view kLineTextAttrName = "line_text";
 // LINT.ThenChange(//py/koladata/functor/stack_trace.py)
 
 // Arolla error payload with the semantic meaning of "additional stack trace

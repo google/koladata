@@ -45,19 +45,19 @@
 
 namespace koladata {
 
-constexpr absl::string_view kDataSliceQValueSpecializationKey =
+inline constexpr absl::string_view kDataSliceQValueSpecializationKey =
     "::koladata::python::DataSlice";
 
-constexpr absl::string_view kDataItemQValueSpecializationKey =
+inline constexpr absl::string_view kDataItemQValueSpecializationKey =
     "::koladata::python::DataItem";
 
-constexpr absl::string_view kListItemQValueSpecializationKey =
+inline constexpr absl::string_view kListItemQValueSpecializationKey =
     "::koladata::python::ListItem";
 
-constexpr absl::string_view kDictItemQValueSpecializationKey =
+inline constexpr absl::string_view kDictItemQValueSpecializationKey =
     "::koladata::python::DictItem";
 
-constexpr absl::string_view kSchemaItemQValueSpecializationKey =
+inline constexpr absl::string_view kSchemaItemQValueSpecializationKey =
     "::koladata::python::SchemaItem";
 
 // This abstraction implements the API of all public DataSlice functionality

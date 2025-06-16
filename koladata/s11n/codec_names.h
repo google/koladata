@@ -19,7 +19,7 @@
 
 namespace koladata::s11n {
 
-constexpr absl::string_view kKodaV1Codec = "koladata.s11n";
+inline constexpr absl::string_view kKodaV1Codec = "koladata.s11n";
 
 }  // namespace koladata::s11n
 

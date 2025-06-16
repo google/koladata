@@ -47,8 +47,8 @@ namespace koladata::internal {
 
 class AllocationId;
 
-constexpr size_t kSmallAllocMaxBits = 1;
-constexpr size_t kSmallAllocMaxCapacity = 1 << kSmallAllocMaxBits;
+inline constexpr size_t kSmallAllocMaxBits = 1;
+inline constexpr size_t kSmallAllocMaxCapacity = 1 << kSmallAllocMaxBits;
 
 // ObjectId is a Databag persistent 128 bit pointer.
 //

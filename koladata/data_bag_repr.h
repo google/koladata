@@ -24,7 +24,7 @@
 
 namespace koladata {
 
-constexpr int kDefaultTripleReprLimit = 1000;
+inline constexpr int kDefaultTripleReprLimit = 1000;
 
 // Returns the string representation of DataBag.
 absl::StatusOr<std::string> DataBagToStr(
