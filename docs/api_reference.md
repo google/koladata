@@ -2160,9 +2160,9 @@ Aliases:
 Executes flat maps over the given iterable.
 
 `fn` is called for each item in the iterable, and must return an
-iterable. The resulting iterable is then interleaved to get the final result.
-Please note that the order of the items in each functor output iterables is
-preserved, while these iterables is not preserved.
+iterable. The resulting iterables are then interleaved to get the final
+result. Please note that the order of the items in each functor output
+iterable is preserved, while the order of these iterables is not preserved.
 
 If `fn=lambda x: kd.iterables.make(f(x), g(x))` and
 `iterable=kd.iterables.make(x1, x2)`, the resulting iterable will be
@@ -2265,7 +2265,8 @@ Args:
     will receive the same arguments as `body_fn` except the positional
     argument, and must return the same namedtuple. If not specified, the state
     at the end will be the same as the state after processing the last item.
-    Note that finalize_fn is not called if condition_fn ever returns false.
+    Note that finalize_fn is not called if condition_fn ever returns a missing
+    mask.
   condition_fn: The function to be executed to determine whether to continue
     the loop. It will receive the loop variables as keyword arguments, and
     must return a MASK scalar. Can be used to terminate the loop early without

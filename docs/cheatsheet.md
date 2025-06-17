@@ -3356,6 +3356,451 @@ kd.functor.map_py_fn(lambda x: [x] * 10)
 
 </section>
 
+## Advanced: Iterables Operators
+
+Koda Iterables are sequences of items with the same type (e.g. DataSlice,
+DataBag). Iterable is a higher level concept above DataSlice/DataBag. It is
+primarily used for streaming and parallel computation.
+
+Note the differences between Iterables and DataSlices are:
+
+-   Iterables are used for iteration, parallel execution and streaming while
+    DataSlices are used for vectorization
+-   Iterables always have one dimension while DataSlices can have any dimensions
+
+<section>
+
+### Create Iterables
+
+Iterables can be created directly from individual items directly or by yielded
+from `kd.for_` and `kd.while_` (see the sections below).
+
+```py
+# create from individual items
+# 1/2/3/4 are wrapped into DataItems
+kd.iterables.make(1, 2, 3, 4)
+
+# Iterable of DataBags
+o = kd.obj()
+kd.iterables.make(kd.attrs(o, a=1),
+                  kd.attrs(o, b=2))
+
+# unordered may improve performance of
+# parallel computation because items are
+# added whenever they are ready
+kd.iterables.make_unordered(
+    expensive_computation_1(),
+    expensive_computation_2(),
+    expensive_computation_3())
+```
+
+</section>
+
+<section>
+
+### Combine multiple Iterables
+
+```py
+i1 = kd.iterables.make(1, 2, 3, 4)
+i2 = kd.iterables.make(5, 6, 7, 8)
+
+# Chain Iterables with the provided order
+kd.iterables.chain(i1, i2)
+# Iterable[1, 2, 3, 4, 5, 6, 7, 8]
+
+# Interleave Iterables
+# the order within each iterable is preserved
+# the order of interleaving of different
+# iterables can be arbitrary
+kd.iterables.interleave(i1, i2)
+# (one possible order)
+# Iterable[1, 5, 6, 2, 3, 7, 8, 4]
+```
+
+</section>
+
+<section>
+
+### Transform Iterables
+
+```py
+# Apply fn over Iterable items
+# fn must return Iterables which are chained
+kd.functor.flat_map_chain(
+    kd.iterables.make(1, 10),
+    lambda x: kd.iterables.make(x, x * 2, x * 3),
+)
+# Iterable[1, 2, 3, 10, 20, 30]
+
+# Apply fn over Iterable items
+# fn must return Iterables which are interleaved
+kd.functor.flat_map_interleaved(
+    kd.iterables.make(1, 10),
+    lambda x: kd.iterables.make(x, x * 2, x * 3),
+)
+# (one possible order)
+# Iterable[10, 1, 2, 20, 3, 30]
+```
+
+</section>
+
+<section>
+
+### Reduce one Iterable into one DataSlice/DataBag
+
+```py
+# Concatenate DataSlices in an Iterable
+# using kd.concat(*dss, ndim)
+# For now, only DataSlices with ndim>0 are supported
+i = kd.iterables.make(kd.slice([1, 2, 3]),
+                      kd.slice([4, 5]))
+
+kd.iterables.reduce_concat(i,
+    initial_value=kd.slice([]))
+# DataSlice([1, 2, 3, 4, 5])
+
+# Merge DataBags in an Iterable
+# using kd.updated_bag(**bags)
+o = kd.obj(a=1)
+i = kd.iterables.make(kd.attrs(o, b=2),
+                      kd.attrs(o, a=20, c=3))
+merged_bag = kd.iterables.reduce_updated_bag(i,
+    initial_value=kd.attrs(o, a=10))
+o.updated(merged_bag)
+# Obj(a=20, b=2, c=3)
+
+# Reduce by applying a functor cumulatively to
+# the items of an iterable similar to functools.reduce
+i = kd.iterables.make(kd.int32(2), kd.int32(3),
+                      kd.int32(5), kd.int32(7))
+
+kd.functor.reduce(lambda a, b: a * b,
+                  i, initial_value=1)
+# DataItem(210)
+```
+
+</section>
+
+## Advanced: Control/loop Operators
+
+<section>
+
+### kd.if_
+
+`kd.if_` is different from `kd.cond` in three ways:
+
+-   `kd.if_` provides short-circuited if (i.e. only one branch is executed)
+    while `kd.cond` does not.
+-   `kd.if_` takes a MASK DataItem as condition while `kd.cond` can take a MASK
+    DataSlice with any ndim.
+-   `kd.if_` takes Koda functors as yes/no branches while `kd.cond` takes
+    DataSlices.
+
+```py
+def p(a):
+  print(a)
+  return a
+
+f1 = kd.py_fn(p)
+
+# kd.cond executes both branches
+kd.cond(kd.missing, f1(1), f1(2))
+# prints out
+# 1
+# 2
+# returns 2
+
+def q(a):
+  a += 1
+  print(a)
+  return a
+
+f2 = kd.py_fn(q)
+
+# kd.if_ executes only one branch
+# Note it takes functors rather DataSlices as inputs
+kd.if_(kd.missing, f1, f2, 1)
+# prints out
+# 2
+# returns 2
+```
+
+</section>
+
+<section>
+
+Multiple conditions
+
+```py
+# Pure Python version
+def foo(ds, cond1, cond2, cond3):
+  if cond1:
+    return ds + 1
+  elif cond2:
+    return ds - 1
+  elif cond3:
+    return ds / 2
+  else:
+    return ds * 2
+
+# kd.if_ version with lambdas
+def foo(ds, cond1, cond2, cond3):
+  return kd.if_(
+      cond1,
+      lambda x: x + 1,
+      lambda x: kd.if_(
+          cond2,
+          lambda x: x - 1,
+          lambda x: kd.if_(
+              cond3,
+              lambda x: x / 2,
+              lambda x: x * 2,
+              x),
+          x),
+      ds)
+
+# kd.if_ version using functions
+# Note the order of branches defined is reversed
+def foo(ds, cond1, cond2, cond3):
+  def branch3(x):
+    return kd.if_(cond3,
+                  lambda y: y / 2,
+                  lambda y: y * 2,
+                  x)
+
+  def branch2(x):
+    return kd.if_(cond2,
+                  lambda y: y - 1,
+                  branch3,
+                  x)
+
+  def branch1(x):
+    return x + 1
+
+  return kd.if_(cond1, branch1, branch2, ds)
+```
+
+</section>
+
+<section>
+
+### kd.for_
+
+For more detailed usages, please refer to docstrings. Note that `kd.for_` takes
+an Iterable rather than a DataSlice as input. It iterates elements (i.e.
+DataSlice, DataBag) in the Iterable rather than items in the DataSlice.
+
+```py
+inputs = [kd.slice([1, 2]), kd.slice([3, 4])]
+
+# Python version
+def foo(iterable):
+  returns = 0
+  for i in iterable:
+    returns = i + returns
+  return returns
+
+foo(inputs)
+
+# Koda version
+def foo(iterable):
+  return kd.for_(
+      iterable,
+      lambda i, returns:
+          kd.namedtuple(returns=(i + returns)),
+      returns=0)
+
+foo(kd.iterables.make(*inputs))
+```
+
+</section>
+
+`finalize_fn` can be used to execute logic after iterating all elements in the
+iterable.
+
+<section>
+
+```py
+inputs = [kd.slice([1, 2]), kd.slice([3, 4])]
+
+# Python version
+def bar(iterable):
+  a = 0
+  b = 1
+  for i in iterable:
+    a = i + a
+    b = i * b
+  return a + b
+
+bar(inputs)
+
+# Koda version
+# Note body_fn and finalize_fn return namedtuple
+def bar(iterable):
+  return kd.for_(
+      iterable,
+      lambda i, a, b, returns:
+          kd.namedtuple(a=(i + a), b=(i * b)),
+      finalize_fn=lambda a, b, returns:
+          kd.namedtuple(returns=(a + b)),
+      a=0,
+      b=1,
+      returns=0)
+
+bar(kd.iterables.make(*inputs))
+```
+
+</section>
+
+<section>
+
+`condition_fn` can be used to stop the loop early. It must return a MASK
+DataItem.
+
+```py
+inputs = [kd.item(1), kd.item(2),
+          kd.item(3), kd.item(4)]
+
+# Python version
+def baz(iterable):
+  returns = 0
+  for i in iterable:
+    if returns > 5:
+      break
+    returns = i + returns
+  return returns
+
+baz(inputs)
+
+# Koda version
+def baz(iterable):
+  return kd.for_(
+      iterable,
+      lambda i, returns:
+          kd.namedtuple(returns=(i + returns)),
+      condition_fn=lambda returns: returns < 5,
+      returns=0)
+
+baz(kd.iterables.make(*inputs))
+```
+
+</section>
+
+<section>
+
+Instead of returning a single value, `kd.for_` can yield multiple values during
+iteration and return an Iterable with all yielded values chained together. It
+can be done by returning `yields` or `yields_interleaved` in the namedtuple of
+the `body_fn`. When `yields_interleaved` is specified, the behavior is the same
+as `yields`, but the values are interleaved instead of chained.
+
+```py
+inputs = [kd.item(1), kd.item(2),
+          kd.item(3), kd.item(4)]
+
+# Python version
+def baz(iterable):
+  res = kd.item(0)
+  for i in iterable:
+    if res > 5:
+      break
+    yield res
+    yield res + 1
+    res = i + res
+
+baz(inputs)
+
+# Koda version
+def baz(iterable):
+  return kd.for_(
+      iterable,
+      lambda i, res:
+          kd.namedtuple(
+              res=(i + res),
+              yields=kd.iterables.make(res, res + 1)),
+      condition_fn=lambda res: res < 5,
+      res=0,
+      yields=kd.iterables.make())
+
+baz(kd.iterables.make(*inputs))
+```
+
+</section>
+
+<section>
+
+### kd.while_
+
+For more detailed usages, please refer to docstrings.
+
+```py
+ds = kd.slice([5, 4, 6])
+
+# Python version
+def factorial(n):
+  returns = 1
+  while kd.any(n > 1):
+    returns = returns * n
+    n = kd.cond(n > 1, n - 1, n)
+  return returns
+
+factorial(ds)
+
+# Koda version
+def factorial(n):
+  return kd.while_(
+      lambda n, returns: kd.any(n > 1),
+      lambda n, returns: kd.namedtuple(
+          returns=returns * n,
+          n=kd.cond(n > 1, n - 1, n),
+      ),
+      n=n,
+      returns=1)
+
+factorial(ds)
+```
+
+</section>
+
+<section>
+
+Instead of returning a single value, `kd.while_` can yield multiple values
+during iteration and return an Iterable with all yielded values chained
+together. It can be done by returning `yields` or `yields_interleaved` in the
+namedtuple of the `body_fn`. When `yields_interleaved` is specified, the
+behavior is the same as `yields`, but the values are interleaved instead of
+chained.
+
+```py
+ds = kd.slice([5, 4, 6])
+
+def foo(n):
+  returns = 1
+  while kd.any(n > 1):
+    yield kd.select(n, n > 1)
+    n = kd.cond(n > 1, n - 1, n)
+  return returns
+
+foo(ds)
+
+# Koda version
+def foo(n):
+  return kd.while_(
+      lambda n: kd.any(n > 1),
+      lambda n: kd.namedtuple(
+          n=kd.cond(n > 1, n - 1, n),
+          yields=kd.iterables.make(
+              kd.select(n, n > 1)
+          )
+      ),
+      n=n,
+      yields=kd.iterables.make())
+
+foo(ds)
+```
+
+</section>
+
 ## Advanced: Mutable Workflow
 
 While it is enough for most Koda users to just use immutable workflow, it is
