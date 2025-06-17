@@ -278,6 +278,7 @@ cc_library(
     srcs = ["deep_clone.cc"],
     hdrs = ["deep_clone.h"],
     deps = [
+        ":extract",
         ":traverser",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",

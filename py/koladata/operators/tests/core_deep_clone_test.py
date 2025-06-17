@@ -327,6 +327,76 @@ class CoreDeepCloneTest(parameterized.TestCase):
       b_cloned = expr_eval.eval(kde.core.get_metadata(schema))
       self.assertEqual(b_cloned.data, f'b_depth_{i}')
 
+  def test_metadata_entity(self):
+    db = bag()
+    ds_a = db.new(attrs='xy')
+    ds_xy = db.new(x=1, y=2, a=ds_a)
+    upd = kde.core.metadata(ds_xy.get_schema(), a=ds_a)
+    db = expr_eval.eval(kde.bags.updated(db, upd))
+    ds_xy = ds_xy.with_bag(db)
+    a = expr_eval.eval(kde.core.deep_clone(ds_xy))
+    b = expr_eval.eval(kde.core.deep_clone(ds_xy))
+    _ = expr_eval.eval(kde.uu(a=a, b=b))
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_schema())).no_bag(),
+        expr_eval.eval(kde.core.get_metadata(b.get_schema())).no_bag(),
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_schema())).a.no_bag(),
+        expr_eval.eval(kde.core.get_metadata(b.get_schema())).a.no_bag(),
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_schema())).no_bag(),
+        expr_eval.eval(kde.core.get_metadata(ds_xy.get_schema())).no_bag(),
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_schema())).a.no_bag(),
+        expr_eval.eval(kde.core.get_metadata(ds_xy.get_schema())).a.no_bag(),
+    )
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(a.a.no_bag(), b.a.no_bag())
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(
+          a.a.no_bag(),
+          expr_eval.eval(kde.core.get_metadata(a.get_schema())).a.no_bag(),
+      )
+
+  def test_metadata_object_explicit_schema(self):
+    db = bag()
+    ds_a = db.new(attrs='xy')
+    ds_xy = db.obj(db.new(x=1, y=2, a=ds_a))
+    upd = kde.core.metadata(ds_xy.get_obj_schema(), a=ds_a)
+    db = expr_eval.eval(kde.bags.updated(db, upd))
+    ds_xy = ds_xy.with_bag(db)
+    a = expr_eval.eval(kde.core.deep_clone(ds_xy))
+    b = expr_eval.eval(kde.core.deep_clone(ds_xy))
+    _ = expr_eval.eval(kde.uu(a=a, b=b))
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
+        expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).no_bag(),
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).a.no_bag(),
+        expr_eval.eval(kde.core.get_metadata(b.get_obj_schema())).a.no_bag(),
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).no_bag(),
+        expr_eval.eval(kde.core.get_metadata(ds_xy.get_obj_schema())).no_bag(),
+    )
+    testing.assert_equal(
+        expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).a.no_bag(),
+        expr_eval.eval(
+            kde.core.get_metadata(ds_xy.get_obj_schema())
+        ).a.no_bag(),
+    )
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(a.a.no_bag(), b.a.no_bag())
+    with self.assertRaisesRegex(AssertionError, 'not equal by fingerprint'):
+      testing.assert_equal(
+          a.a.no_bag(),
+          expr_eval.eval(kde.core.get_metadata(a.get_obj_schema())).a.no_bag(),
+      )
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.deep_clone(I.x)))
 

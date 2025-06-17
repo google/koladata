@@ -33,6 +33,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/traverser.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/slice_builder.h"
@@ -49,7 +50,8 @@ class DeepCloneVisitor : AbstractVisitor {
       : new_databag_(std::move(new_databag)),
         is_schema_slice_(is_schema_slice),
         allocation_tracker_(),
-        allocations_with_metadata_() {}
+        allocations_with_metadata_(),
+        explicit_schemas_() {}
 
   absl::StatusOr<bool> Previsit(const DataItem& from_item,
                                 const DataItem& from_schema,
@@ -75,8 +77,7 @@ class DeepCloneVisitor : AbstractVisitor {
         RETURN_IF_ERROR(PrevisitObject(item));
         return true;
       } else if (schema == schema::kSchema) {
-        RETURN_IF_ERROR(PrevisitSchema(item));
-        return true;
+        return PrevisitSchema(item);
       }
       return true;
     }
@@ -240,6 +241,10 @@ class DeepCloneVisitor : AbstractVisitor {
     return VisitObject(item, schema, is_object_schema, attr_names, attr_schema);
   }
 
+  std::vector<ObjectId> get_explicit_schemas() {
+    return explicit_schemas_;
+  }
+
  private:
   DataItem GetValueFromTrackedAllocation(const DataItem& item) {
     DCHECK(item.holds_value<ObjectId>());
@@ -333,19 +338,28 @@ class DeepCloneVisitor : AbstractVisitor {
     return absl::OkStatus();
   }
 
-  absl::Status PrevisitSchema(const DataItem& schema) {
-    // We create a "clone" for all explicit schemas, and skip implicit schemas.
-    // For implicit schemas we create a "clone" when encounter them in
-    // `schema::kSchemaAttr`, or in GetValue after all Previsits are done.
-    if (schema.holds_value<ObjectId>() && !schema.is_implicit_schema() &&
-        is_schema_slice_) {
-      if (schema.value<ObjectId>().IsNoFollowSchema()) {
-        return CloneAsExplicitSchema(
-            DataItem(GetOriginalFromNoFollow(schema.value<ObjectId>())));
-      }
-      return CloneAsExplicitSchema(schema);
+  // Returns true if the schema should be traversed further.
+  absl::StatusOr<bool> PrevisitSchema(const DataItem& schema) {
+    if (!schema.holds_value<ObjectId>() || schema.is_implicit_schema()) {
+      // For implicit schemas we create a "clone" when encounter them in
+      // `schema::kSchemaAttr`, or in GetValue after all Previsits are done.
+      return true;
     }
-    return absl::OkStatus();
+    if (is_schema_slice_) {
+      // If deep_clone is called on a schema slice, we clone explicit schemas.
+      if (schema.value<ObjectId>().IsNoFollowSchema()) {
+        RETURN_IF_ERROR(CloneAsExplicitSchema(
+            DataItem(GetOriginalFromNoFollow(schema.value<ObjectId>()))));
+      } else {
+        RETURN_IF_ERROR(CloneAsExplicitSchema(schema));
+      }
+      return true;
+    } else {
+      // We stop the traversal on explicit schemas. Instead, we will extract
+      // them later.
+      explicit_schemas_.push_back(schema.value<ObjectId>());
+      return false;
+    }
   }
 
   absl::Status CloneAsExplicitSchema(const DataItem& schema) {
@@ -374,6 +388,7 @@ class DeepCloneVisitor : AbstractVisitor {
   bool is_schema_slice_;
   absl::flat_hash_map<AllocationId, AllocationId> allocation_tracker_;
   absl::flat_hash_set<AllocationId> allocations_with_metadata_;
+  std::vector<ObjectId> explicit_schemas_;
 };
 
 }  // namespace
@@ -392,6 +407,20 @@ absl::StatusOr<DataSliceImpl> DeepCloneOp::operator()(
                      visitor->DeepCloneVisitor::GetValue(ds[i], schema));
     result_items.InsertIfNotSetAndUpdateAllocIds(i, value);
   }
+  auto explicit_schemas = visitor->get_explicit_schemas();
+  auto explicit_schemas_slice = DataSliceImpl::Create(
+      arolla::CreateFullDenseArray<ObjectId>(std::move(explicit_schemas)));
+  auto extract_op = ExtractOp(new_databag_);
+  // We need to extract all the content that is reachable from the explicit
+  // schemas. Some of these items might be already cloned (if reached through
+  // different paths), in which case they would have two versions in the new
+  // databag (extracted and cloned).
+  //
+  // DeepCloneVisitor doesn't set attributes for ObjectIds from the initial
+  // databag. Thus, we can extract any part of the initial databag, and existing
+  // content of the `new_databag_` would not interfere with the extraction.
+  RETURN_IF_ERROR(extract_op(explicit_schemas_slice, DataItem(schema::kSchema),
+                             databag, fallbacks, nullptr, {}, -1));
   return std::move(result_items).Build();
 }
 

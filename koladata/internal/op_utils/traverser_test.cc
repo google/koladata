@@ -14,7 +14,6 @@
 //
 #include "koladata/internal/op_utils/traverser.h"
 
-
 #include <algorithm>
 #include <cstdint>
 #include <initializer_list>
