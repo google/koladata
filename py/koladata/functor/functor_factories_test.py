@@ -231,6 +231,16 @@ class FunctorFactoriesTest(absltest.TestCase):
     testing.assert_equal(fn(2), ds(3))
     testing.assert_equal(fn(2, foo=3), ds(3))
 
+  def test_trace_py_fn_docstring(self):
+    def my_model(x):
+      """My model docstring."""
+      return x
+
+    testing.assert_equal(
+        functor_factories.trace_py_fn(my_model).get_attr('__doc__').no_bag(),
+        ds('My model docstring.'),
+    )
+
   def test_trace_py_fn_select(self):
     def select_fn(val):
       return user_facing_kd.select(val, lambda x: x >= 2)
@@ -374,6 +384,16 @@ class FunctorFactoriesTest(absltest.TestCase):
 
     testing.assert_equal(
         kd.call(functor_factories.py_fn(default_none), x=5), ds(6)
+    )
+
+  def test_py_fn_docstring(self):
+    def f(x):
+      """My docstring."""
+      return x
+
+    testing.assert_equal(
+        functor_factories.py_fn(f).get_attr('__doc__').no_bag(),
+        ds('My docstring.'),
     )
 
   def test_py_fn_positional_params(self):

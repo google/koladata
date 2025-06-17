@@ -145,6 +145,8 @@ def trace_py_fn(
       signature=signature,
       auto_variables=auto_variables,
   )
+  if f.__doc__ is not None:
+    traced_f = traced_f.with_attr('__doc__', f.__doc__)
   stack_frame = stack_trace.function_frame(f)
   if stack_frame is not None:
     traced_f = traced_f.with_attr(
@@ -192,7 +194,7 @@ def py_fn(
   Returns:
     A DataItem representing the functor.
   """
-  f = expr_fn(
+  py_functor = expr_fn(
       # Note: we bypass the binding policy of apply_py since we already
       # have the args/kwargs as tuple and namedtuple.
       arolla.abc.bind_op(
@@ -204,7 +206,9 @@ def py_fn(
       ),
       signature=signature_utils.ARGS_KWARGS_SIGNATURE,
   )
-  return bind(f, **defaults) if defaults else f
+  if f.__doc__ is not None:
+    py_functor = py_functor.with_attr('__doc__', f.__doc__)
+  return bind(py_functor, **defaults) if defaults else py_functor
 
 
 def bind(
