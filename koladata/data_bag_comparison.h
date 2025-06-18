@@ -15,8 +15,6 @@
 #ifndef KOLADATA_DATA_BAG_COMPARISON_H_
 #define KOLADATA_DATA_BAG_COMPARISON_H_
 
-#include <utility>
-#include "absl/log/check.h"
 #include "koladata/data_bag.h"
 #include "koladata/internal/triples.h"
 
@@ -25,19 +23,7 @@ namespace koladata {
 
 class DataBagComparison {
  public:
-  static bool ExactlyEqual(DataBagPtr a, DataBagPtr b) {
-    const auto& freeze_and_merge_fallbacks = [](DataBagPtr bag) -> DataBagPtr {
-      if (bag->GetFallbacks().empty()) {
-        return bag;
-      }
-      auto result_or = bag->Freeze()->MergeFallbacks();
-      // Merge will always succeed because bag is frozen.
-      DCHECK_OK(result_or.status());
-      return (result_or.ok()) ? result_or.value() : std::move(bag);
-    };
-    a = freeze_and_merge_fallbacks(a);
-    b = freeze_and_merge_fallbacks(b);
-
+  static bool ExactlyEqual(const DataBagPtr a, const DataBagPtr b) {
     using Triples = internal::debug::Triples;
     if (Triples(a->GetImpl().ExtractContent().value()) !=
         Triples(b->GetImpl().ExtractContent().value())) {

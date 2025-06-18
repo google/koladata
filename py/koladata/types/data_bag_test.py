@@ -1489,13 +1489,13 @@ Assigned schema for keys: INT32""",
     x = data_slice.DataSlice.from_vals([1, 2, 3])
     ds12 = x.with_bag(db1).enriched(db2)
     ds1 = x.with_bag(db1)
-    self.assertTrue(ds12.get_bag()._exactly_equal(ds1.get_bag()))
+    self.assertFalse(ds12.get_bag()._exactly_equal(ds1.get_bag()))
 
     ds21 = x.with_bag(db2).enriched(db1)
     self.assertTrue(ds12.get_bag()._exactly_equal(ds21.get_bag()))
 
     _ = db1.obj(x=1)
-    self.assertTrue(ds12.get_bag()._exactly_equal(ds21.get_bag()))
+    self.assertFalse(ds12.get_bag()._exactly_equal(ds21.get_bag()))
 
   def test_merge_inplace(self):
     db1 = bag()

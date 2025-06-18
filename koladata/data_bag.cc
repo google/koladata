@@ -15,7 +15,6 @@
 #include "koladata/data_bag.h"
 
 #include <cstddef>
-#include <cstdint>
 #include <deque>
 #include <string>
 #include <utility>
@@ -24,6 +23,7 @@
 #include "absl/base/no_destructor.h"
 #include "absl/cleanup/cleanup.h"
 #include "absl/container/flat_hash_set.h"
+#include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
@@ -41,86 +41,20 @@
 
 namespace koladata {
 
-// DataBagImpls with more than this many internal data sources (determined using
-// `DataBagImpl::GetApproxTotalComplexity`) will not be involved in a merge
-// during a compaction, to avoid expensive compactions and improve
-// memory-sharing.
-constexpr int64_t kMaxCompactibleImplComplexity = 1000;
-
 DataBagPtr DataBag::ImmutableEmptyWithFallbacks(
     absl::Span<const DataBagPtr> fallbacks) {
-  std::vector<DataBagPtr> result_fallbacks;
-  result_fallbacks.reserve(fallbacks.size());
-  bool has_mutable_fallbacks = false;
-
-  // Note: this still lacks a potential optimization where we reorder fallbacks
-  // to improve compaction by moving large immutable bags to the end of the
-  // fallback list. Two fallbacks may be swapped if they are both immutable and
-  // are disjoint (i.e. affect disjoint (attr, allocation) sets).
-
-  auto try_compact_fallbacks_suffix = [&]() {
-    // Only compact if there are at least two compactable fallbacks.
-    if (result_fallbacks.size() >= 2 &&
-        result_fallbacks[result_fallbacks.size() - 1]->is_compactable_ &&
-        result_fallbacks[result_fallbacks.size() - 2]->is_compactable_) {
-      auto compacted_bag = DataBag::Empty();
-      while (!result_fallbacks.empty() &&
-             result_fallbacks.back()->is_compactable_) {
-        auto merge_status = compacted_bag->MergeInplace(
-            result_fallbacks.back(), /*overwrite=*/true,
-            /*allow_data_conflicts=*/true, /*allow_schema_conflicts=*/true);
-        // Merge cannot fail because we allow data and schema conflicts.
-        DCHECK_OK(merge_status);
-        if (!merge_status.ok()) {
-          break;
-        }
-        result_fallbacks.pop_back();
-      }
-      compacted_bag->UnsafeMakeImmutable();
-      result_fallbacks.push_back(std::move(compacted_bag));
-    }
-  };
-
-  absl::flat_hash_set<const DataBag*> visited_bags;
-  visited_bags.reserve(fallbacks.size());
-  auto add_fallback = [&](const DataBagPtr& fallback) {
-    if (!fallback->IsMutable() && fallback->GetImpl().IsPristineAndEmpty()) {
-      return;
-    }
-    if (!visited_bags.insert(fallback.get()).second) {
-      return;
-    }
-
-    if (!fallback->is_compactable_) {
-      try_compact_fallbacks_suffix();
-    }
-    result_fallbacks.push_back(fallback);
-    if (fallback->IsMutable()) {
-      has_mutable_fallbacks = true;
-    }
-  };
-
+  auto res = DataBagPtr::Make(DataBag::immutable_t());
+  std::vector<DataBagPtr> non_null_fallbacks;
+  non_null_fallbacks.reserve(fallbacks.size());
   for (int i = 0; i < fallbacks.size(); ++i) {
     if (fallbacks[i] != nullptr) {
-      if (fallbacks[i]->GetFallbacks().empty()) {
-        add_fallback(fallbacks[i]);
-      } else {
-        // DataBags with fallbacks always have immutable empty impls, and the
-        // fallback DataBags cannot themselves have fallbacks.
-        DCHECK(fallbacks[i]->GetImpl().IsPristineAndEmpty());
-        DCHECK(!fallbacks[i]->IsMutable());
-        for (const auto& secondary_fallback : fallbacks[i]->GetFallbacks()) {
-          DCHECK(secondary_fallback->GetFallbacks().empty());
-          add_fallback(secondary_fallback);
-        }
+      non_null_fallbacks.push_back(fallbacks[i]);
+      if (fallbacks[i]->IsMutable() || fallbacks[i]->HasMutableFallbacks()) {
+        res->has_mutable_fallbacks_ = true;
       }
     }
   }
-  try_compact_fallbacks_suffix();
-
-  auto res = DataBagPtr::Make(DataBag::immutable_t());
-  res->fallbacks_ = std::move(result_fallbacks);
-  res->has_mutable_fallbacks_ = has_mutable_fallbacks;
+  res->fallbacks_ = std::move(non_null_fallbacks);
   return res;
 }
 
@@ -134,9 +68,6 @@ DataBagPtr DataBag::FallbackFreeFork(bool immutable) {
   }
   new_db->impl_ = impl_->PartiallyPersistentFork();
   new_db->impl_->AssignToDataBag();
-  if (immutable) {
-    new_db->UpdateIsCompactable();
-  }
 
   // If the original DataBag is mutable, we need to assign a new implementation
   // to it, because it can be modified and the modifications will affect the
@@ -168,25 +99,19 @@ DataBagPtr DataBag::FreezeWithFallbacks() {
   }
   std::vector<DataBagPtr> leaf_fallbacks;
   leaf_fallbacks.reserve(GetFallbacks().size());
-  for (const auto& fallback : GetFallbacks()) {
-    DCHECK(fallback->GetFallbacks().empty());
-    if (fallback->IsMutable()) {
-      leaf_fallbacks.push_back(fallback->FallbackFreeFork(/*immutable=*/true));
-    } else {
-      leaf_fallbacks.push_back(fallback);
+  VisitFallbacks(*this, [&leaf_fallbacks](DataBagPtr fallback) {
+    if (fallback->GetFallbacks().empty()) {
+      if (fallback->IsMutable()) {
+        // Since a leaf fallback has no fallbacks by definition, we can call
+        // FallbackFreeFork on it.
+        leaf_fallbacks.push_back(
+            fallback->FallbackFreeFork(/*immutable=*/true));
+      } else {
+        leaf_fallbacks.push_back(std::move(fallback));
+      }
     }
-  }
+  });
   return DataBag::ImmutableEmptyWithFallbacks(std::move(leaf_fallbacks));
-}
-
-void DataBag::UpdateIsCompactable() {
-  is_compactable_ = !IsMutable() && impl_->GetApproxTotalComplexity() <=
-                                        kMaxCompactibleImplComplexity;
-}
-
-void DataBag::UnsafeMakeImmutable() {
-  is_mutable_ = false;
-  UpdateIsCompactable();
 }
 
 DataBagPtr DataBag::Freeze() {
@@ -281,6 +206,28 @@ absl::Status DataBag::MergeInplace(const DataBagPtr& other_db, bool overwrite,
   }
   ASSIGN_OR_RETURN(auto other_db_impl, MergeFallbacksToForkedImpl(*other_db));
   return db_impl.MergeInplace(*other_db_impl, merge_options);
+}
+
+void VisitFallbacks(const DataBag& bag,
+                    absl::FunctionRef<void(DataBagPtr)> visit_fn) {
+  std::vector<DataBagPtr> stack(bag.GetFallbacks().rbegin(),
+                                bag.GetFallbacks().rend());
+  absl::flat_hash_set<const DataBag*> seen_db;
+  seen_db.reserve(stack.size() + 1);
+  seen_db.insert(&bag);
+
+  while (!stack.empty()) {
+    DataBagPtr fallback = stack.back();
+    DCHECK(fallback != nullptr);
+    stack.pop_back();
+    if (seen_db.insert(fallback.get()).second) {
+      const auto cur_fallbacks = fallback->GetFallbacks();
+      for (auto it = cur_fallbacks.rbegin(); it != cur_fallbacks.rend(); ++it) {
+        stack.push_back(*it);
+      }
+      visit_fn(std::move(fallback));
+    }
+  }
 }
 
 std::string GetBagIdRepr(const DataBagPtr& db) {

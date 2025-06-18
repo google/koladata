@@ -473,17 +473,6 @@ bool DataBagImpl::IsPristine() const {
          dicts_.empty();
 }
 
-bool DataBagImpl::IsPristineAndEmpty() const {
-  const DataBagImpl* cur_data_bag = this;
-  while (cur_data_bag != nullptr) {
-    if (!cur_data_bag->IsPristine()) {
-      return false;
-    }
-    cur_data_bag = cur_data_bag->parent_data_bag_.get();
-  }
-  return true;
-}
-
 std::optional<DataItem> DataBagImpl::LookupAttrInDataSourcesMap(
     ObjectId object_id, absl::string_view attr) const {
   const DataBagImpl* cur_data_bag = this;
@@ -3628,15 +3617,6 @@ int64_t DataBagImpl::GetApproxTotalSize() const {
     }
   }
   return size;
-}
-
-int64_t DataBagImpl::GetApproxTotalComplexity() const {
-  int64_t complexity = 0;
-  for (const auto* db = this; db != nullptr; db = db->parent_data_bag_.get()) {
-    complexity += db->sources_.size() + db->small_alloc_sources_.size() +
-                  db->lists_.size() + db->dicts_.size();
-  }
-  return complexity;
 }
 
 }  // namespace koladata::internal

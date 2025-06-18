@@ -60,11 +60,11 @@ TEST(DataBagComparisonTest, ExactlyEqual_Fallbacks) {
   auto db_ff212 = DataBag::ImmutableEmptyWithFallbacks({db_f21, db2});
 
   EXPECT_TRUE(DataBagComparison::ExactlyEqual(db_f12, db_f12_copy));
-  EXPECT_TRUE(DataBagComparison::ExactlyEqual(db_f12, db_f21));
+  EXPECT_FALSE(DataBagComparison::ExactlyEqual(db_f12, db_f21));
   EXPECT_FALSE(DataBagComparison::ExactlyEqual(db_f1, db_f12));
   EXPECT_FALSE(DataBagComparison::ExactlyEqual(db_f1, db_f21));
   EXPECT_TRUE(DataBagComparison::ExactlyEqual(db_ff12, db_ff122));
-  EXPECT_TRUE(DataBagComparison::ExactlyEqual(db_ff212, db_ff122));
+  EXPECT_FALSE(DataBagComparison::ExactlyEqual(db_ff212, db_ff122));
 }
 
 
