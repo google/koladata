@@ -42,17 +42,27 @@ using ::testing::MockFunction;
 using ::testing::Pointer;
 using ::testing::Return;
 
-class MockBasicRoutineHooks : public BasicRoutineHooks {
+class BasicRoutineHooksWithDestructionNotification : public BasicRoutineHooks {
  public:
   // Note: We're not using the gMock cookbook's destructor mocking approach
   // (https://google.github.io/googletest/gmock_cook_book.html#mocking-destructors)
   // because it has led to false-positive mock object leak detections in our
   // tests. (NOLINTNEXTLINE: public member is used for testing only)
+  //
+  // This notification logic is implemented within a base class, ensuring it's
+  // only triggered after all mock-related machinery has been deregistered.
+  //
   const std::shared_ptr<absl::Notification> destroyed =
       std::make_shared<absl::Notification>();
 
-  ~MockBasicRoutineHooks() override { destroyed->Notify(); }
+  ~BasicRoutineHooksWithDestructionNotification() override {
+    destroyed->Notify();
+  }
+};
 
+class MockBasicRoutineHooks
+    : public BasicRoutineHooksWithDestructionNotification {
+ public:
   MOCK_METHOD(bool, Interrupted, (), (const, override));
   MOCK_METHOD(void, OnCancel, (absl::Status && status), (override));
   MOCK_METHOD(StreamReaderPtr, Start, (), (override));

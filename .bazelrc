@@ -28,3 +28,12 @@ build:macos --host_cxxopt=-std=gnu++20
 # https://endoflife.date/macos for versions of macOS that are currently
 # maintained).
 build:macos --macos_minimum_os=12.0
+
+# AddressSanitizer configuration; enable with `--config=asan`.
+build:asan --strip=never
+build:asan --copt -fsanitize=address
+build:asan --copt -DADDRESS_SANITIZER  # used by absl
+build:asan --copt -O1
+build:asan --copt -g
+build:asan --copt -fno-omit-frame-pointer
+build:asan --linkopt -fsanitize=address
