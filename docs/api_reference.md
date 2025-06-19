@@ -2711,7 +2711,7 @@ Aliases:
 ``` {.no-copy}
 Returns a INT64 DataSlice of hash values of `x`.
 
-The hash values are in the range of [-2**63, 2**63-1].
+The hash values are in the range of [0, 2**63-1].
 
 The hash algorithm is subject to change. It is not guaranteed to be stable in
 future releases.

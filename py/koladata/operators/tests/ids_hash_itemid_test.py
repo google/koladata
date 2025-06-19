@@ -70,6 +70,21 @@ class IdsHashItemIdTest(parameterized.TestCase):
         frozenset([(DATA_SLICE, DATA_SLICE)]),
     )
 
+  def test_nonnegative(self):
+    ids = kde.allocation.new_itemid_like(ds(list(range(1000))))
+    hash_values = kde.ids.hash_itemid(ids)
+    predicate = kde.all(hash_values >= 0)
+    self.assertTrue(expr_eval.eval(predicate))
+
+  def test_full_range(self):
+    ids = kde.allocation.new_itemid_like(ds(list(range(1000))))
+    hash_values = kde.ids.hash_itemid(ids)
+    # 0.9**1000 < 2e-46, so this will never fail.
+    predicate = kde.any(hash_values < 2**63 // 10) & kde.any(
+        hash_values > 2**63 - 2**63 // 10
+    )
+    self.assertTrue(expr_eval.eval(predicate))
+
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.ids.hash_itemid(I.ds)))
 
