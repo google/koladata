@@ -25,6 +25,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/casting.h"
@@ -89,6 +90,37 @@ class FromPyConverter {
     return PyList_Check(py_objects[0]) || PyTuple_Check(py_objects[0]);
   }
 
+  bool IsDict(const std::vector<PyObject*>& py_objects,
+              const std::optional<DataSlice>& schema) {
+    if (IsStructSchema(schema)) {
+      return schema->IsDictSchema();
+    }
+    if (py_objects.empty()) {
+      return false;
+    }
+
+    DCHECK_EQ(py_objects.size(), 1);
+    return PyDict_Check(py_objects[0]);
+  }
+
+  // If `schema` is a struct schema, returns the `attr_name` attribute of the
+  // schema. Otherwise returns OBJECT schema. We cannot call recursively
+  // ConvertImpl with `nullopt` schema, because otherwise child items will not
+  // be casted to objects, p.ex. `from_py([1, 2])` will return a list of INT32,
+  // not OBJECT.
+  absl::StatusOr<DataSlice> GetSchemaAttrOrObjectSchema(
+      const std::optional<DataSlice>& schema, absl::string_view attr_name) {
+    if (IsStructSchema(schema)) {
+      return schema->GetAttr(attr_name);
+    }
+    if (IsObjectSchema(schema)) {
+      return *schema;
+    }
+    DCHECK(!schema.has_value());
+    return DataSlice::Create(DataItem(schema::kObject),
+                             DataItem(schema::kSchema), nullptr);
+  }
+
   absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
                                              DataSlice::JaggedShape shape,
                                              DataItem schema) {
@@ -136,6 +168,20 @@ class FromPyConverter {
                             std::move(schema_item));
   }
 
+  // Recursively converts `py_objects` to a DataSlice.
+  // When there is a struct schema, we do BFS traversal, i.e. we process the
+  // whole list of objects at a certain depth together. Otherwise with OBJECT
+  // schema, we do DFS traversal.
+  //
+  // `cur_shape` is used to support `from_dim` argument: if it is specified
+  // (non-empty), it will be used as the shape of the resulting DataSlice.
+  //
+  // If `schema` is specified, it will be used for the resulting DataSlice.
+  // Otherwise, the schema is inferred from the objects.
+  //
+  // If there will be new lists/dicts/objects created, a new DataBag will be
+  // created and added to the adoption queue. Also if there will be DataItems in
+  // `py_objects`, they will also be added to `adoption_queue_`.
   absl::StatusOr<DataSlice> ConvertImpl(
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
@@ -157,15 +203,20 @@ class FromPyConverter {
     if (IsListOrTuple(py_objects, schema)) {
       return ConvertListOrTuple(py_objects, cur_shape, schema);
     }
+    if (IsDict(py_objects, schema)) {
+      return ConvertDict(py_objects, cur_shape, schema);
+    }
 
+    // We are left with primitives or DataItems here.
     DataItem schema_item;
     if (IsObjectSchema(schema)) {
       schema_item = DataItem(schema::kObject);
     }
     // We need implicit casting here, so we provide an empty schema if schema is
     // not OBJECT.
+    // TODO: avoid precision loss when migrated to v2.
     ASSIGN_OR_RETURN(
-        auto res_slice,
+        DataSlice res_slice,
         DataSliceFromPyFlatList(py_objects, cur_shape, std::move(schema_item),
                                 adoption_queue_));
     if (schema) {
@@ -181,31 +232,20 @@ class FromPyConverter {
     return res_slice;
   }
 
+  // Converts a list of Python objects to a List DataSlice, assuming that
+  // all of them are lists or tuples. Calls `ConvertImpl` with the child items
+  // to convert the next level of objects and use them as list items; after that
+  // creates a list DataSlice with the given shape and schema.
   absl::StatusOr<DataSlice> ConvertListOrTuple(
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape,
       const std::optional<DataSlice>& schema) {
     std::vector<PyObject*> next_level_py_objs;
     shape::ShapeBuilder shape_builder(cur_shape);
-    std::optional<DataSlice> item_schema;
-
+    ASSIGN_OR_RETURN(
+        DataSlice item_schema,
+        GetSchemaAttrOrObjectSchema(schema, schema::kListItemsSchemaAttr));
     const bool is_struct_schema = IsStructSchema(schema);
-    const bool is_object_schema = IsObjectSchema(schema);
-
-    if (is_struct_schema) {
-      ASSIGN_OR_RETURN(item_schema,
-                       schema->GetAttr(schema::kListItemsSchemaAttr));
-    } else if (is_object_schema) {
-      item_schema = schema;
-    } else {
-      DCHECK(!schema.has_value());
-      // We cannot call recursively ConvertImpl with `nullopt` schema, because
-      // otherwise child items will not be casted to objects, p.ex.
-      // `from_py([1, 2])` will return a list of INT32, not OBJECT.
-      ASSIGN_OR_RETURN(item_schema,
-                       DataSlice::Create(DataItem(schema::kObject),
-                                         DataItem(schema::kSchema), nullptr));
-    }
     for (PyObject* py_obj : py_objects) {
       if (!PyList_Check(py_obj) && !PyTuple_Check(py_obj)) {
         return absl::InvalidArgumentError(
@@ -233,6 +273,74 @@ class FromPyConverter {
       return ObjectCreator::ConvertWithoutAdopt(GetBag(), list);
     }
     return list;
+  }
+
+  // Converts a list of Python objects to a Dict DataSlice, assuming that
+  // all of them are dicts. Calls `ConvertImpl` both for the keys and values
+  // and uses the result as dict keys and values; after that
+  // creates a dict DataSlice with the given shape and schema.
+  absl::StatusOr<DataSlice> ConvertDict(
+      const std::vector<PyObject*>& py_objects,
+      const DataSlice::JaggedShape& cur_shape,
+      const std::optional<DataSlice>& schema) {
+    std::vector<PyObject*> next_level_py_keys;
+    std::vector<PyObject*> next_level_py_values;
+    shape::ShapeBuilder shape_builder(cur_shape);
+    const bool is_struct_schema = IsStructSchema(schema);
+
+    ASSIGN_OR_RETURN(
+        DataSlice key_schema,
+        GetSchemaAttrOrObjectSchema(schema, schema::kDictKeysSchemaAttr));
+    ASSIGN_OR_RETURN(
+        DataSlice value_schema,
+        GetSchemaAttrOrObjectSchema(schema, schema::kDictValuesSchemaAttr));
+    for (PyObject* py_obj : py_objects) {
+      if (!PyDict_Check(py_obj)) {
+        return absl::InvalidArgumentError(
+            "cannot parse dicts mixed with other types on the same "
+            "level");
+      }
+
+      const size_t dict_size = PyDict_Size(py_obj);
+      std::vector<PyObject*> cur_dict_keys;
+      std::vector<PyObject*> cur_dict_values;
+      cur_dict_keys.resize(dict_size);
+      cur_dict_values.resize(dict_size);
+      Py_ssize_t pos = 0;
+
+      for (size_t i = dict_size; i > 0; --i) {
+        CHECK(PyDict_Next(py_obj, &pos, &cur_dict_keys[i - 1],
+                          &cur_dict_values[i - 1]));
+      }
+      DCHECK(!PyDict_Next(py_obj, &pos, nullptr, nullptr));
+
+      shape_builder.Add(dict_size);
+      next_level_py_keys.insert(next_level_py_keys.end(), cur_dict_keys.begin(),
+                                cur_dict_keys.end());
+      next_level_py_values.insert(next_level_py_values.end(),
+                                  cur_dict_values.begin(),
+                                  cur_dict_values.end());
+    }
+    ASSIGN_OR_RETURN(DataSlice::JaggedShape next_level_shape,
+                     std::move(shape_builder).Build());
+    ASSIGN_OR_RETURN(std::optional<DataSlice> keys,
+                     ConvertImpl(next_level_py_keys, next_level_shape,
+                                 std::move(key_schema)));
+    ASSIGN_OR_RETURN(std::optional<DataSlice> values,
+                     ConvertImpl(next_level_py_values, next_level_shape,
+                                 std::move(value_schema)));
+
+    const std::optional<DataSlice>& schema_for_dicts =
+        is_struct_schema ? schema : std::nullopt;
+
+    ASSIGN_OR_RETURN(
+        DataSlice dict,
+        CreateDictShaped(GetBag(), cur_shape, keys, values, schema_for_dicts));
+
+    if (!is_struct_schema) {
+      return ObjectCreator::ConvertWithoutAdopt(GetBag(), dict);
+    }
+    return dict;
   }
 
   const DataBagPtr& GetBag() {

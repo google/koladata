@@ -209,8 +209,7 @@ class FromPyTest(parameterized.TestCase):
     )
     testing.assert_equal(l[:].no_bag(), ds([1, 3.14], schema_constants.OBJECT))
 
-    # TODO: change this to from_py_fn when dicts are supported.
-    l = fns.from_py(
+    l = from_py_fn(
         [{'a': 2, 'b': 4}, {'c': 6, 'd': 8}],
         schema=kde.list_schema(
             kde.dict_schema(schema_constants.STRING, schema_constants.INT32)
@@ -248,12 +247,44 @@ class FromPyTest(parameterized.TestCase):
     self.assertNotEqual(o.x.get_itemid(), o.y.get_itemid())
     self.assertEqual(o.x.to_py(), o.y.to_py())
 
-  # More detailed tests for conversions to Koda Entities for Dicts are located
-  # in new_test.py.
-  def test_dict_with_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_with_object_schema(self, from_py_fn):
     # Python dictionary keys and values can be various Python / Koda objects
     # that are normalized to Koda Items.
-    d = fns.from_py(
+    d = from_py_fn(
+        {ds('a'): [1, 2], 'b': [42]},
+        schema=schema_constants.OBJECT,
+    )
+    testing.assert_dicts_keys_equal(d, ds(['a', 'b'], schema_constants.OBJECT))
+    testing.assert_equal(
+        d[ds(['a', 'b'])][:].no_bag(),
+        ds([[1, 2], [42]], schema_constants.OBJECT),
+    )
+
+    d = from_py_fn(
+        {ds('a'): {2: 3}, 'b': 3.14},
+        schema=kde.dict_schema(
+            schema_constants.OBJECT, schema_constants.OBJECT
+        ).eval(),
+    )
+    testing.assert_dicts_keys_equal(d, ds(['a', 'b'], schema_constants.OBJECT))
+    testing.assert_dicts_keys_equal(
+        d[ds(['a'])], ds([[2]], schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        d[ds(['a'])][ds([2])].no_bag(), ds([3], schema_constants.OBJECT)
+    )
+    testing.assert_equal(
+        d[ds(['b'])].no_bag(), ds([3.14], schema_constants.OBJECT)
+    )
+
+  # More detailed tests for conversions to Koda Entities for Dicts are located
+  # in new_test.py.
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_with_schema(self, from_py_fn):
+    # Python dictionary keys and values can be various Python / Koda objects
+    # that are normalized to Koda Items.
+    d = from_py_fn(
         {ds('a'): [1, 2], 'b': [42]},
         schema=kde.dict_schema(
             schema_constants.STRING, kde.list_schema(schema_constants.INT32)
@@ -262,7 +293,7 @@ class FromPyTest(parameterized.TestCase):
     testing.assert_dicts_keys_equal(d, ds(['a', 'b']))
     testing.assert_equal(d[ds(['a', 'b'])][:].no_bag(), ds([[1, 2], [42]]))
 
-    d = fns.from_py(
+    d = from_py_fn(
         {ds('a'): 1, 'b': 3.14},
         schema=kde.dict_schema(
             schema_constants.STRING, schema_constants.OBJECT
@@ -411,7 +442,8 @@ assigned schema: INT32"""),
         ds([], schema1).with_bag(l0.get_bag()),
     )
 
-  def test_empty_dict_of_dicts_with_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_empty_dict_of_dicts_with_schema(self, from_py_fn):
     schema1 = kde.dict_schema(
         key_schema=schema_constants.STRING,
         value_schema=schema_constants.FLOAT64,
@@ -419,10 +451,10 @@ assigned schema: INT32"""),
     schema2 = kde.dict_schema(
         key_schema=schema_constants.STRING, value_schema=schema1
     ).eval()
-    l0 = fns.from_py({}, schema=schema2)
+    d = from_py_fn({}, schema=schema2)
     testing.assert_equal(
-        l0[:],
-        ds([], schema1).with_bag(l0.get_bag()),
+        d[:],
+        ds([], schema1).with_bag(d.get_bag()),
     )
 
   @parameterized.named_parameters(_VERSION_PARAMS)
@@ -473,10 +505,11 @@ assigned schema: INT32"""),
         l3.no_bag(), ds([[1, 2.0], [3, 4]], schema_constants.OBJECT)
     )
 
-  def test_dict_from_dim(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dict_from_dim(self, from_py_fn):
     input_dict = [{ds('a'): [1, 2], 'b': [42]}, {ds('c'): [3, 4], 'd': [34]}]
 
-    d0 = fns.from_py(input_dict, from_dim=0)
+    d0 = from_py_fn(input_dict, from_dim=0)
     inner_slice = d0[:]
     testing.assert_dicts_keys_equal(
         inner_slice, ds([['a', 'b'], ['c', 'd']], schema_constants.OBJECT)
@@ -486,7 +519,7 @@ assigned schema: INT32"""),
         ds([[[1, 2], [42]], [[3, 4], [34]]], schema_constants.OBJECT),
     )
 
-    d1 = fns.from_py(input_dict, from_dim=1)
+    d1 = from_py_fn(input_dict, from_dim=1)
     testing.assert_dicts_keys_equal(
         d1, ds([['a', 'b'], ['c', 'd']], schema_constants.OBJECT)
     )
@@ -495,8 +528,9 @@ assigned schema: INT32"""),
         ds([[[1, 2], [42]], [[3, 4], [34]]], schema_constants.OBJECT),
     )
 
-  def test_empty_dict(self):
-    d0 = fns.from_py({})
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_empty_dict(self, from_py_fn):
+    d0 = from_py_fn({})
     testing.assert_dicts_keys_equal(d0, ds([], schema_constants.OBJECT))
 
   @parameterized.named_parameters(_VERSION_PARAMS)
@@ -1255,7 +1289,8 @@ assigned schema: ENTITY(x=INT32)'''
           itemid=kde.uuid(a=ds('1')).eval(),
       )
 
-  def test_deep_dict_with_repetitions(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_deep_dict_with_repetitions(self, from_py_fn):
     py_d = {'abc': 42, 'def': 64}
     schema = kde.dict_schema(
         schema_constants.STRING, schema_constants.INT32
@@ -1265,7 +1300,7 @@ assigned schema: ENTITY(x=INT32)'''
       schema = kde.dict_schema(schema_constants.INT32, schema).eval()
 
     with self.subTest('no schema'):
-      d = fns.from_py(py_d)
+      d = from_py_fn(py_d)
       testing.assert_dicts_keys_equal(d, ds([12, 42], schema_constants.OBJECT))
       d1 = d[12]
       d2 = d[42]
@@ -1289,7 +1324,7 @@ assigned schema: ENTITY(x=INT32)'''
       )
 
     with self.subTest('with schema'):
-      d = fns.from_py(py_d, schema=schema)
+      d = from_py_fn(py_d, schema=schema)
       testing.assert_dicts_keys_equal(d, ds([12, 42]))
       d1 = d[12]
       d2 = d[42]
@@ -1316,6 +1351,8 @@ assigned schema: ENTITY(x=INT32)'''
     level_1_d = py_d
     py_d = {'top': level_1_d}
     bottom_d['cycle'] = level_1_d
+
+    # TODO: handle recursion in v2.
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
       fns.from_py(py_d)
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
@@ -1414,15 +1451,16 @@ assigned schema: ENTITY(x=INT32)'''
     with self.assertRaisesRegex(ValueError, 'recursive .* cannot be converted'):
       fns.from_py(py_l, itemid=kde.uuid_for_list('list').eval())
 
-  def test_no_recursion_detected(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_no_recursion_detected(self, from_py_fn):
     with self.subTest('list'):
       py_l = [1, 2, 3]
       py_l2 = [py_l, [py_l, [py_l, py_l]]]
-      _ = fns.from_py(py_l2)
+      _ = from_py_fn(py_l2)
     with self.subTest('dict'):
       py_d = {'a': 1, 'b': 2}
       py_d2 = {'a': py_d, 'b': py_d}
-      _ = fns.from_py(py_d2)
+      _ = from_py_fn(py_d2)
     with self.subTest('object'):
       py_d = {'a': 1, 'b': 2}
       py_d2 = {'a': {'b': py_d}, 'b': {'a': py_d}}
@@ -1430,13 +1468,13 @@ assigned schema: ENTITY(x=INT32)'''
 
     with self.subTest('different levels'):
       x = [1]
-      _ = fns.from_py(
+      _ = from_py_fn(
           [x, [x], x],
           schema=kde.list_schema(
               kde.list_schema(schema_constants.OBJECT)
           ).eval(),
       )
-      _ = fns.from_py(
+      _ = from_py_fn(
           [(), [()]],
           schema=kde.list_schema(
               kde.list_schema(schema_constants.OBJECT)
