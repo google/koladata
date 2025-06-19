@@ -8932,12 +8932,9 @@ Operators to create tuples.
 ``` {.no-copy}
 Returns the value of the specified `field_name` from the `namedtuple`.
 
-Note that `field_name` _must_ be a literal (foldable) string.
-
-Args:
-  namedtuple: a namedtuple.
-  field_name: the name of the field to return. _Must_ be a literal (foldable)
-    string.
+  Args:
+    namedtuple: a namedtuple.
+    field_name: the name of the field to return.
 ```
 
 ### `kd.tuples.get_nth(x, n)` {#kd.tuples.get_nth}
@@ -8945,12 +8942,9 @@ Args:
 ``` {.no-copy}
 Returns the nth element of the tuple `x`.
 
-Note that `n` _must_ be a literal integer in [0, len(x)).
-
-Args:
-  x: a tuple.
-  n: the index of the element to return. _Must_ be a literal integer in the
-    range [0, len(x)).
+  Args:
+    x: a tuple.
+    n: the index of the element to return. Must be in the range [0, len(x)).
 ```
 
 ### `kd.tuples.namedtuple(**kwargs)` {#kd.tuples.namedtuple}

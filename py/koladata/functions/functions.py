@@ -25,6 +25,7 @@ from koladata.functions import proto_conversions as _proto_conversions
 from koladata.functions import py_conversions as _py_conversions
 from koladata.functions import s11n as _s11n
 from koladata.functions import schema as _schema
+from koladata.functions import tuples as _tuples
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import general_eager_ops as _general_eager_ops
@@ -180,4 +181,10 @@ slices = _py_types.SimpleNamespace(
 
 parallel = _py_types.SimpleNamespace(
     call_multithreaded=_parallel.call_multithreaded,
+)
+
+tuples = _py_types.SimpleNamespace(
+    # Re-implementation of operators that require inputs to be literals.
+    get_nth=_tuples.get_nth,
+    get_namedtuple_field=_tuples.get_namedtuple_field,
 )

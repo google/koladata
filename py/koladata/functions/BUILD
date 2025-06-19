@@ -34,6 +34,7 @@ py_library(
         ":py_conversions",
         ":s11n",
         ":schema",
+        ":tuples",
         "//py:python_path",
         "//py/koladata/fstring",
         "//py/koladata/types:data_item",
@@ -146,5 +147,17 @@ py_library(
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+    ],
+)
+
+py_library(
+    name = "tuples",
+    srcs = ["tuples.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/types:data_item",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
+        "@com_google_arolla//py/arolla",
     ],
 )

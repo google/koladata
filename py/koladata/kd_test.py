@@ -797,6 +797,19 @@ class KdTest(absltest.TestCase):
     fn = kd.expr.as_expr(lambda x: x + 1)
     kd.testing.assert_equal(kd.eval(kd.lazy.call(fn, 5)), kd.item(6))
 
+  def test_get_nth_eager_version(self):
+    # This operator requires a specific eager implementation since it requires
+    # literal inputs.
+    kd.testing.assert_equal(kd.tuples.get_nth((1, 2, 3), 1), kd.item(2))
+
+  def test_get_namedtuple_field_eager_version(self):
+    # This operator requires a specific eager implementation since it requires
+    # literal inputs.
+    kd.testing.assert_equal(
+        kd.tuples.get_namedtuple_field(kd.namedtuple(x=1, y='abc'), 'y'),
+        kd.item('abc'),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

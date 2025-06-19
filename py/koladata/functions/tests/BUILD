@@ -871,6 +871,36 @@ py_test(
     ],
 )
 
+py_test(
+    name = "tuples_get_nth_test",
+    srcs = ["tuples_get_nth_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "tuples_get_namedtuple_field_test",
+    srcs = ["tuples_get_namedtuple_field_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 proto_library(
     name = "test_proto",
     srcs = ["test.proto"],
