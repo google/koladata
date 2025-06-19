@@ -1078,25 +1078,7 @@ absl::StatusOr<DataSlice> CreateNestedList(
   return std::move(res);
 }
 
-namespace {
-
-absl::StatusOr<DataSlice> ImplodeImpl(const DataBagPtr& db,
-                                      const DataSlice& values, int ndim,
-                                      const std::optional<DataSlice>& itemid) {
-  // Removing the `db`, because CreateListsFromLastDimension adopts values.
-  DataSlice result = values.WithBag(nullptr);
-  for (int i = 1; i < ndim; ++i) {
-    // TODO: When itemid is provided by the user, a proper nested /
-    // child itemid should be created.
-    ASSIGN_OR_RETURN(result, CreateListsFromLastDimension(db, result));
-  }
-  return CreateListsFromLastDimension(db, result, /*schema=*/std::nullopt,
-                                      /*item_schema=*/std::nullopt, itemid);
-}
-
-}  // namespace
-
-absl::StatusOr<DataSlice> ImplodeInplace(
+absl::StatusOr<DataSlice> Implode(
     const DataBagPtr& db, const DataSlice& values, int ndim,
     const std::optional<DataSlice>& itemid) {
   constexpr absl::string_view kOperatorName = "kd.implode";
@@ -1129,38 +1111,18 @@ absl::StatusOr<DataSlice> ImplodeInplace(
     }
     return values.WithBag(db);
   }
-
-  return ImplodeImpl(db, values, ndim, itemid);
-}
-
-absl::StatusOr<DataSlice> Implode(const DataSlice& values, int ndim,
-                                  const std::optional<DataSlice>& itemid) {
-  constexpr absl::string_view kOperatorName = "kd.implode";
-  const size_t rank = values.GetShape().rank();
-  if (ndim < 0) {
-    ndim = values.GetShape().rank();  // ndim < 0 means implode all dimensions.
+  // Changing the `db`, because CreateListsFromLastDimension also adopts.
+  std::optional<DataSlice> result = values.WithBag(db);
+  for (int i = 1; i < ndim; ++i) {
+    // TODO: When itemid is provided by the user, a proper nested /
+    // child itemid should be created.
+    ASSIGN_OR_RETURN(result, CreateListsFromLastDimension(db, *result));
   }
-  if (rank < ndim) {
-    return internal::OperatorEvalError(
-        kOperatorName,
-        absl::StrFormat("cannot implode 'x' to fold the last %d dimension(s) "
-                        "because 'x' only has %d dimensions",
-                        ndim, rank));
-  }
-
-  if (ndim == 0) {
-    if (itemid.has_value()) {
-      return internal::OperatorEvalError(
-          kOperatorName, "does not accept 'itemid' argument when ndim==0");
-    }
-    return values.WithBag(
-        DataBag::ImmutableEmptyWithFallbacks({values.GetBag()}));
-  }
-  auto db = DataBag::Empty();
-  ASSIGN_OR_RETURN(auto result, ImplodeImpl(db, values, ndim, itemid));
-  db->UnsafeMakeImmutable();
-  return result.WithBag(
-      DataBag::ImmutableEmptyWithFallbacks({db, values.GetBag()}));
+  ASSIGN_OR_RETURN(
+      result,
+      CreateListsFromLastDimension(db, *result, /*schema=*/std::nullopt,
+                                   /*item_schema=*/std::nullopt, itemid));
+  return *std::move(result);
 }
 
 absl::StatusOr<DataSlice> ConcatLists(const DataBagPtr& db,

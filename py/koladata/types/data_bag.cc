@@ -1207,8 +1207,7 @@ PyObject* absl_nullable PyDataBag_implode(PyObject* self, PyObject* const* args,
     return nullptr;
   }
 
-  ASSIGN_OR_RETURN(DataSlice result,
-                   ImplodeInplace(self_db, *x_ptr, ndim, itemid),
+  ASSIGN_OR_RETURN(DataSlice result, Implode(self_db, *x_ptr, ndim, itemid),
                    arolla::python::SetPyErrFromStatus(_));
   return WrapPyDataSlice(std::move(result));
 }

@@ -208,7 +208,7 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
     ASSIGN_OR_RETURN(auto var, var_container.CreateInput(var_name));
     int ndim = slice.GetShape().rank();
     if (ndim > 0) {
-      ASSIGN_OR_RETURN(slice, Implode(slice, ndim));
+      ASSIGN_OR_RETURN(slice, Implode(DataBag::Empty(), slice, ndim));
       ASSIGN_OR_RETURN(
           var,
           arolla::expr::CallOp(
