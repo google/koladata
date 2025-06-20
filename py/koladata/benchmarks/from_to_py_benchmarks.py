@@ -225,6 +225,15 @@ def deep_universal_converter(state):
 
 
 @google_benchmark.register
+def deep_universal_converter_v2(state):
+  d = {'abc': 42}
+  for _ in range(1000):
+    d = {12: d.copy()}
+  while state:
+    _ = fns._from_py_v2(d)  # pylint: disable=protected-access
+
+
+@google_benchmark.register
 def universal_converter_list(state):
   l = [1, 2, 3]
   for _ in range(10):
