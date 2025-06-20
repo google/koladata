@@ -22,7 +22,7 @@ import json
 import os.path
 import sys
 import textwrap
-from typing import Any, Union
+from typing import Any as _Any
 import uuid
 
 from arolla import arolla
@@ -174,10 +174,10 @@ _DEFAULT_ATTR_LIMIT = 20
 
 # If this is an int, it is interpreted as pixels. If it is a string, it is
 # interpreted as a CSS length and can support percentages (e.g. 40%).
-CssLength = Union[int, str]
+_CssLength = int | str
 
 # Type that describes how to get to a particular value in a DataSlice.
-AccessPath = list[dict[str, str|list[int]]]
+_AccessPath = list[dict[str, str|list[int]]]
 
 
 @dataclasses.dataclass
@@ -188,9 +188,9 @@ class DataSliceVisOptions:
   # Maximum length of unbounded types such as strings and bytes.
   unbounded_type_max_len: int = _DEFAULT_UNBOUNDED_TYPE_MAX_LEN
   # Width of the detail pane in pixels.
-  detail_width: CssLength | None = None
+  detail_width: _CssLength | None = None
   # Height of the detail pane in pixels.
-  detail_height: CssLength | None = 300
+  detail_height: _CssLength | None = 300
   # Maximum number of attributes to show by default.
   attr_limit: int | None = _DEFAULT_ATTR_LIMIT
   # Item limit for nested parts of an item passed to the repr
@@ -279,7 +279,7 @@ def _is_clickable(ds: kd.types.DataSlice) -> bool:
   )
 
 
-def _focus_data_cell(context: Any, instance_id: str):
+def _focus_data_cell(context: _Any, instance_id: str):
   """Focuses the data cell of the table.
 
   Args:
@@ -387,7 +387,7 @@ class _BreadcrumbEntry:
   name: str
 
 
-class DataSliceViewState:
+class _DataSliceViewState:
   """Kernel-side state for the DataSlice visualization."""
 
   def __init__(
@@ -668,7 +668,7 @@ class DataSliceViewState:
       # not saved.
 
 
-def _css_length_to_string(length: CssLength) -> str:
+def _css_length_to_string(length: _CssLength) -> str:
   if isinstance(length, int):
     return f'{length}px'
   else:
@@ -678,7 +678,7 @@ def _css_length_to_string(length: CssLength) -> str:
 def visualize_slice(
     ds: kd.types.DataSlice,
     options: DataSliceVisOptions | None = None,
-) -> DataSliceViewState:
+) -> _DataSliceViewState:
   """Visualizes a DataSlice as a html widget."""
   options = options or DataSliceVisOptions()
   instance_id = 'id_' + str(uuid.uuid4())
@@ -929,7 +929,7 @@ def visualize_slice(
     });
   """)
 
-  view_state = DataSliceViewState(ds, instance_id, options=options)
+  view_state = _DataSliceViewState(ds, instance_id, options=options)
   view_state.add_listeners()
   return view_state
 
@@ -939,7 +939,7 @@ class _Watcher:
 
   Without this class, Colab would continue to reference DataSlices through
   handlers passed to js.AddEventListener calls. This class keeps track of
-  which DataSliceViewState objects are associated with each cell and removes
+  which _DataSliceViewState objects are associated with each cell and removes
   event listeners of the previous execution when the cell is executed again.
   """
 

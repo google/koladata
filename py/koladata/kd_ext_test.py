@@ -15,6 +15,7 @@
 from absl.testing import absltest
 from koladata import kd
 from koladata import kd_ext
+from koladata.ext import npkd
 from koladata.testing import testing
 
 
@@ -26,6 +27,8 @@ class KdExtTest(absltest.TestCase):
     self.assertIn('pdkd', modules)
     self.assertIn('nested_data', modules)
     self.assertIn('persisted_data', modules)
+    self.assertIn('contrib', modules)
+    self.assertIn('experimental', modules)
 
   def test_functor_factories(self):
     testing.assert_equal(kd_ext.Fn(lambda: 5)(), kd.item(5))
@@ -52,6 +55,29 @@ class KdExtTest(absltest.TestCase):
 
   def test_vis(self):
     self.assertTrue(hasattr(kd_ext.vis, 'register_formatters'))
+
+  def test_dir(self):
+    for api_name in dir(kd_ext):
+      self.assertFalse(api_name.startswith('_'))
+
+  def test_eager(self):
+    self.assertCountEqual(kd_ext.eager.__all__, dir(kd_ext.eager))  # pytype: disable=attribute-error
+    self.assertCountEqual(
+        set(dir(kd_ext)) - set(dir(kd_ext.eager)), ['eager']
+    )
+    self.assertCountEqual(set(dir(kd_ext.eager)) - set(dir(kd_ext)), [])
+    for name in kd_ext.eager.__all__:  # pytype: disable=attribute-error
+      self.assertIs(getattr(kd_ext.eager, name), getattr(kd_ext, name))
+    for bad_name in ['eager']:
+      with self.assertRaises(AttributeError):
+        _ = getattr(kd_ext.eager, bad_name)
+
+  def test_lazy_and_eager_ops(self):
+    # NOTE: This should be filled in once there is an operator in kd_ext.
+    pass
+
+  def test_function(self):
+    self.assertIs(kd_ext.npkd.to_array, npkd.to_array)
 
 
 if __name__ == '__main__':

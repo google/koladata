@@ -94,14 +94,17 @@ py_library(
     deps = [
         ":kd",
         "//py:python_path",
+        "//py/koladata/expr:tracing_mode",
         "//py/koladata/ext:nested_data",
         "//py/koladata/ext:npkd",
         "//py/koladata/ext:pdkd",
         "//py/koladata/ext:py_cloudpickle",
         "//py/koladata/ext:vis",
+        "//py/koladata/ext/contrib:functions",
         "//py/koladata/ext/experimental/parallel_call:call",
+        "//py/koladata/ext/operators:kde_operators",
         "//py/koladata/ext/persisted_data",
-        "@com_google_arolla//py/arolla",
+        "//py/koladata/operators:eager_op_utils",
     ],
 )
 
@@ -112,6 +115,7 @@ py_test(
         ":kd",
         ":kd_ext",
         "//py:python_path",
+        "//py/koladata/ext:npkd",
         "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
     ],

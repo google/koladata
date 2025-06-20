@@ -14,8 +14,6 @@
 
 """Bridge between Pandas and DataSlice."""
 
-from typing import Optional
-
 from arolla import arolla
 from koladata import kd
 from koladata.ext import npkd
@@ -67,7 +65,7 @@ _SPECIAL_COLUMN_NAMES = ('__items__', '__keys__', '__values__')
 
 def to_dataframe(
     ds: kd.types.DataSlice,
-    cols: Optional[list[str | arolla.Expr]] = None,
+    cols: list[str | arolla.Expr] | None = None,
     include_self: bool = False,
 ) -> pd.DataFrame:
   """Creates a pandas DataFrame from the given DataSlice.

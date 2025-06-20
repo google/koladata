@@ -38,6 +38,12 @@ Category  | Subcategory | Description
  | [streams](#kd.streams) | Operators that work with streams of items. These APIs are in active development and might change often (b/424742492).
  | [tuples](#kd.tuples) | Operators to create tuples.
 [kd_ext](#kd_ext_category) | | `kd_ext` operators
+ | [contrib](#kd_ext.contrib) | External contributions not necessarily endorsed by Koda.
+ | [experimental](#kd_ext.experimental) | Experimental functionality.
+ | [nested_data](#kd_ext.nested_data) | Utilities for manipulating nested data.
+ | [npkd](#kd_ext.npkd) | Tools for Numpy <-> Koda interoperability.
+ | [pdkd](#kd_ext.pdkd) | Tools for Pandas <-> Koda interoperability.
+ | [vis](#kd_ext.vis) | Koda visualization functionality.
 [DataSlice](#DataSlice_category) | | `DataSlice` methods
 [DataBag](#DataBag_category) | | `DataBag` methods
 [DataItem](#DataItem_category) | | `DataItem` methods
@@ -10662,6 +10668,25 @@ Operators under the `kd_ext.xxx` modules for extension utilities. Importing from
 the following module is needed:
 `from koladata import kd_ext`
 
+
+<section class="zippy open">
+
+**Namespaces**
+
+### kd_ext.contrib {#kd_ext.contrib}
+
+External contributions not necessarily endorsed by Koda.
+
+<section class="zippy closed">
+
+**Operators**
+
+</section>
+
+### kd_ext.experimental {#kd_ext.experimental}
+
+Experimental functionality.
+
 <section class="zippy closed">
 
 **Operators**
@@ -10718,6 +10743,16 @@ Calls a functor with the given arguments.
     recursively.
 ```
 
+</section>
+
+### kd_ext.nested_data {#kd_ext.nested_data}
+
+Utilities for manipulating nested data.
+
+<section class="zippy closed">
+
+**Operators**
+
 ### `kd_ext.nested_data.selected_path_update(root_ds, selection_ds_path, selection_ds)` {#kd_ext.nested_data.selected_path_update}
 
 ```` {.no-copy}
@@ -10748,6 +10783,16 @@ Returns a DataBag where only the selected items are present in child lists.
     need to be combined with the @root_ds via
     @root_ds.updated(selected_path(....)).
 ````
+
+</section>
+
+### kd_ext.npkd {#kd_ext.npkd}
+
+Tools for Numpy <-> Koda interoperability.
+
+<section class="zippy closed">
+
+**Operators**
 
 ### `kd_ext.npkd.from_array(arr)` {#kd_ext.npkd.from_array}
 
@@ -10832,6 +10877,16 @@ Reshapes a DataSlice corresponding to the given indices.
 ``` {.no-copy}
 Converts a DataSlice to a numpy array.
 ```
+
+</section>
+
+### kd_ext.pdkd {#kd_ext.pdkd}
+
+Tools for Pandas <-> Koda interoperability.
+
+<section class="zippy closed">
+
+**Operators**
 
 ### `kd_ext.pdkd.from_dataframe(df, as_obj=False)` {#kd_ext.pdkd.from_dataframe}
 
@@ -10935,17 +10990,63 @@ Creates a pandas DataFrame from the given DataSlice.
     DataFrame with columns from DataSlice fields.
 ```
 
+</section>
+
+### kd_ext.vis {#kd_ext.vis}
+
+Koda visualization functionality.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd_ext.vis.AccessType(*values)` {#kd_ext.vis.AccessType}
+Aliases:
+
+- [kd_g3_ext.vis.AccessType](#kd_g3_ext.vis.AccessType)
+
+``` {.no-copy}
+Types of accesses that can appear in an access path.
+```
+
+### `kd_ext.vis.DataSliceVisOptions(num_items=48, unbounded_type_max_len=256, detail_width=None, detail_height=300, attr_limit=20, item_limit=20)` {#kd_ext.vis.DataSliceVisOptions}
+Aliases:
+
+- [kd_g3_ext.vis.DataSliceVisOptions](#kd_g3_ext.vis.DataSliceVisOptions)
+
+``` {.no-copy}
+Options for visualizing a DataSlice.
+```
+
+### `kd_ext.vis.DescendMode(*values)` {#kd_ext.vis.DescendMode}
+Aliases:
+
+- [kd_g3_ext.vis.DescendMode](#kd_g3_ext.vis.DescendMode)
+*No description*
+
 ### `kd_ext.vis.register_formatters()` {#kd_ext.vis.register_formatters}
+Aliases:
+
+- [kd_g3_ext.vis.register_formatters](#kd_g3_ext.vis.register_formatters)
 
 ``` {.no-copy}
 Register DataSlice visualization in IPython.
 ```
 
 ### `kd_ext.vis.visualize_slice(ds, options=None)` {#kd_ext.vis.visualize_slice}
+Aliases:
+
+- [kd_g3_ext.vis.visualize_slice](#kd_g3_ext.vis.visualize_slice)
 
 ``` {.no-copy}
 Visualizes a DataSlice as a html widget.
 ```
+
+</section>
+</section>
+<section class="zippy closed">
+
+**Operators**
 
 ### `kd_ext.Fn(f, *, use_tracing=True, **kwargs)` {#kd_ext.Fn}
 

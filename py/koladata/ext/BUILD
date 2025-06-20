@@ -166,9 +166,7 @@ py_test(
     deps = [
         ":vis",
         "//py:python_path",
-        "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 
