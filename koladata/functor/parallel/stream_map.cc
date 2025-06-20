@@ -201,11 +201,12 @@ void StartStreamMap(ExecutorPtr absl_nonnull executor,
     // the cancellation notification with owning pointers is discouraged.
     state->cancellation_subscription = state->cancellation_context->Subscribe(
         [weak_state = std::weak_ptr<State>(state)] {
-          auto state = weak_state.lock();
-          state->stop_reader.test_and_set(std::memory_order_relaxed);
-          auto status = state->cancellation_context->GetStatus();
-          DCHECK(!status.ok());
-          state->sink->Cancel(std::move(status));
+          if (auto state = weak_state.lock()) {
+            state->stop_reader.test_and_set(std::memory_order_relaxed);
+            auto status = state->cancellation_context->GetStatus();
+            DCHECK(!status.ok());
+            state->sink->Cancel(std::move(status));
+          }
         });
   }
   // Trigger the reading routine for the first time (further reading will be
