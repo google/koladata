@@ -58,7 +58,9 @@ class SlicesExprQuoteTest(parameterized.TestCase):
 
   def test_error(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast STRING to EXPR"):
+    with self.assertRaisesRegex(
+        ValueError, "casting data of type STRING to EXPR is not supported"
+    ):
       expr_eval.eval(kde.slices.expr_quote(x))
 
   def test_boxing(self):

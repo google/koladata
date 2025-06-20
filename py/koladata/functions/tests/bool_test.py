@@ -34,8 +34,11 @@ class BoolTest(parameterized.TestCase):
     testing.assert_equal(fns.bool(x), ds(x, schema_constants.BOOLEAN))
 
   @parameterized.parameters(
-      (schema_constants.INT32, 'unsupported schema: SCHEMA'),
-      ('a', 'cannot cast STRING to BOOLEAN'),
+      (
+          schema_constants.INT32,
+          'casting a DataSlice with schema SCHEMA to BOOLEAN is not supported',
+      ),
+      ('a', 'casting data of type STRING to BOOLEAN is not supported'),
   )
   def test_bool_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

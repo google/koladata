@@ -70,7 +70,9 @@ class SchemaToSchemaTest(parameterized.TestCase):
 
   def test_not_schema_object_id(self):
     e = data_bag.DataBag.empty().new()
-    with self.assertRaisesRegex(ValueError, "cannot cast.*to SCHEMA"):
+    with self.assertRaisesRegex(
+        ValueError, "casting item.*to SCHEMA is not supported"
+    ):
       expr_eval.eval(kde.schema.to_schema(e))
 
   @parameterized.parameters(
@@ -78,13 +80,18 @@ class SchemaToSchemaTest(parameterized.TestCase):
   )
   def test_not_castable_error(self, value):
     with self.assertRaisesRegex(
-        ValueError, f"unsupported schema: {value.get_schema()}"
+        ValueError,
+        f"casting a DataSlice with schema {value.get_schema()} to SCHEMA is"
+        " not supported",
     ):
       expr_eval.eval(kde.schema.to_schema(value))
 
   def test_not_castable_internal_value(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast STRING to SCHEMA"):
+    with self.assertRaisesRegex(
+        ValueError,
+        "casting data of type STRING to SCHEMA is not supported",
+    ):
       expr_eval.eval(kde.schema.to_schema(x))
 
   def test_boxing(self):

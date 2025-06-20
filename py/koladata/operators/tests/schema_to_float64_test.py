@@ -71,13 +71,18 @@ class SchemaToFloat64Test(parameterized.TestCase):
   )
   def test_not_castable_error(self, value):
     with self.assertRaisesRegex(
-        ValueError, f"unsupported schema: {value.get_schema()}"
+        ValueError,
+        "casting a DataSlice with"
+        f" schema {value.get_schema()} to FLOAT64 is not supported",
     ):
       expr_eval.eval(kde.schema.to_float64(value))
 
   def test_not_castable_internal_value(self):
     x = ds(arolla.present(), schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast MASK to FLOAT64"):
+    with self.assertRaisesRegex(
+        ValueError,
+        "casting data of type MASK to FLOAT64 is not supported",
+    ):
       expr_eval.eval(kde.schema.to_float64(x))
 
   def test_not_parseable_error(self):

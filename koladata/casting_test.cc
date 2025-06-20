@@ -197,21 +197,33 @@ TEST(Casting, Int32Errors) {
   EXPECT_THAT(
       ToInt32(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                             schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to INT32 is not supported"));
   EXPECT_THAT(ToInt32(test::MixedDataSlice<int64_t, arolla::Unit>(
                   {1, std::nullopt, std::nullopt},
                   {std::nullopt, arolla::kUnit, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to INT32"));
+                       "casting data of type MASK to INT32 is not supported"));
   EXPECT_THAT(
       ToInt32(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to INT32 is not supported"));
   EXPECT_THAT(ToInt32(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to INT32"));
+                       "casting data of type MASK to INT32 is not supported"));
   EXPECT_THAT(ToInt32(test::DataItem(arolla::Text("1.5"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unable to parse INT32: '1.5'"));
+  // From entity error.
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(
+      auto entity, EntityCreator::FromAttrs(db, {"a"}, {test::DataItem(1)}));
+  EXPECT_THAT(ToInt32(entity),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "casting a DataSlice with schema ENTITY(a=INT32) to "
+                       "INT32 is not supported"));
 }
 
 TEST_P(CastingToInt64Test, Casting) {
@@ -277,18 +289,22 @@ TEST(Casting, Int64Errors) {
   EXPECT_THAT(
       ToInt64(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                             schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to INT64 is not supported"));
   EXPECT_THAT(ToInt64(test::MixedDataSlice<int64_t, arolla::Unit>(
                   {1, std::nullopt, std::nullopt},
                   {std::nullopt, arolla::kUnit, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to INT64"));
+                       "casting data of type MASK to INT64 is not supported"));
   EXPECT_THAT(
       ToInt64(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to INT64 is not supported"));
   EXPECT_THAT(ToInt64(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to INT64"));
+                       "casting data of type MASK to INT64 is not supported"));
   EXPECT_THAT(ToInt64(test::DataItem(arolla::Text("1.5"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unable to parse INT64: '1.5'"));
@@ -358,18 +374,24 @@ TEST(Casting, Float32Errors) {
   EXPECT_THAT(
       ToFloat32(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                               schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(ToFloat32(test::MixedDataSlice<int64_t, arolla::Unit>(
-                  {1, std::nullopt, std::nullopt},
-                  {std::nullopt, arolla::kUnit, std::nullopt})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to FLOAT32"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to FLOAT32 is not supported"));
+  EXPECT_THAT(
+      ToFloat32(test::MixedDataSlice<int64_t, arolla::Unit>(
+          {1, std::nullopt, std::nullopt},
+          {std::nullopt, arolla::kUnit, std::nullopt})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to FLOAT32 is not supported"));
   EXPECT_THAT(
       ToFloat32(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(ToFloat32(test::DataItem(arolla::kUnit, schema::kObject)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to FLOAT32"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to FLOAT32 is not supported"));
+  EXPECT_THAT(
+      ToFloat32(test::DataItem(arolla::kUnit, schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to FLOAT32 is not supported"));
   EXPECT_THAT(ToFloat32(test::DataItem(arolla::Text("foo"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unable to parse FLOAT32: 'foo'"));
@@ -438,18 +460,24 @@ TEST(Casting, Float64Errors) {
   EXPECT_THAT(
       ToFloat64(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                               schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(ToFloat64(test::MixedDataSlice<int64_t, arolla::Unit>(
-                  {1, std::nullopt, std::nullopt},
-                  {std::nullopt, arolla::kUnit, std::nullopt})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to FLOAT64"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to FLOAT64 is not supported"));
+  EXPECT_THAT(
+      ToFloat64(test::MixedDataSlice<int64_t, arolla::Unit>(
+          {1, std::nullopt, std::nullopt},
+          {std::nullopt, arolla::kUnit, std::nullopt})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to FLOAT64 is not supported"));
   EXPECT_THAT(
       ToFloat64(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(ToFloat64(test::DataItem(arolla::kUnit, schema::kObject)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to FLOAT64"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to FLOAT64 is not supported"));
+  EXPECT_THAT(
+      ToFloat64(test::DataItem(arolla::kUnit, schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to FLOAT64 is not supported"));
   EXPECT_THAT(ToFloat64(test::DataItem(arolla::Text("foo"), schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unable to parse FLOAT64: 'foo'"));
@@ -550,18 +578,23 @@ TEST(Casting, ExprErrors) {
   EXPECT_THAT(
       ToExpr(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                            schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to EXPR is not supported"));
   EXPECT_THAT(
       ToExpr(test::MixedDataSlice<arolla::expr::ExprQuote, arolla::Unit>(
           {x, std::nullopt, std::nullopt},
           {std::nullopt, arolla::kUnit, std::nullopt})),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to EXPR"));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to EXPR is not supported"));
   EXPECT_THAT(
       ToExpr(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
-  EXPECT_THAT(
-      ToExpr(test::DataItem(arolla::kUnit, schema::kObject)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to EXPR"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to EXPR is not supported"));
+  EXPECT_THAT(ToExpr(test::DataItem(arolla::kUnit, schema::kObject)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "casting data of type MASK to EXPR is not supported"));
 }
 
 TEST_P(CastingToStrTest, Casting) {
@@ -635,23 +668,27 @@ INSTANTIATE_TEST_SUITE_P(
     }()));
 
 TEST(Casting, TextErrors) {
-  EXPECT_THAT(ToStr(test::DataSlice<internal::ObjectId>(
-                  {std::nullopt, std::nullopt}, schema::kItemId)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unsupported schema: ITEMID"));
+  EXPECT_THAT(
+      ToStr(test::DataSlice<internal::ObjectId>({std::nullopt, std::nullopt},
+                                                schema::kItemId)),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema ITEMID to STRING is not supported"));
   EXPECT_THAT(
       ToStr(test::MixedDataSlice<arolla::Text, internal::ObjectId>(
           {"foo", std::nullopt, std::nullopt},
           {std::nullopt, internal::AllocateSingleObject(), std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast ITEMID to STRING"));
-  EXPECT_THAT(ToStr(test::DataItem(std::nullopt, schema::kItemId)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unsupported schema: ITEMID"));
+               "casting data of type ITEMID to STRING is not supported"));
+  EXPECT_THAT(
+      ToStr(test::DataItem(std::nullopt, schema::kItemId)),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema ITEMID to STRING is not supported"));
   EXPECT_THAT(
       ToStr(test::DataItem(internal::AllocateSingleObject(), schema::kObject)),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast ITEMID to STRING"));
+               "casting data of type ITEMID to STRING is not supported"));
 }
 
 TEST_P(CastingToBytesTest, Casting) {
@@ -689,18 +726,22 @@ TEST(Casting, BytesErrors) {
   EXPECT_THAT(
       ToBytes(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                             schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to BYTES is not supported"));
   EXPECT_THAT(ToBytes(test::MixedDataSlice<arolla::Bytes, arolla::Unit>(
                   {"foo", std::nullopt, std::nullopt},
                   {std::nullopt, arolla::kUnit, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BYTES"));
+                       "casting data of type MASK to BYTES is not supported"));
   EXPECT_THAT(
       ToBytes(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to BYTES is not supported"));
   EXPECT_THAT(ToBytes(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BYTES"));
+                       "casting data of type MASK to BYTES is not supported"));
 }
 
 TEST_P(CastingDecodeTest, Casting) {
@@ -745,12 +786,14 @@ TEST(Casting, DecodeErrors) {
   EXPECT_THAT(
       Decode(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                            schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to STRING is not supported"));
   EXPECT_THAT(Decode(test::MixedDataSlice<arolla::Text, arolla::Unit>(
                   {"foo", std::nullopt, std::nullopt},
                   {std::nullopt, arolla::kUnit, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to STRING"));
+                       "casting data of type MASK to STRING is not supported"));
   EXPECT_THAT(Decode(test::MixedDataSlice<arolla::Text, arolla::Bytes>(
                   {"foo", std::nullopt, std::nullopt},
                   {std::nullopt, "te\xC0\0xt", std::nullopt})),
@@ -758,10 +801,12 @@ TEST(Casting, DecodeErrors) {
                        "invalid UTF-8 sequence at position 2"));
   EXPECT_THAT(
       Decode(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to STRING is not supported"));
   EXPECT_THAT(Decode(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to STRING"));
+                       "casting data of type MASK to STRING is not supported"));
   EXPECT_THAT(
       Decode(test::DataItem(arolla::Bytes("te\xC0\0xt"), schema::kBytes)),
       StatusIs(absl::StatusCode::kInvalidArgument,
@@ -810,18 +855,22 @@ TEST(Casting, EncodeErrors) {
   EXPECT_THAT(
       Encode(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                            schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to BYTES is not supported"));
   EXPECT_THAT(Encode(test::MixedDataSlice<arolla::Text, arolla::Unit>(
                   {"foo", std::nullopt, std::nullopt},
                   {std::nullopt, arolla::kUnit, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BYTES"));
+                       "casting data of type MASK to BYTES is not supported"));
   EXPECT_THAT(
       Encode(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to BYTES is not supported"));
   EXPECT_THAT(Encode(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BYTES"));
+                       "casting data of type MASK to BYTES is not supported"));
 }
 
 TEST_P(CastingToMaskTest, Casting) {
@@ -856,20 +905,24 @@ INSTANTIATE_TEST_SUITE_P(
     }()));
 
 TEST(Casting, MaskErrors) {
-  EXPECT_THAT(ToMask(test::DataSlice<int>({1, std::nullopt}, schema::kInt32)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unsupported schema: INT32"));
+  EXPECT_THAT(
+      ToMask(test::DataSlice<int>({1, std::nullopt}, schema::kInt32)),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema INT32 to MASK is not supported"));
   EXPECT_THAT(ToMask(test::MixedDataSlice<int64_t, arolla::Unit>(
                   {1, std::nullopt, std::nullopt},
                   {std::nullopt, arolla::kUnit, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT64 to MASK"));
-  EXPECT_THAT(ToMask(test::DataItem(1, schema::kInt32)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unsupported schema: INT32"));
+                       "casting data of type INT64 to MASK is not supported"));
+  EXPECT_THAT(
+      ToMask(test::DataItem(1, schema::kInt32)),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema INT32 to MASK is not supported"));
   EXPECT_THAT(ToMask(test::DataItem(1, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT32 to MASK"));
+                       "casting data of type INT32 to MASK is not supported"));
 }
 
 TEST_P(CastingToBoolTest, Casting) {
@@ -923,32 +976,38 @@ TEST(Casting, BoolErrors) {
   EXPECT_THAT(ToBool(test::DataSlice<arolla::Text>({"foo", std::nullopt},
                                                    schema::kString)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unsupported schema: STRING"));
+                       "casting a DataSlice with schema STRING to BOOLEAN is "
+                       "not supported"));
   EXPECT_THAT(ToBool(test::DataSlice<arolla::Unit>(
                   {arolla::kUnit, std::nullopt}, schema::kMask)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unsupported schema: MASK; try `kd.cond(slice, "
-                       "True, False)` to convert MASK to BOOLEAN instead"));
-  EXPECT_THAT(ToBool(test::MixedDataSlice<arolla::Text, bool>(
-                  {"foo", std::nullopt, std::nullopt},
-                  {std::nullopt, true, std::nullopt})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast STRING to BOOLEAN"));
+                       "casting a DataSlice with schema MASK to BOOLEAN is not "
+                       "supported; try `kd.cond(slice, True, False)` instead"));
+  EXPECT_THAT(
+      ToBool(test::MixedDataSlice<arolla::Text, bool>(
+          {"foo", std::nullopt, std::nullopt},
+          {std::nullopt, true, std::nullopt})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type STRING to BOOLEAN is not supported"));
   EXPECT_THAT(ToBool(test::MixedDataSlice<arolla::Unit, bool>(
                   {arolla::kUnit, std::nullopt, std::nullopt},
                   {std::nullopt, true, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BOOLEAN; try `kd.cond(slice, "
+                       "casting data of type MASK to BOOLEAN is not supported; "
+                       "try `kd.cond(slice, "
                        "True, False)` instead"));
   EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kString)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "unsupported schema: STRING"));
-  EXPECT_THAT(ToBool(test::DataItem(arolla::Text("foo"), schema::kObject)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast STRING to BOOLEAN"));
+                       "casting a DataSlice with schema STRING to BOOLEAN is "
+                       "not supported"));
+  EXPECT_THAT(
+      ToBool(test::DataItem(arolla::Text("foo"), schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type STRING to BOOLEAN is not supported"));
   EXPECT_THAT(ToBool(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BOOLEAN; try `kd.cond(slice, "
+                       "casting data of type MASK to BOOLEAN is not supported; "
+                       "try `kd.cond(slice, "
                        "True, False)` instead"));
 }
 
@@ -983,11 +1042,11 @@ INSTANTIATE_TEST_SUITE_P(
                internal::DataItem(internal::AllocateExplicitSchema())),
            item_id_slice},
           {test::DataSlice<internal::ObjectId>(
-              {explicit_schema, std::nullopt, explicit_schema},
-              schema::kSchema),
+               {explicit_schema, std::nullopt, explicit_schema},
+               schema::kSchema),
            test::DataSlice<internal::ObjectId>(
-              {explicit_schema, std::nullopt, explicit_schema},
-              schema::kItemId)},
+               {explicit_schema, std::nullopt, explicit_schema},
+               schema::kItemId)},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
            test::DataItem(std::nullopt, schema::kItemId)},
@@ -1008,22 +1067,27 @@ TEST(Casting, ItemIdErrors) {
   EXPECT_THAT(
       ToItemId(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                              schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to ITEMID is not supported"));
   EXPECT_THAT(
       ToItemId(test::MixedDataSlice<internal::ObjectId, arolla::Unit>(
           {internal::AllocateSingleObject(), std::nullopt, std::nullopt},
           {std::nullopt, arolla::kUnit, std::nullopt})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to ITEMID"));
+               "casting data of type MASK to ITEMID is not supported"));
   EXPECT_THAT(
       ToItemId(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to ITEMID is not supported"));
   EXPECT_THAT(ToItemId(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to ITEMID"));
-  EXPECT_THAT(ToItemId(test::Schema(schema::kInt32)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast DTYPE to ITEMID"));
+                       "casting data of type MASK to ITEMID is not supported"));
+  EXPECT_THAT(
+      ToItemId(test::Schema(schema::kInt32)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type DTYPE to ITEMID is not supported"));
 }
 
 TEST_P(CastingToSchemaTest, Casting) {
@@ -1077,25 +1141,33 @@ TEST(Casting, SchemaErrors) {
   EXPECT_THAT(
       ToSchema(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                              schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to SCHEMA is not supported"));
   EXPECT_THAT(ToSchema(test::MixedDataSlice<schema::DType, arolla::Unit>(
                   {schema::kInt32, std::nullopt, std::nullopt},
                   {std::nullopt, arolla::kUnit, std::nullopt})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to SCHEMA"));
-  EXPECT_THAT(ToSchema(test::DataSlice<internal::ObjectId>(
-                  {obj_id, std::nullopt}, schema::kObject)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       absl::StrFormat("cannot cast %v to SCHEMA", obj_id)));
+                       "casting data of type MASK to SCHEMA is not supported"));
+  EXPECT_THAT(
+      ToSchema(test::DataSlice<internal::ObjectId>({obj_id, std::nullopt},
+                                                   schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               absl::StrFormat("casting item %v to SCHEMA is not supported",
+                               obj_id)));
   EXPECT_THAT(
       ToSchema(test::DataItem(arolla::kUnit, schema::kMask)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "unsupported schema: MASK"));
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          "casting a DataSlice with schema MASK to SCHEMA is not supported"));
   EXPECT_THAT(ToSchema(test::DataItem(arolla::kUnit, schema::kObject)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to SCHEMA"));
-  EXPECT_THAT(ToSchema(test::DataItem(obj_id, schema::kObject)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       absl::StrFormat("cannot cast %v to SCHEMA", obj_id)));
+                       "casting data of type MASK to SCHEMA is not supported"));
+  EXPECT_THAT(
+      ToSchema(test::DataItem(obj_id, schema::kObject)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               absl::StrFormat("casting item %v to SCHEMA is not supported",
+                               obj_id)));
 }
 
 TEST_P(CastingToEntityTest, Casting) {

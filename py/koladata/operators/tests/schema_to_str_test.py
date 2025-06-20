@@ -69,13 +69,17 @@ class SchemaToStrTest(parameterized.TestCase):
   )
   def test_not_castable_error(self, value):
     with self.assertRaisesRegex(
-        ValueError, f'unsupported schema: {value.get_schema()}'
+        ValueError,
+        f'casting a DataSlice with schema {value.get_schema()} to STRING is not'
+        ' supported',
     ):
       expr_eval.eval(kde.schema.to_str(value))
 
   def test_not_castable_internal_value(self):
     x = ds(arolla.quote(I.x), schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, 'cannot cast EXPR to STRING'):
+    with self.assertRaisesRegex(
+        ValueError, 'casting data of type EXPR to STRING is not supported'
+    ):
       expr_eval.eval(kde.schema.to_str(x))
 
   def test_boxing(self):

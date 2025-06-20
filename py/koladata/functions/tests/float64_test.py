@@ -41,7 +41,10 @@ class Float64Test(parameterized.TestCase):
     testing.assert_equal(fns.float64(x), ds(x, schema_constants.FLOAT64))
 
   @parameterized.parameters(
-      (mask_constants.present, 'unsupported schema: MASK'),
+      (
+          mask_constants.present,
+          'casting a DataSlice with schema MASK to FLOAT64 is not supported',
+      ),
       ('foo', "unable to parse FLOAT64: 'foo'"),
       (b'test', "unable to parse FLOAT64: 'test'"),
   )

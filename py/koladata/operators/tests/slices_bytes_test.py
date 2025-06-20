@@ -52,7 +52,9 @@ class SlicesBytesTest(parameterized.TestCase):
 
   def test_error(self):
     x = ds(1, schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to BYTES'):
+    with self.assertRaisesRegex(
+        ValueError, 'casting data of type INT32 to BYTES is not supported'
+    ):
       expr_eval.eval(kde.slices.bytes(x))
 
   def test_boxing(self):

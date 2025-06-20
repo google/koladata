@@ -87,7 +87,7 @@ TEST(CastingTest, ToInt32_DataItem) {
       StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast inf to int32"));
   EXPECT_THAT(to_int32(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to INT32"));
+                       "casting data of type MASK to INT32 is not supported"));
   EXPECT_THAT(to_int32(DataItem(arolla::Bytes("1.5"))),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unable to parse INT32: '1.5'"));
@@ -153,7 +153,7 @@ TEST(CastingTest, ToInt32_DataSlice) {
   EXPECT_THAT(
       to_int32(DataSliceImpl::Create({DataItem(1), DataItem(arolla::kUnit)})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to INT32"));
+               "casting data of type MASK to INT32 is not supported"));
   EXPECT_THAT(to_int32(DataSliceImpl::Create(
                   {DataItem(arolla::Text("1.5")), DataItem(1)})),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -195,7 +195,7 @@ TEST(CastingTest, ToInt64_DataItem) {
       StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast inf to int64"));
   EXPECT_THAT(to_int64(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to INT64"));
+                       "casting data of type MASK to INT64 is not supported"));
   EXPECT_THAT(to_int64(DataItem(arolla::Bytes("1.5"))),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unable to parse INT64: '1.5'"));
@@ -250,7 +250,7 @@ TEST(CastingTest, ToInt64_DataSlice) {
   EXPECT_THAT(
       to_int64(DataSliceImpl::Create({DataItem(1), DataItem(arolla::kUnit)})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to INT64"));
+               "casting data of type MASK to INT64 is not supported"));
   EXPECT_THAT(to_int64(DataSliceImpl::Create(
                   {DataItem(arolla::Text("1.5")), DataItem(1)})),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -299,9 +299,10 @@ TEST(CastingTest, ToFloat32_DataItem) {
   ASSERT_OK_AND_ASSIGN(auto nan, to_float32(DataItem(arolla::Text("nan"))));
   EXPECT_TRUE(std::isnan(nan.value<float>()));
   // Errors.
-  EXPECT_THAT(to_float32(DataItem(arolla::kUnit)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to FLOAT32"));
+  EXPECT_THAT(
+      to_float32(DataItem(arolla::kUnit)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to FLOAT32 is not supported"));
   EXPECT_THAT(to_float32(DataItem(arolla::Bytes("foo"))),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unable to parse FLOAT32: 'foo'"));
@@ -343,10 +344,11 @@ TEST(CastingTest, ToFloat32_DataSlice) {
       to_float32(DataSliceImpl::Create({DataItem(1), DataItem(int64_t{2})})),
       IsOkAndHolds(IsEquivalentTo(
           DataSliceImpl::Create({DataItem(1.0f), DataItem(2.0f)}))));
-  EXPECT_THAT(to_float32(DataSliceImpl::Create(
-                  {DataItem(1.0f), DataItem(arolla::kUnit)})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to FLOAT32"));
+  EXPECT_THAT(
+      to_float32(
+          DataSliceImpl::Create({DataItem(1.0f), DataItem(arolla::kUnit)})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to FLOAT32 is not supported"));
   EXPECT_THAT(to_float32(DataSliceImpl::Create(
                   {DataItem(arolla::Text("foo")), DataItem(1)})),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -395,9 +397,10 @@ TEST(CastingTest, ToFloat64_DataItem) {
   ASSERT_OK_AND_ASSIGN(auto nan, to_float64(DataItem(arolla::Text("nan"))));
   EXPECT_TRUE(std::isnan(nan.value<double>()));
   // Errors.
-  EXPECT_THAT(to_float64(DataItem(arolla::kUnit)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to FLOAT64"));
+  EXPECT_THAT(
+      to_float64(DataItem(arolla::kUnit)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to FLOAT64 is not supported"));
   EXPECT_THAT(to_float64(DataItem(arolla::Bytes("foo"))),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "unable to parse FLOAT64: 'foo'"));
@@ -439,10 +442,11 @@ TEST(CastingTest, ToFloat64_DataSlice) {
       to_float64(DataSliceImpl::Create({DataItem(1), DataItem(int64_t{2})})),
       IsOkAndHolds(IsEquivalentTo(
           DataSliceImpl::Create({DataItem(1.0), DataItem(2.0)}))));
-  EXPECT_THAT(to_float64(DataSliceImpl::Create(
-                  {DataItem(1.0), DataItem(arolla::kUnit)})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to FLOAT64"));
+  EXPECT_THAT(
+      to_float64(
+          DataSliceImpl::Create({DataItem(1.0), DataItem(arolla::kUnit)})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to FLOAT64 is not supported"));
   EXPECT_THAT(to_float64(DataSliceImpl::Create(
                   {DataItem(arolla::Text("foo")), DataItem(1)})),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -483,9 +487,9 @@ TEST(CastingTest, ToExpr_DataItem) {
       to_expr(DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x")))),
       IsOkAndHolds(IsEquivalentTo(
           DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x"))))));
-  EXPECT_THAT(
-      to_expr(DataItem(arolla::kUnit)),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to EXPR"));
+  EXPECT_THAT(to_expr(DataItem(arolla::kUnit)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "casting data of type MASK to EXPR is not supported"));
 }
 
 TEST(CastingTest, ToExpr_DataSlice) {
@@ -501,7 +505,8 @@ TEST(CastingTest, ToExpr_DataSlice) {
                    DataItem()}))));
   EXPECT_THAT(
       to_expr(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
-      StatusIs(absl::StatusCode::kInvalidArgument, "cannot cast MASK to EXPR"));
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type MASK to EXPR is not supported"));
 }
 
 TEST(CastingTest, ToStr_DataItem) {
@@ -528,9 +533,10 @@ TEST(CastingTest, ToStr_DataItem) {
   EXPECT_THAT(
       to_str(DataItem(arolla::Bytes("te\xC0\0xt"))),
       IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("b'te\xC0'")))));
-  EXPECT_THAT(to_str(DataItem(internal::AllocateSingleObject())),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast ITEMID to STRING"));
+  EXPECT_THAT(
+      to_str(DataItem(internal::AllocateSingleObject())),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type ITEMID to STRING is not supported"));
 }
 
 TEST(CastingTest, ToStr_DataSlice) {
@@ -571,10 +577,11 @@ TEST(CastingTest, ToStr_DataSlice) {
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Text("foo")),
                    DataItem(arolla::Text("b'te'")), DataItem()}))));
-  EXPECT_THAT(to_str(DataSliceImpl::Create(
-                  {DataItem(internal::AllocateSingleObject()), DataItem()})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast ITEMID to STRING"));
+  EXPECT_THAT(
+      to_str(DataSliceImpl::Create(
+          {DataItem(internal::AllocateSingleObject()), DataItem()})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type ITEMID to STRING is not supported"));
 }
 
 TEST(CastingTest, ToBytes_DataItem) {
@@ -585,9 +592,10 @@ TEST(CastingTest, ToBytes_DataItem) {
   EXPECT_THAT(
       to_bytes(DataItem(arolla::Bytes("te\xC0\0xt"))),
       IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Bytes("te\xC0\0xt")))));
-  EXPECT_THAT(to_bytes(DataItem(arolla::Text("foo"))),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast STRING to BYTES"));
+  EXPECT_THAT(
+      to_bytes(DataItem(arolla::Text("foo"))),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type STRING to BYTES is not supported"));
 }
 
 TEST(CastingTest, ToBytes_DataSlice) {
@@ -599,10 +607,11 @@ TEST(CastingTest, ToBytes_DataSlice) {
                   {DataItem(arolla::Bytes("foo")), DataItem()})),
               IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create(
                   {DataItem(arolla::Bytes("foo")), DataItem()}))));
-  EXPECT_THAT(to_bytes(DataSliceImpl::Create(
-                  {DataItem(arolla::Text("foo")), DataItem()})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast STRING to BYTES"));
+  EXPECT_THAT(
+      to_bytes(
+          DataSliceImpl::Create({DataItem(arolla::Text("foo")), DataItem()})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type STRING to BYTES is not supported"));
 }
 
 TEST(CastingTest, Decode_DataItem) {
@@ -622,7 +631,7 @@ TEST(CastingTest, Decode_DataItem) {
                        "invalid UTF-8 sequence at position 2"));
   EXPECT_THAT(decode(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to STRING"));
+                       "casting data of type MASK to STRING is not supported"));
 }
 
 TEST(CastingTest, Decode_DataSlice) {
@@ -652,7 +661,7 @@ TEST(CastingTest, Decode_DataSlice) {
   EXPECT_THAT(
       decode(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to STRING"));
+               "casting data of type MASK to STRING is not supported"));
 }
 
 TEST(CastingTest, Encode_DataItem) {
@@ -672,7 +681,7 @@ TEST(CastingTest, Encode_DataItem) {
       IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Bytes("te\xC0\0xt")))));
   EXPECT_THAT(encode(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BYTES"));
+                       "casting data of type MASK to BYTES is not supported"));
 }
 
 TEST(CastingTest, Encode_DataSlice) {
@@ -703,7 +712,7 @@ TEST(CastingTest, Encode_DataSlice) {
   EXPECT_THAT(
       encode(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to BYTES"));
+               "casting data of type MASK to BYTES is not supported"));
 }
 
 TEST(CastingTest, ToMask_DataItem) {
@@ -711,8 +720,9 @@ TEST(CastingTest, ToMask_DataItem) {
   EXPECT_THAT(to_mask(DataItem()), IsOkAndHolds(IsEquivalentTo(DataItem())));
   EXPECT_THAT(to_mask(DataItem(arolla::kUnit)),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::kUnit))));
-  EXPECT_THAT(to_mask(DataItem(1)), StatusIs(absl::StatusCode::kInvalidArgument,
-                                             "cannot cast INT32 to MASK"));
+  EXPECT_THAT(to_mask(DataItem(1)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "casting data of type INT32 to MASK is not supported"));
 }
 
 TEST(CastingTest, ToMask_DataSlice) {
@@ -726,7 +736,7 @@ TEST(CastingTest, ToMask_DataSlice) {
           DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()}))));
   EXPECT_THAT(to_mask(DataSliceImpl::Create({DataItem(1), DataItem()})),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT32 to MASK"));
+                       "casting data of type INT32 to MASK is not supported"));
 }
 
 TEST(CastingTest, ToBool_DataItem) {
@@ -754,11 +764,12 @@ TEST(CastingTest, ToBool_DataItem) {
               IsOkAndHolds(IsEquivalentTo(DataItem(true))));
   EXPECT_THAT(to_bool(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to BOOLEAN; try `kd.cond(slice, True, "
-                       "False)` instead"));
-  EXPECT_THAT(to_bool(DataItem(arolla::Text("abc"))),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast STRING to BOOLEAN"));
+                       "casting data of type MASK to BOOLEAN is not supported; "
+                       "try `kd.cond(slice, True, False)` instead"));
+  EXPECT_THAT(
+      to_bool(DataItem(arolla::Text("abc"))),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type STRING to BOOLEAN is not supported"));
 }
 
 TEST(CastingTest, ToBool_DataSlice) {
@@ -788,12 +799,14 @@ TEST(CastingTest, ToBool_DataSlice) {
   EXPECT_THAT(
       to_bool(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to BOOLEAN; try `kd.cond(slice, True, False)` "
+               "casting data of type MASK to BOOLEAN is not supported; try "
+               "`kd.cond(slice, True, False)` "
                "instead"));
-  EXPECT_THAT(to_bool(DataSliceImpl::Create(
-                  {DataItem(arolla::Text("abc")), DataItem()})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast STRING to BOOLEAN"));
+  EXPECT_THAT(
+      to_bool(
+          DataSliceImpl::Create({DataItem(arolla::Text("abc")), DataItem()})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type STRING to BOOLEAN is not supported"));
 }
 
 TEST(CastingTest, ToItemId_DataItem) {
@@ -804,7 +817,7 @@ TEST(CastingTest, ToItemId_DataItem) {
               IsOkAndHolds(IsEquivalentTo(DataItem(obj_id))));
   EXPECT_THAT(to_item_id(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to ITEMID"));
+                       "casting data of type MASK to ITEMID is not supported"));
 }
 
 TEST(CastingTest, ToItemId_DataSlice) {
@@ -819,7 +832,7 @@ TEST(CastingTest, ToItemId_DataSlice) {
   EXPECT_THAT(
       to_item_id(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to ITEMID"));
+               "casting data of type MASK to ITEMID is not supported"));
 }
 
 TEST(CastingTest, ToSchema_DataItem) {
@@ -831,12 +844,14 @@ TEST(CastingTest, ToSchema_DataItem) {
               IsOkAndHolds(IsEquivalentTo(DataItem(schema::kInt32))));
   EXPECT_THAT(to_schema(DataItem(schema_obj)),
               IsOkAndHolds(IsEquivalentTo(DataItem(schema_obj))));
-  EXPECT_THAT(to_schema(DataItem(obj_id)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       absl::StrFormat("cannot cast %v to SCHEMA", obj_id)));
+  EXPECT_THAT(
+      to_schema(DataItem(obj_id)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               absl::StrFormat("casting item %v to SCHEMA is not supported",
+                               obj_id)));
   EXPECT_THAT(to_schema(DataItem(arolla::kUnit)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast MASK to SCHEMA"));
+                       "casting data of type MASK to SCHEMA is not supported"));
 }
 
 TEST(CastingTest, ToSchema_DataSlice) {
@@ -854,13 +869,15 @@ TEST(CastingTest, ToSchema_DataSlice) {
       to_schema(DataSliceImpl::Create({DataItem(schema_obj), DataItem()})),
       IsOkAndHolds(IsEquivalentTo(
           DataSliceImpl::Create({DataItem(schema_obj), DataItem()}))));
-  EXPECT_THAT(to_schema(DataSliceImpl::Create({DataItem(obj_id), DataItem()})),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       absl::StrFormat("cannot cast %v to SCHEMA", obj_id)));
+  EXPECT_THAT(
+      to_schema(DataSliceImpl::Create({DataItem(obj_id), DataItem()})),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               absl::StrFormat("casting item %v to SCHEMA is not supported",
+                               obj_id)));
   EXPECT_THAT(
       to_schema(DataSliceImpl::Create({DataItem(arolla::kUnit), DataItem()})),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "cannot cast MASK to SCHEMA"));
+               "casting data of type MASK to SCHEMA is not supported"));
 }
 
 TEST(CastingTest, ToObject_Construction) {
@@ -1221,9 +1238,10 @@ TEST(Casting, CastDataTo_DataItem) {
     auto schema = DataItem(internal::AllocateExplicitSchema());
     EXPECT_THAT(CastDataTo(obj, schema), IsOkAndHolds(IsEquivalentTo(obj)));
     // Failure.
-    EXPECT_THAT(CastDataTo(DataItem(1.0f), schema),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         "cannot cast FLOAT32 to ITEMID"));
+    EXPECT_THAT(
+        CastDataTo(DataItem(1.0f), schema),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "casting data of type FLOAT32 to ITEMID is not supported"));
   }
 }
 
@@ -1257,9 +1275,10 @@ TEST(Casting, CastDataTo_DataSlice) {
     EXPECT_THAT(CastDataTo(DataSliceImpl::Create({obj}), schema),
                 IsOkAndHolds(IsEquivalentTo(DataSliceImpl::Create({obj}))));
     // Failure.
-    EXPECT_THAT(CastDataTo(DataSliceImpl::Create({DataItem(1.0f)}), schema),
-                StatusIs(absl::StatusCode::kInvalidArgument,
-                         "cannot cast FLOAT32 to ITEMID"));
+    EXPECT_THAT(
+        CastDataTo(DataSliceImpl::Create({DataItem(1.0f)}), schema),
+        StatusIs(absl::StatusCode::kInvalidArgument,
+                 "casting data of type FLOAT32 to ITEMID is not supported"));
   }
 }
 
@@ -1281,7 +1300,7 @@ TEST(Casting, CastDataTo_CastingTest) {
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Unit()))));
   EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kMask)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT32 to MASK"));
+                       "casting data of type INT32 to MASK is not supported"));
   EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kString)),
               IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Text("1")))));
   EXPECT_THAT(
@@ -1289,7 +1308,7 @@ TEST(Casting, CastDataTo_CastingTest) {
       IsOkAndHolds(IsEquivalentTo(DataItem(arolla::Bytes("abc")))));
   EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kBytes)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT32 to BYTES"));
+                       "casting data of type INT32 to BYTES is not supported"));
   EXPECT_THAT(
       CastDataTo(DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x"))),
                  DataItem(schema::kExpr)),
@@ -1297,25 +1316,28 @@ TEST(Casting, CastDataTo_CastingTest) {
           DataItem(arolla::expr::ExprQuote(arolla::expr::Leaf("x"))))));
   EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kExpr)),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT32 to EXPR"));
+                       "casting data of type INT32 to EXPR is not supported"));
   auto obj = DataItem(internal::AllocateSingleObject());
   EXPECT_THAT(CastDataTo(obj, DataItem(schema::kItemId)),
               IsOkAndHolds(IsEquivalentTo(obj)));
-  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kItemId)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT32 to ITEMID"));
+  EXPECT_THAT(
+      CastDataTo(DataItem(1), DataItem(schema::kItemId)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type INT32 to ITEMID is not supported"));
   EXPECT_THAT(CastDataTo(DataItem(schema::kInt32), DataItem(schema::kSchema)),
               IsOkAndHolds(IsEquivalentTo(DataItem(schema::kInt32))));
-  EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kSchema)),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT32 to SCHEMA"));
+  EXPECT_THAT(
+      CastDataTo(DataItem(1), DataItem(schema::kSchema)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type INT32 to SCHEMA is not supported"));
   EXPECT_THAT(CastDataTo(DataItem(1), DataItem(schema::kObject)),
               IsOkAndHolds(IsEquivalentTo(DataItem(1))));  // No diff.
   auto schema = internal::DataItem(internal::AllocateExplicitSchema());
   EXPECT_THAT(CastDataTo(obj, schema), IsOkAndHolds(IsEquivalentTo(obj)));
-  EXPECT_THAT(CastDataTo(DataItem(1), schema),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "cannot cast INT32 to ITEMID"));
+  EXPECT_THAT(
+      CastDataTo(DataItem(1), schema),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "casting data of type INT32 to ITEMID is not supported"));
 }
 
 TEST(Casting, CastDataTo_CoversAllDTypes_DataItem) {

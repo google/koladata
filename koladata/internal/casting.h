@@ -62,9 +62,10 @@ struct ToSelf {
     if (!item.has_value() || item.holds_value<T>()) {
       return item;
     }
-    return absl::InvalidArgumentError(absl::StrFormat(
-        "cannot cast %s to %v", schema_internal::GetQTypeName(item.dtype()),
-        schema_internal::GetQTypeName(arolla::GetQType<T>())));
+    return absl::InvalidArgumentError(
+        absl::StrFormat("casting data of type %s to %v is not supported",
+                        schema_internal::GetQTypeName(item.dtype()),
+                        schema_internal::GetQTypeName(arolla::GetQType<T>())));
   }
 
   absl::StatusOr<internal::DataSliceImpl> operator()(
@@ -79,7 +80,7 @@ struct ToSelf {
             return absl::OkStatus();
           } else {
             return absl::InvalidArgumentError(absl::StrFormat(
-                "cannot cast %s to %v",
+                "casting data of type %s to %v is not supported",
                 schema_internal::GetQTypeName(arolla::GetQType<T2>()),
                 schema_internal::GetQTypeName(arolla::GetQType<T>())));
           }
@@ -157,12 +158,14 @@ struct ToDST {
                              schema::DType to_dtype) const {
     if constexpr (std::is_same_v<SRC, arolla::Unit> &&
                   std::is_same_v<DST, bool>) {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "cannot cast %s to %v; try `kd.cond(slice, True, False)` instead",
-          GetQTypeName(from_qtype), GetDType<DST>()));
+      return absl::InvalidArgumentError(
+          absl::StrFormat("casting data of type %s to %v is not supported; try "
+                          "`kd.cond(slice, True, False)` instead",
+                          GetQTypeName(from_qtype), GetDType<DST>()));
     } else {
-      return absl::InvalidArgumentError(absl::StrFormat(
-          "cannot cast %s to %v", GetQTypeName(from_qtype), GetDType<DST>()));
+      return absl::InvalidArgumentError(
+          absl::StrFormat("casting data of type %s to %v is not supported",
+                          GetQTypeName(from_qtype), GetDType<DST>()));
     }
   }
 };

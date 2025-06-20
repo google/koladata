@@ -35,7 +35,10 @@ class StrTest(parameterized.TestCase):
     testing.assert_equal(fns.str(x), ds(x, schema_constants.STRING))
 
   @parameterized.parameters(
-      (schema_constants.INT32, 'unsupported schema: SCHEMA'),
+      (
+          schema_constants.INT32,
+          'casting a DataSlice with schema SCHEMA to STRING is not supported',
+      ),
   )
   def test_str_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

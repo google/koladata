@@ -37,8 +37,11 @@ class MaskTest(parameterized.TestCase):
     testing.assert_equal(fns.mask(x), ds(x, schema_constants.MASK))
 
   @parameterized.parameters(
-      (schema_constants.INT32, 'unsupported schema: SCHEMA'),
-      ('a', 'cannot cast STRING to MASK'),
+      (
+          schema_constants.INT32,
+          'casting a DataSlice with schema SCHEMA to MASK is not supported',
+      ),
+      ('a', 'casting data of type STRING to MASK is not supported'),
   )
   def test_mask_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

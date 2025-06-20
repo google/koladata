@@ -50,15 +50,24 @@ class CoreRefTest(parameterized.TestCase):
     testing.assert_equal(expr_eval.eval(kde.core.ref(x)), x.no_bag())
 
   def test_primitive_schema_error(self):
-    with self.assertRaisesRegex(ValueError, 'unsupported schema: INT32'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'casting a DataSlice with schema INT32 to ITEMID is not supported',
+    ):
       expr_eval.eval(kde.core.ref(123))
 
   def test_primitive_data_error(self):
-    with self.assertRaisesRegex(ValueError, 'cast INT32 to ITEMID'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'casting data of type INT32 to ITEMID is not supported',
+    ):
       expr_eval.eval(kde.core.ref(ds(123, schema_constants.OBJECT)))
 
   def test_dtype_schema_error(self):
-    with self.assertRaisesRegex(ValueError, 'cannot cast DTYPE to ITEMID'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'casting data of type DTYPE to ITEMID is not supported',
+    ):
       expr_eval.eval(kde.core.ref(schema_constants.INT32))
 
   def test_qtype_signatures(self):

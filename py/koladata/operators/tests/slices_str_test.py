@@ -52,7 +52,9 @@ class SlicesStrTest(parameterized.TestCase):
 
   def test_error(self):
     x = ds(arolla.quote(I.x), schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, 'cannot cast EXPR to STRING'):
+    with self.assertRaisesRegex(
+        ValueError, 'casting data of type EXPR to STRING is not supported'
+    ):
       expr_eval.eval(kde.slices.str(x))
 
   def test_boxing(self):

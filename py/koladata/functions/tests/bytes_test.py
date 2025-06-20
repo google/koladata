@@ -32,8 +32,11 @@ class BytesTest(parameterized.TestCase):
     testing.assert_equal(fns.bytes(x), ds(x, schema_constants.BYTES))
 
   @parameterized.parameters(
-      (schema_constants.INT32, 'unsupported schema: SCHEMA'),
-      ('a', 'cannot cast STRING to BYTES'),
+      (
+          schema_constants.INT32,
+          'casting a DataSlice with schema SCHEMA to BYTES is not supported',
+      ),
+      ('a', 'casting data of type STRING to BYTES is not supported'),
   )
   def test_bytes_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):

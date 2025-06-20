@@ -66,13 +66,18 @@ class StringsDecodeTest(parameterized.TestCase):
   )
   def test_not_castable_error(self, value):
     with self.assertRaisesRegex(
-        ValueError, f'unsupported schema: {value.get_schema()}'
+        ValueError,
+        f'casting a DataSlice with schema {value.get_schema()} to STRING is not'
+        ' supported',
     ):
       expr_eval.eval(kde.strings.decode(value))
 
   def test_not_castable_internal_value(self):
     x = ds(1, schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to STRING'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'casting data of type INT32 to STRING is not supported',
+    ):
       expr_eval.eval(kde.strings.decode(x))
 
   def test_boxing(self):

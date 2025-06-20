@@ -54,7 +54,9 @@ class SlicesBoolTest(parameterized.TestCase):
 
   def test_error(self):
     x = ds("a", schema_constants.OBJECT)
-    with self.assertRaisesRegex(ValueError, "cannot cast STRING to BOOLEAN"):
+    with self.assertRaisesRegex(
+        ValueError, "casting data of type STRING to BOOLEAN is not supported"
+    ):
       expr_eval.eval(kde.slices.bool(x))
 
   def test_mask_error(self):
@@ -62,8 +64,8 @@ class SlicesBoolTest(parameterized.TestCase):
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            "cannot cast MASK to BOOLEAN; try `kd.cond(slice, True,"
-            " False)` instead"
+            "casting data of type MASK to BOOLEAN is not supported; try"
+            " `kd.cond(slice, True, False)` instead"
         ),
     ):
       expr_eval.eval(kde.slices.bool(x))

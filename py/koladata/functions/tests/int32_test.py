@@ -35,7 +35,10 @@ class Int32Test(parameterized.TestCase):
     testing.assert_equal(fns.int32(x), ds(x, schema_constants.INT32))
 
   @parameterized.parameters(
-      (mask_constants.present, 'unsupported schema: MASK'),
+      (
+          mask_constants.present,
+          'casting a DataSlice with schema MASK to INT32 is not supported',
+      ),
       ('foo', "unable to parse INT32: 'foo'"),
       (b'test', "unable to parse INT32: 'test'"),
       (2**45, f'cannot cast int64{{{2**45}}} to int32'),

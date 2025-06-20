@@ -50,7 +50,7 @@ class ItemTest(parameterized.TestCase):
           mask_constants.present,
           schema_constants.INT32,
           ValueError,
-          'cannot cast MASK to INT32',
+          'casting data of type MASK to INT32 is not supported',
       ),
       (
           [1, 2, 3],

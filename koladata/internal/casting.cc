@@ -131,12 +131,14 @@ absl::StatusOr<internal::DataItem> ToSchema::operator()(
   }
   // Unexpected type - special case ObjectId to improve the error message.
   if (item.holds_value<internal::ObjectId>()) {
-    return absl::InvalidArgumentError(
-        absl::StrFormat("cannot cast %v to %v", item, schema::kSchema));
+    // TODO: Return an error payload allowing the schemas to be
+    // shown properly.
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "casting item %v to %v is not supported", item, schema::kSchema));
   }
   return absl::InvalidArgumentError(absl::StrFormat(
-      "cannot cast %s to %v", schema_internal::GetQTypeName(item.dtype()),
-      schema::kSchema));
+      "casting data of type %s to %v is not supported",
+      schema_internal::GetQTypeName(item.dtype()), schema::kSchema));
 }
 
 absl::StatusOr<internal::DataSliceImpl> ToSchema::operator()(
@@ -154,14 +156,17 @@ absl::StatusOr<internal::DataSliceImpl> ToSchema::operator()(
           absl::Status status = absl::OkStatus();
           values.ForEachPresent([&](int64_t id, internal::ObjectId v) {
             if (!v.IsSchema()) {
+              // TODO: Return an error payload allowing the schemas
+              // to be shown properly.
               status = absl::InvalidArgumentError(
-                  absl::StrFormat("cannot cast %v to %v", v, schema::kSchema));
+                  absl::StrFormat("casting item %v to %v is not supported", v,
+                                  schema::kSchema));
             }
           });
           return status;
         } else {
           return absl::InvalidArgumentError(absl::StrFormat(
-              "cannot cast %s to %v",
+              "casting data of type %v to %v is not supported",
               schema_internal::GetQTypeName(arolla::GetQType<T>()),
               schema::kSchema));
         }

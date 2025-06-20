@@ -60,13 +60,19 @@ class SchemaToBoolTest(parameterized.TestCase):
     testing.assert_equal(res, expected)
 
   @parameterized.parameters(
-      (ds(None, schema_constants.STRING), "unsupported schema: STRING"),
-      (ds("a"), "unsupported schema: STRING"),
+      (
+          ds(None, schema_constants.STRING),
+          "casting a DataSlice with schema STRING to BOOLEAN is not supported",
+      ),
+      (
+          ds("a"),
+          "casting a DataSlice with schema STRING to BOOLEAN is not supported",
+      ),
       (
           ds(arolla.present()),
           (
-              "unsupported schema: MASK; try `kd.cond(slice, True, False)`"
-              " to convert MASK to BOOLEAN instead"
+              "casting a DataSlice with schema MASK to BOOLEAN is not"
+              " supported; try `kd.cond(slice, True, False)` instead"
           ),
       ),
   )
@@ -75,12 +81,15 @@ class SchemaToBoolTest(parameterized.TestCase):
       expr_eval.eval(kde.schema.to_bool(value))
 
   @parameterized.parameters(
-      (ds("a", schema_constants.OBJECT), "cannot cast STRING to BOOLEAN"),
+      (
+          ds("a", schema_constants.OBJECT),
+          "casting data of type STRING to BOOLEAN is not supported",
+      ),
       (
           ds(arolla.present(), schema_constants.OBJECT),
           (
-              "cannot cast MASK to BOOLEAN; try `kd.cond(slice, True, False)`"
-              " instead"
+              "casting data of type MASK to BOOLEAN is not supported; try"
+              " `kd.cond(slice, True, False)` instead"
           ),
       ),
   )

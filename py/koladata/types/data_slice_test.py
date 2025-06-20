@@ -903,7 +903,8 @@ class DataSliceTest(parameterized.TestCase):
     x = ds([1, 2, 3])
 
     with self.assertRaisesRegex(
-        ValueError, 'unsupported schema: INT32'
+        ValueError,
+        'casting a DataSlice with schema INT32 to ITEMID is not supported',
     ):
       x.ref()
 
@@ -1145,9 +1146,14 @@ class DataSliceTest(parameterized.TestCase):
   def test_get_itemid(self):
     o = bag().obj(x=ds([1, 2, 3]))
     testing.assert_equal(o.get_itemid(), o.with_schema(schema_constants.ITEMID))
-    with self.assertRaisesRegex(ValueError, 'unsupported schema: INT32'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'casting a DataSlice with schema INT32 to ITEMID is not supported',
+    ):
       ds([1, 2, 3]).get_itemid()
-    with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to ITEMID'):
+    with self.assertRaisesRegex(
+        ValueError, 'casting data of type INT32 to ITEMID is not supported'
+    ):
       ds([1, 2, 3], schema_constants.OBJECT).get_itemid()
 
   def test_has_attr(self):

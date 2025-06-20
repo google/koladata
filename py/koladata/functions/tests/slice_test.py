@@ -55,7 +55,7 @@ class SliceTest(parameterized.TestCase):
       (
           mask_constants.present,
           schema_constants.INT32,
-          'unsupported schema: MASK',
+          'casting a DataSlice with schema MASK to INT32 is not supported',
       ),
   )
   def test_errors(self, x, schema, expected_error_msg):

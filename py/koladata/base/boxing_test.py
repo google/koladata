@@ -475,9 +475,13 @@ The cause is the values of attribute '__schema__' are different: ENTITY\(\) with
         ValueError, r'got DataSlice with shape JaggedShape\(2\)'
     ):
       ds([ds([1, 2])])
-    with self.assertRaisesRegex(ValueError, 'cannot cast INT32 to BYTES'):
+    with self.assertRaisesRegex(
+        ValueError, 'casting data of type INT32 to BYTES is not supported'
+    ):
       ds(12, BYTES)
-    with self.assertRaisesRegex(ValueError, 'cannot cast STRING to BYTES'):
+    with self.assertRaisesRegex(
+        ValueError, 'casting data of type STRING to BYTES is not supported'
+    ):
       ds('foo', BYTES)
     with self.assertRaisesRegex(
         ValueError, r'schema can only be 0-rank schema slice, got: rank\(1\)'

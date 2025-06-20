@@ -77,7 +77,10 @@ class SlicesSliceTest(parameterized.TestCase):
 
   def test_cast_error(self):
     x = mask_constants.present
-    with self.assertRaisesRegex(ValueError, 'unsupported schema: MASK'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'casting a DataSlice with schema MASK to INT32 is not supported',
+    ):
       expr_eval.eval(kde.slices.slice(x, schema_constants.INT32))
 
   def test_expr_argument(self):

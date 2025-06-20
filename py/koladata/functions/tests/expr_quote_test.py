@@ -37,8 +37,11 @@ class ExprQuoteTest(parameterized.TestCase):
     testing.assert_equal(fns.expr_quote(x), ds(x, schema_constants.EXPR))
 
   @parameterized.parameters(
-      (schema_constants.INT32, 'unsupported schema: SCHEMA'),
-      ('a', 'cannot cast STRING to EXPR'),
+      (
+          schema_constants.INT32,
+          'casting a DataSlice with schema SCHEMA to EXPR is not supported',
+      ),
+      ('a', 'casting data of type STRING to EXPR is not supported'),
   )
   def test_expr_quote_errors(self, x, expected_error_msg):
     with self.assertRaisesRegex(ValueError, re.escape(expected_error_msg)):
