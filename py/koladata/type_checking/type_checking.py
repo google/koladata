@@ -27,11 +27,20 @@ from koladata.operators import kde_operators
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import py_boxing
+from koladata.types import schema_constants
 from koladata.types import schema_item
 
 
 eager = eager_op_utils.operators_container('kd')
 lazy = kde_operators.kde
+
+OBJECT_TIP = (
+    'It seems you ran a type checking decorator on a Koda Object. Each'
+    ' object stores its own schema, so, in a slice of objects, each object'
+    ' may have a different type. If the types of the objects in your slice'
+    ' are the same, you should be using entities instead of'
+    ' objects( go/koda-common-pitfalls#non-objects-vs-objects ). You can'
+    ' create entities by using kd.new/kd.uu instead of kd.obj/kd.uuobj.')
 
 
 class _DuckType(object):
@@ -183,18 +192,21 @@ def _attribute_missing_error_message(
   """
   if arg_key is not None:
     # kd.check_inputs
-    return (
+    message = (
         f'kd.check_inputs: expected parameter {arg_key}{path} to have'
         f' attribute `{attr_name}`; no attribute `{attr_name}` on'
         f' {arg_key}{path}={eager.schema.get_repr(actual_schema)}'
     )
   else:
     # kd.check_output
-    return (
+    message = (
         f'kd.check_output: expected output{path} to have attribute'
         f' `{attr_name}`; no attribute `{attr_name}` on'
         f' output{path}={eager.schema.get_repr(actual_schema)}'
     )
+  if actual_schema == schema_constants.OBJECT:
+    message += f'\n\n{OBJECT_TIP}'
+  return message
 
 
 def _type_mismatch_error_message(
@@ -217,18 +229,21 @@ def _type_mismatch_error_message(
   """
   if arg_key is not None:
     # kd.check_inputs
-    return (
+    message = (
         f'kd.check_inputs: type mismatch for parameter {arg_key}{path};'
         f' expected type {eager.schema.get_repr(expected_schema)}, got'
         f' {eager.schema.get_repr(actual_schema)}'
     )
   else:
     # kd.check_output
-    return (
+    message = (
         f'kd.check_output: type mismatch for output{path}; expected type'
         f' {eager.schema.get_repr(expected_schema)}, got'
         f' {eager.schema.get_repr(actual_schema)}'
     )
+  if actual_schema == schema_constants.OBJECT:
+    message += f'\n\n{OBJECT_TIP}'
+  return message
 
 
 def _verify_constraint_eager(

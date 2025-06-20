@@ -244,6 +244,46 @@ ERROR_CASES = (
     ),
 )
 
+EAGER_ERROR_CASES = (
+    (
+        '_object_with_tip',
+        Person,
+        kd.obj(age=30.0, name='Alice'),
+        (
+            '{decorator}: type mismatch for {parameter}; expected'
+            r' type ENTITY\(age=INT32, name=STRING\) with id .*, got'
+            ' OBJECT'
+            '\n\nIt seems you ran a type checking decorator on a Koda Object.'
+            ' Each object stores its own schema, so, in a slice of objects,'
+            ' each object may have a different type. If the types of the'
+            ' objects in your slice are the same, you should be using entities'
+            ' instead of'
+            r' objects\( go/koda-common-pitfalls#non-objects-vs-objects \).'
+            ' You can create entities by using kd.new/kd.uu instead of'
+            ' kd.obj/kd.uuobj.'
+        ),
+    ),
+    (
+        '_duck_type_and_object_with_tip',
+        type_checking.duck_type(
+            a=kd.INT32,
+        ),
+        kd.obj(a=1),
+        (
+            '{decorator}: expected {parameter} to have attribute `a`; no'
+            ' attribute `a` on {parameter}=OBJECT\n\nIt seems you ran a type'
+            ' checking decorator on a Koda Object. Each object stores its own'
+            ' schema, so, in a slice of objects, each object may have a'
+            ' different type. If the types of the objects in your slice are the'
+            ' same, you should be using entities instead of'
+            r' objects\( go/koda-common-pitfalls#non-objects-vs-objects \).'
+            r' You can'
+            ' create entities by using kd.new/kd.uu instead of'
+            ' kd.obj/kd.uuobj.'
+        ),
+    ),
+)
+
 OK_CASES = (
     (
         '_primitive',
@@ -334,7 +374,7 @@ OK_CASES = (
 
 class TypeCheckingTest(parameterized.TestCase):
 
-  @parameterized.named_parameters(*ERROR_CASES)
+  @parameterized.named_parameters(*(ERROR_CASES + EAGER_ERROR_CASES))
   def test_check_inputs_error(self, constraint, value, error_message):
     @type_checking.check_inputs(x=constraint)
     def f(x):
@@ -365,7 +405,7 @@ class TypeCheckingTest(parameterized.TestCase):
     ):
       _ = fn(value)
 
-  @parameterized.named_parameters(*ERROR_CASES)
+  @parameterized.named_parameters(*(ERROR_CASES + EAGER_ERROR_CASES))
   def test_check_output_error(self, constraint, value, error_message):
     @type_checking.check_output(constraint)
     def f(x):

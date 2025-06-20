@@ -32,6 +32,7 @@ py_library(
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
+        "//py/koladata/types:schema_constants",
         "//py/koladata/types:schema_item",
         "@com_google_arolla//py/arolla",
     ],
