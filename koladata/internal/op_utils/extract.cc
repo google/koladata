@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <deque>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <tuple>
 #include <type_traits>
@@ -81,6 +82,8 @@ const std::string_view kMappingAttrName = "m";
 
 enum class SchemaSource { kSchemaDatabag = 1, kDataDatabag = 2 };
 
+const std::string_view kRootSliceName = "__root_slice__";
+
 struct QueuedSlice {
   DataSliceImpl slice;
   DataItem schema;
@@ -115,7 +118,7 @@ class CopyingProcessor {
         leaf_callback_(leaf_callback) {}
 
   absl::Status ExtractSlice(const QueuedSlice& slice) {
-    RETURN_IF_ERROR(VisitImpl(slice, /*push_front=*/false));
+    RETURN_IF_ERROR(VisitImpl(slice, kRootSliceName, /*push_front=*/false));
     return ProcessQueue();
   }
 
@@ -137,7 +140,8 @@ class CopyingProcessor {
     }
   }
 
-  absl::Status ValidatePrimitiveTypes(const QueuedSlice& slice) {
+  absl::Status ValidatePrimitiveTypes(const QueuedSlice& slice,
+                                      const std::string_view attr_name) {
     if (slice.slice.is_empty_and_unknown()) {
       return absl::OkStatus();
     }
@@ -145,17 +149,29 @@ class CopyingProcessor {
     auto dtype = slice.slice.dtype();
     if (auto schema_dtype = slice.schema.value<schema::DType>();
         schema_dtype.qtype() != dtype) {
+      std::string attr_description;
+      if (attr_name == kRootSliceName) {
+        attr_description = "the provided slice";
+      } else if (attr_name == schema::kListItemsSchemaAttr) {
+        attr_description = "the list items";
+      } else if (attr_name == schema::kDictKeysSchemaAttr) {
+        attr_description = "the dict keys";
+      } else if (attr_name == schema::kDictValuesSchemaAttr) {
+        attr_description = "the dict values";
+      } else {
+        attr_description = absl::StrFormat("the attribute '%s'", attr_name);
+      }
+      std::string error_message =
+          absl::StrCat("during extract/clone, while processing ",
+                       attr_description, ", got a slice with primitive type ",
+                       schema_dtype, " while the actual content ");
       auto slice_qtype_or = schema::DType::FromQType(dtype);
       if (!slice_qtype_or.ok()) {
-        return absl::InvalidArgumentError(absl::StrCat(
-            "during extract/clone, got a slice with primitive type ",
-            schema_dtype,
-            " while the actual content is mixed or not a primitive"));
+        return absl::InvalidArgumentError(
+            absl::StrCat(error_message, "is mixed or not a primitive"));
       }
       return absl::InvalidArgumentError(
-          absl::StrCat("during extract/clone, got a slice with primitive type ",
-                       schema_dtype, " while the actual content has type ",
-                       slice_qtype_or->name()));
+          absl::StrCat(error_message, "has type ", slice_qtype_or->name()));
     }
     return absl::OkStatus();
   }
@@ -269,7 +285,8 @@ class CopyingProcessor {
     return absl::OkStatus();
   }
 
-  absl::Status VisitImpl(const QueuedSlice& slice, bool push_front) {
+  absl::Status VisitImpl(const QueuedSlice& slice,
+                         const std::string_view attr_name, bool push_front) {
     // TODO: Decide on the behavior, when we come to the same
     // object with the different schemas.
     if (slice.schema.holds_value<ObjectId>()) {
@@ -278,7 +295,7 @@ class CopyingProcessor {
       if (slice.schema == schema::kObject || slice.schema == schema::kSchema) {
         return VisitObjects(slice, push_front);
       } else if (slice.schema.value<schema::DType>().is_primitive()) {
-        RETURN_IF_ERROR(ValidatePrimitiveTypes(slice));
+        RETURN_IF_ERROR(ValidatePrimitiveTypes(slice, attr_name));
       }
       // ItemId need no processing.
     } else {
@@ -294,11 +311,12 @@ class CopyingProcessor {
     return absl::OkStatus();
   }
 
-  absl::Status Visit(const QueuedSlice& slice, bool push_front = false) {
+  absl::Status Visit(const QueuedSlice& slice, const std::string_view attr_name,
+                     bool push_front = false) {
     if (is_shallow_clone_) {
       return absl::OkStatus();
     }
-    return VisitImpl(slice, push_front);
+    return VisitImpl(slice, attr_name, push_front);
   }
 
   // Sets attribute to the new_data_bag_ that are not unset in the `attr_ds`.
@@ -351,7 +369,8 @@ class CopyingProcessor {
           SetAttrToNewDatabagSkipUnset(std::move(ds), attr_name, attr_ds));
     }
     RETURN_IF_ERROR(Visit(
-        {std::move(attr_ds), attr_schema, slice.schema_source, slice.depth}));
+        {std::move(attr_ds), attr_schema, slice.schema_source, slice.depth},
+        attr_name));
     return absl::OkStatus();
   }
 
@@ -369,9 +388,11 @@ class CopyingProcessor {
                      databag_.GetDictKeys(old_ds, fallbacks_));
     if (ds.present_count() == 0) {
       RETURN_IF_ERROR(Visit(
-          {DataSliceImpl(), keys_schema, slice.schema_source, slice.depth}));
+          {DataSliceImpl(), keys_schema, slice.schema_source, slice.depth},
+          "dict_keys"));
       RETURN_IF_ERROR(Visit(
-          {DataSliceImpl(), values_schema, slice.schema_source, slice.depth}));
+          {DataSliceImpl(), values_schema, slice.schema_source, slice.depth},
+          "dict_values"));
       return absl::OkStatus();
     }
     ASSIGN_OR_RETURN(
@@ -396,9 +417,11 @@ class CopyingProcessor {
           new_databag_->SetInDict(dict_expanded_ds, keys_ds, values_ds));
     }
     RETURN_IF_ERROR(Visit(
-        {std::move(keys_ds), keys_schema, slice.schema_source, slice.depth}));
-    RETURN_IF_ERROR(Visit({std::move(values_ds), values_schema,
-                           slice.schema_source, slice.depth}));
+        {std::move(keys_ds), keys_schema, slice.schema_source, slice.depth},
+        schema::kDictKeysSchemaAttr));
+    RETURN_IF_ERROR(Visit(
+        {std::move(values_ds), values_schema, slice.schema_source, slice.depth},
+        schema::kDictValuesSchemaAttr));
     return absl::OkStatus();
   }
 
@@ -420,7 +443,8 @@ class CopyingProcessor {
           new_databag_->ExtendLists(ds, list_items_ds, list_items_edge));
     }
     RETURN_IF_ERROR(
-        Visit({list_items_ds, attr_schema, slice.schema_source, slice.depth}));
+        Visit({list_items_ds, attr_schema, slice.schema_source, slice.depth},
+              schema::kListItemsSchemaAttr));
     return absl::OkStatus();
   }
 
@@ -597,6 +621,7 @@ class CopyingProcessor {
           RETURN_IF_ERROR(Visit(
               {DataSliceImpl::Create({std::move(attr_schema)}),
                DataItem(schema::kObject), SchemaSource::kDataDatabag, ds.depth},
+              attr_name,
               /*push_front=*/true));
         }
         continue;
@@ -797,6 +822,7 @@ class CopyingProcessor {
     if (attr_name == schema::kSchemaMetadataAttr) {
       return Visit({std::move(attr_schemas), DataItem(schema::kObject),
                     SchemaSource::kDataDatabag, depth},
+                   attr_name,
                    /*push_front=*/true);
     }
     if (attr_name == schema::kSchemaNameAttr) {

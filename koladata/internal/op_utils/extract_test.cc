@@ -2991,7 +2991,8 @@ TEST_P(ExtractTest, InvalidPrimitiveType) {
       ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
                                  {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "during extract/clone, got a slice with primitive type INT32 "
+               "during extract/clone, while processing the attribute 'x', got "
+               "a slice with primitive type INT32 "
                "while the actual content has type STRING"));
 }
 
@@ -3002,8 +3003,8 @@ TEST_P(ExtractTest, InvalidPrimitiveTypeObject) {
   auto a1 = obj_ids[1];
   auto schema = AllocateSchema();
 
-  TriplesT schema_triples = {{schema, {{"x", DataItem(schema::kInt32)}}}};
-  TriplesT data_triples = {{a0, {{"x", a1}}}};
+  TriplesT schema_triples = {{schema, {{"bar", DataItem(schema::kInt32)}}}};
+  TriplesT data_triples = {{a0, {{"bar", a1}}}};
   SetDataTriples(*db, data_triples);
   SetSchemaTriples(*db, schema_triples);
 
@@ -3012,8 +3013,110 @@ TEST_P(ExtractTest, InvalidPrimitiveTypeObject) {
       ExtractOp(result_db.get())(a0, schema, *GetMainDb(db),
                                  {GetFallbackDb(db).get()}, nullptr, {}),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               "during extract/clone, got a slice with primitive type INT32 "
+               "during extract/clone, while processing the attribute 'bar', "
+               "got a slice with primitive type INT32 "
                "while the actual content is mixed or not a primitive"));
+}
+
+TEST_P(ExtractTest, InvalidPrimitiveTypeInSlice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(
+          DataSliceImpl::Create(CreateDenseArray<int32_t>({1})),
+          DataItem(schema::kFloat32), *GetMainDb(db), {GetFallbackDb(db).get()},
+          nullptr, {}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "during extract/clone, while processing the provided slice, "
+               "got a slice with primitive type FLOAT32 "
+               "while the actual content has type INT32"));
+}
+
+TEST_P(ExtractTest, InvalidPrimitiveTypeInList) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto lists = AllocateEmptyLists(3);
+  auto values =
+      DataSliceImpl::Create(CreateDenseArray<int64_t>({1, 2, 3, 4, 5, 6, 7}));
+  auto edge = test::EdgeFromSplitPoints({0, 3, 5, 7});
+  ASSERT_OK(db->ExtendLists(lists, values, edge));
+  auto list_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, DataItem(schema::kInt32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyLists(3);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(
+      ExtractOp(result_db.get())(lists, list_schema, *GetMainDb(db),
+                                 {GetFallbackDb(db).get()}, nullptr, {}),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               "during extract/clone, while processing the list items, "
+               "got a slice with primitive type INT32 "
+               "while the actual content has type INT64"));
+}
+
+TEST_P(ExtractTest, InvalidPrimitiveTypeInDictKeys) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto dicts = AllocateEmptyDicts(3);
+  auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
+      {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
+  auto keys =
+      DataSliceImpl::Create(CreateDenseArray<int64_t>({1, 2, 3, 1, 5, 3, 7}));
+  auto values =
+      DataSliceImpl::Create(CreateDenseArray<float>({1, 2, 3, 4, 5, 6, 7}));
+  ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
+  auto dict_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kString)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kFloat32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyDicts(3);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(
+    ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
+                               {GetFallbackDb(db).get()}, nullptr, {}),
+    StatusIs(absl::StatusCode::kInvalidArgument,
+             "during extract/clone, while processing the dict keys, "
+             "got a slice with primitive type STRING "
+             "while the actual content has type INT64"));
+}
+
+TEST_P(ExtractTest, InvalidPrimitiveTypeInDictValues) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto dicts = AllocateEmptyDicts(3);
+  auto dicts_expanded = DataSliceImpl::Create(CreateDenseArray<DataItem>(
+      {dicts[0], dicts[0], dicts[0], dicts[1], dicts[1], dicts[2], dicts[2]}));
+  auto keys =
+      DataSliceImpl::Create(CreateDenseArray<int64_t>({1, 2, 3, 1, 5, 3, 7}));
+  auto values =
+      DataSliceImpl::Create(CreateDenseArray<float>({1, 2, 3, 4, 5, 6, 7}));
+  ASSERT_OK(db->SetInDict(dicts_expanded, keys, values));
+  auto dict_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {dict_schema,
+       {{schema::kDictKeysSchemaAttr, DataItem(schema::kInt64)},
+        {schema::kDictValuesSchemaAttr, DataItem(schema::kString)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyDicts(3);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  EXPECT_THAT(
+    ExtractOp(result_db.get())(dicts, dict_schema, *GetMainDb(db),
+                               {GetFallbackDb(db).get()}, nullptr, {}),
+    StatusIs(absl::StatusCode::kInvalidArgument,
+             "during extract/clone, while processing the dict values, "
+             "got a slice with primitive type STRING "
+             "while the actual content has type FLOAT32"));
 }
 
 }  // namespace

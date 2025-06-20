@@ -196,8 +196,9 @@ class CoreExtractTest(parameterized.TestCase):
     schema = db.new_schema(x=schema_constants.STRING)
     with self.assertRaisesRegex(
         ValueError,
-        'during extract/clone, got a slice with primitive type STRING while the'
-        ' actual content has type INT32',
+        "during extract/clone, while processing the attribute 'x',"
+        " got a slice with primitive type STRING while the"
+        " actual content has type INT32",
     ):
       expr_eval.eval(kde.extract(o, schema))
 
