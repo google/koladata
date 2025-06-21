@@ -181,10 +181,8 @@ TEST(EntityCreatorTest, DataSlice) {
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataSlice<int>({42, std::nullopt, 12});
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      EntityCreator::FromAttrs(
-          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       EntityCreator::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetBag(), db);
   // Schema check.
   EXPECT_TRUE(ds.GetSchemaImpl().value<ObjectId>().IsSchema());
@@ -217,10 +215,8 @@ TEST(EntityCreatorTest, DataItem) {
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      EntityCreator::FromAttrs(
-          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       EntityCreator::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_EQ(ds.size(), 1);
   EXPECT_EQ(ds.GetShape().rank(), 0);
@@ -614,8 +610,7 @@ TEST(EntityCreatorTest, EntityToEntity) {
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(
       auto entity_val,
-      EntityCreator::FromAttrs(
-          db_val, {std::string("a")}, {test::DataItem(42)}));
+      EntityCreator::FromAttrs(db_val, {"a"}, {test::DataItem(42)}));
 
   // NOTE: The caller must take care of proper adoption of `value` DataBag.
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db_impl, db->GetMutableImpl());
@@ -925,10 +920,8 @@ TEST(ObjectCreatorTest, DataSlice) {
   auto ds_a = test::AllocateDataSlice(3, schema::kObject);
   auto ds_b = test::DataSlice<int>({42, std::nullopt, 12});
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      ObjectCreator::FromAttrs(
-          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       ObjectCreator::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetBag(), db);
   // Implicit schema stored in __schema__ "normal" attribute.
   EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
@@ -971,10 +964,8 @@ TEST(ObjectCreatorTest, DataItem) {
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      ObjectCreator::FromAttrs(
-          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       ObjectCreator::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_EQ(ds.size(), 1);
   EXPECT_EQ(ds.GetShape().rank(), 0);
@@ -1005,10 +996,8 @@ TEST(ObjectCreatorTest, EmptyDataSlice) {
   auto ds_a = test::DataSlice<int>({});
   auto ds_b = test::DataSlice<float>({});
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      ObjectCreator::FromAttrs(
-          db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       ObjectCreator::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_EQ(ds.size(), 0);
   EXPECT_EQ(ds.GetShape().rank(), 1);
@@ -1096,10 +1085,8 @@ TEST(ObjectCreatorTest, PrimitiveToObject) {
 TEST(ObjectCreatorTest, EntityToObject) {
   auto db_val = DataBag::Empty();
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto entity,
-      EntityCreator::FromAttrs(
-          db_val, {std::string("a")}, {test::DataItem(42)}));
+  ASSERT_OK_AND_ASSIGN(auto entity, EntityCreator::FromAttrs(
+                                        db_val, {"a"}, {test::DataItem(42)}));
 
   // NOTE: The caller must take care of proper adoption of `value` DataBag.
   ASSERT_OK_AND_ASSIGN(internal::DataBagImpl& db_impl, db->GetMutableImpl());
@@ -1163,10 +1150,8 @@ TEST(UuObjectCreatorTest, DataSlice) {
   auto ds_a = test::AllocateDataSlice(3, schema::kObject);
   auto ds_b = test::DataSlice<int>({42, std::nullopt, 12});
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      CreateUuObject(
-          db, "", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreateUuObject(db, "", {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetBag(), db);
   // Implicit schema stored in __schema__ "normal" attribute.
   EXPECT_EQ(ds.GetSchemaImpl(), schema::kObject);
@@ -1186,23 +1171,18 @@ TEST(UuObjectCreatorTest, DataSlice) {
   EXPECT_EQ(ds_b_get.GetSchemaImpl(), schema::kInt32);
 
   // Different objects have different uuids.
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_2,
-      CreateUuObject(
-          db, "", {std::string("a"), std::string("b")}, {ds_b, ds_a}));
+  ASSERT_OK_AND_ASSIGN(auto ds_2,
+                       CreateUuObject(db, "", {"a", "b"}, {ds_b, ds_a}));
   EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_2.slice())));
   // Different seeds lead to different uuids.
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_3,
-      CreateUuObject(
-          db, "seed", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds_3,
+                       CreateUuObject(db, "seed", {"a", "b"}, {ds_a, ds_b}));
   EXPECT_THAT(ds.slice(), Not(IsEquivalentTo(ds_3.slice())));
 
   // Aligning fails.
   ds_b = test::DataSlice<int>({1, 2});
   EXPECT_THAT(
-      CreateUuObject(db, "", {std::string("a"), std::string("b")},
-                     {ds_a, ds_b}),
+      CreateUuObject(db, "", {"a", "b"}, {ds_a, ds_b}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr("Common shape belonging to attribute 'a': JaggedShape(3)\n"
@@ -1215,10 +1195,8 @@ TEST(UuObjectCreatorTest, DataItem) {
   auto ds_a = test::DataItem(internal::AllocateSingleObject());
   auto ds_b = test::DataItem(42);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      CreateUuObject(
-          db, "" , {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreateUuObject(db, "", {"a", "b"}, {ds_a, ds_b}));
   EXPECT_TRUE(ds.item().value<ObjectId>().IsUuid());
   ASSERT_OK_AND_ASSIGN(auto ds_a_get, ds.GetAttr("a"));
   EXPECT_THAT(ds_a_get.item(), IsEquivalentTo(ds_a.item()));
@@ -1231,16 +1209,12 @@ TEST(UuObjectCreatorTest, DataItem) {
   EXPECT_EQ(ds_b_get.GetSchemaImpl(), schema::kInt32);
 
   // Different objects have different uuids.
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_2,
-      CreateUuObject(
-          db, "", {std::string("a"), std::string("b")}, {ds_b, ds_a}));
+  ASSERT_OK_AND_ASSIGN(auto ds_2,
+                       CreateUuObject(db, "", {"a", "b"}, {ds_b, ds_a}));
   EXPECT_THAT(ds.item(), Not(IsEquivalentTo(ds_2.item())));
   // Different seeds lead to different uuids.
-  ASSERT_OK_AND_ASSIGN(
-      auto ds_3,
-      CreateUuObject(
-          db, "seed", {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds_3,
+                       CreateUuObject(db, "seed", {"a", "b"}, {ds_a, ds_b}));
   EXPECT_THAT(ds.item(), Not(IsEquivalentTo(ds_3.item())));
 }
 
@@ -1264,17 +1238,13 @@ TEST(UuObjectCreatorTest, UuObjectCreationAfterModification) {
   auto ds_b = test::DataItem(3);
   auto ds_c = test::DataItem(4);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      CreateUuObject(
-          db, "" , {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreateUuObject(db, "", {"a", "b"}, {ds_a, ds_b}));
 
   ASSERT_OK(ds.SetAttr("c", ds_c));
 
-  ASSERT_OK_AND_ASSIGN(
-      auto new_ds_fetch,
-      CreateUuObject(
-          db, "" , {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto new_ds_fetch,
+                       CreateUuObject(db, "", {"a", "b"}, {ds_a, ds_b}));
 
   ASSERT_OK_AND_ASSIGN(auto ds_c_get, new_ds_fetch.GetAttr("c"));
   EXPECT_THAT(ds_c_get.item(), IsEquivalentTo(ds_c.item()));
@@ -1347,8 +1317,8 @@ TYPED_TEST(CreatorTest, AutoBroadcasting) {
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
 
-  ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::FromAttrs(
-      db, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreatorT::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
   EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
@@ -1361,8 +1331,7 @@ TYPED_TEST(CreatorTest, AutoBroadcasting) {
 
   ds_b = test::AllocateDataSlice(2, schema::kObject);
   EXPECT_THAT(
-      CreatorT::FromAttrs(db, {std::string("a"), std::string("b")},
-                          {ds_a, ds_b}),
+      CreatorT::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr("Common shape belonging to attribute 'a': JaggedShape(3)\n"
@@ -1378,9 +1347,9 @@ TEST(EntityCreatorTest, AutoBroadcasting_WithSchema) {
   auto int_s = test::Schema(schema::kObject);
   DataSlice entity_schema = *CreateEntitySchema(db, {"a"}, {int_s});
 
-  ASSERT_OK_AND_ASSIGN(auto ds, EntityCreator::FromAttrs(
-                                    db, {std::string("a"), std::string("b")},
-                                    {ds_a, ds_b}, entity_schema));
+  ASSERT_OK_AND_ASSIGN(
+      auto ds,
+      EntityCreator::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}, entity_schema));
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
   EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
@@ -1394,8 +1363,7 @@ TEST(EntityCreatorTest, AutoBroadcasting_WithSchema) {
 
   ds_b = test::AllocateDataSlice(2, schema::kObject);
   EXPECT_THAT(
-      EntityCreator::FromAttrs(db, {std::string("a"), std::string("b")},
-                               {ds_a, ds_b}, entity_schema),
+      EntityCreator::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}, entity_schema),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr("Common shape belonging to attribute 'a': JaggedShape(3)\n"
@@ -1419,12 +1387,11 @@ TYPED_TEST(CreatorTest, FromAttrs_ItemId) {
   auto from_attrs_fn = [&](auto& ds_a, auto& ds_b,
                            auto& itemid) -> absl::StatusOr<DataSlice> {
     if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
-      return CreatorT::FromAttrs(
-          db, {std::string("a"), std::string("b")}, {ds_a, ds_b},
-          /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid);
+      return CreatorT::FromAttrs(db, {"a", "b"}, {ds_a, ds_b},
+                                 /*schema=*/std::nullopt,
+                                 /*overwrite_schema=*/false, itemid);
     } else {
-      return CreatorT::FromAttrs(db, {std::string("a"), std::string("b")},
-                                 {ds_a, ds_b}, itemid);
+      return CreatorT::FromAttrs(db, {"a", "b"}, {ds_a, ds_b}, itemid);
     }
   };
 
@@ -1453,8 +1420,8 @@ TYPED_TEST(CreatorTest, Shaped_WithAttrs) {
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
 
-  ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::Shaped(
-      db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreatorT::Shaped(db, shape, {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
   EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
@@ -1492,12 +1459,13 @@ TYPED_TEST(CreatorTest, Shaped_ItemId) {
 
   DataSlice ds;
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
-        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b},
-        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid));
+    ASSERT_OK_AND_ASSIGN(ds,
+                         CreatorT::Shaped(db, shape, {"a", "b"}, {ds_a, ds_b},
+                                          /*schema=*/std::nullopt,
+                                          /*overwrite_schema=*/false, itemid));
   } else {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
-        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
+    ASSERT_OK_AND_ASSIGN(
+        ds, CreatorT::Shaped(db, shape, {"a", "b"}, {ds_a, ds_b}, itemid));
   }
   EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
   EXPECT_THAT(ds.GetAttr("a"), IsOkAndHolds(IsEquivalentTo(ds_a.WithBag(db))));
@@ -1521,24 +1489,26 @@ TYPED_TEST(CreatorTest, Shaped_ItemId_Overwrite) {
 
   DataSlice ds;
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
-        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b},
-        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid));
+    ASSERT_OK_AND_ASSIGN(ds,
+                         CreatorT::Shaped(db, shape, {"a", "b"}, {ds_a, ds_b},
+                                          /*schema=*/std::nullopt,
+                                          /*overwrite_schema=*/false, itemid));
   } else {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
-        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
+    ASSERT_OK_AND_ASSIGN(
+        ds, CreatorT::Shaped(db, shape, {"a", "b"}, {ds_a, ds_b}, itemid));
   }
 
   // Overwriting is successful.
   ds_a = test::DataSlice<int>({1, 2, 3});
   ds_b = test::DataSlice<int64_t>({42, 43, 44});
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
-        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b},
-        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid));
+    ASSERT_OK_AND_ASSIGN(ds,
+                         CreatorT::Shaped(db, shape, {"a", "b"}, {ds_a, ds_b},
+                                          /*schema=*/std::nullopt,
+                                          /*overwrite_schema=*/false, itemid));
   } else {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Shaped(
-        db, shape, {std::string("a"), std::string("b")}, {ds_a, ds_b}, itemid));
+    ASSERT_OK_AND_ASSIGN(
+        ds, CreatorT::Shaped(db, shape, {"a", "b"}, {ds_a, ds_b}, itemid));
   }
   EXPECT_THAT(ds.slice(), IsEquivalentTo(itemid.slice()));
   EXPECT_THAT(ds.GetAttr("a"),
@@ -1562,12 +1532,11 @@ TYPED_TEST(CreatorTest, Shaped_ItemId_Error) {
 
   absl::StatusOr<DataSlice> res_or;
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
-    res_or = CreatorT::Shaped(
-        db, shape, {std::string("a")}, {test::DataItem(42)},
-        /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid);
+    res_or = CreatorT::Shaped(db, shape, {"a"}, {test::DataItem(42)},
+                              /*schema=*/std::nullopt,
+                              /*overwrite_schema=*/false, itemid);
   } else {
-    res_or = CreatorT::Shaped(
-        db, shape, {std::string("a")}, {test::DataItem(42)}, itemid);
+    res_or = CreatorT::Shaped(db, shape, {"a"}, {test::DataItem(42)}, itemid);
   }
   EXPECT_THAT(res_or, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("different from the shape")));
@@ -1581,10 +1550,8 @@ TYPED_TEST(CreatorTest, Like_WithAttrs) {
   auto ds_a = test::AllocateDataSlice(kSize, schema::kObject);
   auto ds_b = test::DataItem(internal::AllocateSingleObject());
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      CreatorT::Like(db, shape_and_mask_from,
-                     {std::string("a"), std::string("b")}, {ds_a, ds_b}));
+  ASSERT_OK_AND_ASSIGN(auto ds, CreatorT::Like(db, shape_and_mask_from,
+                                               {"a", "b"}, {ds_a, ds_b}));
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds.GetShape(), IsEquivalentTo(ds_a.GetShape()));
   EXPECT_TRUE(ds_b.GetShape().IsBroadcastableTo(ds.GetShape()));
@@ -1602,9 +1569,8 @@ TYPED_TEST(CreatorTest, Like_EmptyItem) {
   auto db = DataBag::Empty();
   auto ds_a = test::DataItem(42);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      CreatorT::Like(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreatorT::Like(db, shape_and_mask_from, {"a"}, {ds_a}));
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds, Property(&DataSlice::item, internal::MissingValue()));
   TestFixture::VerifyDataSliceSchema(*db, ds);
@@ -1617,9 +1583,8 @@ TYPED_TEST(CreatorTest, Like_EmptySlice) {
   auto db = DataBag::Empty();
   auto ds_a = test::DataItem(42);
 
-  ASSERT_OK_AND_ASSIGN(
-      auto ds,
-      CreatorT::Like(db, shape_and_mask_from, {std::string("a")}, {ds_a}));
+  ASSERT_OK_AND_ASSIGN(auto ds,
+                       CreatorT::Like(db, shape_and_mask_from, {"a"}, {ds_a}));
   EXPECT_EQ(ds.GetBag(), db);
   EXPECT_THAT(ds,
               Property(&DataSlice::slice,
@@ -1657,14 +1622,13 @@ TYPED_TEST(CreatorTest, Like_ItemId) {
 
   DataSlice ds;
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
-        db, shape_and_mask_from, {std::string("a"), std::string("b")},
-        {ds_a, ds_b}, /*schema=*/std::nullopt, /*overwrite_schema=*/false,
-        itemid));
+    ASSERT_OK_AND_ASSIGN(
+        ds, CreatorT::Like(db, shape_and_mask_from, {"a", "b"}, {ds_a, ds_b},
+                           /*schema=*/std::nullopt, /*overwrite_schema=*/false,
+                           itemid));
   } else {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
-        db, shape_and_mask_from, {std::string("a"), std::string("b")},
-        {ds_a, ds_b}, itemid));
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(db, shape_and_mask_from, {"a", "b"},
+                                            {ds_a, ds_b}, itemid));
   }
   EXPECT_EQ(ds.slice()[0], itemid.slice()[0]);
   EXPECT_EQ(ds.slice()[1], itemid.slice()[1]);
@@ -1697,28 +1661,26 @@ TYPED_TEST(CreatorTest, Like_ItemId_Overwrite) {
 
   DataSlice ds;
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
-        db, shape_and_mask_from, {std::string("a"), std::string("b")},
-        {ds_a, ds_b}, /*schema=*/std::nullopt, /*overwrite_schema=*/false,
-        itemid));
+    ASSERT_OK_AND_ASSIGN(
+        ds, CreatorT::Like(db, shape_and_mask_from, {"a", "b"}, {ds_a, ds_b},
+                           /*schema=*/std::nullopt, /*overwrite_schema=*/false,
+                           itemid));
   } else {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
-        db, shape_and_mask_from, {std::string("a"), std::string("b")},
-        {ds_a, ds_b}, itemid));
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(db, shape_and_mask_from, {"a", "b"},
+                                            {ds_a, ds_b}, itemid));
   }
 
   // Overwriting is successful.
   ds_a = test::DataSlice<int>({1, 2, 3});
   ds_b = test::DataSlice<int64_t>({42, 43, 44});
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
-        db, shape_and_mask_from, {std::string("a"), std::string("b")},
-        {ds_a, ds_b}, /*schema=*/std::nullopt, /*overwrite_schema=*/false,
-        itemid));
+    ASSERT_OK_AND_ASSIGN(
+        ds, CreatorT::Like(db, shape_and_mask_from, {"a", "b"}, {ds_a, ds_b},
+                           /*schema=*/std::nullopt, /*overwrite_schema=*/false,
+                           itemid));
   } else {
-    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(
-        db, shape_and_mask_from, {std::string("a"), std::string("b")},
-        {ds_a, ds_b}, itemid));
+    ASSERT_OK_AND_ASSIGN(ds, CreatorT::Like(db, shape_and_mask_from, {"a", "b"},
+                                            {ds_a, ds_b}, itemid));
   }
   EXPECT_EQ(ds.slice()[0], itemid.slice()[0]);
   EXPECT_EQ(ds.slice()[1], itemid.slice()[1]);
@@ -1749,12 +1711,11 @@ TYPED_TEST(CreatorTest, Like_ItemId_Error) {
   absl::StatusOr<DataSlice> res_or;
   if constexpr (std::is_same_v<CreatorT, EntityCreator>) {
     res_or = CreatorT::Like(
-        db, shape_and_mask_from, {std::string("a")}, {test::DataItem(42)},
+        db, shape_and_mask_from, {"a"}, {test::DataItem(42)},
         /*schema=*/std::nullopt, /*overwrite_schema=*/false, itemid);
   } else {
-    res_or = CreatorT::Like(
-        db, shape_and_mask_from, {std::string("a")}, {test::DataItem(42)},
-        itemid);
+    res_or = CreatorT::Like(db, shape_and_mask_from, {"a"},
+                            {test::DataItem(42)}, itemid);
   }
   EXPECT_THAT(res_or, StatusIs(absl::StatusCode::kInvalidArgument,
                                HasSubstr("different from the shape")));
