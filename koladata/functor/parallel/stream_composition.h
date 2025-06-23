@@ -19,6 +19,7 @@
 
 #include "absl/base/nullability.h"
 #include "absl/status/status.h"
+#include "arolla/qtype/typed_ref.h"
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
@@ -36,6 +37,9 @@ class StreamInterleave {
 
   // Adds one more input stream to the interleave.
   void Add(const StreamPtr absl_nonnull& stream);
+
+  // Adds one more item to the interleave.
+  void AddItem(arolla::TypedRef item);
 
   // Adds an error to the interleaved stream; `status` must be non-OK.
   void AddError(absl::Status status);
@@ -68,6 +72,9 @@ class StreamChain {
 
   // Adds one more input stream to the chain.
   void Add(const StreamPtr absl_nonnull& stream);
+
+  // Adds one more item to the chain.
+  void AddItem(arolla::TypedRef item);
 
   // Adds an error to the chain stream; `status` must be non-OK.
   void AddError(absl::Status status);

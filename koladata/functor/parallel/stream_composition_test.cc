@@ -108,6 +108,34 @@ TEST(StreamInterleaveTest, CloseWithError) {
               Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }
 
+TEST(StreamInterleaveTest, AddItem) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  std::vector<StreamWriterPtr> writers;
+  StreamInterleave interleave_helper(std::move(writer));
+  for (int i = 0; i < 2; ++i) {
+    auto [s, w] = MakeStream(GetQType<int>());
+    writers.emplace_back(std::move(w));
+    interleave_helper.Add(s);
+  }
+  writers[1]->Write(TypedRef::FromValue(0));
+  interleave_helper.AddItem(TypedRef::FromValue(-1));
+  writers[0]->Write(TypedRef::FromValue(1));
+  auto reader = stream->MakeReader();
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(0)));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(-1)));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(1)));
+  EXPECT_TRUE(reader->TryRead().empty());
+  std::move(*writers[0]).Close();
+  EXPECT_TRUE(reader->TryRead().empty());
+  std::move(*writers[1]).Close();
+  EXPECT_TRUE(reader->TryRead().empty());
+  {
+    auto tmp = std::move(interleave_helper);
+    (void)tmp;
+  }
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
+}
+
 TEST(StreamInterleaveTest, AddError) {
   auto [stream, writer] = MakeStream(GetQType<int>());
   std::vector<StreamWriterPtr> writers;
@@ -247,6 +275,34 @@ TEST(StreamChainTest, CloseWithError) {
   auto reader = stream->MakeReader();
   EXPECT_THAT(reader->TryRead().close_status(),
               Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
+}
+
+TEST(StreamChainTest, AddItem) {
+  auto [stream, writer] = MakeStream(GetQType<int>());
+  std::vector<StreamWriterPtr> writers;
+  StreamChain chain_helper(std::move(writer));
+  for (int i = 0; i < 2; ++i) {
+    auto [s, w] = MakeStream(GetQType<int>());
+    writers.emplace_back(std::move(w));
+    chain_helper.Add(s);
+  }
+  writers[1]->Write(TypedRef::FromValue(0));
+  chain_helper.AddItem(TypedRef::FromValue(-1));
+  writers[0]->Write(TypedRef::FromValue(1));
+  auto reader = stream->MakeReader();
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(1)));
+  EXPECT_TRUE(reader->TryRead().empty());
+  std::move(*writers[0]).Close();
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(0)));
+  EXPECT_TRUE(reader->TryRead().empty());
+  std::move(*writers[1]).Close();
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(-1)));
+  EXPECT_TRUE(reader->TryRead().empty());
+  {
+    auto tmp = std::move(chain_helper);
+    (void)tmp;
+  }
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 TEST(StreamChainTest, AddError) {

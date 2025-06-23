@@ -23,6 +23,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
+#include "arolla/qtype/typed_ref.h"
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
@@ -33,6 +34,8 @@ class StreamInterleave::Scheduler {
       : writer_(std::move(writer)) {}
 
   ~Scheduler() { writer_->TryClose(absl::OkStatus()); }
+
+  void AddItem(arolla::TypedRef item) { (void)writer_->TryWrite(item); }
 
   void AddError(absl::Status status) {
     DCHECK(!status.ok());
@@ -80,6 +83,10 @@ void StreamInterleave::Add(const StreamPtr absl_nonnull& stream) {
   }
 }
 
+void StreamInterleave::AddItem(arolla::TypedRef item) {
+  scheduler_->AddItem(item);
+}
+
 void StreamInterleave::AddError(absl::Status status) {
   scheduler_->AddError(std::move(status));
 }
@@ -111,6 +118,14 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
     if (must_process_pending_inputs) {
       ProcessPendingInputs();
     }
+  }
+
+  void AddItem(arolla::TypedRef item) {
+    DCHECK(item.GetType() == writer_->value_qtype());
+    auto [stream, writer] = MakeStream(writer_->value_qtype());
+    writer->Write(item);
+    std::move(*writer).Close();
+    AddInput(stream->MakeReader());
   }
 
   void AddError(absl::Status status) {
@@ -229,6 +244,8 @@ void StreamChain::Add(const StreamPtr absl_nonnull& stream) {
     scheduler_->AddInput(stream->MakeReader());
   }
 }
+
+void StreamChain::AddItem(arolla::TypedRef item) { scheduler_->AddItem(item); }
 
 void StreamChain::AddError(absl::Status status) {
   DCHECK(!status.ok());
