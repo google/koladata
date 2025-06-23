@@ -22,7 +22,7 @@
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/qtype/testing/qtype.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_value.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -44,7 +44,7 @@ namespace koladata::functor::parallel {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
-using ::arolla::testing::TypedValueWith;
+using ::arolla::testing::QValueWith;
 using ::koladata::testing::IsEquivalentTo;
 
 // Most of the tests are in koda_internal_parallel_transform_test.py, this
@@ -86,7 +86,7 @@ TEST(TransformTest, Basic) {
           {"a", "b"}));
   ASSERT_OK_AND_ASSIGN(FuturePtr result_value, result.As<FuturePtr>());
   EXPECT_THAT(result_value->GetValueForTesting(),
-              IsOkAndHolds(TypedValueWith<DataSlice>(
+              IsOkAndHolds(QValueWith<DataSlice>(
                   IsEquivalentTo(DataSlice::CreateFromScalar(3)))));
 }
 

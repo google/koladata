@@ -38,7 +38,7 @@
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/qtype/testing/qtype.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
@@ -71,7 +71,7 @@ using ::arolla::expr::LookupOperator;
 using ::arolla::expr::MakeLambdaOperator;
 using ::arolla::expr::Placeholder;
 using ::arolla::expr_operators::StdFunctionOperator;
-using ::arolla::testing::TypedValueWith;
+using ::arolla::testing::QValueWith;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::HasSubstr;
 
@@ -86,7 +86,7 @@ TEST(AsyncEvalTest, Simple) {
           executor, inner_op, {TypedRef::FromValue(x), TypedRef::FromValue(y)},
           GetQType<DataSlice>()));
   EXPECT_THAT(res_future->GetValueForTesting(),
-              IsOkAndHolds(TypedValueWith<DataSlice>(
+              IsOkAndHolds(QValueWith<DataSlice>(
                   IsEquivalentTo(DataSlice::CreateFromScalar(3)))));
 }
 
@@ -107,7 +107,7 @@ TEST(AsyncEvalTest, FutureInputs) {
           executor, inner_op, {x_future_value.AsRef(), y_future_value.AsRef()},
           GetQType<DataSlice>()));
   EXPECT_THAT(res_future->GetValueForTesting(),
-              IsOkAndHolds(TypedValueWith<DataSlice>(
+              IsOkAndHolds(QValueWith<DataSlice>(
                   IsEquivalentTo(DataSlice::CreateFromScalar(3)))));
 }
 
@@ -129,7 +129,7 @@ TEST(AsyncEvalTest, Nested) {
           executor, op, {inner_future_value.AsRef(), TypedRef::FromValue(z)},
           GetQType<DataSlice>()));
   EXPECT_THAT(outer_future->GetValueForTesting(),
-              IsOkAndHolds(TypedValueWith<DataSlice>(
+              IsOkAndHolds(QValueWith<DataSlice>(
                   IsEquivalentTo(DataSlice::CreateFromScalar(6)))));
 }
 
@@ -309,7 +309,7 @@ TEST(AsyncEvalTest, Multithreaded) {
   for (int i = 0; i < kNumWaves * kWaveSize; ++i) {
     EXPECT_THAT(
         sum_futures[i]->GetValueForTesting(),
-        IsOkAndHolds(TypedValueWith<DataSlice>(IsEquivalentTo(
+        IsOkAndHolds(QValueWith<DataSlice>(IsEquivalentTo(
             DataSlice::CreateFromScalar(expected_values[i + kWaveSize])))));
   }
 }
@@ -344,7 +344,7 @@ TEST(AsyncEvalTest, CancellationContextPropagation) {
     auto notification = std::make_shared<absl::Notification>();
     future->AddConsumer(
         [notification](absl::StatusOr<arolla::TypedValue> value) {
-          EXPECT_THAT(value, IsOkAndHolds(TypedValueWith<int>(20)));
+          EXPECT_THAT(value, IsOkAndHolds(QValueWith<int>(20)));
           notification->Notify();
         });
     std::move(input_writer).SetValue(TypedValue::FromValue(10));

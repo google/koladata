@@ -31,6 +31,7 @@
 #include "absl/synchronization/notification.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_ref.h"
 #include "koladata/functor/parallel/get_default_executor.h"
 #include "koladata/functor/parallel/make_executor.h"
@@ -39,9 +40,13 @@
 namespace koladata::functor::parallel {
 namespace {
 
+using ::absl_testing::IsOk;
 using ::absl_testing::StatusIs;
 using ::arolla::GetQType;
 using ::arolla::TypedRef;
+using ::arolla::testing::QValueWith;
+using ::testing::_;
+using ::testing::Pointee;
 
 TEST(StreamInterleaveTest, Basic) {
   constexpr int kItemCount = 1000;
@@ -64,9 +69,9 @@ TEST(StreamInterleaveTest, Basic) {
 
   auto reader = stream->MakeReader();
   for (int i = 0; i < kItemCount; ++i) {
-    EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), i);
+    EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(i)));
   }
-  EXPECT_OK(*reader->TryRead().close_status());
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 TEST(StreamInterleaveTest, StreamInterleaveIsAlive) {
@@ -78,7 +83,7 @@ TEST(StreamInterleaveTest, StreamInterleaveIsAlive) {
     auto tmp = std::move(interleave_helper);
     (void)tmp;
   }
-  EXPECT_OK(*reader->TryRead().close_status());
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 TEST(StreamInterleaveTest, CloseWithError) {
@@ -98,9 +103,9 @@ TEST(StreamInterleaveTest, CloseWithError) {
   writers[2]->Write(TypedRef::FromValue(1));
   std::move(*writers[2]).Close();
   auto reader = stream->MakeReader();
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 0);
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(0)));
+  EXPECT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }
 
 TEST(StreamInterleaveTest, AddError) {
@@ -116,9 +121,9 @@ TEST(StreamInterleaveTest, AddError) {
   std::move(interleave_helper).AddError(absl::InvalidArgumentError("Boom!"));
   writers[1]->Write(TypedRef::FromValue(1));
   auto reader = stream->MakeReader();
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 0);
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(0)));
+  EXPECT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
   std::move(*writers[0]).Close();
   std::move(*writers[1]).Close();
 }
@@ -153,12 +158,14 @@ TEST(StreamInterleaveTest, MultithreadedInterleaving) {
   auto reader = stream->MakeReader();
   std::vector<int> result;
   for (int i = 0; i < kItemCount; ++i) {
-    result.push_back(reader->TryRead().item()->UnsafeAs<int>());
+    auto try_read_result = reader->TryRead();
+    ASSERT_THAT(try_read_result.item(), Pointee(QValueWith<int>(_)));
+    result.push_back(try_read_result.item()->UnsafeAs<int>());
   }
   std::sort(result.begin(), result.end());
   result.erase(std::unique(result.begin(), result.end()), result.end());
-  ASSERT_EQ(result.size(), kItemCount);
-  ASSERT_EQ(result.front(), 0);
+  EXPECT_EQ(result.size(), kItemCount);
+  EXPECT_EQ(result.front(), 0);
 }
 
 TEST(StreamInterleaveTest, DynamicAddInputs) {
@@ -175,9 +182,9 @@ TEST(StreamInterleaveTest, DynamicAddInputs) {
     reader->SubscribeOnce([&] { interleave_helper.Add(second_stream); });
     interleave_helper.Add(first_stream);
   }
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 0);
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 1);
-  EXPECT_OK(*reader->TryRead().close_status());
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(0)));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(1)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 TEST(StreamChainTest, Basic) {
@@ -198,16 +205,16 @@ TEST(StreamChainTest, Basic) {
   stream3_writer->Write(TypedRef::FromValue(4));
   std::move(*stream2_writer).Close();
   auto stream_reader = chained_stream->MakeReader();
-  EXPECT_EQ(stream_reader->TryRead().item()->UnsafeAs<int>(), 0);
-  EXPECT_EQ(stream_reader->TryRead().item()->UnsafeAs<int>(), 1);
+  EXPECT_THAT(stream_reader->TryRead().item(), Pointee(QValueWith<int>(0)));
+  EXPECT_THAT(stream_reader->TryRead().item(), Pointee(QValueWith<int>(1)));
   EXPECT_TRUE(stream_reader->TryRead().empty());
   std::move(*stream1_writer).Close();
-  EXPECT_EQ(stream_reader->TryRead().item()->UnsafeAs<int>(), 2);
-  EXPECT_EQ(stream_reader->TryRead().item()->UnsafeAs<int>(), 3);
-  EXPECT_EQ(stream_reader->TryRead().item()->UnsafeAs<int>(), 4);
+  EXPECT_THAT(stream_reader->TryRead().item(), Pointee(QValueWith<int>(2)));
+  EXPECT_THAT(stream_reader->TryRead().item(), Pointee(QValueWith<int>(3)));
+  EXPECT_THAT(stream_reader->TryRead().item(), Pointee(QValueWith<int>(4)));
   EXPECT_TRUE(stream_reader->TryRead().empty());
   std::move(*stream3_writer).Close();
-  EXPECT_OK(*stream_reader->TryRead().close_status());
+  EXPECT_THAT(stream_reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 TEST(StreamChainTest, StreamChainIsAlive) {
@@ -219,7 +226,7 @@ TEST(StreamChainTest, StreamChainIsAlive) {
     auto tmp = std::move(chain_helper);
     (void)tmp;
   }
-  EXPECT_OK(*reader->TryRead().close_status());
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 TEST(StreamChainTest, CloseWithError) {
@@ -237,10 +244,9 @@ TEST(StreamChainTest, CloseWithError) {
   std::move(*writers[1]).Close(absl::InvalidArgumentError("Boom!"));
   writers[2]->Write(TypedRef::FromValue(0));
   std::move(*writers[2]).Close();
-
   auto reader = stream->MakeReader();
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  EXPECT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }
 
 TEST(StreamChainTest, AddError) {
@@ -256,13 +262,13 @@ TEST(StreamChainTest, AddError) {
   writers[0]->Write(TypedRef::FromValue(0));
   writers[1]->Write(TypedRef::FromValue(1));
   auto reader = stream->MakeReader();
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 0);
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(0)));
   EXPECT_TRUE(reader->TryRead().empty());
   std::move(*writers[0]).Close();
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 1);
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(1)));
   std::move(*writers[1]).Close();
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  EXPECT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }
 
 TEST(StreamChainTest, MultithreadedChaining) {
@@ -370,8 +376,7 @@ TEST(StreamChainTest, MultithreadedChaining) {
       ASSERT_OK_AND_ASSIGN(int value, item->As<int>());
       result.push_back(value);
     } else {
-      ASSERT_TRUE(try_read_result.close_status() != nullptr);
-      ASSERT_OK(*try_read_result.close_status());
+      ASSERT_THAT(try_read_result.close_status(), Pointee(IsOk()));
       break;
     }
   }
@@ -392,9 +397,9 @@ TEST(StreamChainTest, DynamicAddInputs) {
     reader->SubscribeOnce([&] { chain_helper.Add(second_stream); });
     chain_helper.Add(first_stream);
   }
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 0);
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 1);
-  EXPECT_OK(*reader->TryRead().close_status());
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(0)));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(1)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 }  // namespace

@@ -24,7 +24,7 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/qtype/testing/qtype.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/testing/repr_token_eq.h"
 #include "koladata/functor/parallel/future.h"
@@ -33,8 +33,8 @@ namespace koladata::functor::parallel {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
+using ::arolla::testing::QValueWith;
 using ::arolla::testing::ReprTokenEq;
-using ::arolla::testing::TypedValueWith;
 
 TEST(FutureQTypeTest, Basics) {
   auto qtype = GetFutureQType<arolla::QTypePtr>();
@@ -64,7 +64,7 @@ TEST(FutureQTypeTest, MakeFutureQValue) {
   EXPECT_THAT(qvalue.GenReprToken(), ReprTokenEq("future[INT32]"));
   ASSERT_EQ(qvalue.GetType(), GetFutureQType<int>());
   EXPECT_THAT(qvalue.UnsafeAs<FuturePtr>()->GetValueForTesting(),
-              IsOkAndHolds(TypedValueWith<int>(1)));
+              IsOkAndHolds(QValueWith<int>(1)));
   EXPECT_EQ(qvalue.GetFingerprint(), MakeFutureQValue(future).GetFingerprint());
   auto [future2, writer2] = MakeFuture(arolla::GetQType<int>());
   EXPECT_NE(qvalue.GetFingerprint(),

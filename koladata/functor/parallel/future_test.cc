@@ -24,7 +24,7 @@
 #include "absl/status/statusor.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
-#include "arolla/qtype/testing/qtype.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
@@ -34,7 +34,7 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::arolla::testing::TypedValueWith;
+using ::arolla::testing::QValueWith;
 
 template <class T>
 void MarkReinitialized(T&) {}
@@ -47,8 +47,7 @@ TEST(FutureTest, Basic) {
       future->GetValueForTesting(),
       StatusIs(absl::StatusCode::kInvalidArgument, "future has no value"));
   std::move(writer).SetValue(arolla::TypedValue::FromValue(1));
-  EXPECT_THAT(future->GetValueForTesting(),
-              IsOkAndHolds(TypedValueWith<int>(1)));
+  EXPECT_THAT(future->GetValueForTesting(), IsOkAndHolds(QValueWith<int>(1)));
 }
 
 TEST(FutureTest, FutureValueFingerprint) {
@@ -76,7 +75,7 @@ TEST(FutureTest, ConsumersWithValue) {
   int calls = 0;
   auto consumer = [&calls](absl::StatusOr<arolla::TypedValue> value) {
     ++calls;
-    ASSERT_THAT(value, IsOkAndHolds(TypedValueWith<int>(1)));
+    ASSERT_THAT(value, IsOkAndHolds(QValueWith<int>(1)));
   };
   x->AddConsumer(consumer);
   EXPECT_EQ(calls, 0);

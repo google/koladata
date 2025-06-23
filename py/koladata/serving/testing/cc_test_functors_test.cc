@@ -19,7 +19,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status_matchers.h"
-#include "arolla/qtype/testing/qtype.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/util/text.h"
 #include "koladata/data_slice.h"
@@ -33,7 +33,7 @@ namespace koladata_serving_test {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
-using ::arolla::testing::TypedValueWith;
+using ::arolla::testing::QValueWith;
 using ::koladata::test::DataSlice;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::_;
@@ -51,7 +51,7 @@ TEST(TestFunctorsTest, PlusOne) {
   auto input = DataSlice<int64_t>({1, 2, 3});
   EXPECT_THAT(koladata::functor::CallFunctorWithCompilationCache(
                   plus_one, {arolla::TypedRef::FromValue(input)}, {}),
-              IsOkAndHolds(TypedValueWith<koladata::DataSlice>(
+              IsOkAndHolds(QValueWith<koladata::DataSlice>(
                   IsEquivalentTo(DataSlice<int64_t>({2, 3, 4})))));
 }
 
@@ -67,7 +67,7 @@ TEST(TestFunctorsTest, AskAboutServing) {
   EXPECT_THAT(
       koladata::functor::CallFunctorWithCompilationCache(
           ask_about_serving, {arolla::TypedRef::FromValue(external_fn)}, {}),
-      IsOkAndHolds(TypedValueWith<koladata::DataSlice>(
+      IsOkAndHolds(QValueWith<koladata::DataSlice>(
           IsEquivalentTo(koladata::test::DataItem(
               arolla::Text("How to serve Koda functors?"))))));
 }

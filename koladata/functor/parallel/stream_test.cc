@@ -28,6 +28,7 @@
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_ref.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/get_default_executor.h"
@@ -35,11 +36,14 @@
 namespace koladata::functor::parallel {
 namespace {
 
+using ::absl_testing::IsOk;
 using ::absl_testing::StatusIs;
 using ::arolla::GetNothingQType;
 using ::arolla::GetQType;
 using ::arolla::QTypePtr;
 using ::arolla::TypedRef;
+using ::arolla::testing::QValueWith;
+using ::testing::Pointee;
 
 TEST(StreamTest, Basic) {
   constexpr int kItemCount = 1000;
@@ -58,9 +62,9 @@ TEST(StreamTest, Basic) {
     auto reader = stream->MakeReader();
     ASSERT_NE(reader, nullptr);
     for (int i = 0; i < kItemCount; ++i) {
-      EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), i);
+      EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(i)));
     }
-    EXPECT_OK(*reader->TryRead().close_status());
+    EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
   }
 }
 
@@ -74,7 +78,7 @@ TEST(StreamTest, Empty) {
   {
     auto reader = stream->MakeReader();
     ASSERT_NE(reader, nullptr);
-    EXPECT_OK(*reader->TryRead().close_status());
+    ASSERT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
   }
 }
 
@@ -88,7 +92,7 @@ TEST(StreamTest, StreamOfNothing) {
   {
     auto reader = stream->MakeReader();
     ASSERT_NE(reader, nullptr);
-    EXPECT_OK(*reader->TryRead().close_status());
+    EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
   }
 }
 
@@ -105,10 +109,10 @@ TEST(StreamTest, BasicWithNonTrivialType) {
   {
     auto reader = stream->MakeReader();
     for (int i = 0; i < 10; ++i) {
-      EXPECT_EQ(reader->TryRead().item()->UnsafeAs<std::string>(),
-                absl::StrCat(i));
+      EXPECT_THAT(reader->TryRead().item(),
+                  Pointee(QValueWith<std::string>(absl::StrCat(i))));
     }
-    EXPECT_OK(*reader->TryRead().close_status());
+    EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
   }
 }
 
@@ -118,8 +122,8 @@ TEST(StreamTest, TryCloseAfterClose) {
   writer->TryClose(absl::InvalidArgumentError("Kaboom!"));
   {
     auto reader = stream->MakeReader();
-    EXPECT_THAT(*reader->TryRead().close_status(),
-                StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+    EXPECT_THAT(reader->TryRead().close_status(),
+                Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
   }
 }
 
@@ -130,9 +134,9 @@ TEST(StreamTest, TryWriteAfterClose) {
   ASSERT_FALSE(writer->TryWrite(TypedRef::FromValue(2)));
   {
     auto reader = stream->MakeReader();
-    EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int>(), 1);
-    EXPECT_THAT(*reader->TryRead().close_status(),
-                StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+    EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<int>(1)));
+    EXPECT_THAT(reader->TryRead().close_status(),
+                Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
   }
 }
 
@@ -185,8 +189,8 @@ TEST(StreamTest, CloseWithError) {
   auto [stream, writer] = MakeStream(GetQType<int>(), 10);
   auto reader = stream->MakeReader();
   std::move(*writer).Close(absl::InvalidArgumentError("Boom!"));
-  ASSERT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  ASSERT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }
 
 TEST(StreamTest, OrphanStreamWriter) {
@@ -221,8 +225,8 @@ TEST(StreamTest, OrphanedStreamWriterDestructor) {
 TEST(StreamTest, StreamWriterCloseInDestructor) {
   auto [stream, writer] = MakeStream(GetQType<int>());
   writer.reset();
-  ASSERT_THAT(*stream->MakeReader()->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kCancelled, "orphaned"));
+  ASSERT_THAT(stream->MakeReader()->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kCancelled, "orphaned")));
 }
 
 TEST(StreamTest, DemoFilter) {
@@ -320,7 +324,7 @@ class StresstestConsumer
     for (;;) {
       auto try_read_result = reader_->TryRead();
       if (auto* item = try_read_result.item()) {
-        ASSERT_EQ(item->UnsafeAs<int>(), next_++);
+        ASSERT_THAT(item, Pointee(QValueWith<int>(next_++)));
         ASSERT_LE(next_, end_);
       } else if (auto* status = try_read_result.close_status()) {
         ASSERT_OK(*status);

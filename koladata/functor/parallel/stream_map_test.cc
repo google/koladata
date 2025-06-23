@@ -26,6 +26,7 @@
 #include "absl/synchronization/notification.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
@@ -38,7 +39,9 @@
 namespace koladata::functor::parallel {
 namespace {
 
+using ::absl_testing::IsOk;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::QValueWith;
 using ::testing::Pointee;
 
 TEST(StreamMapTest, Basic) {
@@ -56,10 +59,10 @@ TEST(StreamMapTest, Basic) {
   auto reader = stream->MakeReader();
   // Note: The order of resulting items is predictable because we use eager
   // executor.
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 1.5);
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 7.5);
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 15.0);
-  EXPECT_OK(*reader->TryRead().close_status());
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(1.5)));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(7.5)));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(15.0)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 TEST(StreamMapTest, InputStreamError) {
@@ -72,9 +75,9 @@ TEST(StreamMapTest, InputStreamError) {
   writer->Write(arolla::TypedRef::FromValue(1));
   std::move(*writer).Close(absl::InvalidArgumentError("Boom!"));
   auto reader = stream->MakeReader();
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 1.5);
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(1.5)));
+  EXPECT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }
 
 TEST(StreamMapTest, FunctorError) {
@@ -85,8 +88,8 @@ TEST(StreamMapTest, FunctorError) {
   writer->Write(arolla::TypedRef::FromValue(1));
   std::move(*writer).Close();
   auto reader = stream->MakeReader();
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  EXPECT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }
 
 TEST(StreamMapTest, FunctorWrongReturnType) {
@@ -97,10 +100,11 @@ TEST(StreamMapTest, FunctorWrongReturnType) {
   writer->Write(arolla::TypedRef::FromValue(1));
   std::move(*writer).Close();
   auto reader = stream->MakeReader();
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
+  EXPECT_THAT(
+      reader->TryRead().close_status(),
+      Pointee(StatusIs(absl::StatusCode::kInvalidArgument,
                        "functor returned a value of the wrong type: expected "
-                       "FLOAT64, got INT32"));
+                       "FLOAT64, got INT32")));
 }
 
 TEST(StreamMapTest, OrphanedOutputStream) {
@@ -110,7 +114,7 @@ TEST(StreamMapTest, OrphanedOutputStream) {
       GetEagerExecutor(), std::move(stream), arolla::GetQType<double>(),
       [&call_count](arolla::TypedRef item) {
         call_count += 1;
-        EXPECT_EQ(item.UnsafeAs<int>(), 1);
+        EXPECT_THAT(item, QValueWith<int>(1));
         return arolla::TypedValue::FromValue(1.5 * item.UnsafeAs<int>());
       });
   stream.reset();
@@ -148,7 +152,7 @@ TEST(StreamMapTest, FunctorCancellationContextPropagation) {
     auto notification = std::make_shared<absl::Notification>();
     reader->SubscribeOnce([notification] { notification->Notify(); });
     notification->WaitForNotification();
-    EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 1.5);
+    EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(1.5)));
   }
   {
     auto notification = std::make_shared<absl::Notification>();
@@ -195,7 +199,7 @@ TEST(StreamMapTest, Stress) {
   for (;;) {
     auto try_read_result = reader->TryRead();
     while (auto* item = try_read_result.item()) {
-      ASSERT_EQ(item->UnsafeAs<int>(), kLayerCount + item_count++);
+      ASSERT_THAT(item, Pointee(QValueWith<int>(kLayerCount + item_count++)));
       try_read_result = reader->TryRead();
     }
     if (auto* status = try_read_result.close_status()) {
@@ -242,10 +246,10 @@ TEST(StreamMapUnorderedTest, Basic) {
   auto reader = stream->MakeReader();
   // Note: The order of resulting items is predictable because we use eager
   // executor.
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 1.5);
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 7.5);
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 15.0);
-  EXPECT_OK(*reader->TryRead().close_status());
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(1.5)));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(7.5)));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(15.0)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 TEST(StreamMapUnorderedTest, InputStreamError) {
@@ -258,9 +262,9 @@ TEST(StreamMapUnorderedTest, InputStreamError) {
   writer->Write(arolla::TypedRef::FromValue(1));
   std::move(*writer).Close(absl::InvalidArgumentError("Boom!"));
   auto reader = stream->MakeReader();
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 1.5);
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(1.5)));
+  EXPECT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }
 
 TEST(StreamMapUnorderedTest, FunctorError) {
@@ -271,8 +275,8 @@ TEST(StreamMapUnorderedTest, FunctorError) {
   writer->Write(arolla::TypedRef::FromValue(1));
   std::move(*writer).Close();
   auto reader = stream->MakeReader();
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument, "Boom!"));
+  EXPECT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
 }
 
 TEST(StreamMapUnorderedTest, FunctorWrongReturnType) {
@@ -283,10 +287,10 @@ TEST(StreamMapUnorderedTest, FunctorWrongReturnType) {
   writer->Write(arolla::TypedRef::FromValue(1));
   std::move(*writer).Close();
   auto reader = stream->MakeReader();
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "functor returned a value of the wrong type: expected "
-                       "FLOAT64, got INT32"));
+  EXPECT_THAT(reader->TryRead().close_status(),
+              Pointee(StatusIs(absl::StatusCode::kInvalidArgument,
+                               "functor returned a value of the wrong type: "
+                               "expected FLOAT64, got INT32")));
 }
 
 TEST(StreamMapUnorderedTest, OrphanedOutputStream) {
@@ -296,7 +300,7 @@ TEST(StreamMapUnorderedTest, OrphanedOutputStream) {
       GetEagerExecutor(), std::move(stream), arolla::GetQType<double>(),
       [&call_count](arolla::TypedRef item) {
         call_count += 1;
-        EXPECT_EQ(item.UnsafeAs<int>(), 1);
+        EXPECT_THAT(item, QValueWith<int>(1));
         return arolla::TypedValue::FromValue(1.5 * item.UnsafeAs<int>());
       });
   stream.reset();
@@ -334,7 +338,7 @@ TEST(StreamMapUnorderedTest, FunctorCancellationContextPropagation) {
     auto notification = std::make_shared<absl::Notification>();
     reader->SubscribeOnce([notification] { notification->Notify(); });
     notification->WaitForNotification();
-    EXPECT_EQ(reader->TryRead().item()->UnsafeAs<double>(), 1.5);
+    EXPECT_THAT(reader->TryRead().item(), Pointee(QValueWith<double>(1.5)));
   }
   {
     auto notification = std::make_shared<absl::Notification>();

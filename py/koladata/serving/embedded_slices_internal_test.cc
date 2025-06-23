@@ -25,7 +25,7 @@
 #include "absl/status/status_matchers.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/quote.h"
-#include "arolla/qtype/testing/qtype.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serialization/riegeli.h"
 #include "arolla/util/bytes.h"
@@ -46,7 +46,7 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::arolla::testing::TypedValueWith;
+using ::arolla::testing::QValueWith;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::_;
 using ::testing::HasSubstr;
@@ -74,7 +74,7 @@ TEST(ParseEmbeddedSlicesTest, Trival) {
   ASSERT_THAT(functors, UnorderedElementsAre(Pair("f57", _), Pair("f42", _)));
   EXPECT_THAT(
       functor::CallFunctorWithCompilationCache(functors.at("f57"), {}, {}),
-      IsOkAndHolds(TypedValueWith<int64_t>(57)));
+      IsOkAndHolds(QValueWith<int64_t>(57)));
 }
 
 TEST(ParseEmbeddedSlicesTest, CorruptData) {
