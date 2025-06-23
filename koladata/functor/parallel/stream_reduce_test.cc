@@ -130,7 +130,7 @@ TEST(StreamReduceTest, FunctorCancellationContextPropagation) {
   std::move(*writer).Close();
   int count_down = 1;
   stream = StreamReduce(
-      GetEagerExecutor(), arolla::TypedValue::FromValue(0), std::move(stream),
+      executor, arolla::TypedValue::FromValue(0), std::move(stream),
       [&count_down](arolla::TypedRef acc, arolla::TypedRef item) {
         auto cancellation_context = arolla::CurrentCancellationContext();
         EXPECT_NE(cancellation_context, nullptr);
