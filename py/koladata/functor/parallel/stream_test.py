@@ -37,7 +37,7 @@ default_executor = arolla.abc.invoke_op(
 class StreamTest(parameterized.TestCase):
 
   def test_basic(self):
-    stream, stream_writer = clib.make_stream(arolla.INT32)
+    stream, stream_writer = clib.Stream.new(arolla.INT32)
     self.assertIsInstance(stream, clib.Stream)
     self.assertIsInstance(stream_writer, clib.StreamWriter)
     stream_writer.write(arolla.int32(0))
@@ -62,17 +62,16 @@ class StreamTest(parameterized.TestCase):
   def test_make_stream_fail(self):
     with self.assertRaisesWithLiteralMatch(
         TypeError,
-        'koladata.functor.parallel.clib.make_stream() takes exactly one'
-        ' argument (0 given)',
+        'Stream.new() takes exactly one argument (0 given)',
     ):
-      clib.make_stream()  # pytype: disable=missing-parameter
+      clib.Stream.new()  # pytype: disable=missing-parameter
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'expected QType, got object'
+        TypeError, 'Stream.new() expected a QType, got object'
     ):
-      clib.make_stream(object())  # pytype: disable=wrong-arg-types
+      clib.Stream.new(object())  # pytype: disable=wrong-arg-types
 
   def test_stream_writer_close_with_error(self):
-    stream, stream_writer = clib.make_stream(arolla.INT32)
+    stream, stream_writer = clib.Stream.new(arolla.INT32)
     stream_writer.write(arolla.int32(0))
     try:
       raise ValueError('Boom!')
@@ -84,7 +83,7 @@ class StreamTest(parameterized.TestCase):
       stream_reader.read_available()
 
   def test_stream_writer_orphaded(self):
-    stream, stream_writer = clib.make_stream(arolla.INT32)
+    stream, stream_writer = clib.Stream.new(arolla.INT32)
     stream_writer.write(arolla.int32(0))
     self.assertFalse(stream_writer.orphaned())
     del stream
@@ -94,7 +93,7 @@ class StreamTest(parameterized.TestCase):
     stream_writer.close()
 
   def test_stream_writer_write_fails(self):
-    _, stream_writer = clib.make_stream(arolla.INT32)
+    _, stream_writer = clib.Stream.new(arolla.INT32)
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'StreamWriter.write() takes exactly one argument (2 given)'
     ):
@@ -118,7 +117,7 @@ class StreamTest(parameterized.TestCase):
       stream_writer.close()
 
   def test_stream_writer_close_fail(self):
-    _, stream_writer = clib.make_stream(arolla.INT32)
+    _, stream_writer = clib.Stream.new(arolla.INT32)
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'expected an exception, got object'
     ):
@@ -135,7 +134,7 @@ class StreamTest(parameterized.TestCase):
       stream_writer.close()
 
   def test_stream_reader_read_available_limit(self):
-    stream, stream_writer = clib.make_stream(arolla.INT32)
+    stream, stream_writer = clib.Stream.new(arolla.INT32)
     for i in range(5):
       stream_writer.write(arolla.int32(i))
     stream_reader = stream.make_reader()
@@ -158,7 +157,7 @@ class StreamTest(parameterized.TestCase):
     self.assertIsNone(stream_reader.read_available())
 
   def test_stream_reader_read_available_fail(self):
-    stream, _ = clib.make_stream(arolla.INT32)
+    stream, _ = clib.Stream.new(arolla.INT32)
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'StreamReader.read_available() takes at most 1 argument (2 given)',
@@ -177,7 +176,7 @@ class StreamTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_stream_reader_read_available_cancellation(self):
-    stream, stream_writer = clib.make_stream(arolla.INT32)
+    stream, stream_writer = clib.Stream.new(arolla.INT32)
     stream_writer.write(arolla.int32(1))
 
     cancellation_context = arolla.abc.current_cancellation_context()
@@ -187,7 +186,7 @@ class StreamTest(parameterized.TestCase):
       stream.make_reader().read_available()
 
   def test_stream_reader_subscribe_once(self):
-    stream, stream_writer = clib.make_stream(arolla.INT32)
+    stream, stream_writer = clib.Stream.new(arolla.INT32)
     stream_reader = stream.make_reader()
 
     mock_callback_1 = mock.Mock()
@@ -218,7 +217,7 @@ class StreamTest(parameterized.TestCase):
     mock_callback_2.assert_called_once()
 
   def test_stream_reader_subscribe_once_fail(self):
-    stream, _ = clib.make_stream(arolla.INT32)
+    stream, _ = clib.Stream.new(arolla.INT32)
     stream_reader = stream.make_reader()
     with self.assertRaisesWithLiteralMatch(
         TypeError,
@@ -255,7 +254,7 @@ class StreamTest(parameterized.TestCase):
     def fn():
       raise ex
 
-    stream, stream_writer = clib.make_stream(arolla.INT32)
+    stream, stream_writer = clib.Stream.new(arolla.INT32)
     stream_writer.close()
     stream_reader = stream.make_reader()
     stream_reader.subscribe_once(eager_executor, fn)
@@ -268,7 +267,7 @@ class StreamTest(parameterized.TestCase):
     def fn():
       barrier.wait()
 
-    stream, stream_writer = clib.make_stream(arolla.INT32)
+    stream, stream_writer = clib.Stream.new(arolla.INT32)
     stream_writer.close()
     stream_reader = stream.make_reader()
     stream_reader.subscribe_once(default_executor, fn)
@@ -276,7 +275,7 @@ class StreamTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_stream_reader_subscribe_once_cancellation(self):
-    stream, _ = clib.make_stream(arolla.INT32)
+    stream, _ = clib.Stream.new(arolla.INT32)
 
     cancellation_context = arolla.abc.current_cancellation_context()
     assert cancellation_context is not None
@@ -287,7 +286,7 @@ class StreamTest(parameterized.TestCase):
     mock_callback.assert_not_called()
 
   def test_hijack_stream_qvalue_specialization(self):
-    stream, _ = clib.make_stream(arolla.INT32)
+    stream, _ = clib.Stream.new(arolla.INT32)
     tuple_stream_qtype = arolla.make_tuple_qtype(stream.qtype)
     arolla.abc.register_qvalue_specialization(tuple_stream_qtype, clib.Stream)
     tuple_stream = arolla.tuple(stream)
@@ -304,7 +303,7 @@ class StreamTest(parameterized.TestCase):
 
   @parameterized.parameters(None, 10.0)
   def test_stream_read_all_basic(self, timeout_seconds: float | None):
-    stream, writer = clib.make_stream(arolla.INT32)
+    stream, writer = clib.Stream.new(arolla.INT32)
 
     def gen_data():
       for i in range(1024):
@@ -318,7 +317,7 @@ class StreamTest(parameterized.TestCase):
     )
 
   def test_stream_read_all_closed_stream_with_zero_timeout(self):
-    stream, writer = clib.make_stream(arolla.INT32)
+    stream, writer = clib.Stream.new(arolla.INT32)
     writer.write(arolla.int32(42))
     writer.close()
     self.assertEqual(stream.read_all(timeout=0), [42])
@@ -331,13 +330,13 @@ class StreamTest(parameterized.TestCase):
       self.assertIsNotNone(cancellation_context)
       cancellation_context.cancel('Boom!')
 
-    stream, _ = clib.make_stream(arolla.INT32)
+    stream, _ = clib.Stream.new(arolla.INT32)
     default_executor.schedule(cancel)
     with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED] Boom!'):
       stream.read_all(timeout=1)
 
   def test_stream_read_all_fails(self):
-    stream, writer = clib.make_stream(arolla.INT32)
+    stream, writer = clib.Stream.new(arolla.INT32)
     writer.write(arolla.int32(1))
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'accepts 0 positional arguments but 1 was given'
@@ -370,7 +369,7 @@ class StreamTest(parameterized.TestCase):
       stream.read_all(timeout=None)
 
   def test_stream_read_all_timeout_without_cancellation_context(self):
-    stream, _ = clib.make_stream(arolla.INT32)
+    stream, _ = clib.Stream.new(arolla.INT32)
     barrier = threading.Barrier(2)
 
     def _impl():
@@ -388,7 +387,7 @@ class StreamTest(parameterized.TestCase):
   @parameterized.parameters(None, 10.0)
   def test_stream_yield_all_basic(self, timeout_seconds: float | None):
     n = 1024
-    stream, writer = clib.make_stream(arolla.INT32)
+    stream, writer = clib.Stream.new(arolla.INT32)
 
     it = stream.yield_all(timeout=timeout_seconds)
     self.assertIs(it, iter(it))
@@ -405,7 +404,7 @@ class StreamTest(parameterized.TestCase):
       next(it)
 
   def test_stream_yield_all_closed_stream_with_zero_timeout(self):
-    stream, writer = clib.make_stream(arolla.INT32)
+    stream, writer = clib.Stream.new(arolla.INT32)
     writer.write(arolla.int32(42))
     writer.close()
     self.assertEqual(list(stream.yield_all(timeout=0)), [42])
@@ -418,13 +417,13 @@ class StreamTest(parameterized.TestCase):
       self.assertIsNotNone(cancellation_context)
       cancellation_context.cancel('Boom!')
 
-    stream, _ = clib.make_stream(arolla.INT32)
+    stream, _ = clib.Stream.new(arolla.INT32)
     default_executor.schedule(cancel)
     with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED] Boom!'):
       list(stream.yield_all(timeout=1))
 
   def test_stream_yield_all_fails(self):
-    stream, writer = clib.make_stream(arolla.INT32)
+    stream, writer = clib.Stream.new(arolla.INT32)
     writer.write(arolla.int32(1))
     with self.assertRaisesWithLiteralMatch(
         TypeError, 'accepts 0 positional arguments but 1 was given'
@@ -458,7 +457,7 @@ class StreamTest(parameterized.TestCase):
       list(stream.yield_all(timeout=None))
 
   def test_stream_yield_all_timeout_without_cancellation_context(self):
-    stream, _ = clib.make_stream(arolla.INT32)
+    stream, _ = clib.Stream.new(arolla.INT32)
     barrier = threading.Barrier(2)
 
     def _impl():

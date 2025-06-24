@@ -135,7 +135,7 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
       res.read_all(timeout=None)
 
   def test_error_stream_failure(self):
-    stream, writer = stream_clib.make_stream(arolla.INT32)
+    stream, writer = stream_clib.Stream.new(arolla.INT32)
     writer.write(i32(1))
     writer.close(RuntimeError('Boom!'))
     fn = expr_fn(M.math.multiply(2, I.self))
@@ -147,7 +147,7 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_on_functor(self):
-    stream, writer = stream_clib.make_stream(arolla.INT32)
+    stream, writer = stream_clib.Stream.new(arolla.INT32)
     fn = expr_fn(M.core._identity_with_cancel(I.self))
     res = koda_internal_parallel.stream_map_unordered(
         default_executor, stream, fn, value_type_as=i32(0)
@@ -159,7 +159,7 @@ class KodaInternalParallelStreamMapUnorderedTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation_on_read(self):
-    stream, _ = stream_clib.make_stream(arolla.INT32)
+    stream, _ = stream_clib.Stream.new(arolla.INT32)
     fn = expr_fn(I.self)
     res = koda_internal_parallel.stream_map_unordered(
         default_executor, stream, fn, value_type_as=i32(0)

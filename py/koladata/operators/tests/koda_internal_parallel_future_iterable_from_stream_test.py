@@ -67,7 +67,7 @@ class KodaInternalParallelFutureIterableFromStreamTest(absltest.TestCase):
     )
 
   def test_waits_until_stream_closed(self):
-    stream, writer = clib.make_stream(qtypes.DATA_SLICE)
+    stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     expr = koda_internal_parallel.future_iterable_from_stream(stream)
     res = expr_eval.eval(expr)
     with self.assertRaisesRegex(ValueError, 'future has no value'):

@@ -31,9 +31,6 @@ PyTypeObject* PyStreamWriterType();
 // sets a python exception).
 PyTypeObject* PyStreamReaderType();
 
-// def make_stream(...)
-extern const PyMethodDef kDefPyMakeStream;
-
 }  // namespace koladata::python
 
 #endif  // THIRD_PARTY_PY_KOLADATA_FUNCTOR_PARALLEL_PY_STREAM_H_

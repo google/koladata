@@ -82,6 +82,8 @@ using ::koladata::functor::parallel::StreamWriterPtr;
 extern PyTypeObject PyStreamReader_Type;
 extern PyTypeObject PyStreamWriter_Type;
 extern PyTypeObject PyStreamYieldAll_Type;
+PyObject* PyStreamWriter_new(QTypePtr value_qtype,
+                             StreamWriterPtr stream_writer);
 
 struct PyStreamWriterObject final {
   PyObject_HEAD;
@@ -144,6 +146,34 @@ void PyStreamYieldAll_dealloc(PyObject* self) {
   PyObject_ClearWeakRefs(self);
   PyStreamYieldAll_fields(self).~Fields();
   Py_TYPE(self)->tp_free(self);
+}
+
+PyObject* PyStreamNew(PyObject* /*py_cls*/, PyObject* py_arg) {
+  auto* value_qtype = UnwrapPyQType(py_arg);
+  if (value_qtype == nullptr) {
+    PyErr_Clear();
+    return PyErr_Format(PyExc_TypeError,
+                        "Stream.new() expected a QType, got %s",
+                        Py_TYPE(py_arg)->tp_name);
+  }
+  auto [stream, stream_writer] = MakeStream(value_qtype);
+  auto py_stream =
+      PyObjectPtr::Own(WrapAsPyQValue(MakeStreamQValue(std::move(stream))));
+  if (py_stream == nullptr) {
+    return nullptr;
+  }
+  auto py_stream_writer = PyObjectPtr::Own(
+      PyStreamWriter_new(value_qtype, std::move(stream_writer)));
+  if (py_stream_writer == nullptr) {
+    return nullptr;
+  }
+  auto py_result = PyObjectPtr::Own(PyTuple_New(2));
+  if (py_result == nullptr) {
+    return nullptr;
+  }
+  PyTuple_SET_ITEM(py_result.get(), 0, py_stream.release());
+  PyTuple_SET_ITEM(py_result.get(), 1, py_stream_writer.release());
+  return py_result.release();
 }
 
 PyObject* PyStreamWriter_new(QTypePtr value_qtype,
@@ -596,6 +626,14 @@ PyObject* PyStreamReader_subscribe_once(PyObject* self, PyObject* py_tuple_args,
 
 PyMethodDef kPyStream_methods[] = {
     {
+        "new",
+        &PyStreamNew,
+        METH_O | METH_CLASS,
+        ("new(value_qtype, /)\n"
+         "--\n\n"
+         "Returns a new `tuple[Stream, StreamWriter]`."),
+    },
+    {
         "make_reader",
         &PyStream_make_reader,
         METH_NOARGS,
@@ -739,31 +777,6 @@ PyTypeObject PyStreamYieldAll_Type = {
     .tp_iternext = PyStreamYieldAll_iternext,
 };
 
-PyObject* PyMakeStream(PyObject* /*module*/, PyObject* py_arg) {
-  auto* value_qtype = UnwrapPyQType(py_arg);
-  if (value_qtype == nullptr) {
-    return nullptr;
-  }
-  auto [stream, stream_writer] = MakeStream(value_qtype);
-  auto py_stream =
-      PyObjectPtr::Own(WrapAsPyQValue(MakeStreamQValue(std::move(stream))));
-  if (py_stream == nullptr) {
-    return nullptr;
-  }
-  auto py_stream_writer = PyObjectPtr::Own(
-      PyStreamWriter_new(value_qtype, std::move(stream_writer)));
-  if (py_stream_writer == nullptr) {
-    return nullptr;
-  }
-  auto py_result = PyObjectPtr::Own(PyTuple_New(2));
-  if (py_result == nullptr) {
-    return nullptr;
-  }
-  PyTuple_SET_ITEM(py_result.get(), 0, py_stream.release());
-  PyTuple_SET_ITEM(py_result.get(), 1, py_stream_writer.release());
-  return py_result.release();
-}
-
 }  // namespace
 
 PyTypeObject* PyStreamType() {
@@ -798,14 +811,5 @@ PyTypeObject* PyStreamReaderType() {
   Py_XINCREF(&PyStreamReader_Type);
   return &PyStreamReader_Type;
 }
-
-const PyMethodDef kDefPyMakeStream = {
-    "make_stream",
-    &PyMakeStream,
-    METH_O,
-    ("make_stream(value_qtype, /)\n"
-     "--\n\n"
-     "Returns a tuple of Stream and StreamWriter objects."),
-};
 
 }  // namespace koladata::python

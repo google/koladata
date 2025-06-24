@@ -29,7 +29,7 @@ from koladata.operators import koda_internal_parallel
 I = input_container.InputContainer('I')
 i32 = arolla.int32
 
-STREAM_OF_INT32 = stream_clib.make_stream(arolla.INT32)[0].qtype
+STREAM_OF_INT32 = stream_clib.Stream.new(arolla.INT32)[0].qtype
 
 
 class KodaInternalParallelStreamInterleaveFromStreamTest(
@@ -37,7 +37,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
 ):
 
   def test_n_input_streams(self):
-    sstream, swriter = stream_clib.make_stream(STREAM_OF_INT32)
+    sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     res = expr_eval.eval(
         koda_internal_parallel.stream_interleave_from_stream(sstream)
     )
@@ -47,7 +47,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
     for i in range(128):
       n = random.randint(0, len(writers))
       if n == len(writers):
-        stream, writer = stream_clib.make_stream(arolla.INT32)
+        stream, writer = stream_clib.Stream.new(arolla.INT32)
         writers.append(writer)
         swriter.write(stream)
       writers[n].write(i32(i))
@@ -59,7 +59,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
     self.assertIsNone(reader.read_available())
 
   def test_empty_input_stream(self):
-    sstream, swriter = stream_clib.make_stream(STREAM_OF_INT32)
+    sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     res = expr_eval.eval(
         koda_internal_parallel.stream_interleave_from_stream(sstream)
     )
@@ -67,7 +67,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
     reader = res.make_reader()
     writers = []
     for _ in range(5):
-      stream, writer = stream_clib.make_stream(arolla.INT32)
+      stream, writer = stream_clib.Stream.new(arolla.INT32)
       writers.append(writer)
       swriter.write(stream)
       self.assertEqual(reader.read_available(), [])
@@ -78,7 +78,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
     self.assertIsNone(reader.read_available())
 
   def test_no_input_streams(self):
-    sstreams, swriter = stream_clib.make_stream(STREAM_OF_INT32)
+    sstreams, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     swriter.close()
     res = expr_eval.eval(
         koda_internal_parallel.stream_interleave_from_stream(sstreams)
@@ -88,7 +88,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
     self.assertIsNone(res.make_reader().read_available())
 
   def test_error_on_stream(self):
-    sstream, swriter = stream_clib.make_stream(STREAM_OF_INT32)
+    sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     res = expr_eval.eval(
         koda_internal_parallel.stream_interleave_from_stream(sstream)
     )
@@ -96,7 +96,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
     reader = res.make_reader()
     writers = []
     for _ in range(5):
-      stream, writer = stream_clib.make_stream(arolla.INT32)
+      stream, writer = stream_clib.Stream.new(arolla.INT32)
       writers.append(writer)
       swriter.write(stream)
       self.assertEqual(reader.read_available(), [])
@@ -105,7 +105,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
       reader.read_available()
 
   def test_error_non_stream_of_streams(self):
-    stream, writer = stream_clib.make_stream(arolla.INT32)
+    stream, writer = stream_clib.Stream.new(arolla.INT32)
     writer.close()
     with self.assertRaisesRegex(
         ValueError,
@@ -116,7 +116,7 @@ class KodaInternalParallelStreamInterleaveFromStreamTest(
       koda_internal_parallel.stream_interleave_from_stream(stream)
 
   def test_non_determinism(self):
-    sstream, swriter = stream_clib.make_stream(STREAM_OF_INT32)
+    sstream, swriter = stream_clib.Stream.new(STREAM_OF_INT32)
     swriter.close()
     stream_1, stream_2 = expr_eval.eval((
         koda_internal_parallel.stream_interleave_from_stream(sstream),

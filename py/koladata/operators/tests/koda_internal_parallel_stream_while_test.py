@@ -53,7 +53,7 @@ def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
     value_qtype = value_type_as.qtype
   else:
     value_qtype = qtypes.DATA_SLICE
-  result, writer = stream_clib.make_stream(value_qtype)
+  result, writer = stream_clib.Stream.new(value_qtype)
 
   def delay_fn():
     try:
@@ -286,9 +286,9 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     )
 
   def test_while_yields_interleaved_order(self):
-    stream0, writer0 = stream_clib.make_stream(qtypes.DATA_SLICE)
-    stream1, writer1 = stream_clib.make_stream(qtypes.DATA_SLICE)
-    stream2, writer2 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream0, writer0 = stream_clib.Stream.new(qtypes.DATA_SLICE)
+    stream1, writer1 = stream_clib.Stream.new(qtypes.DATA_SLICE)
+    stream2, writer2 = stream_clib.Stream.new(qtypes.DATA_SLICE)
 
     condition_fn = expr_fn(I.n < 2)
 
@@ -321,9 +321,9 @@ class KodaInternalParallelStreamWhileTest(parameterized.TestCase):
     self.assertIsNone(reader.read_available())
 
   def test_while_yields_chained_order(self):
-    stream0, writer0 = stream_clib.make_stream(qtypes.DATA_SLICE)
-    stream1, writer1 = stream_clib.make_stream(qtypes.DATA_SLICE)
-    stream2, writer2 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream0, writer0 = stream_clib.Stream.new(qtypes.DATA_SLICE)
+    stream1, writer1 = stream_clib.Stream.new(qtypes.DATA_SLICE)
+    stream2, writer2 = stream_clib.Stream.new(qtypes.DATA_SLICE)
 
     condition_fn = expr_fn(I.n < 2)
 

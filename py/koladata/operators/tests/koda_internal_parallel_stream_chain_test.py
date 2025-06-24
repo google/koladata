@@ -45,9 +45,9 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
     testing.assert_equal(res_list[2], ds(3))
 
   def test_does_maximum_possible_progress(self):
-    stream1, stream1_writer = clib.make_stream(arolla.INT32)
-    stream2, stream2_writer = clib.make_stream(arolla.INT32)
-    stream3, stream3_writer = clib.make_stream(arolla.INT32)
+    stream1, stream1_writer = clib.Stream.new(arolla.INT32)
+    stream2, stream2_writer = clib.Stream.new(arolla.INT32)
+    stream3, stream3_writer = clib.Stream.new(arolla.INT32)
     chained_stream = expr_eval.eval(
         koda_internal_parallel.stream_chain(I.stream1, I.stream2, I.stream3),
         stream1=stream1,
@@ -69,8 +69,8 @@ class KodaInternalParallelStreamChainTest(absltest.TestCase):
     self.assertIsNone(stream_reader.read_available())
 
   def test_error_in_one_stream(self):
-    stream1, stream1_writer = clib.make_stream(arolla.INT32)
-    stream2, stream2_writer = clib.make_stream(arolla.INT32)
+    stream1, stream1_writer = clib.Stream.new(arolla.INT32)
+    stream2, stream2_writer = clib.Stream.new(arolla.INT32)
     stream1_writer.close(AssertionError('test error'))
     stream2_writer.write(arolla.int32(1))
     stream2_writer.close()

@@ -63,7 +63,7 @@ def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
     value_qtype = value_type_as.qtype
   else:
     value_qtype = qtypes.DATA_SLICE
-  result, writer = stream_clib.make_stream(value_qtype)
+  result, writer = stream_clib.Stream.new(value_qtype)
 
   def delay_fn():
     try:
@@ -266,7 +266,7 @@ class KodaInternalParallelStreamWhileReturnsTest(parameterized.TestCase):
   def test_error_in_condition_stream(self):
     def condition_fn(**unused):
       del unused
-      result, writer = stream_clib.make_stream(qtypes.DATA_SLICE)
+      result, writer = stream_clib.Stream.new(qtypes.DATA_SLICE)
       writer.close(NotImplementedError('Boom!'))
       return result
 

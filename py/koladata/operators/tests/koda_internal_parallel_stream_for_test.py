@@ -53,7 +53,7 @@ def delayed_stream_make(*items, value_type_as=None, delay_per_item=0.005):
     value_qtype = value_type_as.qtype
   else:
     value_qtype = qtypes.DATA_SLICE
-  result, writer = stream_clib.make_stream(value_qtype)
+  result, writer = stream_clib.Stream.new(value_qtype)
 
   def delay_fn():
     try:
@@ -301,9 +301,9 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     )
 
   def test_for_yields_interleaved_order(self):
-    stream0, writer0 = stream_clib.make_stream(qtypes.DATA_SLICE)
-    stream1, writer1 = stream_clib.make_stream(qtypes.DATA_SLICE)
-    stream2, writer2 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream0, writer0 = stream_clib.Stream.new(qtypes.DATA_SLICE)
+    stream1, writer1 = stream_clib.Stream.new(qtypes.DATA_SLICE)
+    stream2, writer2 = stream_clib.Stream.new(qtypes.DATA_SLICE)
 
     def body_fn(n):
       return arolla.namedtuple(yields_interleaved=[stream1, stream2][n])
@@ -331,9 +331,9 @@ class KodaInternalParalleStreamForTest(absltest.TestCase):
     self.assertIsNone(reader.read_available())
 
   def test_for_yields_chained_order(self):
-    stream0, writer0 = stream_clib.make_stream(qtypes.DATA_SLICE)
-    stream1, writer1 = stream_clib.make_stream(qtypes.DATA_SLICE)
-    stream2, writer2 = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream0, writer0 = stream_clib.Stream.new(qtypes.DATA_SLICE)
+    stream1, writer1 = stream_clib.Stream.new(qtypes.DATA_SLICE)
+    stream2, writer2 = stream_clib.Stream.new(qtypes.DATA_SLICE)
 
     def body_fn(n):
       return arolla.namedtuple(yields=[stream1, stream2][n])

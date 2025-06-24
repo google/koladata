@@ -97,7 +97,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
     self.assertEqual(res.read_all(timeout=None), [5050.0])
 
   def test_streaming_mode(self):
-    stream, writer = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream, writer = stream_clib.Stream.new(qtypes.DATA_SLICE)
     fn = lambda acc, item: acc + item
     res = koda_internal_parallel.stream_reduce(
         default_executor, fn, stream, initial_value=0
@@ -155,7 +155,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
       res.read_all(timeout=None)
 
   def test_error_stream_failure(self):
-    stream, writer = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream, writer = stream_clib.Stream.new(qtypes.DATA_SLICE)
     writer.write(ds(1))
     writer.close(RuntimeError('Boom!'))
     fn = lambda acc, item: acc + item
@@ -167,7 +167,7 @@ class KodaInternalParallelStreamReduceTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_cancellation(self):
-    stream, _ = stream_clib.make_stream(qtypes.DATA_SLICE)
+    stream, _ = stream_clib.Stream.new(qtypes.DATA_SLICE)
     fn = lambda acc, item: acc + item
     res = koda_internal_parallel.stream_reduce(
         default_executor, fn, stream, initial_value=ds(0)

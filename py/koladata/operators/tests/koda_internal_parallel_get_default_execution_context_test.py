@@ -706,7 +706,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), g
     )
-    stream, writer = clib.make_stream(qtypes.DATA_SLICE)
+    stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res = transformed_fn(
         x=stream,
         return_type_as=koda_internal_parallel.stream_make(),
@@ -775,7 +775,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), g
     )
-    stream, writer = clib.make_stream(qtypes.DATA_SLICE)
+    stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res = transformed_fn(
         x=stream,
         return_type_as=koda_internal_parallel.stream_make(),

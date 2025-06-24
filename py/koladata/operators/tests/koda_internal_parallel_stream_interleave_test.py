@@ -50,7 +50,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
     streams = []
     writers = []
     for _ in range(n):
-      stream, writer = clib.make_stream(arolla.INT32)
+      stream, writer = clib.Stream.new(arolla.INT32)
       streams.append(stream)
       writers.append(writer)
     res = expr_eval.eval(koda_internal_parallel.stream_interleave(*streams))
@@ -66,7 +66,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
     self.assertIsNone(reader.read_available())
 
   def test_with_explicit_value_type_as(self):
-    stream, writer = clib.make_stream(arolla.INT32)
+    stream, writer = clib.Stream.new(arolla.INT32)
     res = expr_eval.eval(
         koda_internal_parallel.stream_interleave(
             stream, value_type_as=arolla.int32(0)
@@ -79,7 +79,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
     self.assertEqual(res.make_reader().read_available(), [1])
 
   def test_error_wrong_value_type_as(self):
-    stream, writer = clib.make_stream(arolla.INT32)
+    stream, writer = clib.Stream.new(arolla.INT32)
     writer.close()
     with self.assertRaisesRegex(
         ValueError,
@@ -92,8 +92,8 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
       )
 
   def test_error_mixed_stream_types(self):
-    stream_1, writer_1 = clib.make_stream(arolla.INT32)
-    stream_2, writer_2 = clib.make_stream(arolla.FLOAT32)
+    stream_1, writer_1 = clib.Stream.new(arolla.INT32)
+    stream_2, writer_2 = clib.Stream.new(arolla.FLOAT32)
     writer_1.close()
     writer_2.close()
     with self.assertRaisesRegex(
@@ -115,7 +115,7 @@ class KodaInternalParallelStreamInterleaveTest(parameterized.TestCase):
     streams = []
     writers = []
     for _ in range(5):
-      stream, writer = clib.make_stream(arolla.INT32)
+      stream, writer = clib.Stream.new(arolla.INT32)
       streams.append(stream)
       writers.append(writer)
     reader = expr_eval.eval(
