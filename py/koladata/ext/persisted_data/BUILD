@@ -119,3 +119,23 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
+
+py_library(
+    name = "data_slice_path",
+    srcs = ["data_slice_path.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "data_slice_path_test",
+    srcs = ["data_slice_path_test.py"],
+    deps = [
+        ":data_slice_path",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
