@@ -20,9 +20,11 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status_matchers.h"
 #include "absl/types/span.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -36,7 +38,11 @@
 namespace koladata::functor::parallel {
 namespace {
 
+using ::absl_testing::IsOk;
+using ::arolla::testing::QValueWith;
+using ::testing::_;
 using ::testing::ElementsAre;
+using ::testing::Pointee;
 
 // Note: More comprehensive tests are in
 // py/koladata/operators/tests/koda_internal_parallel_stream_while_loop_returns_test.py
@@ -44,9 +50,7 @@ TEST(StreamWhileReturnsTest, Basic) {
   constexpr int kN = 5;
   StreamWhileFunctor condition_fn = [](absl::Span<const arolla::TypedRef> args,
                                        absl::Span<const std::string> kwnames) {
-    EXPECT_EQ(args.size(), 2);
-    EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
-    EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
+    EXPECT_THAT(args, ElementsAre(QValueWith<int>(_), QValueWith<float>(_)));
     EXPECT_THAT(kwnames, ElementsAre("n", "returns"));
     if (args[0].UnsafeAs<int>() < kN) {
       return arolla::TypedValue::FromValue(
@@ -58,9 +62,7 @@ TEST(StreamWhileReturnsTest, Basic) {
   };
   StreamWhileFunctor body_fn = [](absl::Span<const arolla::TypedRef> args,
                                   absl::Span<const std::string> kwnames) {
-    EXPECT_EQ(args.size(), 2);
-    EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
-    EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
+    EXPECT_THAT(args, ElementsAre(QValueWith<int>(_), QValueWith<float>(_)));
     EXPECT_THAT(kwnames, ElementsAre("n", "returns"));
     return arolla::MakeNamedTuple(
         {
@@ -82,8 +84,9 @@ TEST(StreamWhileReturnsTest, Basic) {
               ->AsRef()));
   EXPECT_EQ(stream->value_qtype(), arolla::GetQType<float>());
   auto reader = stream->MakeReader();
-  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 0.5 + 1 + 2 + 3 + 4);
-  EXPECT_OK(*reader->TryRead().close_status());
+  EXPECT_THAT(reader->TryRead().item(),
+              Pointee(QValueWith<float>(0.5 + 1 + 2 + 3 + 4)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 // Note: More comprehensive tests are in
@@ -106,9 +109,7 @@ TEST(StreamWhileYieldsChainedTest, Basic) {
   };
   StreamWhileFunctor body_fn = [](absl::Span<const arolla::TypedRef> args,
                                   absl::Span<const std::string> kwnames) {
-    EXPECT_EQ(args.size(), 2);
-    EXPECT_EQ(args[0].GetType(), arolla::GetQType<int>());
-    EXPECT_EQ(args[1].GetType(), arolla::GetQType<float>());
+    EXPECT_THAT(args, ElementsAre(QValueWith<int>(_), QValueWith<float>(_)));
     EXPECT_THAT(kwnames, ElementsAre("n", "acc"));
     return arolla::MakeNamedTuple(
         {
@@ -140,11 +141,15 @@ TEST(StreamWhileYieldsChainedTest, Basic) {
                             ->AsRef()));
   EXPECT_EQ(stream->value_qtype(), arolla::GetQType<float>());
   auto reader = stream->MakeReader();
-  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), -1.0f);  // initial
-  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 0.5f);   // n = 0
-  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 1.5f);
-  EXPECT_THAT(reader->TryRead().item()->UnsafeAs<float>(), 3.5f);
-  EXPECT_OK(*reader->TryRead().close_status());  // n = 3
+  EXPECT_THAT(reader->TryRead().item(),  // initial
+              Pointee(QValueWith<float>(-1.0)));
+  EXPECT_THAT(reader->TryRead().item(),  // n = 0
+              Pointee(QValueWith<float>(0.5)));
+  EXPECT_THAT(reader->TryRead().item(),  // n = 1
+              Pointee(QValueWith<float>(1.5)));
+  EXPECT_THAT(reader->TryRead().item(),  // n = 2
+              Pointee(QValueWith<float>(3.5)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));  // n = 3
 }
 
 }  // namespace

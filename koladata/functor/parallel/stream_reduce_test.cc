@@ -26,6 +26,7 @@
 #include "absl/synchronization/notification.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
@@ -40,6 +41,7 @@ namespace {
 
 using ::absl_testing::IsOk;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::QValueWith;
 using ::testing::Pointee;
 
 absl::Status NeverFn(arolla::TypedRef /*acc*/, arolla::TypedRef /*item*/) {
@@ -62,9 +64,10 @@ TEST(StreamReduceTest, Basic) {
   writer->Write(arolla::TypedRef::FromValue(10));
   std::move(*writer).Close();
   auto reader = stream->MakeReader();
-  EXPECT_EQ(reader->TryRead().item()->UnsafeAs<float>(),
-            (((34 * 0.5 + 17) * 0.5 + 20) * 0.5 + 17) * 0.5 + 10);
-  EXPECT_OK(*reader->TryRead().close_status());
+  EXPECT_THAT(reader->TryRead().item(),
+              Pointee(QValueWith<float>(
+                  (((34 * 0.5 + 17) * 0.5 + 20) * 0.5 + 17) * 0.5 + 10)));
+  EXPECT_THAT(reader->TryRead().close_status(), Pointee(IsOk()));
 }
 
 TEST(StreamReduceTest, InputStreamError) {
@@ -104,10 +107,11 @@ TEST(StreamReduceTest, FunctorWrongReturnType) {
   writer->Write(arolla::TypedRef::FromValue(1));
   std::move(*writer).Close();
   auto reader = stream->MakeReader();
-  EXPECT_THAT(*reader->TryRead().close_status(),
-              StatusIs(absl::StatusCode::kInvalidArgument,
+  EXPECT_THAT(
+      reader->TryRead().close_status(),
+      Pointee(StatusIs(absl::StatusCode::kInvalidArgument,
                        "functor returned a value of the wrong type: expected "
-                       "FLOAT32, got FLOAT64"));
+                       "FLOAT32, got FLOAT64")));
 }
 
 TEST(StreamReduceTest, OrphanedOutputStream) {
@@ -182,8 +186,9 @@ TEST(StreamReduceTest, Stress) {
     auto notification = std::make_shared<absl::Notification>();
     reader->SubscribeOnce([notification] { notification->Notify(); });
     notification->WaitForNotification();
-    EXPECT_EQ(reader->TryRead().item()->UnsafeAs<int64_t>(),
-              static_cast<int64_t>(kItemCount) * (kItemCount - 1) / 2);
+    EXPECT_THAT(reader->TryRead().item(),
+                Pointee(QValueWith<int64_t>(static_cast<int64_t>(kItemCount) *
+                                            (kItemCount - 1) / 2)));
   }
   {
     auto notification = std::make_shared<absl::Notification>();

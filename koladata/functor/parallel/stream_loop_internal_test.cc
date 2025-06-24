@@ -26,6 +26,7 @@
 #include "absl/strings/string_view.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/testing/matchers.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
@@ -41,6 +42,7 @@ namespace koladata::functor::parallel::stream_loop_internal {
 namespace {
 
 using ::absl_testing::StatusIs;
+using ::arolla::testing::QValueWith;
 using ::testing::ElementsAre;
 using ::testing::Pointer;
 
@@ -203,8 +205,8 @@ TEST(VarsTest, NonEmpty) {
              arolla::TypedRef::FromValue(std::string("value"))},
             {"first", "second"});
   EXPECT_THAT(vars.kwnames(), ElementsAre("first", "second"));
-  EXPECT_EQ(vars.values()[0].UnsafeAs<int>(), 1);
-  EXPECT_EQ(vars.values()[1].UnsafeAs<std::string>(), "value");
+  EXPECT_THAT(vars.values(), ElementsAre(QValueWith<int>(1),
+                                         QValueWith<std::string>("value")));
   EXPECT_EQ(vars.mutable_values().data(), vars.values().data());
 }
 
@@ -212,13 +214,13 @@ TEST(VarsTest, UnnamedVariable) {
   Vars vars({arolla::TypedRef::FromValue(std::string("foo"))}, {});
   arolla::TypedRef initial_value_ref = vars.values()[0];
   EXPECT_THAT(vars.kwnames(), ElementsAre());
-  EXPECT_EQ(vars.values()[0].UnsafeAs<std::string>(), "foo");
+  EXPECT_THAT(vars.values(), ElementsAre(QValueWith<std::string>("foo")));
   arolla::TypedValue new_value = arolla::TypedValue::FromValue(1);
   vars.mutable_values()[0] = new_value.AsRef();
-  EXPECT_EQ(vars.values()[0].UnsafeAs<int>(), 1);
+  EXPECT_THAT(vars.values(), ElementsAre(QValueWith<int>(1)));
   // The reference to the initial value is guaranteed to remain valid throughout
   // the lifetime of `vars`.
-  EXPECT_EQ(initial_value_ref.UnsafeAs<std::string>(), "foo");
+  EXPECT_THAT(initial_value_ref, QValueWith<std::string>("foo"));
 }
 
 TEST(VarsTest, Update) {
@@ -235,16 +237,16 @@ TEST(VarsTest, Update) {
   {
     ASSERT_OK(vars.Update(
         *arolla::MakeNamedTuple({"x"}, {arolla::TypedRef::FromValue(2)})));
-    EXPECT_EQ(vars.values()[0].UnsafeAs<double>(), 1.5);
-    EXPECT_EQ(vars.values()[1].UnsafeAs<int>(), 2);
-    EXPECT_EQ(vars.values()[2].UnsafeAs<std::string>(), "value");
+    EXPECT_THAT(vars.values(),
+                ElementsAre(QValueWith<double>(1.5), QValueWith<int>(2),
+                            QValueWith<std::string>("value")));
   }
   {
     ASSERT_OK(vars.Update(*arolla::MakeNamedTuple(
         {"y"}, {arolla::TypedRef::FromValue(std::string("new_value"))})));
-    EXPECT_EQ(vars.values()[0].UnsafeAs<double>(), 1.5);
-    EXPECT_EQ(vars.values()[1].UnsafeAs<int>(), 2);
-    EXPECT_EQ(vars.values()[2].UnsafeAs<std::string>(), "new_value");
+    EXPECT_THAT(vars.values(),
+                ElementsAre(QValueWith<double>(1.5), QValueWith<int>(2),
+                            QValueWith<std::string>("new_value")));
   }
 }
 
