@@ -874,6 +874,7 @@ py_library(
         ":core",
         ":functor",
         ":iterables",
+        ":jagged_shape",
         ":koda_internal_functor",
         ":koda_internal_iterables",
         ":masking",

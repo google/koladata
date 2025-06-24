@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
 import threading
 import time
 
@@ -20,6 +21,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.expr import expr_eval
+from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
@@ -38,7 +40,24 @@ from koladata.types import data_slice
 from koladata.types import mask_constants
 
 ds = data_slice.DataSlice.from_vals
+I = input_container.InputContainer('I')
 kd = eager_op_utils.operators_container('kd')
+
+
+def _parallel_eval(func, *args, return_type_as=data_slice.DataSlice, **kwargs):
+  f = functor_factories.trace_py_fn(func)
+
+  transformed_fn = koda_internal_parallel.transform(
+      koda_internal_parallel.get_default_execution_context(), f
+  )
+  res = koda_internal_parallel.stream_from_future(
+      transformed_fn(
+          *[koda_internal_parallel.as_future(arg) for arg in args],
+          return_type_as=koda_internal_parallel.as_future(return_type_as),
+          **{k: koda_internal_parallel.as_future(v) for k, v in kwargs.items()},
+      )
+  ).eval()
+  return res.read_all(timeout=5.0)[0]
 
 
 class KodaInternalParallelGetDefaultExecutionContextTest(
@@ -1434,6 +1453,362 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     testing.assert_equal(
         arolla.tuple(*res.read_all(timeout=5.0)),
         arolla.tuple(ds(1)),
+    )
+
+  def test_map_simple_positional(self):
+    f = lambda x: user_facing_kd.functor.map(
+        ((lambda x: x + 1) & (x >= 3)) | (lambda x: x - 1),
+        x=x,
+    )
+    x = ds([1, 2, 3, 4])
+    testing.assert_equal(_parallel_eval(f, x), ds([0, 1, 4, 5]))
+
+  def test_map_simple_keyword(self):
+    f = lambda a, b: a + b
+    x = ds([[1, 2], [3, 4], [5, 6]])
+    y = ds([[7, 8], [9, 10], [11, 12]])
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(fn=f, a=x, b=y),
+            f=f,
+            x=x,
+            y=y,
+        ),
+        ds([[1 + 7, 2 + 8], [3 + 9, 4 + 10], [5 + 11, 6 + 12]]),
+    )
+
+  def test_map_item(self):
+    f = functor_factories.fn(I.x + I.y)
+    x = ds(1)
+    y = ds(2)
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
+            f=f,
+            x=x,
+            y=y,
+        ),
+        ds(3),
+    )
+
+  def test_map_include_missing(self):
+    f = functor_factories.fn((I.x | 0) + (I.y | 0))
+    x = ds(None)
+    y = ds(2)
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
+            f=f,
+            x=x,
+            y=y,
+        ),
+        ds(None),
+    )
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=y, y=x),
+            f=f,
+            x=y,
+            y=x,
+        ),
+        ds(None),
+    )
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(
+                x=x, y=y, include_missing=False, fn=f
+            ),
+            f=f,
+            x=x,
+            y=y,
+        ),
+        ds(None),
+    )
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(
+                x=x, y=y, include_missing=True, fn=f
+            ),
+            f=f,
+            x=x,
+            y=y,
+        ),
+        ds(2),
+    )
+
+  def test_map_item_missing(self):
+    f = ds(None)
+    x = ds(1)
+    y = ds(2)
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
+            f=f,
+            x=x,
+            y=y,
+        ),
+        ds(None),
+    )
+
+  def test_map_per_item(self):
+    def f(x):
+      self.assertEqual(x.get_ndim(), 0)
+      return x + 1
+
+    x = ds([[1, 2], [3]])
+    f = functor_factories.fn(f, use_tracing=False)
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x: user_facing_kd.functor.map(fn=f, x=x), f=f, x=x
+        ),
+        ds([[2, 3], [4]]),
+    )
+
+  def test_map_or_all_present(self):
+    f1 = functor_factories.fn(lambda x: x + 1)
+    f2 = functor_factories.fn(lambda x: x - 1)
+    x = ds([1, 2, 3, 4])
+    testing.assert_equal(
+        _parallel_eval(
+            lambda x, f1, f2: user_facing_kd.functor.map(
+                fn=f1 & (x >= 3) | f2, x=x
+            ),
+            x=x,
+            f1=f1,
+            f2=f2,
+        ),
+        ds([0, 1, 4, 5]),
+    )
+
+  def test_map_or_some_missing(self):
+    f = functor_factories.fn(lambda x: x + 1)
+    x = ds([1, 2, 3, 4])
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x: user_facing_kd.functor.map(fn=f & (x >= 3), x=x),
+            f=f,
+            x=x,
+        ),
+        ds([None, None, 4, 5]),
+    )
+
+  def test_map_or_with_default(self):
+    f = functor_factories.fn(lambda x: (x + 1) | 1)
+    x = ds([1, 2, 3, 4])
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x: user_facing_kd.functor.map(
+                fn=f, x=x, include_missing=True
+            ),
+            x=x & (x >= 3),
+            f=f,
+        ),
+        ds([1, 1, 4, 5]),
+    )
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x: user_facing_kd.functor.map(
+                fn=f, x=x, include_missing=False
+            ),
+            x=x & (x >= 3),
+            f=f,
+        ),
+        ds([None, None, 4, 5]),
+    )
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
+            x=x & (x >= 3),
+            f=f,
+        ),
+        ds([None, None, 4, 5]),
+    )
+
+  def test_map_empty_output(self):
+    f = functor_factories.fn(lambda x: x + 1)
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
+            f=f,
+            x=ds([]),
+        ),
+        ds([]),
+    )
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
+            f=f,
+            x=ds([None]),
+        ),
+        ds([None]),
+    )
+
+  def test_map_different_shapes(self):
+    f1 = functor_factories.fn(lambda x, y: x + y)
+    f2 = functor_factories.fn(lambda x, y: x - y)
+    x = ds([[1, None, 3], [4, 5, 6]])
+    y = ds(1)
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
+            f=ds([f1, f2]),
+            x=x,
+            y=y,
+        ),
+        ds([[2, None, 4], [3, 4, 5]]),
+    )
+
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
+            f=ds([f1, None]),
+            x=x,
+            y=y,
+        ),
+        ds([[2, None, 4], [None, None, None]]),
+    )
+
+    # Even with include_missing=True, the missing functor is not called.
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x, y: user_facing_kd.functor.map(
+                include_missing=True, fn=f, x=x, y=y
+            ),
+            f=ds([f1, None]),
+            x=x,
+            y=y,
+        ),
+        ds([[2, None, 4], [None, None, None]]),
+    )
+
+  def test_map_return_slice(self):
+    def f(x):
+      return x + ds([1, 2])
+
+    x = ds([1, 2, 3])
+    f = functor_factories.fn(f)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape('the functor in kd.map must evaluate to a DataItem'),
+    ):
+      _ = _parallel_eval(
+          lambda f, x: user_facing_kd.functor.map(fn=f, x=x), f=f, x=x
+      )
+
+  def test_map_return_bag(self):
+    def f(unused_x):
+      return user_facing_kd.bag()
+
+    x = ds([1, 2, 3])
+    f = functor_factories.fn(f)
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'The functor was called with `FUTURE[DATA_SLICE]` as the output'
+            ' type, but the computation resulted in type `FUTURE[DATA_BAG]`'
+            ' instead.'
+        ),
+    ):
+      _ = _parallel_eval(
+          lambda f, x: user_facing_kd.functor.map(fn=f, unused_x=x),
+          f=f,
+          x=x,
+      )
+
+  def test_map_adoption(self):
+    f = functor_factories.fn(lambda x: user_facing_kd.obj(x=x + 1))
+    x = ds([1, 2, 3])
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x: user_facing_kd.functor.map(fn=f, x=x), f=f, x=x
+        ).x.no_bag(),
+        ds([2, 3, 4]),
+    )
+
+  def test_map_incompatible_shapes(self):
+    f = functor_factories.fn(I.x + I.y)
+    f = ds([f, f])
+    x = ds([[1, 2], [3, 4], [5, 6]])
+    y = ds([[7, 8], [9, 10], [11, 12]])
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            'DataSlice with shape=JaggedShape(2) cannot be expanded to'
+            ' shape=JaggedShape(3, 2)'
+        ),
+    ):
+      _ = _parallel_eval(
+          lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
+          f=f,
+          x=x,
+          y=y,
+      )
+
+  def test_map_common_schema(self):
+    f1 = functor_factories.fn(lambda x: x.foo)
+    f2 = functor_factories.fn(lambda x: x.bar)
+    f = ds([f1, f2])
+    x = fns.new(foo=ds([1, 2]), bar=ds(['3', '4']))
+    testing.assert_equal(
+        _parallel_eval(
+            lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
+            f=f,
+            x=x,
+        ),
+        ds([1, '4']).with_bag(x.get_bag()),
+    )
+
+    y = fns.new(foo=fns.new(a=ds([1, 2])), bar=fns.new(a=ds([3, 4])))
+    with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
+      _ = _parallel_eval(
+          lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
+          f=f,
+          x=y,
+      )
+
+  def test_map_cancellable(self):
+    expr = lambda x: user_facing_kd.functor.map(
+        functor_factories.expr_fn(
+            arolla.M.core._identity_with_cancel(I.self, 'cancelled')
+        ),
+        x,
+    )
+    x = ds([1, 2, 3])
+    with self.assertRaisesRegex(ValueError, re.escape('cancelled')):
+      _parallel_eval(expr, x=x)
+
+  def test_map_non_functor_input_error(self):
+    with self.assertRaisesRegex(
+        ValueError, 'expected DATA_SLICE, got x: INT32'
+    ):
+      _parallel_eval(
+          lambda f: user_facing_kd.functor.map(fn=f), f=arolla.int32(1)
+      )
+
+  def test_map_actually_parallel(self):
+    barrier = threading.Barrier(2)
+
+    @optools.as_py_function_operator(
+        name='aux',
+    )
+    def wait_and_return_1():
+      barrier.wait()
+      return ds(1)
+
+    @optools.as_py_function_operator(
+        name='aux',
+    )
+    def wait_and_return_2():
+      barrier.wait()
+      return ds(2)
+
+    fs = ds([
+        functor_factories.trace_py_fn(wait_and_return_1),
+        functor_factories.trace_py_fn(wait_and_return_2),
+    ])
+    testing.assert_equal(
+        _parallel_eval(lambda fs: user_facing_kd.functor.map(fn=fs), fs),
+        ds([1, 2]),
     )
 
 

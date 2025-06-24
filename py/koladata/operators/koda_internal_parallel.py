@@ -25,6 +25,7 @@ from koladata.operators import bootstrap
 from koladata.operators import core
 from koladata.operators import functor
 from koladata.operators import iterables
+from koladata.operators import jagged_shape as jagged_shape_ops
 from koladata.operators import koda_internal_functor
 from koladata.operators import koda_internal_iterables
 from koladata.operators import masking
@@ -2613,6 +2614,234 @@ def _parallel_stream_for(
   )
 
 
+def _create_transform_fn_template():
+  """Creates a functor template calling transform operator.
+
+  Before calling the resulting functor, one needs to add a "context" variable
+  to it, which should evaluate to the execution context to use.
+
+  Returns:
+    A functor that takes a single positional argument, which is a functor to
+    be transformed to parallel, and returns its parallel version.
+  """
+  kind_enum = signature_utils.ParameterKind
+  V = input_container.InputContainer('V')  # pylint: disable=invalid-name
+  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+  return py_functors_base_py_ext.create_functor(
+      introspection.pack_expr(transform(V.context, I.fn)),
+      signature_utils.signature([
+          signature_utils.parameter('fn', kind_enum.POSITIONAL_ONLY),
+      ]),
+  )
+
+
+_TRANSFORM_FN_TEMPLATE = _create_transform_fn_template()
+
+
+def _create_transform_fn(context):
+  """Returns an expression creating functor from _TRANSFORM_FN_TEMPLATE."""
+  return core.clone(
+      _TRANSFORM_FN_TEMPLATE,
+      context=koda_internal_functor.pack_as_literal(context),
+  )
+
+
+def _create_pointwise_invoke_fn_template():
+  """Creates a functor template calling a functor at a given index.
+
+  Before calling the resulting functor, one needs to add four variables to it:
+  - `fn` should evaluate to a flat (1D) slice of functors in a parallel version
+    (taking and returning futures to DataSlices).
+  - `args` should evaluate to a tuple of flat (1D) slices (positional
+    arguments).
+  - `kwargs` should evaluate to a namedtuple of flat (1D) slices (keyword
+    arguments).
+  - `executor` should evaluate to the executor to use for converting DataItem
+    to DataSlice at the end (see Returns section for details).
+
+  `fn` and the items of `args` and `kwargs` must have the same size.
+
+  Returns:
+    A functor that takes a single positional argument `idx`, which is expected
+    to be a DataItem, calls `fn[idx]` passing it futures containing `arg[idx]`
+    for arg in `args` and `k=v[idx]` for k, v in the items of `kwargs`, takes
+    the result which is expected to be a future to a DataItem, and returns
+    a future to a 1D DataSlice with that item and size 1.
+  """
+  kind_enum = signature_utils.ParameterKind
+  V = input_container.InputContainer('V')  # pylint: disable=invalid-name
+  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+  # Note that "fn" is expected to be a "transformed to parallel" functor, so
+  # its inputs must be futures and it returns a future.
+  fn = slices.take(V.fn, I.idx)
+  args = M.core.map_tuple(slices.take, V.args, I.idx)
+  args = M.core.map_tuple(as_future, args)
+  kwargs = M.derived_qtype.upcast(M.qtype.qtype_of(V.kwargs), V.kwargs)
+  kwargs = M.core.map_tuple(slices.take, kwargs, I.idx)
+  kwargs = M.core.map_tuple(as_future, kwargs)
+  kwargs = M.core.apply_varargs(
+      M.namedtuple.make,
+      M.qtype.get_field_names(M.qtype.qtype_of(V.kwargs)),
+      kwargs,
+  )
+  res = arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      functor.call,
+      fn,
+      args=args,
+      return_type_as=as_future(None),
+      kwargs=kwargs,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+  @optools.as_lambda_operator('_verify_data_item_and_make_1d')
+  def _verify_data_item_and_make_1d(res):
+    res = assertion.with_assertion(
+        res,
+        slices.get_ndim(res) == 0,
+        'the functor in kd.map must evaluate to a DataItem',
+    )
+    return res.repeat(1)
+
+  res = async_eval(V.executor, _verify_data_item_and_make_1d, res)
+  res = stream_from_future(res)
+  return py_functors_base_py_ext.create_functor(
+      introspection.pack_expr(res),
+      signature_utils.signature([
+          signature_utils.parameter('idx', kind_enum.POSITIONAL_ONLY),
+      ]),
+  )
+
+
+_POINTWISE_INVOKE_FN_TEMPLATE = _create_pointwise_invoke_fn_template()
+
+
+def _create_pointwise_invoke_fn(executor, fn, args, kwargs):
+  """Returns an expression creating functor from _POINTWISE_INVOKE_FN_TEMPLATE."""
+  return core.clone(
+      _POINTWISE_INVOKE_FN_TEMPLATE,
+      executor=koda_internal_functor.pack_as_literal(executor),
+      fn=koda_internal_functor.pack_as_literal(fn),
+      args=koda_internal_functor.pack_as_literal(args),
+      kwargs=koda_internal_functor.pack_as_literal(kwargs),
+  )
+
+
+@optools.as_lambda_operator(
+    'koda_internal.parallel._internal_parallel_stream_map',
+)
+def _internal_parallel_stream_map(
+    context,
+    fn,
+    args,
+    include_missing,
+    kwargs,
+):
+  """Implementation helper for _parallel_stream_map."""
+  unique_fns = slices.unique(fn.flatten())
+  transform_fn = _create_transform_fn(context)
+  unique_transformed_fns = functor.map_(transform_fn, unique_fns)
+  transformed_fns = slices.translate(fn, unique_fns, unique_transformed_fns)
+  kwargs_tuple = M.derived_qtype.upcast(M.qtype.qtype_of(kwargs), kwargs)
+  aligned = M.core.apply_varargs(
+      slices.align,
+      M.core.concat_tuples(
+          M.core.make_tuple(transformed_fns), args, kwargs_tuple
+      ),
+  )
+  aligned_has = M.core.map_tuple(masking.has, aligned)
+  transformed_fns = tuple_ops.get_nth(aligned, 0)
+  mask_to_call = masking.cond(
+      include_missing == slices.bool_(True),
+      masking.has(transformed_fns),
+      M.core.reduce_tuple(masking.apply_mask, aligned_has),
+  )
+  transformed_fns = transformed_fns.flatten()
+  aligned_args_kwargs = M.core.slice_tuple(aligned, 1, -1)
+  args = M.core.slice_tuple(
+      aligned_args_kwargs, 0, M.qtype.get_field_count(M.qtype.qtype_of(args))
+  )
+  kwargs_tuple = M.core.slice_tuple(
+      aligned_args_kwargs,
+      M.qtype.get_field_count(M.qtype.qtype_of(args)),
+      -1,
+  )
+
+  @optools.as_lambda_operator('flatten')
+  def flatten(x):
+    return jagged_shape_ops.flatten(x)
+
+  args = M.core.map_tuple(flatten, args)
+  kwargs_tuple = M.core.map_tuple(flatten, kwargs_tuple)
+  kwargs = M.derived_qtype.downcast(M.qtype.qtype_of(kwargs), kwargs_tuple)
+  indices = slices.index(mask_to_call.flatten()).select_present()
+  indices_stream = stream_from_iterable(
+      koda_internal_iterables.from_sequence(
+          koda_internal_iterables.sequence_from_1d_slice(indices)
+      )
+  )
+  executor = get_executor_from_context(context)
+  invoke_fn = _create_pointwise_invoke_fn(
+      executor, transformed_fns, args, kwargs
+  )
+  res_stream = stream_chain_from_stream(
+      stream_map(
+          executor,
+          indices_stream,
+          invoke_fn,
+          value_type_as=stream_make(),
+      )
+  )
+  res_future = _parallel_stream_reduce_concat(
+      executor, res_stream, as_future(slices.slice_([])), ndim=as_future(1)
+  )
+
+  @optools.as_lambda_operator('restore_shape')
+  def restore_shape(res, mask_to_call):
+    return jagged_shape_ops.reshape(
+        slices.inverse_select(res, mask_to_call.flatten()),
+        jagged_shape_ops.get_shape(mask_to_call),
+    )
+
+  return async_eval(
+      executor,
+      restore_shape,
+      res_future,
+      mask_to_call,
+  )
+
+
+# qtype constraints for everything except context are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_stream_map',
+    qtype_constraints=[
+        qtype_utils.expect_execution_context(P.context),
+    ],
+)
+def _parallel_stream_map(
+    context,
+    fn,
+    args,
+    include_missing,
+    kwargs,
+):
+  """The parallel version of functor.map."""
+  executor = get_executor_from_context(context)
+  return unwrap_future_to_future(
+      async_eval(
+          executor,
+          _internal_parallel_stream_map,
+          context,
+          fn,
+          future_from_parallel(executor, args),
+          include_missing,
+          future_from_parallel(executor, kwargs),
+          optools.unified_non_deterministic_arg(),
+      )
+  )
+
+
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "core.make_tuple"
@@ -2778,6 +3007,14 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "kd.functor.for_"
     to_op: "koda_internal.parallel._parallel_stream_for"
+    argument_transformation {
+      arguments: EXECUTION_CONTEXT
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.functor.map"
+    to_op: "koda_internal.parallel._parallel_stream_map"
     argument_transformation {
       arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
