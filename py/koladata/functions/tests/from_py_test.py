@@ -852,7 +852,8 @@ assigned schema: ENTITY(x=INT32)'''
     testing.assert_equal(obj.c.no_bag(), ds(b'xyz'))
     self.assertFalse(b.is_dict())
 
-  def test_dataclasses_with_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclasses_with_schema(self, from_py_fn):
 
     @dataclasses.dataclass
     class TestClass:
@@ -870,7 +871,7 @@ assigned schema: ENTITY(x=INT32)'''
         c=schema_constants.BYTES,
         d=list_schema2,
     ).eval()
-    entity = fns.from_py(
+    entity = from_py_fn(
         TestClass(42, NestedKlass('abc'), b'xyz', []), schema=schema
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
@@ -884,16 +885,35 @@ assigned schema: ENTITY(x=INT32)'''
         entity.d[:], ds([], list_schema1.with_bag(entity.get_bag()))
     )
 
-  def test_dataclasses_with_incomplete_schema(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclasses_with_incomplete_schema(self, from_py_fn):
     schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
     ).eval()
-    entity = fns.from_py(
+    entity = from_py_fn(
         TestKlass(42, NestedKlass('abc'), b'xyz'), schema=schema
     )
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(fns.dir(entity), ['a'])
     testing.assert_equal(entity.a.no_bag(), ds(42.0))
+
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclasses_with_incomplete_schema_wrong_type(self, from_py_fn):
+    schema = kde.schema.new_schema(
+        a=schema_constants.FLOAT32,
+    ).eval()
+    is_v1 = from_py_fn == fns.from_py
+    err_type = ValueError if is_v1 else AttributeError
+    err_msg = (
+        'schema is incompatible'
+        if is_v1
+        else "'float' object has no attribute 'a'"
+    )
+    with self.assertRaisesRegex(
+        err_type,
+        err_msg,
+    ):
+      _ = from_py_fn(3.14, schema=schema)
 
   def test_list_of_dataclasses(self):
     obj = fns.from_py([NestedKlass('a'), NestedKlass('b')])
@@ -913,7 +933,8 @@ assigned schema: ENTITY(x=INT32)'''
         obj.l[:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
     )
 
-  def test_dataclass_with_koda_obj(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclass_with_koda_obj(self, from_py_fn):
     @dataclasses.dataclass
     class Test:
       koda: data_slice.DataSlice
@@ -921,7 +942,7 @@ assigned schema: ENTITY(x=INT32)'''
     schema = kde.schema.new_schema(
         koda=kde.schema.new_schema(x=schema_constants.INT32)
     ).eval()
-    entity = fns.from_py(Test(fns.new(x=1, schema=schema.koda)), schema=schema)
+    entity = from_py_fn(Test(fns.new(x=1, schema=schema.koda)), schema=schema)
     testing.assert_equal(entity.get_schema().no_bag(), schema.no_bag())
     self.assertCountEqual(fns.dir(entity), ['koda'])
     koda = entity.koda

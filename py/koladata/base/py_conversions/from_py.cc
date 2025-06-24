@@ -42,6 +42,7 @@
 #include "koladata/object_factories.h"
 #include "koladata/shape_utils.h"
 #include "py/koladata/base/boxing.h"
+#include "py/koladata/base/py_conversions/dataclasses_util.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::python {
@@ -78,6 +79,8 @@ class FromPyConverter {
   }
 
  private:
+  // Returns true if the given Python objects should be treated as a list or
+  // tuple, either because of the schema or because of the Python types.
   bool IsListOrTuple(const std::vector<PyObject*>& py_objects,
                      const std::optional<DataSlice>& schema) {
     if (IsStructSchema(schema)) {
@@ -90,6 +93,8 @@ class FromPyConverter {
     return PyList_Check(py_objects[0]) || PyTuple_Check(py_objects[0]);
   }
 
+  // Returns true if the given Python objects should be treated as a dict,
+  // either because of the schema or because of the Python types.
   bool IsDict(const std::vector<PyObject*>& py_objects,
               const std::optional<DataSlice>& schema) {
     if (IsStructSchema(schema)) {
@@ -119,6 +124,23 @@ class FromPyConverter {
     DCHECK(!schema.has_value());
     return DataSlice::Create(DataItem(schema::kObject),
                              DataItem(schema::kSchema), nullptr);
+  }
+
+  // Returns true if the given Python objects should be treated as an entity by
+  // checking the schema. If all objects are None, returns false.
+  bool IsEntity(const std::vector<PyObject*>& py_objects,
+                const std::optional<DataSlice>& schema) {
+    if (!schema || !schema->IsEntitySchema()) {
+      return false;
+    }
+    // TODO: check `IsPrimitive` before calling this function. to
+    // have a better error message.
+    for (PyObject* py_obj : py_objects) {
+      if (py_obj != Py_None) {
+        return true;
+      }
+    }
+    return false;
   }
 
   absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
@@ -205,6 +227,16 @@ class FromPyConverter {
     }
     if (IsDict(py_objects, schema)) {
       return ConvertDict(py_objects, cur_shape, schema);
+    }
+    // This is different from the above, because we want to separate cases when
+    // there is schema and when there is not:
+    // - check if PyObject is a dataclass is expensive
+    // - if there is schema, we get object attributes from it; otherwise we get
+    // them from PyObject.
+    // We don't want to call this if all py_objects are None.
+    if (IsEntity(py_objects, schema)) {
+      DCHECK(schema.has_value());
+      return ConvertEntities(py_objects, cur_shape, *schema);
     }
 
     // We are left with primitives or DataItems here.
@@ -343,6 +375,61 @@ class FromPyConverter {
     return dict;
   }
 
+  absl::StatusOr<DataSlice> ConvertEntities(
+      const std::vector<PyObject*>& py_objects,
+      const DataSlice::JaggedShape& cur_shape, const DataSlice& schema) {
+    DCHECK(schema.IsEntitySchema());
+
+    ASSIGN_OR_RETURN(DataSlice::AttrNamesSet attr_names, schema.GetAttrNames());
+
+    std::vector<absl::string_view> attr_names_vec(attr_names.begin(),
+                                                  attr_names.end());
+    // Each element of the vector is a list of Python values for the
+    // corresponding attribute. This is needed to process py_objects for a
+    // single attribute in a single pass.
+    std::vector<std::vector<PyObject*>> attr_python_values_vec(
+        attr_names.size());
+    for (PyObject* py_obj : py_objects) {
+      if (py_obj == Py_None) {
+        // TODO: find a smarter (and maybe faster) way to do this,
+        // p.ex. by using `nullptr` instead of `None` in
+        // `attr_python_values_vec` and skip recursive calls by handling them
+        // specially in `ConvertImpl`.
+        for (int i = 0; i < attr_names.size(); ++i) {
+          attr_python_values_vec[i].push_back(Py_None);
+        }
+        continue;
+      }
+
+      ASSIGN_OR_RETURN(
+          std::vector<PyObject*> attr_result,
+          // TODO(b/379122942) consider creating one call to GetAttrValues for
+          // all py_objects, if it makes the code faster.
+          dataclasses_util_.GetAttrValues(py_obj, attr_names_vec));
+
+      for (int i = 0; i < attr_result.size(); ++i) {
+        attr_python_values_vec[i].push_back(attr_result[i]);
+      }
+    }
+
+    std::vector<std::optional<DataSlice>> attr_schemas(attr_names_vec.size());
+    for (int i = 0; i < attr_names_vec.size(); ++i) {
+      ASSIGN_OR_RETURN(attr_schemas[i], schema.GetAttr(attr_names_vec[i]));
+    }
+    DCHECK_EQ(attr_schemas.size(), attr_python_values_vec.size());
+
+    std::vector<DataSlice> values;
+    values.reserve(attr_names.size());
+    for (int i = 0; i < attr_names.size(); ++i) {
+      ASSIGN_OR_RETURN(
+          values.emplace_back(),
+          ConvertImpl(attr_python_values_vec[i], cur_shape, attr_schemas[i]));
+    }
+
+    return EntityCreator::Shaped(GetBag(), cur_shape, attr_names_vec, values,
+                                 schema);
+  }
+
   const DataBagPtr& GetBag() {
     if (ABSL_PREDICT_FALSE(db_ == nullptr)) {
       db_ = DataBag::Empty();
@@ -353,6 +440,7 @@ class FromPyConverter {
 
   DataBagPtr db_;
   AdoptionQueue& adoption_queue_;
+  DataClassesUtil dataclasses_util_;
 };
 
 }  // namespace

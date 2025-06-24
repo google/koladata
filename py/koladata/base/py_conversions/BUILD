@@ -63,6 +63,7 @@ cc_library(
     srcs = ["from_py.cc"],
     hdrs = ["from_py.h"],
     deps = [
+        ":dataclasses_util",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
