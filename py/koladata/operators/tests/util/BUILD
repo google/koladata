@@ -54,6 +54,7 @@ py_library(
 
 py_library(
     name = "qtypes",
+    testonly = False,  # Exported to kd.testing.
     srcs = ["qtypes.py"],
     deps = [
         "//py:python_path",

@@ -29,6 +29,7 @@ py_library(
     deps = [
         ":test_utils",
         "//py:python_path",
+        "//py/koladata/operators/tests/util:qtypes",
     ],
 )
 

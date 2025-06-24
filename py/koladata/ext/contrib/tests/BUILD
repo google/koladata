@@ -14,8 +14,23 @@
 
 # Tests for external contributions.
 
+load("@rules_python//python:defs.bzl", "py_test")
+
 package(default_visibility = [
     "//koladata:internal",
 ])
 
 licenses(["notice"])
+
+py_test(
+    name = "value_counts_test",
+    srcs = ["value_counts_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata:kd_ext",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)

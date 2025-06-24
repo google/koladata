@@ -15,5 +15,6 @@
 """Initializes Koda extension operators."""
 
 from koladata import kd
+from koladata.ext.contrib import operators as _
 
-kde_ext = kd.optools.make_operators_container('kd_ext').kd_ext
+kde_ext = kd.optools.make_operators_container('kd_ext', 'kd_ext.contrib').kd_ext

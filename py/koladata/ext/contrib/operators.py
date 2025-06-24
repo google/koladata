@@ -13,3 +13,27 @@
 # limitations under the License.
 
 """Contrib operators."""
+
+from koladata import kd
+
+
+@kd.optools.add_to_registry()
+@kd.optools.as_lambda_operator('kd_ext.contrib.value_counts')
+def value_counts(x):
+  """Returns Dicts mapping entries in `x` to their count over the last dim.
+
+  Similar to Pandas' `value_counts`.
+
+  The output is a `x.get_ndim() - 1`-dimensional DataSlice containing one
+  Dict per aggregated row in `x`. Each Dict maps the values to the number of
+  occurrences (as an INT64) in the final dimension.
+
+  Example:
+    x = kd.slice([[4, 3, 4], [None, 2], [2, 1, 4, 1], [None]])
+    kd_ext.contrib.value_counts(x)
+      # -> [Dict{4: 2, 3: 1}, Dict{2: 1}, Dict{2: 1, 1: 2, 4: 1}, Dict{}]
+
+  Args:
+    x: the non-scalar DataSlice to compute occurrences for.
+  """
+  return kd.lazy.dict(kd.lazy.unique(x), kd.lazy.agg_count(kd.lazy.group_by(x)))

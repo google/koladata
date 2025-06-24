@@ -35,7 +35,14 @@ py_library(
 py_library(
     name = "operators",
     srcs = ["operators.py"],
-    deps = ["//py:python_path"],
+    visibility = [
+        "//koladata:internal",
+        "//py/koladata/ext/operators:__pkg__",
+    ],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
 )
 
 arolla_operator_package_snapshot(

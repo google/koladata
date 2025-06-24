@@ -10681,6 +10681,26 @@ External contributions not necessarily endorsed by Koda.
 
 **Operators**
 
+### `kd_ext.contrib.value_counts(x)` {#kd_ext.contrib.value_counts}
+
+``` {.no-copy}
+Returns Dicts mapping entries in `x` to their count over the last dim.
+
+Similar to Pandas' `value_counts`.
+
+The output is a `x.get_ndim() - 1`-dimensional DataSlice containing one
+Dict per aggregated row in `x`. Each Dict maps the values to the number of
+occurrences (as an INT64) in the final dimension.
+
+Example:
+  x = kd.slice([[4, 3, 4], [None, 2], [2, 1, 4, 1], [None]])
+  kd_ext.contrib.value_counts(x)
+    # -> [Dict{4: 2, 3: 1}, Dict{2: 1}, Dict{2: 1, 1: 2, 4: 1}, Dict{}]
+
+Args:
+  x: the non-scalar DataSlice to compute occurrences for.
+```
+
 </section>
 
 ### kd_ext.experimental {#kd_ext.experimental}

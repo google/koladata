@@ -43,5 +43,6 @@ py_library(
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
+        "//py/koladata/ext/contrib:operators",
     ],
 )

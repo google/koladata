@@ -96,6 +96,7 @@ types.StreamWriter = _functor_parallel_clib.StreamWriter
 ### Koda QTypes.
 qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))
 qtypes.DATA_SLICE = _qtypes.DATA_SLICE
+qtypes.NON_DETERMINISTIC_TOKEN = _qtypes.NON_DETERMINISTIC_TOKEN
 qtypes.DATA_BAG = _qtypes.DATA_BAG
 qtypes.EXECUTOR = _qtypes.EXECUTOR
 

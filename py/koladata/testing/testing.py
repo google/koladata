@@ -14,6 +14,7 @@
 
 """A front-end module for kd.testing.*."""
 
+from koladata.operators.tests.util import qtypes as _test_qtypes
 from koladata.testing import test_utils as _test_utils
 
 assert_equal = _test_utils.assert_equal
@@ -27,3 +28,5 @@ assert_unordered_equal = _test_utils.assert_unordered_equal
 assert_non_deterministic_exprs_equal = (
     _test_utils.assert_non_deterministic_exprs_equal
 )
+
+DETECT_SIGNATURES_QTYPES = _test_qtypes.DETECT_SIGNATURES_QTYPES
