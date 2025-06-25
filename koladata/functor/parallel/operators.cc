@@ -33,6 +33,7 @@
 #include "koladata/functor/parallel/make_executor.h"
 #include "koladata/functor/parallel/stream_operators.h"
 #include "koladata/functor/parallel/stream_qtype.h"
+#include "koladata/functor/parallel/testing_stream_prime.h"
 #include "koladata/functor/parallel/transform.h"
 #include "koladata/internal/non_deterministic_token.h"
 
@@ -51,6 +52,11 @@ OPERATOR_FAMILY("koda_internal.parallel._stream_while_returns",
                 std::make_unique<StreamWhileReturnsOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel._stream_while_yields",
                 std::make_unique<StreamWhileYieldsOperatorFamily>());
+// TODO: move testing_*_prime operators to a separate file.
+OPERATOR_FAMILY("koda_internal.parallel._testing_iterable_prime",
+                std::make_unique<TestingIterableMakePrimeOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel._testing_stream_prime",
+                std::make_unique<TestingStreamMakePrimeOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.as_future",
                 std::make_unique<AsFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.async_eval",

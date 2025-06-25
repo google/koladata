@@ -16,15 +16,34 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functions import functions as fns
+from koladata.functor import functor_factories
 from koladata.operators import bootstrap
 from koladata.operators import koda_internal_parallel
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.functor.parallel import execution_config_pb2
 
 I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
+
+
+_REPLACEMENTS = fns.new(
+    operator_replacements=[
+        fns.new(
+            from_op='koda_internal.parallel._testing_iterable_prime',
+            to_op='koda_internal.parallel._testing_stream_prime_with_future',
+            argument_transformation=fns.new(
+                arguments=[
+                    execution_config_pb2.ExecutionConfig.ArgumentTransformation.EXECUTOR,
+                    execution_config_pb2.ExecutionConfig.ArgumentTransformation.ORIGINAL_ARGUMENTS,
+                ],
+            ),
+        ),
+    ],
+)
 
 
 # We do not have a Python API for fetching the config from the context,
@@ -68,6 +87,25 @@ class KodaInternalParallelCreateExecutionContextTest(absltest.TestCase):
         view.has_koda_view(
             koda_internal_parallel.create_execution_context(I.x, I.y)
         )
+    )
+
+  def test_custom_mapping(self):
+    max_value = ds(1000)
+    primes = functor_factories.expr_fn(
+        koda_internal_parallel._internal_testing_iterable_prime(max_value),
+    )
+    executor = arolla.eval(koda_internal_parallel.get_default_executor())
+    context = arolla.eval(
+        koda_internal_parallel.create_execution_context(executor, _REPLACEMENTS)
+    )
+    transformed_fn = koda_internal_parallel.transform(context, primes)
+    res = transformed_fn(
+        ds(6),
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    self.assertListEqual(
+        sorted(res.read_all(timeout=5.0))[:5],
+        [2, 3, 5, 7, 11],
     )
 
 

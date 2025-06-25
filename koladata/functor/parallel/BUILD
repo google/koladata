@@ -585,6 +585,7 @@ cc_library(
         ":make_executor",
         ":stream_operators",
         ":stream_qtype",
+        ":testing_stream_prime",
         ":transform",
         "//koladata:data_slice_qtype",
         "//koladata/internal:non_deterministic_token",
@@ -878,6 +879,29 @@ cc_test(
         "@com_google_arolla//arolla/qtype/testing",
         "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
+    name = "testing_stream_prime",
+    srcs = ["testing_stream_prime.cc"],
+    hdrs = ["testing_stream_prime.h"],
+    deps = [
+        ":executor",
+        ":stream",
+        ":stream_qtype",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/iterables:iterable_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/memory",
+        "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/sequence",
+        "@com_google_arolla//arolla/util:status_backport",
     ],
 )
 
