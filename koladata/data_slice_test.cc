@@ -70,7 +70,6 @@ using ::arolla::CreateDenseArray;
 using ::arolla::CreateFullDenseArray;
 using ::arolla::GetQType;
 using ::arolla::TypedValue;
-using ::arolla::testing::CausedBy;
 using ::koladata::internal::DataItem;
 using ::koladata::internal::DataSliceImpl;
 using ::koladata::internal::testing::DataItemWith;
@@ -5371,14 +5370,10 @@ TEST(DataSliceTest, SchemaSlice) {
   auto b = test::DataItem(2.71);
 
   auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      auto y,
-      EntityCreator::FromAttrs(
-          db, {std::string("a"), std::string("b")}, {a, b}));
-  ASSERT_OK_AND_ASSIGN(
-      auto o,
-      EntityCreator::FromAttrs(
-          db, {std::string("x"), std::string("y")}, {x, y}));
+  ASSERT_OK_AND_ASSIGN(auto y,
+                       EntityCreator::FromAttrs(db, {"a", "b"}, {a, b}));
+  ASSERT_OK_AND_ASSIGN(auto o,
+                       EntityCreator::FromAttrs(db, {"x", "y"}, {x, y}));
 
   auto schema = o.GetSchema();
   ASSERT_OK_AND_ASSIGN(auto x_schema, schema.GetAttr("x"));
