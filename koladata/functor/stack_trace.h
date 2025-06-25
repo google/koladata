@@ -34,6 +34,7 @@ inline constexpr absl::string_view kLineTextAttrName = "line_text";
 
 // Arolla error payload with the semantic meaning of "additional stack trace
 // frame to the GetCause()".
+// TODO: b/425293814 - Remove in favor of arolla::SourceLocationPayload.
 struct StackTraceFrame {
   std::string function_name;
   std::string file_name;
