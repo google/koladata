@@ -156,6 +156,26 @@ TEST(StreamInterleaveTest, AddError) {
   std::move(*writers[1]).Close();
 }
 
+TEST(StreamInterleaveTest, Orphaned) {
+  {
+    auto [stream, writer] = MakeStream(GetQType<int>());
+    StreamInterleave interleave_helper(std::move(writer));
+    auto reader = stream->MakeReader();
+    EXPECT_FALSE(interleave_helper.Orphaned());
+    stream.reset();
+    EXPECT_FALSE(interleave_helper.Orphaned());
+    reader.reset();
+    EXPECT_TRUE(interleave_helper.Orphaned());
+  }
+  {
+    auto [stream, writer] = MakeStream(GetQType<int>());
+    StreamInterleave interleave_helper(std::move(writer));
+    auto reader = stream->MakeReader();
+    interleave_helper.AddError(absl::InvalidArgumentError("Boom!"));
+    EXPECT_TRUE(interleave_helper.Orphaned());
+  }
+}
+
 TEST(StreamInterleaveTest, MultithreadedInterleaving) {
   constexpr int kItemCount = 1000;
   auto [stream, writer] = MakeStream(GetQType<int>());
@@ -325,6 +345,31 @@ TEST(StreamChainTest, AddError) {
   std::move(*writers[1]).Close();
   EXPECT_THAT(reader->TryRead().close_status(),
               Pointee(StatusIs(absl::StatusCode::kInvalidArgument, "Boom!")));
+}
+
+TEST(StreamChainTest, Orphaned) {
+  {
+    auto [stream, writer] = MakeStream(GetQType<int>());
+    StreamChain chain_helper(std::move(writer));
+    auto reader = stream->MakeReader();
+    EXPECT_FALSE(chain_helper.Orphaned());
+    stream.reset();
+    EXPECT_FALSE(chain_helper.Orphaned());
+    reader.reset();
+    EXPECT_TRUE(chain_helper.Orphaned());
+  }
+  {
+    auto [stream, writer] = MakeStream(GetQType<int>());
+    StreamChain chain_helper(std::move(writer));
+    auto [inner_stream, inner_writer] = MakeStream(GetQType<int>());
+    chain_helper.Add(std::move(inner_stream));
+    auto reader = stream->MakeReader();
+    EXPECT_FALSE(chain_helper.Orphaned());
+    chain_helper.AddError(absl::InvalidArgumentError("Boom!"));
+    EXPECT_FALSE(chain_helper.Orphaned());
+    std::move(*inner_writer).Close(absl::InvalidArgumentError("Kaboom!"));
+    EXPECT_TRUE(chain_helper.Orphaned());
+  }
 }
 
 TEST(StreamChainTest, MultithreadedChaining) {

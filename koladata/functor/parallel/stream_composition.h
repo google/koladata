@@ -35,6 +35,11 @@ class StreamInterleave {
   StreamInterleave(StreamInterleave&&) = default;
   StreamInterleave& operator=(StreamInterleave&&) = default;
 
+  // Returns true if further manipulations on the resulting stream can no longer
+  // reach any reader (e.g., if no potential readers are left, or the stream has
+  // already been closed).
+  bool Orphaned() const;
+
   // Adds one more input stream to the interleave.
   void Add(const StreamPtr absl_nonnull& stream);
 
@@ -69,6 +74,11 @@ class StreamChain {
   // Movable but non-copyable.
   StreamChain(StreamChain&&) = default;
   StreamChain& operator=(StreamChain&&) = default;
+
+  // Returns true if further manipulations on the resulting stream can no longer
+  // reach any reader (e.g., if no potential readers are left, or the stream has
+  // already been closed).
+  bool Orphaned() const;
 
   // Adds one more input stream to the chain.
   void Add(const StreamPtr absl_nonnull& stream);

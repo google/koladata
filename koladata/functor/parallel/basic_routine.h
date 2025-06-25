@@ -63,6 +63,9 @@ class BasicRoutineHooks {
   //
   // Returning `true` means the computation is no longer needed and the routine
   // should stop.
+  //
+  // For example, if the routine generates an output stream, this method
+  // may check if that stream is orphaned.
   virtual bool Interrupted() const = 0;
 
   // The routine calls this method when it receives a cancellation signal.

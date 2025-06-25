@@ -82,6 +82,10 @@ class StreamWriter {
 
   // Returns true if further writes can no longer reach any reader (e.g.,
   // if no potential readers are left, or the stream has already been closed).
+  //
+  // Note: This method is thread-safe and involves no blocking operations,
+  // making it safe to call from any thread with "owning" access to the stream
+  // writer at any time.
   virtual bool Orphaned() const = 0;
 
   // Writes a value to the stream.

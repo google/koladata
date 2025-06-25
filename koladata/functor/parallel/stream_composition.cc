@@ -35,6 +35,8 @@ class StreamInterleave::Scheduler {
 
   ~Scheduler() { writer_->TryClose(absl::OkStatus()); }
 
+  bool Orphaned() const { return writer_->Orphaned(); }
+
   void AddItem(arolla::TypedRef item) { (void)writer_->TryWrite(item); }
 
   void AddError(absl::Status status) {
@@ -75,6 +77,8 @@ class StreamInterleave::Scheduler {
 StreamInterleave::StreamInterleave(StreamWriterPtr absl_nonnull writer)
     : scheduler_(std::make_shared<Scheduler>(std::move(writer))) {}
 
+bool StreamInterleave::Orphaned() const { return scheduler_->Orphaned(); }
+
 void StreamInterleave::Add(const StreamPtr absl_nonnull& stream) {
   DCHECK(stream != nullptr);
   DCHECK(scheduler_ != nullptr);
@@ -97,6 +101,8 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
  public:
   explicit Scheduler(StreamWriterPtr absl_nonnull writer)
       : writer_(std::move(writer)) {}
+
+  bool Orphaned() const { return writer_->Orphaned(); }
 
   // Adds one more input stream to the chain.
   void AddInput(StreamReaderPtr input) {
@@ -218,11 +224,16 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
   }
 
   absl::Mutex mutex_;
+
   // writer_ is only invoked by the thread that is executing
   // ProcessPendingInputs, which is always at most one, so we don't need to
   // protect it with a mutex. If we did, we should have used a separate mutex
   // since we don't want to deadlock when downstream processing of the writer
   // tries to add one more stream to the chain.
+  //
+  // Note: We also access writer_->Orphaned() from the StreamChain::Orphaned()
+  // method. This is deadlock-safe because writer_->Orphaned() involves no
+  // internal locking.
   const StreamWriterPtr absl_nonnull writer_;
 
   // There are three possible states when mutex_ is not held:
@@ -236,6 +247,8 @@ class StreamChain::Scheduler : public std::enable_shared_from_this<Scheduler> {
 
 StreamChain::StreamChain(StreamWriterPtr absl_nonnull writer)
     : scheduler_(std::make_shared<Scheduler>(std::move(writer))) {}
+
+bool StreamChain::Orphaned() const { return scheduler_->Orphaned(); }
 
 void StreamChain::Add(const StreamPtr absl_nonnull& stream) {
   DCHECK(stream != nullptr);
