@@ -172,11 +172,11 @@ class DeepComparator {
       to_compare_.pop();
       if (lhs.schema == schema::kObject) {
         ASSIGN_OR_RETURN(lhs.schema,
-                        lhs_traverse_helper_.GetObjectSchema(lhs.item));
+                         lhs_traverse_helper_.GetObjectSchema(lhs.item));
       }
       if (rhs.schema == schema::kObject) {
         ASSIGN_OR_RETURN(rhs.schema,
-                        rhs_traverse_helper_.GetObjectSchema(rhs.item));
+                         rhs_traverse_helper_.GetObjectSchema(rhs.item));
       }
       ASSIGN_OR_RETURN(
           auto lhs_transitions_set,
@@ -192,8 +192,8 @@ class DeepComparator {
                          lhs_traverse_helper_.TransitionByKey(
                              lhs.item, lhs.schema, lhs_transitions_set,
                              lhs_transition_keys[idx]));
-        comparator_->ComparatorT::LhsOnlyAttribute(
-            token, lhs_transition_keys[idx], lhs_transition);
+        RETURN_IF_ERROR(comparator_->ComparatorT::LhsOnlyAttribute(
+            token, lhs_transition_keys[idx], lhs_transition));
         return absl::OkStatus();
       };
       auto rhs_only_attribute = [&](int64_t idx) -> absl::Status {
@@ -201,8 +201,8 @@ class DeepComparator {
                          rhs_traverse_helper_.TransitionByKey(
                              rhs.item, rhs.schema, rhs_transitions_set,
                              rhs_transition_keys[idx]));
-        comparator_->ComparatorT::RhsOnlyAttribute(
-            token, rhs_transition_keys[idx], rhs_transition);
+        RETURN_IF_ERROR(comparator_->ComparatorT::RhsOnlyAttribute(
+            token, rhs_transition_keys[idx], rhs_transition));
         return absl::OkStatus();
       };
 
@@ -215,9 +215,9 @@ class DeepComparator {
         int cmp_order = comparator_->ComparatorT::CompareOrder(
             lhs_transition_keys[lhs_idx], rhs_transition_keys[rhs_idx]);
         if (cmp_order < 0) {
-          lhs_only_attribute(lhs_idx++);
+          RETURN_IF_ERROR(lhs_only_attribute(lhs_idx++));
         } else if (cmp_order > 0) {
-          rhs_only_attribute(rhs_idx++);
+          RETURN_IF_ERROR(rhs_only_attribute(rhs_idx++));
         } else {
           ASSIGN_OR_RETURN(auto lhs_transition,
                            lhs_traverse_helper_.TransitionByKey(
@@ -233,12 +233,12 @@ class DeepComparator {
                                            .schema = lhs_transition.schema},
                                           {.item = rhs_transition.item,
                                            .schema = rhs_transition.schema}));
-            comparator_->ComparatorT::LhsRhsMatch(
-                token, lhs_transition_keys[lhs_idx], to_token);
+            RETURN_IF_ERROR(comparator_->ComparatorT::LhsRhsMatch(
+                token, lhs_transition_keys[lhs_idx], to_token));
           } else {
-            comparator_->ComparatorT::LhsRhsMismatch(
+            RETURN_IF_ERROR(comparator_->ComparatorT::LhsRhsMismatch(
                 token, lhs_transition_keys[lhs_idx], lhs_transition,
-                rhs_transition);
+                rhs_transition));
           }
           ++lhs_idx;
           ++rhs_idx;
@@ -246,10 +246,10 @@ class DeepComparator {
       }
 
       while (lhs_idx < lhs_transition_keys.size()) {
-        lhs_only_attribute(lhs_idx++);
+        RETURN_IF_ERROR(lhs_only_attribute(lhs_idx++));
       }
       while (rhs_idx < rhs_transition_keys.size()) {
-        rhs_only_attribute(rhs_idx++);
+        RETURN_IF_ERROR(rhs_only_attribute(rhs_idx++));
       }
     }
     return absl::OkStatus();
