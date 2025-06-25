@@ -35,6 +35,7 @@
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/qtype/types.h"
+#include "arolla/expr/eval/verbose_runtime_error.h"
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "arolla/qtype/optional_qtype.h"
@@ -44,6 +45,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/serving/expr_compiler.h"
 #include "arolla/util/lru_cache.h"
+#include "arolla/util/status.h"
 #include "koladata/arolla_utils.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -104,9 +106,6 @@ class EvalCompiler {
                 // instruction sequences and don't contain many literals. In
                 // such cases the always clone thread safety policy is faster.
                 .SetAlwaysCloneThreadSafetyPolicy()
-                // TODO: b/374841918 - Provide stack trace information in a
-                // structured way instead of disabling it.
-                .VerboseRuntimeErrors(false)
                 .CompileOperator(expr_op, input_types));
     absl::MutexLock lock(&mutex_);
     return *cache_->Put(
@@ -248,6 +247,20 @@ absl::StatusOr<DataSlice> SimpleAggEval(
                                   std::move(output_schema));
 }
 
+// Removes Arolla's clarification layers from the error, as it is usually too
+// verbose and the error is already amended by the outer operators.
+absl::Status SimplifyExprEvaluationError(absl::Status status) {
+  const auto* cause = arolla::GetCause(status);
+  while (cause != nullptr &&
+         (arolla::GetPayload<arolla::NotePayload>(status) != nullptr ||
+          arolla::GetPayload<arolla::expr::VerboseRuntimeError>(status) !=
+              nullptr)) {
+    status = *cause;
+    cause = arolla::GetCause(status);
+  }
+  return status;
+}
+
 }  // namespace
 
 namespace compiler_internal {
@@ -262,7 +275,9 @@ CompiledOp Lookup(absl::string_view op_name,
 absl::StatusOr<arolla::TypedValue> EvalExpr(
     absl::string_view op_name, absl::Span<const arolla::TypedRef> inputs) {
   ASSIGN_OR_RETURN(auto fn, EvalCompiler::Compile(op_name, inputs));
-  return fn(inputs);
+  ASSIGN_OR_RETURN(auto result, fn(inputs),
+                   SimplifyExprEvaluationError(std::move(_)));
+  return result;
 }
 
 void ClearCompilationCache() { return EvalCompiler::Clear(); }
@@ -292,6 +307,7 @@ absl::StatusOr<internal::DataItem> GetPrimitiveArollaSchema(
   }
   return create_error("DataSlice has no primitive schema");
 }
+
 
 absl::StatusOr<DataSlice> SimplePointwiseEval(
     absl::string_view op_name, std::vector<DataSlice> inputs,
