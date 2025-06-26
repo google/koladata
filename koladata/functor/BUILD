@@ -29,9 +29,22 @@ cc_library(
     hdrs = ["signature.h"],
     deps = [
         "//koladata:data_slice",
-        "//koladata:data_slice_qtype",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+    ],
+)
+
+cc_library(
+    name = "signature_utils",
+    srcs = ["signature_utils.cc"],
+    hdrs = ["signature_utils.h"],
+    deps = [
+        ":signature",
+        "//koladata:data_slice_qtype",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
@@ -205,6 +218,7 @@ cc_library(
         ":functor",
         ":signature",
         ":signature_storage",
+        ":signature_utils",
         ":stack_trace",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -593,6 +607,21 @@ cc_test(
     srcs = ["signature_test.cc"],
     deps = [
         ":signature",
+        "//koladata:test_utils",
+        "//koladata/internal:dtype",
+        "//koladata/testing:matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "signature_utils_test",
+    srcs = ["signature_utils_test.cc"],
+    deps = [
+        ":signature",
+        ":signature_utils",
         "//koladata:data_slice",
         "//koladata:test_utils",
         "//koladata/internal:dtype",

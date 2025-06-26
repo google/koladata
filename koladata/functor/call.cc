@@ -35,6 +35,7 @@
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
+#include "koladata/functor/signature_utils.h"
 #include "koladata/functor/stack_trace.h"
 #include "koladata/internal/data_item.h"
 #include "arolla/util/status_macros_backport.h"
