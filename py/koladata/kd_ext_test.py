@@ -73,8 +73,20 @@ class KdExtTest(absltest.TestCase):
         _ = getattr(kd_ext.eager, bad_name)
 
   def test_lazy_and_eager_ops(self):
-    # NOTE: This should be filled in once there is an operator in kd_ext.
-    pass
+    ds = kd.slice([1, 1, 0, 2, None])
+    expected = kd.dict(kd.slice([0, 1, 2]), kd.int64([1, 2, 1]))
+    res1 = kd_ext.contrib.value_counts(ds)
+    res2 = kd_ext.eager.contrib.value_counts(ds)
+    res3 = kd_ext.lazy.contrib.value_counts(ds).eval()
+    kd.testing.assert_dicts_equal(res1, expected)
+    kd.testing.assert_dicts_equal(res2, expected)
+    kd.testing.assert_dicts_equal(res3, expected)
+
+    def f(ds):
+      return kd_ext.contrib.value_counts(ds)
+
+    res4 = kd.functor.trace_py_fn(f)(ds)
+    kd.testing.assert_dicts_equal(res4, expected)
 
   def test_function(self):
     self.assertIs(kd_ext.npkd.to_array, npkd.to_array)
