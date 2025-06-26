@@ -45,6 +45,10 @@ class ActionParsingError(Exception):
   """Raised when a data slice path cannot be parsed into an action + remainder."""
 
 
+class IncompatibleSchemaError(Exception):
+  """Raised when a data slice action is not compatible with a schema."""
+
+
 class DataSliceAction:
   """An action to perform on a data slice. All instances are immutable."""
 
@@ -78,6 +82,32 @@ class DataSliceAction:
   def debug_string(self) -> str:
     return f'{self.__class__.__name__}()'
 
+  def get_subschema(self, schema: kd.types.DataItem) -> kd.types.DataItem:
+    """Returns the schema after applying the action on a DataSlice with `schema`.
+
+    Args:
+      schema: the schema of a hypothetical DataSlice.
+
+    Returns:
+      The schema after applying the action on an arbitrary DataSlice with schema
+      `schema`.
+
+    Raises:
+      IncompatibleSchemaError: if the action is not compatible with the given
+        schema.
+    """
+    raise NotImplementedError(type(self))
+
+  def get_subschema_operation(self) -> str:
+    """Returns the operation to obtain the subschema in get_subschema.
+
+    This is decoupled from str(self), because conceptually the operation on the
+    schema has a coarser granularity. For example, "[:4]" is a conceptually
+    valid action on a data slice, but its corresponding schema operation is
+    the same as that of "[:]", namely ".get_item_schema()".
+    """
+    raise NotImplementedError(type(self))
+
 
 @dataclasses.dataclass(frozen=True)
 class DictGetKeys(DataSliceAction):
@@ -96,6 +126,14 @@ class DictGetKeys(DataSliceAction):
 
   def __str__(self) -> str:
     return '.get_keys()'
+
+  def get_subschema(self, schema: kd.types.DataItem) -> kd.types.DataItem:
+    if not schema.is_dict_schema():
+      raise IncompatibleSchemaError('getting keys requires a DICT schema')
+    return schema.get_key_schema()
+
+  def get_subschema_operation(self) -> str:
+    return '.get_key_schema()'
 
 
 @dataclasses.dataclass(frozen=True)
@@ -116,6 +154,14 @@ class DictGetValues(DataSliceAction):
   def __str__(self) -> str:
     return '.get_values()'
 
+  def get_subschema(self, schema: kd.types.DataItem) -> kd.types.DataItem:
+    if not schema.is_dict_schema():
+      raise IncompatibleSchemaError('getting values requires a DICT schema')
+    return schema.get_value_schema()
+
+  def get_subschema_operation(self) -> str:
+    return '.get_value_schema()'
+
 
 @dataclasses.dataclass(frozen=True)
 class ListExplode(DataSliceAction):
@@ -134,6 +180,14 @@ class ListExplode(DataSliceAction):
 
   def __str__(self) -> str:
     return '[:]'
+
+  def get_subschema(self, schema: kd.types.DataItem) -> kd.types.DataItem:
+    if not schema.is_list_schema():
+      raise IncompatibleSchemaError('exploding requires a LIST schema')
+    return schema.get_item_schema()
+
+  def get_subschema_operation(self) -> str:
+    return '.get_item_schema()'
 
 
 def can_be_used_with_dot_syntax_in_data_slice_path_string(
@@ -227,6 +281,20 @@ class GetAttr(DataSliceAction):
 
   def debug_string(self) -> str:
     return f'{self.__class__.__name__}("{self.attr_name}")'
+
+  def get_subschema(self, schema: kd.types.DataItem) -> kd.types.DataItem:
+    if not schema.is_entity_schema():
+      raise IncompatibleSchemaError(
+          'getting attributes requires an ENTITY schema'
+      )
+    if not kd.any(kd.has_attr(schema, self.attr_name)):
+      raise IncompatibleSchemaError(
+          f'the schema does not have an attribute named "{self.attr_name}"'
+      )
+    return schema.get_attr(self.attr_name)
+
+  def get_subschema_operation(self) -> str:
+    return str(self)
 
 
 def _get_prefix(*, of: str, before: str) -> str:

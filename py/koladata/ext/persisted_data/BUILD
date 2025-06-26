@@ -121,6 +121,29 @@ py_test(
 )
 
 py_library(
+    name = "schema_helper",
+    srcs = ["schema_helper.py"],
+    deps = [
+        ":data_slice_path",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "schema_helper_test",
+    srcs = ["schema_helper_test.py"],
+    deps = [
+        ":data_slice_path",
+        ":schema_helper",
+        ":test_only_schema_node_name_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
     name = "data_slice_path",
     srcs = ["data_slice_path.py"],
     deps = [
@@ -134,6 +157,31 @@ py_test(
     srcs = ["data_slice_path_test.py"],
     deps = [
         ":data_slice_path",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "test_only_schema_node_name_helper",
+    testonly = True,
+    srcs = ["test_only_schema_node_name_helper.py"],
+    deps = [
+        ":data_slice_path",
+        ":schema_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "test_only_schema_node_name_helper_test",
+    srcs = ["test_only_schema_node_name_helper_test.py"],
+    deps = [
+        ":data_slice_path",
+        ":schema_helper",
+        ":test_only_schema_node_name_helper",
         "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
