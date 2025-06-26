@@ -43,6 +43,7 @@ arolla_cc_operator_package(
         "name": "arolla_operators/koda_base",
         "deps": [
             "arolla_operators/jagged_shape",
+            "arolla_operators/derived_qtype",
             "arolla_operators/koda_internal",
             "arolla_operators/koda_iterables",
             "arolla_operators/koda_functor_parallel",
@@ -58,6 +59,7 @@ arolla_cc_operator_package(
         "//koladata/iterables:operators",
         "//koladata/operators",
         "//koladata/s11n",
+        "@com_google_arolla//arolla/derived_qtype/operators",
         "@com_google_arolla//arolla/jagged_shape/expr",
         "@com_google_arolla//arolla/qexpr/operators/all:operators_on_dense_arrays",
     ],
@@ -113,11 +115,14 @@ arolla_operator_package_snapshot(
     ],
     preimports = [
         "arolla.jagged_shape.jagged_shape",
+        "arolla.derived_qtype.derived_qtype",
         "koladata.types.data_slice",
     ],
     visibility = ["//visibility:private"],
     deps = [
         ":base_cc_operators_lib",
+        "@com_google_arolla//py/arolla/derived_qtype",
+        "@com_google_arolla//py/arolla/jagged_shape",
     ],
 )
 
@@ -354,6 +359,7 @@ py_library(
         "//py:python_path",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/derived_qtype",
     ],
 )
 
@@ -825,6 +831,7 @@ py_library(
         "//py:python_path",
         "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/derived_qtype",
     ],
 )
 
@@ -900,6 +907,7 @@ py_library(
         "//py/koladata/types:schema_constants",
         "//py/koladata/types:signature_utils",
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/derived_qtype",
         "@com_google_protobuf//:protobuf_python",
     ],
 )

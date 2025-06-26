@@ -28,6 +28,7 @@ cc_shared_library(
         "@com_google_arolla//py/arolla/dynamic_deps:arolla_py_abc_so",
         "@com_google_arolla//py/arolla/dynamic_deps:arolla_standard_operators_so",
         "@com_google_arolla//py/arolla/dynamic_deps:jagged_shape_so",
+        "@com_google_arolla//py/arolla/dynamic_deps:derived_qtype_so",
     ],
     exports_filter = [
         "//koladata:__subpackages__",

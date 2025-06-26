@@ -15,6 +15,7 @@
 """Internal operators for parallel execution."""
 
 from arolla import arolla
+from arolla.derived_qtype import derived_qtype
 from google.protobuf import text_format
 from koladata.base import py_functors_base_py_ext
 from koladata.expr import input_container
@@ -46,7 +47,7 @@ from koladata.types import signature_utils
 from koladata.functor.parallel import execution_config_pb2
 
 
-M = arolla.M
+M = arolla.M | derived_qtype.M
 P = arolla.P
 constraints = arolla.optools.constraints
 

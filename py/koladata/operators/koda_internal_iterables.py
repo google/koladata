@@ -20,6 +20,7 @@ evaluation.
 """
 
 from arolla import arolla
+from arolla.derived_qtype import derived_qtype
 from koladata.operators import arolla_bridge
 from koladata.operators import jagged_shape
 from koladata.operators import math
@@ -50,7 +51,7 @@ get_iterable_qtype = arolla.abc.lookup_operator(
 )
 def from_sequence(x):
   """Converts a sequence to an iterable."""
-  return arolla.M.derived_qtype.downcast(
+  return derived_qtype.M.downcast(
       get_iterable_qtype(
           arolla.M.qtype.get_value_qtype(arolla.M.qtype.qtype_of(x))
       ),
@@ -67,10 +68,7 @@ def from_sequence(x):
 )
 def to_sequence(x):
   """Converts an iterable to a sequence."""
-  return arolla.M.derived_qtype.upcast(
-      arolla.M.qtype.qtype_of(x),
-      x,
-  )
+  return derived_qtype.M.upcast(arolla.M.qtype.qtype_of(x), x)
 
 
 @optools.add_to_registry(view=None)

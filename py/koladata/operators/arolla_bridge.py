@@ -15,11 +15,12 @@
 """Operator(s) for evaluating normal Arolla expressions on DataSlice(s)."""
 
 from arolla import arolla
+from arolla.derived_qtype import derived_qtype
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.types import qtypes
 
-M = arolla.M
+M = arolla.M | derived_qtype.M
 P = arolla.P
 constraints = arolla.optools.constraints
 
