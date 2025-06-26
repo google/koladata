@@ -21,7 +21,10 @@ from koladata.types import jagged_shape
 
 
 def dumps(
-    x: data_slice.DataSlice | data_bag.DataBag, /, *, riegeli_options: str = ''
+    x: data_slice.DataSlice | data_bag.DataBag,
+    /,
+    *,
+    riegeli_options: str | None = None,
 ) -> bytes:
   """Serializes a DataSlice or a DataBag.
 
@@ -36,7 +39,7 @@ def dumps(
     x: DataSlice or DataBag to serialize.
     riegeli_options: A string with riegeli/records writer options. See
       https://github.com/google/riegeli/blob/master/doc/record_writer_options.md
-        for details. If not provided, default options will be used.
+        for details. If not provided, 'snappy' will be used.
 
   Returns:
     Serialized data.
@@ -56,6 +59,8 @@ def dumps(
       x = x.extract()
     except ValueError:
       pass  # no Bag, ...
+  if riegeli_options is None:
+    riegeli_options = 'snappy'
   return arolla.s11n.riegeli_dumps(x, riegeli_options=riegeli_options)
 
 

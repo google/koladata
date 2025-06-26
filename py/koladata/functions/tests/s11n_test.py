@@ -112,6 +112,23 @@ class DumpsLoadsTest(parameterized.TestCase):
     )
     self.assertLess(len(dumped_bytes_brotli), len(dumped_bytes_uncompressed))
 
+  def test_dumps_defaults_to_snappy(self):
+    input_slice = kd.range(1_000_000)
+    dumped_bytes = s11n.dumps(input_slice)
+    self.assertEqual(
+        dumped_bytes, s11n.dumps(input_slice, riegeli_options='snappy')
+    )
+
+  # This test does not really check an important property for us, it exists
+  # to make sure we faithfully propagate the empty string options to the
+  # underlying code.
+  def test_dumps_empty_string_options_are_not_snappy(self):
+    input_slice = kd.range(1_000_000)
+    dumped_bytes = s11n.dumps(input_slice, riegeli_options='')
+    self.assertNotEqual(
+        dumped_bytes, s11n.dumps(input_slice, riegeli_options='snappy')
+    )
+
   def test_dumps_extracts(self):
     bag = kd.bag()
     nested = bag.new(a=bag.new(b=1))

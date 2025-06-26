@@ -9405,7 +9405,7 @@ Creates a duck type constraint to be used in kd.check_inputs/output.
     A duck type constraint to be used in kd.check_inputs or kd.check_output.
 ```
 
-### `kd.dumps(x, /, *, riegeli_options='')` {#kd.dumps}
+### `kd.dumps(x, /, *, riegeli_options=None)` {#kd.dumps}
 
 ```text {.no-copy}
 Serializes a DataSlice or a DataBag.
@@ -9421,7 +9421,7 @@ Serializes a DataSlice or a DataBag.
     x: DataSlice or DataBag to serialize.
     riegeli_options: A string with riegeli/records writer options. See
       https://github.com/google/riegeli/blob/master/doc/record_writer_options.md
-        for details. If not provided, default options will be used.
+        for details. If not provided, 'snappy' will be used.
 
   Returns:
     Serialized data.

@@ -29,7 +29,7 @@ def write_slice_to_file(
     filepath: str,
     *,
     overwrite: bool = False,
-    riegeli_options: str = 'snappy',
+    riegeli_options: str | None = None,
 ):
   """Writes the given DataSlice to a file; overwrites the file if requested."""
   if fs.exists(filepath):
@@ -55,7 +55,7 @@ def write_bag_to_file(
     filepath: str,
     *,
     overwrite: bool = False,
-    riegeli_options: str = 'snappy',
+    riegeli_options: str | None = None,
 ):
   """Writes the given DataBag to a file; overwrites the file if requested."""
   if fs.exists(filepath):
