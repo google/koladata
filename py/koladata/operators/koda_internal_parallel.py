@@ -2843,55 +2843,6 @@ def _parallel_stream_map(
   )
 
 
-@optools.add_to_registry()
-@optools.as_backend_operator(
-    'koda_internal.parallel._testing_stream_prime',
-    qtype_constraints=[
-        qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_data_slice(P.max_value),
-    ],
-    qtype_inference_expr=get_stream_qtype(qtypes.DATA_SLICE),
-)
-def _internal_testing_stream_prime(executor, max_value):  # pylint: disable=unused-argument
-  """Returns a stream of prime numbers <= max_value."""
-  raise NotImplementedError('implemented in backend')
-
-
-@optools.add_to_registry()
-@optools.as_lambda_operator(
-    'koda_internal.parallel._testing_stream_prime_with_future',
-    qtype_constraints=[
-        qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_future(P.max_value),
-    ],
-)
-def _internal_testing_stream_prime_with_future(executor, max_value):  # pylint: disable=unused-argument
-  """Returns a stream of prime numbers <= max_value."""
-  return unwrap_future_to_stream(
-      async_eval(
-          executor,
-          _internal_testing_stream_prime,
-          executor,
-          max_value,
-      )
-  )
-
-
-@optools.add_to_registry()
-@optools.as_backend_operator(
-    'koda_internal.parallel._testing_iterable_prime',
-    qtype_constraints=[
-        qtype_utils.expect_data_slice(P.max_value),
-    ],
-    qtype_inference_expr=koda_internal_iterables.get_iterable_qtype(
-        qtypes.DATA_SLICE
-    ),
-)
-def _internal_testing_iterable_prime(max_value):  # pylint: disable=unused-argument
-  """Returns an iterable of prime numbers <= max_value."""
-  raise NotImplementedError('implemented in backend')
-
-
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "core.make_tuple"
