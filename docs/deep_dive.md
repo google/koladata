@@ -352,7 +352,7 @@ Entity schemas can have their attributes altered:
 
 ```py
 schema = kd.new(x=1).get_schema()
-schema.with_attr('y', kd.FLOAT32)  # -> SCHEMA(x=INT32, y=FLOAT32)
+schema.with_attr('y', kd.FLOAT32)  # -> ENTITY(x=INT32, y=FLOAT32)
 ```
 
 List and Dict schemas have universally-unique ItemIds, and their attributes
@@ -363,6 +363,10 @@ l1 = kd.list([1, 2])
 l2 = kd.list([1, 2])
 
 assert l1.get_schema() == l2.get_schema()
+
+l3 = kd.list([1, 2, 3, 4])
+
+assert l1.get_schema() == l3.get_schema()
 ```
 
 Entity schemas can also be created to be universally unique:
@@ -384,7 +388,7 @@ For ItemIds, the schema is stored in the `__schema__` attribute. For example:
 ```py
 o1 = kd.obj(x=1)
 o1.get_schema()  # OBJECT
-o1.get_obj_schema()  # Looks up the `__schema__`: IMPLICIT_SCHEMA(x=INT32)
+o1.get_obj_schema()  # Looks up the `__schema__`: IMPLICIT_ENTITY(x=INT32)
 ```
 
 Since each value carries its own schema (either implicitly or in the
@@ -392,9 +396,9 @@ Since each value carries its own schema (either implicitly or in the
 are the only ones capable of holding heterogeneous data. For example:
 
 ```py
-ds = kd.slice([1, 'abc', kd.new(x=1)])
+ds = kd.slice([1, 'abc', kd.obj(x=1)])
 ds.get_schema()  # OBJECT
-ds.get_obj_schema()  # [INT32, STRING, SCHEMA(x=INT32)]
+ds.get_obj_schema()  # [INT32, STRING, IMPLICIT_ENTITY(x=INT32)]
 ```
 
 Both DataSlices with a struct schema or `OBJECT` schema can hold structured
@@ -443,11 +447,11 @@ entity = kd.new(a=1)
 # Fail as schemas are not compatible
 # entity.with_attrs(a='2')
 entity = entity.with_attrs(a='2', overwrite_schema=True)
-entity.get_schema()  # SCHEMA(a=STRING)
+entity.get_schema()  # ENTITY(a=STRING)
 
 obj = kd.obj(a=1)
 obj = obj.with_attrs(a='2')
-obj.get_obj_schema()  # IMPLICIT_SCHEMA(a=STRING)
+obj.get_obj_schema()  # IMPLICIT_ENTITY(a=STRING)
 ```
 
 The motivation behind this is that an explicit entity schema can be used by
@@ -484,11 +488,11 @@ schemas.
 ```py
 entity = kd.new(a=1)
 entity = entity.with_attrs(b='2')
-entity.get_schema()  # SCHEMA(a=INT32, b=STRING)
+entity.get_schema()  # ENTITY(a=INT32, b=STRING)
 
 obj = kd.obj(a=1)
 obj = obj.with_attrs(b='2')
-obj.get_obj_schema()  # IMPLICIT_SCHEMA(a=INT32, b=STRING)
+obj.get_obj_schema()  # IMPLICIT_ENTITY(a=INT32, b=STRING)
 ```
 
 ### Type Promotion
@@ -651,7 +655,7 @@ is the common schema of all elements, or `OBJECT` if none exists.
 For attribute assignment to an attribute with schema `X`, we therefore require
 that the new value has a *narrowed* schema that is implicitly castable to `X`.
 That is, the data itself must be safely castable to `X`, even though the value
-schema may not be implicitly castable to `X` in case of `OBJECT. Note that
+schema may not be implicitly castable to `X` in case of `OBJECT`. Note that
 attribute assignment is only one example out of several where schema narrowing
 is used:
 
