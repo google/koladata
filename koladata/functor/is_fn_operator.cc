@@ -25,6 +25,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_op.h"
 #include "koladata/functor/functor.h"
+#include "koladata/functor/functor_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"

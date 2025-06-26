@@ -1,0 +1,47 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+#include "koladata/functor/functor_storage.h"
+
+#include "absl/status/statusor.h"
+#include "arolla/qtype/qtype_traits.h"
+#include "koladata/data_slice.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/object_id.h"
+#include "arolla/util/status_macros_backport.h"
+
+namespace koladata::functor {
+
+absl::StatusOr<bool> IsFunctor(const DataSlice& slice) {
+  if (!slice.is_item()) {
+    return false;
+  }
+  if (slice.GetBag() == nullptr) {
+    return false;
+  }
+  if (slice.item().dtype() != arolla::GetQType<internal::ObjectId>()) {
+    return false;
+  }
+  ASSIGN_OR_RETURN(auto returns, slice.HasAttr(kReturnsAttrName));
+  if (returns.IsEmpty()) {
+    return false;
+  }
+  ASSIGN_OR_RETURN(auto signature, slice.HasAttr(kSignatureAttrName));
+  if (signature.IsEmpty()) {
+    return false;
+  }
+  return true;
+}
+
+}  // namespace koladata::functor

@@ -86,21 +86,35 @@ cc_library(
     hdrs = ["functor.h"],
     deps = [
         ":default_signature",
+        ":functor_storage",
         ":signature_storage",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:object_factories",
         "//koladata/expr:expr_eval",
         "//koladata/internal:data_item",
-        "//koladata/internal:object_id",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings:str_format",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/expr",
-        "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_library(
+    name = "functor_storage",
+    srcs = ["functor_storage.cc"],
+    hdrs = ["functor_storage.h"],
+    deps = [
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )
@@ -110,6 +124,7 @@ cc_test(
     srcs = ["functor_test.cc"],
     deps = [
         ":functor",
+        ":functor_storage",
         ":signature",
         ":signature_storage",
         "//koladata:data_bag",
@@ -117,7 +132,6 @@ cc_test(
         "//koladata:object_factories",
         "//koladata:test_utils",
         "//koladata/expr:constants",
-        "//koladata/internal:dtype",
         "//koladata/testing:matchers",
         "//koladata/testing:test_env",
         "@com_google_absl//absl/status",
@@ -133,12 +147,36 @@ cc_test(
     ],
 )
 
+cc_test(
+    name = "functor_storage_test",
+    srcs = ["functor_storage_test.cc"],
+    deps = [
+        ":functor",
+        ":functor_storage",
+        ":signature",
+        ":signature_storage",
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:test_utils",
+        "//koladata/internal:dtype",
+        "//koladata/testing:test_env",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/expr/operators/all",
+        "@com_google_arolla//arolla/qexpr/operators/all",
+        "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "auto_variables",
     srcs = ["auto_variables.cc"],
     hdrs = ["auto_variables.h"],
     deps = [
         ":functor",
+        ":functor_storage",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -216,6 +254,7 @@ cc_library(
     hdrs = ["call.h"],
     deps = [
         ":functor",
+        ":functor_storage",
         ":signature",
         ":signature_storage",
         ":signature_utils",
@@ -259,6 +298,7 @@ cc_library(
     deps = [
         ":call",
         ":functor",
+        ":functor_storage",
         ":stack_trace",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -283,7 +323,7 @@ cc_library(
     hdrs = ["with_assertion_operator.h"],
     deps = [
         ":call",
-        ":functor",
+        ":functor_storage",
         "//koladata:arolla_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -394,6 +434,7 @@ cc_library(
     hdrs = ["is_fn_operator.h"],
     deps = [
         ":functor",
+        ":functor_storage",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata/internal:data_item",

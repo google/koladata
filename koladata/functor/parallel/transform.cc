@@ -56,6 +56,7 @@
 #include "koladata/expr/non_determinism.h"
 #include "koladata/functor/auto_variables.h"
 #include "koladata/functor/functor.h"
+#include "koladata/functor/functor_storage.h"
 #include "koladata/functor/parallel/execution_config.pb.h"
 #include "koladata/functor/parallel/execution_context.h"
 #include "koladata/functor/parallel/executor.h"

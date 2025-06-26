@@ -30,9 +30,9 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/constants.h"
+#include "koladata/functor/functor_storage.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
-#include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -180,30 +180,6 @@ TEST(CreateFunctorTest, VariablesWithNon0Rank) {
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           "variable [a] must be a data item, but has shape: JaggedShape(1)"));
-}
-
-TEST(IsFunctorTest, Basic) {
-  ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
-  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({}));
-  ASSERT_OK_AND_ASSIGN(auto koda_signature,
-                       CppSignatureToKodaSignature(signature));
-  ASSERT_OK_AND_ASSIGN(auto fn,
-                       CreateFunctor(returns_expr, koda_signature, {}, {}));
-  EXPECT_THAT(IsFunctor(fn), IsOkAndHolds(true));
-  ASSERT_OK_AND_ASSIGN(auto fn2, fn.ForkBag());
-  ASSERT_OK(fn2.DelAttr(kReturnsAttrName));
-  EXPECT_THAT(IsFunctor(fn2), IsOkAndHolds(false));
-  ASSERT_OK_AND_ASSIGN(auto fn3, fn.ForkBag());
-  ASSERT_OK(fn3.DelAttr(kSignatureAttrName));
-  EXPECT_THAT(IsFunctor(fn3), IsOkAndHolds(false));
-  EXPECT_OK(IsFunctor(fn.WithBag(nullptr)));
-}
-
-TEST(IsFunctorTest, PrimitiveWithBag) {
-  auto x = test::DataItem(1).WithBag(DataBag::Empty());
-  EXPECT_THAT(IsFunctor(x), IsOkAndHolds(false));
-  EXPECT_THAT(IsFunctor(*x.WithSchema(test::Schema(schema::kObject))),
-              IsOkAndHolds(false));
 }
 
 }  // namespace

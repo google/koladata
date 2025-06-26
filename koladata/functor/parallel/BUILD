@@ -65,6 +65,7 @@ cc_library(
         "//koladata/expr:non_determinism",
         "//koladata/functor",
         "//koladata/functor:auto_variables",
+        "//koladata/functor:functor_storage",
         "//koladata/functor:signature",
         "//koladata/functor:signature_storage",
         "//koladata/internal:data_item",

@@ -40,7 +40,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
-#include "koladata/functor/functor.h"
+#include "koladata/functor/functor_storage.h"
 #include "koladata/functor/stack_trace.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/operators/utils.h"

@@ -46,6 +46,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_operators.h"
 #include "koladata/functor/functor.h"
+#include "koladata/functor/functor_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"

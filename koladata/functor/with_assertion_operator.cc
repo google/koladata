@@ -13,9 +13,11 @@
 // limitations under the License.
 //
 #include "koladata/functor/with_assertion_operator.h"
+
 #include <cstdint>
 #include <memory>
 #include <vector>
+
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
@@ -34,9 +36,8 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
-#include "koladata/functor/functor.h"
+#include "koladata/functor/functor_storage.h"
 #include "arolla/util/status_macros_backport.h"
-
 
 namespace koladata::functor {
 namespace{

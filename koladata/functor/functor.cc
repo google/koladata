@@ -26,7 +26,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/quote.h"
-#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/repr.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -34,7 +33,7 @@
 #include "koladata/functor/default_signature.h"
 #include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/object_id.h"
+#include "koladata/functor/functor_storage.h"
 #include "koladata/object_factories.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -118,27 +117,6 @@ absl::StatusOr<DataSlice> CreateFunctor(
   variable_values.insert(variable_values.begin(), returns);
   return CreateFunctorImpl(signature, std::move(variable_names),
                            std::move(variable_values));
-}
-
-absl::StatusOr<bool> IsFunctor(const DataSlice& slice) {
-  if (!slice.is_item()) {
-    return false;
-  }
-  if (slice.GetBag() == nullptr) {
-    return false;
-  }
-  if (slice.item().dtype() != arolla::GetQType<internal::ObjectId>()) {
-    return false;
-  }
-  ASSIGN_OR_RETURN(auto returns, slice.HasAttr(kReturnsAttrName));
-  if (returns.IsEmpty()) {
-    return false;
-  }
-  ASSIGN_OR_RETURN(auto signature, slice.HasAttr(kSignatureAttrName));
-  if (signature.IsEmpty()) {
-    return false;
-  }
-  return true;
 }
 
 }  // namespace koladata::functor
