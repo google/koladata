@@ -74,13 +74,6 @@ class IterableQValueTest(absltest.TestCase):
     res = iterable_qvalue.Iterable(value_type_as=data_bag.DataBag)
     testing.assert_equal(res.qtype.value_qtype, qtypes.DATA_BAG)
 
-  def test_serialization_does_not_work(self):
-    # It seems that we do not need serialization for now, so keeping it disabled
-    # to avoid users depending on it accidentally.
-    a = iterable_qvalue.Iterable(1, 2, 3.0)
-    with self.assertRaisesRegex(ValueError, 'cannot serialize value'):
-      _ = arolla.s11n.dumps(a)
-
 
 if __name__ == '__main__':
   absltest.main()

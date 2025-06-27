@@ -35,6 +35,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/sequence/sequence.h"
 #include "arolla/serialization_base/base.pb.h"
 #include "arolla/serialization_codecs/registry.h"
 #include "arolla/util/bytes.h"
@@ -58,6 +59,7 @@
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "koladata/internal/types_buffer.h"
+#include "koladata/iterables/iterable_qtype.h"
 #include "koladata/jagged_shape_qtype.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
@@ -126,11 +128,59 @@ absl::StatusOr<ValueProto> EncodeDataBagQType(arolla::TypedRef value,
 absl::StatusOr<ValueProto> EncodeJaggedShapeQType(arolla::TypedRef value,
                                                   Encoder& encoder) {
   // Note: Safe since this function is only called for QTypes.
-  DCHECK_EQ(value.UnsafeAs<arolla::QTypePtr>(),
-            GetJaggedShapeQType());
+  DCHECK_EQ(value.UnsafeAs<arolla::QTypePtr>(), GetJaggedShapeQType());
   ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
   value_proto.MutableExtension(KodaV1Proto::extension)
       ->set_jagged_shape_qtype(true);
+  return value_proto;
+}
+
+absl::StatusOr<ValueProto> EncodeIterableQType(arolla::TypedRef value,
+                                               Encoder& encoder) {
+  if (value.GetType() != arolla::GetQType<arolla::QTypePtr>()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("%s does not support serialization of %s: %s",
+                        kKodaV1Codec, value.GetType()->name(), value.Repr()));
+  }
+  auto iterable_qtype = value.UnsafeAs<arolla::QTypePtr>();
+  if (!iterables::IsIterableQType(iterable_qtype)) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("%s does not support serialization of %s", kKodaV1Codec,
+                        iterable_qtype->name()));
+  }
+
+  ASSIGN_OR_RETURN(auto value_index,
+                   encoder.EncodeValue(arolla::TypedValue::FromValue(
+                       iterable_qtype->value_qtype())),
+                   _ << "during EncodeValue(iterable_qtype->value_qtype())");
+  ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
+  value_proto.add_input_value_indices(value_index);
+  value_proto.MutableExtension(KodaV1Proto::extension)
+      ->set_iterable_qtype(true);
+  return value_proto;
+}
+
+absl::StatusOr<ValueProto> EncodeIterable(arolla::TypedRef value,
+                                          Encoder& encoder) {
+  if (value.GetType() == arolla::GetQType<arolla::QTypePtr>()) {
+    return EncodeIterableQType(value, encoder);
+  }
+  ASSIGN_OR_RETURN(const arolla::Sequence& sequence,
+                   value.As<arolla::Sequence>());
+  ASSIGN_OR_RETURN(auto qtype_index,
+                   encoder.EncodeValue(
+                       arolla::TypedValue::FromValue(sequence.value_qtype())),
+                   _ << "during EncodeValue(iterable->value_qtype())");
+  ASSIGN_OR_RETURN(auto value_proto, GenValueProto(encoder));
+  value_proto.add_input_value_indices(qtype_index);
+  for (int64_t i = 0; i < sequence.size(); ++i) {
+    ASSIGN_OR_RETURN(
+        auto value_index,
+        encoder.EncodeValue(arolla::TypedValue(sequence.GetRef(i))));
+    value_proto.add_input_value_indices(value_index);
+  }
+  value_proto.MutableExtension(KodaV1Proto::extension)
+      ->set_iterable_value(true);
   return value_proto;
 }
 
@@ -559,9 +609,12 @@ AROLLA_INITIALIZER(
           RETURN_IF_ERROR(RegisterValueEncoderByQType(
               arolla::GetQType<internal::DataSliceImpl>(),
               EncodeDataSliceImpl));
-          RETURN_IF_ERROR(RegisterValueEncoderByQType(
-              GetJaggedShapeQType(),
-              EncodeJaggedShape));
+          RETURN_IF_ERROR(RegisterValueEncoderByQType(GetJaggedShapeQType(),
+                                                      EncodeJaggedShape));
+          RETURN_IF_ERROR(RegisterValueEncoderByQValueSpecialisationKey(
+              iterables::GetIterableQType(arolla::GetQType<DataSlice>())
+                  ->qtype_specialization_key(),
+              EncodeIterable));
           return absl::OkStatus();
         })
 

@@ -22,6 +22,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "absl/status/statusor.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/expr/expr.h"
@@ -29,7 +30,10 @@
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/buffer.h"
 #include "arolla/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/sequence/mutable_sequence.h"
+#include "arolla/sequence/sequence.h"
 #include "arolla/serialization/decode.h"
 #include "arolla/serialization/encode.h"
 #include "arolla/util/bytes.h"
@@ -37,21 +41,25 @@
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
+#include "koladata/data_slice_qtype.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/testing/matchers.h"
+#include "koladata/iterables/iterable_qtype.h"
 #include "koladata/jagged_shape_qtype.h"
 #include "koladata/test_utils.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using arolla::TypedValue;
+using ::arolla::GetQType;
+using ::arolla::TypedValue;
 using internal::DataBagImpl;
 using internal::DataBagImplPtr;
 using internal::DataItem;
@@ -158,6 +166,47 @@ TEST(SerializationTest, JaggedShapeQType) {
   ASSERT_OK_AND_ASSIGN(arolla::QTypePtr res,
                        decode_result.values[0].As<arolla::QTypePtr>());
   EXPECT_EQ(res, GetJaggedShapeQType());
+}
+
+// TODO: Add tests with harcoded protos.
+TEST(SerializationTest, IterableQType) {
+  auto iterable_qtype = iterables::GetIterableQType(GetQType<int64_t>());
+  ASSERT_OK_AND_ASSIGN(auto proto,
+                       arolla::serialization::Encode(
+                           {TypedValue::FromValue(iterable_qtype)}, {}));
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  ASSERT_OK_AND_ASSIGN(arolla::QTypePtr res,
+                       decode_result.values[0].As<arolla::QTypePtr>());
+  EXPECT_EQ(res, iterable_qtype);
+}
+
+absl::StatusOr<arolla::Sequence> SequenceFromVector(
+    const std::vector<int64_t>& values) {
+  ASSIGN_OR_RETURN(auto res, arolla::MutableSequence::Make(
+                                 arolla::GetQType<int64_t>(), values.size()));
+  auto span = res.UnsafeSpan<int64_t>();
+  for (int i = 0; i < span.size(); ++i) {
+    span[i] = values[i];
+  }
+  return std::move(res).Finish();
+}
+
+TEST(SerializationTest, IterableValue) {
+  auto iterable_qtype = iterables::GetIterableQType(GetQType<int64_t>());
+  ASSERT_OK_AND_ASSIGN(auto seq, SequenceFromVector({1, 2, 3}));
+  ASSERT_OK_AND_ASSIGN(auto iterable,
+                       TypedValue::FromValueWithQType(seq, iterable_qtype));
+  ASSERT_OK_AND_ASSIGN(auto proto,
+                       arolla::serialization::Encode({iterable}, {}));
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  auto iterable_value = decode_result.values[0];
+  ASSERT_EQ(iterable_value.GetType(), iterable_qtype);
+  ASSERT_OK_AND_ASSIGN(arolla::Sequence res,
+                       iterable_value.As<arolla::Sequence>());
+  ASSERT_EQ(res.value_qtype(), GetQType<int64_t>());
+  EXPECT_THAT(res.UnsafeSpan<int64_t>(), ElementsAreArray({1, 2, 3}));
 }
 
 TEST(SerializationTest, JaggedShapeQValue) {

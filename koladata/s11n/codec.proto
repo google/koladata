@@ -183,5 +183,14 @@ message KodaV1Proto {
 
     // Represents koladata::JaggedShape's QType
     bool jagged_shape_qtype = 15;
+
+    // Represents koladata::iterables::Iterable QType.
+    // ValueProto.input_value_indices[0]: value qtype
+    bool iterable_qtype = 16;
+
+    // Represents koladata::iterables::Iterable value.
+    // ValueProto.input_value_indices[0]: value qtype
+    // ValueProto.input_value_indices[1..N]: values
+    bool iterable_value = 17;
   }
 }

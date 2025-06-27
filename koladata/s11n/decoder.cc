@@ -39,8 +39,10 @@
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"  // IWYU pragma: keep
 #include "arolla/memory/buffer.h"
 #include "arolla/qtype/derived_qtype.h"
+#include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/sequence/mutable_sequence.h"
 #include "arolla/serialization_base/base.pb.h"
 #include "arolla/serialization_codecs/registry.h"
 #include "arolla/util/bytes.h"
@@ -64,6 +66,7 @@
 #include "koladata/internal/slice_builder.h"
 #include "koladata/internal/types.h"
 #include "koladata/internal/types_buffer.h"
+#include "koladata/iterables/iterable_qtype.h"
 #include "koladata/jagged_shape_qtype.h"
 #include "koladata/s11n/codec.pb.h"
 #include "koladata/s11n/codec_names.h"
@@ -88,6 +91,43 @@ absl::StatusOr<ValueDecoderResult> DecodeLiteralOperator(
   arolla::expr::ExprOperatorPtr op =
       expr::LiteralOperator::MakeLiteralOperator(input_values[0]);
   return TypedValue::FromValue(std::move(op));
+}
+
+absl::StatusOr<ValueDecoderResult> DecodeIterableQType(
+    absl::Span<const TypedValue> input_values) {
+  if (input_values.size() != 1) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected 1 input_value_index, got %d; value=ITERABLE_QTYPE",
+        input_values.size()));
+  }
+  ASSIGN_OR_RETURN(auto value_qtype, input_values[0].As<arolla::QTypePtr>());
+  auto iterable_qtype = iterables::GetIterableQType(value_qtype);
+  return TypedValue::FromValue(std::move(iterable_qtype));
+}
+
+absl::StatusOr<ValueDecoderResult> DecodeIterableValue(
+    absl::Span<const TypedValue> input_values) {
+  if (input_values.empty()) {
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "expected at least 1 input_value_index, got %d; value=ITERABLE",
+        input_values.size()));
+  }
+  ASSIGN_OR_RETURN(arolla::QTypePtr value_qtype,
+                   input_values[0].As<arolla::QTypePtr>());
+  size_t size = input_values.size() - 1;
+  ASSIGN_OR_RETURN(auto res, arolla::MutableSequence::Make(value_qtype, size));
+  for (size_t i = 0; i < size; ++i) {
+    auto ref = input_values[i + 1].AsRef();
+    if (ref.GetType() != value_qtype) {
+      return absl::InvalidArgumentError(absl::StrFormat(
+          "expected %s, got %s", value_qtype->name(), ref.GetType()->name()));
+    }
+    res.UnsafeSetRef(i, ref);
+  }
+
+  auto iterable_qtype = iterables::GetIterableQType(value_qtype);
+  return TypedValue::FromValueWithQType(std::move(res).Finish(),
+                                        iterable_qtype);
 }
 
 internal::ObjectId DecodeObjectId(const KodaV1Proto::ObjectIdProto& proto) {
@@ -686,6 +726,10 @@ absl::StatusOr<ValueDecoderResult> DecodeKodaValue(
     case KodaV1Proto::kNonDeterministicTokenQtype:
       return TypedValue::FromValue(
           arolla::GetQType<internal::NonDeterministicToken>());
+    case KodaV1Proto::kIterableQtype:
+      return DecodeIterableQType(input_values);
+    case KodaV1Proto::kIterableValue:
+      return DecodeIterableValue(input_values);
     case KodaV1Proto::VALUE_NOT_SET:
       return absl::InvalidArgumentError("missing value");
   }
