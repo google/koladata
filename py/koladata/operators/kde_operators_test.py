@@ -49,6 +49,7 @@ FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS = frozenset([
     'is_slice',
     # Waits on the parallel execution result in Python.
     'parallel.call_multithreaded',
+    'parallel.yield_multithreaded',
     # Misc.
     'container',
     'core.container',

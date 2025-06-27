@@ -901,6 +901,29 @@ py_test(
     ],
 )
 
+py_test(
+    name = "yield_multithreaded_test",
+    srcs = ["yield_multithreaded_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/functions",
+        "//py/koladata/functor:functor_factories",
+        "//py/koladata/functor:tracing_decorator",
+        "//py/koladata/operators:functor",
+        "//py/koladata/operators:iterables",
+        "//py/koladata/operators:tuple",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:iterable_qvalue",
+        "//py/koladata/types:signature_utils",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 proto_library(
     name = "test_proto",
     srcs = ["test.proto"],

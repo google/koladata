@@ -147,6 +147,7 @@ py_library(
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

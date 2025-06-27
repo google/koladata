@@ -181,6 +181,7 @@ slices = _py_types.SimpleNamespace(
 
 parallel = _py_types.SimpleNamespace(
     call_multithreaded=_parallel.call_multithreaded,
+    yield_multithreaded=_parallel.yield_multithreaded,
 )
 
 tuples = _py_types.SimpleNamespace(

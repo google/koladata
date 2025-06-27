@@ -313,9 +313,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
     with self.assertRaisesWithPredicateMatch(
         ValueError,
-        arolla.testing.any_cause_message_regex(
-            re.escape('[CANCELLED] interrupted')
-        ),
+        arolla.testing.any_cause_message_regex(r'\[CANCELLED\].*interrupted'),
     ):
       fns.parallel.call_multithreaded(
           functor_factories.trace_py_fn(fn), x=ds(1), max_threads=2
@@ -323,7 +321,7 @@ class CallMultithreadedTest(absltest.TestCase):
 
   def test_iterable_return_value(self):
     fn = functor_factories.expr_fn(iterables.make(I.x))
-    # Hopefully this error will first get better soon, and then go away.
+    # TODO: Make this error mention yield_multithreaded.
     with self.assertRaisesRegex(
         ValueError,
         'future_from_parallel can only be applied to a parallel non-stream'

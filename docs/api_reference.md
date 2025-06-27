@@ -4925,6 +4925,12 @@ Calls a functor with the given arguments.
   when they don't depend on each other. If the internal computation involves
   iterables, the corresponding computations will be done in a streaming fashion.
 
+  Note that you should not use this function inside another functor (via py_fn),
+  as it will block the thread executing it, which can lead to deadlock when we
+  don't have enough threads in the thread pool. Instead, please compose all
+  functors first into one functor and then use one call to call_multithreaded to
+  execute them all in parallel.
+
   Args:
     fn: The functor to call.
     *args: The positional arguments to pass to the functor.
@@ -4944,6 +4950,41 @@ Calls a functor with the given arguments.
     not yet supported for the result, since that would mean that the result
     is/has a stream, and this method needs to return multiple values at
     different times instead of one value at the end.
+```
+
+### `kd.parallel.yield_multithreaded(fn, /, *args, value_type_as=<class 'koladata.types.data_slice.DataSlice'>, max_threads=None, timeout=None, **kwargs)` {#kd.parallel.yield_multithreaded}
+
+```text {.no-copy}
+Calls a functor returning an iterable, and yields the results as they go.
+
+  Variables of the functor or of its sub-functors will be computed in parallel
+  when they don't depend on each other. If the internal computation involves
+  iterables, the corresponding computations will be done in a streaming fashion.
+  The functor must return an iterable.
+
+  Note that you should not use this function inside another functor (via py_fn),
+  as it will block the thread executing it, which can lead to deadlock when we
+  don't have enough threads in the thread pool. Instead, please compose all
+  functors first into one functor and then use
+  one call to call_multithreaded/yield_multithreaded to execute them all in
+  parallel.
+
+  Args:
+    fn: The functor to call.
+    *args: The positional arguments to pass to the functor.
+    value_type_as: The return type of the call is expected to be an iterable of
+      the return type of this expression. In most cases, this will be a literal
+      of the corresponding type. This needs to be specified if the functor does
+      not return an iterable of DataSlice. kd.types.DataSlice, kd.types.DataBag
+      and kd.types.JaggedShape can also be passed here.
+    max_threads: The maximum number of threads to use. None means to use the
+      default executor.
+    timeout: The maximum time to wait for the computation of all items of the
+      output iterable to finish. None means to wait indefinitely.
+    **kwargs: The keyword arguments to pass to the functor.
+
+  Returns:
+    Yields the items of the output iterable as soon as they are available.
 ```
 
 </section>
