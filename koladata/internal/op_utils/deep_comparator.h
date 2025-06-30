@@ -192,18 +192,16 @@ class DeepComparator {
                          lhs_traverse_helper_.TransitionByKey(
                              lhs.item, lhs.schema, lhs_transitions_set,
                              lhs_transition_keys[idx]));
-        RETURN_IF_ERROR(comparator_->ComparatorT::LhsOnlyAttribute(
-            token, lhs_transition_keys[idx], lhs_transition));
-        return absl::OkStatus();
+        return comparator_->ComparatorT::LhsOnlyAttribute(
+            token, lhs_transition_keys[idx], lhs_transition);
       };
       auto rhs_only_attribute = [&](int64_t idx) -> absl::Status {
         ASSIGN_OR_RETURN(auto rhs_transition,
                          rhs_traverse_helper_.TransitionByKey(
                              rhs.item, rhs.schema, rhs_transitions_set,
                              rhs_transition_keys[idx]));
-        RETURN_IF_ERROR(comparator_->ComparatorT::RhsOnlyAttribute(
-            token, rhs_transition_keys[idx], rhs_transition));
-        return absl::OkStatus();
+        return comparator_->ComparatorT::RhsOnlyAttribute(
+            token, rhs_transition_keys[idx], rhs_transition);
       };
 
       SortTransitions(lhs_transition_keys);
