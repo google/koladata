@@ -15,7 +15,6 @@
 #include "koladata/data_bag.h"
 
 #include <optional>
-#include <string>
 #include <utility>
 #include <vector>
 
