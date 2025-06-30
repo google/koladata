@@ -72,7 +72,7 @@ More details about the concepts and utilities provided by this module:
 * *Schema node names*: These are identifiers for the nodes of the Schema Graph.
   They indicate which data is requested/provided from a schema perspective.
   Some nodes of a Koda schema have item ids, which are stable identifiers, but
-  some nodes such as kd.INT32 and kd.OBJECT do not have item ids.
+  some nodes such as kd.INT32 and kd.SCHEMA do not have item ids.
   To accommodate nodes that do not have item ids, we use strings for schema node
   names.
   For schema nodes with item ids, the node name is simply the base62 encoded
@@ -96,13 +96,21 @@ More details about the concepts and utilities provided by this module:
     to be kd.FLOAT32, then there is no need to load the INT32 data when the user
     requests the foo.x data at some future point in time.
   * Those whose data values can be aliased. There are only two such schemas:
-    kd.OBJECT and kd.SCHEMA. They are respectively given the schema node names
-    "shared:OBJECT" and "shared:SCHEMA". That encodes the pessimistic assumption
-    that the values can be aliased inside a concrete DataSlice even if they are
-    mentioned in different parts of the schema. For example, if schema.foo.x and
-    schema.foo.y are both kd.OBJECT, then it is possible that a DataSlice ds
-    with this schema has only one object that is pointed to by both ds.foo.x and
-    ds.foo.y.
+    kd.SCHEMA and kd.OBJECT.
+    The schema node name for kd.SCHEMA is "shared:SCHEMA". That encodes the
+    pessimistic assumption that its values can be aliased inside a concrete
+    DataSlice even if they are mentioned in different parts of the schema of
+    the DataSlice. For example, suppose we have a DataSlice ds with a schema
+    s such that s.foo.x and s.foo.y are both kd.SCHEMA. Then it is possible that
+    ds has only one schema object, such as kd.list_schema(kd.INT32), that is
+    pointed to by both ds.foo.x and ds.foo.y.
+    The use of kd.OBJECT is not supported. The reason is that OBJECT can alias
+    pretty much anything that can be aliased in a DataSlice. Updates to the
+    OBJECT can affect the sub-slice that is aliased, and similarly an update to
+    the aliased sub-slice can affect the OBJECT. Allowing kd.OBJECT would
+    therefore collapse very large parts of the schema graph, which is not
+    desirable because it would erase many of the distinctions encoded in
+    structured schemas that help to load the data incrementally.
   The schema node names for a given schema are stable across runs, and they can
   hence be used in metadata that gets persisted. (Their creation do not use
   operations such as kd.hash_itemid that are not stable across runs.)
@@ -220,9 +228,9 @@ def _get_schema_node_name(
      f"{parent_schema_node_name}{action.get_subschema_operation()}:{child_schema_item}"
      Examples: "id123.some_attr_name:INT32", "id345.get_item_schema():STRING",
      "id678.get_key_schema():INT32", "id007.get_value_schema():FLOAT64".
-  3. Otherwise, the schema node name is "shared:OBJECT" or "shared:SCHEMA".
-     These are not handled as in point 2 above, i.e. they are not expanded into
-     distinct leaf nodes, because items with these schemas could be aliased
+  3. Otherwise, the schema node name is "shared:SCHEMA".
+     It is not handled as in point 2 above, i.e. it is not expanded into
+     distinct leaf nodes, because items with schema SCHEMA could be aliased
      inside a DataSlice.
 
   It is possible in principle to take a schema node name and to know which of
@@ -231,8 +239,7 @@ def _get_schema_node_name(
   * If the schema node name does not contain a colon ":", then it came from
     case 1.
   * If the schema node name contains a dot ".", then it came from case 2.
-  * Otherwise, it must be "shared:OBJECT" or "shared:SCHEMA", and it came from
-    case 3.
+  * Otherwise, it must be "shared:SCHEMA", and it came from case 3.
   This means that there can be no collisions of schema node names across the
   cases. That is a desirable property, because collisions would collapse
   multiple distinct schema graph nodes into one, and thereby reduce the
@@ -266,7 +273,13 @@ def _get_schema_node_name(
     operation = action.get_subschema_operation() if action is not None else '.'
     return f'{parent_schema_node_name}{operation}:{child_schema_item}'
 
-  assert child_schema_item == kd.OBJECT or child_schema_item == kd.SCHEMA
+  if child_schema_item == kd.OBJECT:
+    raise ValueError(
+        'OBJECT schemas are not supported. Please use a structured schema'
+        ' instead'
+    )
+
+  assert child_schema_item == kd.SCHEMA
   # These are the schemas that don't have item ids, but whose values might be
   # aliased. No matter where they occur in the schema, they will always be
   # associated with the same schema node name because they might be aliased:
