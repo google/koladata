@@ -15,8 +15,10 @@
 #include "koladata/functor/signature_storage.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/base/no_destructor.h"
@@ -35,6 +37,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/uuid_object.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/lists.h"
 #include "arolla/util/status_macros_backport.h"
@@ -52,14 +55,65 @@ absl::StatusOr<DataSlice> MakeParameterKindConstant(absl::string_view name) {
   return res.FreezeBag();
 }
 
+internal::DataItem MakeParameterKindUuid(absl::string_view name) {
+  auto data_item = internal::DataItem(arolla::Text(name));
+  return internal::CreateUuidFromFields(
+      "__parameter_kind__", {"kind"}, {std::cref(data_item)});
+}
+
+const internal::DataItem& PositionalOnlyParameterKindUuid() {
+  static absl::NoDestructor<internal::DataItem> val{
+      MakeParameterKindUuid(kPositionalOnlyParameterName)};
+  return *val;
+}
+
+const internal::DataItem& PositionalOrKeywordParameterKindUuid() {
+  static absl::NoDestructor<internal::DataItem> val{
+      MakeParameterKindUuid(kPositionalOrKeywordParameterName)};
+  return *val;
+}
+
+const internal::DataItem& VarPositionalParameterKindUuid() {
+  static absl::NoDestructor<internal::DataItem> val{
+      MakeParameterKindUuid(kVarPositionalParameterName)};
+  return *val;
+}
+
+const internal::DataItem& KeywordOnlyParameterKindUuid() {
+  static absl::NoDestructor<internal::DataItem> val{
+      MakeParameterKindUuid(kKeywordOnlyParameterName)};
+  return *val;
+}
+
+const internal::DataItem& VarKeywordParameterKindUuid() {
+  static absl::NoDestructor<internal::DataItem> val{
+      MakeParameterKindUuid(kVarKeywordParameterName)};
+  return *val;
+}
+
 absl::StatusOr<DataSlice> MakeNoDefaultValueMarker() {
   ASSIGN_OR_RETURN(auto present,
                    DataSlice::Create(internal::DataItem(arolla::kPresent),
                                      internal::DataItem(schema::kMask)));
-  ASSIGN_OR_RETURN(auto res,
-                   CreateUu(DataBag::Empty(), "__parameter_no_default_value__",
-                            {"no_default_value"}, {present}));
+  ASSIGN_OR_RETURN(
+      auto res,
+      CreateUu(DataBag::Empty(), "__parameter_no_default_value__",
+               {kNoDefaultValueParameterField}, {std::move(present)}));
   return res.FreezeBag();
+}
+
+internal::DataItem MakeNoDefaultValueMarkerUuid() {
+  auto data_item = internal::DataItem(arolla::kPresent);
+  return internal::CreateUuidFromFields("__parameter_no_default_value__",
+                                        {kNoDefaultValueParameterField},
+                                        {std::cref(data_item)});
+}
+
+const internal::DataItem& NoDefaultValueMarkerUuid() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<internal::DataItem> val{
+      MakeNoDefaultValueMarkerUuid()};
+  return *val;
 }
 
 absl::StatusOr<DataSlice> ParameterKindToKoda(Signature::Parameter::Kind kind) {
@@ -87,19 +141,19 @@ absl::StatusOr<Signature::Parameter::Kind> KodaToParameterKind(
         absl::StrFormat("kind must be a data item, but has shape: %s",
                         arolla::Repr(kind.GetShape())));
   }
-  if (kind.item() == PositionalOnlyParameterKind().item()) {
+  if (kind.item() == PositionalOnlyParameterKindUuid()) {
     return kPositionalOnly;
   }
-  if (kind.item() == PositionalOrKeywordParameterKind().item()) {
+  if (kind.item() == PositionalOrKeywordParameterKindUuid()) {
     return kPositionalOrKeyword;
   }
-  if (kind.item() == VarPositionalParameterKind().item()) {
+  if (kind.item() == VarPositionalParameterKindUuid()) {
     return kVarPositional;
   }
-  if (kind.item() == KeywordOnlyParameterKind().item()) {
+  if (kind.item() == KeywordOnlyParameterKindUuid()) {
     return kKeywordOnly;
   }
-  if (kind.item() == VarKeywordParameterKind().item()) {
+  if (kind.item() == VarKeywordParameterKindUuid()) {
     return kVarKeyword;
   }
   return absl::InvalidArgumentError(
@@ -185,7 +239,7 @@ absl::StatusOr<Signature> KodaSignatureToCppSignature(
     ASSIGN_OR_RETURN(auto kind_enum, KodaToParameterKind(kind));
     ASSIGN_OR_RETURN(auto default_value, param.GetAttr("default_value"));
     std::optional<DataSlice> default_value_opt = std::nullopt;
-    if (default_value.item() != NoDefaultValueMarker().item()) {
+    if (default_value.item() != NoDefaultValueMarkerUuid()) {
       default_value_opt = default_value;
     }
     res.push_back(Signature::Parameter{.name = std::string(name_str),
@@ -198,35 +252,35 @@ absl::StatusOr<Signature> KodaSignatureToCppSignature(
 const DataSlice& PositionalOnlyParameterKind() {
   // No errors are possible here, so we ignore status.
   static absl::NoDestructor<DataSlice> val{
-      *MakeParameterKindConstant("positional_only")};
+      *MakeParameterKindConstant(kPositionalOnlyParameterName)};
   return *val;
 }
 
 const DataSlice& PositionalOrKeywordParameterKind() {
   // No errors are possible here, so we ignore status.
   static absl::NoDestructor<DataSlice> val{
-      *MakeParameterKindConstant("positional_or_keyword")};
+      *MakeParameterKindConstant(kPositionalOrKeywordParameterName)};
   return *val;
 }
 
 const DataSlice& VarPositionalParameterKind() {
   // No errors are possible here, so we ignore status.
   static absl::NoDestructor<DataSlice> val{
-      *MakeParameterKindConstant("var_positional")};
+      *MakeParameterKindConstant(kVarPositionalParameterName)};
   return *val;
 }
 
 const DataSlice& KeywordOnlyParameterKind() {
   // No errors are possible here, so we ignore status.
   static absl::NoDestructor<DataSlice> val{
-      *MakeParameterKindConstant("keyword_only")};
+      *MakeParameterKindConstant(kKeywordOnlyParameterName)};
   return *val;
 }
 
 const DataSlice& VarKeywordParameterKind() {
   // No errors are possible here, so we ignore status.
   static absl::NoDestructor<DataSlice> val{
-      *MakeParameterKindConstant("var_keyword")};
+      *MakeParameterKindConstant(kVarKeywordParameterName)};
   return *val;
 }
 

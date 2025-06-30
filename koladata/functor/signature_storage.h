@@ -21,10 +21,23 @@
 #define KOLADATA_FUNCTOR_SIGNATURE_STORAGE_H_
 
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/signature.h"
 
 namespace koladata::functor {
+
+inline constexpr absl::string_view kParameterKindField = "kind";
+inline constexpr absl::string_view kNoDefaultValueParameterField =
+    "no_default_value";
+inline constexpr absl::string_view kPositionalOnlyParameterName =
+    "positional_only";
+inline constexpr absl::string_view kPositionalOrKeywordParameterName =
+    "positional_or_keyword";
+inline constexpr absl::string_view kVarPositionalParameterName =
+    "var_positional";
+inline constexpr absl::string_view kKeywordOnlyParameterName = "keyword_only";
+inline constexpr absl::string_view kVarKeywordParameterName = "var_keyword";
 
 // Converts a C++ Signature object to a Koda DataItem storing the signature.
 // The returned DataItem will have a new DataBag created to store the triples.
