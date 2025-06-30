@@ -26,7 +26,9 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/signature.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/masking.h"
 #include "koladata/test_utils.h"
@@ -151,6 +153,29 @@ TEST(KodaSignatureToCppSignatureTest, NonScalar) {
       KodaSignatureToCppSignature(koda_signature_1d),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "signature must be a data item, but has shape: JaggedShape(1)"));
+}
+
+TEST(KodaSignatureToCppSignatureTest, DetachDefaultValuesDb) {
+  internal::DataItem obj(internal::AllocateSingleObject());
+  Signature::Parameter p1 = {
+      .name = "a",
+      .kind = Signature::Parameter::Kind::kPositionalOnly,
+      .default_value = *DataSlice::Create(
+          obj, internal::DataItem(schema::kObject), DataBag::Empty()),
+  };
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  ASSERT_OK_AND_ASSIGN(
+      Signature with_db,
+      KodaSignatureToCppSignature(koda_signature,
+                                  /*detach_default_values_db=*/false));
+  ASSERT_OK_AND_ASSIGN(
+      Signature without_db,
+      KodaSignatureToCppSignature(koda_signature,
+                                  /*detach_default_values_db=*/true));
+  EXPECT_NE(with_db.parameters()[0].default_value->GetBag(), nullptr);
+  EXPECT_EQ(without_db.parameters()[0].default_value->GetBag(), nullptr);
 }
 
 TEST(KodaSignatureToCppSignatureTest, Missing) {

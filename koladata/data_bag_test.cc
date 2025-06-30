@@ -14,6 +14,7 @@
 //
 #include "koladata/data_bag.h"
 
+#include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -24,6 +25,7 @@
 #include "absl/status/status_matchers.h"
 #include "koladata/data_bag_comparison.h"
 #include "koladata/internal/data_bag.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -467,6 +469,51 @@ TEST(DataBagTest, FreezeWithFallbacks_ImmutableFallbacks) {
   auto frozen_db5 = db5->Freeze();
   EXPECT_EQ(frozen_db5, db5);
   EXPECT_THAT(frozen_db5->GetFallbacks(), ::testing::SizeIs(2));
+}
+
+struct TestMetadata {
+  int x;
+};
+
+TEST(DataBagTest, MetadataCache) {
+  auto db = DataBag::Empty();
+  internal::ObjectId id1 = internal::AllocateSingleObject();
+  internal::ObjectId id2 = internal::AllocateSingleObject();
+
+  // In case of mutable data bag there is no cache
+  EXPECT_EQ(db->SetCachedMetadata(id1, TestMetadata{1})->x, 1);
+  EXPECT_EQ(db->GetCachedMetadataOrNull<TestMetadata>(id1), nullptr);
+
+  // In case of mutable fallback there is no cache
+  EXPECT_EQ(DataBag::ImmutableEmptyWithFallbacks({db})
+                ->SetCachedMetadata(id1, TestMetadata{2})
+                ->x,
+            2);
+  EXPECT_EQ(db->GetCachedMetadataOrNull<TestMetadata>(id2), nullptr);
+
+  db = db->Freeze();
+
+  std::shared_ptr<const TestMetadata> data1 =
+      db->SetCachedMetadata(id1, TestMetadata{3});
+  EXPECT_EQ(db->GetCachedMetadataOrNull<TestMetadata>(id2), nullptr);
+  std::shared_ptr<const TestMetadata> data2 =
+      db->SetCachedMetadata(id2, TestMetadata{4});
+  std::shared_ptr<const int> int1 = db->SetCachedMetadata(id1, 7);
+
+  std::shared_ptr<const TestMetadata> data1b =
+      db->SetCachedMetadata(id1, TestMetadata{5});
+  std::shared_ptr<const TestMetadata> data2b =
+      db->SetCachedMetadata(id2, TestMetadata{6});
+
+  EXPECT_EQ(data1->x, 3);
+  EXPECT_EQ(data2->x, 4);
+  EXPECT_EQ(data1b, data1);
+  EXPECT_EQ(data2b, data2);
+  EXPECT_EQ(*int1, 7);
+
+  EXPECT_EQ(db->GetCachedMetadataOrNull<TestMetadata>(id1), data1);
+  EXPECT_EQ(db->GetCachedMetadataOrNull<TestMetadata>(id2), data2);
+  EXPECT_EQ(db->GetCachedMetadataOrNull<int>(id1), int1);
 }
 
 }  // namespace

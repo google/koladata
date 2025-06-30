@@ -27,6 +27,7 @@
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/signature.h"
 #include "arolla/util/status_macros_backport.h"
@@ -35,7 +36,7 @@ namespace koladata::functor {
 
 absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
     const Signature& signature, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::string> kwnames) {
+    absl::Span<const std::string> kwnames, DataBagPtr default_values_db) {
   if (args.size() < kwnames.size()) {
     return absl::InvalidArgumentError("args.size < kwnames.size()");
   }
@@ -111,8 +112,13 @@ absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
     if (bound_arguments[i].GetType() == arolla::GetNothingQType()) {
       const auto& parameter = parameters[i];
       if (parameter.default_value.has_value()) {
-        bound_arguments[i] =
-            arolla::TypedValue::FromValue(*parameter.default_value);
+        if (default_values_db != nullptr) {
+          bound_arguments[i] = arolla::TypedValue::FromValue(
+              parameter.default_value->WithBag(default_values_db));
+        } else {
+          bound_arguments[i] =
+              arolla::TypedValue::FromValue(*parameter.default_value);
+        }
       } else {
         return absl::InvalidArgumentError(
             absl::StrFormat("no value provided for %v parameter [%s]",

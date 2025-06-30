@@ -202,7 +202,7 @@ absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
 }
 
 absl::StatusOr<Signature> KodaSignatureToCppSignature(
-    const DataSlice& signature) {
+    const DataSlice& signature, bool detach_default_values_db) {
   if (!signature.is_item()) {
     return absl::InvalidArgumentError(
         absl::StrFormat("signature must be a data item, but has shape: %s",
@@ -241,6 +241,10 @@ absl::StatusOr<Signature> KodaSignatureToCppSignature(
     std::optional<DataSlice> default_value_opt = std::nullopt;
     if (default_value.item() != NoDefaultValueMarkerUuid()) {
       default_value_opt = default_value;
+    }
+    if (detach_default_values_db && default_value_opt &&
+        default_value_opt->GetBag() != nullptr) {
+      default_value_opt = default_value_opt->WithBag(nullptr);
     }
     res.push_back(Signature::Parameter{.name = std::string(name_str),
                                        .kind = kind_enum,

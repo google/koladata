@@ -17,20 +17,28 @@
 
 #include <atomic>
 #include <functional>
+#include <memory>
 #include <string>
+#include <typeindex>
 #include <utility>
 #include <vector>
 
+#include "absl/base/attributes.h"
+#include "absl/base/nullability.h"
+#include "absl/base/thread_annotations.h"
+#include "absl/container/flat_hash_map.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/functional/function_ref.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/refcount_ptr.h"
 #include "arolla/util/repr.h"
 #include "koladata/internal/data_bag.h"
+#include "koladata/internal/object_id.h"
 
 namespace koladata {
 
@@ -135,6 +143,73 @@ class DataBag : public arolla::RefcountedBase {
   // Fingerprint of the DataBag (randomized).
   arolla::Fingerprint fingerprint() const { return fingerprint_; }
 
+  // Returns metadata assigned to this DataBag instance via `SetCachedMetadata`,
+  // or `nullptr` if none is present. Note that DataBag forking and other
+  // operations that produce a new DataBag never inherit this cache. "Mutable"
+  // databags do not support caching, and this method will always return
+  // `nullptr` for them.
+  template <typename T>
+  std::shared_ptr<const T> absl_nullable GetCachedMetadataOrNull(
+      internal::ObjectId key) ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    absl::MutexLock lock(&cache_mutex_);
+    auto it = cache_.find({key, typeid(T)});
+    if (it == cache_.end()) {
+      return nullptr;
+    }
+    return std::static_pointer_cast<const T>(it->second);
+  }
+
+  // Metadata cache is a map (ObjectId, typeid(T)) => shared_ptr<T> attached
+  // to every immutable DataBag. Values of any movable type can be attached by
+  // `SetCachedMetadata` and requested by `GetCachedMetadataOrNull`.
+  // Returns pointer to the stored data or an error status if the data bag is
+  // mutable.
+  // Needed for performance optimizations - to cache data which can be obtained
+  // from data bag content, but takes time to obtain.
+  //
+  // * Values can be cached only if the data bag is immutable and has no mutable
+  //     fallbacks. In a mutable data bag the cache is always empty and
+  //     `GetCachedMetadataOrNull` returns nullptr.
+  //
+  // * In case of mutable databag or mutable fallbacks `SetCachedMetadata`
+  //     forwards the value without storing it in the cache.
+  //
+  // * Data is not overridable: `SetCachedMetadata(key, value)` is no-op if
+  //     a value of this type is already added for this key (in this case
+  //     returns a pointer to the old value). It is supposed to be used only for
+  //     data that never change.
+  //
+  // * SetCachedMetadata/GetCachedMetadataOrNull are thread-safe. Note that if
+  //     SetCachedMetadata is called with the same key and type simultaniously
+  //     from several threads, then the first call wins, and others will return
+  //     pointers to the data stored by the first call.
+  //
+  // * Metadata cache is ignored during serialization and is not preserved when
+  //     forking a data bag.
+  //
+  // * In order to avoid ownership loops don't store references to data bags in
+  //     the cache.
+  //
+  template <typename T>
+  std::shared_ptr<const T> SetCachedMetadata(internal::ObjectId key,
+                                             std::shared_ptr<const T> v) {
+    if (IsMutable() || HasMutableFallbacks()) {
+      return v;
+    }
+    absl::MutexLock lock(&cache_mutex_);
+    auto& c = cache_[{key, typeid(T)}];
+    // No override if already present.
+    if (c == nullptr) {
+      c = std::move(v);
+    }
+    return std::static_pointer_cast<const T>(c);
+  }
+
+  template <typename T>
+  std::shared_ptr<const T> SetCachedMetadata(internal::ObjectId key, T v) {
+    return SetCachedMetadata<T>(key, std::make_shared<T>(std::move(v)));
+  }
+
  private:
   explicit DataBag(bool is_mutable)
       : impl_(internal::DataBagImpl::CreateEmptyDatabag()),
@@ -163,6 +238,11 @@ class DataBag : public arolla::RefcountedBase {
 
   // Used to implement lazy forking for immutable DataBags.
   std::atomic<bool> forked_ = false;
+
+  absl::Mutex cache_mutex_;
+  absl::flat_hash_map<std::pair<internal::ObjectId, std::type_index>,
+                      std::shared_ptr<const void>>
+      cache_ ABSL_GUARDED_BY(cache_mutex_);
 };
 
 // Call visit_fn on all fallbacks in pre-order DFS.

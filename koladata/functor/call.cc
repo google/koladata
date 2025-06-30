@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
@@ -38,6 +39,7 @@
 #include "koladata/functor/signature_utils.h"
 #include "koladata/functor/stack_trace.h"
 #include "koladata/internal/data_item.h"
+#include "koladata/internal/object_id.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
@@ -105,6 +107,27 @@ absl::StatusOr<std::vector<std::string>> GetVariableEvaluationOrder(
   return res;
 }
 
+struct FunctorPreprocessingCache {
+  Signature signature;
+  std::vector<std::string> variable_evaluation_order;
+};
+
+absl::StatusOr<FunctorPreprocessingCache> ProcessFunctorMetadata(
+    const DataSlice& functor) {
+  ASSIGN_OR_RETURN(auto signature_item, functor.GetAttr(kSignatureAttrName));
+  // We use detach_default_values_db=true to prevent ownership loop when storing
+  // the preprocessed signature in the data bag cache.
+  ASSIGN_OR_RETURN(auto signature,
+                   KodaSignatureToCppSignature(
+                       signature_item, /*detach_default_values_db=*/true));
+  ASSIGN_OR_RETURN(auto eval_order, GetVariableEvaluationOrder(functor));
+  if (eval_order.empty() || eval_order.back() != kReturnsAttrName) {
+    return absl::InternalError(
+        "variable evaluation order does not end with returns");
+  }
+  return FunctorPreprocessingCache{std::move(signature), std::move(eval_order)};
+}
+
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCacheImpl(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames) {
@@ -113,29 +136,34 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCacheImpl(
     return absl::InvalidArgumentError(
         "the first argument of kd.call must be a functor");
   }
-  ASSIGN_OR_RETURN(auto signature_item, functor.GetAttr(kSignatureAttrName));
-  ASSIGN_OR_RETURN(auto signature, KodaSignatureToCppSignature(signature_item));
-  ASSIGN_OR_RETURN(auto bound_arguments,
-                   BindArguments(signature, args, kwnames));
-  ASSIGN_OR_RETURN(auto variable_evaluation_order,
-                   GetVariableEvaluationOrder(functor));
-  if (variable_evaluation_order.empty() ||
-      variable_evaluation_order.back() != kReturnsAttrName) {
-    return absl::InternalError(
-        "variable evaluation order does not end with returns");
+  internal::ObjectId functor_id = functor.item().value<internal::ObjectId>();
+  auto bag = functor.GetBag();
+  DCHECK(bag != nullptr);  // validated in IsFunctor
+
+  auto cached_data =
+      bag->GetCachedMetadataOrNull<FunctorPreprocessingCache>(functor_id);
+  if (cached_data == nullptr) {
+    ASSIGN_OR_RETURN(auto data, ProcessFunctorMetadata(functor));
+    cached_data = bag->SetCachedMetadata(functor_id, std::move(data));
   }
+  DCHECK(cached_data != nullptr);
+
+  ASSIGN_OR_RETURN(
+      auto bound_arguments,
+      BindArguments(cached_data->signature, args, kwnames, std::move(bag)));
   std::vector<arolla::TypedValue> computed_variable_holder;
   std::vector<std::pair<std::string, arolla::TypedRef>> inputs;
   std::vector<std::pair<std::string, arolla::TypedRef>> variables;
-  const auto& parameters = signature.parameters();
+  const auto& parameters = cached_data->signature.parameters();
   inputs.reserve(parameters.size());
   for (int64_t i = 0; i < parameters.size(); ++i) {
     inputs.emplace_back(parameters[i].name, bound_arguments[i].AsRef());
   }
-  computed_variable_holder.reserve(variable_evaluation_order.size());
-  variables.reserve(variable_evaluation_order.size());
+  computed_variable_holder.reserve(
+      cached_data->variable_evaluation_order.size());
+  variables.reserve(cached_data->variable_evaluation_order.size());
 
-  for (const auto& variable_name : variable_evaluation_order) {
+  for (const auto& variable_name : cached_data->variable_evaluation_order) {
     ASSIGN_OR_RETURN(auto variable, functor.GetAttr(variable_name));
     if (variable.item().holds_value<arolla::expr::ExprQuote>()) {
       ASSIGN_OR_RETURN(auto expr,

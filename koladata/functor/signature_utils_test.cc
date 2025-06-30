@@ -23,9 +23,12 @@
 #include "absl/status/status_matchers.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/signature.h"
+#include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 
@@ -173,6 +176,28 @@ TEST(BindArgumentsTest, PositionalOnlyAndKeywordSameName) {
                              {arolla::TypedRef::FromValue(input_slice)}));
   EXPECT_EQ(bound_arguments[1].GetFingerprint(),
             expected_kwargs.GetFingerprint());
+}
+
+TEST(BindArgumentsTest, DefaultValuesDb) {
+  internal::DataItem obj(internal::AllocateSingleObject());
+  Signature::Parameter p1 = {
+      .name = "foo",
+      .kind = Signature::Parameter::Kind::kPositionalOnly,
+      .default_value = *DataSlice::Create(
+          obj, internal::DataItem(schema::kObject)),
+  };
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
+
+  DataBagPtr db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(auto bound_arguments, BindArguments(signature, {}, {}));
+  ASSERT_OK_AND_ASSIGN(
+      auto bound_arguments_with_db,
+      BindArguments(signature, {}, {}, /*default_values_db=*/db));
+  ASSERT_OK_AND_ASSIGN(DataSlice arg, bound_arguments[0].As<DataSlice>());
+  ASSERT_OK_AND_ASSIGN(DataSlice arg_with_db,
+                       bound_arguments_with_db[0].As<DataSlice>());
+  EXPECT_EQ(arg.GetBag(), nullptr);
+  EXPECT_EQ(arg_with_db.GetBag(), db);
 }
 
 TEST(BindArgumentsTest, PositionalOnlyAndKeywordSameNameErrorMessage) {

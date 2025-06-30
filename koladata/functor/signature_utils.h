@@ -22,6 +22,7 @@
 #include "absl/types/span.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "koladata/data_bag.h"
 #include "koladata/functor/signature.h"
 
 namespace koladata::functor {
@@ -34,9 +35,13 @@ namespace koladata::functor {
 // an Arolla namedtuple. This returns TypedValues and not TypedRefs because
 // we allocate a tuple/namedtuple for variadic parameters and the return value
 // must own it.
+// If `default_values_db` is specified, it will be attached to all default
+// argument values. It is needed if `KodaSignatureToCppSignature` was used
+// with detach_default_values_db=true.
 absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
     const Signature& signature, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::string> kwnames);
+    absl::Span<const std::string> kwnames,
+    DataBagPtr default_values_db = nullptr);
 
 #endif  // KOLADATA_FUNCTOR_SIGNATURE_UTILS_H_
 

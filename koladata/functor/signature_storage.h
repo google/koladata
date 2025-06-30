@@ -47,7 +47,7 @@ absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
 // Converts a Koda DataItem storing a signature to a C++ Signature object.
 // This method can also be used to verify the validity of a Koda signature.
 absl::StatusOr<Signature> KodaSignatureToCppSignature(
-    const DataSlice& signature);
+    const DataSlice& signature, bool detach_default_values_db = false);
 
 // Return the constants used to store the parameter kinds in the Koda signature.
 const DataSlice& PositionalOnlyParameterKind();
