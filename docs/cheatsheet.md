@@ -1,4 +1,5 @@
 <!--* css: "//koladata/g3doc/cheatsheet.css" *-->
+
 <!-- For the best formatting, please limit the line_max_char to 50. -->
 
 # Koda Cheatsheet
@@ -3997,7 +3998,7 @@ kd.testing.assert_equivalent(ds1.get_bag(),
                              ds2.get_bag())
 
 # DataBag comparison is tricky so it is not
-# recommended to compare theirs contents directly
+# recommended to compare their contents directly
 ```
 
 </section>
@@ -4022,7 +4023,7 @@ kd.testing.assert_allclose(ds3, ds4, atol=0.01)
 kd.testing.assert_allclose(ds3, ds4, rtol=0.01)
 
 # Note it compares schemas too
-ds5 = kd.float3264(3.145678)
+ds5 = kd.float64(3.145678)
 kd.testing.assert_allclose(ds3, ds5) # Fail
 ```
 
@@ -4054,9 +4055,12 @@ kd.testing.assert_unordered_equal(ds5, ds6) # Fail
 
 ### Comparing Lists
 
-Note: the following APIs only compares the contents of nested lists by
-primitiveis or ItemIds. That is, they do not require these lists to have the
-same ItemIds or check the nested contents of lists' contents.
+Note: `kd.testing.assert_nested_lists_equal` checks that the given Lists have
+the same shape and schema, and that the corresponding values are equal, in the
+sense that they have the same primitive, or the same ItemId, or are nested Lists
+that are recursively equal in the same sense. Notably, it does not require the
+lists themselves to have the same ItemIds - it is an assertion about their
+contents and not about their identities.
 
 ```py
 l1 = kd.list([1, 2, 3])
@@ -4085,9 +4089,10 @@ kd.testing.assert_nested_lists_equal(l7, l8)
 
 ### Comparing Dicts
 
-Note: the following APIs only compares the contents of dicts by primitiveis or
-ItemIds. That is, they do not require these dicts to have the same ItemIds or
-check the nested contents of dicts' contents.
+Note: `kd.testing.assert_dicts_equal` checks that the given Dicts have the same
+shape and schema. In addition, it verifies that the keys fetched from their
+corresponding DataBag(s) are the same (regardless of their order in the last
+dimension) and that the returned Dict values for those keys are equivalent.
 
 ```py
 d1 = kd.dict({'a': 1, 'b': 2})
@@ -4104,9 +4109,9 @@ kd.testing.assert_dicts_equal(d5, d6) # Fail
 
 # Only check keys/values
 kd.testing.assert_dicts_keys_equal(
-  d1, kd.slice(['b', 'a']))
+  d1, kd.slice(['b', 'a']))  # Order does not matter
 kd.testing.assert_dicts_values_equal(
-  d1, kd.slice([2, 1]))
+  d1, kd.slice([2, 1]))  # The values and their counts matter. Order does not
 ```
 
 </section>
