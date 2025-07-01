@@ -28,6 +28,7 @@
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
+#include "arolla/qtype/named_field_qtype.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/tuple_qtype.h"
@@ -41,6 +42,7 @@
 #include "koladata/functor/call.h"
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/stream.h"
+#include "koladata/functor/parallel/stream_call.h"
 #include "koladata/functor/parallel/stream_composition.h"
 #include "koladata/functor/parallel/stream_for.h"
 #include "koladata/functor/parallel/stream_map.h"
@@ -1089,6 +1091,104 @@ StreamForYieldsOperatorFamily::DoGetOperator(
   }
   RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[8]));
   return std::make_shared<StreamForYieldsOp>(input_types, output_type);
+}
+
+namespace {
+
+class StreamCallOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return arolla::MakeBoundOperator(
+        [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
+         fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
+         args_slot = input_slots[2], kwargs_slot = input_slots[4],
+         return_type = input_slots[3].GetType(),
+         output_slot](arolla::EvaluationContext* /*ctx*/,
+                      arolla::FramePtr frame) -> absl::Status {
+          auto fn = [body_ds = frame.Get(fn_slot),
+                     kwargs_qtype = kwargs_slot.GetType(),
+                     output_type = output_slot.GetType(),
+                     return_type](absl::Span<const arolla::TypedRef> args)
+              -> absl::StatusOr<arolla::TypedValue> {
+            ASSIGN_OR_RETURN(
+                auto result,
+                CallFunctorWithCompilationCache(
+                    body_ds, args, arolla::GetFieldNames(kwargs_qtype)),
+                _ << "error occurred while calling `fn`");
+            if (result.GetType() != output_type &&
+                result.GetType() != return_type) {
+              return absl::InvalidArgumentError(absl::StrFormat(
+                  "the functor was called with `%s` as the return type, but the"
+                  " computation resulted in type `%s` instead; you can specify"
+                  " the expected return type via the `return_type_as=`"
+                  " parameter to the functor call",
+                  return_type->name(), result.GetType()->name()));
+            }
+            return result;
+          };
+          const auto args = arolla::TypedRef::FromSlot(args_slot, frame);
+          const auto kwargs = arolla::TypedRef::FromSlot(kwargs_slot, frame);
+          std::vector<arolla::TypedRef> args_vector;
+          args_vector.reserve(args.GetFieldCount() + kwargs.GetFieldCount());
+          for (int64_t i = 0; i < args.GetFieldCount(); ++i) {
+            args_vector.push_back(args.GetField(i));
+          }
+          for (int64_t i = 0; i < kwargs.GetFieldCount(); ++i) {
+            args_vector.push_back(kwargs.GetField(i));
+          }
+          ASSIGN_OR_RETURN(
+              auto stream,
+              StreamCall(frame.Get(executor_slot), std::move(fn),
+                         output_slot.GetType()->value_qtype(), args_vector));
+          frame.Set(output_slot.UnsafeToSlot<StreamPtr>(), std::move(stream));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+// stream_call(
+//     executor: EXECUTOR,
+//     fn: DATA_SLICE,
+//     args: TUPLE[...],
+//     return_value_type: T,
+//     kwargs: NAMEDTUPLE[...],
+//     NON_DETERMINISTIC
+// ) -> STREAM[T]
+absl::StatusOr<arolla::OperatorPtr> StreamCallOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (!IsStreamQType(output_type)) {
+    return absl::InvalidArgumentError("output type must be a stream");
+  }
+  if (input_types.size() != 6) {
+    return absl::InvalidArgumentError("requires exactly 6 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
+    return absl::InvalidArgumentError("1st argument must be an executor");
+  }
+  if (input_types[1] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError("2nd argument must be a functor");
+  }
+  if (!arolla::IsTupleQType(input_types[2])) {
+    return absl::InvalidArgumentError("3rd argument must be a tuple");
+  }
+  if (input_types[3] != output_type &&
+      input_types[3] != output_type->value_qtype()) {
+    return absl::InvalidArgumentError(
+        "4th argument must be of the same type as the output type or the value "
+        "type of the output");
+  }
+  if (!arolla::IsNamedTupleQType(input_types[4])) {
+    return absl::InvalidArgumentError("5th argument must be a namedtuple");
+  }
+  RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[5]));
+  return std::make_shared<StreamCallOp>(input_types, output_type);
 }
 
 }  // namespace koladata::functor::parallel

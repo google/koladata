@@ -8570,6 +8570,75 @@ Operators that work with streams of items. These APIs are in active development 
 
 **Operators**
 
+### `kd.streams.await_(arg)` {#kd.streams.await_}
+
+```text {.no-copy}
+Indicates to kd.streams.call that the argument should be awaited.
+
+This operator acts as a marker. When the returned value is passed to
+`kd.streams.call`, it signals that `kd.streams.call` should await
+the underlying stream to yield a single item. This single item is then
+passed to the functor.
+
+Importantly, `stream_await` itself does not perform any awaiting or blocking.
+
+If the input `arg` is not a stream, this operators returns `arg` unchanged.
+
+Note: `kd.streams.call` expects an awaited stream to yield exactly one item.
+Producing zero or more than one item from an awaited stream will result in
+an error during the `kd.streams.call` evaluation.
+
+Args:
+  arg: The input argument (the operator has effect only if `arg` is a stream).
+
+Returns:
+  If `arg` was a stream, it gets labeled with 'AWAIT'. If `arg` was not
+  a stream, `arg` is returned without modification.
+```
+
+### `kd.streams.call(fn, *args, executor=unspecified, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.streams.call}
+
+```text {.no-copy}
+Calls a functor on the given executor and yields the result(s) as a stream.
+
+For stream arguments tagged with `kd.streams.await_`, `kd.streams.call` first
+awaits the corresponding input streams. Each of these streams is expected to
+yield exactly one item, which is then passed as the argument to the functor
+`fn`. If a labeled stream is empty or yields more than one item, it is
+considered an error.
+
+The `return_type_as` parameter specifies the return type of the functor `fn`.
+Unless the return type is already a stream, the result of `kd.streams.call` is
+a `STREAM[return_type]` storing a single value returned by the functor.
+However, if `return_type_as` is a stream, the result of `kd.streams.call` is
+of the same stream type, holding the same items as the stream returned by
+the functor.
+
+It's recommended to specify the same `return_type_as` for `kd.streams.call`
+calls as it would be for regular `kd.call`.
+
+Importantly, `kd.streams.call` supports the case when `return_type_as` is
+non-stream while the functor actually returns `STREAM[return_type]`. This
+enables nested `kd.streams.call` calls.
+
+Args:
+  fn: The functor to be called, typically created via kd.fn().
+  *args: The positional arguments to pass to the call. The stream arguments
+    tagged with `kd.streams.await_` will be awaited before the call, and
+    expected to yield exactly one item.
+  executor: The executor to use for computations.
+  return_type_as: The return type of the functor `fn` call.
+  **kwargs: The keyword arguments to pass to the call. Scalars will be
+    auto-boxed to DataItems.
+
+Returns:
+  If the return type of the functor (as specified by `return_type_as`) is
+  a non-stream type, the result of `kd.streams.call` is a single-item stream
+  with the functor's return value. Otherwise, the result is a stream of
+  the same type as `return_type_as`, containing the same items as the stream
+  returned by the functor.
+```
+
 ### `kd.streams.chain(*streams, value_type_as=unspecified)` {#kd.streams.chain}
 
 ```text {.no-copy}

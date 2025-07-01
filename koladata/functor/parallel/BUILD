@@ -555,6 +555,52 @@ cc_test(
 )
 
 cc_library(
+    name = "stream_call",
+    srcs = ["stream_call.cc"],
+    hdrs = ["stream_call.h"],
+    deps = [
+        ":basic_routine",
+        ":executor",
+        ":stream",
+        ":stream_composition",
+        ":stream_qtype",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/derived_qtype",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "stream_call_test",
+    srcs = ["stream_call_test.cc"],
+    deps = [
+        ":eager_executor",
+        ":make_executor",
+        ":stream",
+        ":stream_call",
+        ":stream_qtype",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/time",
+        "@com_google_absl//absl/types:span",
+        "@com_google_arolla//arolla/derived_qtype",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/qtype/testing",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "init_expr_operators",
     srcs = ["init_expr_operators.cc"],
     deps = [
@@ -772,6 +818,7 @@ cc_library(
     deps = [
         ":executor",
         ":stream",
+        ":stream_call",
         ":stream_composition",
         ":stream_for",
         ":stream_map",

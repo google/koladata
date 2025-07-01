@@ -1744,6 +1744,106 @@ def stream_for(
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'koda_internal.parallel.stream_call',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_data_slice(P.fn),
+    ],
+    qtype_inference_expr=M.qtype.conditional_qtype(
+        bootstrap.is_stream_qtype(P.return_type_as),
+        P.return_type_as,
+        get_stream_qtype(P.return_type_as),
+    ),
+    deterministic=False,
+)
+def stream_call(
+    executor, fn, *args, return_type_as=data_slice.DataSlice, **kwargs
+):
+  """Calls a functor on the given executor and yields the result(s) as a stream.
+
+  For stream arguments tagged with `stream_await`, `stream_call` first
+  awaits the corresponding input streams. Each of these streams is expected to
+  yield exactly one item, which is then passed as the argument to the functor
+  `fn`. If a labeled stream is empty or yields more than one item, it is
+  considered an error.
+
+  The `return_type_as` parameter specifies the return type of the functor `fn`.
+  Unless the return type is already a stream, the result of `stream_call` is
+  a `STREAM[return_type]` storing a single value returned by the functor.
+  However, if `return_type_as` is a stream, the result of `stream_call` is
+  of the same stream type, holding the same items as the stream returned by
+  the functor.
+
+  IMPORTANT: The current implementation supports the case when `return_type_as`
+  is non-stream while the functor returns a stream, in which case
+  `stream_call` works the same way as if `return_type_as` were a stream.
+  This behaviour isn't part of the official API and is subject to change. If it
+  becomes critical for your application's functionality or blocks you from using
+  this operator, please contact us!
+
+  Args:
+    executor: The executor to use for computations.
+    fn: The functor to be called, typically created via kd.fn().
+    *args: The positional arguments to pass to the call. The stream arguments
+      tagged with `stream_await` will be awaited before the call, and expected
+      to yield exactly one item.
+    return_type_as: The return type of the functor `fn` call.
+    **kwargs: The keyword arguments to pass to the call. Scalars will be
+      auto-boxed to DataItems.
+
+  Returns:
+    If the return type of the functor (as specified by `return_type_as`) is
+    a non-stream type, the result of `stream_call` is a single-item stream
+    with the functor's return value. Otherwise, the result is a stream of
+    the same type as `return_type_as`, containing the same items as the stream
+    returned by the functor.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(aliases=['kd.streams.await_'])
+@optools.as_lambda_operator('koda_internal.parallel.await')
+def stream_await(arg):
+  """Indicates to kd.streams.call that the argument should be awaited.
+
+  This operator acts as a marker. When the returned value is passed to
+  `kd.streams.call`, it signals that `kd.streams.call` should await
+  the underlying stream to yield a single item. This single item is then
+  passed to the functor.
+
+  Importantly, `stream_await` itself does not perform any awaiting or blocking.
+
+  If the input `arg` is not a stream, this operators returns `arg` unchanged.
+
+  Note: `kd.streams.call` expects an awaited stream to yield exactly one item.
+  Producing zero or more than one item from an awaited stream will result in
+  an error during the `kd.streams.call` evaluation.
+
+  Args:
+    arg: The input argument (the operator has effect only if `arg` is a stream).
+
+  Returns:
+    If `arg` was a stream, it gets labeled with 'AWAIT'. If `arg` was not
+    a stream, `arg` is returned without modification.
+  """
+  return arolla.types.DispatchOperator(
+      'arg',
+      stream_case=arolla.types.DispatchCase(
+          M.derived_qtype.downcast(
+              M.derived_qtype.get_labeled_qtype(
+                  M.qtype.qtype_of(P.arg),
+                  'AWAIT',
+              ),
+              P.arg,
+          ),
+          condition=bootstrap.is_stream_qtype(P.arg),
+      ),
+      default=P.arg,
+  )(arg)
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'koda_internal.parallel.stream_from_future',
     qtype_constraints=[
         qtype_utils.expect_future(P.future),

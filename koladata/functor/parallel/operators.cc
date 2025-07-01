@@ -100,6 +100,8 @@ OPERATOR("koda_internal.parallel.make_executor",
            }
            return MakeExecutor(thread_limit);
          });
+OPERATOR_FAMILY("koda_internal.parallel.stream_call",
+                std::make_unique<StreamCallOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_chain",
                 std::make_unique<StreamChainOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_chain_from_stream",

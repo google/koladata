@@ -588,3 +588,69 @@ def for_(
       initial_state=initial_state,
       **optools.unified_non_deterministic_kwarg(),
   )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.streams.call',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.fn),
+        qtype_utils.expect_executor_or_unspecified(P.executor),
+    ],
+)
+def call(
+    fn,
+    *args,
+    executor=arolla.unspecified(),
+    return_type_as=data_slice.DataSlice,
+    **kwargs,
+):
+  """Calls a functor on the given executor and yields the result(s) as a stream.
+
+  For stream arguments tagged with `kd.streams.await_`, `kd.streams.call` first
+  awaits the corresponding input streams. Each of these streams is expected to
+  yield exactly one item, which is then passed as the argument to the functor
+  `fn`. If a labeled stream is empty or yields more than one item, it is
+  considered an error.
+
+  The `return_type_as` parameter specifies the return type of the functor `fn`.
+  Unless the return type is already a stream, the result of `kd.streams.call` is
+  a `STREAM[return_type]` storing a single value returned by the functor.
+  However, if `return_type_as` is a stream, the result of `kd.streams.call` is
+  of the same stream type, holding the same items as the stream returned by
+  the functor.
+
+  It's recommended to specify the same `return_type_as` for `kd.streams.call`
+  calls as it would be for regular `kd.call`.
+
+  Importantly, `kd.streams.call` supports the case when `return_type_as` is
+  non-stream while the functor actually returns `STREAM[return_type]`. This
+  enables nested `kd.streams.call` calls.
+
+  Args:
+    fn: The functor to be called, typically created via kd.fn().
+    *args: The positional arguments to pass to the call. The stream arguments
+      tagged with `kd.streams.await_` will be awaited before the call, and
+      expected to yield exactly one item.
+    executor: The executor to use for computations.
+    return_type_as: The return type of the functor `fn` call.
+    **kwargs: The keyword arguments to pass to the call. Scalars will be
+      auto-boxed to DataItems.
+
+  Returns:
+    If the return type of the functor (as specified by `return_type_as`) is
+    a non-stream type, the result of `kd.streams.call` is a single-item stream
+    with the functor's return value. Otherwise, the result is a stream of
+    the same type as `return_type_as`, containing the same items as the stream
+    returned by the functor.
+  """
+  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
+  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      koda_internal_parallel.stream_call,
+      M.core.default_if_unspecified(executor, get_default_executor()),
+      fn,
+      args=args,
+      return_type_as=return_type_as,
+      kwargs=kwargs,
+      **optools.unified_non_deterministic_kwarg(),
+  )
