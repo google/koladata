@@ -39,28 +39,12 @@ inline constexpr absl::string_view kVarPositionalParameterName =
 inline constexpr absl::string_view kKeywordOnlyParameterName = "keyword_only";
 inline constexpr absl::string_view kVarKeywordParameterName = "var_keyword";
 
-// Converts a C++ Signature object to a Koda DataItem storing the signature.
-// The returned DataItem will have a new DataBag created to store the triples.
-absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
-    const Signature& signature);
-
 // Converts a Koda DataItem storing a signature to a C++ Signature object.
 // This method can also be used to verify the validity of a Koda signature.
+// CppSignatureToKodaSignature can be found in
+// koladata/functor/signature_utils.h.
 absl::StatusOr<Signature> KodaSignatureToCppSignature(
     const DataSlice& signature, bool detach_default_values_db = false);
-
-// Return the constants used to store the parameter kinds in the Koda signature.
-const DataSlice& PositionalOnlyParameterKind();
-const DataSlice& PositionalOrKeywordParameterKind();
-const DataSlice& VarPositionalParameterKind();
-const DataSlice& KeywordOnlyParameterKind();
-const DataSlice& VarKeywordParameterKind();
-
-// Returns the constant used to indicate that a parameter has no default value.
-const DataSlice& NoDefaultValueMarker();
-
-// Returns functor signature for the *args and **kwargs parameters.
-const DataSlice& KodaArgsKwargsSignature();
 
 }  // namespace koladata::functor
 

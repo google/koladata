@@ -33,6 +33,7 @@
 #include "koladata/functor/functor_storage.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
+#include "koladata/functor/signature_utils.h"
 #include "koladata/object_factories.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"

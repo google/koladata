@@ -38,7 +38,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature.h"
-#include "koladata/functor/signature_storage.h"
+#include "koladata/functor/signature_utils.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"

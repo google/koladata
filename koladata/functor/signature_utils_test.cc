@@ -23,6 +23,8 @@
 #include "absl/status/status_matchers.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
+#include "arolla/util/repr.h"
+#include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/signature.h"
@@ -328,6 +330,54 @@ TEST(BindArgumentsTest, InvalidArgsKwnamesSizes) {
   EXPECT_THAT(BindArguments(signature, {}, {"foo"}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "args.size < kwnames.size()"));
+}
+
+// More comprehensive tests, including round-trip testing in
+// koladata/functor/signature_storage_test.cc
+TEST(CppSignatureToKodaSignatureTest, Basic) {
+  Signature::Parameter p1 = {
+      .name = "a",
+      .kind = Signature::Parameter::Kind::kPositionalOnly,
+  };
+  Signature::Parameter p2 = {
+      .name = "b",
+      .kind = Signature::Parameter::Kind::kPositionalOrKeyword,
+      .default_value = test::DataItem(1),
+  };
+  Signature::Parameter p3 = {
+      .name = "c",
+      .kind = Signature::Parameter::Kind::kVarPositional,
+  };
+  Signature::Parameter p4 = {
+      .name = "d",
+      .kind = Signature::Parameter::Kind::kKeywordOnly,
+      .default_value = test::DataItem(std::nullopt, schema::kInt32),
+  };
+  Signature::Parameter p5 = {
+      .name = "e",
+      .kind = Signature::Parameter::Kind::kVarKeyword,
+  };
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1, p2, p3, p4, p5}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature_parameter_list,
+                       koda_signature.GetAttr("parameters"));
+  ASSERT_OK_AND_ASSIGN(
+      auto koda_signature_parameters,
+      koda_signature_parameter_list.ExplodeList(0, std::nullopt));
+  EXPECT_THAT(koda_signature_parameters.GetAttr("name"),
+              IsOkAndHolds(IsEquivalentTo(test::DataSlice<arolla::Text>(
+                  {"a", "b", "c", "d", "e"}, koda_signature.GetBag()))));
+  // We do not test the exact value for kinds or exact representation of
+  // default values since those are more or less an
+  // implementation detail, it's only important that round trips work,
+  // and that the repr is reasonable.
+  EXPECT_THAT(arolla::Repr(koda_signature), HasSubstr("positional_only"));
+  EXPECT_THAT(arolla::Repr(koda_signature), HasSubstr("positional_or_keyword"));
+  EXPECT_THAT(arolla::Repr(koda_signature), HasSubstr("var_positional"));
+  EXPECT_THAT(arolla::Repr(koda_signature), HasSubstr("keyword_only"));
+  EXPECT_THAT(arolla::Repr(koda_signature), HasSubstr("var_keyword"));
+  EXPECT_THAT(arolla::Repr(koda_signature), HasSubstr("no_default_value"));
 }
 
 }  // namespace

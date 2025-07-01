@@ -16,23 +16,60 @@
 
 #include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
+#include "absl/base/no_destructor.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+
+#include "arolla/util/text.h"
+#include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/signature.h"
+#include "koladata/functor/signature_storage.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
+#include "koladata/object_factories.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
+
+namespace {
+
+absl::StatusOr<DataSlice> MakeParameterKindConstant(absl::string_view name) {
+  ASSIGN_OR_RETURN(auto name_attr,
+                   DataSlice::Create(internal::DataItem(arolla::Text(name)),
+                                     internal::DataItem(schema::kString)));
+  ASSIGN_OR_RETURN(auto res, CreateUu(DataBag::Empty(), "__parameter_kind__",
+                                      {"kind"}, {std::move(name_attr)}));
+  return res.FreezeBag();
+}
+
+absl::StatusOr<DataSlice> MakeNoDefaultValueMarker() {
+  ASSIGN_OR_RETURN(auto present,
+                   DataSlice::Create(internal::DataItem(arolla::kPresent),
+                                     internal::DataItem(schema::kMask)));
+  ASSIGN_OR_RETURN(
+      auto res,
+      CreateUu(DataBag::Empty(), "__parameter_no_default_value__",
+               {kNoDefaultValueParameterField}, {std::move(present)}));
+  return res.FreezeBag();
+}
+
+}  // namespace
 
 absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
     const Signature& signature, absl::Span<const arolla::TypedRef> args,
@@ -128,6 +165,127 @@ absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
   }
 
   return bound_arguments;
+}
+
+const DataSlice& PositionalOnlyParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant(kPositionalOnlyParameterName)};
+  return *val;
+}
+
+const DataSlice& PositionalOrKeywordParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant(kPositionalOrKeywordParameterName)};
+  return *val;
+}
+
+const DataSlice& VarPositionalParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant(kVarPositionalParameterName)};
+  return *val;
+}
+
+const DataSlice& KeywordOnlyParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant(kKeywordOnlyParameterName)};
+  return *val;
+}
+
+const DataSlice& VarKeywordParameterKind() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{
+      *MakeParameterKindConstant(kVarKeywordParameterName)};
+  return *val;
+}
+
+const DataSlice& NoDefaultValueMarker() {
+  // No errors are possible here, so we ignore status.
+  static absl::NoDestructor<DataSlice> val{*MakeNoDefaultValueMarker()};
+  return *val;
+}
+
+absl::StatusOr<DataSlice> ParameterKindToKoda(Signature::Parameter::Kind kind) {
+  using enum Signature::Parameter::Kind;
+  switch (kind) {
+    case kPositionalOnly:
+      return PositionalOnlyParameterKind();
+    case kPositionalOrKeyword:
+      return PositionalOrKeywordParameterKind();
+    case kVarPositional:
+      return VarPositionalParameterKind();
+    case kKeywordOnly:
+      return KeywordOnlyParameterKind();
+    case kVarKeyword:
+      return VarKeywordParameterKind();
+  }
+  return absl::InternalError("unknown parameter kind");
+}
+
+absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
+    const Signature& signature) {
+  std::vector<internal::DataItem> koda_parameters;
+  auto db = DataBag::Empty();
+  AdoptionQueue adoption_queue;
+  for (const auto& param : signature.parameters()) {
+    ASSIGN_OR_RETURN(auto kind, ParameterKindToKoda(param.kind));
+    ASSIGN_OR_RETURN(
+        auto name,
+        DataSlice::Create(internal::DataItem(arolla::Text(param.name)),
+                          internal::DataItem(schema::kString)));
+    DataSlice default_value;
+    if (param.default_value.has_value()) {
+      default_value = param.default_value.value();
+    } else {
+      default_value = NoDefaultValueMarker();
+    }
+    adoption_queue.Add(kind);
+    adoption_queue.Add(default_value);
+    ASSIGN_OR_RETURN(
+        auto koda_param,
+        ObjectCreator::FromAttrs(
+            db, {"kind", "name", "default_value"},
+            {std::move(kind), std::move(name), std::move(default_value)}));
+    koda_parameters.push_back(koda_param.item());
+  }
+  ASSIGN_OR_RETURN(
+      auto koda_parameters_slice,
+      DataSlice::Create(
+          internal::DataSliceImpl::Create(koda_parameters),
+          DataSlice::JaggedShape::FlatFromSize(koda_parameters.size()),
+          internal::DataItem(schema::kObject), db));
+  ASSIGN_OR_RETURN(auto koda_parameter_list,
+                   CreateListsFromLastDimension(db, koda_parameters_slice));
+  ASSIGN_OR_RETURN(auto koda_signature,
+                   ObjectCreator::FromAttrs(db, {"parameters"},
+                                            {std::move(koda_parameter_list)}));
+  RETURN_IF_ERROR(adoption_queue.AdoptInto(*db));
+  return koda_signature.FreezeBag();
+}
+
+namespace {
+
+const Signature& CppArgsKwargsSignature() {
+  static absl::NoDestructor<Signature> val(
+      Signature::Create(
+          {Signature::Parameter{
+               .name = "args",
+               .kind = Signature::Parameter::Kind::kVarPositional},
+           Signature::Parameter{
+               .name = "kwargs",
+               .kind = Signature::Parameter::Kind::kVarKeyword}})
+          .value());
+  return *val;
+}
+}  // namespace
+
+const DataSlice& KodaArgsKwargsSignature() {
+  static absl::NoDestructor<DataSlice> val{
+      CppSignatureToKodaSignature(CppArgsKwargsSignature()).value()};
+  return *val;
 }
 
 }  // namespace koladata::functor

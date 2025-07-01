@@ -39,7 +39,7 @@
 #include "koladata/functor/cpp_function_bridge.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature.h"
-#include "koladata/functor/signature_storage.h"
+#include "koladata/functor/signature_utils.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/test_utils.h"
 

@@ -106,7 +106,7 @@ cc_test(
         "//koladata/functor:call",
         "//koladata/functor:cpp_function_bridge",
         "//koladata/functor:signature",
-        "//koladata/functor:signature_storage",
+        "//koladata/functor:signature_utils",
         "//koladata/operators:lib",
         "//koladata/testing:matchers",
         "@com_google_absl//absl/status",

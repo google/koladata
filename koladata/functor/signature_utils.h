@@ -22,6 +22,7 @@
 #include "absl/types/span.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "koladata/data_slice.h"
 #include "koladata/data_bag.h"
 #include "koladata/functor/signature.h"
 
@@ -42,6 +43,27 @@ absl::StatusOr<std::vector<arolla::TypedValue>> BindArguments(
     const Signature& signature, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames,
     DataBagPtr default_values_db = nullptr);
+
+// Return the constants used to store the parameter kinds in the Koda signature.
+const DataSlice& PositionalOnlyParameterKind();
+const DataSlice& PositionalOrKeywordParameterKind();
+const DataSlice& VarPositionalParameterKind();
+const DataSlice& KeywordOnlyParameterKind();
+const DataSlice& VarKeywordParameterKind();
+
+// Returns the constant used to indicate that a parameter has no default value.
+const DataSlice& NoDefaultValueMarker();
+
+// Returns functor signature for the *args and **kwargs parameters.
+const DataSlice& KodaArgsKwargsSignature();
+
+
+// Converts a C++ Signature object to a Koda DataItem storing the signature.
+// The returned DataItem will have a new DataBag created to store the triples.
+// KodaSignatureToCppSignature can be found in
+// koladata/functor/signature_storage.h.
+absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
+  const Signature& signature);
 
 #endif  // KOLADATA_FUNCTOR_SIGNATURE_UTILS_H_
 

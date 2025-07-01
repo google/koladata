@@ -68,6 +68,7 @@ cc_library(
         "//koladata/functor:functor_storage",
         "//koladata/functor:signature",
         "//koladata/functor:signature_storage",
+        "//koladata/functor:signature_utils",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/internal:non_deterministic_token",

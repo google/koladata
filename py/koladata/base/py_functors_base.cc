@@ -28,7 +28,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/functor_storage.h"
-#include "koladata/functor/signature_storage.h"
+#include "koladata/functor/signature_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_args.h"
 #include "py/koladata/base/wrap_utils.h"

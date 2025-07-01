@@ -43,7 +43,7 @@
 #include "koladata/expr/expr_operators.h"
 #include "koladata/expr/non_determinism.h"
 #include "koladata/functor/functor.h"
-#include "koladata/functor/signature_storage.h"
+#include "koladata/functor/signature_utils.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"

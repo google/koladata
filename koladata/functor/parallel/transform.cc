@@ -62,6 +62,7 @@
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/signature.h"
 #include "koladata/functor/signature_storage.h"
+#include "koladata/functor/signature_utils.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
