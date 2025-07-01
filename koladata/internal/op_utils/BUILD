@@ -451,6 +451,44 @@ cc_test(
 )
 
 cc_library(
+    name = "deep_equivalent",
+    srcs = ["deep_equivalent.cc"],
+    hdrs = ["deep_equivalent.h"],
+    deps = [
+        ":deep_comparator",
+        ":deep_diff",
+        ":object_finder",
+        ":traverse_helper",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:object_id",
+        "//koladata/internal:uuid_object",
+        "@com_google_absl//absl/functional:function_ref",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "deep_equivalent_test",
+    srcs = ["deep_equivalent_test.cc"],
+    deps = [
+        ":deep_clone",
+        ":deep_equivalent",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal/testing:deep_op_utils",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "expand",
     hdrs = ["expand.h"],
     deps = [
