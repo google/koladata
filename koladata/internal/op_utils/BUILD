@@ -267,6 +267,46 @@ cc_test(
 )
 
 cc_library(
+    name = "deep_diff",
+    srcs = ["deep_diff.cc"],
+    hdrs = ["deep_diff.h"],
+    deps = [
+        ":traverse_helper",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
+        "//koladata/internal:uuid_object",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "deep_diff_test",
+    srcs = ["deep_diff_test.cc"],
+    deps = [
+        ":deep_diff",
+        ":traverse_helper",
+        "//koladata/internal:data_bag",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "//koladata/internal:schema_attrs",
+        "//koladata/internal/testing:deep_op_utils",
+        "//koladata/internal/testing:matchers",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "traverser",
     srcs = [],
     hdrs = ["traverser.h"],

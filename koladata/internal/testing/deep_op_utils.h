@@ -153,6 +153,7 @@ class DeepOpTest : public ::testing::TestWithParam<DeepOpTestParam> {
                                const TriplesT& schema_triples) {
     for (auto [schema, attrs] : schema_triples) {
       for (auto [attr_name, attr_schema] : attrs) {
+        EXPECT_TRUE(schema.is_struct_schema());
         EXPECT_OK(db.SetSchemaAttr(schema, attr_name, attr_schema));
       }
     }
@@ -161,6 +162,7 @@ class DeepOpTest : public ::testing::TestWithParam<DeepOpTestParam> {
   static void SetDataTriples(DataBagImpl& db, const TriplesT& data_triples) {
     for (const auto& [item, attrs] : data_triples) {
       for (const auto& [attr_name, attr_data] : attrs) {
+        EXPECT_TRUE(item.holds_value<ObjectId>());
         EXPECT_OK(db.SetAttr(item, attr_name, attr_data));
       }
     }
