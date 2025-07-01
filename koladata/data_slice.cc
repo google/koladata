@@ -609,15 +609,46 @@ absl::StatusOr<ImplT> HasAttrImpl(const DataBagPtr& db, const ImplT& impl,
   const auto& db_impl = db->GetImpl();
   FlattenFallbackFinder fb_finder(*db);
   auto fallbacks = fb_finder.GetFlattenFallbacks();
-  auto get_attr = [&]() {
-    if (schema == schema::kSchema) {
-      return db_impl.GetSchemaAttrAllowMissing(impl, attr_name, fallbacks);
-    } else {
-      return db_impl.GetAttr(impl, attr_name, fallbacks);
-    }
+
+  auto struct_has_attr =
+      [&](const auto& attr_schema) -> absl::StatusOr<ImplT> {
+    // Consider adding a low level HasAttr to avoid actually fetching the data.
+    ASSIGN_OR_RETURN(auto attr, db_impl.GetAttr(impl, attr_name, fallbacks));
+    ASSIGN_OR_RETURN(auto has_attr_schema, internal::HasOp()(attr_schema));
+    ASSIGN_OR_RETURN(auto has_attr, internal::HasOp()(attr));
+    return internal::PresenceAndOp()(has_attr, has_attr_schema);
   };
-  ASSIGN_OR_RETURN(auto attrs, get_attr());
-  return internal::HasOp()(attrs);
+
+  if (schema == schema::kSchema) {
+    ASSIGN_OR_RETURN(
+        auto res_schema,
+        db_impl.GetSchemaAttrAllowMissing(impl, attr_name, fallbacks));
+    return internal::HasOp()(res_schema);
+  } else if (schema == schema::kObject) {
+    // `__schema__` is not an actual attribute of the underlying schema, so we
+    // handle it specially.
+    if (attr_name == schema::kSchemaAttr) {
+      return struct_has_attr(internal::DataItem(schema::kSchema));
+    }
+    ASSIGN_OR_RETURN(auto schema_attr,
+                     db_impl.GetObjSchemaAttr(impl, fallbacks));
+    ASSIGN_OR_RETURN(auto attr_schema, db_impl.GetSchemaAttrAllowMissing(
+                                           schema_attr, attr_name, fallbacks));
+    return struct_has_attr(attr_schema);
+  } else if (schema.is_struct_schema()) {
+    ASSIGN_OR_RETURN(auto attr_schema, db_impl.GetSchemaAttrAllowMissing(
+                                           schema, attr_name, fallbacks));
+    return struct_has_attr(attr_schema);
+  } else {
+    // Then it doesn't have any attrs (e.g. schema==NONE). We check in
+    // ValidateAttrLookupAllowed that looking up is allowed to begin with, so
+    // we just return an empty slice here.
+    if constexpr (std::is_same_v<ImplT, internal::DataSliceImpl>) {
+      return internal::DataSliceImpl::CreateEmptyAndUnknownType(impl.size());
+    } else {
+      return internal::DataItem();
+    }
+  }
 }
 
 // Configures the error messages and the behavior when the attribute

@@ -3591,6 +3591,63 @@ TEST(DataSliceTest, HasAttr_Primitives_EntityCreator) {
   ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr("b"));
   EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
                         {std::nullopt, std::nullopt, std::nullopt})));
+
+  // It respects the schema, not just the data.
+  ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
+      ds.slice(), "c",
+      internal::DataSliceImpl::Create({internal::DataItem(1.0f),
+                                       internal::DataItem(),
+                                       internal::DataItem(3.0f)})));
+  ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr("c"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {std::nullopt, std::nullopt, std::nullopt})));
+
+  // Does not have a __schema__ since it's an entity
+  ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr(schema::kSchemaAttr));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {std::nullopt, std::nullopt, std::nullopt})));
+}
+
+TEST(DataSliceTest, HasAttr_Primitives_ObjectCreator) {
+  auto ds_primitive = test::DataSlice<int>({1, std::nullopt, 3});
+  auto db = DataBag::Empty();
+  auto shape = DataSlice::JaggedShape::FlatFromSize(3);
+  ASSERT_OK_AND_ASSIGN(auto ds, ObjectCreator::Shaped(db, shape, {}, {}));
+  ASSERT_OK(ds.SetAttr("a", ds_primitive));
+
+  // Present attr (for some).
+  ASSERT_OK_AND_ASSIGN(auto mask, ds.HasAttr("a"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {arolla::Unit(), std::nullopt, arolla::Unit()})));
+
+  // Missing attr.
+  ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr("b"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {std::nullopt, std::nullopt, std::nullopt})));
+
+  // It respects the schema, not just the data.
+  ASSERT_OK(db->GetMutableImpl()->get().SetAttr(
+      ds.slice(), "c",
+      internal::DataSliceImpl::Create({internal::DataItem(1.0f),
+                                       internal::DataItem(),
+                                       internal::DataItem(3.0f)})));
+  ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr("c"));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {std::nullopt, std::nullopt, std::nullopt})));
+
+  // Has a schema.
+  ASSERT_OK_AND_ASSIGN(mask, ds.HasAttr(schema::kSchemaAttr));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {arolla::Unit(), arolla::Unit(), arolla::Unit()})));
+  // But not for filtered values.
+  ASSERT_OK_AND_ASSIGN(
+      auto partial_ds,
+      DataSlice::Create(
+          DataSliceImpl::Create({ds.slice()[0], internal::DataItem()}),
+          DataSlice::JaggedShape::FlatFromSize(2), ds.GetSchemaImpl(), db));
+  ASSERT_OK_AND_ASSIGN(mask, partial_ds.HasAttr(schema::kSchemaAttr));
+  EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                        {arolla::Unit(), std::nullopt})));
 }
 
 TEST(DataSliceTest, HasAttr_Primitives_EntityCreator_DataItem) {
@@ -3686,6 +3743,23 @@ TEST(DataSliceTest, HasAttr_SchemaSlice) {
   ASSERT_OK_AND_ASSIGN(mask, schema.HasAttr("c"));
   EXPECT_THAT(mask,
               IsEquivalentTo(test::DataItem(std::nullopt, schema::kMask)));
+}
+
+TEST(DataSliceTest, HasAttr_None) {
+  {
+    // DataSlice.
+    auto ds = test::EmptyDataSlice(3, schema::kNone, DataBag::Empty());
+    ASSERT_OK_AND_ASSIGN(auto mask, ds.HasAttr("a"));
+    EXPECT_THAT(mask, IsEquivalentTo(test::DataSlice<arolla::Unit>(
+                          {std::nullopt, std::nullopt, std::nullopt})));
+  }
+  {
+    // DataItem.
+    auto ds = test::DataItem(std::nullopt, schema::kNone, DataBag::Empty());
+    ASSERT_OK_AND_ASSIGN(auto mask, ds.HasAttr("a"));
+    EXPECT_THAT(mask,
+                IsEquivalentTo(test::DataItem(std::nullopt, schema::kMask)));
+  }
 }
 
 

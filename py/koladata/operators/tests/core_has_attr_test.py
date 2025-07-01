@@ -75,6 +75,39 @@ class CoreHasAttrTest(parameterized.TestCase):
         expected.with_bag(self.object.get_bag()),
     )
 
+  @parameterized.named_parameters(
+      ('single', ds('a')),
+      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+  )
+  def test_obj_respects_schema(self, attrs):
+    obj = eager.obj(a=ds([1, None]))
+    obj = obj.with_attr('__schema__', eager.obj().get_obj_schema())
+    res = expr_eval.eval(kde.has_attr(obj, attrs))
+    testing.assert_equal(res, ds([missing, missing]))
+
+  @parameterized.named_parameters(
+      ('single', ds('a')),
+      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+  )
+  def test_entity_respects_schema(self, attrs):
+    entity = eager.new(a=ds([1, None]))
+    entity = entity.with_schema(eager.new().get_schema())
+    res = expr_eval.eval(kde.has_attr(entity, attrs))
+    testing.assert_equal(res, ds([missing, missing]))
+
+  @parameterized.named_parameters(
+      ('single', ds('a')),
+      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+  )
+  def test_no_common_schema(self, attrs):
+    # Works even though `maybe` doesn't have a common schema.
+    obj = ds([eager.obj(a=1), eager.obj(a=eager.new(x=1))])
+    res = expr_eval.eval(kde.has_attr(obj, attrs))
+    testing.assert_equal(res, ds([present, present]))
+    # Sanity check: `maybe` raises.
+    with self.assertRaises(ValueError):
+      expr_eval.eval(kde.maybe(obj, attrs))
+
   def test_has_attr_does_not_fail_when_no_common_schema_for_attr(self):
     db = data_bag.DataBag.empty()
     a = ds(1)

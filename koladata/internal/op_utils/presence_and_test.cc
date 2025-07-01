@@ -215,7 +215,7 @@ TEST(PresenceAndTest, TypeMismatch) {
 
   EXPECT_THAT(PresenceAndOp()(ds, ds_presence),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "Second argument to operator & (or apply_mask) must "
+                       "second argument to operator & (or apply_mask) must "
                        "have all items of MASK dtype"));
 }
 
@@ -258,7 +258,51 @@ TEST(PresenceAndTest, DataItemTypeMismatch) {
 
   EXPECT_THAT(PresenceAndOp()(item, mask),
               StatusIs(absl::StatusCode::kInvalidArgument,
-                       "Second argument to operator & (or apply_mask) must "
+                       "second argument to operator & (or apply_mask) must "
+                       "have all items of MASK dtype"));
+}
+
+TEST(PresenceAndTest, DataSliceAndDataItem) {
+  {
+    // Non-empty inputs.
+    auto ds = DataSliceImpl::Create(
+        CreateDenseArray<float>({3.14, 2.71, std::nullopt}));
+    auto mask = DataItem(arolla::Unit());
+    ASSERT_OK_AND_ASSIGN(auto res, PresenceAndOp()(ds, mask));
+    EXPECT_EQ(res.dtype(), ds.dtype());
+    EXPECT_THAT(res.values<float>(), ElementsAre(3.14, 2.71, std::nullopt));
+  }
+  {
+    // Empty ds.
+    auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
+    auto mask = DataItem(arolla::Unit());
+    ASSERT_OK_AND_ASSIGN(auto res, PresenceAndOp()(ds, mask));
+    EXPECT_TRUE(res.is_empty_and_unknown());
+  }
+  {
+    // Empty mask.
+    auto ds = DataSliceImpl::Create(
+        CreateDenseArray<float>({3.14, 2.71, std::nullopt}));
+    auto mask = DataItem();
+    ASSERT_OK_AND_ASSIGN(auto res, PresenceAndOp()(ds, mask));
+    EXPECT_TRUE(res.is_empty_and_unknown());
+  }
+  {
+    // Empty ds, empty mask.
+    auto ds = DataSliceImpl::CreateEmptyAndUnknownType(3);
+    auto mask = DataItem();
+    ASSERT_OK_AND_ASSIGN(auto res, PresenceAndOp()(ds, mask));
+    EXPECT_TRUE(res.is_empty_and_unknown());
+  }
+}
+
+TEST(PresenceAndTest, DataSliceAndDataItemTypeMismatch) {
+  auto ds = DataSliceImpl::Create(CreateDenseArray<float>({3.14, 2.71}));
+  auto mask = DataItem(1);
+
+  EXPECT_THAT(PresenceAndOp()(ds, mask),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "second argument to operator & (or apply_mask) must "
                        "have all items of MASK dtype"));
 }
 

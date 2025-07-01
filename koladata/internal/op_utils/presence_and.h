@@ -51,7 +51,7 @@ struct PresenceAndOp {
     }
     if (presence_mask.dtype() != arolla::GetQType<arolla::Unit>()) {
       return absl::InvalidArgumentError(
-          "Second argument to operator & (or apply_mask) must have all items "
+          "second argument to operator & (or apply_mask) must have all items "
           "of MASK dtype");
     }
     auto presence_mask_array = presence_mask.values<arolla::Unit>();
@@ -73,17 +73,22 @@ struct PresenceAndOp {
     return std::move(bldr).Build();
   }
 
-  absl::StatusOr<DataItem> operator()(const DataItem& item,
-                                      const DataItem& presence_flag) const {
+  template <typename ImplT>
+  absl::StatusOr<ImplT> operator()(const ImplT& impl,
+                                   const DataItem& presence_flag) const {
     if (!presence_flag.has_value()) {
-      return DataItem();
+      if constexpr (std::is_same_v<ImplT, DataSliceImpl>) {
+        return DataSliceImpl::CreateEmptyAndUnknownType(impl.size());
+      } else {
+        return DataItem();
+      }
     }
     if (!presence_flag.holds_value<arolla::Unit>()) {
       return absl::InvalidArgumentError(
-          "Second argument to operator & (or apply_mask) must have all items "
+          "second argument to operator & (or apply_mask) must have all items "
           "of MASK dtype");
     }
-    return item;
+    return impl;
   }
 };
 

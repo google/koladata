@@ -123,6 +123,26 @@ class CoreGetAttrTest(parameterized.TestCase):
         expected.with_bag(self.object.get_bag()),
     )
 
+  @parameterized.named_parameters(
+      ('single', ds('a')),
+      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+  )
+  def test_obj_respects_schema(self, attrs):
+    obj = eager.obj(a=ds([1, None]))
+    obj = obj.with_attr('__schema__', eager.obj().get_obj_schema())
+    res = expr_eval.eval(kde.maybe(obj, attrs))
+    testing.assert_equal(res, ds([None, None]).with_bag(obj.get_bag()))
+
+  @parameterized.named_parameters(
+      ('single', ds('a')),
+      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+  )
+  def test_entity_respects_schema(self, attrs):
+    entity = eager.new(a=ds([1, None]))
+    entity = entity.with_schema(eager.new().get_schema())
+    res = expr_eval.eval(kde.maybe(entity, attrs))
+    testing.assert_equal(res, ds([None, None]).with_bag(entity.get_bag()))
+
   def test_attr_name_error(self):
     with self.assertRaisesRegex(
         ValueError,
