@@ -16,6 +16,7 @@
 #define KOLADATA_FUNCTOR_FUNCTOR_UTILS_H_
 
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
 
 namespace koladata::functor {

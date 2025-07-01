@@ -16,7 +16,6 @@
 
 #include <cstdint>
 #include <optional>
-#include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
