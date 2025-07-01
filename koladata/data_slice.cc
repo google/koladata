@@ -567,7 +567,7 @@ absl::StatusOr<ImplT> GetAttrImpl(const DataBagPtr& db, const ImplT& impl,
                              allow_missing_schema);
   }
   std::optional<ImplT> attr_mask;
-  if (attr_name == schema::kSchemaAttr) {
+  if (schema == schema::kObject && attr_name == schema::kSchemaAttr) {
     res_schema = internal::DataItem(schema::kSchema);
   } else if (allow_missing_schema && schema == schema::kObject) {
     // If some __schema__ values do not contain the `attr_name` attribute, we

@@ -315,10 +315,12 @@ class BoxingTest(parameterized.TestCase):
     )
     # The original bags are unaffected.
     testing.assert_equal(
-        e1.get_attr('__schema__'), ds(None, SCHEMA).with_bag(db1)
+        e1.with_schema(OBJECT).get_attr('__schema__'),
+        ds(None, SCHEMA).with_bag(db1),
     )
     testing.assert_equal(
-        e2.get_attr('__schema__'), ds(None, SCHEMA).with_bag(db2)
+        e2.with_schema(OBJECT).get_attr('__schema__'),
+        ds(None, SCHEMA).with_bag(db2),
     )
 
   def test_single_entity_schema_embedding(self):
@@ -332,7 +334,8 @@ class BoxingTest(parameterized.TestCase):
     )
     # The original bag is unaffected.
     testing.assert_equal(
-        e1.get_attr('__schema__'), ds(None, SCHEMA).with_bag(db)
+        e1.with_schema(OBJECT).get_attr('__schema__'),
+        ds(None, SCHEMA).with_bag(db),
     )
     res = data_item.DataItem.from_vals(e1, OBJECT)
     testing.assert_equal(res, e1.with_bag(res.get_bag()).with_schema(OBJECT))
@@ -342,7 +345,8 @@ class BoxingTest(parameterized.TestCase):
     )
     # The original bag is unaffected.
     testing.assert_equal(
-        e1.get_attr('__schema__'), ds(None, SCHEMA).with_bag(db)
+        e1.with_schema(OBJECT).get_attr('__schema__'),
+        ds(None, SCHEMA).with_bag(db),
     )
 
   def test_schema_embedding_conflicting_schema(self):

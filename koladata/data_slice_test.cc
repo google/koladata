@@ -2173,6 +2173,11 @@ TEST(DataSliceTest, SetGetPrimitiveAttributes_EntityCreator) {
   // to be already present.
   ASSERT_OK(ds.GetSchema().SetAttr("a", ds_primitive.GetSchema()));
   ASSERT_OK(ds.SetAttr("a", ds_primitive));
+  // Accessing the `__schema__` is not possible for entities.
+  EXPECT_THAT(ds.GetAttr(schema::kSchemaAttr),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr(absl::StrFormat("failed to get attribute '%s'",
+                                                 schema::kSchemaAttr))));
 
   ASSERT_OK_AND_ASSIGN(auto ds_primitive_get, ds.GetAttr("a"));
   EXPECT_EQ(ds_primitive_get.size(), 3);
@@ -2205,6 +2210,7 @@ TEST(DataSliceTest, SetGetPrimitiveAttributes_ObjectCreator) {
   EXPECT_THAT(ds_primitive_get.slice(), ElementsAre(1, 2, 3));
   // Setting an attribute updates schema.
   EXPECT_EQ(ds_primitive_get.GetSchemaImpl(), schema::kInt64);
+  // (Accessing the `__schema__` is possible for objects - unlike entities).
   ASSERT_OK_AND_ASSIGN(auto schema, ds.GetAttr(schema::kSchemaAttr));
   ASSERT_OK_AND_ASSIGN(auto schema_a, schema.GetAttr("a"));
   for (const auto& schema_a_item : schema_a.slice()) {

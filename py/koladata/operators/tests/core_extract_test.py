@@ -137,7 +137,12 @@ class CoreExtractTest(parameterized.TestCase):
     result = expr_eval.eval(kde.extract(o_fb, schema))
 
     self.assertFalse(result.get_bag().is_mutable())
-    self.assertEqual(result.a.get_attr('__schema__').get_present_count(), 0)
+    self.assertEqual(
+        result.a.with_schema(schema_constants.OBJECT)
+        .get_attr('__schema__')
+        .get_present_count(),
+        0,
+    )
     testing.assert_equivalent(result.get_bag(), expected_bag)
 
   def test_eval_nofollow(self):
