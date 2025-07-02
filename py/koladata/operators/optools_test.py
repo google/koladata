@@ -19,6 +19,7 @@ import warnings
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from arolla.derived_qtype import derived_qtype
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
@@ -440,6 +441,135 @@ class OptoolsTest(parameterized.TestCase):
         arolla.eval(op_alias(42, arolla.unspecified())), ds(43)
     )
 
+  def test_add_to_registry_as_overloadable_with_default(self):
+    user_qtype = arolla.eval(
+        derived_qtype.M.get_labeled_qtype(arolla.INT32, 'USER_TYPE')
+    )
+    user_value = arolla.eval(
+        derived_qtype.M.downcast(user_qtype, arolla.int32(1))
+    )
+
+    # Register the overloadable operator with an implementation for native Koda
+    # types.
+    @optools.add_to_registry_as_overloadable_with_default(
+        'test.op_15', aliases=['test.op_15_alias']
+    )
+    @arolla.optools.as_lambda_operator('test.op_15')
+    def op(x, y):
+      del y
+      return math.add(x, 1)
+
+    # Register an overload for the user type.
+    @optools.add_to_registry_as_overload(
+        overload_condition_expr=arolla.P.y == user_qtype
+    )
+    @arolla.optools.as_lambda_operator('test.op_15.overload_1')
+    def overload_1(x, y):  # pylint: disable=unused-variable
+      del y
+      return math.subtract(x, 1)
+
+    self.assertIsInstance(op, arolla.types.RegisteredOperator)
+    self.assertEqual(op.display_name, 'test.op_15')
+    self.assertIsInstance(
+        arolla.abc.decay_registered_operator(op), arolla.types.GenericOperator
+    )
+
+    self.assertTrue(view.has_koda_view(op(1, arolla.unspecified())))
+    self.assertEqual(
+        repr(op(42, arolla.unspecified())),
+        'test.op_15(DataItem(42, schema: INT32), unspecified)',
+    )
+    testing.assert_equal(arolla.eval(op(42, arolla.unspecified())), ds(43))
+    testing.assert_equal(arolla.eval(op(42, user_value)), ds(41))
+
+    with self.subTest('alias'):
+      op_alias = arolla.abc.lookup_operator('test.op_15_alias')
+      self.assertTrue(optools.equiv_to_op(op, op_alias))
+      testing.assert_equal(
+          arolla.eval(op_alias(42, arolla.unspecified())), ds(43)
+      )
+      testing.assert_equal(arolla.eval(op_alias(42, user_value)), ds(41))
+
+      user_qtype_2 = arolla.eval(
+          derived_qtype.M.get_labeled_qtype(arolla.INT32, 'USER_TYPE_2')
+      )
+      user_value_2 = arolla.eval(
+          derived_qtype.M.downcast(user_qtype_2, arolla.int32(1))
+      )
+
+      # Remove the overloadable operator from _REGISTERED_OPS to test that
+      # we don't depend on it when finding the canonical name.
+      optools._REGISTERED_OPS.pop('test.op_15_alias')
+
+      # Register an overload for the alias.
+      @optools.add_to_registry_as_overload(
+          'test.op_15_alias.overload_2',
+          overload_condition_expr=arolla.P.y == user_qtype_2
+      )
+      @arolla.optools.as_lambda_operator('test.op_15_alias.overload_2')
+      def overload_2(x, y):  # pylint: disable=unused-variable
+        del y
+        return math.subtract(x, 2)
+      testing.assert_equal(arolla.eval(op_alias(42, user_value_2)), ds(40))
+
+  def test_add_to_registry_as_overloadable_with_default_unsafe_override(self):
+
+    @optools.add_to_registry_as_overloadable_with_default('test.overridable_op')
+    @arolla.optools.as_lambda_operator('test.overridable_op')
+    def op(x, y):
+      del x, y
+      return None
+
+    with self.assertRaisesRegex(ValueError, 'already exists'):
+      _ = optools.add_to_registry_as_overloadable_with_default(
+          unsafe_override=False
+      )(op)
+    _ = optools.add_to_registry_as_overloadable_with_default(
+        unsafe_override=True
+    )(op)
+
+  def test_add_to_registry_as_overloadable_with_default_op_name(self):
+
+    @optools.add_to_registry_as_overloadable_with_default()
+    @arolla.optools.as_lambda_operator('test.op_16')
+    def op_16(x, y):
+      return x + y
+
+    self.assertEqual(op_16.display_name, 'test.op_16')
+
+  def test_add_to_registry_as_overloadable_with_default_misc_kwargs(self):
+
+    @optools.add_to_registry_as_overloadable_with_default('test.op_17')
+    @arolla.optools.as_lambda_operator('test.op_17')
+    def op17(x):
+      return x
+
+    @optools.add_to_registry_as_overloadable_with_default(
+        'test.op_18', repr_fn=repr_fn
+    )
+    @arolla.optools.as_lambda_operator('test.op_18')
+    def op18(x):
+      return x
+
+    @optools.add_to_registry_as_overloadable_with_default(
+        'test.op_19', aux_policy=''
+    )
+    @arolla.optools.as_lambda_operator('test.op_19')
+    def op19(x):
+      return x
+
+    self.assertEqual(
+        arolla.abc.get_operator_signature(op17).aux_policy,
+        'koladata_default_boxing',
+    )
+    self.assertEqual(repr(op17(42)), 'test.op_17(DataItem(42, schema: INT32))')
+
+    self.assertEqual(
+        arolla.abc.get_operator_signature(op19).aux_policy,
+        '',
+    )
+    self.assertEqual(repr(op18(42)), 'MY_CUSTOM_M.test.op_18')
+
   def test_reload_operator_view(self):
 
     class OptoolsTestView(arolla.abc.ExprView):
@@ -659,7 +789,7 @@ class OptoolsTest(parameterized.TestCase):
     with self.assertRaisesRegex(ValueError, 'deterministic=False'):
 
       @optools.as_lambda_operator('op2', deterministic=True)
-      def op2():
+      def op2():  # pylint: disable=unused-variable
         return op1()
 
   def test_as_py_function_operator_basic_eval(self):
