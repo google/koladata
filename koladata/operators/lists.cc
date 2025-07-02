@@ -13,10 +13,8 @@
 // limitations under the License.
 //
 
-#include <algorithm>
 #include <cstdint>
 #include <optional>
-#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -34,9 +32,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/error_repr_utils.h"
-#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
-#include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/object_factories.h"
@@ -100,26 +96,7 @@ absl::StatusOr<DataSlice> Implode(const DataSlice& x, int64_t ndim,
 }
 
 absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
-  const auto& db = lists.GetBag();
-  if (db == nullptr) {
-    return absl::InvalidArgumentError(
-        "Not possible to get List size without a DataBag");
-  }
-  FlattenFallbackFinder fb_finder(*db);
-  internal::DataItem schema(schema::kInt64);
-  return lists.VisitImpl([&]<class T>(
-                             const T& impl) -> absl::StatusOr<DataSlice> {
-    ASSIGN_OR_RETURN(auto res_impl, db->GetImpl().GetListSize(
-                                        impl, fb_finder.GetFlattenFallbacks()));
-    if constexpr (std::is_same_v<T, internal::DataItem>) {
-      return DataSlice::Create(std::move(res_impl), lists.GetShape(),
-                               std::move(schema), /*db=*/nullptr);
-    } else {
-      return DataSlice::Create(
-          internal::DataSliceImpl::Create(std::move(res_impl)),
-          lists.GetShape(), std::move(schema), /*db=*/nullptr);
-    }
-  });
+  return koladata::ListSize(lists);
 }
 
 absl::StatusOr<DataSlice> ListLike(

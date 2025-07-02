@@ -643,9 +643,12 @@ inline absl::StatusOr<DataSlice> BroadcastToShape(
 // otherwise we overwrite the schema.
 // In case of unsupported casting, an error is returned.
 absl::StatusOr<DataSlice> CastOrUpdateSchema(
-    const DataSlice& value, const internal::DataItem& lhs_schema,
-    absl::string_view attr_name, bool overwrite_schema,
-    internal::DataBagImpl& db_impl);
+  const DataSlice& value, const internal::DataItem& lhs_schema,
+  absl::string_view attr_name, bool overwrite_schema,
+  internal::DataBagImpl& db_impl);
+
+// Returns the size of each list in the given DataSlice.
+absl::StatusOr<DataSlice> ListSize(const DataSlice& lists);
 
 }  // namespace koladata
 

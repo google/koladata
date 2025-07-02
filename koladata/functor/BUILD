@@ -74,7 +74,6 @@ cc_library(
         "//koladata:data_slice",
         "//koladata/internal:data_item",
         "//koladata/internal:uuid_object",
-        "//koladata/operators:lib",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

@@ -2367,4 +2367,27 @@ absl::StatusOr<DataSlice> CastOrUpdateSchema(
   return data_handler.GetValues();
 }
 
+absl::StatusOr<DataSlice> ListSize(const DataSlice& lists) {
+  const auto& db = lists.GetBag();
+  if (db == nullptr) {
+    return absl::InvalidArgumentError(
+        "not possible to get List size without a DataBag");
+  }
+  FlattenFallbackFinder fb_finder(*db);
+  internal::DataItem schema(schema::kInt64);
+  return lists.VisitImpl([&]<class T>(
+                              const T& impl) -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto res_impl, db->GetImpl().GetListSize(
+                                        impl, fb_finder.GetFlattenFallbacks()));
+    if constexpr (std::is_same_v<T, internal::DataItem>) {
+      return DataSlice::Create(std::move(res_impl), lists.GetShape(),
+                                std::move(schema), /*db=*/nullptr);
+    } else {
+      return DataSlice::Create(
+          internal::DataSliceImpl::Create(std::move(res_impl)),
+          lists.GetShape(), std::move(schema), /*db=*/nullptr);
+    }
+  });
+}
+
 }  // namespace koladata

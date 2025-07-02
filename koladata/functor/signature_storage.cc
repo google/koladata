@@ -33,7 +33,6 @@
 #include "koladata/functor/signature.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/uuid_object.h"
-#include "koladata/operators/lists.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
@@ -133,7 +132,7 @@ absl::StatusOr<Signature> KodaSignatureToCppSignature(
   if (!parameter_list.present_count()) {
     return absl::InvalidArgumentError("parameters are missing");
   }
-  ASSIGN_OR_RETURN(auto list_size, ops::ListSize(parameter_list));
+  ASSIGN_OR_RETURN(auto list_size, ListSize(parameter_list));
   if (!list_size.is_item() || !list_size.item().holds_value<int64_t>()) {
     return absl::InternalError("ListSize did not return an int64_t scalar");
   }
