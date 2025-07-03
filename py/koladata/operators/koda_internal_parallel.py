@@ -746,16 +746,17 @@ def async_unpack_tuple(future):  # pylint: disable=unused-argument
         qtype_utils.expect_future(P.outer_arg),
     ],
 )
-def _internal_parallel_from_future(outer_arg, outer_self_op):
+def _internal_parallel_from_future(outer_arg, outer_executor, outer_self_op):
   """Implementation helper for parallel_from_future."""
   # We prefix the arguments with "outer_" here to avoid conflict with the
   # names in DispatchOperator.
   return arolla.types.DispatchOperator(
-      'arg, self_op, new_non_deterministic_token',
+      'arg, executor, self_op, new_non_deterministic_token',
       tuple_case=arolla.types.DispatchCase(
           M.core.map_tuple(
               P.self_op,
               async_unpack_tuple(P.arg),
+              P.executor,
               P.self_op,
               P.new_non_deterministic_token,
           ),
@@ -770,6 +771,7 @@ def _internal_parallel_from_future(outer_arg, outer_self_op):
               M.core.map_tuple(
                   P.self_op,
                   async_unpack_tuple(P.arg),
+                  P.executor,
                   P.self_op,
                   P.new_non_deterministic_token,
               ),
@@ -781,32 +783,53 @@ def _internal_parallel_from_future(outer_arg, outer_self_op):
           condition=M.qtype.get_value_qtype(P.arg)
           == qtypes.NON_DETERMINISTIC_TOKEN,
       ),
+      iterable_case=arolla.types.DispatchCase(
+          unwrap_future_to_stream(
+              async_eval(
+                  P.executor,
+                  stream_from_iterable,
+                  P.arg,
+              )
+          ),
+          condition=bootstrap.is_iterable_qtype(M.qtype.get_value_qtype(P.arg)),
+      ),
       default=P.arg,
-  )(outer_arg, outer_self_op, optools.unified_non_deterministic_arg())
+  )(
+      outer_arg,
+      outer_executor,
+      outer_self_op,
+      optools.unified_non_deterministic_arg(),
+  )
 
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
     'koda_internal.parallel.parallel_from_future',
     qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
         qtype_utils.expect_future(P.arg),
     ],
 )
-def parallel_from_future(arg):
+def parallel_from_future(executor, arg):
   """Given a future, convert it to a corresponding parallel value.
 
   More specifically, if the future has a tuple/namedtuple value, convert it to
   a tuple/namedtuple of futures. If the input is a future to the
-  non-deterministic token, returns (a new) non-deterministic token.
+  non-deterministic token, returns (a new) non-deterministic token. If one
+  of the values in the future is an iterable, converts it to a stream (which
+  will therefore have all values available at once).
 
   Args:
+    executor: The executor to use for conversions that require it.
     arg: The value to convert from the future form.
 
   Returns:
     A value of a parallel type (see as_parallel) corresponding to the given
     future.
   """
-  return _internal_parallel_from_future(arg, _internal_parallel_from_future)
+  return _internal_parallel_from_future(
+      arg, executor, _internal_parallel_from_future
+  )
 
 
 @optools.add_to_registry()
@@ -1121,6 +1144,20 @@ def parallel_call(
   Note that the default values specified in the signature here are not used
   when using this operator as a parallel version of `functor.call`, only when
   this operator is called directly.
+
+  By default, we will wrap each variable expr of the provided functor into an
+  async_eval, meaning that we'd wait for all inputs to be ready,
+  then compute the output, which will therefore take parallel form: a future,
+  a stream, or a tuple/namedtuple thereof. If any of the inputs to a variable
+  expr is an iterable (stream in the parallel version), then the default
+  conversion will fail, since we do not want to wait for all elements of the
+  stream to be available by default. However, if the output of a particular
+  variable expr is an iterable but none of the inputs are, then we will convert
+  the result to a stream after the asynchronous evaluation of the variable expr.
+
+  However, custom behavior overrides can be added for particular operators via
+  `context`. In particular, `context` is expected to contain custom behavior
+  for all operators that take an iterable as input.
 
   Example:
     parallel_call(

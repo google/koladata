@@ -1811,6 +1811,32 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         ds([1, 2]),
     )
 
+  def test_py_fn_returning_iterable(self):
+
+    barrier = threading.Barrier(2)
+
+    @tracing_decorator.TraceAsFnDecorator(
+        py_fn=True, return_type_as=user_facing_kd.iterables.make()
+    )
+    def tokenize(s):
+      barrier.wait()
+      return user_facing_kd.iterables.make(*s.to_py().split())
+
+    f = functor_factories.trace_py_fn(
+        lambda seq: user_facing_kd.functor.flat_map_chain(seq, tokenize)
+    )
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res = transformed_fn(
+        koda_internal_parallel.stream_make('a b c', 'foo bar'),
+        return_type_as=koda_internal_parallel.stream_make(),
+    ).eval()
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)),
+        arolla.tuple(ds('a'), ds('b'), ds('c'), ds('foo'), ds('bar')),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

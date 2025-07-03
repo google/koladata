@@ -282,7 +282,9 @@ absl::StatusOr<arolla::expr::ExprNodePtr> CreateAsyncEval(
       arolla::expr::BindOp("koda_internal.parallel.async_eval", op_inputs, {}));
   return arolla::expr::CallOp(
       "koda_internal.parallel.parallel_from_future",
-      {std::move(async_expr), expr::GenNonDeterministicToken()}, {});
+      {std::move(executor_literal), std::move(async_expr),
+       expr::GenNonDeterministicToken()},
+      {});
 }
 
 // Applies the parallel replacement to the given literal.

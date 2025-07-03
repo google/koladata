@@ -16,17 +16,20 @@ import threading
 import traceback
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor import stack_trace
 from koladata.functor.parallel import clib as _
+from koladata.operators import iterables
 from koladata.operators import koda_internal_parallel
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import iterable_qvalue
 
 from koladata.functor.parallel import execution_config_pb2
 
@@ -253,6 +256,64 @@ class ParallelCallTest(absltest.TestCase):
             foo=db
         ),
         db,
+    )
+
+  def test_custom_op_consuming_iterable_raises(self):
+    executor = koda_internal_parallel.get_eager_executor()
+    context = koda_internal_parallel.create_execution_context(
+        executor, _REPLACEMENTS
+    )
+
+    @optools.add_to_registry()
+    @optools.as_lambda_operator(
+        'koda_internal.parallel.transform_test.custom_op_consuming_iterable',
+    )
+    def op(x):
+      return iterables.reduce_concat(x, initial_value=ds([]))
+
+    fn = functor_factories.expr_fn(op(I.x))
+    testing.assert_equal(
+        fn(x=iterable_qvalue.Iterable(ds([1]), ds([2]))), ds([1, 2])
+    )
+    call_expr = koda_internal_parallel.parallel_call(
+        context,
+        koda_internal_parallel.as_future(fn),
+        x=koda_internal_parallel.stream_make(1, 2),
+    )
+    with self.assertRaisesRegex(
+        ValueError,
+        'future_from_parallel can only be applied to a parallel non-stream'
+        ' type',
+    ):
+      _ = koda_internal_parallel.get_future_value_for_testing(call_expr).eval()
+
+  def test_custom_op_returning_iterable_works(self):
+    executor = koda_internal_parallel.get_eager_executor()
+    context = koda_internal_parallel.create_execution_context(
+        executor, _REPLACEMENTS
+    )
+
+    @optools.add_to_registry()
+    @optools.as_lambda_operator(
+        'koda_internal.parallel.transform_test.custom_op_returning_iterable',
+    )
+    def op(x):
+      return iterables.make(x, x + 1)
+
+    fn = functor_factories.expr_fn(op(I.x))
+    testing.assert_equal(
+        fn(x=1, return_type_as=iterable_qvalue.Iterable()),
+        iterable_qvalue.Iterable(1, 2),
+    )
+    call_expr = koda_internal_parallel.parallel_call(
+        context,
+        koda_internal_parallel.as_future(fn),
+        x=koda_internal_parallel.as_future(1),
+        return_type_as=koda_internal_parallel.stream_make(),
+    )
+    res = call_expr.eval()
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)), arolla.tuple(ds(1), ds(2))
     )
 
   def test_wrong_input_types(self):
