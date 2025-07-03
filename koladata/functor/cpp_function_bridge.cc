@@ -31,8 +31,8 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
-#include "arolla/util/text.h"
 #include "koladata/data_slice.h"
+#include "koladata/expr/expr_operators.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/signature.h"
@@ -56,6 +56,8 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
       std::make_shared<arolla::expr_operators::StdFunctionOperator>(
           name, signature, "", get_output_type, std::move(fn));
 
+  ASSIGN_OR_RETURN(expr::InputContainer input_container,
+                   expr::InputContainer::Create("I"));
   std::vector<absl::StatusOr<arolla::expr::ExprNodePtr>> args;
   std::vector<Signature::Parameter> koda_params;
   args.reserve(signature.parameters.size());
@@ -68,9 +70,7 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
       return absl::FailedPreconditionError(
           "only positionalOrKeyword arguments supported");
     }
-    args.push_back(arolla::expr::CallOp(
-        "koda_internal.input", {arolla::expr::Literal(arolla::Text("I")),
-                                arolla::expr::Literal(arolla::Text(p.name))}));
+    args.push_back(input_container.CreateInput(p.name));
     Signature::Parameter koda_param;
     koda_param.name = p.name;
     koda_param.kind = Signature::Parameter::Kind::kPositionalOrKeyword;

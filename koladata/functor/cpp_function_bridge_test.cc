@@ -14,28 +14,41 @@
 //
 #include "koladata/functor/cpp_function_bridge.h"
 
+#include <utility>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
+#include "arolla/expr/expr.h"
 #include "arolla/qtype/qtype_traits.h"
+#include "arolla/qtype/testing/matchers.h"
+#include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/serialization/encode.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/expr/expr_eval.h"
 #include "koladata/functor/call.h"
+#include "koladata/functor/parallel/future.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/testing/matchers.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::testing::QValueWith;
+using ::koladata::testing::IsEquivalentTo;
 using ::testing::HasSubstr;
 
 TEST(CppFunctionBridgeTest, CreateFunctorFromStdFunction) {
@@ -126,6 +139,46 @@ TEST(CppFunctionBridgeTest, FunctorNotSerializable) {
       StatusIs(absl::StatusCode::kUnimplemented,
                HasSubstr("does not support serialization of EXPR_OPERATOR: "
                          "<Operator with name='my_functor'")));
+}
+
+TEST(CppFunctionBridgeTest, IntegrationTestWithParallelCall) {
+  ASSERT_OK_AND_ASSIGN(DataSlice functor,
+                       CreateFunctorFromFunction(
+                           [](const DataSlice& x) -> DataSlice { return x; },
+                           "my_functor", "x"));
+  auto functor_expr = arolla::expr::Literal(functor);
+  auto functor_future_expr = arolla::expr::CallOp(
+      "koda_internal.parallel.as_future", {std::move(functor_expr)});
+  auto executor_expr =
+      arolla::expr::CallOp("koda_internal.parallel.get_eager_executor", {});
+  auto execution_config_expr = arolla::expr::CallOp(
+      "koda_internal.parallel.get_default_execution_config", {});
+  auto execution_context_expr = arolla::expr::CallOp(
+      "koda_internal.parallel.create_execution_context",
+      {std::move(executor_expr), std::move(execution_config_expr)});
+  auto unspecified_expr = arolla::expr::Literal(arolla::GetUnspecifiedQValue());
+  auto input_value_expr = arolla::expr::Literal(DataSlice::CreateFromScalar(1));
+  auto args_expr = arolla::expr::CallOp(
+      "kd.tuple", {arolla::expr::CallOp("koda_internal.parallel.as_future",
+                                        {std::move(input_value_expr)})});
+  auto kwargs_expr = arolla::expr::Literal(arolla::MakeEmptyNamedTuple());
+  auto non_deterministic_token_expr =
+      arolla::expr::Literal(internal::NonDeterministicToken());
+  ASSERT_OK_AND_ASSIGN(
+      auto call_expr,
+      arolla::expr::CallOp(
+          "koda_internal.parallel.parallel_call",
+          {std::move(execution_context_expr), std::move(functor_future_expr),
+           std::move(args_expr), /*return_type_as=*/unspecified_expr,
+           /*stack_trace_frame=*/unspecified_expr, std::move(kwargs_expr),
+           non_deterministic_token_expr}));
+  ASSERT_OK_AND_ASSIGN(auto res,
+                       expr::EvalExprWithCompilationCache(call_expr, {}, {}));
+  ASSERT_OK_AND_ASSIGN(parallel::FuturePtr res_future,
+                       res.As<parallel::FuturePtr>());
+  EXPECT_THAT(res_future->GetValueForTesting(),
+              IsOkAndHolds(QValueWith<DataSlice>(
+                  IsEquivalentTo(DataSlice::CreateFromScalar(1)))));
 }
 
 }  // namespace
