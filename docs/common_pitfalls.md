@@ -619,7 +619,7 @@ override the other when underlying bags are merged.
 
 ```py
 ns1 = kd.named_schema('Schema', a=kd.INT32)
-ns2 = kd.named_schema('Schema', a=kd.STRING, b=kd.BOOL)
+ns2 = kd.named_schema('Schema', a=kd.STRING, b=kd.BOOLEAN)
 assert ns1 == ns2
 ns2.updated(ns1.get_bag())  # Schema(a=INT32, b=BOOLEAN)
 ```

@@ -309,7 +309,7 @@ either a proper 32-bit integer or missing.
 | `INT64`       | 64-bit integer.                                              |
 | `FLOAT32`     | 32-bit floating point value.                                 |
 | `FLOAT64`     | 64-bit floating point value.                                 |
-| `BOOL`        | Boolean value.                                               |
+| `BOOLEAN`     | Boolean value.                                               |
 | `MASK`        | Mask value.                                                  |
 | `BYTES`       | Bytestring value.                                            |
 | `STRING`      | UTF-8 encoded text value.                                    |
