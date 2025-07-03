@@ -22,9 +22,9 @@
 #include "absl/types/span.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
-#include "koladata/data_slice.h"
 #include "koladata/data_bag.h"
-#include "koladata/functor/signature.h"
+#include "koladata/data_slice.h"
+#include "koladata/signature.h"
 
 namespace koladata::functor {
 
@@ -61,7 +61,7 @@ const DataSlice& KodaArgsKwargsSignature();
 // Converts a C++ Signature object to a Koda DataItem storing the signature.
 // The returned DataItem will have a new DataBag created to store the triples.
 // KodaSignatureToCppSignature can be found in
-// koladata/functor/signature_storage.h.
+// koladata/signature_storage.h.
 absl::StatusOr<DataSlice> CppSignatureToKodaSignature(
   const Signature& signature);
 

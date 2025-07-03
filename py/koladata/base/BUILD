@@ -125,7 +125,6 @@ cc_library(
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/functor",
-        "//koladata/functor:functor_storage",
         "//koladata/functor:signature_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",

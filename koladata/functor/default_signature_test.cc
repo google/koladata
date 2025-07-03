@@ -19,8 +19,8 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "koladata/expr/constants.h"
-#include "koladata/functor/signature.h"
-#include "koladata/functor/signature_storage.h"
+#include "koladata/signature.h"
+#include "koladata/signature_storage.h"
 #include "koladata/testing/matchers.h"
 
 namespace koladata::functor {

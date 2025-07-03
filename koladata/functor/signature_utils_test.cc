@@ -27,10 +27,10 @@
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "koladata/functor/signature.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/signature.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 
@@ -333,7 +333,7 @@ TEST(BindArgumentsTest, InvalidArgsKwnamesSizes) {
 }
 
 // More comprehensive tests, including round-trip testing in
-// koladata/functor/signature_storage_test.cc
+// koladata/signature_storage_test.cc
 TEST(CppSignatureToKodaSignatureTest, Basic) {
   Signature::Parameter p1 = {
       .name = "a",

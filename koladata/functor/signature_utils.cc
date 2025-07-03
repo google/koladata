@@ -31,18 +31,17 @@
 #include "arolla/qtype/tuple_qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
-
 #include "arolla/util/text.h"
 #include "koladata/adoption_utils.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/functor/signature.h"
-#include "koladata/functor/signature_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/object_factories.h"
+#include "koladata/signature.h"
+#include "koladata/signature_storage.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

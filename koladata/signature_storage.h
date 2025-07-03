@@ -23,7 +23,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
-#include "koladata/functor/signature.h"
+#include "koladata/signature.h"
 
 namespace koladata::functor {
 

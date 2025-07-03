@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/signature_storage.h"
+#include "koladata/signature_storage.h"
 
 #include <optional>
 
@@ -21,17 +21,16 @@
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "koladata/functor/signature.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/masking.h"
+#include "koladata/signature.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 

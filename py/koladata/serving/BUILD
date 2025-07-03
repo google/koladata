@@ -105,7 +105,6 @@ cc_test(
         "//koladata/functor",
         "//koladata/functor:call",
         "//koladata/functor:cpp_function_bridge",
-        "//koladata/functor:signature",
         "//koladata/functor:signature_utils",
         "//koladata/operators:lib",
         "//koladata/testing:matchers",

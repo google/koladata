@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/signature.h"
+#include "koladata/signature.h"
 
 #include <cstddef>
 #include <string>

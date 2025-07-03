@@ -24,27 +24,10 @@ package(default_visibility = [
 licenses(["notice"])
 
 cc_library(
-    name = "signature",
-    srcs = ["signature.cc"],
-    hdrs = ["signature.h"],
-    deps = [
-        "//koladata:data_slice",
-        "@com_google_absl//absl/container:flat_hash_map",
-        "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/types:span",
-    ],
-)
-
-cc_library(
     name = "signature_utils",
     srcs = ["signature_utils.cc"],
     hdrs = ["signature_utils.h"],
     deps = [
-        ":signature",
-        ":signature_storage",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -66,33 +49,11 @@ cc_library(
 )
 
 cc_library(
-    name = "signature_storage",
-    srcs = ["signature_storage.cc"],
-    hdrs = ["signature_storage.h"],
-    deps = [
-        ":signature",
-        "//koladata:data_slice",
-        "//koladata/internal:data_item",
-        "//koladata/internal:uuid_object",
-        "@com_google_absl//absl/base:no_destructor",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_arolla//arolla/memory",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
-    ],
-)
-
-cc_library(
     name = "functor",
     srcs = ["functor.cc"],
     hdrs = ["functor.h"],
     deps = [
         ":default_signature",
-        ":functor_storage",
-        ":signature_storage",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:object_factories",
@@ -109,29 +70,11 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "functor_storage",
-    srcs = ["functor_storage.cc"],
-    hdrs = ["functor_storage.h"],
-    deps = [
-        "//koladata:data_slice",
-        "//koladata/internal:data_item",
-        "//koladata/internal:object_id",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util:status_backport",
-    ],
-)
-
 cc_test(
     name = "functor_test",
     srcs = ["functor_test.cc"],
     deps = [
         ":functor",
-        ":functor_storage",
-        ":signature",
-        ":signature_storage",
         ":signature_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -153,36 +96,12 @@ cc_test(
     ],
 )
 
-cc_test(
-    name = "functor_storage_test",
-    srcs = ["functor_storage_test.cc"],
-    deps = [
-        ":functor",
-        ":functor_storage",
-        ":signature",
-        ":signature_utils",
-        "//koladata:data_bag",
-        "//koladata:data_slice",
-        "//koladata:test_utils",
-        "//koladata/internal:dtype",
-        "//koladata/testing:test_env",
-        "@com_google_absl//absl/status:status_matchers",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_arolla//arolla/expr",
-        "@com_google_arolla//arolla/expr/operators/all",
-        "@com_google_arolla//arolla/qexpr/operators/all",
-        "@com_google_arolla//arolla/util:status_backport",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
 cc_library(
     name = "auto_variables",
     srcs = ["auto_variables.cc"],
     hdrs = ["auto_variables.h"],
     deps = [
         ":functor",
-        ":functor_storage",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -212,7 +131,6 @@ cc_library(
     hdrs = ["cpp_function_bridge.h"],
     deps = [
         ":functor",
-        ":signature",
         ":signature_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -259,9 +177,6 @@ cc_library(
     srcs = ["call.cc"],
     hdrs = ["call.h"],
     deps = [
-        ":functor_storage",
-        ":signature",
-        ":signature_storage",
         ":signature_utils",
         ":stack_trace",
         "//koladata:data_slice",
@@ -287,7 +202,6 @@ cc_library(
     srcs = ["default_signature.cc"],
     hdrs = ["default_signature.h"],
     deps = [
-        ":signature",
         ":signature_utils",
         "//koladata:data_slice",
         "//koladata/expr:constants",
@@ -305,7 +219,6 @@ cc_library(
     deps = [
         ":call",
         ":functor",
-        ":functor_storage",
         ":stack_trace",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -330,7 +243,6 @@ cc_library(
     hdrs = ["with_assertion_operator.h"],
     deps = [
         ":call",
-        ":functor_storage",
         "//koladata:arolla_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
@@ -440,8 +352,6 @@ cc_library(
     srcs = ["is_fn_operator.cc"],
     hdrs = ["is_fn_operator.h"],
     deps = [
-        ":functor",
-        ":functor_storage",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata/internal:data_item",
@@ -529,7 +439,6 @@ cc_test(
     deps = [
         ":cpp_function_bridge",
         ":functor",
-        ":signature",
         ":signature_utils",
         ":while",
         "//koladata:data_slice",
@@ -555,7 +464,6 @@ cc_test(
     deps = [
         ":functor",
         ":map",
-        ":signature",
         ":signature_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",
@@ -587,8 +495,7 @@ cc_test(
     srcs = ["default_signature_test.cc"],
     deps = [
         ":default_signature",
-        ":signature",
-        ":signature_storage",
+        "//koladata:data_slice",
         "//koladata/expr:constants",
         "//koladata/testing:matchers",
         "@com_google_googletest//:gtest_main",
@@ -601,7 +508,6 @@ cc_test(
     deps = [
         ":call",
         ":functor",
-        ":signature",
         ":signature_utils",
         ":stack_trace",
         "//koladata:data_bag",
@@ -628,51 +534,9 @@ cc_test(
 )
 
 cc_test(
-    name = "signature_storage_test",
-    srcs = ["signature_storage_test.cc"],
-    deps = [
-        ":signature",
-        ":signature_storage",
-        ":signature_utils",
-        "//koladata:data_bag",
-        "//koladata:data_slice",
-        "//koladata:object_factories",
-        "//koladata:test_utils",
-        "//koladata/internal:data_item",
-        "//koladata/internal:dtype",
-        "//koladata/internal:object_id",
-        "//koladata/internal:uuid_object",
-        "//koladata/operators:lib",
-        "//koladata/s11n",
-        "//koladata/testing:matchers",
-        "//koladata/testing:test_env",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:status_matchers",
-        "@com_google_arolla//arolla/memory",
-        "@com_google_arolla//arolla/util",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
-    name = "signature_test",
-    srcs = ["signature_test.cc"],
-    deps = [
-        ":signature",
-        "//koladata:test_utils",
-        "//koladata/internal:dtype",
-        "//koladata/testing:matchers",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:status_matchers",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_test(
     name = "signature_utils_test",
     srcs = ["signature_utils_test.cc"],
     deps = [
-        ":signature",
         ":signature_utils",
         "//koladata:data_bag",
         "//koladata:data_slice",

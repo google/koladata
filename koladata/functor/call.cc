@@ -33,13 +33,13 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_eval.h"
-#include "koladata/functor/functor_storage.h"
-#include "koladata/functor/signature.h"
-#include "koladata/functor/signature_storage.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/functor/stack_trace.h"
+#include "koladata/functor_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/signature.h"
+#include "koladata/signature_storage.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

@@ -35,9 +35,9 @@
 #include "koladata/functor/call.h"
 #include "koladata/functor/cpp_function_bridge.h"
 #include "koladata/functor/functor.h"
-#include "koladata/functor/signature.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/operators/math.h"
+#include "koladata/signature.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 

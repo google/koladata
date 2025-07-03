@@ -36,7 +36,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/call.h"
-#include "koladata/functor/functor_storage.h"
+#include "koladata/functor_storage.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {

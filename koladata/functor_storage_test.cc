@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/functor_storage.h"
+#include "koladata/functor_storage.h"
 
 #include <utility>
 
@@ -26,9 +26,9 @@
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/functor.h"
-#include "koladata/functor/signature.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/signature.h"
 #include "koladata/test_utils.h"
 #include "arolla/util/status_macros_backport.h"
 

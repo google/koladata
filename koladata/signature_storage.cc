@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/signature_storage.h"
+#include "koladata/signature_storage.h"
 
 #include <cstdint>
 #include <functional>
@@ -30,9 +30,9 @@
 #include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_repr.h"
-#include "koladata/functor/signature.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/uuid_object.h"
+#include "koladata/signature.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor {
