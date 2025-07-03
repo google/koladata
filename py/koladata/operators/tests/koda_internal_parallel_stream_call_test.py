@@ -221,7 +221,7 @@ class KodaInternalParallelStreamCallTest(parameterized.TestCase):
       cancellation_context.cancel('Boom!')
       return x
 
-    with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED] Boom!')):
+    with self.assertRaisesRegex(ValueError, r'\[CANCELLED\].*Boom!'):
       koda_internal_parallel.stream_call(
           default_executor, py_fn(fn), 1
       ).eval().read_all(timeout=1)

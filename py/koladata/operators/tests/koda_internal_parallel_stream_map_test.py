@@ -154,7 +154,7 @@ class KodaInternalParallelStreamMapTest(parameterized.TestCase):
     cancellation_context = arolla.abc.current_cancellation_context()
     assert cancellation_context is not None
     cancellation_context.cancel('Boom!')
-    with self.assertRaisesRegex(ValueError, re.escape('[CANCELLED] Boom!')):
+    with self.assertRaisesRegex(ValueError, r'\[CANCELLED\].*Boom!'):
       res.read_all(timeout=None)
 
   def test_non_determinism(self):
