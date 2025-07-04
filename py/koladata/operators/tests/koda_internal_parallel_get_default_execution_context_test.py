@@ -1837,6 +1837,20 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         arolla.tuple(ds('a'), ds('b'), ds('c'), ds('foo'), ds('bar')),
     )
 
+  def test_iterable_from_1d_slice(self):
+    f = functor_factories.fn(lambda x: user_facing_kd.iterables.from_1d_slice(x))  # pylint: disable=unnecessary-lambda
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res = transformed_fn(
+        return_type_as=koda_internal_parallel.stream_make(),
+        x=koda_internal_parallel.as_future(ds([1, 2, 3])),
+    ).eval()
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)),
+        arolla.tuple(ds(1), ds(2), ds(3)),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

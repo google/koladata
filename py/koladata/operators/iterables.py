@@ -315,3 +315,25 @@ def reduce_updated_bag(items, initial_value):  # pylint: disable=unused-argument
     The merged data bag.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.iterables.from_1d_slice',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.slice_),
+    ],
+)
+def from_1d_slice(slice_):
+  """Converts a 1D DataSlice to a Koda iterable of DataItems.
+
+  Args:
+    slice_: A 1D DataSlice to be converted to an iterable.
+
+  Returns:
+    A Koda iterable of DataItems, in the order of the slice. All returned
+    DataItems point to the same DataBag as the input DataSlice.
+  """
+  return koda_internal_iterables.from_sequence(
+      koda_internal_iterables.sequence_from_1d_slice(slice_)
+  )

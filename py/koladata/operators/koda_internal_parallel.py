@@ -2912,11 +2912,7 @@ def _internal_parallel_stream_map(
   kwargs_tuple = M.core.map_tuple(flatten, kwargs_tuple)
   kwargs = M.derived_qtype.downcast(M.qtype.qtype_of(kwargs), kwargs_tuple)
   indices = slices.index(mask_to_call.flatten()).select_present()
-  indices_stream = stream_from_iterable(
-      koda_internal_iterables.from_sequence(
-          koda_internal_iterables.sequence_from_1d_slice(indices)
-      )
-  )
+  indices_stream = stream_from_iterable(iterables.from_1d_slice(indices))
   executor = get_executor_from_context(context)
   invoke_fn = _create_pointwise_invoke_fn(
       executor, transformed_fns, args, kwargs

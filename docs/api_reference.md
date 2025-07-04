@@ -2845,6 +2845,19 @@ Returns:
   An iterable that chains the given iterables, in the given order.
 ```
 
+### `kd.iterables.from_1d_slice(slice_)` {#kd.iterables.from_1d_slice}
+
+```text {.no-copy}
+Converts a 1D DataSlice to a Koda iterable of DataItems.
+
+Args:
+  slice_: A 1D DataSlice to be converted to an iterable.
+
+Returns:
+  A Koda iterable of DataItems, in the order of the slice. All returned
+  DataItems point to the same DataBag as the input DataSlice.
+```
+
 ### `kd.iterables.interleave(*iterables, value_type_as=unspecified)` {#kd.iterables.interleave}
 
 ```text {.no-copy}
