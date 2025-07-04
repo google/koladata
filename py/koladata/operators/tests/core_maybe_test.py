@@ -125,7 +125,7 @@ class CoreGetAttrTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       ('single', ds('a')),
-      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+      ('multiple', ds(['a', 'a']))
   )
   def test_obj_respects_schema(self, attrs):
     obj = eager.obj(a=ds([1, None]))
@@ -135,11 +135,29 @@ class CoreGetAttrTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       ('single', ds('a')),
-      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+      ('multiple', ds(['a', 'a']))
   )
   def test_entity_respects_schema(self, attrs):
     entity = eager.new(a=ds([1, None]))
     entity = entity.with_schema(eager.new().get_schema())
+    res = expr_eval.eval(kde.maybe(entity, attrs))
+    testing.assert_equal(res, ds([None, None]).with_bag(entity.get_bag()))
+
+  @parameterized.named_parameters(
+      ('single', ds('__schema__')),
+      ('multiple', ds(['__schema__', '__schema__']))
+  )
+  def test_obj_schema_attr(self, attrs):
+    obj = eager.obj(a=ds([1, None]))
+    res = expr_eval.eval(kde.maybe(obj, attrs))
+    testing.assert_equal(res, obj.get_obj_schema())
+
+  @parameterized.named_parameters(
+      ('single', ds('__schema__')),
+      ('multiple', ds(['__schema__', '__schema__']))
+  )
+  def test_entity_schema_attr(self, attrs):
+    entity = eager.new(a=ds([1, None]))
     res = expr_eval.eval(kde.maybe(entity, attrs))
     testing.assert_equal(res, ds([None, None]).with_bag(entity.get_bag()))
 

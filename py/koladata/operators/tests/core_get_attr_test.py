@@ -139,6 +139,44 @@ class CoreGetAttrTest(parameterized.TestCase):
         expected.with_bag(self.object.get_bag()),
     )
 
+  @parameterized.named_parameters(
+      ('single', ds('a')),
+      ('multiple', ds(['a', 'a']))
+  )
+  def test_obj_respects_schema(self, attrs):
+    obj = eager.obj(a=ds([1, None]))
+    obj = obj.with_attr('__schema__', eager.obj().get_obj_schema())
+    with self.assertRaisesRegex(ValueError, 'missing'):
+      expr_eval.eval(kde.get_attr(obj, attrs))
+
+  @parameterized.named_parameters(
+      ('single', ds('a')),
+      ('multiple', ds(['a', 'a']))
+  )
+  def test_entity_respects_schema(self, attrs):
+    entity = eager.new(a=ds([1, None]))
+    entity = entity.with_schema(eager.new().get_schema())
+    with self.assertRaisesRegex(ValueError, 'missing'):
+      expr_eval.eval(kde.get_attr(entity, attrs))
+
+  @parameterized.named_parameters(
+      ('single', ds('__schema__')),
+      ('multiple', ds(['__schema__', '__schema__']))
+  )
+  def test_obj_schema_attr(self, attrs):
+    obj = eager.obj(a=ds([1, None]))
+    res = expr_eval.eval(kde.get_attr(obj, attrs))
+    testing.assert_equal(res, obj.get_obj_schema())
+
+  @parameterized.named_parameters(
+      ('single', ds('__schema__')),
+      ('multiple', ds(['__schema__', '__schema__']))
+  )
+  def test_entity_schema_attr(self, attrs):
+    entity = eager.new(a=ds([1, None]))
+    with self.assertRaisesRegex(ValueError, 'missing'):
+      expr_eval.eval(kde.get_attr(entity, attrs))
+
   def test_type_promotion(self):
     # Regression test for b/407094917.
     entity = eager.new(a=ds(None, schema_constants.INT64))
@@ -250,6 +288,30 @@ class CoreGetAttrTest(parameterized.TestCase):
     entity = bag().new(a=1, b=2)
     with self.assertRaisesRegex(ValueError, r'the attribute \'c\' is missing'):
       eager.core.get_attr(entity, ds(['a', 'b', 'c']))
+
+  @parameterized.named_parameters(
+      ('single', ds('c')), ('multiple', ds(['c', 'c']))
+  )
+  def test_missing_for_empty_entity_slice(self, attrs):
+    missing_entity = ds([bag().new(a=1, b=2), None]) & None
+    with self.assertRaisesRegex(ValueError, 'missing'):
+      eager.core.get_attr(missing_entity, attrs)
+
+  @parameterized.named_parameters(
+      ('single', ds('c')), ('multiple', ds(['c', 'c']))
+  )
+  def test_missing_for_empty_object_slice(self, attrs):
+    missing_obj = ds([bag().obj(a=1, b=2), None]) & None
+    res = eager.core.get_attr(missing_obj, attrs)
+    testing.assert_equal(res, ds([None, None]).with_bag(missing_obj.get_bag()))
+
+  @parameterized.named_parameters(
+      ('single', ds('c')), ('multiple', ds(['c', 'c']))
+  )
+  def test_missing_for_empty_schema_slice(self, attrs):
+    missing_schema = ds([bag().new(a=1, b=2).get_schema(), None]) & None
+    res = eager.core.get_attr(missing_schema, attrs)
+    testing.assert_equal(res, missing_schema)
 
   def test_attr_name_error(self):
     entity = bag().new(a=1, b=2)

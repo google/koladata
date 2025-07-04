@@ -33,6 +33,7 @@
 #include "arolla/dense_array/qtype/types.h"
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
@@ -62,6 +63,7 @@
 #include "koladata/internal/op_utils/extract.h"
 #include "koladata/internal/op_utils/has.h"
 #include "koladata/internal/op_utils/new_ids_like.h"
+#include "koladata/internal/op_utils/presence_and.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/schema_utils.h"
@@ -430,17 +432,20 @@ absl::Status ProcessSingleItem(const DataItem& obj, std::string_view attr_name,
   res_builder.InsertIfNotSetAndUpdateAllocIds(offset, res);
 
   DataItem schema_res;
-  const DataItem& schema_item =
-      schema.is_struct_schema() ? schema : schema_attr[offset];
-  if (allow_missing) {
-    ASSIGN_OR_RETURN(schema_res, db_impl.GetSchemaAttrAllowMissing(
-                                     schema_item, attr_name, fallbacks));
+  if (schema.is_object_schema() && attr_name == schema::kSchemaAttr) {
+    schema_res = internal::DataItem(schema::kSchema);
   } else {
-    ASSIGN_OR_RETURN(schema_res,
-                     db_impl.GetSchemaAttr(schema_item, attr_name, fallbacks));
+    const DataItem& schema_item =
+        schema.is_struct_schema() ? schema : schema_attr[offset];
+    if (allow_missing) {
+      ASSIGN_OR_RETURN(schema_res, db_impl.GetSchemaAttrAllowMissing(
+                                       schema_item, attr_name, fallbacks));
+    } else {
+      ASSIGN_OR_RETURN(
+          schema_res, db_impl.GetSchemaAttr(schema_item, attr_name, fallbacks));
+    }
   }
   schema_builder.InsertIfNotSetAndUpdateAllocIds(offset, schema_res);
-
   return absl::OkStatus();
 }
 
@@ -487,6 +492,62 @@ absl::StatusOr<internal::DataSliceImpl> GetObjSchemaAttr(
   return db_impl.GetObjSchemaAttr(obj, fallbacks);
 }
 
+// Returns the fetched attributes and corresponding schemas.
+absl::StatusOr<std::pair<internal::DataSliceImpl, internal::DataSliceImpl>>
+GetAttrImpl(const internal::DataSliceImpl& aligned_obj,
+            const internal::DataSliceImpl& aligned_attr_name,
+            const internal::DataItem& obj_schema,
+            const DataBag& db, bool allow_missing) {
+  DCHECK_EQ(aligned_obj.size(), aligned_attr_name.size());
+  // In case `aligned_obj` is empty, we still want to ensure that the schema
+  // has the attribute so we don't exit early.
+  if (aligned_attr_name.is_empty_and_unknown()) {
+    return std::make_pair(
+        internal::DataSliceImpl::CreateEmptyAndUnknownType(aligned_obj.size()),
+        internal::DataSliceImpl::CreateEmptyAndUnknownType(aligned_obj.size()));
+  }
+
+  FlattenFallbackFinder fb_finder(db);
+  auto fallbacks = fb_finder.GetFlattenFallbacks();
+  const internal::DataBagImpl& db_impl = db.GetImpl();
+
+  // Empty if schema is not schema::kObject.
+  ASSIGN_OR_RETURN(
+      internal::DataSliceImpl schema_attr,
+      GetObjSchemaAttr(aligned_obj, obj_schema, db_impl, fallbacks));
+
+  internal::SliceBuilder res_builder(aligned_obj.size());
+  internal::SliceBuilder schema_builder(aligned_obj.size());
+  absl::Status status = absl::OkStatus();
+  RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
+      [&](int64_t offset, arolla::OptionalValue<DataItem> item,
+          std::string_view attr_name) {
+        if (!status.ok()) {
+          return;
+        }
+        DataItem actual_item =
+            item.present ? std::move(item).value : DataItem();
+        if (obj_schema.is_schema_schema()) {
+          status = ProcessSingleSchemaItem(actual_item, attr_name, offset,
+                                           db_impl, fallbacks, res_builder,
+                                           schema_builder, allow_missing);
+        } else {
+          status = ProcessSingleItem(
+              actual_item, attr_name, offset, db_impl, fallbacks, obj_schema,
+              schema_attr, res_builder, schema_builder, allow_missing);
+        }
+      },
+      aligned_obj.AsDataItemDenseArray(),
+      aligned_attr_name.values<arolla::Text>()));
+  RETURN_IF_ERROR(std::move(status));
+  auto schema_res = std::move(schema_builder).Build();
+  ASSIGN_OR_RETURN(auto schema_filter, internal::HasOp()(schema_res));
+  ASSIGN_OR_RETURN(
+      auto res,
+      internal::PresenceAndOp()(std::move(res_builder).Build(), schema_filter));
+  return std::make_pair(std::move(res), std::move(schema_res));
+}
+
 }  // namespace
 
 absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
@@ -496,60 +557,22 @@ absl::StatusOr<DataSlice> GetAttr(const DataSlice& obj,
                      GetStringArgument(attr_name, "attr_name"));
     return obj.GetAttr(attr_name_str);
   }
-
   RETURN_IF_ERROR(ValidateGetAttrArguments(obj, attr_name));
-
-  const absl_nullable DataBagPtr& db = obj.GetBag();
-  DCHECK_NE(db, nullptr);  // Checked by ValidateGetAttrArguments.
-  FlattenFallbackFinder fb_finder(*db);
-  auto fallbacks = fb_finder.GetFlattenFallbacks();
-
+  DCHECK_NE(obj.GetBag(), nullptr);  // Checked by ValidateGetAttrArguments.
   ASSIGN_OR_RETURN(auto aligned_slices,
                    shape::Align(absl::Span<const DataSlice>{obj, attr_name}));
-  const auto& aligned_obj = aligned_slices[0].impl<internal::DataSliceImpl>();
-  const auto& aligned_attr_name =
-      aligned_slices[1].impl<internal::DataSliceImpl>();
-  if (attr_name.IsEmpty()) {
-    return EmptyLike(aligned_slices[0].GetShape(), DataItem(schema::kNone), db);
-  }
-
-  const internal::DataBagImpl& db_impl = db->GetImpl();
-  // Empty if schema is not OBJECT.
   ASSIGN_OR_RETURN(
-      internal::DataSliceImpl schema_attr,
-      GetObjSchemaAttr(aligned_obj, obj.GetSchemaImpl(), db_impl, fallbacks));
-
-  internal::SliceBuilder res_builder(aligned_obj.size());
-  internal::SliceBuilder schema_builder(aligned_obj.size());
-  absl::Status status = absl::OkStatus();
-  // TODO: Try speeding this up by grouping by attr_name.
-  RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
-      [&](int64_t offset, DataItem item, std::string_view attr_name) {
-        if (!status.ok()) {
-          return;
-        }
-        if (obj.GetSchemaImpl().is_schema_schema()) {
-          status =
-              ProcessSingleSchemaItem(item, attr_name, offset, db_impl,
-                                      fallbacks, res_builder, schema_builder);
-        } else {
-          status = ProcessSingleItem(item, attr_name, offset, db_impl,
-                                     fallbacks, obj.GetSchemaImpl(),
-                                     schema_attr, res_builder, schema_builder);
-        }
-      },
-      aligned_obj.AsDataItemDenseArray(),
-      aligned_attr_name.values<arolla::Text>()));
-  RETURN_IF_ERROR(std::move(status));
-
-  ASSIGN_OR_RETURN(DataItem schema_res,
-                   schema::CommonSchema(std::move(schema_builder).Build()));
+      (auto [res_slice, schema_res_slice]),
+      GetAttrImpl(aligned_slices[0].impl<internal::DataSliceImpl>(),
+                  aligned_slices[1].impl<internal::DataSliceImpl>(),
+                  obj.GetSchemaImpl(), *obj.GetBag(),
+                  /*allow_missing=*/false));
+  ASSIGN_OR_RETURN(DataItem schema_res, schema::CommonSchema(schema_res_slice));
   if (!schema_res.has_value()) {
     schema_res = DataItem(schema::kNone);
   }
-  return DataSlice::Create(std::move(res_builder).Build(),
-                           aligned_slices[0].GetShape(),
-                           DataItem(std::move(schema_res)), db);
+  return DataSlice::Create(std::move(res_slice), aligned_slices[0].GetShape(),
+                           DataItem(std::move(schema_res)), obj.GetBag());
 }
 
 absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
@@ -561,67 +584,33 @@ absl::StatusOr<DataSlice> GetAttrWithDefault(const DataSlice& obj,
     return obj.GetAttrWithDefault(attr_name_str, default_value);
   }
   RETURN_IF_ERROR(ValidateGetAttrArguments(obj, attr_name));
-
-  const absl_nullable DataBagPtr& db = obj.GetBag();
-  DCHECK_NE(db, nullptr);  // Checked by ValidateGetAttrArguments.
-  FlattenFallbackFinder fb_finder(*db);
-  auto fallbacks = fb_finder.GetFlattenFallbacks();
-
+  DCHECK_NE(obj.GetBag(), nullptr);  // Checked by ValidateGetAttrArguments.
   ASSIGN_OR_RETURN(auto aligned_slices,
                    shape::Align(absl::Span<const DataSlice>{obj, attr_name}));
-  const auto& aligned_obj = aligned_slices[0].impl<internal::DataSliceImpl>();
-  const auto& aligned_attr_name =
-      aligned_slices[1].impl<internal::DataSliceImpl>();
-  if (attr_name.IsEmpty()) {
-    return EmptyLike(aligned_slices[0].GetShape(), DataItem(schema::kNone), db);
-  }
-
-  const internal::DataBagImpl& db_impl = db->GetImpl();
-
-  // Empty if schema is not schema::kObject.
   ASSIGN_OR_RETURN(
-      internal::DataSliceImpl schema_attr,
-      GetObjSchemaAttr(aligned_obj, obj.GetSchemaImpl(), db_impl, fallbacks));
-
-  internal::SliceBuilder res_builder(aligned_obj.size());
-  internal::SliceBuilder schema_builder(aligned_obj.size());
-  absl::Status status = absl::OkStatus();
-  RETURN_IF_ERROR(arolla::DenseArraysForEachPresent(
-      [&](int64_t offset, DataItem item, std::string_view attr_name) {
-        if (!status.ok()) {
-          return;
-        }
-        if (obj.GetSchemaImpl().is_schema_schema()) {
-          status = ProcessSingleSchemaItem(
-              item, attr_name, offset, db_impl, fallbacks, res_builder,
-              schema_builder, /*allow_missing=*/true);
-        } else {
-          status = ProcessSingleItem(
-              item, attr_name, offset, db_impl, fallbacks, obj.GetSchemaImpl(),
-              schema_attr, res_builder, schema_builder, /*allow_missing=*/true);
-        }
-      },
-      aligned_obj.AsDataItemDenseArray(),
-      aligned_attr_name.values<arolla::Text>()));
-  RETURN_IF_ERROR(std::move(status));
-
+      (auto [res_slice, schema_res_slice]),
+      GetAttrImpl(aligned_slices[0].impl<internal::DataSliceImpl>(),
+                  aligned_slices[1].impl<internal::DataSliceImpl>(),
+                  obj.GetSchemaImpl(), *obj.GetBag(),
+                  /*allow_missing=*/true));
   ASSIGN_OR_RETURN(
       auto expanded_default,
       BroadcastToShape(default_value, aligned_slices[0].GetShape()));
   ASSIGN_OR_RETURN(internal::DataSliceImpl res,
                    internal::CoalesceWithFiltered(
-                       aligned_obj, std::move(res_builder).Build(),
+                       aligned_slices[0].impl<internal::DataSliceImpl>(),
+                       std::move(res_slice),
                        expanded_default.impl<internal::DataSliceImpl>()));
 
-  ASSIGN_OR_RETURN(DataItem schema_res,
-                   schema::CommonSchema(std::move(schema_builder).Build()));
+  ASSIGN_OR_RETURN(DataItem schema_res, schema::CommonSchema(schema_res_slice));
   ASSIGN_OR_RETURN(schema_res, schema::CommonSchema(
                                    schema_res, default_value.GetSchemaImpl()));
   if (!schema_res.has_value()) {
     schema_res = DataItem(schema::kNone);
   }
 
-  ASSIGN_OR_RETURN(auto result_db, WithAdoptedValues(db, default_value));
+  ASSIGN_OR_RETURN(auto result_db,
+                   WithAdoptedValues(obj.GetBag(), default_value));
   return DataSlice::Create(std::move(res), aligned_slices[0].GetShape(),
                            DataItem(std::move(schema_res)),
                            std::move(result_db));
@@ -634,14 +623,19 @@ absl::StatusOr<DataSlice> HasAttr(const DataSlice& obj,
                      GetStringArgument(attr_name, "attr_name"));
     return obj.HasAttr(attr_name_str);
   }
-  ASSIGN_OR_RETURN(DataSlice empty_slice,
-                   DataSlice::Create(DataItem(), DataItem(schema::kNone)));
-  ASSIGN_OR_RETURN(DataSlice get_attr,
-                   GetAttrWithDefault(obj, attr_name, empty_slice));
-  ASSIGN_OR_RETURN(internal::DataSliceImpl has_res,
-                   internal::HasOp()(get_attr.impl<internal::DataSliceImpl>()));
-  return DataSlice::Create(std::move(has_res), get_attr.GetShape(),
-                           DataItem(schema::kMask), get_attr.GetBag());
+  RETURN_IF_ERROR(ValidateGetAttrArguments(obj, attr_name));
+  DCHECK_NE(obj.GetBag(), nullptr);  // Checked by ValidateGetAttrArguments.
+  ASSIGN_OR_RETURN(auto aligned_slices,
+                   shape::Align(absl::Span<const DataSlice>{obj, attr_name}));
+  ASSIGN_OR_RETURN(
+      (auto [res, _]),
+      GetAttrImpl(aligned_slices[0].impl<internal::DataSliceImpl>(),
+                  aligned_slices[1].impl<internal::DataSliceImpl>(),
+                  obj.GetSchemaImpl(), *obj.GetBag(),
+                  /*allow_missing=*/true));
+  ASSIGN_OR_RETURN(res, internal::HasOp()(res));
+  return DataSlice::Create(std::move(res), aligned_slices[0].GetShape(),
+                           DataItem(schema::kMask));
 }
 
 absl::StatusOr<DataSlice> GetAttrNames(const DataSlice& ds,

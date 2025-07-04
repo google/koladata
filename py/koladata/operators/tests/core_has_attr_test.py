@@ -66,18 +66,12 @@ class CoreHasAttrTest(parameterized.TestCase):
       (kde.has_attr(I.x, ds(['c', 'c'])), ds([missing, missing])),
   )
   def test_eval_with_attr_name_slice(self, expr, expected):
-    testing.assert_equal(
-        expr_eval.eval(expr, x=self.entity),
-        expected.with_bag(self.entity.get_bag()),
-    )
-    testing.assert_equal(
-        expr_eval.eval(expr, x=self.object),
-        expected.with_bag(self.object.get_bag()),
-    )
+    testing.assert_equal(expr_eval.eval(expr, x=self.entity), expected)
+    testing.assert_equal(expr_eval.eval(expr, x=self.object), expected)
 
   @parameterized.named_parameters(
       ('single', ds('a')),
-      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+      ('multiple', ds(['a', 'a']))
   )
   def test_obj_respects_schema(self, attrs):
     obj = eager.obj(a=ds([1, None]))
@@ -87,7 +81,7 @@ class CoreHasAttrTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       ('single', ds('a')),
-      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+      ('multiple', ds(['a', 'a']))
   )
   def test_entity_respects_schema(self, attrs):
     entity = eager.new(a=ds([1, None]))
@@ -97,7 +91,7 @@ class CoreHasAttrTest(parameterized.TestCase):
 
   @parameterized.named_parameters(
       ('single', ds('a')),
-      # ('multiple', ds(['a', 'a']))  # TODO: Fix multi-attr.
+      ('multiple', ds(['a', 'a']))
   )
   def test_no_common_schema(self, attrs):
     # Works even though `maybe` doesn't have a common schema.
@@ -107,6 +101,24 @@ class CoreHasAttrTest(parameterized.TestCase):
     # Sanity check: `maybe` raises.
     with self.assertRaises(ValueError):
       expr_eval.eval(kde.maybe(obj, attrs))
+
+  @parameterized.named_parameters(
+      ('single', ds('__schema__')),
+      ('multiple', ds(['__schema__', '__schema__']))
+  )
+  def test_obj_schema_attr(self, attrs):
+    obj = eager.obj(a=ds([1, None]))
+    res = expr_eval.eval(kde.has_attr(obj, attrs))
+    testing.assert_equal(res, ds([present, present]))
+
+  @parameterized.named_parameters(
+      ('single', ds('__schema__')),
+      ('multiple', ds(['__schema__', '__schema__']))
+  )
+  def test_entity_schema_attr(self, attrs):
+    entity = eager.new(a=ds([1, None]))
+    res = expr_eval.eval(kde.has_attr(entity, attrs))
+    testing.assert_equal(res, ds([missing, missing]))
 
   def test_has_attr_does_not_fail_when_no_common_schema_for_attr(self):
     db = data_bag.DataBag.empty()
@@ -181,16 +193,11 @@ class CoreHasAttrTest(parameterized.TestCase):
     s = kde.schema.new_schema(x=schema_constants.INT32)
     testing.assert_equal(expr_eval.eval(kde.core.has_attr(s, 'x')), ds(present))
 
-  @parameterized.parameters(
-      (
-          kde.has_attr(I.x, ds(['a', 'b', 'c', None])),
-          ds([present, present, missing, missing]),
-      ),
-  )
-  def test_has_attr_of_schema_slice_attr_name(self, expr, expected):
+  def test_has_attr_of_schema_slice_attr_name(self):
+    expr = kde.has_attr(I.x, ds(['a', 'b', 'c', None]))
     testing.assert_equal(
         expr_eval.eval(expr, x=self.entity.get_schema()),
-        expected.with_bag(self.entity.get_bag()),
+        ds([present, present, missing, missing]),
     )
 
   def test_attr_name_error(self):
