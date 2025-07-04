@@ -276,6 +276,10 @@ Schema for `y`: STRING"""
   def test_view(self):
     self.assertTrue(view.has_koda_view(kde.math.add(I.x, I.y)))
 
+  def test_is_overloadable(self):
+    self.assertIsInstance(arolla.abc.decay_registered_operator(kde.math.add),
+                          arolla.types.GenericOperator)
+
 
 if __name__ == '__main__':
   absltest.main()
