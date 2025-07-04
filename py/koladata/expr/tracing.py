@@ -95,10 +95,12 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
       )
     expr = py_boxing.as_expr(res)
   except Exception as e:
-    raise ValueError(
-        f'Failed to trace the function {kd_functools.unwrap(fn)}. If'
-        ' you only need Python evaluation, you can use `kd.py_fn(fn)` instead.'
-    ) from e
+    e.add_note(
+        'Error occurred during tracing of the function'
+        f' {kd_functools.unwrap(fn)}. If you only need Python evaluation, you'
+        ' can use `kd.py_fn(fn)` instead.'
+    )
+    raise
   if diff := (
       frozenset(introspection.get_input_names(expr))
       - frozenset(positional_param_names)

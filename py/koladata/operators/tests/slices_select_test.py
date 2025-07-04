@@ -262,14 +262,22 @@ class SlicesSelectTest(parameterized.TestCase):
           x=ds([1, 2, 3]),
       )
 
-    with self.assertRaisesRegex(
-        ValueError, re.escape('Failed to trace the function')
-    ) as cm:
+    with self.assertRaisesRegex(ValueError, 'test error'):
       _ = kde.slices.select(I.x, filter_fn)
-    self.assertEqual(
-        cm.exception.__notes__,
-        ['Error occurred while processing argument: `fltr`'],
-    )
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_note_regex(
+            'Error occurred during tracing of the function.*'
+        ),
+    ):
+      _ = kde.slices.select(I.x, filter_fn)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_note_regex(
+            'Error occurred while processing argument: `fltr`'
+        ),
+    ):
+      _ = kde.slices.select(I.x, filter_fn)
 
   def test_select_wrong_filter_schema(self):
     val = data_slice.DataSlice.from_vals([1, 2, None, 4])

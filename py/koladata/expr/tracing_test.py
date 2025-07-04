@@ -116,9 +116,19 @@ class TracingTest(absltest.TestCase):
     def my_fn(x):
       return 1 if x else 2
 
-    with self.assertRaisesRegex(
-        ValueError,
-        'Failed to trace the function .*TracingTest.test_tracing_fail.*my_fn.*',
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        "unhashable type: 'arolla.abc.expr.Expr'; please consider using"
+        ' `arolla.quote(expr)`',
+    ):
+      tracing.trace(my_fn)
+
+    with self.assertRaisesWithPredicateMatch(
+        TypeError,
+        arolla.testing.any_note_regex(
+            'Error occurred during tracing of the'
+            ' function.*TracingTest.test_tracing_fail.*my_fn.*'
+        ),
     ):
       tracing.trace(my_fn)
 

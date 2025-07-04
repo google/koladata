@@ -13,8 +13,10 @@
 # limitations under the License.
 
 import functools
+import re
 
 from absl.testing import absltest
+from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.functor import boxing as _
 from koladata.functor import functor_factories
@@ -37,9 +39,17 @@ class BoxingTest(absltest.TestCase):
 
   def test_error(self):
     with self.assertRaisesRegex(
-        ValueError,
-        'Failed to trace the function.*If you only need Python evaluation, you'
-        ' can use `kd[.]py_fn[(]fn[)]` instead',
+        TypeError,
+        re.escape("__bool__ disabled for 'arolla.abc.expr.Expr'")
+    ):
+      _ = py_boxing.as_qvalue(lambda x: 6 if x == 5 else 7)
+
+    with self.assertRaisesWithPredicateMatch(
+        TypeError,
+        arolla.testing.any_note_regex(
+            'Error occurred during tracing of the function.*If you only need'
+            ' Python evaluation, you can use `kd[.]py_fn[(]fn[)]` instead',
+        ),
     ):
       _ = py_boxing.as_qvalue(lambda x: 6 if x == 5 else 7)
 
