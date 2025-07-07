@@ -73,6 +73,11 @@ class DeepDiff {
                               TraverseHelper::Transition lhs,
                               TraverseHelper::Transition rhs);
 
+  // Saves a diff node, representing a mismatch directly in a provided slices.
+  absl::StatusOr<DataItem> SliceItemMismatch(TraverseHelper::TransitionKey key,
+                                             TraverseHelper::Transition lhs,
+                                             TraverseHelper::Transition rhs);
+
  private:
   // Creates an Object representing an lhs-only attribute.
   absl::StatusOr<DataItem> CreateLhsOnlyDiffItem(

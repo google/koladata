@@ -101,5 +101,26 @@ TEST_P(DeepEquivalentTest, DeepEntitySlice) {
               ::testing::ElementsAre(::testing::HasSubstr("[root].S[0].b.x")));
 }
 
+TEST_P(DeepEquivalentTest, PrimitiveSlice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_equivalent_op = DeepEquivalentOp(result_db.get());
+  ASSERT_OK_AND_ASSIGN(
+      auto result_ds,
+      deep_equivalent_op(
+          DataSliceImpl::Create({DataItem(1), DataItem(2), DataItem(3)}),
+          DataItem(schema::kObject), *GetMainDb(db), {GetFallbackDb(db).get()},
+          DataSliceImpl::Create({DataItem(1), DataItem(), DataItem(4)}),
+          DataItem(schema::kObject), *GetMainDb(db), {}));
+
+  ASSERT_OK_AND_ASSIGN(
+      auto diff_str, deep_equivalent_op.GetDiffPaths(
+                         result_ds, DataItem(schema::kObject), *result_db, {}));
+  EXPECT_THAT(diff_str, ::testing::UnorderedElementsAre(
+                            ::testing::HasSubstr("[root].S[1]"),
+                            ::testing::HasSubstr("[root].S[2]")));
+}
+
 }  // namespace
 }  // namespace koladata::internal

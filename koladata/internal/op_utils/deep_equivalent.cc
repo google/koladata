@@ -72,6 +72,12 @@ class EquivalentComparator : public AbstractComparator {
     return result_.LhsRhsMismatch(std::move(token), std::move(key),
                                   std::move(lhs), std::move(rhs));
   }
+  absl::StatusOr<DataItem> SliceItemMismatch(
+      TraverseHelper::TransitionKey key, TraverseHelper::Transition lhs,
+      TraverseHelper::Transition rhs) override {
+    return result_.SliceItemMismatch(std::move(key), std::move(lhs),
+                                     std::move(rhs));
+  }
   int CompareOrder(TraverseHelper::TransitionKey lhs,
                    TraverseHelper::TransitionKey rhs) override {
     if (lhs.type != rhs.type) {

@@ -73,6 +73,15 @@ absl::Status DeepDiff::LhsRhsMismatch(DataItem token,
                         std::move(diff_wrapper));
 }
 
+absl::StatusOr<DataItem> DeepDiff::SliceItemMismatch(
+    TraverseHelper::TransitionKey key, TraverseHelper::Transition lhs,
+    TraverseHelper::Transition rhs) {
+  DCHECK(key.type == TraverseHelper::TransitionType::kSliceItem);
+  ASSIGN_OR_RETURN(auto diff_item,
+                   CreateMismatchDiffItem(std::move(lhs), std::move(rhs)));
+  return CreateDiffWrapper(std::move(diff_item));
+}
+
 absl::StatusOr<DataItem> DeepDiff::CreateTokenLike(DataItem item) {
   if (!item.holds_value<ObjectId>()) {
     return item;

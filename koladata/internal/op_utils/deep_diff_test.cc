@@ -209,6 +209,42 @@ TEST_P(DeepDiffTest, LhsRhsMismatch) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(DeepDiffTest, SliceItemMismatch) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto lhs_value = AllocateEmptyObjects(1)[0];
+  auto rhs_value = AllocateEmptyObjects(1)[0];
+  auto lhs_schema = AllocateSchema();
+  auto rhs_schema = AllocateSchema();
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_diff = DeepDiff(result_db);
+  ASSERT_OK_AND_ASSIGN(auto item,
+                       deep_diff.SliceItemMismatch(
+                           {.type = TransitionType::kSliceItem, .index = 2},
+                           {lhs_value, lhs_schema}, {rhs_value, rhs_schema}));
+  ASSERT_OK_AND_ASSIGN(auto item_schema, result_db->GetObjSchemaAttr(item));
+  ASSERT_OK_AND_ASSIGN(auto diff,
+                       result_db->GetAttr(item, DeepDiff::kDiffItemAttr));
+  ASSERT_OK_AND_ASSIGN(auto diff_schema, result_db->GetObjSchemaAttr(diff));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {
+      {item,
+       {{schema::kSchemaAttr, item_schema}, {DeepDiff::kDiffItemAttr, diff}}},
+      {diff,
+       {{schema::kSchemaAttr, diff_schema},
+        {DeepDiff::kLhsAttr, lhs_value},
+        {DeepDiff::kRhsAttr, rhs_value}}},
+  };
+  TriplesT expected_schema_triples = {
+      {item_schema, {{DeepDiff::kDiffItemAttr, DataItem(schema::kObject)}}},
+      {diff_schema,
+       {{DeepDiff::kLhsAttr, lhs_schema}, {DeepDiff::kRhsAttr, rhs_schema}}}};
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(DeepDiffTest, SaveTransitionAttribute) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto from_item = AllocateEmptyObjects(1)[0];

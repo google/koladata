@@ -78,6 +78,11 @@ class AbstractComparator {
                                       TraverseHelper::TransitionKey key,
                                       TraverseHelper::Transition lhs,
                                       TraverseHelper::Transition rhs) = 0;
+
+  // Is called when a diff is found in a provided slices directly.
+  virtual absl::StatusOr<DataItem> SliceItemMismatch(
+      TraverseHelper::TransitionKey key, TraverseHelper::Transition lhs,
+      TraverseHelper::Transition rhs) = 0;
 };
 
 template <typename ComparatorT>
@@ -109,10 +114,23 @@ class DeepComparator {
     }
     SliceBuilder result_slice(lhs_ds.size());
     for (int64_t i = 0; i < lhs_ds.size(); ++i) {
-      ASSIGN_OR_RETURN(DataItem items_token,
-                       AddToCompare({.item = lhs_ds[i], .schema = lhs_schema},
-                                    {.item = rhs_ds[i], .schema = rhs_schema}));
-      result_slice.InsertIfNotSetAndUpdateAllocIds(i, items_token);
+      TraverseHelper::Transition lhs_transition(
+          {.item = lhs_ds[i], .schema = lhs_schema});
+      TraverseHelper::Transition rhs_transition(
+          {.item = rhs_ds[i], .schema = rhs_schema});
+      if (!comparator_->ComparatorT::Equal(lhs_transition, rhs_transition)) {
+        ASSIGN_OR_RETURN(
+            auto mismatch_token,
+            comparator_->ComparatorT::SliceItemMismatch(
+                {.type = TraverseHelper::TransitionType::kSliceItem,
+                 .index = i},
+                lhs_transition, rhs_transition));
+        result_slice.InsertIfNotSetAndUpdateAllocIds(i, mismatch_token);
+      } else {
+        ASSIGN_OR_RETURN(DataItem items_token,
+                        AddToCompare(lhs_transition, rhs_transition));
+        result_slice.InsertIfNotSetAndUpdateAllocIds(i, items_token);
+      }
     }
     RETURN_IF_ERROR(DeepCompare());
     return std::move(result_slice).Build();
@@ -147,7 +165,7 @@ class DeepComparator {
 
   absl::StatusOr<DataItem> AddToCompare(const TraverseHelper::Transition& lhs,
                                         const TraverseHelper::Transition& rhs) {
-    LhsRhsItems items({lhs.item, rhs.item, lhs.schema, rhs.schema});
+    LhsRhsItems items({lhs.item, lhs.schema, rhs.item, rhs.schema});
     auto [it, inserted] = token_map_.try_emplace(items, DataItem());
     if (!inserted) {
       return it->second;

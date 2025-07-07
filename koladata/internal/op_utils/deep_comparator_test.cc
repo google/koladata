@@ -86,6 +86,13 @@ class EqualEntityPrimitivesComparator : public AbstractComparator {
                                 diffs_.push_back({token.value<int64_t>(), key});
     return absl::OkStatus();
   }
+  absl::StatusOr<DataItem> SliceItemMismatch(
+      TraverseHelper::TransitionKey key, TraverseHelper::Transition lhs,
+      TraverseHelper::Transition rhs) override {
+    ASSIGN_OR_RETURN(auto token, CreateToken(lhs, rhs));
+    diffs_.push_back({token.value<int64_t>(), key});
+    return DataItem(static_cast<int64_t>(-1));
+  }
   int CompareOrder(TraverseHelper::TransitionKey lhs,
                    TraverseHelper::TransitionKey rhs) override {
     if (lhs.type != rhs.type) {
@@ -162,11 +169,14 @@ absl::StatusOr<std::vector<std::string>> DeepCompare(
     // In CompareSlices we build a directed spanning forest over the tokens.
     // Here we add a fake root node, and additional transition to all the
     // starting tokens.
-    compare_op.Comparator().UpdateParent(
-        tokens[i].value<int64_t>(), -1,
-        TraverseHelper::TransitionKey(
-            {.type = TraverseHelper::TransitionType::kSliceItem, .index = i}),
-        /*forced_update=*/true);
+    if (tokens[i].value<int64_t>() != -1) {
+      // We only do this for matched slice items.
+      compare_op.Comparator().UpdateParent(
+          tokens[i].value<int64_t>(), -1,
+          TraverseHelper::TransitionKey(
+              {.type = TraverseHelper::TransitionType::kSliceItem, .index = i}),
+          /*forced_update=*/true);
+    }
   }
   RETURN_IF_ERROR(compare_op.Comparator().GetStatus());
   return compare_op.Comparator().GetDiffPaths();
@@ -453,6 +463,19 @@ TEST_P(DeepEqualTest, PrimitiveWithObjectSchema) {
                   cloned_ds, schema_a, *cloned_db, {}));
 
   EXPECT_THAT(result, ::testing::IsEmpty());
+}
+
+TEST_P(DeepEqualTest, MismatchInSlice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto result,
+      DeepCompare(
+          DataSliceImpl::Create({DataItem(1), DataItem(2), DataItem(3)}),
+          DataItem(schema::kInt32), *GetMainDb(db), {GetFallbackDb(db).get()},
+          DataSliceImpl::Create({DataItem(1), DataItem(), DataItem(4)}),
+          DataItem(schema::kInt32), *GetMainDb(db), {}));
+
+  EXPECT_THAT(result, ::testing::UnorderedElementsAre(".S[1]", ".S[2]"));
 }
 
 }  // namespace
