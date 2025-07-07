@@ -17,6 +17,7 @@ import re
 import sys
 import threading
 import time
+from typing import Any
 from unittest import mock
 
 from absl.testing import absltest
@@ -471,6 +472,82 @@ class StreamTest(parameterized.TestCase):
         lambda: arolla.abc.run_in_cancellation_context(None, _impl)
     )
     barrier.wait()
+
+  def test_stream_type_parameterisation(self):
+    def fn_any(stream: clib.Stream[Any]) -> list[Any]:
+      stream_reader: clib.StreamReader[Any] = stream.make_reader()
+      result: list[Any] | None = stream_reader.read_available()
+      assert result
+      return result
+
+    def fn_int(stream: clib.Stream[arolla.types.Int]) -> list[arolla.types.Int]:
+      stream_reader: clib.StreamReader[arolla.types.Int] = stream.make_reader()
+      result: list[arolla.types.Int] | None = stream_reader.read_available()
+      assert result
+      return result
+
+    def fn_qvalue(stream: clib.Stream[arolla.QValue]) -> list[arolla.QValue]:
+      stream_reader: clib.StreamReader[arolla.QValue] = stream.make_reader()
+      result: list[arolla.QValue] | None = stream_reader.read_available()
+      assert result
+      return result
+
+    stream_any, writer_any = clib.Stream.new(arolla.INT32)
+    stream_int: clib.Stream[arolla.types.Int] = stream_any
+    stream_qvalue: clib.Stream[arolla.QValue] = stream_int  # co
+
+    writer_qvalue: clib.StreamWriter[arolla.QValue] = writer_any
+    writer_int: clib.StreamWriter[arolla.types.Int] = writer_qvalue  # contra  # pytype: disable=annotation-type-mismatch  # pytype bug: b/418217034
+
+    x_any: Any = arolla.int32(1)
+    x_int: arolla.types.Int = arolla.int32(2)
+    x_qvalue: arolla.QValue = arolla.int32(3)
+
+    writer_any.write(x_any)
+    writer_any.write(x_int)
+    writer_any.write(x_qvalue)
+
+    writer_int.write(x_any)
+    writer_int.write(x_int)
+    writer_int.write(x_qvalue)
+
+    writer_qvalue.write(x_any)
+    writer_qvalue.write(x_int)
+    writer_qvalue.write(x_qvalue)
+
+    writer_any.close()
+
+    with self.subTest('stream[Any] <- stream[Any]'):
+      res_any: list[Any] = fn_any(stream_any)
+      del res_any
+
+    with self.subTest('stream[Any] <- stream[Int]'):
+      res_any: list[Any] = fn_int(stream_int)
+      del res_any
+
+    with self.subTest('stream[Any] <- stream[QValue]'):
+      res_any: list[Any] = fn_qvalue(stream_qvalue)
+      del res_any
+
+    with self.subTest('stream[Int] <- stream[Any]'):
+      res_int: list[arolla.types.Int] = fn_any(stream_any)
+      del res_int
+
+    with self.subTest('stream[Int] <- stream[Int]'):
+      res_int: list[arolla.types.Int] = fn_int(stream_int)
+      del res_int
+
+    with self.subTest('stream[QValue] <- stream[Any]'):
+      res_qvalue: list[arolla.QValue] = fn_any(stream_any)
+      del res_qvalue
+
+    with self.subTest('stream[QValue] <- stream[Int]'):
+      res_qvalue: list[arolla.QValue] = fn_int(stream_int)
+      del res_qvalue
+
+    with self.subTest('stream[QValue] <- stream[QValue]'):
+      res_qvalue: list[arolla.QValue] = fn_qvalue(stream_qvalue)
+      del res_qvalue
 
 
 if __name__ == '__main__':

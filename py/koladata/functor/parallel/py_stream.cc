@@ -667,6 +667,7 @@ PyMethodDef kPyStream_methods[] = {
          "Args:\n"
          "  timeout: A timeout in seconds. `None` means wait indefinitely."),
     },
+    {"__class_getitem__", Py_GenericAlias, METH_O | METH_CLASS, "See PEP 585"},
     {nullptr} /* sentinel */
 };
 
@@ -695,6 +696,7 @@ PyMethodDef kPyStreamWriter_methods[] = {
          "--\n\n"
          "Closes the stream."),
     },
+    {"__class_getitem__", Py_GenericAlias, METH_O | METH_CLASS, "See PEP 585"},
     {nullptr} /* sentinel */
 };
 
@@ -729,6 +731,7 @@ PyMethodDef kPyStreamReader_methods[] = {
          " * `None` if the stream was closed without an error, or\n"
          " * raise an error if the stream was closed with an error."),
     },
+    {"__class_getitem__", Py_GenericAlias, METH_O | METH_CLASS, "See PEP 585"},
     {nullptr} /* sentinel */
 };
 
@@ -736,8 +739,13 @@ PyTypeObject PyStream_Type = {
     .ob_base = {PyObject_HEAD_INIT(nullptr)},
     .tp_name = "koladata.functor.parallel.Stream",
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
-    .tp_doc = ("Stream of values.\n\nThe stream keeps all the values in "
-               "memory, and can be read more than once."),
+    .tp_doc =
+        ("Stream of values.\n\n"
+         "The stream keeps all values in memory and can be read more than "
+         "once.\n\n"
+         "Note: This class supports parametrization like Stream[T]; however,\n"
+         "the type parameter is currently used only for documentation "
+         "purposes.\nThis might be changed in the future."),
     .tp_methods = kPyStream_methods,
 };
 
@@ -749,6 +757,7 @@ PyTypeObject PyStreamWriter_Type = {
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
     .tp_doc =
         ("Stream writer.\n\n"
+         "Note: This class supports parametrization like StreamWriter[T].\n\n"
          "Note: It is strongly advised that all streams be explicitly closed."),
     .tp_weaklistoffset = offsetof(PyStreamWriterObject, weakrefs),
     .tp_methods = kPyStreamWriter_methods,
@@ -760,7 +769,9 @@ PyTypeObject PyStreamReader_Type = {
     .tp_basicsize = sizeof(PyStreamReaderObject),
     .tp_dealloc = PyStreamReader_dealloc,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_IMMUTABLETYPE,
-    .tp_doc = ("Stream reader."),
+    .tp_doc =
+        ("Stream reader.\n\n"
+         "Note: This class supports parametrization like StreamReader[T]."),
     .tp_weaklistoffset = offsetof(PyStreamReaderObject, weakrefs),
     .tp_methods = kPyStreamReader_methods,
 };
