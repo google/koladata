@@ -768,7 +768,7 @@ assigned schema: ENTITY(u=INT64)'''
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
-            re.escape('[CANCELLED] interrupted')
+            r'\[CANCELLED\].*interrupted'
         ),
     ):
       expr_eval.eval(

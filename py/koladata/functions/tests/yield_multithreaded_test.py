@@ -312,7 +312,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     with self.assertRaisesWithPredicateMatch(
         ValueError,
         arolla.testing.any_cause_message_regex(
-            re.escape('[CANCELLED] interrupted')
+            r'\[CANCELLED\].*interrupted'
         ),
     ):
       _ = list(
