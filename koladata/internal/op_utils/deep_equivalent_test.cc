@@ -13,6 +13,8 @@
 // limitations under the License.
 //
 #include "koladata/internal/op_utils/deep_equivalent.h"
+#include <limits>
+#include <optional>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -27,8 +29,11 @@
 namespace koladata::internal {
 namespace {
 
+using ::arolla::CreateDenseArray;
 using testing::deep_op_utils::DeepOpTest;
 using testing::deep_op_utils::test_param_values;
+
+constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
 class DeepEquivalentTest : public DeepOpTest {};
 
@@ -45,6 +50,26 @@ TEST_P(DeepEquivalentTest, EmptySlice) {
       auto _, DeepEquivalentOp(result_db.get())(
                   ds, schema, *GetMainDb(db), {GetFallbackDb(db).get()}, ds,
                   schema, *GetMainDb(db), {GetFallbackDb(db).get()}));
+}
+
+TEST_P(DeepEquivalentTest, FloatSlice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto ds =
+      DataSliceImpl::Create(CreateDenseArray<float>({1.0, NaN, std::nullopt}));
+  auto schema = DataItem(schema::kObject);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+
+  auto deep_equivalent_op = DeepEquivalentOp(result_db.get());
+  ASSERT_OK_AND_ASSIGN(
+      auto result_ds,
+      deep_equivalent_op(ds, schema, *GetMainDb(db), {GetFallbackDb(db).get()},
+                         ds, schema, *GetMainDb(db),
+                         {GetFallbackDb(db).get()}));
+  ASSERT_OK_AND_ASSIGN(
+      auto diff_str, deep_equivalent_op.GetDiffPaths(
+                         result_ds, DataItem(schema::kObject), *result_db, {}));
+  EXPECT_THAT(diff_str,
+              ::testing::ElementsAre(::testing::HasSubstr("[root].S[1]")));
 }
 
 TEST_P(DeepEquivalentTest, DeepEntitySlice) {

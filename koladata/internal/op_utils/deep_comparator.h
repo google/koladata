@@ -146,8 +146,11 @@ class DeepComparator {
     DataItem rhs_schema;
 
     bool operator==(const LhsRhsItems& other) const {
-      return lhs == other.lhs && lhs_schema == other.lhs_schema &&
-             rhs == other.rhs && rhs_schema == other.rhs_schema;
+      auto equal_or_nan = [](const DataItem& a, const DataItem& b) {
+        return (a.is_nan() && b.is_nan()) || a == b;
+      };
+      return equal_or_nan(lhs, other.lhs) && lhs_schema == other.lhs_schema &&
+             equal_or_nan(rhs, other.rhs) && rhs_schema == other.rhs_schema;
     }
 
     struct Hash {

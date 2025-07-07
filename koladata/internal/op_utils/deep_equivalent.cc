@@ -101,6 +101,7 @@ class EquivalentComparator : public AbstractComparator {
              TraverseHelper::Transition rhs) override {
     if (!lhs.item.holds_value<ObjectId>() ||
         !rhs.item.holds_value<ObjectId>()) {
+      // If lhs and rhs are NaNs, they are considered not equal.
       return lhs.item == rhs.item;
     }
     if (lhs.item.is_list() != rhs.item.is_list()) {
