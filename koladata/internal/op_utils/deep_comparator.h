@@ -32,6 +32,7 @@
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
+#include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/slice_builder.h"
 #include "arolla/util/status_macros_backport.h"
@@ -170,11 +171,11 @@ class DeepComparator {
     while (!to_compare_.empty()) {
       auto [token, lhs, rhs] = std::move(to_compare_.top());
       to_compare_.pop();
-      if (lhs.schema == schema::kObject) {
+      if (lhs.schema == schema::kObject && lhs.item.holds_value<ObjectId>()) {
         ASSIGN_OR_RETURN(lhs.schema,
                          lhs_traverse_helper_.GetObjectSchema(lhs.item));
       }
-      if (rhs.schema == schema::kObject) {
+      if (rhs.schema == schema::kObject && rhs.item.holds_value<ObjectId>()) {
         ASSIGN_OR_RETURN(rhs.schema,
                          rhs_traverse_helper_.GetObjectSchema(rhs.item));
       }

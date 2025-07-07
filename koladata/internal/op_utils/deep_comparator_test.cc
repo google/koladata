@@ -414,5 +414,46 @@ TEST_P(DeepEqualTest, ObjectVsEntity) {
               ::testing::UnorderedElementsAre(".S[0].b.x", ".S[1].b.x"));
 }
 
+TEST_P(DeepEqualTest, PrimitiveWithObjectSchema) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto b0 = obj_ids[3];
+  auto b1 = obj_ids[4];
+  auto b2 = obj_ids[5];
+  auto ds =
+      DataSliceImpl::Create(arolla::CreateDenseArray<DataItem>({a0, a1, a2}));
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  TriplesT data_triples = {
+      {a0, {{"self", a0}, {"b", DataItem(3)}}},
+      {a1, {{"self", a1}, {"b", b1}}},
+      {a2, {{"self", a2}, {"b", b2}}},
+      {b0, {{schema::kSchemaAttr, schema_b}, {"x", DataItem(0)}}},
+      {b1, {{schema::kSchemaAttr, schema_b}, {"x", DataItem(1)}}},
+      {b2, {{schema::kSchemaAttr, schema_b}, {"x", DataItem(2)}}}};
+  TriplesT schema_triples = {
+      {schema_a, {{"self", schema_a}, {"b", DataItem(schema::kObject)}}},
+      {schema_b, {{"x", DataItem(schema::kInt32)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+  auto itemid = AllocateEmptyObjects(3);
+
+  auto cloned_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(auto cloned_ds, DeepCloneOp(cloned_db.get())(
+                                            ds, schema_a, *GetMainDb(db),
+                                            {GetFallbackDb(db).get()}));
+  ASSERT_OK_AND_ASSIGN(
+      auto result,
+      DeepCompare(ds, schema_a, *GetMainDb(db), {GetFallbackDb(db).get()},
+                  cloned_ds, schema_a, *cloned_db, {}));
+
+  EXPECT_THAT(result, ::testing::IsEmpty());
+}
+
 }  // namespace
 }  // namespace koladata::internal
