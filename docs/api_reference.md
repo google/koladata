@@ -39,7 +39,6 @@ Category  | Subcategory | Description
  | [tuples](#kd.tuples) | Operators to create tuples.
 [kd_ext](#kd_ext_category) | | `kd_ext` operators
  | [contrib](#kd_ext.contrib) | External contributions not necessarily endorsed by Koda.
- | [experimental](#kd_ext.experimental) | Experimental functionality.
  | [nested_data](#kd_ext.nested_data) | Utilities for manipulating nested data.
  | [npkd](#kd_ext.npkd) | Tools for Numpy <-> Koda interoperability.
  | [pdkd](#kd_ext.pdkd) | Tools for Pandas <-> Koda interoperability.
@@ -2535,7 +2534,7 @@ A decorator to customize the tracing behavior for a particular function.
   functor for the outer function being traced.
   The result of 'kde.call' is also assigned a name with a '_result' suffix, so
   that it also becomes an separate variable in the outer function being traced.
-  This is useful for debugging, and also to use kd_ext.call_multithreaded.
+  This is useful for debugging.
 
   This can be used to avoid excessive re-tracing and recompilation of shared
   python functions, to quickly add structure to the functor produced by tracing
@@ -10822,68 +10821,6 @@ Example:
 
 Args:
   x: the non-scalar DataSlice to compute occurrences for.
-```
-
-</section>
-
-### kd_ext.experimental {#kd_ext.experimental}
-
-Experimental functionality.
-
-<section class="zippy closed">
-
-**Operators**
-
-### `kd_ext.experimental.call_multithreaded(fn, /, *args, max_threads=100, **kwargs)` {#kd_ext.experimental.call_multithreaded}
-
-```text {.no-copy}
-Calls a functor with the given arguments.
-
-  Variables of the functor or of its sub-functors will be computed in parallel
-  when they don't depend on each other.
-
-  If this functor calls sub-functors (has kd.call operators in its expressions),
-  every kd.call operator usage must be directly assigned to a variable.
-  This can be achieved, for example, by using @kd.trace_as_fn to create
-  and call the sub-functors, or by explicitly calling .with_name() on the result
-  of kd.call() when tracing.
-
-  Args:
-    fn: The functor to call.
-    *args: The positional arguments to pass to the functor.
-    max_threads: The maximum number of threads to use.
-    **kwargs: The keyword arguments to pass to the functor.
-
-  Returns:
-    The result of the call.
-```
-
-### `kd_ext.experimental.call_multithreaded_with_debug(fn, /, *args, max_threads=100, **kwargs)` {#kd_ext.experimental.call_multithreaded_with_debug}
-
-```text {.no-copy}
-Calls a functor with the given arguments.
-
-  Variables of the functor or of its sub-functors will be computed in parallel
-  when they don't depend on each other.
-
-  If this functor calls sub-functors (has kd.call operators in its expressions),
-  every kd.call operator usage must be directly assigned to a variable.
-  This can be achieved, for example, by using @kd.trace_as_fn to create
-  and call the sub-functors, or by explicitly calling .with_name() on the result
-  of kd.call() when tracing.
-
-  Args:
-    fn: The functor to call.
-    *args: The positional arguments to pass to the functor.
-    max_threads: The maximum number of threads to use.
-    **kwargs: The keyword arguments to pass to the functor.
-
-  Returns:
-    A tuple of the result of the call and the debug object. The debug object
-    will contain `start_time` and `end_time` attributes for the computation
-    (times in the sense of Python time.time() function), and a `children`
-    attribute with a list of children that have the same structure
-    recursively.
 ```
 
 </section>

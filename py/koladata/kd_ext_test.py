@@ -28,7 +28,6 @@ class KdExtTest(absltest.TestCase):
     self.assertIn('nested_data', modules)
     self.assertIn('persisted_data', modules)
     self.assertIn('contrib', modules)
-    self.assertIn('experimental', modules)
 
   def test_functor_factories(self):
     testing.assert_equal(kd_ext.Fn(lambda: 5)(), kd.item(5))
@@ -43,14 +42,6 @@ class KdExtTest(absltest.TestCase):
     testing.assert_equal(
         kd.call(kd.py_fn(kd_ext.py_cloudpickle(pickled_f)), x=1, y=2),
         kd.item(6),
-    )
-
-  def test_call_multithreaded(self):
-    testing.assert_equal(
-        kd_ext.experimental.call_multithreaded(
-            kd.fn(lambda x: x + 1), x=kd.slice([1, 2])
-        ),
-        kd.slice([2, 3]),
     )
 
   def test_vis(self):

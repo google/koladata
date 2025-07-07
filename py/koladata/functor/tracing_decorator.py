@@ -194,7 +194,7 @@ class TraceAsFnDecorator:
   functor for the outer function being traced.
   The result of 'kde.call' is also assigned a name with a '_result' suffix, so
   that it also becomes an separate variable in the outer function being traced.
-  This is useful for debugging, and also to use kd_ext.call_multithreaded.
+  This is useful for debugging.
 
   This can be used to avoid excessive re-tracing and recompilation of shared
   python functions, to quickly add structure to the functor produced by tracing
