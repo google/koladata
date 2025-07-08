@@ -273,6 +273,7 @@ absl::StatusOr<CompiledExpr> Compile(
             // In such cases the always clone thread safety policy is faster.
             .SetAlwaysCloneThreadSafetyPolicy()
             .SetInputLoader(arolla::CreateTypedRefsInputLoader(args))
+            .VerboseRuntimeErrors(true)
             .Compile(expr));
     fn = CompilationCache::Instance().Put(key, std::move(fn));
   }

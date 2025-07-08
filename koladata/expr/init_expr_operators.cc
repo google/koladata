@@ -60,6 +60,10 @@ AROLLA_INITIALIZER(
           RETURN_IF_ERROR(
               arolla::expr::RegisterOperator<NonDeterministicOperator>(
                   "koda_internal.non_deterministic").status());
+          RETURN_IF_ERROR(arolla::expr::RegisterOperator(
+                              "koda_internal.source_location",
+                              arolla::expr::SourceLocationAnnotation::Make())
+                              .status());
           return absl::OkStatus();
         })
 

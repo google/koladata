@@ -190,6 +190,26 @@ Annotation operators.
 
 **Operators**
 
+### `kd.annotation.source_location(expr, function_name, file_name, line, column, line_text)` {#kd.annotation.source_location}
+
+```text {.no-copy}
+Annotation for source location where the expr node was created.
+
+The annotation is considered as "best effort" so any of the
+arguments may be missing.
+
+Args:
+  function_name: name of the function where the expr node was
+    created
+  file_name: name of the file where the expr node was created
+  line: line number where the expr node was created. 0 indicates
+    an unknown line number.
+  column: column number where the expr node was created. 0
+    indicates an unknown line number.
+ line_text: text of the line where the expr node was created
+
+```
+
 ### `kd.annotation.with_name(obj, name)` {#kd.annotation.with_name}
 Aliases:
 

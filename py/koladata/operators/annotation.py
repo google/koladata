@@ -37,3 +37,7 @@ def _with_name_bind_args(expr, /, name):
 arolla.abc.register_adhoc_aux_binding_policy(
     with_name, _with_name_bind_args, make_literal_fn=py_boxing.literal
 )
+
+source_location = optools.add_to_registry(
+    name='kd.annotation.source_location',
+)(arolla.abc.lookup_operator('koda_internal.source_location'))

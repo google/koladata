@@ -209,9 +209,11 @@ PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
   }
 
   // Call the implementation.
-  ASSIGN_OR_RETURN(auto result,
-                   InvokeOpWithCompilationCache(std::move(op), input_qvalues),
-                   SetPyErrFromStatus(_));
+  ASSIGN_OR_RETURN(
+      auto result,
+      InvokeOpWithCompilationCache(std::move(op), input_qvalues,
+                                   {.verbose_runtime_errors = true}),
+      SetPyErrFromStatus(_));
   return WrapAsPyQValue(std::move(result));
 }
 
