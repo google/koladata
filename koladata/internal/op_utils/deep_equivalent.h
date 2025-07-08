@@ -26,11 +26,28 @@
 
 namespace koladata::internal {
 
+// Compares two slices and fills the databag with the result of the comparison.
+//
+// It builds (with the new ObjectIds) a common structure for the lhs and rhs
+// slices. For each difference found, it creates a special object with the diff
+// details.
+//
+// The result is stored in the new_databag_. And additional method is provided
+// to flatten the result to a list of paths.
 class DeepEquivalentOp {
  public:
+  struct DiffItem {
+    std::string path;
+    DataItem item;
+    DataItem schema;
+  };
+
   explicit DeepEquivalentOp(DataBagImpl* new_databag)
       : new_databag_(new_databag) {}
 
+  // With provided lhs and rhs items, fills the new_databag_ with the result of
+  // the comparison.
+  // Returns a DataSliceImpl, that can be traversed with new_databag_.
   absl::StatusOr<DataSliceImpl> operator()(
       const DataSliceImpl& lhs_ds, const DataItem& lhs_schema,
       const DataBagImpl& lhs_databag, DataBagImpl::FallbackSpan lhs_fallbacks,
@@ -38,9 +55,26 @@ class DeepEquivalentOp {
       const DataBagImpl& rhs_databag,
       DataBagImpl::FallbackSpan rhs_fallbacks) const;
 
-  absl::StatusOr<std::vector<std::string>> GetDiffPaths(
+  // With provided lhs and rhs items, fills the new_databag_ with the result of
+  // the comparison.
+  // Returns a DataItem, that can be traversed with new_databag_.
+  absl::StatusOr<DataItem> operator()(
+        const DataItem& lhs_item, const DataItem& lhs_schema,
+        const DataBagImpl& lhs_databag, DataBagImpl::FallbackSpan lhs_fallbacks,
+        const DataItem& rhs_item, const DataItem& rhs_schema,
+        const DataBagImpl& rhs_databag,
+        DataBagImpl::FallbackSpan rhs_fallbacks) const;
+
+  // For the provided slice, returns the paths in the new_databag_ that leads to
+  // the diff items.
+  absl::StatusOr<std::vector<DiffItem>> GetDiffPaths(
       const DataSliceImpl& ds, const DataItem& schema,
-      const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
+      size_t max_count = 5) const;
+
+  // For the provided item, returns the paths in the new_databag_ that leads to
+  // the diff items.
+  absl::StatusOr<std::vector<DiffItem>> GetDiffPaths(
+      const DataItem& item, const DataItem& schema,
       size_t max_count = 5) const;
 
  private:

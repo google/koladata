@@ -54,7 +54,6 @@ class ObjectFinder {
 
   absl::Status TraverseSlice(const DataSliceImpl& ds, const DataItem& schema,
                              ObjectPathCallback callback) {
-    absl::Status status = absl::OkStatus();
     RETURN_IF_ERROR(
         Previsit({.item = schema, .schema = DataItem(schema::kSchema)},
                  TraverseHelper::TransitionKey(
@@ -67,11 +66,22 @@ class ObjectFinder {
               {.type = TraverseHelper::TransitionType::kSliceItem, .index = i}),
           callback));
     }
-    if (!status.ok()) {
-      return status;
-    }
-    RETURN_IF_ERROR(DepthFirstPrevisitItemsAndSchemas(callback));
-    return absl::OkStatus();
+    return DepthFirstPrevisitItemsAndSchemas(callback);
+  }
+
+  absl::Status TraverseSlice(const DataItem& item, const DataItem& schema,
+                             ObjectPathCallback callback) {
+    RETURN_IF_ERROR(
+        Previsit({.item = schema, .schema = DataItem(schema::kSchema)},
+                 TraverseHelper::TransitionKey(
+                     {.type = TraverseHelper::TransitionType::kSchema}),
+                 callback));
+    RETURN_IF_ERROR(
+        Previsit({.item = item, .schema = schema},
+                 TraverseHelper::TransitionKey(
+                     {.type = TraverseHelper::TransitionType::kSliceItem}),
+                 callback));
+    return DepthFirstPrevisitItemsAndSchemas(callback);
   }
 
  private:

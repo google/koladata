@@ -17,14 +17,12 @@
 #include <cstddef>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
 #include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
-#include "absl/strings/str_format.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -138,28 +136,61 @@ absl::StatusOr<DataSliceImpl> DeepEquivalentOp::operator()(
   return compare_op.CompareSlices(lhs_ds, lhs_schema, rhs_ds, rhs_schema);
 }
 
-absl::StatusOr<std::vector<std::string>> DeepEquivalentOp::GetDiffPaths(
-    const DataSliceImpl& ds, const DataItem& schema, const DataBagImpl& databag,
-    DataBagImpl::FallbackSpan fallbacks, size_t max_count) const {
-  auto traverse_helper = TraverseHelper(databag, fallbacks);
-  std::vector<std::tuple<std::string, DataItem, DataItem>> diff_paths;
+absl::StatusOr<DataItem> DeepEquivalentOp::operator()(
+    const DataItem& lhs_item, const DataItem& lhs_schema,
+    const DataBagImpl& lhs_databag, DataBagImpl::FallbackSpan lhs_fallbacks,
+    const DataItem& rhs_item, const DataItem& rhs_schema,
+    const DataBagImpl& rhs_databag,
+    DataBagImpl::FallbackSpan rhs_fallbacks) const {
+  // For DataItems, we adapt the DataSliceImpl interface.
+  ASSIGN_OR_RETURN(auto result,
+                   this->operator()(DataSliceImpl::Create(1, lhs_item),
+                                    lhs_schema, lhs_databag, lhs_fallbacks,
+                                    DataSliceImpl::Create(1, rhs_item),
+                                    rhs_schema, rhs_databag, rhs_fallbacks));
+  return result[0];
+}
+
+absl::StatusOr<std::vector<DeepEquivalentOp::DiffItem>>
+DeepEquivalentOp::GetDiffPaths(const DataSliceImpl& ds, const DataItem& schema,
+                               size_t max_count) const {
+  auto traverse_helper = TraverseHelper(*new_databag_, {});
+  std::vector<DiffItem> diff_paths;
   auto diff_uuid =
       CreateSchemaUuidFromFields(DeepDiff::kDiffWrapperSeed, {}, {});
   auto lambda_visitor = [&](const DataItem& item, const DataItem& schema,
                             absl::FunctionRef<std::string()> path) {
     if (schema == diff_uuid && diff_paths.size() < max_count) {
-      diff_paths.push_back(std::make_tuple(std::string(path()), item, schema));
+      diff_paths.push_back(
+          {.path = std::string(path()), .item = item, .schema = schema});
     }
     return absl::OkStatus();
   };
-  auto diff_finder = ObjectFinder(databag, fallbacks);
+  // We look for the diff items (have diff_uuid schema) in the newly
+  // created databag.
+  auto diff_finder = ObjectFinder(*new_databag_, {});
   RETURN_IF_ERROR(diff_finder.TraverseSlice(ds, schema, lambda_visitor));
-  std::vector<std::string> result;
-  result.reserve(diff_paths.size());
-  for (const auto& [path, item, schema] : diff_paths) {
-    result.push_back(absl::StrFormat("[root]%s: %v  %v\n", path, item, schema));
-  }
-  return result;
+  return diff_paths;
+}
+
+absl::StatusOr<std::vector<DeepEquivalentOp::DiffItem>>
+DeepEquivalentOp::GetDiffPaths(const DataItem& item, const DataItem& schema,
+                               size_t max_count) const {
+  auto traverse_helper = TraverseHelper(*new_databag_, {});
+  std::vector<DiffItem> diff_paths;
+  auto diff_uuid =
+      CreateSchemaUuidFromFields(DeepDiff::kDiffWrapperSeed, {}, {});
+  auto lambda_visitor = [&](const DataItem& item, const DataItem& schema,
+                            absl::FunctionRef<std::string()> path) {
+    if (schema == diff_uuid && diff_paths.size() < max_count) {
+      diff_paths.push_back(
+          {.path = std::string(path()), .item = item, .schema = schema});
+    }
+    return absl::OkStatus();
+  };
+  auto diff_finder = ObjectFinder(*new_databag_, {});
+  RETURN_IF_ERROR(diff_finder.TraverseSlice(item, schema, lambda_visitor));
+  return diff_paths;
 }
 
 }  // namespace koladata::internal

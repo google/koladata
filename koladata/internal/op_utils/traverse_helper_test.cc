@@ -549,6 +549,9 @@ TEST_P(TraverseHelperTest, TransitionKeyToAccessString) {
   EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
                 {.type = TransitionType::kSliceItem, .index = 1}),
             ".S[1]");
+  EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
+                {.type = TransitionType::kSliceItem, .index = -1}),
+            "");
 }
 
 TEST_P(TraverseHelperTest, ForEachObject) {

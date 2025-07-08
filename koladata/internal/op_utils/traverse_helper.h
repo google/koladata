@@ -103,6 +103,9 @@ class TraverseHelper {
     } else if (key.type == TransitionType::kSchema) {
       return ".get_schema()";
     } else if (key.type == TransitionType::kSliceItem) {
+      if (key.index == -1) {
+        return "";
+      }
       return absl::StrFormat(".S[%d]", key.index);
     }
     ABSL_UNREACHABLE();
