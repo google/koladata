@@ -263,7 +263,7 @@ class StreamTest(parameterized.TestCase):
     self.assertEqual(mock_unraisablehook.call_args[0][0].exc_value, ex)
 
   def test_stream_reader_subscribe_once_parallel_execution(self):
-    barrier = threading.Barrier(2)
+    barrier = threading.Barrier(2, timeout=1)
 
     def fn():
       barrier.wait()
@@ -311,7 +311,7 @@ class StreamTest(parameterized.TestCase):
         writer.write(arolla.int32(i))
       writer.close()
 
-    default_executor.schedule(gen_data)
+    threading.Thread(target=gen_data).start()
     self.assertEqual(
         stream.read_all(timeout=timeout_seconds),
         list(range(1024)),
@@ -325,14 +325,14 @@ class StreamTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_stream_read_all_cancellation(self):
-    def cancel():
+    def cancel(cancellation_context):
       time.sleep(0.01)
-      cancellation_context = arolla.abc.current_cancellation_context()
-      self.assertIsNotNone(cancellation_context)
       cancellation_context.cancel('Boom!')
 
     stream, _ = clib.Stream.new(arolla.INT32)
-    default_executor.schedule(cancel)
+    threading.Thread(
+        target=cancel, args=[arolla.abc.current_cancellation_context()]
+    ).start()
     with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED] Boom!'):
       stream.read_all(timeout=1)
 
@@ -371,18 +371,16 @@ class StreamTest(parameterized.TestCase):
 
   def test_stream_read_all_timeout_without_cancellation_context(self):
     stream, _ = clib.Stream.new(arolla.INT32)
-    barrier = threading.Barrier(2)
+    barrier = threading.Barrier(2, timeout=1)
 
-    def _impl():
+    def impl():
       nonlocal stream, barrier
       self.assertIsNone(arolla.abc.current_cancellation_context())
       with self.assertRaisesWithLiteralMatch(TimeoutError, ''):
         stream.read_all(timeout=0.001)
       barrier.wait()
 
-    default_executor.schedule(
-        lambda: arolla.abc.run_in_cancellation_context(None, _impl)
-    )
+    threading.Thread(target=impl).start()
     barrier.wait()
 
   @parameterized.parameters(None, 10.0)
@@ -398,7 +396,7 @@ class StreamTest(parameterized.TestCase):
         writer.write(arolla.int32(i))
       writer.close()
 
-    default_executor.schedule(gen_data)
+    threading.Thread(target=gen_data).start()
     for i in range(n):
       self.assertEqual(next(it), i)
     with self.assertRaises(StopIteration):
@@ -412,14 +410,15 @@ class StreamTest(parameterized.TestCase):
 
   @arolla.abc.add_default_cancellation_context
   def test_stream_yield_all_cancellation(self):
-    def cancel():
+    def cancel(cancellation_context):
       time.sleep(0.01)
-      cancellation_context = arolla.abc.current_cancellation_context()
-      self.assertIsNotNone(cancellation_context)
       cancellation_context.cancel('Boom!')
 
     stream, _ = clib.Stream.new(arolla.INT32)
-    default_executor.schedule(cancel)
+    threading.Thread(
+        target=cancel,
+        args=[arolla.abc.current_cancellation_context()],
+    ).start()
     with self.assertRaisesWithLiteralMatch(ValueError, '[CANCELLED] Boom!'):
       list(stream.yield_all(timeout=1))
 
@@ -459,18 +458,16 @@ class StreamTest(parameterized.TestCase):
 
   def test_stream_yield_all_timeout_without_cancellation_context(self):
     stream, _ = clib.Stream.new(arolla.INT32)
-    barrier = threading.Barrier(2)
+    barrier = threading.Barrier(2, timeout=1)
 
-    def _impl():
+    def impl():
       nonlocal stream, barrier
       self.assertIsNone(arolla.abc.current_cancellation_context())
       with self.assertRaisesWithLiteralMatch(TimeoutError, ''):
         list(stream.yield_all(timeout=0.001))
       barrier.wait()
 
-    default_executor.schedule(
-        lambda: arolla.abc.run_in_cancellation_context(None, _impl)
-    )
+    threading.Thread(target=impl).start()
     barrier.wait()
 
   def test_stream_type_parameterisation(self):
