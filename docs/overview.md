@@ -3,8 +3,9 @@
 # Koda Overview
 
 This guide gives a quick 60-minute overview of **Koda**, geared mainly for new
-users. You can see more detailed introduction in the
-[Koda Fundamentals](fundamentals.md) guide.
+users. See the [10 Minute Introduction](10_min_intro.md) for a short
+introduction walking through an example, and the
+[Koda Fundamentals](fundamentals.md) guide for a more detailed introduction.
 
 Also see [Koda Cheatsheet](cheatsheet.md) for quick references.
 
