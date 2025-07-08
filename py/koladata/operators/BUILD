@@ -19,6 +19,7 @@ load(
     "arolla_cc_operator_package",
     "arolla_operator_package_snapshot",
 )
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
@@ -950,5 +951,16 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+cc_test(
+    name = "operator_package_test",
+    srcs = ["operator_package_test.cc"],
+    deps = [
+        ":base_cc_operators",
+        "@com_google_arolla//arolla/expr",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
     ],
 )

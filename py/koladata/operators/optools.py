@@ -47,6 +47,15 @@ def _clear_registered_ops():
 arolla.abc.cache_clear_callbacks.add(_clear_registered_ops)
 
 
+def add_alias(name: str, alias: str):
+  registered_op = _REGISTERED_OPS.get(name)
+  if registered_op is None:
+    raise ValueError(f'Operator {name} is not registered.')
+  add_to_registry(
+      alias, view=registered_op.view, repr_fn=registered_op.repr_fn
+  )(registered_op.op)
+
+
 def add_to_registry(
     name: str | None = None,
     *,
@@ -84,13 +93,14 @@ def add_to_registry(
       )
       return registered_op
 
+    op = _register_op(op, name)
+
     op_name = name or op.display_name
     _REGISTERED_OPS[op_name] = _RegisteredOp(op, view, repr_fn)
 
     for alias in aliases:
-      _register_op(op, alias)
-      _REGISTERED_OPS[alias] = _RegisteredOp(op, view, repr_fn)
-    return _register_op(op, name)
+      add_alias(op_name, alias)
+    return op
 
   return impl
 
@@ -245,15 +255,6 @@ def add_to_registry_as_overload(
     return op
 
   return impl
-
-
-def add_alias(name: str, alias: str):
-  registered_op = _REGISTERED_OPS.get(name)
-  if registered_op is None:
-    raise ValueError(f'Operator {name} is not registered.')
-  add_to_registry(
-      alias, view=registered_op.view, repr_fn=registered_op.repr_fn
-  )(registered_op.op)
 
 
 def _build_operator_signature_from_fn(
