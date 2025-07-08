@@ -125,7 +125,7 @@ koladata_py_extension(
     deps = [
         ":error_converters",
         ":py_functors_cc_lib",
-        "//koladata/functor:call",
+        "//koladata:data_slice",
         "@com_google_arolla//py/arolla/py_utils",
         "@rules_python//python/cc:current_py_cc_headers",  # buildcleaner: keep
     ],

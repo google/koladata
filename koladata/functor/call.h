@@ -26,9 +26,6 @@
 
 namespace koladata::functor {
 
-inline constexpr absl::string_view kStackFrameAttrName =
-    "__stack_trace_frame__";
-
 // Calls the given functor with the provided arguments and keyword arguments.
 // The functor would typically be created by the CreateFunctor method,
 // and consists of a returns expression, a signature, and a set of variables.

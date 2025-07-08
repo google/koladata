@@ -16,7 +16,7 @@
 
 #include <string>
 
-#include "koladata/functor/call.h"
+#include "koladata/functor_storage.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/functor/py_functors.h"
 
