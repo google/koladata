@@ -58,11 +58,6 @@ class KodaNamedSchemaTest(parameterized.TestCase):
         lhs.fingerprint, rhs.with_bag(lhs.get_bag()).fingerprint
     )
 
-  def test_name_works_as_kwarg(self):
-    lhs = expr_eval.eval(kde.schema.named_schema(I.x), x='name')
-    rhs = expr_eval.eval(kde.schema.named_schema(name=I.x), x='name')
-    testing.assert_equal(lhs, rhs.with_bag(lhs.get_bag()))
-
   @parameterized.parameters(
       (
           ds(['name1', 'name2']),
@@ -89,6 +84,19 @@ class KodaNamedSchemaTest(parameterized.TestCase):
         schema.a, schema_constants.FLOAT32.with_bag(schema.get_bag())
     )
     testing.assert_equal(schema, schema2.with_bag(schema.get_bag()))
+
+  def test_name_works_as_attribute_name(self):
+    schema = expr_eval.eval(
+        kde.schema.named_schema('Person', name=schema_constants.STRING)
+    )
+    schema2 = expr_eval.eval(kde.schema.named_schema('Person'))
+    testing.assert_equal(
+        schema.name, schema_constants.STRING.with_bag(schema.get_bag())
+    )
+    testing.assert_equal(schema, schema2.with_bag(schema.get_bag()))
+    testing.assert_equal(
+        schema.get_attr('__schema_name__').no_bag(), ds('Person')
+    )
 
   def test_nested_attrs(self):
     schema = kde.schema.named_schema('name', a=schema_constants.FLOAT32)

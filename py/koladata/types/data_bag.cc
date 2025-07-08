@@ -660,7 +660,7 @@ PyObject* absl_nullable PyDataBag_named_schema_factory(PyObject* self,
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/0, /*parse_kwargs=*/true, "name");
+      /*pos_only_n=*/1, /*parse_kwargs=*/true);
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -671,7 +671,9 @@ PyObject* absl_nullable PyDataBag_named_schema_factory(PyObject* self,
                    UnwrapDataSlices(args.kw_values),
                    arolla::python::SetPyErrFromStatus(_));
   absl::string_view name("");
-  if (!ParseStringOrDataItemArg(args, /*arg_pos=*/0, "name", name)) {
+  if (!ParseStringOrDataItemArg(args.pos_only_args[0],
+                                "0`, i.e. the positional-only `schema name",
+                                name)) {
     return nullptr;
   }
   ASSIGN_OR_RETURN(res, CreateNamedSchema(db, name, args.kw_names, values),
@@ -1757,7 +1759,7 @@ Returns:
      "Creates new uuschema from given types of attrs."},
     {"named_schema", (PyCFunction)PyDataBag_named_schema_factory,
      METH_FASTCALL | METH_KEYWORDS,
-     "named_schema(name, **attrs)\n"
+     "named_schema(name, /, **attrs)\n"
      "--\n\n"
      "Creates a named schema with ItemId derived only from its name."},
     {"_dict_shaped", (PyCFunction)PyDataBag_dict_shaped, METH_FASTCALL,

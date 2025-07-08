@@ -187,6 +187,13 @@ bool ParseStringOrDataItemArg(const FastcallArgParser::Args& args,
                               absl::string_view arg_name_for_error,
                               absl::string_view& arg);
 
+// Same as above, but takes the PyObject* argument value directly instead of
+// looking it up in `args` with `arg_pos`. As a result, it supports parsing
+// positional-only arguments.
+bool ParseStringOrDataItemArg(PyObject* arg_py,
+                              absl::string_view arg_name_for_error,
+                              absl::string_view& arg);
+
 // Populates `arg` DataSlice output argument if `args` contain a valid argument
 // named `arg_name`. Returns true on success, false on error, in which case it
 // also sets Python Exception.

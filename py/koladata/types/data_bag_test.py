@@ -543,7 +543,7 @@ Showing only the first 4 triples. Use 'triple_limit' parameter of 'db\.contents_
       _ = v.seed
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'seed must be a utf8 string, got bytes'
+        TypeError, 'argument `seed` must be a utf8 string, got bytes'
     ):
       _ = db.uu(
           a=ds([3.14], schema_constants.FLOAT64),
@@ -640,7 +640,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
       _ = v.seed
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'seed must be a utf8 string, got bytes'
+        TypeError, 'argument `seed` must be a utf8 string, got bytes'
     ):
       _ = db.uuobj(
           a=ds([3.14], schema_constants.FLOAT64),
@@ -685,7 +685,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
       _ = v.seed
 
     with self.assertRaisesWithLiteralMatch(
-        TypeError, 'seed must be a utf8 string, got bytes'
+        TypeError, 'argument `seed` must be a utf8 string, got bytes'
     ):
       _ = db.uu_schema(
           a=schema_constants.INT32,
@@ -708,19 +708,20 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
     z = db.named_schema('name')
     testing.assert_equal(x, z)
 
-    t = db.named_schema(name='name')
-    testing.assert_equal(x, t)
-
     u = db.named_schema(ds('name'))
     testing.assert_equal(x, u)
 
     with self.assertRaisesRegex(
-        TypeError, 'name must be a utf8 string, got bytes'
+        TypeError,
+        'argument `0`, i.e. the positional-only `schema name` must be a utf8'
+        ' string, got bytes',
     ):
       _ = db.named_schema(b'name')
 
     with self.assertRaisesRegex(
-        ValueError, 'argument `name` must be an item holding STRING'
+        ValueError,
+        'argument `0`, i.e. the positional-only `schema name` must be an item'
+        ' holding STRING, got an item of BYTES',
     ):
       _ = db.named_schema(ds(b'name'))
 
@@ -731,6 +732,30 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
     schema2 = db2.named_schema('name')
     testing.assert_equal(schema.a, schema_constants.FLOAT32.with_bag(db))
     testing.assert_equal(schema, schema2.with_bag(db))
+
+  def test_named_schema_when_name_is_an_attribute_name(self):
+    db = bag()
+    schema = db.named_schema('name', name=schema_constants.STRING)
+    testing.assert_equal(schema.name, schema_constants.STRING.with_bag(db))
+    testing.assert_equal(
+        schema.get_attr('__schema_name__').no_bag(), ds('name')
+    )
+
+  def test_named_schema_first_arg_is_positional_only(self):
+    db = bag()
+    with self.assertRaisesRegex(
+        TypeError,
+        'accepts 1 positional-only argument but 0 were given',
+    ):
+      _ = db.named_schema(name='SomeName')
+
+  def test_named_schema_no_args_whatsoever_does_not_crash(self):
+    db = bag()
+    with self.assertRaisesRegex(
+        TypeError,
+        'accepts 1 positional-only argument but 0 were given',
+    ):
+      _ = db.named_schema()
 
   def test_named_schema_nested_attrs(self):
     db = bag()
@@ -754,9 +779,9 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'must have the same or less number of dimensions as foo, got ' +
-            'foo.get_ndim(): 0 < values.get_ndim(): 1'
-        )
+            'must have the same or less number of dimensions as foo, got '
+            + 'foo.get_ndim(): 0 < values.get_ndim(): 1'
+        ),
     ):
       db.named_schema('name', a=ds([schema_constants.INT32]))
 
@@ -818,7 +843,7 @@ Assigned schema for 'a': ENTITY(b=STRING)"""),
     db = bag()
     with self.assertRaisesRegex(
         ValueError,
-        'schema\'s schema must be SCHEMA, got: OBJECT',
+        "schema's schema must be SCHEMA, got: OBJECT",
     ):
       db2 = bag()
       _ = db.new_schema(
@@ -1437,7 +1462,8 @@ Assigned schema for keys: INT32""",
 
     db = bag()
     with self.assertRaisesRegex(
-        ValueError, 'DataBag._implode accepts exactly 3 arguments, got 4'):
+        ValueError, 'DataBag._implode accepts exactly 3 arguments, got 4'
+    ):
       db._implode(ds([]), 1, 2, 3)
     with self.assertRaisesRegex(
         TypeError, 'expecting x to be a DataSlice, got int'
@@ -1934,7 +1960,8 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
       x2.set_attr('a', 2)
 
     with self.assertRaisesRegex(
-        TypeError, re.escape("got an unexpected keyword 'foo'")):
+        TypeError, re.escape("got an unexpected keyword 'foo'")
+    ):
       _ = db1.fork(foo=True)
 
   def test_freeze(self):
@@ -2035,8 +2062,7 @@ The cause is the values of attribute 'x' are different: List\[1, 2\] with ItemId
       _ = db._schema_from_proto(test_pb2.MessageA(), ())
 
     with self.assertRaisesRegex(
-        ValueError,
-        'expected extension to be str, got bytes'
+        ValueError, 'expected extension to be str, got bytes'
     ):
       db = bag()
       _ = db._schema_from_proto(test_pb2.MessageA(), [b'x.y.z'])

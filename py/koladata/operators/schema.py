@@ -92,7 +92,7 @@ def uu_schema(seed='', **kwargs):  # pylint: disable=unused-argument
         qtype_utils.expect_data_slice_kwargs(P.kwargs),
     ],
 )
-def named_schema(name, **kwargs):
+def named_schema(name, /, **kwargs):  # pylint: disable=unused-argument
   """Creates a named entity schema.
 
   A named schema will have its item id derived only from its name, which means

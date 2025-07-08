@@ -44,7 +44,13 @@ bool ParseStringOrDataItemArg(const FastcallArgParser::Args& args,
     // caller.
     return true;
   }
-  auto arg_py = args.pos_kw_values[arg_pos];
+  return ParseStringOrDataItemArg(args.pos_kw_values[arg_pos],
+                                  arg_name_for_error, arg);
+}
+
+bool ParseStringOrDataItemArg(PyObject* arg_py,
+                              absl::string_view arg_name_for_error,
+                              absl::string_view& arg) {
   if (arolla::python::IsPyQValueInstance(arg_py)) {
     const auto& typed_value = arolla::python::UnsafeUnwrapPyQValue(arg_py);
     if (typed_value.GetType() == arolla::GetQType<DataSlice>()) {
@@ -58,9 +64,9 @@ bool ParseStringOrDataItemArg(const FastcallArgParser::Args& args,
   Py_ssize_t unicode_size;
   auto unicode_ptr = PyUnicode_AsUTF8AndSize(arg_py, &unicode_size);
   if (unicode_ptr == nullptr) {
-    PyErr_Format(
-        PyExc_TypeError, "%s must be a utf8 string, got %s",
-        std::string(arg_name_for_error).c_str(), Py_TYPE(arg_py)->tp_name);
+    PyErr_Format(PyExc_TypeError, "argument `%s` must be a utf8 string, got %s",
+                 std::string(arg_name_for_error).c_str(),
+                 Py_TYPE(arg_py)->tp_name);
     return false;
   }
   // unicode_ptr is valid as long as arg_py is not garbage collected.
@@ -143,8 +149,8 @@ bool InvalidPosArgCountError(Py_ssize_t nargs, size_t pos_only_n,
     }
   } else {
     PyErr_Format(PyExc_TypeError,
-                 "accepts 0 positional arguments but %d %s given",
-                 nargs, nargs == 1 ? "was" : "were");
+                 "accepts 0 positional arguments but %d %s given", nargs,
+                 nargs == 1 ? "was" : "were");
   }
   return false;
 }
@@ -194,8 +200,8 @@ bool FastcallArgParser::Parse(PyObject* const* py_args, Py_ssize_t nargs,
     if (auto arg_pos_it = pos_kw_to_pos_.find(arg_name);
         arg_pos_it != pos_kw_to_pos_.end()) {
       if (args.pos_kw_values[arg_pos_it->second] != nullptr) {
-        PyErr_Format(PyExc_TypeError,
-                     "got multiple values for argument %R", py_key);
+        PyErr_Format(PyExc_TypeError, "got multiple values for argument %R",
+                     py_key);
         return false;
       }
       args.pos_kw_values[arg_pos_it->second] = py_args[nargs + i];
@@ -203,8 +209,8 @@ bool FastcallArgParser::Parse(PyObject* const* py_args, Py_ssize_t nargs,
     }
     // Keyword-only argument.
     if (kw_only_arg_names_.contains(arg_name)) {
-      auto [it, inserted] = args.kw_only_args.emplace(arg_name,
-                                                      py_args[nargs + i]);
+      auto [it, inserted] =
+          args.kw_only_args.emplace(arg_name, py_args[nargs + i]);
       // NOTE: In Python 3.11 does not support duplicate kwargs.
       DCHECK(inserted);
       continue;

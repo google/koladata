@@ -5803,7 +5803,7 @@ Aliases:
 Returns a List schema with the provided `item_schema`.
 ```
 
-### `kd.schema.named_schema(name, **kwargs)` {#kd.schema.named_schema}
+### `kd.schema.named_schema(name, /, **kwargs)` {#kd.schema.named_schema}
 Aliases:
 
 - [kd.named_schema](#kd.named_schema)
@@ -10180,7 +10180,7 @@ Container that automatically names Exprs.
     fn(x=5)  # Returns 6
 ```
 
-### `kd.named_schema(name, **kwargs)` {#kd.named_schema}
+### `kd.named_schema(name, /, **kwargs)` {#kd.named_schema}
 
 Alias for [kd.schema.named_schema](#kd.schema.named_schema) operator.
 
@@ -13009,7 +13009,7 @@ Copies all data from `other_bags` to this DataBag.
     self, so that multiple DataBag modifications can be chained.
 ```
 
-### `DataBag.named_schema(name, **attrs)` {#DataBag.named_schema}
+### `DataBag.named_schema(name, /, **attrs)` {#DataBag.named_schema}
 
 ```text {.no-copy}
 Creates a named schema with ItemId derived only from its name.
