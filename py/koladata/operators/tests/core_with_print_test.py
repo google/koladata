@@ -25,6 +25,7 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.operators import kde_operators
+from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
@@ -147,10 +148,7 @@ class CoreWithPrintTest(parameterized.TestCase):
     testing.assert_equal(eval_result, ds([2, 4, 6]))
 
   def test_no_literal_folding(self):
-    expr = (
-        kde.core.with_print(ds([1, 2, 3]), 'some message to log')
-        + 1
-    )
+    expr = kde.core.with_print(ds([1, 2, 3]), 'some message to log') + 1
     with contextlib.redirect_stdout(io.StringIO()) as printed:
       eval_result = expr_eval.eval(expr)
       expr_eval.eval(expr)
@@ -173,9 +171,10 @@ class CoreWithPrintTest(parameterized.TestCase):
       )
 
   def test_view(self):
-    self.assertTrue(
-        view.has_koda_view(kde.core.with_print(I.x, I.y))
-    )
+    self.assertTrue(view.has_koda_view(kde.core.with_print(I.x, I.y)))
+
+  def test_alias(self):
+    self.assertTrue(optools.equiv_to_op(kde.core.with_print, kde.with_print))
 
 
 if __name__ == '__main__':

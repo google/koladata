@@ -1197,6 +1197,9 @@ Args:
   **attrs: attrs to set in the update.</code></pre>
 
 ### `kd.core.with_print(x, *args, sep=' ', end='\n')` {#kd.core.with_print}
+Aliases:
+
+- [kd.with_print](#kd.with_print)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Prints *args to stdout and returns `x`.
 
@@ -9925,6 +9928,10 @@ Alias for [kd.core.with_metadata](#kd.core.with_metadata) operator.
 ### `kd.with_name(obj, name)` {#kd.with_name}
 
 Alias for [kd.annotation.with_name](#kd.annotation.with_name) operator.
+
+### `kd.with_print(x, *args, sep=' ', end='\n')` {#kd.with_print}
+
+Alias for [kd.core.with_print](#kd.core.with_print) operator.
 
 ### `kd.with_schema(x, schema)` {#kd.with_schema}
 

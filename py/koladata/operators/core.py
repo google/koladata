@@ -1215,7 +1215,7 @@ def with_metadata(x, /, **attrs):  # pylint: disable=unused-argument
   return updated(x, arolla.abc.bind_op(metadata, x=P.x, attrs=P.attrs))
 
 
-@optools.add_to_registry()
+@optools.add_to_registry(aliases=['kd.with_print'])
 @optools.as_backend_operator(
     'kd.core.with_print',
     qtype_constraints=[
