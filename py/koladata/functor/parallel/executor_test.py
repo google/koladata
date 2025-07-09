@@ -15,6 +15,7 @@
 import sys
 import threading
 from unittest import mock
+import weakref
 
 from absl.testing import absltest
 from arolla import arolla
@@ -29,17 +30,29 @@ class ExecutorTest(absltest.TestCase):
     )
     self.assertIsInstance(executor, clib.Executor)
     self.assertTrue(issubclass(clib.Executor, arolla.abc.QValue))
-    barrier = threading.Barrier(2)
+    barrier = threading.Barrier(2, timeout=1)
     fn_done = False
 
     def fn():
-      nonlocal fn_done
+      nonlocal fn_done, barrier
       fn_done = True
       barrier.wait()
 
     executor.schedule(fn)
     barrier.wait()
     self.assertEqual(fn_done, True)
+
+    # Note: When this method finishes, the executor might still need to use
+    # Python C API for cleanup related to the task `fn`. Furthermore, this
+    # cleanup might not be completed before all remaining tests finish and
+    # the process begins termination, which could cause an error when accessing
+    # Python C API. To prevent this, we subscribe to the `fn` object's
+    # destruction. When the executor no longer holds any references to `fn`, it
+    # is good evidence that the executor has fully finished with it.
+    cleanup = threading.Event()
+    weakref.ref(fn, lambda _: cleanup.set())
+    del fn
+    cleanup.wait(timeout=1)
 
   def test_error_non_callable(self):
     executor = arolla.abc.invoke_op(
