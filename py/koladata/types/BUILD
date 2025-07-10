@@ -156,6 +156,7 @@ py_test(
         "//py/koladata/functions",
         "//py/koladata/functions/tests:test_py_pb2",
         "//py/koladata/functor:boxing",
+        "//py/koladata/functor:functions",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/testing",

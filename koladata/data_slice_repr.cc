@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/base/nullability.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/log/check.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
@@ -42,6 +43,9 @@
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/functor_storage.h"
+#include "koladata/signature.h"
+#include "koladata/signature_storage.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -586,11 +590,9 @@ absl::StatusOr<std::string> DictToStr(const DataItem& item,
 
 // Returns the string representation of schema items or objects.
 absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
-    const DataItem& item,
-    const DataItem& schema,
-    const DataBagPtr& db,
-    const ReprOption& option,
-    WrappingBehavior& wrapping) {
+    const DataItem& item, const DataItem& schema, const DataBagPtr& db,
+    const ReprOption& option, WrappingBehavior& wrapping,
+    absl::flat_hash_set<std::string> ignore_attrs = {}) {
   if (!schema.has_value()) {
     return std::vector<std::string>();
   }
@@ -600,6 +602,9 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
   parts.reserve(attr_names.size());
   size_t item_count = 0;
   for (const std::string& attr_name : attr_names) {
+    if (ignore_attrs.contains(attr_name)) {
+      continue;
+    }
     // Keeps all attributes from schema.
     if (!ds.item().is_schema() && item_count >= option.item_limit) {
       parts.emplace_back(wrapping.ItemLimitEllipsis());
@@ -615,6 +620,72 @@ absl::StatusOr<std::vector<std::string>> AttrsToStrParts(
   }
 
   return parts;
+}
+
+absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
+                                          const DataItem& schema,
+                                          const absl_nullable DataBagPtr& db,
+                                          const ReprOption& option,
+                                          WrappingBehavior& wrapping);
+
+// Returns the string representation of a functor signature.
+absl::StatusOr<std::string> FunctorSignatureToStr(
+    const koladata::functor::Signature& signature, const ReprOption& option,
+    WrappingBehavior& wrapping) {
+  std::string result;
+  for (size_t i = 0; i < signature.parameters().size(); ++i) {
+    if (i > 0) {
+      absl::StrAppend(&result, ", ");
+    }
+    const auto& parameter = signature.parameters()[i];
+    if (parameter.kind == functor::Signature::Parameter::Kind::kVarKeyword) {
+      absl::StrAppend(&result, "**", parameter.name);
+    } else if (parameter.kind ==
+               functor::Signature::Parameter::Kind::kVarPositional) {
+      absl::StrAppend(&result, "*", parameter.name);
+    } else {
+      absl::StrAppend(&result, parameter.name);
+      if (!parameter.default_value.has_value()) {
+        continue;
+      }
+      auto default_value = parameter.default_value.value();
+      // Default values are always DataItems.
+      DCHECK(default_value.is_item());
+      // We don't want to show the `DataItem()` wrapper to make the repr more
+      // concise so we call DataItemToStr directly.
+      ASSIGN_OR_RETURN(
+          std::string default_value_repr,
+          DataItemToStr(default_value.item(), default_value.GetSchemaImpl(),
+                        default_value.GetBag(), option, wrapping));
+      absl::StrAppend(&result, "=", default_value_repr);
+    }
+  }
+  return result;
+}
+
+absl::StatusOr<std::string> FunctorToStr(const DataSlice& functor,
+                                         const ReprOption& option,
+                                         WrappingBehavior& wrapping) {
+  ASSIGN_OR_RETURN(DataSlice signature,
+                   functor.GetAttr(functor::kSignatureAttrName));
+  ASSIGN_OR_RETURN(functor::Signature cpp_signature,
+                   functor::KodaSignatureToCppSignature(signature));
+  size_t initial_html_char_count = wrapping.html_char_count;
+  ASSIGN_OR_RETURN(
+      std::vector<std::string> attr_parts,
+      AttrsToStrParts(functor.item(), functor.GetSchemaImpl(), functor.GetBag(),
+                      option, wrapping,
+                      /*ignore_attrs=*/
+                      {std::string(functor::kSignatureAttrName),
+                       std::string(functor::kStackFrameAttrName)}));
+  ASSIGN_OR_RETURN(std::string signature_str,
+                   FunctorSignatureToStr(cpp_signature, option, wrapping));
+  return PrettyFormatStr(
+      attr_parts,
+      {.prefix =
+           absl::StrCat("Functor[", signature_str, "]("),
+       .suffix = ")"},
+      wrapping.html_char_count - initial_html_char_count);
 }
 
 // Returns the schema name from __schema_name__ attribute. The schema must hold
@@ -765,6 +836,16 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
     }
     if (obj.IsDict()) {
       return DictToStr(data_item, schema, db, next_option, wrapping);
+    }
+
+    if (schema.is_schema()) {
+      ASSIGN_OR_RETURN(
+          auto data_slice,
+          DataSlice::Create(data_item, schema, db));
+      ASSIGN_OR_RETURN(bool is_functor, functor::IsFunctor(data_slice));
+      if (is_functor) {
+        return FunctorToStr(data_slice, next_option, wrapping);
+      }
     }
 
     absl::string_view prefix = (schema == schema::kObject) ? "Obj(" : "Entity(";

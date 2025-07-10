@@ -23,9 +23,13 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "absl/status/status_matchers.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
+#include "arolla/expr/expr.h"
+#include "arolla/expr/expr_node.h"
+#include "arolla/expr/quote.h"
 #include "arolla/jagged_shape/dense_array/jagged_shape.h"
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/typed_value.h"
@@ -34,13 +38,17 @@
 #include "arolla/util/unit.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/functor/functor.h"
+#include "koladata/functor/signature_utils.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/object_factories.h"
+#include "koladata/signature.h"
 #include "koladata/test_utils.h"
+#include "arolla/util/status_macros_backport.h"
 
 namespace koladata {
 namespace {
@@ -49,6 +57,9 @@ using ::absl_testing::IsOkAndHolds;
 using ::arolla::CreateDenseArray;
 using ::arolla::JaggedDenseArrayShape;
 using ::arolla::OptionalValue;
+using ::koladata::functor::CppSignatureToKodaSignature;
+using ::koladata::functor::CreateFunctor;
+using ::koladata::functor::Signature;
 using ::koladata::internal::ObjectId;
 using ::testing::Eq;
 using ::testing::HasSubstr;
@@ -630,6 +641,48 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaName) {
   EXPECT_THAT(DataItemToStr(schema.item(), /*schema=*/internal::DataItem(),
                             schema.GetBag()),
               IsOkAndHolds("foo(a=INT64, b=STRING)"));
+}
+
+TEST(DataSliceReprTest, TestDataItemStringRepresentation_Functor) {
+  auto create_input = [](absl::string_view name) {
+    return arolla::expr::CallOp("koda_internal.input",
+                                {arolla::expr::Literal(arolla::Text("I")),
+                                 arolla::expr::Literal(arolla::Text(name))});
+  };
+
+  auto create_variable = [](absl::string_view name) {
+    return arolla::expr::CallOp("koda_internal.input",
+                                {arolla::expr::Literal(arolla::Text("V")),
+                                 arolla::expr::Literal(arolla::Text(name))});
+  };
+
+  auto wrap_expr = [](absl::StatusOr<arolla::expr::ExprNodePtr> expr_or_error)
+      -> absl::StatusOr<DataSlice> {
+    ASSIGN_OR_RETURN(auto expr, expr_or_error);
+    return test::DataItem(arolla::expr::ExprQuote(std::move(expr)));
+  };
+
+  Signature::Parameter p1 = {
+      .name = "a",
+      .kind = Signature::Parameter::Kind::kPositionalOrKeyword,
+  };
+  ASSERT_OK_AND_ASSIGN(auto signature, Signature::Create({p1}));
+  ASSERT_OK_AND_ASSIGN(auto koda_signature,
+                       CppSignatureToKodaSignature(signature));
+  ASSERT_OK_AND_ASSIGN(
+      auto returns_expr,
+      wrap_expr(arolla::expr::CallOp(
+          "math.multiply", {create_input("a"), create_variable("a")})));
+  ASSERT_OK_AND_ASSIGN(auto var_a_expr, wrap_expr(create_input("b")));
+  auto slice_57 = test::DataItem(57);
+  ASSERT_OK_AND_ASSIGN(auto my_obj, ObjectCreator::FromAttrs(
+                                        DataBag::Empty(), {"a"}, {slice_57}));
+  ASSERT_OK_AND_ASSIGN(
+      auto fn, CreateFunctor(returns_expr, koda_signature, {"a", "my_obj"},
+                             {var_a_expr, my_obj}));
+  EXPECT_THAT(
+      DataSliceToStr(fn),
+      IsOkAndHolds("Functor[a](a=I.b, my_obj=Obj(a=57), returns=I.a * V.a)"));
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaMetadata) {
