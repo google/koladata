@@ -35,6 +35,7 @@
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
+#include "arolla/expr/annotation_utils.h"
 #include "arolla/expr/expr.h"
 #include "arolla/expr/expr_debug_string.h"
 #include "arolla/expr/expr_node.h"
@@ -435,6 +436,15 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyDefaultReplacement(
                          variable_container, executor);
 }
 
+absl::StatusOr<bool> IsAnnotationChainOnAVariable(
+    const arolla::expr::ExprNodePtr& node,
+    const expr::InputContainer& variable_container) {
+  ASSIGN_OR_RETURN(auto inner_node,
+                   arolla::expr::StripTopmostAnnotations(node));
+  ASSIGN_OR_RETURN(auto var_name, variable_container.GetInputName(inner_node));
+  return var_name.has_value();
+}
+
 }  // namespace
 
 // The transformation is done in 2 steps:
@@ -516,9 +526,26 @@ absl::StatusOr<DataSlice> TransformToParallel(
     } else if (expr::IsLiteral(var_expr)) {
       ASSIGN_OR_RETURN(var_expr, ApplyLiteralReplacement(std::move(var_expr)));
     } else {
-      ASSIGN_OR_RETURN(var_expr, ApplyDefaultReplacement(std::move(var_expr),
-                                                         variable_container,
-                                                         context->executor()));
+      ASSIGN_OR_RETURN(
+          bool is_annotation_chain_on_a_variable,
+          IsAnnotationChainOnAVariable(var_expr, variable_container));
+      if (is_annotation_chain_on_a_variable) {
+        // Do nothing, keep var_expr as is. The default replacement might fail
+        // if the variable being annotated is a stream. This relies on the
+        // following assumptions:
+        // - The first argument of each annotation operator is always returned
+        //   as-is, therefore we can do it for streams or other parallel types
+        //   without issue.
+        // - Other arguments of annotation operators can be kept as-is without
+        //   parallel transformation (but note that we only guarantee that they
+        //   will be kept as is for those that are scalar literals; for more
+        //   complex arguments they might be transformed into the parallel form
+        //   if they also appear elsewhere in the expression).
+      } else {
+        ASSIGN_OR_RETURN(var_expr, ApplyDefaultReplacement(
+                                       std::move(var_expr), variable_container,
+                                       context->executor()));
+      }
     }
     var = DataSlice::CreateFromScalar(
         arolla::expr::ExprQuote(std::move(var_expr)));

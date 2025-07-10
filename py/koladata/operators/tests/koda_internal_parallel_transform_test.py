@@ -19,12 +19,16 @@ from arolla import arolla
 from koladata import kd as user_facing_kd
 from koladata.expr import expr_eval
 from koladata.expr import input_container
+from koladata.expr import introspection
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
 from koladata.functor.parallel import clib as _
 from koladata.operators import bootstrap
+from koladata.operators import iterables
+from koladata.operators import koda_internal_iterables
 from koladata.operators import koda_internal_parallel
+from koladata.operators import math
 from koladata.operators import optools
 from koladata.operators import slices as slice_ops
 from koladata.operators import tuple as tuple_ops
@@ -32,6 +36,7 @@ from koladata.operators.tests.util import qtypes
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import iterable_qvalue
 from koladata.types import signature_utils
 
 from koladata.functor.parallel import execution_config_pb2
@@ -495,6 +500,129 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
               fns.new(x=fns.slice([1, 2])), return_type_as=future_slice
           )
       )
+
+  def test_annotations_basic(self):
+    context = expr_eval.eval(
+        koda_internal_parallel.create_execution_context(
+            koda_internal_parallel.get_eager_executor(),
+            fns.obj(operator_replacements=[]),
+        )
+    )
+    expr = arolla.M.annotation.export(
+        arolla.M.annotation.export(math.add(1, 2), 'foo'), 'bar'
+    )
+    fn = functor_factories.expr_fn(expr)
+    transformed_fn = expr_eval.eval(
+        koda_internal_parallel.transform(context, fn)
+    )
+    testing.assert_equal(
+        koda_internal_parallel.get_future_value_for_testing(
+            transformed_fn(
+                return_type_as=koda_internal_parallel.as_future(
+                    data_slice.DataSlice
+                ).eval()
+            )
+        ).eval(),
+        ds(3),
+    )
+    # We don't want the annotation to be disconnected from the expr it
+    # annotates, so that annotations like source_location keep functioning.
+    # However, the whole thing gets embedded into a lambda operator
+    # inside async_eval, so it's hard to write a test that is not fragile.
+    # Checking the string representation seems to be the best we can do.
+    self.assertIn(
+        str(expr).replace("'", "\\'"),
+        str(introspection.unpack_expr(transformed_fn.returns)),
+    )
+
+  def test_annotations_with_stream_replacement(self):
+    @optools.add_to_registry()
+    @optools.as_lambda_operator(
+        'koda_internal.parallel.transform_test.stream_for_annotations',
+    )
+    def stream_for_annotations(elems, value_type_as):
+      del value_type_as  # Unused.
+      x = elems[0]
+      y = elems[1]
+      x_value = koda_internal_parallel.get_future_value_for_testing(x)
+      y_value = koda_internal_parallel.get_future_value_for_testing(y)
+      return koda_internal_parallel.stream_make(y_value, x_value)
+
+    context = expr_eval.eval(
+        koda_internal_parallel.create_execution_context(
+            koda_internal_parallel.get_eager_executor(),
+            fns.obj(
+                operator_replacements=[
+                    fns.obj(
+                        from_op='kd.iterables.make',
+                        to_op='koda_internal.parallel.transform_test.stream_for_annotations',
+                    ),
+                ],
+            ),
+        )
+    )
+    expr = arolla.M.annotation.export(
+        arolla.M.annotation.export(iterables.make(1, 2), 'foo'), 'bar'
+    )
+    fn = functor_factories.expr_fn(expr)
+    transformed_fn = expr_eval.eval(
+        koda_internal_parallel.transform(context, fn)
+    )
+    testing.assert_equal(
+        arolla.tuple(
+            *transformed_fn(
+                return_type_as=koda_internal_parallel.stream_make().eval()
+            ).read_all(timeout=1.0)
+        ),
+        arolla.tuple(ds(2), ds(1)),
+    )
+
+  # The existence of this test does not mean this behavior is desired, it just
+  # documents the current state.
+  def test_qtype_annotation_with_stream_replacement_fails(self):
+
+    @optools.add_to_registry()
+    @optools.as_lambda_operator(
+        'koda_internal.parallel.transform_test.empty_stream',
+    )
+    def empty_stream():
+      return koda_internal_parallel.stream_make()
+
+    @optools.add_to_registry()
+    @optools.as_lambda_operator(
+        'koda_internal.parallel.transform_test.empty_iterable',
+    )
+    def empty_iterable():
+      return iterables.make()
+
+    context = expr_eval.eval(
+        koda_internal_parallel.create_execution_context(
+            koda_internal_parallel.get_eager_executor(),
+            fns.obj(
+                operator_replacements=[
+                    fns.obj(
+                        from_op='koda_internal.parallel.transform_test.empty_iterable',
+                        to_op=(
+                            'koda_internal.parallel.transform_test.empty_stream'
+                        ),
+                    ),
+                ],
+            ),
+        )
+    )
+    expr = arolla.M.annotation.qtype(
+        empty_iterable(),
+        koda_internal_iterables.get_iterable_qtype(qtypes.DATA_SLICE),
+    )
+    testing.assert_equal(expr_eval.eval(expr), iterable_qvalue.Iterable())
+    fn = functor_factories.expr_fn(expr)
+    transformed_fn = expr_eval.eval(
+        koda_internal_parallel.transform(context, fn)
+    )
+    with self.assertRaisesRegex(ValueError, 'inconsistent qtype'):
+      _ = transformed_fn(
+          return_type_as=koda_internal_parallel.stream_make().eval()
+      ).read_all(timeout=1.0)
 
   def test_qtype_signatures(self):
     execution_context_qtype = expr_eval.eval(
