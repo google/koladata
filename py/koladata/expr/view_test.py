@@ -527,9 +527,21 @@ class KodaViewTest(parameterized.TestCase):
         C.fn.bind(x=17), kde.bind(C.fn, x=17)
     )
 
-  def test_unpacking(self):
+  def test_unpacking_by_operator(self):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-    expr = op(I.x, I.y)
+
+    @arolla.optools.add_to_registry(unsafe_override=True)
+    @arolla.optools.as_lambda_operator('test_make_tuple')
+    def test_make_tuple(*args):
+      return arolla.optools.fix_trace_args(args)
+
+    arolla.abc.set_expr_view_for_registered_operator(
+        'test_make_tuple', view.KodaView
+    )
+
+    expr = arolla.M.annotation.name(
+        test_make_tuple(I.x, I.y), 'test_make_tuple'
+    )
 
     x, y = expr
     self.assertTrue(view.has_koda_view(x))
@@ -544,6 +556,39 @@ class KodaViewTest(parameterized.TestCase):
     y_val = data_slice.DataSlice.from_vals(2)
     testing.assert_equal(x.eval(x=x_val, y=y_val), x_val)
     testing.assert_equal(y.eval(x=x_val, y=y_val), y_val)
+
+  def test_unpacking_by_qtype(self):
+    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+
+    expr = arolla.M.annotation.qtype(
+        I.t,
+        arolla.make_tuple_qtype(arolla.INT32, arolla.INT32)
+    )
+
+    x, y = expr
+    self.assertTrue(view.has_koda_view(x))
+    self.assertTrue(view.has_koda_view(y))
+    testing.assert_equal(x, view_overloads.get_item(expr, 0))
+    testing.assert_equal(y, view_overloads.get_item(expr, 1))
+
+    testing.assert_equal(x, expr[ds(0)])
+    testing.assert_equal(y, expr[1])  # auto-boxing
+
+    x_val = arolla.int32(1)
+    y_val = arolla.int32(2)
+    testing.assert_equal(x.eval(t=arolla.tuple_(x_val, y_val)), x_val)
+    testing.assert_equal(y.eval(t=arolla.tuple_(x_val, y_val)), y_val)
+
+  def test_unpacking_not_supported(self):
+    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+    expr = I.x + I.y
+
+    with self.assertRaisesRegex(
+        ValueError,
+        'tuple unpacking is only supported for nodes with known QType or for a'
+        ' few selected operators',
+    ):
+      _, _ = expr
 
   @parameterized.parameters(
       # Slicing helper.

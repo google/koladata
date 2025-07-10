@@ -68,6 +68,19 @@ class ListSlicingHelper:
     return arolla.abc.aux_bind_op('kd.slices.subslice', self._ds, s, ...)
 
 
+# List of operators that have the same arity as their resulting tuple.
+# TODO: Remove this once we have proper support for tuple size
+# detection.
+_OPERATORS_ALLOWED_FOR_TUPLE_UNPACKING = frozenset([
+    'kd.slices.align',
+    'kd.align',
+    'kd.tuples.tuple',
+    'kd.tuples.slice',
+    'kd.tuple',
+    'test_make_tuple',
+])
+
+
 class KodaView(arolla.abc.ExprView):
   """ExprView applicable to all Koda types.
 
@@ -501,7 +514,29 @@ class KodaView(arolla.abc.ExprView):
 
   # Support sequence contract, for tuple unpacking.
   def _arolla_sequence_getitem_(self, index: int) -> arolla.Expr:
-    if index < 0 or index >= len(self.node_deps):
+    if self.qtype is not None and arolla.types.is_tuple_qtype(self.qtype):
+      tuple_size = len(arolla.abc.get_field_qtypes(self.qtype))
+    else:
+      # Try guessing tuple size from the expression.
+      # TODO: Use QType to determine tuple size instead.
+      node = self
+      while arolla.abc.is_annotation_operator(node.op):
+        node = node.node_deps[0]
+      if (
+          node.op is None
+          or not isinstance(node.op, arolla.types.RegisteredOperator)
+          or node.op.display_name not in _OPERATORS_ALLOWED_FOR_TUPLE_UNPACKING
+      ):
+        raise ValueError(
+            'tuple unpacking is only supported for nodes with known QType or '
+            f'for a few selected operators, but got: {node}\n'
+            'for a quick fix, consider using'
+            ' arolla.M.annotation.QType(arolla.make_tuple_qtype(...)) to'
+            ' explicitly specify the tuple qtype'
+        )
+      tuple_size = len(node.node_deps)
+
+    if index < 0 or index >= tuple_size:
       raise IndexError('tuple index out of range')
     return self[index]
 
