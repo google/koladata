@@ -15,6 +15,7 @@ Category  | Subcategory | Description
  | [bags](#kd.bags) | Operators that work on DataBags.
  | [comparison](#kd.comparison) | Operators that compare DataSlices.
  | [core](#kd.core) | Core operators that are not part of other categories.
+ | [curves](#kd.curves) | Operators working with curves.
  | [expr](#kd.expr) | Expr utilities.
  | [entities](#kd.entities) | Operators that work solely with entities.
  | [dicts](#kd.dicts) | Operators working with dictionaries.
@@ -1211,6 +1212,71 @@ Args:
   *args: DataSlice(s) to print.
   sep: Separator to use between DataSlice(s).
   end: End string to use after the last DataSlice.</code></pre>
+
+</section>
+
+### kd.curves {#kd.curves}
+
+Operators working with curves.
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.curves.log_p1_pwl_curve(p, adjustments)` {#kd.curves.log_p1_pwl_curve}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Specialization of PWLCurve with log(x + 1) transformation.
+
+Args:
+ p: (DataSlice) input points to the curve
+ adjustments: (DataSlice) 2D data slice with points used for interpolation.
+   The second dimension must have regular size of 2. E.g., [[1, 1.7], [2,
+   3.6], [7, 5.7]]
+
+Returns:
+  FLOAT64 DataSlice with the same dimensions as p with interpolation results.</code></pre>
+
+### `kd.curves.log_pwl_curve(p, adjustments)` {#kd.curves.log_pwl_curve}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Specialization of PWLCurve with log(x) transformation.
+
+Args:
+ p: (DataSlice) input points to the curve
+ adjustments: (DataSlice) 2D data slice with points used for interpolation.
+   The second dimension must have regular size of 2. E.g., [[1, 1.7], [2,
+   3.6], [7, 5.7]]
+
+Returns:
+  FLOAT64 DataSlice with the same dimensions as p with interpolation results.</code></pre>
+
+### `kd.curves.pwl_curve(p, adjustments)` {#kd.curves.pwl_curve}
+Aliases:
+
+- [kd.pwl_curve](#kd.pwl_curve)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Piecewise Linear (PWL) curve interpolation operator.
+
+Args:
+ p: (DataSlice) input points to the curve
+ adjustments: (DataSlice) 2D data slice with points used for interpolation.
+   The second dimension must have regular size of 2. E.g., [[1, 1.7], [2,
+   3.6], [7, 5.7]]
+
+Returns:
+  FLOAT64 DataSlice with the same dimensions as p with interpolation results.</code></pre>
+
+### `kd.curves.symmetric_log_p1_pwl_curve(p, adjustments)` {#kd.curves.symmetric_log_p1_pwl_curve}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Specialization of PWLCurve with symmetric log(x + 1) transformation.
+
+Args:
+ p: (DataSlice) input points to the curve
+ adjustments: (DataSlice) 2D data slice with points used for interpolation.
+   The second dimension must have regular size of 2. E.g., [[1, 1.7], [2,
+   3.6], [7, 5.7]]
+
+Returns:
+  FLOAT64 DataSlice with the same dimensions as p with interpolation results.</code></pre>
 
 </section>
 
@@ -9480,6 +9546,10 @@ Alias for [kd.masking.present_shaped](#kd.masking.present_shaped) operator.
 ### `kd.present_shaped_as(x)` {#kd.present_shaped_as}
 
 Alias for [kd.masking.present_shaped_as](#kd.masking.present_shaped_as) operator.
+
+### `kd.pwl_curve(p, adjustments)` {#kd.pwl_curve}
+
+Alias for [kd.curves.pwl_curve](#kd.curves.pwl_curve) operator.
 
 ### `kd.py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **defaults)` {#kd.py_fn}
 

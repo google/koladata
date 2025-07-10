@@ -100,3 +100,22 @@ bzl_library(
     srcs = ["koda_operator_test_def.bzl"],
     deps = ["@com_google_arolla//py/arolla/operator_tests:arolla_operator_test_def_bzl"],
 )
+
+py_library(
+    name = "curves_test_case",
+    testonly = 1,
+    srcs = ["curves_test_case.py"],
+    deps = [
+        ":qtypes",
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)

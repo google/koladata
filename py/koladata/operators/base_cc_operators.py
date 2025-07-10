@@ -21,6 +21,7 @@ from koladata.operators import bags as _
 from koladata.operators import bootstrap as _
 from koladata.operators import comparison as _
 from koladata.operators import core as _
+from koladata.operators import curves as _
 from koladata.operators import dicts as _
 from koladata.operators import entities as _
 from koladata.operators import functor as _

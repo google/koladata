@@ -25,6 +25,7 @@ cc_shared_library(
     dynamic_deps = [
         "@com_google_arolla//py/arolla/dynamic_deps:base_so",
         "@com_google_arolla//py/arolla/dynamic_deps:arolla_so",
+        "@com_google_arolla//py/arolla/dynamic_deps:pwlcurve_so",
         "@com_google_arolla//py/arolla/dynamic_deps:arolla_py_abc_so",
         "@com_google_arolla//py/arolla/dynamic_deps:arolla_standard_operators_so",
         "@com_google_arolla//py/arolla/dynamic_deps:jagged_shape_so",

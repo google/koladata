@@ -156,6 +156,7 @@ py_library(
         ":bootstrap",
         ":comparison",
         ":core",
+        ":curves",
         ":dicts",
         ":entities",
         ":functor",
@@ -749,6 +750,18 @@ py_library(
     srcs = ["optools_test_utils.py"],
     deps = [
         "//py:python_path",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_library(
+    name = "curves",
+    srcs = ["curves.py"],
+    deps = [
+        ":optools",
+        ":qtype_utils",
+        "//py:python_path",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )

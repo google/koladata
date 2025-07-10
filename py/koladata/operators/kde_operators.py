@@ -30,6 +30,7 @@ kde = arolla.OperatorsContainer(
         'kd.bags',
         'kd.comparison',
         'kd.core',
+        'kd.curves',
         'kd.dicts',
         'kd.entities',
         'kd.functor',

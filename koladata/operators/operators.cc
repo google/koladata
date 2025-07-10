@@ -38,6 +38,7 @@
 #include "koladata/operators/bags.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/core.h"
+#include "koladata/operators/curves.h"
 #include "koladata/operators/dicts.h"
 #include "koladata/operators/entities.h"
 #include "koladata/operators/ids.h"
@@ -159,6 +160,11 @@ OPERATOR("kd.core.with_bag", WithBag);
 OPERATOR("kd.core.with_merged_bag", WithMergedBag);
 OPERATOR_FAMILY("kd.core.with_print",
                 std::make_unique<WithPrintOperatorFamily>());
+//
+OPERATOR("kd.curves.log_p1_pwl_curve", LogP1PwlCurve);
+OPERATOR("kd.curves.log_pwl_curve", LogPwlCurve);
+OPERATOR("kd.curves.pwl_curve", PwlCurve);
+OPERATOR("kd.curves.symmetric_log_p1_pwl_curve", SymmetricLogP1PwlCurve);
 //
 OPERATOR("kd.dicts._dict_update", DictUpdate, "kd.dicts.dict_update");
 OPERATOR("kd.dicts._get_values", GetValues, "kd.dicts.get_values");
