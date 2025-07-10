@@ -129,13 +129,17 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     expr = kd_lazy.annotation.source_location(
         I.x + 1, 'foo', 'test.py', 123, 456, '  x + 1'
     )
-    # TODO: b/425293814 - Consider adding custom repr for source_location
-    # annotation.
-    self.assertEqual(
-        repr(expr),
-        "kd.annotation.source_location(I.x + DataItem(1, schema: INT32), 'foo',"
-        " 'test.py', 123, 456, '  x + 1')",
+    self.assertEqual(repr(expr), '(I.x + DataItem(1, schema: INT32))📍')
+
+    expr = kd_lazy.annotation.source_location(
+        I.x.attr, 'foo', 'test.py', 123, 456, '  x.attr'
     )
+    self.assertEqual(repr(expr), 'I.x.attr📍')
+
+    expr = kd_lazy.annotation.source_location(
+        -I.x, 'foo', 'test.py', 123, 456, '  x.attr'
+    )
+    self.assertEqual(repr(expr), '(-I.x)📍')
 
 
 if __name__ == '__main__':
