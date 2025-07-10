@@ -48,6 +48,7 @@
 #include "arolla/memory/optional_value.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -72,12 +73,100 @@
 namespace koladata::functor::parallel {
 namespace {
 
+// Adds names to the literal arguments of the replacement ops that should not
+// be kept as literals. Together with AddVariables, this ensures that we extract
+// those arguments into new variables, while not touching other copies of the
+// same literal in the expression.
+// We could use any other "identity" operator instead of annotation.name, but
+// annotation.name has the benefit of being removed by AutoVariables,
+// therefore the resulting functor is simpler to debug.
+absl::StatusOr<DataSlice> AddNamesToLiteralArgumentsOfReplacementOps(
+    DataSlice functor,
+    absl::AnyInvocable<absl::StatusOr<const ExecutionContext::Replacement*>(
+        const arolla::expr::ExprNodePtr&) const>
+        find_replacement_fn) {
+  ASSIGN_OR_RETURN(DataSlice signature, functor.GetAttr(kSignatureAttrName));
+  ASSIGN_OR_RETURN(auto attr_names, functor.GetAttrNames());
+
+  auto transform = [&find_replacement_fn](arolla::expr::ExprNodePtr node)
+      -> absl::StatusOr<arolla::expr::ExprNodePtr> {
+    ASSIGN_OR_RETURN(const auto* replacement, find_replacement_fn(node));
+    if (!replacement) {
+      return std::move(node);
+    }
+    std::vector<arolla::expr::ExprNodePtr> new_deps;
+    bool updated = false;
+    // We could build a set, or require it to be sorted so that we can
+    // iterate over the inverse, but currently the size is always small so
+    // it does not matter.
+    const auto& literal_indices =
+        replacement->argument_transformation.keep_literal_argument_indices();
+    for (int64_t child_i = 0; child_i < node->node_deps().size(); ++child_i) {
+      const auto& child = node->node_deps()[child_i];
+      if (!expr::IsLiteral(child)) {
+        continue;
+      }
+      if (absl::c_contains(literal_indices, child_i)) {
+        continue;
+      }
+      if (!updated) {
+        updated = true;
+        // We copy only if we need to update, to avoid useless work.
+        new_deps = node->node_deps();
+      }
+      ASSIGN_OR_RETURN(
+          new_deps[child_i],
+          arolla::expr::CallOp("annotation.name",
+                               {child, arolla::expr::Literal(arolla::Text(
+                                           "_parallel_literal"))}));
+    }
+    if (!updated) {
+      return std::move(node);
+    }
+    return arolla::expr::MakeOpNode(node->op(), std::move(new_deps));
+  };
+
+  std::vector<absl::string_view> var_names;
+  std::vector<DataSlice> var_values;
+  std::optional<DataSlice> returns;
+  int64_t expected_num_vars = attr_names.size();
+  expected_num_vars = std::max<int64_t>(0, expected_num_vars - 2);
+  var_names.reserve(expected_num_vars);
+  var_values.reserve(expected_num_vars);
+  for (const auto& attr_name : attr_names) {
+    if (attr_name == kSignatureAttrName) {
+      continue;
+    }
+    ASSIGN_OR_RETURN(DataSlice var, functor.GetAttr(attr_name));
+    DCHECK(var.is_item());
+    if (var.is_item() && var.item().holds_value<arolla::expr::ExprQuote>()) {
+      ASSIGN_OR_RETURN(auto var_expr,
+                       var.item().value<arolla::expr::ExprQuote>().expr());
+      ASSIGN_OR_RETURN(auto new_expr,
+                       arolla::expr::Transform(var_expr, transform));
+      var = DataSlice::CreateFromScalar(
+          arolla::expr::ExprQuote(std::move(new_expr)));
+    }
+    if (attr_name == kReturnsAttrName) {
+      returns = std::move(var);
+    } else {
+      var_names.emplace_back(attr_name);
+      var_values.emplace_back(std::move(var));
+    }
+  }
+  if (!returns.has_value()) {
+    return absl::InternalError("no 'returns' after transformation");
+  }
+  return CreateFunctor(returns.value(), signature, std::move(var_names),
+                       std::move(var_values));
+}
+
 // Adds variables to simplify further transformation of the functor.
 // The following subexpression become their own variables:
 // - all inputs
 // - all leaves (the only expected leaf is the non-deterministic leaf)
 // - all operations that have a custom replacement in the execution context.
-// - the inputs to such operations, except for the literal-only ones.
+// - the inputs to such operations, except literals.
 absl::StatusOr<DataSlice> AddVariables(
     DataSlice functor, const expr::InputContainer& variable_container,
     absl::AnyInvocable<absl::StatusOr<const ExecutionContext::Replacement*>(
@@ -106,16 +195,8 @@ absl::StatusOr<DataSlice> AddVariables(
     ASSIGN_OR_RETURN(const auto* replacement, find_replacement_fn(node));
     if (replacement) {
       extra_nodes_to_extract.insert(node->fingerprint());
-      // We could build a set for faster lookups, but currently the size
-      // is always small.
-      const auto& literal_indices =
-          replacement->argument_transformation.keep_literal_argument_indices();
-      // Also extract children, to guarantee that the parallel version of
-      // the operator receives futures and not eagerly evaluated values.
-      for (int64_t child_i = 0; child_i < node->node_deps().size(); ++child_i) {
-        const auto& child = node->node_deps()[child_i];
-        if (absl::c_contains(literal_indices, child_i) &&
-            expr::IsLiteral(child)) {
+      for (const auto& child : node->node_deps()) {
+        if (expr::IsLiteral(child)) {
           continue;
         }
         ASSIGN_OR_RETURN(auto child_var_name,
@@ -392,6 +473,8 @@ absl::StatusOr<DataSlice> TransformToParallel(
     return &it->second;
   };
 
+  ASSIGN_OR_RETURN(functor, AddNamesToLiteralArgumentsOfReplacementOps(
+                                std::move(functor), find_replacement));
   ASSIGN_OR_RETURN(functor, AddVariables(std::move(functor), variable_container,
                                          find_replacement));
   ASSIGN_OR_RETURN(DataSlice orig_signature,

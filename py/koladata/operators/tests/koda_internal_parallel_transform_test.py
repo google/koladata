@@ -282,9 +282,11 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             ),
         )
     )
+    # Two of the arguments are the same literal, since the code must handle them
+    # differently and it's a special case in the implementation.
     fn = functor_factories.expr_fn(
         my_decode3(
-            arolla.bytes(b'123'), arolla.bytes(b'456'), arolla.bytes(b'789')
+            arolla.bytes(b'123'), arolla.bytes(b'123'), arolla.bytes(b'789')
         )
     )
     transformed_fn = koda_internal_parallel.transform(context, fn)
@@ -307,7 +309,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         expr_eval.eval(
             koda_internal_parallel.get_future_value_for_testing(res[1])
         ),
-        arolla.bytes(b'456'),
+        arolla.bytes(b'123'),
     )
     testing.assert_equal(
         expr_eval.eval(
