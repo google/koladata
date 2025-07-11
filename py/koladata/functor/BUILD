@@ -17,7 +17,7 @@
 load("@pip_deps//:requirements.bzl", "requirement")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
-load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension", "koladata_pybind_extension")
+load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_py_extension")
 
 package(default_visibility = [
     "//koladata:internal",
@@ -74,57 +74,10 @@ cc_library(
     ],
 )
 
-cc_library(
-    name = "error_converters",
-    srcs = ["error_converters.cc"],
-    deps = [
-        "//koladata/functor:stack_trace",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
-        "@com_google_arolla//py/arolla/py_utils",
-        "@com_google_arolla//py/arolla/py_utils:error_converter_registry",
-        "@rules_python//python/cc:current_py_cc_headers",
-    ],
-    alwayslink = True,
-)
-
-py_test(
-    name = "error_converters_test",
-    srcs = ["error_converters_test.py"],
-    deps = [
-        ":stack_trace",
-        ":testing_clib",
-        "//py:python_path",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
-    ],
-)
-
-koladata_pybind_extension(
-    name = "testing_clib",
-    testonly = True,
-    srcs = ["testing_clib.cc"],
-    deps = [
-        ":error_converters",  # Register error converters when run outside of google environment.
-        "//koladata:data_slice",
-        "//koladata/functor:stack_trace",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/status",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//py/arolla/abc:pybind11_utils",
-        "@com_google_arolla//py/arolla/py_utils",
-    ],
-)
-
 koladata_py_extension(
     name = "py_functors_py_ext",
     srcs = ["py_functors_module.cc"],
     deps = [
-        ":error_converters",
         ":py_functors_cc_lib",
         "//koladata:data_slice",
         "@com_google_arolla//py/arolla/py_utils",
@@ -239,32 +192,6 @@ py_library(
         ":functor_factories",
         "//py:python_path",
         "//py/koladata/types:py_boxing",
-    ],
-)
-
-py_library(
-    name = "stack_trace",
-    srcs = ["stack_trace.py"],
-    deps = [
-        "//py:python_path",
-        "//py/koladata/functions",
-        "//py/koladata/types:data_slice",
-        "//py/koladata/util:kd_functools",
-    ],
-)
-
-py_test(
-    name = "stack_trace_test",
-    srcs = ["stack_trace_test.py"],
-    deps = [
-        ":stack_trace",
-        ":testing_clib",
-        "//py:python_path",
-        "//py/koladata/functions",
-        "//py/koladata/testing",
-        "//py/koladata/util:kd_functools",
-        "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 

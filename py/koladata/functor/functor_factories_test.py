@@ -1006,28 +1006,21 @@ class FunctorFactoriesTest(absltest.TestCase):
   def test_evaluation_errors(self):
     # See also test_evaluation_errors in tracing_decorator_test.py.
 
-    fn1 = functor_factories.expr_fn(V.y + 1, y=1 // I.x)
-    fn1 = kd.with_attr(
-        fn1,
-        '__stack_trace_frame__',
-        kd.new(
-            function_name='fn1',
-            file_name='my_file.py',
-            line_number=57,
+    fn1 = functor_factories.expr_fn(
+        V.y + 1,
+        y=kde.annotation.source_location(
+            1 // I.x, 'fn1', 'my_file.py', 57, 0, '  y = 1 // I.x'
         ),
     )
-    fn2 = functor_factories.expr_fn(V.z + 1, z=fn1(x=V.y), y=I.x)
-    fn2 = kd.with_attr(
-        fn2,
-        '__stack_trace_frame__',
-        kd.new(
-            # function_name is not set.
-            file_name='my_file.py',
-            line_number=58,
+    fn2 = functor_factories.expr_fn(
+        V.z + 1,
+        z=kde.annotation.source_location(
+            fn1(x=V.y), 'fn2', 'my_file.py', 58, 0, '  z = fn1(y)'
         ),
+        y=I.x,
     )
     fn3 = functor_factories.bind(fn2, x=0)
-    # No stacktrace attributes assigned to fn3.
+    # No source location annotations in fn3.
 
     try:
       kd.call(fn3)

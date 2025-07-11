@@ -186,7 +186,6 @@ cc_library(
     hdrs = ["call.h"],
     deps = [
         ":signature_utils",
-        ":stack_trace",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/expr:expr_eval",
@@ -226,8 +225,6 @@ cc_library(
     hdrs = ["call_operator.h"],
     deps = [
         ":call",
-        ":functor",
-        ":stack_trace",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/internal:non_deterministic_token",
@@ -517,7 +514,6 @@ cc_test(
         ":call",
         ":functor",
         ":signature_utils",
-        ":stack_trace",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:object_factories",
@@ -557,38 +553,6 @@ cc_test(
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
-        "@com_google_googletest//:gtest_main",
-    ],
-)
-
-cc_library(
-    name = "stack_trace",
-    srcs = ["stack_trace.cc"],
-    hdrs = ["stack_trace.h"],
-    deps = [
-        "//koladata:data_slice",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/strings:string_view",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util:status_backport",
-    ],
-)
-
-cc_test(
-    name = "stack_trace_test",
-    srcs = ["stack_trace_test.cc"],
-    deps = [
-        ":stack_trace",
-        "//koladata:data_bag",
-        "//koladata:data_slice",
-        "//koladata:object_factories",
-        "//koladata:test_utils",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:status_matchers",
-        "@com_google_arolla//arolla/qtype",
-        "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
     ],
 )

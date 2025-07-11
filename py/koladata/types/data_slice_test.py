@@ -4293,8 +4293,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
               'DataItem(Functor[x](',
               (
                   '_add_one_result=kd.call(V.add_one, I.x,'
-                  ' return_type_as=DataItem(None, schema: NONE),'
-                  ' stack_trace_frame=DataItem(None, schema: NONE))📍,'
+                  ' return_type_as=DataItem(None, schema: NONE))📍,'
               ),
               'add_one=Functor[x](',
               "__doc__='Adds one to the input.'",
@@ -4312,8 +4311,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
               ),
               (
                   'returns=kd.call(I.f, I.x, return_type_as=DataItem(None,'
-                  ' schema: NONE), stack_trace_frame=DataItem(None, schema:'
-                  ' NONE))'
+                  ' schema: NONE))'
               ),
           ],
       )

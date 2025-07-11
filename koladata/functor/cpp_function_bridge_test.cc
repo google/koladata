@@ -170,8 +170,7 @@ TEST(CppFunctionBridgeTest, IntegrationTestWithParallelCall) {
           "koda_internal.parallel.parallel_call",
           {std::move(execution_context_expr), std::move(functor_future_expr),
            std::move(args_expr), /*return_type_as=*/unspecified_expr,
-           /*stack_trace_frame=*/unspecified_expr, std::move(kwargs_expr),
-           non_deterministic_token_expr}));
+           std::move(kwargs_expr), non_deterministic_token_expr}));
   ASSERT_OK_AND_ASSIGN(auto res,
                        expr::EvalExprWithCompilationCache(call_expr, {}, {}));
   ASSERT_OK_AND_ASSIGN(parallel::FuturePtr res_future,

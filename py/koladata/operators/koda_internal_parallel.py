@@ -1045,7 +1045,7 @@ def unwrap_future_to_parallel(arg):
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_call_impl',
 )
-def _parallel_call_impl(context, fn, stack_trace_frame, parallel_args):
+def _parallel_call_impl(context, fn, parallel_args):
   transformed_fn = transform(context, fn)
   args = parallel_args[0]
   return_type_as = parallel_args[1]
@@ -1055,7 +1055,6 @@ def _parallel_call_impl(context, fn, stack_trace_frame, parallel_args):
       transformed_fn,
       args=args,
       return_type_as=return_type_as,
-      stack_trace_frame=stack_trace_frame,
       kwargs=kwargs,
       **optools.unified_non_deterministic_kwarg(),
   )
@@ -1088,7 +1087,6 @@ def _expect_future_data_slice_or_unspecified(arg):
     qtype_constraints=[
         qtype_utils.expect_execution_context(P.context),
         _expect_future_data_slice(P.fn),
-        _expect_future_data_slice_or_unspecified(P.stack_trace_frame),
         (
             # TODO: get rid of "nonrecursive" here.
             M.seq.all(
@@ -1131,7 +1129,6 @@ def parallel_call(
     fn,
     *args,
     return_type_as=arolla.unspecified(),
-    stack_trace_frame=arolla.unspecified(),
     **kwargs,
 ):
   """Calls the given functor via the parallel evaluation.
@@ -1174,11 +1171,6 @@ def parallel_call(
       literal of the corresponding type. This needs to be specified if the
       functor does not return a DataSlice, in other words if the parallel
       version does not return a future to a DataSlice.
-    stack_trace_frame: Optional future to the details of a stack trace frame, to
-      be added to all the exceptions raised by `fn`. Use
-      `stack_trace.create_stack_trace_frame` to create it. Currently the frame
-      will only be added to errors happening when scheduling the parallel
-      execution, but not to errors happening within the parallel execution.
     **kwargs: The parallel versions of the keyword arguments to pass to the
       call.
 
@@ -1190,24 +1182,19 @@ def parallel_call(
       return_type_as,
       as_future(data_slice.DataSlice),
   )
-  stack_trace_frame = M.core.default_if_unspecified(
-      stack_trace_frame,
-      as_future(data_slice.DataSlice.from_vals(None)),
-  )
 
-  # We need async_eval here since `fn` and `stack_trace_frame` are futures.
-  # `async_eval` will wait on any argument that is a future before exeucting
-  # the async operator, but all other arguments are passed as is, including
-  # tuples of futures. So we wrap the rest into a tuple so that async_eval does
-  # not wait on the args/kwargs/return_type_as futures since the transformed
-  # parallel functor expects parallel arguments for those.
+  # We need async_eval here since `fn` is a future. `async_eval` will wait on
+  # any argument that is a future before exeucting the async operator, but all
+  # other arguments are passed as is, including tuples of futures. So we wrap
+  # the rest into a tuple so that async_eval does not wait on the
+  # args/kwargs/return_type_as futures since the transformed parallel functor
+  # expects parallel arguments for those.
   return unwrap_future_to_parallel(
       async_eval(
           get_executor_from_context(context),
           _parallel_call_impl,
           context,
           fn,
-          stack_trace_frame,
           (args, return_type_as, kwargs),
           optools.unified_non_deterministic_arg(),
       )

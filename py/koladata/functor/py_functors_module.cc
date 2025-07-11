@@ -47,11 +47,6 @@ PyMODINIT_FUNC PyInit_py_functors_py_ext(void) {
   if (module == nullptr) {
     return nullptr;
   }
-  if (PyModule_AddStringConstant(
-          module.get(), "STACK_TRACE_FRAME_ATTR",
-          std::string(functor::kStackFrameAttrName).c_str()) < 0) {
-    return nullptr;
-  }
   return module.release();
 }
 

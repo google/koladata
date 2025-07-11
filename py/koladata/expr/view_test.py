@@ -695,7 +695,7 @@ class KodaViewTest(parameterized.TestCase):
           C.x(C.y, foo=C.z),
           (
               'kd.call(C.x, C.y, return_type_as=DataItem(None, schema: NONE),'
-              ' stack_trace_frame=DataItem(None, schema: NONE), foo=C.z)'
+              ' foo=C.z)'
           ),
       ),
   )

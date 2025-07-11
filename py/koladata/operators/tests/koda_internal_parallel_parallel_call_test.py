@@ -21,9 +21,9 @@ from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
-from koladata.functor import stack_trace
 from koladata.functor.parallel import clib as _
 from koladata.operators import iterables
+from koladata.operators import kde_operators
 from koladata.operators import koda_internal_parallel
 from koladata.operators import optools
 from koladata.testing import testing
@@ -33,10 +33,12 @@ from koladata.types import iterable_qvalue
 
 from koladata.functor.parallel import execution_config_pb2
 
+
 I = input_container.InputContainer('I')
 V = input_container.InputContainer('V')
 S = I.self
 ds = data_slice.DataSlice.from_vals
+kd_lazy = kde_operators.kde
 
 
 _REPLACEMENTS = fns.new(
@@ -186,23 +188,20 @@ class ParallelCallTest(absltest.TestCase):
         ds(3),
     )
 
-  def test_stack_trace_frame(self):
+  def test_source_location(self):
     executor = koda_internal_parallel.get_eager_executor()
     context = koda_internal_parallel.create_execution_context(
         executor, _REPLACEMENTS
     )
-    fn = functor_factories.expr_fn(S.x)
-    stack_frame = stack_trace.create_stack_trace_frame(
-        function_name='test_function',
-        file_name='test_file.py',
-        line_number=57,
-        line_text='x = y // 0',
+    fn = functor_factories.expr_fn(
+        kd_lazy.annotation.source_location(
+            S.x, 'test_function', 'test_file.py', 57, 0, '  return S.x'
+        ),
     )
     call_expr = koda_internal_parallel.parallel_call(
         context,
         koda_internal_parallel.as_future(fn),
         koda_internal_parallel.as_future(I.foo),
-        stack_trace_frame=koda_internal_parallel.as_future(stack_frame),
     )
     try:
       _ = koda_internal_parallel.get_future_value_for_testing(call_expr).eval(
@@ -347,8 +346,7 @@ class ParallelCallTest(absltest.TestCase):
     ):
       _ = koda_internal_parallel.parallel_call(
           context,
-          koda_internal_parallel.as_future(fn),
-          stack_trace_frame=None,
+          fn,
       )
 
     with self.assertRaisesRegex(ValueError, 'expected an execution context'):

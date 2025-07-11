@@ -1928,7 +1928,7 @@ Aliases:
   Returns:
     A new Koda functor with some parameters bound.</code></pre>
 
-### `kd.functor.call(fn, *args, return_type_as=DataItem(None, schema: NONE), stack_trace_frame=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.call}
+### `kd.functor.call(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.call}
 Aliases:
 
 - [kd.call](#kd.call)
@@ -1953,9 +1953,6 @@ Args:
     of the corresponding type. This needs to be specified if the functor does
     not return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
     kd.types.JaggedShape can also be passed here.
-  stack_trace_frame: Optional details of a stack trace frame, to be added to
-    all the exceptions raised by `fn`. Use
-    `stack_trace.create_stack_trace_frame` to create it.
   **kwargs: The keyword arguments to pass to the call. Scalars will be
     auto-boxed to DataItems.
 
@@ -8522,7 +8519,7 @@ Alias for [kd.slices.bool](#kd.slices.bool) operator.
 
 Alias for [kd.slices.bytes](#kd.slices.bytes) operator.
 
-### `kd.call(fn, *args, return_type_as=DataItem(None, schema: NONE), stack_trace_frame=DataItem(None, schema: NONE), **kwargs)` {#kd.call}
+### `kd.call(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.call}
 
 Alias for [kd.functor.call](#kd.functor.call) operator.
 

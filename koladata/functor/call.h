@@ -39,10 +39,6 @@ namespace koladata::functor {
 // variable expression will be evaluated before evaluating the expression that
 // refers to it. In case of a cycle in variables, an error will be returned.
 //
-// If the functor has __stack_trace_frame__ attribute set, all the errors
-// returned from it will be wrapped with a child error with StackTraceFrame
-// payload.
-//
 absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames);

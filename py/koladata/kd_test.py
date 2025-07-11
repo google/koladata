@@ -596,7 +596,7 @@ class KdTest(absltest.TestCase):
     )
     kd.testing.assert_traced_non_deterministic_exprs_equal(
         kd.expr.unpack_expr(fn.get_attr('_f_result')),
-        V.f(I.x, stack_trace_frame=None),
+        V.f(I.x),
     )
     kd.testing.assert_traced_non_deterministic_exprs_equal(
         kd.expr.unpack_expr(fn.f.returns), I.x + 1

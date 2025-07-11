@@ -34,7 +34,6 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/expr_eval.h"
 #include "koladata/functor/signature_utils.h"
-#include "koladata/functor/stack_trace.h"
 #include "koladata/functor_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/object_id.h"
@@ -128,7 +127,9 @@ absl::StatusOr<FunctorPreprocessingCache> ProcessFunctorMetadata(
   return FunctorPreprocessingCache{std::move(signature), std::move(eval_order)};
 }
 
-absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCacheImpl(
+}  // namespace
+
+absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
     const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
     absl::Span<const std::string> kwnames) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
@@ -186,20 +187,6 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCacheImpl(
                            computed_variable_holder.back().AsRef());
   }
   return computed_variable_holder.back();
-}
-
-}  // namespace
-
-absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
-    const DataSlice& functor, absl::Span<const arolla::TypedRef> args,
-    absl::Span<const std::string> kwnames) {
-  auto result = CallFunctorWithCompilationCacheImpl(functor, args, kwnames);
-  if (!result.ok()) {
-    ASSIGN_OR_RETURN(DataSlice stacktrace_frame_slice,
-                     functor.GetAttr(kStackFrameAttrName), result.status());
-    return MaybeAddStackTraceFrame(result.status(), stacktrace_frame_slice);
-  }
-  return result;
 }
 
 }  // namespace koladata::functor

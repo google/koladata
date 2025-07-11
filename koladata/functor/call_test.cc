@@ -38,7 +38,6 @@
 #include "koladata/data_slice.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_utils.h"
-#include "koladata/functor/stack_trace.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/core.h"
 #include "koladata/signature.h"
@@ -231,37 +230,6 @@ TEST(CallTest, EvalError) {
                   /*kwnames=*/{}),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("expected numerics, got x: DATA_SLICE")));
-
-  // The same test with a stack trace below.
-
-  auto db = DataBag::Empty();
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice frame_slice,
-      ObjectCreator::FromAttrs(
-          db, {"function_name", "file_name", "line_number", "line_text"},
-          {test::DataItem(arolla::Text("my_func")),
-           test::DataItem(arolla::Text("my_file.cc")), test::DataItem(57),
-           test::DataItem(arolla::Text("  z = x + y"))}));
-  ASSERT_OK_AND_ASSIGN(
-      auto update,
-      ops::Attr(fn, test::DataItem(arolla::Text("__stack_trace_frame__")),
-                frame_slice, test::DataItem(false)));
-  fn = fn.WithBag(DataBag::ImmutableEmptyWithFallbacks({update, fn.GetBag()}));
-
-  // This error message should be improved, in particular it should actually
-  // mention that we are evaluating a functor, which variable, etc.
-  // It is OK to only improve this on the Python side, the C++ error is not
-  // so important.
-  EXPECT_THAT(CallFunctorWithCompilationCache(
-                  fn,
-                  /*args=*/{arolla::TypedRef::FromValue(input)},
-                  /*kwnames=*/{}),
-              AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
-                             HasSubstr("expected numerics, got x: DATA_SLICE")),
-                    PayloadIs<StackTraceFrame>(
-                        AllOf(Field(&StackTraceFrame::function_name, "my_func"),
-                              Field(&StackTraceFrame::file_name, "my_file.cc"),
-                              Field(&StackTraceFrame::line_number, 57)))));
 }
 
 TEST(CallTest, Cancellation) {

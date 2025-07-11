@@ -671,13 +671,11 @@ absl::StatusOr<std::string> FunctorToStr(const DataSlice& functor,
   ASSIGN_OR_RETURN(functor::Signature cpp_signature,
                    functor::KodaSignatureToCppSignature(signature));
   size_t initial_html_char_count = wrapping.html_char_count;
-  ASSIGN_OR_RETURN(
-      std::vector<std::string> attr_parts,
-      AttrsToStrParts(functor.item(), functor.GetSchemaImpl(), functor.GetBag(),
-                      option, wrapping,
-                      /*ignore_attrs=*/
-                      {std::string(functor::kSignatureAttrName),
-                       std::string(functor::kStackFrameAttrName)}));
+  ASSIGN_OR_RETURN(std::vector<std::string> attr_parts,
+                   AttrsToStrParts(functor.item(), functor.GetSchemaImpl(),
+                                   functor.GetBag(), option, wrapping,
+                                   /*ignore_attrs=*/
+                                   {std::string(functor::kSignatureAttrName)}));
   ASSIGN_OR_RETURN(std::string signature_str,
                    FunctorSignatureToStr(cpp_signature, option, wrapping));
   return PrettyFormatStr(
