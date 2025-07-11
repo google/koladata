@@ -262,6 +262,13 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
         return val;
       }
     }
+    if (arolla::expr::IsSourceLocationAnnotation(node)) {
+      const auto& val = node->node_deps()[0];
+      if ((IsDataSliceLiteral(val) ||
+           aux_variable_fingerprints.contains(val->fingerprint()))) {
+        return val;
+      }
+    }
     if (!extract_needed && (!is_shared_node || IsSimple(node))) {
       return node;
     }

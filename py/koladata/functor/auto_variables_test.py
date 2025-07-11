@@ -16,6 +16,7 @@ from absl.testing import absltest
 from koladata import kd as user_facing_kd
 from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.expr import source_location
 from koladata.expr import view as _
 from koladata.functions import functions as fns
 from koladata.functor import boxing as _
@@ -197,6 +198,22 @@ class AutoVariablesTest(absltest.TestCase):
         introspection.unpack_expr(fn.bar),
         kde.explode(V._aux_0, ndim=1),
     )
+
+  def test_literal_with_source_location(self):
+    fn = functor_factories.expr_fn(
+        source_location.annotate_with_current_source_location(
+            kde.item(57)
+        ).with_name('foo')
+        * I.x,
+        auto_variables=True,
+    )
+    testing.assert_equal(fn(x=2), ds(114))
+    self.assertCountEqual(
+        fns.dir(fn), ['__signature__', 'returns', 'foo'], msg=fn
+    )
+    # Source location annotations disappear for literals.
+    testing.assert_equal(fn.foo.no_bag(), ds(57))
+    testing.assert_equal(introspection.unpack_expr(fn.returns), V.foo * I.x)
 
   def test_extracts_single_object_without_bag(self):
     obj = kd.obj(bar=1).no_bag()
