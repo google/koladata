@@ -130,6 +130,30 @@ py_library(
     ],
 )
 
+py_library(
+    name = "source_location",
+    srcs = ["source_location.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/util:kd_functools",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "source_location_test",
+    srcs = ["source_location_test.py"],
+    deps = [
+        ":input_container",
+        ":source_location",
+        "//py:python_path",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/util:kd_functools",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 py_test(
     name = "tracing_test",
     srcs = ["tracing_test.py"],
