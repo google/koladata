@@ -24,6 +24,7 @@ from koladata.expr import expr_eval as _expr_eval
 from koladata.expr import input_container as _input_container
 from koladata.expr import introspection as _introspection
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
+from koladata.expr import source_location as _source_location
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.functions import functions as _functions
 from koladata.functor import boxing as _
@@ -141,7 +142,9 @@ def _InitOpsAndContainers():
   for op_or_container_name in kd_ops.__dir__():
     globals()[op_or_container_name] = _dispatch(
         eager=getattr(kd_ops, op_or_container_name),
-        tracing=getattr(_kde_operators.kde, op_or_container_name),
+        tracing=_source_location.attaching_source_location(
+            getattr(_kde_operators.kde, op_or_container_name)
+        ),
     )
 
 

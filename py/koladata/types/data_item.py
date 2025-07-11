@@ -20,6 +20,8 @@ from arolla import arolla
 from koladata.expr import py_expr_eval_py_ext as _py_expr_eval_py_ext
 from koladata.types import data_item_py_ext as _data_item_py_ext
 from koladata.types import data_slice
+from koladata.util import kd_functools
+
 
 _eval_op = _py_expr_eval_py_ext.eval_op
 
@@ -35,10 +37,12 @@ def _hash(self) -> int:
 # Ideally we'd do this only for functors, but we don't have a fast way
 # to check if a DataItem is a functor now. Note that SchemaItem overrides
 # this behavior.
+@kd_functools.skip_from_functor_stack_trace
 @data_slice.add_method(DataItem, '__call__')  # pylint: disable=protected-access
 def _call(
     self, *args: Any, return_type_as: Any = data_slice.DataSlice, **kwargs: Any
 ) -> data_slice.DataSlice:
+  """Dispatches between eager and expr kd.call based on the arguments."""
   if any(isinstance(arg, arolla.Expr) for arg in args) or any(
       isinstance(arg, arolla.Expr) for arg in kwargs.values()
   ):

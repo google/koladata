@@ -17,6 +17,7 @@ from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import introspection
+from koladata.expr import tracing_mode
 from koladata.expr import view
 from koladata.operators import kde_operators
 from koladata.operators import view_overloads
@@ -26,6 +27,7 @@ from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import ellipsis
 from koladata.types import jagged_shape
+
 
 kde = kde_operators.kde
 C = input_container.InputContainer('C')
@@ -48,6 +50,14 @@ class KodaViewTest(parameterized.TestCase):
     # Clear the view.
     arolla.abc.set_expr_view_for_registered_operator('test.op', None)
     super().tearDown()
+
+  # To be overridden by KodaViewWithTracingTest subclass below.
+  def assert_exprs_equal(self, actual_expr, expected_expr):
+    testing.assert_equal(actual_expr, expected_expr)
+
+  # To be overridden by KodaViewWithTracingTest subclass below.
+  def assert_non_deterministic_exprs_equal(self, actual_expr, expected_expr):
+    testing.assert_non_deterministic_exprs_equal(actual_expr, expected_expr)
 
   def test_expr_view_tag(self):
     self.assertTrue(view.has_koda_view(op()))
@@ -76,454 +86,464 @@ class KodaViewTest(parameterized.TestCase):
     testing.assert_equal(introspection.unwrap_named(expr), op(1, 2, 3))
 
   def test_get_attr(self):
-    testing.assert_equal(C.x.val, kde.get_attr(C.x, 'val'))
+    self.assert_exprs_equal(C.x.val, kde.get_attr(C.x, 'val'))
 
   def test_maybe(self):
-    testing.assert_equal(C.x.maybe('val'), kde.maybe(C.x, 'val'))
+    self.assert_exprs_equal(C.x.maybe('val'), kde.maybe(C.x, 'val'))
 
   def test_has_attr(self):
-    testing.assert_equal(C.x.has_attr('val'), kde.has_attr(C.x, 'val'))
+    self.assert_exprs_equal(C.x.has_attr('val'), kde.has_attr(C.x, 'val'))
 
   def test_is_empty(self):
-    testing.assert_equal(C.x.is_empty(), kde.is_empty(C.x))
+    self.assert_exprs_equal(C.x.is_empty(), kde.is_empty(C.x))
 
   def test_slicing_helper(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.S[C.s1], kde.slices._subslice_for_slicing_helper(C.x, C.s1)
     )
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.S[C.s1, C.s2],
         kde.slices._subslice_for_slicing_helper(C.x, C.s1, C.s2),
     )
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.S[C.s1, 1:2],
         kde.slices._subslice_for_slicing_helper(
             C.x, C.s1, arolla.types.Slice(ds(1), ds(2))
         ),
     )
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.S[C.s1, ...],
         kde.slices._subslice_for_slicing_helper(C.x, C.s1, ellipsis.ellipsis()),
     )
 
   def test_list_slicing_helper(self):
     _ = C.x.L[C.s1]
-    testing.assert_equal(C.x.L[C.s1], kde.slices.subslice(C.x, C.s1, ...))
-    testing.assert_equal(
+    self.assert_exprs_equal(C.x.L[C.s1], kde.slices.subslice(C.x, C.s1, ...))
+    self.assert_exprs_equal(
         C.x.L[1:2],
         kde.slices.subslice(C.x, arolla.types.Slice(ds(1), ds(2)), ...),
     )
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.L[1:],
         kde.slices.subslice(C.x, arolla.types.Slice(ds(1), None), ...),
     )
 
   def test_get_item(self):
-    testing.assert_equal(C.x[C.s], view_overloads.get_item(C.x, C.s))
-    testing.assert_equal(
+    self.assert_exprs_equal(C.x[C.s], view_overloads.get_item(C.x, C.s))
+    self.assert_exprs_equal(
         C.x[slice(1, 2)],
         view_overloads.get_item(C.x, arolla.types.Slice(ds(1), ds(2))),
     )
-    testing.assert_equal(C.x['a'], view_overloads.get_item(C.x, ds('a')))
+    self.assert_exprs_equal(C.x['a'], view_overloads.get_item(C.x, ds('a')))
 
   def test_add(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.val + C.y, kde.math.add(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) + C.y, kde.math.add(1, C.y))
+    self.assert_exprs_equal(ds(1) + C.y, kde.math.add(1, C.y))
 
   def test_radd(self):
-    testing.assert_equal(C.x.__radd__(C.y), kde.math.add(C.y, C.x))
+    self.assert_exprs_equal(C.x.__radd__(C.y), kde.math.add(C.y, C.x))
 
   def test_sub(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.val - C.y, kde.math.subtract(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) - C.y, kde.math.subtract(1, C.y))
+    self.assert_exprs_equal(ds(1) - C.y, kde.math.subtract(1, C.y))
 
   def test_rsub(self):
-    testing.assert_equal(C.x.__rsub__(C.y), kde.math.subtract(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rsub__(C.y), kde.math.subtract(C.y, C.x))
 
   def test_mul(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.val * C.y, kde.math.multiply(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) * C.y, kde.math.multiply(1, C.y))
+    self.assert_exprs_equal(ds(1) * C.y, kde.math.multiply(1, C.y))
 
   def test_rmul(self):
-    testing.assert_equal(C.x.__rmul__(C.y), kde.math.multiply(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rmul__(C.y), kde.math.multiply(C.y, C.x))
 
   def test_div(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.val / C.y, kde.math.divide(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) / C.y, kde.math.divide(1, C.y))
+    self.assert_exprs_equal(ds(1) / C.y, kde.math.divide(1, C.y))
 
   def test_rdiv(self):
-    testing.assert_equal(C.x.__rtruediv__(C.y), kde.math.divide(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rtruediv__(C.y), kde.math.divide(C.y, C.x))
 
   def test_floordiv(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.val // C.y, kde.math.floordiv(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) // C.y, kde.math.floordiv(1, C.y))
+    self.assert_exprs_equal(ds(1) // C.y, kde.math.floordiv(1, C.y))
 
   def test_rfloordiv(self):
-    testing.assert_equal(C.x.__rfloordiv__(C.y), kde.math.floordiv(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rfloordiv__(C.y), kde.math.floordiv(C.y, C.x))
 
   def test_mod(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.val % C.y, kde.math.mod(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) % C.y, kde.math.mod(1, C.y))
+    self.assert_exprs_equal(ds(1) % C.y, kde.math.mod(1, C.y))
 
   def test_rmod(self):
-    testing.assert_equal(C.x.__rmod__(C.y), kde.math.mod(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rmod__(C.y), kde.math.mod(C.y, C.x))
 
   def test_pow(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.val**C.y, kde.math.pow(kde.get_attr(C.x, 'val'), C.y)
     )
-    testing.assert_equal(ds(1) ** C.y, kde.math.pow(1, C.y))
+    self.assert_exprs_equal(ds(1) ** C.y, kde.math.pow(1, C.y))
 
   def test_rpow(self):
-    testing.assert_equal(C.x.__rpow__(C.y), kde.math.pow(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rpow__(C.y), kde.math.pow(C.y, C.x))
 
   def test_eq(self):
-    testing.assert_equal(C.x == C.y, kde.equal(C.x, C.y))
-    testing.assert_equal(ds(1) == C.y, kde.equal(C.y, 1))
+    self.assert_exprs_equal(C.x == C.y, kde.equal(C.x, C.y))
+    self.assert_exprs_equal(ds(1) == C.y, kde.equal(C.y, 1))
 
   def test_ne(self):
-    testing.assert_equal(C.x != C.y, kde.not_equal(C.x, C.y))
-    testing.assert_equal(ds(1) != C.y, kde.not_equal(C.y, 1))
+    self.assert_exprs_equal(C.x != C.y, kde.not_equal(C.x, C.y))
+    self.assert_exprs_equal(ds(1) != C.y, kde.not_equal(C.y, 1))
 
   def test_gt(self):
-    testing.assert_equal(C.x > C.y, kde.greater(C.x, C.y))
-    testing.assert_equal(ds(1) > C.y, kde.less(C.y, 1))
+    self.assert_exprs_equal(C.x > C.y, kde.greater(C.x, C.y))
+    self.assert_exprs_equal(ds(1) > C.y, kde.less(C.y, 1))
 
   def test_ge(self):
-    testing.assert_equal(C.x >= C.y, kde.greater_equal(C.x, C.y))
-    testing.assert_equal(ds(1) >= C.y, kde.less_equal(C.y, 1))
+    self.assert_exprs_equal(C.x >= C.y, kde.greater_equal(C.x, C.y))
+    self.assert_exprs_equal(ds(1) >= C.y, kde.less_equal(C.y, 1))
 
   def test_lt(self):
-    testing.assert_equal(C.x < C.y, kde.less(C.x, C.y))
-    testing.assert_equal(ds(1) < C.y, kde.greater(C.y, 1))
+    self.assert_exprs_equal(C.x < C.y, kde.less(C.x, C.y))
+    self.assert_exprs_equal(ds(1) < C.y, kde.greater(C.y, 1))
 
   def test_le(self):
-    testing.assert_equal(C.x <= C.y, kde.less_equal(C.x, C.y))
-    testing.assert_equal(ds(1) <= C.y, kde.greater_equal(C.y, 1))
+    self.assert_exprs_equal(C.x <= C.y, kde.less_equal(C.x, C.y))
+    self.assert_exprs_equal(ds(1) <= C.y, kde.greater_equal(C.y, 1))
 
   def test_and(self):
-    testing.assert_equal(C.x & C.y, kde.apply_mask(C.x, C.y))
-    testing.assert_equal(ds(1) & C.y, kde.apply_mask(1, C.y))
+    self.assert_exprs_equal(C.x & C.y, kde.apply_mask(C.x, C.y))
+    self.assert_exprs_equal(ds(1) & C.y, kde.apply_mask(1, C.y))
 
   def test_rand(self):
-    testing.assert_equal(C.x.__rand__(C.y), kde.apply_mask(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rand__(C.y), kde.apply_mask(C.y, C.x))
 
   def test_or(self):
-    testing.assert_equal(C.x | C.y, kde.coalesce(C.x, C.y))
-    testing.assert_equal(ds(1) | C.y, kde.coalesce(1, C.y))
+    self.assert_exprs_equal(C.x | C.y, kde.coalesce(C.x, C.y))
+    self.assert_exprs_equal(ds(1) | C.y, kde.coalesce(1, C.y))
 
   def test_ror(self):
-    testing.assert_equal(C.x.__ror__(C.y), kde.coalesce(C.y, C.x))
+    self.assert_exprs_equal(C.x.__ror__(C.y), kde.coalesce(C.y, C.x))
 
   def test_xor(self):
-    testing.assert_equal(C.x ^ C.y, kde.xor(C.x, C.y))
-    testing.assert_equal(ds(1) ^ C.y, kde.xor(1, C.y))
+    self.assert_exprs_equal(C.x ^ C.y, kde.xor(C.x, C.y))
+    self.assert_exprs_equal(ds(1) ^ C.y, kde.xor(1, C.y))
 
   def test_rxor(self):
-    testing.assert_equal(C.x.__rxor__(C.y), kde.xor(C.y, C.x))
+    self.assert_exprs_equal(C.x.__rxor__(C.y), kde.xor(C.y, C.x))
 
   def test_invert(self):
-    testing.assert_equal(~C.x, kde.has_not(C.x))
+    self.assert_exprs_equal(~C.x, kde.has_not(C.x))
 
   def test_neg(self):
-    testing.assert_equal(-C.x, kde.math.neg(C.x))
+    self.assert_exprs_equal(-C.x, kde.math.neg(C.x))
 
   def test_pos(self):
-    testing.assert_equal(+C.x, kde.math.pos(C.x))
+    self.assert_exprs_equal(+C.x, kde.math.pos(C.x))
 
   def test_call(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x(C.y, foo=C.z), kde.call(C.x, C.y, foo=C.z)
     )
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x(C.y, return_type_as=C.t, foo=C.z),
         kde.call(C.x, C.y, return_type_as=C.t, foo=C.z),
     )
 
   def test_reshape(self):
-    testing.assert_equal(C.x.reshape(C.y), kde.reshape(C.x, C.y))
+    self.assert_exprs_equal(C.x.reshape(C.y), kde.reshape(C.x, C.y))
 
   def test_reshape_as(self):
-    testing.assert_equal(C.x.reshape_as(C.y), kde.reshape_as(C.x, C.y))
+    self.assert_exprs_equal(C.x.reshape_as(C.y), kde.reshape_as(C.x, C.y))
 
   def test_flatten(self):
-    testing.assert_equal(C.x.flatten(), kde.flatten(C.x))
-    testing.assert_equal(C.x.flatten(C.from_dim), kde.flatten(C.x, C.from_dim))
-    testing.assert_equal(
+    self.assert_exprs_equal(C.x.flatten(), kde.flatten(C.x))
+    self.assert_exprs_equal(
+        C.x.flatten(C.from_dim), kde.flatten(C.x, C.from_dim)
+    )
+    self.assert_exprs_equal(
         C.x.flatten(to_dim=C.to_dim), kde.flatten(C.x, to_dim=C.to_dim)
     )
 
   def test_flatten_end(self):
-    testing.assert_equal(C.x.flatten_end(), kde.flatten_end(C.x))
-    testing.assert_equal(
+    self.assert_exprs_equal(C.x.flatten_end(), kde.flatten_end(C.x))
+    self.assert_exprs_equal(
         C.x.flatten_end(C.n_times), kde.flatten_end(C.x, C.n_times)
     )
 
   def test_repeat(self):
-    testing.assert_equal(C.x.repeat(C.sizes), kde.repeat(C.x, C.sizes))
+    self.assert_exprs_equal(C.x.repeat(C.sizes), kde.repeat(C.x, C.sizes))
 
   def test_select(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.select(C.fltr), kde.select(C.x, C.fltr)
     )
 
   def test_select_present(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.select_present(), kde.select_present(C.x)
     )
 
   def test_select_items(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.select_items(C.fltr), kde.select_items(C.x, C.fltr)
     )
 
   def test_select_keys(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.select_keys(C.fltr), kde.select_keys(C.x, C.fltr)
     )
 
   def test_select_values(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.select_values(C.fltr), kde.select_values(C.x, C.fltr)
     )
 
   def test_expand_to(self):
-    testing.assert_equal(C.x.expand_to(C.target), kde.expand_to(C.x, C.target))
-    testing.assert_equal(
+    self.assert_exprs_equal(
+        C.x.expand_to(C.target), kde.expand_to(C.x, C.target)
+    )
+    self.assert_exprs_equal(
         C.x.expand_to(C.target, ndim=C.ndim),
         kde.expand_to(C.x, C.target, ndim=C.ndim),
     )
 
   def test_extract(self):
-    testing.assert_equal(C.x.extract(), kde.extract(C.x))
+    self.assert_exprs_equal(C.x.extract(), kde.extract(C.x))
 
   def test_extract_bag(self):
-    testing.assert_equal(C.x.extract_bag(), kde.extract_bag(C.x))
+    self.assert_exprs_equal(C.x.extract_bag(), kde.extract_bag(C.x))
 
   def test_clone(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.clone(schema=C.schema, a=C.a),
         kde.clone(C.x, schema=C.schema, a=C.a),
     )
 
   def test_shallow_clone(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.shallow_clone(schema=C.schema, a=C.a),
         kde.shallow_clone(C.x, schema=C.schema, a=C.a),
     )
 
   def test_deep_clone(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.deep_clone(C.schema, a=C.a), kde.deep_clone(C.x, C.schema, a=C.a)
     )
 
   def test_deep_uuid(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.deep_uuid(C.schema, seed=C.a),
         kde.deep_uuid(C.x, C.schema, seed=C.a),
     )
 
   def test_list_size(self):
-    testing.assert_equal(C.x.list_size(), kde.list_size(C.x))
+    self.assert_exprs_equal(C.x.list_size(), kde.list_size(C.x))
 
   def test_dict_size(self):
-    testing.assert_equal(C.x.dict_size(), kde.dict_size(C.x))
+    self.assert_exprs_equal(C.x.dict_size(), kde.dict_size(C.x))
 
   def test_with_dict_update(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.with_dict_update(C.keys, C.values),
         kde.with_dict_update(C.x, C.keys, C.values),
     )
 
   def test_with_list_append_update(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.with_list_append_update(C.append),
         kde.with_list_append_update(C.x, C.append),
     )
 
   def test_follow(self):
-    testing.assert_equal(C.x.follow(), kde.follow(C.x))
+    self.assert_exprs_equal(C.x.follow(), kde.follow(C.x))
 
   def test_freeze(self):
-    testing.assert_equal(C.x.freeze(), kde.freeze(C.x))
+    self.assert_exprs_equal(C.x.freeze(), kde.freeze(C.x))
 
   def test_freeze_bag(self):
-    testing.assert_equal(C.x.freeze_bag(), kde.freeze_bag(C.x))
+    self.assert_exprs_equal(C.x.freeze_bag(), kde.freeze_bag(C.x))
 
   def test_ref(self):
-    testing.assert_equal(C.x.ref(), kde.ref(C.x))
+    self.assert_exprs_equal(C.x.ref(), kde.ref(C.x))
 
   def test_get_itemid(self):
-    testing.assert_equal(C.x.get_itemid(), kde.get_itemid(C.x))
+    self.assert_exprs_equal(C.x.get_itemid(), kde.get_itemid(C.x))
 
   def test_get_obj_schema(self):
-    testing.assert_equal(C.x.get_obj_schema(), kde.get_obj_schema(C.x))
+    self.assert_exprs_equal(C.x.get_obj_schema(), kde.get_obj_schema(C.x))
 
   def test_with_schema_from_obj(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.with_schema_from_obj(), kde.with_schema_from_obj(C.x)
     )
 
   def test_with_schema(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.with_schema(C.schema), kde.with_schema(C.x, C.schema)
     )
 
   def test_get_schema(self):
-    testing.assert_equal(C.x.get_schema(), kde.get_schema(C.x))
+    self.assert_exprs_equal(C.x.get_schema(), kde.get_schema(C.x))
 
   def test_get_item_schema(self):
-    testing.assert_equal(C.x.get_item_schema(), kde.get_item_schema(C.x))
+    self.assert_exprs_equal(C.x.get_item_schema(), kde.get_item_schema(C.x))
 
   def test_get_key_schema(self):
-    testing.assert_equal(C.x.get_key_schema(), kde.get_key_schema(C.x))
+    self.assert_exprs_equal(C.x.get_key_schema(), kde.get_key_schema(C.x))
 
   def test_get_value_schema(self):
-    testing.assert_equal(C.x.get_value_schema(), kde.get_value_schema(C.x))
+    self.assert_exprs_equal(C.x.get_value_schema(), kde.get_value_schema(C.x))
 
   def test_get_shape(self):
-    testing.assert_equal(C.x.get_shape(), kde.get_shape(C.x))
+    self.assert_exprs_equal(C.x.get_shape(), kde.get_shape(C.x))
 
   def test_get_ndim(self):
-    testing.assert_equal(C.x.get_ndim(), kde.get_ndim(C.x))
+    self.assert_exprs_equal(C.x.get_ndim(), kde.get_ndim(C.x))
 
   def test_get_dtype(self):
-    testing.assert_equal(C.x.get_dtype(), kde.get_dtype(C.x))
+    self.assert_exprs_equal(C.x.get_dtype(), kde.get_dtype(C.x))
 
   def test_get_attr_with_default(self):
-    testing.assert_equal(C.x.get_attr(C.attr), kde.get_attr(C.x, C.attr))
-    testing.assert_equal(
+    self.assert_exprs_equal(C.x.get_attr(C.attr), kde.get_attr(C.x, C.attr))
+    self.assert_exprs_equal(
         C.x.get_attr(C.attr, default=C.default),
         kde.get_attr(C.x, C.attr, default=C.default),
     )
 
   def test_stub(self):
-    testing.assert_equal(C.x.stub(), kde.stub(C.x))
+    self.assert_exprs_equal(C.x.stub(), kde.stub(C.x))
 
   def test_with_attrs(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.with_attrs(a=C.a, overwrite_schema=False),
         kde.with_attrs(C.x, a=C.a, overwrite_schema=False),
     )
 
   def test_with_attr(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.with_attr('a', C.a, overwrite_schema=False),
         kde.with_attr(C.x, 'a', C.a, overwrite_schema=False),
     )
 
   def test_new(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.new(a=C.a, b=C.b), kde.new(schema=C.x, a=C.a, b=C.b)
     )
 
   def test_take(self):
-    testing.assert_equal(C.x.take(C.indices), kde.take(C.x, C.indices))
+    self.assert_exprs_equal(C.x.take(C.indices), kde.take(C.x, C.indices))
 
   def test_implode(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.x.implode(1), kde.implode(C.x, 1)
     )
 
   def test_explode(self):
-    testing.assert_equal(C.x.explode(1), kde.explode(C.x, 1))
+    self.assert_exprs_equal(C.x.explode(1), kde.explode(C.x, 1))
 
   def test_with_bag(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.with_bag(C.y.get_bag()), kde.with_bag(C.x, C.y.get_bag())
     )
 
   def test_get_size(self):
-    testing.assert_equal(C.x.get_size(), kde.size(C.x))
+    self.assert_exprs_equal(C.x.get_size(), kde.size(C.x))
 
   def test_get_sizes(self):
-    testing.assert_equal(C.x.get_sizes(), kde.shapes.get_sizes(C.x))
+    self.assert_exprs_equal(C.x.get_sizes(), kde.shapes.get_sizes(C.x))
 
   def test_get_keys(self):
-    testing.assert_equal(C.x.get_keys(), kde.get_keys(C.x))
+    self.assert_exprs_equal(C.x.get_keys(), kde.get_keys(C.x))
 
   def test_get_nofollowed_schema(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.get_nofollowed_schema(), kde.get_nofollowed_schema(C.x)
     )
 
   def test_get_values(self):
-    testing.assert_equal(C.x.get_values(), kde.get_values(C.x))
+    self.assert_exprs_equal(C.x.get_values(), kde.get_values(C.x))
 
   def test_get_bag(self):
-    testing.assert_equal(C.x.get_bag(), kde.get_bag(C.x))
+    self.assert_exprs_equal(C.x.get_bag(), kde.get_bag(C.x))
 
   def test_no_bag(self):
-    testing.assert_equal(C.x.no_bag(), kde.no_bag(C.x))
+    self.assert_exprs_equal(C.x.no_bag(), kde.no_bag(C.x))
 
   def test_with_merged_bag(self):
-    testing.assert_equal(C.x.with_merged_bag(), kde.with_merged_bag(C.x))
+    self.assert_exprs_equal(C.x.with_merged_bag(), kde.with_merged_bag(C.x))
 
   def test_enriched(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.enriched(C.y.get_bag()), kde.enriched(C.x, C.y.get_bag())
     )
 
   def test_updated(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.updated(C.y.get_bag()), kde.updated(C.x, C.y.get_bag())
     )
 
   def test_get_present_count(self):
-    testing.assert_equal(C.x.get_present_count(), kde.count(C.x))
+    self.assert_exprs_equal(C.x.get_present_count(), kde.count(C.x))
 
   def test_is_entity(self):
-    testing.assert_equal(C.x.is_entity(), kde.is_entity(C.x))
+    self.assert_exprs_equal(C.x.is_entity(), kde.is_entity(C.x))
 
   def test_is_list(self):
-    testing.assert_equal(C.x.is_list(), kde.is_list(C.x))
+    self.assert_exprs_equal(C.x.is_list(), kde.is_list(C.x))
 
   def test_is_dict(self):
-    testing.assert_equal(C.x.is_dict(), kde.is_dict(C.x))
+    self.assert_exprs_equal(C.x.is_dict(), kde.is_dict(C.x))
 
   def test_is_dict_schema(self):
-    testing.assert_equal(C.x.is_dict_schema(), kde.schema.is_dict_schema(C.x))
+    self.assert_exprs_equal(
+        C.x.is_dict_schema(), kde.schema.is_dict_schema(C.x)
+    )
 
   def test_is_entity_schema(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.is_entity_schema(), kde.schema.is_entity_schema(C.x)
     )
 
   def test_is_struct_schema(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.is_struct_schema(), kde.schema.is_struct_schema(C.x)
     )
 
   def test_is_list_schema(self):
-    testing.assert_equal(C.x.is_list_schema(), kde.schema.is_list_schema(C.x))
+    self.assert_exprs_equal(
+        C.x.is_list_schema(), kde.schema.is_list_schema(C.x)
+    )
 
   def test_is_primitive_schema(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         C.x.is_primitive_schema(), kde.schema.is_primitive_schema(C.x)
     )
 
   def test_lshift(self):
-    testing.assert_equal(op(C.x) << op(C.y), kde.bags.updated(op(C.x), op(C.y)))
+    self.assert_exprs_equal(
+        op(C.x) << op(C.y), kde.bags.updated(op(C.x), op(C.y))
+    )
 
   def test_rshift(self):
-    testing.assert_equal(
+    self.assert_exprs_equal(
         op(C.x) >> op(C.y), kde.bags.enriched(op(C.x), op(C.y))
     )
 
   def test_bind(self):
-    testing.assert_non_deterministic_exprs_equal(
+    self.assert_non_deterministic_exprs_equal(
         C.fn.bind(x=17), kde.bind(C.fn, x=17)
     )
 
@@ -546,11 +566,11 @@ class KodaViewTest(parameterized.TestCase):
     x, y = expr
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))
-    testing.assert_equal(x, view_overloads.get_item(expr, 0))
-    testing.assert_equal(y, view_overloads.get_item(expr, 1))
+    self.assert_exprs_equal(x, view_overloads.get_item(expr, 0))
+    self.assert_exprs_equal(y, view_overloads.get_item(expr, 1))
 
-    testing.assert_equal(x, expr[ds(0)])
-    testing.assert_equal(y, expr[1])  # auto-boxing
+    self.assert_exprs_equal(x, expr[ds(0)])
+    self.assert_exprs_equal(y, expr[1])  # auto-boxing
 
     x_val = data_slice.DataSlice.from_vals(1)
     y_val = data_slice.DataSlice.from_vals(2)
@@ -561,18 +581,17 @@ class KodaViewTest(parameterized.TestCase):
     I = input_container.InputContainer('I')  # pylint: disable=invalid-name
 
     expr = arolla.M.annotation.qtype(
-        I.t,
-        arolla.make_tuple_qtype(arolla.INT32, arolla.INT32)
+        I.t, arolla.make_tuple_qtype(arolla.INT32, arolla.INT32)
     )
 
     x, y = expr
     self.assertTrue(view.has_koda_view(x))
     self.assertTrue(view.has_koda_view(y))
-    testing.assert_equal(x, view_overloads.get_item(expr, 0))
-    testing.assert_equal(y, view_overloads.get_item(expr, 1))
+    self.assert_exprs_equal(x, view_overloads.get_item(expr, 0))
+    self.assert_exprs_equal(y, view_overloads.get_item(expr, 1))
 
-    testing.assert_equal(x, expr[ds(0)])
-    testing.assert_equal(y, expr[1])  # auto-boxing
+    self.assert_exprs_equal(x, expr[ds(0)])
+    self.assert_exprs_equal(y, expr[1])  # auto-boxing
 
     x_val = arolla.int32(1)
     y_val = arolla.int32(2)
@@ -785,6 +804,28 @@ class KodaViewTest(parameterized.TestCase):
     self.assertTrue(
         view.has_koda_view(arolla.literal(jagged_shape.create_shape(2)))
     )
+
+
+class KodaViewWithTracingTest(KodaViewTest):
+
+  def setUp(self):
+    super().setUp()
+    self.enter_context(tracing_mode.enable_tracing(True))
+
+  # Not only asserts on expr equality, but also asserts that the source location
+  # is attached to the expr.
+  def assert_exprs_equal(self, actual_expr, expected_expr):
+    testing.assert_traced_exprs_equal(actual_expr, expected_expr)
+    testing.assert_equal(actual_expr.op, kde.annotation.source_location)
+
+  # Not only asserts on expr equality, but also asserts that the source location
+  # is attached to the expr.
+  def assert_non_deterministic_exprs_equal(self, actual_expr, expected_expr):
+    testing.assert_traced_non_deterministic_exprs_equal(
+        actual_expr, expected_expr
+    )
+    testing.assert_equal(actual_expr.op, kde.annotation.source_location)
+    self.assertIn('view_test.py', str(actual_expr.node_deps[2].qvalue))
 
 
 if __name__ == '__main__':

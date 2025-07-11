@@ -211,6 +211,7 @@ py_library(
         ":data_slice",
         "//py:python_path",
         "//py/koladata/expr:py_expr_eval_py_ext",
+        "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
     ],
 )

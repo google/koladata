@@ -42,6 +42,7 @@ py_library(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:py_expr_eval_py_ext",
+        "//py/koladata/expr:source_location",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/functions",
         "//py/koladata/functor:boxing",

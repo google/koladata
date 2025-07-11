@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import functools
-import inspect
 import re
 import traceback
 
@@ -186,19 +185,6 @@ class FunctorFactoriesTest(absltest.TestCase):
     testing.assert_equal(
         fn(x=fns.obj(a=1.0, b=2.0, c=3.0)),
         ds(1.0 * 2.0 + 2.0 * 3.0 + 3.0 * 4.0),
-    )
-    stacktrace_frame = fn.get_attr('__stack_trace_frame__')
-    self.assertIn(
-        'py/koladata/functor/functor_factories_test.py',
-        stacktrace_frame.file_name.to_py(),
-    )
-    self.assertEqual(
-        stacktrace_frame.function_name.to_py(),
-        'my_model',
-    )
-    self.assertEqual(
-        stacktrace_frame.line_number.to_py(),
-        inspect.getsourcelines(my_model)[1]
     )
 
     fn = functor_factories.trace_py_fn(my_model, auto_variables=False)
@@ -739,8 +725,12 @@ class FunctorFactoriesTest(absltest.TestCase):
     testing.assert_equal(kd.call(fn1, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
     testing.assert_equal(kd.call(fn2, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
     testing.assert_equal(kd.call(fn3, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
-    testing.assert_equal(introspection.unpack_expr(fn2.returns), I.x + I.y)
-    testing.assert_equal(introspection.unpack_expr(fn1.returns), I.x + I.y)
+    testing.assert_traced_exprs_equal(
+        introspection.unpack_expr(fn2.returns), I.x + I.y
+    )
+    testing.assert_traced_exprs_equal(
+        introspection.unpack_expr(fn1.returns), I.x + I.y
+    )
 
     fn4 = functor_factories.fn(lambda x, y: x + y, use_tracing=True, y=5)
     fn5 = functor_factories.fn(lambda x, y: x + y, use_tracing=False, y=5)
@@ -754,12 +744,16 @@ class FunctorFactoriesTest(absltest.TestCase):
     with self.subTest('positional-arg'):
       fn1 = functor_factories.fn(functools.partial(f, 1), use_tracing=True)
       testing.assert_equal(kd.call(fn1, y=ds([3, 4])), ds([4, 5]))
-      testing.assert_equal(introspection.unpack_expr(fn1.returns), 1 + I.y)
+      testing.assert_traced_exprs_equal(
+          introspection.unpack_expr(fn1.returns), 1 + I.y
+      )
     with self.subTest('keyword-arg'):
       fn2 = functor_factories.fn(functools.partial(f, x=2), use_tracing=True)
       testing.assert_equal(kd.call(fn2, y=ds([3, 4])), ds([5, 6]))
       testing.assert_equal(kd.call(fn2, x=ds([1, 2]), y=ds([3, 4])), ds([4, 6]))
-      testing.assert_equal(introspection.unpack_expr(fn2.returns), I.x + I.y)
+      testing.assert_traced_exprs_equal(
+          introspection.unpack_expr(fn2.returns), I.x + I.y
+      )
 
   def test_fn_existing_fn(self):
     existing_fn = functor_factories.expr_fn(I.x + I.y)

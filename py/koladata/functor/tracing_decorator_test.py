@@ -139,7 +139,9 @@ class TracingDecoratorTest(parameterized.TestCase):
     # variable, so we can use that to access the sub-function.
     testing.assert_equal(fn.f(x=1), ds(2))
     # Make sure tracing actually happened for the contents of f.
-    testing.assert_equal(introspection.unpack_expr(fn.f.returns), I.x + 1)
+    testing.assert_traced_exprs_equal(
+        introspection.unpack_expr(fn.f.returns), I.x + 1
+    )
 
   def test_two_lambdas(self):
     f1 = tracing_decorator.TraceAsFnDecorator()(lambda x: x + 1)
@@ -149,15 +151,12 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertCountEqual(
         fn.get_attr_names(intersection=True),
         [
-            '_aux_2',
-            '_aux_3',
             'returns',
             '<lambda>',
             '<lambda>_0',
             '_<lambda>_result',
             '_<lambda>_result_0',
             '__signature__',
-            '__stack_trace_frame__',
         ],
     )
 
@@ -211,14 +210,11 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertCountEqual(
         fn.get_attr_names(intersection=True),
         [
-            '_aux_1',
-            '_aux_2',
             'returns',
             'f',
             '_f_result',
             '_f_result_0',
             '__signature__',
-            '__stack_trace_frame__',
         ],
     )
 
@@ -300,15 +296,15 @@ class TracingDecoratorTest(parameterized.TestCase):
 
     fn = functor_factories.trace_py_fn(lambda x: x.updated(f(x)))
     self.assertEqual(fn(x).to_pytree(), {'foo': 1, 'bar': 2})
-    testing.assert_non_deterministic_exprs_equal(
+    testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.returns),
         I.x.updated(V._f_result),
     )
-    testing.assert_non_deterministic_exprs_equal(
+    testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.get_attr('_f_result')),
-        V.f(I.x, return_type_as=empty_bag, stack_trace_frame=V._aux_1),
+        V.f(I.x, return_type_as=empty_bag),
     )
-    testing.assert_equal(
+    testing.assert_traced_non_deterministic_exprs_equal(
         introspection.unpack_expr(fn.f.returns),
         kd_lazy.attrs(I.x, foo=1),
     )
@@ -477,7 +473,6 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertNotIn('/tracing_decorator.py', formatted_message)
     self.assertIn('/tracing_decorator_test.py', formatted_message)
     self.assertIn('f(0)', formatted_message)
-    self.assertIn('def f(x, y):', formatted_message)
 
   def test_functor_call_traceback(self):
     @tracing_decorator.TraceAsFnDecorator()
@@ -517,13 +512,11 @@ class TracingDecoratorTest(parameterized.TestCase):
     )
     self.assertIn('baz = functor_factories.fn(baz)', tb)
     self.assertRegex(tb, 'tracing_decorator_test.py.*baz')
-    self.assertIn('def baz(x):', tb)
     self.assertIn('return 1 // bar(x)', tb)
     self.assertRegex(tb, 'tracing_decorator_test.py.*bar')
-    self.assertIn('def bar(x):', tb)
     self.assertIn('return 1 // foo(x)', tb)
     self.assertRegex(tb, 'tracing_decorator_test.py.*foo')
-    self.assertIn('def foo(x):', tb)
+    self.assertIn('return 1 // x', tb)
 
   def test_autoboxing_functor_call_traceback(self):
     @tracing_decorator.TraceAsFnDecorator()
@@ -557,7 +550,6 @@ class TracingDecoratorTest(parameterized.TestCase):
         tb, 'tracing_decorator_test.py.*test_autoboxing_functor_call_traceback'
     )
     self.assertIn('return user_facing_kd.if_(', tb)
-    self.assertRegex(tb, 'tracing_decorator_test.py.*<lambda>')
     self.assertIn('lambda a: 1 // a,', tb)
 
 

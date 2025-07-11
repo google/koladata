@@ -474,11 +474,18 @@ class KdTest(absltest.TestCase):
 
   def test_tracing_for_ops(self):
     with tracing_mode.enable_tracing():
-      sum_op = kd.sum
+      sum_expr = kd.sum(I.x)
+
+    kd.testing.assert_equal(sum_expr.op, kd.lazy.annotation.source_location)
+    sum_op = sum_expr.node_deps[0].op
+
     kd.testing.assert_equal(sum_op, kd.lazy.sum)
     with tracing_mode.enable_tracing():
-      math_abs_op = kd.math.abs
-    kd.testing.assert_equal(math_abs_op, kd.lazy.math.abs)
+      math_abs_expr = kd.math.abs(I.x)
+    kd.testing.assert_equal(
+        math_abs_expr.op, kd.lazy.annotation.source_location
+    )
+    kd.testing.assert_equal(math_abs_expr.node_deps[0].op, kd.lazy.math.abs)
 
   def test_tracing_for_functions_error(self):
     with tracing_mode.enable_tracing():
@@ -497,11 +504,13 @@ class KdTest(absltest.TestCase):
   def test_tracing_for_with_name(self):
     with tracing_mode.enable_tracing():
       with_name_expr = kd.with_name(1, 'foo')
-    kd.testing.assert_equal(with_name_expr, kd.lazy.with_name(1, 'foo'))
+    kd.testing.assert_traced_exprs_equal(
+        with_name_expr, kd.lazy.with_name(1, 'foo')
+    )
 
     with tracing_mode.enable_tracing():
       with_name_expr = kd.annotation.with_name(1, 'foo')
-    kd.testing.assert_equal(
+    kd.testing.assert_traced_exprs_equal(
         with_name_expr, kd.lazy.annotation.with_name(1, 'foo')
     )
 
@@ -582,14 +591,14 @@ class KdTest(absltest.TestCase):
       return f(x) + 2
 
     fn = kd.trace_py_fn(g)
-    kd.testing.assert_non_deterministic_exprs_equal(
+    kd.testing.assert_traced_non_deterministic_exprs_equal(
         kd.expr.unpack_expr(fn.returns), V._f_result + 2
     )
-    kd.testing.assert_non_deterministic_exprs_equal(
+    kd.testing.assert_traced_non_deterministic_exprs_equal(
         kd.expr.unpack_expr(fn.get_attr('_f_result')),
-        V.f(I.x, stack_trace_frame=V._aux_1),
+        V.f(I.x, stack_trace_frame=None),
     )
-    kd.testing.assert_non_deterministic_exprs_equal(
+    kd.testing.assert_traced_non_deterministic_exprs_equal(
         kd.expr.unpack_expr(fn.f.returns), I.x + 1
     )
 
@@ -708,7 +717,9 @@ class KdTest(absltest.TestCase):
   def test_trace_py_fn(self):
     fn = kd.trace_py_fn(lambda x, y: x + y)
     kd.testing.assert_equal(fn(x=1, y=2), kd.item(3))
-    kd.testing.assert_equal(kd.expr.unpack_expr(fn.returns), I.x + I.y)
+    kd.testing.assert_traced_exprs_equal(
+        kd.expr.unpack_expr(fn.returns), I.x + I.y
+    )
 
   def test_py_fn(self):
     fn = kd.py_fn(lambda x, y: x + 1 if y == 2 else x + 3)

@@ -31,19 +31,40 @@ class TracingTest(absltest.TestCase):
 
   def test_simple(self):
     e = tracing.trace(lambda x, y: x + y)
-    testing.assert_equal(e, I.x + I.y)
+    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.node_deps[0], I.x + I.y)
+
+  def test_several_operators(self):
+    e = tracing.trace(lambda x, y, z: x + y + z)
+    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.node_deps[0], e.node_deps[0].node_deps[0] + I.z)
+    testing.assert_equal(
+        e.node_deps[0].node_deps[0].op, kde.annotation.source_location
+    )
+    testing.assert_equal(e.node_deps[0].node_deps[0].node_deps[0], I.x + I.y)
+
+  def test_explicit_lazy_operator_usage(self):
+    e = tracing.trace(lambda x, y, z: kde.math.add(x + y, z))
+    # No source location for explicit usage of kde.math.add.
+    testing.assert_equal(e, e.node_deps[0] + I.z)
+    # But the inner "+" got a source location.
+    testing.assert_equal(e.node_deps[0].op, kde.annotation.source_location)
+    testing.assert_equal(e.node_deps[0].node_deps[0], I.x + I.y)
 
   def test_ops(self):
     e = tracing.trace(lambda x: kd.sum(x))  # pylint: disable=unnecessary-lambda
-    testing.assert_equal(e, kde.sum(I.x))
+    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.node_deps[0], kde.sum(I.x))
 
   def test_ops_in_namespace(self):
     e = tracing.trace(lambda x: kd.math.abs(x))  # pylint: disable=unnecessary-lambda
-    testing.assert_equal(e, kde.math.abs(I.x))
+    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.node_deps[0], kde.math.abs(I.x))
 
   def test_keyword_only(self):
     e = tracing.trace(lambda x, *, y: x + y)
-    testing.assert_equal(e, I.x + I.y)
+    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_kd_constants(self):
     e = tracing.trace(lambda: kd.OBJECT)
@@ -52,6 +73,7 @@ class TracingTest(absltest.TestCase):
 
   def test_fstr(self):
     e = tracing.trace(lambda x: kd.fstr(f'{x:s}'))  # pylint: disable=unnecessary-lambda
+    # TODO: b/425293814 - Why kd.fstr is not getting annotated?
     testing.assert_equal(e, kde.fstr(f'{I.x:s}'))
 
   def test_kd_constants_in_slice(self):
@@ -71,11 +93,13 @@ class TracingTest(absltest.TestCase):
 
   def test_defaults_ignored(self):
     e = tracing.trace(lambda x=1, *, y=2: x + y)
-    testing.assert_equal(e, I.x + I.y)
+    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_positional_only(self):
     e = tracing.trace(lambda x, /, y: x + y)
-    testing.assert_equal(e, I.x + I.y)
+    testing.assert_equal(e.op, kde.annotation.source_location)
+    testing.assert_equal(e.node_deps[0], I.x + I.y)
 
   def test_other_types_not_allowed(self):
     with self.assertRaisesRegex(
@@ -198,7 +222,9 @@ class TracingTest(absltest.TestCase):
       del y
       return x
 
-    kd.testing.assert_equal(tracing.trace(fn).eval(x=kd.slice(1)), kd.slice(1))
+    testing.assert_traced_exprs_equal(
+        tracing.trace(fn).eval(x=kd.slice(1)), kd.slice(1)
+    )
 
   def test_extra_input_in_expr_error(self):
     def fn(x, *, y):

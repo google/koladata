@@ -18,6 +18,8 @@ from koladata import kd
 from koladata.expr import introspection
 from koladata.expr import tracing_mode
 from koladata.functor import expr_container
+from koladata.testing import testing
+
 
 kde = kd.lazy
 I = kd.I
@@ -85,10 +87,10 @@ class ExprContainerTest(absltest.TestCase):
 
     fn = kdf.fn(f)
     self.assertEqual(fn(5), 7)
-    arolla.testing.assert_expr_equal_by_fingerprint(
+    testing.assert_traced_exprs_equal(
         introspection.unpack_expr(fn.get_attr('updated')), V.original + 2
     )
-    arolla.testing.assert_expr_equal_by_fingerprint(
+    testing.assert_traced_exprs_equal(
         introspection.unpack_expr(fn.original), I.x
     )
 

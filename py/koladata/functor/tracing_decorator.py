@@ -23,7 +23,6 @@ from typing import Any, Callable
 from arolla import arolla
 from koladata.expr import tracing_mode
 from koladata.functor import functor_factories
-from koladata.functor import stack_trace
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import py_boxing
@@ -317,7 +316,6 @@ class TraceAsFnDecorator:
             *bound.args,
             **bound.kwargs,
             return_type_as=return_type_as,
-            stack_trace_frame=stack_trace.current_frame(),
         ).with_name(f'_{name}_result')
       else:
         res = kd_fn(*bound.args, **bound.kwargs)

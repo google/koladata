@@ -86,7 +86,6 @@ class BoxingTest(absltest.TestCase):
             '_aux_0',
             '_aux_1',
             '__signature__',
-            '__stack_trace_frame__',
         ],
     )
     # We do not want to enforce which of 0/1 corresponds to which of yes/no.
@@ -100,8 +99,6 @@ class BoxingTest(absltest.TestCase):
             'no',
             '_no_result',
             '__signature__',
-            '_aux_1',
-            '__stack_trace_frame__',
         ],
     )
 

@@ -47,6 +47,7 @@ py_test(
         "//py/koladata:kd",
         "//py/koladata/expr:introspection",
         "//py/koladata/expr:tracing_mode",
+        "//py/koladata/testing",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
     ],
@@ -147,7 +148,6 @@ py_library(
     srcs = ["functor_factories.py"],
     deps = [
         ":py_functors_py_ext",
-        ":stack_trace",
         "//koladata/expr:expr_operators",
         "//py:python_path",
         "//py/koladata/base:py_functors_base_py_ext",
@@ -222,7 +222,6 @@ py_library(
     srcs = ["tracing_decorator.py"],
     deps = [
         ":functor_factories",
-        ":stack_trace",
         "//py:python_path",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/types:data_bag",

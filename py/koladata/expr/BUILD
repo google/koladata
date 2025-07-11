@@ -60,11 +60,14 @@ py_library(
         ":expr_eval",
         ":input_container",
         ":introspection",
+        ":source_location",
+        ":tracing_mode",
         "//py:python_path",
         "//py/koladata/fstring",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:qtypes",
         "//py/koladata/types:schema_constants",
+        "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -112,7 +115,6 @@ py_test(
         ":tracing_mode",
         "//py:python_path",
         "@com_google_absl_py//absl/testing:absltest",
-        "@com_google_arolla//py/arolla",
     ],
 )
 
@@ -194,6 +196,7 @@ py_test(
     deps = [
         ":input_container",
         ":introspection",
+        ":tracing_mode",
         ":view",
         "//py:python_path",
         "//py/koladata/operators:kde_operators",

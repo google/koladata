@@ -25,7 +25,6 @@ from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing
 from koladata.functor import py_functors_py_ext
-from koladata.functor import stack_trace
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.operators import optools
@@ -147,11 +146,7 @@ def trace_py_fn(
   )
   if f.__doc__ is not None:
     traced_f = traced_f.with_attr('__doc__', f.__doc__)
-  stack_frame = stack_trace.function_frame(f)
-  if stack_frame is not None:
-    traced_f = traced_f.with_attr(
-        py_functors_py_ext.STACK_TRACE_FRAME_ATTR, stack_frame
-    )
+
   return bind(traced_f, **defaults) if defaults else traced_f
 
 
