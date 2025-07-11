@@ -148,6 +148,7 @@ py_test(
         ":source_location",
         "//py:python_path",
         "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
         "//py/koladata/util:kd_functools",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",

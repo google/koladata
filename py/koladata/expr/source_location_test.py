@@ -16,10 +16,12 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import source_location
-from koladata.operators import kde_operators as _
+from koladata.operators import kde_operators
+from koladata.testing import testing
 from koladata.util import kd_functools
 
 I = input_container.InputContainer('I')
+kd_lazy = kde_operators.kde
 
 
 class SourceLocationTest(absltest.TestCase):
@@ -57,6 +59,52 @@ class SourceLocationTest(absltest.TestCase):
         annotated_expr.node_deps[5].qvalue,
         arolla.text('      return foo()'),
     )
+
+  def test_attaching_source_location(self):
+    @arolla.optools.add_to_registry(unsafe_override=True)
+    @arolla.optools.as_lambda_operator('test.plus_one')
+    def plus_one(x):
+      return x + 1
+
+    plus_one_with_source_location = source_location.attaching_source_location(
+        plus_one
+    )
+
+    with self.subTest('wraps_operator'):
+      self.assertTrue(callable(plus_one_with_source_location))
+      expr = plus_one_with_source_location(I.x)
+      testing.assert_traced_exprs_equal(expr, plus_one(I.x))
+      testing.assert_equal(expr.op, kd_lazy.annotation.source_location)
+      self.assertIn('source_location_test.py', str(expr.node_deps[2].qvalue))
+
+    container = source_location.attaching_source_location(
+        arolla.OperatorsContainer(
+            unsafe_extra_namespaces=['test', 'test.subcontainer']
+        )
+    )
+    self.assertIsInstance(container, source_location._OperatorsContainerWrapper)
+    self.assertIsInstance(
+        container.test, source_location._OperatorsContainerWrapper
+    )
+
+    with self.subTest('wraps_container'):
+      expr = container.test.plus_one(I.x)
+      testing.assert_traced_exprs_equal(expr, plus_one(I.x))
+      testing.assert_equal(expr.op, kd_lazy.annotation.source_location)
+      self.assertIn('source_location_test.py', str(expr.node_deps[2].qvalue))
+
+    with self.subTest('wraps_nested_container'):
+      self.assertIsInstance(
+          container.test.subcontainer,
+          source_location._OperatorsContainerWrapper,
+      )
+      nested_plus_one = arolla.optools.add_to_registry(
+          'test.subcontainer.plus_one', unsafe_override=True
+      )(plus_one)
+      expr = container.test.subcontainer.plus_one(I.x)
+      testing.assert_traced_exprs_equal(expr, nested_plus_one(I.x))
+      testing.assert_equal(expr.op, kd_lazy.annotation.source_location)
+      self.assertIn('source_location_test.py', str(expr.node_deps[2].qvalue))
 
 
 if __name__ == '__main__':

@@ -14,8 +14,10 @@
 
 """Utilities for working with source location annotations."""
 
-
+from collections.abc import Callable
+import functools
 import linecache
+from typing import Any, Self
 
 from arolla import arolla
 from koladata.util import kd_functools
@@ -53,3 +55,53 @@ def annotate_with_current_source_location(expr: arolla.Expr) -> arolla.Expr:
       column=arolla.int32(0),
       line_text=arolla.text(line_text),
   )
+
+
+class _OperatorsContainerWrapper:
+  """Wraps arolla.OperatorsContainer to attach source locations."""
+
+  _HAS_DYNAMIC_ATTRIBUTES = True
+
+  def __init__(self, container: arolla.OperatorsContainer):
+    self._container = container
+
+  def __getattr__(self, key: str) -> Callable[..., Any] | Self:
+    res = getattr(self._container, key)
+    return attaching_source_location(res)
+
+
+def attaching_source_location(
+    op_or_container,
+) -> Callable[..., Any] | _OperatorsContainerWrapper:
+  """Wraps an operator / OperatorsContainer to attach source locations.
+
+  Args:
+    op_or_container: The operator or OperatorsContainer to wrap.
+
+  Returns:
+    A callable or an object that mimics the behavior of the operator /
+    OperatorsContainer provided, but attaches source location to the resulting
+    expression.
+  """
+  if isinstance(op_or_container, arolla.types.Operator):
+
+    @kd_functools.skip_from_functor_stack_trace
+    @functools.wraps(op_or_container)
+    def wrapper(*args, **kwargs):
+      bound = op_or_container(*args, **kwargs)
+      if not isinstance(bound, arolla.Expr):
+        raise TypeError(
+            'unsupported result of operator binding: expected'
+            f' Expr, got {type(bound)}'
+        )
+      return annotate_with_current_source_location(bound)
+
+    return wrapper
+
+  elif isinstance(op_or_container, arolla.OperatorsContainer):
+    return _OperatorsContainerWrapper(op_or_container)
+  else:
+    raise AssertionError(
+        'attaching_source_location supports only operators and'
+        f' OperatorsContainers, got: {type(op_or_container)}'
+    )
