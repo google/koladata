@@ -17,6 +17,7 @@ import re
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from koladata.expr import input_container
 from koladata.operators import kde_operators
 from koladata.testing import test_utils
 from koladata.types import data_bag
@@ -24,6 +25,7 @@ from koladata.types import data_slice
 from koladata.types import ellipsis
 from koladata.types import schema_constants
 
+I = input_container.InputContainer('I')
 kde = kde_operators.kde
 bag = data_bag.DataBag.empty
 ds = data_slice.DataSlice.from_vals
@@ -66,7 +68,8 @@ class TestUtilsTest(parameterized.TestCase):
     x = DataItem(1, schema: INT32) + DataItem(3, schema: INT32)
     x + DataItem(4, schema: INT32)
   expected:
-    DataItem(1, schema: INT32) - DataItem(3, schema: INT32)"""):
+    DataItem(1, schema: INT32) - DataItem(3, schema: INT32)""",
+    ):
       test_utils.assert_equal(lhs, rhs)
     with self.assertRaisesRegex(AssertionError, 'my error'):
       test_utils.assert_equal(lhs, rhs, msg='my error')
@@ -91,7 +94,7 @@ class TestUtilsTest(parameterized.TestCase):
         AssertionError,
         re.compile(
             'not equal by fingerprint:.*JaggedShape.*JaggedShape*',
-            re.MULTILINE | re.DOTALL
+            re.MULTILINE | re.DOTALL,
         ),
     ):
       test_utils.assert_equal(
@@ -367,15 +370,13 @@ class TestUtilsTest(parameterized.TestCase):
       (kde.implode(ds([1, 2, 3])), kde.implode(ds([1, 2, 3]))),
       (
           kde.dict(ds([1, 2, 3]), ds([4, 5, 6])),
-          kde.dict(ds([1, 2, 3]), ds([4, 5, 6]))
+          kde.dict(ds([1, 2, 3]), ds([4, 5, 6])),
       ),
       (
-          kde.explode(
-              kde.implode(ds([1, 2, 3]))
-          ) + kde.explode(kde.implode(ds([4, 5, 6]))),
-          kde.explode(
-              kde.implode(ds([1, 2, 3]))
-          ) + kde.explode(kde.implode(ds([4, 5, 6]))),
+          kde.explode(kde.implode(ds([1, 2, 3])))
+          + kde.explode(kde.implode(ds([4, 5, 6]))),
+          kde.explode(kde.implode(ds([1, 2, 3])))
+          + kde.explode(kde.implode(ds([4, 5, 6]))),
       ),
   )
   def test_assert_non_deterministic_exprs_equal(
@@ -395,16 +396,96 @@ class TestUtilsTest(parameterized.TestCase):
           kde.new(a=12), kde.new(a=42)
       )
 
+  def test_assert_traced_exprs_equal(self):
+    test_utils.assert_traced_exprs_equal(
+        kde.annotation.source_location(
+            I.x // I.y, 'foo', 'file.py', 123, 0, '  x // y'
+        )
+        + 1,
+        I.x // I.y + 1,
+    )
+    test_utils.assert_traced_exprs_equal(
+        kde.annotation.source_location(
+            I.x // I.y, 'foo', 'file.py', 123, 0, '  x // y'
+        )
+        + 1,
+        kde.annotation.source_location(
+            I.x // I.y, 'bar', 'file.py', 432, 0, '  x // y'
+        )
+        + 1,
+    )
+    with self.assertRaisesRegex(
+        AssertionError, 'Exprs not equal by fingerprint'
+    ):
+      test_utils.assert_traced_exprs_equal(
+          kde.annotation.source_location(
+              I.x // I.y, 'foo', 'file.py', 123, 0, '  x // y'
+          )
+          + 1,
+          kde.annotation.source_location(
+              I.y // I.x, 'bar', 'file.py', 432, 0, '  y // x'
+          )
+          + 1,
+      )
+
+    # For non-deterministic exprs use assert_non_deterministic_exprs_equal
+    # instead.
+    with self.assertRaisesRegex(
+        AssertionError, 'Exprs not equal by fingerprint'
+    ):
+      test_utils.assert_traced_exprs_equal(
+          kde.annotation.source_location(
+              kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
+          )
+          + 1,
+          kde.annotation.source_location(
+              kde.new(a=12), 'bar', 'file.py', 432, 0, '  kd.new(a=12)'
+          )
+          + 1,
+      )
+
   def test_assert_non_deterministic_exprs_equal_repeated_expr(self):
     expr = kde.explode(kde.implode(ds([1])))
     expr_1 = expr + expr
-    expr_2 = (
-        kde.explode(kde.implode(ds([1]))) + kde.explode(kde.implode(ds([1])))
+    expr_2 = kde.explode(kde.implode(ds([1]))) + kde.explode(
+        kde.implode(ds([1]))
     )
     with self.assertRaisesRegex(
         AssertionError, 'Exprs not equal by fingerprint'
     ):
       test_utils.assert_non_deterministic_exprs_equal(expr_1, expr_2)
+
+  def test_assert_traced_non_deterministic_exprs_equal(self):
+    test_utils.assert_traced_non_deterministic_exprs_equal(
+        kde.annotation.source_location(
+            kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
+        )
+        + 1,
+        kde.new(a=12) + 1,
+    )
+    test_utils.assert_traced_non_deterministic_exprs_equal(
+        kde.annotation.source_location(
+            kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
+        )
+        + 1,
+        kde.annotation.source_location(
+            kde.new(a=12), 'bar', 'file.py', 432, 0, '  kd.new(a=12)'
+        )
+        + 1,
+    )
+    with self.assertRaisesRegex(
+        AssertionError, 'Exprs not equal by fingerprint'
+    ):
+      test_utils.assert_traced_non_deterministic_exprs_equal(
+          kde.annotation.source_location(
+              kde.new(a=12), 'foo', 'file.py', 123, 0, '  kd.new(a=12)'
+          )
+          + 1,
+          kde.annotation.source_location(
+              kde.new(a=42), 'bar', 'file.py', 432, 0, '  kd.new(a=12)'
+          )
+          + 1,
+      )
 
 
 if __name__ == '__main__':

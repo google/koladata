@@ -490,6 +490,21 @@ def assert_nested_lists_equal(
   assert_equivalent(actual_list.no_bag(), expected_list.no_bag())
 
 
+def _replace_non_deterministic(expr: _arolla.Expr) -> _arolla.Expr:
+  """Makes all non-deterministic nodes deterministic."""
+  non_deterministic_nodes = []
+  for node in _arolla.abc.post_order(expr):
+    if node.qtype == _qtypes.NON_DETERMINISTIC_TOKEN:
+      non_deterministic_nodes.append(node.node_deps[1])
+  return _arolla.sub_by_fingerprint(
+      expr,
+      {
+          non_deterministic.fingerprint: _arolla.literal(_arolla.int64(i))
+          for i, non_deterministic in enumerate(non_deterministic_nodes)
+      },
+  )
+
+
 def assert_non_deterministic_exprs_equal(
     actual_expr: _arolla.Expr,
     expected_expr: _arolla.Expr,
@@ -504,18 +519,40 @@ def assert_non_deterministic_exprs_equal(
     AssertionError: If actual_expr and expected_expr do not represent equal Koda
       expressions modulo non-deterministic property.
   """
-  def _replace_non_deterministic(expr: _arolla.Expr) -> _arolla.Expr:
-    """Makes all non-deterministic nodes deterministic."""
-    non_deterministic_nodes = []
-    for node in _arolla.abc.post_order(expr):
-      if node.qtype == _qtypes.NON_DETERMINISTIC_TOKEN:
-        non_deterministic_nodes.append(node.node_deps[1])
-    return _arolla.sub_by_fingerprint(expr, {
-        non_deterministic.fingerprint: _arolla.literal(_arolla.int64(i))
-        for i, non_deterministic in enumerate(non_deterministic_nodes)
-    })
-
   actual_expr = _replace_non_deterministic(actual_expr)
   expected_expr = _replace_non_deterministic(expected_expr)
   _assert_expr_equal_by_fingerprint(actual_expr, expected_expr)
-  return
+
+
+def _remove_source_locations(
+    expr: _arolla.Expr | _arolla.QValue,
+) -> _arolla.Expr | _arolla.QValue:
+  if isinstance(expr, _arolla.QValue):
+    return expr
+
+  def _strip_source_location(expr: _arolla.Expr) -> _arolla.Expr:
+    if expr.op == _arolla.abc.lookup_operator('kd.annotation.source_location'):
+      return expr.node_deps[0]
+    return expr
+
+  return _arolla.abc.transform(expr, _strip_source_location)
+
+
+def assert_traced_exprs_equal(
+    actual_expr: _arolla.Expr, expected_expr: _arolla.Expr
+):
+  """Asserts that exprs are equal, skipping annotations added during tracing."""
+  _assert_expr_equal_by_fingerprint(
+      _remove_source_locations(actual_expr),
+      _remove_source_locations(expected_expr),
+  )
+
+
+def assert_traced_non_deterministic_exprs_equal(
+    actual_expr: _arolla.Expr, expected_expr: _arolla.Expr
+):
+  """Asserts that exprs are equal, skipping non-determinism and annotations added during tracing."""
+  _assert_expr_equal_by_fingerprint(
+      _remove_source_locations(_replace_non_deterministic(actual_expr)),
+      _remove_source_locations(_replace_non_deterministic(expected_expr)),
+  )

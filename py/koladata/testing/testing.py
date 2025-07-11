@@ -28,5 +28,9 @@ assert_unordered_equal = _test_utils.assert_unordered_equal
 assert_non_deterministic_exprs_equal = (
     _test_utils.assert_non_deterministic_exprs_equal
 )
+assert_traced_exprs_equal = _test_utils.assert_traced_exprs_equal
+assert_traced_non_deterministic_exprs_equal = (
+    _test_utils.assert_traced_non_deterministic_exprs_equal
+)
 
 DETECT_SIGNATURES_QTYPES = _test_qtypes.DETECT_SIGNATURES_QTYPES

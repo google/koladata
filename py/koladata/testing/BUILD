@@ -76,6 +76,7 @@ py_test(
     deps = [
         ":test_utils",
         "//py:python_path",
+        "//py/koladata/expr:input_container",
         "//py/koladata/operators:kde_operators",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
