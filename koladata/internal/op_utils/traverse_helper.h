@@ -80,7 +80,7 @@ class TraverseHelper {
     } else if (key.type == TransitionType::kDictKey) {
       return absl::StrFormat(".get_keys().S[%d]", key.index);
     } else if (key.type == TransitionType::kDictValue) {
-      return absl::StrFormat(".get_values().S[%d]", key.index);
+      return absl::StrFormat("[%s]", DataItemRepr(key.value));
     } else if (key.type == TransitionType::kAttributeName) {
       auto attr_name = key.value.value<arolla::Text>().view();
       if (attr_name == schema::kSchemaNameAttr) {

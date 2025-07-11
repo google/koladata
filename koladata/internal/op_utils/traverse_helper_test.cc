@@ -504,8 +504,10 @@ TEST_P(TraverseHelperTest, TransitionKeyToAccessString) {
                 {.type = TransitionType::kDictKey, .index = 1}),
             ".get_keys().S[1]");
   EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
-                {.type = TransitionType::kDictValue, .index = 2}),
-            ".get_values().S[2]");
+                {.type = TransitionType::kDictValue,
+                 .index = 2,
+                 .value = DataItem(arolla::Text("foo"))}),
+            "['foo']");
   EXPECT_EQ(TraverseHelper::TransitionKeyToAccessString(
                 {.type = TransitionType::kAttributeName,
                  .value = DataItem(arolla::Text("x"))}),
