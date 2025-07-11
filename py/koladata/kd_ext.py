@@ -19,6 +19,7 @@ import types as _py_types
 import typing as _typing
 
 from koladata import kd as _kd
+from koladata.expr import source_location as _source_location
 from koladata.expr import tracing_mode as _tracing_mode
 from koladata.ext import nested_data as _nested_data
 from koladata.ext import npkd as _npkd
@@ -57,7 +58,9 @@ def _init_ops_and_containers():
   for op_or_container_name in dir(kd_ext_ops):
     globals()[op_or_container_name] = _dispatch(
         eager=getattr(kd_ext_ops, op_or_container_name),
-        tracing=getattr(_kde_operators.kde_ext, op_or_container_name),
+        tracing=_source_location.attaching_source_location(
+            getattr(_kde_operators.kde_ext, op_or_container_name)
+        ),
     )
 
 
@@ -77,7 +80,9 @@ def _load_functions(
   if namespace in globals():
     globals()[namespace] = _dispatch(
         eager=_eager_op_utils.add_overrides(globals()[namespace], fake_module),
-        tracing=getattr(_kde_operators.kde_ext, namespace),
+        tracing=_source_location.attaching_source_location(
+            getattr(_kde_operators.kde_ext, namespace)
+        ),
     )
   else:
     globals()[namespace] = _eager_only(fake_module)

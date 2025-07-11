@@ -76,8 +76,14 @@ class KdExtTest(absltest.TestCase):
     def f(ds):
       return kd_ext.contrib.value_counts(ds)
 
-    res4 = kd.functor.trace_py_fn(f)(ds)
+    traced_f = kd.functor.trace_py_fn(f)
+    res4 = traced_f(ds)
     kd.testing.assert_dicts_equal(res4, expected)
+
+    kd.testing.assert_equal(
+        kd.expr.unpack_expr(traced_f.returns).op,
+        kd.lazy.annotation.source_location,
+    )
 
   def test_function(self):
     self.assertIs(kd_ext.npkd.to_array, npkd.to_array)

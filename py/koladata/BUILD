@@ -95,6 +95,7 @@ py_library(
     deps = [
         ":kd",
         "//py:python_path",
+        "//py/koladata/expr:source_location",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/ext:nested_data",
         "//py/koladata/ext:npkd",
