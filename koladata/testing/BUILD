@@ -70,3 +70,41 @@ cc_library(
         "@com_google_arolla//arolla/qexpr/operators/all",
     ],
 )
+
+cc_library(
+    name = "traversing_utils",
+    srcs = ["traversing_utils.cc"],
+    hdrs = ["traversing_utils.h"],
+    deps = [
+        "//koladata:data_bag",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/internal:data_item",
+        "//koladata/internal:dtype",
+        "//koladata/internal:schema_attrs",
+        "//koladata/internal/op_utils:deep_diff",
+        "//koladata/internal/op_utils:deep_equivalent",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:status_backport",
+    ],
+)
+
+cc_test(
+    name = "traversing_utils_test",
+    srcs = ["traversing_utils_test.cc"],
+    deps = [
+        ":traversing_utils",
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/internal:object_id",
+        "@com_google_absl//absl/status",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
