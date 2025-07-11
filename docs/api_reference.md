@@ -2410,6 +2410,10 @@ Aliases:
   for complex computations, or to conveniently embed a py_fn into a traced
   expression.
 
+  When using kd.parallel.call_multithreaded, using this decorator on
+  sub-functors can improve parallelism, since all sub-functor calls
+  are treated as separate tasks to be parallelized there.
+
   This decorator is intended to be applied to standalone functions.
 
   When applying it to a lambda, consider specifying an explicit name, otherwise

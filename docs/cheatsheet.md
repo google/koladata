@@ -3802,6 +3802,339 @@ foo(ds)
 
 </section>
 
+## Advanced: Multithreaded evaluation
+
+<section>
+
+### kd.parallel.call_multithreaded
+
+Normally, Koda functor evaluation is single-threaded:
+
+```py
+@kd.trace_as_fn(py_fn=True)
+def f1(x):
+  print('Start f1')
+  time.sleep(0.1)
+  print('Finish f1')
+  return x + 1
+
+@kd.trace_as_fn(py_fn=True)
+def f2(x):
+  print('Start f2')
+  time.sleep(0.2)
+  print('Finish f2')
+  return x + 2
+
+def f(x):
+  return f1(x) + f2(x)
+
+kd.fn(f)(5)
+# prints:
+# Start f1
+# Finish f1
+# Start f2
+# Finish f2
+```
+
+However, `kd.parallel.call_multithreaded` allows to evaluate independent parts
+of the computation `in parallel`:
+
+```py
+kd.parallel.call_multithreaded(f, 5)
+# The above is the same as
+# kd.parallel.call_multithreaded(kd.fn(f), 5)
+# Start f1
+# Start f2
+# Finish f1
+# Finish f2
+```
+
+We can control the maximum number of threads:
+
+```py
+kd.parallel.call_multithreaded(f, 5, max_threads=1)
+# Start f1
+# Finish f1
+# Start f2
+# Finish f2
+```
+
+</section>
+
+<section>
+
+### What can be evaluated in parallel?
+
+In a single functor, its variables are evaluated in parallel when using
+`kd.parallel.call_multithreaded`. If you create your functor via tracing,
+variables will be those nodes that are annotated with `kd.with_name`. This
+allows to balance the level of parallelism against to the overhead of starting a
+new parallel task for each simple operation.
+
+```py
+# No parallel execution, everything is serial.
+kd.parallel.call_multithreaded(
+  lambda x, y: x ** 2 + y ** 2,
+  x=1, y=2)
+
+# x ** 2 and y ** 2 are computed in parallel.
+kd.parallel.call_multithreaded(
+  lambda x, y:
+      kd.with_name(x ** 2, 'a')
+      + kd.with_name(y ** 2, 'b'),
+  x=1, y=2)
+```
+
+If a functor calls another functor, then inside the parallel evaluation we
+create additional variables for the inputs of that call and for the result of
+the call.
+
+Since variables are evaluated in parallel, this means that effectively we will
+evaluate all inputs to such call in parallel, then evaluate the sub-functor (in
+parallel to any other variables that might be evaluated), and then evaluate the
+part of the computation that uses the result of the sub-functor.
+
+```py
+@kd.trace_as_fn()
+def f(x, y):
+  return x + y
+
+# In the call below, first we evaluate x**2, y**2,
+# x**3, y**3 in parallel. As soon as either both
+# of x**2 and y**2, or both of x**3 and y**3
+# finish, we start evaluating the corresponding
+# f() sub-functor call, and when both of those are
+# ready we add them up to produce final result.
+kd.parallel.call_multithreaded(
+  lambda x, y:
+      f(x ** 2, y ** 2) + f(x ** 3, y ** 3),
+  x=1, y=2)
+```
+
+Note that without the `@kd.trace_as_fn()` annotation on `f(x, y)` everything
+would end up being a single variable in the traced functor, and no
+parallelization would happen at all.
+
+Other operations that call a sub-functor, such as `kd.map`, `kd.if_` or
+`kd.while_` also do all sub-functor calls in the parallel mode, meaning that the
+variables inside the sub-functor will be evaluated in parallel, and that
+sub-functor calls themselves can be parallelized when one does not depend on the
+result of the other.
+
+```py
+@kd.trace_as_fn(py_fn=True)
+def process(x):
+  print('Start', x)
+  time.sleep(0.1)
+  print('Finish', x)
+  return x + 1
+
+kd.parallel.call_multithreaded(
+    lambda x: kd.map(process, x), kd.range(3))
+# Start 0
+# Start 1
+# Start 2
+# Finish 0
+# Finish 1
+# Finish 2
+```
+
+</section>
+
+<section>
+
+### What else can be evaluated in parallel?
+
+If the sub-functor itself has several variables, or calls yet another functor,
+the corresponding tasks will all be evaluated in parallel in
+`kd.parallel.call_multithreaded`. Moreover, if a variable in a sub-functor
+depends only on some of the inputs, it may start evaluating even before all
+inputs to the sub-functor call are ready.
+
+```py
+@kd.trace_as_fn(py_fn=True)
+def step(x, msg, pause):
+  print('Start', msg)
+  time.sleep(pause.to_py())
+  print('Finish', msg)
+  return x + 1
+
+@kd.trace_as_fn()
+def f(x, y):
+  return (
+      step(x, 'inner1', 0.1)
+      + step(y, 'inner2', 0.1))
+
+@kd.trace_as_fn()
+def g():
+  return f(
+      step(1, 'outer1', 0.1),
+      step(1, 'outer2', 0.3))
+
+kd.parallel.call_multithreaded(g)
+# Start outer1
+# Start outer2
+# Finish outer1
+# Start inner1
+# Finish inner1
+# Finish outer2
+# Start inner2
+# Finish inner2
+```
+
+Similarly, if a sub-functor returns a tuple/namedtuple, the parts of the outside
+computation that use only one field of that tuple/namedtuple can start
+evaluation even before the entire tuple is completed:
+
+```py
+@kd.trace_as_fn(py_fn=True)
+def step(x, msg, pause):
+  print('Start', msg)
+  time.sleep(pause.to_py())
+  print('Finish', msg)
+  return x + 1
+
+@kd.trace_as_fn(return_type_as=(
+    kd.types.DataSlice, kd.types.DataSlice))
+def f(x):
+  return (
+      step(x, 'inner1', 0.1),
+      step(x, 'inner2', 0.3))
+
+@kd.trace_as_fn()
+def g():
+  inner = f(1)
+  return (
+      step(inner[0], 'outer1', 0.1)
+      + step(inner[1], 'outer2', 0.1))
+
+kd.parallel.call_multithreaded(g)
+# Start inner1
+# Start inner2
+# Finish inner1
+# Start outer1
+# Finish outer1
+# Finish inner2
+# Start outer2
+# Finish outer2
+```
+
+</section>
+
+<section>
+
+### Interactions with external multithreading primitives
+
+In the implementation of `kd.parallel.call_multithreaded`, we analyze the
+functor statically to make sure we evaluate all dependencies of a computation
+before trying to evaluate it. This allows the evaluation to never use one of the
+threads for a blocking wait, so even with `max_threads=1` the computation should
+succeed (of course it won't be faster than serial in that case).
+
+However, if you use blocking wait inside one of the operations (most likely via
+`py_fn`, since the operations in the Koda standard library never do that), then
+it is possible to get into the state where all `max_threads` threads are
+blocked.
+
+If you are waiting for an external event, such as an RPC, then the computation
+will resume eventually when that event happens. However, if you are waiting for
+an event that is triggered by another branch of your own computation, it might
+happen that that branch will never get scheduled since all threads are blocked,
+and you will have a deadlock.
+
+Therefore, please never use a blocking wait on an event that is triggered by
+another branch of your computation. In particular, please never call
+`kd.parallel.call_multithreaded` from inside a function annotated with
+`kd.trace_as_fn(py_fn=True)` that is itself being evaluated via
+`kd.parallel.call_multithreaded`!
+
+</section>
+
+<section>
+
+### Streaming
+
+Operations with iterables, such as `kd.for_`, become streaming operations when
+using `kd.parallel.call_multithreaded`. In other words the subsequent processing
+of an iterable item may start even before the next item(s) have been computed
+for the same iterable, for example:
+
+```py
+@kd.trace_as_fn(py_fn=True)
+def step(x):
+  print('Start', x)
+  time.sleep(0.1 * x.to_py())
+  print('Finish', x)
+  return x + 10
+
+
+def f():
+  base = kd.iterables.make(1, 2, 3)
+  first = kd.for_(
+      base,
+      lambda x: kd.namedtuple(
+          yields=kd.iterables.make(step(x))),
+      yields=kd.iterables.make())
+  second = kd.for_(
+      first,
+      lambda x: kd.namedtuple(
+          yields=kd.iterables.make(step(x))),
+      yields=kd.iterables.make())
+  return kd.functor.reduce(
+      lambda x, y: x + y, second, initial_value=0)
+
+kd.parallel.call_multithreaded(f)
+# Start 1
+# Start 3
+# Start 2
+# Finish 1
+# Start 11
+# Finish 2
+# Start 12
+# Finish 3
+# Start 13
+# Finish 11
+# Finish 12
+# Finish 13
+```
+
+If your entire computation returns an iterable, then you need to use
+`kd.parallel.yield_multithreaded` instead which allows you to get the results as
+a Python iterator:
+
+```py
+@kd.trace_as_fn(py_fn=True)
+def step(x):
+  print('Start', x)
+  time.sleep(0.1 * x.to_py())
+  print('Finish', x)
+  return x + 10
+
+
+def f():
+  base = kd.iterables.make(1, 2, 3)
+  return kd.for_(
+      base,
+      lambda x: kd.namedtuple(
+          yields=kd.iterables.make(step(x))),
+      yields=kd.iterables.make())
+
+for item in kd.parallel.yield_multithreaded(f):
+  print('Got', item)
+
+# Start 1
+# Start 2
+# Start 3
+# Finish 1
+# Got 11
+# Finish 2
+# Got 12
+# Finish 3
+# Got 13
+```
+
+</section>
+
 ## Advanced: Mutable Workflow
 
 While it is enough for most Koda users to just use immutable workflow, it is
