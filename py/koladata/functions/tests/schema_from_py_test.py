@@ -14,7 +14,7 @@
 
 import dataclasses
 import enum
-from typing import Mapping, Optional, Sequence
+from typing import Mapping, Optional, Sequence, Annotated
 
 from absl.testing import absltest
 from koladata.functions import functions as fns
@@ -101,6 +101,8 @@ class SchemaFromPyTest(absltest.TestCase):
       t: str | None
       s: Optional[str]
       u: Mapping[str, IntStrPair]
+      v: Annotated[int, 'int_annotation']
+      w: Annotated[Annotated[Sequence[int], 'anno1'], 'anno2']
 
     bar_schema = fns.schema_from_py(Bar)
     int_str_pair_schema = fns.schema_from_py(IntStrPair)
@@ -116,9 +118,15 @@ class SchemaFromPyTest(absltest.TestCase):
     self.assertEqual(bar_schema.s, schema_constants.STRING)
     self.assertEqual(
         bar_schema.u,
-        kde.dict_schema(schema_constants.STRING, int_str_pair_schema).eval()
+        kde.dict_schema(schema_constants.STRING, int_str_pair_schema).eval(),
     )
-    self.assertCountEqual(fns.dir(bar_schema), ['s', 'u', 't', 'x', 'y', 'z'])
+    self.assertEqual(bar_schema.v, schema_constants.INT64)
+    self.assertEqual(
+        bar_schema.w, kde.list_schema(schema_constants.INT64).eval()
+    )
+    self.assertCountEqual(
+        fns.dir(bar_schema), ['s', 'u', 'v', 'w', 't', 'x', 'y', 'z']
+    )
     self.assertEqual(int_str_pair_schema.x, schema_constants.INT64)
     self.assertEqual(int_str_pair_schema.y, schema_constants.STRING)
     self.assertCountEqual(fns.dir(int_str_pair_schema), ['x', 'y'])

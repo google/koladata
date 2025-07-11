@@ -72,6 +72,8 @@ def schema_from_py(tpe: type[Any]) -> data_slice.DataSlice:
         return db.dict_schema(
             schema_from_py_impl(key_tpe, db), schema_from_py_impl(value_tpe, db)
         )
+      if origin_tpe is typing.Annotated:
+        return schema_from_py_impl(typing.get_args(tpe)[0], db)
       if origin_tpe == py_types.UnionType or origin_tpe == typing.Union:
         options = typing.get_args(tpe)
         if len(options) != 2 or (options[1] != py_types.NoneType):
