@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import contextlib
 import functools
 import inspect
 from absl.testing import absltest
@@ -69,6 +70,18 @@ class FunctoolsTest(absltest.TestCase):
         frame.f_lineno,
         inspect.getsourcelines(bar)[1] + 1  # first line of the function.
     )
+
+    @contextlib.contextmanager
+    def temporarily_skip_the_file():
+      kd_functools.skip_file_from_functor_stack_trace(__file__)
+      yield
+      kd_functools._FILES_SKIPPED_FROM_STACK_TRACE.remove(__file__)
+
+    with temporarily_skip_the_file():
+      frame = baz()
+
+    self.assertNotEqual(frame.f_code.co_name, 'baz')
+
 
 if __name__ == '__main__':
   absltest.main()

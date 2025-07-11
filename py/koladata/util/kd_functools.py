@@ -33,7 +33,8 @@ def unwrap(fn: Callable[..., Any]) -> Callable[..., Any]:
   return fn
 
 
-_SKIPPED_FROM_STACK_TRACE = set()
+_F_CODES_SKIPPED_FROM_STACK_TRACE = set()
+_FILES_SKIPPED_FROM_STACK_TRACE = set()
 
 
 def skip_from_functor_stack_trace(
@@ -52,14 +53,22 @@ def skip_from_functor_stack_trace(
     The annotated function.
   """
   assert isinstance(func, py_types.FunctionType)
-  _SKIPPED_FROM_STACK_TRACE.add(func.__code__)
+  _F_CODES_SKIPPED_FROM_STACK_TRACE.add(func.__code__)
   return func
+
+
+def skip_file_from_functor_stack_trace(file_name: str):
+  """Skips all the functions defined in the provided __file__ from current_stack_trace_frame()."""
+  _FILES_SKIPPED_FROM_STACK_TRACE.add(file_name)
 
 
 @skip_from_functor_stack_trace
 def current_stack_trace_frame() -> py_types.FrameType | None:
   """Returns the closest stack frame not marked with @skip_from_functor_stack_trace."""
   frame = inspect.currentframe()
-  while frame and frame.f_code in _SKIPPED_FROM_STACK_TRACE:
+  while frame and (
+      frame.f_code in _F_CODES_SKIPPED_FROM_STACK_TRACE
+      or frame.f_code.co_filename in _FILES_SKIPPED_FROM_STACK_TRACE
+  ):
     frame = frame.f_back
   return frame
