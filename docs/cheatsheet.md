@@ -1886,6 +1886,179 @@ assert obj_ss.take(0) != obj_ss.take(1)
 
 </section>
 
+## Debugging and Assertion Tools
+
+The recommended workflow for debugging traced Koda flows is to run the flow
+eagerly and use standard Python tools to debug. However, in some cases this is
+cumbersome or even impossible. Here, we show some of the tracing-compatible
+tools available to your disposal. These work by embedding the assertions and
+debug printing directly into the traced Functor.
+
+<section>
+
+### Input and Output Schema Validation
+
+To ensure runtime correctness of inputs and outputs, Koda provides the
+[`kd.check_inputs`](api_reference.md#kd.check_inputs) and
+[`kd.check_output`](api_reference.md#kd.check_output) decorators. Their
+functionality is preserved in traced functors, including those decorated with
+`kd.trace_as_fn()`.
+
+```py
+# Validates that both `hours` and `minutes` are INT32, and that the output is a
+# STRING.
+@kd.check_inputs(hours=kd.INT32, minutes=kd.INT32)
+@kd.check_output(kd.STRING)
+def timestamp(hours, minutes):
+  return kd.str(hours) + ':' + kd.str(minutes)
+
+timestamp(ds([10, 10, 10]), kd.ds([15, 30, 45]))  # Does not raise.
+timestamp(ds([10, 10, 10]), kd.ds([15.35, 30.12, 45.1]))  # raises TypeError
+```
+
+For structured data, the inputs and outputs are required to have *exactly* the
+expected schema.
+
+```py
+Doc = kd.schema.named_schema('Doc', doc_id=kd.INT64, score=kd.FLOAT32)
+Query = kd.schema.named_schema(
+    'Query',
+    query_text=kd.STRING,
+    query_id=kd.INT32,
+    docs=kd.list_schema(Doc),
+)
+
+@kd.check_inputs(query=Query)
+@kd.check_output(Doc)
+def get_docs(query):
+  return query.docs[:]
+
+
+doc = Doc.new(doc_id=2, score=3.0)
+query = Query.new(query_text='foo', query_id=1, docs=kd.list([doc]))
+
+get_docs(query)  # Does not raise.
+get_docs(doc)  # Raises TypeError.
+```
+
+In some cases, checking for the exact schema is undesirable as we may only care
+that some specific attributes are present. For this, we can use
+[`kd.duck_type`](api_reference.md#kd.duck_type) and friends.
+
+```py
+# Input: Asserts that `query` has a `docs` attribute that is a LIST of values
+# with an INT64 attribute `doc_id`.
+# Output: Asserts that the output has an INT64 `doc_id` attribute.
+@kd.check_inputs(
+    query=kd.duck_type(docs=kd.duck_list(kd.duck_type(doc_id=kd.INT64)))
+)
+@kd.check_output(kd.duck_type(doc_id=kd.INT64))
+def get_docs(query):
+  return query.docs[:]
+
+get_docs(query)  # Does not raise.
+get_docs(doc)  # Raises TypeError.
+```
+
+</section>
+
+<section>
+
+### Runtime Assertion through `kd.with_assertion`.
+
+To add arbitrary runtime assertions, in case `kd.check_inputs` and
+`kd.check_outputs` is not enough, Koda provides
+[`kd.with_assertion`](api_reference.md#kd.assertion.with_assertion). This can be
+used on any slice with more relaxed restrictions on the condition compared to
+the schema assertion tools.
+
+```py
+def is_smaller_than(x, y):
+  # The first argument is returned as-is and should be used by the caller in
+  # order for the assertion to be properly embedded in the traced Functor, as
+  # mentioned below.
+  # The second argument is a *scalar* condition that is expected to hold.
+  # The third argument is the message to be raised if the condition does not
+  # hold.
+  return kd.with_assertion(x, x < y, 'x must be less than y')
+
+is_smaller_than(3, 5)  # Returns 3.
+is_smaller_than(5, 3)  # Raises 'x must be less than y'.
+is_smaller_than(kd.slice([3, 4]), kd.slice([5, 5]))  # Fails. The condition must
+                                                     # be a scalar.
+
+def is_smaller_than_vectorized(x, y):
+  # It's ambiguous how to treat non-scalar conditionals and they are thefore not
+  # supported. Non-scalar data must therefore be handled explicitly.
+  return kd.with_assertion(x, kd.all(x < y), 'x must be less than y')
+
+is_smaller_than_vectorized(kd.slice([3, 4]), kd.slice([5, 5]))  # Returns [3, 4]
+```
+
+In the examples above, the error message is computed up-front. If the error
+message depends on some inputs and is expensive to compute, we may wish to avoid
+the computation in case the condition is true, and only compute it if it's
+actually required. For this, `kd.with_assertion` supports passing a callback
+functor to compute the message.
+
+```py
+def is_smaller_than(x, y):
+  return kd.assertion.with_assertion(
+      x,
+      x < y,
+      lambda x, y: kd.format('x={x} must be smaller than y={y}', x=x, y=y),
+      x,  # Passed as input 0.
+      y,  # Passed as input 1.
+  )
+
+is_smaller_than(3, 5)  # Returns 3.
+is_smaller_than(5, 3)  # Raises 'x=5 must be smaller than y=3'.
+```
+
+Note that the result of the computation *must* be used in order for it to be
+properly embedded in the traced Functor.
+
+```py
+@kd.trace_as_fn()
+def is_smaller_than_bad(x, y):
+  kd.assertion.with_assertion(x, x < y, 'x must be less than y')
+  return x
+
+@kd.trace_as_fn()
+def is_smaller_than_good(x, y):
+  res = kd.assertion.with_assertion(x, x < y, 'x must be less than y')
+  return res
+
+is_smaller_than_bad(5, 2)  # Returns 5. The assertion is not included.
+is_smaller_than_good(5, 2)  # Raises 'x must be less than y'.
+```
+
+</section>
+
+<section>
+
+### Debug Printing with `kd.with_print`
+
+Python print-statements are useful for general debugging. Since these are not
+traceable, Koda provides the [`kd.with_print`](api_reference#kd.core.with_print)
+operator, with prints available in both Python and C++ (stdout).
+
+```py
+def print_input(x):
+  return kd.with_print(x, 'the input is:', x)
+
+print_input(kd.slice([1, 2, 3]))  # Returns [1, 2, 3].
+                                  # Prints 'the input is [1, 2, 3]' as a
+                                  # side-effect.
+```
+
+As with `kd.with_assertion`, the operator result *must* be used for it to be
+properly embedded into the traced Functor.
+
+The output may be truncated by default. Use e.g. [`kd.slices.get_repr`](api_reference.md#kd.slices.get_repr) to control the repr behavior.
+
+</section>
+
 ## Interoperability
 
 <section>
