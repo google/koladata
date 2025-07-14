@@ -17,7 +17,7 @@
 Extensive testing is done in C++.
 """
 
-import re
+import itertools
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -59,17 +59,26 @@ class SchemaToObjectTest(parameterized.TestCase):
     res = eval_op("kd.schema.to_object", x)
     testing.assert_equal(res, expected)
 
-  def test_entity_to_object_casting_error(self):
+  @parameterized.parameters(*itertools.product([True, False], repeat=3))
+  def test_entity_to_object_casting(self, freeze, fork, fallback):
     db = data_bag.DataBag.empty()
-    e1 = db.new()
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            "entity to object casting is unsupported - consider using"
-            " `kd.obj(x)` instead"
-        ),
-    ):
-      expr_eval.eval(kde.schema.to_object(e1))
+    e1 = db.new(x=1)
+    if fork:
+      e1 = e1.fork_bag()
+    if fallback:
+      e1 = e1.with_bag(data_bag.DataBag.empty()).enriched(e1.get_bag())
+    if freeze:
+      e1 = e1.freeze_bag()
+    res = expr_eval.eval(kde.schema.to_object(e1))
+    testing.assert_equal(res.get_itemid().no_bag(), e1.get_itemid().no_bag())
+    testing.assert_equal(res.get_schema().no_bag(), schema_constants.OBJECT)
+    testing.assert_equal(
+        res.get_obj_schema().no_bag(), e1.get_schema().no_bag()
+    )
+    self.assertNotEqual(res.get_bag().fingerprint, e1.get_bag().fingerprint)
+    self.assertFalse(res.get_bag().is_mutable())
+    # Sanity check
+    testing.assert_equal(res.x, ds(1).with_bag(res.get_bag()))
 
   def test_boxing(self):
     testing.assert_equal(

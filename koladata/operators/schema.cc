@@ -17,6 +17,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
@@ -212,12 +213,20 @@ absl::StatusOr<DataSlice> CastTo(const DataSlice& x, const DataSlice& schema) {
   RETURN_IF_ERROR(schema.VerifyIsSchema());
   if (schema.item() == schema::kObject &&
       x.GetSchemaImpl().is_struct_schema()) {
-    return absl::InvalidArgumentError(
-        "entity to object casting is unsupported - consider using `kd.obj(x)` "
-        "instead");
+    // This requires embedding the entity schema, which is a mutating operation.
+    AdoptionQueue adoption_queue;
+    adoption_queue.Add(x);
+    DataBagPtr result_db = DataBag::Empty();
+    RETURN_IF_ERROR(adoption_queue.AdoptInto(*result_db));
+    ASSIGN_OR_RETURN(auto res,
+                     ::koladata::ToObject(x.WithBag(std::move(result_db))));
+    DCHECK(res.GetBag() != nullptr);
+    res.GetBag()->UnsafeMakeImmutable();
+    return res;
+  } else {
+    ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
+    return ::koladata::CastToExplicit(x_with_bag, schema.item());
   }
-  ASSIGN_OR_RETURN(auto x_with_bag, WithAdoptedSchema(x, schema));
-  return ::koladata::CastToExplicit(x_with_bag, schema.item());
 }
 
 absl::StatusOr<DataSlice> CastToImplicit(const DataSlice& x,
@@ -236,6 +245,9 @@ absl::StatusOr<DataSlice> CastToNarrow(const DataSlice& x,
 
 absl::StatusOr<DataSlice> UnsafeCastTo(const DataSlice& x,
                                        const DataSlice& schema) {
+  // This impl mustn't be used for embedding schemas.
+  DCHECK(!(schema.item() == schema::kObject &&
+           x.GetSchemaImpl().is_struct_schema()));
   if (schema.IsStructSchema()) {
     return x.WithSchema(schema);
   } else {
