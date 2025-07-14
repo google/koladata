@@ -15,12 +15,14 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
+from arolla.derived_qtype import derived_qtype
 from koladata import kd
 from koladata.functions import s11n
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import jagged_shape
+from koladata.types import qtypes
 from koladata.types import schema_constants
 
 M = arolla.M
@@ -71,7 +73,7 @@ class DumpsLoadsTest(parameterized.TestCase):
   def test_dumps_fails_on_expr(self):
     fn = M.math.add(L.x, L.y)
     with self.assertRaisesRegex(
-        ValueError, 'expected a DataSlice, DataBag or JaggedShape, got.*Expr'
+        ValueError, 'expected a DataSlice, DataBag, JaggedShape,.* got.*Expr'
     ):
       s11n.dumps(fn)
 
@@ -79,7 +81,7 @@ class DumpsLoadsTest(parameterized.TestCase):
     fn = M.math.add(L.x, L.y)
     dumped_bytes = arolla.s11n.riegeli_dumps(fn)
     with self.assertRaisesRegex(
-        ValueError, 'expected a DataSlice, DataBag or JaggedShape, got.*Expr'
+        ValueError, 'expected a DataSlice, DataBag, JaggedShape,.* got.*Expr'
     ):
       s11n.loads(dumped_bytes)
 
@@ -148,6 +150,33 @@ class DumpsLoadsTest(parameterized.TestCase):
     dumped_bytes = s11n.dumps(shape)
     loaded_shape = s11n.loads(dumped_bytes)
     testing.assert_equal(loaded_shape, shape)
+
+  def test_dumps_loads_extension_type(self):
+    y = kd.bag().new(x=1)
+    ext_type = arolla.eval(
+        derived_qtype.M.get_labeled_qtype(qtypes.DATA_SLICE, 'USER_TYPE')
+    )
+    ext_y = arolla.eval(derived_qtype.M.downcast(ext_type, y))
+    dumped_bytes = s11n.dumps(ext_y)
+    loaded_y = s11n.loads(dumped_bytes)
+    testing.assert_equal(loaded_y.qtype, ext_y.qtype)
+    testing.assert_equivalent(
+        arolla.eval(derived_qtype.M.upcast(ext_type, ext_y)),
+        arolla.eval(derived_qtype.M.upcast(ext_type, loaded_y)),
+    )
+
+  def test_dumps_loads_extension_type_extracts(self):
+    bag = kd.bag()
+    nested = bag.new(a=bag.new(b=1))
+    ext_type = arolla.eval(
+        derived_qtype.M.get_labeled_qtype(qtypes.DATA_SLICE, 'USER_TYPE')
+    )
+    ext_nested_a = arolla.eval(derived_qtype.M.downcast(ext_type, nested.a))
+    loaded_a = s11n.loads(s11n.dumps(ext_nested_a))
+    loaded_a_ds = arolla.eval(derived_qtype.M.upcast(ext_type, loaded_a))
+    testing.assert_equivalent(
+        loaded_a_ds.get_bag(), nested.a.extract().get_bag()
+    )
 
 
 if __name__ == '__main__':

@@ -14,10 +14,21 @@
 
 """Serialization functions for Kola Data."""
 
+from typing import Any
+
 from arolla import arolla
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import extension_types as ext_types
 from koladata.types import jagged_shape
+
+
+def _isinstance_of_supported_type(x: Any) -> bool:
+  if isinstance(
+      x, data_slice.DataSlice | data_bag.DataBag | jagged_shape.JaggedShape
+  ):
+    return True
+  return ext_types.is_koda_extension(x)
 
 
 def dumps(
@@ -44,11 +55,10 @@ def dumps(
   Returns:
     Serialized data.
   """
-  if not isinstance(
-      x, data_slice.DataSlice | data_bag.DataBag | jagged_shape.JaggedShape
-  ):
+  if not _isinstance_of_supported_type(x):
     raise ValueError(
-        f'expected a DataSlice, DataBag or JaggedShape, got {type(x)}'
+        'expected a DataSlice, DataBag, JaggedShape, '
+        f'or an extension type derived from DataSlice, got {type(x)}'
     )
   # NOTE(b/385272947): Consider moving this logic further down to support
   # extraction for literals inside of expressions. This is more tricky since we
@@ -59,6 +69,14 @@ def dumps(
       x = x.extract()
     except ValueError:
       pass  # no Bag, ...
+  if ext_types.is_koda_extension(x):
+    try:
+      # Try to extract the DataSlice underlying the value of the extension type.
+      x_ds = ext_types.unwrap(x)
+      x_ds = x_ds.extract()
+      x = ext_types.wrap(x_ds, x.qtype)
+    except ValueError:
+      pass  # no Bag, ...
   if riegeli_options is None:
     riegeli_options = 'snappy'
   return arolla.s11n.riegeli_dumps(x, riegeli_options=riegeli_options)
@@ -67,11 +85,9 @@ def dumps(
 def loads(x: bytes) -> data_slice.DataSlice | data_bag.DataBag:
   """Deserializes a DataSlice or a DataBag."""
   result = arolla.s11n.riegeli_loads(x)
-  if not isinstance(
-      result,
-      data_slice.DataSlice | data_bag.DataBag | jagged_shape.JaggedShape,
-  ):
+  if not _isinstance_of_supported_type(result):
     raise ValueError(
-        f'expected a DataSlice, DataBag or JaggedShape, got {type(result)}'
+        'expected a DataSlice, DataBag, JaggedShape, '
+        f'or an extension type derived from DataSlice, got {type(result)}'
     )
   return result

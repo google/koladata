@@ -659,6 +659,34 @@ py_test(
     ],
 )
 
+py_library(
+    name = "extension_types",
+    srcs = ["extension_types.py"],
+    deps = [
+        ":data_slice",
+        ":qtypes",
+        "//py:python_path",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/derived_qtype",
+    ],
+)
+
+py_test(
+    name = "extension_types_test",
+    srcs = ["extension_types_test.py"],
+    deps = [
+        ":data_slice",
+        ":extension_types",
+        ":qtypes",
+        "//py:python_path",
+        "//py/koladata/testing",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/derived_qtype",
+    ],
+)
+
 py_test(
     name = "general_eager_ops_test",
     srcs = ["general_eager_ops_test.py"],
