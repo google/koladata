@@ -876,7 +876,8 @@ class UniversalConverter {
     }
     ASSIGN_OR_RETURN(DataItem schema_item, std::move(schema_agg).Get(),
                      KodaErrorCausedByNoCommonSchemaError(
-                         _, adoption_queue_.GetBagWithFallbacks()));
+                         _, DataBag::ImmutableEmptyWithFallbacks(
+                                {db_, adoption_queue_.GetBagWithFallbacks()})));
     if (input_schema) {
       if (schema_item.has_value() &&
           !schema::IsImplicitlyCastableTo(schema_item, input_schema->item())) {

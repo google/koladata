@@ -1309,6 +1309,14 @@ Assigned schema for keys: INT32""",
         ' but got str',
     ):
       db.dict('a')
+    with self.assertRaisesRegex(
+        ValueError,
+        r"""cannot find a common schema
+
+ the common schema\(s\) #[a-zA-Z0-9]+: LIST\[NONE\]
+ the first conflicting schema #[a-zA-Z0-9]+: LIST\[STRING\]""",
+    ):
+      db.dict({'foo': [''], 'bar': []})
 
   def test_dict_shaped(self):
     # NOTE: more tests for dict_shaped in
