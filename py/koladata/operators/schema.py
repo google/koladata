@@ -559,7 +559,7 @@ def common_schema(x):
 @optools.add_to_registry()
 @optools.as_backend_operator('kd.schema._unsafe_cast_to')
 def _unsafe_cast_to(x, schema):  # pylint: disable=unused-argument
-  """Casts x to schema using explicit casting rules, allowing entity casts."""
+  """Casts x to schema using explicit rules, allowing unvalidated entity casts."""
   raise NotImplementedError('implemented in the backend')
 
 
@@ -586,8 +586,8 @@ def with_schema_from_obj(x):
   # `get_obj_schema` (returning the schema of the data) and `common_schema`
   # (returning a safe common alternative).
   #
-  # TODO: Support deep casting to entity schema, allowing cast_to
-  # to be used directly.
+  # NOTE: kd.cast_to can be used, but this performs an additional check of the
+  # __schema__ attributes, causing this operator to become ~43% slower.
   return _unsafe_cast_to(x, schema)
 
 

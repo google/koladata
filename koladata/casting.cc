@@ -16,13 +16,16 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/base/optimization.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -46,6 +49,23 @@ static_assert(schema::kNextDTypeId <= sizeof(DTypeMask) * 8);
 template <typename... DTypes>
 constexpr DTypeMask GetDTypeMask(DTypes... dtypes) {
   return ((DTypeMask{1} << dtypes.type_id()) | ...);
+}
+
+// Returns a string representation of the provided `schema`. Uses `db` for
+// supplementary information in case of a struct `schema`. Unlike `SchemaToStr`,
+// this includes information about the ObjectId to help discern between similar
+// looking reprs.
+absl::StatusOr<std::string> SchemaImplToStr(const internal::DataItem& schema,
+                                            absl_nullable DataBagPtr db) {
+  if (!schema.is_struct_schema() || db == nullptr) {
+    return absl::StrCat(schema);
+  }
+  ASSIGN_OR_RETURN(
+      auto from_schema_slice,
+      DataSlice::Create(schema, internal::DataItem(schema::kSchema),
+                        std::move(db)));
+  return absl::StrFormat("%s with id %v", SchemaToStr(from_schema_slice),
+                         schema);
 }
 
 absl::Status VerifyCompatibleSchema(const DataSlice& slice,
@@ -274,15 +294,51 @@ absl::StatusOr<DataSlice> ToEntity(const DataSlice& slice,
     return absl::InvalidArgumentError(
         absl::StrFormat("expected an entity schema, got: %v", entity_schema));
   }
+  internal::DataItem from_schema = slice.GetSchemaImpl();
+  if (from_schema == schema::kObject) {
+    // In case of OBJECT, we validate that the existing __schema__ attributes
+    // correspond to `entity_schema` and raise otherwise since we can end up
+    // with a bad state.
+    auto error_suffix = [&] {
+      return absl::StrFormat(
+          "when validating equivalence of existing __schema__ attributes with "
+          "the target schema during explicit cast to %v",
+          entity_schema);
+    };
+    ASSIGN_OR_RETURN(DataSlice obj_schema_slice, slice.GetObjSchema(),
+                     _ << error_suffix());
+    ASSIGN_OR_RETURN(
+        from_schema,
+        obj_schema_slice.VisitImpl(
+            [&](const auto& impl) -> absl::StatusOr<internal::DataItem> {
+              ASSIGN_OR_RETURN(internal::DataItem schema,
+                               schema::CommonSchema(impl),
+                               KodaErrorCausedByNoCommonSchemaError(
+                                   _, obj_schema_slice.GetBag()));
+              return schema.has_value() ? schema
+                                        : internal::DataItem(schema::kNone);
+            }),
+        _ << error_suffix());
+  }
   // TODO: Support deep casting to entity schema.
-  if (!schema::IsImplicitlyCastableTo(slice.GetSchemaImpl(), entity_schema)) {
-    // TODO: Consider returning an error payload allowing the
-    // schemas to be shown properly.
+  if (!schema::IsImplicitlyCastableTo(from_schema, entity_schema)) {
+    ASSIGN_OR_RETURN(std::string from_schema_str,
+                     SchemaImplToStr(from_schema, slice.GetBag()));
+    if (slice.GetSchemaImpl() == schema::kObject) {
+      from_schema_str =
+          absl::StrFormat("%v with common __schema__ %s",
+                          schema::kObject.name(), from_schema_str);
+    }
+    // NOTE: We assume that the `entity_schema` is already part of the bag. If
+    // it's not, we still end up with an OK error message so this is a best
+    // effort that covers most practical scenarios.
+    ASSIGN_OR_RETURN(std::string entity_schema_str,
+                     SchemaImplToStr(entity_schema, slice.GetBag()));
     return absl::InvalidArgumentError(absl::StrFormat(
-        "(deep) casting from %v to entity schema %v is currently not supported "
+        "(deep) casting from %s to entity schema %s is currently not supported "
         "- please cast each attribute separately or use `kd.with_schema` if "
         "you are certain it is safe to do so",
-        slice.GetSchemaImpl(), entity_schema));
+        from_schema_str, entity_schema_str));
   }
   return slice.VisitImpl([&](const auto& impl) -> absl::StatusOr<DataSlice> {
     return DataSlice::Create(impl, slice.GetShape(), entity_schema,

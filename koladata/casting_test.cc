@@ -56,6 +56,7 @@ using ::absl_testing::StatusIs;
 using ::koladata::internal::ObjectId;
 using ::koladata::internal::testing::DataBagEqual;
 using ::koladata::testing::IsEquivalentTo;
+using ::testing::ContainsRegex;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using ::testing::IsSupersetOf;
@@ -1184,7 +1185,7 @@ INSTANTIATE_TEST_SUITE_P(
       auto obj = internal::AllocateSingleObject();
       auto entity_schema_1 = internal::AllocateExplicitSchema();
 
-      // Write a bogus schema to the db.
+      // Write another schema to the db.
       auto entity_schema_3 = internal::AllocateExplicitSchema();
       auto db = DataBag::Empty();
       EXPECT_OK(db->GetMutableImpl().value().get().SetAttr(
@@ -1196,17 +1197,25 @@ INSTANTIATE_TEST_SUITE_P(
           // DataSliceImpl cases.
           {test::EmptyDataSlice(3, schema::kNone),
            test::EmptyDataSlice(3, entity_schema_1)},
+          {test::EmptyDataSlice(3, schema::kObject),
+           test::EmptyDataSlice(3, entity_schema_1)},
           {test::DataSlice<ObjectId>({obj}, entity_schema_1),
            test::DataSlice<ObjectId>({obj}, entity_schema_1)},
           {test::DataSlice<ObjectId>({obj}, entity_schema_1, db),
            test::DataSlice<ObjectId>({obj}, entity_schema_1, db)},
+          {test::DataSlice<ObjectId>({obj}, schema::kObject, db),
+           test::DataSlice<ObjectId>({obj}, entity_schema_3, db)},
           // DataItem cases.
           {test::DataItem(std::nullopt, schema::kNone),
+           test::DataItem(std::nullopt, entity_schema_1)},
+          {test::DataItem(std::nullopt, schema::kObject),
            test::DataItem(std::nullopt, entity_schema_1)},
           {test::DataItem(obj, entity_schema_1),
            test::DataItem(obj, entity_schema_1)},
           {test::DataItem(obj, entity_schema_1, db),
            test::DataItem(obj, entity_schema_1, db)},
+          {test::DataItem(obj, schema::kObject, db),
+           test::DataItem(obj, entity_schema_3, db)},
       };
       return test_cases;
     }()));
@@ -1215,6 +1224,15 @@ TEST(Casting, EntityErrors) {
   auto obj = internal::AllocateSingleObject();
   auto entity_schema = internal::AllocateExplicitSchema();
   auto entity_schema_2 = internal::AllocateExplicitSchema();
+  auto db = DataBag::Empty();
+  EXPECT_OK(db->GetMutableImpl().value().get().SetAttr(
+      internal::DataItem(obj), schema::kSchemaAttr,
+      internal::DataItem(entity_schema)));
+  auto db2 = DataBag::Empty();
+  EXPECT_OK(db2->GetMutableImpl().value().get().SetAttr(
+      internal::DataItem(obj), schema::kSchemaAttr,
+      internal::DataItem(entity_schema_2)));
+
   EXPECT_THAT(ToEntity(test::EmptyDataSlice(3, schema::kNone),
                        internal::DataItem(schema::kInt32)),
               StatusIs(absl::StatusCode::kInvalidArgument,
@@ -1223,6 +1241,7 @@ TEST(Casting, EntityErrors) {
       ToEntity(test::EmptyDataSlice(3, schema::kNone), internal::DataItem(1)),
       StatusIs(absl::StatusCode::kInvalidArgument,
                "expected an entity schema, got: 1"));
+  // Even when the bag is not attached, the error is fine.
   EXPECT_THAT(
       ToEntity(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
                                              schema::kMask),
@@ -1231,16 +1250,27 @@ TEST(Casting, EntityErrors) {
                HasSubstr(absl::StrFormat("(deep) casting from MASK to entity "
                                          "schema %v is currently not supported",
                                          internal::DataItem(entity_schema)))));
+  // If the "wrong" bag is attached, the error is still fine (it will be the
+  // empty schema).
   EXPECT_THAT(
-      ToEntity(
-          test::MixedDataSlice<internal::ObjectId, arolla::Unit>(
-              {internal::AllocateSingleObject(), std::nullopt, std::nullopt},
-              {std::nullopt, arolla::kUnit, std::nullopt}),
-          internal::DataItem(entity_schema)),
+      ToEntity(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
+                                             schema::kMask, db2),
+               internal::DataItem(entity_schema)),
       StatusIs(absl::StatusCode::kInvalidArgument,
-               HasSubstr(absl::StrFormat("(deep) casting from OBJECT to entity "
-                                         "schema %v is currently not supported",
-                                         internal::DataItem(entity_schema)))));
+               HasSubstr(absl::StrFormat(
+                   "(deep) casting from MASK to entity "
+                   "schema ENTITY() with id %v is currently not supported",
+                   internal::DataItem(entity_schema)))));
+  // When the bag is attached, the error is even better.
+  EXPECT_THAT(
+      ToEntity(test::DataSlice<arolla::Unit>({arolla::kUnit, std::nullopt},
+                                             schema::kMask, db),
+               internal::DataItem(entity_schema)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr(absl::StrFormat(
+                   "(deep) casting from MASK to entity "
+                   "schema ENTITY() with id %v is currently not supported",
+                   internal::DataItem(entity_schema)))));
   EXPECT_THAT(
       ToEntity(test::DataSlice<ObjectId>({obj, std::nullopt}, entity_schema),
                internal::DataItem(entity_schema_2)),
@@ -1250,6 +1280,42 @@ TEST(Casting, EntityErrors) {
                                     "schema %v is currently not supported",
                                     internal::DataItem(entity_schema),
                                     internal::DataItem(entity_schema_2)))));
+  // OBJECT -> Entity errors.
+  // No bag.
+  EXPECT_THAT(ToEntity(test::DataItem(internal::AllocateSingleObject(),
+                                      internal::DataItem(schema::kObject)),
+                       internal::DataItem(entity_schema)),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       ContainsRegex("must have a DataBag.*when validating "
+                                    "equivalence of existing __schema__")));
+  // Missing __schema__.
+  EXPECT_THAT(
+      ToEntity(
+          test::DataItem(internal::AllocateSingleObject(),
+                         internal::DataItem(schema::kObject), DataBag::Empty()),
+          internal::DataItem(entity_schema)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               ContainsRegex("object.*is missing __schema__ attribute.*when "
+                             "validating equivalence of existing __schema__")));
+  // No common schema.
+  EXPECT_THAT(
+      ToEntity(test::MixedDataSlice<int, internal::ObjectId>(
+                   {1, std::nullopt}, {std::nullopt, obj}, schema::kObject, db),
+               internal::DataItem(entity_schema)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr("cannot find a common schema")));
+  // Not implicitly castable.
+  EXPECT_THAT(
+      ToEntity(
+          test::MixedDataSlice<int, float>(
+              {1, std::nullopt}, {std::nullopt, 2.0f}, schema::kObject, db),
+          internal::DataItem(entity_schema)),
+      StatusIs(absl::StatusCode::kInvalidArgument,
+               HasSubstr(absl::StrFormat(
+                   "(deep) casting from OBJECT with "
+                   "common __schema__ FLOAT32 to entity "
+                   "schema ENTITY() with id %v is currently not supported",
+                   internal::DataItem(entity_schema)))));
 }
 
 TEST_P(CastingToObjectTest, Casting) {

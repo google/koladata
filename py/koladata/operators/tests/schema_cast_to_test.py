@@ -52,6 +52,7 @@ class SchemaCastToTest(parameterized.TestCase):
           ds([1, 2], schema_constants.INT64),
       ),
       (ENTITY, ENTITY.get_schema(), ENTITY),
+      (ENTITY.embed_schema(), ENTITY.get_schema(), ENTITY),
   )
   def test_eval(self, x, schema, expected):
     res = eval_op("kd.schema.cast_to", x, schema)
@@ -110,6 +111,36 @@ class SchemaCastToTest(parameterized.TestCase):
     # Sanity check
     testing.assert_equal(res.x, ds(1).with_bag(res.get_bag()))
 
+  def test_object_to_entity_casting_implicit_schema_error(self):
+    db = data_bag.DataBag.empty()
+    obj = db.obj(x=1)
+    with self.assertRaisesRegex(
+        ValueError, "DataSlice cannot have an implicit schema as its schema"
+    ):
+      expr_eval.eval(kde.schema.cast_to(obj, obj.get_obj_schema()))
+
+  def test_object_to_entity_casting_incompatible_schema_error(self):
+    db = data_bag.DataBag.empty()
+    obj = db.new(x=1).embed_schema()
+    with self.assertRaisesRegex(
+        ValueError,
+        r"casting from OBJECT with common __schema__ ENTITY\(x=INT32\) with id"
+        r" Schema:.*to entity schema ENTITY\(x=INT32\) with id Schema:.*is"
+        r" currently not supported",
+    ):
+      expr_eval.eval(kde.schema.cast_to(obj, db.new(x=1).get_schema()))
+
+  def test_object_to_entity_casting_no_common_schema_error(self):
+    db = data_bag.DataBag.empty()
+    entity = db.new(x=1)
+    x = ds([1, entity.embed_schema()])
+    with self.assertRaisesRegex(
+        ValueError,
+        "(?s)cannot find a common schema.*INT32.*ENTITY.*when validating"
+        " equivalence of existing __schema__",
+    ):
+      expr_eval.eval(kde.schema.cast_to(x, entity.get_schema()))
+
   def test_not_schema_error(self):
     with self.assertRaisesRegex(
         ValueError, "schema must be SCHEMA, got: INT32"
@@ -118,11 +149,12 @@ class SchemaCastToTest(parameterized.TestCase):
 
   def test_unsupported_schema_error(self):
     db = data_bag.DataBag.empty()
-    e1 = db.new()
-    e2_schema = db.new().get_schema()
+    e1 = db.new(x=1)
+    e2_schema = db.new(x=1).get_schema()
     with self.assertRaisesRegex(
         ValueError,
-        "casting from.*to entity schema.*is currently not supported",
+        r"casting from ENTITY\(x=INT32\) with id Schema:.*to entity schema"
+        r" ENTITY\(x=INT32\) with id Schema:.*is currently not supported",
     ):
       expr_eval.eval(kde.schema.cast_to(e1, e2_schema))
 
