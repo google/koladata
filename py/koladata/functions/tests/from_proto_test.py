@@ -32,10 +32,12 @@ class FromProtoTest(absltest.TestCase):
   def test_zero_messages(self):
     x = fns.from_proto([])
     testing.assert_equal(x.no_bag(), ds([], schema_constants.OBJECT))
+    self.assertFalse(x.get_bag().is_mutable())
 
   def test_single_none(self):
     x = fns.from_proto(None)
     testing.assert_equal(x.no_bag(), ds(None, schema_constants.OBJECT))
+    self.assertFalse(x.get_bag().is_mutable())
 
   def test_invalid_input_primitive(self):
     with self.assertRaisesWithLiteralMatch(
@@ -79,6 +81,7 @@ class FromProtoTest(absltest.TestCase):
   def test_single_empty_message(self):
     x = fns.from_proto(test_pb2.MessageA())
     self.assertEqual(x.get_ndim(), 0)
+    self.assertFalse(x.get_bag().is_mutable())
 
   def test_single_empty_message_object_schema(self):
     x = fns.from_proto(test_pb2.MessageA(), schema=schema_constants.OBJECT)
@@ -100,6 +103,7 @@ class FromProtoTest(absltest.TestCase):
     x_itemid = fns.uu(seed='').get_itemid()
     x = fns.from_proto(test_pb2.MessageA(), itemid=x_itemid)
     testing.assert_equal(x.get_itemid().no_bag(), x_itemid.no_bag())
+    self.assertFalse(x.get_bag().is_mutable())
 
   def test_single_message(self):
     m = test_pb2.MessageA(
@@ -109,9 +113,10 @@ class FromProtoTest(absltest.TestCase):
             test_pb2.MessageB(text='a'),
             test_pb2.MessageB(text='b'),
             test_pb2.MessageB(text='c'),
-        ]
+        ],
     )
     x = fns.from_proto(m)
+    self.assertFalse(x.get_bag().is_mutable())
     s = x.get_schema()
     self.assertEqual(x.get_ndim(), 0)
 
@@ -154,9 +159,10 @@ class FromProtoTest(absltest.TestCase):
             test_pb2.MessageB(text='a'),
             test_pb2.MessageB(text='b'),
             test_pb2.MessageB(text='c'),
-        ]
+        ],
     )
     x = fns.from_proto(m, schema=s)
+    self.assertFalse(x.get_bag().is_mutable())
     self.assertEqual(x.get_ndim(), 0)
 
     self.assertEqual(x.some_text, 'thing 1')
@@ -173,14 +179,14 @@ class FromProtoTest(absltest.TestCase):
             test_pb2.MessageB(text='a'),
             test_pb2.MessageB(text='b'),
             test_pb2.MessageB(text='c'),
-        ]
+        ],
     )
     m2 = test_pb2.MessageA(
         some_text='thing 2',
         message_b_list=[
             test_pb2.MessageB(),
             test_pb2.MessageB(text='d'),
-        ]
+        ],
     )
 
     x = fns.from_proto([m1, m2])
@@ -194,6 +200,7 @@ class FromProtoTest(absltest.TestCase):
     testing.assert_equal(
         x.message_b_list[:].text.no_bag(), ds([['a', 'b', 'c'], [None, 'd']])
     )
+    self.assertFalse(x.get_bag().is_mutable())
 
   def test_extensions(self):
     m = test_pb2.MessageA(
@@ -203,7 +210,7 @@ class FromProtoTest(absltest.TestCase):
             test_pb2.MessageB(text='a'),
             test_pb2.MessageB(text='b'),
             test_pb2.MessageB(text='c'),
-        ]
+        ],
     )
 
     m.message_set_extensions.Extensions[
@@ -309,9 +316,11 @@ class FromProtoTest(absltest.TestCase):
         ],
     )
     testing.assert_equal(
-        x.message_b_list[:].get_attr(
+        x.message_b_list[:]
+        .get_attr(
             '(koladata.functions.testing.MessageBExtension.message_b_extension)'
-        ).extra.no_bag(),
+        )
+        .extra.no_bag(),
         ds([4, None, 5]),
     )
 

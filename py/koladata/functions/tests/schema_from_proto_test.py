@@ -25,6 +25,7 @@ class SchemaFromProtoTest(absltest.TestCase):
 
   def test_schema_itemid_consistent_with_from_proto(self):
     schema = fns.schema_from_proto(test_pb2.MessageA)
+    self.assertFalse(schema.get_bag().is_mutable())
     testing.assert_equal(
         schema.no_bag(),
         fns.from_proto(test_pb2.MessageA()).get_schema().no_bag(),
@@ -32,16 +33,21 @@ class SchemaFromProtoTest(absltest.TestCase):
 
   def test_fields_no_extensions(self):
     schema = fns.schema_from_proto(test_pb2.MessageA)
+    self.assertFalse(schema.get_bag().is_mutable())
     self.assertCountEqual(
         schema.get_attr_names(intersection=True),
         ['some_text', 'some_float', 'message_b_list', 'message_set_extensions'],
     )
     testing.assert_equal(schema.some_text.no_bag(), schema_constants.STRING)
     testing.assert_equal(schema.some_float.no_bag(), schema_constants.FLOAT32)
-    testing.assert_equal(schema.message_b_list.get_item_schema().no_bag(),
-                         fns.schema_from_proto(test_pb2.MessageB).no_bag())
-    testing.assert_equal(schema.message_set_extensions.no_bag(),
-                         fns.schema_from_proto(test_pb2.MessageSet).no_bag())
+    testing.assert_equal(
+        schema.message_b_list.get_item_schema().no_bag(),
+        fns.schema_from_proto(test_pb2.MessageB).no_bag(),
+    )
+    testing.assert_equal(
+        schema.message_set_extensions.no_bag(),
+        fns.schema_from_proto(test_pb2.MessageSet).no_bag(),
+    )
 
   def test_fields_no_extensions_with_map_and_oneof(self):
     schema = fns.schema_from_proto(test_pb2.MessageC)
@@ -64,6 +70,7 @@ class SchemaFromProtoTest(absltest.TestCase):
             'oneof_message_field',
         ],
     )
+    self.assertFalse(schema.get_bag().is_mutable())
     testing.assert_equal(
         schema.map_int32_int32_field.get_key_schema().no_bag(),
         schema_constants.INT32,
@@ -98,6 +105,7 @@ class SchemaFromProtoTest(absltest.TestCase):
             'message_b_list.(koladata.functions.testing.MessageBExtension.message_b_extension)',
         ],
     )
+    self.assertFalse(schema.get_bag().is_mutable())
     self.assertCountEqual(
         schema.get_attr_names(intersection=True),
         [

@@ -136,7 +136,7 @@ def from_proto(
 
   if result_is_item:
     result = result.S[0]
-  return result
+  return result.freeze_bag()
 
 
 def schema_from_proto(
@@ -172,9 +172,10 @@ def schema_from_proto(
   Returns:
     A DataItem containing the converted schema.
   """
-  return data_bag.DataBag.empty()._schema_from_proto(  # pylint: disable=protected-access
+  result = data_bag.DataBag.empty()._schema_from_proto(  # pylint: disable=protected-access
       message_class(), extensions
   )
+  return result.freeze_bag()
 
 
 def to_proto(
