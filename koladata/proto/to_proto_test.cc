@@ -856,10 +856,10 @@ TEST(ProtoDescriptorFromSchemaTest, DictOfPrimitives) {
                     number: 1
                     label: LABEL_REPEATED
                     type: TYPE_MESSAGE
-                    type_name: "koladata.ephemeral.RootSchema.MyDictSchema"
+                    type_name: "koladata.ephemeral.RootSchema.MyDictEntry"
                   }
                   nested_type {
-                    name: "MyDictSchema"
+                    name: "MyDictEntry"
                     field {
                       name: "key"
                       number: 1
@@ -898,10 +898,10 @@ TEST(ProtoDescriptorFromSchemaTest, DictValuesAreEntities) {
             number: 1
             label: LABEL_REPEATED
             type: TYPE_MESSAGE
-            type_name: "koladata.ephemeral.RootSchema.MyDictSchema"
+            type_name: "koladata.ephemeral.RootSchema.MyDictEntry"
           }
           nested_type {
-            name: "MyDictSchema"
+            name: "MyDictEntry"
             field {
               name: "key"
               number: 1
@@ -913,18 +913,18 @@ TEST(ProtoDescriptorFromSchemaTest, DictValuesAreEntities) {
               number: 2
               label: LABEL_OPTIONAL
               type: TYPE_MESSAGE
-              type_name: "koladata.ephemeral.RootSchema.MyDictSchema.ValueSchema"
-            }
-            nested_type {
-              name: "ValueSchema"
-              field {
-                name: "value"
-                number: 1
-                label: LABEL_OPTIONAL
-                type: TYPE_INT32
-              }
+              type_name: "koladata.ephemeral.RootSchema.MyDictEntryValueSchema"
             }
             options { map_entry: true }
+          }
+          nested_type {
+            name: "MyDictEntryValueSchema"
+            field {
+              name: "value"
+              number: 1
+              label: LABEL_OPTIONAL
+              type: TYPE_INT32
+            }
           }
         }
       )pb")));
@@ -948,7 +948,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictOfRecursiveEntities) {
                     number: 1
                     label: LABEL_REPEATED
                     type: TYPE_MESSAGE
-                    type_name: "koladata.ephemeral.RootSchema.MyDictSchema"
+                    type_name: "koladata.ephemeral.RootSchema.MyDictEntry"
                   }
                   field {
                     name: "value"
@@ -957,7 +957,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictOfRecursiveEntities) {
                     type: TYPE_INT64
                   }
                   nested_type {
-                    name: "MyDictSchema"
+                    name: "MyDictEntry"
                     field {
                       name: "key"
                       number: 1
@@ -975,6 +975,162 @@ TEST(ProtoDescriptorFromSchemaTest, DictOfRecursiveEntities) {
                   }
                 }
               )pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictAppearsInMultiplePlaces) {
+  auto db = DataBag::Empty();
+  auto schema =
+      test::EntitySchema({"value"}, {test::Schema(schema::kInt64)}, db);
+  auto dict_schema =
+      CreateDictSchema(db, test::Schema(schema::kString), schema).value();
+  ASSERT_OK(schema.SetAttr("my_dict", dict_schema));
+  ASSERT_OK(schema.SetAttr("my_dict2", dict_schema));
+  EXPECT_THAT(
+      CallProtoDescriptorFromSchema(schema),
+      IsOkAndHolds(EqualsProto(
+          R"pb(name: ""
+               package: "koladata.ephemeral"
+               message_type {
+                 name: "RootSchema"
+                 field {
+                   name: "my_dict"
+                   number: 1
+                   label: LABEL_REPEATED
+                   type: TYPE_MESSAGE
+                   type_name: "koladata.ephemeral.RootSchema.MyDictEntry"
+                 }
+                 field {
+                   name: "my_dict2"
+                   number: 2
+                   label: LABEL_REPEATED
+                   type: TYPE_MESSAGE
+                   type_name: "koladata.ephemeral.RootSchema.MyDict2Entry"
+                 }
+                 field {
+                   name: "value"
+                   number: 3
+                   label: LABEL_OPTIONAL
+                   type: TYPE_INT64
+                 }
+                 nested_type {
+                   name: "MyDictEntry"
+                   field {
+                     name: "key"
+                     number: 1
+                     label: LABEL_OPTIONAL
+                     type: TYPE_STRING
+                   }
+                   field {
+                     name: "value"
+                     number: 2
+                     label: LABEL_OPTIONAL
+                     type: TYPE_MESSAGE
+                     type_name: "koladata.ephemeral.RootSchema"
+                   }
+                   options { map_entry: true }
+                 }
+                 nested_type {
+                   name: "MyDict2Entry"
+                   field {
+                     name: "key"
+                     number: 1
+                     label: LABEL_OPTIONAL
+                     type: TYPE_STRING
+                   }
+                   field {
+                     name: "value"
+                     number: 2
+                     label: LABEL_OPTIONAL
+                     type: TYPE_MESSAGE
+                     type_name: "koladata.ephemeral.RootSchema"
+                   }
+                   options { map_entry: true }
+                 }
+               })pb")));
+}
+
+TEST(ProtoDescriptorFromSchemaTest, DictHasEntityValues) {
+  auto db = DataBag::Empty();
+  auto schema =
+      test::EntitySchema({"value"}, {test::Schema(schema::kInt64)}, db);
+  auto dict_schema =
+      CreateDictSchema(
+          db, test::Schema(schema::kString),
+          test::EntitySchema({"number"}, {test::Schema(schema::kInt32)}, db))
+          .value();
+  ASSERT_OK(schema.SetAttr("my_dict", dict_schema));
+  ASSERT_OK(schema.SetAttr("my_dict2", dict_schema));
+  EXPECT_THAT(
+      CallProtoDescriptorFromSchema(schema),
+      IsOkAndHolds(EqualsProto(
+          R"pb(name: ""
+               package: "koladata.ephemeral"
+               message_type {
+                 name: "RootSchema"
+                 field {
+                   name: "my_dict"
+                   number: 1
+                   label: LABEL_REPEATED
+                   type: TYPE_MESSAGE
+                   type_name: "koladata.ephemeral.RootSchema.MyDictEntry"
+                 }
+                 field {
+                   name: "my_dict2"
+                   number: 2
+                   label: LABEL_REPEATED
+                   type: TYPE_MESSAGE
+                   type_name: "koladata.ephemeral.RootSchema.MyDict2Entry"
+                 }
+                 field {
+                   name: "value"
+                   number: 3
+                   label: LABEL_OPTIONAL
+                   type: TYPE_INT64
+                 }
+                 nested_type {
+                   name: "MyDictEntry"
+                   field {
+                     name: "key"
+                     number: 1
+                     label: LABEL_OPTIONAL
+                     type: TYPE_STRING
+                   }
+                   field {
+                     name: "value"
+                     number: 2
+                     label: LABEL_OPTIONAL
+                     type: TYPE_MESSAGE
+                     type_name: "koladata.ephemeral.RootSchema.MyDictEntryValueSchema"
+                   }
+                   options { map_entry: true }
+                 }
+                 nested_type {
+                   name: "MyDictEntryValueSchema"
+                   field {
+                     name: "number"
+                     number: 1
+                     label: LABEL_OPTIONAL
+                     type: TYPE_INT32
+                   }
+                 }
+                 nested_type {
+                   name: "MyDict2Entry"
+                   field {
+                     name: "key"
+                     number: 1
+                     label: LABEL_OPTIONAL
+                     type: TYPE_STRING
+                   }
+                   field {
+                     name: "value"
+                     number: 2
+                     label: LABEL_OPTIONAL
+                     type: TYPE_MESSAGE
+                     type_name: "koladata.ephemeral.RootSchema.MyDictEntryValueSchema"
+                   }
+                   options { map_entry: true }
+                 }
+               })pb")));
 }
 
 absl::StatusOr<DataSlice> GenerateImplicitSchema(DataBagPtr db) {
@@ -1131,7 +1287,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithEntityKeysIgnored) {
                 package: "koladata.ephemeral"
                 message_type {
                   name: "RootSchema"
-                  nested_type { name: "MyDictSchema" }
+                  nested_type { name: "MyDictEntry" }
                 }
               )pb")));
   EXPECT_THAT(warnings,
@@ -1159,7 +1315,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithListKeysIgnored) {
                 package: "koladata.ephemeral"
                 message_type {
                   name: "RootSchema"
-                  nested_type { name: "MyDictSchema" }
+                  nested_type { name: "MyDictEntry" }
                 }
               )pb")));
   EXPECT_THAT(
@@ -1187,7 +1343,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithListValuesIgnored) {
                 package: "koladata.ephemeral"
                 message_type {
                   name: "RootSchema"
-                  nested_type { name: "MyDictSchema" }
+                  nested_type { name: "MyDictEntry" }
                 }
               )pb")));
   EXPECT_THAT(
@@ -1217,7 +1373,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithDictKeysIgnored) {
                 package: "koladata.ephemeral"
                 message_type {
                   name: "RootSchema"
-                  nested_type { name: "MyDictSchema" }
+                  nested_type { name: "MyDictEntry" }
                 }
               )pb")));
   EXPECT_THAT(
@@ -1247,7 +1403,7 @@ TEST(ProtoDescriptorFromSchemaTest, DictWithDictValuesIgnored) {
                 package: "koladata.ephemeral"
                 message_type {
                   name: "RootSchema"
-                  nested_type { name: "MyDictSchema" }
+                  nested_type { name: "MyDictEntry" }
                 }
               )pb")));
   EXPECT_THAT(

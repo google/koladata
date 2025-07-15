@@ -595,13 +595,20 @@ bool IsValidProtoFieldName(absl::string_view attr_name) {
   return true;
 }
 
-std::string NestedMessageNameFromAttributeName(absl::string_view attr_name) {
+std::string NestedMessageNameForAttribute(absl::string_view attr_name,
+                                          const DataSlice& attr_schema) {
   DCHECK(IsValidProtoFieldName(attr_name));
 
-  constexpr absl::string_view kSuffix = "Schema";
+  // The message name of proto3 map entries must be the CamelCase of the map
+  // field name plus "Entry". That is a hard requirement of valid proto3 maps.
+  constexpr absl::string_view schema_suffix = "Schema";
+  constexpr absl::string_view dict_suffix = "Entry";
+  const absl::string_view& suffix =
+      attr_schema.IsDictSchema() ? dict_suffix : schema_suffix;
+
   bool capitalize_next = true;
   std::string result;
-  result.reserve(attr_name.size() + kSuffix.size());
+  result.reserve(attr_name.size() + suffix.size());
 
   for (char c : attr_name) {
     if (IsUnderscore(c)) {
@@ -613,14 +620,14 @@ std::string NestedMessageNameFromAttributeName(absl::string_view attr_name) {
       result.push_back(c);
     }
   }
-  absl::StrAppend(&result, kSuffix);
+  absl::StrAppend(&result, suffix);
 
   return result;
 }
 
 struct DescriptorInfo {
   google::protobuf::DescriptorProto& descriptor_proto;
-  const std::string& message_full_name;
+  std::string message_full_name;
 };
 
 std::optional<DescriptorInfo>
@@ -630,22 +637,33 @@ SetFieldTypeAndPossiblyCreateUnpopulatedMessageDescriptor(
     absl::string_view attr_name, const DataSlice& attr_schema,
     absl::flat_hash_map<internal::DataItem, std::string>& descriptor_map) {
   field.set_type(google::protobuf::FieldDescriptorProto::TYPE_MESSAGE);
-  std::string& nested_message_full_name = descriptor_map[attr_schema.item()];
-  if (!nested_message_full_name.empty()) {
-    field.set_type_name(nested_message_full_name);
-    return std::nullopt;
+  if (!attr_schema.IsDictSchema()) {
+    // Why the condition of not being a dict schema?
+    // Dict schemas are handled separately because the proto descriptor must
+    // contain one map entry message per map field. That is a hard requirement
+    // of proto3 maps.
+    // So we need to create a nested message descriptor for each map field, and
+    // we cannot reuse it for other map fields.
+    std::string& nested_message_full_name = descriptor_map[attr_schema.item()];
+    if (!nested_message_full_name.empty()) {
+      field.set_type_name(nested_message_full_name);
+      return std::nullopt;
+    }
   }
   std::string nested_message_name =
-      NestedMessageNameFromAttributeName(attr_name);
-  nested_message_full_name =
+      NestedMessageNameForAttribute(attr_name, attr_schema);
+  std::string nested_message_full_name =
       absl::StrCat(message_full_name, ".", nested_message_name);
   field.set_type_name(nested_message_full_name);
   google::protobuf::DescriptorProto& nested_descriptor_proto =
       *descriptor_proto.add_nested_type();
   nested_descriptor_proto.set_name(std::move(nested_message_name));
+  if (!attr_schema.IsDictSchema()) {
+    descriptor_map[attr_schema.item()] = nested_message_full_name;
+  }
   return DescriptorInfo{
       .descriptor_proto = nested_descriptor_proto,
-      .message_full_name = nested_message_full_name,
+      .message_full_name = std::move(nested_message_full_name),
   };
 }
 
@@ -768,10 +786,14 @@ absl::Status PopulateDescriptor(
             continue;
           }
         } else if (value_schema.IsEntitySchema()) {
+          // Map values that are complex entities need messages.
+          // These messages must exist on the same or higher level as the map
+          // field to be valid proto3.
           auto value_info =
               SetFieldTypeAndPossiblyCreateUnpopulatedMessageDescriptor(
-                  dict_info->descriptor_proto, dict_info->message_full_name,
-                  value_field, "value", value_schema, descriptor_map);
+                  descriptor_proto, message_full_name, value_field,
+                  absl::StrCat(attr_name, "_entry_value"), value_schema,
+                  descriptor_map);
           if (value_info.has_value()) {
             RETURN_IF_ERROR(PopulateDescriptor(
                 value_schema, value_info->descriptor_proto,
