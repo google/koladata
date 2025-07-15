@@ -14,8 +14,6 @@
 //
 #include <Python.h>
 
-#include <string>
-
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/testing/traversing_test_utils.h"
 
