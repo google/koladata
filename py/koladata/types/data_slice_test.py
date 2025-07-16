@@ -4314,7 +4314,47 @@ class DataSliceListSlicingTest(parameterized.TestCase):
                   ' schema: NONE))'
               ),
           ],
-      )
+      ),
+      (
+          'positional_only_arg',
+          lambda x, /, y: x + y,
+          [
+              (
+                  'DataItem(Functor[x, /, y](returns=(I.x + I.y)📍), schema:'
+                  ' OBJECT)'
+              ),
+          ],
+      ),
+      (
+          'all_positional_only_args',
+          lambda x, y, /: x + y,
+          [
+              (
+                  'DataItem(Functor[x, y, /](returns=(I.x + I.y)📍), schema:'
+                  ' OBJECT)'
+              ),
+          ],
+      ),
+      (
+          'keyword_only_arga',
+          lambda x, *, y: x + y,
+          [
+              (
+                  'DataItem(Functor[x, *, y](returns=(I.x + I.y)📍), schema:'
+                  ' OBJECT)'
+              ),
+          ],
+      ),
+      (
+          'all_keyword_only_args',
+          lambda *, x, y: x + y,
+          [
+              (
+                  'DataItem(Functor[*, x, y](returns=(I.x + I.y)📍), schema:'
+                  ' OBJECT)'
+              ),
+          ],
+      ),
   )
   def test_functor_repr(self, f, expected_substrings):
     # We only test that certain substrings are present in the repr. This way, we

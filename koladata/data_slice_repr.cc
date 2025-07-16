@@ -638,6 +638,15 @@ absl::StatusOr<std::string> FunctorSignatureToStr(
       absl::StrAppend(&result, ", ");
     }
     const auto& parameter = signature.parameters()[i];
+
+    // If this is the first keyword-only parameter.
+    if (parameter.kind ==
+            functor::Signature::Parameter::Kind::kKeywordOnly &&
+        (i == 0 || signature.parameters()[i - 1].kind !=
+                       functor::Signature::Parameter::Kind::kKeywordOnly)) {
+      absl::StrAppend(&result, "*, ");
+    }
+
     if (parameter.kind == functor::Signature::Parameter::Kind::kVarKeyword) {
       absl::StrAppend(&result, "**", parameter.name);
     } else if (parameter.kind ==
@@ -645,19 +654,27 @@ absl::StatusOr<std::string> FunctorSignatureToStr(
       absl::StrAppend(&result, "*", parameter.name);
     } else {
       absl::StrAppend(&result, parameter.name);
-      if (!parameter.default_value.has_value()) {
-        continue;
+      if (parameter.default_value.has_value()) {
+        auto default_value = parameter.default_value.value();
+        // Default values are always DataItems.
+        DCHECK(default_value.is_item());
+        // We don't want to show the `DataItem()` wrapper to make the repr more
+        // concise so we call DataItemToStr directly.
+        ASSIGN_OR_RETURN(
+            std::string default_value_repr,
+            DataItemToStr(default_value.item(), default_value.GetSchemaImpl(),
+                          default_value.GetBag(), option, wrapping));
+        absl::StrAppend(&result, "=", default_value_repr);
       }
-      auto default_value = parameter.default_value.value();
-      // Default values are always DataItems.
-      DCHECK(default_value.is_item());
-      // We don't want to show the `DataItem()` wrapper to make the repr more
-      // concise so we call DataItemToStr directly.
-      ASSIGN_OR_RETURN(
-          std::string default_value_repr,
-          DataItemToStr(default_value.item(), default_value.GetSchemaImpl(),
-                        default_value.GetBag(), option, wrapping));
-      absl::StrAppend(&result, "=", default_value_repr);
+    }
+
+    // If this is the last positional-only parameter.
+    if (parameter.kind ==
+            functor::Signature::Parameter::Kind::kPositionalOnly &&
+        (i == signature.parameters().size() - 1 ||
+         signature.parameters()[i + 1].kind !=
+             functor::Signature::Parameter::Kind::kPositionalOnly)) {
+      absl::StrAppend(&result, ", /");
     }
   }
   return result;
