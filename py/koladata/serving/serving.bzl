@@ -3,6 +3,7 @@
 load(
     "@com_google_arolla//arolla/codegen:utils.bzl",
     "call_python_function",
+    "python_function_call_genrule",
     "render_jinja2_template",
 )
 
@@ -40,6 +41,63 @@ def koladata_export_dataslice(
         deps = deps + ["//py/koladata/serving:serving_impl"],
     )
 
+def koladata_serialized_slices(
+        name,
+        slices,
+        tool_deps = [],
+        testonly = False,
+        **kwargs):
+    """Generates a serialized *.kd file with Koda slices (e.g. functors).
+
+    Usage example:
+
+      pytype_strict_library(
+          name = "my_functors",
+          srcs = ["my_functors.py"],
+          deps = [...],
+      )
+      koladata_serialized_slices(
+          name = "my_functors",
+          slices = {
+              "my_functor": koladata_trace_py_fn("path.to.my_functors.my_functor"),
+              "their_functor": koladata_trace_py_fn("path.to.my_functors.their_functor"),
+          },
+          tool_deps = [":my_functors"],
+      )
+
+      In C++ code one can deserialize the slices as follows:
+      ```
+      #include "py/koladata/serving/serialized_slices.h"
+      ...
+      ASSIGN_OR_RETURN(auto slices,
+                       koladata::serving::ParseSerializedSlices(serialized_slices_data));
+      ASSIGN_OR_RETURN(koladata::DataSlice my_functor,
+                       koladata::serving::GetSliceByName(slices, "my_functor"));
+      ```
+
+    Args:
+      name: Name of the rule, will be used for the generated C++ header (with *.h suffux).
+      slices: A dict from the slice name to a call_python_function spec constructing it, see
+          koladata_trace_py_fn.
+      tool_deps: Build time dependencies, e.g. the python library defining the slices. Note that the
+          additional dependencies are added based on the `deps` inside `slices` argument.
+      testonly: Whether the build target is testonly.
+      **kwargs: Extra arguments passed directly to the final genrule.
+    """
+    output_file = name + ".kd"
+
+    python_function_call_genrule(
+        name = name,
+        function = call_python_function(
+            "koladata.serving.serving_impl.serialize_slices_into",
+            args = [slices, "$(execpath {output})".format(output = output_file)],
+            deps = tool_deps + ["//py/koladata/serving:serving_impl"],
+        ),
+        outs = [output_file],
+        testonly = testonly,
+        **kwargs
+    )
+
 def koladata_cc_embedded_slices(
         name,
         cc_function_name,
@@ -66,7 +124,6 @@ def koladata_cc_embedded_slices(
       )
       koladata_cc_embedded_slices(
           name = "cc_my_functors",
-          testonly = True,
           cc_function_name = "my_namespace::MyFunctors",
           slices = {
               "my_functor": koladata_trace_py_fn("path.to.my_functors.my_functor"),
@@ -87,7 +144,7 @@ def koladata_cc_embedded_slices(
       tool_deps: Build time dependencies, e.g. the python library defining the slices. Note that the
           additional dependencies are added based on the `deps` inside `slices` argument.
       testonly: Whether the build target is testonly.
-      **kwargs: extra arguments passed directly to the final cc_library
+      **kwargs: Extra arguments passed directly to the final cc_library.
     """
     tags = list(kwargs.pop("tags", []))
 
@@ -133,7 +190,7 @@ def koladata_cc_embedded_slices(
             "@com_google_absl//absl/status:statusor",
             "@com_google_absl//absl/strings",
             "//koladata/serving:slice_registry",
-            "//py/koladata/serving:embedded_slices_internal",
+            "//py/koladata/serving:serialized_slices",
             "@com_google_arolla//arolla/util",
             "//koladata:data_slice",
         ],

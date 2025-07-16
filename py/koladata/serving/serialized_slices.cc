@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "py/koladata/serving/embedded_slices_internal.h"
+#include "py/koladata/serving/serialized_slices.h"
 
 #include <cstdint>
 
@@ -28,9 +28,9 @@
 #include "koladata/data_slice.h"
 #include "arolla/util/status_macros_backport.h"
 
-namespace koladata::serving::embedded_slices_internal {
+namespace koladata::serving {
 
-absl::StatusOr<EmbeddedSlices> ParseEmbeddedSlices(absl::string_view data) {
+absl::StatusOr<SliceMap> ParseSerializedSlices(absl::string_view data) {
   ASSIGN_OR_RETURN(arolla::serialization::DecodeResult decode_result,
                    arolla::serialization::DecodeFromRiegeliData(data),
                    [](absl::Status status) {
@@ -60,7 +60,7 @@ absl::StatusOr<EmbeddedSlices> ParseEmbeddedSlices(absl::string_view data) {
   if (names_array.size() != decode_result.values.size() - 1) {
     return absl::InternalError("number of names must match number of slices");
   }
-  EmbeddedSlices result;
+  SliceMap result;
   result.reserve(names_array.size());
   for (int64_t i = 0; i < names_array.size(); ++i) {
     absl::string_view name = names_array[i].value;
@@ -69,8 +69,8 @@ absl::StatusOr<EmbeddedSlices> ParseEmbeddedSlices(absl::string_view data) {
   return result;
 }
 
-absl::StatusOr<DataSlice> GetEmbeddedSlice(const EmbeddedSlices& slices,
-                                           absl::string_view name) {
+absl::StatusOr<DataSlice> GetSliceByName(const SliceMap& slices,
+                                         absl::string_view name) {
   auto it = slices.find(name);
   if (it == slices.end()) {
     return absl::InvalidArgumentError(
@@ -79,4 +79,4 @@ absl::StatusOr<DataSlice> GetEmbeddedSlice(const EmbeddedSlices& slices,
   return it->second;
 }
 
-}  // namespace koladata::serving::embedded_slices_internal
+}  // namespace koladata::serving

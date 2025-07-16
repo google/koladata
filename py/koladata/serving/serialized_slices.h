@@ -22,17 +22,17 @@
 #include "absl/strings/string_view.h"
 #include "koladata/data_slice.h"
 
-namespace koladata::serving::embedded_slices_internal {
+namespace koladata::serving {
 
-using EmbeddedSlices = absl::flat_hash_map<std::string, koladata::DataSlice>;
+using SliceMap = absl::flat_hash_map<std::string, koladata::DataSlice>;
 
-// Parses embedded slices from the serialized data.
-absl::StatusOr<EmbeddedSlices> ParseEmbeddedSlices(absl::string_view data);
+// Parses slices from the serialized data.
+absl::StatusOr<SliceMap> ParseSerializedSlices(absl::string_view data);
 
 // Returns a slice by its name.
-absl::StatusOr<koladata::DataSlice> GetEmbeddedSlice(
-    const EmbeddedSlices& slices, absl::string_view name);
+absl::StatusOr<koladata::DataSlice> GetSliceByName(const SliceMap& slices,
+                                                   absl::string_view name);
 
-}  // namespace koladata::serving::embedded_slices_internal
+}  // namespace koladata::serving
 
 #endif  // THIRD_PARTY_PY_KOLADATA_SERVING_EMBEDDED_SLICES_INTERNAL_H_

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "py/koladata/serving/embedded_slices_internal.h"
+#include "py/koladata/serving/serialized_slices.h"
 
 #include <cstdint>
 #include <optional>
@@ -41,7 +41,7 @@
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
 
-namespace koladata::serving::embedded_slices_internal {
+namespace koladata::serving::serialized_slices {
 namespace {
 
 using ::absl_testing::IsOkAndHolds;
@@ -70,7 +70,7 @@ TEST(ParseEmbeddedSlicesTest, Trival) {
            arolla::TypedValue::FromValue(CreateConstantFunctor(57)),
            arolla::TypedValue::FromValue(CreateConstantFunctor(42))},
           {}));
-  ASSERT_OK_AND_ASSIGN(auto functors, ParseEmbeddedSlices(data));
+  ASSERT_OK_AND_ASSIGN(auto functors, ParseSerializedSlices(data));
   ASSERT_THAT(functors, UnorderedElementsAre(Pair("f57", _), Pair("f42", _)));
   EXPECT_THAT(
       functor::CallFunctorWithCompilationCache(functors.at("f57"), {}, {}),
@@ -78,13 +78,13 @@ TEST(ParseEmbeddedSlicesTest, Trival) {
 }
 
 TEST(ParseEmbeddedSlicesTest, CorruptData) {
-  EXPECT_THAT(ParseEmbeddedSlices("\x08\x96"),
+  EXPECT_THAT(ParseSerializedSlices("\x08\x96"),
               StatusIs(absl::StatusCode::kInternal,
                        HasSubstr("invalid embedded data")));
 }
 
 TEST(ParseEmbeddedSlicesTest, EmptyData) {
-  EXPECT_THAT(ParseEmbeddedSlices(""),
+  EXPECT_THAT(ParseSerializedSlices(""),
               StatusIs(absl::StatusCode::kInternal,
                        HasSubstr("invalid embedded data")));
 }
@@ -101,7 +101,7 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
             },
             {}));
     EXPECT_THAT(
-        ParseEmbeddedSlices(data),
+        ParseSerializedSlices(data),
         StatusIs(absl::StatusCode::kInternal,
                  HasSubstr("names must be a full data slice of rank 1")));
   }
@@ -115,7 +115,7 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
                 arolla::TypedValue::FromValue(CreateConstantFunctor(57)),
             },
             {}));
-    EXPECT_THAT(ParseEmbeddedSlices(data),
+    EXPECT_THAT(ParseSerializedSlices(data),
                 StatusIs(absl::StatusCode::kInternal,
                          HasSubstr("names must be a full data slice")));
   }
@@ -130,7 +130,7 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
                 arolla::TypedValue::FromValue(CreateConstantFunctor(42)),
             },
             {}));
-    EXPECT_THAT(ParseEmbeddedSlices(data),
+    EXPECT_THAT(ParseSerializedSlices(data),
                 StatusIs(absl::StatusCode::kInternal,
                          HasSubstr("names must be a slice of strings")));
   }
@@ -145,25 +145,25 @@ TEST(ParseEmbeddedSlicesTest, IncorrectNames) {
             },
             {}));
     EXPECT_THAT(
-        ParseEmbeddedSlices(data),
+        ParseSerializedSlices(data),
         StatusIs(absl::StatusCode::kInternal,
                  HasSubstr("number of names must match number of slices")));
   }
 }
 
 TEST(GetEmbeddedSlice, Trival) {
-  EmbeddedSlices functors;
+  SliceMap functors;
   ASSERT_OK_AND_ASSIGN(functors["add"], functor::CreateFunctorFromFunction(
                                             &ops::Add, "add", "x, y"));
   ASSERT_OK_AND_ASSIGN(
       functors["multiply"],
       functor::CreateFunctorFromFunction(&ops::Multiply, "multiply", "x, y"));
-  EXPECT_THAT(GetEmbeddedSlice(functors, "add"),
+  EXPECT_THAT(GetSliceByName(functors, "add"),
               IsOkAndHolds(IsEquivalentTo(functors.at("add"))));
-  EXPECT_THAT(GetEmbeddedSlice(functors, "divide"),
+  EXPECT_THAT(GetSliceByName(functors, "divide"),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        "embedded slice not found: divide"));
 }
 
 }  // namespace
-}  // namespace koladata::serving::embedded_slices_internal
+}  // namespace koladata::serving::serialized_slices

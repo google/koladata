@@ -73,9 +73,9 @@ py_library(
 )
 
 cc_library(
-    name = "embedded_slices_internal",
-    srcs = ["embedded_slices_internal.cc"],
-    hdrs = ["embedded_slices_internal.h"],
+    name = "serialized_slices",
+    srcs = ["serialized_slices.cc"],
+    hdrs = ["serialized_slices.h"],
     visibility = ["//visibility:public"],
     deps = [
         "//koladata:data_slice",
@@ -94,10 +94,10 @@ cc_library(
 )
 
 cc_test(
-    name = "embedded_slices_internal_test",
-    srcs = ["embedded_slices_internal_test.cc"],
+    name = "serialized_slices_test",
+    srcs = ["serialized_slices_test.cc"],
     deps = [
-        ":embedded_slices_internal",
+        ":serialized_slices",
         ":standard_deps",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",

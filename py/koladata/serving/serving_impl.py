@@ -41,3 +41,12 @@ def serialize_slices(slices: dict[str, kd.types.DataSlice]):
   """Serializes Koda slices into bytes."""
   names = kd.slice(list(slices.keys()))
   return arolla.s11n.riegeli_dumps_many([names, *slices.values()], [])
+
+
+def serialize_slices_into(
+    slices: dict[str, kd.types.DataSlice], output_path: str
+):
+  """Serializes Koda slices into the given file."""
+  serialized_slices = serialize_slices(slices)
+  with open(output_path, 'wb') as f:
+    f.write(serialized_slices)

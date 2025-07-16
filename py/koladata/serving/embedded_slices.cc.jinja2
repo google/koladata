@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "py/koladata/serving/embedded_slices_internal.h"
+#include "py/koladata/serving/serialized_slices.h"
 #include "koladata/serving/slice_registry.h"
 #include "absl/base/no_destructor.h"
 #include "absl/container/flat_hash_map.h"
@@ -26,7 +26,7 @@ const absl::StatusOr<
       "{{ serialized_slices | cescape }}",  // golden_test:ignore
       {{ serialized_slices | count }});  // golden_test:ignore
   static const absl::NoDestructor result(
-      ::koladata::serving::embedded_slices_internal::ParseEmbeddedSlices(data));
+      ::koladata::serving::ParseSerializedSlices(data));
   return *result;
 }
 
@@ -36,8 +36,7 @@ absl::StatusOr<::koladata::DataSlice>
   if (!slices.ok()) {
     return slices.status();
   }
-  return ::koladata::serving::embedded_slices_internal::GetEmbeddedSlice(
-      *slices, name);
+  return ::koladata::serving::GetSliceByName(*slices, name);
 }
 
 AROLLA_INITIALIZER(

@@ -18,6 +18,7 @@ load(
     "//py/koladata/serving:serving.bzl",
     "koladata_cc_embedded_slices",
     "koladata_export_dataslice",
+    "koladata_serialized_slices",
     "koladata_trace_py_fn",
 )
 
@@ -36,7 +37,16 @@ py_library(
     ],
 )
 
-# TODO: b/409476740 - Add a test on koladata_serialized_functors as well.
+koladata_serialized_slices(
+    name = "serialized_test_functors",
+    testonly = True,
+    slices = {
+        "ask_about_serving": koladata_trace_py_fn("koladata.serving.testing.test_functors.ask_about_serving"),
+        "plus_one": koladata_trace_py_fn("koladata.serving.testing.test_functors.plus_one"),
+    },
+    tool_deps = [":test_functors"],  # Can also come from "deps =" argument of koladata_trace_py_fn above.
+)
+
 koladata_cc_embedded_slices(
     name = "cc_test_functors",
     testonly = True,
@@ -53,17 +63,21 @@ koladata_cc_embedded_slices(
 cc_test(
     name = "cc_test_functors_test",
     srcs = ["cc_test_functors_test.cc"],
+    data = [":serialized_test_functors"],
     deps = [
         ":cc_test_functors",
         "//koladata:data_slice",
         "//koladata:test_utils",
         "//koladata/functor:call",
         "//koladata/functor:cpp_function_bridge",
+        "//koladata/internal:data_item",
         "//koladata/serving:slice_registry",
         "//koladata/testing:matchers",
+        "//py/koladata/serving:serialized_slices",
         "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/qtype/testing",
+        "@com_google_arolla//arolla/serialization:riegeli",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",

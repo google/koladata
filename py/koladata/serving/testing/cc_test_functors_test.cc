@@ -15,6 +15,7 @@
 #include "py/koladata/serving/testing/cc_test_functors.h"
 
 #include <cstdint>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -28,6 +29,7 @@
 #include "koladata/serving/slice_registry.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
+#include "py/koladata/serving/serialized_slices.h"
 
 namespace koladata_serving_test {
 namespace {
