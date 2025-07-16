@@ -394,6 +394,10 @@ class DataSlicePath:
   def from_actions(cls, actions: list[DataSliceAction]) -> DataSlicePath:
     return cls(tuple(actions))
 
+  def concat(self, other: DataSlicePath) -> DataSlicePath:
+    """Returns a new data slice path with the given data slice path appended."""
+    return DataSlicePath(self.actions + other.actions)
+
   def extended_with_action(self, action: DataSliceAction) -> DataSlicePath:
     """Returns a new data slice path with the given action appended."""
     return DataSlicePath(self.actions + (action,))

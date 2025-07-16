@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import itertools
 import re
 from absl.testing import absltest
 from koladata import kd
@@ -225,6 +226,37 @@ class DataSlicePathTest(absltest.TestCase):
       self.assertEqual(
           f'{DataSlicePath.parse_from_string(data_slice_path_string)}',
           data_slice_path_string,
+      )
+
+  def test_data_slice_path_extended_with(self):
+    self.assertEqual(
+        DataSlicePath.from_actions([GetAttr('foo')]).concat(
+            DataSlicePath.from_actions([GetAttr('bar'), ListExplode()])
+        ),
+        DataSlicePath.from_actions(
+            [GetAttr('foo'), GetAttr('bar'), ListExplode()]
+        ),
+    )
+
+    for dsp1_string, dsp2_string in itertools.product(
+        [
+            '',
+            '.foo',
+            '.foo.bar',
+            '.foo[:][:].bar.get_values().get_keys().zoo',
+            '.foo[:]',
+            '.foo[:][:]',
+            '.get_attr("")',
+            '.get_attr("Zm9vLmJhciQjJCAoKQ==")',
+            '[:].get_keys().get_attr("Zm9vLmJhciQjJCAoKQ==").get_values().zoo',
+        ],
+        repeat=2,
+    ):
+      dsp1 = DataSlicePath.parse_from_string(dsp1_string)
+      dsp2 = DataSlicePath.parse_from_string(dsp2_string)
+      self.assertEqual(
+          dsp1.concat(dsp2),
+          DataSlicePath(dsp1.actions + dsp2.actions),
       )
 
   def test_data_slice_path_extended_with_action(self):

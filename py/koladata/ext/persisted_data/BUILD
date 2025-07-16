@@ -48,6 +48,47 @@ py_test(
 )
 
 py_library(
+    name = "persisted_incremental_data_slice_manager",
+    srcs = ["persisted_incremental_data_slice_manager.py"],
+    deps = [
+        ":data_slice_path",
+        ":fs_interface",
+        ":fs_util",
+        ":persisted_incremental_data_bag_manager",
+        ":persisted_incremental_data_slice_manager_metadata_py_pb2",
+        ":schema_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "persisted_incremental_data_slice_manager_test",
+    srcs = ["persisted_incremental_data_slice_manager_test.py"],
+    deps = [
+        ":data_slice_path",
+        ":persisted_incremental_data_slice_manager",
+        ":schema_helper",
+        ":test_only_schema_node_name_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+proto_library(
+    name = "persisted_incremental_data_slice_manager_metadata_proto",
+    srcs = ["persisted_incremental_data_slice_manager_metadata.proto"],
+)
+
+py_proto_library(
+    name = "persisted_incremental_data_slice_manager_metadata_py_pb2",
+    deps = [
+        ":persisted_incremental_data_slice_manager_metadata_proto",
+    ],
+)
+
+py_library(
     name = "persisted_incremental_data_bag_manager",
     srcs = ["persisted_incremental_data_bag_manager.py"],
     deps = [
