@@ -47,7 +47,7 @@ AROLLA_INITIALIZER(
     .init_fn = []() -> absl::Status {
       ASSIGN_OR_RETURN(const auto& slices, {{function_name}}());
       for (const auto& [k, v] : slices) {
-        RETURN_IF_ERROR(koladata::serving::RegisterSlice(
+        RETURN_IF_ERROR(::koladata::serving::RegisterSlice(
             absl::StrCat("{{ build_target }}@", k), v));
       }
       return absl::OkStatus();
