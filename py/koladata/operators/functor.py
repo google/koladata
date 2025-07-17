@@ -90,6 +90,42 @@ def call(
 
 
 @optools.add_to_registry()
+@optools.as_lambda_operator(
+    'kd.functor.call_fn_returning_stream_when_parallel'
+)
+def call_fn_returning_stream_when_parallel(
+    fn,
+    *args,
+    return_type_as=iterables.make().eval(),
+    **kwargs,
+):
+  """Special call that will be transformed to expect fn to return a stream.
+
+  It should be used only if functor is provided externally in production
+  enviroment. Prefer `functor.call` for functors fully implemented in Python.
+
+  Args:
+    fn: function to be called. Should return Iterable in interactive mode and
+      Stream in parallel mode.
+    *args: positional args to pass to the function.
+    return_type_as: The return type of the call is expected to be the same as
+      the return type of this expression. In most cases, this will be a literal
+      of the corresponding type. This needs to be specified if the functor does
+      not return a Iterable[DataSlice].
+    **kwargs: The keyword arguments to pass to the call.
+  """
+  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
+  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      call,
+      fn,
+      args=args,
+      return_type_as=return_type_as,
+      kwargs=kwargs,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+
+@optools.add_to_registry()
 @optools.as_backend_operator(
     'kd.functor.call_and_update_namedtuple',
     qtype_inference_expr=P.namedtuple_to_update,

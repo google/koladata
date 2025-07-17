@@ -6135,6 +6135,27 @@ py_test(
 )
 
 py_test(
+    name = "functor_call_fn_returning_stream_when_parallel_test",
+    srcs = ["functor_call_fn_returning_stream_when_parallel_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/functor:functor_factories",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:signature_utils",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "annotation_with_name_test",
     srcs = ["annotation_with_name_test.py"],
     deps = [
@@ -8455,6 +8476,25 @@ py_test(
         "//py/koladata/types:iterable_qvalue",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "koda_internal_parallel_parallel_call_fn_returning_stream_test",
+    srcs = ["koda_internal_parallel_parallel_call_fn_returning_stream_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor:functor_factories",
+        "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:functor",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
 

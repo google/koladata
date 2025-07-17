@@ -1203,6 +1203,68 @@ def parallel_call(
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
+    'koda_internal.parallel.parallel_call_fn_returning_stream',
+    qtype_constraints=[
+        qtype_utils.expect_execution_context(P.context),
+        _expect_future_data_slice(P.fn),
+        # TODO: share the same constraints with parallel_call.
+    ],
+)
+def parallel_call_fn_returning_stream(
+    context,
+    fn,
+    *args,
+    return_type_as=arolla.unspecified(),
+    **kwargs,
+):
+  """Calls the functor returning a stream via the parallel evaluation.
+
+  This operator is intented to be used as a parallel version of
+  `functor.call_fn_returning_stream_when_parallel`,
+  therefore all inputs except `context` must have parallel types
+  (futures/streams/tuples thereof).
+  See execution_config.proto for more details about parallel types.
+
+  Args:
+    context: The execution context to use for the parallel call.
+    fn: The future with the functor to be called, typically created via kd.fn().
+      The functor must return a stream when called.
+    *args: The parallel versions of the positional arguments to pass to the
+      call.
+    return_type_as: The return type of the parallel call is expected to be the
+      same as the return type of this expression. In most cases, this will be a
+      literal of the corresponding type. This needs to be specified if the
+      functor does not return a DataSlice, in other words if the parallel
+      version does not return a future to a DataSlice.
+    **kwargs: The parallel versions of the keyword arguments to pass to the
+      call.
+
+  Returns:
+    The parallel value containing the result of the call.
+  """
+  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
+  return_type_as = M.core.default_if_unspecified(
+      return_type_as,
+      stream_make(),
+  )
+
+  executor = get_executor_from_context(context)
+
+  return unwrap_future_to_stream(
+      async_eval(
+          executor,
+          functor.call,
+          fn,
+          future_from_parallel(executor, args),
+          return_type_as,
+          future_from_parallel(executor, kwargs),
+          optools.unified_non_deterministic_arg(),
+      )
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
     'koda_internal.parallel.stream_flat_map_chain',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
@@ -3030,6 +3092,14 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "kd.functor.call"
     to_op: "koda_internal.parallel.parallel_call"
+    argument_transformation {
+      arguments: EXECUTION_CONTEXT
+      arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.functor.call_fn_returning_stream_when_parallel"
+    to_op: "koda_internal.parallel.parallel_call_fn_returning_stream"
     argument_transformation {
       arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
