@@ -57,6 +57,7 @@ using ::koladata::testing::IsEquivalentTo;
 using ::testing::AllOf;
 using ::testing::Field;
 using ::testing::HasSubstr;
+using ::testing::MatchesRegex;
 
 absl::StatusOr<arolla::expr::ExprNodePtr> CreateInput(absl::string_view name) {
   return arolla::expr::CallOp("koda_internal.input",
@@ -170,9 +171,12 @@ TEST(CallTest, MustBeScalar) {
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}, {}));
   ASSERT_OK_AND_ASSIGN(fn, fn.Reshape(DataSlice::JaggedShape::FlatFromSize(1)));
-  EXPECT_THAT(CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the first argument of kd.call must be a functor"));
+  EXPECT_THAT(
+      CallFunctorWithCompilationCache(fn, /*args=*/{}, /*kwnames=*/{}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          MatchesRegex(
+              "the first argument of kd\\.call must be a functor, got .*")));
 }
 
 TEST(CallTest, NoBag) {
@@ -182,10 +186,13 @@ TEST(CallTest, NoBag) {
   ASSERT_OK_AND_ASSIGN(auto returns_expr, WrapExpr(arolla::expr::Literal(57)));
   ASSERT_OK_AND_ASSIGN(auto fn,
                        CreateFunctor(returns_expr, koda_signature, {}, {}));
-  EXPECT_THAT(CallFunctorWithCompilationCache(fn.WithBag(nullptr), /*args=*/{},
-                                              /*kwnames=*/{}),
-              StatusIs(absl::StatusCode::kInvalidArgument,
-                       "the first argument of kd.call must be a functor"));
+  EXPECT_THAT(
+      CallFunctorWithCompilationCache(fn.WithBag(nullptr), /*args=*/{},
+                                      /*kwnames=*/{}),
+      StatusIs(
+          absl::StatusCode::kInvalidArgument,
+          MatchesRegex(
+              "the first argument of kd\\.call must be a functor, got .*")));
 }
 
 TEST(CallTest, DataSliceVariable) {

@@ -24,6 +24,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -32,6 +33,7 @@
 #include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/expr/expr_eval.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/functor_storage.h"
@@ -135,7 +137,8 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
   if (!is_functor) {
     return absl::InvalidArgumentError(
-        "the first argument of kd.call must be a functor");
+        absl::StrCat("the first argument of kd.call must be a functor, got ",
+                     DataSliceRepr(functor)));
   }
   internal::ObjectId functor_id = functor.item().value<internal::ObjectId>();
   auto bag = functor.GetBag();

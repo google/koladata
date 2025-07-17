@@ -320,8 +320,9 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'the first argument of kd.call must be a functor; error occurred'
-            ' while calling `condition_fn`'
+            'the first argument of kd.call must be a functor, got'
+            ' DataItem(None, schema: NONE); error occurred while calling'
+            ' `condition_fn`'
         ),
     ):
       res.read_all(timeout=0)
@@ -407,8 +408,9 @@ class KodaInternalParallelStreamWhileLoopYieldsChainedTest(
     with self.assertRaisesRegex(
         ValueError,
         re.escape(
-            'the first argument of kd.call must be a functor; error occurred'
-            ' while calling `body_fn`'
+            'the first argument of kd.call must be a functor, got'
+            ' DataItem(None, schema: NONE); error occurred while calling'
+            ' `body_fn`'
         ),
     ):
       res.read_all(timeout=0)
