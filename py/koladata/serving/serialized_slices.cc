@@ -64,7 +64,9 @@ absl::StatusOr<SliceMap> ParseSerializedSlices(absl::string_view data) {
   result.reserve(names_array.size());
   for (int64_t i = 0; i < names_array.size(); ++i) {
     absl::string_view name = names_array[i].value;
-    ASSIGN_OR_RETURN(result[name], decode_result.values[i + 1].As<DataSlice>());
+    ASSIGN_OR_RETURN(const DataSlice& value,
+                     decode_result.values[i + 1].As<DataSlice>());
+    result[name] = value.FreezeBag();
   }
   return result;
 }

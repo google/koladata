@@ -75,6 +75,7 @@ TEST(ParseEmbeddedSlicesTest, Trival) {
   EXPECT_THAT(
       functor::CallFunctorWithCompilationCache(functors.at("f57"), {}, {}),
       IsOkAndHolds(QValueWith<int64_t>(57)));
+  EXPECT_FALSE(functors.at("f57").GetBag()->IsMutable());
 }
 
 TEST(ParseEmbeddedSlicesTest, CorruptData) {
