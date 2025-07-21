@@ -490,12 +490,12 @@ void AddSliceElementToProto(Encoder& encoder, ValueProto& value_proto,
   } else if constexpr (std::is_same_v<T, arolla::Text>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kTextFieldNumber ==
                   internal::ScalarTypeId<T>());
-    size_estimation += v.size();
+    size_estimation += v.size() + 1;
     slice_proto.add_text(v);
   } else if constexpr (std::is_same_v<T, arolla::Bytes>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kBytesDataFieldNumber ==
                   internal::ScalarTypeId<T>());
-    size_estimation += v.size();
+    size_estimation += v.size() + 1;
     slice_proto.add_bytes_data(v);
   } else if constexpr (std::is_same_v<T, schema::DType>) {
     static_assert(KodaV1Proto::DataSliceCompactProto::kDtypeFieldNumber ==

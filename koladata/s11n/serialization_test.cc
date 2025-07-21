@@ -314,6 +314,28 @@ TEST(SerializationTest, BigDataSliceImplBytes) {
   }
 }
 
+TEST(SerializationTest, ZeroStringInExtraProto) {
+  std::string big_string;
+  big_string.resize(1 << 24);  // should exceed kSoftSizeLimitPerBlock
+  for (char& c : big_string) c = 'A';
+
+  DataSliceImpl slice = DataSliceImpl::Create(
+      {DataItem(arolla::Text(big_string)),  // goes to the main proto
+       DataItem(arolla::Text())});  // zero-size string goes to an extra proto
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                       {TypedValue::FromValue(slice)}, {}));
+  EXPECT_EQ(proto.decoding_steps_size(), 5);
+
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  ASSERT_EQ(decode_result.exprs.size(), 0);
+  ASSERT_EQ(decode_result.values.size(), 1);
+  ASSERT_OK_AND_ASSIGN(DataSliceImpl res,
+                       decode_result.values[0].As<DataSliceImpl>());
+
+  EXPECT_THAT(res, ::testing::ElementsAreArray(slice));
+}
+
 TEST(SerializationTest, DataSliceImplObjectLinkToParentIdBytesSize) {
   constexpr int64_t kSize = 1000000;
   constexpr int64_t kPerParent = 100;
