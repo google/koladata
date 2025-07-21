@@ -40,6 +40,7 @@ absl::StatusOr<::koladata::DataSlice>
 }
 
 AROLLA_INITIALIZER(
+    .name = "{{build_target}}",
     .deps = {
         ::arolla::initializer_dep::kOperators,
         ::arolla::initializer_dep::kS11n,
