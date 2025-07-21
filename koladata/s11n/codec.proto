@@ -151,6 +151,7 @@ message KodaV1Proto {
     repeated AttrProto attrs = 2;
     repeated DictProto dicts = 3;
     repeated ListProto lists = 4;
+    optional bool immutable = 5 [default = false];
   }
 
   oneof value {

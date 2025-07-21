@@ -403,10 +403,25 @@ TEST(SerializationTest, SchemaAttributesForBigAllocs) {
   ASSERT_EQ(decode_result.values.size(), 1);
   ASSERT_OK_AND_ASSIGN(DataBagPtr res,
                        decode_result.values[0].As<DataBagPtr>());
+  EXPECT_EQ(db->IsMutable(), res->IsMutable());
   EXPECT_THAT(res->GetImpl().GetSchemaAttr(schema_slice, "a"),
               IsOkAndHolds(ElementsAreArray(schema_slice)));
   EXPECT_THAT(res->GetImpl().GetSchemaAttrs(schema_slice[0]),
               IsOkAndHolds(ElementsAreArray(before)));
+}
+
+TEST(SerializationTest, ImmutableBag) {
+  auto db = DataBag::Empty();
+  db->UnsafeMakeImmutable();
+  ASSERT_OK_AND_ASSIGN(auto proto, arolla::serialization::Encode(
+                                       {TypedValue::FromValue(db)}, {}));
+  ASSERT_OK_AND_ASSIGN(auto decode_result,
+                       arolla::serialization::Decode(proto));
+  ASSERT_EQ(decode_result.exprs.size(), 0);
+  ASSERT_EQ(decode_result.values.size(), 1);
+  ASSERT_OK_AND_ASSIGN(DataBagPtr res,
+                       decode_result.values[0].As<DataBagPtr>());
+  EXPECT_FALSE(res->IsMutable());
 }
 
 }  // namespace

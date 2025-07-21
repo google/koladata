@@ -688,6 +688,9 @@ absl::StatusOr<ValueDecoderResult> DecodeDataBagValue(
   for (const KodaV1Proto::DictProto& dict_proto : db_proto.dicts()) {
     RETURN_IF_ERROR(DecodeDictProto(dict_proto, input_values, impl));
   }
+  if (db_proto.immutable()) {
+    db->UnsafeMakeImmutable();
+  }
   return TypedValue::FromValue(std::move(db));
 }
 

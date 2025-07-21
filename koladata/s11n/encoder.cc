@@ -366,6 +366,7 @@ absl::StatusOr<ValueProto> EncodeDataBag(arolla::TypedRef value,
   ASSIGN_OR_RETURN(ValueProto value_proto, GenValueProto(encoder));
   auto* koda_proto = value_proto.MutableExtension(KodaV1Proto::extension);
   KodaV1Proto::DataBagProto* db_proto = koda_proto->mutable_data_bag_value();
+  db_proto->set_immutable(!db->IsMutable());
 
   db_proto->set_fallback_count(db->GetFallbacks().size());
   for (const auto& fb : db->GetFallbacks()) {
