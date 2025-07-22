@@ -31,6 +31,15 @@ def _isinstance_of_supported_type(x: Any) -> bool:
   return ext_types.is_koda_extension(x)
 
 
+def _extract_keep_mutability(x: data_slice.DataSlice) -> data_slice.DataSlice:
+  if x.get_bag() is None:
+    return x
+  x_extracted = x.extract()
+  if x.get_bag().is_mutable():
+    x_extracted = x_extracted.fork_bag()
+  return x_extracted
+
+
 def dumps(
     x: data_slice.DataSlice | data_bag.DataBag,
     /,
@@ -65,15 +74,12 @@ def dumps(
   # want slices with the same bag to keep the same bag id, and some slices may
   # not contain the set of attributes used for the entire expression.
   if isinstance(x, data_slice.DataSlice):
-    try:
-      x = x.extract()
-    except ValueError:
-      pass  # no Bag, ...
+    x = _extract_keep_mutability(x)
   if ext_types.is_koda_extension(x):
     try:
       # Try to extract the DataSlice underlying the value of the extension type.
       x_ds = ext_types.unwrap(x)
-      x_ds = x_ds.extract()
+      x_ds = _extract_keep_mutability(x_ds)
       x = ext_types.wrap(x_ds, x.qtype)
     except ValueError:
       pass  # no Bag, ...

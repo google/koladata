@@ -105,6 +105,14 @@ class DumpsLoadsTest(parameterized.TestCase):
     objs = bag.obj(a=kd.slice([1, 2, 3]*10))
     loaded = s11n.loads(s11n.dumps(objs))
     testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
+    self.assertTrue(loaded.is_mutable())
+
+  def test_dumps_preserves_immutability(self):
+    bag = kd.bag()
+    objs = bag.obj(a=kd.slice([1, 2, 3]*10))
+    loaded = s11n.loads(s11n.dumps(kd.freeze(objs)))
+    testing.assert_equivalent(loaded.get_bag(), objs.get_bag())
+    self.assertFalse(loaded.is_mutable())
 
   def test_dumps_with_riegeli_options(self):
     input_slice = kd.range(1_000_000)
