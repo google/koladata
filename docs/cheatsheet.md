@@ -1620,9 +1620,9 @@ kd.map_py(lambda a, b: a.x + a.y + b, a, b)
 f = lambda x: kd.obj(x=1) if x.y < 3 else kd.obj(y=1)
 res = kd.map_py(f, kd.obj(y=kd.slice([[1, 2], [3]])))
 
-# With max_thread to speed up the I/O-bound
+# With max_threads to speed up the I/O-bound
 # executions (e.g. reading from disk or RPCs)
-kd.map_py(fn, ds, max_thread=20)
+kd.map_py(fn, ds, max_threads=20)
 
 # Pass multiple arguments
 f = lambda x, y, z: x + y + z
