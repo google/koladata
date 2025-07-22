@@ -27,6 +27,7 @@
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/dense_array/edge.h"
 #include "arolla/dense_array/qtype/types.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/qtype/base_types.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
@@ -718,6 +719,53 @@ TEST(DataBagTest, ListBatchWithFallback) {
               3);
     expected_split_points.back() += 1;
     EXPECT_THAT(edge.edge_values(), ElementsAreArray(expected_split_points));
+  }
+}
+
+TEST(DataBagTest, ListBatchSizeMissing) {
+  constexpr int64_t kSize = 7;
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto lists =
+      DataSliceImpl::ObjectsFromAllocation(AllocateLists(kSize), kSize);
+  auto fb_db = DataBagImpl::CreateEmptyDatabag();
+  auto alloc_0 = Allocate(kSize);
+  {
+    // Missing lists.
+    EXPECT_THAT(
+        db->GetListSize(lists, {fb_db.get()},
+                        /*return_zero_for_unset=*/false),
+        IsOkAndHolds(ElementsAreArray(
+            std::vector<arolla::OptionalValue<int64_t>>(kSize, std::nullopt))));
+  }
+  ASSERT_OK(fb_db->AppendToList(lists[1], DataItem(alloc_0.ObjectByOffset(1))));
+  {
+    // List 1 is present in fallback.
+    auto expected_sizes = std::vector<arolla::OptionalValue<int64_t>>(kSize);
+    expected_sizes[1] = 1;
+    EXPECT_THAT(db->GetListSize(lists, {fb_db.get()},
+                                /*return_zero_for_unset=*/false),
+                IsOkAndHolds(ElementsAreArray(expected_sizes)));
+  }
+  ASSERT_OK(db->AppendToList(lists[0], DataItem(alloc_0.ObjectByOffset(0))));
+  {
+    // List 0 is present in DataBag, list 1 is present fallback.
+    auto expected_sizes = std::vector<arolla::OptionalValue<int64_t>>(kSize);
+    expected_sizes[0] = 1;
+    expected_sizes[1] = 1;
+    EXPECT_THAT(db->GetListSize(lists, {fb_db.get()},
+                                /*return_zero_for_unset=*/false),
+                IsOkAndHolds(ElementsAreArray(expected_sizes)));
+  }
+  ASSERT_OK(db->RemoveInList(lists[0], DataBagImpl::ListRange(0)));
+  ASSERT_OK(fb_db->RemoveInList(lists[1], DataBagImpl::ListRange(0)));
+  {
+    // All lists are empty or missing. But lists 0 and 1 are present.
+    auto expected_sizes = std::vector<arolla::OptionalValue<int64_t>>(kSize);
+    expected_sizes[0] = 0;
+    expected_sizes[1] = 0;
+    EXPECT_THAT(db->GetListSize(lists, {fb_db.get()},
+                                /*return_zero_for_unset=*/false),
+                IsOkAndHolds(ElementsAreArray(expected_sizes)));
   }
 }
 

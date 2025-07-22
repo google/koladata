@@ -1235,7 +1235,8 @@ DataListVector& DataBagImpl::GetOrCreateMutableLists(AllocationId alloc_id) {
 }
 
 absl::StatusOr<arolla::DenseArray<int64_t>> DataBagImpl::GetListSize(
-    const DataSliceImpl& lists, FallbackSpan fallbacks) const {
+    const DataSliceImpl& lists, FallbackSpan fallbacks,
+    bool return_zero_for_unset) const {
   if (lists.is_empty_and_unknown()) {
     return arolla::CreateEmptyDenseArray<int64_t>(lists.size());
   }
@@ -1244,23 +1245,27 @@ absl::StatusOr<arolla::DenseArray<int64_t>> DataBagImpl::GetListSize(
   }
 
   ReadOnlyListGetter list_getter(this);
+  arolla::OptionalValue<int64_t> value_for_missing =
+      return_zero_for_unset ? 0 : arolla::OptionalValue<int64_t>();
 
   arolla::DenseArray<int64_t> res;
 
   if (fallbacks.empty()) {
-    auto op = arolla::CreateDenseOp([&](ObjectId list_id) -> int64_t {
-      const auto* l = list_getter(list_id);
-      return l ? l->size() : 0;
-    });
+    auto op = arolla::CreateDenseOp(
+        [&](ObjectId list_id) -> arolla::OptionalValue<int64_t> {
+          const auto* l = list_getter(list_id);
+          return l ? l->size() : value_for_missing;
+        });
     res = op(lists.values<ObjectId>());
   } else {
     std::vector<ReadOnlyListGetter> fallback_list_getters =
         DataBagImpl::CreateFallbackListGetters(fallbacks);
-    auto op = arolla::CreateDenseOp([&](ObjectId list_id) -> int64_t {
-      return GetFirstPresentList(list_id, list_getter,
-                                 absl::MakeSpan(fallback_list_getters))
-          .size();
-    });
+    auto op = arolla::CreateDenseOp(
+        [&](ObjectId list_id) -> arolla::OptionalValue<int64_t> {
+          const DataList& list = GetFirstPresentList(
+              list_id, list_getter, absl::MakeSpan(fallback_list_getters));
+          return (&list == &kEmptyList) ? value_for_missing : list.size();
+        });
     res = op(lists.values<ObjectId>());
   }
 

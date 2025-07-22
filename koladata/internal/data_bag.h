@@ -326,16 +326,17 @@ class DataBagImpl : public arolla::RefcountedBase {
   // present in `lists` twice, then the operation will be applied to the list
   // twice, in the order of iteration over `lists`.
 
-  // Get size of each it list.
-  // In case list is empty, size of the first non empty list in fallbacks
-  // is returned.
-  // 0 is returned in case all lists are empty.
+  // Get size of each list.
+  // If list is unset, size of the first present list in fallbacks is returned.
+  // If list is unset in all fallbacks as well, then depending on the
+  // return_zero_for_unset argument the result will be either zero or nullopt.
   absl::StatusOr<arolla::DenseArray<int64_t>> GetListSize(
-      const DataSliceImpl& lists, FallbackSpan fallbacks = {}) const;
+      const DataSliceImpl& lists, FallbackSpan fallbacks = {},
+      bool return_zero_for_unset = true) const;
 
   // Get one value from each list using the corresponding index. Negative index
   // means offset from the end of a list.
-  // In case list is empty, the first non empty list in fallbacks is used.
+  // If the list is unset, the first present list in fallbacks is used.
   // If index is out of range in the first non empty list,
   // the value will be missing.
   absl::StatusOr<DataSliceImpl> GetFromLists(
@@ -396,14 +397,13 @@ class DataBagImpl : public arolla::RefcountedBase {
   // ******* Single list functions
 
   // Returns int64_t DataItem with a size of the list.
-  // In case list is empty, size of the first non empty list in fallbacks
-  // is returned.
-  // 0 is returned in case all lists are empty.
+  // If the list is unset, the size of thefirst present list in fallbacks is
+  // returned. 0 is returned if the list is unset in all fallbacks.
   absl::StatusOr<DataItem> GetListSize(const DataItem& list,
                                        FallbackSpan fallbacks = {}) const;
 
   // Negative index means offset from the end of the list.
-  // In case list is empty, the first non empty list in fallbacks is used.
+  // If the list is unset, the first present list in fallbacks is used.
   // If index is out of range in the first non empty list,
   // returns an empty DataItem.
   absl::StatusOr<DataItem> GetFromList(const DataItem& list, int64_t index,
@@ -414,7 +414,7 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   // Returns a slice of a list. In case of empty list or empty range returns
   // default-constructed `DataSliceImpl()` with dtype=arolla::GetNothingQType().
-  // In case list is empty, the first non empty list in fallbacks is used.
+  // If the list is unset, the first present list in fallbacks is used.
   absl::StatusOr<DataSliceImpl> ExplodeList(const DataItem& list,
                                             ListRange range = ListRange(),
                                             FallbackSpan fallbacks = {}) const;
@@ -844,7 +844,7 @@ class DataBagImpl : public arolla::RefcountedBase {
 
   // Returns first present list (can be empty; empty is not same as UNSET).
   // If the list is UNSET in this DataBag and in all fallbacks, then returns
-  // an empty list.
+  // an empty list (`kEmptyList`, which is returned only if the list is UNSET).
   const DataList& GetFirstPresentList(
       ObjectId list_id, ReadOnlyListGetter& list_getter,
       absl::Span<ReadOnlyListGetter> fallback_list_getters) const;
