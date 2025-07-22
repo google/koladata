@@ -7,12 +7,14 @@ load(
     "render_jinja2_template",
 )
 
+# TODO: Make disabling type checking optional.
 def koladata_trace_py_fn(
         function,
         deps = []):
     """Constructs call_python_function spec for tracing a Python function as a Koda functor.
 
     Pass the result to koladata_serialized_functors or koladata_cc_embedded_slices BUILD rules.
+    Disables type checking decorators on the function.
 
     Args:
       function: fully qualified Python function name to trace.

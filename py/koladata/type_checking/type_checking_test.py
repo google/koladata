@@ -695,6 +695,24 @@ class TypeCheckingTest(parameterized.TestCase):
     with override_operator('kd.schema.get_repr', get_repr):
       _ = fn(ds([1]))  # Does not raise.
 
+  def test_disable_traced_type_checking_manager(self):
+    @type_checking.check_inputs(x=kd.INT32)
+    @type_checking.check_output(kd.INT32)
+    def f(x):
+      return x
+
+    with type_checking.disable_traced_type_checking():
+      # Check that a nested context manager exiting does not reset the flag.
+      with type_checking.disable_traced_type_checking():
+        pass
+      fn = kd.fn(f)
+
+    _ = fn(ds([1.0]))  # Does not raise. Type checking was disabled.
+
+    fn = kd.fn(f)
+    with self.assertRaises(ValueError):
+      _ = fn(ds([1.0]))  # Raises again. Type checking was re-enabled.
+
 
 if __name__ == '__main__':
   absltest.main()

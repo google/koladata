@@ -19,13 +19,15 @@ from typing import Any
 
 from arolla import arolla
 from koladata import kd
+from koladata.type_checking import type_checking
 
 
 def _import_object(path: str) -> Any:
   """Imports an object from a path."""
   module_name, _, object_name = path.rpartition('.')
   try:
-    module = importlib.import_module(module_name)
+    with type_checking.disable_traced_type_checking():
+      module = importlib.import_module(module_name)
   except ImportError as e:
     raise ValueError(f'Failed to import module {module_name}') from e
   return getattr(module, object_name)
@@ -33,8 +35,10 @@ def _import_object(path: str) -> Any:
 
 def trace_py_fn(function_path: str) -> kd.types.DataSlice:
   """Traces a Python function into a Koda functor."""
-  fn = _import_object(function_path)
-  return kd.fn(fn)
+  with type_checking.disable_traced_type_checking():
+    fn = _import_object(function_path)
+    fn = kd.fn(fn)
+  return fn
 
 
 def serialize_slices(slices: dict[str, kd.types.DataSlice]):

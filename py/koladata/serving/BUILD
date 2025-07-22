@@ -68,6 +68,7 @@ py_library(
     deps = [
         "//py:python_path",
         "//py/koladata:kd",
+        "//py/koladata/type_checking",
         "@com_google_arolla//py/arolla",
     ],
 )

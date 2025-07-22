@@ -15,6 +15,7 @@
 """Runtime type checking for Koda functions."""
 
 from collections.abc import Mapping
+import contextlib
 import functools
 import inspect
 from typing import Optional, Self
@@ -30,7 +31,6 @@ from koladata.types import py_boxing
 from koladata.types import schema_constants
 from koladata.types import schema_item
 
-
 eager = eager_op_utils.operators_container('kd')
 lazy = kde_operators.kde
 
@@ -41,6 +41,23 @@ OBJECT_TIP = (
     ' are the same, you should be using entities instead of'
     ' objects( go/koda-common-pitfalls#non-objects-vs-objects ). You can'
     ' create entities by using kd.new/kd.uu instead of kd.obj/kd.uuobj.')
+
+_DISABLE_TRACED_TYPE_CHECKING_COUNTER = 0
+
+
+def _is_traced_type_checking_disabled():
+  return _DISABLE_TRACED_TYPE_CHECKING_COUNTER > 0
+
+
+@contextlib.contextmanager
+def disable_traced_type_checking():
+  global _DISABLE_TRACED_TYPE_CHECKING_COUNTER
+  _DISABLE_TRACED_TYPE_CHECKING_COUNTER += 1
+
+  try:
+    yield
+  finally:
+    _DISABLE_TRACED_TYPE_CHECKING_COUNTER -= 1
 
 
 class _DuckType(object):
@@ -464,6 +481,8 @@ def _with_input_expr_assertions(
     kw_constraints: Mapping[str, schema_item.SchemaItem],
 ) -> inspect.BoundArguments:
   """Adds assertions for input types in tracing mode."""
+  if _is_traced_type_checking_disabled():
+    return bound_args
   for key, constraint in kw_constraints.items():
     # KeyError is not possible as parameter presence was checked during
     # decoration.
@@ -486,6 +505,8 @@ def _with_output_expr_assertion(
     constraint: schema_item.SchemaItem,
 ):
   """Adds an assertion for output type in tracing mode."""
+  if _is_traced_type_checking_disabled():
+    return output
   return _with_lazy_constraint_verification(
       output, constraint, lazy.schema.get_schema(output), None
   )
