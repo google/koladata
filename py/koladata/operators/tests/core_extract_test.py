@@ -172,6 +172,35 @@ class CoreExtractTest(parameterized.TestCase):
     o.a.get_attr('__schema__').set_attr('d', fb_d.get_schema().no_bag())
     testing.assert_equivalent(result.get_bag(), db)
 
+  def test_eval_lists(self):
+    db = data_bag.DataBag.empty()
+    tmp_db = data_bag.DataBag.empty()
+    fb = data_bag.DataBag.empty()
+    list_slice = ds([
+        db.list([], item_schema=schema_constants.INT32),
+        tmp_db.list([5, 6]).no_bag(),
+        db.list([7, 8]),
+    ])
+    del list_slice.S[2][:]
+    fb_lists = list_slice.with_bag(fb).with_schema(list_slice.get_schema())
+    fb_update = kde.list_append_update(fb_lists, 1)
+    enriched_lists = kde.enriched(list_slice, fb_update)
+    enriched_list_sizes = expr_eval.eval(kde.list_size(enriched_lists))
+    testing.assert_equal(
+        enriched_list_sizes.no_bag(),
+        ds([0, 1, 0], schema=schema_constants.INT64).no_bag(),
+    )
+    extracted_and_enriched_lists = kde.enriched(
+        kde.extract(list_slice), fb_update
+    )
+    extracted_and_enriched_list_sizes = expr_eval.eval(
+        kde.list_size(extracted_and_enriched_lists)
+    )
+    testing.assert_equal(
+        extracted_and_enriched_list_sizes.no_bag(),
+        ds([0, 1, 0], schema=schema_constants.INT64).no_bag(),
+    )
+
   def test_invalid_object_dtype_schema(self):
     db = data_bag.DataBag.empty()
     o = db.obj(x=1)

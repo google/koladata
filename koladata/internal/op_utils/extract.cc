@@ -427,12 +427,27 @@ class CopyingProcessor {
 
   absl::Status ProcessListItems(const QueuedSlice& slice,
                                 const DataItem& attr_schema) {
-    const auto& ds = slice.slice;
+    DataSliceImpl ds = slice.slice;
     DataSliceImpl old_ds;
     if (is_shallow_clone_) {
       ASSIGN_OR_RETURN(old_ds, objects_tracker_->GetAttr(ds, kMappingAttrName));
     } else {
       old_ds = ds;
+    }
+    ASSIGN_OR_RETURN(auto list_presence,
+                     databag_.GetListSize(old_ds, fallbacks_,
+                                          /*return_zero_for_unset=*/false));
+    if (list_presence.IsAllMissing()) {
+      // All lists are unset, but we still need to extract schema.
+      return Visit(
+          {DataSliceImpl(), attr_schema, slice.schema_source, slice.depth},
+          schema::kListItemsSchemaAttr);
+    }
+    if (!list_presence.IsAllPresent()) {
+      auto list_presence_ds = DataSliceImpl::Create(
+          arolla::DenseArrayHasOp()(std::move(list_presence)));
+      ASSIGN_OR_RETURN(old_ds, PresenceAndOp()(old_ds, list_presence_ds));
+      ASSIGN_OR_RETURN(ds, PresenceAndOp()(ds, list_presence_ds));
     }
     ASSIGN_OR_RETURN(
         auto list_items,
@@ -442,10 +457,8 @@ class CopyingProcessor {
       RETURN_IF_ERROR(
           new_databag_->ExtendLists(ds, list_items_ds, list_items_edge));
     }
-    RETURN_IF_ERROR(
-        Visit({list_items_ds, attr_schema, slice.schema_source, slice.depth},
-              schema::kListItemsSchemaAttr));
-    return absl::OkStatus();
+    return Visit({list_items_ds, attr_schema, slice.schema_source, slice.depth},
+                 schema::kListItemsSchemaAttr);
   }
 
   // Copies schema for attribute `attr_name` of the given `schema_item` from
