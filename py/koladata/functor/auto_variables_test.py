@@ -115,6 +115,14 @@ class AutoVariablesTest(absltest.TestCase):
         fns.dir(fn), ['__signature__', 'returns', '_aux_0', 'foo', 'bar']
     )
 
+  def test_dont_create_useless_aux_variables_for_literal(self):
+    literal_expr = py_boxing.literal(fns.new(x=1, y=2))
+    expr = literal_expr.y + 1
+    fn = functor_factories.expr_fn(expr, auto_variables=True)
+    testing.assert_equal(fn(), ds(3))
+    # This should create just one auxiliary variable, for the literal item.
+    self.assertCountEqual(fns.dir(fn), ['__signature__', 'returns', '_aux_0'])
+
   def test_dont_duplicate_computations_across_existing_variables(self):
     eval_count = 0
 
@@ -329,7 +337,7 @@ class AutoVariablesTest(absltest.TestCase):
     testing.assert_equal(introspection.unpack_expr(fn2.foo), V._aux_0 + 1)
 
     # Extract input and literal
-    literal_1 = user_facing_kd.expr.literal(ds(1))
+    literal_1 = py_boxing.literal(ds(1))
     fn3 = _py_functors_py_ext.auto_variables(
         fn, [I.x.fingerprint, literal_1.fingerprint]
     )
@@ -350,6 +358,54 @@ class AutoVariablesTest(absltest.TestCase):
         introspection.unpack_expr(fn3.foo),
         V._aux_2 + V._aux_1,
     )
+
+  def test_extract_extra_nodes_literal_slice(self):
+    literal_1 = py_boxing.literal(ds([1, 2, 3]))
+    fn = functor_factories.expr_fn(
+        I.x + literal_1,
+        auto_variables=False,
+    )
+    res = _py_functors_py_ext.auto_variables(fn, [literal_1.fingerprint])
+    testing.assert_equal(introspection.unpack_expr(res.returns), I.x + V._aux_1)
+
+  def test_extract_extra_nodes_named_literal_slice(self):
+    literal_1 = py_boxing.literal(ds([1, 2, 3])).with_name('foo')
+    fn = functor_factories.expr_fn(
+        I.x + literal_1,
+        auto_variables=False,
+    )
+    res = _py_functors_py_ext.auto_variables(fn, [literal_1.fingerprint])
+    testing.assert_equal(introspection.unpack_expr(res.returns), I.x + V._aux_1)
+
+  def test_extract_extra_nodes_no_useless_aux_variables_for_literal(self):
+    literal_expr = py_boxing.literal(fns.new(x=1, y=2))
+    expr = literal_expr.y + 1
+    fn = functor_factories.expr_fn(expr, auto_variables=False)
+    res = _py_functors_py_ext.auto_variables(fn, [literal_expr.fingerprint])
+    testing.assert_equal(res(), ds(3))
+    # This should create just one auxiliary variable, for the literal item.
+    self.assertCountEqual(fns.dir(res), ['__signature__', 'returns', '_aux_0'])
+
+  def test_extract_extra_nodes_literal_with_source_location(self):
+    expr = source_location.annotate_with_current_source_location(kde.item(57))
+    fn = functor_factories.expr_fn(expr * I.x, auto_variables=False)
+    res = _py_functors_py_ext.auto_variables(fn, [expr.fingerprint])
+    testing.assert_equal(res(x=2), ds(114))
+    testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)
+
+  def test_extract_extra_nodes_kd_slice(self):
+    expr = kde.slice(57)
+    fn = functor_factories.expr_fn(expr * I.x, auto_variables=False)
+    res = _py_functors_py_ext.auto_variables(fn, [expr.fingerprint])
+    testing.assert_equal(res(x=2), ds(114))
+    testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)
+
+  def test_extract_extra_nodes_kd_item(self):
+    expr = kde.item(57)
+    fn = functor_factories.expr_fn(expr * I.x, auto_variables=False)
+    res = _py_functors_py_ext.auto_variables(fn, [expr.fingerprint])
+    testing.assert_equal(res(x=2), ds(114))
+    testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)
 
 
 if __name__ == '__main__':

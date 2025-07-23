@@ -1851,6 +1851,32 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         arolla.tuple(ds(1), ds(2), ds(3)),
     )
 
+  def test_literal_1d_slice_as_arg_no_auto_variables(self):
+
+    @tracing_decorator.TraceAsFnDecorator()
+    def add(a, b):
+      return a + b
+
+    def add_fixed(a):
+      b = user_facing_kd.slice([1, 2, 3])
+      return add(a, b)
+
+    f = functor_factories.fn(add_fixed, auto_variables=False)
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    print(transformed_fn.eval())
+    res = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            koda_internal_parallel.as_future(ds([4, 5, 6])),
+            return_type_as=koda_internal_parallel.as_future(None),
+        )
+    ).eval()
+    testing.assert_equal(
+        res.read_all(timeout=5.0)[0],
+        ds([5, 7, 9]),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

@@ -714,9 +714,9 @@ def expr_fn(
       based on the inputs from the expressions involved.
     auto_variables: When true, we create additional variables automatically
       based on the provided expressions for 'returns' and user-provided
-      variables. All non-scalar DataSlice literals become their own variables,
-      and all named subexpressions become their own variables. This helps
-      readability and manipulation of the resulting functor.
+      variables. All non-scalar-primitive DataSlice literals become their own
+      variables, and all named subexpressions become their own variables. This
+      helps readability and manipulation of the resulting functor.
     **variables: The variables of the functor. Each variable can either be an
       expression to be evaluated, or a DataItem, or a primitive that will be
       wrapped as a DataItem. The result of evaluating the variable can be

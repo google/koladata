@@ -227,6 +227,22 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
     return var;
   };
 
+  auto create_aux_variable_if_necessary =
+      [&](bool extract_needed,
+          ExprNodePtr node) -> absl::StatusOr<ExprNodePtr> {
+    if (!extract_needed) {
+      return node;
+    }
+    ASSIGN_OR_RETURN(auto existing_var_name, var_container.GetInputName(node));
+    if (existing_var_name) {
+      // Already a variable, no need to make an aux copy.
+      return node;
+    }
+    std::string var_name = create_unique_variable(kAuxVariablePrefix);
+    vars[var_name] = DataSlice::CreateFromScalar(ExprQuote{std::move(node)});
+    return var_container.CreateInput(var_name);
+  };
+
   const auto& post_order = shared_node_tracker.GetPostOrder();
 
   size_t post_order_index = 0;
@@ -241,7 +257,10 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
       if (node->qvalue()->GetType() == arolla::GetQType<DataSlice>()) {
         DataSlice val = node->qvalue()->UnsafeAs<DataSlice>();
         if (!IsSimpleSlice(val)) {
-          return extract_slice(val, is_shared_node);
+          ASSIGN_OR_RETURN(auto res,
+                           extract_slice(std::move(val), is_shared_node));
+          return create_aux_variable_if_necessary(extract_needed,
+                                                  std::move(res));
         }
       }
       if (!extract_needed) {
@@ -259,14 +278,14 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
       if ((IsDataSliceLiteral(val) ||
            aux_variable_fingerprints.contains(val->fingerprint())) &&
           IsUnspecifiedLiteral(schema)) {
-        return val;
+        return create_aux_variable_if_necessary(extract_needed, val);
       }
     }
     if (arolla::expr::IsSourceLocationAnnotation(node)) {
       const auto& val = node->node_deps()[0];
       if ((IsDataSliceLiteral(val) ||
            aux_variable_fingerprints.contains(val->fingerprint()))) {
-        return val;
+        return create_aux_variable_if_necessary(extract_needed, val);
       }
     }
     if (!extract_needed && (!is_shared_node || IsSimple(node))) {
@@ -297,8 +316,11 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
         vars.emplace(name, std::move(v));
         ASSIGN_OR_RETURN(auto from, var_container.CreateInput(input_names[0]));
         ASSIGN_OR_RETURN(auto to, var_container.CreateInput(name));
-        return arolla::expr::SubstituteByFingerprint(
-            child, {{from->fingerprint(), to}});
+        ASSIGN_OR_RETURN(auto res, arolla::expr::SubstituteByFingerprint(
+                                       std::move(child),
+                                       {{from->fingerprint(), std::move(to)}}));
+        return create_aux_variable_if_necessary(/*extract_needed=*/true,
+                                                std::move(res));
       }
       if (IsDataSliceLiteral(child)) {
         DataSlice val = child->qvalue()->UnsafeAs<DataSlice>();
@@ -313,9 +335,8 @@ absl::StatusOr<ExprNodePtr> ExtractAutoVariables(
       vars.emplace(name, DataSlice::CreateFromScalar(ExprQuote{child}));
       return var_container.CreateInput(name);
     }
-    std::string var_name = create_unique_variable(kAuxVariablePrefix);
-    vars[var_name] = DataSlice::CreateFromScalar(ExprQuote{node});
-    return var_container.CreateInput(var_name);
+    return create_aux_variable_if_necessary(/*extract_needed=*/true,
+                                            std::move(node));
   };
 
   return arolla::expr::TransformOnPostOrder(post_order, transform_node);
@@ -350,7 +371,10 @@ absl::StatusOr<DataSlice> AutoVariables(
         var.GetSchemaImpl() == internal::DataItem(schema::kExpr)) {
       ASSIGN_OR_RETURN(auto var_expr, var.item().value<ExprQuote>().expr());
       // Already a variable, so we shouldn't extract it again (would lead to
-      // trivial assignments like V.aux_1 = V.aux_0).
+      // trivial assignments like V.aux_1 = V.aux_0). Note that in case
+      // some expression appears both as a variable and as part of another
+      // expression, it will be marked as a shared node and therefore will
+      // still be extracted.
       extra_nodes_to_extract.erase(var_expr->fingerprint());
 
       expr_names.push_back(attr_name);
