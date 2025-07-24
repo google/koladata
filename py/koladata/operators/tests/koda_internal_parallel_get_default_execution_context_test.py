@@ -1865,7 +1865,6 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     transformed_fn = koda_internal_parallel.transform(
         koda_internal_parallel.get_default_execution_context(), f
     )
-    print(transformed_fn.eval())
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
             koda_internal_parallel.as_future(ds([4, 5, 6])),
