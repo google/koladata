@@ -52,10 +52,7 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::CancellationContext;
-using ::arolla::testing::PayloadIs;
 using ::koladata::testing::IsEquivalentTo;
-using ::testing::AllOf;
-using ::testing::Field;
 using ::testing::HasSubstr;
 using ::testing::MatchesRegex;
 
