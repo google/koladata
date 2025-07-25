@@ -157,6 +157,8 @@ class TracingDecoratorTest(parameterized.TestCase):
             '_<lambda>_result',
             '_<lambda>_result_0',
             '__signature__',
+            '__qualname__',
+            '__module__',
         ],
     )
 
@@ -215,6 +217,8 @@ class TracingDecoratorTest(parameterized.TestCase):
             '_f_result',
             '_f_result_0',
             '__signature__',
+            '__qualname__',
+            '__module__',
         ],
     )
 

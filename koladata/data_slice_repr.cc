@@ -692,7 +692,9 @@ absl::StatusOr<std::string> FunctorToStr(const DataSlice& functor,
                    AttrsToStrParts(functor.item(), functor.GetSchemaImpl(),
                                    functor.GetBag(), option, wrapping,
                                    /*ignore_attrs=*/
-                                   {std::string(functor::kSignatureAttrName)}));
+                                   {std::string(functor::kSignatureAttrName),
+                                    std::string(functor::kQualnameAttrName),
+                                    std::string(functor::kModuleAttrName)}));
   ASSIGN_OR_RETURN(std::string signature_str,
                    FunctorSignatureToStr(cpp_signature, option, wrapping));
   return PrettyFormatStr(

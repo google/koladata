@@ -146,6 +146,10 @@ def trace_py_fn(
   )
   if f.__doc__ is not None:
     traced_f = traced_f.with_attr('__doc__', f.__doc__)
+  if qualname := getattr(f, '__qualname__', None):
+    traced_f = traced_f.with_attr('__qualname__', qualname)
+  if module := getattr(f, '__module__', None):
+    traced_f = traced_f.with_attr('__module__', module)
 
   return bind(traced_f, **defaults) if defaults else traced_f
 
@@ -203,6 +207,10 @@ def py_fn(
   )
   if f.__doc__ is not None:
     py_functor = py_functor.with_attr('__doc__', f.__doc__)
+  if qualname := getattr(f, '__qualname__', None):
+    py_functor = py_functor.with_attr('__qualname__', qualname)
+  if module := getattr(f, '__module__', None):
+    py_functor = py_functor.with_attr('__module__', module)
   return bind(py_functor, **defaults) if defaults else py_functor
 
 

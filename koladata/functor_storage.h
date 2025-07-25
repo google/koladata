@@ -27,6 +27,12 @@ inline constexpr absl::string_view kReturnsAttrName = "returns";
 // The attribute name used to store the signature in a functor.
 inline constexpr absl::string_view kSignatureAttrName = "__signature__";
 
+// The attribute name used to store the qualname of the functor.
+inline constexpr absl::string_view kQualnameAttrName = "__qualname__";
+
+// The attribute name used to store the module of the functor.
+inline constexpr absl::string_view kModuleAttrName = "__module__";
+
 // Checks if a given DataSlice represents a functor. This only does a basic
 // check (that the slice is a data item and has the right attributes), so the
 // functor may still fail on evaluation.
