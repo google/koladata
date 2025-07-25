@@ -140,11 +140,19 @@ def _from_kd(annotation: type[Any], value: Any) -> Any:
   return _get_type_tracing_config(annotation).from_kd(annotation, value)
 
 
+def _inspect_signature(fn: py_types.FunctionType) -> inspect.Signature:
+  """Returns the signature of `fn` with resolved type annotations."""
+  # See https://peps.python.org/pep-0563/#resolving-type-hints-at-runtime and
+  # https://docs.python.org/3/library/inspect.html#inspect.signature for
+  # details on `eval_str=True`.
+  return inspect.signature(fn, eval_str=True)
+
+
 def _wrap_with_from_and_to_kd(
     fn: py_types.FunctionType,
 ) -> py_types.FunctionType:
   """Adds conversion of the arguments from Koda and the return value to Koda."""
-  sig = inspect.signature(fn)
+  sig = _inspect_signature(fn)
   wrapper_params = []
   # This is a performance optimization to avoid iterating over all parameters in
   # the common case of no custom tracing config.
@@ -219,9 +227,9 @@ class TraceAsFnDecorator:
   instance of TypeTracingConfig to describe how to convert the value to/from
   Koda.
 
-  Note that for _koladata_type_tracing_config_ to work, the file must _not_
-  do "from __future__ import annotations", as that makes the type annotations
-  unresolved at the decoration time.
+  Note that for _koladata_type_tracing_config_ to work, type annotations must
+  _not_ be forward declarations (which is possible when using `from __future__
+  import annotations`) as these will fail to be resolved.
 
   When executing the resulting function in eager mode, we will evaluate the
   underlying function directly instead of evaluating the functor, to have
@@ -266,7 +274,7 @@ class TraceAsFnDecorator:
 
   def __call__(self, fn: py_types.FunctionType) -> py_types.FunctionType:
     name = self._name if self._name is not None else fn.__name__
-    sig = inspect.signature(fn)
+    sig = _inspect_signature(fn)
     kd_fn = _wrap_with_from_and_to_kd(fn)
     return_type_as = self._return_type_as
     if return_type_as is None:

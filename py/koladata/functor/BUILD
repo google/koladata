@@ -235,3 +235,17 @@ py_test(
         "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
+
+py_test(
+    name = "tracing_decorator_with_future_annotations_test",
+    srcs = ["tracing_decorator_with_future_annotations_test.py"],
+    deps = [
+        ":boxing",
+        ":functor_factories",
+        ":tracing_decorator",
+        "//py:python_path",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)

@@ -2443,9 +2443,9 @@ Aliases:
   instance of TypeTracingConfig to describe how to convert the value to/from
   Koda.
 
-  Note that for _koladata_type_tracing_config_ to work, the file must _not_
-  do &#34;from __future__ import annotations&#34;, as that makes the type annotations
-  unresolved at the decoration time.
+  Note that for _koladata_type_tracing_config_ to work, type annotations must
+  _not_ be forward declarations (which is possible when using `from __future__
+  import annotations`) as these will fail to be resolved.
 
   When executing the resulting function in eager mode, we will evaluate the
   underlying function directly instead of evaluating the functor, to have
