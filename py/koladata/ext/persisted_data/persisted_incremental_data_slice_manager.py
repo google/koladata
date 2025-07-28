@@ -19,7 +19,6 @@ PersistedIncrementalDataSliceManager.
 """
 
 import datetime
-import itertools
 import os
 from typing import AbstractSet, Generator
 
@@ -287,6 +286,9 @@ class PersistedIncrementalDataSliceManager:
         )
     )
 
+    # Loading the data slice at the given path has the effect of loading all
+    # the bags of the affected schema node names that exist so far, as well as
+    # their ancestors, which is required by _add_update().
     ds = self.get_data_slice(at_path, with_all_descendants=False)
     data_update = kd.attrs(
         ds,
@@ -311,6 +313,10 @@ class PersistedIncrementalDataSliceManager:
   ):
     """Internally adds the update to the manager.
 
+    Callers must already have loaded the DataBags for the subset of
+    affected_schema_node_names already exist in the schema graph before the
+    update, as well as the DataBags of all their ancestors in the schema graph.
+
     Args:
       data_update: The data update to add.
       schema_update: The schema update to apply. It is assumed to be included in
@@ -330,25 +336,6 @@ class PersistedIncrementalDataSliceManager:
 
     new_schema = self._schema.updated(schema_update)
     new_schema_helper = schema_helper.SchemaHelper(new_schema)
-
-    # We load the bags of the existing ancestors of affected_schema_node_names.
-    # They are not necessarily loaded yet, and because the new bag we add will
-    # be loaded after this function returns, we need to load its dependencies.
-    existing_affected_schema_node_names = {
-        snn
-        for snn in affected_schema_node_names
-        if self._schema_helper.is_valid_schema_node_name(snn)
-    }
-    bags_to_load = set()
-    for snn in itertools.chain(
-        existing_affected_schema_node_names,
-        self._schema_helper.get_ancestor_schema_node_names(
-            existing_affected_schema_node_names
-        ),
-    ):
-      bags_to_load.update(self._schema_node_name_to_bag_names[snn])
-    if bags_to_load:
-      self._bag_manager.load_bags(bags_to_load)
 
     added_bag_name = self._get_timestamped_bag_name()
     self._bag_manager.add_bag(

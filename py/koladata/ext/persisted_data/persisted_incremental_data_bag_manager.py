@@ -134,8 +134,8 @@ class PersistedIncrementalDataBagManager:
 
     Args:
       bag_names: The names of the bags that should be loaded. They must be a
-        non-empty subset of get_available_bag_names(). All their transitive
-        dependencies will be loaded as well.
+        subset of get_available_bag_names(). All their transitive dependencies
+        will be loaded as well.
       with_all_dependents: If True, then all the dependents of bag_names will
         also be loaded. The dependents are computed transitively. All transitive
         dependencies of the dependents will also be loaded.
@@ -272,9 +272,9 @@ class PersistedIncrementalDataBagManager:
     """Loads the requested bags and their transitive dependencies.
 
     Args:
-      bag_names: The names of the bags that should be loaded. They must be a
-        non-empty subset of get_available_bag_names(). All their transitive
-        dependencies will be loaded as well.
+      bag_names: The names of the bags that should be loaded. It must be a
+        subset of get_available_bag_names(). All their transitive dependencies
+        will be loaded as well.
       with_all_dependents: If True, then all the dependents of bag_names will
         also be loaded. The dependents are computed transitively. All transitive
         dependencies of the dependents will also be loaded.
@@ -288,8 +288,6 @@ class PersistedIncrementalDataBagManager:
     # bag_names must be a collection of strings, not a single string that is
     # interpreted as a collection of character strings:
     assert not isinstance(bag_names, (str, bytes))
-    if not bag_names:
-      raise ValueError('bag_names must not be empty.')
     bags_to_load = set(bag_names)
     unknown_bags = bags_to_load - self.get_available_bag_names()
     if unknown_bags:

@@ -599,6 +599,115 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
         ],
     )
 
+  def test_update_at_path_that_is_not_loaded_yet(self):
+    query_schema = kd.named_schema(
+        'Query',
+        query_id=kd.INT32,
+        query_text=kd.STRING,
+    )
+
+    persistence_dir = self.create_tempdir().full_path
+    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([query_schema.new(), query_schema.new()]),
+    )
+    manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='query_id',
+        attr_value=kd.slice([1, 2]),
+    )
+    manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='query_text',
+        attr_value=kd.slice(
+            ['How tall is Obama', 'How high is the Eiffel tower']
+        ),
+    )
+
+    # Now we start a new manager from the persistence dir.
+    # Only the root is loaded.
+    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    self.assert_manager_state(
+        manager,
+        available_data_slice_paths={
+            '',
+            '.query',
+            '.query[:]',
+            '.query[:].query_id',
+            '.query[:].query_text',
+        },
+        loaded_data_slice_paths={''},
+        expected_loaded_root_dataslice_pytree={},
+    )
+
+    # Although only the root is loaded, we can still update attributes of
+    # query[:], which triggers its loading.
+    doc_schema = kd.named_schema('Doc', doc_id=kd.INT32, doc_title=kd.STRING)
+    manager.update(
+        at_path=parse_dsp('.query[:]'),
+        attr_name='doc',
+        attr_value=kd.slice([
+            kd.list([
+                doc_schema.new(doc_id=0, doc_title='title0'),
+                doc_schema.new(doc_id=1, doc_title='title1'),
+                doc_schema.new(doc_id=2, doc_title='title2'),
+                doc_schema.new(doc_id=3, doc_title=None),
+            ]),
+            None,
+        ]),
+    )
+    self.assert_manager_state(
+        manager,
+        available_data_slice_paths={
+            '',
+            '.query',
+            '.query[:]',
+            '.query[:].query_id',
+            '.query[:].query_text',
+            '.query[:].doc',
+            '.query[:].doc[:]',
+            '.query[:].doc[:].doc_id',
+            '.query[:].doc[:].doc_title',
+        },
+        loaded_data_slice_paths={
+            '',
+            '.query',
+            '.query[:]',
+            # TODO: '.query[:].query_id' and '.query[:].query_text'
+            # appear here because the update that added '.query' used a schema
+            # that already mentioned '.query_id' and '.query_text'. This is
+            # probably not the desired behavior, and should be fixed later on
+            # when an update is chopped up into fine-grained DataBags. It's
+            # currently not easy to fix it when we have one DataBag for the
+            # entire update, because that DataBag will always contain the given
+            # schema in full. Fixing this will also remove query_id and
+            # query_text from the pytree below.
+            '.query[:].query_id',
+            '.query[:].query_text',
+            '.query[:].doc',
+            '.query[:].doc[:]',
+            '.query[:].doc[:].doc_id',
+            '.query[:].doc[:].doc_title',
+        },
+        expected_loaded_root_dataslice_pytree={
+            'query': [
+                {
+                    'doc': [
+                        {'doc_id': 0, 'doc_title': 'title0'},
+                        {'doc_id': 1, 'doc_title': 'title1'},
+                        {'doc_id': 2, 'doc_title': 'title2'},
+                        {'doc_id': 3, 'doc_title': None},
+                    ],
+                    'query_id': None,
+                    'query_text': None,
+                },
+                {'doc': None, 'query_id': None, 'query_text': None},
+            ]
+        },
+    )
+
   def test_add_update_whose_schema_is_recursive_and_data_has_no_cycles(self):
     tree_node_schema = kd.named_schema(
         'TreeNode',

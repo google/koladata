@@ -150,6 +150,22 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
           {'', 'bag0', 'bag1', 'bag2', 'bag3'},
       )
 
+    with self.subTest('LoadEmptySetOfBagNames'):
+      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      self.assertEqual(manager.get_loaded_bag_names(), {''})
+      manager.load_bags({})
+      manager.load_bags({}, with_all_dependents=True)
+      self.assertEqual(manager.get_loaded_bag_names(), {''})
+
+      manager.load_bags({'bag1'})
+      self.assertEqual(
+          manager.get_loaded_bag_names(),
+          {'', 'bag0', 'bag1'},
+      )
+      manager.load_bags({})
+      manager.load_bags({}, with_all_dependents=True)
+      self.assertEqual(manager.get_loaded_bag_names(), {'', 'bag0', 'bag1'})
+
     # Next, we test that the persistence_dir is hermetic by moving it to a
     # new location and then initializing a new manager from the new location.
 
@@ -587,11 +603,9 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     persistence_dir = self.create_tempdir().full_path
     manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
 
-    with self.assertRaisesRegex(
-        ValueError,
-        'bag_names must not be empty.',
-    ):
-      _ = manager.get_minimal_bag(bag_names=[])
+    kd.testing.assert_equivalent(
+        manager.get_minimal_bag(bag_names=[]), kd.bag()
+    )
 
   def test_get_minimal_bag_with_unknown_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
@@ -611,11 +625,11 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
 
     output_dir = self.create_tempdir().full_path
-    with self.assertRaisesRegex(
-        ValueError,
-        'bag_names must not be empty.',
-    ):
-      manager.extract_bags(bag_names=[], output_dir=output_dir)
+    manager.extract_bags(bag_names=[], output_dir=output_dir)
+    extracted_manager = pidbm.PersistedIncrementalDataBagManager(output_dir)
+    self.assertEqual(extracted_manager.get_available_bag_names(), {''})
+    self.assertEqual(extracted_manager.get_loaded_bag_names(), {''})
+    self.assert_equivalent_bags(extracted_manager.get_loaded_bag(), kd.bag())
 
   def test_extract_bags_with_unknown_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
