@@ -31,6 +31,7 @@
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
@@ -140,6 +141,7 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
         absl::StrCat("the first argument of kd.call must be a functor, got ",
                      DataSliceRepr(functor)));
   }
+
   internal::ObjectId functor_id = functor.item().value<internal::ObjectId>();
   auto bag = functor.GetBag();
   DCHECK(bag != nullptr);  // validated in IsFunctor
