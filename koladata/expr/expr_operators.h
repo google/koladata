@@ -52,8 +52,7 @@ class InputOperator final
 // TypedValue. This operator allows us to attach a view to non-DataSlice
 // literals.
 class LiteralOperator final
-    : public arolla::expr::BuiltinExprOperatorTag,
-      public arolla::expr::ExprOperatorWithFixedSignature {
+    : public arolla::expr::ExprOperatorWithFixedSignature {
   struct PrivateConstructorTag {};
 
  public:

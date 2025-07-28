@@ -50,21 +50,6 @@ absl::StatusOr<arolla::expr::ExprNodePtr> TransformInputOperatorNode(
   }
 }
 
-// Node transformation that replaces `kd.literal` with `arolla.literal`.
-absl::StatusOr<arolla::expr::ExprNodePtr> TransformLiteralOperatorNode(
-    const arolla::expr::DynamicEvaluationEngineOptions& options,
-    arolla::expr::ExprNodePtr node) {
-  ASSIGN_OR_RETURN(auto decayed_op,
-                   arolla::expr::DecayRegisteredOperator(node->op()));
-  if (const auto* op =
-          arolla::fast_dynamic_downcast_final<const LiteralOperator*>(
-              decayed_op.get())) {
-    return arolla::expr::Literal(op->value());
-  } else {
-    return node;
-  }
-}
-
 AROLLA_INITIALIZER(
         .reverse_deps =
             {
@@ -74,8 +59,6 @@ AROLLA_INITIALIZER(
         .init_fn = [] {
           arolla::expr::eval_internal::CompilerExtensionRegistry::GetInstance()
               .RegisterNodeTransformationFn(TransformInputOperatorNode);
-          arolla::expr::eval_internal::CompilerExtensionRegistry::GetInstance()
-              .RegisterNodeTransformationFn(TransformLiteralOperatorNode);
         })
 
 }  // namespace
