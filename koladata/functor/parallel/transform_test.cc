@@ -23,6 +23,7 @@
 #include "arolla/expr/quote.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/testing/matchers.h"
+#include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -55,8 +56,7 @@ TEST(TransformTest, Basic) {
       auto missing_object,
       DataSlice::Create(internal::DataItem(),
                         internal::DataItem(schema::kObject), DataBag::Empty()));
-  ASSERT_OK_AND_ASSIGN(auto context,
-                       CreateExecutionContext(executor, missing_object));
+  ASSERT_OK_AND_ASSIGN(auto context, CreateExecutionContext(missing_object));
   ASSERT_OK_AND_ASSIGN(expr::InputContainer input_container,
                        expr::InputContainer::Create("I"));
   ASSERT_OK_AND_ASSIGN(auto returns_expr,
@@ -79,11 +79,12 @@ TEST(TransformTest, Basic) {
       arolla::TypedValue::FromValue(DataSlice::CreateFromScalar(2)));
   auto future_a_value = MakeFutureQValue(future_a);
   auto future_b_value = MakeFutureQValue(future_b);
-  ASSERT_OK_AND_ASSIGN(
-      auto result,
-      CallFunctorWithCompilationCache(
-          transformed_functor, {future_a_value.AsRef(), future_b_value.AsRef()},
-          {"a", "b"}));
+  ASSERT_OK_AND_ASSIGN(auto result,
+                       CallFunctorWithCompilationCache(
+                           transformed_functor,
+                           {arolla::TypedRef::FromValue(executor),
+                            future_a_value.AsRef(), future_b_value.AsRef()},
+                           {"a", "b"}));
   ASSERT_OK_AND_ASSIGN(FuturePtr result_value, result.As<FuturePtr>());
   EXPECT_THAT(result_value->GetValueForTesting(),
               IsOkAndHolds(QValueWith<DataSlice>(

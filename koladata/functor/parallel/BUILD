@@ -846,7 +846,6 @@ cc_library(
     hdrs = ["execution_context.h"],
     deps = [
         ":execution_config_cc_proto",
-        ":executor",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/qtype",
@@ -858,10 +857,8 @@ cc_test(
     name = "execution_context_test",
     srcs = ["execution_context_test.cc"],
     deps = [
-        ":eager_executor",
         ":execution_config_cc_proto",
         ":execution_context",
-        ":executor",
         "//koladata/testing:test_env",
         "@com_google_arolla//arolla/expr",
         "@com_google_arolla//arolla/expr/operators:bootstrap",
@@ -879,7 +876,6 @@ cc_library(
     deps = [
         ":execution_config_cc_proto",
         ":execution_context",
-        ":executor",
         "//koladata:data_slice",
         "//koladata/proto:to_proto",
         "@com_google_absl//absl/container:flat_hash_map",
@@ -897,9 +893,7 @@ cc_test(
     srcs = ["create_execution_context_test.cc"],
     deps = [
         ":create_execution_context",
-        ":eager_executor",
         ":execution_config_cc_proto",
-        ":executor",
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata/proto:from_proto",

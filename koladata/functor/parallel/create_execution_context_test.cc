@@ -23,9 +23,7 @@
 #include "arolla/util/testing/equals_proto.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
-#include "koladata/functor/parallel/eager_executor.h"
 #include "koladata/functor/parallel/execution_config.pb.h"
-#include "koladata/functor/parallel/executor.h"
 #include "koladata/proto/from_proto.h"
 
 namespace koladata::functor::parallel {
@@ -37,7 +35,6 @@ using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 
 TEST(CreateExecutionContextTest, Basic) {
-  ExecutorPtr executor = GetEagerExecutor();
   ExecutionConfig config;
   auto* replacement = config.add_operator_replacements();
   replacement->set_from_op("core.get_nth");
@@ -54,14 +51,13 @@ TEST(CreateExecutionContextTest, Basic) {
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   ASSERT_OK_AND_ASSIGN(auto execution_context,
-                       CreateExecutionContext(executor, config_slice));
+                       CreateExecutionContext(config_slice));
   ASSERT_OK_AND_ASSIGN(arolla::expr::ExprOperatorPtr op_before,
                        arolla::expr::LookupOperator("core.get_nth"));
   ASSERT_OK_AND_ASSIGN(op_before,
                        arolla::expr::DecayRegisteredOperator(op_before));
   ASSERT_OK_AND_ASSIGN(arolla::expr::ExprOperatorPtr op_after,
                        arolla::expr::LookupOperator("core.make_tuple"));
-  EXPECT_EQ(execution_context->executor(), executor);
   EXPECT_EQ(execution_context->operator_replacements().size(), 1);
   EXPECT_EQ(execution_context->operator_replacements().begin()->first,
             op_before->fingerprint());
@@ -77,7 +73,6 @@ TEST(CreateExecutionContextTest, Basic) {
 }
 
 TEST(CreateExecutionContextTest, OriginalArgumentsImplied) {
-  ExecutorPtr executor = GetEagerExecutor();
   ExecutionConfig config;
   auto* replacement = config.add_operator_replacements();
   replacement->set_from_op("core.get_nth");
@@ -88,7 +83,7 @@ TEST(CreateExecutionContextTest, OriginalArgumentsImplied) {
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   ASSERT_OK_AND_ASSIGN(auto execution_context,
-                       CreateExecutionContext(executor, config_slice));
+                       CreateExecutionContext(config_slice));
   EXPECT_THAT(
       execution_context->operator_replacements()
           .begin()
@@ -102,7 +97,6 @@ TEST(CreateExecutionContextTest, OriginalArgumentsImplied) {
 }
 
 TEST(CreateExecutionContextTest, UnknownFromOperator) {
-  ExecutorPtr executor = GetEagerExecutor();
   ExecutionConfig config;
   auto* replacement = config.add_operator_replacements();
   replacement->set_from_op("core.non_existing_operator");
@@ -113,13 +107,12 @@ TEST(CreateExecutionContextTest, UnknownFromOperator) {
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(
-      CreateExecutionContext(executor, config_slice),
+      CreateExecutionContext(config_slice),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("operator not found: core.non_existing_operator")));
 }
 
 TEST(CreateExecutionContextTest, UnknownToOperator) {
-  ExecutorPtr executor = GetEagerExecutor();
   ExecutionConfig config;
   auto* replacement = config.add_operator_replacements();
   replacement->set_from_op("core.get_nth");
@@ -130,13 +123,12 @@ TEST(CreateExecutionContextTest, UnknownToOperator) {
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(
-      CreateExecutionContext(executor, config_slice),
+      CreateExecutionContext(config_slice),
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("operator not found: core.non_existing_operator")));
 }
 
 TEST(CreateExecutionContextTest, DuplicateFromOperator) {
-  ExecutorPtr executor = GetEagerExecutor();
   ExecutionConfig config;
   auto* replacement = config.add_operator_replacements();
   replacement->set_from_op("kd.call");
@@ -150,18 +142,17 @@ TEST(CreateExecutionContextTest, DuplicateFromOperator) {
       DataSlice config_slice,
       config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
   EXPECT_THAT(
-      CreateExecutionContext(executor, config_slice),
+      CreateExecutionContext(config_slice),
       StatusIs(
           absl::StatusCode::kInvalidArgument,
           HasSubstr("duplicate operator replacement for: kd.functor.call")));
 }
 
 TEST(CreateExecutionContextTest, InvalidConfigShape) {
-  ExecutorPtr executor = GetEagerExecutor();
   ExecutionConfig config;
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
-  EXPECT_THAT(CreateExecutionContext(executor, config_slice_1d),
+  EXPECT_THAT(CreateExecutionContext(config_slice_1d),
               StatusIs(absl::StatusCode::kInvalidArgument,
                        HasSubstr("config must be a scalar, got rank 1")));
 }

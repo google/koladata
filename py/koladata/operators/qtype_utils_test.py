@@ -375,11 +375,7 @@ class KodaQTypesTest(absltest.TestCase):
       return x
 
     with self.subTest('success'):
-      _op(
-          koda_internal_parallel.create_execution_context(
-              koda_internal_parallel.get_eager_executor(), None
-          )
-      )
+      _op(koda_internal_parallel.create_execution_context(None))
 
     with self.subTest('failure'):
       with self.assertRaisesRegex(

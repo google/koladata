@@ -36,12 +36,11 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
 
   def test_simple_no_replacements(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(executor, None)
     fn = functor_factories.expr_fn(
         koda_internal_parallel.stream_make(I.x + I.y, I.x * I.y),
     )
     call_expr = koda_internal_parallel.parallel_call_fn_returning_stream(
-        context,
+        executor,
         koda_internal_parallel.as_future(fn),
         x=koda_internal_parallel.as_future(I.foo),
         y=koda_internal_parallel.as_future(I.bar),
@@ -53,9 +52,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
 
   def test_simple_with_replacements(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(
-        executor, koda_internal_parallel.get_default_execution_config()
-    )
+    context = koda_internal_parallel.get_default_execution_context()
     fn = functor_factories.expr_fn(
         koda_internal_parallel.stream_make(I.x + I.y, I.x * I.y),
     )
@@ -67,6 +64,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
         )
     )
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(call_fn),
         foo=koda_internal_parallel.as_future(I.foo),
@@ -80,12 +78,11 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
 
   def test_return_type_as(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(executor, None)
     fn = functor_factories.expr_fn(
         koda_internal_parallel.stream_make(S, S),
     )
     call_expr = koda_internal_parallel.parallel_call_fn_returning_stream(
-        context,
+        executor,
         koda_internal_parallel.as_future(fn),
         koda_internal_parallel.as_future(I.foo),
         return_type_as=koda_internal_parallel.stream_make(data_bag.DataBag),
@@ -99,7 +96,7 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
     self.assertTrue(
         view.has_koda_view(
             koda_internal_parallel.parallel_call_fn_returning_stream(
-                I.context, I.fn
+                I.executor, I.context, I.fn
             )
         )
     )

@@ -143,12 +143,12 @@ py_library(
     srcs = ["parallel.py"],
     deps = [
         "//py:python_path",
+        "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/functor/parallel:clib",
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
-        "@com_google_arolla//py/arolla",
     ],
 )
 

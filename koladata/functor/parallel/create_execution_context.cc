@@ -27,14 +27,12 @@
 #include "koladata/data_slice.h"
 #include "koladata/functor/parallel/execution_config.pb.h"
 #include "koladata/functor/parallel/execution_context.h"
-#include "koladata/functor/parallel/executor.h"
 #include "koladata/proto/to_proto.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
 
-absl::StatusOr<ExecutionContextPtr> CreateExecutionContext(ExecutorPtr executor,
-                                                           DataSlice config) {
+absl::StatusOr<ExecutionContextPtr> CreateExecutionContext(DataSlice config) {
   if (config.GetShape().rank() != 0) {
     return absl::InvalidArgumentError(absl::StrCat(
         "config must be a scalar, got rank ", config.GetShape().rank()));
@@ -77,8 +75,7 @@ absl::StatusOr<ExecutionContextPtr> CreateExecutionContext(ExecutorPtr executor,
         .op = std::move(to_op),
         .argument_transformation = std::move(transformation)};
   }
-  return std::make_shared<ExecutionContext>(std::move(executor),
-                                            std::move(operator_replacements));
+  return std::make_shared<ExecutionContext>(std::move(operator_replacements));
 }
 
 }  // namespace koladata::functor::parallel

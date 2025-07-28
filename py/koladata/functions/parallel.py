@@ -16,21 +16,20 @@
 
 from typing import Any, Iterator
 
-from arolla import arolla
+from koladata.expr import expr_eval
 from koladata.expr import view as _
-from koladata.functor.parallel import clib as _
+from koladata.functor.parallel import clib
 from koladata.operators import koda_internal_parallel
 from koladata.types import data_item
 from koladata.types import data_slice
 
 
-def _create_execution_context(max_threads: int | None) -> arolla.Expr:
+def _create_executor(max_threads: int | None) -> clib.Executor:
   if max_threads is None:
-    return koda_internal_parallel.get_default_execution_context()
-  return koda_internal_parallel.create_execution_context(
-      koda_internal_parallel.make_executor(max_threads),
-      koda_internal_parallel.get_default_execution_config(),
-  )
+    expr = koda_internal_parallel.get_default_executor()
+  else:
+    expr = koda_internal_parallel.make_executor(max_threads)
+  return expr_eval.eval(expr)
 
 
 def call_multithreaded(
@@ -74,11 +73,13 @@ def call_multithreaded(
     is/has a stream, and this method needs to return multiple values at
     different times instead of one value at the end.
   """
-  execution_context = _create_execution_context(max_threads)
+  executor = _create_executor(max_threads)
+  execution_context = koda_internal_parallel.get_default_execution_context()
   res_stream = koda_internal_parallel.stream_from_future(
       koda_internal_parallel.future_from_parallel(
-          koda_internal_parallel.get_executor_from_context(execution_context),
+          executor,
           koda_internal_parallel.parallel_call(
+              executor,
               execution_context,
               koda_internal_parallel.as_future(fn),
               *[koda_internal_parallel.as_parallel(arg) for arg in args],
@@ -91,6 +92,15 @@ def call_multithreaded(
       )
   ).eval()
   return res_stream.read_all(timeout=timeout)[0]
+
+
+def _wrap_yield_all(
+    executor: clib.Executor,  # pylint: disable=unused-argument
+    stream: clib.Stream[Any],
+    timeout: float | None = None,
+) -> Iterator[Any]:
+  """Wrapper that keeps executor alive while yielding."""
+  yield from stream.yield_all(timeout=timeout)
 
 
 def yield_multithreaded(
@@ -133,8 +143,10 @@ def yield_multithreaded(
   Returns:
     Yields the items of the output iterable as soon as they are available.
   """
-  execution_context = _create_execution_context(max_threads)
+  executor = _create_executor(max_threads)
+  execution_context = koda_internal_parallel.get_default_execution_context()
   res_stream = koda_internal_parallel.parallel_call(
+      executor,
       execution_context,
       koda_internal_parallel.as_future(fn),
       *[koda_internal_parallel.as_parallel(arg) for arg in args],
@@ -143,4 +155,4 @@ def yield_multithreaded(
       ),
       **{k: koda_internal_parallel.as_parallel(v) for k, v in kwargs.items()},
   ).eval()
-  return res_stream.yield_all(timeout=timeout)
+  return _wrap_yield_all(executor, res_stream, timeout=timeout)

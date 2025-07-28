@@ -15,10 +15,8 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_EXECUTION_CONTEXT_H_
 #define KOLADATA_FUNCTOR_PARALLEL_EXECUTION_CONTEXT_H_
 
-#include <cstdint>
 #include <memory>
 #include <utility>
-#include <vector>
 
 #include "absl/container/flat_hash_map.h"
 #include "arolla/expr/expr_operator.h"
@@ -26,16 +24,13 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
 #include "koladata/functor/parallel/execution_config.pb.h"
-#include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 
-// This class corresponds to one parallel execution, keeps a link to the
-// executor and stores the configuration of the parallel execution.
+// This class stores the pre-processed configuration of the parallel execution.
 //
 // It is used to implement parallel_call. Advanced users that operate on futures
-// and streams directly shouldn't use this class and should use the executor
-// directly.
+// and streams directly shouldn't use this class.
 //
 // The configuration is map of operator replacements. For each operator
 // replacement, the key in the map is the fingerprint of the decayed version of
@@ -50,11 +45,9 @@ class ExecutionContext {
 
   using ReplacementMap = absl::flat_hash_map<arolla::Fingerprint, Replacement>;
 
-  ExecutionContext(ExecutorPtr executor, ReplacementMap operator_replacements)
-      : executor_(std::move(executor)),
-        operator_replacements_(std::move(operator_replacements)) {}
+  explicit ExecutionContext(ReplacementMap operator_replacements)
+      : operator_replacements_(std::move(operator_replacements)) {}
 
-  const ExecutorPtr& executor() const { return executor_; }
   const ReplacementMap& operator_replacements() const {
     return operator_replacements_;
   }
@@ -70,7 +63,6 @@ class ExecutionContext {
   ExecutionContext& operator=(ExecutionContext&&) = default;
 
  private:
-  ExecutorPtr executor_;
   ReplacementMap operator_replacements_;
   arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
 };

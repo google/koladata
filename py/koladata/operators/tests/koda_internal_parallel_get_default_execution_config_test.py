@@ -18,6 +18,7 @@ from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
 from koladata import kd as user_facing_kd
+from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
@@ -52,7 +53,6 @@ class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):
     # doing one test for the execution context created from the default config.
     # Most of the testing is done in the get_default_execution_context tests.
     context = koda_internal_parallel.create_execution_context(
-        koda_internal_parallel.get_default_executor(),
         koda_internal_parallel.get_default_execution_config(),
     ).eval()
 
@@ -79,8 +79,9 @@ class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):
 
     obj = fns.new()
     res_future = koda_internal_parallel.parallel_call(
-        I.context, I.fn, I.x
+        I.executor, I.context, I.fn, I.x
     ).eval(
+        executor=expr_eval.eval(koda_internal_parallel.get_default_executor()),
         context=context,
         fn=koda_internal_parallel.as_future(g).eval(),
         x=koda_internal_parallel.as_future(obj).eval(),

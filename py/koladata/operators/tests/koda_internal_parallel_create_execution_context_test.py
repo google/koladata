@@ -19,7 +19,6 @@ from koladata.expr import view
 from koladata.operators import bootstrap
 from koladata.operators import koda_internal_parallel
 from koladata.operators.tests.util import qtypes as test_qtypes
-from koladata.testing import testing
 from koladata.types import data_slice
 from koladata.types import qtypes
 
@@ -32,24 +31,16 @@ ds = data_slice.DataSlice.from_vals
 # checks.
 class KodaInternalParallelCreateExecutionContextTest(absltest.TestCase):
 
-  def test_simple(self):
-    executor = arolla.eval(koda_internal_parallel.get_eager_executor())
-    context = arolla.eval(
-        koda_internal_parallel.create_execution_context(executor, None)
-    )
-    testing.assert_equal(
-        arolla.eval(koda_internal_parallel.get_executor_from_context(context)),
-        executor,
-    )
+  def test_can_run(self):
+    _ = arolla.eval(koda_internal_parallel.create_execution_context(None))
 
   def test_config_error(self):
-    executor = arolla.eval(koda_internal_parallel.get_eager_executor())
     with self.assertRaisesRegex(
         ValueError,
         'config must be a scalar, got rank 1',
     ):
       _ = arolla.eval(
-          koda_internal_parallel.create_execution_context(executor, ds([None]))
+          koda_internal_parallel.create_execution_context(ds([None]))
       )
 
   def test_qtype_signatures(self):
@@ -58,16 +49,14 @@ class KodaInternalParallelCreateExecutionContextTest(absltest.TestCase):
     )
     arolla.testing.assert_qtype_signatures(
         koda_internal_parallel.create_execution_context,
-        [(qtypes.EXECUTOR, qtypes.DATA_SLICE, execution_context_qtype)],
+        [(qtypes.DATA_SLICE, execution_context_qtype)],
         possible_qtypes=test_qtypes.DETECT_SIGNATURES_QTYPES
         + (execution_context_qtype,),
     )
 
   def test_view(self):
     self.assertTrue(
-        view.has_koda_view(
-            koda_internal_parallel.create_execution_context(I.x, I.y)
-        )
+        view.has_koda_view(koda_internal_parallel.create_execution_context(I.x))
     )
 
 

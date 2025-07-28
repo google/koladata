@@ -17,6 +17,7 @@ import traceback
 
 from absl.testing import absltest
 from arolla import arolla
+from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
@@ -48,6 +49,7 @@ _REPLACEMENTS = fns.new(
             to_op='koda_internal.parallel.parallel_call',
             argument_transformation=fns.new(
                 arguments=[
+                    execution_config_pb2.ExecutionConfig.ArgumentTransformation.EXECUTOR,
                     execution_config_pb2.ExecutionConfig.ArgumentTransformation.EXECUTION_CONTEXT,
                     execution_config_pb2.ExecutionConfig.ArgumentTransformation.ORIGINAL_ARGUMENTS,
                 ],
@@ -61,11 +63,10 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_simple(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(
-        executor, _REPLACEMENTS
-    )
+    context = koda_internal_parallel.create_execution_context(_REPLACEMENTS)
     fn = functor_factories.expr_fn(I.x + I.y)
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         x=koda_internal_parallel.as_future(I.foo),
@@ -80,9 +81,10 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_simple_no_replacements(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(executor, None)
+    context = koda_internal_parallel.create_execution_context(None)
     fn = functor_factories.expr_fn(I.x + I.y)
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         x=koda_internal_parallel.as_future(I.foo),
@@ -103,10 +105,13 @@ class ParallelCallTest(absltest.TestCase):
       barrier.wait()
       return x
 
-    executor = koda_internal_parallel.make_executor(thread_limit=2)
-    context = koda_internal_parallel.create_execution_context(executor, None)
+    executor = expr_eval.eval(
+        koda_internal_parallel.make_executor(thread_limit=2)
+    )
+    context = koda_internal_parallel.create_execution_context(None)
     fn = functor_factories.expr_fn(V.x + V.y, x=my_op(I.x), y=my_op(I.y))
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         x=koda_internal_parallel.as_future(I.foo),
@@ -121,14 +126,13 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_nested(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(
-        executor, _REPLACEMENTS
-    )
+    context = koda_internal_parallel.create_execution_context(_REPLACEMENTS)
     inner_fn = functor_factories.expr_fn(I.self + I.other)
     fn = functor_factories.expr_fn(
         V.inner(I.x, other=I.y) + V.inner(I.y, other=I.x), inner=inner_fn
     )
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         x=koda_internal_parallel.as_future(I.foo),
@@ -149,15 +153,16 @@ class ParallelCallTest(absltest.TestCase):
       barrier.wait()
       return x
 
-    executor = koda_internal_parallel.make_executor(thread_limit=3)
-    context = koda_internal_parallel.create_execution_context(
-        executor, _REPLACEMENTS
+    executor = expr_eval.eval(
+        koda_internal_parallel.make_executor(thread_limit=3)
     )
+    context = koda_internal_parallel.create_execution_context(_REPLACEMENTS)
     inner_fn = functor_factories.expr_fn(V.x + V.y, x=my_op(I.x), y=my_op(I.y))
     fn = functor_factories.expr_fn(
         V.x + V.inner(x=I.y, y=I.y), x=my_op(I.x), inner=inner_fn
     )
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         x=koda_internal_parallel.as_future(I.foo),
@@ -172,11 +177,10 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_positional_arg(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(
-        executor, _REPLACEMENTS
-    )
+    context = koda_internal_parallel.create_execution_context(_REPLACEMENTS)
     fn = functor_factories.expr_fn(S.x + S.y)
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         koda_internal_parallel.as_future(I.foo),
@@ -190,15 +194,14 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_source_location(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(
-        executor, _REPLACEMENTS
-    )
+    context = koda_internal_parallel.create_execution_context(_REPLACEMENTS)
     fn = functor_factories.expr_fn(
         kd_lazy.annotation.source_location(
             S.x, 'test_function', 'test_file.py', 57, 0, '  return S.x'
         ),
     )
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         koda_internal_parallel.as_future(I.foo),
@@ -218,9 +221,10 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_return_type_as(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(executor, None)
+    context = koda_internal_parallel.create_execution_context(None)
     fn = functor_factories.expr_fn(S)
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         koda_internal_parallel.as_future(I.foo),
@@ -236,14 +240,13 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_nested_return_type_as(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(
-        executor, _REPLACEMENTS
-    )
+    context = koda_internal_parallel.create_execution_context(_REPLACEMENTS)
     inner_fn = functor_factories.expr_fn(S)
     fn = functor_factories.expr_fn(
         V.inner(S, return_type_as=data_bag.DataBag), inner=inner_fn
     )
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         koda_internal_parallel.as_future(I.foo),
@@ -259,9 +262,7 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_custom_op_consuming_iterable_raises(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(
-        executor, _REPLACEMENTS
-    )
+    context = koda_internal_parallel.create_execution_context(_REPLACEMENTS)
 
     @optools.add_to_registry()
     @optools.as_lambda_operator(
@@ -275,6 +276,7 @@ class ParallelCallTest(absltest.TestCase):
         fn(x=iterable_qvalue.Iterable(ds([1]), ds([2]))), ds([1, 2])
     )
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         x=koda_internal_parallel.stream_make(1, 2),
@@ -288,9 +290,7 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_custom_op_returning_iterable_works(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(
-        executor, _REPLACEMENTS
-    )
+    context = koda_internal_parallel.create_execution_context(_REPLACEMENTS)
 
     @optools.add_to_registry()
     @optools.as_lambda_operator(
@@ -305,6 +305,7 @@ class ParallelCallTest(absltest.TestCase):
         iterable_qvalue.Iterable(1, 2),
     )
     call_expr = koda_internal_parallel.parallel_call(
+        executor,
         context,
         koda_internal_parallel.as_future(fn),
         x=koda_internal_parallel.as_future(1),
@@ -317,18 +318,17 @@ class ParallelCallTest(absltest.TestCase):
 
   def test_wrong_input_types(self):
     executor = koda_internal_parallel.get_eager_executor()
-    context = koda_internal_parallel.create_execution_context(
-        executor, _REPLACEMENTS
-    )
+    context = koda_internal_parallel.create_execution_context(_REPLACEMENTS)
     fn = functor_factories.expr_fn(S)
 
     with self.assertRaisesRegex(
         ValueError, 'expected a future to a data slice'
     ):
-      _ = koda_internal_parallel.parallel_call(context, fn)
+      _ = koda_internal_parallel.parallel_call(executor, context, fn)
 
     with self.assertRaisesRegex(ValueError, 'args must have parallel types'):
       _ = koda_internal_parallel.parallel_call(
+          executor,
           context,
           koda_internal_parallel.as_future(fn),
           57,
@@ -336,6 +336,7 @@ class ParallelCallTest(absltest.TestCase):
 
     with self.assertRaisesRegex(ValueError, 'kwargs must have parallel types'):
       _ = koda_internal_parallel.parallel_call(
+          executor,
           context,
           koda_internal_parallel.as_future(fn),
           x=57,
@@ -345,20 +346,29 @@ class ParallelCallTest(absltest.TestCase):
         ValueError, 'expected a future to a data slice'
     ):
       _ = koda_internal_parallel.parallel_call(
+          executor,
           context,
           fn,
       )
 
     with self.assertRaisesRegex(ValueError, 'expected an execution context'):
       _ = koda_internal_parallel.parallel_call(
+          executor,
           None,
+          koda_internal_parallel.as_future(fn),
+      )
+
+    with self.assertRaisesRegex(ValueError, 'expected an executor'):
+      _ = koda_internal_parallel.parallel_call(
+          None,
+          context,
           koda_internal_parallel.as_future(fn),
       )
 
   def test_view(self):
     self.assertTrue(
         view.has_koda_view(
-            koda_internal_parallel.parallel_call(I.context, I.fn)
+            koda_internal_parallel.parallel_call(I.executor, I.context, I.fn)
         )
     )
 

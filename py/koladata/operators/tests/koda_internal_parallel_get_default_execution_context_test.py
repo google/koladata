@@ -52,6 +52,7 @@ def _parallel_eval(func, *args, return_type_as=data_slice.DataSlice, **kwargs):
   )
   res = koda_internal_parallel.stream_from_future(
       transformed_fn(
+          koda_internal_parallel.get_default_executor(),
           *[koda_internal_parallel.as_future(arg) for arg in args],
           return_type_as=koda_internal_parallel.as_future(return_type_as),
           **{k: koda_internal_parallel.as_future(v) for k, v in kwargs.items()},
@@ -104,10 +105,6 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     res = expr.eval()
     testing.assert_equal(
         res.qtype, arolla.eval(bootstrap.get_execution_context_qtype())
-    )
-    testing.assert_equal(
-        koda_internal_parallel.get_executor_from_context(res).eval(),
-        arolla.eval(koda_internal_parallel.get_default_executor()),
     )
 
   @parameterized.named_parameters(
@@ -175,7 +172,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
 
     fn = functor_factories.trace_py_fn(g)
     context = koda_internal_parallel.get_default_execution_context().eval()
-    executor = koda_internal_parallel.get_executor_from_context(context).eval()
+    executor = expr_eval.eval(koda_internal_parallel.get_default_executor())
     transformed_fn = koda_internal_parallel.transform(context, fn)
     future_1 = expr_eval.eval(
         koda_internal_parallel.async_eval(executor, wait_and_return_1)
@@ -185,6 +182,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     future_none = expr_eval.eval(koda_internal_parallel.as_future(None))
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         x=future_1,
         y=future_2,
         return_type_as=make_tuple_fn(future_none, future_none),
@@ -215,15 +213,14 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     context = koda_internal_parallel.get_default_execution_context()
     transformed_fn = koda_internal_parallel.transform(context, fn)
     res = transformed_fn(
-        return_type_as=optools.unified_non_deterministic_arg()
+        koda_internal_parallel.get_default_executor(),
+        return_type_as=optools.unified_non_deterministic_arg(),
     ).eval()
     self.assertEqual(res.qtype, qtypes.NON_DETERMINISTIC_TOKEN)
     self.assertNotIn('async_eval', str(res))
     # To make sure the assert above is meaningful.
     res_no_replacements = koda_internal_parallel.transform(
-        koda_internal_parallel.create_execution_context(
-            koda_internal_parallel.get_default_executor(), None
-        ),
+        koda_internal_parallel.create_execution_context(None),
         fn,
     ).eval()
     self.assertIn('async_eval', str(res_no_replacements))
@@ -240,6 +237,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     context = koda_internal_parallel.get_default_execution_context().eval()
     transformed_fn = koda_internal_parallel.transform(context, fn)
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         x=koda_internal_parallel.as_future(x),
         y=koda_internal_parallel.as_future(y),
         return_type_as=koda_internal_parallel.as_future(None),
@@ -262,6 +260,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     context = koda_internal_parallel.get_default_execution_context().eval()
     transformed_fn = koda_internal_parallel.transform(context, fn)
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         x=koda_internal_parallel.as_future(x),
         return_type_as=koda_internal_parallel.as_future(None),
     ).eval()
@@ -298,6 +297,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     transformed_fn = koda_internal_parallel.transform(context, fn)
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             koda_internal_parallel.as_future(ds(1)),
             return_type_as=koda_internal_parallel.as_future(None),
         )
@@ -322,6 +322,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     y = fns.new()
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             koda_internal_parallel.as_future(mask_constants.present),
             koda_internal_parallel.as_future(y),
             return_type_as=koda_internal_parallel.as_future(data_bag.DataBag),
@@ -332,6 +333,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
 
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             koda_internal_parallel.as_future(mask_constants.missing),
             koda_internal_parallel.as_future(y),
             return_type_as=koda_internal_parallel.as_future(data_bag.DataBag),
@@ -369,6 +371,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
@@ -418,6 +421,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
@@ -455,6 +459,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
     self.assertEqual(res.qtype.value_qtype, qtypes.DATA_SLICE)
@@ -475,6 +480,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(
             value_type_as=data_bag.DataBag
         ),
@@ -493,6 +499,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     db = data_bag.DataBag.empty().freeze()
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         x=koda_internal_parallel.as_future(db),
         return_type_as=koda_internal_parallel.stream_make(
             value_type_as=data_bag.DataBag
@@ -512,6 +519,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         x=koda_internal_parallel.as_future(1),
         y=koda_internal_parallel.as_future(2),
         return_type_as=koda_internal_parallel.stream_make(
@@ -564,6 +572,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
@@ -623,6 +632,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
     reader = res.make_reader()
@@ -661,6 +671,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     db = data_bag.DataBag.empty().freeze()
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         x=koda_internal_parallel.as_future(db),
         return_type_as=koda_internal_parallel.stream_make(
             value_type_as=data_bag.DataBag
@@ -708,6 +719,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         x=stream,
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -777,6 +789,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         x=stream,
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -824,6 +837,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             x=koda_internal_parallel.stream_make(1, 2, 3, 4),
             initial=koda_internal_parallel.as_future(5),
             return_type_as=koda_internal_parallel.as_future(None),
@@ -843,8 +857,9 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     transformed_fn = koda_internal_parallel.transform(context, g)
     res = koda_internal_parallel.stream_from_future(
         koda_internal_parallel.future_from_parallel(
-            koda_internal_parallel.get_executor_from_context(context),
+            koda_internal_parallel.get_default_executor(),
             transformed_fn(
+                koda_internal_parallel.get_default_executor(),
                 x=koda_internal_parallel.stream_make(1, 2, 3, 4),
                 initial=koda_internal_parallel.as_parallel((5, 6)),
                 return_type_as=koda_internal_parallel.as_parallel((None, None)),
@@ -865,6 +880,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             x=koda_internal_parallel.stream_make(ds([1]), ds([2])),
             initial=koda_internal_parallel.as_future(ds([5])),
             return_type_as=koda_internal_parallel.as_future(None),
@@ -882,6 +898,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             x=koda_internal_parallel.stream_make(ds([[1]]), ds([[2]])),
             initial=koda_internal_parallel.as_future(ds([[5]])),
             ndim=koda_internal_parallel.as_future(ds(2)),
@@ -904,6 +921,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     b3 = kd.attrs(o, c=3, a=4)
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             x=koda_internal_parallel.stream_make(b1, b2),
             initial=koda_internal_parallel.as_future(b3),
             return_type_as=koda_internal_parallel.as_future(b1),
@@ -932,6 +950,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             n=koda_internal_parallel.as_future(5),
             return_type_as=koda_internal_parallel.as_future(None),
         )
@@ -956,6 +975,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), factorial
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         n=koda_internal_parallel.as_future(5),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -982,6 +1002,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), factorial
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         n=koda_internal_parallel.as_future(5),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -1035,6 +1056,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), g
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
 
@@ -1103,6 +1125,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), g
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
 
@@ -1145,6 +1168,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             vals=koda_internal_parallel.stream_make(*range(1, 6)),
             return_type_as=koda_internal_parallel.as_future(None),
         )
@@ -1167,6 +1191,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), factorial
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         vals=koda_internal_parallel.stream_make(*range(1, 6)),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -1191,6 +1216,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), factorial
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         vals=koda_internal_parallel.stream_make(*range(1, 6)),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -1242,6 +1268,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), g
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
 
@@ -1308,6 +1335,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), g
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
 
@@ -1351,6 +1379,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), factorial
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         vals=koda_internal_parallel.stream_make(*range(1, 6)),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -1377,6 +1406,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             vals=koda_internal_parallel.stream_make(*range(1, 6)),
             return_type_as=koda_internal_parallel.as_future(None),
         )
@@ -1399,6 +1429,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), factorial
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         vals=koda_internal_parallel.stream_make(*range(1, 6)),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -1423,6 +1454,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             vals=koda_internal_parallel.stream_make(*range(1, 6)),
             return_type_as=koda_internal_parallel.as_future(None),
         )
@@ -1447,6 +1479,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), factorial
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         vals=koda_internal_parallel.stream_make(*range(1, 6)),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -1829,6 +1862,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         koda_internal_parallel.stream_make('a b c', 'foo bar'),
         return_type_as=koda_internal_parallel.stream_make(),
     ).eval()
@@ -1843,6 +1877,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
         x=koda_internal_parallel.as_future(ds([1, 2, 3])),
     ).eval()
@@ -1867,6 +1902,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             koda_internal_parallel.as_future(ds([4, 5, 6])),
             return_type_as=koda_internal_parallel.as_future(None),
         )
@@ -1889,6 +1925,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         koda_internal_parallel.get_default_execution_context(), f
     )
     res = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
         value=koda_internal_parallel.stream_make(1, 2),
         cond=koda_internal_parallel.as_future(mask_constants.present),
@@ -1900,6 +1937,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
 
     stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
     res_error = transformed_fn(
+        koda_internal_parallel.get_default_executor(),
         return_type_as=koda_internal_parallel.stream_make(),
         value=stream,
         cond=koda_internal_parallel.as_future(mask_constants.missing),
@@ -1932,6 +1970,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res_error = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             return_type_as=koda_internal_parallel.as_future(None),
             cond=koda_internal_parallel.as_future(mask_constants.missing),
         )
@@ -1961,6 +2000,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     res_error = koda_internal_parallel.stream_from_future(
         transformed_fn(
+            koda_internal_parallel.get_default_executor(),
             return_type_as=koda_internal_parallel.as_future(None),
             value=koda_internal_parallel.as_future(ds(1)),
             cond=koda_internal_parallel.as_future(mask_constants.missing),

@@ -18,15 +18,13 @@
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/parallel/execution_context.h"
-#include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 
-// Creates an execution context from the given executor and config.
+// Creates an execution context from the given config.
 // The config is given as a scalar DataSlice transformed from an
 // ExecutionConfig proto.
-absl::StatusOr<ExecutionContextPtr> CreateExecutionContext(ExecutorPtr executor,
-                                                           DataSlice config);
+absl::StatusOr<ExecutionContextPtr> CreateExecutionContext(DataSlice config);
 
 }  // namespace koladata::functor::parallel
 

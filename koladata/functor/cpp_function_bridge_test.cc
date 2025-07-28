@@ -151,11 +151,8 @@ TEST(CppFunctionBridgeTest, IntegrationTestWithParallelCall) {
       "koda_internal.parallel.as_future", {std::move(functor_expr)});
   auto executor_expr =
       arolla::expr::CallOp("koda_internal.parallel.get_eager_executor", {});
-  auto execution_config_expr = arolla::expr::CallOp(
-      "koda_internal.parallel.get_default_execution_config", {});
   auto execution_context_expr = arolla::expr::CallOp(
-      "koda_internal.parallel.create_execution_context",
-      {std::move(executor_expr), std::move(execution_config_expr)});
+      "koda_internal.parallel.get_default_execution_context", {});
   auto unspecified_expr = arolla::expr::Literal(arolla::GetUnspecifiedQValue());
   auto input_value_expr = arolla::expr::Literal(DataSlice::CreateFromScalar(1));
   auto args_expr = arolla::expr::CallOp(
@@ -168,9 +165,10 @@ TEST(CppFunctionBridgeTest, IntegrationTestWithParallelCall) {
       auto call_expr,
       arolla::expr::CallOp(
           "koda_internal.parallel.parallel_call",
-          {std::move(execution_context_expr), std::move(functor_future_expr),
-           std::move(args_expr), /*return_type_as=*/unspecified_expr,
-           std::move(kwargs_expr), non_deterministic_token_expr}));
+          {std::move(executor_expr), std::move(execution_context_expr),
+           std::move(functor_future_expr), std::move(args_expr),
+           /*return_type_as=*/unspecified_expr, std::move(kwargs_expr),
+           non_deterministic_token_expr}));
   ASSERT_OK_AND_ASSIGN(auto res,
                        expr::EvalExprWithCompilationCache(call_expr, {}, {}));
   ASSERT_OK_AND_ASSIGN(parallel::FuturePtr res_future,

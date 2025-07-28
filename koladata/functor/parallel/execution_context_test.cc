@@ -24,9 +24,7 @@
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
 #include "arolla/util/testing/equals_proto.h"
-#include "koladata/functor/parallel/eager_executor.h"
 #include "koladata/functor/parallel/execution_config.pb.h"
-#include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 namespace {
@@ -41,24 +39,21 @@ TEST(ExecutionContextTest, Nullptr) {
 }
 
 TEST(ExecutionContextTest, Repr) {
-  ExecutorPtr executor = GetEagerExecutor();
-  ExecutionContextPtr context = std::make_shared<ExecutionContext>(
-      executor, ExecutionContext::ReplacementMap());
+  ExecutionContextPtr context =
+      std::make_shared<ExecutionContext>(ExecutionContext::ReplacementMap());
   EXPECT_EQ(arolla::Repr(context), "execution_context");
 }
 
 TEST(ExecutionContextTest, Fingerprint) {
-  ExecutorPtr executor = GetEagerExecutor();
-  ExecutionContextPtr context1 = std::make_shared<ExecutionContext>(
-      executor, ExecutionContext::ReplacementMap());
-  ExecutionContextPtr context2 = std::make_shared<ExecutionContext>(
-      executor, ExecutionContext::ReplacementMap());
+  ExecutionContextPtr context1 =
+      std::make_shared<ExecutionContext>(ExecutionContext::ReplacementMap());
+  ExecutionContextPtr context2 =
+      std::make_shared<ExecutionContext>(ExecutionContext::ReplacementMap());
   EXPECT_NE(arolla::TypedValue::FromValue(context1).GetFingerprint(),
             arolla::TypedValue::FromValue(context2).GetFingerprint());
 }
 
 TEST(ExecutionContextTest, Getters) {
-  ExecutorPtr executor = GetEagerExecutor();
   ASSERT_OK_AND_ASSIGN(auto op, arolla::expr::LookupOperator("core.get_nth"));
   ExecutionConfig::ArgumentTransformation transformation;
   transformation.add_arguments(
@@ -68,8 +63,7 @@ TEST(ExecutionContextTest, Getters) {
       {arolla::RandomFingerprint(),
        {.op = op, .argument_transformation = transformation}}};
   ExecutionContextPtr context =
-      std::make_shared<ExecutionContext>(executor, replacements);
-  EXPECT_EQ(context->executor(), executor);
+      std::make_shared<ExecutionContext>(replacements);
   ASSERT_EQ(context->operator_replacements().size(), 1);
   EXPECT_EQ(context->operator_replacements().begin()->second.op, op);
   EXPECT_THAT(

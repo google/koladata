@@ -66,10 +66,6 @@ OPERATOR_FAMILY("koda_internal.parallel.future_iterable_from_stream",
                 std::make_unique<FutureIterableFromStreamOperatorFamily>());
 OPERATOR("koda_internal.parallel.get_execution_context_qtype",
          []() { return arolla::GetQType<ExecutionContextPtr>(); });
-OPERATOR("koda_internal.parallel.get_executor_from_context",
-         [](const ExecutionContextPtr& context) {
-           return context->executor();
-         });
 OPERATOR("koda_internal.parallel.get_future_qtype",
          // Since there is a templated overload, we need to wrap in a lambda.
          [](arolla::QTypePtr value_qtype) -> arolla::QTypePtr {
