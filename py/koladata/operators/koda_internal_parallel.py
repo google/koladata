@@ -3025,6 +3025,50 @@ def _parallel_stream_map(
   )
 
 
+@optools.as_lambda_operator(
+    'koda_internal.parallel._internal_parallel_with_assertion',
+)
+def _internal_parallel_with_assertion(
+    x_as_tuple,
+    condition,
+    message_or_fn,
+    args,
+):
+  """Implementation helper for _parallel_with_assertion."""
+  return arolla.abc.bind_op(
+      assertion.with_assertion,
+      x=x_as_tuple[0],
+      condition=condition,
+      message_or_fn=message_or_fn,
+      args=args,
+  )
+
+
+# qtype constraints for everything except executor are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._parallel_with_assertion',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+    ],
+)
+def _parallel_with_assertion(executor, x, condition, message_or_fn, args):
+  """The parallel version of assertion.with_assertion."""
+  return unwrap_future_to_parallel(
+      async_eval(
+          executor,
+          _internal_parallel_with_assertion,
+          # We wrap x into a tuple to avoid waiting for it if it is a future.
+          (x,),
+          condition,
+          message_or_fn,
+          # We do not support streams in args for now.
+          future_from_parallel(executor, args),
+      )
+  )
+
+
 _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   operator_replacements {
     from_op: "core.make_tuple"
@@ -3209,6 +3253,15 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     argument_transformation {
       arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
+    }
+  }
+  operator_replacements {
+    from_op: "kd.assertion.with_assertion"
+    to_op: "koda_internal.parallel._parallel_with_assertion"
+    argument_transformation {
+      arguments: EXECUTOR
+      arguments: ORIGINAL_ARGUMENTS
+      arguments: NON_DETERMINISTIC_TOKEN
     }
   }
 """

@@ -1876,6 +1876,103 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         ds([5, 7, 9]),
     )
 
+  def test_stream_with_assertion(self):
+
+    def f(value, cond):
+      return user_facing_kd.assertion.with_assertion(
+          value,
+          cond,
+          'Test assertion triggered',
+      )
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res = transformed_fn(
+        return_type_as=koda_internal_parallel.stream_make(),
+        value=koda_internal_parallel.stream_make(1, 2),
+        cond=koda_internal_parallel.as_future(mask_constants.present),
+    ).eval()
+    testing.assert_equal(
+        arolla.tuple(*res.read_all(timeout=5.0)),
+        arolla.tuple(ds(1), ds(2)),
+    )
+
+    stream, writer = clib.Stream.new(qtypes.DATA_SLICE)
+    res_error = transformed_fn(
+        return_type_as=koda_internal_parallel.stream_make(),
+        value=stream,
+        cond=koda_internal_parallel.as_future(mask_constants.missing),
+    ).eval()
+    # Note that we don't close the writer here, since we want to make sure
+    # the assertion does not wait for the stream to be computed.
+    with self.assertRaisesRegex(
+        ValueError, re.escape('Test assertion triggered')
+    ):
+      _ = res_error.read_all(timeout=5.0)
+    writer.close()
+
+  def test_future_with_assertion(self):
+    e1 = threading.Event()
+
+    @optools.as_py_function_operator(name='aux')
+    def wait_and_return_1():
+      self.assertTrue(e1.wait(timeout=5.0))
+      return ds(1)
+
+    def f(cond):
+      return user_facing_kd.assertion.with_assertion(
+          wait_and_return_1(),
+          cond,
+          'Test assertion triggered',
+      )
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res_error = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            return_type_as=koda_internal_parallel.as_future(None),
+            cond=koda_internal_parallel.as_future(mask_constants.missing),
+        )
+    ).eval()
+    # Note that we don't trigger e1 here, since we want to make sure
+    # the assertion does not wait for the future to be computed.
+    with self.assertRaisesRegex(
+        ValueError, re.escape('Test assertion triggered')
+    ):
+      _ = res_error.read_all(timeout=5.0)
+    e1.set()
+
+  def test_with_assertion_and_args(self):
+    def f(value, cond, x, y):
+      return user_facing_kd.assertion.with_assertion(
+          value,
+          cond,
+          lambda x, y: user_facing_kd.fstr(
+              f'Test assertion triggered: x={x:s}, y={y:s}'
+          ),
+          x,
+          y,
+      )
+
+    transformed_fn = koda_internal_parallel.transform(
+        koda_internal_parallel.get_default_execution_context(), f
+    )
+    res_error = koda_internal_parallel.stream_from_future(
+        transformed_fn(
+            return_type_as=koda_internal_parallel.as_future(None),
+            value=koda_internal_parallel.as_future(ds(1)),
+            cond=koda_internal_parallel.as_future(mask_constants.missing),
+            x=koda_internal_parallel.as_future(ds(2)),
+            y=koda_internal_parallel.as_future(ds(3)),
+        )
+    ).eval()
+    with self.assertRaisesRegex(
+        ValueError, re.escape('Test assertion triggered: x=2, y=3')
+    ):
+      _ = res_error.read_all(timeout=5.0)
+
 
 if __name__ == '__main__':
   absltest.main()
