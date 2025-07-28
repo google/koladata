@@ -19,6 +19,7 @@ PersistedIncrementalDataBagManager.
 """
 
 import collections
+import concurrent.futures
 import os
 from typing import AbstractSet, Collection, Iterable
 
@@ -402,10 +403,18 @@ class PersistedIncrementalDataBagManager:
       bags_to_load: The names of the bags to load into the cache. They must be a
         subset of get_available_bag_names().
     """
-    for bag_name in bags_to_load:
-      if bag_name in self._loaded_bags_cache:
-        continue
-      self._loaded_bags_cache[bag_name] = self._read_bag_from_file(bag_name)
+    needed_bags = [
+        bn for bn in bags_to_load if bn not in self._loaded_bags_cache
+    ]
+    if not needed_bags:
+      return
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+      futures = [
+          executor.submit(self._read_bag_from_file, bag_name)
+          for bag_name in needed_bags
+      ]
+    for bag_name, future in zip(needed_bags, futures):
+      self._loaded_bags_cache[bag_name] = future.result()
 
   def _canonical_topological_sorting(
       self,
