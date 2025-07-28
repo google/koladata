@@ -32,6 +32,7 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/text.h"
+#include "arolla/util/traceme.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
@@ -141,6 +142,26 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
         absl::StrCat("the first argument of kd.call must be a functor, got ",
                      DataSliceRepr(functor)));
   }
+
+  arolla::profiling::TraceMe t([&]() -> std::string {
+    auto get_str = [&](const absl::StatusOr<DataSlice>& attr) {
+      if (attr.ok() && attr->item().has_value() &&
+          attr->item().holds_value<arolla::Text>()) {
+        return attr->item().value<arolla::Text>().view();
+      } else {
+        return absl::string_view();
+      }
+    };
+    auto module = functor.GetAttrOrMissing(functor::kModuleAttrName);
+    auto qualname = functor.GetAttrOrMissing(functor::kQualnameAttrName);
+    absl::string_view module_str = get_str(module);
+    absl::string_view qualname_str = get_str(qualname);
+    if (!module_str.empty() && !qualname_str.empty()) {
+      return absl::StrCat("<Functor> ", module_str, ".", qualname_str);
+    } else {
+      return "<Unknown Functor>";
+    }
+  });
 
   internal::ObjectId functor_id = functor.item().value<internal::ObjectId>();
   auto bag = functor.GetBag();
