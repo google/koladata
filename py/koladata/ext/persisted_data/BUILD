@@ -228,3 +228,23 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
+
+py_library(
+    name = "value_presence_util",
+    srcs = ["value_presence_util.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "value_presence_util_test",
+    srcs = ["value_presence_util_test.py"],
+    deps = [
+        ":value_presence_util",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
