@@ -16,19 +16,26 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/status/status.h"
+#include "absl/status/status_matchers.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/repr.h"
 
 namespace koladata::functor::parallel {
 namespace {
 
+using ::absl_testing::IsOkAndHolds;
+using ::absl_testing::StatusIs;
+
 class TestExecutor : public Executor {
  public:
-  void Schedule(TaskFn task_fn) override {}
+  void DoSchedule(TaskFn task_fn) noexcept final { std::move(task_fn)(); }
 
-  std::string Repr() const override { return "test_executor"; }
+  std::string Repr() const noexcept final { return "test_executor"; }
 };
 
 TEST(ExecutorTest, Nullptr) {
@@ -48,6 +55,74 @@ TEST(ExecutorTest, Fingerprint) {
   ExecutorPtr executor2 = std::make_shared<TestExecutor>();
   EXPECT_NE(arolla::TypedValue::FromValue(executor1).GetFingerprint(),
             arolla::TypedValue::FromValue(executor2).GetFingerprint());
+}
+
+TEST(ExecutorTest, Current) {
+  ExecutorPtr executor1 = std::make_shared<TestExecutor>();
+  ExecutorPtr executor2 = std::make_shared<TestExecutor>();
+  EXPECT_THAT(CurrentExecutor(), StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), nullptr);
+  bool called = false;
+  executor1->Schedule([&] {
+    EXPECT_THAT(CurrentExecutor(), IsOkAndHolds(executor1));
+    EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), executor1.get());
+    executor2->Schedule([&] {
+      EXPECT_THAT(CurrentExecutor(), IsOkAndHolds(executor2));
+      EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), executor2.get());
+      called = true;
+    });
+    EXPECT_THAT(CurrentExecutor(), IsOkAndHolds(executor1));
+    EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), executor1.get());
+  });
+  EXPECT_THAT(CurrentExecutor(), StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), nullptr);
+  EXPECT_TRUE(called);
+}
+
+TEST(ExecutorTest, CurrentExecutorScopeGuard) {
+  ExecutorPtr executor1 = std::make_shared<TestExecutor>();
+  ExecutorPtr executor2 = std::make_shared<TestExecutor>();
+  EXPECT_THAT(CurrentExecutor(), StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), nullptr);
+  {
+    CurrentExecutorScopeGuard guard(executor1);
+    EXPECT_THAT(CurrentExecutor(), IsOkAndHolds(executor1));
+    EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), executor1.get());
+    {
+      CurrentExecutorScopeGuard guard(executor2);
+      EXPECT_THAT(CurrentExecutor(), IsOkAndHolds(executor2));
+      EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), executor2.get());
+    }
+    EXPECT_THAT(CurrentExecutor(), IsOkAndHolds(executor1));
+    EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), executor1.get());
+  }
+  EXPECT_THAT(CurrentExecutor(), StatusIs(absl::StatusCode::kInvalidArgument));
+  EXPECT_EQ(CurrentExecutorScopeGuard::current_executor(), nullptr);
+}
+
+TEST(ExecutorTest, TaskCopying) {
+  ExecutorPtr executor = std::make_shared<TestExecutor>();
+  std::function<int()> fn = [x = 0]() mutable { return x++; };
+  {
+    const auto gn = fn;
+    executor->Schedule(gn);
+    ASSERT_EQ(gn(), 0);
+  }
+  {
+    auto gn = fn;
+    executor->Schedule(gn);
+    ASSERT_EQ(gn(), 0);
+  }
+  {
+    auto gn = fn;
+    executor->Schedule<std::function<int()>&>(gn);
+    ASSERT_EQ(gn(), 0);
+  }
+  {
+    auto gn = fn;
+    executor->Schedule(std::ref(gn));
+    ASSERT_EQ(gn(), 1);
+  }
 }
 
 }  // namespace

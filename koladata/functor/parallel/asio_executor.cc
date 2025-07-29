@@ -44,7 +44,7 @@ class AsioExecutor final : public Executor {
     });
   }
 
-  void Schedule(TaskFn task_fn) final {
+  void DoSchedule(TaskFn task_fn) final {
     boost::asio::post(*thread_pool_, std::move(task_fn));
   }
 

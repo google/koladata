@@ -14,9 +14,44 @@
 //
 #include "koladata/functor/parallel/executor.h"
 
+#include <utility>
+
+#include "absl/log/check.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "arolla/qtype/simple_qtype.h"
 #include "arolla/util/fingerprint.h"
 #include "arolla/util/repr.h"
+
+namespace koladata::functor::parallel {
+
+thread_local constinit Executor*
+    CurrentExecutorScopeGuard::thread_local_current_executor_ = nullptr;
+
+absl::StatusOr<ExecutorPtr> CurrentExecutor() {
+  if (auto* result = CurrentExecutorScopeGuard::current_executor()) {
+    return result->shared_from_this();
+  }
+  return absl::InvalidArgumentError("current executor is not set");
+}
+
+CurrentExecutorScopeGuard::CurrentExecutorScopeGuard(ExecutorPtr executor)
+    : executor_(std::move(executor)),
+      previous_executor_(
+          std::exchange(thread_local_current_executor_, executor_.get())) {}
+
+CurrentExecutorScopeGuard::~CurrentExecutorScopeGuard() {
+  CHECK_EQ(thread_local_current_executor_, executor_.get())
+      << "CurrentExecutorScopeGuard: Scope nesting invariant "
+         "violated!";
+  thread_local_current_executor_ = previous_executor_;
+}
+
+Executor* CurrentExecutorScopeGuard::current_executor() {
+  return thread_local_current_executor_;
+}
+
+}  // namespace koladata::functor::parallel
 
 namespace arolla {
 

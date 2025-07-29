@@ -200,7 +200,7 @@ TEST(StreamReduceTest, Stress) {
 
 TEST(StreamReduceTest, ExecutorShutdown) {
   struct DummyExecutor final : Executor {
-    void Schedule(TaskFn /*task_fn*/) final {}
+    void DoSchedule(TaskFn /*task_fn*/) final {}
     std::string Repr() const final { return "dummy_executor"; }
   };
   auto dummy_executor = std::make_shared<DummyExecutor>();

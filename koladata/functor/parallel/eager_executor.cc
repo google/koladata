@@ -27,7 +27,7 @@ namespace {
 
 class EagerExecutorImpl final : public Executor {
  public:
-  void Schedule(TaskFn task_fn) final { std::move(task_fn)(); }
+  void DoSchedule(TaskFn task_fn) final { std::move(task_fn)(); }
 
   std::string Repr() const final { return "eager_executor"; }
 };

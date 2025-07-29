@@ -32,6 +32,9 @@ cc_library(
     hdrs = ["executor.h"],
     deps = [
         "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
     ],
@@ -42,9 +45,21 @@ cc_test(
     srcs = ["executor_test.cc"],
     deps = [
         ":executor",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "executors_benchmarks",
+    srcs = ["executors_benchmarks.cc"],
+    deps = [
+        ":eager_executor",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
     ],
 )
 
