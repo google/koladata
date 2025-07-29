@@ -2349,7 +2349,7 @@ pdkd.to_dataframe(ds4)
 # Can use attribute names or Exprs
 ds5 = kd.new(x=kd.slice([1, 2, 3]),
              y=kd.slice([4, 5, 6]))
-pdkd.to_dataframe(ds5, col=['x', I.y, I.x + I.y])
+pdkd.to_dataframe(ds5, col=['x', S.y, S.x + S.y])
 # -> pd.DataFrame({'x': [1, 2, 3],
 #                  'S.y': [4, 5, 6],
 #                  'S.x + S.y': [5, 7, 9]})

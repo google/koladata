@@ -107,11 +107,11 @@ def to_dataframe(
 
     ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     to_dataframe(ds, ['x']) -> extract 'x'
-    to_dataframe(ds, [I.x, I.x + I.y]) -> extract 'I.x' and 'I.x + I.y'
+    to_dataframe(ds, [S.x, S.x + S.y]) -> extract 'S.x' and 'S.x + S.y'
 
     ds = kd.slice([kd.obj(x=1, y='a'), kd.obj(x=2), kd.obj(x=3, y='c')])
     to_dataframe(ds, ['x']) -> extract 'x'
-    to_dataframe(ds, [I.y]) -> raise an exception as 'y' does not exist in
+    to_dataframe(ds, [S.y]) -> raise an exception as 'y' does not exist in
         kd.obj(x=2)
     to_dataframe(ds, [S.maybe('y')]) -> extract 'y' but ignore items which
         do not have 'x' attribute.
@@ -124,12 +124,12 @@ def to_dataframe(
         y=kd.list(kd.new(z=kd.slice([[4], [5], [6]]))),
         z=kd.list(kd.new(z=kd.slice([[4, 5], [], [6]]))),
     )
-    to_dataframe(ds, cols=[I.x, I.y[:].z]) -> extract 'I.x' and 'I.y[:].z':
+    to_dataframe(ds, cols=[S.x, S.y[:].z]) -> extract 'S.x' and 'S.y[:].z':
            'x' 'y[:].z'
       0 0   1     4
         1   1     5
       2 0   3     6
-    to_dataframe(ds, cols=[I.y[:].z, I.z[:].z]) -> error: shapes mismatch
+    to_dataframe(ds, cols=[S.y[:].z, S.z[:].z]) -> error: shapes mismatch
 
 
   Args:

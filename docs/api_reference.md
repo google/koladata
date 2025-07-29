@@ -10298,11 +10298,11 @@ Tools for Pandas <-> Koda interoperability.
 
     ds = kd.new(x=kd.slice([1, 2, 3]), y=kd.slice([4, 5, 6]))
     to_dataframe(ds, [&#39;x&#39;]) -&gt; extract &#39;x&#39;
-    to_dataframe(ds, [I.x, I.x + I.y]) -&gt; extract &#39;I.x&#39; and &#39;I.x + I.y&#39;
+    to_dataframe(ds, [S.x, S.x + S.y]) -&gt; extract &#39;S.x&#39; and &#39;S.x + S.y&#39;
 
     ds = kd.slice([kd.obj(x=1, y=&#39;a&#39;), kd.obj(x=2), kd.obj(x=3, y=&#39;c&#39;)])
     to_dataframe(ds, [&#39;x&#39;]) -&gt; extract &#39;x&#39;
-    to_dataframe(ds, [I.y]) -&gt; raise an exception as &#39;y&#39; does not exist in
+    to_dataframe(ds, [S.y]) -&gt; raise an exception as &#39;y&#39; does not exist in
         kd.obj(x=2)
     to_dataframe(ds, [S.maybe(&#39;y&#39;)]) -&gt; extract &#39;y&#39; but ignore items which
         do not have &#39;x&#39; attribute.
@@ -10315,12 +10315,12 @@ Tools for Pandas <-> Koda interoperability.
         y=kd.list(kd.new(z=kd.slice([[4], [5], [6]]))),
         z=kd.list(kd.new(z=kd.slice([[4, 5], [], [6]]))),
     )
-    to_dataframe(ds, cols=[I.x, I.y[:].z]) -&gt; extract &#39;I.x&#39; and &#39;I.y[:].z&#39;:
+    to_dataframe(ds, cols=[S.x, S.y[:].z]) -&gt; extract &#39;S.x&#39; and &#39;S.y[:].z&#39;:
            &#39;x&#39; &#39;y[:].z&#39;
       0 0   1     4
         1   1     5
       2 0   3     6
-    to_dataframe(ds, cols=[I.y[:].z, I.z[:].z]) -&gt; error: shapes mismatch
+    to_dataframe(ds, cols=[S.y[:].z, S.z[:].z]) -&gt; error: shapes mismatch
 
 
   Args:
