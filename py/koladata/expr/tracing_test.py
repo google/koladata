@@ -73,8 +73,7 @@ class TracingTest(absltest.TestCase):
 
   def test_fstr(self):
     e = tracing.trace(lambda x: kd.fstr(f'{x:s}'))  # pylint: disable=unnecessary-lambda
-    # TODO: b/425293814 - Why kd.fstr is not getting annotated?
-    testing.assert_equal(e, kde.fstr(f'{I.x:s}'))
+    testing.assert_traced_exprs_equal(e, kde.fstr(f'{I.x:s}'))
 
   def test_kd_constants_in_slice(self):
     e = tracing.trace(lambda: kd.slice([1, 2], kd.FLOAT32))

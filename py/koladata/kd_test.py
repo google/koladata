@@ -473,19 +473,39 @@ class KdTest(absltest.TestCase):
         _ = kd.eval
 
   def test_tracing_for_ops(self):
-    with tracing_mode.enable_tracing():
-      sum_expr = kd.sum(I.x)
+    with self.subTest('top_level_operator'):
+      with tracing_mode.enable_tracing():
+        expr = kd.sum(I.x)
+      kd.testing.assert_equal(expr.op, kd.lazy.annotation.source_location)
+      kd.testing.assert_equal(expr.node_deps[0].op, kd.lazy.sum)
 
-    kd.testing.assert_equal(sum_expr.op, kd.lazy.annotation.source_location)
-    sum_op = sum_expr.node_deps[0].op
+    with self.subTest('nested_operator'):
+      with tracing_mode.enable_tracing():
+        expr = kd.math.abs(I.x)
+      kd.testing.assert_equal(expr.op, kd.lazy.annotation.source_location)
+      kd.testing.assert_equal(expr.node_deps[0].op, kd.lazy.math.abs)
 
-    kd.testing.assert_equal(sum_op, kd.lazy.sum)
-    with tracing_mode.enable_tracing():
-      math_abs_expr = kd.math.abs(I.x)
-    kd.testing.assert_equal(
-        math_abs_expr.op, kd.lazy.annotation.source_location
-    )
-    kd.testing.assert_equal(math_abs_expr.node_deps[0].op, kd.lazy.math.abs)
+    with self.subTest('namespace_overloaded_by_impure_functions'):
+      with tracing_mode.enable_tracing():
+        expr = kd.core.attrs(I.x)
+      kd.testing.assert_equal(expr.op, kd.lazy.annotation.source_location)
+      kd.testing.assert_equal(expr.node_deps[0].op, kd.lazy.core.attrs)
+
+    with self.subTest('operator_overloaded_by_impure_functions'):
+      # The test relies on the fact that slices.slice is not defined as an
+      # operator. Actually we need
+      #
+      # assert not isinstance(kd.slices.slice,
+      #     koladata.operators.eager_op_utils.EagerOperator)
+      #
+      # instead, however asserting on the particular type seems to be safer to
+      # catch implementation changes.
+      assert isinstance(kd.slices.slice, types.BuiltinFunctionType)
+
+      with tracing_mode.enable_tracing():
+        expr = kd.slices.slice(I.x)
+      kd.testing.assert_equal(expr.op, kd.lazy.annotation.source_location)
+      kd.testing.assert_equal(expr.node_deps[0].op, kd.lazy.slices.slice)
 
   def test_tracing_for_functions_error(self):
     with tracing_mode.enable_tracing():

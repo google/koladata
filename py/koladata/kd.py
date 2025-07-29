@@ -178,7 +178,9 @@ def _LoadImpureFunctions(*modules: _py_types.ModuleType):
             fn_val = _eager_op_utils.add_overrides(globals()[fn_name], fn_val)
           globals()[fn_name] = _dispatch(
               eager=fn_val,
-              tracing=getattr(_kde_operators.kde, fn_name),
+              tracing=_source_location.attaching_source_location(
+                  getattr(_kde_operators.kde, fn_name)
+              ),
           )
         else:
           globals()[fn_name] = _eager_only(fn_val)
