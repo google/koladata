@@ -58,6 +58,8 @@ OPERATOR_FAMILY("koda_internal.parallel.async_unpack_tuple",
                 std::make_unique<AsyncUnpackTupleOperatorFamily>());
 OPERATOR("koda_internal.parallel.create_execution_context",
          CreateExecutionContext);
+OPERATOR("koda_internal.parallel.current_executor",
+         [](internal::NonDeterministicToken) { return CurrentExecutor(); });
 OPERATOR_FAMILY("koda_internal.parallel.empty_stream_like",
                 std::make_unique<EmptyStreamLikeOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.future_from_single_value_stream",
@@ -123,7 +125,6 @@ OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_future",
                 std::make_unique<UnwrapFutureToFutureOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_stream",
                 std::make_unique<UnwrapFutureToStreamOperatorFamily>());
-
 // go/keep-sorted end
 
 }  // namespace

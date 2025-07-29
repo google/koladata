@@ -25,4 +25,11 @@ const ExecutorPtr absl_nonnull& GetDefaultExecutor() noexcept {
   return GetDefaultAsioExecutor();
 }
 
+ProvideDefaultCurrentExecutorScopeGuard::
+    ProvideDefaultCurrentExecutorScopeGuard() noexcept {
+  if (CurrentExecutorScopeGuard::current_executor() == nullptr) {
+    guard_.emplace(GetDefaultExecutor());
+  }
+}
+
 }  // namespace koladata::functor::parallel

@@ -15,6 +15,8 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_GET_DEFAULT_EXECUTOR_H_
 #define KOLADATA_FUNCTOR_PARALLEL_GET_DEFAULT_EXECUTOR_H_
 
+#include <optional>
+
 #include "absl/base/nullability.h"
 #include "koladata/functor/parallel/executor.h"
 
@@ -22,6 +24,16 @@ namespace koladata::functor::parallel {
 
 // Returns the default executor.
 const ExecutorPtr absl_nonnull& GetDefaultExecutor() noexcept;
+
+// If the current executor is not set, this helper sets the default executor as
+// the current.
+class ProvideDefaultCurrentExecutorScopeGuard final {
+ public:
+  ProvideDefaultCurrentExecutorScopeGuard() noexcept;
+
+ private:
+  std::optional<CurrentExecutorScopeGuard> guard_;
+};
 
 }  // namespace koladata::functor::parallel
 

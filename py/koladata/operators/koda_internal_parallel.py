@@ -101,6 +101,26 @@ def make_executor(thread_limit=0):
   raise NotImplementedError('implemented in the backend')
 
 
+@optools.add_to_registry(aliases=['kd.streams.current_executor'])
+@optools.as_backend_operator(
+    'koda_internal.parallel.current_executor',
+    qtype_inference_expr=EXECUTOR,
+    deterministic=False,
+)
+def current_executor():
+  """Returns the current executor.
+
+  If the current computation is running on an executor, this operator
+  returns it. If no executor is set for the current context, this operator
+  returns an error.
+
+  Note: For the convenience, in Python environments, the default executor
+  (see `get_default_executor`) is implicitly set as the current executor.
+  However, this might not be not the case for other environments.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.create_execution_context',

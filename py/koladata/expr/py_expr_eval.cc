@@ -38,6 +38,7 @@
 #include "koladata/data_slice_qtype.h"
 #include "koladata/expr/constants.h"
 #include "koladata/expr/expr_eval.h"
+#include "koladata/functor/parallel/get_default_executor.h"
 #include "koladata/internal/non_deterministic_token.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "py/arolla/abc/py_aux_binding_policy.h"
@@ -68,6 +69,11 @@ using ::arolla::python::SetPyErrFromStatus;
 using ::arolla::python::UnwrapPyExpr;
 using ::arolla::python::UnwrapPyQValue;
 using ::arolla::python::WrapAsPyQValue;
+
+// Note: Consider a conditional guard that provides either an eager or
+// the default executor, depending on the environment.
+using ProvideDefaultCurrentExecutorScopeGuard =
+    koladata::functor::parallel::ProvideDefaultCurrentExecutorScopeGuard;
 
 PyObject* absl_nullable PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
                                    Py_ssize_t nargs, PyObject* py_kwnames) {
@@ -113,6 +119,10 @@ PyObject* absl_nullable PyEvalExpr(PyObject* /*self*/, PyObject** py_args,
     // otherwise we can get a deadlock between GIL and the C++ locks
     // that are used by the Expr compilation cache.
     ReleasePyGIL guard;
+
+    // Set default executor for the current thread, if not already set.
+    ProvideDefaultCurrentExecutorScopeGuard executor_scope;
+
     result_or_error =
         koladata::expr::EvalExprWithCompilationCache(expr, input_qvalues, {});
   }
@@ -207,6 +217,9 @@ PyObject* absl_nullable PyEvalOp(PyObject* /*self*/, PyObject** py_args,
         std::string(op->display_name()).c_str(), param_name(i).c_str(),
         arolla::Truncate(arolla::expr::ToDebugString(expr), 100).c_str());
   }
+
+  // Set default executor for the current thread, if not already set.
+  ProvideDefaultCurrentExecutorScopeGuard executor_scope;
 
   // Call the implementation.
   ASSIGN_OR_RETURN(

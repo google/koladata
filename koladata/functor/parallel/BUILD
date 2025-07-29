@@ -169,6 +169,19 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "get_default_executor_test",
+    srcs = ["get_default_executor_test.cc"],
+    deps = [
+        ":executor",
+        ":get_default_executor",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "make_executor",
     srcs = ["make_executor.cc"],

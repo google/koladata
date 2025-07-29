@@ -8053,6 +8053,18 @@ Args:
 Returns:
   A stream that chains the input streams.</code></pre>
 
+### `kd.streams.current_executor()` {#kd.streams.current_executor}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns the current executor.
+
+If the current computation is running on an executor, this operator
+returns it. If no executor is set for the current context, this operator
+returns an error.
+
+Note: For the convenience, in Python environments, the default executor
+(see `get_default_executor`) is implicitly set as the current executor.
+However, this might not be not the case for other environments.</code></pre>
+
 ### `kd.streams.flat_map_chained(stream, fn, *, executor=unspecified, value_type_as=DataItem(None, schema: NONE))` {#kd.streams.flat_map_chained}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Executes flat maps over the given stream.
