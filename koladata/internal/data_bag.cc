@@ -910,6 +910,8 @@ absl::StatusOr<DataSliceImpl> DataBagImpl::CreateObjectsFromFields(
     if (!slices[i].get().is_empty_and_unknown()) {
       ASSIGN_OR_RETURN(
           source, DenseSource::CreateReadonly(alloc_id, slices[i]));
+    } else {
+      ASSIGN_OR_RETURN(source, DenseSource::CreateAllRemoved(alloc_id));
     }
     sources_.emplace(SourceKey{alloc_id, std::string(attr_names[i])},
                      SourceCollection{.const_dense_source = std::move(source),

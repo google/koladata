@@ -3872,6 +3872,25 @@ class DataSliceFallbackTest(parameterized.TestCase):
         ds([315, '3.17']).with_bag(merged_x.get_bag()),
     )
 
+  def test_get_attr_all_removed(self):
+    for size in range(10):
+      with self.subTest(f'size={size}'):
+        db = bag()
+        x = db.new(abc=ds([None] * size, schema_constants.INT32))
+
+        fb_bag = bag()
+        fb_x = x.with_bag(fb_bag)
+        fb_x.abc = ds(list(range(size)), schema_constants.INT32)
+
+        merged_x = x.enriched(fb_bag)
+
+        testing.assert_equal(
+            merged_x.abc,
+            ds([None] * size, schema_constants.INT32).with_bag(
+                merged_x.get_bag()
+            ),
+        )
+
   def test_dict(self):
     db = bag()
     x = db.dict_shaped(jagged_shape.create_shape([2]))

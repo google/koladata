@@ -119,6 +119,10 @@ class DenseSource {
   static absl::StatusOr<std::shared_ptr<DenseSource>> CreateReadonly(
       AllocationId alloc, const DataSliceImpl& data);
 
+  // Returns a DenseSource that represents all removed values.
+  static absl::StatusOr<std::shared_ptr<DenseSource>> CreateAllRemoved(
+      AllocationId alloc);
+
   // `main_type` is optional. When specified the DataSource will work faster if
   // there are no values of other types (and slower if there are).
   static absl::StatusOr<std::shared_ptr<DenseSource>> CreateMutable(

@@ -171,6 +171,25 @@ TEST(DenseSourceTest, MutableObjectAttrSimple) {
   }
 }
 
+TEST(DenseSourceTest, AllRemoved) {
+  AllocationId alloc = Allocate(300);
+  ASSERT_OK_AND_ASSIGN(std::shared_ptr<const DenseSource> ds,
+                       DenseSource::CreateAllRemoved(alloc));
+
+  for (int i = 0; i < alloc.Capacity(); ++i) {
+    ASSERT_EQ(ds->Get(alloc.ObjectByOffset(i)), DataItem());
+  }
+
+  auto objs =
+      std::vector<ObjectId>{alloc.ObjectByOffset(0), alloc.ObjectByOffset(299),
+                            Allocate(1).ObjectByOffset(0)};
+  SliceBuilder slice_bldr(objs.size());
+  ds->Get(objs, slice_bldr);
+  EXPECT_TRUE(slice_bldr.IsSet(0));
+  EXPECT_TRUE(slice_bldr.IsSet(1));
+  EXPECT_FALSE(slice_bldr.IsSet(2));
+}
+
 TEST(DenseSourceTest, PrimitiveAttrSimple) {
   AllocationId alloc = Allocate(3);
   arolla::DenseArray<int32_t> attr_value =

@@ -545,10 +545,19 @@ void ValueArrayUnset(AllocationId alloc_id, ValueArray& data,
   });
 }
 
+struct AllRemovedTag {};
+
 template <class T>
 class TypedDenseSource final : public DenseSource {
  public:
   using view_type = view_type_t<T>;
+
+  explicit TypedDenseSource(AllocationId obj_allocation_id, AllRemovedTag)
+      : obj_allocation_id_(obj_allocation_id),
+        attr_allocation_ids_(),
+        values_(obj_allocation_id.Capacity()),
+        values_mask_(0) {
+  }
 
   explicit TypedDenseSource(AllocationId obj_allocation_id, int64_t size)
       : obj_allocation_id_(obj_allocation_id),
@@ -1114,6 +1123,12 @@ absl::StatusOr<std::shared_ptr<DenseSource>> DenseSource::CreateReadonly(
     }
   }
   return std::make_shared<ReadOnlyDenseSource>(alloc, data);
+}
+
+absl::StatusOr<std::shared_ptr<DenseSource>> DenseSource::CreateAllRemoved(
+    AllocationId alloc) {
+  return std::make_shared<TypedDenseSource<arolla::Unit>>(alloc,
+                                                          AllRemovedTag{});
 }
 
 absl::StatusOr<std::shared_ptr<DenseSource>> DenseSource::CreateMutable(
