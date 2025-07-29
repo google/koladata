@@ -64,7 +64,7 @@ cc_library(
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/internal:non_deterministic_token",
-        "//koladata/internal/op_utils:error",
+        "//koladata/internal/op_utils:qexpr",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/qexpr",

@@ -30,7 +30,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/internal/non_deterministic_token.h"
-#include "koladata/internal/op_utils/error.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/jagged_shape_qtype.h"
 #include "koladata/object_factories.h"
 #include "koladata/operators/allocation.h"
@@ -59,18 +59,16 @@
 namespace koladata::ops {
 namespace {
 
-using ::koladata::internal::ReturnsOperatorEvalError;
-
 template <typename Ret, typename... Args>
 auto OperatorMacroImpl(absl::string_view name, Ret (*func)(Args...)) {
-  return ReturnsOperatorEvalError(std::string(name), func);
+  return KodaOperatorWrapper(std::string(name), func);
 }
 
 template <typename Ret, typename... Args>
 auto OperatorMacroImpl(absl::string_view name, Ret (*func)(Args...),
                        absl::string_view display_name) {
   DCHECK_NE(name, display_name) << "remove excessive display_name argument";
-  return ReturnsOperatorEvalError(std::string(display_name), func);
+  return KodaOperatorWrapper(std::string(display_name), func);
 }
 
 #define OPERATOR(name, ...) \
@@ -342,14 +340,14 @@ OPERATOR_FAMILY(
     arolla::MakeVariadicInputOperatorFamily(
         // TODO: b/374841918 - The operator is used as a building
         // block for several lambdas, so we cannot choose one public
-        // name for its errors. We are still using ReturnsOperatorEvalError in
+        // name for its errors. We are still using KodaOperatorWrapper in
         // order to turn the errors into KodaError, but the operator name should
         // be attached using a different mechanism.
-        ReturnsOperatorEvalError("", ConcatOrStack)));
+        KodaOperatorWrapper("", ConcatOrStack)));
 OPERATOR("kd.slices._dense_rank", DenseRank, "kd.slices.dense_rank");
 OPERATOR_FAMILY("kd.slices._group_by_indices",
                 arolla::MakeVariadicInputOperatorFamily(
-                    ReturnsOperatorEvalError("kd.slices.group_by_indices",
+                    KodaOperatorWrapper("kd.slices.group_by_indices",
                                              GroupByIndices)));
 OPERATOR("kd.slices._inverse_mapping", InverseMapping,
          "kd.slices.inverse_mapping");
@@ -376,7 +374,7 @@ OPERATOR("kd.strings._agg_join", AggJoin, "kd.strings.agg_join");
 OPERATOR("kd.strings._decode_base64", DecodeBase64, "kd.strings.decode_base64");
 OPERATOR_FAMILY(
     "kd.strings._test_only_format_wrapper",
-    arolla::MakeVariadicInputOperatorFamily(ReturnsOperatorEvalError(
+    arolla::MakeVariadicInputOperatorFamily(KodaOperatorWrapper(
         "kd.strings._test_only_format_wrapper", TestOnlyFormatWrapper)));
 OPERATOR("kd.strings.contains", Contains);
 OPERATOR("kd.strings.count", Count);
@@ -387,13 +385,13 @@ OPERATOR("kd.strings.find", Find);
 OPERATOR_FAMILY("kd.strings.format", std::make_unique<FormatOperatorFamily>());
 OPERATOR_FAMILY("kd.strings.join",
                 arolla::MakeVariadicInputOperatorFamily(
-                    ReturnsOperatorEvalError("kd.strings.join", Join)));
+                    KodaOperatorWrapper("kd.strings.join", Join)));
 OPERATOR("kd.strings.length", Length);
 OPERATOR("kd.strings.lower", Lower);
 OPERATOR("kd.strings.lstrip", Lstrip);
 OPERATOR_FAMILY("kd.strings.printf",
                 arolla::MakeVariadicInputOperatorFamily(
-                    ReturnsOperatorEvalError("kd.strings.printf", Printf)));
+                    KodaOperatorWrapper("kd.strings.printf", Printf)));
 OPERATOR("kd.strings.regex_extract", RegexExtract);
 OPERATOR("kd.strings.regex_match", RegexMatch);
 OPERATOR("kd.strings.replace", Replace);

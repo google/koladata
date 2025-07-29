@@ -1111,11 +1111,8 @@ cc_test(
     srcs = ["error_test.cc"],
     deps = [
         ":error",
-        "//koladata/internal:error_utils",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
-        "@com_google_absl//absl/status:statusor",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util/testing",
         "@com_google_googletest//:gtest_main",
@@ -1128,8 +1125,11 @@ cc_library(
     deps = [
         ":error",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/util",
+        "@com_google_arolla//arolla/util:traceme",
     ],
 )
 
@@ -1138,11 +1138,15 @@ cc_test(
     srcs = ["qexpr_test.cc"],
     deps = [
         ":qexpr",
-        "//koladata/internal:error_utils",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/memory",
         "@com_google_arolla//arolla/qexpr",
+        "@com_google_arolla//arolla/util/testing",
+        "@com_google_arolla//arolla/util/testing:traceme_util",
         "@com_google_googletest//:gtest_main",
     ],
 )
