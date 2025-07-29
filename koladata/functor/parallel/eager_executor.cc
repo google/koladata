@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "absl/base/no_destructor.h"
+#include "absl/base/nullability.h"
 #include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
@@ -27,14 +28,14 @@ namespace {
 
 class EagerExecutorImpl final : public Executor {
  public:
-  void DoSchedule(TaskFn task_fn) final { std::move(task_fn)(); }
+  void DoSchedule(TaskFn task_fn) noexcept final { std::move(task_fn)(); }
 
-  std::string Repr() const final { return "eager_executor"; }
+  std::string Repr() const noexcept final { return "eager_executor"; }
 };
 
 }  // namespace
 
-ExecutorPtr GetEagerExecutor() {
+const ExecutorPtr absl_nonnull& GetEagerExecutor() noexcept {
   // It is useful to have a singleton eager executor, so that identical exprs
   // using it would have the same fingerprint and therefore potentially avoid
   // double computation.

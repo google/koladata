@@ -28,7 +28,7 @@ namespace koladata::functor::parallel {
 //
 // Note: The `thread_limit` limits the concurrency; however, the executor may
 // have no dedicated threads, and the actual concurrency limit might be lower.
-ExecutorPtr absl_nonnull MakeExecutor(size_t thread_limit);
+ExecutorPtr absl_nonnull MakeExecutor(size_t thread_limit) noexcept;
 
 }  // namespace koladata::functor::parallel
 

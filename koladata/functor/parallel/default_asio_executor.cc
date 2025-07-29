@@ -30,11 +30,11 @@ namespace {
 
 class DefaultAsioExecutor final : public Executor {
  public:
-  void DoSchedule(TaskFn task_fn) final {
+  void DoSchedule(TaskFn task_fn) noexcept final {
     boost::asio::post(thread_pool_, std::move(task_fn));
   }
 
-  std::string Repr() const final { return "default_asio_executor"; }
+  std::string Repr() const noexcept final { return "default_asio_executor"; }
 
  private:
   boost::asio::thread_pool thread_pool_;
@@ -42,7 +42,7 @@ class DefaultAsioExecutor final : public Executor {
 
 }  // namespace
 
-const ExecutorPtr absl_nonnull& GetDefaultAsioExecutor() {
+const ExecutorPtr absl_nonnull& GetDefaultAsioExecutor() noexcept {
   static absl::NoDestructor<ExecutorPtr> executor(
       std::make_shared<DefaultAsioExecutor>());
   return *executor;

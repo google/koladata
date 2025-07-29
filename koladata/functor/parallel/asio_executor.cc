@@ -31,24 +31,24 @@ namespace {
 
 class AsioExecutor final : public Executor {
  public:
-  explicit AsioExecutor(size_t num_threads)
+  explicit AsioExecutor(size_t num_threads) noexcept
       : thread_pool_(
             num_threads > 0
                 ? std::make_unique<boost::asio::thread_pool>(num_threads)
                 : std::make_unique<boost::asio::thread_pool>()) {}
 
-  ~AsioExecutor() final {
+  ~AsioExecutor() noexcept final {
     GetDefaultExecutor()->Schedule([thread_pool = std::move(thread_pool_)] {
       thread_pool->stop();
       thread_pool->join();
     });
   }
 
-  void DoSchedule(TaskFn task_fn) final {
+  void DoSchedule(TaskFn task_fn) noexcept final {
     boost::asio::post(*thread_pool_, std::move(task_fn));
   }
 
-  std::string Repr() const final { return "asio_executor"; }
+  std::string Repr() const noexcept final { return "asio_executor"; }
 
  private:
   // Note: Use unique_ptr to have additional flexibility within the destructor.
@@ -57,7 +57,7 @@ class AsioExecutor final : public Executor {
 
 }  // namespace
 
-ExecutorPtr absl_nonnull MakeAsioExecutor(size_t num_threads) {
+ExecutorPtr absl_nonnull MakeAsioExecutor(size_t num_threads) noexcept {
   return std::make_shared<AsioExecutor>(num_threads);
 }
 

@@ -16,6 +16,7 @@
 
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
@@ -25,17 +26,18 @@
 
 namespace koladata::functor::parallel {
 
-thread_local constinit Executor*
+thread_local constinit Executor* absl_nullable
     CurrentExecutorScopeGuard::thread_local_current_executor_ = nullptr;
 
-absl::StatusOr<ExecutorPtr> CurrentExecutor() {
+absl::StatusOr<ExecutorPtr absl_nonnull> CurrentExecutor() noexcept {
   if (auto* result = CurrentExecutorScopeGuard::current_executor()) {
     return result->shared_from_this();
   }
   return absl::InvalidArgumentError("current executor is not set");
 }
 
-CurrentExecutorScopeGuard::CurrentExecutorScopeGuard(ExecutorPtr executor)
+CurrentExecutorScopeGuard::CurrentExecutorScopeGuard(
+    ExecutorPtr absl_nullable executor) noexcept
     : executor_(std::move(executor)),
       previous_executor_(
           std::exchange(thread_local_current_executor_, executor_.get())) {}
@@ -47,7 +49,7 @@ CurrentExecutorScopeGuard::~CurrentExecutorScopeGuard() {
   thread_local_current_executor_ = previous_executor_;
 }
 
-Executor* CurrentExecutorScopeGuard::current_executor() {
+Executor* absl_nullable CurrentExecutorScopeGuard::current_executor() noexcept {
   return thread_local_current_executor_;
 }
 

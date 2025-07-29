@@ -23,7 +23,7 @@
 
 namespace koladata::functor::parallel {
 
-ExecutorPtr absl_nonnull MakeExecutor(size_t thread_limit) {
+ExecutorPtr absl_nonnull MakeExecutor(size_t thread_limit) noexcept {
   return MakeAsioExecutor(thread_limit);
 }
 

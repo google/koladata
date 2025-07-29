@@ -15,13 +15,14 @@
 #ifndef KOLADATA_FUNCTOR_PARALLEL_EAGER_EXECUTOR_H_
 #define KOLADATA_FUNCTOR_PARALLEL_EAGER_EXECUTOR_H_
 
+#include "absl/base/nullability.h"
 #include "koladata/functor/parallel/executor.h"
 
 namespace koladata::functor::parallel {
 
 // Returns an executor that executes the tasks eagerly during the Schedule()
 // call.
-ExecutorPtr GetEagerExecutor();
+const ExecutorPtr absl_nonnull& GetEagerExecutor() noexcept;
 
 }  // namespace koladata::functor::parallel
 

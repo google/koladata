@@ -20,6 +20,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
 #include "absl/status/statusor.h"
 #include "arolla/qtype/simple_qtype.h"
@@ -41,7 +42,7 @@ class Executor : public std::enable_shared_from_this<Executor> {
   using TaskFn = absl::AnyInvocable<void() &&>;
 
   // Default constructor.
-  Executor() = default;
+  Executor() noexcept = default;
 
   // Disable copy and move semantics.
   Executor(const Executor&) = delete;
@@ -50,18 +51,18 @@ class Executor : public std::enable_shared_from_this<Executor> {
   // Returns the uuid of the executor. This is a randomly generated
   // fingerprint, unique for each executor instance, that is used to compute
   // the fingerprint of the executor QValue.
-  const arolla::Fingerprint& uuid() const { return uuid_; }
+  const arolla::Fingerprint& uuid() const noexcept { return uuid_; }
 
   // Runs a given task on the executor. This method is thread-safe.
   //
   // Note: The executor can discard tasks without execution if it's in
   // the process of shutting down. This may happen immediately or in the future.
   template <typename Task>
-  auto Schedule(Task&& task)
+  auto Schedule(Task&& task) noexcept
       -> std::enable_if_t<std::is_constructible_v<TaskFn, Task&&>>;
 
   // Returns the string representation of the executor.
-  virtual std::string Repr() const = 0;
+  virtual std::string Repr() const noexcept = 0;
 
   // Note: Scheduled tasks may maintain ownership of the executor, in which case
   // the destructor won't be called until the scheduled tasks are deleted (for
@@ -70,11 +71,11 @@ class Executor : public std::enable_shared_from_this<Executor> {
   // While the base executor interface doesn't provide a mechanism for early
   // task deletion, a specific executor implementation might provide such
   // a mechanism and corresponding guarantees.
-  virtual ~Executor() = default;
+  virtual ~Executor() noexcept = default;
 
  protected:
   // An override point for the schedule method.
-  virtual void DoSchedule(TaskFn task) = 0;
+  virtual void DoSchedule(TaskFn task) noexcept = 0;
 
  private:
   arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
@@ -90,7 +91,7 @@ using ExecutorPtr = std::shared_ptr<Executor>;
 // If there is no current executor, this function returns an error.
 //
 // IMPORTANT: The implementation uses thread_local storage.
-absl::StatusOr<ExecutorPtr> CurrentExecutor();
+absl::StatusOr<ExecutorPtr absl_nonnull> CurrentExecutor() noexcept;
 
 // A RAII-based guard for overriding the current executor. The constructor of
 // CurrentExecutorScopeGuard sets the specified executor as the current one,
@@ -106,8 +107,9 @@ absl::StatusOr<ExecutorPtr> CurrentExecutor();
 //
 class [[nodiscard]] CurrentExecutorScopeGuard final {
  public:
-  explicit CurrentExecutorScopeGuard(ExecutorPtr executor);
-  ~CurrentExecutorScopeGuard();
+  explicit CurrentExecutorScopeGuard(ExecutorPtr
+                                     absl_nullable executor) noexcept;
+  ~CurrentExecutorScopeGuard() noexcept;
 
   // Disable copy and move semantics.
   CurrentExecutorScopeGuard(const CurrentExecutorScopeGuard&) = delete;
@@ -118,13 +120,14 @@ class [[nodiscard]] CurrentExecutorScopeGuard final {
   //
   // Note: For common cases, prefer using the free function `CurrentExecutor()`,
   // which never returns `nullptr`.
-  static Executor* current_executor();
+  static Executor* absl_nullable current_executor() noexcept;
 
  private:
-  ExecutorPtr const executor_;
-  Executor* const previous_executor_;
+  ExecutorPtr absl_nullable const executor_;
+  Executor* absl_nullable const previous_executor_;
 
-  static thread_local constinit Executor* thread_local_current_executor_;
+  static thread_local constinit Executor* absl_nullable
+      thread_local_current_executor_;
 
   friend class Executor;
 };
@@ -133,7 +136,7 @@ class [[nodiscard]] CurrentExecutorScopeGuard final {
 // potential to improve inlining and avoid extra allocations during the
 // scheduling.
 template <typename Task>
-auto Executor::Schedule(Task&& task)
+auto Executor::Schedule(Task&& task) noexcept
     -> std::enable_if_t<std::is_constructible_v<TaskFn, Task&&>> {
   return DoSchedule([executor = shared_from_this(),
                      task = std::forward<Task>(task)]() mutable {

@@ -21,7 +21,7 @@
 namespace koladata::functor::parallel {
 
 // Returns the default executor.
-const ExecutorPtr absl_nonnull& GetDefaultExecutor();
+const ExecutorPtr absl_nonnull& GetDefaultExecutor() noexcept;
 
 }  // namespace koladata::functor::parallel
 
