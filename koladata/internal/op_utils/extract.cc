@@ -43,6 +43,7 @@
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/cancellation.h"
 #include "arolla/util/text.h"
+#include "arolla/util/traceme.h"
 #include "arolla/util/unit.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -1160,6 +1161,7 @@ absl::Status ExtractOp::operator()(
     const DataBagImpl* absl_nullable schema_databag,
     DataBagImpl::FallbackSpan schema_fallbacks, int max_depth,
     const std::optional<LeafCallback>& leaf_callback) const {
+  arolla::profiling::TraceMe traceme("::koladata::internal::ExtractOp");
   SchemaSource schema_source = schema_databag == nullptr
                                    ? SchemaSource::kDataDatabag
                                    : SchemaSource::kSchemaDatabag;

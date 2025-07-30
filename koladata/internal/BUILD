@@ -535,6 +535,7 @@ cc_library(
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
+        "@com_google_arolla//arolla/util:traceme",
     ],
 )
 
@@ -592,6 +593,7 @@ cc_test(
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util/testing",
+        "@com_google_arolla//arolla/util/testing:traceme_util",
         "@com_google_googletest//:gtest_main",
     ],
 )

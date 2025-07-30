@@ -38,6 +38,7 @@
 #include "arolla/util/status.h"
 #include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
+#include "arolla/util/testing/traceme_util.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -54,9 +55,11 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::profiling::testing::Profile;
 using ::arolla::testing::PayloadIs;
 using ::testing::_;
 using ::testing::AllOf;
+using ::testing::ElementsAre;
 using ::testing::ElementsAreArray;
 using ::testing::HasSubstr;
 using ::testing::MatchesRegex;

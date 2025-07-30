@@ -53,6 +53,7 @@
 #include "arolla/util/refcount_ptr.h"
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
+#include "arolla/util/traceme.h"
 #include "arolla/util/unit.h"
 #include "arolla/util/view_types.h"
 #include "koladata/internal/data_item.h"
@@ -3255,6 +3256,8 @@ absl::Status DataBagImpl::MergeDictsInplace(const DataBagImpl& other,
 // Returns non-ok Status on conflict.
 absl::Status DataBagImpl::MergeInplace(const DataBagImpl& other,
                                        MergeOptions options) {
+  arolla::profiling::TraceMe traceme(
+      "::koladata::internal::DataBagImpl::MergeInplace");
   if (this == &other) {
     return absl::OkStatus();
   }

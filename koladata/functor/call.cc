@@ -143,7 +143,7 @@ absl::StatusOr<arolla::TypedValue> CallFunctorWithCompilationCache(
                      DataSliceRepr(functor)));
   }
 
-  arolla::profiling::TraceMe t([&]() -> std::string {
+  arolla::profiling::TraceMe traceme([&]() -> std::string {
     auto get_str = [&](const absl::StatusOr<DataSlice>& attr) {
       if (attr.ok() && attr->item().has_value() &&
           attr->item().holds_value<arolla::Text>()) {

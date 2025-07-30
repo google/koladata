@@ -50,7 +50,8 @@ class KodaOperatorWrapper<Fn, Ret, arolla::meta::type_list<Args...>> {
   // arguments. We avoid `Args&&... args` since this object will be fed into
   // arolla::meta::function_traits later which won't work.
   Ret operator()(Args... args) const {
-    arolla::profiling::TraceMe t([&] { return absl::StrCat("<Op> ", name_); });
+    arolla::profiling::TraceMe traceme(
+        [&] { return absl::StrCat("<Op> ", name_); });
     if constexpr (arolla::IsStatusOrT<Ret>::value) {
       auto result = func_(std::forward<Args>(args)...);
       if (!result.ok()) {

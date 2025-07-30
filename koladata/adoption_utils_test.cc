@@ -20,6 +20,7 @@
 #include "gtest/gtest.h"
 #include "absl/status/status.h"
 #include "absl/status/status_matchers.h"
+#include "arolla/util/testing/traceme_util.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/internal/data_bag.h"
@@ -37,7 +38,9 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::arolla::profiling::testing::Profile;
 using ::koladata::internal::testing::DataBagEqual;
+using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 using ::testing::UnorderedElementsAre;
 

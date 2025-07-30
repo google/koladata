@@ -26,6 +26,7 @@
 #include "absl/strings/string_view.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/cancellation.h"
+#include "arolla/util/traceme.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
 #include "koladata/error_repr_utils.h"
@@ -40,6 +41,7 @@
 namespace koladata {
 
 absl::Status AdoptionQueue::AdoptInto(DataBag& db) const {
+  arolla::profiling::TraceMe traceme("::koladata::AdoptionQueue::AdoptInto");
   absl::flat_hash_set<const DataBag*> visited_bags{&db};
   for (const DataBagPtr& other_db : bags_to_merge_) {
     if (visited_bags.contains(other_db.get())) {
