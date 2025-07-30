@@ -32,14 +32,39 @@
 
 namespace koladata {
 
-// Wraps the given function with Koda improvements:
-// * All errors are converted into OperatorEvalError.
-// * Evaluation is traced using TraceMe.
-template <typename Fn, typename Ret, typename ArgsList>
+// Compile-time flags for KodaOperatorWrapper.
+struct KodaOperatorWrapperFlags {
+  // No additional logic.
+  static constexpr int kNone = 0;
+  // Errors are converted into OperatorEvalError.
+  static constexpr int kWrapError = 1 << 0;
+  // Evaluation is traced using TraceMe.
+  static constexpr int kProfile = 1 << 1;
+  // All of the above.
+  static constexpr int kAll = ~0;
+};
+
+// Wraps the given function with Koda improvements, including error wrapping and
+// profiling support. See KodaOperatorWrapperFlags for flags.
+template <int flags, typename Fn, typename Ret, typename ArgsList>
 class KodaOperatorWrapper;
 
-template <typename Fn, typename Ret, typename... Args>
-class KodaOperatorWrapper<Fn, Ret, arolla::meta::type_list<Args...>> {
+template <int flags, typename Fn, typename Ret, typename... Args>
+class KodaOperatorWrapper<flags, Fn, Ret, arolla::meta::type_list<Args...>> {
+  static constexpr bool kWrapError =
+      flags & KodaOperatorWrapperFlags::kWrapError;
+  static constexpr bool kProfile = flags & KodaOperatorWrapperFlags::kProfile;
+
+  // Safety measure to prevent bugs where the error is believed to be wrapped
+  // when it is in fact not.
+  static_assert(
+      !(kWrapError &&
+        std::is_same_v<arolla::meta::type_list<Args...>,
+                       arolla::meta::type_list<arolla::EvaluationContext*,
+                                               arolla::FramePtr>> &&
+        !std::is_same_v<Ret, absl::Status>),
+      "functor(ctx, frame) must return absl::Status");
+
  public:
   KodaOperatorWrapper(std::string name, Fn func)
       : name_(std::move(name)), func_(std::move(func)) {}
@@ -50,15 +75,17 @@ class KodaOperatorWrapper<Fn, Ret, arolla::meta::type_list<Args...>> {
   // arguments. We avoid `Args&&... args` since this object will be fed into
   // arolla::meta::function_traits later which won't work.
   Ret operator()(Args... args) const {
-    arolla::profiling::TraceMe traceme(
-        [&] { return absl::StrCat("<Op> ", name_); });
-    if constexpr (arolla::IsStatusOrT<Ret>::value) {
+    if constexpr (kProfile) {
+      arolla::profiling::TraceMe traceme(
+          [&] { return absl::StrCat("<Op> ", name_); });
+    }
+    if constexpr (kWrapError && arolla::IsStatusOrT<Ret>::value) {
       auto result = func_(std::forward<Args>(args)...);
       if (!result.ok()) {
         return internal::OperatorEvalError(result.status(), name_);
       }
       return result;
-    } else if constexpr (std::is_same_v<Ret, absl::Status>) {
+    } else if constexpr (kWrapError && std::is_same_v<Ret, absl::Status>) {
       auto status = func_(std::forward<Args>(args)...);
       if (!status.ok()) {
         return internal::OperatorEvalError(status, name_);
@@ -74,24 +101,24 @@ class KodaOperatorWrapper<Fn, Ret, arolla::meta::type_list<Args...>> {
   Fn func_;
 };
 
-template <typename Fn>
-KodaOperatorWrapper(std::string name, Fn func) -> KodaOperatorWrapper<
-    Fn, typename arolla::meta::function_traits<Fn>::return_type,
-    typename arolla::meta::function_traits<Fn>::arg_types>;
+// Wraps the given function with Koda improvements, including error wrapping and
+// profiling support. See KodaOperatorWrapperFlags for flags.
+template <int flags = KodaOperatorWrapperFlags::kAll, typename Fn>
+auto MakeKodaOperatorWrapper(std::string name, Fn func) {
+  return KodaOperatorWrapper<
+      flags, Fn, typename arolla::meta::function_traits<Fn>::return_type,
+      typename arolla::meta::function_traits<Fn>::arg_types>(std::move(name),
+                                                             std::move(func));
+}
 
-// Creates a bound operator implemented by the provided functor. All the errors
-// returned by the functor are wrapped into OperatorEvalError with the given
-// name.
-template <typename Functor>
+// Creates a bound operator implemented by the provided functor with Koda
+// improvements, including error wrapping and profiling support. See
+// KodaOperatorWrapperFlags for flags.
+template <int flags = KodaOperatorWrapperFlags::kAll, typename Functor>
 std::unique_ptr<arolla::BoundOperator> MakeBoundOperator(std::string name,
                                                          Functor functor) {
-  static_assert(std::is_same_v<decltype(functor(
-                                   std::declval<arolla::EvaluationContext*>(),
-                                   std::declval<arolla::FramePtr>())),
-                               absl::Status>,
-                "functor(ctx, frame) must return absl::Status");
-  return arolla::MakeBoundOperator(
-      KodaOperatorWrapper(std::move(name), std::move(functor)));
+  return arolla::MakeBoundOperator(MakeKodaOperatorWrapper<flags, Functor>(
+      std::move(name), std::move(functor)));
 }
 
 }  // namespace koladata

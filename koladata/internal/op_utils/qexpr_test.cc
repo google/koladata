@@ -38,6 +38,7 @@ namespace {
 
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
+using ::absl_testing::IsOk;
 using ::arolla::profiling::testing::Profile;
 using ::arolla::testing::CausedBy;
 using ::testing::_;
@@ -62,12 +63,49 @@ TEST(QExpr, MakeBoundOperator) {
                                      "op_name: test error"));
 }
 
+TEST(QExpr, MakeBoundOperatorErrorWrappingDisabled) {
+  arolla::EvaluationContext ctx;
+  arolla::FrameLayout memory_layout = arolla::FrameLayout::Builder().Build();
+  arolla::MemoryAllocation alloc(&memory_layout);
+  {
+    ctx.ResetSignals();
+    auto bound_op = MakeBoundOperator<KodaOperatorWrapperFlags::kNone>(
+        "op_name", [](arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          return absl::InvalidArgumentError("test error");
+        });
+    bound_op->Run(&ctx, alloc.frame());
+    EXPECT_THAT(ctx.status(), StatusIs(absl::StatusCode::kInvalidArgument,
+                                      "test error"));
+  }
+  {
+    ctx.ResetSignals();
+    auto bound_op = MakeBoundOperator<KodaOperatorWrapperFlags::kProfile>(
+        "op_name", [](arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+          return absl::InvalidArgumentError("test error");
+        });
+    bound_op->Run(&ctx, alloc.frame());
+    EXPECT_THAT(ctx.status(),
+                StatusIs(absl::StatusCode::kInvalidArgument, "test error"));
+  }
+  {
+    // Allowed to be void when disabled.
+    ctx.ResetSignals();
+    auto bound_op = MakeBoundOperator<KodaOperatorWrapperFlags::kProfile>(
+        "op_name",
+        [](arolla::EvaluationContext* ctx, arolla::FramePtr frame) -> void {
+          return;
+        });
+    bound_op->Run(&ctx, alloc.frame());
+    EXPECT_THAT(ctx.status(), IsOk());
+  }
+}
+
 absl::StatusOr<int> ReturnsErrorOr(int x, int y) {
   return absl::InvalidArgumentError(absl::StrFormat("test error %d%d", x, y));
 };
 
-TEST(KodaOperatorWrapper, WrapsStatusOr) {
-  auto wrapped_fn = KodaOperatorWrapper("op_name", ReturnsErrorOr);
+TEST(MakeKodaOperatorWrapper, WrapsStatusOr) {
+  auto wrapped_fn = MakeKodaOperatorWrapper("op_name", ReturnsErrorOr);
   auto status = wrapped_fn(5, 7).status();
   EXPECT_THAT(status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                                      "op_name: test error 57"),
@@ -78,19 +116,19 @@ absl::Status ReturnsError(int x, int y) {
   return absl::InvalidArgumentError(absl::StrFormat("test error %d%d", x, y));
 };
 
-TEST(KodaOperatorWrapper, WrapsStatus) {
-  auto wrapped_fn = KodaOperatorWrapper("op_name", ReturnsError);
+TEST(MakeKodaOperatorWrapper, WrapsStatus) {
+  auto wrapped_fn = MakeKodaOperatorWrapper("op_name", ReturnsError);
   auto status = wrapped_fn(5, 7);
   EXPECT_THAT(status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                                      "op_name: test error 57"),
                             Not(CausedBy(_))));
 }
 
-TEST(KodaOperatorWrapper, WithLambda) {
+TEST(MakeKodaOperatorWrapper, WithLambda) {
   auto fn = [](int x, int y) -> absl::StatusOr<int> {
     return absl::InvalidArgumentError(absl::StrFormat("test error %d%d", x, y));
   };
-  auto wrapped_fn = KodaOperatorWrapper("op_name", fn);
+  auto wrapped_fn = MakeKodaOperatorWrapper("op_name", fn);
   auto status = wrapped_fn(5, 7).status();
   EXPECT_THAT(status, AllOf(StatusIs(absl::StatusCode::kInvalidArgument,
                                      "op_name: test error 57"),
@@ -119,7 +157,7 @@ struct CopyCounter {
   int move_count = 0;
 };
 
-TEST(KodaOperatorWrapper, CopyCounter) {
+TEST(MakeKodaOperatorWrapper, CopyCounter) {
   CopyCounter counter;
   EXPECT_THAT(counter, Field(&CopyCounter::copy_count, Eq(0)));
   EXPECT_THAT(CopyCounter(counter),
@@ -144,10 +182,10 @@ absl::StatusOr<int> AcceptsCopyCounters(CopyCounter by_value,
 // Check that the wrapped function has exact the same signature as the original
 // function.
 static_assert(std::is_same_v<decltype(std::function(AcceptsCopyCounters)),
-                             decltype(std::function(KodaOperatorWrapper(
+                             decltype(std::function(MakeKodaOperatorWrapper(
                                  "foo", AcceptsCopyCounters)))>);
 
-TEST(KodaOperatorWrapper, NoExtraInputCopies) {
+TEST(MakeKodaOperatorWrapper, NoExtraInputCopies) {
   // Test the original function.
   {
     CopyCounter counter1;
@@ -166,7 +204,7 @@ TEST(KodaOperatorWrapper, NoExtraInputCopies) {
     CopyCounter counter2;
     CopyCounter counter3;
     CopyCounter counter4;
-    auto wrapped_fn = KodaOperatorWrapper("op_name", AcceptsCopyCounters);
+    auto wrapped_fn = MakeKodaOperatorWrapper("op_name", AcceptsCopyCounters);
     auto status =
         wrapped_fn(counter1, counter2, std::move(counter3), counter4).status();
     EXPECT_THAT(status,
@@ -179,16 +217,43 @@ TEST(KodaOperatorWrapper, NoExtraInputCopies) {
 
 absl::StatusOr<CopyCounter> ReturnsCopyCounter() { return CopyCounter(); };
 
-TEST(KodaOperatorWrapper, NoExtraResultCopies) {
+TEST(MakeKodaOperatorWrapper, NoExtraResultCopies) {
   // Test the original function.
   EXPECT_THAT(ReturnsCopyCounter(),
               IsOkAndHolds(AllOf(Field(&CopyCounter::copy_count, Eq(0)),
                                  Field(&CopyCounter::move_count, Eq(1)))));
   // Test the wrapped function.
-  auto wrapped_fn = KodaOperatorWrapper("op_name", ReturnsCopyCounter);
+  auto wrapped_fn = MakeKodaOperatorWrapper("op_name", ReturnsCopyCounter);
   EXPECT_THAT(wrapped_fn(),
               IsOkAndHolds(AllOf(Field(&CopyCounter::copy_count, Eq(0)),
                                  Field(&CopyCounter::move_count, Eq(2)))));
+}
+
+TEST(MakeKodaOperatorWrapper, NoErrorWrappingWhenDisabled) {
+  {
+    // Non-status.
+    auto fn = MakeKodaOperatorWrapper<KodaOperatorWrapperFlags::kProfile>(
+        "fn", [](int x, int y) -> int { return x + y; });
+    EXPECT_EQ(fn(5, 7), 12);
+  }
+  {
+    // absl::Status.
+    auto fn = MakeKodaOperatorWrapper<KodaOperatorWrapperFlags::kProfile>(
+        "fn", [](int x, int y) -> absl::Status {
+          return absl::InvalidArgumentError("test error");
+        });
+    EXPECT_THAT(fn(5, 7),
+                StatusIs(absl::StatusCode::kInvalidArgument, "test error"));
+  }
+  {
+    // absl::StatusOr.
+    auto fn = MakeKodaOperatorWrapper<KodaOperatorWrapperFlags::kProfile>(
+        "fn", [](int x, int y) -> absl::StatusOr<int> {
+          return absl::InvalidArgumentError("test error");
+        });
+    EXPECT_THAT(fn(5, 7),
+                StatusIs(absl::StatusCode::kInvalidArgument, "test error"));
+  }
 }
 
 }  // namespace
