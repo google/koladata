@@ -126,6 +126,7 @@ py_library(
         ":introspection",
         ":tracing_mode",
         "//py:python_path",
+        "//py/koladata/types:extension_types",
         "//py/koladata/types:py_boxing",
         "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
@@ -165,8 +166,25 @@ py_test(
         "//py:python_path",
         "//py/koladata:kd",
         "//py/koladata/testing",
+        "//py/koladata/types:extension_types",
+        "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
+    name = "tracing_with_future_annotations_test",
+    srcs = ["tracing_with_future_annotations_test.py"],
+    deps = [
+        ":tracing",
+        "//py:python_path",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:extension_types",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
     ],
 )
 

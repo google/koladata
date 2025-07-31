@@ -31,6 +31,7 @@ from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import extension_types
 from koladata.types import py_boxing
 from koladata.types import schema_constants
 from koladata.types import signature_utils
@@ -43,6 +44,14 @@ kd = eager_op_utils.operators_container('kd')
 kde = kde_operators.kde
 kdi = user_facing_kd.eager
 pack_expr = introspection.pack_expr
+
+
+@extension_types.extension_type
+class TestExtension:
+  x: schema_constants.INT32
+
+  def fn(self, v):
+    return self.x + v
 
 
 class FunctorFactoriesTest(absltest.TestCase):
@@ -1092,6 +1101,22 @@ class FunctorFactoriesTest(absltest.TestCase):
         'line 0',
         tb
     )
+
+  def test_extension_type_py_fn(self):
+
+    def fn(x: TestExtension):
+      return x.fn(2)
+
+    e = TestExtension(x=1)
+    self.assertEqual(functor_factories.py_fn(fn)(e), 3)
+
+  def test_extension_type_trace_py_fn(self):
+
+    def fn(x: TestExtension):
+      return x.fn(2)
+
+    e = TestExtension(x=1)
+    self.assertEqual(functor_factories.trace_py_fn(fn)(e), 3)
 
 
 if __name__ == '__main__':

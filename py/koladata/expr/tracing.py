@@ -15,17 +15,27 @@
 """Tools to trace functions into Exprs."""
 
 import inspect
+import types as py_types
 from typing import Any, Callable
 
 from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing_mode
+from koladata.types import extension_types
 from koladata.types import py_boxing
 from koladata.util import kd_functools
 
 
 I = input_container.InputContainer('I')
+
+
+def _inspect_signature(fn: py_types.FunctionType) -> inspect.Signature:
+  """Returns the signature of `fn` with resolved type annotations."""
+  # See https://peps.python.org/pep-0563/#resolving-type-hints-at-runtime and
+  # https://docs.python.org/3/library/inspect.html#inspect.signature for
+  # details on `eval_str=True`.
+  return inspect.signature(fn, eval_str=True)
 
 
 @kd_functools.skip_from_functor_stack_trace
@@ -53,9 +63,9 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
   Returns:
     The expr produced by calling the function in lazy mode.
   """
-  sig = inspect.signature(fn)
-  positional_param_names = []
-  keyword_param_names = []
+  sig = _inspect_signature(fn)
+  positional_params = []
+  keyword_params = []
   for param in sig.parameters.values():
     # A sanity check for future Python versions.
     if param.kind not in [
@@ -82,16 +92,24 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
       # Otherwise ignore such parameters.
     else:
       if param.kind == inspect.Parameter.KEYWORD_ONLY:
-        keyword_param_names.append(param.name)
+        keyword_params.append(param)
       else:
-        assert not keyword_param_names
-        positional_param_names.append(param.name)
+        assert not keyword_params
+        positional_params.append(param)
+
+  def _get_arg_value(param: inspect.Parameter) -> Any:
+    arg_value = I[param.name]
+    if extension_types.is_koda_extension_type(param.annotation):
+      arg_value = arolla.M.annotation.qtype(
+          arg_value, extension_types.get_extension_qtype(param.annotation)
+      )
+    return arg_value
 
   try:
     with tracing_mode.enable_tracing():
       res = fn(
-          *[I[x] for x in positional_param_names],
-          **{x: I[x] for x in keyword_param_names},
+          *(_get_arg_value(p) for p in positional_params),
+          **{p.name: _get_arg_value(p) for p in keyword_params},
       )
     expr = py_boxing.as_expr(res)
   except Exception as e:
@@ -103,8 +121,8 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
     raise
   if diff := (
       frozenset(introspection.get_input_names(expr))
-      - frozenset(positional_param_names)
-      - frozenset(keyword_param_names)
+      - frozenset(p.name for p in positional_params)
+      - frozenset(p.name for p in keyword_params)
   ):
     raise ValueError(
         f'unexpected inputs {sorted(diff)} found during tracing of function:'

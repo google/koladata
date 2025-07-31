@@ -32,6 +32,8 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import extension_types
+from koladata.types import schema_constants
 
 
 I = input_container.InputContainer('I')
@@ -118,6 +120,12 @@ class PairWithEntityTracing:
   _koladata_type_tracing_config_: ClassVar[type[EntityPairTracingConfig]] = (
       EntityPairTracingConfig
   )
+
+
+@extension_types.extension_type
+class ExtensionPair:
+  x: schema_constants.INT32
+  y: schema_constants.INT32
 
 
 class TracingDecoratorTest(parameterized.TestCase):
@@ -360,6 +368,35 @@ class TracingDecoratorTest(parameterized.TestCase):
     fn = functor_factories.trace_py_fn(f)
     res = fn(fns.obj(x=ds([1, 2, 3]), y=fns.implode(ds([[4, 5], [], [6]]))))
     testing.assert_equal(res.x[:].no_bag(), ds([[4, 5], [], [6]]))
+    testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
+
+  @parameterized.parameters(True, False)
+  def test_koda_extension_type_tracing(self, py_fn):
+
+    @tracing_decorator.TraceAsFnDecorator(py_fn=py_fn)
+    def swap(a: ExtensionPair) -> ExtensionPair:
+      return ExtensionPair(x=a.y, y=a.x)
+
+    def f(o):
+      p = ExtensionPair(x=o.x, y=o.y)
+      p = swap(p)
+      return user_facing_kd.obj(x=p.x, y=p.y)
+
+    res = swap(ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6])))
+    testing.assert_equal(res.x.no_bag(), ds([4, 5, 6]))
+    testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
+
+    ext_dsl = fns.obj(x=ds([1, 2, 3]), y=ds([4, 5, 6]))
+    fn = functor_factories.trace_py_fn(f)
+
+    res = fn(ext_dsl)
+    testing.assert_equal(res.x.no_bag(), ds([4, 5, 6]))
+    testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
+
+    fn = functor_factories.trace_py_fn(swap)
+    p = ExtensionPair(x=ds([1, 2, 3]), y=ds([4, 5, 6]))
+    res = fn(p, return_type_as=p)
+    testing.assert_equal(res.x.no_bag(), ds([4, 5, 6]))
     testing.assert_equal(res.y.no_bag(), ds([1, 2, 3]))
 
   def test_custom_tracing_config_with_py_fn(self):

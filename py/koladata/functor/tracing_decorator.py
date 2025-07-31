@@ -25,6 +25,7 @@ from koladata.expr import tracing_mode
 from koladata.functor import functor_factories
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import extension_types
 from koladata.types import py_boxing
 from koladata.util import kd_functools
 
@@ -101,6 +102,11 @@ class DefaultTypeTracingConfig(TypeTracingConfig):
     """Returns a value with the Arolla type that should be used for 'annotation'."""
     if annotation is data_bag.DataBag:
       return data_bag.DataBag.empty()
+    elif extension_types.is_koda_extension_type(annotation):
+      return extension_types.wrap(
+          data_slice.DataSlice.from_vals(None),
+          extension_types.get_extension_qtype(annotation),
+      )
     else:
       # This will be incorrect if 'annotation' is anything except a DataSlice,
       # in which case we currently expect the user to specify return_type_as
@@ -162,11 +168,8 @@ def _wrap_with_from_and_to_kd(
       params_with_custom_config.append(param)
     if param.default is not inspect.Parameter.empty:
       param = param.replace(default=_to_kd(param.annotation, param.default))
-    param = param.replace(annotation=inspect.Parameter.empty)
     wrapper_params.append(param)
-  wrapper_sig = sig.replace(
-      parameters=wrapper_params, return_annotation=inspect.Parameter.empty
-  )
+  wrapper_sig = sig.replace(parameters=wrapper_params)
 
   @functools.wraps(fn)
   def wrapper(*args: Any, **kwargs: Any) -> Any:

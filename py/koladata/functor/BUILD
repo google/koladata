@@ -138,6 +138,7 @@ py_test(
         "//py/koladata/testing",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:extension_types",
         "//py/koladata/types:py_boxing",
         "//py/koladata/types:schema_constants",
         "//py/koladata/types:signature_utils",
@@ -179,6 +180,7 @@ py_library(
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:extension_types",
         "//py/koladata/types:py_boxing",
         "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",
@@ -231,8 +233,12 @@ py_test(
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:extension_types",
+        "//py/koladata/types:schema_constants",
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/derived_qtype",
     ],
 )
 

@@ -20,6 +20,8 @@ from arolla import arolla
 from koladata import kd
 from koladata.expr import tracing
 from koladata.testing import testing
+from koladata.types import extension_types
+from koladata.types import schema_constants
 
 
 kde = kd.lazy
@@ -252,6 +254,19 @@ class TracingTest(absltest.TestCase):
         ),
     ):
       tracing.trace(fn)
+
+  def test_extension_type(self):
+    @extension_types.extension_type
+    class ExtensionPair:
+      x: schema_constants.INT32
+      y: schema_constants.INT32
+
+    def fn(a: ExtensionPair) -> ExtensionPair:
+      return ExtensionPair(x=a.y, y=a.x)
+
+    e = tracing.trace(fn)
+    self.assertEqual(e.eval(a=ExtensionPair(x=1, y=2)).x, 2)
+    self.assertEqual(e.eval(a=ExtensionPair(x=1, y=2)).y, 1)
 
 
 if __name__ == '__main__':
