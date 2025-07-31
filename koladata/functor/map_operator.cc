@@ -24,7 +24,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/named_field_qtype.h"
@@ -36,6 +35,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/map.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -49,18 +49,19 @@ class MapOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.functor.map",
         [fn_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          args_slot = input_slots[1],
          include_missing_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
          kwargs_slot = input_slots[3],
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
           const auto& fn_data_slice = frame.Get(fn_slot);
           ASSIGN_OR_RETURN(bool include_missing,
                            ops::GetBoolArgument(frame.Get(include_missing_slot),
-                                                "include_missing"),
-                           ctx->set_status(std::move(_)));
+                                                "include_missing"));
 
           std::vector<DataSlice> args;
           args.reserve(args_slot.SubSlotCount() + kwargs_slot.SubSlotCount());
@@ -75,12 +76,11 @@ class MapOperator : public arolla::QExprOperator {
             args.push_back(
                 frame.Get(kwargs_slot.SubSlot(i).UnsafeToSlot<DataSlice>()));
           }
-          ASSIGN_OR_RETURN(
-              auto result,
-              functor::MapFunctorWithCompilationCache(
-                  fn_data_slice, std::move(args), kwarg_names, include_missing),
-              ctx->set_status(std::move(_)));
+          ASSIGN_OR_RETURN(auto result, functor::MapFunctorWithCompilationCache(
+                                            fn_data_slice, std::move(args),
+                                            kwarg_names, include_missing));
           frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
         });
   }
 };

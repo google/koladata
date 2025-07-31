@@ -25,7 +25,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/qtype.h"
@@ -36,6 +35,7 @@
 #include "arolla/sequence/sequence_qtype.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/slices.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -68,13 +68,15 @@ struct SequenceFrom1DSliceOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.iterables.sequence_from_1d_slice",
         [x_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          output_slot = output_slot.UnsafeToSlot<arolla::Sequence>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          ASSIGN_OR_RETURN(auto res, SequenceFrom1DSlice(frame.Get(x_slot)),
-                           ctx->set_status(std::move(_)));
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          ASSIGN_OR_RETURN(auto res, SequenceFrom1DSlice(frame.Get(x_slot)));
           frame.Set(output_slot, std::move(res));
+          return absl::OkStatus();
         });
   }
 };
@@ -126,13 +128,15 @@ struct SequenceTo1DSliceOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.iterables.sequence_to_1d_slice",
         [x_slot = input_slots[0].UnsafeToSlot<arolla::Sequence>(),
          output_slot = output_slot.UnsafeToSlot<DataSlice>()](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
-          ASSIGN_OR_RETURN(auto res, SequenceTo1DSlice(frame.Get(x_slot)),
-                           ctx->set_status(std::move(_)));
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          ASSIGN_OR_RETURN(auto res, SequenceTo1DSlice(frame.Get(x_slot)));
           frame.Set(output_slot, std::move(res));
+          return absl::OkStatus();
         });
   }
 };
@@ -167,10 +171,11 @@ struct SequenceChainOp final : public arolla::QExprOperator {
     if (input_slots.size() != 1) {
       return absl::InternalError("expected exactly one input");
     }
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.iterables.sequence_chain",
         [input_slot = input_slots[0].UnsafeToSlot<arolla::Sequence>(),
-         output_slot = output_slot](arolla::EvaluationContext* ctx,
-                                    arolla::FramePtr frame) {
+         output_slot = output_slot](arolla::EvaluationContext* /*ctx*/,
+                                    arolla::FramePtr frame) -> absl::Status {
           const auto& seq_of_seq = frame.Get(input_slot);
           size_t total_size = 0;
           for (size_t i = 0; i < seq_of_seq.size(); ++i) {
@@ -178,10 +183,8 @@ struct SequenceChainOp final : public arolla::QExprOperator {
             total_size += seq.size();
           }
           ASSIGN_OR_RETURN(
-              auto res,
-              arolla::MutableSequence::Make(
-                  output_slot.GetType()->value_qtype(), total_size),
-              ctx->set_status(std::move(_)));
+              auto res, arolla::MutableSequence::Make(
+                            output_slot.GetType()->value_qtype(), total_size));
           size_t offset = 0;
           for (size_t i = 0; i < seq_of_seq.size(); ++i) {
             const auto& seq = seq_of_seq.GetRef(i).UnsafeAs<arolla::Sequence>();
@@ -192,6 +195,7 @@ struct SequenceChainOp final : public arolla::QExprOperator {
           }
           frame.Set(output_slot.UnsafeToSlot<arolla::Sequence>(),
                     std::move(res).Finish());
+          return absl::OkStatus();
         });
   }
 };

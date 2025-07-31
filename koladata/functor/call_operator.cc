@@ -26,7 +26,6 @@
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/named_field_qtype.h"
@@ -42,6 +41,7 @@
 #include "koladata/functor/call.h"
 #include "koladata/functor_storage.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -55,10 +55,12 @@ class CallOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.functor.call",
         [fn_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          args_slot = input_slots[1], kwargs_slot = input_slots[3],
-         output_slot](arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+         output_slot](arolla::EvaluationContext* /*ctx*/,
+                      arolla::FramePtr frame) -> absl::Status {
           const auto& fn_data_slice = frame.Get(fn_slot);
 
           std::vector<arolla::TypedRef> arg_refs;
@@ -75,19 +77,16 @@ class CallOperator : public arolla::QExprOperator {
           auto kwnames = arolla::GetFieldNames(kwargs_slot.GetType());
           ASSIGN_OR_RETURN(auto result,
                            functor::CallFunctorWithCompilationCache(
-                               fn_data_slice, arg_refs, kwnames),
-                           ctx->set_status(std::move(_)));
+                               fn_data_slice, arg_refs, kwnames));
           if (result.GetType() != output_slot.GetType()) {
-            ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
+            return absl::InvalidArgumentError(absl::StrFormat(
                 "The functor was called with `%s` as the output type, but the"
                 " computation resulted in type `%s` instead. You can specify"
                 " the expected output type via the `return_type_as=` parameter"
                 " to the functor call.",
-                output_slot.GetType()->name(), result.GetType()->name())));
-            return;
+                output_slot.GetType()->name(), result.GetType()->name()));
           }
-          RETURN_IF_ERROR(result.CopyToSlot(output_slot, frame))
-              .With(ctx->set_status());
+          return result.CopyToSlot(output_slot, frame);
         });
   }
 };
@@ -133,12 +132,14 @@ class CallAndUpdateNamedTupleOperator : public arolla::QExprOperator {
       field_name_to_index[original_field_names[i]] = i;
     }
 
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.functor.call_and_update_namedtuple",
         [fn_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          args_slot = input_slots[1], namedtuple_to_update_slot = input_slots[2],
          kwargs_slot = input_slots[3], output_slot, original_field_names,
          field_name_to_index = std::move(field_name_to_index)](
-            arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
           const auto& fn_data_slice = frame.Get(fn_slot);
 
           std::vector<arolla::TypedRef> arg_refs;
@@ -155,14 +156,12 @@ class CallAndUpdateNamedTupleOperator : public arolla::QExprOperator {
           auto kwnames = arolla::GetFieldNames(kwargs_slot.GetType());
           ASSIGN_OR_RETURN(auto result,
                            functor::CallFunctorWithCompilationCache(
-                               fn_data_slice, arg_refs, kwnames),
-                           ctx->set_status(std::move(_)));
+                               fn_data_slice, arg_refs, kwnames));
           if (!IsNamedTupleQType(result.GetType())) {
-            ctx->set_status(absl::InvalidArgumentError(
+            return absl::InvalidArgumentError(
                 absl::StrFormat("the functor must"
                                 " return a namedtuple, but it returned `%s`",
-                                result.GetType()->name())));
-            return;
+                                result.GetType()->name()));
           }
           // Now we replace the fields in "namedtuple_to_update_slot" with
           // the corresponding fields from result.
@@ -178,32 +177,28 @@ class CallAndUpdateNamedTupleOperator : public arolla::QExprOperator {
           for (int64_t i = 0; i < result.GetFieldCount(); ++i) {
             auto it = field_name_to_index.find(update_field_names[i]);
             if (it == field_name_to_index.end()) {
-              ctx->set_status(absl::InvalidArgumentError(
+              return absl::InvalidArgumentError(
                   absl::StrFormat("the functor returned a namedtuple with "
                                   "field `%s`, but the original"
                                   " namedtuple does not have such a field",
-                                  update_field_names[i])));
-              return;
+                                  update_field_names[i]));
             }
             int64_t original_index = it->second;
             arolla::TypedRef result_field = result.GetField(i);
             if (new_namedtuple_fields[original_index].GetType() !=
                 result_field.GetType()) {
-              ctx->set_status(absl::InvalidArgumentError(absl::StrFormat(
+              return absl::InvalidArgumentError(absl::StrFormat(
                   "the functor returned a namedtuple with field `%s` of type "
                   "`%s`, but the original namedtuple has type `%s` for it",
                   update_field_names[i], result_field.GetType()->name(),
-                  new_namedtuple_fields[original_index].GetType()->name())));
-              return;
+                  new_namedtuple_fields[original_index].GetType()->name()));
             }
             new_namedtuple_fields[original_index] = result_field;
           }
           ASSIGN_OR_RETURN(arolla::TypedValue updated_namedtuple,
                            arolla::MakeNamedTuple(original_field_names,
-                                                  new_namedtuple_fields),
-                           ctx->set_status(std::move(_)));
-          RETURN_IF_ERROR(updated_namedtuple.CopyToSlot(output_slot, frame))
-              .With(ctx->set_status());
+                                                  new_namedtuple_fields));
+          return updated_namedtuple.CopyToSlot(output_slot, frame);
         });
   }
 };

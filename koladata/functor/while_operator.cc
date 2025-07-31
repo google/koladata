@@ -27,7 +27,6 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/named_field_qtype.h"
@@ -41,6 +40,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/functor/while.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -71,12 +71,14 @@ class WhileOperator final : public arolla::QExprOperator {
       output_var_name = "yields_interleaved";
     }
 
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator(
+        "kd.functor.while_",
         [condition_fn_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          body_fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          output_var_slot = output_var_slot.value(), output_var_name,
          is_returns_mode, initial_state_slot = input_slots[5],
-         output_slot](arolla::EvaluationContext* ctx, arolla::FramePtr frame) {
+         output_slot](arolla::EvaluationContext* /*ctx*/,
+                      arolla::FramePtr frame) -> absl::Status {
           const auto& condition_fn = frame.Get(condition_fn_slot);
           const auto& body_fn = frame.Get(body_fn_slot);
 
@@ -98,10 +100,8 @@ class WhileOperator final : public arolla::QExprOperator {
           ASSIGN_OR_RETURN(var_values,
                            WhileWithCompilationCache(
                                condition_fn, body_fn, std::move(var_names),
-                               std::move(var_values), is_returns_mode ? 0 : 1),
-                           ctx->set_status(std::move(_)));
-          RETURN_IF_ERROR(var_values[0].CopyToSlot(output_slot, frame))
-              .With(ctx->set_status());
+                               std::move(var_values), is_returns_mode ? 0 : 1));
+          return var_values[0].CopyToSlot(output_slot, frame);
         });
   }
 };

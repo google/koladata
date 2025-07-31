@@ -26,7 +26,6 @@
 #include "absl/types/span.h"
 #include "arolla/expr/expr_operator.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/optional_qtype.h"
@@ -41,6 +40,7 @@
 #include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/parallel/future.h"
 #include "koladata/functor/parallel/future_qtype.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::functor::parallel {
@@ -53,7 +53,8 @@ class AsyncEvalOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.async_eval",
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          op_slot = input_slots[1].UnsafeToSlot<arolla::expr::ExprOperatorPtr>(),
          op_input_slots =
@@ -114,7 +115,8 @@ class AsyncUnpackTupleOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.async_unpack_tuple",
         [input_slot = input_slots[0].UnsafeToSlot<FuturePtr>(), output_slot](
             arolla::EvaluationContext* /*ctx*/,
             arolla::FramePtr frame) -> absl::Status {

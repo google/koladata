@@ -34,7 +34,6 @@
 #include "arolla/jagged_shape/dense_array/util/concat.h"
 #include "arolla/memory/frame.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/optional_qtype.h"
@@ -254,7 +253,8 @@ class AttrsImplOperator : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "kd.core._attrs_impl",
         [slice_slot = input_slots[0].UnsafeToSlot<DataSlice>(),
          update_schema_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          extend_schema_slot = input_slots[2].UnsafeToSlot<DataSlice>(),

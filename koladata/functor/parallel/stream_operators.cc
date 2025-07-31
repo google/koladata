@@ -25,7 +25,6 @@
 #include "absl/strings/str_format.h"
 #include "absl/types/span.h"
 #include "arolla/memory/frame.h"
-#include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
 #include "arolla/qtype/named_field_qtype.h"
@@ -49,6 +48,7 @@
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/functor/parallel/stream_reduce.h"
 #include "koladata/functor/parallel/stream_while.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
 #include "koladata/operators/utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -63,7 +63,8 @@ class EmptyStreamLikeOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.empty_stream_like",
         [output_slot = output_slot.UnsafeToSlot<StreamPtr>(),
          value_qtype = output_slot.GetType()->value_qtype()](
             arolla::EvaluationContext* /*ctx*/, arolla::FramePtr frame) {
@@ -104,7 +105,8 @@ class StreamChainFromStreamOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_chain_from_stream",
         [input_slot = input_slots[0].UnsafeToSlot<StreamPtr>(),
          output_slot = output_slot.UnsafeToSlot<StreamPtr>(),
          value_qtype = output_slot.GetType()->value_qtype()](
@@ -177,7 +179,8 @@ class StreamChainOp : public arolla::QExprOperator {
       input_stream_slots.push_back(
           input_slots[0].SubSlot(i).UnsafeToSlot<StreamPtr>());
     }
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_chain",
         [input_stream_slots = std::move(input_stream_slots),
          output_slot = output_slot.UnsafeToSlot<StreamPtr>(),
          value_qtype = output_slot.GetType()->value_qtype()](
@@ -232,7 +235,8 @@ class StreamInterleaveFromStreamOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_interleave_from_stream",
         [input_slot = input_slots[0].UnsafeToSlot<StreamPtr>(),
          output_slot = output_slot.UnsafeToSlot<StreamPtr>(),
          value_qtype = output_slot.GetType()->value_qtype()](
@@ -307,7 +311,8 @@ class StreamInterleaveOp final : public arolla::QExprOperator {
       input_stream_slots.push_back(
           input_slots[0].SubSlot(i).UnsafeToSlot<StreamPtr>());
     }
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_interleave",
         [input_stream_slots = std::move(input_stream_slots),
          output_slot = output_slot.UnsafeToSlot<StreamPtr>(),
          value_qtype = output_slot.GetType()->value_qtype()](
@@ -364,7 +369,8 @@ class StreamMakeOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_make",
         [input_slot = input_slots[0],
          value_qtype = output_slot.GetType()->value_qtype(),
          output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
@@ -417,7 +423,8 @@ class StreamFromIterableOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_from_iterable",
         [input_slot = input_slots[0].UnsafeToSlot<arolla::Sequence>(),
          output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
             arolla::EvaluationContext* /*ctx*/, arolla::FramePtr frame) {
@@ -484,7 +491,8 @@ class StreamMapOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_map",
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
          functor_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
@@ -537,7 +545,8 @@ class StreamMapUnorderedOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_map_unordered",
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
          functor_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
@@ -592,7 +601,8 @@ class StreamReduceOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_reduce",
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          functor_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          input_stream_slot = input_slots[2].UnsafeToSlot<StreamPtr>(),
@@ -663,7 +673,8 @@ class StreamWhileReturnsOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_while_returns",
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          condition_fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
@@ -753,7 +764,8 @@ class StreamWhileYieldsOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_while_yields",
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          condition_fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
@@ -848,7 +860,8 @@ class StreamForReturnsOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_for_returns",
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
          body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
@@ -972,7 +985,8 @@ class StreamForYieldsOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_for_yields",
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
          body_fn_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
@@ -1102,7 +1116,8 @@ class StreamCallOp final : public arolla::QExprOperator {
   absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
       absl::Span<const arolla::TypedSlot> input_slots,
       arolla::TypedSlot output_slot) const final {
-    return arolla::MakeBoundOperator(
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_call",
         [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
          fn_slot = input_slots[1].UnsafeToSlot<DataSlice>(),
          args_slot = input_slots[2], kwargs_slot = input_slots[4],

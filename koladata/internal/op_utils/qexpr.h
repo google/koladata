@@ -79,6 +79,8 @@ class KodaOperatorWrapper<flags, Fn, Ret, arolla::meta::type_list<Args...>> {
   // arolla::meta::function_traits later which won't work.
   Ret operator()(Args... args) const {
     if constexpr (kProfile) {
+      // TODO: Consider integrating this directly into Arolla
+      // evaluation instead.
       arolla::profiling::TraceMe traceme(
           [&] { return absl::StrCat("<Op> ", name_); });
     }
