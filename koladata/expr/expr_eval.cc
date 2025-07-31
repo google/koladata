@@ -310,24 +310,36 @@ absl::StatusOr<CompiledExpr> CompileOp(
   return fn;
 }
 
-// Removes Arolla's NotePayload and VerboseRuntimeError layers from the error,
-// and annotates the cause message with the operator name.
-// TODO: b/418206913 - Can we filter NotePayloads selectively?
-absl::Status SimplifyExprEvaluationError(absl::Status status) {
-  const auto* current_status = &status;
+// Strips the top level Arolla's NotePayload and VerboseRuntimeError layers from
+// the error and annotates the cause message with the operator name. The source
+// location payloads layers are preserved.
+// TODO: b/418206913 - Consider keeping NotePayloads.
+absl::Status SimplifyExprEvaluationError(const absl::Status& status) {
   const auto* cause = arolla::GetCause(status);
-  while (arolla::GetPayload<arolla::NotePayload>(*current_status) != nullptr &&
-         cause != nullptr) {
-    current_status = cause;
-    cause = arolla::GetCause(*current_status);
-  }
-  const auto* verbose_runtime_error =
-      arolla::GetPayload<arolla::expr::VerboseRuntimeError>(*current_status);
-  if (verbose_runtime_error == nullptr || cause == nullptr) {
+  if (cause == nullptr) {
     return status;
   }
-  return internal::OperatorEvalError(*cause,
-                                     verbose_runtime_error->operator_name);
+
+  absl::Status simplified_cause = SimplifyExprEvaluationError(*cause);
+
+  if (arolla::GetPayload<arolla::NotePayload>(status) != nullptr) {
+    return simplified_cause;
+  }
+  if (const auto* source_location =
+          arolla::GetPayload<arolla::SourceLocationPayload>(status);
+      source_location != nullptr) {
+    return arolla::WithSourceLocation(std::move(simplified_cause),
+                                      *source_location);
+  }
+  if (const auto* verbose_runtime_error =
+          arolla::GetPayload<arolla::expr::VerboseRuntimeError>(status);
+      verbose_runtime_error != nullptr) {
+    return internal::OperatorEvalError(std::move(simplified_cause),
+                                       verbose_runtime_error->operator_name);
+  }
+
+  // Unknown structure of the status, just return it as is.
+  return status;
 }
 
 }  // namespace

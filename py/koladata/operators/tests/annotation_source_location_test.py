@@ -103,7 +103,9 @@ class AnnotationSourceLocationTest(absltest.TestCase):
     except ValueError as e:
       ex = e
 
-    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
+    self.assertEqual(
+        str(ex), 'outer_lambda: kd.math.floordiv: division by zero'
+    )
     tb = '\n'.join(traceback.format_tb(ex.__traceback__))
     self.assertRegex(tb, 'file.py.*line 57.*inner_lambda')
     self.assertRegex(tb, 'file.py.*line 58.*outer_lambda')
