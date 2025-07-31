@@ -1948,6 +1948,45 @@ def stream_await(arg):
   )(arg)
 
 
+@optools.add_to_registry(aliases=['kd.streams.unsafe_blocking_await'])
+@optools.as_backend_operator(
+    'koda_internal.parallel.unsafe_blocking_await',
+    qtype_constraints=[
+        qtype_utils.expect_stream(P.stream),
+    ],
+    qtype_inference_expr=M.qtype.get_value_qtype(P.stream),
+)
+def unsafe_blocking_await(stream):
+  """Blocks until the given stream yields a single item.
+
+  IMPORTANT: This operator is inherently unsafe and should be used with extreme
+  caution. It's primarily intended for transitional periods when migrating
+  a complex, synchronous computation to a concurrent model, enabling incremental
+  changes instead of a complete migration in one step.
+
+  The main danger stems from its blocking nature: it blocks the calling thread
+  until the stream is ready. However, if the task responsible for filling
+  the stream is also scheduled on the same executor, and all executor threads
+  become blocked, that task may never execute, leading to a deadlock.
+
+  While seemingly acceptable initially, prolonged or widespread use of this
+  operator will eventually cause deadlocks, requiring a non-trivial refactoring
+  of your computation.
+
+  BEGIN-GOOGLE-INTERNAL
+  Note: While this operator is relatively safe to use with fibers, it's still
+  NOT recommended for permanent use.
+  END-GOOGLE-INTERNAL
+
+  Args:
+    stream: A single-item input stream.
+
+  Returns:
+    The single item from the stream.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.stream_from_future',

@@ -35,6 +35,8 @@
 #include "arolla/qtype/typed_value.h"
 #include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/sequence/sequence.h"
+#include "arolla/util/cancellation.h"
+#include "arolla/util/permanent_event.h"
 #include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
@@ -1204,6 +1206,93 @@ absl::StatusOr<arolla::OperatorPtr> StreamCallOperatorFamily::DoGetOperator(
   }
   RETURN_IF_ERROR(ops::VerifyIsNonDeterministicToken(input_types[5]));
   return std::make_shared<StreamCallOp>(input_types, output_type);
+}
+
+namespace {
+
+class UnsafeBlockingAwaitOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.unsafe_blocking_await",
+        [input_stream_slot = input_slots[0].UnsafeToSlot<StreamPtr>(),
+         output_slot](arolla::EvaluationContext* /*ctx*/,
+                      arolla::FramePtr frame) -> absl::Status {
+          const auto& stream = frame.Get(input_stream_slot);
+          auto reader = stream->MakeReader();
+          auto unsafe_blocking_read =
+              [&reader]() -> StreamReader::TryReadResult {
+            if (auto try_read_result = reader->TryRead();
+                !try_read_result.empty()) {
+              return try_read_result;
+            }
+            auto ready = arolla::PermanentEvent::Make();
+            arolla::CancellationContext::Subscription subscription;
+            if (auto cancellation_context =
+                    arolla::CurrentCancellationContext();
+                cancellation_context != nullptr) {
+              subscription =
+                  cancellation_context->Subscribe([ready] { ready->Notify(); });
+            }
+            reader->SubscribeOnce([ready] { ready->Notify(); });
+            ready->Wait();
+            return reader->TryRead();
+          };
+          {  // Expect an item.
+            auto try_read_result = unsafe_blocking_read();
+            if (auto* item = try_read_result.item()) {
+              RETURN_IF_ERROR(item->CopyToSlot(output_slot, frame));  // OK
+            } else if (auto* status = try_read_result.close_status()) {
+              if (!status->ok()) {
+                return std::move(*status);
+              }
+              return absl::InvalidArgumentError(
+                  "expected a stream with a single item, got an empty stream");
+            } else {
+              return arolla::CheckCancellation();
+            }
+          }
+          {  // Expect no more items.
+            auto try_read_result = unsafe_blocking_read();
+            if (try_read_result.item() != nullptr) {
+              return absl::InvalidArgumentError(
+                  "expected a stream with a single item, got a stream with "
+                  "multiple items");
+            } else if (auto* status = try_read_result.close_status()) {
+              if (!status->ok()) {
+                return std::move(*status);
+              }
+              return absl::OkStatus();
+            } else {
+              return arolla::CheckCancellation();
+            }
+          }
+        });
+  }
+};
+
+}  // namespace
+
+// stream_unsafe_blocking_await(stream: STREAM) -> STREAM
+absl::StatusOr<arolla::OperatorPtr>
+UnsafeBlockingAwaitOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (input_types.size() != 1) {
+    return absl::InvalidArgumentError("requires exactly 1 argument");
+  }
+  if (!IsStreamQType(input_types[0])) {
+    return absl::InvalidArgumentError("first argument must be a stream");
+  }
+  if (input_types[0]->value_qtype() != output_type) {
+    return absl::InvalidArgumentError(
+        "output type must be the same as the value type of the input stream");
+  }
+  return std::make_shared<UnsafeBlockingAwaitOp>(input_types, output_type);
 }
 
 }  // namespace koladata::functor::parallel

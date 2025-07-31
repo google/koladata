@@ -9515,6 +9515,23 @@ py_test(
 )
 
 py_test(
+    name = "koda_internal_parallel_unsafe_blocking_await_test",
+    srcs = ["koda_internal_parallel_unsafe_blocking_await_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functor:boxing",
+        "//py/koladata/functor:functor_factories",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:koda_internal_parallel",
+        "//py/koladata/operators:optools",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "iterables_reduce_concat_test",
     srcs = ["iterables_reduce_concat_test.py"],
     deps = [

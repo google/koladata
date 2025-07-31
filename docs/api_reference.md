@@ -8342,6 +8342,35 @@ Args:
 Returns:
   A stream with a single item containing the final result of the reduction.</code></pre>
 
+### `kd.streams.unsafe_blocking_await(stream)` {#kd.streams.unsafe_blocking_await}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Blocks until the given stream yields a single item.
+
+IMPORTANT: This operator is inherently unsafe and should be used with extreme
+caution. It&#39;s primarily intended for transitional periods when migrating
+a complex, synchronous computation to a concurrent model, enabling incremental
+changes instead of a complete migration in one step.
+
+The main danger stems from its blocking nature: it blocks the calling thread
+until the stream is ready. However, if the task responsible for filling
+the stream is also scheduled on the same executor, and all executor threads
+become blocked, that task may never execute, leading to a deadlock.
+
+While seemingly acceptable initially, prolonged or widespread use of this
+operator will eventually cause deadlocks, requiring a non-trivial refactoring
+of your computation.
+
+BEGIN-GOOGLE-INTERNAL
+Note: While this operator is relatively safe to use with fibers, it&#39;s still
+NOT recommended for permanent use.
+END-GOOGLE-INTERNAL
+
+Args:
+  stream: A single-item input stream.
+
+Returns:
+  The single item from the stream.</code></pre>
+
 ### `kd.streams.while_(condition_fn, body_fn, *, executor=unspecified, returns=unspecified, yields=unspecified, yields_interleaved=unspecified, **initial_state)` {#kd.streams.while_}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Repeatedly applies a body functor while a condition is met.
