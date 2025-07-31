@@ -15,9 +15,9 @@
 #include <memory>
 
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/optools.h"
 #include "arolla/qtype/qtype.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
 #include "koladata/iterables/reduce_operators.h"
 #include "koladata/iterables/sequence_operators.h"
@@ -25,11 +25,10 @@
 namespace koladata::iterables {
 namespace {
 
-#define OPERATOR AROLLA_REGISTER_QEXPR_OPERATOR
-#define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
+#define OPERATOR KODA_QEXPR_OPERATOR
+#define OPERATOR_FAMILY KODA_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
-
 OPERATOR_FAMILY("kd.iterables.reduce_concat",
                 std::make_unique<ReduceConcatOperatorFamily>());
 OPERATOR_FAMILY("kd.iterables.reduce_updated_bag",

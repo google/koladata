@@ -19,10 +19,10 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
 #include "arolla/memory/optional_value.h"
-#include "arolla/qexpr/optools.h"
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/functor/parallel/async_eval_operator.h"
 #include "koladata/functor/parallel/create_execution_context.h"
 #include "koladata/functor/parallel/execution_context.h"
@@ -38,8 +38,8 @@
 namespace koladata::functor::parallel {
 namespace {
 
-#define OPERATOR AROLLA_REGISTER_QEXPR_OPERATOR
-#define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
+#define OPERATOR KODA_QEXPR_OPERATOR
+#define OPERATOR_FAMILY KODA_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
 OPERATOR_FAMILY("koda_internal.parallel._stream_for_returns",

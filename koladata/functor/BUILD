@@ -330,7 +330,7 @@ cc_library(
         ":while_operator",
         ":with_assertion_operator",
         "//koladata:data_slice_qtype",
-        "@com_google_arolla//arolla/qexpr",
+        "//koladata/internal/op_utils:qexpr",
     ],
     alwayslink = 1,
 )

@@ -14,8 +14,8 @@
 //
 #include <memory>
 
-#include "arolla/qexpr/optools.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/functor/bind_operator.h"
 #include "koladata/functor/call_operator.h"
 #include "koladata/functor/expr_fn_operator.h"
@@ -27,8 +27,8 @@
 namespace koladata::functor {
 namespace {
 
-#define OPERATOR AROLLA_REGISTER_QEXPR_OPERATOR
-#define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
+#define OPERATOR KODA_QEXPR_OPERATOR
+#define OPERATOR_FAMILY KODA_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY
 OPERATOR_FAMILY("kd.assertion._with_assertion",

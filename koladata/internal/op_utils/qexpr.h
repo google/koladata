@@ -19,12 +19,15 @@
 #include <string>
 #include <utility>
 
+#include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "arolla/memory/frame.h"
 #include "arolla/qexpr/bound_operators.h"
 #include "arolla/qexpr/eval_context.h"
 #include "arolla/qexpr/operators.h"
+#include "arolla/qexpr/optools.h"
 #include "arolla/util/meta.h"
 #include "arolla/util/status.h"
 #include "arolla/util/traceme.h"
@@ -121,6 +124,44 @@ std::unique_ptr<arolla::BoundOperator> MakeBoundOperator(std::string name,
       std::move(name), std::move(functor)));
 }
 
+namespace macro_internal {
+
+template <typename Fn, typename... Args>
+auto OperatorMacroImpl(absl::string_view name, Fn func) {
+  return MakeKodaOperatorWrapper(std::string(name), std::move(func));
+}
+
+template <typename Fn, typename... Args>
+auto OperatorMacroImpl(absl::string_view name, Fn func,
+                       absl::string_view display_name) {
+  DCHECK_NE(name, display_name) << "remove excessive display_name argument";
+  return MakeKodaOperatorWrapper(std::string(display_name), std::move(func));
+}
+
+}  // namespace macro_internal
+
 }  // namespace koladata
+
+// Registers the provided operator / function wrapped with
+// MakeKodaOperatorWrapper. See AROLLA_REGISTER_QEXPR_OPERATOR for details.
+#define KODA_QEXPR_OPERATOR(name, ...) \
+  AROLLA_REGISTER_QEXPR_OPERATOR(      \
+      name, ::koladata::macro_internal::OperatorMacroImpl(name, __VA_ARGS__))
+
+// Registers the provided operator / function wrapped with
+// MakeKodaOperatorWrapper. Allows the signature to be manually specified.
+//
+// TODO: Support derived qtypes via automatic casting.
+// Use for operators we need to provide explicit signatures for, due to, for
+// example, the use of derived qtypes. See AROLLA_REGISTER_QEXPR_OPERATOR for
+// details.
+#define KODA_QEXPR_OPERATOR_WITH_SIGNATURE(name, signature, ...)              \
+  AROLLA_REGISTER_QEXPR_OPERATOR(                                             \
+      name, ::koladata::macro_internal::OperatorMacroImpl(name, __VA_ARGS__), \
+      signature)
+
+// Registers the provided operator family. See
+// AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY for details.
+#define KODA_QEXPR_OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
 
 #endif  // KOLADATA_INTERNAL_OP_UTILS_QEXPR_H_

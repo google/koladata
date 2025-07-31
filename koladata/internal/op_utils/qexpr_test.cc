@@ -27,9 +27,15 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/span.h"
 #include "arolla/memory/frame.h"
 #include "arolla/memory/memory_allocation.h"
 #include "arolla/qexpr/eval_context.h"
+#include "arolla/qexpr/operator_factory.h"
+#include "arolla/qexpr/operators.h"
+#include "arolla/qexpr/qexpr_operator_signature.h"
+#include "arolla/qtype/qtype.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/testing/traceme_util.h"
 
@@ -254,6 +260,67 @@ TEST(MakeKodaOperatorWrapper, NoErrorWrappingWhenDisabled) {
     EXPECT_THAT(fn(5, 7),
                 StatusIs(absl::StatusCode::kInvalidArgument, "test error"));
   }
+}
+
+KODA_QEXPR_OPERATOR("qexpr_test.op1", [](int x) -> absl::StatusOr<int> {
+  return absl::InvalidArgumentError("test error");
+});
+KODA_QEXPR_OPERATOR(
+    "qexpr_test.op2",
+    [](int x) -> absl::StatusOr<int> {
+      return absl::InvalidArgumentError("test error");
+    },
+    "different_name");
+KODA_QEXPR_OPERATOR_WITH_SIGNATURE(
+    "qexpr_test.op3",
+    arolla::QExprOperatorSignature::Get({arolla::GetQType<int>()},
+                                        arolla::GetQType<int>()),
+    [](int x) -> absl::StatusOr<int> {
+      return absl::InvalidArgumentError("test error");
+    });
+KODA_QEXPR_OPERATOR_WITH_SIGNATURE(
+    "qexpr_test.op4",
+    arolla::QExprOperatorSignature::Get({arolla::GetQType<int>()},
+                                        arolla::GetQType<int>()),
+    [](int x) -> absl::StatusOr<int> {
+      return absl::InvalidArgumentError("test error");
+    },
+    "different_name");
+
+TEST(Macros, KodaQExprOperator) {
+  EXPECT_THAT(arolla::InvokeOperator<int>("qexpr_test.op1", 123),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "qexpr_test.op1: test error"));
+  EXPECT_THAT(arolla::InvokeOperator<int>("qexpr_test.op2", 123),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "different_name: test error"));
+}
+
+TEST(Macros, KodaQExprOperatorWithSignature) {
+  EXPECT_THAT(arolla::InvokeOperator<int>("qexpr_test.op3", 123),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "qexpr_test.op3: test error"));
+  EXPECT_THAT(arolla::InvokeOperator<int>("qexpr_test.op4", 123),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       "different_name: test error"));
+}
+
+class PassThroughOperatorFamily : public arolla::OperatorFamily {
+ public:
+  absl::StatusOr<arolla::OperatorPtr> DoGetOperator(
+      absl::Span<const arolla::QTypePtr> input_types,
+      arolla::QTypePtr output_type) const final {
+    return arolla::QExprOperatorFromFunction([](int x) -> absl::StatusOr<int> {
+      return absl::InvalidArgumentError("test error");
+    });
+  }
+};
+KODA_QEXPR_OPERATOR_FAMILY("qexpr_test.op_family",
+                           std::make_unique<PassThroughOperatorFamily>());
+
+TEST(Macros, KodaQExprOperatorFamily) {
+  EXPECT_THAT(arolla::InvokeOperator<int>("qexpr_test.op_family", 123),
+              StatusIs(absl::StatusCode::kInvalidArgument, "test error"));
 }
 
 }  // namespace

@@ -16,10 +16,8 @@
 #include <memory>
 #include <string>
 
-#include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 #include "arolla/qexpr/operator_factory.h"
-#include "arolla/qexpr/optools.h"
 #include "arolla/util/text.h"
 #include "arolla/util/unit.h"
 #include "arolla/qexpr/qexpr_operator_signature.h"
@@ -59,29 +57,9 @@
 namespace koladata::ops {
 namespace {
 
-template <typename Ret, typename... Args>
-auto OperatorMacroImpl(absl::string_view name, Ret (*func)(Args...)) {
-  return MakeKodaOperatorWrapper(std::string(name), func);
-}
-
-template <typename Ret, typename... Args>
-auto OperatorMacroImpl(absl::string_view name, Ret (*func)(Args...),
-                       absl::string_view display_name) {
-  DCHECK_NE(name, display_name) << "remove excessive display_name argument";
-  return MakeKodaOperatorWrapper(std::string(display_name), func);
-}
-
-#define OPERATOR(name, ...) \
-  AROLLA_REGISTER_QEXPR_OPERATOR(name, OperatorMacroImpl(name, __VA_ARGS__))
-
-// TODO: Support derived qtypes via automatic casting.
-// Use for operators we need to provide explicit signatures for, due to, for
-// example, the use of derived qtypes.
-#define OPERATOR_WITH_SIGNATURE(name, signature, ...)                        \
-  AROLLA_REGISTER_QEXPR_OPERATOR(name, OperatorMacroImpl(name, __VA_ARGS__), \
-                                 signature)
-
-#define OPERATOR_FAMILY AROLLA_REGISTER_QEXPR_OPERATOR_FAMILY
+#define OPERATOR KODA_QEXPR_OPERATOR
+#define OPERATOR_WITH_SIGNATURE KODA_QEXPR_OPERATOR_WITH_SIGNATURE
+#define OPERATOR_FAMILY KODA_QEXPR_OPERATOR_FAMILY
 
 // go/keep-sorted start ignore_prefixes=OPERATOR,OPERATOR_FAMILY,OPERATOR_WITH_SIGNATURE NOLINT
 OPERATOR("kd.allocation.new_dictid_like", NewDictIdLike);
@@ -153,7 +131,8 @@ OPERATOR("kd.core.no_bag", NoBag);
 OPERATOR("kd.core.nofollow", NoFollow);
 OPERATOR("kd.core.ref", Ref);
 OPERATOR("kd.core.stub", Stub);
-OPERATOR_FAMILY("kd.core.updated", std::make_unique<UpdatedOperatorFamily>());
+OPERATOR_FAMILY("kd.core.updated",
+                     std::make_unique<UpdatedOperatorFamily>());
 OPERATOR("kd.core.with_bag", WithBag);
 OPERATOR("kd.core.with_merged_bag", WithMergedBag);
 OPERATOR_FAMILY("kd.core.with_print",
@@ -233,7 +212,8 @@ OPERATOR("kd.masking.coalesce", Coalesce);
 OPERATOR("kd.masking.disjoint_coalesce", DisjointCoalesce);
 OPERATOR("kd.masking.has", Has);
 //
-OPERATOR("kd.math._agg_inverse_cdf", AggInverseCdf, "kd.math.agg_inverse_cdf");
+OPERATOR("kd.math._agg_inverse_cdf", AggInverseCdf,
+              "kd.math.agg_inverse_cdf");
 OPERATOR("kd.math._agg_max", AggMax, "kd.math.agg_max");
 OPERATOR("kd.math._agg_mean", AggMean, "kd.math.agg_mean");
 OPERATOR("kd.math._agg_median", AggMedian, "kd.math.agg_median");
@@ -272,7 +252,8 @@ OPERATOR("kd.math.subtract", Subtract);
 //
 OPERATOR_FAMILY("kd.objs.like", std::make_unique<ObjLikeOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.new", std::make_unique<ObjOperatorFamily>());
-OPERATOR_FAMILY("kd.objs.shaped", std::make_unique<ObjShapedOperatorFamily>());
+OPERATOR_FAMILY("kd.objs.shaped",
+                     std::make_unique<ObjShapedOperatorFamily>());
 OPERATOR_FAMILY("kd.objs.uu", std::make_unique<UuObjOperatorFamily>());
 //
 OPERATOR("kd.proto._from_proto_bytes", FromProtoBytes);
@@ -283,11 +264,13 @@ OPERATOR("kd.proto.to_proto_json", ToProtoJson);
 //
 OPERATOR("kd.schema._agg_common_schema", AggCommonSchema,
          "kd.schema.agg_common_schema");
-OPERATOR("kd.schema._internal_maybe_named_schema", InternalMaybeNamedSchema,
-         // Don't pass the display name, because it's confusing.
-         // TODO: b/374841918 - Use the outer lambda's name instead.
-         "");
-OPERATOR("kd.schema._unsafe_cast_to", UnsafeCastTo, "kd.schema.unsafe_cast_to");
+OPERATOR("kd.schema._internal_maybe_named_schema",
+              InternalMaybeNamedSchema,
+              // Don't pass the display name, because it's confusing.
+              // TODO: b/374841918 - Use the outer lambda's name instead.
+              "");
+OPERATOR("kd.schema._unsafe_cast_to", UnsafeCastTo,
+              "kd.schema.unsafe_cast_to");
 OPERATOR("kd.schema.cast_to", CastTo);
 OPERATOR("kd.schema.cast_to_implicit", CastToImplicit);
 OPERATOR("kd.schema.cast_to_narrow", CastToNarrow);
@@ -352,7 +335,8 @@ OPERATOR_FAMILY("kd.slices._group_by_indices",
 OPERATOR("kd.slices._inverse_mapping", InverseMapping,
          "kd.slices.inverse_mapping");
 OPERATOR("kd.slices._ordinal_rank", OrdinalRank, "kd.slices.ordinal_rank");
-OPERATOR_FAMILY("kd.slices.align", std::make_unique<AlignOperatorFamily>());
+OPERATOR_FAMILY("kd.slices.align",
+                     std::make_unique<AlignOperatorFamily>());
 OPERATOR_WITH_SIGNATURE(
     "kd.slices.empty_shaped",
     arolla::QExprOperatorSignature::Get({GetJaggedShapeQType(),
@@ -371,7 +355,8 @@ OPERATOR("kd.slices.translate", Translate);
 OPERATOR("kd.slices.unique", Unique);
 //
 OPERATOR("kd.strings._agg_join", AggJoin, "kd.strings.agg_join");
-OPERATOR("kd.strings._decode_base64", DecodeBase64, "kd.strings.decode_base64");
+OPERATOR("kd.strings._decode_base64", DecodeBase64,
+              "kd.strings.decode_base64");
 OPERATOR_FAMILY(
     "kd.strings._test_only_format_wrapper",
     arolla::MakeVariadicInputOperatorFamily(MakeKodaOperatorWrapper(
@@ -382,7 +367,8 @@ OPERATOR("kd.strings.decode", Decode);
 OPERATOR("kd.strings.encode", Encode);
 OPERATOR("kd.strings.encode_base64", EncodeBase64);
 OPERATOR("kd.strings.find", Find);
-OPERATOR_FAMILY("kd.strings.format", std::make_unique<FormatOperatorFamily>());
+OPERATOR_FAMILY("kd.strings.format",
+                     std::make_unique<FormatOperatorFamily>());
 OPERATOR_FAMILY("kd.strings.join",
                 arolla::MakeVariadicInputOperatorFamily(
                     MakeKodaOperatorWrapper("kd.strings.join", Join)));
