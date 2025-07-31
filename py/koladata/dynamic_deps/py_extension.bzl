@@ -3,6 +3,9 @@
 load("@pybind11_bazel//:build_defs.bzl", "pybind_extension")
 load("@rules_python//python:defs.bzl", "py_library")
 
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 def _py_extension(  # buildifier: disable=unused-variable
         name = None,
         srcs = None,
@@ -29,8 +32,7 @@ def _py_extension(  # buildifier: disable=unused-variable
 
     cc_library_name = name + "_cc"
     cc_binary_name = name + ".so"
-
-    native.cc_library(
+    cc_library(
         name = cc_library_name,
         srcs = srcs,
         hdrs = hdrs,
@@ -40,8 +42,7 @@ def _py_extension(  # buildifier: disable=unused-variable
         deps = deps,
         alwayslink = True,
     )
-
-    native.cc_binary(
+    cc_binary(
         name = cc_binary_name,
         linkshared = True,
         linkstatic = True,

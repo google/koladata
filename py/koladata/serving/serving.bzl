@@ -6,6 +6,7 @@ load(
     "python_function_call_genrule",
     "render_jinja2_template",
 )
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
 # TODO: Make disabling type checking optional.
 def koladata_trace_py_fn(
@@ -180,7 +181,7 @@ def koladata_cc_embedded_slices(
         testonly = testonly,
         tags = tags,
     )
-    native.cc_library(
+    cc_library(
         name = name,
         testonly = testonly,
         srcs = [name + ".cc"],
