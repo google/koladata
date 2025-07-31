@@ -14,9 +14,11 @@
 //
 #include "koladata/internal/op_utils/deep_diff.h"
 #include <optional>
+#include <string>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_cat.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_bag.h"
@@ -270,6 +272,41 @@ TEST_P(DeepDiffTest, SaveTransitionAttribute) {
   };
   TriplesT expected_schema_triples = {
       {from_token_schema, {{"x", DataItem(schema::kObject)}}},
+  };
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
+TEST_P(DeepDiffTest, SaveTransitionSchemaAttribute) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto from_item = AllocateSchema();
+  auto to_item = AllocateSchema();
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_diff = DeepDiff(result_db);
+  ASSERT_OK_AND_ASSIGN(auto from_token, deep_diff.CreateTokenLike(from_item));
+  ASSERT_OK_AND_ASSIGN(auto to_token, deep_diff.CreateTokenLike(to_item));
+  ASSERT_OK(
+      deep_diff.SaveTransition(from_token,
+                               {.type = TransitionType::kSchemaAttributeName,
+                                .value = DataItem(arolla::Text("x"))},
+                               to_token));
+
+  ASSERT_OK_AND_ASSIGN(auto from_token_schema,
+                       result_db->GetObjSchemaAttr(from_token));
+  ASSERT_OK_AND_ASSIGN(auto to_token_schema,
+                       result_db->GetObjSchemaAttr(to_token));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  std::string x_with_prefix = absl::StrCat(DeepDiff::kSchemaAttrPrefix, "x");
+  TriplesT expected_data_triples = {
+      {from_token,
+       {{schema::kSchemaAttr, from_token_schema}, {x_with_prefix, to_token}}},
+      {to_token, {{schema::kSchemaAttr, to_token_schema}}},
+  };
+  TriplesT expected_schema_triples = {
+      {from_token_schema, {{x_with_prefix, DataItem(schema::kObject)}}},
   };
   SetDataTriples(*expected_db, expected_data_triples);
   SetSchemaTriples(*expected_db, expected_schema_triples);

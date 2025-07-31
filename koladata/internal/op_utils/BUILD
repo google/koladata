@@ -284,6 +284,7 @@ cc_library(
         "//koladata/internal:uuid_object",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util:status_backport",
     ],
@@ -303,6 +304,7 @@ cc_test(
         "//koladata/internal:schema_attrs",
         "//koladata/internal/testing:deep_op_utils",
         "//koladata/internal/testing:matchers",
+        "@com_google_absl//absl/strings",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
@@ -470,7 +472,6 @@ cc_library(
         "@com_google_absl//absl/functional:function_ref",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/status",
-        "@com_google_absl//absl/strings:str_format",
         "@com_google_arolla//arolla/util:status_backport",
     ],
 )

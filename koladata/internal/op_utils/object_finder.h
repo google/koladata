@@ -28,6 +28,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
@@ -47,10 +48,12 @@ class ObjectFinder {
   using ObjectPathCallback = absl::FunctionRef<absl::Status(
       const DataItem&, const DataItem&, absl::FunctionRef<std::string()> path)>;
 
-  ObjectFinder(const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks)
+  ObjectFinder(const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
+               absl::string_view ignore_attr_name_prefix = "")
       : traverse_helper_(databag, fallbacks),
         previsit_stack_(),
-        used_items_() {}
+        used_items_(),
+        ignore_attr_name_prefix_(ignore_attr_name_prefix) {}
 
   absl::Status TraverseSlice(const DataSliceImpl& ds, const DataItem& schema,
                              ObjectPathCallback callback) {
@@ -129,7 +132,7 @@ class ObjectFinder {
     access_stack_.push_back(key);
     RETURN_IF_ERROR(callback(item.item, item.schema, [&]() {
       return TraverseHelper::TransitionKeySequenceToAccessPath(
-          absl::MakeSpan(access_stack_));
+          absl::MakeSpan(access_stack_), ignore_attr_name_prefix_);
     }));
     access_stack_.pop_back();
     return absl::OkStatus();
@@ -168,7 +171,7 @@ class ObjectFinder {
             callback));
         RETURN_IF_ERROR(callback(item.item, item.schema, [&]() {
           return TraverseHelper::TransitionKeySequenceToAccessPath(
-              absl::MakeSpan(access_stack_));
+              absl::MakeSpan(access_stack_), ignore_attr_name_prefix_);
         }));
       } else if (item.item != DataItem(schema::kSchema) ||
                  item.schema != DataItem(schema::kSchema)) {
@@ -211,6 +214,7 @@ class ObjectFinder {
       previsit_stack_;
   absl::flat_hash_set<std::pair<DataItem, DataItem>, PairOfItemsHash>
       used_items_;
+  std::string ignore_attr_name_prefix_;
 };
 
 }  // namespace koladata::internal

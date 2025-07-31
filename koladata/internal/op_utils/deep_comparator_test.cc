@@ -98,7 +98,8 @@ class EqualEntityPrimitivesComparator : public AbstractComparator {
     if (lhs.type != rhs.type) {
       return lhs.type < rhs.type ? -1 : 1;
     }
-    if (lhs.type != TraverseHelper::TransitionType::kAttributeName) {
+    if (lhs.type != TraverseHelper::TransitionType::kAttributeName &&
+        lhs.type != TraverseHelper::TransitionType::kSchemaAttributeName) {
       // We only order attribute names.
       if (status_.ok()) {
         status_ = absl::InternalError("unexpected transition type");

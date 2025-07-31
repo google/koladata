@@ -168,7 +168,8 @@ DeepEquivalentOp::GetDiffPaths(const DataSliceImpl& ds, const DataItem& schema,
   };
   // We look for the diff items (have diff_uuid schema) in the newly
   // created databag.
-  auto diff_finder = ObjectFinder(*new_databag_, {});
+  auto diff_finder =
+      ObjectFinder(*new_databag_, {}, DeepDiff::kSchemaAttrPrefix);
   RETURN_IF_ERROR(diff_finder.TraverseSlice(ds, schema, lambda_visitor));
   return diff_paths;
 }
@@ -188,7 +189,8 @@ DeepEquivalentOp::GetDiffPaths(const DataItem& item, const DataItem& schema,
     }
     return absl::OkStatus();
   };
-  auto diff_finder = ObjectFinder(*new_databag_, {});
+  auto diff_finder =
+      ObjectFinder(*new_databag_, {}, DeepDiff::kSchemaAttrPrefix);
   RETURN_IF_ERROR(diff_finder.TraverseSlice(item, schema, lambda_visitor));
   return diff_paths;
 }

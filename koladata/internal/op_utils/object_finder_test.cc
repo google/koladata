@@ -29,6 +29,7 @@
 #include "absl/functional/function_ref.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
@@ -241,6 +242,47 @@ TEST_P(ObjectFinderTest, ObjectSliceEntities) {
           absl::FunctionRef<std::string()> path) {
         return finder->ObjectPathCallback(item, schema, path);
       }));
+}
+
+TEST_P(ObjectFinderTest, SchemaSlice) {
+  for (auto prefix : {"", "attr_"}) {
+    auto db = DataBagImpl::CreateEmptyDatabag();
+    auto root_schema = AllocateSchema();
+    auto list_schema = AllocateSchema();
+    auto item_schema = AllocateSchema();
+    TriplesT schema_triples = {
+        {root_schema, {{absl::StrCat(prefix, "items"), list_schema}}},
+        {list_schema,
+         {{absl::StrCat(prefix, schema::kListItemsSchemaAttr), item_schema}}},
+        {item_schema,
+         {{absl::StrCat(prefix, "x"), DataItem(schema::kInt32)},
+          {absl::StrCat(prefix, "y"), DataItem(schema::kFloat32)}}}};
+    SetSchemaTriples(*db, schema_triples);
+    SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+    SetDataTriples(*db, GenDataTriplesForTest());
+
+    auto finder = std::make_shared<TestFinder>(
+        std::vector<PathItem>({
+            {"", root_schema, DataItem(schema::kSchema)},
+            {".items", list_schema, DataItem(schema::kSchema)},
+            {absl::StrFormat(".items.%s", schema::kListItemsSchemaAttr),
+             item_schema, DataItem(schema::kSchema)},
+            {absl::StrFormat(".items.%s.x", schema::kListItemsSchemaAttr),
+             DataItem(schema::kInt32), DataItem(schema::kSchema)},
+            {absl::StrFormat(".items.%s.y", schema::kListItemsSchemaAttr),
+             DataItem(schema::kFloat32), DataItem(schema::kSchema)},
+        }),
+        [](const DataItem& item, const DataItem& schema) {
+          return schema.is_struct_schema();
+        });
+    auto object_finder = ObjectFinder(*db, {}, prefix);
+    ASSERT_OK(object_finder.TraverseSlice(
+        root_schema, DataItem(schema::kSchema),
+        [&](const DataItem& item, const DataItem& schema,
+            absl::FunctionRef<std::string()> path) {
+          return finder->ObjectPathCallback(item, schema, path);
+        }));
+  }
 }
 
 }  // namespace

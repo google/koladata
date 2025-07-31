@@ -44,6 +44,9 @@ class DeepDiff {
   static constexpr std::string_view kDiffItemAttr = "diff";
   static constexpr std::string_view kDiffWrapperSeed =
       "__diff_wrapper_schema__";
+  // Prefix we add to attribute names of schema attribute transitions, to avoid
+  // resulting objects being treated as lists or dicts.
+  static constexpr std::string_view kSchemaAttrPrefix = "__s__";
 
   explicit DeepDiff(DataBagImplPtr databag) : databag_(std::move(databag)) {}
 

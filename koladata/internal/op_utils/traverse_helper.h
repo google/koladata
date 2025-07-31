@@ -55,6 +55,7 @@ class TraverseHelper {
     kDictKey,
     kDictValue,
     kAttributeName,
+    kSchemaAttributeName,
     kObjectSchema,
     kSchema,
     kSliceItem,
@@ -74,27 +75,42 @@ class TraverseHelper {
     DataItem value = DataItem();
   };
 
-  static std::string TransitionKeyToAccessString(const TransitionKey& key) {
+  static std::string TransitionKeyToAccessString(
+      const TransitionKey& key,
+      absl::string_view ignore_attr_name_prefix = "") {
     if (key.type == TransitionType::kListItem) {
       return absl::StrFormat("[%d]", key.index);
     } else if (key.type == TransitionType::kDictKey) {
       return absl::StrFormat(".get_keys().S[%d]", key.index);
     } else if (key.type == TransitionType::kDictValue) {
       return absl::StrFormat("[%s]", DataItemRepr(key.value));
-    } else if (key.type == TransitionType::kAttributeName) {
+    } else if (key.type == TransitionType::kSchemaAttributeName) {
       auto attr_name = key.value.value<arolla::Text>().view();
+      if (!ignore_attr_name_prefix.empty() &&
+          attr_name.starts_with(ignore_attr_name_prefix)) {
+        attr_name = attr_name.substr(ignore_attr_name_prefix.size());
+      }
       if (attr_name == schema::kSchemaNameAttr) {
-        return absl::StrFormat(".get_attr('%s')", schema::kSchemaNameAttr);
+        return absl::StrFormat(".get_attr(%s)", schema::kSchemaNameAttr);
       } else if (attr_name == schema::kSchemaMetadataAttr) {
-        return absl::StrFormat(".get_attr('%s')", schema::kSchemaMetadataAttr);
-      } else if (attr_name == schema::kSchemaAttr) {
-        return ".get_obj_schema()";
+        return absl::StrFormat(".get_attr(%s)", schema::kSchemaMetadataAttr);
       } else if (attr_name == schema::kListItemsSchemaAttr) {
         return ".get_item_schema()";
       } else if (attr_name == schema::kDictKeysSchemaAttr) {
         return ".get_key_schema()";
       } else if (attr_name == schema::kDictValuesSchemaAttr) {
         return ".get_value_schema()";
+      } else {
+        return absl::StrFormat(".%s", attr_name);
+      }
+    } else if (key.type == TransitionType::kAttributeName) {
+      auto attr_name = key.value.value<arolla::Text>().view();
+      if (!ignore_attr_name_prefix.empty() &&
+          attr_name.starts_with(ignore_attr_name_prefix)) {
+        attr_name = attr_name.substr(ignore_attr_name_prefix.size());
+      }
+      if (attr_name == schema::kSchemaAttr) {
+        return ".get_obj_schema()";
       } else {
         return absl::StrFormat(".%s", attr_name);
       }
@@ -112,10 +128,12 @@ class TraverseHelper {
   }
 
   static std::string TransitionKeySequenceToAccessPath(
-      absl::Span<TransitionKey> seq) {
+      absl::Span<TransitionKey> seq,
+      absl::string_view ignore_attr_name_prefix = "") {
     std::string result;
     for (const auto& key : seq) {
-      absl::StrAppend(&result, TransitionKeyToAccessString(key));
+      absl::StrAppend(
+          &result, TransitionKeyToAccessString(key, ignore_attr_name_prefix));
     }
     return result;
   }
@@ -128,42 +146,71 @@ class TraverseHelper {
    public:
     static TransitionsSet CreateForList(DataItem list_item_schema,
                                         DataSliceImpl list_items) {
-      return TransitionsSet(std::nullopt, std::move(list_items),
-                            std::move(list_item_schema), std::nullopt,
-                            std::nullopt);
+      return TransitionsSet(
+          /*keys_or_names=*/std::nullopt,
+          /*values=*/std::move(list_items),
+          /*list_item_schema=*/std::move(list_item_schema),
+          /*dict_keys_schema=*/std::nullopt,
+          /*dict_values_schema=*/std::nullopt,
+          /*is_schema=*/false);
     }
 
     static TransitionsSet CreateForDict(DataItem dict_keys_schema,
                                         DataItem dict_values_schema,
                                         DataSliceImpl dict_keys,
                                         DataSliceImpl dict_values) {
-      return TransitionsSet(std::move(dict_keys), std::move(dict_values),
-                            std::nullopt, std::move(dict_keys_schema),
-                            std::move(dict_values_schema));
+      return TransitionsSet(
+          /*keys_or_names=*/std::move(dict_keys),
+          /*values=*/std::move(dict_values),
+          /*list_item_schema=*/std::nullopt,
+          /*dict_keys_schema=*/std::move(dict_keys_schema),
+          /*dict_values_schema=*/std::move(dict_values_schema),
+          /*is_schema=*/false);
     }
 
     static TransitionsSet CreateForEntity(DataSliceImpl attr_names) {
-      return TransitionsSet(std::move(attr_names), std::nullopt, std::nullopt,
-                            std::nullopt, std::nullopt);
+      return TransitionsSet(
+          /*keys_or_names=*/std::move(attr_names),
+          /*values=*/std::nullopt,
+          /*list_item_schema=*/std::nullopt,
+          /*dict_keys_schema=*/std::nullopt,
+          /*dict_values_schema=*/std::nullopt,
+          /*is_schema=*/false);
     }
 
     static TransitionsSet CreateForSchema(DataSliceImpl attr_names) {
-      return TransitionsSet(std::move(attr_names), std::nullopt, std::nullopt,
-                            std::nullopt, std::nullopt);
+      return TransitionsSet(
+          /*keys_or_names=*/std::move(attr_names),
+          /*values=*/std::nullopt,
+          /*list_item_schema=*/std::nullopt,
+          /*dict_keys_schema=*/std::nullopt,
+          /*dict_values_schema=*/std::nullopt,
+          /*is_schema=*/true);
     }
 
     static TransitionsSet CreateForObject() {
-      return TransitionsSet(std::nullopt, std::nullopt, std::nullopt,
-                            std::nullopt, std::nullopt);
+      return TransitionsSet(
+          /*keys_or_names=*/std::nullopt,
+          /*values=*/std::nullopt,
+          /*list_item_schema=*/std::nullopt,
+          /*dict_keys_schema=*/std::nullopt,
+          /*dict_values_schema=*/std::nullopt,
+          /*is_schema=*/false);
     }
 
     static TransitionsSet CreateEmpty() {
-      return TransitionsSet(std::nullopt, std::nullopt, std::nullopt,
-                            std::nullopt, std::nullopt);
+      return TransitionsSet(
+          /*keys_or_names=*/std::nullopt,
+          /*values=*/std::nullopt,
+          /*list_item_schema=*/std::nullopt,
+          /*dict_keys_schema=*/std::nullopt,
+          /*dict_values_schema=*/std::nullopt,
+          /*is_schema=*/false);
     }
 
     bool is_list() const { return list_item_schema_.has_value(); }
     bool is_dict() const { return dict_keys_schema_.has_value(); }
+    bool is_schema() const { return is_schema_; }
     bool has_attrs() const { return keys_or_names_.has_value(); }
 
     const DataItem& dict_keys_schema() const {
@@ -220,12 +267,13 @@ class TraverseHelper {
                                      .value = dict_keys()[i]});
         }
       } else if (has_attrs()) {
+        TransitionType type = is_schema() ? TransitionType::kSchemaAttributeName
+                                          : TransitionType::kAttributeName;
         attr_names().ForEach(
             [&](int64_t i, bool presence, std::string_view attr_name) {
               DCHECK(presence);
               transition_keys.push_back(
-                  {.type = TransitionType::kAttributeName,
-                   .value = DataItem(arolla::Text(attr_name))});
+                  {.type = type, .value = DataItem(arolla::Text(attr_name))});
             });
       }
       return transition_keys;
@@ -236,18 +284,21 @@ class TraverseHelper {
                    std::optional<DataSliceImpl> values,
                    std::optional<DataItem> list_item_schema,
                    std::optional<DataItem> dict_keys_schema,
-                   std::optional<DataItem> dict_values_schema)
+                   std::optional<DataItem> dict_values_schema,
+                   bool is_schema)
         : keys_or_names_(std::move(keys_or_names)),
           values_(std::move(values)),
           list_item_schema_(std::move(list_item_schema)),
           dict_keys_schema_(std::move(dict_keys_schema)),
-          dict_values_schema_(std::move(dict_values_schema)) {}
+          dict_values_schema_(std::move(dict_values_schema)),
+          is_schema_(is_schema) {}
 
     std::optional<DataSliceImpl> keys_or_names_;
     std::optional<DataSliceImpl> values_;
     std::optional<DataItem> list_item_schema_;
     std::optional<DataItem> dict_keys_schema_;
     std::optional<DataItem> dict_values_schema_;
+    bool is_schema_;
   };
 
   TraverseHelper(const DataBagImpl& databag,
@@ -315,12 +366,9 @@ class TraverseHelper {
       return Transition({.item = transitions_set.dict_values()[key.index],
                          .schema = transitions_set.dict_values_schema()});
     } else if (key.type == TransitionType::kAttributeName) {
-      if (schema.is_schema_schema()) {
-        return SchemaAttributeTransition(item, key.value.value<arolla::Text>());
-      } else {
-        return AttributeTransition(item, schema,
-                                   key.value.value<arolla::Text>());
-      }
+      return AttributeTransition(item, schema, key.value.value<arolla::Text>());
+    } else if (key.type == TransitionType::kSchemaAttributeName) {
+      return SchemaAttributeTransition(item, key.value.value<arolla::Text>());
     } else if (key.type == TransitionType::kObjectSchema) {
       ASSIGN_OR_RETURN(auto object_schema, GetObjectSchema(item));
       return Transition({.item = std::move(object_schema),

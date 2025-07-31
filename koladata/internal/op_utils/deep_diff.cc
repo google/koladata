@@ -20,6 +20,7 @@
 
 #include "absl/log/check.h"
 #include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -117,6 +118,17 @@ absl::Status DeepDiff::SaveTransition(DataItem token,
   if (key.type == TraverseHelper::TransitionType::kAttributeName) {
     DCHECK(key.value.holds_value<arolla::Text>());
     auto attr_name = key.value.value<arolla::Text>();
+    RETURN_IF_ERROR(databag_->SetSchemaAttr(token_schema, attr_name,
+                                            DataItem(schema::kObject)));
+    RETURN_IF_ERROR(databag_->SetAttr(token, attr_name, std::move(value)));
+  } else if (key.type == TraverseHelper::TransitionType::kSchemaAttributeName) {
+    DCHECK(key.value.holds_value<arolla::Text>());
+    // Use of special schema attributes (ex.: kListItemsSchemaAttr,
+    // kDictKeysSchemaAttr, etc.) as attributes of an object leads to
+    // inconsistent state of the databag, so we prepend all the attribute names
+    // with kSchemaAttrPrefix.
+    auto attr_name = arolla::Text(absl::StrCat(
+        kSchemaAttrPrefix, key.value.value<arolla::Text>().view()));
     RETURN_IF_ERROR(databag_->SetSchemaAttr(token_schema, attr_name,
                                             DataItem(schema::kObject)));
     RETURN_IF_ERROR(databag_->SetAttr(token, attr_name, std::move(value)));
