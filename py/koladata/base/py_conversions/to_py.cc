@@ -412,14 +412,21 @@ PyObject* absl_nullable ToPyImplInternal(
   }
   const DataSlice& schema = ds.GetSchema();
   DCHECK(bag != nullptr);
+  auto ds_bag = ds.GetBag();
+  DCHECK(ds_bag != nullptr);
 
   FlattenFallbackFinder fb_finder(*bag);
   const internal::DataBagImpl::FallbackSpan fallback_span =
       fb_finder.GetFlattenFallbacks();
+  FlattenFallbackFinder ds_fb_finder(*ds_bag);
+  const internal::DataBagImpl::FallbackSpan ds_fallback_span =
+      ds_fb_finder.GetFlattenFallbacks();
+  // We use original DataBag in ToPyVisitor.
   std::shared_ptr<ToPyVisitor> visitor = std::make_shared<ToPyVisitor>(
       obj_as_dict, include_missing_attrs, leaf_ids, bag, fallback_span);
-  internal::Traverser<ToPyVisitor> traverse_op(bag->GetImpl(), fallback_span,
-                                               visitor);
+  // We use extracted DataBag for traversal.
+  internal::Traverser<ToPyVisitor> traverse_op(ds_bag->GetImpl(),
+                                               ds_fallback_span, visitor);
 
   RETURN_IF_ERROR(ds.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     if constexpr (std::is_same_v<T, DataItem>) {
@@ -448,8 +455,9 @@ PyObject* absl_nullable ToPyImpl(const DataSlice& ds, DataBagPtr bag,
   internal::LeafCallback leaf_callback = [&](const DataSliceImpl& slice,
                                              const DataItem& schema) {
     for (const DataItem& item : slice) {
-      if (item.holds_value<ObjectId>())
+      if (item.holds_value<ObjectId>()) {
         objects_not_to_convert.insert(item.value<ObjectId>());
+      }
     }
     return absl::OkStatus();
   };

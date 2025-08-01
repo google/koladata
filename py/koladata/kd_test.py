@@ -622,6 +622,10 @@ class KdTest(absltest.TestCase):
         kd.expr.unpack_expr(fn.f.returns), I.x + 1
     )
 
+  def test_to_py_sub_functor_regression(self):
+    f = kd.fn(lambda x: kd.eager.V.g(x) + 2).with_attrs(g=kd.fn(lambda x: x))
+    _ = kd.list([f]).to_py(max_depth=1)  # no error
+
   def test_tracing_schema_new(self):
     with tracing_mode.enable_tracing():
       entity = kd.uu_schema(a=kd.INT32, b=kd.STRING).new(a=42, b='xyz')

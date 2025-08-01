@@ -1868,28 +1868,31 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     root = kd.new()
 
-    root = root.with_attrs(x=e_foo)
+    root = root.with_attrs(x=kd.new(z=e_foo))
     root = root.with_attrs(y=e_bar)
 
-    root = root.updated(kd.attrs(root.x, b=kd.item(2)))
+    root = root.updated(kd.attrs(root.x.z, b=kd.item(2)))
     root = root.updated(kd.attrs(root.y, c=kd.item(3)))
 
-    root = root.updated(kd.attrs(root.x, a=kd.item(4)))
+    root = root.updated(kd.attrs(root.x.z, a=kd.item(4)))
 
     self.assertEqual(
         root.to_pytree(max_depth=-1),
-        {'x': {'a': 4, 'b': 2, 'c': 3}, 'y': {'a': 4, 'b': 2, 'c': 3}},
+        {
+            'x': {'z': {'a': 4, 'b': None, 'c': 3}},
+            'y': {'a': 4, 'b': None, 'c': 3},
+        },
     )
 
     self.assertEqual(
         root.extract().to_pytree(max_depth=-1),
         {
-            'x': {'a': 4, 'b': None, 'c': 3},
+            'x': {'z': {'a': 4, 'b': None, 'c': 3}},
             'y': {'a': 4, 'b': None, 'c': 3},
         },
     )
     self.assertEqual(
-        root.x.extract().to_pytree(max_depth=-1),
+        root.x.z.extract().to_pytree(max_depth=-1),
         {'a': 4, 'b': 2},
     )
     self.assertEqual(
@@ -1910,19 +1913,23 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     e_foo = kd.new(a=1, schema='foo')
     e_bar = e_foo.with_schema(kd.named_schema('bar', a=kd.INT32))
+    foo_wrapper = kd.new(schema='foo_wrapper')
+    manager.update(
+        at_path=parse_dsp(''), attr_name='foo', attr_value=foo_wrapper
+    )
 
-    manager.update(at_path=parse_dsp(''), attr_name='x', attr_value=e_foo)
+    manager.update(at_path=parse_dsp('.foo'), attr_name='x', attr_value=e_foo)
     manager.update(at_path=parse_dsp(''), attr_name='y', attr_value=e_bar)
 
     manager.update(
-        at_path=parse_dsp('.x'), attr_name='b', attr_value=kd.item(2)
+        at_path=parse_dsp('.foo.x'), attr_name='b', attr_value=kd.item(2)
     )
     manager.update(
         at_path=parse_dsp('.y'), attr_name='c', attr_value=kd.item(3)
     )
 
     manager.update(
-        at_path=parse_dsp('.x'), attr_name='a', attr_value=kd.item(4)
+        at_path=parse_dsp('.foo.x'), attr_name='a', attr_value=kd.item(4)
     )
 
     new_manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
@@ -1930,7 +1937,10 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
         new_manager.get_data_slice(with_all_descendants=True).to_pytree(
             max_depth=-1
         ),
-        {'x': {'a': 4, 'b': 2, 'c': 3}, 'y': {'a': 4, 'b': 2, 'c': 3}},
+        {
+            'foo': {'x': {'a': 4, 'b': None, 'c': 3}},
+            'y': {'a': 4, 'b': None, 'c': 3},
+        },
     )
 
     self.assertEqual(
@@ -1938,7 +1948,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
         .extract()
         .to_pytree(max_depth=-1),
         {
-            'x': {'a': 4, 'b': None, 'c': 3},
+            'foo': {'x': {'a': 4, 'b': None, 'c': 3}},
             'y': {'a': 4, 'b': None, 'c': 3},
         },
     )
@@ -1946,7 +1956,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     new_manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(
         new_manager.get_data_slice(
-            parse_dsp('.x'), with_all_descendants=True
+            parse_dsp('.foo.x'), with_all_descendants=True
         ).to_pytree(max_depth=-1),
         {'a': 4, 'b': 2},
     )

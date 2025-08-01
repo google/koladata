@@ -154,7 +154,7 @@ class ToPyTest(parameterized.TestCase):
 
     root_keys = root.dict_value.get_keys()
     py_obj_keys = ds(list(py_obj.dict_value.keys())).with_bag(root.get_bag())
-    testing.assert_equal(root_keys, py_obj_keys)
+    testing.assert_unordered_equal(root_keys, py_obj_keys)
 
     self.assertEqual(py_obj.dict_value[k1.no_bag()], 1)
     self.assertEqual(
@@ -181,7 +181,7 @@ class ToPyTest(parameterized.TestCase):
 
     root_keys = root.dict_value.get_keys()
     py_obj_keys = ds(list(py_obj.dict_value.keys())).with_bag(root.get_bag())
-    testing.assert_equal(root_keys, py_obj_keys)
+    testing.assert_unordered_equal(root_keys, py_obj_keys)
 
     self.assertEqual(py_obj.dict_value[k1.no_bag()], 1)
     self.assertEqual(py_obj.dict_value[k2.no_bag()], 2)
@@ -300,6 +300,13 @@ class ToPyTest(parameterized.TestCase):
 
     self.assertEqual(py_obj, expected)
     self.assertEqual(expected, py_obj)
+
+  def test_recursion_beyond_depth(self):
+    x = fns.new().with_attr('__qualname__', '<lambda>')
+    y = fns.new(x=x).with_attr('__qualname__', '<lambda>')
+    py_obj = fns.list([y]).to_py(max_depth=1)
+
+    self.assertEqual(py_obj, [y])
 
   def test_slice_without_bag(self):
     s = ds([[1, 2], [3, 4, 5]])
