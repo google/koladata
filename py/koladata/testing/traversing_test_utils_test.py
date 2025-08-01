@@ -81,7 +81,7 @@ class TraversingTestUtilsTest(absltest.TestCase):
         AssertionError,
         'Slices are not equivalent, mismatches found:\n'
         r'.y: '
-        r'missing vs DataItem\(2, schema: INT32.*',
+        r'missing vs DataItem\(2, schema: INT32\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -94,7 +94,7 @@ class TraversingTestUtilsTest(absltest.TestCase):
         AssertionError,
         'Slices are not equivalent, mismatches found:\n'
         r'.mapping\[\'b\'\]: '
-        r'DataItem\(Entity\(x=2\), schema: ENTITY\(x=INT32\).* vs missing',
+        r'DataItem\(Entity\(x=2\), schema: ENTITY\(x=INT32\)\) vs missing',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -113,7 +113,7 @@ class TraversingTestUtilsTest(absltest.TestCase):
         AssertionError,
         'Slices are not equivalent, mismatches found:\n'
         r'\[2\]: '
-        r'DataItem\(3, schema: INT32.* vs missing',
+        r'DataItem\(3, schema: INT32\) vs missing',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -126,8 +126,8 @@ class TraversingTestUtilsTest(absltest.TestCase):
         AssertionError,
         'Slices are not equivalent, mismatches found:\n'
         r'.mapping: '
-        r'DataItem\(Entity\(a=1, c=3, d=4\), schema: ENTITY.* vs '
-        r'DataItem\(Dict{.*}, schema: DICT.*',
+        r'DataItem\(Entity\(a=1, c=3, d=4\), schema: ENTITY\(.*\)\) vs '
+        r'DataItem\(Dict{.*}, schema: DICT{STRING, INT32}\)',
     ):
       bag_a = bag()
       bag_b = bag()

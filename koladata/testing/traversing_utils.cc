@@ -98,15 +98,18 @@ absl::StatusOr<std::vector<std::string>> DeepEquivalentMismatches(
                        get_side_item(internal::DeepDiff::kLhsAttr, lhs_db));
       ASSIGN_OR_RETURN(auto rhs,
                        get_side_item(internal::DeepDiff::kRhsAttr, rhs_db));
+      ReprOption repr_option({.show_databag_id = false});
+      auto path_repr = diff.path.empty() ? "" : absl::StrCat(diff.path, ": ");
       if (lhs.has_value() && rhs.has_value()) {
-        mismatches.push_back(absl::StrCat(diff.path, ": ", DataSliceRepr(*lhs),
-                                          " vs ", DataSliceRepr(*rhs)));
+        mismatches.push_back(
+            absl::StrCat(path_repr, DataSliceRepr(*lhs, repr_option), " vs ",
+                         DataSliceRepr(*rhs, repr_option)));
       } else if (lhs.has_value()) {
-        mismatches.push_back(
-            absl::StrCat(diff.path, ": ", DataSliceRepr(*lhs), " vs missing"));
+        mismatches.push_back(absl::StrCat(
+            path_repr, DataSliceRepr(*lhs, repr_option), " vs missing"));
       } else if (rhs.has_value()) {
-        mismatches.push_back(
-            absl::StrCat(diff.path, ": missing vs ", DataSliceRepr(*rhs)));
+        mismatches.push_back(absl::StrCat(path_repr, "missing vs ",
+                                          DataSliceRepr(*rhs, repr_option)));
       } else {
         LOG(FATAL)
             << "diff item has unexpected schema: no lhs or rhs attributes";

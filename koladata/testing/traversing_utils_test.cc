@@ -106,9 +106,9 @@ TEST(TraversingUtilsTest, SlicesMismatch) {
         mismatches,
         UnorderedElementsAre(
             MatchesRegex(
-                R"(\.S\[0\]: DataItem\(2, schema: OBJECT.* vs DataItem\(3, schema: OBJECT.*)"),
+                R"(\.S\[0\]: DataItem\(2, schema: OBJECT\) vs DataItem\(3, schema: OBJECT\))"),
             MatchesRegex(
-                R"(\.S\[1\]: DataItem\(2, schema: OBJECT.* vs DataItem\(3, schema: OBJECT.*)")));
+                R"(\.S\[1\]: DataItem\(2, schema: OBJECT\) vs DataItem\(3, schema: OBJECT\))")));
   }
   {
     ASSERT_OK_AND_ASSIGN(auto mismatches,
@@ -116,7 +116,7 @@ TEST(TraversingUtilsTest, SlicesMismatch) {
     EXPECT_THAT(
         mismatches,
         UnorderedElementsAre(MatchesRegex(
-            R"(\.S\[[01]\]: DataItem\(2, schema: OBJECT.* vs DataItem\(3, schema: OBJECT.*)")));
+            R"(\.S\[[01]\]: DataItem\(2, schema: OBJECT\) vs DataItem\(3, schema: OBJECT\))")));
   }
 }
 

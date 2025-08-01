@@ -101,6 +101,7 @@ cc_library(
         "//py/koladata/base:wrap_utils",
         "@com_google_absl//absl/base:no_destructor",
         "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_arolla//arolla/jagged_shape/dense_array/qtype",

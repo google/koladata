@@ -21,12 +21,14 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "absl/strings/str_format.h"
 #include "arolla/dense_array/dense_array.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/deep_clone.h"
+#include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/testing/deep_op_utils.h"
 
 namespace koladata::internal {
@@ -217,6 +219,51 @@ TEST_P(DeepEquivalentTest, PrimitiveSlice) {
   EXPECT_THAT(diff_paths,
               ::testing::UnorderedElementsAre(::testing::HasSubstr(".S[1]"),
                                               ::testing::HasSubstr(".S[2]")));
+}
+
+TEST_P(DeepEquivalentTest, SchemaSlice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto root_schema = AllocateSchema();
+  auto list_schema = AllocateSchema();
+  auto item_schema = AllocateSchema();
+  TriplesT schema_triples = {
+      {root_schema, {{"items", list_schema}}},
+      {list_schema,
+       {{schema::kListItemsSchemaAttr, item_schema}}},
+      {item_schema,
+       {{"x", DataItem(schema::kInt32)}, {"y", DataItem(schema::kFloat32)}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  auto cloned_db = DataBagImpl::CreateEmptyDatabag();
+  ASSERT_OK_AND_ASSIGN(
+      auto cloned_root_schema,
+      DeepCloneOp(cloned_db.get())(root_schema, DataItem(schema::kSchema),
+                                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+
+  TriplesT update_schema_triples = {
+      {item_schema, {{"x", DataItem(schema::kFloat32)}}}};
+  SetSchemaTriples(*db, update_schema_triples);
+
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_equivalent_op = DeepEquivalentOp(result_db.get());
+  ASSERT_OK_AND_ASSIGN(
+      auto result_item,
+      deep_equivalent_op(root_schema, DataItem(schema::kSchema), *GetMainDb(db),
+                         {GetFallbackDb(db).get()}, cloned_root_schema,
+                         DataItem(schema::kSchema), *cloned_db, {}));
+  ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
+                                       result_item, DataItem(schema::kObject)));
+  std::vector<std::string_view> diff_paths;
+  diffs.reserve(diffs.size());
+  for (const auto& diff : diffs) {
+    diff_paths.push_back(diff.path);
+  }
+  EXPECT_THAT(
+      diff_paths,
+      ::testing::UnorderedElementsAre(::testing::HasSubstr(
+          absl::StrFormat(".items.%s.x", schema::kListItemsSchemaAttr))));
 }
 
 }  // namespace

@@ -19,6 +19,7 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
+#include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
@@ -62,9 +63,16 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   if (mismatches.empty()) {
     Py_RETURN_NONE;
   }
-  std::string msg =
-      absl::StrCat("Slices are not equivalent, mismatches found:\n",
-                   absl::StrJoin(mismatches, "\n"));
+  std::string msg;
+  if (expected_ds->is_item() &&
+      expected_ds->GetSchemaImpl().is_primitive_schema()) {
+    DCHECK_EQ(mismatches.size(), 1);
+    msg = absl::StrCat("Slices are not equivalent: ",
+                       absl::StrJoin(mismatches, "\n"));
+  } else {
+    msg = absl::StrCat("Slices are not equivalent, mismatches found:\n",
+                       absl::StrJoin(mismatches, "\n"));
+  }
   PyErr_SetString(PyExc_AssertionError, msg.c_str());
   return nullptr;
 }
