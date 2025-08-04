@@ -129,35 +129,43 @@ class ToPyVisitor : internal::AbstractVisitor {
   // a cache hit and just populate the attributes. Alternatively, when
   // populating object attributes in `VisitObject`, `VisitDict` and `VisitList`,
   // we could check that it is an entity and if so, query its attributes.
+  //
+  // Returns false if the item should not be converted. Visit* methods will not
+  // be called for this item. And the item would not be traversed further.
   absl::StatusOr<bool> Previsit(const DataItem& from_item,
                                 const DataItem& from_schema,
                                 const DataItem& item,
                                 const DataItem& schema) final {
-    RETURN_IF_ERROR(PrevisitImpl(from_item, from_schema, item, schema));
-    return true;
-  }
-
-  absl::Status PrevisitImpl(const DataItem& from_item,
-                            const DataItem& from_schema, const DataItem& item,
-                            const DataItem& schema) {
     if (!item.holds_value<ObjectId>()) {
-      return absl::OkStatus();
+      return true;
     }
     const ObjectId& object_id = item.value<ObjectId>();
+    if (schema.holds_value<ObjectId>()) {
+      auto schema_object_id = schema.value<ObjectId>();
+      auto [it, was_inserted] =
+          item_schemas_.try_emplace(object_id, schema_object_id);
+      if (!was_inserted && it->second != schema_object_id) {
+        return absl::InternalError(
+            absl::StrFormat("cannot convert object %v, that is reached with "
+                            "different schemas: %v and %v",
+                            object_id, it->second, schema_object_id));
+      }
+    }
     if (converted_object_cache_.contains(object_id)) {
-      return absl::OkStatus();
+      return !ShouldNotBeConverted(item);
     }
 
     if (ShouldNotBeConverted(item)) {
       ASSIGN_OR_RETURN(DataSlice ds, DataSlice::Create(item, schema, db_));
       ASSIGN_OR_RETURN(converted_object_cache_[object_id],
                        WrapDataSliceWithErrorCheck(std::move(ds)));
-      return absl::OkStatus();
+      // This ItemId will not be further traversed.
+      return false;
     }
     if (schema.is_itemid_schema()) {
       ASSIGN_OR_RETURN(converted_object_cache_[object_id],
                        PyObjectFromDataItem(item, schema, db_));
-      return absl::OkStatus();
+      return true;
     }
 
     if (!obj_as_dict_ && item.is_entity() && schema.is_struct_schema()) {
@@ -191,7 +199,7 @@ class ToPyVisitor : internal::AbstractVisitor {
             converted_object_cache_[object_id],
             dataclasses_util_.MakeDataClassInstance(attr_names_vec));
       }
-      return absl::OkStatus();
+      return true;
     }
     if (item.is_dict() || (obj_as_dict_ && item.is_entity())) {
       PyObjectPtr result = PyObjectPtr::Own(PyDict_New());
@@ -200,7 +208,7 @@ class ToPyVisitor : internal::AbstractVisitor {
             absl::StatusCode::kInternal, "could not create a new dict");
       }
       converted_object_cache_[object_id] = std::move(result);
-      return absl::OkStatus();
+      return true;
     }
     if (item.is_list()) {
       PyObjectPtr result = PyObjectPtr::Own(PyList_New(0));
@@ -209,10 +217,10 @@ class ToPyVisitor : internal::AbstractVisitor {
             absl::StatusCode::kInternal, "could not create a new list");
       }
       converted_object_cache_[object_id] = std::move(result);
-      return absl::OkStatus();
+      return true;
     }
 
-    return absl::OkStatus();
+    return true;
   }
 
   absl::Status VisitList(const DataItem& list, const DataItem& schema,
@@ -389,6 +397,7 @@ class ToPyVisitor : internal::AbstractVisitor {
 
   absl::flat_hash_map<ObjectId, arolla::python::PyObjectPtr>
       converted_object_cache_;
+  absl::flat_hash_map<ObjectId, ObjectId> item_schemas_;
 
   bool obj_as_dict_ = false;
   bool include_missing_attrs_ = false;
@@ -412,21 +421,16 @@ PyObject* absl_nullable ToPyImplInternal(
   }
   const DataSlice& schema = ds.GetSchema();
   DCHECK(bag != nullptr);
-  auto ds_bag = ds.GetBag();
-  DCHECK(ds_bag != nullptr);
 
   FlattenFallbackFinder fb_finder(*bag);
   const internal::DataBagImpl::FallbackSpan fallback_span =
       fb_finder.GetFlattenFallbacks();
-  FlattenFallbackFinder ds_fb_finder(*ds_bag);
-  const internal::DataBagImpl::FallbackSpan ds_fallback_span =
-      ds_fb_finder.GetFlattenFallbacks();
   // We use original DataBag in ToPyVisitor.
   std::shared_ptr<ToPyVisitor> visitor = std::make_shared<ToPyVisitor>(
       obj_as_dict, include_missing_attrs, leaf_ids, bag, fallback_span);
   // We use extracted DataBag for traversal.
-  internal::Traverser<ToPyVisitor> traverse_op(ds_bag->GetImpl(),
-                                               ds_fallback_span, visitor);
+  internal::Traverser<ToPyVisitor> traverse_op(bag->GetImpl(), fallback_span,
+                                               visitor);
 
   RETURN_IF_ERROR(ds.VisitImpl([&]<class T>(const T& impl) -> absl::Status {
     if constexpr (std::is_same_v<T, DataItem>) {

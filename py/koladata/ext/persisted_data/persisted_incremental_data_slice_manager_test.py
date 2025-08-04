@@ -1876,21 +1876,16 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     root = root.updated(kd.attrs(root.x.z, a=kd.item(4)))
 
-    self.assertEqual(
-        root.to_pytree(max_depth=-1),
-        {
-            'x': {'z': {'a': 4, 'b': None, 'c': 3}},
-            'y': {'a': 4, 'b': None, 'c': 3},
-        },
-    )
+    with self.assertRaisesRegex(
+        ValueError, re.escape('reached with different schemas')
+    ):
+      _ = root.to_pytree(max_depth=-1)
 
-    self.assertEqual(
-        root.extract().to_pytree(max_depth=-1),
-        {
-            'x': {'z': {'a': 4, 'b': None, 'c': 3}},
-            'y': {'a': 4, 'b': None, 'c': 3},
-        },
-    )
+    with self.assertRaisesRegex(
+        ValueError, re.escape('reached with different schemas')
+    ):
+      _ = root.extract().to_pytree(max_depth=-1)
+
     self.assertEqual(
         root.x.z.extract().to_pytree(max_depth=-1),
         {'a': 4, 'b': 2},
@@ -1902,8 +1897,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
   def test_behavior_of_itemid_with_multiple_schemas(self):
     # Demonstrates that the behavior of PersistedIncrementalDataSliceManager is
-    # not entirely consistent with the behavior of vanilla Koda, as shown in
-    # test_koda_behavior_of_itemid_with_multiple_schemas. See below for the
+    # consistent with the behavior of vanilla Koda. See below for the
     # assertion that is different. For that reason, we state in the docstring
     # of update() that the behavior is undefined if an itemid is associated with
     # two or more structured schemas.
@@ -1933,25 +1927,21 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     )
 
     new_manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
-    self.assertEqual(
-        new_manager.get_data_slice(with_all_descendants=True).to_pytree(
-            max_depth=-1
-        ),
-        {
-            'foo': {'x': {'a': 4, 'b': None, 'c': 3}},
-            'y': {'a': 4, 'b': None, 'c': 3},
-        },
-    )
+    with self.assertRaisesRegex(
+        ValueError, re.escape('reached with different schemas')
+    ):
+      _ = new_manager.get_data_slice(with_all_descendants=True).to_pytree(
+          max_depth=-1
+      )
 
-    self.assertEqual(
-        new_manager.get_data_slice(with_all_descendants=True)
-        .extract()
-        .to_pytree(max_depth=-1),
-        {
-            'foo': {'x': {'a': 4, 'b': None, 'c': 3}},
-            'y': {'a': 4, 'b': None, 'c': 3},
-        },
-    )
+    with self.assertRaisesRegex(
+        ValueError, re.escape('reached with different schemas')
+    ):
+      _ = (
+          new_manager.get_data_slice(with_all_descendants=True)
+          .extract()
+          .to_pytree(max_depth=-1)
+      )
 
     new_manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(
