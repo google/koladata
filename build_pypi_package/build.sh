@@ -143,6 +143,7 @@ PROTOC=/build/protobuf/bazel-bin/protoc
 
  from arolla import arolla as _arolla
 +from arolla.jagged_shape import jagged_shape as _  # load libjagged_shape_so.so
++from arolla.derived_qtype import derived_qtype as _  # load libderived_qtype_so.so
  from koladata.expr import expr_eval as _expr_eval
  from koladata.expr import input_container as _input_container
 EOF
