@@ -30,6 +30,24 @@
 
 namespace koladata::serving {
 
+absl::StatusOr<DataSlice> ParseSerializedSlice(absl::string_view data) {
+  ASSIGN_OR_RETURN(arolla::serialization::DecodeResult decode_result,
+                   arolla::serialization::DecodeFromRiegeliData(data),
+                   [](absl::Status status) {
+                     return absl::InternalError(absl::StrCat(
+                         "invalid serialized data: ", status.message()));
+                   }(_));
+  if (!decode_result.exprs.empty()) {
+    return absl::InternalError(
+        "serialized data should not contain any expressions");
+  }
+  if (decode_result.values.size() != 1) {
+    return absl::InternalError(
+        "serialized data must contain exactly one slice");
+  }
+  return decode_result.values[0].As<DataSlice>();
+}
+
 absl::StatusOr<SliceMap> ParseSerializedSlices(absl::string_view data) {
   ASSIGN_OR_RETURN(arolla::serialization::DecodeResult decode_result,
                    arolla::serialization::DecodeFromRiegeliData(data),

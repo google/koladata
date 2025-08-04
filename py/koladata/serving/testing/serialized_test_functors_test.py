@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os.path
-import typing
 
 from absl import flags
 from absl.testing import absltest
@@ -25,29 +24,34 @@ FLAGS = flags.FLAGS
 
 class SerializedTestFunctorsTest(absltest.TestCase):
 
-  def setUp(self):
-    super().setUp()
-    self.filename = os.path.join(
+  def load_serialized_slice(self, functor_name: str) -> kd.types.DataSlice:
+    filename = os.path.join(
         FLAGS.test_srcdir,
         'py/koladata/serving/testing/'
-        'serialized_test_functors.kd',
+        f'serialized_test_functors_{functor_name}.kd',
     )
+    with open(filename, 'rb') as f:
+      slices, exprs = arolla.s11n.riegeli_loads_many(f.read())
+
+    self.assertLen(slices, 1)
+    self.assertEmpty(exprs)
+    self.assertIsInstance(slices[0], kd.types.DataSlice)
+
+    return slices[0]
 
   def test_serialized_test_functors(self):
-    with open(self.filename, 'rb') as f:
-      serialized_slices = f.read()
-    slices, exprs = arolla.s11n.riegeli_loads_many(serialized_slices)
-    self.assertLen(slices, 3)
-    self.assertEmpty(exprs)
+    with self.subTest('plus_one'):
+      plus_one = self.load_serialized_slice('plus_one')
+      kd.testing.assert_equal(
+          kd.call(plus_one, kd.slice([1, 2, 3])), kd.slice([2, 3, 4])
+      )
 
-    kd.testing.assert_equal(
-        slices[0], kd.slice(['ask_about_serving', 'plus_one'])
-    )
-    plus_one = typing.cast(kd.types.DataSlice, slices[2])
-    kd.testing.assert_equal(
-        kd.call(plus_one, kd.slice([1, 2, 3])),
-        kd.slice([2, 3, 4])
-    )
+    with self.subTest('ask_about_serving'):
+      ask_about_serving = self.load_serialized_slice('ask_about_serving')
+      kd.testing.assert_equal(
+          kd.call(ask_about_serving, lambda x: "don't know"),
+          kd.slice("don't know"),
+      )
 
 
 if __name__ == '__main__':

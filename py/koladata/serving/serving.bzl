@@ -50,7 +50,7 @@ def koladata_serialized_slices(
         tool_deps = [],
         testonly = False,
         **kwargs):
-    """Generates a serialized *.kd file with Koda slices (e.g. functors).
+    """Generates serialized *.kd files with Koda slices (e.g. functors).
 
     Usage example:
 
@@ -62,20 +62,20 @@ def koladata_serialized_slices(
       koladata_serialized_slices(
           name = "my_functors",
           slices = {
-              "my_functor": koladata_trace_py_fn("path.to.my_functors.my_functor"),
-              "their_functor": koladata_trace_py_fn("path.to.my_functors.their_functor"),
+              "format_prompt": koladata_trace_py_fn("path.to.my_functors.format_prompt"),
+              "call_model": koladata_trace_py_fn("path.to.my_functors.call_model"),
           },
           tool_deps = [":my_functors"],
       )
+
+      The rule generates my_functors_format_prompt.kd and my_functors_call_model.kd files.
 
       In C++ code one can deserialize the slices as follows:
       ```
       #include "py/koladata/serving/serialized_slices.h"
       ...
-      ASSIGN_OR_RETURN(auto slices,
-                       koladata::serving::ParseSerializedSlices(serialized_slices_data));
-      ASSIGN_OR_RETURN(koladata::DataSlice my_functor,
-                       koladata::serving::GetSliceByName(slices, "my_functor"));
+      ASSIGN_OR_RETURN(koladata::DataSlice slice,
+                       koladata::serving::ParseSerializedSlice(data));
       ```
 
     Args:
@@ -87,16 +87,16 @@ def koladata_serialized_slices(
       testonly: Whether the build target is testonly.
       **kwargs: Extra arguments passed directly to the final genrule.
     """
-    output_file = name + ".kd"
+    output_files = ["{}_{}.kd".format(name, k) for k in slices.keys()]
 
     python_function_call_genrule(
         name = name,
         function = call_python_function(
             "koladata.serving.serving_impl.serialize_slices_into",
-            args = [slices, "$(execpath {output})".format(output = output_file)],
+            args = [slices, ["$(execpath {})".format(o) for o in output_files]],
             deps = tool_deps + ["//py/koladata/serving:serving_impl"],
         ),
-        outs = [output_file],
+        outs = output_files,
         testonly = testonly,
         **kwargs
     )

@@ -48,9 +48,15 @@ def serialize_slices(slices: dict[str, kd.types.DataSlice]):
 
 
 def serialize_slices_into(
-    slices: dict[str, kd.types.DataSlice], output_path: str
+    slices: dict[str, kd.types.DataSlice], output_paths: list[str]
 ):
-  """Serializes Koda slices into the given file."""
-  serialized_slices = serialize_slices(slices)
-  with open(output_path, 'wb') as f:
-    f.write(serialized_slices)
+  """Serializes Koda slices into the given files."""
+  if len(slices) != len(output_paths):
+    raise ValueError(
+        'Number of slices must match number of output paths, but got'
+        f' {len(slices)} and {len(output_paths)}'
+    )
+  for ds, output_path in zip(slices.values(), output_paths):
+    serialized = arolla.s11n.riegeli_dumps_many([ds], [])
+    with open(output_path, 'wb') as f:
+      f.write(serialized)

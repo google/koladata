@@ -24,6 +24,12 @@
 
 namespace koladata::serving {
 
+// Parses a single DataSlice from the serialized data, e.g. created by
+// koladata_serialized_slices build rule.
+absl::StatusOr<DataSlice> ParseSerializedSlice(absl::string_view data);
+
+// TODO: b/432324816 - Make the functions below private.
+
 using SliceMap = absl::flat_hash_map<std::string, koladata::DataSlice>;
 
 // Parses slices from the serialized data.
