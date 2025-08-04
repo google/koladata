@@ -18,10 +18,6 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_python//python:defs.bzl", "py_test")
 load("//py/koladata/dynamic_deps:py_extension.bzl", "koladata_pybind_extension")
 
-package(default_visibility = [
-    "//koladata:internal",
-])
-
 licenses(["notice"])
 
 koladata_pybind_extension(
