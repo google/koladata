@@ -390,7 +390,7 @@ PyObject* absl_nullable PyDataSlice_get_attr(PyObject* self,
     }
   } else {
     const DataSlice* attr_name =
-                     UnwrapDataSlice(args.pos_only_args[0], "attr_name");
+        UnwrapDataSlice(args.pos_only_args[0], "attr_name");
     if (attr_name == nullptr) {
       return nullptr;
     }
@@ -496,7 +496,7 @@ PyObject* absl_nullable PyDataSlice_set_attr(PyObject* self,
         });
   } else {
     const DataSlice* attr_name =
-                     UnwrapDataSlice(args.pos_only_args[0], "attr_name");
+        UnwrapDataSlice(args.pos_only_args[0], "attr_name");
     if (attr_name == nullptr) {
       return nullptr;
     }
@@ -1364,7 +1364,7 @@ PyGetSetDef kPyDataSlice_getset[] = {
 
 // Creates and initializes PyTypeObject for Python DataSlice class.
 PyTypeObject* InitPyDataSliceType() {
-  arolla::python::CheckPyGIL();
+  arolla::python::DCheckPyGIL();
   PyTypeObject* py_qvalue_type = arolla::python::PyQValueType();
   if (py_qvalue_type == nullptr) {
     return nullptr;
@@ -1406,7 +1406,7 @@ PyTypeObject* InitPyDataSliceType() {
 }  // namespace
 
 PyTypeObject* PyDataSlice_Type() {
-  arolla::python::CheckPyGIL();
+  arolla::python::DCheckPyGIL();
   static PyTypeObject* type = InitPyDataSliceType();
   return type;
 }

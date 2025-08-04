@@ -1888,7 +1888,7 @@ Returns:
 };
 
 PyTypeObject* InitPyDataBagType() {
-  arolla::python::CheckPyGIL();
+  arolla::python::DCheckPyGIL();
   ImportNativeProtoCasters();
   PyTypeObject* py_qvalue_type = arolla::python::PyQValueType();
   if (py_qvalue_type == nullptr) {
@@ -1919,7 +1919,7 @@ PyTypeObject* InitPyDataBagType() {
 }  // namespace
 
 PyTypeObject* PyDataBag_Type() {
-  arolla::python::CheckPyGIL();
+  arolla::python::DCheckPyGIL();
   static PyTypeObject* type = InitPyDataBagType();
   return type;
 }

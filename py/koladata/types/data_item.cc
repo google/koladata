@@ -80,7 +80,8 @@ PyObject* absl_nullable PyDataItem_index(PyObject* self) {
   return PyErr_Format(
       PyExc_ValueError,
       "only INT32/INT64 DataItem can be used for indexing Python objects, "
-      "got %s", arolla::Repr(ds).c_str());
+      "got %s",
+      arolla::Repr(ds).c_str());
 }
 
 PyObject* absl_nullable PyDataItem_int(PyObject* self) {
@@ -164,7 +165,7 @@ Args:
 
 // Creates and initializes PyTypeObject for Python DataItem class.
 PyTypeObject* InitPyDataItemType() {
-  arolla::python::CheckPyGIL();
+  arolla::python::DCheckPyGIL();
   PyTypeObject* py_data_slice_type = PyDataSlice_Type();
   if (py_data_slice_type == nullptr) {
     return nullptr;
@@ -198,7 +199,7 @@ PyTypeObject* InitPyDataItemType() {
 }  // namespace
 
 PyTypeObject* PyDataItem_Type() {
-  arolla::python::CheckPyGIL();
+  arolla::python::DCheckPyGIL();
   static PyTypeObject* type = InitPyDataItemType();
   return type;
 }
