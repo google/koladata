@@ -14,6 +14,7 @@
 //
 #include "koladata/functor/parallel/executor.h"
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <utility>
