@@ -250,14 +250,14 @@ TEST_P(ObjectFinderTest, SchemaSlice) {
     auto root_schema = AllocateSchema();
     auto list_schema = AllocateSchema();
     auto item_schema = AllocateSchema();
-    TriplesT schema_triples = {
-        {root_schema, {{absl::StrCat(prefix, "items"), list_schema}}},
-        {list_schema,
-         {{absl::StrCat(prefix, schema::kListItemsSchemaAttr), item_schema}}},
-        {item_schema,
-         {{absl::StrCat(prefix, "x"), DataItem(schema::kInt32)},
-          {absl::StrCat(prefix, "y"), DataItem(schema::kFloat32)}}}};
-    SetSchemaTriples(*db, schema_triples);
+    SetSchemaTriples(
+        *db,
+        {{root_schema, {{absl::StrCat(prefix, "items"), list_schema}}},
+         {list_schema,
+          {{absl::StrCat(prefix, schema::kListItemsSchemaAttr), item_schema}}},
+         {item_schema,
+          {{absl::StrCat(prefix, "x"), DataItem(schema::kInt32)},
+           {absl::StrCat(prefix, "y"), DataItem(schema::kFloat32)}}}});
     SetSchemaTriples(*db, GenSchemaTriplesFoTests());
     SetDataTriples(*db, GenDataTriplesForTest());
 
