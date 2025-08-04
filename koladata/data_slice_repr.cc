@@ -680,9 +680,10 @@ absl::StatusOr<std::string> FunctorSignatureToStr(
   return result;
 }
 
-absl::StatusOr<std::string> FunctorToStr(const DataSlice& functor,
-                                         const ReprOption& option,
-                                         WrappingBehavior& wrapping) {
+absl::StatusOr<std::string> FunctorItemToStr(const DataSlice& functor,
+                                             const ReprOption& option,
+                                             WrappingBehavior& wrapping) {
+  DCHECK(functor.is_item());
   ASSIGN_OR_RETURN(DataSlice signature,
                    functor.GetAttr(functor::kSignatureAttrName));
   ASSIGN_OR_RETURN(functor::Signature cpp_signature,
@@ -695,12 +696,17 @@ absl::StatusOr<std::string> FunctorToStr(const DataSlice& functor,
                                    {std::string(functor::kSignatureAttrName),
                                     std::string(functor::kQualnameAttrName),
                                     std::string(functor::kModuleAttrName)}));
+  ASSIGN_OR_RETURN(DataSlice name_slice,
+                   functor.GetAttrOrMissing(functor::kQualnameAttrName));
+  std::string name = "";
+  if (!name_slice.IsEmpty() && name_slice.item().holds_value<arolla::Text>()) {
+    name = absl::StrCat(" ", name_slice.item().value<arolla::Text>().view());
+  }
   ASSIGN_OR_RETURN(std::string signature_str,
                    FunctorSignatureToStr(cpp_signature, option, wrapping));
   return PrettyFormatStr(
       attr_parts,
-      {.prefix =
-           absl::StrCat("Functor[", signature_str, "]("),
+      {.prefix = absl::StrCat("Functor", name, "[", signature_str, "]("),
        .suffix = ")"},
       wrapping.html_char_count - initial_html_char_count);
 }
@@ -861,7 +867,7 @@ absl::StatusOr<std::string> DataItemToStr(const DataItem& data_item,
           DataSlice::Create(data_item, schema, db));
       ASSIGN_OR_RETURN(bool is_functor, functor::IsFunctor(data_slice));
       if (is_functor) {
-        return FunctorToStr(data_slice, next_option, wrapping);
+        return FunctorItemToStr(data_slice, next_option, wrapping);
       }
     }
 

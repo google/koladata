@@ -4272,27 +4272,49 @@ class DataSliceListSlicingTest(parameterized.TestCase):
       (
           'simple',
           lambda x: x,
-          ['DataItem(Functor[x](returns=I.x), schema: OBJECT)'],
+          [
+              'DataItem(Functor'
+              ' DataSliceListSlicingTest.<lambda>[x](returns=I.x), schema:'
+              ' OBJECT)'
+          ],
       ),
       (
           'two_args',
           lambda x, y: x + y,
           [
-              'DataItem(Functor[x, y](returns=(I.x + I.y)📍), schema: OBJECT)',
+              (
+                  'DataItem(Functor DataSliceListSlicingTest.<lambda>[x,'
+                  ' y](returns=(I.x + I.y)📍), schema: OBJECT)'
+              ),
           ],
       ),
       (
-          'default_arugment',
+          'named_functor',
+          add_one,
+          [
+              'DataItem(Functor add_one[x](',
+              "__doc__='Adds one to the input.'",
+              'returns=(I.x + DataItem(1, schema: INT32))📍',
+          ],
+      ),
+      (
+          'default_argument',
           lambda x=1: x,
           [
-              'DataItem(Functor[x=1](returns=I.x)',
+              (
+                  'DataItem(Functor'
+                  ' DataSliceListSlicingTest.<lambda>[x=1](returns=I.x)'
+              ),
           ],
       ),
       (
           'varargs',
           lambda x, *unused_args: x,
           [
-              'DataItem(Functor[x, *unused_args](returns=I.x), schema: OBJECT)',
+              (
+                  'DataItem(Functor DataSliceListSlicingTest.<lambda>[x,'
+                  ' *unused_args](returns=I.x), schema: OBJECT)'
+              ),
           ],
       ),
       (
@@ -4300,8 +4322,8 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           lambda x, **unused_kwargs: x,
           [
               (
-                  'DataItem(Functor[x, **unused_kwargs](returns=I.x), schema:'
-                  ' OBJECT)'
+                  'DataItem(Functor DataSliceListSlicingTest.<lambda>[x,'
+                  ' **unused_kwargs](returns=I.x), schema: OBJECT)'
               ),
           ],
       ),
@@ -4309,12 +4331,12 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           'nested_sub_functor',
           lambda x: add_one(x),  # pylint: disable=unnecessary-lambda
           [
-              'DataItem(Functor[x](',
+              'DataItem(Functor DataSliceListSlicingTest.<lambda>[x](',
               (
                   '_add_one_result=kd.call(V.add_one, I.x,'
                   ' return_type_as=DataItem(None, schema: NONE))📍,'
               ),
-              'add_one=Functor[x](',
+              'add_one=Functor add_one[x](',
               "__doc__='Adds one to the input.'",
               'returns=(I.x + DataItem(1, schema: INT32))📍',
               'returns=V._add_one_result',
@@ -4325,8 +4347,9 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           lambda x, f=(lambda x: x + 1): f(x),
           [
               (
-                  'DataItem(Functor[x, f=Functor[x](returns=(I.x +'
-                  ' DataItem(1, schema: INT32))📍)'
+                  'DataItem(Functor DataSliceListSlicingTest.<lambda>[x,'
+                  ' f=Functor DataSliceListSlicingTest.<lambda>[x](returns=(I.x'
+                  ' + DataItem(1, schema: INT32))📍)'
               ),
               (
                   'returns=kd.call(I.f, I.x, return_type_as=DataItem(None,'
@@ -4339,8 +4362,8 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           lambda x, /, y: x + y,
           [
               (
-                  'DataItem(Functor[x, /, y](returns=(I.x + I.y)📍), schema:'
-                  ' OBJECT)'
+                  'DataItem(Functor DataSliceListSlicingTest.<lambda>[x, /,'
+                  ' y](returns=(I.x + I.y)📍), schema: OBJECT)'
               ),
           ],
       ),
@@ -4349,18 +4372,18 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           lambda x, y, /: x + y,
           [
               (
-                  'DataItem(Functor[x, y, /](returns=(I.x + I.y)📍), schema:'
-                  ' OBJECT)'
+                  'DataItem(Functor DataSliceListSlicingTest.<lambda>[x, y,'
+                  ' /](returns=(I.x + I.y)📍), schema: OBJECT)'
               ),
           ],
       ),
       (
-          'keyword_only_arga',
+          'keyword_only_arg',
           lambda x, *, y: x + y,
           [
               (
-                  'DataItem(Functor[x, *, y](returns=(I.x + I.y)📍), schema:'
-                  ' OBJECT)'
+                  'DataItem(Functor DataSliceListSlicingTest.<lambda>[x, *,'
+                  ' y](returns=(I.x + I.y)📍), schema: OBJECT)'
               ),
           ],
       ),
@@ -4369,8 +4392,8 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           lambda *, x, y: x + y,
           [
               (
-                  'DataItem(Functor[*, x, y](returns=(I.x + I.y)📍), schema:'
-                  ' OBJECT)'
+                  'DataItem(Functor DataSliceListSlicingTest.<lambda>[*, x,'
+                  ' y](returns=(I.x + I.y)📍), schema: OBJECT)'
               ),
           ],
       ),

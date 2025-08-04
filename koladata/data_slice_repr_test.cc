@@ -679,15 +679,46 @@ TEST(DataSliceReprTest, TestDataItemStringRepresentation_Functor) {
   auto slice_57 = test::DataItem(57);
   ASSERT_OK_AND_ASSIGN(auto my_obj, ObjectCreator::FromAttrs(
                                         DataBag::Empty(), {"a"}, {slice_57}));
-  ASSERT_OK_AND_ASSIGN(
-      auto fn, CreateFunctor(returns_expr, koda_signature,
-                             {"a", "my_obj", functor::kQualnameAttrName,
-                              functor::kModuleAttrName},
-                             {var_a_expr, my_obj, test::DataItem("foo.bar"),
-                              test::DataItem("module.name")}));
-  EXPECT_THAT(
-      DataSliceToStr(fn),
-      IsOkAndHolds("Functor[a](a=I.b, my_obj=Obj(a=57), returns=I.a * V.a)"));
+
+  {
+    // Test unnamed functor.
+    ASSERT_OK_AND_ASSIGN(
+        auto fn, CreateFunctor(returns_expr, koda_signature,
+                              {"a", "my_obj"},
+                              {var_a_expr, my_obj}));
+    EXPECT_THAT(
+        DataSliceToStr(fn),
+        IsOkAndHolds(
+            "Functor[a](a=I.b, my_obj=Obj(a=57), returns=I.a * V.a)"));
+  }
+
+  {
+    // Test named functor.
+    ASSERT_OK_AND_ASSIGN(
+        auto fn, CreateFunctor(returns_expr, koda_signature,
+                               {"a", "my_obj", functor::kQualnameAttrName,
+                                functor::kModuleAttrName},
+                               {var_a_expr, my_obj, test::DataItem("foo.bar"),
+                                test::DataItem("module.name")}));
+    EXPECT_THAT(
+        DataSliceToStr(fn),
+        IsOkAndHolds(
+            "Functor foo.bar[a](a=I.b, my_obj=Obj(a=57), returns=I.a * V.a)"));
+  }
+
+  {
+    // Test non-text name
+    ASSERT_OK_AND_ASSIGN(
+        auto fn, CreateFunctor(returns_expr, koda_signature,
+                               {"a", "my_obj", functor::kQualnameAttrName,
+                                functor::kModuleAttrName},
+                               {var_a_expr, my_obj, test::DataItem(57),
+                                test::DataItem("module.name")}));
+    EXPECT_THAT(
+        DataSliceToStr(fn),
+        IsOkAndHolds(
+            "Functor[a](a=I.b, my_obj=Obj(a=57), returns=I.a * V.a)"));
+  }
 }
 
 TEST(DataSliceReprTest, TestDataItemStringRepresentation_SchemaMetadata) {
