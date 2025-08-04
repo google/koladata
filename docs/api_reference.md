@@ -10265,28 +10265,10 @@ Tools for Pandas <-> Koda interoperability.
 
 **Operators**
 
-### `kd_ext.pdkd.from_dataframe(df, as_obj=False)` {#kd_ext.pdkd.from_dataframe}
+### `kd_ext.pdkd.df(ds, cols=None, include_self=False)` {#kd_ext.pdkd.df}
+Aliases:
 
-<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a DataSlice from the given pandas DataFrame.
-
-  The DataFrame must have at least one column. It will be converted to a
-  DataSlice of entities/objects with attributes corresponding to the DataFrame
-  columns. Supported column dtypes include all primitive dtypes and ItemId.
-
-  If the DataFrame has MultiIndex, it will be converted to a DataSlice with
-  the shape derived from the MultiIndex.
-
-  When `as_obj` is set, the resulting DataSlice will be a DataSlice of objects
-  instead of entities.
-
-  Args:
-   df: pandas DataFrame to convert.
-   as_obj: whether to convert the resulting DataSlice to Objects.
-
-  Returns:
-    DataSlice of items with attributes from DataFrame columns.</code></pre>
-
-### `kd_ext.pdkd.to_dataframe(ds, cols=None, include_self=False)` {#kd_ext.pdkd.to_dataframe}
+- [kd_ext.pdkd.to_dataframe](#kd_ext.pdkd.to_dataframe)
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a pandas DataFrame from the given DataSlice.
 
@@ -10362,6 +10344,31 @@ Tools for Pandas <-> Koda interoperability.
 
   Returns:
     DataFrame with columns from DataSlice fields.</code></pre>
+
+### `kd_ext.pdkd.from_dataframe(df_, as_obj=False)` {#kd_ext.pdkd.from_dataframe}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a DataSlice from the given pandas DataFrame.
+
+  The DataFrame must have at least one column. It will be converted to a
+  DataSlice of entities/objects with attributes corresponding to the DataFrame
+  columns. Supported column dtypes include all primitive dtypes and ItemId.
+
+  If the DataFrame has MultiIndex, it will be converted to a DataSlice with
+  the shape derived from the MultiIndex.
+
+  When `as_obj` is set, the resulting DataSlice will be a DataSlice of objects
+  instead of entities.
+
+  Args:
+   df_: pandas DataFrame to convert.
+   as_obj: whether to convert the resulting DataSlice to Objects.
+
+  Returns:
+    DataSlice of items with attributes from DataFrame columns.</code></pre>
+
+### `kd_ext.pdkd.to_dataframe(ds, cols=None, include_self=False)` {#kd_ext.pdkd.to_dataframe}
+
+Alias for [kd_ext.pdkd.df](#kd_ext.pdkd.df) operator.
 
 </section>
 

@@ -23,7 +23,7 @@ kdi = kd.eager
 
 
 def from_dataframe(
-    df: pd.DataFrame, as_obj: bool = False
+    df_: pd.DataFrame, as_obj: bool = False
 ) -> kd.types.DataSlice:
   """Creates a DataSlice from the given pandas DataFrame.
 
@@ -38,22 +38,23 @@ def from_dataframe(
   instead of entities.
 
   Args:
-   df: pandas DataFrame to convert.
+   df_: pandas DataFrame to convert.
    as_obj: whether to convert the resulting DataSlice to Objects.
 
   Returns:
     DataSlice of items with attributes from DataFrame columns.
   """
-  kwargs = {c: npkd.from_array(df[c].to_numpy()) for c in df.columns}
+  kwargs = {c: npkd.from_array(df_[c].to_numpy()) for c in df_.columns}
 
   if not kwargs:
     raise ValueError('DataFrame has no columns.')
 
   res = kdi.obj(**kwargs) if as_obj else kdi.new(**kwargs)
 
-  if isinstance(df.index, pd.MultiIndex):
+  if isinstance(df_.index, pd.MultiIndex):
     indices = [
-        df.index.get_level_values(i).to_numpy() for i in range(df.index.nlevels)
+        df_.index.get_level_values(i).to_numpy()
+        for i in range(df_.index.nlevels)
     ]
     return npkd.reshape_based_on_indices(res, indices)
 
@@ -216,3 +217,6 @@ def to_dataframe(
     )
 
   return pd.DataFrame(col_dict, index=index)
+
+
+df = to_dataframe

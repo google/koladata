@@ -89,6 +89,15 @@ class NpkdTest(parameterized.TestCase):
       self.assertCountEqual(df.columns, ['self_'])
       self.assertCountEqual(df['self_'], [1, 2, 3])
 
+    with self.subTest('primitive ds alias'):
+      self.assertIs(pdkd.df, pdkd.to_dataframe)
+
+      ds = kd.slice([1, 2, 3])
+      df = pdkd.df(ds)
+      self.assertNotIsInstance(df.index, pd.DataFrame)
+      self.assertCountEqual(df.columns, ['self_'])
+      self.assertCountEqual(df['self_'], [1, 2, 3])
+
     with self.subTest('primitive ds with databag'):
       ds = kd.slice([1, 2, 3]).with_bag(kd.bag())
       df = pdkd.to_dataframe(ds)
