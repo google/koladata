@@ -255,6 +255,18 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           list_ds.extract_bag(),
       )
 
+    with self.subTest('with_items_that_are_unsupported_schemas'):
+      schema_item = kd.named_schema('foo', bar=kd.INT32)
+      schema_item = kd.with_metadata(schema_item, my_bad=kd.new(z='gotcha!'))
+      list_ds = kd.list([schema_item])
+      with self.assertRaisesRegex(
+          ValueError,
+          'schema .* has metadata attributes that are not primitives',
+      ):
+        stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
+            list_ds
+        )
+
   def test_minimal_bag_associating_dict_with_its_keys_and_values(self):
     key_schema = kd.STRING
     value_schema = kd.named_schema('DictValue', bar=kd.INT32)
@@ -328,6 +340,18 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           ),
           dict_ds.extract_bag(),
       )
+
+    with self.subTest('with_values_that_are_unsupported_schemas'):
+      schema_item = kd.named_schema('DictValue', bar=kd.INT32)
+      schema_item = kd.with_metadata(schema_item, my_bad=kd.new())
+      dict_ds = kd.dict({'key1': schema_item})
+      with self.assertRaisesRegex(
+          ValueError,
+          'schema .* has metadata attributes that are not primitives',
+      ):
+        stubs_and_minimal_bags_lib.minimal_bag_associating_dict_with_its_keys_and_values(
+            dict_ds
+        )
 
   def test_minimal_bag_associating_entity_with_its_attr_value(self):
     y_schema = kd.named_schema('Y', z=kd.INT32)
@@ -426,6 +450,18 @@ class StubsAndMinimalBagsLibTest(absltest.TestCase):
           ),
           entity_ds.extract_bag(),
       )
+
+    with self.subTest('with_attr_values_that_are_unsupported_schemas'):
+      schema_item = kd.named_schema('Entity', bar=kd.INT32)
+      schema_item = kd.with_metadata(schema_item, my_bad=kd.new())
+      entity = kd.new(bar=schema_item)
+      with self.assertRaisesRegex(
+          ValueError,
+          'schema .* has metadata attributes that are not primitives',
+      ):
+        stubs_and_minimal_bags_lib.minimal_bag_associating_entity_with_its_attr_value(
+            entity, 'bar'
+        )
 
       recursive_schema = recursive_schema.enriched(
           kd.metadata(
