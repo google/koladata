@@ -29,7 +29,6 @@
 #include "absl/types/span.h"
 #include "arolla/dense_array/dense_array.h"
 #include "arolla/util/text.h"
-#include "arolla/util/testing/traceme_util.h"
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -49,7 +48,6 @@ namespace {
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::CreateDenseArray;
-using ::arolla::profiling::testing::Profile;
 using ::koladata::internal::testing::DataBagEqual;
 using ::koladata::internal::testing::IsEquivalentTo;
 using ::testing::ElementsAre;

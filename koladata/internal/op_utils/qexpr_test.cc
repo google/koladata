@@ -37,15 +37,13 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "arolla/util/testing/status_matchers.h"
-#include "arolla/util/testing/traceme_util.h"
 
 namespace koladata {
 namespace {
 
+using ::absl_testing::IsOk;
 using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
-using ::absl_testing::IsOk;
-using ::arolla::profiling::testing::Profile;
 using ::arolla::testing::CausedBy;
 using ::testing::_;
 using ::testing::AllOf;

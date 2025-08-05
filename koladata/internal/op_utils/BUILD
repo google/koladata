@@ -174,7 +174,6 @@ cc_test(
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/dense_array",
         "@com_google_arolla//arolla/util",
-        "@com_google_arolla//arolla/util/testing:traceme_util",
         "@com_google_googletest//:gtest_main",
     ],
 )
@@ -1154,7 +1153,6 @@ cc_test(
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util/testing",
-        "@com_google_arolla//arolla/util/testing:traceme_util",
         "@com_google_googletest//:gtest_main",
     ],
 )
