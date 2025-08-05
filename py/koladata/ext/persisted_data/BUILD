@@ -248,3 +248,24 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
     ],
 )
+
+py_library(
+    name = "stubs_and_minimal_bags_lib",
+    srcs = ["stubs_and_minimal_bags_lib.py"],
+    deps = [
+        ":value_presence_util",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_test(
+    name = "stubs_and_minimal_bags_lib_test",
+    srcs = ["stubs_and_minimal_bags_lib_test.py"],
+    deps = [
+        ":stubs_and_minimal_bags_lib",
+        "//py:python_path",
+        "//py/koladata:kd",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
