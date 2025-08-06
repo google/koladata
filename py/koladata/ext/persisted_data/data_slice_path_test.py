@@ -537,6 +537,99 @@ class DataSlicePathTest(absltest.TestCase):
         )
     )
 
+  def test_get_subschema_bag(self):
+    dict_schema = kd.dict_schema(
+        kd.INT32, kd.named_schema('MyDictValue', x=kd.INT32)
+    )
+    kd.testing.assert_equivalent(
+        DictGetKeys().get_subschema_bag(dict_schema),
+        # The bag contains exactly one entity-attribute-value triple, namely:
+        # * entity = dict_schema.get_itemid()
+        # * attribute = '__keys__'
+        # * value = kd.INT32.
+        kd.attrs(dict_schema, **{'__keys__': kd.INT32}),
+    )
+    kd.testing.assert_equivalent(
+        DictGetValues().get_subschema_bag(dict_schema),
+        # The bag contains exactly one entity-attribute-value triple, namely:
+        # * entity = dict_schema.get_itemid()
+        # * attribute = '__values__'
+        # * value = kd.named_schema('MyDictValue'), i.e. the value captures
+        #   not only the itemid of the value schema, but also the name of the
+        #   value schema. However, it captures nothing else about the value
+        #   schema, in particular it does not capture its attribute 'x' or its
+        #   schema kd.INT32. In this sense it is minimal.
+        kd.attrs(dict_schema, **{'__values__': kd.named_schema('MyDictValue')}),
+    )
+
+    list_schema = kd.list_schema(kd.named_schema('MyListItem', x=kd.INT32))
+    kd.testing.assert_equivalent(
+        ListExplode().get_subschema_bag(list_schema),
+        # Again, the subschema bag is minimal for the action - it does not
+        # mention 'x' or its schema kd.INT32:
+        kd.attrs(list_schema, **{'__items__': kd.named_schema('MyListItem')}),
+    )
+
+    entity_schema = kd.named_schema(
+        'MyEntity', x=kd.INT32, y=kd.named_schema('MyInnerEntity', z=kd.STRING)
+    )
+    kd.testing.assert_equivalent(
+        GetAttr('x').get_subschema_bag(entity_schema),
+        # The subschema bag mentions only attribute 'x' and not 'y':
+        kd.attrs(entity_schema, **{'x': kd.INT32}),
+    )
+    kd.testing.assert_equivalent(
+        GetAttr('y').get_subschema_bag(entity_schema),
+        # The subschema bag mentions only attribute 'y' and not 'x'. Moreover,
+        # it does not mention 'z' or its schema:
+        kd.attrs(entity_schema, **{'y': kd.named_schema('MyInnerEntity')}),
+    )
+
+  def test_subschema_bags_are_complete_for_primitive_subschemas(self):
+    # By this we mean that the subschema bag contains all information needed
+    # to construct Koda items when the subschemas are schemas of primitives.
+
+    with self.subTest('dict'):
+      dict_schema = kd.dict_schema(kd.STRING, kd.INT32)
+      reconstructed_dict_schema = dict_schema.no_bag().with_bag(
+          # Note that we need to combine the two minimal bags in order to
+          # reconstruct the original dict schema.
+          kd.bags.updated(
+              DictGetKeys().get_subschema_bag(dict_schema),
+              DictGetValues().get_subschema_bag(dict_schema),
+          )
+      )
+      d = kd.dict({'foo': 123}, schema=reconstructed_dict_schema)
+      self.assertEqual(
+          d.to_pytree(),
+          {'foo': 123},
+      )
+      self.assertEqual(d.get_schema().get_itemid(), dict_schema.get_itemid())
+
+    with self.subTest('list'):
+      list_schema = kd.list_schema(kd.INT32)
+      reconstructed_list_schema = list_schema.no_bag().with_bag(
+          ListExplode().get_subschema_bag(list_schema)
+      )
+      l = kd.list([123, 456], schema=reconstructed_list_schema)
+      self.assertEqual(
+          l.to_pytree(),
+          [123, 456],
+      )
+      self.assertEqual(l.get_schema().get_itemid(), list_schema.get_itemid())
+
+    with self.subTest('entity'):
+      entity_schema = kd.named_schema('MyEntity', x=kd.INT32)
+      reconstructed_entity_schema = entity_schema.no_bag().with_bag(
+          GetAttr('x').get_subschema_bag(entity_schema)
+      )
+      e = reconstructed_entity_schema.new(x=123)
+      self.assertEqual(
+          e.to_pytree(),
+          {'x': 123},
+      )
+      self.assertEqual(e.get_schema().get_itemid(), entity_schema.get_itemid())
+
 
 if __name__ == '__main__':
   absltest.main()

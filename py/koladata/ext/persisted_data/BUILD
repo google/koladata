@@ -188,6 +188,7 @@ py_library(
     name = "data_slice_path",
     srcs = ["data_slice_path.py"],
     deps = [
+        ":stubs_and_minimal_bags_lib",
         "//py:python_path",
         "//py/koladata:kd",
     ],

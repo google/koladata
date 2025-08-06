@@ -39,6 +39,7 @@ import dataclasses
 from typing import Generator
 
 from koladata import kd
+from koladata.ext.persisted_data import stubs_and_minimal_bags_lib
 
 
 class ActionParsingError(Exception):
@@ -108,6 +109,18 @@ class DataSliceAction:
     """
     raise NotImplementedError(type(self))
 
+  def get_subschema_bag(self, schema: kd.types.DataItem) -> kd.types.DataBag:
+    """Returns the minimal schema bag needed for the subschema operation.
+
+    Args:
+      schema: the schema of a hypothetical DataSlice.
+
+    Returns:
+      The minimal schema bag needed for self.get_subschema_operation() to
+      succeed on `schema`.
+    """
+    raise NotImplementedError(type(self))
+
 
 @dataclasses.dataclass(frozen=True)
 class DictGetKeys(DataSliceAction):
@@ -134,6 +147,16 @@ class DictGetKeys(DataSliceAction):
 
   def get_subschema_operation(self) -> str:
     return '.get_key_schema()'
+
+  def get_subschema_bag(self, schema: kd.types.DataItem) -> kd.types.DataBag:
+    return kd.attrs(
+        schema,
+        **{
+            '__keys__': stubs_and_minimal_bags_lib.schema_stub(
+                self.get_subschema(schema)
+            )
+        },
+    )
 
 
 @dataclasses.dataclass(frozen=True)
@@ -162,6 +185,16 @@ class DictGetValues(DataSliceAction):
   def get_subschema_operation(self) -> str:
     return '.get_value_schema()'
 
+  def get_subschema_bag(self, schema: kd.types.DataItem) -> kd.types.DataBag:
+    return kd.attrs(
+        schema,
+        **{
+            '__values__': stubs_and_minimal_bags_lib.schema_stub(
+                self.get_subschema(schema)
+            )
+        },
+    )
+
 
 @dataclasses.dataclass(frozen=True)
 class ListExplode(DataSliceAction):
@@ -188,6 +221,16 @@ class ListExplode(DataSliceAction):
 
   def get_subschema_operation(self) -> str:
     return '.get_item_schema()'
+
+  def get_subschema_bag(self, schema: kd.types.DataItem) -> kd.types.DataBag:
+    return kd.attrs(
+        schema,
+        **{
+            '__items__': stubs_and_minimal_bags_lib.schema_stub(
+                self.get_subschema(schema)
+            )
+        },
+    )
 
 
 def can_be_used_with_dot_syntax_in_data_slice_path_string(
@@ -295,6 +338,16 @@ class GetAttr(DataSliceAction):
 
   def get_subschema_operation(self) -> str:
     return str(self)
+
+  def get_subschema_bag(self, schema: kd.types.DataItem) -> kd.types.DataBag:
+    return kd.attrs(
+        schema,
+        **{
+            self.attr_name: stubs_and_minimal_bags_lib.schema_stub(
+                self.get_subschema(schema)
+            )
+        },
+    )
 
 
 def _get_prefix(*, of: str, before: str) -> str:
