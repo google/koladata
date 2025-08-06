@@ -26,9 +26,11 @@ from koladata.util import kd_functools
 def _strip_build_system_prefix(file_name: str) -> str:
   """A heuristic to strip the build system prefix from the file name."""
   this_file_name = 'py/koladata/expr/source_location.py'
-  assert __file__ is not None and __file__.endswith(this_file_name)
-  build_system_prefix = __file__[: -len(this_file_name)]
-  return file_name.removeprefix(build_system_prefix)
+  if __file__ and __file__.endswith(this_file_name):
+    # The case when the code is run by a build system.
+    build_system_prefix = __file__[: -len(this_file_name)]
+    return file_name.removeprefix(build_system_prefix)
+  return file_name  # The code is not run by a build system.
 
 
 @kd_functools.skip_from_functor_stack_trace
