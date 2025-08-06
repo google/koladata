@@ -32,14 +32,12 @@
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
 #include "arolla/util/cancellation.h"
-#include "arolla/util/testing/status_matchers.h"
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
+#include "koladata/expr/expr_eval.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_utils.h"
-#include "koladata/object_factories.h"
-#include "koladata/operators/core.h"
 #include "koladata/signature.h"
 #include "koladata/test_utils.h"
 #include "koladata/testing/matchers.h"
@@ -53,6 +51,7 @@ using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::arolla::CancellationContext;
 using ::koladata::testing::IsEquivalentTo;
+using ::testing::IsSupersetOf;
 using ::testing::HasSubstr;
 using ::testing::MatchesRegex;
 

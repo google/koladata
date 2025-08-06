@@ -117,6 +117,8 @@ struct FunctorPreprocessingCache {
 
 absl::StatusOr<FunctorPreprocessingCache> ProcessFunctorMetadata(
     const DataSlice& functor) {
+  arolla::profiling::TraceMe traceme(
+      "::koladata::functor::ProcessFunctorMetadata");
   ASSIGN_OR_RETURN(auto signature_item, functor.GetAttr(kSignatureAttrName));
   // We use detach_default_values_db=true to prevent ownership loop when storing
   // the preprocessed signature in the data bag cache.

@@ -36,6 +36,7 @@ using ::absl_testing::IsOkAndHolds;
 using ::absl_testing::StatusIs;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
+using ::testing::IsSupersetOf;
 
 TEST(ExprEvalTest, Basic) {
   ASSERT_OK_AND_ASSIGN(
@@ -212,6 +213,6 @@ TEST(OpEvalTest, WrongNumberOfArgs) {
       StatusIs(absl::StatusCode::kInvalidArgument,
                HasSubstr("too many positional arguments")));
 }
-}  // namespace
 
+}  // namespace
 }  // namespace koladata::expr

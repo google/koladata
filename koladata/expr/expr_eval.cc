@@ -52,6 +52,7 @@
 #include "arolla/util/lru_cache.h"
 #include "arolla/util/status.h"
 #include "arolla/util/text.h"
+#include "arolla/util/traceme.h"
 #include "koladata/expr/expr_operators.h"
 #include "koladata/expr/non_determinism.h"
 #include "koladata/internal/non_deterministic_token.h"
@@ -246,6 +247,7 @@ absl::StatusOr<CompiledExpr> Compile(
     const arolla::expr::ExprNodePtr& expr,
     absl::Span<const std::string> leaf_keys,
     absl::Span<const arolla::TypedRef> leaf_values) {
+  arolla::profiling::TraceMe traceme("::koladata::expr::Compile");
   if (leaf_values.size() != leaf_keys.size()) {
     return absl::InternalError(absl::StrFormat(
         "internal kd.eval error: passed %d leaf values, while %d was needed",
