@@ -1061,6 +1061,50 @@ class SchemaHelperTest(absltest.TestCase):
     ):
       helper.get_subschema_at('bar')
 
+  def test_is_leaf_and_non_leaf_schema_node_name(self):
+    schema = kd.schema.named_schema(
+        'SomeSchema',
+        foo=kd.INT32,
+        bar=kd.schema.named_schema('InnerSchema', zoo=kd.INT32),
+    )
+    helper = schema_helper.SchemaHelper(schema)
+
+    for non_leaf_schema_node_name in [
+        schema_node_name(schema),
+        schema_node_name(schema.bar),
+    ]:
+      self.assertTrue(
+          helper.is_non_leaf_schema_node_name(non_leaf_schema_node_name)
+      )
+      self.assertFalse(
+          helper.is_leaf_schema_node_name(non_leaf_schema_node_name)
+      )
+
+    for leaf_schema_node_name in [
+        schema_node_name(schema, action=GetAttr('foo')),
+        schema_node_name(schema.bar, action=GetAttr('zoo')),
+    ]:
+      self.assertTrue(helper.is_leaf_schema_node_name(leaf_schema_node_name))
+      self.assertFalse(
+          helper.is_non_leaf_schema_node_name(leaf_schema_node_name)
+      )
+
+    for invalid_schema_node_name in [
+        '.foo',
+        '.foo:INT32',
+        'abcde',
+    ]:
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(f"invalid schema node name: '{invalid_schema_node_name}'"),
+      ):
+        helper.is_leaf_schema_node_name(invalid_schema_node_name)
+      with self.assertRaisesRegex(
+          ValueError,
+          re.escape(f"invalid schema node name: '{invalid_schema_node_name}'"),
+      ):
+        helper.is_non_leaf_schema_node_name(invalid_schema_node_name)
+
 
 if __name__ == '__main__':
   absltest.main()

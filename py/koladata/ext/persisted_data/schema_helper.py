@@ -538,6 +538,16 @@ class SchemaHelper:
   def is_valid_schema_node_name(self, schema_node_name: str) -> bool:
     return schema_node_name in self._schema_graph
 
+  def is_leaf_schema_node_name(self, schema_node_name: str) -> bool:
+    """Returns True iff the given valid schema node name is a leaf in the graph."""
+    self._check_is_valid_schema_node_name(schema_node_name)
+    children = self._schema_graph[schema_node_name]
+    return len(children) == 0  # pylint: disable=g-explicit-length-test
+
+  def is_non_leaf_schema_node_name(self, schema_node_name: str) -> bool:
+    """Returns True iff the given valid schema node name is not a leaf in the graph."""
+    return not self.is_leaf_schema_node_name(schema_node_name)
+
   def get_affected_schema_node_names(
       self,
       *,
