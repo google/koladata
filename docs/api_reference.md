@@ -10333,6 +10333,16 @@ Aliases:
       2 0   3     6
     to_dataframe(ds, cols=[S.y[:].z, S.z[:].z]) -&gt; error: shapes mismatch
 
+  The conversion adheres to:
+    * All output data will be of nullable types (e.g. `Int64Dtype()` rather than
+      `np.int64`)
+    * `pd.NA` is used for missing values.
+    * Numeric dtypes, booleans and strings will use corresponding pandas dtypes.
+    * MASK will be converted to pd.BooleanDtype(), with `kd.present =&gt; True` and
+      `kd.missing =&gt; pd.NA`.
+    * All other dtypes (including a mixed DataSlice) will use the `object` dtype
+      holding python data, with missing values represented through `pd.NA`.
+      `kd.present` is converted to True.
 
   Args:
     ds: DataSlice to convert.
@@ -10358,6 +10368,13 @@ Aliases:
 
   When `as_obj` is set, the resulting DataSlice will be a DataSlice of objects
   instead of entities.
+
+  The conversion adheres to:
+  * All missing values (according to `pd.isna`) become missing values in the
+    resulting DataSlice.
+  * Data with `object` dtype is converted to an OBJECT DataSlice.
+  * Data with other dtypes is converted to a DataSlice with corresponding
+    schema.
 
   Args:
    df_: pandas DataFrame to convert.

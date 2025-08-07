@@ -44,6 +44,8 @@ def to_array(ds: kd.types.DataSlice) -> np.ndarray:
   if not ds.get_dtype().is_empty():
     res = numpy_conversion.as_numpy_array(ds.internal_as_dense_array())
   else:
+    # TODO: pass `dtype=np.object_` here. Otherwise, a mix of e.g.
+    # int and string will be coerced into string.
     res = np.array(ds.internal_as_py())
   shape_py = _get_uniform_shape(ds)
   if shape_py is None:

@@ -59,6 +59,7 @@ py_library(
         "//py/koladata:kd",
         requirement("pandas"),
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/experimental",
     ],
 )
 

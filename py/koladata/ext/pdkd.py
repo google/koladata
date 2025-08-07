@@ -15,11 +15,24 @@
 """Bridge between Pandas and DataSlice."""
 
 from arolla import arolla
+from arolla.experimental import numpy_conversion
 from koladata import kd
 from koladata.ext import npkd
 import pandas as pd
 
 kdi = kd.eager
+
+
+def _to_slice(series: pd.Series) -> kd.types.DataSlice:
+  """Converts the `series` to a DataSlice."""
+  present = ~pd.isna(series)
+  values_np = series[present].to_numpy()
+  if series.dtype == 'object':
+    values_ds = kd.from_py(list(values_np), from_dim=1, schema=kd.OBJECT)
+  else:
+    values_ds = npkd.from_array(values_np)
+  mask_ds = npkd.from_array(present.to_numpy()) == kd.bool(True)
+  return kd.reverse_select(values_ds, mask_ds)
 
 
 def from_dataframe(
@@ -37,6 +50,13 @@ def from_dataframe(
   When `as_obj` is set, the resulting DataSlice will be a DataSlice of objects
   instead of entities.
 
+  The conversion adheres to:
+  * All missing values (according to `pd.isna`) become missing values in the
+    resulting DataSlice.
+  * Data with `object` dtype is converted to an OBJECT DataSlice.
+  * Data with other dtypes is converted to a DataSlice with corresponding
+    schema.
+
   Args:
    df_: pandas DataFrame to convert.
    as_obj: whether to convert the resulting DataSlice to Objects.
@@ -44,7 +64,7 @@ def from_dataframe(
   Returns:
     DataSlice of items with attributes from DataFrame columns.
   """
-  kwargs = {c: npkd.from_array(df_[c].to_numpy()) for c in df_.columns}
+  kwargs = {c: _to_slice(df_[c]) for c in df_.columns}
 
   if not kwargs:
     raise ValueError('DataFrame has no columns.')
@@ -62,6 +82,58 @@ def from_dataframe(
 
 
 _SPECIAL_COLUMN_NAMES = ('__items__', '__keys__', '__values__')
+_PD_FROM_KD = {
+    kd.INT32: pd.Int32Dtype(),
+    kd.INT64: pd.Int64Dtype(),
+    kd.FLOAT32: pd.Float32Dtype(),
+    kd.FLOAT64: pd.Float64Dtype(),
+    kd.BOOLEAN: pd.BooleanDtype(),
+    kd.MASK: pd.BooleanDtype(),
+}
+
+
+def _to_series(ds: kd.types.DataSlice) -> pd.Series:
+  """Returns `ds` converted to a pd.Series.
+
+  Note: this is _not_ a general purpose conversion tool as it expects `ds` to be
+  flat. Callers must ensure that the input is flattened and is responsible for
+  reindexing the result if needed.
+
+  Args:
+    ds: flat DataSlice to convert.
+  """
+  assert ds.get_ndim() == 1
+  dtype = ds.get_dtype()
+  if dtype in _PD_FROM_KD:
+    # Fast path through arolla conversion for compatible types.
+    if dtype == kd.MASK:
+      ds = kd.cond(ds, True, None)
+    indices, values = numpy_conversion.as_numpy_array_with_indices(
+        ds.internal_as_dense_array()
+    )
+    res = pd.Series(values, index=indices, dtype=_PD_FROM_KD[dtype])
+    return res.reindex(range(ds.get_size()))
+  else:
+    # We have a mix of types or something else that can't be converted through
+    # a fast path. We do a best effort here going through python.
+    #
+    # TODO: Preserve numeric per-element dtypes. Right now, float64
+    # will be converted to a python float that loses information about the
+    # original width. When converting back to a DataSlice, this is then parsed
+    # as float32.
+
+    def _normalize(v):
+      if v is None:
+        return pd.NA
+      elif isinstance(v, kd.types.DataItem) and v.get_dtype() == kd.MASK:
+        assert v == kd.present
+        return True
+      else:
+        return v
+
+    pd_dtype = pd.StringDtype() if dtype == kd.STRING else 'object'
+    ds_py = [_normalize(v) for v in ds.internal_as_py()]
+    return pd.Series(ds_py, dtype=pd_dtype)
 
 
 def to_dataframe(
@@ -132,6 +204,16 @@ def to_dataframe(
       2 0   3     6
     to_dataframe(ds, cols=[S.y[:].z, S.z[:].z]) -> error: shapes mismatch
 
+  The conversion adheres to:
+    * All output data will be of nullable types (e.g. `Int64Dtype()` rather than
+      `np.int64`)
+    * `pd.NA` is used for missing values.
+    * Numeric dtypes, booleans and strings will use corresponding pandas dtypes.
+    * MASK will be converted to pd.BooleanDtype(), with `kd.present => True` and
+      `kd.missing => pd.NA`.
+    * All other dtypes (including a mixed DataSlice) will use the `object` dtype
+      holding python data, with missing values represented through `pd.NA`.
+      `kd.present` is converted to True.
 
   Args:
     ds: DataSlice to convert.
@@ -205,7 +287,7 @@ def to_dataframe(
     raise ValueError('All columns must have compatible shapes.') from e
 
   col_dict = {
-      name: npkd.to_array(col_ds.flatten())
+      name: _to_series(col_ds.flatten()).values
       for col_ds, name in zip(col_dss, col_names)
   }
 

@@ -31,6 +31,9 @@ class NpkdTest(parameterized.TestCase):
       ('text ds', kd.slice(['a', 'b', 'c', None])),
       ('byte ds', kd.slice([b'a', b'b', b'c', None])),
       ('object ds', kd.obj(x=kd.slice([1, 2, 3]))),
+      # TODO: Ensure this works.
+      # ('mixed primitive ds', kd.slice([1, 'abc'])),
+      # ('mixed numeric ds', kd.slice([1, 2.0], kd.OBJECT)),
       ('mixed ds', kd.slice([kd.obj(), kd.obj(kd.list()), 1, '2'])),
       ('multi-dim uniform ds', kd.slice([[1, 2, 3], [4, 5, 6]])),
       ('scalar int ds', kd.slice(123)),
