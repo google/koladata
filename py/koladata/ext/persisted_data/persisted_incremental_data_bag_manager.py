@@ -20,6 +20,8 @@ PersistedIncrementalDataBagManager.
 
 import collections
 import concurrent.futures
+import dataclasses
+import itertools
 import os
 from typing import AbstractSet, Collection, Iterable
 
@@ -30,6 +32,15 @@ from koladata.ext.persisted_data import persisted_incremental_data_bag_manager_m
 
 
 _INITIAL_BAG_NAME = ''
+
+
+@dataclasses.dataclass(frozen=True)
+class BagToAdd:
+  # For the semantics of the fields, please see the docstring of
+  # PersistedIncrementalDataBagManager.add_bags().
+  bag_name: str
+  bag: kd.types.DataBag
+  dependencies: tuple[str, ...]
 
 
 class PersistedIncrementalDataBagManager:
@@ -67,7 +78,7 @@ class PersistedIncrementalDataBagManager:
 
   This class is not thread-safe. However, multiple instances of this class can
   concurrently read from the same persistence directory. When an instance
-  modifies the persistence directory, which happens when add_bag() is called,
+  modifies the persistence directory, which happens when add_bags() is called,
   then there should be no other instances where read/write operations straddle
   the modification. I.e. all the read/write operations of another instance must
   happen completely before or completely after the modification.
@@ -99,7 +110,9 @@ class PersistedIncrementalDataBagManager:
       self._metadata = metadata_pb2.PersistedIncrementalDataBagManagerMetadata(
           version='1.0.0'
       )
-      self._add_bag(_INITIAL_BAG_NAME, kd.bag(), dependencies=[])
+      self._add_bags(
+          [BagToAdd(_INITIAL_BAG_NAME, kd.bag(), dependencies=tuple())]
+      )
     else:
       self._metadata = self._read_metadata()
       self._load_bags_into_cache({_INITIAL_BAG_NAME})
@@ -147,41 +160,51 @@ class PersistedIncrementalDataBagManager:
     """Returns a bag consisting of all the small bags that are currently loaded."""
     return self._make_single_bag(self.get_loaded_bag_names())
 
-  def add_bag(
-      self,
-      bag_name: str,
-      bag: kd.types.DataBag,
-      *,
-      dependencies: Collection[str],
-  ):
-    """Adds a bag to the manager, which will persist it.
+  def add_bags(self, bags_to_add: list[BagToAdd]):
+    """Adds the given bags to the manager, which will persist them.
 
-    Args:
-      bag_name: The name of the bag to add. This must be a name that is not
-        already present in get_available_bag_names().
-      bag: The bag to add.
-      dependencies: A non-empty collection of the names of the bags that `bag`
+    Conceptually, the items of bags_to_add are added one by one in the order
+    specified by the list. Each item of bags_to_add is a BagToAdd object with:
+      - bag_name: The name of the bag to add. This must be a name that is not
+        already present in get_available_bag_names() or any preceding item of
+        bags_to_add.
+      - bag: The DataBag to add.
+      - dependencies: A non-empty collection of the names of the bags that `bag`
         depends on. It should include all the direct dependencies. There is no
         need to include transitive dependencies. All the names mentioned here
-        must already be present in get_available_bag_names(). After this
-        function returns, the bag and all its transitive dependencies will be
-        loaded and will hence be present in get_loaded_bag_names().
+        must already be present in get_available_bag_names() or must be the name
+        of some preceding item in bags_to_add.
+
+    The implementation does not simply add the bags one by one - internally it
+    persists them in parallel.
+
+    After this function returns, the bags and all their transitive dependencies
+    will be loaded and will hence be present in get_loaded_bag_names().
+
+    Args:
+      bags_to_add: A list of bags to add. They are added in the order given by
+        the list.
     """
-    available_bag_names = self.get_available_bag_names()
-    if bag_name in available_bag_names:
-      raise ValueError(f"A bag with name '{bag_name}' was already added.")
-    if not dependencies:
-      raise ValueError(
-          "The dependencies must not be empty. Use dependencies={''} to "
-          'depend only on the initial empty bag.'
-      )
-    for d in dependencies:
-      if d not in available_bag_names:
+    available_bag_names = set(self.get_available_bag_names())
+    for bag_to_add in bags_to_add:
+      bag_name = bag_to_add.bag_name
+      dependencies = bag_to_add.dependencies
+      if bag_name in available_bag_names:
+        raise ValueError(f"A bag with name '{bag_name}' was already added.")
+      if not dependencies:
         raise ValueError(
-            f"A dependency on a bag with name '{d}' is invalid, because such a"
-            ' bag was not added before.'
+            "The dependencies must not be empty. Use dependencies=('',) to "
+            'depend only on the initial empty bag.'
         )
-    self._add_bag(bag_name, bag, dependencies)
+      for d in dependencies:
+        if d not in available_bag_names:
+          raise ValueError(
+              f"A dependency on a bag with name '{d}' is invalid, because such"
+              ' a bag was not added before.'
+          )
+      available_bag_names.add(bag_name)
+
+    self._add_bags(bags_to_add)
 
   def get_minimal_bag(
       self,
@@ -254,15 +277,16 @@ class PersistedIncrementalDataBagManager:
     # using a new manager. Or to provide a way to unload the bags from the
     # memory of the new manager.
     new_manager = PersistedIncrementalDataBagManager(output_dir, fs=fs)
-    for bag_name in self._canonical_topological_sorting(bags_to_extract):
-      if not bag_name:
-        # Skip the initial empty bag. The new_manager already has one.
-        continue
-      new_manager.add_bag(
-          bag_name,
-          self._loaded_bags_cache[bag_name],
-          dependencies=bag_dependencies[bag_name],
-      )
+    bags_to_add = [
+        BagToAdd(
+            bag_name,
+            bag=self._loaded_bags_cache[bag_name],
+            dependencies=tuple(bag_dependencies[bag_name]),
+        )
+        for bag_name in self._canonical_topological_sorting(bags_to_extract)
+        if bag_name  # Skip the initial empty bag; new_manager already has one.
+    ]
+    new_manager.add_bags(bags_to_add)
 
   def _load_bags(
       self,
@@ -303,33 +327,57 @@ class PersistedIncrementalDataBagManager:
     self._load_bags_into_cache(bags_to_load)
     return bags_to_load
 
-  def _add_bag(
-      self, bag_name: str, bag: kd.types.DataBag, dependencies: Collection[str]
-  ):
-    """Adds the given bag, which might be the initial one, to this manager.
+  def _add_bags(self, bags_to_add: list[BagToAdd]):
+    """Adds the given bags in the given order to this manager.
+
+    Callers must make sure that all the bags have fresh names and that all the
+    dependencies are valid.
+
+    After this function returns, the bags and all their transitive dependencies
+    will be loaded and will hence be present in get_loaded_bag_names().
 
     Args:
-      bag_name: The name of the bag to add. Must not be used already.
-      bag: The bag to add.
-      dependencies: The names of the bags that `bag` depends on. Can be empty
-        for the initial bag. All the names mentioned here are assumed to be
-        present in get_available_bag_names().
+      bags_to_add: A list of bags to add. They are added in the order given by
+        the list.
     """
+    # Load all the (transitive) dependencies that are already available. They
+    # are not necessarily loaded yet.
     self._load_bags_into_cache(
         self._get_reflexive_and_transitive_closure_image(
-            self._get_dependency_relation(), set(dependencies)
+            self._get_dependency_relation(),
+            set(
+                itertools.chain.from_iterable(
+                    b.dependencies for b in bags_to_add
+                )
+            )
+            & self.get_available_bag_names(),
         )
     )
-    bag_filename = self._get_fresh_bag_filename()
-    self._write_bag_to_file(bag, bag_filename)
-    self._loaded_bags_cache[bag_name] = bag
-    self._metadata.data_bag_metadata.append(
-        metadata_pb2.DataBagMetadata(
-            name=bag_name,
-            filename=bag_filename,
-            dependencies=dependencies,
-        )
-    )
+
+    # Write the bags to files in parallel.
+    bags = [bag_to_add.bag for bag_to_add in bags_to_add]
+    bag_filenames = self._get_fresh_bag_filenames(len(bags_to_add))
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+      futures = [
+          executor.submit(self._write_bag_to_file, bag, bag_filename)
+          for bag, bag_filename in zip(bags, bag_filenames)
+      ]
+    # Make sure all the writes completed successfully.
+    for future in futures:
+      future.result()
+
+    for bag_to_add, bag_filename in zip(bags_to_add, bag_filenames):
+      bag_name = bag_to_add.bag_name
+      bag = bag_to_add.bag
+      dependencies = bag_to_add.dependencies
+      self._loaded_bags_cache[bag_name] = bag
+      self._metadata.data_bag_metadata.append(
+          metadata_pb2.DataBagMetadata(
+              name=bag_name,
+              filename=bag_filename,
+              dependencies=dependencies,
+          )
+      )
     self._persist_metadata()
 
   def _make_single_bag(self, bag_names: AbstractSet[str]) -> kd.types.DataBag:
@@ -449,8 +497,8 @@ class PersistedIncrementalDataBagManager:
     }
     return sorted(bag_names, key=lambda name: bag_name_to_add_index[name])
 
-  def _get_fresh_bag_filename(self) -> str:
-    """Returns a filename that has not been used before for a bag."""
+  def _get_fresh_bag_filenames(self, num_filenames: int) -> list[str]:
+    """Returns `num_filenames` filenames for bags that have not been used before."""
     # If desired, the naming scheme employed here can be used in the future to
     # detect some forms of concurrent writes. As the class docstring mentions,
     # concurrent writes by multiple managers for the same persistence directory
@@ -491,8 +539,8 @@ class PersistedIncrementalDataBagManager:
         for filepath in all_bag_filenames
     ]
     max_bag_number = max(bag_numbers) if bag_numbers else -1
-    new_bag_number = max_bag_number + 1
-    return f'bag-{new_bag_number:012d}.kd'
+    new_bag_numbers = [max_bag_number + n + 1 for n in range(num_filenames)]
+    return [f'bag-{bag_number:012d}.kd' for bag_number in new_bag_numbers]
 
   def _write_bag_to_file(self, bag: kd.types.DataBag, bag_filename: str):
     fs_util.write_bag_to_file(

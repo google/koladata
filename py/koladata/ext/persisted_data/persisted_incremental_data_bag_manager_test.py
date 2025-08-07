@@ -23,6 +23,9 @@ from koladata.ext.persisted_data import fs_implementation
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as pidbm
 
 
+BagToAdd = pidbm.BagToAdd
+
+
 class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
 
   def assert_equivalent_bags(self, bag0, bag1):
@@ -39,21 +42,21 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     self.assertEqual(manager._metadata.version, '1.0.0')
 
     bag0 = o.get_bag()
-    manager.add_bag('bag0', bag0, dependencies=[''])
+    manager.add_bags([BagToAdd('bag0', bag0, dependencies=('',))])
     self.assertEqual(manager.get_available_bag_names(), {'', 'bag0'})
     self.assertEqual(manager.get_loaded_bag_names(), {'', 'bag0'})
     self.assert_equivalent_bags(manager.get_loaded_bag(), bag0)
     self.assertEqual(manager._metadata.version, '1.0.0')
 
     bag1 = kd.attrs(o, c=4, d=5, e=6)
-    manager.add_bag('bag1', bag1, dependencies=['bag0'])
+    manager.add_bags([BagToAdd('bag1', bag1, dependencies=('bag0',))])
     self.assertEqual(manager.get_available_bag_names(), {'', 'bag0', 'bag1'})
     self.assertEqual(manager.get_loaded_bag_names(), {'', 'bag0', 'bag1'})
     expected_loaded_bag = kd.bags.updated(bag0, bag1)
     self.assert_equivalent_bags(manager.get_loaded_bag(), expected_loaded_bag)
 
     bag2 = kd.attrs(o, e=7, f=8)
-    manager.add_bag('bag2', bag2, dependencies=['bag1'])
+    manager.add_bags([BagToAdd('bag2', bag2, dependencies=('bag1',))])
     self.assertEqual(
         manager.get_available_bag_names(), {'', 'bag0', 'bag1', 'bag2'}
     )
@@ -64,7 +67,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     self.assert_equivalent_bags(manager.get_loaded_bag(), expected_loaded_bag)
 
     bag3 = kd.attrs(o, d=9, g=10, h=11)
-    manager.add_bag('bag3', bag3, dependencies=['bag1'])
+    manager.add_bags([BagToAdd('bag3', bag3, dependencies=('bag1',))])
     self.assertEqual(
         manager.get_available_bag_names(), {'', 'bag0', 'bag1', 'bag2', 'bag3'}
     )
@@ -75,7 +78,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     self.assert_equivalent_bags(manager.get_loaded_bag(), expected_loaded_bag)
 
     bag4 = kd.attrs(o, i=12, j=13)
-    manager.add_bag('bag4', bag4, dependencies=['bag0'])
+    manager.add_bags([BagToAdd('bag4', bag4, dependencies=('bag0',))])
     self.assertEqual(
         manager.get_available_bag_names(),
         {'', 'bag0', 'bag1', 'bag2', 'bag3', 'bag4'},
@@ -195,7 +198,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
 
     manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
     bag5 = kd.attrs(o, h=14, k=15, l=16)
-    manager.add_bag('bag5', bag5, dependencies=['bag3'])
+    manager.add_bags([BagToAdd('bag5', bag5, dependencies=('bag3',))])
     self.assertEqual(
         manager.get_available_bag_names(),
         {'', 'bag0', 'bag1', 'bag2', 'bag3', 'bag4', 'bag5'},
@@ -237,7 +240,18 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     # ask to load bag5 and all its dependents.
     manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
     bag6 = kd.attrs(o, j=17, l=18, m=19)
-    manager.add_bag('bag6', bag6, dependencies=['bag4', 'bag5'])
+    manager.add_bags(
+        [
+            BagToAdd(
+                'bag6',
+                bag6,
+                dependencies=(
+                    'bag4',
+                    'bag5',
+                ),
+            )
+        ]
+    )
     # Start using a new manager initialized from the persistence dir.
     manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
     self.assertEqual(manager.get_loaded_bag_names(), {''})
@@ -365,13 +379,28 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
     for name0, name1, name2 in itertools.permutations(bag_names):
       persistence_dir = self.create_tempdir().full_path
       manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
-      manager.add_bag(name0, kd.bag(), dependencies={''})
-      manager.add_bag(name1, kd.bag(), dependencies={''})
-      manager.add_bag(name2, kd.bag(), dependencies={''})
+      manager.add_bags([BagToAdd(name0, kd.bag(), dependencies=('',))])
+      manager.add_bags([BagToAdd(name1, kd.bag(), dependencies=('',))])
+      manager.add_bags([BagToAdd(name2, kd.bag(), dependencies=('',))])
       # The above 3 bags have no inter-dependencies, so any permutation of them
       # is a valid topological sorting wrt the dependency relation. However, the
       # *canonical* topological sorting reflects the order in which the bags
       # were added. It is always deterministic and fixed:
+      expected_canonical_sorting = [name0, name1, name2]
+      self.assertEqual(
+          manager._canonical_topological_sorting(set(bag_names)),
+          expected_canonical_sorting,
+      )
+
+    # The same holds when the bags are added in one go:
+    for name0, name1, name2 in itertools.permutations(bag_names):
+      persistence_dir = self.create_tempdir().full_path
+      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager.add_bags([
+          pidbm.BagToAdd(name0, kd.bag(), dependencies=('',)),
+          pidbm.BagToAdd(name1, kd.bag(), dependencies=('',)),
+          pidbm.BagToAdd(name2, kd.bag(), dependencies=('',)),
+      ])
       expected_canonical_sorting = [name0, name1, name2]
       self.assertEqual(
           manager._canonical_topological_sorting(set(bag_names)),
@@ -427,7 +456,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
           ],
       )
 
-    with self.subTest('add_bag'):
+    with self.subTest('add_bags'):
       persistence_dir = self.create_tempdir().full_path
       mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
@@ -435,7 +464,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       )
 
       mocked_fs.reset_mock()
-      manager.add_bag('bag1', kd.bag(), dependencies=[''])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
       method_names_called = [c[0] for c in mocked_fs.method_calls]
       self.assertEqual(
           method_names_called,
@@ -452,8 +481,8 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir, fs=mocked_fs
       )
-      manager.add_bag('bag1', kd.bag(), dependencies=[''])
-      manager.add_bag('bag2', kd.bag(), dependencies=[''])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
+      manager.add_bags([BagToAdd('bag2', kd.bag(), dependencies=('',))])
 
       mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
@@ -475,7 +504,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir,
       )
-      manager.add_bag('bag1', kd.bag(), dependencies=[''])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
 
       mocked_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
@@ -496,7 +525,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
       manager = pidbm.PersistedIncrementalDataBagManager(
           persistence_dir,
       )
-      manager.add_bag('bag1', kd.bag(), dependencies=[''])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
 
       original_fs = mock.Mock(wraps=fs_implementation.FileSystemInteraction())
       manager = pidbm.PersistedIncrementalDataBagManager(
@@ -562,24 +591,26 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         ValueError,
         "A bag with name '' was already added.",
     ):
-      manager.add_bag('', kd.bag(), dependencies=[])
+      manager.add_bags([BagToAdd('', kd.bag(), dependencies=tuple())])
 
-    manager.add_bag('bag1', kd.bag(), dependencies=[''])
+    manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
     with self.assertRaisesRegex(
         ValueError,
         "A bag with name 'bag1' was already added.",
     ):
-      manager.add_bag('bag1', kd.bag(), dependencies=[''])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('',))])
 
   def test_add_bag_with_empty_dependencies(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'fresh_dir')
     manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
     with self.assertRaisesRegex(
         ValueError,
-        "The dependencies must not be empty. Use dependencies={''} to depend"
-        ' only on the initial empty bag.',
+        re.escape(
+            "The dependencies must not be empty. Use dependencies=('',) to"
+            ' depend only on the initial empty bag.'
+        ),
     ):
-      manager.add_bag('bag1', kd.bag(), dependencies=[])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=tuple())])
 
   def test_add_bag_with_invalid_dependencies(self):
     persistence_dir = os.path.join(self.create_tempdir().full_path, 'fresh_dir')
@@ -589,7 +620,9 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         "A dependency on a bag with name 'non_existent_bag' is invalid, because"
         ' such a bag was not added before.',
     ):
-      manager.add_bag('bag1', kd.bag(), dependencies=['non_existent_bag'])
+      manager.add_bags(
+          [BagToAdd('bag1', kd.bag(), dependencies=('non_existent_bag',))]
+      )
 
     # The dependency graph is a DAG, so self-cycles are not allowed:
     with self.assertRaisesRegex(
@@ -597,7 +630,7 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         "A dependency on a bag with name 'bag1' is invalid, because such a bag"
         ' was not added before.',
     ):
-      manager.add_bag('bag1', kd.bag(), dependencies=['bag1'])
+      manager.add_bags([BagToAdd('bag1', kd.bag(), dependencies=('bag1',))])
 
   def test_get_minimal_bag_with_empty_bag_names(self):
     persistence_dir = self.create_tempdir().full_path
@@ -657,6 +690,148 @@ class PersistedIncrementalDatabagManagerTest(absltest.TestCase):
         'The output_dir must be empty or not exist yet.',
     ):
       manager.extract_bags(bag_names=[''], output_dir=output_dir)
+
+  # This test is similar to test_typical_usage above, but it adds all the bags
+  # in one go, instead of adding them one by one.
+  def test_add_bags_in_one_go(self):
+    persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
+    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+
+    o = kd.new(a=1, b=2, c=3)
+    bag0 = o.get_bag()
+    bag1 = kd.attrs(o, c=4, d=5, e=6)
+    bag2 = kd.attrs(o, e=7, f=8)
+    bag3 = kd.attrs(o, d=9, g=10, h=11)
+    bag4 = kd.attrs(o, i=12, j=13)
+    manager.add_bags([
+        pidbm.BagToAdd(bag_name='bag0', bag=bag0, dependencies=('',)),
+        pidbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=('bag0',)),
+        pidbm.BagToAdd(bag_name='bag2', bag=bag2, dependencies=('bag1',)),
+        pidbm.BagToAdd(bag_name='bag3', bag=bag3, dependencies=('bag1',)),
+        pidbm.BagToAdd(bag_name='bag4', bag=bag4, dependencies=('bag0',)),
+    ])
+
+    # Each of the following subtests will initialize a new manager from the same
+    # persistence_dir that was populated above.
+
+    with self.subTest('InitializeFromPersistenceDir'):
+      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      self.assertEqual(
+          manager.get_available_bag_names(),
+          {'', 'bag0', 'bag1', 'bag2', 'bag3', 'bag4'},
+      )
+      self.assertEqual(manager.get_loaded_bag_names(), {''})
+      self.assert_equivalent_bags(manager.get_loaded_bag(), kd.bag())
+      self.assertEqual(manager._metadata.version, '1.0.0')
+
+    with self.subTest('LoadAllBags'):
+      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager.load_bags(manager.get_available_bag_names())
+      self.assertEqual(
+          manager.get_loaded_bag_names(),
+          {'', 'bag0', 'bag1', 'bag2', 'bag3', 'bag4'},
+      )
+      self.assert_equivalent_bags(
+          manager.get_loaded_bag(),
+          kd.bags.updated(bag0, bag1, bag2, bag3, bag4),
+      )
+
+    with self.subTest('LoadInitialBagDag'):
+      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      # Load all the bags that depend transitively on the initial bag, which is
+      # the same as loading all the bags:
+      manager.load_bags({''}, with_all_dependents=True)
+      self.assert_equivalent_bags(
+          manager.get_loaded_bag(),
+          kd.bags.updated(bag0, bag1, bag2, bag3, bag4),
+      )
+      self.assertEqual(
+          manager.get_loaded_bag_names(),
+          {'', 'bag0', 'bag1', 'bag2', 'bag3', 'bag4'},
+      )
+
+    with self.subTest('LoadsAllTransitiveDependencies'):
+      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager.load_bags({'bag3'})
+      self.assert_equivalent_bags(
+          manager.get_loaded_bag(),
+          kd.bags.updated(bag0, bag1, bag3),
+      )
+      self.assertEqual(
+          manager.get_loaded_bag_names(),
+          {'', 'bag0', 'bag1', 'bag3'},
+      )
+
+    with self.subTest('LoadsAllTransitiveDependents'):
+      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      manager.load_bags({'bag1'}, with_all_dependents=True)
+      self.assert_equivalent_bags(
+          manager.get_loaded_bag(),
+          kd.bags.updated(bag0, bag1, bag2, bag3),  # bag4 is not loaded
+      )
+      self.assertEqual(
+          manager.get_loaded_bag_names(),
+          {'', 'bag0', 'bag1', 'bag2', 'bag3'},
+      )
+
+    with self.subTest('LoadEmptySetOfBagNames'):
+      manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+      self.assertEqual(manager.get_loaded_bag_names(), {''})
+      manager.load_bags({})
+      manager.load_bags({}, with_all_dependents=True)
+      self.assertEqual(manager.get_loaded_bag_names(), {''})
+
+      manager.load_bags({'bag1'})
+      self.assertEqual(
+          manager.get_loaded_bag_names(),
+          {'', 'bag0', 'bag1'},
+      )
+      manager.load_bags({})
+      manager.load_bags({}, with_all_dependents=True)
+      self.assertEqual(manager.get_loaded_bag_names(), {'', 'bag0', 'bag1'})
+
+  def test_add_bags_with_wrong_dependencies(self):
+    persistence_dir = os.path.join(self.create_tempdir().full_path, 'bags')
+    manager = pidbm.PersistedIncrementalDataBagManager(persistence_dir)
+
+    o = kd.new(a=1, b=2, c=3)
+    bag0 = o.get_bag()
+    bag1 = kd.attrs(o, c=4, d=5, e=6)
+    bag2 = kd.attrs(o, e=7, f=8)
+    bag3 = kd.attrs(o, d=9, g=10, h=11)
+    bag4 = kd.attrs(o, i=12, j=13)
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "A dependency on a bag with name 'bag2' is invalid, because such a"
+            ' bag was not added before.'
+        ),
+    ):
+      manager.add_bags([
+          pidbm.BagToAdd(bag_name='bag0', bag=bag0, dependencies=('',)),
+          # bag1 depends on bag2, but bag2 is not added yet.
+          pidbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=('bag2',)),
+          pidbm.BagToAdd(bag_name='bag2', bag=bag2, dependencies=('bag1',)),
+          pidbm.BagToAdd(bag_name='bag3', bag=bag3, dependencies=('bag1',)),
+          pidbm.BagToAdd(bag_name='bag4', bag=bag4, dependencies=('bag0',)),
+      ])
+
+    with self.assertRaisesRegex(
+        ValueError,
+        re.escape(
+            "The dependencies must not be empty. Use dependencies=('',) to"
+            ' depend only on the initial empty bag.'
+        ),
+    ):
+      manager.add_bags([
+          pidbm.BagToAdd(bag_name='bag0', bag=bag0, dependencies=('',)),
+          # bag1 depends on nothing, not even the initial empty bag.
+          pidbm.BagToAdd(bag_name='bag1', bag=bag1, dependencies=tuple()),
+          pidbm.BagToAdd(bag_name='bag2', bag=bag2, dependencies=('bag1',)),
+          pidbm.BagToAdd(bag_name='bag3', bag=bag3, dependencies=('bag1',)),
+          pidbm.BagToAdd(bag_name='bag4', bag=bag4, dependencies=('bag0',)),
+      ])
 
 
 if __name__ == '__main__':

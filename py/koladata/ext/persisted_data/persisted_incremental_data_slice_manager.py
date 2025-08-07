@@ -341,33 +341,38 @@ class PersistedIncrementalDataSliceManager(
     new_schema_helper = schema_helper.SchemaHelper(new_schema)
 
     added_bag_name = self._get_timestamped_bag_name()
-    self._bag_manager.add_bag(
-        bag_name=added_bag_name,
-        # Here we do not use kd.bags.updated(data_update, schema_update) because
-        # the schema_update is assumed to be included in the data_update.
-        bag=data_update,
-        # Depend only on the bag manager's root bag - the trivial set of
-        # dependencies.
-        # A fixed set of non-trivial dependencies here would be too
-        # inflexible for our use case, so instead we compute the set of
-        # dependencies dynamically right before we load bags. In particular, two
-        # features make it difficult to use a fixed set of non-trivial
-        # dependencies:
-        # 1. Aliasing. Suppose we add ".x" and then ".x.a". Adding ".y" as an
-        #    alias of ".x" means that ".x.a" now depends on ".y" too, because if
-        #    we call get_data_slice(".y", with_all_descendants=True), then we
-        #    want to load ".x.a" as well. So this conceptually requires adding
-        #    a dependency of ".x.a" on ".y", but the bag+deps of the former was
-        #    added a long time ago already.
-        # 2. Schema overwrites. The schema of an attribute might be overwritten
-        #    by an update. For example, we might want to change ".x" so that it
-        #    now contains an INT32 instead of a complex entity. When calling
-        #    get_data_slice(with_all_descendants=True), there is no need to load
-        #    the complex entity anymore. So this conceptually requires removing
-        #    the dependency of the complex entity on the root entity's bag, and
-        #    this dep was added a long time ago.
-        dependencies={''},
-    )
+    self._bag_manager.add_bags([
+        dbm.BagToAdd(
+            bag_name=added_bag_name,
+            # Here we do not use kd.bags.updated(data_update, schema_update)
+            # because the schema_update is assumed to be included in the
+            # data_update.
+            bag=data_update,
+            # Depend only on the bag manager's root bag - the trivial set of
+            # dependencies.
+            # A fixed set of non-trivial dependencies here would be too
+            # inflexible for our use case, so instead we compute the set of
+            # dependencies dynamically right before we load bags. In particular,
+            # two features make it difficult to use a fixed set of non-trivial
+            # dependencies:
+            # 1. Aliasing. Suppose we add ".x" and then ".x.a". Adding ".y" as
+            #    an alias of ".x" means that ".x.a" now depends on ".y" too,
+            #    because if we call
+            #    get_data_slice(".y", with_all_descendants=True), then we
+            #    want to load ".x.a" as well. So this conceptually requires
+            #    adding a dependency of ".x.a" on ".y", but the bag+deps of the
+            #    former was added a long time ago already.
+            # 2. Schema overwrites. The schema of an attribute might be
+            #    overwritten by an update. For example, we might want to change
+            #    ".x" so that it now contains an INT32 instead of a complex
+            #    entity. When calling get_data_slice(with_all_descendants=True),
+            #    there is no need to load the complex entity anymore. So this
+            #    conceptually requires removing the dependency of the complex
+            #    entity on the root entity's bag, and this dep was added a long
+            #    time ago.
+            dependencies=('',),
+        )
+    ])
 
     new_schema_node_name_to_bag_names = dict(
         self._schema_node_name_to_bag_names
