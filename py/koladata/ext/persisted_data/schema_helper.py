@@ -178,6 +178,7 @@ from typing import AbstractSet, Generator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
+from koladata.ext.persisted_data import stubs_and_minimal_bags_lib
 
 
 def _check_is_schema_item(ds: kd.types.DataSlice):
@@ -286,25 +287,75 @@ def _get_schema_node_name(
   return f'shared:{child_schema_item}'
 
 
-def _get_schema_graph_and_node_name_to_schema(
+def _get_schema_bag(
+    *,
+    parent_schema_item: kd.types.DataItem | None,
+    action: data_slice_path_lib.DataSliceAction | None,
+    child_schema_item: kd.types.DataItem,
+) -> kd.types.DataBag:
+  """Returns the minimal schema bag for reaching the given child_schema_item.
+
+  There are 2 cases:
+  1. `parent_schema_item` and `action` are both None. In this case
+     `child_schema_item` is the root schema, and the resulting minimal schema
+     bag is taken from its augmented stub (the augmentation preserves schema
+     names and metadata, if any exists).
+  2. `parent_schema_item` is not None and `action` is not None. In this case,
+     action.get_subschema(parent_schema_item) == child_schema_item, and we
+     consult the action to get the minimal schema bag for reaching the child.
+     That is, we simply return action.get_subschema_bag(parent_schema_item),
+     which will internally always include the augmented stub bag of
+     `child_schema_item`.
+
+  Args:
+    parent_schema_item: the parent schema item of `child_schema_item`.
+    action: the DataSliceAction that, when applied to a DataSlice with schema
+      `parent_schema_item`, results in a DataSlice with schema
+      `child_schema_item`.
+    child_schema_item: the child schema item that we want to reach.
+
+  Returns:
+    The minimal schema bag for reaching the given child_schema_item.
+  """
+  if parent_schema_item is None or action is None:
+    assert parent_schema_item is None and action is None
+    return stubs_and_minimal_bags_lib.schema_stub(child_schema_item).get_bag()
+  return action.get_subschema_bag(parent_schema_item)
+
+
+@dataclasses.dataclass(frozen=True)
+class _AnalyzeSchemaResult:
+  # The schema graph is a relation between schema node names, as described in
+  # the module docstring. The representation here maps a schema node name to the
+  # set of schema node names of its children.
+  schema_graph: dict[str, set[str]]
+  # The node name to schema map is a mapping from schema node names to the
+  # corresponding Koda subschema items.
+  schema_node_name_to_schema: dict[str, kd.types.DataItem]
+  # The node name to schema bag map is a mapping from schema node names to their
+  # minimal schema bags.
+  schema_node_name_to_schema_bag: dict[str, kd.types.DataBag]
+
+
+def _analyze_schema(
     schema: kd.types.DataItem,
     parent_schema: kd.types.DataItem | None = None,
     action: data_slice_path_lib.DataSliceAction | None = None,
-) -> tuple[dict[str, set[str]], dict[str, kd.types.DataItem]]:
-  """Helper function that creates a Schema Graph and a node name to schema map.
-
-  The schema graph is a relation between schema node names, as described in the
-  module docstring. The node name to schema map is a mapping from schema node
-  names to the corresponding Koda subschema items.
+    only_compute_schema_graph: bool = False,
+) -> _AnalyzeSchemaResult:
+  """Helper function that analyzes the given schema and creates artifacts.
 
   Args:
     schema: The Koda schema that must be processed.
     parent_schema: The parent schema of `schema`.
     action: The action for which action.get_subschema(parent_schema) returned
       `schema`.
+    only_compute_schema_graph: If True, only the schema_graph in the result will
+      be computed; the other artifacts in the result will then be empty. By
+      default, all artifacts are computed and valid in the result.
 
   Returns:
-    A tuple of the schema graph and the node name to subschema map.
+    The analysis artifacts.
   """
 
   @dataclasses.dataclass(frozen=True)
@@ -351,6 +402,7 @@ def _get_schema_graph_and_node_name_to_schema(
 
   schema_graph: dict[str, set[str]] = dict()
   schema_node_name_to_schema: dict[str, kd.types.DataItem] = dict()
+  schema_node_name_to_schema_bag: dict[str, kd.types.DataBag] = dict()
   level = [(parent_schema, action, schema)]
   is_first_level = True
   while level:
@@ -373,14 +425,24 @@ def _get_schema_graph_and_node_name_to_schema(
       if child_name in schema_graph:
         continue
       schema_graph[child_name] = set()
-      schema_node_name_to_schema[child_name] = child_schema
+      if not only_compute_schema_graph:
+        schema_node_name_to_schema[child_name] = child_schema
+        schema_node_name_to_schema_bag[child_name] = _get_schema_bag(
+            parent_schema_item=parent_schema,
+            action=action,
+            child_schema_item=child_schema,
+        )
       new_level.extend([
           (item.parent_schema, item.action, item.child_schema)
           for item in expand_one_step(child_schema)
       ])
     level = new_level
     is_first_level = False
-  return schema_graph, schema_node_name_to_schema
+  return _AnalyzeSchemaResult(
+      schema_graph=schema_graph,
+      schema_node_name_to_schema=schema_node_name_to_schema,
+      schema_node_name_to_schema_bag=schema_node_name_to_schema_bag,
+  )
 
 
 def _get_schema_node_name_for_data_slice_path(
@@ -503,8 +565,11 @@ class SchemaHelper:
   def __init__(self, schema: kd.types.DataSlice):
     _check_is_schema_item(schema)
     self._schema = schema
-    self._schema_graph, self._schema_node_name_to_schema = (
-        _get_schema_graph_and_node_name_to_schema(self._schema)
+    artifacts = _analyze_schema(self._schema)
+    self._schema_graph = artifacts.schema_graph
+    self._schema_node_name_to_schema = artifacts.schema_node_name_to_schema
+    self._schema_node_name_to_schema_bag = (
+        artifacts.schema_node_name_to_schema_bag
     )
 
   def get_schema(self) -> kd.types.DataItem:
@@ -603,11 +668,12 @@ class SchemaHelper:
           f' {at_subschema}'
       )
     return set(
-        _get_schema_graph_and_node_name_to_schema(
+        _analyze_schema(
             attr_value_schema,
             at_subschema,
             data_slice_path_lib.GetAttr(attr_name),
-        )[0].keys()
+            only_compute_schema_graph=True,
+        ).schema_graph.keys()
     )
 
   def get_subschema_at(self, schema_node_name: str) -> kd.types.DataSlice:
@@ -647,6 +713,17 @@ class SchemaHelper:
     return _get_schema_node_name_for_data_slice_path(
         self._schema, data_slice_path
     )
+
+  def get_schema_bag(
+      self, schema_node_names: AbstractSet[str]
+  ) -> kd.types.DataBag:
+    """Returns a schema bag that is minimal for the given schema node names."""
+    for name in schema_node_names:
+      self._check_is_valid_schema_node_name(name)
+    return kd.bags.updated(*[
+        self._schema_node_name_to_schema_bag[snn]
+        for snn in sorted(schema_node_names)
+    ]).merge_fallbacks()
 
   def _check_is_valid_schema_node_name(self, schema_node_name: str):
     if schema_node_name not in self._schema_graph:

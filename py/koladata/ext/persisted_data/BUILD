@@ -166,6 +166,7 @@ py_library(
     srcs = ["schema_helper.py"],
     deps = [
         ":data_slice_path",
+        ":stubs_and_minimal_bags_lib",
         "//py:python_path",
         "//py/koladata:kd",
     ],

@@ -1105,6 +1105,96 @@ class SchemaHelperTest(absltest.TestCase):
       ):
         helper.is_non_leaf_schema_node_name(invalid_schema_node_name)
 
+  def test_get_schema_bag(self):
+    schema = kd.named_schema(
+        'SomeSchema',
+        foo=kd.INT32,
+        bar=kd.named_schema('InnerSchema', zoo=kd.INT32),
+    )
+    helper = schema_helper.SchemaHelper(schema)
+
+    schema_no_bag = schema.no_bag()
+    kd.testing.assert_equivalent(
+        schema_no_bag.with_bag(
+            helper.get_schema_bag({schema_node_name(schema)})
+        ),
+        kd.named_schema('SomeSchema'),
+    )
+    kd.testing.assert_equivalent(
+        schema_no_bag.with_bag(
+            helper.get_schema_bag(
+                to_same_len_set([
+                    schema_node_name(schema),
+                    schema_node_name(schema, action=GetAttr('foo')),
+                ])
+            )
+        ),
+        kd.named_schema('SomeSchema', foo=kd.INT32),
+    )
+    kd.testing.assert_equivalent(
+        schema_no_bag.with_bag(
+            helper.get_schema_bag(
+                to_same_len_set([
+                    schema_node_name(schema),
+                    schema_node_name(schema.bar),
+                ])
+            )
+        ),
+        kd.named_schema(
+            'SomeSchema',
+            bar=kd.named_schema('InnerSchema'),
+        ),
+    )
+    kd.testing.assert_equivalent(
+        schema_no_bag.with_bag(
+            helper.get_schema_bag(
+                to_same_len_set([
+                    schema_node_name(schema),
+                    schema_node_name(schema, action=GetAttr('foo')),
+                    schema_node_name(schema.bar),
+                ])
+            )
+        ),
+        kd.named_schema(
+            'SomeSchema',
+            foo=kd.INT32,
+            bar=kd.named_schema('InnerSchema'),
+        ),
+    )
+    kd.testing.assert_equivalent(
+        schema_no_bag.with_bag(
+            helper.get_schema_bag(
+                to_same_len_set([
+                    schema_node_name(schema),
+                    schema_node_name(schema.bar),
+                    schema_node_name(schema.bar, action=GetAttr('zoo')),
+                ])
+            )
+        ),
+        kd.named_schema(
+            'SomeSchema',
+            bar=kd.named_schema('InnerSchema', zoo=kd.INT32),
+        ),
+    )
+    kd.testing.assert_equivalent(
+        schema_no_bag.with_bag(
+            helper.get_schema_bag(
+                to_same_len_set([
+                    schema_node_name(schema),
+                    schema_node_name(schema, action=GetAttr('foo')),
+                    schema_node_name(schema.bar),
+                    schema_node_name(schema.bar, action=GetAttr('zoo')),
+                ])
+            )
+        ),
+        schema,  # The full schema
+    )
+
+    with self.assertRaisesRegex(
+        ValueError, re.escape("invalid schema node name: 'abcde'")
+    ):
+      helper.get_schema_bag({'abcde'})
+
 
 if __name__ == '__main__':
   absltest.main()
