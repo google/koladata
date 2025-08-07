@@ -18,10 +18,12 @@ import shutil
 from typing import Any
 from typing import Generator
 from absl.testing import absltest
+from absl.testing import parameterized
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
-from koladata.ext.persisted_data import persisted_incremental_data_slice_manager as pidsm
+from koladata.ext.persisted_data import persisted_incremental_data_slice_manager
 from koladata.ext.persisted_data import schema_helper as schema_helper_lib
+from koladata.ext.persisted_data import simple_in_memory_data_slice_manager
 from koladata.ext.persisted_data import test_only_schema_node_name_helper
 
 
@@ -30,23 +32,33 @@ GetAttr = data_slice_path_lib.GetAttr
 
 schema_node_name = test_only_schema_node_name_helper.schema_node_name
 
+PersistedIncrementalDataSliceManager = (
+    persisted_incremental_data_slice_manager.PersistedIncrementalDataSliceManager
+)
+SimpleInMemoryDataSliceManager = (
+    simple_in_memory_data_slice_manager.SimpleInMemoryDataSliceManager
+)
+DataSliceManager = (
+    PersistedIncrementalDataSliceManager | SimpleInMemoryDataSliceManager
+)
+
 
 def get_loaded_root_dataslice(
-    manager: pidsm.PersistedIncrementalDataSliceManager,
+    manager: PersistedIncrementalDataSliceManager,
 ) -> kd.types.DataSlice:
   """Returns the loaded root dataslice of the given manager."""
   return manager._root_dataslice.updated(manager._bag_manager.get_loaded_bag())
 
 
 def get_loaded_schema(
-    manager: pidsm.PersistedIncrementalDataSliceManager,
+    manager: PersistedIncrementalDataSliceManager,
 ) -> kd.types.DataSlice:
   """Returns the schema of the loaded part of the DataSlice."""
   return get_loaded_root_dataslice(manager).get_schema()
 
 
 def generate_loaded_data_slice_paths(
-    manager: pidsm.PersistedIncrementalDataSliceManager, *, max_depth: int
+    manager: PersistedIncrementalDataSliceManager, *, max_depth: int
 ) -> Generator[data_slice_path_lib.DataSlicePath, None, None]:
   """Yields all loaded data slice paths.
 
@@ -70,7 +82,7 @@ def generate_loaded_data_slice_paths(
 
 
 def is_loaded_data_slice_path(
-    manager: pidsm.PersistedIncrementalDataSliceManager,
+    manager: PersistedIncrementalDataSliceManager,
     path: data_slice_path_lib.DataSlicePath,
 ) -> bool:
   """Returns whether the given data slice path is loaded."""
@@ -79,11 +91,31 @@ def is_loaded_data_slice_path(
   ).is_valid_data_slice_path(path)
 
 
-class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
+class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
+
+  def new_manager(self, dsm_class: Any) -> DataSliceManager:
+    if dsm_class == PersistedIncrementalDataSliceManager:
+      persistence_dir = self.create_tempdir().full_path
+      return PersistedIncrementalDataSliceManager(persistence_dir)
+
+    assert dsm_class == SimpleInMemoryDataSliceManager
+    return SimpleInMemoryDataSliceManager()
+
+  def copy_manager(self, manager: DataSliceManager) -> DataSliceManager:
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      new_persistence_dir = os.path.join(self.create_tempdir().full_path, 'new')
+      shutil.copytree(manager._persistence_dir, new_persistence_dir)  # pylint: disable=protected-access
+      new_manager = PersistedIncrementalDataSliceManager(new_persistence_dir)
+      return new_manager
+
+    assert isinstance(manager, SimpleInMemoryDataSliceManager)
+    new_manager = SimpleInMemoryDataSliceManager()
+    new_manager._ds = manager._ds  # pylint: disable=protected-access
+    return new_manager
 
   def assert_manager_available_data_slice_paths(
       self,
-      manager: pidsm.PersistedIncrementalDataSliceManager,
+      manager: PersistedIncrementalDataSliceManager,
       expected_available_data_slice_paths: set[str],
       *,
       max_depth_of_data_slice_paths: int = 5,
@@ -106,7 +138,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
   def assert_manager_loaded_data_slice_paths(
       self,
-      manager: pidsm.PersistedIncrementalDataSliceManager,
+      manager: PersistedIncrementalDataSliceManager,
       expected_loaded_data_slice_paths: set[str],
       *,
       max_depth_of_data_slice_paths: int = 5,
@@ -131,7 +163,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
   def assert_manager_schema_node_names_to_num_bags(
       self,
-      manager: pidsm.PersistedIncrementalDataSliceManager,
+      manager: PersistedIncrementalDataSliceManager,
       expected_schema_node_names_to_num_bags: list[tuple[str, int]],
   ):
     actual = {
@@ -144,7 +176,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
   def assert_manager_loaded_root_dataslice_pytree(
       self,
-      manager: pidsm.PersistedIncrementalDataSliceManager,
+      manager: PersistedIncrementalDataSliceManager,
       expected_current_root_dataslice_pytree: Any,
   ):
     self.assertEqual(
@@ -154,7 +186,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
   def assert_manager_state(
       self,
-      manager: pidsm.PersistedIncrementalDataSliceManager,
+      manager: PersistedIncrementalDataSliceManager,
       *,
       available_data_slice_paths: set[str],
       loaded_data_slice_paths: set[str],
@@ -179,7 +211,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assert_manager_state(
         manager,
         available_data_slice_paths={''},
@@ -395,7 +427,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     # Some time later, in another process...
     #
     # Start a new manager from the persistence dir.
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     all_available_data_slice_paths = {
         '',
         '.query',
@@ -607,7 +639,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     )
 
     persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
@@ -628,7 +660,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     # Now we start a new manager from the persistence dir.
     # Only the root is loaded.
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assert_manager_state(
         manager,
         available_data_slice_paths={
@@ -725,7 +757,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(
         at_path=parse_dsp(''), attr_name='tree_root', attr_value=tree_root
     )
@@ -775,7 +807,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
 
     manager.update(
         at_path=parse_dsp(''), attr_name='tree_root', attr_value=tree_root
@@ -926,7 +958,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(
         at_path=parse_dsp(''),
         attr_name='graph_nodes',
@@ -979,7 +1011,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
 
     graph_node_schema = kd.named_schema(
         'GraphNode',
@@ -1195,7 +1227,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(
         at_path=parse_dsp(''), attr_name='tree_root', attr_value=tree_root
     )
@@ -1293,7 +1325,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=o)
 
     # Next, we make ".bar" an alias for ".foo".
@@ -1315,11 +1347,11 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     # Starting from a state where nothing is loaded, the manager should know
     # that "y" is a descendant of ".foo" and ".bar".
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(
         manager.get_data_slice(foo_path, with_all_descendants=True).y.to_py(), 2
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(
         manager.get_data_slice(bar_path, with_all_descendants=True).y.to_py(), 2
     )
@@ -1346,7 +1378,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=o)
 
     # Next, we make ".bar" an alias for ".foo". However, we don't use o.stub()
@@ -1369,11 +1401,11 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     # Starting from a state where nothing is loaded, the manager should know
     # that "y" is a descendant of ".foo" and ".bar".
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(
         manager.get_data_slice(foo_path, with_all_descendants=True).y.to_py(), 2
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(
         manager.get_data_slice(bar_path, with_all_descendants=True).y.to_py(), 2
     )
@@ -1401,7 +1433,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(at_path=parse_dsp(''), attr_name='x', attr_value=x)
 
     new_x = kd.item('foo')
@@ -1415,7 +1447,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     self.assertEqual(manager.get_data_slice(x_path).to_py(), 'foo')
 
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(manager.get_data_slice(x_path).to_py(), 'foo')
     # Note that the original bag for x is not loaded here. The only 2 bags that
     # are loaded are the ones for the root and for the new 'x'.
@@ -1425,7 +1457,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(
         at_path=parse_dsp(''), attr_name='x', attr_value=kd.list([1, 2])
     )
@@ -1440,7 +1472,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
         manager.get_data_slice(parse_dsp('.x[:]')).to_py(), ['a', 'b', 'c']
     )
 
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(
         manager.get_data_slice(parse_dsp('.x[:]')).to_py(), ['a', 'b', 'c']
     )
@@ -1453,7 +1485,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=s)
 
     # Next, we make ".bar" an alias for ".foo".
@@ -1476,7 +1508,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     # Starting from a state where nothing is loaded, we should still be able to
     # access ".get_item_schema()" via ".bar". So internally, the manager must
     # understand that SCHEMAs can be aliased.
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(
         manager.get_data_slice(parse_dsp('.bar')).get_item_schema(), kd.INT32
     )
@@ -1501,7 +1533,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=value)
 
     # Next, we set ".bar" to a stub of ".foo". However, no aliasing happens -
@@ -1516,7 +1548,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     # Starting from a state where nothing is loaded, we should still be able to
     # access the value via ".bar".
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(manager.get_data_slice(parse_dsp('.bar')).to_py(), 1)
 
     manager_schema = manager.get_schema()
@@ -1539,7 +1571,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=value)
 
     # Next, we set ".bar" to a stub of ".foo". However, no aliasing happens -
@@ -1554,7 +1586,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     # Starting from a state where nothing is loaded, we should still be able to
     # access the value via ".bar".
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertEqual(manager.get_data_slice(parse_dsp('.bar')), value)
 
     manager_schema = manager.get_schema()
@@ -1574,7 +1606,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     query_schema = kd.named_schema('query')
     manager.update(
         at_path=parse_dsp(''),
@@ -1600,7 +1632,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = new_persistence_dir
 
     # Initialize a new manager with the new persistence directory.
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     ds = manager.get_data_slice(with_all_descendants=True)
     self.assertEqual(
         ds.query[:].doc[:].doc_id.to_py(), [[0, 1, 2, 3], [4, 5, 6]]
@@ -1618,7 +1650,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
 
     # These additional updates are also persisted, and can be picked up by new
     # manager instances.
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     ds = manager.get_data_slice(with_all_descendants=True)
     self.assertEqual(
         ds.query[:].doc[:].doc_id.to_py(), [[0, 1, 2, 3], [4, 5, 6]]
@@ -1632,14 +1664,14 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     # Starting from an empty persistence directory, the version should be 1.0.0.
     self.assertEqual(manager._metadata.version, '1.0.0')
     manager.update(at_path=parse_dsp(''), attr_name='x', attr_value=kd.item(1))
     # The version should still be 1.0.0 after adding an update.
     self.assertEqual(manager._metadata.version, '1.0.0')
 
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     # The version is 1.0.0 after starting from a populated persistence directory
     self.assertEqual(manager._metadata.version, '1.0.0')
 
@@ -1647,7 +1679,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertTrue(manager.exists(parse_dsp('')))
     self.assertTrue(is_loaded_data_slice_path(manager, parse_dsp('')))
     self.assertFalse(manager.exists(parse_dsp('.foo')))
@@ -1677,7 +1709,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
       self.assertTrue(is_loaded_data_slice_path(manager, dsp))
 
     # Start again from a state where nothing is loaded.
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
     self.assertTrue(manager.exists(parse_dsp('')))
     self.assertTrue(is_loaded_data_slice_path(manager, parse_dsp('')))
     for dsp_string in ['.foo', '.foo.x', '.foo.y', '.foo.y.z']:
@@ -1705,7 +1737,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
     persistence_dir = os.path.join(
         self.create_tempdir().full_path, 'persisted_dataslice'
     )
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = PersistedIncrementalDataSliceManager(persistence_dir)
 
     with self.assertRaisesRegex(
         ValueError, re.escape("invalid data slice path: '.foo.x'")
@@ -1813,14 +1845,17 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
         root_v3.query[:].doc_obj[:].another_doc_feature,
     )
 
-  def test_object_schema_is_not_supported(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_object_schema_is_not_supported(self, dsm_class):
     # This test shows that the functionality shown in
     # test_koda_behavior_of_object_schema is not supported by
     # PersistedIncrementalDataSliceManager. In particular, the manager does not
     # support OBJECT schemas in updates.
 
-    persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
 
     query_schema = kd.named_schema('query')
     new_query = query_schema.new
@@ -1862,48 +1897,18 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
           attr_value=kd.obj(1),
       )
 
-  def test_koda_behavior_of_itemid_with_multiple_schemas(self):
-    e_foo = kd.new(a=1, schema='foo')
-    e_bar = e_foo.with_schema(kd.named_schema('bar', a=kd.INT32))
-
-    root = kd.new()
-
-    root = root.with_attrs(x=kd.new(z=e_foo))
-    root = root.with_attrs(y=e_bar)
-
-    root = root.updated(kd.attrs(root.x.z, b=kd.item(2)))
-    root = root.updated(kd.attrs(root.y, c=kd.item(3)))
-
-    root = root.updated(kd.attrs(root.x.z, a=kd.item(4)))
-
-    with self.assertRaisesRegex(
-        ValueError, re.escape('reached with different schemas')
-    ):
-      _ = root.to_pytree(max_depth=-1)
-
-    with self.assertRaisesRegex(
-        ValueError, re.escape('reached with different schemas')
-    ):
-      _ = root.extract().to_pytree(max_depth=-1)
-
-    self.assertEqual(
-        root.x.z.extract().to_pytree(max_depth=-1),
-        {'a': 4, 'b': 2},
-    )
-    self.assertEqual(
-        root.y.extract().to_pytree(max_depth=-1),
-        {'a': 4, 'c': 3},
-    )
-
-  def test_behavior_of_itemid_with_multiple_schemas(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_behavior_of_itemid_with_multiple_schemas(self, dsm_class):
     # Demonstrates that the behavior of PersistedIncrementalDataSliceManager is
-    # consistent with the behavior of vanilla Koda. See below for the
+    # not consistent with the behavior of vanilla Koda. See below for the
     # assertion that is different. For that reason, we state in the docstring
     # of update() that the behavior is undefined if an itemid is associated with
     # two or more structured schemas.
 
-    persistence_dir = self.create_tempdir().full_path
-    manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
 
     e_foo = kd.new(a=1, schema='foo')
     e_bar = e_foo.with_schema(kd.named_schema('bar', a=kd.INT32))
@@ -1926,24 +1931,7 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
         at_path=parse_dsp('.foo.x'), attr_name='a', attr_value=kd.item(4)
     )
 
-    new_manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
-    with self.assertRaisesRegex(
-        ValueError, re.escape('reached with different schemas')
-    ):
-      _ = new_manager.get_data_slice(with_all_descendants=True).to_pytree(
-          max_depth=-1
-      )
-
-    with self.assertRaisesRegex(
-        ValueError, re.escape('reached with different schemas')
-    ):
-      _ = (
-          new_manager.get_data_slice(with_all_descendants=True)
-          .extract()
-          .to_pytree(max_depth=-1)
-      )
-
-    new_manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
+    new_manager = self.copy_manager(manager)
     self.assertEqual(
         new_manager.get_data_slice(
             parse_dsp('.foo.x'), with_all_descendants=True
@@ -1951,21 +1939,26 @@ class PersistedIncrementalDataSliceManagerTest(absltest.TestCase):
         {'a': 4, 'b': 2},
     )
 
-    new_manager = pidsm.PersistedIncrementalDataSliceManager(persistence_dir)
-    self.assertEqual(
-        new_manager.get_data_slice(
-            parse_dsp('.y'), with_all_descendants=True
-        ).to_pytree(max_depth=-1),
-        # This is different from the vanilla Koda behavior, which is
-        # {'a': 4, 'c': 3}. The reason is that indexing on the schema alone is
-        # not sufficient to understand that the
-        # manager.update(
-        #     at_path=parse_dsp('.x'), attr_name='a', attr_value=kd.item(4)
-        # )
-        # update also affected the dataslice at .y, since .y seemed to have a
-        # different schema than .x
-        {'a': 1, 'c': 3},
-    )
+    new_manager = self.copy_manager(manager)
+    actual_y = new_manager.get_data_slice(
+        parse_dsp('.y'), with_all_descendants=True
+    ).to_pytree(max_depth=-1)
+    # The behavior of PersistedIncrementalDataSliceManager is different from
+    # that of vanilla Koda. The reason is that indexing on the schema alone is
+    # not sufficient to understand that the
+    # manager.update(
+    #     at_path=parse_dsp('.x'), attr_name='a', attr_value=kd.item(4)
+    # )
+    # update also affected the dataslice at .y, since .y seemed to have a
+    # different schema than .x
+    # For that reason, we state in the docstring of update() that the behavior
+    # is undefined if an itemid is associated with two or more structured
+    # schemas.
+    if dsm_class == PersistedIncrementalDataSliceManager:
+      expected_y = {'a': 1, 'c': 3}
+    else:
+      expected_y = {'a': 4, 'c': 3}
+    self.assertEqual(actual_y, expected_y)
 
 
 if __name__ == '__main__':

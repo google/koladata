@@ -23,6 +23,7 @@ import os
 from typing import AbstractSet, Generator
 
 from koladata import kd
+from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import fs_interface
 from koladata.ext.persisted_data import fs_util
@@ -31,7 +32,9 @@ from koladata.ext.persisted_data import persisted_incremental_data_slice_manager
 from koladata.ext.persisted_data import schema_helper
 
 
-class PersistedIncrementalDataSliceManager:
+class PersistedIncrementalDataSliceManager(
+    data_slice_manager_interface.DataSliceManagerInterface
+):
   """Manager of a DataSlice that is assembled from multiple smaller data slices.
 
   It is often convenient to create a DataSlice by incrementally adding smaller

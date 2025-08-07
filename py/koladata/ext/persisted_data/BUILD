@@ -51,6 +51,7 @@ py_library(
     name = "persisted_incremental_data_slice_manager",
     srcs = ["persisted_incremental_data_slice_manager.py"],
     deps = [
+        ":data_slice_manager_interface",
         ":data_slice_path",
         ":fs_interface",
         ":fs_util",
@@ -69,10 +70,12 @@ py_test(
         ":data_slice_path",
         ":persisted_incremental_data_slice_manager",
         ":schema_helper",
+        ":simple_in_memory_data_slice_manager",
         ":test_only_schema_node_name_helper",
         "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
     ],
 )
 
@@ -269,5 +272,28 @@ py_test(
         "//py:python_path",
         "//py/koladata:kd",
         "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_library(
+    name = "data_slice_manager_interface",
+    srcs = ["data_slice_manager_interface.py"],
+    deps = [
+        ":data_slice_path",
+        "//py:python_path",
+        "//py/koladata:kd",
+    ],
+)
+
+py_library(
+    name = "simple_in_memory_data_slice_manager",
+    testonly = True,
+    srcs = ["simple_in_memory_data_slice_manager.py"],
+    deps = [
+        ":data_slice_manager_interface",
+        ":data_slice_path",
+        ":schema_helper",
+        "//py:python_path",
+        "//py/koladata:kd",
     ],
 )
