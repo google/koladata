@@ -1960,6 +1960,500 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       expected_y = {'a': 4, 'c': 3}
     self.assertEqual(actual_y, expected_y)
 
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_updates_preserve_schema_metadata(self, dsm_class):
+    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
+    query_schema = kd.with_metadata(
+        query_schema, proto='my.proto.Message', version=123
+    )
+
+    manager = self.new_manager(dsm_class)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            query_schema.new(query_id=0, text='How tall is Obama'),
+            query_schema.new(query_id=1, text='How high is the Eiffel tower'),
+        ]),
+    )
+
+    # Start anew from the persisted state of pidsm:
+    manager = self.copy_manager(manager)
+    actual_schema = manager.get_data_slice(parse_dsp('.query[:]')).get_schema()
+    kd.testing.assert_deep_equivalent(
+        kd.get_metadata(actual_schema),
+        kd.get_metadata(query_schema),
+    )
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_update_raises_for_non_primitive_schema_metadata_attributes(
+      self, dsm_class
+  ):
+    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
+    metadata_update = kd.metadata(query_schema, foo=1, bar=kd.new(zoo='gotcha'))
+    query_schema = query_schema.updated(metadata_update)
+
+    manager = self.new_manager(dsm_class)
+    with self.assertRaisesRegex(
+        ValueError, 'has metadata attributes that are not primitives'
+    ):
+      manager.update(
+          at_path=parse_dsp(''),
+          attr_name='query',
+          attr_value=kd.list([
+              query_schema.new(query_id=0, text='How tall is Obama'),
+              query_schema.new(query_id=1, text='How high is the Eiffel tower'),
+          ]),
+      )
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_subslice_with_list_schema_where_multiple_lists_are_missing(
+      self, dsm_class
+  ):
+    query_token = kd.named_schema('query_token', text=kd.STRING)
+    query_schema = kd.named_schema(
+        'query',
+        query_id=kd.INT32,
+        text=kd.STRING,
+        noun_tokens=kd.list_schema(query_token),
+    )
+
+    manager = self.new_manager(dsm_class)
+
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            query_schema.new(
+                query_id=0,
+                text='How tall is Obama',
+                noun_tokens=kd.list(
+                    [None, None, None, query_token.new(text='Obama')]
+                ),
+            ),
+            None,
+            query_schema.new(
+                query_id=1,
+                text='How high is the Eiffel tower',
+                noun_tokens=kd.list([
+                    None,
+                    None,
+                    None,
+                    None,
+                    query_token.new(text='Eiffel tower'),
+                ]),
+            ),
+            None,
+        ]),
+    )
+
+    manager = self.copy_manager(manager)
+    self.assertEqual(
+        manager.get_data_slice(
+            parse_dsp('.query[:].noun_tokens[:]'), with_all_descendants=True
+        ).to_pytree(max_depth=-1),
+        [
+            [None, None, None, {'text': 'Obama'}],
+            [],
+            [None, None, None, None, {'text': 'Eiffel tower'}],
+            [],
+        ],
+    )
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_subslice_with_dict_schema_where_multiple_dicts_are_missing(
+      self, dsm_class
+  ):
+    token_info_schema = kd.named_schema('token_info', is_noun=kd.BOOLEAN)
+    query_schema = kd.named_schema(
+        'query',
+        query_id=kd.INT32,
+        text=kd.STRING,
+        token_info=kd.dict_schema(kd.STRING, token_info_schema),
+    )
+
+    query_data = kd.list([
+        kd.dict({
+            0: query_schema.new(
+                query_id=0,
+                text='How tall is Obama',
+                token_info=kd.dict({
+                    'How': token_info_schema.new(is_noun=False),
+                    'Obama': token_info_schema.new(is_noun=True),
+                }),
+            ),
+            1: query_schema.new(query_id=1, text='How high is Table Mountain'),
+        }),
+        None,
+        kd.dict({
+            2: query_schema.new(
+                query_id=2,
+                text='How high is the Eiffel tower',
+                token_info=kd.dict({
+                    'How': token_info_schema.new(is_noun=False),
+                    'high': token_info_schema.new(is_noun=False),
+                    'Eiffel tower': token_info_schema.new(is_noun=True),
+                }),
+            )
+        }),
+        None,
+        kd.dict({
+            3: kd.item(None, schema=query_schema),
+            4: None,
+        })
+    ])
+
+    manager = self.new_manager(dsm_class)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=query_data,
+    )
+
+    # Start from a state where nothing is loaded in the pidsm.
+    manager = self.copy_manager(manager)
+    kd.testing.assert_deep_equivalent(
+        manager.get_data_slice(
+            parse_dsp('.query[:]'), with_all_descendants=True
+        ),
+        query_data[:],
+    )
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_removal_and_updates_of_selected_items(self, dsm_class):
+    token_info_schema = kd.named_schema('token_info', is_noun=kd.BOOLEAN)
+    doc_schema = kd.named_schema(
+        'doc',
+        doc_id=kd.INT32,
+        title=kd.STRING,
+        tokens=kd.dict_schema(kd.STRING, token_info_schema),
+    )
+    query_metadata_schema = kd.named_schema(
+        'query_metadata',
+        locale=kd.STRING,
+    )
+    query_schema = kd.named_schema(
+        'query',
+        query_id=kd.INT32,
+        text=kd.STRING,
+        doc=kd.list_schema(doc_schema),
+        metadata=query_metadata_schema,
+    )
+
+    manager = self.new_manager(dsm_class)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            query_schema.new(
+                query_id=0,
+                text='How tall is Obama',
+                doc=kd.list([
+                    doc_schema.new(doc_id=0, title='Barack Obama'),
+                    doc_schema.new(doc_id=1, title='Michelle Obama'),
+                    doc_schema.new(doc_id=2, title='George W. Bush'),
+                ]),
+            ),
+            query_schema.new(
+                query_id=1,
+                text='How high is the Eiffel tower',
+                doc=kd.list([
+                    doc_schema.new(
+                        doc_id=3,
+                        title='Eiffel tower',
+                        tokens=kd.dict({
+                            'Eiffel tower': token_info_schema.new(is_noun=True)
+                        }),
+                    ),
+                    doc_schema.new(doc_id=4, title='Tower of London'),
+                ]),
+                metadata=query_metadata_schema.new(locale='en-GB'),
+            ),
+        ]),
+    )
+
+    with self.subTest(name='update_and_remove_primitives'):
+      # This is how we can update the first query text and remove the second
+      # query text. Note that None is interpreted as a removed value.
+      new_manager = self.copy_manager(manager)
+      new_manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='text',
+          attr_value=kd.slice(['How tall is Barack Obama', None]),
+      )
+      kd.testing.assert_equivalent(
+          new_manager.get_data_slice(parse_dsp('.query[:].text')).no_bag(),
+          kd.slice([
+              'How tall is Barack Obama',  # It's now updated!
+              None,  # It's now removed!
+          ]),
+      )
+      del new_manager
+
+    with self.subTest(name='update_selected_primitives'):
+      # If we wanted to update the query text of the first query without
+      # removing the second query's text, then we can do the following:
+      manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='text',
+          attr_value=(
+              kd.slice(['How tall is Barack Obama', None])
+              | manager.get_data_slice(parse_dsp('.query[:].text'))
+          ),
+      )
+      kd.testing.assert_equivalent(
+          manager.get_data_slice(parse_dsp('.query[:].text')).no_bag(),
+          kd.slice([
+              'How tall is Barack Obama',
+              'How high is the Eiffel tower',
+          ]),
+      )
+
+    with self.subTest(name='update_and_remove_dicts'):
+      # The same is true for dicts. We can update and remove values:
+      new_manager = self.copy_manager(manager)
+      new_manager.update(
+          at_path=parse_dsp('.query[:].doc[:]'),
+          attr_name='tokens',
+          attr_value=kd.slice([
+              [
+                  kd.dict({
+                      'Barack Obama': token_info_schema.new(is_noun=True),
+                  }),
+                  None,
+                  None,
+              ],
+              [
+                  None,
+                  None,
+              ],
+          ]),
+      )
+      self.assertEqual(
+          new_manager.get_data_slice(
+              parse_dsp('.query[:].doc[:]'), with_all_descendants=True
+          ).to_pytree(max_depth=-1),
+          [
+              [
+                  {
+                      'doc_id': 0,
+                      'title': 'Barack Obama',
+                      'tokens': {'Barack Obama': {'is_noun': True}},
+                  },
+                  {'doc_id': 1, 'title': 'Michelle Obama', 'tokens': None},
+                  {'doc_id': 2, 'title': 'George W. Bush', 'tokens': None},
+              ],
+              [
+                  # We removed the tokens from this doc:
+                  {'doc_id': 3, 'title': 'Eiffel tower', 'tokens': None},
+                  {'doc_id': 4, 'title': 'Tower of London', 'tokens': None},
+              ],
+          ],
+      )
+      del new_manager
+
+    with self.subTest(name='update_selected_dicts'):
+      # Alternatively, we can update selected values without removing others:
+      manager.update(
+          at_path=parse_dsp('.query[:].doc[:]'),
+          attr_name='tokens',
+          attr_value=(
+              kd.slice([
+                  [
+                      kd.dict({
+                          'Barack Obama': token_info_schema.new(is_noun=True),
+                      }),
+                      None,
+                      None,
+                  ],
+                  [
+                      None,
+                      None,
+                  ],
+              ])
+              | manager.get_data_slice(
+                  parse_dsp('.query[:].doc[:].tokens')
+              ).stub()  # The .stub() is not necessary when using pidsm.
+          ),
+      )
+      self.assertEqual(
+          manager.get_data_slice(
+              parse_dsp('.query[:].doc[:]'), with_all_descendants=True
+          ).to_pytree(max_depth=-1),
+          [
+              [
+                  {
+                      'doc_id': 0,
+                      'title': 'Barack Obama',
+                      'tokens': {'Barack Obama': {'is_noun': True}},
+                  },
+                  {'doc_id': 1, 'title': 'Michelle Obama', 'tokens': None},
+                  {'doc_id': 2, 'title': 'George W. Bush', 'tokens': None},
+              ],
+              [
+                  {
+                      'doc_id': 3,
+                      'title': 'Eiffel tower',
+                      # We now retain the tokens:
+                      'tokens': {'Eiffel tower': {'is_noun': True}},
+                  },
+                  {'doc_id': 4, 'title': 'Tower of London', 'tokens': None},
+              ],
+          ],
+      )
+
+    with self.subTest(name='update_and_remove_entities'):
+      # The same is true for entities. We can update and remove entity values:
+      new_manager = self.copy_manager(manager)
+      new_manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='metadata',
+          attr_value=kd.slice([
+              query_metadata_schema.new(locale='en-US'),
+              None,
+          ]),
+      )
+      self.assertEqual(
+          new_manager.get_data_slice(
+              parse_dsp('.query[:].metadata'), with_all_descendants=True
+          ).to_pytree(max_depth=-1),
+          [
+              {'locale': 'en-US'},
+              # We removed the metadata from the second query:
+              None,
+          ],
+      )
+      del new_manager
+
+    with self.subTest(name='update_selected_entities'):
+      # Alternatively, we can update selected entity values without removing
+      # others:
+      manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='metadata',
+          attr_value=(
+              kd.slice([
+                  query_metadata_schema.new(locale='en-US'),
+                  None,
+              ])
+              | manager.get_data_slice(
+                  parse_dsp('.query[:].metadata')
+              ).stub()  # The .stub() is not necessary when using pidsm.
+          ),
+      )
+      self.assertEqual(
+          manager.get_data_slice(
+              parse_dsp('.query[:].metadata'), with_all_descendants=True
+          ).to_pytree(max_depth=-1),
+          [
+              {'locale': 'en-US'},
+              # We retain the metadata of the second query:
+              {'locale': 'en-GB'},
+          ],
+      )
+
+    with self.subTest(name='update_and_remove_lists'):
+      # The same is true for lists. We can update and remove values:
+      new_manager = self.copy_manager(manager)
+      new_manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='doc',
+          attr_value=kd.slice([
+              kd.list([
+                  doc_schema.new(doc_id=5, title='Barack Obama'),
+              ]),
+              None,
+          ]),
+      )
+      self.assertEqual(
+          new_manager.get_data_slice(
+              parse_dsp('.query[:].doc[:].doc_id'), with_all_descendants=True
+          ).to_pytree(max_depth=-1),
+          [
+              [5],
+              # We removed all docs from the second query:
+              [],
+          ],
+      )
+      del new_manager
+
+    with self.subTest(name='update_selected_lists'):
+      # Alternatively, we can update selected values without removing others:
+      manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='doc',
+          attr_value=(
+              kd.slice([
+                  kd.list([
+                      doc_schema.new(doc_id=5, title='Barack Obama'),
+                  ]),
+                  None,
+              ])
+              | manager.get_data_slice(parse_dsp('.query[:].doc')).stub()
+          ),
+      )
+      self.assertEqual(
+          manager.get_data_slice(
+              parse_dsp('.query[:].doc[:].doc_id'), with_all_descendants=True
+          ).to_pytree(max_depth=-1),
+          [
+              [5],
+              # We retain the docs of the second query:
+              [3, 4],
+          ],
+      )
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_slices_where_all_values_are_missing(self, dsm_class):
+    doc_schema = kd.named_schema(
+        'doc',
+        doc_id=kd.INT32,
+        title=kd.STRING,
+    )
+    query_schema = kd.named_schema(
+        'query',
+        query_id=kd.INT32,
+        text=kd.STRING,
+        doc=kd.list_schema(doc_schema),
+    )
+    manager = self.new_manager(dsm_class)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            query_schema.new(
+                query_id=0,
+                text='How tall is Obama',
+            ),
+            query_schema.new(
+                query_id=1,
+                text='How high is the Eiffel tower',
+            ),
+        ]),
+    )
+    kd.testing.assert_equivalent(
+        manager.get_data_slice(parse_dsp('.query[:].doc[:].title')).extract(),
+        kd.slice([[], []], schema=kd.STRING).with_bag(kd.bag()),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()
