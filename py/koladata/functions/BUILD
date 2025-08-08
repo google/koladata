@@ -146,9 +146,12 @@ py_library(
         "//py/koladata/expr:expr_eval",
         "//py/koladata/expr:view",
         "//py/koladata/functor/parallel:clib",
+        "//py/koladata/operators:functor",
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:py_boxing",
+        "@com_google_arolla//py/arolla",
     ],
 )
 

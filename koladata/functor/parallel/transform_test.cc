@@ -68,9 +68,8 @@ TEST(TransformTest, Basic) {
       DataSlice::CreateFromScalar(arolla::expr::ExprQuote(returns_expr));
   ASSERT_OK_AND_ASSIGN(DataSlice functor,
                        CreateFunctor(returns, missing_object, {}, {}));
-  ASSERT_OK_AND_ASSIGN(
-      DataSlice transformed_functor,
-      TransformToParallel(context, functor, internal::NonDeterministicToken()));
+  ASSERT_OK_AND_ASSIGN(DataSlice transformed_functor,
+                       TransformToParallel(context, functor));
   auto [future_a, writer_a] = MakeFuture(arolla::GetQType<DataSlice>());
   std::move(writer_a).SetValue(
       arolla::TypedValue::FromValue(DataSlice::CreateFromScalar(1)));

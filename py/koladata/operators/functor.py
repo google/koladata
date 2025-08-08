@@ -90,9 +90,54 @@ def call(
 
 
 @optools.add_to_registry()
-@optools.as_lambda_operator(
-    'kd.functor.call_fn_returning_stream_when_parallel'
-)
+@optools.as_lambda_operator('kd.functor.call_fn_normally_when_parallel')
+def call_fn_normally_when_parallel(
+    fn,
+    *args,
+    return_type_as=data_slice.DataSlice,
+    **kwargs,
+):
+  """Special call that will invoke the functor normally in parallel mode.
+
+  Normally, nested functor calls are also parallelized in parallel mode. This
+  operator can be used to disable the nested parallelization for a specific
+  call. Instead, the parallel evaluation will first wait for all inputs of
+  the call to be ready, and then call the functor normally on them. Note that
+  the functor must accept and return non-parallel types (DataSlices, DataBags)
+  and not futures. The functor may return an iterable, which will be converted
+  to a stream in parallel mode, or another non-parallel value, which will
+  be converted to a future in parallel mode. The functor must not accept
+  iterables as inputs, which will result in an error.
+
+  Outside of the parallel mode, this operator behaves exactly like
+  `functor.call`.
+
+  Args:
+    fn: The functor to be called, typically created via kd.fn().
+    *args: The positional arguments to pass to the call.
+    return_type_as: The return type of the call is expected to be the same as
+      the return type of this expression. In most cases, this will be a literal
+      of the corresponding type. This needs to be specified if the functor does
+      not return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
+    **kwargs: The keyword arguments to pass to the call.
+
+  Returns:
+    The result of the call.
+  """
+  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
+  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      call,
+      fn,
+      args=args,
+      return_type_as=return_type_as,
+      kwargs=kwargs,
+      **optools.unified_non_deterministic_kwarg(),
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator('kd.functor.call_fn_returning_stream_when_parallel')
 def call_fn_returning_stream_when_parallel(
     fn,
     *args,

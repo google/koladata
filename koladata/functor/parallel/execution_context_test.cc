@@ -39,16 +39,16 @@ TEST(ExecutionContextTest, Nullptr) {
 }
 
 TEST(ExecutionContextTest, Repr) {
-  ExecutionContextPtr context =
-      std::make_shared<ExecutionContext>(ExecutionContext::ReplacementMap());
+  ExecutionContextPtr context = std::make_shared<ExecutionContext>(
+      /*allow_runtime_transforms=*/false, ExecutionContext::ReplacementMap());
   EXPECT_EQ(arolla::Repr(context), "execution_context");
 }
 
 TEST(ExecutionContextTest, Fingerprint) {
-  ExecutionContextPtr context1 =
-      std::make_shared<ExecutionContext>(ExecutionContext::ReplacementMap());
-  ExecutionContextPtr context2 =
-      std::make_shared<ExecutionContext>(ExecutionContext::ReplacementMap());
+  ExecutionContextPtr context1 = std::make_shared<ExecutionContext>(
+      /*allow_runtime_transforms=*/false, ExecutionContext::ReplacementMap());
+  ExecutionContextPtr context2 = std::make_shared<ExecutionContext>(
+      /*allow_runtime_transforms=*/false, ExecutionContext::ReplacementMap());
   EXPECT_NE(arolla::TypedValue::FromValue(context1).GetFingerprint(),
             arolla::TypedValue::FromValue(context2).GetFingerprint());
 }
@@ -62,14 +62,18 @@ TEST(ExecutionContextTest, Getters) {
   ExecutionContext::ReplacementMap replacements = {
       {arolla::RandomFingerprint(),
        {.op = op, .argument_transformation = transformation}}};
-  ExecutionContextPtr context =
-      std::make_shared<ExecutionContext>(replacements);
+  ExecutionContextPtr context = std::make_shared<ExecutionContext>(
+      /*allow_runtime_transforms=*/true, replacements);
+  EXPECT_TRUE(context->allow_runtime_transforms());
   ASSERT_EQ(context->operator_replacements().size(), 1);
   EXPECT_EQ(context->operator_replacements().begin()->second.op, op);
   EXPECT_THAT(
       context->operator_replacements().begin()->second.argument_transformation,
       EqualsProto(
           "arguments: ORIGINAL_ARGUMENTS keep_literal_argument_indices: 1"));
+  context = std::make_shared<ExecutionContext>(
+      /*allow_runtime_transforms=*/false, replacements);
+  EXPECT_FALSE(context->allow_runtime_transforms());
 }
 
 }  // namespace

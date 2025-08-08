@@ -34,6 +34,19 @@ using ::arolla::testing::EqualsProto;
 using ::testing::ElementsAre;
 using ::testing::HasSubstr;
 
+TEST(CreateExecutionContextTest, Default) {
+  ExecutionConfig config;
+  auto db = DataBag::Empty();
+  ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
+  ASSERT_OK_AND_ASSIGN(
+      DataSlice config_slice,
+      config_slice_1d.Reshape(DataSlice::JaggedShape::Empty()));
+  ASSERT_OK_AND_ASSIGN(auto execution_context,
+                       CreateExecutionContext(config_slice));
+  EXPECT_EQ(execution_context->operator_replacements().size(), 0);
+  EXPECT_FALSE(execution_context->allow_runtime_transforms());
+}
+
 TEST(CreateExecutionContextTest, Basic) {
   ExecutionConfig config;
   auto* replacement = config.add_operator_replacements();
@@ -45,6 +58,7 @@ TEST(CreateExecutionContextTest, Basic) {
   transformation->add_arguments(
       ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS);
   transformation->add_keep_literal_argument_indices(1);
+  config.set_allow_runtime_transforms(true);
   auto db = DataBag::Empty();
   ASSERT_OK_AND_ASSIGN(DataSlice config_slice_1d, FromProto(db, {&config}));
   ASSERT_OK_AND_ASSIGN(
@@ -70,6 +84,7 @@ TEST(CreateExecutionContextTest, Basic) {
                   ->second.argument_transformation,
               EqualsProto("arguments: EXECUTOR arguments: ORIGINAL_ARGUMENTS "
                           "keep_literal_argument_indices: 1"));
+  EXPECT_TRUE(execution_context->allow_runtime_transforms());
 }
 
 TEST(CreateExecutionContextTest, OriginalArgumentsImplied) {

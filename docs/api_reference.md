@@ -1987,6 +1987,36 @@ Args:
 Returns:
   The updated namedtuple.</code></pre>
 
+### `kd.functor.call_fn_normally_when_parallel(fn, *args, return_type_as=DataItem(None, schema: NONE), **kwargs)` {#kd.functor.call_fn_normally_when_parallel}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Special call that will invoke the functor normally in parallel mode.
+
+Normally, nested functor calls are also parallelized in parallel mode. This
+operator can be used to disable the nested parallelization for a specific
+call. Instead, the parallel evaluation will first wait for all inputs of
+the call to be ready, and then call the functor normally on them. Note that
+the functor must accept and return non-parallel types (DataSlices, DataBags)
+and not futures. The functor may return an iterable, which will be converted
+to a stream in parallel mode, or another non-parallel value, which will
+be converted to a future in parallel mode. The functor must not accept
+iterables as inputs, which will result in an error.
+
+Outside of the parallel mode, this operator behaves exactly like
+`functor.call`.
+
+Args:
+  fn: The functor to be called, typically created via kd.fn().
+  *args: The positional arguments to pass to the call.
+  return_type_as: The return type of the call is expected to be the same as
+    the return type of this expression. In most cases, this will be a literal
+    of the corresponding type. This needs to be specified if the functor does
+    not return a DataSlice. kd.types.DataSlice, kd.types.DataBag and
+    kd.types.JaggedShape can also be passed here.
+  **kwargs: The keyword arguments to pass to the call.
+
+Returns:
+  The result of the call.</code></pre>
+
 ### `kd.functor.call_fn_returning_stream_when_parallel(fn, *args, return_type_as=ITERABLE[DATA_SLICE]{sequence(value_qtype=DATA_SLICE)}, **kwargs)` {#kd.functor.call_fn_returning_stream_when_parallel}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Special call that will be transformed to expect fn to return a stream.
@@ -4623,6 +4653,23 @@ Operators for parallel computation.
     not yet supported for the result, since that would mean that the result
     is/has a stream, and this method needs to return multiple values at
     different times instead of one value at the end.</code></pre>
+
+### `kd.parallel.transform(fn, *, allow_runtime_transforms=False)` {#kd.parallel.transform}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Transforms a functor to run in parallel.
+
+  The resulting functor will take and return parallel versions of the arguments
+  and return values of `fn`. Currently there is no public API to create a
+  parallel version (DataSlice -&gt; future[DataSlice]), this is work in progress.
+
+  Args:
+    fn: The functor to transform.
+    allow_runtime_transforms: Whether to allow sub-functors to be not literals,
+      but computed expressions, which will therefore have to be transformed at
+      runtime. This can be slow.
+
+  Returns:
+    The transformed functor.</code></pre>
 
 ### `kd.parallel.yield_multithreaded(fn, /, *args, value_type_as=<class 'koladata.types.data_slice.DataSlice'>, max_threads=None, timeout=None, **kwargs)` {#kd.parallel.yield_multithreaded}
 

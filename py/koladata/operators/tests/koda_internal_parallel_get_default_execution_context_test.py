@@ -44,12 +44,25 @@ I = input_container.InputContainer('I')
 kd = eager_op_utils.operators_container('kd')
 
 
-def _parallel_eval(func, *args, return_type_as=data_slice.DataSlice, **kwargs):
+def _parallel_eval(
+    func,
+    *args,
+    return_type_as=data_slice.DataSlice,
+    allow_runtime_transforms=False,
+    **kwargs,
+):
   f = functor_factories.trace_py_fn(func)
 
-  transformed_fn = koda_internal_parallel.transform(
-      koda_internal_parallel.get_default_execution_context(), f
-  )
+  if allow_runtime_transforms:
+    context = koda_internal_parallel.create_execution_context(
+        koda_internal_parallel.get_default_execution_config().with_attrs(
+            allow_runtime_transforms=True
+        )
+    )
+  else:
+    context = koda_internal_parallel.get_default_execution_context()
+
+  transformed_fn = koda_internal_parallel.transform(context, f)
   res = koda_internal_parallel.stream_from_future(
       transformed_fn(
           koda_internal_parallel.get_default_executor(),
@@ -220,7 +233,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     self.assertNotIn('async_eval', str(res))
     # To make sure the assert above is meaningful.
     res_no_replacements = koda_internal_parallel.transform(
-        koda_internal_parallel.create_execution_context(None),
+        expr_eval.eval(koda_internal_parallel.create_execution_context(None)),
         fn,
     ).eval()
     self.assertIn('async_eval', str(res_no_replacements))
@@ -1494,7 +1507,9 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         x=x,
     )
     x = ds([1, 2, 3, 4])
-    testing.assert_equal(_parallel_eval(f, x), ds([0, 1, 4, 5]))
+    testing.assert_equal(
+        _parallel_eval(f, x, allow_runtime_transforms=True), ds([0, 1, 4, 5])
+    )
 
   def test_map_simple_keyword(self):
     f = lambda a, b: a + b
@@ -1502,8 +1517,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     y = ds([[7, 8], [9, 10], [11, 12]])
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(fn=f, a=x, b=y),
-            f=f,
+            lambda x, y: user_facing_kd.functor.map(f, a=x, b=y),
             x=x,
             y=y,
         ),
@@ -1516,8 +1530,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     y = ds(2)
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
-            f=f,
+            lambda x, y: user_facing_kd.functor.map(f, x=x, y=y),
             x=x,
             y=y,
         ),
@@ -1530,8 +1543,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     y = ds(2)
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
-            f=f,
+            lambda x, y: user_facing_kd.functor.map(f, x=x, y=y),
             x=x,
             y=y,
         ),
@@ -1539,8 +1551,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=y, y=x),
-            f=f,
+            lambda x, y: user_facing_kd.functor.map(f, x=y, y=x),
             x=y,
             y=x,
         ),
@@ -1548,10 +1559,9 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(
+            lambda x, y: user_facing_kd.functor.map(
                 x=x, y=y, include_missing=False, fn=f
             ),
-            f=f,
             x=x,
             y=y,
         ),
@@ -1559,10 +1569,9 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(
+            lambda x, y: user_facing_kd.functor.map(
                 x=x, y=y, include_missing=True, fn=f
             ),
-            f=f,
             x=x,
             y=y,
         ),
@@ -1575,8 +1584,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     y = ds(2)
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
-            f=f,
+            lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
             x=x,
             y=y,
         ),
@@ -1591,9 +1599,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     x = ds([[1, 2], [3]])
     f = functor_factories.fn(f, use_tracing=False)
     testing.assert_equal(
-        _parallel_eval(
-            lambda f, x: user_facing_kd.functor.map(fn=f, x=x), f=f, x=x
-        ),
+        _parallel_eval(lambda x: user_facing_kd.functor.map(fn=f, x=x), x=x),
         ds([[2, 3], [4]]),
     )
 
@@ -1609,6 +1615,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
             x=x,
             f1=f1,
             f2=f2,
+            allow_runtime_transforms=True,
         ),
         ds([0, 1, 4, 5]),
     )
@@ -1621,6 +1628,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
             lambda f, x: user_facing_kd.functor.map(fn=f & (x >= 3), x=x),
             f=f,
             x=x,
+            allow_runtime_transforms=True,
         ),
         ds([None, None, 4, 5]),
     )
@@ -1630,29 +1638,26 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     x = ds([1, 2, 3, 4])
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x: user_facing_kd.functor.map(
+            lambda x: user_facing_kd.functor.map(
                 fn=f, x=x, include_missing=True
             ),
             x=x & (x >= 3),
-            f=f,
         ),
         ds([1, 1, 4, 5]),
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x: user_facing_kd.functor.map(
+            lambda x: user_facing_kd.functor.map(
                 fn=f, x=x, include_missing=False
             ),
             x=x & (x >= 3),
-            f=f,
         ),
         ds([None, None, 4, 5]),
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
+            lambda x: user_facing_kd.functor.map(fn=f, x=x),
             x=x & (x >= 3),
-            f=f,
         ),
         ds([None, None, 4, 5]),
     )
@@ -1661,16 +1666,14 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     f = functor_factories.fn(lambda x: x + 1)
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
-            f=f,
+            lambda x: user_facing_kd.functor.map(fn=f, x=x),
             x=ds([]),
         ),
         ds([]),
     )
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
-            f=f,
+            lambda x: user_facing_kd.functor.map(fn=f, x=x),
             x=ds([None]),
         ),
         ds([None]),
@@ -1679,24 +1682,29 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
   def test_map_different_shapes(self):
     f1 = functor_factories.fn(lambda x, y: x + y)
     f2 = functor_factories.fn(lambda x, y: x - y)
+    f = ds([f1, f2])
     x = ds([[1, None, 3], [4, 5, 6]])
     y = ds(1)
+    # We need allow_runtime_transforms=True here since auto_variables converts
+    # the literal slice of functors into kd.explode(V.smth), so it is no longer
+    # a literal functor to be transformed at compile time.
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
-            f=ds([f1, f2]),
+            lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
             x=x,
             y=y,
+            allow_runtime_transforms=True,
         ),
         ds([[2, None, 4], [3, 4, 5]]),
     )
 
+    f = ds([f1, None])
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
-            f=ds([f1, None]),
+            lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
             x=x,
             y=y,
+            allow_runtime_transforms=True,
         ),
         ds([[2, None, 4], [None, None, None]]),
     )
@@ -1704,12 +1712,12 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     # Even with include_missing=True, the missing functor is not called.
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x, y: user_facing_kd.functor.map(
+            lambda x, y: user_facing_kd.functor.map(
                 include_missing=True, fn=f, x=x, y=y
             ),
-            f=ds([f1, None]),
             x=x,
             y=y,
+            allow_runtime_transforms=True,
         ),
         ds([[2, None, 4], [None, None, None]]),
     )
@@ -1724,9 +1732,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         ValueError,
         re.escape('the functor in kd.map must evaluate to a DataItem'),
     ):
-      _ = _parallel_eval(
-          lambda f, x: user_facing_kd.functor.map(fn=f, x=x), f=f, x=x
-      )
+      _ = _parallel_eval(lambda x: user_facing_kd.functor.map(fn=f, x=x), x=x)
 
   def test_map_return_bag(self):
     def f(unused_x):
@@ -1743,8 +1749,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         ),
     ):
       _ = _parallel_eval(
-          lambda f, x: user_facing_kd.functor.map(fn=f, unused_x=x),
-          f=f,
+          lambda x: user_facing_kd.functor.map(fn=f, unused_x=x),
           x=x,
       )
 
@@ -1753,7 +1758,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     x = ds([1, 2, 3])
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x: user_facing_kd.functor.map(fn=f, x=x), f=f, x=x
+            lambda x: user_facing_kd.functor.map(fn=f, x=x), x=x
         ).x.no_bag(),
         ds([2, 3, 4]),
     )
@@ -1771,10 +1776,10 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         ),
     ):
       _ = _parallel_eval(
-          lambda f, x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
-          f=f,
+          lambda x, y: user_facing_kd.functor.map(fn=f, x=x, y=y),
           x=x,
           y=y,
+          allow_runtime_transforms=True,
       )
 
   def test_map_common_schema(self):
@@ -1784,9 +1789,9 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     x = fns.new(foo=ds([1, 2]), bar=ds(['3', '4']))
     testing.assert_equal(
         _parallel_eval(
-            lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
-            f=f,
+            lambda x: user_facing_kd.functor.map(fn=f, x=x),
             x=x,
+            allow_runtime_transforms=True,
         ),
         ds([1, '4']).with_bag(x.get_bag()),
     )
@@ -1794,9 +1799,9 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     y = fns.new(foo=fns.new(a=ds([1, 2])), bar=fns.new(a=ds([3, 4])))
     with self.assertRaisesRegex(ValueError, 'cannot find a common schema'):
       _ = _parallel_eval(
-          lambda f, x: user_facing_kd.functor.map(fn=f, x=x),
-          f=f,
+          lambda x: user_facing_kd.functor.map(fn=f, x=x),
           x=y,
+          allow_runtime_transforms=True,
       )
 
   def test_map_cancellable(self):
@@ -1812,10 +1817,12 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
 
   def test_map_non_functor_input_error(self):
     with self.assertRaisesRegex(
-        ValueError, 'expected DATA_SLICE, got x: INT32'
+        ValueError, 'expected DATA_SLICE, got fns: INT32'
     ):
       _parallel_eval(
-          lambda f: user_facing_kd.functor.map(fn=f), f=arolla.int32(1)
+          lambda f: user_facing_kd.functor.map(fn=f),
+          f=arolla.int32(1),
+          allow_runtime_transforms=True,
       )
 
   def test_map_actually_parallel(self):
@@ -1840,7 +1847,10 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         functor_factories.trace_py_fn(wait_and_return_2),
     ])
     testing.assert_equal(
-        _parallel_eval(lambda fs: user_facing_kd.functor.map(fn=fs), fs),
+        _parallel_eval(
+            lambda: user_facing_kd.functor.map(fn=fs),
+            allow_runtime_transforms=True,
+        ),
         ds([1, 2]),
     )
 
@@ -2012,6 +2022,23 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
         ValueError, re.escape('Test assertion triggered: x=2, y=3')
     ):
       _ = res_error.read_all(timeout=5.0)
+
+  def test_call_fn_normally_when_parallel(self):
+    fn = functor_factories.trace_py_fn(lambda x, y: x + y)
+    # Without call_fn_normally_when_parallel, the following would fail because
+    # `fn` is given only as an argument so we'd require allow_runtime_transforms
+    # to be True.
+    testing.assert_equal(
+        _parallel_eval(
+            lambda fn, x, y: user_facing_kd.functor.call_fn_normally_when_parallel(  # pylint: disable=unnecessary-lambda
+                fn, x, y
+            ),
+            fn,
+            ds(2),
+            ds(3),
+        ),
+        ds(5),
+    )
 
 
 if __name__ == '__main__':

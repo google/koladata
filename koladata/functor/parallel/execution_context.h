@@ -45,12 +45,16 @@ class ExecutionContext {
 
   using ReplacementMap = absl::flat_hash_map<arolla::Fingerprint, Replacement>;
 
-  explicit ExecutionContext(ReplacementMap operator_replacements)
-      : operator_replacements_(std::move(operator_replacements)) {}
+  explicit ExecutionContext(bool allow_runtime_transforms,
+                            ReplacementMap operator_replacements)
+      : allow_runtime_transforms_(allow_runtime_transforms),
+        operator_replacements_(std::move(operator_replacements)) {}
 
+  bool allow_runtime_transforms() const { return allow_runtime_transforms_; }
   const ReplacementMap& operator_replacements() const {
     return operator_replacements_;
   }
+
   // Returns the uuid of the execution context. This is a randomly generated
   // fingerprint, unique for each instance, that is used to compute
   // the fingerprint of the QValue.
@@ -63,6 +67,7 @@ class ExecutionContext {
   ExecutionContext& operator=(ExecutionContext&&) = default;
 
  private:
+  bool allow_runtime_transforms_;
   ReplacementMap operator_replacements_;
   arolla::Fingerprint uuid_ = arolla::RandomFingerprint();
 };

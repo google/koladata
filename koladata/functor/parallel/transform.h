@@ -16,9 +16,9 @@
 #define KOLADATA_FUNCTOR_PARALLEL_TRANSFORM_H_
 
 #include "absl/status/statusor.h"
+#include "arolla/qtype/typed_value.h"
 #include "koladata/data_slice.h"
 #include "koladata/functor/parallel/execution_context.h"
-#include "koladata/internal/non_deterministic_token.h"
 
 namespace koladata::functor::parallel {
 
@@ -35,8 +35,18 @@ namespace koladata::functor::parallel {
 // This is done to support functors that are created dynamically during
 // evaluation.
 absl::StatusOr<DataSlice> TransformToParallel(
-    const ExecutionContextPtr& context, DataSlice functor,
-    const internal::NonDeterministicToken& non_deterministic_token);
+    const ExecutionContextPtr& context, DataSlice functor);
+
+// A wrapper around TransformToParallel that can additionally process:
+// 1) a DataSlice of several functors, in which case we will translate
+//    all of them to parallel, taking care to translate each unique functor
+//    once.
+// 2) arolla.unspecified(), in which case we will return the input as-is.
+//
+// This is the operation that is applied to arguments marked as
+// functor_argument_indices in the replacement config.
+absl::StatusOr<arolla::TypedValue> TransformManyToParallel(
+    const ExecutionContextPtr& context, arolla::TypedValue functors);
 
 }  // namespace koladata::functor::parallel
 

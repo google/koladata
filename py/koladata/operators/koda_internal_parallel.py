@@ -956,6 +956,12 @@ def _get_value_or_parallel_default(
   )(outer_value, outer_default_value_marker, outer_default_value)
 
 
+# This operator is marked deterministic so that literal folding can apply the
+# transformation at the expr compilation time, for performance reasons. Note
+# that it is not actually deterministic, since it allocates new objects.
+# However, since it is an internal operator, we can accept the consequencecs
+# of marking it deterministic, namely that evaluating it twice on the same
+# input may result in the same result because of literal folding.
 @optools.add_to_registry()
 @optools.as_backend_operator(
     'koda_internal.parallel.transform',
@@ -964,7 +970,6 @@ def _get_value_or_parallel_default(
         qtype_utils.expect_execution_context(P.context),
         qtype_utils.expect_data_slice(P.fn),
     ],
-    deterministic=False,
 )
 def transform(context, fn):  # pylint: disable=unused-argument
   """Transforms the given functor to a parallel version.
@@ -974,6 +979,25 @@ def transform(context, fn):  # pylint: disable=unused-argument
   first positional-only argument, the executor. It will return a parallel
   version of the result.
 
+  By default, we will wrap each variable expr of the provided functor into an
+  async_eval, meaning that we'd wait for all inputs to be ready,
+  then compute the output, which will therefore take parallel form: a future,
+  a stream, or a tuple/namedtuple thereof. If any of the inputs to a variable
+  expr is an iterable (stream in the parallel version), then the default
+  conversion will fail, since we do not want to wait for all elements of the
+  stream to be available by default. However, if the output of a particular
+  variable expr is an iterable but none of the inputs are, then we will convert
+  the result to a stream after the asynchronous evaluation of the variable expr.
+
+  However, custom behavior overrides can be added for particular operators via
+  `context`. In particular, `context` is expected to contain custom behavior
+  for all operators that take an iterable as input.
+
+  Example:
+    transformed_fn = transform(context, kd.fn(I.x + I.y))
+    transformed_fn(executor, x=as_future(2), y=as_future(3))
+    # returns a future equivalent to as_future(5)
+
   Args:
     context: The execution context to use for the transformation.
     fn: The functor to transform.
@@ -982,6 +1006,41 @@ def transform(context, fn):  # pylint: disable=unused-argument
     The transformed functor.
   """
   raise NotImplementedError('implemented in the backend')
+
+
+# This operator could be a lambda, but then we'd have to invoke it from eager
+# C++ TransformToParallel code, which would be harder to maintain and debug.
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.transform_many',
+    qtype_inference_expr=P.fns,
+    qtype_constraints=[
+        qtype_utils.expect_execution_context(P.context),
+        qtype_utils.expect_data_slice_or_unspecified(P.fns),
+    ],
+)
+def transform_many(context, fns):  # pylint: disable=unused-argument
+  """Applies the parallel transform to many functors at once."""
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
+    'koda_internal.parallel._async_transform_many',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_execution_context(P.context),
+        qtype_utils.expect_future(P.fns),
+    ],
+)
+def _async_transform_many(executor, context, fns):
+  """A version of transform_many that works on futures."""
+  return async_eval(
+      executor,
+      transform_many,
+      context,
+      fns,
+  )
 
 
 @optools.as_lambda_operator(
@@ -1060,24 +1119,6 @@ def unwrap_future_to_parallel(arg):
   )
 
 
-@optools.as_lambda_operator(
-    'koda_internal.parallel._parallel_call_impl',
-)
-def _parallel_call_impl(executor, context, fn, parallel_args):
-  transformed_fn = transform(context, fn)
-  args = parallel_args[0]
-  return_type_as = parallel_args[1]
-  kwargs = parallel_args[2]
-  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
-      functor.call,
-      transformed_fn,
-      args=M.core.concat_tuples(M.core.make_tuple(executor), args),
-      return_type_as=return_type_as,
-      kwargs=kwargs,
-      **optools.unified_non_deterministic_kwarg(),
-  )
-
-
 def _expect_future_data_slice(arg):
   return (
       arg == get_future_qtype(qtypes.DATA_SLICE),
@@ -1101,125 +1142,27 @@ def _expect_future_data_slice_or_unspecified(arg):
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'koda_internal.parallel.parallel_call',
+    'koda_internal.parallel._parallel_call',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_execution_context(P.context),
-        _expect_future_data_slice(P.fn),
-        (
-            # TODO: get rid of "nonrecursive" here.
-            M.seq.all(
-                M.seq.map(
-                    _nonrecursive_is_parallel_qtype,
-                    M.qtype.get_field_qtypes(P.args),
-                )
-            ),
-            (
-                'args must have parallel types, got'
-                f' {constraints.name_type_msg(P.args)}'
-            ),
-        ),
-        (
-            # TODO: get rid of "nonrecursive" here.
-            M.seq.all(
-                M.seq.map(
-                    _nonrecursive_is_parallel_qtype,
-                    M.qtype.get_field_qtypes(P.kwargs),
-                )
-            ),
-            (
-                'kwargs must have parallel types, got'
-                f' {constraints.name_type_msg(P.kwargs)}'
-            ),
-        ),
-        (
-            # TODO: get rid of "nonrecursive" here.
-            _nonrecursive_is_parallel_qtype(P.return_type_as)
-            | (P.return_type_as == arolla.UNSPECIFIED),
-            (
-                'return_type_as must have a parallel type, got'
-                f' {constraints.name_type_msg(P.return_type_as)}'
-            ),
-        ),
+        qtype_utils.expect_data_slice(P.transformed_fn),
     ],
 )
-def parallel_call(
+def _parallel_call(
     executor,
-    context,
-    fn,
-    *args,
-    return_type_as=arolla.unspecified(),
-    **kwargs,
+    transformed_fn,
+    args,
+    return_type_as,
+    kwargs,
 ):
-  """Calls the given functor via the parallel evaluation.
-
-  This operator is intented to be used as a parallel version of `functor.call`,
-  therefore all inputs except `context` must have parallel types
-  (futures/streams/tuples thereof).
-  See execution_config.proto for more details about parallel types.
-
-  Note that the default values specified in the signature here are not used
-  when using this operator as a parallel version of `functor.call`, only when
-  this operator is called directly.
-
-  By default, we will wrap each variable expr of the provided functor into an
-  async_eval, meaning that we'd wait for all inputs to be ready,
-  then compute the output, which will therefore take parallel form: a future,
-  a stream, or a tuple/namedtuple thereof. If any of the inputs to a variable
-  expr is an iterable (stream in the parallel version), then the default
-  conversion will fail, since we do not want to wait for all elements of the
-  stream to be available by default. However, if the output of a particular
-  variable expr is an iterable but none of the inputs are, then we will convert
-  the result to a stream after the asynchronous evaluation of the variable expr.
-
-  However, custom behavior overrides can be added for particular operators via
-  `context`. In particular, `context` is expected to contain custom behavior
-  for all operators that take an iterable as input.
-
-  Example:
-    parallel_call(
-        context, as_future(kd.fn(I.x + I.y)), x=as_future(2), y=as_future(3))
-    # returns a future equivalent to as_future(5)
-
-  Args:
-    executor: The executor to use for computations.
-    context: The execution context to use for the parallel call.
-    fn: The future with the functor to be called, typically created via kd.fn().
-    *args: The parallel versions of the positional arguments to pass to the
-      call.
-    return_type_as: The return type of the parallel call is expected to be the
-      same as the return type of this expression. In most cases, this will be a
-      literal of the corresponding type. This needs to be specified if the
-      functor does not return a DataSlice, in other words if the parallel
-      version does not return a future to a DataSlice.
-    **kwargs: The parallel versions of the keyword arguments to pass to the
-      call.
-
-  Returns:
-    The parallel value containing the result of the call.
-  """
-  args, kwargs = arolla.optools.fix_trace_args_kwargs(args, kwargs)
-  return_type_as = M.core.default_if_unspecified(
-      return_type_as,
-      as_future(data_slice.DataSlice),
-  )
-
-  # We need async_eval here since `fn` is a future. `async_eval` will wait on
-  # any argument that is a future before exeucting the async operator, but all
-  # other arguments are passed as is, including tuples of futures. So we wrap
-  # the rest into a tuple so that async_eval does not wait on the
-  # args/kwargs/return_type_as futures since the transformed parallel functor
-  # expects parallel arguments for those.
-  return unwrap_future_to_parallel(
-      async_eval(
-          executor,
-          _parallel_call_impl,
-          executor,
-          context,
-          fn,
-          (args, return_type_as, kwargs),
-          optools.unified_non_deterministic_arg(),
-      )
+  """The replacement for kd.call in parallel evaluation."""
+  return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
+      functor.call,
+      transformed_fn,
+      args=M.core.concat_tuples(M.core.make_tuple(executor), args),
+      return_type_as=return_type_as,
+      kwargs=kwargs,
+      **optools.unified_non_deterministic_kwarg(),
   )
 
 
@@ -2087,26 +2030,19 @@ def _parallel_get_item(outer_executor, outer_x, outer_key):
 @optools.as_lambda_operator(
     'koda_internal.parallel._parallel_if_impl',
 )
-def _parallel_if_impl(executor, context, cond, yes_fn, no_fn, parallel_args):
+def _parallel_if_impl(
+    executor, cond, transformed_yes_fn, transformed_no_fn, parallel_args
+):
   """Implementation helper for _parallel_if."""
   args = parallel_args[0]
   return_type_as = parallel_args[1]
   kwargs = parallel_args[2]
-  cond = assertion.with_assertion(
-      cond,
-      (slices.get_ndim(cond) == 0)
-      & (schema_ops.get_schema(cond) == schema_constants.MASK),
-      'the condition in kd.if_ must be a MASK scalar',
-  )
   return arolla.abc.bind_op(  # pytype: disable=wrong-arg-types
-      parallel_call,
-      executor,
-      context,
-      # If M.core.where worked on non-array types, we could take futures
-      # to yes_fn/no_fn here and avoid unwrapping and re-wrapping. But it
-      # should not matter too much.
-      as_future(masking.cond(cond, yes_fn, no_fn)),
-      args=args,
+      functor.if_,
+      cond,
+      transformed_yes_fn,
+      transformed_no_fn,
+      args=M.core.concat_tuples(M.core.make_tuple(executor), args),
       return_type_as=return_type_as,
       kwargs=kwargs,
       **optools.unified_non_deterministic_kwarg(),
@@ -2120,15 +2056,15 @@ def _parallel_if_impl(executor, context, cond, yes_fn, no_fn, parallel_args):
     'koda_internal.parallel._parallel_if',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_execution_context(P.context),
+        qtype_utils.expect_data_slice(P.transformed_yes_fn),
+        qtype_utils.expect_data_slice(P.transformed_no_fn),
     ],
 )
 def _parallel_if(
     executor,
-    context,
     cond,
-    yes_fn,
-    no_fn,
+    transformed_yes_fn,
+    transformed_no_fn,
     args,
     return_type_as,
     kwargs,
@@ -2139,10 +2075,9 @@ def _parallel_if(
           executor,
           _parallel_if_impl,
           executor,
-          context,
           cond,
-          yes_fn,
-          no_fn,
+          transformed_yes_fn,
+          transformed_no_fn,
           (args, return_type_as, kwargs),
           optools.unified_non_deterministic_arg(),
       )
@@ -2313,20 +2248,24 @@ def _create_as_parallel_wrapping_fn():
 _AS_PARALLEL_WRAPPING_FN = _create_as_parallel_wrapping_fn()
 
 
+# qtype constraints for everything except context are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
 @optools.as_lambda_operator(
-    'koda_internal.parallel._internal_parallel_stream_flat_map_chain',
+    'koda_internal.parallel._parallel_stream_flat_map_chain',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_data_slice(P.transformed_fn),
+    ],
 )
-def _internal_parallel_stream_flat_map_chain(
-    executor, context, fn, parallel_args
+def _parallel_stream_flat_map_chain(
+    executor, stream, transformed_fn, value_type_as
 ):
   """The parallel version of iterables.flat_map_chain."""
-  stream = parallel_args[0]
-  value_type_as = parallel_args[1]
   stream_type_as = _single_element_stream_from_parallel(value_type_as, executor)
-  transformed_fn = transform(context, fn)
   wrapped_fn = core.clone(
       _AS_PARALLEL_WRAPPING_FN,
-      fn=transformed_fn,
+      fn=koda_internal_functor.pack_as_literal(transformed_fn),
       executor=koda_internal_functor.pack_as_literal(executor),
       return_type_as=koda_internal_functor.pack_as_literal(stream_type_as),
   )
@@ -2344,43 +2283,20 @@ def _internal_parallel_stream_flat_map_chain(
 # the implicit constraints from the lambda body, to avoid duplication.
 @optools.add_to_registry()
 @optools.as_lambda_operator(
-    'koda_internal.parallel._parallel_stream_flat_map_chain',
+    'koda_internal.parallel._parallel_stream_flat_map_interleaved',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_execution_context(P.context),
+        qtype_utils.expect_data_slice(P.transformed_fn),
     ],
 )
-def _parallel_stream_flat_map_chain(
-    executor, context, stream, fn, value_type_as
+def _parallel_stream_flat_map_interleaved(
+    executor, stream, transformed_fn, value_type_as
 ):
-  """The parallel version of iterables.flat_map_chain."""
-  return unwrap_future_to_parallel(
-      async_eval(
-          executor,
-          _internal_parallel_stream_flat_map_chain,
-          executor,
-          context,
-          fn,
-          (stream, value_type_as),
-          optools.unified_non_deterministic_arg(),
-      )
-  )
-
-
-@optools.as_lambda_operator(
-    'koda_internal.parallel._internal_parallel_stream_flat_map_interleaved',
-)
-def _internal_parallel_stream_flat_map_interleaved(
-    executor, context, fn, parallel_args
-):
-  """The parallel version of iterables.flat_map_interleave."""
-  stream = parallel_args[0]
-  value_type_as = parallel_args[1]
+  """The parallel version of iterables.flat_map_interleaved."""
   stream_type_as = _single_element_stream_from_parallel(value_type_as, executor)
-  transformed_fn = transform(context, fn)
   wrapped_fn = core.clone(
       _AS_PARALLEL_WRAPPING_FN,
-      fn=transformed_fn,
+      fn=koda_internal_functor.pack_as_literal(transformed_fn),
       executor=koda_internal_functor.pack_as_literal(executor),
       return_type_as=koda_internal_functor.pack_as_literal(stream_type_as),
   )
@@ -2390,33 +2306,6 @@ def _internal_parallel_stream_flat_map_interleaved(
           stream,
           wrapped_fn,
           value_type_as=stream_type_as,
-      )
-  )
-
-
-# qtype constraints for everything except context are omitted in favor of
-# the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
-@optools.as_lambda_operator(
-    'koda_internal.parallel._parallel_stream_flat_map_interleaved',
-    qtype_constraints=[
-        qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_execution_context(P.context),
-    ],
-)
-def _parallel_stream_flat_map_interleaved(
-    executor, context, stream, fn, value_type_as
-):
-  """The parallel version of iterables.flat_map_interleaved."""
-  return unwrap_future_to_parallel(
-      async_eval(
-          executor,
-          _internal_parallel_stream_flat_map_interleaved,
-          executor,
-          context,
-          fn,
-          (stream, value_type_as),
-          optools.unified_non_deterministic_arg(),
       )
   )
 
@@ -2444,17 +2333,21 @@ _SECOND_ARGUMENT_AS_PARALLEL_WRAPPING_FN = (
 )
 
 
+# qtype constraints for everything except context are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
 @optools.as_lambda_operator(
-    'koda_internal.parallel._internal_parallel_stream_reduce',
+    'koda_internal.parallel._parallel_stream_reduce',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_data_slice(P.transformed_fn),
+    ],
 )
-def _internal_parallel_stream_reduce(executor, context, fn, parallel_args):
-  """Implementation helper for _parallel_stream_reduce."""
-  items = parallel_args[0]
-  initial_value = parallel_args[1]
-  transformed_fn = transform(context, fn)
+def _parallel_stream_reduce(executor, transformed_fn, items, initial_value):
+  """The parallel version of functor.reduce."""
   wrapped_fn = core.clone(
       _SECOND_ARGUMENT_AS_PARALLEL_WRAPPING_FN,
-      fn=transformed_fn,
+      fn=koda_internal_functor.pack_as_literal(transformed_fn),
       executor=koda_internal_functor.pack_as_literal(executor),
       return_type_as=koda_internal_functor.pack_as_literal(initial_value),
   )
@@ -2466,31 +2359,6 @@ def _internal_parallel_stream_reduce(executor, context, fn, parallel_args):
               items,
               initial_value,
           )
-      )
-  )
-
-
-# qtype constraints for everything except context are omitted in favor of
-# the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
-@optools.as_lambda_operator(
-    'koda_internal.parallel._parallel_stream_reduce',
-    qtype_constraints=[
-        qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_execution_context(P.context),
-    ],
-)
-def _parallel_stream_reduce(executor, context, fn, items, initial_value):
-  """The parallel version of functor.reduce."""
-  return unwrap_future_to_parallel(
-      async_eval(
-          executor,
-          _internal_parallel_stream_reduce,
-          executor,
-          context,
-          fn,
-          (items, initial_value),
-          optools.unified_non_deterministic_arg(),
       )
   )
 
@@ -2635,36 +2503,41 @@ def _empty_yields_namedtuple(outer_yields, outer_yields_interleaved):
   )(outer_yields, outer_yields_interleaved)
 
 
+# qtype constraints for everything except context are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
 @optools.as_lambda_operator(
-    'koda_internal.parallel._internal_parallel_stream_while',
+    'koda_internal.parallel._parallel_stream_while',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_data_slice(P.transformed_condition_fn),
+        qtype_utils.expect_data_slice(P.transformed_body_fn),
+    ],
 )
-def _internal_parallel_stream_while(
-    executor, context, condition_fn, body_fn, parallel_args
+def _parallel_stream_while(
+    executor,
+    transformed_condition_fn,
+    transformed_body_fn,
+    returns,
+    yields,
+    yields_interleaved,
+    initial_state,
 ):
-  """Implementation helper for _parallel_stream_while."""
-  outer_returns = parallel_args[0]
-  outer_yields = parallel_args[1]
-  outer_yields_interleaved = parallel_args[2]
-  outer_initial_state = parallel_args[3]
-  outer_transformed_condition_fn = transform(context, condition_fn)
-  outer_transformed_condition_fn = core.clone(
+  """The parallel version of functor.while_."""
+  transformed_condition_fn = core.clone(
       _LOOP_CONDITION_WRAPPING_FN,
       executor=koda_internal_functor.pack_as_literal(executor),
-      fn=outer_transformed_condition_fn,
+      fn=koda_internal_functor.pack_as_literal(transformed_condition_fn),
   )
-  outer_transformed_body_fn = transform(context, body_fn)
-  empty_yields_namedtuple = _empty_yields_namedtuple(
-      outer_yields, outer_yields_interleaved
-  )
-  outer_transformed_body_fn = core.clone(
+  empty_yields_namedtuple = _empty_yields_namedtuple(yields, yields_interleaved)
+  transformed_body_fn = core.clone(
       _WHILE_BODY_WRAPPING_FN,
       executor=koda_internal_functor.pack_as_literal(executor),
-      fn=outer_transformed_body_fn,
+      fn=koda_internal_functor.pack_as_literal(transformed_body_fn),
       empty_yields_namedtuple=koda_internal_functor.pack_as_literal(
           empty_yields_namedtuple
       ),
   )
-  outer_executor = executor
   return arolla.types.DispatchOperator(
       'executor, returns, yields, yields_interleaved, initial_state,'
       ' transformed_condition_fn, transformed_body_fn, non_deterministic_leaf',
@@ -2719,49 +2592,14 @@ def _internal_parallel_stream_while(
           != get_future_qtype(arolla.UNSPECIFIED),
       ),
   )(
-      outer_executor,
-      outer_returns,
-      outer_yields,
-      outer_yields_interleaved,
-      outer_initial_state,
-      outer_transformed_condition_fn,
-      outer_transformed_body_fn,
+      executor,
+      returns,
+      yields,
+      yields_interleaved,
+      initial_state,
+      transformed_condition_fn,
+      transformed_body_fn,
       py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,
-  )
-
-
-# qtype constraints for everything except context are omitted in favor of
-# the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
-@optools.as_lambda_operator(
-    'koda_internal.parallel._parallel_stream_while',
-    qtype_constraints=[
-        qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_execution_context(P.context),
-    ],
-)
-def _parallel_stream_while(
-    executor,
-    context,
-    condition_fn,
-    body_fn,
-    returns,
-    yields,
-    yields_interleaved,
-    initial_state,
-):
-  """The parallel version of functor.while_."""
-  return unwrap_future_to_parallel(
-      async_eval(
-          executor,
-          _internal_parallel_stream_while,
-          executor,
-          context,
-          condition_fn,
-          body_fn,
-          (returns, yields, yields_interleaved, initial_state),
-          optools.unified_non_deterministic_arg(),
-      )
   )
 
 
@@ -2851,32 +2689,43 @@ def _create_for_finalize_wrapping_fn():
 _FOR_FINALIZE_WRAPPING_FN = _create_for_finalize_wrapping_fn()
 
 
+# qtype constraints for everything except context are omitted in favor of
+# the implicit constraints from the lambda body, to avoid duplication.
+@optools.add_to_registry()
 @optools.as_lambda_operator(
-    'koda_internal.parallel._internal_parallel_stream_for',
+    'koda_internal.parallel._parallel_stream_for',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        qtype_utils.expect_data_slice(P.transformed_body_fn),
+        qtype_utils.expect_data_slice_or_unspecified(P.transformed_finalize_fn),
+        qtype_utils.expect_data_slice_or_unspecified(
+            P.transformed_condition_fn
+        ),
+    ],
 )
-def _internal_parallel_stream_for(
-    executor, context, body_fn, finalize_fn, condition_fn, parallel_args
+def _parallel_stream_for(
+    executor,
+    stream,
+    transformed_body_fn,
+    transformed_finalize_fn,
+    transformed_condition_fn,
+    returns,
+    yields,
+    yields_interleaved,
+    initial_state,
 ):
-  """Implementation helper for _parallel_stream_while."""
-  outer_stream = parallel_args[0]
-  outer_returns = parallel_args[1]
-  outer_yields = parallel_args[2]
-  outer_yields_interleaved = parallel_args[3]
-  outer_initial_state = parallel_args[4]
-  empty_yields_namedtuple = _empty_yields_namedtuple(
-      outer_yields, outer_yields_interleaved
-  )
-  outer_transformed_body_fn = core.clone(
+  """The parallel version of functor.for_."""
+  empty_yields_namedtuple = _empty_yields_namedtuple(yields, yields_interleaved)
+  transformed_body_fn = core.clone(
       _FOR_BODY_WRAPPING_FN,
       executor=koda_internal_functor.pack_as_literal(executor),
-      fn=transform(context, body_fn),
+      fn=koda_internal_functor.pack_as_literal(transformed_body_fn),
       empty_yields_namedtuple=koda_internal_functor.pack_as_literal(
           empty_yields_namedtuple
       ),
   )
-  outer_transformed_finalize_fn = arolla.types.DispatchOperator(
-      'executor, context, empty_yields_namedtuple, finalize_fn,'
-      ' non_deterministic_leaf',
+  transformed_finalize_fn = arolla.types.DispatchOperator(
+      'executor, empty_yields_namedtuple, finalize_fn, non_deterministic_leaf',
       unspecified_case=arolla.types.DispatchCase(
           P.finalize_fn,
           condition=P.finalize_fn == arolla.UNSPECIFIED,
@@ -2885,7 +2734,7 @@ def _internal_parallel_stream_for(
           core.clone(
               _FOR_FINALIZE_WRAPPING_FN,
               executor=koda_internal_functor.pack_as_literal(P.executor),
-              fn=transform(P.context, P.finalize_fn),
+              fn=koda_internal_functor.pack_as_literal(P.finalize_fn),
               empty_yields_namedtuple=koda_internal_functor.pack_as_literal(
                   P.empty_yields_namedtuple
               ),
@@ -2893,13 +2742,12 @@ def _internal_parallel_stream_for(
       ),
   )(
       executor,
-      context,
       empty_yields_namedtuple,
-      finalize_fn,
+      transformed_finalize_fn,
       py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,
   )
-  outer_transformed_condition_fn = arolla.types.DispatchOperator(
-      'executor, context, condition_fn, non_deterministic_leaf',
+  transformed_condition_fn = arolla.types.DispatchOperator(
+      'executor, condition_fn, non_deterministic_leaf',
       unspecified_case=arolla.types.DispatchCase(
           P.condition_fn,
           condition=P.condition_fn == arolla.UNSPECIFIED,
@@ -2908,14 +2756,10 @@ def _internal_parallel_stream_for(
           core.clone(
               _LOOP_CONDITION_WRAPPING_FN,
               executor=koda_internal_functor.pack_as_literal(P.executor),
-              fn=transform(
-                  P.context,
-                  P.condition_fn,
-              ),
+              fn=koda_internal_functor.pack_as_literal(P.condition_fn),
           )
       ),
-  )(executor, context, condition_fn, py_boxing.NON_DETERMINISTIC_TOKEN_LEAF)
-  outer_executor = executor
+  )(executor, transformed_condition_fn, py_boxing.NON_DETERMINISTIC_TOKEN_LEAF)
   return arolla.types.DispatchOperator(
       'executor, stream, returns, yields, yields_interleaved, initial_state,'
       ' transformed_body_fn, transformed_finalize_fn, transformed_condition_fn,'
@@ -2977,86 +2821,16 @@ def _internal_parallel_stream_for(
           != get_future_qtype(arolla.UNSPECIFIED),
       ),
   )(
-      outer_executor,
-      outer_stream,
-      outer_returns,
-      outer_yields,
-      outer_yields_interleaved,
-      outer_initial_state,
-      outer_transformed_body_fn,
-      outer_transformed_finalize_fn,
-      outer_transformed_condition_fn,
+      executor,
+      stream,
+      returns,
+      yields,
+      yields_interleaved,
+      initial_state,
+      transformed_body_fn,
+      transformed_finalize_fn,
+      transformed_condition_fn,
       py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,
-  )
-
-
-# qtype constraints for everything except context are omitted in favor of
-# the implicit constraints from the lambda body, to avoid duplication.
-@optools.add_to_registry()
-@optools.as_lambda_operator(
-    'koda_internal.parallel._parallel_stream_for',
-    qtype_constraints=[
-        qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_execution_context(P.context),
-    ],
-)
-def _parallel_stream_for(
-    executor,
-    context,
-    stream,
-    body_fn,
-    finalize_fn,
-    condition_fn,
-    returns,
-    yields,
-    yields_interleaved,
-    initial_state,
-):
-  """The parallel version of functor.for_."""
-  return unwrap_future_to_parallel(
-      async_eval(
-          executor,
-          _internal_parallel_stream_for,
-          executor,
-          context,
-          body_fn,
-          finalize_fn,
-          condition_fn,
-          (stream, returns, yields, yields_interleaved, initial_state),
-          optools.unified_non_deterministic_arg(),
-      )
-  )
-
-
-def _create_transform_fn_template():
-  """Creates a functor template calling transform operator.
-
-  Before calling the resulting functor, one needs to add a "context" variable
-  to it, which should evaluate to the execution context to use.
-
-  Returns:
-    A functor that takes a single positional argument, which is a functor to
-    be transformed to parallel, and returns its parallel version.
-  """
-  kind_enum = signature_utils.ParameterKind
-  V = input_container.InputContainer('V')  # pylint: disable=invalid-name
-  I = input_container.InputContainer('I')  # pylint: disable=invalid-name
-  return py_functors_base_py_ext.create_functor(
-      introspection.pack_expr(transform(V.context, I.fn)),
-      signature_utils.signature([
-          signature_utils.parameter('fn', kind_enum.POSITIONAL_ONLY),
-      ]),
-  )
-
-
-_TRANSFORM_FN_TEMPLATE = _create_transform_fn_template()
-
-
-def _create_transform_fn(context):
-  """Returns an expression creating functor from _TRANSFORM_FN_TEMPLATE."""
-  return core.clone(
-      _TRANSFORM_FN_TEMPLATE,
-      context=koda_internal_functor.pack_as_literal(context),
   )
 
 
@@ -3145,17 +2919,12 @@ def _create_pointwise_invoke_fn(executor, fn, args, kwargs):
 )
 def _internal_parallel_stream_map(
     executor,
-    context,
-    fn,
+    transformed_fns,
     args,
     include_missing,
     kwargs,
 ):
   """Implementation helper for _parallel_stream_map."""
-  unique_fns = slices.unique(fn.flatten())
-  transform_fn = _create_transform_fn(context)
-  unique_transformed_fns = functor.map_(transform_fn, unique_fns)
-  transformed_fns = slices.translate(fn, unique_fns, unique_transformed_fns)
   kwargs_tuple = M.derived_qtype.upcast(M.qtype.qtype_of(kwargs), kwargs)
   aligned = M.core.apply_varargs(
       slices.align,
@@ -3227,12 +2996,10 @@ def _internal_parallel_stream_map(
     'koda_internal.parallel._parallel_stream_map',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),
-        qtype_utils.expect_execution_context(P.context),
     ],
 )
 def _parallel_stream_map(
     executor,
-    context,
     fn,
     args,
     include_missing,
@@ -3244,7 +3011,6 @@ def _parallel_stream_map(
           executor,
           _internal_parallel_stream_map,
           executor,
-          context,
           fn,
           future_from_parallel(executor, args),
           include_missing,
@@ -3364,11 +3130,11 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
   }
   operator_replacements {
     from_op: "kd.functor.call"
-    to_op: "koda_internal.parallel.parallel_call"
+    to_op: "koda_internal.parallel._parallel_call"
     argument_transformation {
       arguments: EXECUTOR
-      arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
+      functor_argument_indices: 0
     }
   }
   operator_replacements {
@@ -3384,8 +3150,9 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "koda_internal.parallel._parallel_if"
     argument_transformation {
       arguments: EXECUTOR
-      arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
+      functor_argument_indices: 1
+      functor_argument_indices: 2
     }
   }
   operator_replacements {
@@ -3427,8 +3194,8 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "koda_internal.parallel._parallel_stream_flat_map_chain"
     argument_transformation {
       arguments: EXECUTOR
-      arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
+      functor_argument_indices: 1
     }
   }
   operator_replacements {
@@ -3436,8 +3203,8 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "koda_internal.parallel._parallel_stream_flat_map_interleaved"
     argument_transformation {
       arguments: EXECUTOR
-      arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
+      functor_argument_indices: 1
     }
   }
   operator_replacements {
@@ -3445,8 +3212,8 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "koda_internal.parallel._parallel_stream_reduce"
     argument_transformation {
       arguments: EXECUTOR
-      arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
+      functor_argument_indices: 0
     }
   }
   operator_replacements {
@@ -3470,8 +3237,9 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "koda_internal.parallel._parallel_stream_while"
     argument_transformation {
       arguments: EXECUTOR
-      arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
+      functor_argument_indices: 0
+      functor_argument_indices: 1
     }
   }
   operator_replacements {
@@ -3479,8 +3247,10 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "koda_internal.parallel._parallel_stream_for"
     argument_transformation {
       arguments: EXECUTOR
-      arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
+      functor_argument_indices: 1
+      functor_argument_indices: 2
+      functor_argument_indices: 3
     }
   }
   operator_replacements {
@@ -3488,8 +3258,8 @@ _DEFAULT_EXECUTION_CONFIG_TEXTPROTO = """
     to_op: "koda_internal.parallel._parallel_stream_map"
     argument_transformation {
       arguments: EXECUTOR
-      arguments: EXECUTION_CONTEXT
       arguments: ORIGINAL_ARGUMENTS
+      functor_argument_indices: 0
     }
   }
   operator_replacements {

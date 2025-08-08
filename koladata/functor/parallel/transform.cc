@@ -47,8 +47,11 @@
 #include "arolla/expr/registered_expr_operator.h"
 #include "arolla/expr/visitors/substitution.h"
 #include "arolla/memory/optional_value.h"
+#include "arolla/qtype/qtype_traits.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/qtype/unspecified_qtype.h"
 #include "arolla/util/fingerprint.h"
+#include "arolla/util/repr.h"
 #include "arolla/util/text.h"
 #include "koladata/data_bag.h"
 #include "koladata/data_slice.h"
@@ -60,13 +63,12 @@
 #include "koladata/functor/functor.h"
 #include "koladata/functor/parallel/execution_config.pb.h"
 #include "koladata/functor/parallel/execution_context.h"
-#include "koladata/functor/parallel/executor.h"
 #include "koladata/functor/signature_utils.h"
 #include "koladata/functor_storage.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
-#include "koladata/internal/non_deterministic_token.h"
 #include "koladata/object_factories.h"
+#include "koladata/operators/slices.h"
 #include "koladata/signature.h"
 #include "koladata/signature_storage.h"
 #include "arolla/util/status_macros_backport.h"
@@ -230,12 +232,217 @@ absl::StatusOr<DataSlice> AddVariables(
   return AutoVariables(functor, std::move(extra_nodes_to_extract));
 }
 
+// This class is responsible for transformations of
+// sub-functors. It makes sure we allocate new unique variable names and
+// avoid transforming the same sub-functor twice.
+// To use it, call Transform() multiple times, and then use Finish() once to get
+// the new variables created by the manager.
+class InnerTransformManager {
+ public:
+  struct InnerTransformResult {
+    std::string var_name;
+    bool is_future;
+  };
+
+  InnerTransformManager(const ExecutionContextPtr& context,
+                        const DataSlice& functor,
+                        const DataSlice::AttrNamesSet& attr_names,
+                        const expr::InputContainer& variable_container,
+                        const arolla::expr::ExprNodePtr& executor_input)
+      : context_(context),
+        functor_(functor),
+        variable_container_(variable_container),
+        used_var_names_(attr_names),
+        executor_input_(executor_input) {}
+
+  absl::StatusOr<InnerTransformResult> Transform(absl::string_view var_name) {
+    // This caching only solves the case where the same functor is called
+    // multiple times in the same parent functor. However, if it is called, say,
+    // from a parent functor and from a child functor, it will be transformed
+    // twice. We can potentially improve this later by making this cache more
+    // global.
+    auto it = results_.find(var_name);
+    if (it != results_.end()) {
+      return it->second;
+    }
+    InnerTransformResult result{
+        .var_name = absl::StrCat("_transformed_", var_name),
+        .is_future = false};
+    int64_t next_suffix = 0;
+    while (used_var_names_.contains(result.var_name)) {
+      result.var_name =
+          absl::StrCat("_transformed_", var_name, "_", next_suffix++);
+    }
+    used_var_names_.insert(result.var_name);
+    ASSIGN_OR_RETURN(DataSlice var, functor_.GetAttr(var_name));
+    if (!var.item().holds_value<arolla::expr::ExprQuote>()) {
+      ASSIGN_OR_RETURN(
+          auto transformed_var,
+          TransformEager(arolla::TypedValue::FromValue(std::move(var))));
+      ASSIGN_OR_RETURN(auto transformed_var_slice,
+                       std::move(transformed_var).As<DataSlice>());
+      new_vars_.emplace_back(result.var_name, std::move(transformed_var_slice));
+      results_.emplace(var_name, result);
+      return result;
+    }
+    ASSIGN_OR_RETURN(auto var_expr,
+                     var.item().value<arolla::expr::ExprQuote>().expr());
+    if (expr::IsLiteral(var_expr)) {
+      if (!var_expr->qvalue()) {
+        return absl::InternalError("Literal does not have a value");
+      }
+      ASSIGN_OR_RETURN(auto transformed_var,
+                       TransformEager(*var_expr->qvalue()));
+      auto new_var_expr = arolla::expr::Literal(std::move(transformed_var));
+      auto new_var = DataSlice::CreateFromScalar(
+          arolla::expr::ExprQuote{std::move(new_var_expr)});
+      new_vars_.emplace_back(result.var_name, std::move(new_var));
+      results_.emplace(var_name, result);
+      return result;
+    }
+    if (!context_->allow_runtime_transforms()) {
+      return absl::InvalidArgumentError(absl::StrCat(
+          "Sub-functor ", var_name, " is not a literal: ", arolla::Repr(var),
+          " . The whole functor: ", arolla::Repr(functor_),
+          ". You can set allow_runtime_transforms=True to transform it at"
+          " runtime, but this will be slower and should not be used in"
+          " production."));
+    }
+    result.is_future = true;
+    ASSIGN_OR_RETURN(auto input_expr,
+                     variable_container_.CreateInput(var_name));
+    ASSIGN_OR_RETURN(auto transformed_var,
+                     TransformLazy(std::move(input_expr)));
+    new_vars_.emplace_back(result.var_name,
+                           DataSlice::CreateFromScalar(arolla::expr::ExprQuote{
+                               std::move(transformed_var)}));
+    results_.emplace(var_name, result);
+    return result;
+  }
+
+  std::vector<std::pair<std::string, DataSlice>> Finish() && {
+    return std::move(new_vars_);
+  }
+
+ private:
+  absl::StatusOr<arolla::TypedValue> TransformEager(
+      arolla::TypedValue sub_functor) {
+    // Note that currently, we never reach this code path when sub_functor
+    // is a slice of functors, since we can never have a slice of functors as
+    // a variable in a functor (we need to have a list as a variable +
+    // a kd.explode() expr). So "Many" is a bit misleading here, but I prefer
+    // to keep one function for both eager and lazy transformation.
+    return TransformManyToParallel(context_, std::move(sub_functor));
+  }
+
+  absl::StatusOr<arolla::expr::ExprNodePtr> TransformLazy(
+      arolla::expr::ExprNodePtr sub_functor) {
+    return arolla::expr::CallOp(
+        "koda_internal.parallel._async_transform_many",
+        {executor_input_, arolla::expr::Literal(context_),
+         std::move(sub_functor)});
+  }
+
+  const ExecutionContextPtr& context_;
+  const DataSlice& functor_;
+  const expr::InputContainer& variable_container_;
+  DataSlice::AttrNamesSet used_var_names_;
+  const arolla::expr::ExprNodePtr& executor_input_;
+  absl::flat_hash_map<std::string, InnerTransformResult> results_;
+  std::vector<std::pair<std::string, DataSlice>> new_vars_;
+};
+
+// Creates a lambda operator that evaluates the given replacement op.
+// The operator expects first all arguments from `functor_future_indices`,
+// and then all other arguments wrapped in a tuple.
+absl::StatusOr<arolla::expr::ExprOperatorPtr> CreateAsyncReplacementLambdaOp(
+    const arolla::expr::ExprOperatorPtr& replacement_op, int64_t total_deps,
+    const std::vector<int64_t>& functor_future_indices) {
+  auto lambda_signature = arolla::expr::ExprOperatorSignature::MakeArgsN(
+      1 + functor_future_indices.size());
+  arolla::expr::ExprNodePtr tuple_param =
+      arolla::expr::Placeholder(lambda_signature.parameters.back().name);
+
+  std::vector<absl::StatusOr<arolla::expr::ExprNodePtr>> inner_deps;
+  inner_deps.reserve(total_deps);
+  DCHECK(absl::c_is_sorted(functor_future_indices));
+  DCHECK(functor_future_indices.empty() ||
+         functor_future_indices.back() < total_deps);
+  int64_t next_functor = 0;
+  int64_t tuple_index = 0;
+  for (int64_t i = 0; i < total_deps; ++i) {
+    bool is_functor = (next_functor < functor_future_indices.size() &&
+                       functor_future_indices[next_functor] == i);
+    if (is_functor) {
+      inner_deps.push_back(arolla::expr::Placeholder(
+          lambda_signature.parameters[next_functor++].name));
+    } else {
+      inner_deps.push_back(arolla::expr::CallOp(
+          "core.get_nth", {tuple_param, arolla::expr::Literal(tuple_index++)}));
+    }
+  }
+  ASSIGN_OR_RETURN(arolla::expr::ExprNodePtr lambda_expr,
+                   arolla::expr::CallOp(replacement_op, std::move(inner_deps)));
+  return arolla::expr::LambdaOperator::Make(lambda_signature,
+                                            std::move(lambda_expr));
+}
+
+// Creates an expression that applies the given replacement op asynchronously
+// after waiting for all transformed functors to be ready.
+absl::StatusOr<arolla::expr::ExprNodePtr> CreateAsyncReplacement(
+    const arolla::expr::ExprOperatorPtr& replacement_op,
+    std::vector<arolla::expr::ExprNodePtr> new_deps,
+    std::vector<int64_t> functor_future_indices,
+    const expr::InputContainer& variable_container,
+    const arolla::expr::ExprNodePtr& executor_input) {
+  // We put all arguments except the functor futures into a tuple, so that
+  // we do not wait for them even if they are futures themselves.
+  std::vector<arolla::expr::ExprNodePtr> tuple_elements;
+  tuple_elements.reserve(new_deps.size() - functor_future_indices.size());
+  std::vector<arolla::expr::ExprNodePtr> outer_deps;
+  outer_deps.reserve(3 + functor_future_indices.size());
+  outer_deps.push_back(executor_input);
+  ASSIGN_OR_RETURN(auto lambda_op, CreateAsyncReplacementLambdaOp(
+                                       replacement_op, new_deps.size(),
+                                       functor_future_indices));
+  outer_deps.push_back(arolla::expr::Literal(std::move(lambda_op)));
+  DCHECK(absl::c_is_sorted(functor_future_indices));
+  DCHECK(functor_future_indices.empty() ||
+         functor_future_indices.back() < new_deps.size());
+  int64_t next_functor = 0;
+  for (int64_t i = 0; i < new_deps.size(); ++i) {
+    bool is_functor = (next_functor < functor_future_indices.size() &&
+                       functor_future_indices[next_functor] == i);
+    if (is_functor) {
+      ++next_functor;
+      outer_deps.push_back(std::move(new_deps[i]));
+    } else {
+      tuple_elements.push_back(std::move(new_deps[i]));
+    }
+  }
+  if (next_functor != functor_future_indices.size()) {
+    return absl::InternalError(
+        "Not all functor future indices were used in the replacement");
+  }
+  ASSIGN_OR_RETURN(arolla::expr::ExprNodePtr tuple_expr,
+                   arolla::expr::BindOp("core.make_tuple", tuple_elements, {}));
+  outer_deps.push_back(std::move(tuple_expr));
+  ASSIGN_OR_RETURN(arolla::expr::ExprNodePtr async_expr,
+                   arolla::expr::BindOp("koda_internal.parallel.async_eval",
+                                        outer_deps, {}));
+  return arolla::expr::CallOp(
+      "koda_internal.parallel.unwrap_future_to_parallel",
+      {std::move(async_expr), expr::GenNonDeterministicToken()});
+}
+
 // Applies the given replacement to the given expression. The top-level node
 // of the expression must be the source operator of the replacement.
 absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
     arolla::expr::ExprNodePtr var_expr, const ExecutionContextPtr& context,
     const ExecutionContext::Replacement& replacement,
-    const arolla::expr::ExprNodePtr& executor_input) {
+    const arolla::expr::ExprNodePtr& executor_input,
+    const expr::InputContainer& variable_container,
+    InnerTransformManager& inner_transform_manager) {
   std::vector<arolla::expr::ExprNodePtr> new_deps;
   new_deps.reserve(
       var_expr->node_deps().size() +
@@ -244,11 +451,33 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
       // original arguments.
       - 1);
   const auto& transformation = replacement.argument_transformation;
+  std::vector<int64_t> functor_future_indices;
   for (const auto& arg : transformation.arguments()) {
     switch (arg) {
       case ExecutionConfig::ArgumentTransformation::ORIGINAL_ARGUMENTS: {
-        new_deps.insert(new_deps.end(), var_expr->node_deps().begin(),
-                        var_expr->node_deps().end());
+        const auto& functor_indices = transformation.functor_argument_indices();
+        for (int64_t child_i = 0; child_i < var_expr->node_deps().size();
+             ++child_i) {
+          arolla::expr::ExprNodePtr child = var_expr->node_deps()[child_i];
+          if (absl::c_contains(functor_indices, child_i)) {
+            ASSIGN_OR_RETURN(auto child_var_name,
+                             variable_container.GetInputName(child));
+            if (!child_var_name) {
+              return absl::InternalError(absl::StrCat(
+                  "expected a variable for the functor argument ", child_i,
+                  " but got: ", arolla::expr::ToDebugString(child)));
+            }
+            ASSIGN_OR_RETURN(
+                auto transform_result,
+                inner_transform_manager.Transform(*child_var_name));
+            ASSIGN_OR_RETURN(child, variable_container.CreateInput(
+                                        transform_result.var_name));
+            if (transform_result.is_future) {
+              functor_future_indices.push_back(new_deps.size());
+            }
+          }
+          new_deps.push_back(std::move(child));
+        }
         break;
       }
       case ExecutionConfig::ArgumentTransformation::EXECUTION_CONTEXT: {
@@ -271,7 +500,13 @@ absl::StatusOr<arolla::expr::ExprNodePtr> ApplyReplacement(
       }
     }
   }
-  return arolla::expr::MakeOpNode(replacement.op, std::move(new_deps));
+  if (functor_future_indices.empty()) {
+    return arolla::expr::MakeOpNode(replacement.op, std::move(new_deps));
+  } else {
+    return CreateAsyncReplacement(replacement.op, std::move(new_deps),
+                                  std::move(functor_future_indices),
+                                  variable_container, executor_input);
+  }
 }
 
 absl::StatusOr<DataSlice> MakeParallelDefaultValueMarker() {
@@ -460,8 +695,7 @@ absl::StatusOr<bool> IsAnnotationChainOnAVariable(
 // The resulting functor expects proper parallel types for its inputs, and
 // guarantees that each variable is also of a proper parallel type.
 absl::StatusOr<DataSlice> TransformToParallel(
-    const ExecutionContextPtr& context, DataSlice functor,
-    const internal::NonDeterministicToken& non_deterministic_token) {
+    const ExecutionContextPtr& context, DataSlice functor) {
   ASSIGN_OR_RETURN(bool is_functor, IsFunctor(functor));
   if (!is_functor) {
     return absl::InvalidArgumentError("functor must be a functor");
@@ -507,6 +741,8 @@ absl::StatusOr<DataSlice> TransformToParallel(
   std::optional<DataSlice> returns;
   var_names.reserve(attr_names.size() - 2);
   var_values.reserve(attr_names.size() - 2);
+  InnerTransformManager inner_transform_manager(
+      context, functor, attr_names, variable_container, executor_input);
   for (const auto& attr_name : attr_names) {
     if (attr_name == kSignatureAttrName) {
       continue;
@@ -524,7 +760,8 @@ absl::StatusOr<DataSlice> TransformToParallel(
     if (replacement) {
       ASSIGN_OR_RETURN(
           var_expr, ApplyReplacement(std::move(var_expr), context, *replacement,
-                                     executor_input));
+                                     executor_input, variable_container,
+                                     inner_transform_manager));
     } else if (expr::IsInput(var_expr) || var_expr->is_leaf()) {
       ASSIGN_OR_RETURN(var_expr, ApplyInputReplacement(
                                      std::move(var_expr), variable_container,
@@ -565,8 +802,56 @@ absl::StatusOr<DataSlice> TransformToParallel(
   if (!returns) {
     return absl::InternalError("functor must have 'returns' attribute");
   }
+  auto inner_vars = std::move(inner_transform_manager).Finish();
+  var_names.reserve(var_names.size() + inner_vars.size());
+  var_values.reserve(var_values.size() + inner_vars.size());
+  for (const auto& [name, value] : inner_vars) {
+    var_names.push_back(name);
+    var_values.push_back(value);
+  }
   return CreateFunctor(*returns, signature, std::move(var_names),
                        std::move(var_values));
+}
+
+absl::StatusOr<arolla::TypedValue> TransformManyToParallel(
+    const ExecutionContextPtr& context, arolla::TypedValue functors) {
+  if (functors.GetType() == arolla::GetUnspecifiedQType()) {
+    return functors;
+  }
+  if (functors.GetType() != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        absl::StrCat("expected a DataSlice or unspecified, got ",
+                     functors.GetType()->name()));
+  }
+  ASSIGN_OR_RETURN(DataSlice fns, std::move(functors).As<DataSlice>());
+  ASSIGN_OR_RETURN(DataSlice fns_flat, fns.Flatten(0, std::nullopt));
+  ASSIGN_OR_RETURN(DataSlice unique_fns,
+                   ops::Unique(std::move(fns_flat),
+                               /*sort=*/DataSlice::CreateFromScalar(false)));
+  std::vector<DataSlice> unique_transformed_fns_vec;
+  unique_transformed_fns_vec.reserve(unique_fns.size());
+  for (int64_t i = 0; i < unique_fns.size(); ++i) {
+    ASSIGN_OR_RETURN(DataSlice fn,
+                     ops::Take(unique_fns, DataSlice::CreateFromScalar(i)));
+    ASSIGN_OR_RETURN(DataSlice transformed_fn,
+                     TransformToParallel(context, std::move(fn)));
+    unique_transformed_fns_vec.emplace_back(std::move(transformed_fn));
+  }
+  DataSlice is_stack = DataSlice::CreateFromScalar(true);
+  DataSlice ndim = DataSlice::CreateFromScalar(0);
+  std::vector<const DataSlice*> stack_args;
+  stack_args.reserve(2 + unique_transformed_fns_vec.size());
+  stack_args.push_back(&is_stack);
+  stack_args.push_back(&ndim);
+  for (int64_t i = 0; i < unique_transformed_fns_vec.size(); ++i) {
+    stack_args.push_back(&unique_transformed_fns_vec[i]);
+  }
+  ASSIGN_OR_RETURN(DataSlice unique_transformed_fns,
+                   ops::ConcatOrStack(stack_args));
+  ASSIGN_OR_RETURN(DataSlice transformed_fns,
+                   ops::Translate(std::move(fns), std::move(unique_fns),
+                                  std::move(unique_transformed_fns)));
+  return arolla::TypedValue::FromValue(std::move(transformed_fns));
 }
 
 }  // namespace koladata::functor::parallel

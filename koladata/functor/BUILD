@@ -157,6 +157,7 @@ cc_test(
         "//koladata:data_slice",
         "//koladata/expr:expr_eval",
         "//koladata/functor/parallel:future",
+        "//koladata/functor/parallel:future_qtype",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/internal:non_deterministic_token",

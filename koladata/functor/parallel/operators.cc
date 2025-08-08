@@ -22,7 +22,6 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/qtype_traits.h"
 #include "koladata/data_slice_qtype.h"
-#include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/functor/parallel/async_eval_operator.h"
 #include "koladata/functor/parallel/create_execution_context.h"
 #include "koladata/functor/parallel/execution_context.h"
@@ -33,7 +32,9 @@
 #include "koladata/functor/parallel/stream_operators.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/functor/parallel/transform.h"
+#include "koladata/functor/parallel/transform_operators.h"
 #include "koladata/internal/non_deterministic_token.h"
+#include "koladata/internal/op_utils/qexpr.h"
 
 namespace koladata::functor::parallel {
 namespace {
@@ -121,6 +122,8 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_map_unordered",
 OPERATOR_FAMILY("koda_internal.parallel.stream_reduce",
                 std::make_unique<StreamReduceOperatorFamily>());
 OPERATOR("koda_internal.parallel.transform", TransformToParallel);
+OPERATOR_FAMILY("koda_internal.parallel.transform_many",
+                std::make_unique<TransformManyOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.unsafe_blocking_await",
                 std::make_unique<UnsafeBlockingAwaitOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.unwrap_future_to_future",

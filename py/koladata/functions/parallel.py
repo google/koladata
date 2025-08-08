@@ -14,14 +14,19 @@
 
 """Tools to evaluate functors in parallel."""
 
+import functools
+import types as py_types
 from typing import Any, Iterator
 
+from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import view as _
 from koladata.functor.parallel import clib
+from koladata.operators import functor
 from koladata.operators import koda_internal_parallel
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import py_boxing
 
 
 def _create_executor(max_threads: int | None) -> clib.Executor:
@@ -74,14 +79,13 @@ def call_multithreaded(
     different times instead of one value at the end.
   """
   executor = _create_executor(max_threads)
-  execution_context = koda_internal_parallel.get_default_execution_context()
+  transformed_fn = transform(fn, allow_runtime_transforms=True)
   res_stream = koda_internal_parallel.stream_from_future(
       koda_internal_parallel.future_from_parallel(
           executor,
-          koda_internal_parallel.parallel_call(
+          functor.call(
+              transformed_fn,
               executor,
-              execution_context,
-              koda_internal_parallel.as_future(fn),
               *[koda_internal_parallel.as_parallel(arg) for arg in args],
               return_type_as=koda_internal_parallel.as_parallel(return_type_as),
               **{
@@ -144,11 +148,10 @@ def yield_multithreaded(
     Yields the items of the output iterable as soon as they are available.
   """
   executor = _create_executor(max_threads)
-  execution_context = koda_internal_parallel.get_default_execution_context()
-  res_stream = koda_internal_parallel.parallel_call(
+  transformed_fn = transform(fn, allow_runtime_transforms=True)
+  res_stream = functor.call(
+      transformed_fn,
       executor,
-      execution_context,
-      koda_internal_parallel.as_future(fn),
       *[koda_internal_parallel.as_parallel(arg) for arg in args],
       return_type_as=koda_internal_parallel.stream_make(
           value_type_as=value_type_as
@@ -156,3 +159,32 @@ def yield_multithreaded(
       **{k: koda_internal_parallel.as_parallel(v) for k, v in kwargs.items()},
   ).eval()
   return _wrap_yield_all(executor, res_stream, timeout=timeout)
+
+
+def transform(
+    fn: data_item.DataItem | py_types.FunctionType | functools.partial[Any],
+    *,
+    allow_runtime_transforms: bool = False,
+) -> data_item.DataItem:
+  """Transforms a functor to run in parallel.
+
+  The resulting functor will take and return parallel versions of the arguments
+  and return values of `fn`. Currently there is no public API to create a
+  parallel version (DataSlice -> future[DataSlice]), this is work in progress.
+
+  Args:
+    fn: The functor to transform.
+    allow_runtime_transforms: Whether to allow sub-functors to be not literals,
+      but computed expressions, which will therefore have to be transformed at
+      runtime. This can be slow.
+
+  Returns:
+    The transformed functor.
+  """
+  fn = py_boxing.as_qvalue(fn)
+  context = koda_internal_parallel.create_execution_context(
+      koda_internal_parallel.get_default_execution_config().with_attrs(
+          allow_runtime_transforms=allow_runtime_transforms
+      )
+  )
+  return arolla.eval(koda_internal_parallel.transform(context, fn))

@@ -58,15 +58,14 @@ class ParallelCallFnReturningStreamTest(absltest.TestCase):
     )
     call_fn = functor_factories.expr_fn(
         functor.call_fn_returning_stream_when_parallel(
-            fn,
+            I.func,
             x=I.foo,
             y=I.bar,
         )
     )
-    call_expr = koda_internal_parallel.parallel_call(
+    call_expr = koda_internal_parallel.transform(context, call_fn)(
         executor,
-        context,
-        koda_internal_parallel.as_future(call_fn),
+        func=koda_internal_parallel.as_future(fn),
         foo=koda_internal_parallel.as_future(I.foo),
         bar=koda_internal_parallel.as_future(I.bar),
         return_type_as=koda_internal_parallel.stream_make(),

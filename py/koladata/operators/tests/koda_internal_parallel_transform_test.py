@@ -23,8 +23,10 @@ from koladata.expr import introspection
 from koladata.expr import view
 from koladata.functions import functions as fns
 from koladata.functor import functor_factories
+from koladata.functor import tracing_decorator
 from koladata.functor.parallel import clib as _
 from koladata.operators import bootstrap
+from koladata.operators import eager_op_utils
 from koladata.operators import iterables
 from koladata.operators import koda_internal_iterables
 from koladata.operators import koda_internal_parallel
@@ -53,16 +55,49 @@ _NON_DETERMINISTIC_TOKEN = (
     execution_config_pb2.ExecutionConfig.ArgumentTransformation.NON_DETERMINISTIC_TOKEN
 )
 I = input_container.InputContainer('I')
+V = input_container.InputContainer('V')
+S = I.self
 ds = data_slice.DataSlice.from_vals
+kd = eager_op_utils.operators_container('kd')
+_PARALLEL_CALL_REPLACEMENT_CONTEXT = expr_eval.eval(
+    koda_internal_parallel.create_execution_context(
+        fns.obj(
+            operator_replacements=[
+                fns.new(
+                    from_op='kd.functor.call',
+                    to_op='koda_internal.parallel._parallel_call',
+                    argument_transformation=fns.new(
+                        arguments=[
+                            execution_config_pb2.ExecutionConfig.ArgumentTransformation.EXECUTOR,
+                            execution_config_pb2.ExecutionConfig.ArgumentTransformation.ORIGINAL_ARGUMENTS,
+                        ],
+                        functor_argument_indices=[0],
+                    ),
+                ),
+            ]
+        ),
+    )
+)
 
 
 class KodaInternalParallelTransformTest(absltest.TestCase):
 
-  def _test_eval_on_futures(self, fn, *, replacements, inputs, expected_output):
+  def _test_eval_on_futures(
+      self,
+      fn,
+      *,
+      replacements,
+      inputs,
+      expected_output,
+      allow_runtime_transforms=False
+  ):
     executor = koda_internal_parallel.get_eager_executor()
     context = expr_eval.eval(
         koda_internal_parallel.create_execution_context(
-            fns.obj(operator_replacements=replacements),
+            fns.obj(
+                operator_replacements=replacements,
+                allow_runtime_transforms=allow_runtime_transforms,
+            ),
         )
     )
     transformed_fn = koda_internal_parallel.transform(context, fn)
@@ -359,9 +394,7 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
         'functor must be a functor',
     ):
       expr_eval.eval(
-          koda_internal_parallel.transform(I.context, I.fn),
-          context=context,
-          fn=ds(1),
+          koda_internal_parallel.transform(context, ds(1)),
       )
 
   def test_tuples_without_replacement(self):
@@ -479,7 +512,9 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
 
   def test_default_value_non_parallel_slice_passed(self):
     fn = functor_factories.trace_py_fn(lambda y=1: y)
-    context = koda_internal_parallel.create_execution_context(None)
+    context = expr_eval.eval(
+        koda_internal_parallel.create_execution_context(None)
+    )
     transformed_fn = expr_eval.eval(
         koda_internal_parallel.transform(context, fn)
     )
@@ -630,6 +665,207 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
           return_type_as=koda_internal_parallel.stream_make().eval(),
       ).read_all(timeout=1.0)
 
+  def test_nested_replacement(self):
+    future_data_slice_qtype = expr_eval.eval(
+        koda_internal_parallel.get_future_qtype(qtypes.DATA_SLICE)
+    )
+
+    @optools.add_to_registry()
+    @optools.as_py_function_operator(
+        'koda_internal.parallel.transform_test.my_op_with_nested_transform',
+    )
+    def my_op_with_nested_transform(x, fn1, y, fn2):  # pylint: disable=unused-argument
+      self.fail('should not be called')
+
+    @optools.add_to_registry()
+    @optools.as_py_function_operator(
+        'koda_internal.parallel.transform_test.replaced_op_with_nested_transform',
+        qtype_inference_expr=future_data_slice_qtype,
+    )
+    def replaced_op_with_nested_transform(executor, x, fn1, y, fn2):
+      testing.assert_equal(
+          executor,
+          expr_eval.eval(koda_internal_parallel.get_eager_executor()),
+      )
+      x_value = expr_eval.eval(
+          koda_internal_parallel.get_future_value_for_testing(x)
+      )
+      y_value = expr_eval.eval(
+          koda_internal_parallel.get_future_value_for_testing(y)
+      )
+
+      def inner_eval(fn, x):
+        return expr_eval.eval(
+            koda_internal_parallel.get_future_value_for_testing(
+                fn(
+                    executor,
+                    koda_internal_parallel.as_future(x),
+                    return_type_as=koda_internal_parallel.as_future(
+                        data_slice.DataSlice
+                    ),
+                )
+            )
+        )
+
+      res = kd.map_py(inner_eval, fn1, x_value)
+      if fn2.qtype != arolla.UNSPECIFIED:
+        res += kd.map_py(inner_eval, fn2, y_value)
+      return expr_eval.eval(koda_internal_parallel.as_future(res))
+
+    @optools.add_to_registry()
+    @optools.as_py_function_operator(
+        'koda_internal.parallel.transform_test.my_nested_transform_inner_op',
+    )
+    def my_nested_transform_inner_op(x):  # pylint: disable=unused-argument
+      self.fail('should not be called')
+
+    @optools.add_to_registry()
+    @optools.as_py_function_operator(
+        'koda_internal.parallel.transform_test.replaced_nested_transform_inner_op',
+        qtype_inference_expr=future_data_slice_qtype,
+    )
+    def replaced_nested_transform_inner_op(x):
+      x_value = expr_eval.eval(
+          koda_internal_parallel.get_future_value_for_testing(x)
+      )
+      res = x_value * 10
+      return expr_eval.eval(koda_internal_parallel.as_future(res))
+
+    fn1 = functor_factories.expr_fn(my_nested_transform_inner_op(S))
+    fn2 = functor_factories.expr_fn(S)
+    replacements = [
+        fns.obj(
+            from_op='koda_internal.parallel.transform_test.my_op_with_nested_transform',
+            to_op='koda_internal.parallel.transform_test.replaced_op_with_nested_transform',
+            argument_transformation=fns.obj(
+                arguments=[
+                    _EXECUTOR,
+                    _ORIGINAL_ARGUMENTS,
+                ],
+                functor_argument_indices=[1, 3],
+            ),
+        ),
+        fns.obj(
+            from_op='koda_internal.parallel.transform_test.my_nested_transform_inner_op',
+            to_op='koda_internal.parallel.transform_test.replaced_nested_transform_inner_op',
+        ),
+    ]
+
+    self._test_eval_on_futures(
+        functor_factories.expr_fn(
+            my_op_with_nested_transform(S.x, V.fn1, S.y, V.fn2),
+            fn1=fn1,
+            fn2=fn2,
+        ),
+        replacements=replacements,
+        inputs=[fns.obj(x=1, y=2)],
+        expected_output=ds(1 * 10 + 2),
+    )
+
+    self._test_eval_on_futures(
+        functor_factories.expr_fn(
+            my_op_with_nested_transform(S.x, fn1, S.y, arolla.unspecified()),
+        ),
+        replacements=replacements,
+        inputs=[fns.obj(x=1, y=2)],
+        expected_output=ds(1 * 10),
+    )
+
+    with self.assertRaisesRegex(ValueError, 'allow_runtime_transforms=True'):
+      self._test_eval_on_futures(
+          functor_factories.expr_fn(
+              my_op_with_nested_transform(
+                  S.x, fns.slice([fn1, fn2]), S.y, arolla.unspecified()
+              ),
+          ),
+          replacements=replacements,
+          inputs=[fns.obj(x=1, y=2)],
+          expected_output=ds([10, 1]),
+      )
+
+    self._test_eval_on_futures(
+        functor_factories.expr_fn(
+            my_op_with_nested_transform(
+                S.x, fns.slice([fn1, fn2]), S.y, arolla.unspecified()
+            ),
+        ),
+        replacements=replacements,
+        inputs=[fns.obj(x=1, y=2)],
+        expected_output=ds([10, 1]),
+        allow_runtime_transforms=True,
+    )
+
+  def test_multiple_calls_to_subfunctor_transformed_only_once(self):
+
+    @tracing_decorator.TraceAsFnDecorator()
+    def inner_fn(x):
+      return x + 1
+
+    outer_fn = functor_factories.trace_py_fn(
+        lambda x: inner_fn(inner_fn(inner_fn(x)))
+    )
+    transformed_fn = expr_eval.eval(
+        koda_internal_parallel.transform(
+            _PARALLEL_CALL_REPLACEMENT_CONTEXT, outer_fn
+        )
+    )
+    self.assertEqual(
+        [x for x in fns.dir(transformed_fn) if x.startswith('_transformed_')],
+        ['_transformed_inner_fn'],
+    )
+    res = expr_eval.eval(
+        koda_internal_parallel.get_future_value_for_testing(
+            transformed_fn(
+                koda_internal_parallel.get_eager_executor(),
+                koda_internal_parallel.as_future(1),
+                return_type_as=koda_internal_parallel.as_future(
+                    data_slice.DataSlice
+                ).eval(),
+            )
+        )
+    )
+    testing.assert_equal(res, ds(4))
+
+  def test_handles_transformed_name_collision(self):
+
+    @tracing_decorator.TraceAsFnDecorator()
+    def inner_fn(x):
+      return x + 1
+
+    outer_fn = functor_factories.trace_py_fn(
+        lambda x: inner_fn(inner_fn(inner_fn(x)))
+    )
+    transformed_fn = expr_eval.eval(
+        koda_internal_parallel.transform(
+            _PARALLEL_CALL_REPLACEMENT_CONTEXT, outer_fn
+        )
+    )
+    transformed_names = [
+        x for x in fns.dir(transformed_fn) if x.startswith('_transformed_')
+    ]
+    self.assertLen(transformed_names, 1)
+
+    outer_fn2 = functor_factories.trace_py_fn(
+        lambda x: (x + 2).with_name(transformed_names[0]) + inner_fn(x)
+    )
+    transformed_fn2 = expr_eval.eval(
+        koda_internal_parallel.transform(
+            _PARALLEL_CALL_REPLACEMENT_CONTEXT, outer_fn2
+        )
+    )
+    res = expr_eval.eval(
+        koda_internal_parallel.get_future_value_for_testing(
+            transformed_fn2(
+                koda_internal_parallel.get_eager_executor(),
+                koda_internal_parallel.as_future(1),
+                return_type_as=koda_internal_parallel.as_future(
+                    data_slice.DataSlice
+                ).eval(),
+            )
+        )
+    )
+    testing.assert_equal(res, ds(5))
+
   def test_qtype_signatures(self):
     execution_context_qtype = expr_eval.eval(
         bootstrap.get_execution_context_qtype()
@@ -640,7 +876,6 @@ class KodaInternalParallelTransformTest(absltest.TestCase):
             (
                 execution_context_qtype,
                 qtypes.DATA_SLICE,
-                qtypes.NON_DETERMINISTIC_TOKEN,
                 qtypes.DATA_SLICE,
             ),
         ],

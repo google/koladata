@@ -35,6 +35,7 @@
 #include "koladata/expr/expr_eval.h"
 #include "koladata/functor/call.h"
 #include "koladata/functor/parallel/future.h"
+#include "koladata/functor/parallel/future_qtype.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/non_deterministic_token.h"
@@ -141,14 +142,12 @@ TEST(CppFunctionBridgeTest, FunctorNotSerializable) {
                          "<Operator with name='my_functor'")));
 }
 
-TEST(CppFunctionBridgeTest, IntegrationTestWithParallelCall) {
+TEST(CppFunctionBridgeTest, IntegrationTestWithParallelTransform) {
   ASSERT_OK_AND_ASSIGN(DataSlice functor,
                        CreateFunctorFromFunction(
                            [](const DataSlice& x) -> DataSlice { return x; },
                            "my_functor", "x"));
   auto functor_expr = arolla::expr::Literal(functor);
-  auto functor_future_expr = arolla::expr::CallOp(
-      "koda_internal.parallel.as_future", {std::move(functor_expr)});
   auto executor_expr =
       arolla::expr::CallOp("koda_internal.parallel.get_eager_executor", {});
   auto execution_context_expr = arolla::expr::CallOp(
@@ -156,19 +155,28 @@ TEST(CppFunctionBridgeTest, IntegrationTestWithParallelCall) {
   auto unspecified_expr = arolla::expr::Literal(arolla::GetUnspecifiedQValue());
   auto input_value_expr = arolla::expr::Literal(DataSlice::CreateFromScalar(1));
   auto args_expr = arolla::expr::CallOp(
-      "kd.tuple", {arolla::expr::CallOp("koda_internal.parallel.as_future",
+      "kd.tuple", {std::move(executor_expr),
+                   arolla::expr::CallOp("koda_internal.parallel.as_future",
                                         {std::move(input_value_expr)})});
   auto kwargs_expr = arolla::expr::Literal(arolla::MakeEmptyNamedTuple());
   auto non_deterministic_token_expr =
       arolla::expr::Literal(internal::NonDeterministicToken());
+  auto [future_slice, future_slice_writer] =
+      parallel::MakeFuture(arolla::GetQType<DataSlice>());
+  std::move(future_slice_writer)
+      .SetValue(arolla::TypedValue::FromValue(DataSlice::CreateFromScalar(2)));
+  auto future_slice_expr = arolla::expr::Literal(
+      parallel::MakeFutureQValue(std::move(future_slice)));
+  ASSERT_OK_AND_ASSIGN(auto transform_expr,
+                       arolla::expr::CallOp("koda_internal.parallel.transform",
+                                            {std::move(execution_context_expr),
+                                             std::move(functor_expr)}));
   ASSERT_OK_AND_ASSIGN(
       auto call_expr,
       arolla::expr::CallOp(
-          "koda_internal.parallel.parallel_call",
-          {std::move(executor_expr), std::move(execution_context_expr),
-           std::move(functor_future_expr), std::move(args_expr),
-           /*return_type_as=*/unspecified_expr, std::move(kwargs_expr),
-           non_deterministic_token_expr}));
+          "kd.call", {std::move(transform_expr), std::move(args_expr),
+                      /*return_type_as=*/future_slice_expr,
+                      std::move(kwargs_expr), non_deterministic_token_expr}));
   ASSERT_OK_AND_ASSIGN(auto res,
                        expr::EvalExprWithCompilationCache(call_expr, {}, {}));
   ASSERT_OK_AND_ASSIGN(parallel::FuturePtr res_future,

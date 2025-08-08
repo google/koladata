@@ -78,12 +78,12 @@ class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):
       return x.updated(parts[0], parts[1])
 
     obj = fns.new()
-    res_future = koda_internal_parallel.parallel_call(
-        I.executor, I.context, I.fn, I.x
+    res_future = koda_internal_parallel.transform(context, g)(
+        I.executor,
+        I.x,
+        return_type_as=koda_internal_parallel.as_future(data_slice.DataSlice),
     ).eval(
         executor=expr_eval.eval(koda_internal_parallel.get_default_executor()),
-        context=context,
-        fn=koda_internal_parallel.as_future(g).eval(),
         x=koda_internal_parallel.as_future(obj).eval(),
     )
     res = (

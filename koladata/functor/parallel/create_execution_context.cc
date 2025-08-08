@@ -75,7 +75,9 @@ absl::StatusOr<ExecutionContextPtr> CreateExecutionContext(DataSlice config) {
         .op = std::move(to_op),
         .argument_transformation = std::move(transformation)};
   }
-  return std::make_shared<ExecutionContext>(std::move(operator_replacements));
+  return std::make_shared<ExecutionContext>(
+      config_proto.allow_runtime_transforms(),
+      std::move(operator_replacements));
 }
 
 }  // namespace koladata::functor::parallel

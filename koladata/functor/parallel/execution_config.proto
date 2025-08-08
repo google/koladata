@@ -66,6 +66,13 @@ message ExecutionConfig {
     // to a parallel type. The indexes point to the arguments in the original
     // operator.
     repeated int64 keep_literal_argument_indices = 2;
+    // The indexes of arguments that are sub-functors that must be transformed
+    // to the parallel form. Those functors will be passed as DataSlice to the
+    // replaced operator, not as a future to DataSlice. The indexes point to the
+    // arguments in the original operator. The values of those arguments can be
+    // a DataItem with a functor, a DataSlice with multiple functors, or
+    // arolla.unspecified().
+    repeated int64 functor_argument_indices = 3;
   }
 
   // This message describes custom handling for a specific operator in a
@@ -80,4 +87,9 @@ message ExecutionConfig {
   }
 
   repeated OperatorReplacement operator_replacements = 1;
+
+  // If true, the sub-functors that are not static but computed will
+  // be transformed to the parallel form at runtime. If false, we will
+  // raise an error in that case.
+  bool allow_runtime_transforms = 2;
 }

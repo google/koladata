@@ -50,6 +50,9 @@ FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS = frozenset([
     # Waits on the parallel execution result in Python.
     'parallel.call_multithreaded',
     'parallel.yield_multithreaded',
+    # We want to encourage eager usage of the transform before serializing
+    # a functor for serving, since it is expensive.
+    'parallel.transform',
     # Misc.
     'container',
     'core.container',
