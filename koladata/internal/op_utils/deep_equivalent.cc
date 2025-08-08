@@ -26,6 +26,7 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
 #include "koladata/internal/op_utils/deep_comparator.h"
 #include "koladata/internal/op_utils/deep_diff.h"
@@ -40,8 +41,9 @@ namespace {
 
 class EquivalentComparator : public AbstractComparator {
  public:
-  explicit EquivalentComparator(DataBagImplPtr result_databag)
-      : result_(std::move(result_databag)) {}
+  explicit EquivalentComparator(DataBagImplPtr result_databag,
+                                DeepEquivalentOp::DeepEquivalentParams params)
+      : result_(std::move(result_databag)), params_(params) {}
 
   absl::StatusOr<DataItem> CreateToken(
       TraverseHelper::Transition lhs, TraverseHelper::Transition rhs) override {
@@ -55,6 +57,13 @@ class EquivalentComparator : public AbstractComparator {
   absl::Status LhsOnlyAttribute(DataItem token,
                                 TraverseHelper::TransitionKey key,
                                 TraverseHelper::Transition lhs) override {
+    // For the partial comparison, only fields present on the right side are
+    // compared but entire lists and dicts are compared.
+    if (params_.partial &&
+        key.type != TraverseHelper::TransitionType::kListItem &&
+        key.type != TraverseHelper::TransitionType::kDictValue) {
+      return absl::OkStatus();
+    }
     return result_.LhsOnlyAttribute(std::move(token), std::move(key),
                                     std::move(lhs));
   }
@@ -67,6 +76,12 @@ class EquivalentComparator : public AbstractComparator {
   absl::Status LhsRhsMismatch(DataItem token, TraverseHelper::TransitionKey key,
                               TraverseHelper::Transition lhs,
                               TraverseHelper::Transition rhs) override {
+    if (params_.partial &&
+        key.type != TraverseHelper::TransitionType::kListItem &&
+        key.type != TraverseHelper::TransitionType::kDictValue &&
+        !rhs.item.has_value()) {
+      return absl::OkStatus();
+    }
     return result_.LhsRhsMismatch(std::move(token), std::move(key),
                                   std::move(lhs), std::move(rhs));
   }
@@ -97,6 +112,9 @@ class EquivalentComparator : public AbstractComparator {
   }
   bool Equal(TraverseHelper::Transition lhs,
              TraverseHelper::Transition rhs) override {
+    if (params_.schemas_equality && lhs.schema != rhs.schema) {
+        return false;
+    }
     if (!lhs.item.holds_value<ObjectId>() ||
         !rhs.item.holds_value<ObjectId>()) {
       // If lhs and rhs are NaNs, they are considered not equal.
@@ -111,11 +129,15 @@ class EquivalentComparator : public AbstractComparator {
     if (lhs.item.is_schema() != rhs.item.is_schema()) {
       return false;
     }
+    if (lhs.schema == schema::kItemId) {
+      return rhs.schema == lhs.schema && lhs.item == rhs.item;
+    }
     return true;
   }
 
  private:
   DeepDiff result_;
+  DeepEquivalentOp::DeepEquivalentParams params_;
 };
 
 }  // namespace
@@ -127,7 +149,7 @@ absl::StatusOr<DataSliceImpl> DeepEquivalentOp::operator()(
     const DataBagImpl& rhs_databag,
     DataBagImpl::FallbackSpan rhs_fallbacks) const {
   auto comparator = std::make_unique<EquivalentComparator>(
-      DataBagImplPtr::NewRef(new_databag_));
+      DataBagImplPtr::NewRef(new_databag_), params_);
   auto lhs_traverse_helper = TraverseHelper(lhs_databag, lhs_fallbacks);
   auto rhs_traverse_helper = TraverseHelper(rhs_databag, rhs_fallbacks);
   auto compare_op = DeepComparator<EquivalentComparator>(
@@ -143,11 +165,12 @@ absl::StatusOr<DataItem> DeepEquivalentOp::operator()(
     const DataBagImpl& rhs_databag,
     DataBagImpl::FallbackSpan rhs_fallbacks) const {
   // For DataItems, we adapt the DataSliceImpl interface.
-  ASSIGN_OR_RETURN(auto result,
-                   this->operator()(DataSliceImpl::Create(1, lhs_item),
-                                    lhs_schema, lhs_databag, lhs_fallbacks,
-                                    DataSliceImpl::Create(1, rhs_item),
-                                    rhs_schema, rhs_databag, rhs_fallbacks));
+  ASSIGN_OR_RETURN(
+      auto result,
+      this->operator()(DataSliceImpl::Create(1, lhs_item), lhs_schema,
+                       lhs_databag, lhs_fallbacks,
+                       DataSliceImpl::Create(1, rhs_item), rhs_schema,
+                       rhs_databag, rhs_fallbacks));
   return result[0];
 }
 

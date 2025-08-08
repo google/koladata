@@ -28,7 +28,8 @@ constexpr const char* kThisModuleName =
 PyMethodDef kTraversingTestUtilsModule_methods[] = {
     {"assert_deep_equivalent", (PyCFunction)PyAssertDeepEquivalent,
      METH_FASTCALL | METH_KEYWORDS,
-     ("assert_deep_equivalent(lhs, rhs)\n--\n\n"
+     ("assert_deep_equivalent(lhs, rhs, *, partial=False, "
+      "schemas_equality=False)\n--\n\n"
       "Asserts that two DataSlices are deep equivalent.")},
     {nullptr} /* sentinel */
 };

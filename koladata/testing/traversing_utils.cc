@@ -40,7 +40,8 @@
 namespace koladata::testing {
 
 absl::StatusOr<std::vector<std::string>> DeepEquivalentMismatches(
-    const DataSlice& lhs, const DataSlice& rhs, int64_t max_count) {
+    const DataSlice& lhs, const DataSlice& rhs, int64_t max_count,
+    DeepEquivalentParams comparison_params) {
   if (max_count < 0) {
     return absl::InvalidArgumentError(
         absl::StrCat("max_count should be >= 0, got ", max_count));
@@ -63,7 +64,8 @@ absl::StatusOr<std::vector<std::string>> DeepEquivalentMismatches(
     const T& rhs_impl = rhs.impl<T>();
     auto result_db = DataBag::Empty();
     ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
-    auto deep_equivalent_op = internal::DeepEquivalentOp(&result_db_impl.get());
+    auto deep_equivalent_op =
+        internal::DeepEquivalentOp(&result_db_impl.get(), comparison_params);
     ASSIGN_OR_RETURN(
         auto result,
         deep_equivalent_op(lhs_impl, lhs.GetSchemaImpl(), lhs_db->GetImpl(),

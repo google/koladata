@@ -39,8 +39,9 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
                                                PyObject* py_kwnames) {
   arolla::python::DCheckPyGIL();
   arolla::python::PyCancellationScope cancellation_scope;
-  static const absl::NoDestructor<FastcallArgParser> parser(
-      /*pos_only_n=*/2, /*parse_kwargs=*/false, "default");
+  static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
+      /*pos_only_n=*/2, /*parse_kwargs=*/false,
+      {"partial", "schemas_equality"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -55,11 +56,22 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   if (expected_ds == nullptr) {
     return nullptr;
   }
+  bool partial = false;
+  if (!ParseBoolArg(args, "partial", partial)) {
+    return nullptr;
+  }
+  bool schemas_equality = false;
+  if (!ParseBoolArg(args, "schemas_equality", schemas_equality)) {
+    return nullptr;
+  }
   // TODO: get max_count from kwargs.
-  ASSIGN_OR_RETURN(auto mismatches,
-                   testing::DeepEquivalentMismatches(*actual_ds, *expected_ds,
-                                                     /*max_count=*/5),
-                   arolla::python::SetPyErrFromStatus(_));
+  testing::DeepEquivalentParams comparison_params = {
+      .partial = partial, .schemas_equality = schemas_equality};
+  ASSIGN_OR_RETURN(
+      auto mismatches,
+      testing::DeepEquivalentMismatches(*actual_ds, *expected_ds,
+                                        /*max_count=*/5, comparison_params),
+      arolla::python::SetPyErrFromStatus(_));
   if (mismatches.empty()) {
     Py_RETURN_NONE;
   }
@@ -67,10 +79,10 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   if (expected_ds->is_item() &&
       expected_ds->GetSchemaImpl().is_primitive_schema()) {
     DCHECK_EQ(mismatches.size(), 1);
-    msg = absl::StrCat("Slices are not equivalent: ",
+    msg = absl::StrCat("DataSlices are not equivalent: ",
                        absl::StrJoin(mismatches, "\n"));
   } else {
-    msg = absl::StrCat("Slices are not equivalent, mismatches found:\n",
+    msg = absl::StrCat("DataSlices are not equivalent, mismatches found at:\n",
                        absl::StrJoin(mismatches, "\n"));
   }
   PyErr_SetString(PyExc_AssertionError, msg.c_str());

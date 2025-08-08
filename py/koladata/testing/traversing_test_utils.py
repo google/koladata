@@ -18,9 +18,15 @@ from koladata.testing import traversing_test_utils_py_ext as _traversing_test_ut
 from koladata.types import data_slice as _data_slice
 
 
-def assert_data_slice_deep_equivalent(
+DataSlice = _data_slice.DataSlice
+
+
+def assert_deep_equivalent(
     actual_value: _data_slice.DataSlice,
     expected_value: _data_slice.DataSlice,
+    *,
+    partial: bool = False,
+    schemas_equality: bool = False,
 ):
   """Koda slices equivalency check.
 
@@ -37,10 +43,16 @@ def assert_data_slice_deep_equivalent(
   Args:
     actual_value: DataSlice.
     expected_value: DataSlice.
+    partial: If True, only the attributes present in the expected_value are
+      compared.
+    schemas_equality: If True, the schema ObejectIds are compared.
 
   Raises:
     AssertionError: If actual_value and expected_value are not equivalent.
   """
   _traversing_test_utils_py_ext.assert_deep_equivalent(
-      actual_value, expected_value
+      actual_value,
+      expected_value,
+      partial=partial,
+      schemas_equality=schemas_equality,
   )

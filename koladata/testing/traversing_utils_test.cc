@@ -48,7 +48,7 @@ TEST(TraversingUtilsTest, ShapesAreNotEquivalent) {
                        DataSlice::Create(objects_b, shape_b,
                                          internal::DataItem(explicit_schema)));
   ASSERT_OK_AND_ASSIGN(
-      auto result, DeepEquivalentMismatches(ds_a, ds_b, /*max_count=*/2));
+      auto result, DeepEquivalentMismatches(ds_a, ds_b, /*max_count=*/2, {}));
   EXPECT_THAT(
       result,
       ElementsAre(
@@ -67,8 +67,8 @@ TEST(TraversingUtilsTest, SlicesAreEquivalent) {
   ASSERT_OK_AND_ASSIGN(
       auto ds_b,
       DataSlice::Create(objects_b, shape, internal::DataItem(explicit_schema)));
-  ASSERT_OK_AND_ASSIGN(auto result,
-                       DeepEquivalentMismatches(ds_a, ds_b, /*max_count=*/2));
+  ASSERT_OK_AND_ASSIGN(
+      auto result, DeepEquivalentMismatches(ds_a, ds_b, /*max_count=*/2, {}));
   EXPECT_THAT(result, IsEmpty());
 }
 
@@ -84,7 +84,7 @@ TEST(TraversingUtilsTest, TraversalError) {
   ASSERT_OK_AND_ASSIGN(
       auto ds_b,
       DataSlice::Create(objects_b, shape, internal::DataItem(schema::kObject)));
-  auto result = DeepEquivalentMismatches(ds_a, ds_b, /*max_count=*/2);
+  auto result = DeepEquivalentMismatches(ds_a, ds_b, /*max_count=*/2, {});
   EXPECT_EQ(result.status().code(), absl::StatusCode::kInvalidArgument);
 }
 
@@ -100,8 +100,8 @@ TEST(TraversingUtilsTest, SlicesMismatch) {
       auto ds_b,
       DataSlice::Create(objects_b, shape, internal::DataItem(schema::kObject)));
   {
-    ASSERT_OK_AND_ASSIGN(auto mismatches,
-                         DeepEquivalentMismatches(ds_a, ds_b, /*max_count=*/2));
+    ASSERT_OK_AND_ASSIGN(auto mismatches, DeepEquivalentMismatches(
+                                              ds_a, ds_b, /*max_count=*/2, {}));
     EXPECT_THAT(
         mismatches,
         UnorderedElementsAre(
@@ -111,8 +111,8 @@ TEST(TraversingUtilsTest, SlicesMismatch) {
                 R"(\.S\[1\]: DataItem\(2, schema: OBJECT\) vs DataItem\(3, schema: OBJECT\))")));
   }
   {
-    ASSERT_OK_AND_ASSIGN(auto mismatches,
-                         DeepEquivalentMismatches(ds_a, ds_b, /*max_count=*/1));
+    ASSERT_OK_AND_ASSIGN(auto mismatches, DeepEquivalentMismatches(
+                                              ds_a, ds_b, /*max_count=*/1, {}));
     EXPECT_THAT(
         mismatches,
         UnorderedElementsAre(MatchesRegex(

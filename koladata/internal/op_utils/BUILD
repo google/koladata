@@ -466,6 +466,7 @@ cc_library(
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
         "//koladata/internal:object_id",
         "//koladata/internal:uuid_object",
         "@com_google_absl//absl/functional:function_ref",

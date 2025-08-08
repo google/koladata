@@ -30,6 +30,7 @@ py_library(
     visibility = ["//koladata:internal"],
     deps = [
         ":test_utils",
+        ":traversing_test_utils_py",
         "//py:python_path",
         "//py/koladata/operators/tests/util:qtypes",
     ],

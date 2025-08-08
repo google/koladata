@@ -42,8 +42,16 @@ class DeepEquivalentOp {
     DataItem schema;
   };
 
-  explicit DeepEquivalentOp(DataBagImpl* new_databag)
-      : new_databag_(new_databag) {}
+  struct DeepEquivalentParams {
+    // If true, only the attributes present in the expected_value are compared.
+    bool partial;
+    // If true, the schema ObjectIds are compared.
+    bool schemas_equality;
+  };
+
+  explicit DeepEquivalentOp(DataBagImpl* new_databag,
+                            DeepEquivalentParams params)
+      : new_databag_(new_databag), params_(params) {}
 
   // With provided lhs and rhs items, fills the new_databag_ with the result of
   // the comparison.
@@ -79,6 +87,7 @@ class DeepEquivalentOp {
 
  private:
   DataBagImpl* new_databag_;
+  DeepEquivalentParams params_;
 };
 
 }  // namespace koladata::internal

@@ -22,8 +22,12 @@
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
+#include "koladata/internal/op_utils/deep_equivalent.h"
 
 namespace koladata::testing {
+
+using DeepEquivalentParams =
+    ::koladata::internal::DeepEquivalentOp::DeepEquivalentParams;
 
 // Returns a vector of mismatches between two data slices.
 //
@@ -35,7 +39,8 @@ namespace koladata::testing {
 // There would be a single mismatch:
 //  ".S[2].x: DataItem(3, ...) vs DataItem(4, ...)"
 absl::StatusOr<std::vector<std::string>> DeepEquivalentMismatches(
-    const DataSlice& lhs, const DataSlice& rhs, int64_t max_count);
+    const DataSlice& lhs, const DataSlice& rhs, int64_t max_count,
+    DeepEquivalentParams params);
 
 };  // namespace koladata::testing
 

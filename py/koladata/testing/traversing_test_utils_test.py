@@ -25,28 +25,25 @@ ds = data_slice.DataSlice.from_vals
 
 class TraversingTestUtilsTest(absltest.TestCase):
 
-  def test_assert_data_slice_deep_equivalent(self):
-    traversing_test_utils.assert_data_slice_deep_equivalent(
-        ds([1, 2, 3]), ds([1, 2, 3])
-    )
+  def test_assert_deep_equivalent(self):
+    traversing_test_utils.assert_deep_equivalent(ds([1, 2, 3]), ds([1, 2, 3]))
 
-  def test_assert_data_slice_deep_equivalent_diff(self):
+  def test_assert_deep_equivalent_diff(self):
     with self.assertRaisesRegex(
         AssertionError,
-        r'Slices are not equivalent, mismatches found:\n'
-        r'.S\[2\]: DataItem\(3, schema: INT32'
-        '.*'
-        r' vs DataItem\(4, schema: INT32'):
-      traversing_test_utils.assert_data_slice_deep_equivalent(
-          ds([1, 2, 3]), ds([1, 2, 4])
-      )
+        r'DataSlices are not equivalent, mismatches found at:\n'
+        r'.S\[2\]: DataItem\(3, schema: INT32\)'
+        r' vs DataItem\(4, schema: INT32',
+    ):
+      traversing_test_utils.assert_deep_equivalent(ds([1, 2, 3]), ds([1, 2, 4]))
 
-  def test_assert_data_slice_deep_equivalent_diff_deep(self):
+  def test_assert_deep_equivalent_diff_deep(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'Slices are not equivalent, mismatches found:\n'
+        'DataSlices are not equivalent, mismatches found at:\n'
         r'.mapping\[\'d\'\].x: '
-        r'DataItem\(4, schema: INT32.* vs DataItem\(5, schema: INT32'):
+        r'DataItem\(4, schema: INT32\) vs DataItem\(5, schema: INT32\)',
+    ):
       bag_a = bag()
       bag_b = bag()
       ds_a = bag_a.new(
@@ -59,40 +56,36 @@ class TraversingTestUtilsTest(absltest.TestCase):
               ds(['a', 'c', 'b', 'd']), bag_b.new(x=ds([1, 3, 2, 5]))
           )
       )
-      traversing_test_utils.assert_data_slice_deep_equivalent(
-          ds_a, ds_b
-      )
+      traversing_test_utils.assert_deep_equivalent(ds_a, ds_b)
 
-  def test_assert_data_slice_deep_equivalent_diff_lhs_only(self):
+  def test_assert_deep_equivalent_diff_lhs_only(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'Slices are not equivalent, mismatches found:\n'
-        r'.x: '
-        r'DataItem\(1, schema: INT32.* vs missing',
+        'DataSlices are not equivalent, mismatches found at:\n'
+        r'.x: DataItem\(1, schema: INT32\) vs missing',
     ):
       bag_a = bag()
       bag_b = bag()
       a = bag_a.new(x=1)
       b = bag_b.new()
-      traversing_test_utils.assert_data_slice_deep_equivalent(a, b)
+      traversing_test_utils.assert_deep_equivalent(a, b)
 
-  def test_assert_data_slice_deep_equivalent_diff_rhs_only(self):
+  def test_assert_deep_equivalent_diff_rhs_only(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'Slices are not equivalent, mismatches found:\n'
-        r'.y: '
-        r'missing vs DataItem\(2, schema: INT32\)',
+        'DataSlices are not equivalent, mismatches found at:\n'
+        r'.y: missing vs DataItem\(2, schema: INT32\)',
     ):
       bag_a = bag()
       bag_b = bag()
       a = bag_a.new(x=1)
       b = bag_b.new(x=1, y=2)
-      traversing_test_utils.assert_data_slice_deep_equivalent(a, b)
+      traversing_test_utils.assert_deep_equivalent(a, b)
 
-  def test_assert_data_slice_deep_equivalent_diff_lhs_only_dict_key(self):
+  def test_assert_deep_equivalent_diff_lhs_only_dict_key(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'Slices are not equivalent, mismatches found:\n'
+        'DataSlices are not equivalent, mismatches found at:\n'
         r'.mapping\[\'b\'\]: '
         r'DataItem\(Entity\(x=2\), schema: ENTITY\(x=INT32\)\) vs missing',
     ):
@@ -106,38 +99,78 @@ class TraversingTestUtilsTest(absltest.TestCase):
       ds_b = bag_b.new(
           mapping=bag_b.dict(ds(['a', 'c', 'd']), bag_b.new(x=ds([1, 3, 4])))
       )
-      traversing_test_utils.assert_data_slice_deep_equivalent(ds_a, ds_b)
+      traversing_test_utils.assert_deep_equivalent(ds_a, ds_b)
 
-  def test_assert_data_slice_deep_equivalent_diff_lists(self):
+  def test_assert_deep_equivalent_diff_lists(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'Slices are not equivalent, mismatches found:\n'
-        r'\[2\]: '
-        r'DataItem\(3, schema: INT32\) vs missing',
+        'DataSlices are not equivalent, mismatches found at:\n'
+        r'\[2\]: DataItem\(3, schema: INT32\) vs missing',
     ):
       bag_a = bag()
       bag_b = bag()
       ds_a = bag_a.list([1, 2, 3])
       ds_b = bag_b.list([1, 2])
-      traversing_test_utils.assert_data_slice_deep_equivalent(ds_a, ds_b)
+      traversing_test_utils.assert_deep_equivalent(ds_a, ds_b)
 
-  def test_assert_data_slice_deep_equivalent_diff_object_types(self):
+  def test_assert_deep_equivalent_diff_object_types(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'Slices are not equivalent, mismatches found:\n'
+        'DataSlices are not equivalent, mismatches found at:\n'
         r'.mapping: '
         r'DataItem\(Entity\(a=1, c=3, d=4\), schema: ENTITY\(.*\)\) vs '
         r'DataItem\(Dict{.*}, schema: DICT{STRING, INT32}\)',
     ):
       bag_a = bag()
       bag_b = bag()
-      ds_a = bag_a.new(
-          mapping=bag_a.new(a=1, c=3, d=4)
-      )
-      ds_b = bag_b.new(
-          mapping=bag_b.dict(ds(['a', 'c', 'd']), ds([1, 3, 4]))
-      )
-      traversing_test_utils.assert_data_slice_deep_equivalent(ds_a, ds_b)
+      ds_a = bag_a.new(mapping=bag_a.new(a=1, c=3, d=4))
+      ds_b = bag_b.new(mapping=bag_b.dict(ds(['a', 'c', 'd']), ds([1, 3, 4])))
+      traversing_test_utils.assert_deep_equivalent(ds_a, ds_b)
+
+  def test_assert_deep_equivalent_diff_partial_lhs_only(self):
+    bag_a = bag()
+    bag_b = bag()
+    a = bag_a.new(x=1)
+    b = bag_b.new()
+    traversing_test_utils.assert_deep_equivalent(a, b, partial=True)
+
+  def test_assert_deep_equivalent_diff_partial_rhs_only(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        'DataSlices are not equivalent, mismatches found at:\n'
+        r'.y: missing vs DataItem\(2, schema: INT32\)',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      a = bag_a.new(x=1)
+      b = bag_b.new(x=1, y=2)
+      traversing_test_utils.assert_deep_equivalent(a, b, partial=True)
+
+  def test_assert_deep_equivalent_partial_diff_lists(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        'DataSlices are not equivalent, mismatches found at:\n'
+        r'\[2\]: DataItem\(3, schema: INT32\) vs missing',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      ds_a = bag_a.list([1, 2, 3])
+      ds_b = bag_b.list([1, 2])
+      traversing_test_utils.assert_deep_equivalent(ds_a, ds_b, partial=True)
+
+  def test_assert_deep_equivalent_diff_not_schemas_equality_lhs_only(self):
+    # TODO: improve the error message for schema ObjectId mismatch.
+    with self.assertRaisesRegex(
+        AssertionError,
+        'DataSlices are not equivalent, mismatches found at:\n'
+        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\)\) vs '
+        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\)\)',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      a = bag_a.new(x=1)
+      b = bag_b.new(x=1)
+      traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
 
 
 if __name__ == '__main__':
