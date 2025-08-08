@@ -1118,6 +1118,21 @@ class FunctorFactoriesTest(absltest.TestCase):
     e = TestExtension(x=1)
     self.assertEqual(functor_factories.trace_py_fn(fn)(e), 3)
 
+  def test_py_fn_not_serializable_by_default(self):
+
+    def my_fn(x):
+      return x + 1
+
+    with self.assertRaisesRegex(
+        ValueError, 'missing serialization codec for.*my_fn'
+    ):
+      fns.dumps(functor_factories.py_fn(my_fn))
+
+    loaded_fn = fns.loads(
+        fns.dumps(functor_factories.py_fn(fns.py_reference(my_fn)))
+    )
+    testing.assert_equal(loaded_fn(1), ds(2))
+
 
 if __name__ == '__main__':
   absltest.main()

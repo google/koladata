@@ -164,6 +164,18 @@ class PyBoxingTest(parameterized.TestCase):
         arolla.abc.PyObject,
     )
 
+    def my_fn(x):
+      return x
+
+    with self.assertRaisesRegex(
+        ValueError, 'missing serialization codec for.*my_fn'
+    ):
+      arolla.s11n.dumps(
+          py_boxing.as_qvalue_or_expr_with_py_function_to_py_object_support(
+              my_fn
+          )
+      )
+
   def test_as_qvalue_or_expr_for_databag_type(self):
     # This cannot be part of the parameterized test because a different empty
     # DataBag is created anew every time.

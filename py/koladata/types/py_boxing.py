@@ -168,7 +168,7 @@ def as_qvalue_or_expr_with_py_function_to_py_object_support(
   if isinstance(
       arg, (py_types.FunctionType, py_types.MethodType, functools.partial)
   ):
-    return arolla.abc.PyObject(arg, codec=REF_CODEC)
+    return arolla.abc.PyObject(arg)
   return as_qvalue_or_expr(arg)
 
 
