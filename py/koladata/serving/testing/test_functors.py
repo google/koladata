@@ -14,11 +14,19 @@
 
 """Test functor definitions."""
 
+from collections.abc import Callable
+
 from koladata import kd
 
 
 def plus_one(x: kd.types.DataSlice) -> kd.types.DataSlice:
   return x + 1
+
+
+def make_plus_n_functor(
+    n: kd.types.DataSlice,
+) -> Callable[[kd.types.DataSlice], kd.types.DataSlice]:
+  return kd.fn(lambda x: x + n)
 
 
 def ask_about_serving(

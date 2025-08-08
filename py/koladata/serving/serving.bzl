@@ -87,16 +87,16 @@ def koladata_serialized_slices(
       testonly: Whether the build target is testonly.
       **kwargs: Extra arguments passed directly to the final genrule.
     """
-    output_files = ["{}_{}.kd".format(name, k) for k in slices.keys()]
+    filename_to_slice = {"{}_{}.kd".format(name, k): s for k, s in slices.items()}
 
     python_function_call_genrule(
         name = name,
         function = call_python_function(
             "koladata.serving.serving_impl.serialize_slices_into",
-            args = [slices, ["$(execpath {})".format(o) for o in output_files]],
+            args = [{"$(execpath {})".format(f): s for f, s in filename_to_slice.items()}],
             deps = tool_deps + ["//py/koladata/serving:serving_impl"],
         ),
-        outs = output_files,
+        outs = filename_to_slice.keys(),
         testonly = testonly,
         **kwargs
     )

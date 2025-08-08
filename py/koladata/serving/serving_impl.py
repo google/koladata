@@ -14,6 +14,7 @@
 
 """Python functions used in serving.bzl."""
 
+from collections.abc import Mapping
 import importlib
 from typing import Any
 
@@ -41,22 +42,17 @@ def trace_py_fn(function_path: str) -> kd.types.DataSlice:
   return fn
 
 
-def serialize_slices(slices: dict[str, kd.types.DataSlice]):
+def serialize_slices(slices: Mapping[str, kd.types.DataSlice]):
   """Serializes Koda slices into bytes."""
   names = kd.slice(list(slices.keys()))
   return arolla.s11n.riegeli_dumps_many([names, *slices.values()], [])
 
 
 def serialize_slices_into(
-    slices: dict[str, kd.types.DataSlice], output_paths: list[str]
+    path_to_slice: Mapping[str, kd.types.DataSlice]
 ):
   """Serializes Koda slices into the given files."""
-  if len(slices) != len(output_paths):
-    raise ValueError(
-        'Number of slices must match number of output paths, but got'
-        f' {len(slices)} and {len(output_paths)}'
-    )
-  for ds, output_path in zip(slices.values(), output_paths):
+  for path, ds in path_to_slice.items():
     serialized = arolla.s11n.riegeli_dumps_many([ds], [])
-    with open(output_path, 'wb') as f:
+    with open(path, 'wb') as f:
       f.write(serialized)

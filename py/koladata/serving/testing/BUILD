@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+load("@com_google_arolla//arolla/codegen:utils.bzl", "call_python_function")
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_python//python:defs.bzl", "py_library")
 load(
@@ -42,7 +43,14 @@ koladata_serialized_slices(
     testonly = True,
     slices = {
         "ask_about_serving": koladata_trace_py_fn("koladata.serving.testing.test_functors.ask_about_serving"),
-        "plus_one": koladata_trace_py_fn("koladata.serving.testing.test_functors.plus_one"),
+    } | {
+        # Generating 10 functors to check there is no ordering issue.
+        "plus_{}".format(n): call_python_function(
+            "koladata.serving.testing.test_functors.make_plus_n_functor",
+            args = [n],
+            deps = [":test_functors"],
+        )
+        for n in range(1, 11)
     },
     tool_deps = [":test_functors"],  # Can also come from "deps =" argument of koladata_trace_py_fn above.
 )
