@@ -43,22 +43,21 @@ DataSliceManager = (
 )
 
 
-def get_loaded_root_dataslice(
-    manager: PersistedIncrementalDataSliceManager,
-) -> kd.types.DataSlice:
+def get_loaded_root_dataslice(manager: DataSliceManager) -> kd.types.DataSlice:
   """Returns the loaded root dataslice of the given manager."""
+  if isinstance(manager, SimpleInMemoryDataSliceManager):
+    return manager.get_data_slice()
+
   return manager._root_dataslice.updated(manager._bag_manager.get_loaded_bag())
 
 
-def get_loaded_schema(
-    manager: PersistedIncrementalDataSliceManager,
-) -> kd.types.DataSlice:
+def get_loaded_schema(manager: DataSliceManager) -> kd.types.DataSlice:
   """Returns the schema of the loaded part of the DataSlice."""
   return get_loaded_root_dataslice(manager).get_schema()
 
 
 def generate_loaded_data_slice_paths(
-    manager: PersistedIncrementalDataSliceManager, *, max_depth: int
+    manager: DataSliceManager, *, max_depth: int
 ) -> Generator[data_slice_path_lib.DataSlicePath, None, None]:
   """Yields all loaded data slice paths.
 
@@ -82,7 +81,7 @@ def generate_loaded_data_slice_paths(
 
 
 def is_loaded_data_slice_path(
-    manager: PersistedIncrementalDataSliceManager,
+    manager: DataSliceManager,
     path: data_slice_path_lib.DataSlicePath,
 ) -> bool:
   """Returns whether the given data slice path is loaded."""
@@ -115,7 +114,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def assert_manager_available_data_slice_paths(
       self,
-      manager: PersistedIncrementalDataSliceManager,
+      manager: DataSliceManager,
       expected_available_data_slice_paths: set[str],
       *,
       max_depth_of_data_slice_paths: int = 5,
@@ -138,7 +137,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def assert_manager_loaded_data_slice_paths(
       self,
-      manager: PersistedIncrementalDataSliceManager,
+      manager: DataSliceManager,
       expected_loaded_data_slice_paths: set[str],
       *,
       max_depth_of_data_slice_paths: int = 5,
@@ -148,24 +147,26 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             manager, max_depth=max_depth_of_data_slice_paths
         )
     )
-    self.assertEqual(
-        len(actual_loaded_data_slice_paths),
-        len(expected_loaded_data_slice_paths),
-    )
-    expected_loaded_data_slice_paths = set(
+    parsed_expected_loaded_data_slice_paths = set(
         data_slice_path_lib.DataSlicePath.parse_from_string(s)
         for s in expected_loaded_data_slice_paths
     )
     self.assertEqual(
+        len(parsed_expected_loaded_data_slice_paths),
+        len(expected_loaded_data_slice_paths),
+    )
+    self.assertEqual(
         actual_loaded_data_slice_paths,
-        expected_loaded_data_slice_paths,
+        parsed_expected_loaded_data_slice_paths,
     )
 
   def assert_manager_schema_node_names_to_num_bags(
       self,
-      manager: PersistedIncrementalDataSliceManager,
+      manager: DataSliceManager,
       expected_schema_node_names_to_num_bags: list[tuple[str, int]],
   ):
+    if isinstance(manager, SimpleInMemoryDataSliceManager):
+      return
     actual = {
         snn: len(bag_names)
         for snn, bag_names in manager._schema_node_name_to_bag_names.items()
@@ -176,7 +177,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def assert_manager_loaded_root_dataslice_pytree(
       self,
-      manager: PersistedIncrementalDataSliceManager,
+      manager: DataSliceManager,
       expected_current_root_dataslice_pytree: Any,
   ):
     self.assertEqual(
@@ -186,7 +187,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
   def assert_manager_state(
       self,
-      manager: PersistedIncrementalDataSliceManager,
+      manager: DataSliceManager,
       *,
       available_data_slice_paths: set[str],
       loaded_data_slice_paths: set[str],
@@ -207,11 +208,12 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         manager, expected_loaded_root_dataslice_pytree
     )
 
-  def test_basic_usage(self):
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_basic_usage(self, dsm_class):
+    manager = self.new_manager(dsm_class)
     self.assert_manager_state(
         manager,
         available_data_slice_paths={''},
@@ -427,7 +429,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # Some time later, in another process...
     #
     # Start a new manager from the persistence dir.
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.copy_manager(manager)
     all_available_data_slice_paths = {
         '',
         '.query',
@@ -439,36 +441,38 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         '.query[:].doc[:].doc_title',
         '.query[:].query_text',
     }
-    self.assert_manager_state(
-        manager,
-        available_data_slice_paths=all_available_data_slice_paths,
-        loaded_data_slice_paths={''},
-        expected_loaded_root_dataslice_pytree={},
-    )
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      self.assert_manager_state(
+          manager,
+          available_data_slice_paths=all_available_data_slice_paths,
+          loaded_data_slice_paths={''},
+          expected_loaded_root_dataslice_pytree={},
+      )
     ds = manager.get_data_slice(parse_dsp('.query[:].query_text'))
-    self.assert_manager_state(
-        manager,
-        available_data_slice_paths=all_available_data_slice_paths,
-        loaded_data_slice_paths={
-            '',
-            '.query',
-            '.query[:]',
-            '.query[:].query_id',
-            '.query[:].query_text',
-        },
-        expected_loaded_root_dataslice_pytree={
-            'query': [
-                {
-                    'query_id': 'q1',
-                    'query_text': 'How tall is Obama',
-                },
-                {
-                    'query_id': 'q2',
-                    'query_text': 'How high is the Eiffel tower',
-                },
-            ],
-        },
-    )
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      self.assert_manager_state(
+          manager,
+          available_data_slice_paths=all_available_data_slice_paths,
+          loaded_data_slice_paths={
+              '',
+              '.query',
+              '.query[:]',
+              '.query[:].query_id',
+              '.query[:].query_text',
+          },
+          expected_loaded_root_dataslice_pytree={
+              'query': [
+                  {
+                      'query_id': 'q1',
+                      'query_text': 'How tall is Obama',
+                  },
+                  {
+                      'query_id': 'q2',
+                      'query_text': 'How high is the Eiffel tower',
+                  },
+              ],
+          },
+      )
     self.assertEqual(
         kd.to_pytree(ds, max_depth=-1),
         [
@@ -477,122 +481,143 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ],
     )
     ds = manager.get_data_slice(parse_dsp('.query[:].doc'))
-    self.assert_manager_state(
-        manager,
-        available_data_slice_paths=all_available_data_slice_paths,
-        loaded_data_slice_paths={
-            '',
-            '.query',
-            '.query[:]',
-            '.query[:].query_id',
-            '.query[:].query_text',
-            '.query[:].doc',
-            '.query[:].doc[:]',
-            '.query[:].doc[:].doc_id',
-        },
-        expected_loaded_root_dataslice_pytree={
-            'query': [
-                {
-                    'query_id': 'q1',
-                    'doc': [
-                        {'doc_id': 0},
-                        {'doc_id': 1},
-                        {'doc_id': 2},
-                        {'doc_id': 3},
-                    ],
-                    'query_text': 'How tall is Obama',
-                },
-                {
-                    'query_id': 'q2',
-                    'doc': [
-                        {'doc_id': 4},
-                        {'doc_id': 5},
-                        {'doc_id': 6},
-                    ],
-                    'query_text': 'How high is the Eiffel tower',
-                },
-            ],
-        },
-    )
-    self.assertEqual(
-        kd.to_pytree(ds, max_depth=-1),
-        [
-            [
-                {'doc_id': 0},
-                {'doc_id': 1},
-                {'doc_id': 2},
-                {'doc_id': 3},
-            ],
-            [
-                {'doc_id': 4},
-                {'doc_id': 5},
-                {'doc_id': 6},
-            ],
-        ],
-    )
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      self.assert_manager_state(
+          manager,
+          available_data_slice_paths=all_available_data_slice_paths,
+          loaded_data_slice_paths={
+              '',
+              '.query',
+              '.query[:]',
+              '.query[:].query_id',
+              '.query[:].query_text',
+              '.query[:].doc',
+              '.query[:].doc[:]',
+              '.query[:].doc[:].doc_id',
+          },
+          expected_loaded_root_dataslice_pytree={
+              'query': [
+                  {
+                      'query_id': 'q1',
+                      'doc': [
+                          {'doc_id': 0},
+                          {'doc_id': 1},
+                          {'doc_id': 2},
+                          {'doc_id': 3},
+                      ],
+                      'query_text': 'How tall is Obama',
+                  },
+                  {
+                      'query_id': 'q2',
+                      'doc': [
+                          {'doc_id': 4},
+                          {'doc_id': 5},
+                          {'doc_id': 6},
+                      ],
+                      'query_text': 'How high is the Eiffel tower',
+                  },
+              ],
+          },
+      )
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      self.assertEqual(
+          kd.to_pytree(ds, max_depth=-1),
+          [
+              [
+                  {'doc_id': 0},
+                  {'doc_id': 1},
+                  {'doc_id': 2},
+                  {'doc_id': 3},
+              ],
+              [
+                  {'doc_id': 4},
+                  {'doc_id': 5},
+                  {'doc_id': 6},
+              ],
+          ],
+      )
+    else:
+      # In this case, the doc_title feature is also loaded.
+      self.assertEqual(
+          kd.to_pytree(ds, max_depth=-1),
+          [
+              [
+                  {'doc_id': 0, 'doc_title': 'title0'},
+                  {'doc_id': 1, 'doc_title': 'title1'},
+                  {'doc_id': 2, 'doc_title': 'title2'},
+                  {'doc_id': 3, 'doc_title': None},
+              ],
+              [
+                  {'doc_id': 4, 'doc_title': 'title4'},
+                  {'doc_id': 5, 'doc_title': 'title5'},
+                  {'doc_id': 6, 'doc_title': 'title6'},
+              ],
+          ],
+      )
     # Similar to above, but now we request the dataslice *with all descendants*.
     ds = manager.get_data_slice(
         parse_dsp('.query[:].doc'), with_all_descendants=True
     )
-    self.assert_manager_state(
-        manager,
-        available_data_slice_paths=all_available_data_slice_paths,
-        loaded_data_slice_paths={
-            '',
-            '.query',
-            '.query[:]',
-            '.query[:].query_id',
-            '.query[:].query_text',
-            '.query[:].doc',
-            '.query[:].doc[:]',
-            '.query[:].doc[:].doc_id',
-            '.query[:].doc[:].doc_title',
-        },
-        expected_loaded_root_dataslice_pytree={
-            'query': [
-                {
-                    'query_id': 'q1',
-                    'doc': [
-                        {
-                            'doc_id': 0,
-                            'doc_title': 'title0',
-                        },
-                        {
-                            'doc_id': 1,
-                            'doc_title': 'title1',
-                        },
-                        {
-                            'doc_id': 2,
-                            'doc_title': 'title2',
-                        },
-                        {
-                            'doc_id': 3,
-                            'doc_title': None,
-                        },
-                    ],
-                    'query_text': 'How tall is Obama',
-                },
-                {
-                    'query_id': 'q2',
-                    'doc': [
-                        {
-                            'doc_id': 4,
-                            'doc_title': 'title4',
-                        },
-                        {
-                            'doc_id': 5,
-                            'doc_title': 'title5',
-                        },
-                        {
-                            'doc_id': 6,
-                            'doc_title': 'title6',
-                        },
-                    ],
-                    'query_text': 'How high is the Eiffel tower',
-                },
-            ],
-        },
-    )
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      self.assert_manager_state(
+          manager,
+          available_data_slice_paths=all_available_data_slice_paths,
+          loaded_data_slice_paths={
+              '',
+              '.query',
+              '.query[:]',
+              '.query[:].query_id',
+              '.query[:].query_text',
+              '.query[:].doc',
+              '.query[:].doc[:]',
+              '.query[:].doc[:].doc_id',
+              '.query[:].doc[:].doc_title',
+          },
+          expected_loaded_root_dataslice_pytree={
+              'query': [
+                  {
+                      'query_id': 'q1',
+                      'doc': [
+                          {
+                              'doc_id': 0,
+                              'doc_title': 'title0',
+                          },
+                          {
+                              'doc_id': 1,
+                              'doc_title': 'title1',
+                          },
+                          {
+                              'doc_id': 2,
+                              'doc_title': 'title2',
+                          },
+                          {
+                              'doc_id': 3,
+                              'doc_title': None,
+                          },
+                      ],
+                      'query_text': 'How tall is Obama',
+                  },
+                  {
+                      'query_id': 'q2',
+                      'doc': [
+                          {
+                              'doc_id': 4,
+                              'doc_title': 'title4',
+                          },
+                          {
+                              'doc_id': 5,
+                              'doc_title': 'title5',
+                          },
+                          {
+                              'doc_id': 6,
+                              'doc_title': 'title6',
+                          },
+                      ],
+                      'query_text': 'How high is the Eiffel tower',
+                  },
+              ],
+          },
+      )
     self.assertEqual(
         kd.to_pytree(ds, max_depth=-1),
         [
@@ -631,15 +656,18 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ],
     )
 
-  def test_update_at_path_that_is_not_loaded_yet(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_update_at_path_that_is_not_loaded_yet(self, dsm_class):
     query_schema = kd.named_schema(
         'Query',
         query_id=kd.INT32,
         query_text=kd.STRING,
     )
 
-    persistence_dir = self.create_tempdir().full_path
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(
         at_path=parse_dsp(''),
         attr_name='query',
@@ -660,19 +688,21 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # Now we start a new manager from the persistence dir.
     # Only the root is loaded.
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
-    self.assert_manager_state(
-        manager,
-        available_data_slice_paths={
-            '',
-            '.query',
-            '.query[:]',
-            '.query[:].query_id',
-            '.query[:].query_text',
-        },
-        loaded_data_slice_paths={''},
-        expected_loaded_root_dataslice_pytree={},
-    )
+    manager = self.copy_manager(manager)
+    available_data_slice_paths = {
+        '',
+        '.query',
+        '.query[:]',
+        '.query[:].query_id',
+        '.query[:].query_text',
+    }
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      self.assert_manager_state(
+          manager,
+          available_data_slice_paths=available_data_slice_paths,
+          loaded_data_slice_paths={''},
+          expected_loaded_root_dataslice_pytree={},
+      )
 
     # Although only the root is loaded, we can still update attributes of
     # query[:], which triggers its loading.
@@ -690,57 +720,78 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             None,
         ]),
     )
+    available_data_slice_paths = {
+        '',
+        '.query',
+        '.query[:]',
+        '.query[:].query_id',
+        '.query[:].query_text',
+        '.query[:].doc',
+        '.query[:].doc[:]',
+        '.query[:].doc[:].doc_id',
+        '.query[:].doc[:].doc_title',
+    }
+    if isinstance(manager, SimpleInMemoryDataSliceManager):
+      loaded_data_slice_paths = available_data_slice_paths
+    else:
+      loaded_data_slice_paths = {
+          '',
+          '.query',
+          '.query[:]',
+          # TODO: '.query[:].query_id' and '.query[:].query_text'
+          # appear here because the update that added '.query' used a schema
+          # that already mentioned '.query_id' and '.query_text'. This is
+          # probably not the desired behavior, and should be fixed later on
+          # when an update is chopped up into fine-grained DataBags. It's
+          # currently not easy to fix it when we have one DataBag for the
+          # entire update, because that DataBag will always contain the given
+          # schema in full. Fixing this will also remove query_id and
+          # query_text from the pytree below.
+          '.query[:].query_id',
+          '.query[:].query_text',
+          '.query[:].doc',
+          '.query[:].doc[:]',
+          '.query[:].doc[:].doc_id',
+          '.query[:].doc[:].doc_title',
+      }
+    expected_loaded_root_dataslice_pytree = {
+        'query': [
+            {
+                'doc': [
+                    {'doc_id': 0, 'doc_title': 'title0'},
+                    {'doc_id': 1, 'doc_title': 'title1'},
+                    {'doc_id': 2, 'doc_title': 'title2'},
+                    {'doc_id': 3, 'doc_title': None},
+                ],
+                'query_id': None,
+                'query_text': None,
+            },
+            {'doc': None, 'query_id': None, 'query_text': None},
+        ]
+    }
+    if isinstance(manager, SimpleInMemoryDataSliceManager):
+      # In this case query_id and query_text are also loaded.
+      query = expected_loaded_root_dataslice_pytree['query']
+      query[0]['query_id'] = 1
+      query[0]['query_text'] = 'How tall is Obama'
+      query[1]['query_id'] = 2
+      query[1]['query_text'] = 'How high is the Eiffel tower'
     self.assert_manager_state(
         manager,
-        available_data_slice_paths={
-            '',
-            '.query',
-            '.query[:]',
-            '.query[:].query_id',
-            '.query[:].query_text',
-            '.query[:].doc',
-            '.query[:].doc[:]',
-            '.query[:].doc[:].doc_id',
-            '.query[:].doc[:].doc_title',
-        },
-        loaded_data_slice_paths={
-            '',
-            '.query',
-            '.query[:]',
-            # TODO: '.query[:].query_id' and '.query[:].query_text'
-            # appear here because the update that added '.query' used a schema
-            # that already mentioned '.query_id' and '.query_text'. This is
-            # probably not the desired behavior, and should be fixed later on
-            # when an update is chopped up into fine-grained DataBags. It's
-            # currently not easy to fix it when we have one DataBag for the
-            # entire update, because that DataBag will always contain the given
-            # schema in full. Fixing this will also remove query_id and
-            # query_text from the pytree below.
-            '.query[:].query_id',
-            '.query[:].query_text',
-            '.query[:].doc',
-            '.query[:].doc[:]',
-            '.query[:].doc[:].doc_id',
-            '.query[:].doc[:].doc_title',
-        },
-        expected_loaded_root_dataslice_pytree={
-            'query': [
-                {
-                    'doc': [
-                        {'doc_id': 0, 'doc_title': 'title0'},
-                        {'doc_id': 1, 'doc_title': 'title1'},
-                        {'doc_id': 2, 'doc_title': 'title2'},
-                        {'doc_id': 3, 'doc_title': None},
-                    ],
-                    'query_id': None,
-                    'query_text': None,
-                },
-                {'doc': None, 'query_id': None, 'query_text': None},
-            ]
-        },
+        available_data_slice_paths=available_data_slice_paths,
+        loaded_data_slice_paths=loaded_data_slice_paths,
+        expected_loaded_root_dataslice_pytree=(
+            expected_loaded_root_dataslice_pytree
+        ),
     )
 
-  def test_add_update_whose_schema_is_recursive_and_data_has_no_cycles(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_add_update_whose_schema_is_recursive_and_data_has_no_cycles(
+      self, dsm_class
+  ):
     tree_node_schema = kd.named_schema(
         'TreeNode',
         value=kd.STRING,
@@ -754,10 +805,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ]),
     )
 
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(
         at_path=parse_dsp(''), attr_name='tree_root', attr_value=tree_root
     )
@@ -796,18 +844,19 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         },
     )
 
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
   def test_recursive_schema_across_two_calls_to_update_with_no_cycles_in_data(
-      self,
+      self, dsm_class
   ):
     tree_node_schema = kd.named_schema('TreeNode')
     tree_root = tree_node_schema.new(value='tree_root')
     child1 = tree_node_schema.new(value='child1')
     child2 = tree_node_schema.new(value='child2')
 
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
 
     manager.update(
         at_path=parse_dsp(''), attr_name='tree_root', attr_value=tree_root
@@ -934,7 +983,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ],
     )
 
-  def test_add_update_whose_schema_is_recursive_and_data_has_cycles(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_add_update_whose_schema_is_recursive_and_data_has_cycles(
+      self, dsm_class
+  ):
     graph_node_schema = kd.named_schema(
         'GraphNode',
         label=kd.STRING,
@@ -955,10 +1010,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         kd.slice([node1]),
     )
 
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(
         at_path=parse_dsp(''),
         attr_name='graph_nodes',
@@ -1005,13 +1057,14 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         [['node1']],
     )
 
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
   def test_recursive_schema_across_two_calls_to_update_with_cycles_in_data(
-      self,
+      self, dsm_class
   ):
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
 
     graph_node_schema = kd.named_schema(
         'GraphNode',
@@ -1040,12 +1093,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     )
     # Phrased a little differently:
     kd.testing.assert_equivalent(
-        loaded_root_dataslice.node,
+        loaded_root_dataslice.node.no_bag(),
         manager.get_data_slice(
             parse_dsp('.node.outgoing_edges[:].outgoing_edges[:]')
         )
         .flatten()
-        .S[0],
+        .S[0]
+        .no_bag(),
     )
 
     manager_schema = manager.get_schema()
@@ -1205,8 +1259,12 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ],
     )
 
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
   def test_another_recursive_tree_schema_add_parent_node_pointers(
-      self,
+      self, dsm_class
   ):
     tree_node_schema = kd.named_schema(
         'TreeNode',
@@ -1224,12 +1282,16 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ]),
     )
 
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(
         at_path=parse_dsp(''), attr_name='tree_root', attr_value=tree_root
+    )
+
+    self.assert_manager_loaded_root_dataslice_pytree(
+        manager,
+        {
+            'tree_root': kd.to_pytree(tree_root, max_depth=-1),
+        },
     )
 
     num_parent_updates = 0
@@ -1239,7 +1301,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       )
       child_path = parent_path.concat(parse_dsp('.children[:]'))
       parents = manager.get_data_slice(parent_path).stub()
-      children = manager.get_data_slice(child_path).stub()
+      children = manager.get_data_slice(child_path)
       if children.is_empty():
         break
       num_parent_updates += 1
@@ -1320,12 +1382,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ],
     )
 
-  def test_aliasing_interaction_with_all_descendants(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_aliasing_interaction_with_all_descendants(self, dsm_class):
     o = kd.new(x=1)
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=o)
 
     # Next, we make ".bar" an alias for ".foo".
@@ -1347,13 +1410,19 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # Starting from a state where nothing is loaded, the manager should know
     # that "y" is a descendant of ".foo" and ".bar".
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    new_manager = self.copy_manager(manager)
     self.assertEqual(
-        manager.get_data_slice(foo_path, with_all_descendants=True).y.to_py(), 2
+        new_manager.get_data_slice(
+            foo_path, with_all_descendants=True
+        ).y.to_py(),
+        2,
     )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    new_manager = self.copy_manager(manager)
     self.assertEqual(
-        manager.get_data_slice(bar_path, with_all_descendants=True).y.to_py(), 2
+        new_manager.get_data_slice(
+            bar_path, with_all_descendants=True
+        ).y.to_py(),
+        2,
     )
 
     manager_schema = manager.get_schema()
@@ -1373,12 +1442,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ],
     )
 
-  def test_deeper_aliasing(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_deeper_aliasing(self, dsm_class):
     o = kd.new(x=kd.new(z=1))
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=o)
 
     # Next, we make ".bar" an alias for ".foo". However, we don't use o.stub()
@@ -1401,13 +1471,19 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # Starting from a state where nothing is loaded, the manager should know
     # that "y" is a descendant of ".foo" and ".bar".
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    new_manager = self.copy_manager(manager)
     self.assertEqual(
-        manager.get_data_slice(foo_path, with_all_descendants=True).y.to_py(), 2
+        new_manager.get_data_slice(
+            foo_path, with_all_descendants=True
+        ).y.to_py(),
+        2,
     )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    new_manager = self.copy_manager(manager)
     self.assertEqual(
-        manager.get_data_slice(bar_path, with_all_descendants=True).y.to_py(), 2
+        new_manager.get_data_slice(
+            bar_path, with_all_descendants=True
+        ).y.to_py(),
+        2,
     )
 
     manager_schema = manager.get_schema()
@@ -1428,12 +1504,13 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         ],
     )
 
-  def test_schema_overriding(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_schema_overriding(self, dsm_class):
     x = kd.item(1)
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='x', attr_value=x)
 
     new_x = kd.item('foo')
@@ -1447,20 +1524,26 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     self.assertEqual(manager.get_data_slice(x_path).to_py(), 'foo')
 
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.copy_manager(manager)
     self.assertEqual(manager.get_data_slice(x_path).to_py(), 'foo')
-    # Note that the original bag for x is not loaded here. The only 2 bags that
-    # are loaded are the ones for the root and for the new 'x'.
-    self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      # Note that the original bag for x is not loaded here. The only 2 bags
+      # that are loaded are the ones for the root and for the new 'x'.
+      self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
 
-  def test_deeper_schema_overriding(self):
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_deeper_schema_overriding(self, dsm_class):
+    manager = self.new_manager(dsm_class)
     manager.update(
         at_path=parse_dsp(''), attr_name='x', attr_value=kd.list([1, 2])
     )
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      original_non_root_bag_names = (
+          manager._bag_manager.get_loaded_bag_names() - {''}
+      )
     manager.update(
         at_path=parse_dsp(''),
         attr_name='x',
@@ -1472,20 +1555,24 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         manager.get_data_slice(parse_dsp('.x[:]')).to_py(), ['a', 'b', 'c']
     )
 
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.copy_manager(manager)
     self.assertEqual(
         manager.get_data_slice(parse_dsp('.x[:]')).to_py(), ['a', 'b', 'c']
     )
-    # Note that the original bag for x is not loaded here. The only 2 bags that
-    # are loaded are the ones for the root and for the new 'x'.
-    self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      # The original bags for x and its items are not loaded here:
+      self.assertEmpty(
+          manager._bag_manager.get_loaded_bag_names()
+          & original_non_root_bag_names  # pylint: disable=undefined-variable
+      )
 
-  def test_schema_aliasing(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_schema_aliasing(self, dsm_class):
     s = kd.list_schema(item_schema=kd.INT32)
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=s)
 
     # Next, we make ".bar" an alias for ".foo".
@@ -1496,44 +1583,47 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     self.assertEqual(
         manager.get_data_slice(parse_dsp('.bar')).get_item_schema(), kd.INT32
     )
-    self.assertEqual(
-        manager._schema_helper.get_subschema_at(
-            manager._schema_helper.get_schema_node_name_for_data_slice_path(
-                parse_dsp('.bar')
-            )
-        ),
-        kd.SCHEMA,
-    )
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      self.assertEqual(
+          manager._schema_helper.get_subschema_at(
+              manager._schema_helper.get_schema_node_name_for_data_slice_path(
+                  parse_dsp('.bar')
+              )
+          ),
+          kd.SCHEMA,
+      )
 
     # Starting from a state where nothing is loaded, we should still be able to
     # access ".get_item_schema()" via ".bar". So internally, the manager must
     # understand that SCHEMAs can be aliased.
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.copy_manager(manager)
     self.assertEqual(
         manager.get_data_slice(parse_dsp('.bar')).get_item_schema(), kd.INT32
     )
 
-    manager_schema = manager.get_schema()
-    self.assert_manager_schema_node_names_to_num_bags(
-        manager,
-        [
-            (schema_node_name(manager_schema), 1),
-            (schema_node_name(manager_schema, action=GetAttr('bar')), 2),
-        ],
-    )
-    # It loaded one bag for the root and two for the schema node name
-    # shared:SCHEMA.
-    self.assertLen(manager._bag_manager.get_loaded_bag_names(), 3)
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      manager_schema = manager.get_schema()
+      self.assert_manager_schema_node_names_to_num_bags(
+          manager,
+          [
+              (schema_node_name(manager_schema), 1),
+              (schema_node_name(manager_schema, action=GetAttr('bar')), 2),
+          ],
+      )
+      # It loaded one bag for the root and two for the schema node name
+      # shared:SCHEMA.
+      self.assertLen(manager._bag_manager.get_loaded_bag_names(), 3)
 
-  def test_values_of_primitive_schemas_are_not_aliased(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_values_of_primitive_schemas_are_not_aliased(self, dsm_class):
     # In contrast to OBJECT and SCHEMA above, values of primitive schemas are
     # not aliased even if we create stubs. In this test we use a value with
     # schema kd.INT32 to illustrate the point:
     value = kd.item(1)
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=value)
 
     # Next, we set ".bar" to a stub of ".foo". However, no aliasing happens -
@@ -1548,30 +1638,32 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # Starting from a state where nothing is loaded, we should still be able to
     # access the value via ".bar".
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.copy_manager(manager)
     self.assertEqual(manager.get_data_slice(parse_dsp('.bar')).to_py(), 1)
 
-    manager_schema = manager.get_schema()
-    # It knows that ".foo" and ".bar" are not true aliases:
-    self.assert_manager_schema_node_names_to_num_bags(
-        manager,
-        [
-            (schema_node_name(manager_schema), 1),
-            (schema_node_name(manager_schema, action=GetAttr('foo')), 1),
-            (schema_node_name(manager_schema, action=GetAttr('bar')), 1),
-        ],
-    )
-    # It loaded one bag for the root and one for ".bar".
-    self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      manager_schema = manager.get_schema()
+      # It knows that ".foo" and ".bar" are not true aliases:
+      self.assert_manager_schema_node_names_to_num_bags(
+          manager,
+          [
+              (schema_node_name(manager_schema), 1),
+              (schema_node_name(manager_schema, action=GetAttr('foo')), 1),
+              (schema_node_name(manager_schema, action=GetAttr('bar')), 1),
+          ],
+      )
+      # It loaded one bag for the root and one for ".bar".
+      self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
 
-  def test_values_of_with_schema_itemid_are_not_aliased(self):
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_values_with_schema_itemid_are_not_aliased(self, dsm_class):
     # Similar to values of primitive schemas, ITEMID values are not aliased when
     # we create stubs.
     value = kd.new_itemid()
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.new_manager(dsm_class)
     manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=value)
 
     # Next, we set ".bar" to a stub of ".foo". However, no aliasing happens -
@@ -1586,21 +1678,22 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # Starting from a state where nothing is loaded, we should still be able to
     # access the value via ".bar".
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.copy_manager(manager)
     self.assertEqual(manager.get_data_slice(parse_dsp('.bar')), value)
 
-    manager_schema = manager.get_schema()
-    # It knows that ".foo" and ".bar" are not true aliases:
-    self.assert_manager_schema_node_names_to_num_bags(
-        manager,
-        [
-            (schema_node_name(manager_schema), 1),
-            (schema_node_name(manager_schema, action=GetAttr('foo')), 1),
-            (schema_node_name(manager_schema, action=GetAttr('bar')), 1),
-        ],
-    )
-    # It loaded one bag for the root and one for ".bar".
-    self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      manager_schema = manager.get_schema()
+      # It knows that ".foo" and ".bar" are not true aliases:
+      self.assert_manager_schema_node_names_to_num_bags(
+          manager,
+          [
+              (schema_node_name(manager_schema), 1),
+              (schema_node_name(manager_schema, action=GetAttr('foo')), 1),
+              (schema_node_name(manager_schema, action=GetAttr('bar')), 1),
+          ],
+      )
+      # It loaded one bag for the root and one for ".bar".
+      self.assertLen(manager._bag_manager.get_loaded_bag_names(), 2)
 
   def test_persistence_dir_is_hermetic(self):
     persistence_dir = os.path.join(
@@ -1675,11 +1768,12 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     # The version is 1.0.0 after starting from a populated persistence directory
     self.assertEqual(manager._metadata.version, '1.0.0')
 
-  def test_is_valid_available_and_loaded_data_slice_path(self):
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_is_valid_available_and_loaded_data_slice_path(self, dsm_class):
+    manager = self.new_manager(dsm_class)
     self.assertTrue(manager.exists(parse_dsp('')))
     self.assertTrue(is_loaded_data_slice_path(manager, parse_dsp('')))
     self.assertFalse(manager.exists(parse_dsp('.foo')))
@@ -1709,13 +1803,14 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       self.assertTrue(is_loaded_data_slice_path(manager, dsp))
 
     # Start again from a state where nothing is loaded.
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+    manager = self.copy_manager(manager)
     self.assertTrue(manager.exists(parse_dsp('')))
     self.assertTrue(is_loaded_data_slice_path(manager, parse_dsp('')))
     for dsp_string in ['.foo', '.foo.x', '.foo.y', '.foo.y.z']:
       dsp = parse_dsp(dsp_string)
       self.assertTrue(manager.exists(dsp))
-      self.assertFalse(is_loaded_data_slice_path(manager, dsp))
+      if dsm_class == PersistedIncrementalDataSliceManager:
+        self.assertFalse(is_loaded_data_slice_path(manager, dsp))
 
     manager.get_data_slice(parse_dsp('.foo'))
     for dsp_string in ['.foo', '.foo.x']:
@@ -1725,7 +1820,8 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
     for dsp_string in ['.foo.y', '.foo.y.z']:
       dsp = parse_dsp(dsp_string)
       self.assertTrue(manager.exists(dsp))
-      self.assertFalse(is_loaded_data_slice_path(manager, dsp))
+      if dsm_class == PersistedIncrementalDataSliceManager:
+        self.assertFalse(is_loaded_data_slice_path(manager, dsp))
 
     manager.get_data_slice(parse_dsp('.foo.y.z'))
     for dsp_string in ['.foo', '.foo.x', '.foo.y', '.foo.y.z']:
@@ -1733,11 +1829,12 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       self.assertTrue(manager.exists(dsp))
       self.assertTrue(is_loaded_data_slice_path(manager, dsp))
 
-  def test_update_at_bad_path_raises(self):
-    persistence_dir = os.path.join(
-        self.create_tempdir().full_path, 'persisted_dataslice'
-    )
-    manager = PersistedIncrementalDataSliceManager(persistence_dir)
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_update_at_bad_path_raises(self, dsm_class):
+    manager = self.new_manager(dsm_class)
 
     with self.assertRaisesRegex(
         ValueError, re.escape("invalid data slice path: '.foo.x'")
@@ -2112,7 +2209,7 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         kd.dict({
             3: kd.item(None, schema=query_schema),
             4: None,
-        })
+        }),
     ])
 
     manager = self.new_manager(dsm_class)

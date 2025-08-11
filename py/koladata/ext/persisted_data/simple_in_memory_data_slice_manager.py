@@ -58,6 +58,8 @@ class SimpleInMemoryDataSliceManager(
       with_all_descendants: bool = False,
   ) -> kd.types.DataSlice:
     del with_all_descendants
+    if at_path is None:
+      return self._ds
     self._check_is_valid_data_slice_path(at_path)
     return data_slice_path_lib.get_subslice(self._ds, at_path)
 
@@ -70,6 +72,7 @@ class SimpleInMemoryDataSliceManager(
       overwrite_schema: bool = False,
   ):
     self._check_is_valid_data_slice_path(at_path)
+    self._check_has_entity_schema(at_path)
     try:
       extracted_attr_value = attr_value.extract()
     except ValueError:
@@ -97,7 +100,21 @@ class SimpleInMemoryDataSliceManager(
       data_slice_path: data_slice_path_lib.DataSlicePath,
   ):
     if not self.exists(data_slice_path):
+      raise ValueError(f"invalid data slice path: '{data_slice_path}'")
+
+  def _check_has_entity_schema(
+      self,
+      data_slice_path: data_slice_path_lib.DataSlicePath,
+  ):
+    schema_node_name = (
+        self._schema_helper().get_schema_node_name_for_data_slice_path(
+            data_slice_path
+        )
+    )
+    schema = self._schema_helper().get_subschema_at(schema_node_name)
+    if not schema.is_entity_schema():
       raise ValueError(
-          f'Data slice path {data_slice_path} is not valid for schema'
-          f' {self._ds.get_schema()}'
+          f"the schema at data slice path '{data_slice_path}' is {schema},"
+          " which does not support updates. Please pass a data slice path that"
+          " is associated with an entity schema"
       )
