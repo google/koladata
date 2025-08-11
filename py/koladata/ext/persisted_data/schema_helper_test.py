@@ -1195,6 +1195,23 @@ class SchemaHelperTest(absltest.TestCase):
     ):
       helper.get_schema_bag({'abcde'})
 
+  def test_same_list_schema_in_several_places(self):
+    doc_schema = kd.named_schema(
+        'Doc',
+        salient_terms=kd.list_schema(kd.STRING),
+    )
+    query_schema = kd.named_schema(
+        'Query',
+        # This has the same schema as the salient_terms list in the doc_schema:
+        a=kd.list_schema(kd.STRING),
+        doc=kd.list_schema(doc_schema),
+    )
+    helper = schema_helper.SchemaHelper(query_schema)
+    kd.testing.assert_equivalent(
+        helper.get_schema_bag(helper.get_all_schema_node_names()),
+        query_schema.get_bag(),
+    )
+
 
 if __name__ == '__main__':
   absltest.main()

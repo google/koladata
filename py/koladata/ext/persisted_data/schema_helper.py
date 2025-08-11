@@ -323,6 +323,14 @@ def _get_schema_bag(
   return action.get_subschema_bag(parent_schema_item)
 
 
+# Marker used in _AnalyzeSchemaResult.parent_and_child_to_schema_bag to indicate
+# that there is no parent schema. The value chosen for this must be such that
+# it cannot collide with the schema node name of any struct schema. Making sure
+# it does not collide with any base62 encoded item id is therefore sufficient.
+# We use underscores in the name to ensure the absence of collisions.
+_NO_PARENT_MARKER = '__NONE__'
+
+
 @dataclasses.dataclass(frozen=True)
 class _AnalyzeSchemaResult:
   # The schema graph is a relation between schema node names, as described in
@@ -332,9 +340,10 @@ class _AnalyzeSchemaResult:
   # The node name to schema map is a mapping from schema node names to the
   # corresponding Koda subschema items.
   schema_node_name_to_schema: dict[str, kd.types.DataItem]
-  # The node name to schema bag map is a mapping from schema node names to their
-  # minimal schema bags.
-  schema_node_name_to_schema_bag: dict[str, kd.types.DataBag]
+  # A map associating a pair of the form
+  # (parent_schema_node_name or _NO_PARENT_MARKER, child_schema_node_name) with
+  # its minimal schema bag.
+  parent_and_child_to_schema_bag: dict[tuple[str, str], kd.types.DataBag]
 
 
 def _analyze_schema(
@@ -402,7 +411,9 @@ def _analyze_schema(
 
   schema_graph: dict[str, set[str]] = dict()
   schema_node_name_to_schema: dict[str, kd.types.DataItem] = dict()
-  schema_node_name_to_schema_bag: dict[str, kd.types.DataBag] = dict()
+  parent_and_child_to_schema_bag: dict[tuple[str, str], kd.types.DataBag] = (
+      dict()
+  )
   level = [(parent_schema, action, schema)]
   is_first_level = True
   while level:
@@ -413,25 +424,32 @@ def _analyze_schema(
           action=action,
           child_schema_item=child_schema,
       )
+      parent_name = (
+          _NO_PARENT_MARKER  # pylint: disable=g-long-ternary
+          if parent_schema is None
+          else _get_schema_node_name_from_schema_having_an_item_id(
+              parent_schema
+          )
+      )
       if not is_first_level:
         # After the first level, we know that the parent_schema is not None and
         # that it definitely has an item id, because it must have been returned
-        # by expand_one_step() above. So the following call and assignment
-        # always succeed:
-        parent_name = _get_schema_node_name_from_schema_having_an_item_id(
-            parent_schema
-        )
+        # by expand_one_step() above. So _NO_PARENT_MARKER will never be a key
+        # in the schema_graph.
         schema_graph[parent_name].add(child_name)
+      if not only_compute_schema_graph:
+        parent_and_child_to_schema_bag[(parent_name, child_name)] = (
+            _get_schema_bag(
+                parent_schema_item=parent_schema,
+                action=action,
+                child_schema_item=child_schema,
+            )
+        )
       if child_name in schema_graph:
         continue
       schema_graph[child_name] = set()
       if not only_compute_schema_graph:
         schema_node_name_to_schema[child_name] = child_schema
-        schema_node_name_to_schema_bag[child_name] = _get_schema_bag(
-            parent_schema_item=parent_schema,
-            action=action,
-            child_schema_item=child_schema,
-        )
       new_level.extend([
           (item.parent_schema, item.action, item.child_schema)
           for item in expand_one_step(child_schema)
@@ -441,7 +459,7 @@ def _analyze_schema(
   return _AnalyzeSchemaResult(
       schema_graph=schema_graph,
       schema_node_name_to_schema=schema_node_name_to_schema,
-      schema_node_name_to_schema_bag=schema_node_name_to_schema_bag,
+      parent_and_child_to_schema_bag=parent_and_child_to_schema_bag,
   )
 
 
@@ -568,8 +586,8 @@ class SchemaHelper:
     artifacts = _analyze_schema(self._schema)
     self._schema_graph = artifacts.schema_graph
     self._schema_node_name_to_schema = artifacts.schema_node_name_to_schema
-    self._schema_node_name_to_schema_bag = (
-        artifacts.schema_node_name_to_schema_bag
+    self._parent_and_child_to_schema_bag = (
+        artifacts.parent_and_child_to_schema_bag
     )
 
   def get_schema(self) -> kd.types.DataItem:
@@ -720,10 +738,27 @@ class SchemaHelper:
     """Returns a schema bag that is minimal for the given schema node names."""
     for name in schema_node_names:
       self._check_is_valid_schema_node_name(name)
-    return kd.bags.updated(*[
-        self._schema_node_name_to_schema_bag[snn]
+    # We take the bags of the schema stubs that are augmented with schema names
+    # and metadata.
+    augmented_stub_bags = [
+        stubs_and_minimal_bags_lib.schema_stub(
+            self._schema_node_name_to_schema[snn]
+        ).get_bag()
         for snn in sorted(schema_node_names)
-    ]).merge_fallbacks()
+    ]
+    # We also take the minimal bags that capture the relationships between the
+    # schema nodes. For example, the result must know that the "query" schema
+    # stub has an attribute called "doc" that points to a list of documents,
+    # i.e. it relates the "query" schema node to the list schema node.
+    minimal_bags_capturing_relationships = [
+        bag
+        for (p, c), bag in sorted(self._parent_and_child_to_schema_bag.items())
+        if c in schema_node_names
+        and (p == _NO_PARENT_MARKER or p in schema_node_names)
+    ]
+    return kd.bags.updated(
+        *(augmented_stub_bags + minimal_bags_capturing_relationships)
+    ).merge_fallbacks()
 
   def _check_is_valid_schema_node_name(self, schema_node_name: str):
     if schema_node_name not in self._schema_graph:
