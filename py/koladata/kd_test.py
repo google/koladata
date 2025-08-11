@@ -16,7 +16,7 @@ import dataclasses
 import inspect
 import re
 import types
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Protocol
 
 from absl.testing import absltest
 from arolla import arolla
@@ -61,6 +61,10 @@ class PairWithTupleTracing:
   _koladata_type_tracing_config_: ClassVar[type[TuplePairTracingConfig]] = (
       TuplePairTracingConfig
   )
+
+
+def cond_add_fn(x, y):
+  return x + 1 if y == 2 else x + 3
 
 
 class KdTest(absltest.TestCase):
@@ -749,6 +753,19 @@ class KdTest(absltest.TestCase):
     fn = kd.py_fn(lambda x, y: x + 1 if y == 2 else x + 3)
     kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))
     kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))
+
+  def test_register_py_fn(self):
+    fn = kd.register_py_fn(cond_add_fn, unsafe_override=True)
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))
+    kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))
+
+  def test_functor_register_py_fn(self):
+    fn = kd.functor.register_py_fn(cond_add_fn, unsafe_override=True)
+    kd.testing.assert_equal(fn(x=1, y=2), kd.item(2))
+    kd.testing.assert_equal(fn(x=1, y=3), kd.item(4))
+
+  def test_functor_factory_protocol(self):
+    self.assertTrue(issubclass(kd.functor.FunctorFactory, Protocol))
 
   def test_fn(self):
     fn = kd.fn(lambda x, y: x + y)

@@ -179,6 +179,7 @@ py_library(
         "//py:python_path",
         "//py/koladata/expr:tracing_mode",
         "//py/koladata/types:data_bag",
+        "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:extension_types",
         "//py/koladata/types:py_boxing",
@@ -238,7 +239,6 @@ py_test(
         "@com_google_absl_py//absl/testing:absltest",
         "@com_google_absl_py//absl/testing:parameterized",
         "@com_google_arolla//py/arolla",
-        "@com_google_arolla//py/arolla/derived_qtype",
     ],
 )
 

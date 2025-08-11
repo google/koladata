@@ -14,10 +14,10 @@
 
 import dataclasses
 import re
-from typing import Any, ClassVar, Self
-
+from typing import Any, ClassVar, Protocol, Self
 from absl.testing import absltest
 from absl.testing import parameterized
+from arolla import arolla
 from IPython.core import ultratb
 from koladata import kd as user_facing_kd
 from koladata.expr import input_container
@@ -128,6 +128,10 @@ class ExtensionPair:
   y: schema_constants.INT32
 
 
+def test_add_fn(x, y):
+  return x + y
+
+
 class TracingDecoratorTest(parameterized.TestCase):
 
   def test_default_behavior(self):
@@ -198,7 +202,10 @@ class TracingDecoratorTest(parameterized.TestCase):
     self.assertNotIn('f', fn.get_attr_names(intersection=True))
 
   def test_py_fn_mode(self):
-    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+
+    @tracing_decorator.TraceAsFnDecorator(
+        functor_factory=functor_factories.py_fn
+    )
     def f(x):
       if x == 0:
         return 1
@@ -251,8 +258,9 @@ class TracingDecoratorTest(parameterized.TestCase):
     testing.assert_equal(fn().no_bag(), ds(5))
 
   def test_return_type_as_py_fn(self):
+
     @tracing_decorator.TraceAsFnDecorator(
-        return_type_as=data_bag.DataBag, py_fn=True
+        return_type_as=data_bag.DataBag, functor_factory=functor_factories.py_fn
     )
     def f(x):
       return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
@@ -321,10 +329,11 @@ class TracingDecoratorTest(parameterized.TestCase):
         kd_lazy.attrs(I.x, foo=1),
     )
 
-  @parameterized.parameters(True, False)
-  def test_wrapper(self, py_fn):
+  def test_custom_wrapper(self):
     @tracing_decorator.TraceAsFnDecorator(
-        py_fn=py_fn, wrapper=lambda func: lambda x: func(x + 5)
+        functor_factory=lambda func, return_type_as: functor_factories.py_fn(
+            (lambda x: func(x + 5)), return_type_as=return_type_as
+        )
     )
     def f(x):
       return x + 1
@@ -372,8 +381,11 @@ class TracingDecoratorTest(parameterized.TestCase):
 
   @parameterized.parameters(True, False)
   def test_koda_extension_type_tracing(self, py_fn):
+    functor_factory = (
+        functor_factories.py_fn if py_fn else functor_factories.trace_py_fn
+    )
 
-    @tracing_decorator.TraceAsFnDecorator(py_fn=py_fn)
+    @tracing_decorator.TraceAsFnDecorator(functor_factory=functor_factory)
     def swap(a: ExtensionPair) -> ExtensionPair:
       return ExtensionPair(x=a.y, y=a.x)
 
@@ -401,7 +413,9 @@ class TracingDecoratorTest(parameterized.TestCase):
 
   def test_custom_tracing_config_with_py_fn(self):
 
-    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    @tracing_decorator.TraceAsFnDecorator(
+        functor_factory=functor_factories.py_fn
+    )
     def swap(a: PairWithTupleTracing) -> PairWithTupleTracing:
       return PairWithTupleTracing(x=a.y, y=a.x)
 
@@ -509,7 +523,9 @@ class TracingDecoratorTest(parameterized.TestCase):
     formatted_message = '\n'.join(
         ultratb.VerboseTB(
             color_scheme='NoColor', include_vars=False
-        ).structured_traceback(type(ex), ex, ex.__traceback__)
+        ).structured_traceback(
+            type(ex), ex, ex.__traceback__  # pylint: disable=undefined-variable
+        )
     )
     self.assertNotIn('/tracing_decorator.py', formatted_message)
     self.assertIn('/tracing_decorator_test.py', formatted_message)
@@ -535,12 +551,14 @@ class TracingDecoratorTest(parameterized.TestCase):
     except ValueError as e:
       ex = e
 
-    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pylint: disable=undefined-variable
 
     tb = '\n'.join(
         ultratb.VerboseTB(
             color_scheme='NoColor', include_vars=False
-        ).structured_traceback(type(ex), ex, ex.__traceback__)
+        ).structured_traceback(
+            type(ex), ex, ex.__traceback__  # pylint: disable=undefined-variable
+        )
     )
 
     self.assertNotIn('/tracing.py', tb)
@@ -574,12 +592,14 @@ class TracingDecoratorTest(parameterized.TestCase):
     except ValueError as e:
       ex = e
 
-    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')
+    self.assertEqual(str(ex), 'kd.math.floordiv: division by zero')  # pylint: disable=undefined-variable
 
     tb = '\n'.join(
         ultratb.VerboseTB(
             color_scheme='NoColor', include_vars=False
-        ).structured_traceback(type(ex), ex, ex.__traceback__)
+        ).structured_traceback(
+            type(ex), ex, ex.__traceback__  # pylint: disable=undefined-variable
+        )
     )
 
     self.assertNotIn('/tracing.py', tb)
@@ -592,6 +612,97 @@ class TracingDecoratorTest(parameterized.TestCase):
     )
     self.assertIn('return user_facing_kd.if_(', tb)
     self.assertIn('lambda a: 1 // a,', tb)
+
+  def test_register_py_fn(self):
+    fn = tracing_decorator.TraceAsFnDecorator(
+        name='foo', functor_factory=functor_factories.register_py_fn
+    )(test_add_fn)
+
+    functor = functor_factories.trace_py_fn(fn)
+
+    with self.subTest('eval'):
+      testing.assert_equal(fn(1, 2).no_bag(), ds(3))
+      testing.assert_equal(functor(1, 2).no_bag(), ds(3))
+
+    with self.subTest('operator'):
+      op = functor.foo.returns.to_py().unquote().op
+      self.assertIsInstance(op, arolla.types.RegisteredOperator)
+      self.assertEqual(op.display_name, '__main__.test_add_fn')
+
+  def test_register_py_fn_as_operator_local_error(self):
+    def fn(x, y):
+      return x + y
+
+    with self.assertRaisesRegex(
+        ValueError, 'attempt to register an operator with invalid name'
+    ):
+      tracing_decorator.TraceAsFnDecorator(
+          name='foo', functor_factory=functor_factories.register_py_fn
+      )(fn)
+
+  def test_functor_factory_protocol(self):
+    self.assertTrue(issubclass(tracing_decorator.FunctorFactory, Protocol))
+
+
+# TODO: Deprecate py_fn and wrapper arguments.
+class TracingDecoratorDeprecatedParamsTest(parameterized.TestCase):
+
+  def test_py_fn_mode(self):
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    def f(x):
+      if x == 0:
+        return 1
+      return x * f(x - 1)
+
+    fn = functor_factories.trace_py_fn(lambda x: f(x=x + 2))
+    testing.assert_equal(fn(x=1), ds(6))
+    testing.assert_equal(fn.f(x=1), ds(1))
+
+  def test_return_type_as_py_fn(self):
+    @tracing_decorator.TraceAsFnDecorator(
+        return_type_as=data_bag.DataBag, py_fn=True
+    )
+    def f(x):
+      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
+
+    fn = functor_factories.trace_py_fn(
+        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x
+    )
+    testing.assert_equal(fn().no_bag(), ds(5))
+
+  @parameterized.parameters(True, False)
+  def test_wrapper(self, py_fn):
+    @tracing_decorator.TraceAsFnDecorator(
+        py_fn=py_fn, wrapper=lambda func: lambda x: func(x + 5)
+    )
+    def f(x):
+      return x + 1
+
+    fn = functor_factories.trace_py_fn(f)
+
+    testing.assert_equal(f(ds([1, 2])), ds([2, 3]))
+    testing.assert_equal(fn(ds([1, 2])), ds([7, 8]))
+
+  def test_py_fn_and_functor_factory_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        '`py_fn` and `wrapper` cannot be set when a `functor_factory` is'
+        ' provided',
+    ):
+      tracing_decorator.TraceAsFnDecorator(
+          py_fn=True, functor_factory=functor_factories.py_fn
+      )
+
+  def test_wrapper_and_functor_factory_error(self):
+    with self.assertRaisesRegex(
+        ValueError,
+        '`py_fn` and `wrapper` cannot be set when a `functor_factory` is'
+        ' provided',
+    ):
+      tracing_decorator.TraceAsFnDecorator(
+          wrapper=lambda func: lambda x: func(x + 5),
+          functor_factory=functor_factories.py_fn,
+      )
 
 
 if __name__ == '__main__':

@@ -1859,6 +1859,13 @@ Operators to create and call functors.
 
 **Operators**
 
+### `kd.functor.FunctorFactory(*args, **kwargs)` {#kd.functor.FunctorFactory}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">`functor_factory` argument protocol for `trace_as_fn`.
+
+  Implements:
+    (py_types.FunctionType, return_type_as: arolla.QValue) -&gt; DataItem</code></pre>
+
 ### `kd.functor.TypeTracingConfig()` {#kd.functor.TypeTracingConfig}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Describes handling a given user Python type as input/output when tracing.</code></pre>
@@ -2383,17 +2390,16 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor wrapping a python function.
 
-  This is the most flexible way to wrap a python function and is recommended
-  for large, complex code.
-
-  Functions wrapped with py_fn are not serializable.
+  This is the most flexible way to wrap a python function for large, complex
+  code that doesn&#39;t require serialization. Note that functions wrapped with
+  py_fn are not serializable. See register_py_fn for an alternative that is
+  serializable.
 
   Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
-  functor
-  will have exactly the same signature as the original function. In particular,
-  if the original function does not accept variadic keyword arguments and
-  and unknown argument is passed when calling the functor, an exception will
-  occur.
+  functor will have exactly the same signature as the original function. In
+  particular, if the original function does not accept variadic keyword
+  arguments and and unknown argument is passed when calling the functor, an
+  exception will occur.
 
   Args:
     f: Python function. It is required that this function returns a
@@ -2431,7 +2437,58 @@ Args:
 Returns:
   Result of the reduction as a single value.</code></pre>
 
-### `kd.functor.trace_as_fn(*, name=None, py_fn=False, return_type_as=None, wrapper=None)` {#kd.functor.trace_as_fn}
+### `kd.functor.register_py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, unsafe_override=False, **defaults)` {#kd.functor.register_py_fn}
+Aliases:
+
+- [kd.register_py_fn](#kd.register_py_fn)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a Koda functor wrapping a function registered as an operator.
+
+  This is the recommended way to wrap a non-traceable python function into a
+  functor.
+
+  `f` will be wrapped into an operator and registered with the name taken from
+  the `__module__` and `__qualname__` attributes. This requires `f` to be named,
+  and to not be a locally defined function. Furthermore, attempts to call
+  `register_py_fn` on the same function will fail unless unsafe_override is True
+  (not recommended).
+
+  The resulting functor can be serialized and loaded from a different process
+  (unlike `py_fn`). In order for the serialized functor to be deserialized, an
+  equivalent call to `register_py_fn` is required to have been made in the
+  process that performs the deserialization. In practice, this is often
+  implemented through `f` being a top-level function that is traced at library
+  import time.
+
+  Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
+  functor will have exactly the same signature as the original function. In
+  particular, if the original function does not accept variadic keyword
+  arguments and and unknown argument is passed when calling the functor, an
+  exception will occur.
+
+  Args:
+    f: Python function. It is required that this function returns a
+      DataSlice/DataItem or a primitive that will be automatically wrapped into
+      a DataItem. The function must also have `__qualname__` and `__module__`
+      attributes set.
+    return_type_as: The return type of the function is expected to be the same
+      as the type of this value. This needs to be specified if the function does
+      not return a DataSlice/DataItem or a primitive that would be auto-boxed
+      into a DataItem. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
+    unsafe_override: Whether to override an existing operator. Not recommended
+      unless you know what you are doing.
+    **defaults: Keyword defaults to bind to the function. The values in this map
+      may be Koda expressions or DataItems (see docstring for kd.bind for more
+      details). Defaults can be overridden through kd.call arguments. **defaults
+      and inputs to kd.call will be combined and passed through to the function.
+      If a parameter that is not passed does not have a default value defined by
+      the function then an exception will occur.
+
+  Returns:
+    A DataItem representing the functor.</code></pre>
+
+### `kd.functor.trace_as_fn(*, name=None, return_type_as=None, functor_factory=None, py_fn=None, wrapper=None)` {#kd.functor.trace_as_fn}
 Aliases:
 
 - [kd.trace_as_fn](#kd.trace_as_fn)
@@ -2483,8 +2540,7 @@ Aliases:
   the boxing rules on the returned value (for example, convert Python primitives
   to DataItems), and the to/from Koda conversions defined by
   _koladata_type_tracing_config_, if any, to better emulate what will happen in
-  tracing
-  mode.</code></pre>
+  tracing mode.</code></pre>
 
 ### `kd.functor.trace_py_fn(f, *, auto_variables=True, **defaults)` {#kd.functor.trace_py_fn}
 Aliases:
@@ -9711,6 +9767,10 @@ Alias for [kd.slices.range](#kd.slices.range) operator.
 
 Alias for [kd.core.ref](#kd.core.ref) operator.
 
+### `kd.register_py_fn(f, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, unsafe_override=False, **defaults)` {#kd.register_py_fn}
+
+Alias for [kd.functor.register_py_fn](#kd.functor.register_py_fn) operator.
+
 ### `kd.reify(ds, source)` {#kd.reify}
 
 Alias for [kd.core.reify](#kd.core.reify) operator.
@@ -10006,7 +10066,7 @@ Alias for [kd.proto.to_proto_json](#kd.proto.to_proto_json) operator.
 
 Alias for [kd.schema.to_schema](#kd.schema.to_schema) operator.
 
-### `kd.trace_as_fn(*, name=None, py_fn=False, return_type_as=None, wrapper=None)` {#kd.trace_as_fn}
+### `kd.trace_as_fn(*, name=None, return_type_as=None, functor_factory=None, py_fn=None, wrapper=None)` {#kd.trace_as_fn}
 
 Alias for [kd.functor.trace_as_fn](#kd.functor.trace_as_fn) operator.
 

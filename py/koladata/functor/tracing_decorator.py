@@ -18,12 +18,13 @@ import abc
 import functools
 import inspect
 import types as py_types
-from typing import Any, Callable
+from typing import Any, Callable, Protocol
 
 from arolla import arolla
 from koladata.expr import tracing_mode
 from koladata.functor import functor_factories
 from koladata.types import data_bag
+from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import extension_types
 from koladata.types import py_boxing
@@ -192,6 +193,19 @@ def _wrap_with_from_and_to_kd(
   return wrapper
 
 
+class FunctorFactory(Protocol):
+  """`functor_factory` argument protocol for `trace_as_fn`.
+
+  Implements:
+    (py_types.FunctionType, return_type_as: arolla.QValue) -> DataItem
+  """
+
+  def __call__(
+      self, fn: py_types.FunctionType, return_type_as: arolla.AnyQValue
+  ) -> data_item.DataItem:
+    ...
+
+
 class TraceAsFnDecorator:
   """A decorator to customize the tracing behavior for a particular function.
 
@@ -240,16 +254,16 @@ class TraceAsFnDecorator:
   the boxing rules on the returned value (for example, convert Python primitives
   to DataItems), and the to/from Koda conversions defined by
   _koladata_type_tracing_config_, if any, to better emulate what will happen in
-  tracing
-  mode.
+  tracing mode.
   """
 
   def __init__(
       self,
       *,
       name: str | None = None,
-      py_fn: bool = False,
       return_type_as: Any = None,
+      functor_factory: FunctorFactory | None = None,
+      py_fn: bool | None = None,
       wrapper: Callable[[py_types.FunctionType], Any] | None = None,
   ):
     """Initializes the decorator.
@@ -257,23 +271,57 @@ class TraceAsFnDecorator:
     Args:
       name: The name to assign to the sub-functor. If not provided, the name of
         the function being decorated is used.
-      py_fn: Whether the function to trace should just be wrapped in kd.py_fn
-        and executed as Python code later instead of being traced to create the
-        sub-functor. This is useful for functions that are not fully supported
-        by the tracing infrastructure, and to add debug prints.
       return_type_as: The return type of the function is expected to be the same
         as the type of this value. This needs to be specified if the function
         does not return a DataSlice/DataItem or a primitive that would be
         auto-boxed into a DataItem. kd.types.DataSlice, kd.types.DataBag and
         kd.types.JaggedShape can also be passed here.
-      wrapper: Extra wrapper to apply to the function before converting to a
-        functor. I.e. can be a serialization wrapper (kd.py_reference or
-        kd_ext.py_cloudpickle).
+      functor_factory: The callable that produces the functor. Will be called
+        with `(fn, return_type_as=return_type_as)` where `fn` is a modified
+        version of the function to be converted into a functor, and
+        `return_type_as` is a normalized version of the provided
+        `return_type_as`. Should return a functor from the provided arguments.
+        For example, pass `functor_factory=kd.py_fn` to wrap the function as raw
+        Python code rather than being traced. Defaults to
+        `lambda fn, return_type_as: kd.trace_py_fn(fn)`, which performs tracing.
+      py_fn: (DEPRECATED - use `functor_factory` instead) Whether the function
+        to trace should just be wrapped in kd.py_fn and executed as Python code
+        later instead of being traced to create the sub-functor. This is useful
+        for functions that are not fully supported by the tracing
+        infrastructure, and to add debug prints.
+      wrapper: (DEPRECATED - use `functor_factory` instead) Extra wrapper to
+        apply to the function before converting to a functor. I.e. can be a
+        serialization wrapper (kd.py_reference or kd_ext.py_cloudpickle).
     """
     self._name = name
-    self._py_fn = py_fn
     self._return_type_as = return_type_as
-    self._wrapper = wrapper
+    # TODO: Deprecate py_fn and wrapper arguments:
+    # 1. Add deprecation warnings.
+    # 2. Migrate checked in clients.
+    # 3. Eventually remove support completely.
+    if functor_factory is None:
+      if wrapper is None:
+        wrapper = lambda fn: fn
+      if py_fn:
+        self._functor_factory = (
+            lambda fn, return_type_as: functor_factories.py_fn(
+                wrapper(fn), return_type_as=return_type_as
+            )
+        )
+      else:
+        self._functor_factory = (
+            lambda fn, return_type_as: functor_factories.trace_py_fn(
+                wrapper(fn)
+            )
+        )
+    else:
+      self._functor_factory = functor_factory
+      if py_fn is not None or wrapper is not None:
+        if self._functor_factory is not None:
+          raise ValueError(
+              '`py_fn` and `wrapper` cannot be set when a `functor_factory` is'
+              ' provided'
+          )
 
   def __call__(self, fn: py_types.FunctionType) -> py_types.FunctionType:
     name = self._name if self._name is not None else fn.__name__
@@ -285,17 +333,7 @@ class TraceAsFnDecorator:
           sig.return_annotation
       ).return_type_as(sig.return_annotation)
     return_type_as = py_boxing.as_qvalue(return_type_as)
-    if self._wrapper is not None:
-      wrapped_fn = self._wrapper(kd_fn)
-    else:
-      wrapped_fn = kd_fn
-
-    if self._py_fn:
-      to_call = functor_factories.py_fn(
-          wrapped_fn, return_type_as=return_type_as
-      )
-    else:
-      to_call = functor_factories.trace_py_fn(wrapped_fn)
+    to_call = self._functor_factory(kd_fn, return_type_as=return_type_as)
     # It is important to create this expr once per function, so that its
     # fingerprint is stable and when we call it multiple times the functor
     # will only be extracted once by the auto-variables logic.

@@ -162,17 +162,16 @@ def py_fn(
 ) -> data_slice.DataSlice:
   """Returns a Koda functor wrapping a python function.
 
-  This is the most flexible way to wrap a python function and is recommended
-  for large, complex code.
-
-  Functions wrapped with py_fn are not serializable.
+  This is the most flexible way to wrap a python function for large, complex
+  code that doesn't require serialization. Note that functions wrapped with
+  py_fn are not serializable. See register_py_fn for an alternative that is
+  serializable.
 
   Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
-  functor
-  will have exactly the same signature as the original function. In particular,
-  if the original function does not accept variadic keyword arguments and
-  and unknown argument is passed when calling the functor, an exception will
-  occur.
+  functor will have exactly the same signature as the original function. In
+  particular, if the original function does not accept variadic keyword
+  arguments and and unknown argument is passed when calling the functor, an
+  exception will occur.
 
   Args:
     f: Python function. It is required that this function returns a
@@ -211,6 +210,84 @@ def py_fn(
     py_functor = py_functor.with_attr('__qualname__', qualname)
   if module := getattr(f, '__module__', None):
     py_functor = py_functor.with_attr('__module__', module)
+  return bind(py_functor, **defaults) if defaults else py_functor
+
+
+def register_py_fn(
+    f: Callable[..., Any],
+    *,
+    return_type_as: Any = data_slice.DataSlice,
+    unsafe_override: bool = False,
+    **defaults: Any,
+) -> data_slice.DataSlice:
+  """Returns a Koda functor wrapping a function registered as an operator.
+
+  This is the recommended way to wrap a non-traceable python function into a
+  functor.
+
+  `f` will be wrapped into an operator and registered with the name taken from
+  the `__module__` and `__qualname__` attributes. This requires `f` to be named,
+  and to not be a locally defined function. Furthermore, attempts to call
+  `register_py_fn` on the same function will fail unless unsafe_override is True
+  (not recommended).
+
+  The resulting functor can be serialized and loaded from a different process
+  (unlike `py_fn`). In order for the serialized functor to be deserialized, an
+  equivalent call to `register_py_fn` is required to have been made in the
+  process that performs the deserialization. In practice, this is often
+  implemented through `f` being a top-level function that is traced at library
+  import time.
+
+  Note that unlike the functors created by kd.functor.expr_fn from an Expr, this
+  functor will have exactly the same signature as the original function. In
+  particular, if the original function does not accept variadic keyword
+  arguments and and unknown argument is passed when calling the functor, an
+  exception will occur.
+
+  Args:
+    f: Python function. It is required that this function returns a
+      DataSlice/DataItem or a primitive that will be automatically wrapped into
+      a DataItem. The function must also have `__qualname__` and `__module__`
+      attributes set.
+    return_type_as: The return type of the function is expected to be the same
+      as the type of this value. This needs to be specified if the function does
+      not return a DataSlice/DataItem or a primitive that would be auto-boxed
+      into a DataItem. kd.types.DataSlice, kd.types.DataBag and
+      kd.types.JaggedShape can also be passed here.
+    unsafe_override: Whether to override an existing operator. Not recommended
+      unless you know what you are doing.
+    **defaults: Keyword defaults to bind to the function. The values in this map
+      may be Koda expressions or DataItems (see docstring for kd.bind for more
+      details). Defaults can be overridden through kd.call arguments. **defaults
+      and inputs to kd.call will be combined and passed through to the function.
+      If a parameter that is not passed does not have a default value defined by
+      the function then an exception will occur.
+
+  Returns:
+    A DataItem representing the functor.
+  """
+  qualname = getattr(f, '__qualname__', None)
+  module = getattr(f, '__module__', None)
+  if qualname is None or module is None:
+    raise ValueError(
+        'qualname and module must be set on the function when registering it'
+        ' as operator'
+    )
+  f_op = optools.as_py_function_operator(
+      module + '.' + qualname,
+      qtype_inference_expr=py_boxing.as_qvalue(return_type_as).qtype,
+  )(
+      lambda *args, **kwargs: f(*args, **kwargs)  # pylint: disable=unnecessary-lambda
+  )
+  f_op = optools.add_to_registry(unsafe_override=unsafe_override)(f_op)
+  py_functor = expr_fn(
+      arolla.abc.bind_op(f_op, I.args, I.kwargs),
+      signature=signature_utils.ARGS_KWARGS_SIGNATURE,
+  )
+  if f.__doc__ is not None:
+    py_functor = py_functor.with_attr('__doc__', f.__doc__)
+  py_functor = py_functor.with_attr('__qualname__', qualname)
+  py_functor = py_functor.with_attr('__module__', module)
   return bind(py_functor, **defaults) if defaults else py_functor
 
 

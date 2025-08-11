@@ -54,6 +54,32 @@ class TestExtension:
     return self.x + v
 
 
+def test_add_fn(x, y=2, **kwargs):
+  """test_add_fn docstring."""
+  return x + y + kwargs['z']
+
+
+def test_simple_add_fn(x, y):
+  return x + y
+
+
+def test_identity_fn(x):
+  return x
+
+
+def test_identity_fn_2(x):
+  return x
+
+
+@functools.wraps(test_identity_fn_2)
+def test_bad_identity_fn(x):
+  return x + 1
+
+
+def extension_type_fn(x: TestExtension):
+  return x.fn(2)
+
+
 class FunctorFactoriesTest(absltest.TestCase):
 
   def test_expr_fn_simple(self):
@@ -1081,10 +1107,10 @@ class FunctorFactoriesTest(absltest.TestCase):
       ex = e
 
     self.assertEqual(
-        str(ex),
+        str(ex),  # pylint: disable=undefined-variable
         'kd.math.floordiv: division by zero',
     )
-    tb = '\n'.join(traceback.format_tb(ex.__traceback__))
+    tb = '\n'.join(traceback.format_tb(ex.__traceback__))  # pylint: disable=undefined-variable
     self.assertIn(
         'File "my_file.py", line 57, in fn1',
         tb
@@ -1118,7 +1144,7 @@ class FunctorFactoriesTest(absltest.TestCase):
     e = TestExtension(x=1)
     self.assertEqual(functor_factories.trace_py_fn(fn)(e), 3)
 
-  def test_py_fn_not_serializable_by_default(self):
+  def test_py_fn_not_serializable(self):
 
     def my_fn(x):
       return x + 1
@@ -1132,6 +1158,73 @@ class FunctorFactoriesTest(absltest.TestCase):
         fns.dumps(functor_factories.py_fn(fns.py_reference(my_fn)))
     )
     testing.assert_equal(loaded_fn(1), ds(2))
+
+  def test_register_py_fn(self):
+    fn = functor_factories.register_py_fn(test_add_fn)
+
+    with self.subTest('doc'):
+      testing.assert_equal(
+          fn.get_attr('__doc__').no_bag(), ds('test_add_fn docstring.')
+      )
+
+    with self.subTest('qualname'):
+      testing.assert_equal(
+          fn.get_attr('__qualname__').no_bag(), ds('test_add_fn')
+      )
+
+    with self.subTest('module'):
+      testing.assert_equal(fn.get_attr('__module__').no_bag(), ds('__main__'))
+
+    with self.subTest('eval'):
+      testing.assert_equal(kd.call(fn, x=1, y=3, z=4), ds(8))
+      testing.assert_equal(kd.call(fn, 1, y=3, z=4, w=5), ds(8))
+      testing.assert_equal(kd.call(fn, 1, z=4), ds(7))
+
+    with self.subTest('serialization'):
+      loaded_fn = fns.loads(fns.dumps(fn))
+      testing.assert_equal(kd.call(loaded_fn, 1, z=4), ds(7))
+
+    with self.subTest('registered'):
+      op = fn.returns.to_py().unquote().op
+      self.assertIsInstance(op, arolla.types.RegisteredOperator)
+      self.assertEqual(op.display_name, '__main__.test_add_fn')
+
+  def test_register_py_fn_defaults(self):
+    fn = functor_factories.register_py_fn(test_simple_add_fn, y=2)
+    testing.assert_equal(kd.call(fn, x=1), ds(3))
+
+  def test_register_py_fn_local_error(self):
+    def fn(x):
+      return x
+
+    with self.assertRaisesRegex(
+        ValueError, 'attempt to register an operator with invalid name'
+    ):
+      functor_factories.register_py_fn(fn)
+
+  def test_py_fn_register_fn_as_operator_no_module_error(self):
+    del test_identity_fn.__module__
+    with self.assertRaisesRegex(
+        ValueError,
+        'qualname and module must be set on the function when registering it as'
+        ' operator',
+    ):
+      functor_factories.register_py_fn(test_identity_fn)
+
+  def test_register_py_fn_reregister_error(self):
+    _ = functor_factories.register_py_fn(test_identity_fn_2)
+    with self.assertRaisesRegex(
+        ValueError, "operator '__main__.test_identity_fn_2' already exists"
+    ):
+      _ = functor_factories.register_py_fn(test_bad_identity_fn)
+    fn = functor_factories.register_py_fn(
+        test_bad_identity_fn, unsafe_override=True
+    )
+    testing.assert_equal(fn(1), ds(2))
+
+  def test_register_py_fn_extension_type(self):
+    e = TestExtension(x=1)
+    self.assertEqual(functor_factories.register_py_fn(extension_type_fn)(e), 3)
 
 
 if __name__ == '__main__':

@@ -30,6 +30,7 @@ functor = _py_types.SimpleNamespace(
     expr_fn=_functor_factories.expr_fn,
     trace_py_fn=_functor_factories.trace_py_fn,
     py_fn=_functor_factories.py_fn,
+    register_py_fn=_functor_factories.register_py_fn,
     bind=_functor_factories.bind,
     is_fn=_functor_factories.is_fn,
     fstr_fn=_functor_factories.fstr_fn,
@@ -39,12 +40,14 @@ functor = _py_types.SimpleNamespace(
     trace_as_fn=_tracing_decorator.TraceAsFnDecorator,
     signature_utils=_signature_utils,
     TypeTracingConfig=_tracing_decorator.TypeTracingConfig,
+    FunctorFactory=_tracing_decorator.FunctorFactory,
 )
 
 # These become top-level "kd." functions.
 fn = _functor_factories.fn
 trace_py_fn = _functor_factories.trace_py_fn
 py_fn = _functor_factories.py_fn
+register_py_fn = _functor_factories.register_py_fn
 is_fn = _functor_factories.is_fn
 bind = _functor_factories.bind
 trace_as_fn = _tracing_decorator.TraceAsFnDecorator
