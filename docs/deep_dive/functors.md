@@ -69,6 +69,9 @@ There are three main types of operators:
 You can add an operator by name in a global registry by calling
 `kd.optools.add_to_registry`.
 
+See [Creating Koda Operators](/koladata/g3doc/creating_operators.md)
+for a detailed guide on how to define operators.
+
 #### QTypes and Koda Schemas
 
 An Arolla QType is a static type identifier used by the Arolla framework. QTypes
