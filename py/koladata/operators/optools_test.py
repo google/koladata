@@ -474,19 +474,19 @@ class OptoolsTest(parameterized.TestCase):
         arolla.abc.decay_registered_operator(op), arolla.types.GenericOperator
     )
 
-    self.assertTrue(view.has_koda_view(op(1, arolla.unspecified())))
+    self.assertTrue(view.has_koda_view(op(1, 2)))
     self.assertEqual(
-        repr(op(42, arolla.unspecified())),
-        'test.op_15(DataItem(42, schema: INT32), unspecified)',
+        repr(op(42, 43)),
+        'test.op_15(DataItem(42, schema: INT32), DataItem(43, schema: INT32))',
     )
-    testing.assert_equal(arolla.eval(op(42, arolla.unspecified())), ds(43))
+    testing.assert_equal(arolla.eval(op(42, 43)), ds(43))
     testing.assert_equal(arolla.eval(op(42, user_value)), ds(41))
 
     with self.subTest('alias'):
       op_alias = arolla.abc.lookup_operator('test.op_15_alias')
       self.assertTrue(optools.equiv_to_op(op, op_alias))
       testing.assert_equal(
-          arolla.eval(op_alias(42, arolla.unspecified())), ds(43)
+          arolla.eval(op_alias(42, 43)), ds(43)
       )
       testing.assert_equal(arolla.eval(op_alias(42, user_value)), ds(41))
 
@@ -541,34 +541,40 @@ class OptoolsTest(parameterized.TestCase):
 
     @optools.add_to_registry_as_overloadable_with_default('test.op_17')
     @arolla.optools.as_lambda_operator('test.op_17')
-    def op17(x):
+    def op17(x, y):
+      del y
       return x
 
     @optools.add_to_registry_as_overloadable_with_default(
         'test.op_18', repr_fn=repr_fn
     )
     @arolla.optools.as_lambda_operator('test.op_18')
-    def op18(x):
+    def op18(x, y):
+      del y
       return x
 
     @optools.add_to_registry_as_overloadable_with_default(
         'test.op_19', aux_policy=''
     )
     @arolla.optools.as_lambda_operator('test.op_19')
-    def op19(x):
+    def op19(x, y):
+      del y
       return x
 
     self.assertEqual(
         arolla.abc.get_operator_signature(op17).aux_policy,
         'koladata_default_boxing',
     )
-    self.assertEqual(repr(op17(42)), 'test.op_17(DataItem(42, schema: INT32))')
+    self.assertEqual(
+        repr(op17(42, 43)),
+        'test.op_17(DataItem(42, schema: INT32), DataItem(43, schema: INT32))'
+    )
 
     self.assertEqual(
         arolla.abc.get_operator_signature(op19).aux_policy,
         '',
     )
-    self.assertEqual(repr(op18(42)), 'MY_CUSTOM_M.test.op_18')
+    self.assertEqual(repr(op18(42, 43)), 'MY_CUSTOM_M.test.op_18')
 
   def test_reload_operator_view(self):
 

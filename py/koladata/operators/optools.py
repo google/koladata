@@ -105,16 +105,10 @@ def add_to_registry(
   return impl
 
 
-_KODA_NATIVE_QTYPES_CONDITION_EXPR = arolla.M.seq.all(
-    arolla.M.seq.map(
-        arolla.LambdaOperator(
-            (arolla.P.x == qtypes.DATA_SLICE)
-            | (arolla.P.x == qtypes.JAGGED_SHAPE)
-            | (arolla.P.x == qtypes.DATA_BAG)
-            | (arolla.P.x == arolla.UNSPECIFIED)
-        ),
-        arolla.M.qtype.get_field_qtypes(arolla.L.input_tuple_qtype),
-    )
+# TODO: b/433243661 - Come up with a more generic solution once we
+# use add_to_registry_as_overloadable_with_default for more operators.
+_KODA_NATIVE_QTYPES_CONDITION_EXPR = (arolla.P.x == qtypes.DATA_SLICE) & (
+    arolla.P.y == qtypes.DATA_SLICE
 )
 
 
