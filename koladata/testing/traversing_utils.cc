@@ -15,8 +15,10 @@
 #include "koladata/testing/traversing_utils.h"
 
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/log/check.h"
@@ -30,6 +32,7 @@
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
+#include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/deep_diff.h"
@@ -38,6 +41,78 @@
 #include "arolla/util/status_macros_backport.h"
 
 namespace koladata::testing {
+
+namespace {
+
+absl::StatusOr<std::string> SchemaMismatchRepr(absl::string_view path_repr,
+                                               const DataSlice& lhs,
+                                               const DataSlice& rhs) {
+  // TODO: Use DataItem repr with included schema ObjectId.
+  ASSIGN_OR_RETURN(
+      auto lhs_schema_repr,
+      DataItemToStr(lhs.GetSchema().item(), internal::DataItem(schema::kSchema),
+                    /*db=*/nullptr));
+  ASSIGN_OR_RETURN(
+      auto rhs_schema_repr,
+      DataItemToStr(rhs.GetSchema().item(), internal::DataItem(schema::kSchema),
+                    /*db=*/nullptr));
+  if (path_repr.empty()) {
+    return absl::StrCat("schema differ: ", lhs_schema_repr, " vs ",
+                      rhs_schema_repr);
+  }
+  return absl::StrCat("schema differ at ", path_repr, lhs_schema_repr, " vs ",
+                      rhs_schema_repr);
+}
+
+absl::StatusOr<std::string> DiffItemRepr(
+    const internal::DeepEquivalentOp::DiffItem& diff,
+    const internal::DataBagImpl& result_db_impl,
+    const DataBagPtr& lhs_db, const DataBagPtr& rhs_db) {
+  ASSIGN_OR_RETURN(auto diff_item,
+                   result_db_impl.GetAttr(
+                       diff.item, internal::DeepDiff::kDiffItemAttr));
+  ASSIGN_OR_RETURN(auto diff_item_schema, result_db_impl.GetAttr(
+                                              diff_item, schema::kSchemaAttr));
+  auto get_side_item = [&](absl::string_view side_attr_name,
+                           const DataBagPtr& side_db)
+      -> absl::StatusOr<std::optional<DataSlice>> {
+    ASSIGN_OR_RETURN(auto side_item,
+                     result_db_impl.GetAttr(diff_item, side_attr_name));
+    ASSIGN_OR_RETURN(auto side_schema,
+                     result_db_impl.GetSchemaAttrAllowMissing(
+                         diff_item_schema, side_attr_name));
+    if (!side_schema.has_value()) {
+      return std::nullopt;
+    }
+    return DataSlice::Create(side_item, std::move(side_schema), side_db);
+  };
+  ASSIGN_OR_RETURN(auto lhs,
+                   get_side_item(internal::DeepDiff::kLhsAttr, lhs_db));
+  ASSIGN_OR_RETURN(auto rhs,
+                   get_side_item(internal::DeepDiff::kRhsAttr, rhs_db));
+  ReprOption repr_option({.show_databag_id = false});
+  auto path_repr = diff.path.empty() ? "" : absl::StrCat(diff.path, ": ");
+  if (lhs.has_value() && rhs.has_value()) {
+    ASSIGN_OR_RETURN(auto is_schema_mismatch,
+                     result_db_impl.GetAttr(
+                         diff_item, internal::DeepDiff::kSchemaMismatchAttr));
+    if (is_schema_mismatch.has_value()) {
+      return SchemaMismatchRepr(path_repr, *lhs, *rhs);
+    } else {
+      return absl::StrCat(path_repr, DataSliceRepr(*lhs, repr_option), " vs ",
+                          DataSliceRepr(*rhs, repr_option));
+    }
+  } else if (lhs.has_value()) {
+    return absl::StrCat(path_repr, DataSliceRepr(*lhs, repr_option),
+                        " vs missing");
+  } else if (rhs.has_value()) {
+    return absl::StrCat(path_repr, "missing vs ",
+                        DataSliceRepr(*rhs, repr_option));
+  }
+  LOG(FATAL) << "diff item has unexpected schema: no lhs or rhs attributes";
+}
+
+}  // namespace
 
 absl::StatusOr<std::vector<std::string>> DeepEquivalentMismatches(
     const DataSlice& lhs, const DataSlice& rhs, int64_t max_count,
@@ -59,66 +134,30 @@ absl::StatusOr<std::vector<std::string>> DeepEquivalentMismatches(
   FlattenFallbackFinder rhs_fb_finder(*rhs_db);
   auto rhs_fallbacks_span = rhs_fb_finder.GetFlattenFallbacks();
   std::vector<std::string> mismatches;
-  RETURN_IF_ERROR(lhs.VisitImpl([&]<class T>(
-                                    const T& lhs_impl) -> absl::Status {
-    const T& rhs_impl = rhs.impl<T>();
-    auto result_db = DataBag::Empty();
-    ASSIGN_OR_RETURN(auto result_db_impl, result_db->GetMutableImpl());
-    auto deep_equivalent_op =
-        internal::DeepEquivalentOp(&result_db_impl.get(), comparison_params);
-    ASSIGN_OR_RETURN(
-        auto result,
-        deep_equivalent_op(lhs_impl, lhs.GetSchemaImpl(), lhs_db->GetImpl(),
-                           lhs_fallbacks_span, rhs_impl, rhs.GetSchemaImpl(),
-                           rhs_db->GetImpl(), rhs_fallbacks_span));
-    ASSIGN_OR_RETURN(auto diff_paths,
-                     deep_equivalent_op.GetDiffPaths(
-                         result, internal::DataItem(schema::kObject),
-                         /*max_count=*/max_count));
-    for (const auto& diff : diff_paths) {
-      ASSIGN_OR_RETURN(auto diff_item,
-                       result_db_impl.get().GetAttr(
-                           diff.item, internal::DeepDiff::kDiffItemAttr));
-      ASSIGN_OR_RETURN(
-          auto diff_item_schema,
-          result_db_impl.get().GetAttr(diff_item, schema::kSchemaAttr));
-
-      auto get_side_item = [&](absl::string_view side_attr_name,
-                               const DataBagPtr& side_db)
-          -> absl::StatusOr<std::optional<DataSlice>> {
-        ASSIGN_OR_RETURN(auto side_item, result_db_impl.get().GetAttr(
-                                             diff_item, side_attr_name));
-        ASSIGN_OR_RETURN(auto side_schema,
-                         result_db_impl.get().GetSchemaAttrAllowMissing(
-                             diff_item_schema, side_attr_name));
-        if (!side_schema.has_value()) {
-          return std::nullopt;
+  RETURN_IF_ERROR(
+      lhs.VisitImpl([&]<class T>(const T& lhs_impl) -> absl::Status {
+        const T& rhs_impl = rhs.impl<T>();
+        auto result_db = DataBag::Empty();
+        ASSIGN_OR_RETURN(internal::DataBagImpl & result_db_impl,
+                         result_db->GetMutableImpl());
+        auto deep_equivalent_op =
+            internal::DeepEquivalentOp(&result_db_impl, comparison_params);
+        ASSIGN_OR_RETURN(auto result,
+                         deep_equivalent_op(
+                             lhs_impl, lhs.GetSchemaImpl(), lhs_db->GetImpl(),
+                             lhs_fallbacks_span, rhs_impl, rhs.GetSchemaImpl(),
+                             rhs_db->GetImpl(), rhs_fallbacks_span));
+        ASSIGN_OR_RETURN(auto diff_paths,
+                         deep_equivalent_op.GetDiffPaths(
+                             result, internal::DataItem(schema::kObject),
+                             /*max_count=*/max_count));
+        for (const auto& diff : diff_paths) {
+          ASSIGN_OR_RETURN(auto diff_item_repr,
+                           DiffItemRepr(diff, result_db_impl, lhs_db, rhs_db));
+          mismatches.push_back(std::move(diff_item_repr));
         }
-        return DataSlice::Create(side_item, std::move(side_schema), side_db);
-      };
-      ASSIGN_OR_RETURN(auto lhs,
-                       get_side_item(internal::DeepDiff::kLhsAttr, lhs_db));
-      ASSIGN_OR_RETURN(auto rhs,
-                       get_side_item(internal::DeepDiff::kRhsAttr, rhs_db));
-      ReprOption repr_option({.show_databag_id = false});
-      auto path_repr = diff.path.empty() ? "" : absl::StrCat(diff.path, ": ");
-      if (lhs.has_value() && rhs.has_value()) {
-        mismatches.push_back(
-            absl::StrCat(path_repr, DataSliceRepr(*lhs, repr_option), " vs ",
-                         DataSliceRepr(*rhs, repr_option)));
-      } else if (lhs.has_value()) {
-        mismatches.push_back(absl::StrCat(
-            path_repr, DataSliceRepr(*lhs, repr_option), " vs missing"));
-      } else if (rhs.has_value()) {
-        mismatches.push_back(absl::StrCat(path_repr, "missing vs ",
-                                          DataSliceRepr(*rhs, repr_option)));
-      } else {
-        LOG(FATAL)
-            << "diff item has unexpected schema: no lhs or rhs attributes";
-      }
-    }
-    return absl::OkStatus();
-  }));
+        return absl::OkStatus();
+      }));
   return mismatches;
 }
 

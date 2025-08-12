@@ -51,11 +51,12 @@ class EqualEntityPrimitivesComparator : public AbstractComparator {
         diffs_() {}
 
   absl::StatusOr<DataItem> CreateToken(
-      TraverseHelper::Transition lhs, TraverseHelper::Transition rhs) override {
+      const TraverseHelper::Transition& lhs,
+      const TraverseHelper::Transition& rhs) override {
     return DataItem(nodes_count_++);
   }
   void UpdateParent(int64_t child, int64_t parent,
-                    TraverseHelper::TransitionKey key,
+                    const TraverseHelper::TransitionKey& key,
                     bool forced_update = false) {
     if (forced_update) {
       parent_transitions_.insert_or_assign(child, std::make_pair(parent, key));
@@ -63,38 +64,41 @@ class EqualEntityPrimitivesComparator : public AbstractComparator {
       parent_transitions_.emplace(child, std::make_pair(parent, key));
     }
   }
-  absl::Status LhsRhsMatch(DataItem parent, TraverseHelper::TransitionKey key,
-                           DataItem child) override {
+  absl::Status LhsRhsMatch(const DataItem& parent,
+                           const TraverseHelper::TransitionKey& key,
+                           const DataItem& child) override {
     UpdateParent(child.value<int64_t>(), parent.value<int64_t>(), key);
     return absl::OkStatus();
   }
-  absl::Status LhsOnlyAttribute(DataItem token,
-                                TraverseHelper::TransitionKey key,
-                                TraverseHelper::Transition lhs) override {
+  absl::Status LhsOnlyAttribute(
+      const DataItem& token, const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& lhs) override {
     diffs_.push_back({token.value<int64_t>(), key});
     return absl::OkStatus();
   }
-  absl::Status RhsOnlyAttribute(DataItem token,
-                                TraverseHelper::TransitionKey key,
-                                TraverseHelper::Transition rhs) override {
+  absl::Status RhsOnlyAttribute(
+      const DataItem& token, const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& rhs) override {
     diffs_.push_back({token.value<int64_t>(), key});
     return absl::OkStatus();
   }
-  absl::Status LhsRhsMismatch(DataItem token, TraverseHelper::TransitionKey key,
-                              TraverseHelper::Transition lhs,
-                              TraverseHelper::Transition rhs) override {
-                                diffs_.push_back({token.value<int64_t>(), key});
+  absl::Status LhsRhsMismatch(const DataItem& token,
+                              const TraverseHelper::TransitionKey& key,
+                              const TraverseHelper::Transition& lhs,
+                              const TraverseHelper::Transition& rhs) override {
+    diffs_.push_back({token.value<int64_t>(), key});
     return absl::OkStatus();
   }
   absl::StatusOr<DataItem> SliceItemMismatch(
-      TraverseHelper::TransitionKey key, TraverseHelper::Transition lhs,
-      TraverseHelper::Transition rhs) override {
+      const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& lhs,
+      const TraverseHelper::Transition& rhs) override {
     ASSIGN_OR_RETURN(auto token, CreateToken(lhs, rhs));
     diffs_.push_back({token.value<int64_t>(), key});
     return DataItem(static_cast<int64_t>(-1));
   }
-  int CompareOrder(TraverseHelper::TransitionKey lhs,
-                   TraverseHelper::TransitionKey rhs) override {
+  int CompareOrder(const TraverseHelper::TransitionKey& lhs,
+                   const TraverseHelper::TransitionKey& rhs) override {
     if (lhs.type != rhs.type) {
       return lhs.type < rhs.type ? -1 : 1;
     }
@@ -113,8 +117,8 @@ class EqualEntityPrimitivesComparator : public AbstractComparator {
     }
     return lhs_attr_name < rhs_attr_name ? -1 : 1;
   }
-  bool Equal(TraverseHelper::Transition lhs,
-             TraverseHelper::Transition rhs) override {
+  bool Equal(const TraverseHelper::Transition& lhs,
+             const TraverseHelper::Transition& rhs) override {
     if (lhs.schema.is_primitive_schema() || rhs.schema.is_primitive_schema()) {
       return lhs.schema.is_primitive_schema() &&
              rhs.schema.is_primitive_schema() && lhs.item == rhs.item;

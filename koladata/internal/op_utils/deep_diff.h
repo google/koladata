@@ -42,6 +42,7 @@ class DeepDiff {
   static constexpr std::string_view kLhsAttr = "lhs_value";
   static constexpr std::string_view kRhsAttr = "rhs_value";
   static constexpr std::string_view kDiffItemAttr = "diff";
+  static constexpr std::string_view kSchemaMismatchAttr = "schema_mismatch";
   static constexpr std::string_view kDiffWrapperSeed =
       "__diff_wrapper_schema__";
   // Prefix we add to attribute names of schema attribute transitions, to avoid
@@ -74,12 +75,14 @@ class DeepDiff {
   // Saves a diff node, representing a mismatch between lhs and rhs.
   absl::Status LhsRhsMismatch(DataItem token, TraverseHelper::TransitionKey key,
                               TraverseHelper::Transition lhs,
-                              TraverseHelper::Transition rhs);
+                              TraverseHelper::Transition rhs,
+                              bool is_schema_mismatch);
 
   // Saves a diff node, representing a mismatch directly in a provided slices.
   absl::StatusOr<DataItem> SliceItemMismatch(TraverseHelper::TransitionKey key,
                                              TraverseHelper::Transition lhs,
-                                             TraverseHelper::Transition rhs);
+                                             TraverseHelper::Transition rhs,
+                                             bool is_schema_mismatch);
 
  private:
   // Creates an Object representing an lhs-only attribute.
@@ -92,7 +95,8 @@ class DeepDiff {
 
   // Creates an Object representing a mismatch between lhs and rhs.
   absl::StatusOr<DataItem> CreateMismatchDiffItem(
-      TraverseHelper::Transition lhs, TraverseHelper::Transition rhs);
+      TraverseHelper::Transition lhs, TraverseHelper::Transition rhs,
+      bool is_schema_mismatch);
 
   // Wraps a diff item with an Object with a diff wrapper uuid schema.
   absl::StatusOr<DataItem> CreateDiffWrapper(DataItem diff_item);

@@ -46,43 +46,45 @@ class AbstractComparator {
 
   // Returns -1, 0, 1 if `lhs` should be placed before, in the same
   // position as, or after `rhs`.
-  virtual int CompareOrder(TraverseHelper::TransitionKey lhs,
-                           TraverseHelper::TransitionKey rhs) = 0;
+  virtual int CompareOrder(const TraverseHelper::TransitionKey& lhs,
+                           const TraverseHelper::TransitionKey& rhs) = 0;
 
   // Returns true if transitions on left and right sides are equal.
-  virtual bool Equal(TraverseHelper::Transition lhs,
-                     TraverseHelper::Transition rhs) = 0;
+  virtual bool Equal(const TraverseHelper::Transition& lhs,
+                     const TraverseHelper::Transition& rhs) = 0;
 
   // Returns a token that represents the (lhs, rhs) pair.
   virtual absl::StatusOr<DataItem> CreateToken(
-      TraverseHelper::Transition lhs, TraverseHelper::Transition rhs) = 0;
+      const TraverseHelper::Transition& lhs,
+      const TraverseHelper::Transition& rhs) = 0;
 
   // Is called when the transition is the same on left and right sides.
-  virtual absl::Status LhsRhsMatch(DataItem parent_token,
-                                   TraverseHelper::TransitionKey key,
-                                   DataItem child_token) = 0;
+  virtual absl::Status LhsRhsMatch(const DataItem& parent_token,
+                                   const TraverseHelper::TransitionKey& key,
+                                   const DataItem& child_token) = 0;
 
   // Is called when the transition is only present on left side.
-  virtual absl::Status LhsOnlyAttribute(DataItem token,
-                                        TraverseHelper::TransitionKey key,
-                                        TraverseHelper::Transition lhs) = 0;
+  virtual absl::Status LhsOnlyAttribute(
+      const DataItem& parent_token, const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& lhs) = 0;
 
   // Is called when the transition is only present on right side.
-  virtual absl::Status RhsOnlyAttribute(DataItem token,
-                                        TraverseHelper::TransitionKey key,
-                                        TraverseHelper::Transition rhs) = 0;
+  virtual absl::Status RhsOnlyAttribute(
+      const DataItem& token, const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& rhs) = 0;
 
   // Is called when the transition is present on both sides, but the values are
   // different.
-  virtual absl::Status LhsRhsMismatch(DataItem token,
-                                      TraverseHelper::TransitionKey key,
-                                      TraverseHelper::Transition lhs,
-                                      TraverseHelper::Transition rhs) = 0;
+  virtual absl::Status LhsRhsMismatch(
+      const DataItem& token, const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& lhs,
+      const TraverseHelper::Transition& rhs) = 0;
 
   // Is called when a diff is found in a provided slices directly.
   virtual absl::StatusOr<DataItem> SliceItemMismatch(
-      TraverseHelper::TransitionKey key, TraverseHelper::Transition lhs,
-      TraverseHelper::Transition rhs) = 0;
+      const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& lhs,
+      const TraverseHelper::Transition& rhs) = 0;
 };
 
 template <typename ComparatorT>

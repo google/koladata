@@ -158,18 +158,28 @@ class TraversingTestUtilsTest(absltest.TestCase):
       ds_b = bag_b.list([1, 2])
       traversing_test_utils.assert_deep_equivalent(ds_a, ds_b, partial=True)
 
-  def test_assert_deep_equivalent_diff_not_schemas_equality_lhs_only(self):
-    # TODO: improve the error message for schema ObjectId mismatch.
+  def test_assert_deep_equivalent_diff_not_schemas_equality_deep(self):
     with self.assertRaisesRegex(
         AssertionError,
         'DataSlices are not equivalent, mismatches found at:\n'
-        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\)\) vs '
-        r'DataItem\(Entity\(x=1\), schema: ENTITY\(x=INT32\)\)',
+        r'schema differ at .x: (\$[0-9a-zA-Z]{22}) vs (\$[0-9a-zA-Z]{22})',
     ):
       bag_a = bag()
       bag_b = bag()
-      a = bag_a.new(x=1)
-      b = bag_b.new(x=1)
+      a = bag_a.new(schema='foo', x=bag_a.new(y=1))
+      b = bag_b.new(schema='foo', x=bag_b.new(y=1))
+      traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
+
+  def test_assert_deep_equivalent_diff_not_schemas_equality_root_slice(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        'DataSlices are not equivalent, mismatches found at:\n'
+        r'schema differ: (\$[0-9a-zA-Z]{22}) vs (\$[0-9a-zA-Z]{22})',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      a = bag_a.new(x=bag_a.new(y=1))
+      b = bag_b.new(x=bag_b.new(y=1))
       traversing_test_utils.assert_deep_equivalent(a, b, schemas_equality=True)
 
 

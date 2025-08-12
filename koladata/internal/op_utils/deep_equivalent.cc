@@ -46,17 +46,18 @@ class EquivalentComparator : public AbstractComparator {
       : result_(std::move(result_databag)), params_(params) {}
 
   absl::StatusOr<DataItem> CreateToken(
-      TraverseHelper::Transition lhs, TraverseHelper::Transition rhs) override {
-    return result_.CreateTokenLike(std::move(lhs.item));
+      const TraverseHelper::Transition& lhs,
+      const TraverseHelper::Transition& rhs) override {
+    return result_.CreateTokenLike(lhs.item);
   }
-  absl::Status LhsRhsMatch(DataItem parent, TraverseHelper::TransitionKey key,
-                           DataItem child) override {
-    return result_.SaveTransition(std::move(parent), std::move(key),
-                                  std::move(child));
+  absl::Status LhsRhsMatch(const DataItem& parent,
+                           const TraverseHelper::TransitionKey& key,
+                           const DataItem& child) override {
+    return result_.SaveTransition(parent, key, child);
   }
-  absl::Status LhsOnlyAttribute(DataItem token,
-                                TraverseHelper::TransitionKey key,
-                                TraverseHelper::Transition lhs) override {
+  absl::Status LhsOnlyAttribute(
+      const DataItem& token, const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& lhs) override {
     // For the partial comparison, only fields present on the right side are
     // compared but entire lists and dicts are compared.
     if (params_.partial &&
@@ -64,35 +65,35 @@ class EquivalentComparator : public AbstractComparator {
         key.type != TraverseHelper::TransitionType::kDictValue) {
       return absl::OkStatus();
     }
-    return result_.LhsOnlyAttribute(std::move(token), std::move(key),
-                                    std::move(lhs));
+    return result_.LhsOnlyAttribute(token, key, lhs);
   }
-  absl::Status RhsOnlyAttribute(DataItem token,
-                                TraverseHelper::TransitionKey key,
-                                TraverseHelper::Transition rhs) override {
-    return result_.RhsOnlyAttribute(std::move(token), std::move(key),
-                                    std::move(rhs));
+  absl::Status RhsOnlyAttribute(
+      const DataItem& token, const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& rhs) override {
+    return result_.RhsOnlyAttribute(token, key, rhs);
   }
-  absl::Status LhsRhsMismatch(DataItem token, TraverseHelper::TransitionKey key,
-                              TraverseHelper::Transition lhs,
-                              TraverseHelper::Transition rhs) override {
+  absl::Status LhsRhsMismatch(const DataItem& token,
+                              const TraverseHelper::TransitionKey& key,
+                              const TraverseHelper::Transition& lhs,
+                              const TraverseHelper::Transition& rhs) override {
     if (params_.partial &&
         key.type != TraverseHelper::TransitionType::kListItem &&
         key.type != TraverseHelper::TransitionType::kDictValue &&
         !rhs.item.has_value()) {
       return absl::OkStatus();
     }
-    return result_.LhsRhsMismatch(std::move(token), std::move(key),
-                                  std::move(lhs), std::move(rhs));
+    bool is_schema_mismatch = IsSchemaMismatch(lhs, rhs);
+    return result_.LhsRhsMismatch(token, key, lhs, rhs, is_schema_mismatch);
   }
   absl::StatusOr<DataItem> SliceItemMismatch(
-      TraverseHelper::TransitionKey key, TraverseHelper::Transition lhs,
-      TraverseHelper::Transition rhs) override {
-    return result_.SliceItemMismatch(std::move(key), std::move(lhs),
-                                     std::move(rhs));
+      const TraverseHelper::TransitionKey& key,
+      const TraverseHelper::Transition& lhs,
+      const TraverseHelper::Transition& rhs) override {
+    bool is_schema_mismatch = IsSchemaMismatch(lhs, rhs);
+    return result_.SliceItemMismatch(key, lhs, rhs, is_schema_mismatch);
   }
-  int CompareOrder(TraverseHelper::TransitionKey lhs,
-                   TraverseHelper::TransitionKey rhs) override {
+  int CompareOrder(const TraverseHelper::TransitionKey& lhs,
+                   const TraverseHelper::TransitionKey& rhs) override {
     if (lhs.type != rhs.type) {
       return lhs.type < rhs.type ? -1 : 1;
     }
@@ -110,10 +111,10 @@ class EquivalentComparator : public AbstractComparator {
       return DataItem::Less()(lhs.value, rhs_value) ? -1 : 1;
     });
   }
-  bool Equal(TraverseHelper::Transition lhs,
-             TraverseHelper::Transition rhs) override {
-    if (params_.schemas_equality && lhs.schema != rhs.schema) {
-        return false;
+  bool Equal(const TraverseHelper::Transition& lhs,
+             const TraverseHelper::Transition& rhs) override {
+    if (IsSchemaMismatch(lhs, rhs)) {
+      return false;
     }
     if (!lhs.item.holds_value<ObjectId>() ||
         !rhs.item.holds_value<ObjectId>()) {
@@ -136,6 +137,11 @@ class EquivalentComparator : public AbstractComparator {
   }
 
  private:
+  bool IsSchemaMismatch(const TraverseHelper::Transition& lhs,
+                        const TraverseHelper::Transition& rhs) {
+    return params_.schemas_equality && lhs.schema != rhs.schema;
+  }
+
   DeepDiff result_;
   DeepEquivalentOp::DeepEquivalentParams params_;
 };
@@ -165,12 +171,11 @@ absl::StatusOr<DataItem> DeepEquivalentOp::operator()(
     const DataBagImpl& rhs_databag,
     DataBagImpl::FallbackSpan rhs_fallbacks) const {
   // For DataItems, we adapt the DataSliceImpl interface.
-  ASSIGN_OR_RETURN(
-      auto result,
-      this->operator()(DataSliceImpl::Create(1, lhs_item), lhs_schema,
-                       lhs_databag, lhs_fallbacks,
-                       DataSliceImpl::Create(1, rhs_item), rhs_schema,
-                       rhs_databag, rhs_fallbacks));
+  ASSIGN_OR_RETURN(auto result,
+                   this->operator()(DataSliceImpl::Create(1, lhs_item),
+                                    lhs_schema, lhs_databag, lhs_fallbacks,
+                                    DataSliceImpl::Create(1, rhs_item),
+                                    rhs_schema, rhs_databag, rhs_fallbacks));
   return result[0];
 }
 

@@ -79,6 +79,7 @@ cc_library(
         "//koladata:data_bag",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
+        "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:dtype",
         "//koladata/internal:schema_attrs",

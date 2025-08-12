@@ -182,7 +182,8 @@ TEST_P(DeepDiffTest, LhsRhsMismatch) {
                                      {.type = TransitionType::kAttributeName,
                                       .value = DataItem(arolla::Text("x"))},
                                      {lhs_value, lhs_schema},
-                                     {rhs_value, rhs_schema}));
+                                     {rhs_value, rhs_schema},
+                                     /*is_schema_mismatch=*/false));
 
   ASSERT_OK_AND_ASSIGN(auto token_schema, result_db->GetObjSchemaAttr(token));
   ASSERT_OK_AND_ASSIGN(auto x, result_db->GetAttr(token, "x"));
@@ -222,7 +223,8 @@ TEST_P(DeepDiffTest, SliceItemMismatch) {
   ASSERT_OK_AND_ASSIGN(auto item,
                        deep_diff.SliceItemMismatch(
                            {.type = TransitionType::kSliceItem, .index = 2},
-                           {lhs_value, lhs_schema}, {rhs_value, rhs_schema}));
+                           {lhs_value, lhs_schema}, {rhs_value, rhs_schema},
+                           /*is_schema_mismatch=*/false));
   ASSERT_OK_AND_ASSIGN(auto item_schema, result_db->GetObjSchemaAttr(item));
   ASSERT_OK_AND_ASSIGN(auto diff,
                        result_db->GetAttr(item, DeepDiff::kDiffItemAttr));

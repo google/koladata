@@ -21,6 +21,7 @@
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/strings/str_cat.h"
+#include "arolla/memory/optional_value.h"
 #include "arolla/util/text.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
@@ -62,13 +63,15 @@ absl::Status DeepDiff::RhsOnlyAttribute(DataItem token,
 absl::Status DeepDiff::LhsRhsMismatch(DataItem token,
                                       TraverseHelper::TransitionKey key,
                                       TraverseHelper::Transition lhs,
-                                      TraverseHelper::Transition rhs) {
+                                      TraverseHelper::Transition rhs,
+                                      bool is_schema_mismatch) {
   if (key.type == TraverseHelper::TransitionType::kDictKey) {
     // We process dict keys when we process dict values.
     return absl::OkStatus();
   }
   ASSIGN_OR_RETURN(auto diff_item,
-                   CreateMismatchDiffItem(std::move(lhs), std::move(rhs)));
+                   CreateMismatchDiffItem(std::move(lhs), std::move(rhs),
+                                          is_schema_mismatch));
   ASSIGN_OR_RETURN(auto diff_wrapper, CreateDiffWrapper(std::move(diff_item)));
   return SaveTransition(std::move(token), std::move(key),
                         std::move(diff_wrapper));
@@ -76,10 +79,11 @@ absl::Status DeepDiff::LhsRhsMismatch(DataItem token,
 
 absl::StatusOr<DataItem> DeepDiff::SliceItemMismatch(
     TraverseHelper::TransitionKey key, TraverseHelper::Transition lhs,
-    TraverseHelper::Transition rhs) {
+    TraverseHelper::Transition rhs, bool is_schema_mismatch) {
   DCHECK(key.type == TraverseHelper::TransitionType::kSliceItem);
   ASSIGN_OR_RETURN(auto diff_item,
-                   CreateMismatchDiffItem(std::move(lhs), std::move(rhs)));
+                   CreateMismatchDiffItem(std::move(lhs), std::move(rhs),
+                                          is_schema_mismatch));
   return CreateDiffWrapper(std::move(diff_item));
 }
 
@@ -184,11 +188,19 @@ absl::StatusOr<DataItem> DeepDiff::CreateRhsOnlyDiffItem(
 }
 
 absl::StatusOr<DataItem> DeepDiff::CreateMismatchDiffItem(
-    TraverseHelper::Transition lhs, TraverseHelper::Transition rhs) {
+    TraverseHelper::Transition lhs, TraverseHelper::Transition rhs,
+    bool is_schema_mismatch) {
   auto result = DataItem(AllocateSingleObject());
   ASSIGN_OR_RETURN(auto result_schema,
                    CreateUuidWithMainObject<ObjectId::kUuidImplicitSchemaFlag>(
                        result, schema::kImplicitSchemaSeed));
+  if (is_schema_mismatch) {
+    RETURN_IF_ERROR(databag_->SetSchemaAttr(result_schema,
+                                            kSchemaMismatchAttr,
+                                            DataItem(schema::kMask)));
+    RETURN_IF_ERROR(databag_->SetAttr(result, kSchemaMismatchAttr,
+                                      DataItem(arolla::kPresent)));
+  }
   RETURN_IF_ERROR(databag_->SetSchemaAttr(result_schema, kLhsAttr, lhs.schema));
   RETURN_IF_ERROR(databag_->SetSchemaAttr(result_schema, kRhsAttr, rhs.schema));
   RETURN_IF_ERROR(
