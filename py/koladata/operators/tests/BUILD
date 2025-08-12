@@ -9294,7 +9294,6 @@ py_test(
         "//py/koladata/expr:input_container",
         "//py/koladata/expr:view",
         "//py/koladata/functions",
-        "//py/koladata/functor:functor_factories",
         "//py/koladata/functor:tracing_decorator",
         "//py/koladata/operators:koda_internal_parallel",
         "//py/koladata/operators/tests/util:qtypes",

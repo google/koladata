@@ -288,9 +288,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
   def test_if(self, branch_to_use):
     barrier = threading.Barrier(2)
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_x(x):
       barrier.wait()
       return x
@@ -362,23 +360,17 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e2 = threading.Event()
     e3 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
@@ -418,23 +410,17 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e2 = threading.Event()
     e3 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
@@ -568,30 +554,22 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e3 = threading.Event()
     e4 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_4():
       self.assertTrue(e4.wait(timeout=5.0))
       return 4
@@ -636,30 +614,22 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e3 = threading.Event()
     e4 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_4():
       self.assertTrue(e4.wait(timeout=5.0))
       return 4
@@ -729,23 +699,17 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e2 = threading.Event()
     e3 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
@@ -805,23 +769,17 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e2 = threading.Event()
     e3 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
@@ -1071,23 +1029,17 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e2 = threading.Event()
     e3 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
@@ -1146,23 +1098,17 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e2 = threading.Event()
     e3 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
@@ -1297,23 +1243,17 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e2 = threading.Event()
     e3 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
@@ -1370,23 +1310,17 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     e2 = threading.Event()
     e3 = threading.Event()
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_1():
       self.assertTrue(e1.wait(timeout=5.0))
       return 1
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_2():
       self.assertTrue(e2.wait(timeout=5.0))
       return 2
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_3():
       self.assertTrue(e3.wait(timeout=5.0))
       return 3
@@ -1925,8 +1859,7 @@ class KodaInternalParallelGetDefaultExecutionContextTest(
     barrier = threading.Barrier(2)
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn,
-        return_type_as=user_facing_kd.iterables.make(),
+        py_fn=True, return_type_as=user_facing_kd.iterables.make()
     )
     def tokenize(s):
       barrier.wait()

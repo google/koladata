@@ -293,9 +293,7 @@ class YieldMultithreadedTest(absltest.TestCase):
     first_barrier = threading.Barrier(2, action=arolla.abc.simulate_SIGINT)
     second_barrier = threading.Barrier(2)
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_for_cancellation(_: Any):
       first_barrier.wait(timeout=5.0)
       while True:
@@ -363,9 +361,7 @@ class YieldMultithreadedTest(absltest.TestCase):
   @arolla.abc.add_default_cancellation_context
   def test_timeout_respected(self):
 
-    @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn
-    )
+    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
     def wait_and_return_x(x):
       time.sleep(0.1)
       return x

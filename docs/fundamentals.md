@@ -3042,8 +3042,8 @@ However, it is possible to use decorator `trace_as_fn` which will wrap those
 functions into functors themselves, which will make possible to iterate with
 them separately.
 
-If using `functor_factory=kd.py_fn`, entire python functions will be wrapped as
-whole (no tracing is used), which is especially useful for debugging or quick
+If using `py_fn=True`, entire python functions will be wrapped as whole (no
+tracing is used), which is especially useful for debugging or quick
 experimentation.
 
 ```py
@@ -3051,7 +3051,7 @@ experimentation.
 def mult_xy(x, y):
   return x * y
 
-@kd.trace_as_fn(functor_factory=kd.py_fn)  # don't use tracing inside
+@kd.trace_as_fn(py_fn=True)  # don't use tracing inside
 def sum_xy(x, y):
   print(x, y)  # prints every time sum_xy is executed
   return x + y

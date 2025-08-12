@@ -22,7 +22,6 @@ from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
-from koladata.functor import functor_factories
 from koladata.functor import tracing_decorator
 from koladata.operators import koda_internal_parallel
 from koladata.operators.tests.util import qtypes
@@ -60,7 +59,7 @@ class KodaInternalParallelGetDefaultExecutionConfigTest(parameterized.TestCase):
     barrier = threading.Barrier(2)
 
     @tracing_decorator.TraceAsFnDecorator(
-        functor_factory=functor_factories.py_fn, return_type_as=data_bag.DataBag
+        py_fn=True, return_type_as=data_bag.DataBag
     )
     def wait_and_return(x):
       barrier.wait(timeout=5.0)
