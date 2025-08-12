@@ -3050,10 +3050,10 @@ kd.trace_py_fn(f1)
 ### Avoid tracing Inside a Python Function
 
 If you want to treat a Python function as a whole and execute statements in the
-function line by line, you can `@kd.trace_as_fn(py_fn=True)` decorator to the
-Python function. It allows you to use any Python codes including `if`, `for` or
-sending RPC which do not work for tracing at the cost of losing all tracing
-benefits.
+function line by line, you can `@kd.trace_as_fn(functor_factory=kd.py_fn)`
+decorator to the Python function. It allows you to use any Python codes
+including `if`, `for` or sending RPC which do not work for tracing at the cost
+of losing all tracing benefits.
 
 ```py
 a1 = kd.slice([1, 2])
@@ -3061,7 +3061,7 @@ a2 = kd.slice([2, 3])
 b = kd.item('b')
 c = kd.item('c')
 
-@kd.trace_as_fn(py_fn=True)
+@kd.trace_as_fn(functor_factory=kd.py_fn)
 def f1(a, b, c):
   return b if kd.all(a > 1) else c
 
@@ -3984,14 +3984,14 @@ foo(ds)
 Normally, Koda functor evaluation is single-threaded:
 
 ```py
-@kd.trace_as_fn(py_fn=True)
+@kd.trace_as_fn(functor_factory=kd.py_fn)
 def f1(x):
   print('Start f1')
   time.sleep(0.1)
   print('Finish f1')
   return x + 1
 
-@kd.trace_as_fn(py_fn=True)
+@kd.trace_as_fn(functor_factory=kd.py_fn)
 def f2(x):
   print('Start f2')
   time.sleep(0.2)
@@ -4095,7 +4095,7 @@ sub-functor calls themselves can be parallelized when one does not depend on the
 result of the other.
 
 ```py
-@kd.trace_as_fn(py_fn=True)
+@kd.trace_as_fn(functor_factory=kd.py_fn)
 def process(x):
   print('Start', x)
   time.sleep(0.1)
@@ -4125,7 +4125,7 @@ depends only on some of the inputs, it may start evaluating even before all
 inputs to the sub-functor call are ready.
 
 ```py
-@kd.trace_as_fn(py_fn=True)
+@kd.trace_as_fn(functor_factory=kd.py_fn)
 def step(x, msg, pause):
   print('Start', msg)
   time.sleep(pause.to_py())
@@ -4160,7 +4160,7 @@ computation that use only one field of that tuple/namedtuple can start
 evaluation even before the entire tuple is completed:
 
 ```py
-@kd.trace_as_fn(py_fn=True)
+@kd.trace_as_fn(functor_factory=kd.py_fn)
 def step(x, msg, pause):
   print('Start', msg)
   time.sleep(pause.to_py())
@@ -4218,7 +4218,7 @@ and you will have a deadlock.
 Therefore, please never use a blocking wait on an event that is triggered by
 another branch of your computation. In particular, please never call
 `kd.parallel.call_multithreaded` from inside a function annotated with
-`kd.trace_as_fn(py_fn=True)` that is itself being evaluated via
+`kd.trace_as_fn(functor_factory=kd.py_fn)` that is itself being evaluated via
 `kd.parallel.call_multithreaded`!
 
 </section>
@@ -4233,7 +4233,7 @@ of an iterable item may start even before the next item(s) have been computed
 for the same iterable, for example:
 
 ```py
-@kd.trace_as_fn(py_fn=True)
+@kd.trace_as_fn(functor_factory=kd.py_fn)
 def step(x):
   print('Start', x)
   time.sleep(0.1 * x.to_py())
@@ -4276,7 +4276,7 @@ If your entire computation returns an iterable, then you need to use
 a Python iterator:
 
 ```py
-@kd.trace_as_fn(py_fn=True)
+@kd.trace_as_fn(functor_factory=kd.py_fn)
 def step(x):
   print('Start', x)
   time.sleep(0.1 * x.to_py())

@@ -647,62 +647,22 @@ class TracingDecoratorTest(parameterized.TestCase):
 # TODO: Deprecate py_fn and wrapper arguments.
 class TracingDecoratorDeprecatedParamsTest(parameterized.TestCase):
 
-  def test_py_fn_mode(self):
-    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
-    def f(x):
-      if x == 0:
-        return 1
-      return x * f(x - 1)
-
-    fn = functor_factories.trace_py_fn(lambda x: f(x=x + 2))
-    testing.assert_equal(fn(x=1), ds(6))
-    testing.assert_equal(fn.f(x=1), ds(1))
-
-  def test_return_type_as_py_fn(self):
-    @tracing_decorator.TraceAsFnDecorator(
-        return_type_as=data_bag.DataBag, py_fn=True
-    )
-    def f(x):
-      return user_facing_kd.uu(seed='test').with_attrs(x=x).get_bag()
-
-    fn = functor_factories.trace_py_fn(
-        lambda: user_facing_kd.uu(seed='test').with_bag(f(5)).x
-    )
-    testing.assert_equal(fn().no_bag(), ds(5))
-
-  @parameterized.parameters(True, False)
-  def test_wrapper(self, py_fn):
-    @tracing_decorator.TraceAsFnDecorator(
-        py_fn=py_fn, wrapper=lambda func: lambda x: func(x + 5)
-    )
-    def f(x):
-      return x + 1
-
-    fn = functor_factories.trace_py_fn(f)
-
-    testing.assert_equal(f(ds([1, 2])), ds([2, 3]))
-    testing.assert_equal(fn(ds([1, 2])), ds([7, 8]))
-
-  def test_py_fn_and_functor_factory_error(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        '`py_fn` and `wrapper` cannot be set when a `functor_factory` is'
-        ' provided',
+  def test_py_fn_error(self):
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        'the argument `py_fn` to `trace_as_fn` is deprecated - please use'
+        ' `functor_factory=kd.py_fn` instead',
     ):
-      tracing_decorator.TraceAsFnDecorator(
-          py_fn=True, functor_factory=functor_factories.py_fn
-      )
+      tracing_decorator.TraceAsFnDecorator(py_fn=True)
 
-  def test_wrapper_and_functor_factory_error(self):
-    with self.assertRaisesRegex(
-        ValueError,
-        '`py_fn` and `wrapper` cannot be set when a `functor_factory` is'
-        ' provided',
+  def test_wrapper_error(self):
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        'the argument `wrapper` to `trace_as_fn` is deprecated - please use'
+        ' e.g. `functor_factory=lamda fn, return_type_as: kd.py_fn(wrapper(fn),'
+        ' return_type_as=return_type_as)` instead',
     ):
-      tracing_decorator.TraceAsFnDecorator(
-          wrapper=lambda func: lambda x: func(x + 5),
-          functor_factory=functor_factories.py_fn,
-      )
+      tracing_decorator.TraceAsFnDecorator(wrapper=lambda x: x)
 
 
 if __name__ == '__main__':

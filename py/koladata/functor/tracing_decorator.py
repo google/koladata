@@ -284,44 +284,29 @@ class TraceAsFnDecorator:
         For example, pass `functor_factory=kd.py_fn` to wrap the function as raw
         Python code rather than being traced. Defaults to
         `lambda fn, return_type_as: kd.trace_py_fn(fn)`, which performs tracing.
-      py_fn: (DEPRECATED - use `functor_factory` instead) Whether the function
-        to trace should just be wrapped in kd.py_fn and executed as Python code
-        later instead of being traced to create the sub-functor. This is useful
-        for functions that are not fully supported by the tracing
-        infrastructure, and to add debug prints.
-      wrapper: (DEPRECATED - use `functor_factory` instead) Extra wrapper to
-        apply to the function before converting to a functor. I.e. can be a
-        serialization wrapper (kd.py_reference or kd_ext.py_cloudpickle).
+      py_fn: (DEPRECATED - use `functor_factory` instead).
+      wrapper: (DEPRECATED - use `functor_factory` instead).
     """
+    # TODO: fully remove these arguments.
+    if py_fn is not None:
+      raise AssertionError(
+          'the argument `py_fn` to `trace_as_fn` is deprecated - please use'
+          ' `functor_factory=kd.py_fn` instead'
+      )
+    if wrapper is not None:
+      raise AssertionError(
+          'the argument `wrapper` to `trace_as_fn` is deprecated - please use'
+          ' e.g. `functor_factory=lamda fn, return_type_as:'
+          ' kd.py_fn(wrapper(fn), return_type_as=return_type_as)` instead'
+      )
     self._name = name
     self._return_type_as = return_type_as
-    # TODO: Deprecate py_fn and wrapper arguments:
-    # 1. Add deprecation warnings.
-    # 2. Migrate checked in clients.
-    # 3. Eventually remove support completely.
     if functor_factory is None:
-      if wrapper is None:
-        wrapper = lambda fn: fn
-      if py_fn:
-        self._functor_factory = (
-            lambda fn, return_type_as: functor_factories.py_fn(
-                wrapper(fn), return_type_as=return_type_as
-            )
-        )
-      else:
-        self._functor_factory = (
-            lambda fn, return_type_as: functor_factories.trace_py_fn(
-                wrapper(fn)
-            )
-        )
+      self._functor_factory = (
+          lambda fn, return_type_as: functor_factories.trace_py_fn(fn)
+      )
     else:
       self._functor_factory = functor_factory
-      if py_fn is not None or wrapper is not None:
-        if self._functor_factory is not None:
-          raise ValueError(
-              '`py_fn` and `wrapper` cannot be set when a `functor_factory` is'
-              ' provided'
-          )
 
   def __call__(self, fn: py_types.FunctionType) -> py_types.FunctionType:
     name = self._name if self._name is not None else fn.__name__
