@@ -9066,6 +9066,52 @@ Alias for [kd.lists.explode](#kd.lists.explode) operator.
 
 Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
 
+### `kd.extension_type(unsafe_override=False)` {#kd.extension_type}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Creates a Koda extension type from the the given original class.
+
+  This function is intended to be used as a class decorator. The decorated class
+  serves as a schema for the new extension type.
+
+  Internally, this function creates the following:
+  -  A new `QType` for the extension type, which is a labeled `QType` on top of
+  `DATA_SLICE`.
+  - A `QValue` class for representing evaluated instances of the extension type.
+  - An `ExprView` class for representing expressions that will evaluate to
+        the extension type.
+
+  It replaces the decorated class with a new class that acts as a factory. This
+  factory&#39;s `__new__` method dispatches to either create an `Expr` or a `QValue`
+  instance, depending on the types of the arguments provided.
+
+  The fields of the dataclass are exposed as properties on both the `QValue` and
+  `ExprView` classes. Any methods defined on the dataclass are also carried
+  over.
+
+  Note:
+  - The decorated class must not have its own `__new__` method.
+  - The type annotations on the fields of the dataclass are used to determine
+    the schema of the underlying `DataSlice`.
+  - All fields must have type annotations.
+
+  Example:
+    @extension_type()
+    class MyPoint:
+      x: kd.FLOAT32
+      y: kd.FLOAT32
+
+      def norm(self):
+        return (self.x**2 + self.y**2)**0.5
+
+    # Creates a QValue instance of MyPoint.
+    p1 = MyPoint(x=1.0, y=2.0)
+
+  Args:
+    unsafe_override: Overrides existing registered extension types.
+
+  Returns:
+    A new class that serves as a factory for the extension type.</code></pre>
+
 ### `kd.extract(ds, schema=unspecified)` {#kd.extract}
 
 Alias for [kd.core.extract](#kd.core.extract) operator.

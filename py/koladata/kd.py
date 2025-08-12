@@ -41,6 +41,7 @@ from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _dict_item
+from koladata.types import extension_types as _extension_types
 from koladata.types import iterable_qvalue as _iterable_qvalue
 from koladata.types import jagged_shape as _jagged_shape
 from koladata.types import list_item as _list_item
@@ -93,6 +94,9 @@ types.SchemaItem = _schema_item.SchemaItem
 types.Stream = _functor_parallel_clib.Stream
 types.StreamReader = _functor_parallel_clib.StreamReader
 types.StreamWriter = _functor_parallel_clib.StreamWriter
+
+### Extension types.
+extension_type = _eager_only(_extension_types.extension_type)
 
 ### Koda QTypes.
 qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))
