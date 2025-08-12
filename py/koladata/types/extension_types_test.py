@@ -145,9 +145,9 @@ class ExtensionTypesTest(parameterized.TestCase):
         y=arolla.M.annotation.qtype(I.y, qtypes.DATA_SLICE),
     )
     self.assertIsInstance(expr, arolla.Expr)
-    # TODO: Make test_utils.assert_equal work for extension types.
-    self.assertEqual(expr.eval(x=1, y=2).x, 1)
-    self.assertEqual(expr.eval(x=1, y=2).y, 2)
+    testing.assert_deep_equivalent(
+        ext_types.unwrap(expr.eval(x=1, y=2)), ext_types.unwrap(value)
+    )
 
   def test_kd_fn(self):
 
