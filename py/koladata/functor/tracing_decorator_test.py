@@ -122,7 +122,7 @@ class PairWithEntityTracing:
   )
 
 
-@extension_types.extension_type
+@extension_types.extension_type()
 class ExtensionPair:
   x: schema_constants.INT32
   y: schema_constants.INT32

@@ -14,6 +14,7 @@
 
 # Custom C++/Python bindings for Kola types.
 
+load("@pip_deps//:requirements.bzl", "requirement")
 load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_python//python:defs.bzl", "py_library", "py_test")
@@ -667,6 +668,7 @@ py_library(
         ":data_slice",
         ":qtypes",
         "//py:python_path",
+        requirement("bidict"),
         "//py/koladata/expr:view",
         "@com_google_arolla//py/arolla",
         "@com_google_arolla//py/arolla/derived_qtype",

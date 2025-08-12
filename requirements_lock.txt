@@ -12,6 +12,10 @@ asttokens==3.0.0 \
     --hash=sha256:0dcd8baa8d62b0c1d118b399b2ddba3c4aff271d0d7a9e0d4c1681c79035bbc7 \
     --hash=sha256:e3078351a059199dd5138cb1c706e6430c05eff2ff136af5eb4790f9d28932e2
     # via stack-data
+bidict==0.23.1 \
+    --hash=sha256:03069d763bc387bbd20e7d49914e75fc4132a41937fa3405417e1a5a2d006d71 \
+    --hash=sha256:5dae8d4d79b552a71cbabc7deb25dfe8ce710b17ff41711e13010ead2abfc3e5
+    # via -r requirements.in
 cloudpickle==3.1.0 \
     --hash=sha256:81a929b6e3c7335c863c771d673d105f02efdb89dfaba0c90495d1c64796601b \
     --hash=sha256:fe11acda67f61aaaec473e3afe030feb131d78a43461b718185363384f1ba12e

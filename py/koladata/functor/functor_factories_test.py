@@ -46,7 +46,7 @@ kdi = user_facing_kd.eager
 pack_expr = introspection.pack_expr
 
 
-@extension_types.extension_type
+@extension_types.extension_type()
 class TestExtension:
   x: schema_constants.INT32
 

@@ -26,7 +26,7 @@ from koladata.types import schema_constants
 ds = data_slice.DataSlice.from_vals
 
 
-@extension_types.extension_type
+@extension_types.extension_type()
 class SimpleClass:
   x: schema_constants.INT32
 
@@ -57,7 +57,7 @@ class TracingWithFutureAnnotationsTest(absltest.TestCase):
     ):
       _ = tracing.trace(fn)
 
-    @extension_types.extension_type
+    @extension_types.extension_type()
     class ForwardDeclarationClass:
       x: schema_constants.INT32
 

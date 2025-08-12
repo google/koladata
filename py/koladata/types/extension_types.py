@@ -16,11 +16,11 @@
 
 import dataclasses
 import functools
-import sys
-from typing import Any, Dict
-
+import inspect
+from typing import Any, Callable, Mapping
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
+import bidict
 from koladata.expr import view
 from koladata.types import data_bag
 from koladata.types import data_slice
@@ -34,26 +34,29 @@ M = arolla.M | derived_qtype.M
 def _get_downcast_expr(qtype):
   return M.derived_qtype.downcast(qtype, arolla.L.x)
 
+
 _UPCAST_EXPR = M.derived_qtype.upcast(M.qtype.qtype_of(arolla.L.x), arolla.L.x)
 
-_EXTENSION_TYPE_REGISTRY: Dict[type[Any], arolla.QType] = {}
+_EXTENSION_TYPE_REGISTRY = bidict.bidict()  # cls -> QType.
 
 
-def register_extension_type(cls: type[Any], qtype: arolla.QType):
+def register_extension_type(
+    cls: type[Any], qtype: arolla.QType, *, unsafe_override=False
+):
   """Registers an extension type with its corresponding qtype."""
   if not _is_extension_type(qtype):
     raise ValueError(f'expected an extension type, got: {qtype}')
-  if cls in _EXTENSION_TYPE_REGISTRY and _EXTENSION_TYPE_REGISTRY[cls] != qtype:
+  if unsafe_override:
+    if qtype in _EXTENSION_TYPE_REGISTRY.inverse:
+      del _EXTENSION_TYPE_REGISTRY.inverse[qtype]  # pytype: disable=unsupported-operands
+  elif (reg_qtype := _EXTENSION_TYPE_REGISTRY.get(cls, qtype)) != qtype:
     raise ValueError(
-        f'{cls} is already registered with a different qtype:'
-        f' {_EXTENSION_TYPE_REGISTRY[cls]}'
+        f'{cls} is already registered with a different qtype: {reg_qtype}'
     )
-  for registered_cls, registered_qtype in _EXTENSION_TYPE_REGISTRY.items():
-    if registered_qtype == qtype and registered_cls != cls:
-      raise ValueError(
-          f'{qtype} is already registered with a different class:'
-          f' {registered_cls}'
-      )
+  elif (reg_cls := _EXTENSION_TYPE_REGISTRY.inverse.get(qtype, cls)) != cls:
+    raise ValueError(
+        f'{qtype} is already registered with a different class: {reg_cls}'
+    )
   _EXTENSION_TYPE_REGISTRY[cls] = qtype
 
 
@@ -104,7 +107,7 @@ def unwrap(x: Any) -> data_slice.DataSlice:
 
 
 # Dummy dataclass used to get the list of default dataclassfields.
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass()
 class _DummyDC:
   _dummy_field: int
 
@@ -112,11 +115,15 @@ class _DummyDC:
 _DEFAULT_FIELDS = frozenset(dir(_DummyDC))
 
 
-def _get_fields_and_methods(
-    original_class: type[Any],
-) -> tuple[Dict[str, dataclasses.Field[Any]], Dict[str, Any]]:
-  """Returns the fields and methods of the given class."""
-  data_class = dataclasses.dataclass(frozen=True)(original_class)
+@dataclasses.dataclass(frozen=True)
+class _ClassMeta:
+  signature: inspect.Signature
+  methods: Mapping[str, Callable[..., Any]]
+
+
+def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
+  """Returns meta information about the given class."""
+  data_class = dataclasses.dataclass()(original_class)
   fields = {f.name: f for f in dataclasses.fields(data_class)}
 
   methods = {}
@@ -127,31 +134,14 @@ def _get_fields_and_methods(
     if not callable(method):
       continue
     methods[attr] = method
-  return fields, methods
-
-
-def _validate_field_values(
-    original_class_name, field_names, original_field_names
-):
-  """Validates that provided field values are consistent with class fields."""
-  if field_names == original_field_names:
-    return
-  missing_fields = original_field_names - field_names
-  if missing_fields:
-    raise TypeError(
-        f'{original_class_name}() missing {len(missing_fields)}'
-        ' required keyword-only arguments: '
-        + ', '.join(f"'{f}'" for f in sorted(missing_fields))
-    )
-  # If there are no missing fields, there must be extra fields.
-  extra_fields = field_names - original_field_names
-  raise TypeError(
-      f'{original_class_name}() got an unexpected keyword argument'
-      f" '{next(iter(sorted(extra_fields)))}'"
+  return _ClassMeta(
+      signature=inspect.signature(data_class, eval_str=True), methods=methods
   )
 
 
-def extension_type(original_class: type[Any]) -> type[arolla.QValue]:
+def extension_type(
+    unsafe_override=False,
+) -> Callable[[type[Any]], type[arolla.AnyQValue]]:
   """Creates a Koda extension type from the the given original class.
 
   This function is intended to be used as a class decorator. The decorated class
@@ -176,10 +166,10 @@ def extension_type(original_class: type[Any]) -> type[arolla.QValue]:
   - The decorated class must not have its own `__new__` method.
   - The type annotations on the fields of the dataclass are used to determine
     the schema of the underlying `DataSlice`.
+  - All fields must have type annotations.
 
   Example:
-    @extension_type
-    @dataclasses.dataclass(frozen=True)
+    @extension_type()
     class MyPoint:
       x: kd.FLOAT32
       y: kd.FLOAT32
@@ -191,88 +181,93 @@ def extension_type(original_class: type[Any]) -> type[arolla.QValue]:
     p1 = MyPoint(x=1.0, y=2.0)
 
   Args:
-    original_class: The class to be converted into a Koda extension type.
+    unsafe_override: Overrides existing registered extension types.
 
   Returns:
     A new class that serves as a factory for the extension type.
   """
-  fields, methods = _get_fields_and_methods(original_class)
 
-  # QValue construction.
-  qvalue_class_attrs = {}
-  for name in fields:
-    qvalue_class_attrs[name] = property(
-        lambda self, k=name: getattr(unwrap(self), k)
+  def impl(original_class: type[Any]) -> type[arolla.AnyQValue]:
+    class_meta = _get_class_meta(original_class)
+
+    # QValue construction.
+    qvalue_class_attrs = {}
+    for name in class_meta.signature.parameters:
+      qvalue_class_attrs[name] = property(
+          lambda self, k=name: getattr(unwrap(self), k)
+      )
+    qvalue_class_attrs |= class_meta.methods
+    qvalue_class = type(
+        f'{original_class.__name__}QValue', (arolla.QValue,), qvalue_class_attrs
     )
-  qvalue_class_attrs |= methods
-  qvalue_class = type(
-      f'{original_class.__name__}QValue', (arolla.QValue,), qvalue_class_attrs
-  )
 
-  extension_qtype = M.derived_qtype.get_labeled_qtype(
-      qtypes.DATA_SLICE, original_class.__name__
-  ).qvalue
-  arolla.abc.register_qvalue_specialization(extension_qtype, qvalue_class)
+    extension_qtype = M.derived_qtype.get_labeled_qtype(
+        qtypes.DATA_SLICE, original_class.__name__
+    ).qvalue
+    arolla.abc.register_qvalue_specialization(extension_qtype, qvalue_class)
 
-  # ExprView construction.
-  expr_view_class_attrs = {}
-  for name in fields:
-    expr_view_class_attrs[name] = property(
-        lambda self, k=name: getattr(
-            M.derived_qtype.upcast(extension_qtype, self), k
+    # ExprView construction.
+    expr_view_class_attrs = {}
+    for name in class_meta.signature.parameters:
+      expr_view_class_attrs[name] = property(
+          lambda self, k=name: getattr(
+              M.derived_qtype.upcast(extension_qtype, self), k
+          )
+      )
+    expr_view_class_attrs |= class_meta.methods
+
+    expr_view_class = type(
+        f'{original_class.__name__}ExprView',
+        (view.KodaView,),
+        expr_view_class_attrs,
+    )
+    arolla.abc.set_expr_view_for_qtype(extension_qtype, expr_view_class)
+
+    schema = arolla.abc.aux_eval_op(
+        'kd.named_schema',
+        original_class.__name__,
+        **{
+            p.name: p.annotation
+            for p in class_meta.signature.parameters.values()
+        },
+    )
+
+    def dispatching_new(cls, *args, **kwargs):  # pylint: disable=unused-argument
+      bound_args = class_meta.signature.bind(*args, **kwargs)
+      bound_args.apply_defaults()
+      field_values = bound_args.arguments
+
+      if arolla.Expr in (type(v) for v in field_values.values()):
+        return M.annotation.qtype(
+            M.derived_qtype.downcast(
+                extension_qtype,
+                arolla.abc.lookup_operator('kd.new')(
+                    **field_values, schema=schema
+                ),
+            ),
+            extension_qtype,
         )
-    )
-  expr_view_class_attrs |= methods
+      else:
+        return wrap(
+            data_bag.DataBag._new_no_bag(**field_values, schema=schema),  # pylint: disable=protected-access
+            extension_qtype,
+        )
 
-  expr_view_class = type(
-      f'{original_class.__name__}ExprView',
-      (view.KodaView,),
-      expr_view_class_attrs,
-  )
-  arolla.abc.set_expr_view_for_qtype(extension_qtype, expr_view_class)
-
-  default_values = {}
-  for field in fields.values():
-    if field.default is not dataclasses.MISSING:
-      default_values[field.name] = field.default
-
-  cls_globals = vars(sys.modules[original_class.__module__])
-
-  def resolve_type_annotation(tpe):
-   # This is needed in case we are using from __future__ import annotations.
-   # See https://peps.python.org/pep-0563/#resolving-type-hints-at-runtime.
-    if isinstance(tpe, str):
-      return eval(tpe, cls_globals)  # pylint: disable=eval-used
-    return tpe
-
-  schema = arolla.abc.aux_eval_op(
-      'kd.named_schema',
-      original_class.__name__,
-      **{f.name: resolve_type_annotation(f.type) for f in fields.values()},
-  )
-
-  def dispatching_new(cls, **kwargs):  # pylint: disable=unused-argument
-    field_values = default_values | kwargs
-    _validate_field_values(
-        original_class.__name__, field_values.keys(), fields.keys()
+    cls_p = inspect.Parameter('cls', inspect.Parameter.POSITIONAL_OR_KEYWORD)
+    dispatching_new.__signature__ = class_meta.signature.replace(
+        parameters=[cls_p] + list(class_meta.signature.parameters.values()),
+        return_annotation=inspect.Parameter.empty,
     )
 
-    if arolla.Expr in (type(v) for v in kwargs.values()):
-      return M.derived_qtype.downcast(
-          extension_qtype,
-          arolla.abc.lookup_operator('kd.new')(**field_values, schema=schema),
-      )
-    else:
-      return wrap(
-          data_bag.DataBag._new_no_bag(**field_values, schema=schema),  # pylint: disable=protected-access
-          extension_qtype,
-      )
+    class_attrs = {}
+    class_attrs['__new__'] = dispatching_new
+    class_attrs['qtype'] = extension_qtype
 
-  class_attrs = {}
-  class_attrs['__new__'] = dispatching_new
-  class_attrs['qtype'] = extension_qtype
+    new_class = type(original_class.__name__, (object,), class_attrs)
+    register_extension_type(
+        new_class, extension_qtype, unsafe_override=unsafe_override
+    )
 
-  new_class = type(original_class.__name__, (object,), class_attrs)
-  register_extension_type(new_class, extension_qtype)
+    return new_class
 
-  return new_class
+  return impl
