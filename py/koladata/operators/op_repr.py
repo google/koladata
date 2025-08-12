@@ -20,6 +20,8 @@ from typing import Callable
 from arolla import arolla
 from koladata.operators import unified_binding_policy
 from koladata.types import data_slice
+from koladata.types import literal_operator
+from koladata.types import qtypes
 
 
 OperatorReprFn = Callable[
@@ -95,6 +97,75 @@ def get_item_repr(
   key_or_index = _slice_repr(deps[1], tokens, abbreviation=True)
   res = arolla.abc.ReprToken()
   res.text = f'{x}[{key_or_index}]'
+  return res
+
+
+def call_repr(
+    node: arolla.Expr, tokens: arolla.abc.NodeTokenView
+) -> arolla.abc.ReprToken:
+  """Repr for kd.functor.call."""
+  res = arolla.abc.ReprToken()
+  deps = node.node_deps
+  assert len(deps) == 5, 'call expects exactly five arguments.'
+  func_repr = tokens[deps[0]].text
+  args = deps[1]
+
+  if args.op == arolla.M.core.make_tuple:
+    # make_tuple node
+    args_repr = ', '.join([tokens[arg].text for arg in args.node_deps])
+  elif (
+      not isinstance(args.op, literal_operator.LiteralOperator)
+      or not isinstance(arolla.eval(args), arolla.types.Tuple)
+  ):
+    # Fall back to the default repr.
+    return default_op_repr(node, tokens)
+  else:
+    # tuple literal
+    args_repr = tokens[args].text.removeprefix('(').removesuffix(')')
+  kwargs = deps[3]
+  if kwargs.op == arolla.M.namedtuple.make:
+    # namedtuple.make node
+    # The first node_dep is a coma separated string of kwarg names.
+    kwarg_names = (
+        tokens[kwargs.node_deps[0]].text.lstrip("'").rstrip("'").split(',')
+    )
+    # The following node deps are the kwarg values.
+    kwarg_values = [tokens[n].text for n in kwargs.node_deps[1:]]
+    kwargs_repr = ', '.join(
+        [f'{k}={v}' for (k, v) in zip(kwarg_names, kwarg_values)]
+    )
+  elif not isinstance(
+      kwargs.op, literal_operator.LiteralOperator
+  ) or not isinstance(arolla.eval(kwargs), arolla.types.NamedTuple):
+    # Fall back to the default repr.
+    return default_op_repr(node, tokens)
+  else:
+    # Named tuple literal.
+    # We can get the kwarg names from the qtype.
+    kwarg_names = arolla.types.get_namedtuple_field_names(kwargs.qtype)
+    kwargs_repr = ', '.join([
+        f'{name}='
+        f'{repr(arolla.eval(arolla.M.namedtuple.get_field(kwargs, name)))}'
+        for name in kwarg_names
+    ])
+  return_type_as = deps[2]
+  is_default_return_type = isinstance(
+      return_type_as.op, literal_operator.LiteralOperator
+  ) and (arolla.eval(return_type_as).qtype == qtypes.DATA_SLICE)
+  if not is_default_return_type:
+    if kwargs_repr:
+      pass
+      kwargs_repr = (
+          f'{kwargs_repr}, return_type_as={tokens[return_type_as].text}'
+      )
+    else:
+      kwargs_repr = f'return_type_as={tokens[return_type_as].text}'
+  # deps[4] is the non-deterministic token and does not need to be included into
+  # the repr.
+  if args_repr and kwargs_repr:
+    res.text = f'{func_repr}({args_repr}, {kwargs_repr})'
+  else:
+    res.text = f'{func_repr}({args_repr}{kwargs_repr})'
   return res
 
 

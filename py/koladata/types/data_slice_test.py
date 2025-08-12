@@ -4332,10 +4332,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
           lambda x: add_one(x),  # pylint: disable=unnecessary-lambda
           [
               'DataItem(Functor DataSliceListSlicingTest.<lambda>[x](',
-              (
-                  '_add_one_result=kd.call(V.add_one, I.x,'
-                  ' return_type_as=DataItem(None, schema: NONE))📍,'
-              ),
+              '_add_one_result=V.add_one(I.x)📍',
               'add_one=Functor add_one[x](',
               "__doc__='Adds one to the input.'",
               'returns=(I.x + DataItem(1, schema: INT32))📍',
@@ -4351,10 +4348,7 @@ class DataSliceListSlicingTest(parameterized.TestCase):
                   ' f=Functor DataSliceListSlicingTest.<lambda>[x](returns=(I.x'
                   ' + DataItem(1, schema: INT32))📍)'
               ),
-              (
-                  'returns=kd.call(I.f, I.x, return_type_as=DataItem(None,'
-                  ' schema: NONE))'
-              ),
+              'returns=I.f(I.x)'
           ],
       ),
       (

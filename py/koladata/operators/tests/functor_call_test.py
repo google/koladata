@@ -16,17 +16,20 @@ import re
 import traceback
 
 from absl.testing import absltest
+from absl.testing import parameterized
 from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
 from koladata.functions import functions as fns
+from koladata.functor import functions
 from koladata.functor import functor_factories
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import py_boxing
 from koladata.types import signature_utils
 
 
@@ -37,7 +40,7 @@ ds = data_slice.DataSlice.from_vals
 kde = kde_operators.kde
 
 
-class FunctorCallTest(absltest.TestCase):
+class FunctorCallTest(parameterized.TestCase):
 
   def test_call_simple(self):
     fn = functor_factories.expr_fn(
@@ -132,10 +135,14 @@ class FunctorCallTest(absltest.TestCase):
             signature_utils.parameter(
                 'x', signature_utils.ParameterKind.POSITIONAL_ONLY, 57
             ),
+            signature_utils.parameter(
+                'y', signature_utils.ParameterKind.POSITIONAL_ONLY, 42
+            ),
         ]),
     )
     testing.assert_equal(expr_eval.eval(kde.call(fn)).no_bag(), ds(57))
     testing.assert_equal(expr_eval.eval(kde.call(fn, 43)), ds(43))
+    testing.assert_equal(expr_eval.eval(kde.call(fn, ds(43), ds(57))), ds(43))
 
   def test_obj_as_default_value(self):
     fn = functor_factories.expr_fn(
@@ -285,12 +292,82 @@ class FunctorCallTest(absltest.TestCase):
   def test_alias(self):
     self.assertTrue(optools.equiv_to_op(kde.functor.call, kde.call))
 
-  def test_repr(self):
-    self.assertEqual(
-        repr(kde.functor.call(I.fn, I.x, I.y, a=I.z)),
-        'kd.functor.call(I.fn, I.x, I.y, return_type_as=DataItem(None, schema:'
-        ' NONE), a=I.z)',
-    )
+  @parameterized.parameters(
+      (kde.functor.call(I.fn), 'I.fn()'),
+      (kde.functor.call(I.fn, I.x), 'I.fn(I.x)'),
+      (
+          kde.functor.call(I.fn, ds(1)),
+          'I.fn(DataItem(1, schema: INT32))',
+      ),
+      (
+          kde.functor.call(I.fn, I.x, ds(1)),
+          'I.fn(I.x, DataItem(1, schema: INT32))',
+      ),
+      (
+          kde.functor.call(I.fn, I.x, return_type_as=I.y),
+          'I.fn(I.x, return_type_as=I.y)',
+      ),
+      (kde.functor.call(I.fn, a=I.x), 'I.fn(a=I.x)'),
+      (kde.functor.call(I.fn, a=ds(1)), 'I.fn(a=DataItem(1, schema: INT32))'),
+      (
+          kde.functor.call(I.fn, return_type_as=I.y, a=ds(1)),
+          'I.fn(a=DataItem(1, schema: INT32), return_type_as=I.y)',
+      ),
+      (
+          kde.functor.call(I.fn, a=I.x, b=ds(1)),
+          'I.fn(a=I.x, b=DataItem(1, schema: INT32))',
+      ),
+      (
+          kde.functor.call(I.fn, I.x, I.y, a=I.z),
+          'I.fn(I.x, I.y, a=I.z)',
+      ),
+      (
+          kde.functor.call(I.fn, I.x, I.y, a=I.z, return_type_as=I.w),
+          'I.fn(I.x, I.y, a=I.z, return_type_as=I.w)',
+      ),
+      (
+          kde.functor.call(I.fn, I.x, I.y, a=I.z, return_type_as=I.w, b=I.v),
+          'I.fn(I.x, I.y, a=I.z, b=I.v, return_type_as=I.w)',
+      ),
+      (
+          kde.functor.call(functions.trace_py_fn(lambda x: x + 1), ds(1)),
+          (
+              'DataItem(Functor FunctorCallTest.<lambda>[x](returns=(I.x +'
+              ' DataItem(1, schema: INT32))📍), schema: OBJECT)(DataItem(1,'
+              ' schema: INT32))'
+          ),
+      ),
+      # Test fallbacks to default repr
+      (
+          arolla.abc.bind_op(
+              kde.functor.call,
+              arolla.M.core.concat_tuples(
+                  arolla.M.core.make_tuple(I.x), arolla.M.core.make_tuple(I.y)
+              ),
+              _non_deterministic_token=py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,
+          ),
+          (
+              'kd.functor.call(M.core.concat_tuples(M.core.make_tuple(I.x),'
+              ' M.core.make_tuple(I.y)), return_type_as=DataItem(None, schema:'
+              ' NONE))'
+          ),
+      ),
+      (
+          arolla.abc.bind_op(
+              kde.functor.call,
+              arolla.M.core.make_tuple(I.x),
+              ds(1),
+              ds(2),
+              _non_deterministic_token=py_boxing.NON_DETERMINISTIC_TOKEN_LEAF,
+          ),
+          (
+              'kd.functor.call(M.core.make_tuple(I.x), *DataItem(1, schema:'
+              ' INT32), return_type_as=DataItem(2, schema: INT32))'
+          ),
+      ),
+  )
+  def test_repr(self, expr, expected_repr):
+    self.assertEqual(repr(expr), expected_repr)
 
 
 if __name__ == '__main__':

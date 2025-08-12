@@ -25,6 +25,7 @@ from koladata.operators import iterables
 from koladata.operators import koda_internal_iterables
 from koladata.operators import lists
 from koladata.operators import masking
+from koladata.operators import op_repr
 from koladata.operators import optools
 from koladata.operators import qtype_utils
 from koladata.operators import schema
@@ -41,7 +42,8 @@ P = arolla.P
 M = arolla.M
 
 
-@optools.add_to_registry(aliases=['kd.call'])
+@optools.add_to_registry(aliases=['kd.call'],
+                         repr_fn=op_repr.call_repr)
 @optools.as_backend_operator(
     'kd.functor.call',
     qtype_inference_expr=P.return_type_as,

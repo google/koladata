@@ -690,14 +690,7 @@ class KodaViewTest(parameterized.TestCase):
       (1 | C.x, 'DataItem(1, schema: INT32) | C.x'),
       # Has not.
       (~C.x, '~C.x'),
-      # Call. TODO: make this print as C.x(C.y, foo=C.z).
-      (
-          C.x(C.y, foo=C.z),
-          (
-              'kd.call(C.x, C.y, return_type_as=DataItem(None, schema: NONE),'
-              ' foo=C.z)'
-          ),
-      ),
+      (C.x(C.y, foo=C.z), 'C.x(C.y, foo=C.z)'),
   )
   def test_repr(self, expr, expected_repr):
     self.assertEqual(repr(expr), expected_repr)

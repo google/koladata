@@ -687,6 +687,8 @@ py_library(
         ":unified_binding_policy",
         "//py:python_path",
         "//py/koladata/types:data_slice",
+        "//py/koladata/types:literal_operator",
+        "//py/koladata/types:qtypes",
         "@com_google_arolla//py/arolla",
     ],
 )
@@ -702,6 +704,7 @@ py_library(
         ":koda_internal_iterables",
         ":lists",
         ":masking",
+        ":op_repr",
         ":optools",
         ":qtype_utils",
         ":schema",
