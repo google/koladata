@@ -12,6 +12,7 @@ Category  | Subcategory | Description
  | [allocation](#kd.allocation) | Operators that allocate new ItemIds.
  | [annotation](#kd.annotation) | Annotation operators.
  | [assertion](#kd.assertion) | Operators that assert properties of DataSlices.
+ | [bitwise](#kd.bitwise) | Bitwise operators
  | [bags](#kd.bags) | Operators that work on DataBags.
  | [comparison](#kd.comparison) | Operators that compare DataSlices.
  | [core](#kd.core) | Core operators that are not part of other categories.
@@ -305,6 +306,44 @@ Args:
   message_or_fn: The error message to raise if `condition` is not present, or
     a functor producing such an error message.
   *args: Auxiliary data to be passed to the `message_or_fn` functor.</code></pre>
+
+</section>
+
+### kd.bitwise {#kd.bitwise}
+
+Bitwise operators
+
+<section class="zippy closed">
+
+**Operators**
+
+### `kd.bitwise.bitwise_and(x, y)` {#kd.bitwise.bitwise_and}
+Aliases:
+
+- [kd.bitwise_and](#kd.bitwise_and)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise bitwise x &amp; y.</code></pre>
+
+### `kd.bitwise.bitwise_or(x, y)` {#kd.bitwise.bitwise_or}
+Aliases:
+
+- [kd.bitwise_or](#kd.bitwise_or)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise bitwise x | y.</code></pre>
+
+### `kd.bitwise.bitwise_xor(x, y)` {#kd.bitwise.bitwise_xor}
+Aliases:
+
+- [kd.bitwise_xor](#kd.bitwise_xor)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise bitwise x ^ y.</code></pre>
+
+### `kd.bitwise.invert(x)` {#kd.bitwise.invert}
+Aliases:
+
+- [kd.bitwise_invert](#kd.bitwise_invert)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise bitwise ~x.</code></pre>
 
 </section>
 
@@ -8678,6 +8717,22 @@ Alias for [kd.bags.new](#kd.bags.new) operator.
 ### `kd.bind(fn_def, /, *, return_type_as=<class 'koladata.types.data_slice.DataSlice'>, **kwargs)` {#kd.bind}
 
 Alias for [kd.functor.bind](#kd.functor.bind) operator.
+
+### `kd.bitwise_and(x, y)` {#kd.bitwise_and}
+
+Alias for [kd.bitwise.bitwise_and](#kd.bitwise.bitwise_and) operator.
+
+### `kd.bitwise_invert(x)` {#kd.bitwise_invert}
+
+Alias for [kd.bitwise.invert](#kd.bitwise.invert) operator.
+
+### `kd.bitwise_or(x, y)` {#kd.bitwise_or}
+
+Alias for [kd.bitwise.bitwise_or](#kd.bitwise.bitwise_or) operator.
+
+### `kd.bitwise_xor(x, y)` {#kd.bitwise_xor}
+
+Alias for [kd.bitwise.bitwise_xor](#kd.bitwise.bitwise_xor) operator.
 
 ### `kd.bool(x)` {#kd.bool}
 

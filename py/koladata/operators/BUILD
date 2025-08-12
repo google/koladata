@@ -109,6 +109,17 @@ py_library(
     ],
 )
 
+py_library(
+    name = "bitwise",
+    srcs = ["bitwise.py"],
+    deps = [
+        ":optools",
+        ":qtype_utils",
+        "//py:python_path",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
 arolla_operator_package_snapshot(
     name = "operator_package.pb2",
     imports = [
@@ -153,6 +164,7 @@ py_library(
         ":annotation",
         ":assertion",
         ":bags",
+        ":bitwise",
         ":bootstrap",
         ":comparison",
         ":core",

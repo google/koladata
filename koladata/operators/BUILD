@@ -79,6 +79,7 @@ cc_library(
     srcs = [
         "arolla_bridge.cc",
         "bags.cc",
+        "bitwise.cc",
         "comparison.cc",
         "core.cc",
         "curves.cc",
@@ -103,6 +104,7 @@ cc_library(
         "arolla_bridge.h",
         "assertion.h",
         "bags.h",
+        "bitwise.h",
         "comparison.h",
         "core.h",
         "curves.h",

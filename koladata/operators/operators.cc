@@ -34,6 +34,7 @@
 #include "koladata/operators/allocation.h"
 #include "koladata/operators/assertion.h"
 #include "koladata/operators/bags.h"
+#include "koladata/operators/bitwise.h"
 #include "koladata/operators/comparison.h"
 #include "koladata/operators/core.h"
 #include "koladata/operators/curves.h"
@@ -92,6 +93,11 @@ OPERATOR_FAMILY("kd.bags.enriched",
 OPERATOR("kd.bags.new", Bag);
 OPERATOR_FAMILY("kd.bags.updated",
                 std::make_unique<UpdatedDbOperatorFamily>());
+//
+OPERATOR("kd.bitwise.bitwise_and", BitwiseAnd);
+OPERATOR("kd.bitwise.bitwise_or", BitwiseOr);
+OPERATOR("kd.bitwise.bitwise_xor", BitwiseXor);
+OPERATOR("kd.bitwise.invert", BitwiseInvert);
 //
 OPERATOR("kd.comparison.equal", Equal);
 OPERATOR("kd.comparison.greater", Greater);

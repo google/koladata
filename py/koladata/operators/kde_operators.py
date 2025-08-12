@@ -28,6 +28,7 @@ kde = arolla.OperatorsContainer(
         'kd.annotation',
         'kd.assertion',
         'kd.bags',
+        'kd.bitwise',
         'kd.comparison',
         'kd.core',
         'kd.curves',
