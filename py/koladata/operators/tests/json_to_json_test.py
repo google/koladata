@@ -243,6 +243,27 @@ class JsonToJsonTest(parameterized.TestCase):
           {'values_attr': None},
           ds('{"y": 2, "x": 1}'),
       ),
+      # missing values
+      (
+          fns.new(a=1, b=None),
+          {},
+          ds('{"a": 1, "b": null}'),
+      ),
+      (
+          fns.new(a=1, b=None),
+          {'include_missing_values': False},
+          ds('{"a": 1}'),
+      ),
+      (
+          fns.new(a=1, b=mask_constants.missing),
+          {},
+          ds('{"a": 1, "b": false}'),
+      ),
+      (
+          fns.new(a=1, b=mask_constants.missing),
+          {'include_missing_values': False},
+          ds('{"a": 1}'),
+      ),
   )
   def test_eval(self, x, kwargs, expected_result):
     testing.assert_equal(

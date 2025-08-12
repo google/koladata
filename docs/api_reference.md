@@ -3048,7 +3048,7 @@ Args:
 Returns:
   A DataSlice with the same shape as `x` and schema `schema`.</code></pre>
 
-### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.json.to_json}
+### `kd.json.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values', include_missing_values=True)` {#kd.json.to_json}
 Aliases:
 
 - [kd.to_json](#kd.to_json)
@@ -3066,8 +3066,9 @@ The following schemas are allowed:
 Itemid cycles are not allowed.
 
 Missing DataSlice items in the input are missing in the result. Missing values
-inside of lists/entities/etc. are encoded as JSON `null`, except for
-`kd.missing`, which is encoded as `false`.
+inside of lists/entities/etc. are encoded as JSON `null` (or `false` for
+`kd.missing`). If `include_missing_values` is `False`, entity attributes with
+missing values are omitted from the JSON output.
 
 For example:
 
@@ -3081,6 +3082,8 @@ For example:
   kd.to_json(kd.new(a=1, b=&#39;2&#39;)) -&gt; &#39;{&#34;a&#34;: 1, &#34;b&#34;: &#34;2&#34;}&#39;
   kd.to_json(kd.new(x=None)) -&gt; &#39;{&#34;x&#34;: null}&#39;
   kd.to_json(kd.new(x=kd.missing)) -&gt; &#39;{&#34;x&#34;: false}&#39;
+  kd.to_json(kd.new(a=1, b=None), include_missing_values=False)
+    -&gt; &#39;{&#34;a&#34;: 1}&#39;
 
 Koda BYTES values are converted to base64 strings (RFC 4648 section 4).
 
@@ -3148,7 +3151,11 @@ Args:
     json object key order, or None to always use sorted order. Defaults to
     `json_object_keys`.
   values_attr: A STRING DataItem that can be used with `keys_attr` to give
-    full control over json object contents. Defaults to `json_object_values`.</code></pre>
+    full control over json object contents. Defaults to
+    `json_object_values`.
+  include_missing_values: A BOOLEAN DataItem. If `False`, attributes with
+    missing values will be omitted from entity JSON objects. Defaults to
+    `True`.</code></pre>
 
 </section>
 
@@ -9990,7 +9997,7 @@ Alias for [kd.schema.to_expr](#kd.schema.to_expr) operator.
 
 Alias for [kd.schema.get_itemid](#kd.schema.get_itemid) operator.
 
-### `kd.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values')` {#kd.to_json}
+### `kd.to_json(x, /, *, indent=DataItem(None, schema: NONE), ensure_ascii=True, keys_attr='json_object_keys', values_attr='json_object_values', include_missing_values=True)` {#kd.to_json}
 
 Alias for [kd.json.to_json](#kd.json.to_json) operator.
 

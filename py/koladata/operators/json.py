@@ -194,6 +194,7 @@ def from_json(
         qtype_utils.expect_data_slice(P.ensure_ascii),
         qtype_utils.expect_data_slice(P.keys_attr),
         qtype_utils.expect_data_slice(P.values_attr),
+        qtype_utils.expect_data_slice(P.include_missing_values),
     ],
     qtype_inference_expr=qtypes.DATA_SLICE,
 )
@@ -205,6 +206,7 @@ def to_json(
     ensure_ascii=True,  # pylint: disable=unused-argument
     keys_attr='json_object_keys',  # pylint: disable=unused-argument
     values_attr='json_object_values',  # pylint: disable=unused-argument
+    include_missing_values=True,  # pylint: disable=unused-argument
 ):
   r"""Converts `x` to a DataSlice of JSON strings.
 
@@ -219,8 +221,9 @@ def to_json(
   Itemid cycles are not allowed.
 
   Missing DataSlice items in the input are missing in the result. Missing values
-  inside of lists/entities/etc. are encoded as JSON `null`, except for
-  `kd.missing`, which is encoded as `false`.
+  inside of lists/entities/etc. are encoded as JSON `null` (or `false` for
+  `kd.missing`). If `include_missing_values` is `False`, entity attributes with
+  missing values are omitted from the JSON output.
 
   For example:
 
@@ -234,6 +237,8 @@ def to_json(
     kd.to_json(kd.new(a=1, b='2')) -> '{"a": 1, "b": "2"}'
     kd.to_json(kd.new(x=None)) -> '{"x": null}'
     kd.to_json(kd.new(x=kd.missing)) -> '{"x": false}'
+    kd.to_json(kd.new(a=1, b=None), include_missing_values=False)
+      -> '{"a": 1}'
 
   Koda BYTES values are converted to base64 strings (RFC 4648 section 4).
 
@@ -301,6 +306,10 @@ def to_json(
       json object key order, or None to always use sorted order. Defaults to
       `json_object_keys`.
     values_attr: A STRING DataItem that can be used with `keys_attr` to give
-      full control over json object contents. Defaults to `json_object_values`.
+      full control over json object contents. Defaults to
+      `json_object_values`.
+    include_missing_values: A BOOLEAN DataItem. If `False`, attributes with
+      missing values will be omitted from entity JSON objects. Defaults to
+      `True`.
   """
   raise NotImplementedError('implemented in the backend')

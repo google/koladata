@@ -1015,13 +1015,15 @@ absl::StatusOr<SerializableJson> DataItemToSerializableJson(
     const DataSlice& item,
     absl::flat_hash_set<internal::ObjectId>& path_object_ids,
     const std::optional<absl::string_view>& keys_attr,
-    const std::optional<absl::string_view>& values_attr);
+    const std::optional<absl::string_view>& values_attr,
+    bool include_missing_values);
 
 absl::StatusOr<SerializableJson> ListDataItemToSerializableJson(
     const DataSlice& item,
     absl::flat_hash_set<internal::ObjectId>& path_object_ids,
     const std::optional<absl::string_view>& keys_attr,
-    const std::optional<absl::string_view>& values_attr) {
+    const std::optional<absl::string_view>& values_attr,
+    bool include_missing_values) {
   DCHECK(item.is_item());
 
   ASSIGN_OR_RETURN(auto list_items, item.ExplodeList(0, std::nullopt));
@@ -1030,8 +1032,9 @@ absl::StatusOr<SerializableJson> ListDataItemToSerializableJson(
   RETURN_IF_ERROR(ForEachDataItem(
       list_items, [&](auto, const DataSlice& list_item) -> absl::Status {
         ASSIGN_OR_RETURN(json_array.emplace_back(),
-                         DataItemToSerializableJson(list_item, path_object_ids,
-                                                    keys_attr, values_attr));
+                         DataItemToSerializableJson(
+                             list_item, path_object_ids, keys_attr, values_attr,
+                             include_missing_values));
         return absl::OkStatus();
       }));
   return SerializableJson(std::move(json_array));
@@ -1041,7 +1044,8 @@ absl::StatusOr<SerializableJson> DictDataItemToSerializableJson(
     const DataSlice& item,
     absl::flat_hash_set<internal::ObjectId>& path_object_ids,
     const std::optional<absl::string_view>& keys_attr,
-    const std::optional<absl::string_view>& values_attr) {
+    const std::optional<absl::string_view>& values_attr,
+    bool include_missing_values) {
   DCHECK(item.is_item());
 
   ASSIGN_OR_RETURN(auto keys, item.GetDictKeys());
@@ -1078,8 +1082,9 @@ absl::StatusOr<SerializableJson> DictDataItemToSerializableJson(
         ASSIGN_OR_RETURN(auto key,
                          PrimitiveDataItemToObjectKeyString(values[0]));
         ASSIGN_OR_RETURN(auto value,
-                         DataItemToSerializableJson(values[1], path_object_ids,
-                                                    keys_attr, values_attr));
+                         DataItemToSerializableJson(
+                             values[1], path_object_ids, keys_attr,
+                             values_attr, include_missing_values));
         mutable_object_items.emplace_back(std::move(key), std::move(value));
         return absl::OkStatus();
       }));
@@ -1101,7 +1106,8 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
     const DataSlice& item,
     absl::flat_hash_set<internal::ObjectId>& path_object_ids,
     const std::optional<absl::string_view>& keys_attr,
-    const std::optional<absl::string_view>& values_attr) {
+    const std::optional<absl::string_view>& values_attr,
+    bool include_missing_values) {
   DCHECK(item.is_item());
 
   ASSIGN_OR_RETURN(auto attr_names, item.GetAttrNames());
@@ -1146,10 +1152,14 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
         RETURN_IF_ERROR(ForEachDataItem(
             value_list_items,
             [&](int64_t i, const DataSlice& value) -> absl::Status {
+              if (!include_missing_values && !value.item().has_value()) {
+                return absl::OkStatus();
+              }
               const auto& key = key_list_values[i];
               ASSIGN_OR_RETURN(auto json_value, DataItemToSerializableJson(
                                                     value, path_object_ids,
-                                                    keys_attr, values_attr));
+                                                    keys_attr, values_attr,
+                                                    include_missing_values));
               object_items.emplace_back(key, std::move(json_value));
               return absl::OkStatus();
             }));
@@ -1157,10 +1167,13 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
         // Object values are specified by attr values.
         for (const auto& key : key_list_values) {
           ASSIGN_OR_RETURN(auto attr_value, item.GetAttr(key));
+          if (!include_missing_values && !attr_value.item().has_value()) {
+            continue;
+          }
           ASSIGN_OR_RETURN(
               auto json_attr_value,
               DataItemToSerializableJson(attr_value, path_object_ids, keys_attr,
-                                         values_attr));
+                                         values_attr, include_missing_values));
           object_items.emplace_back(key, std::move(json_attr_value));
         }
       }
@@ -1175,9 +1188,13 @@ absl::StatusOr<SerializableJson> EntityDataItemToSerializableJson(
         continue;
       }
       ASSIGN_OR_RETURN(auto attr_value, item.GetAttr(attr_name));
+      if (!include_missing_values && !attr_value.item().has_value()) {
+        continue;
+      }
       ASSIGN_OR_RETURN(auto json_attr_value,
                        DataItemToSerializableJson(attr_value, path_object_ids,
-                                                  keys_attr, values_attr));
+                                                  keys_attr, values_attr,
+                                                  include_missing_values));
       object_items.emplace_back(attr_name, std::move(json_attr_value));
     }
   }
@@ -1188,7 +1205,8 @@ absl::StatusOr<SerializableJson> DataItemToSerializableJson(
     const DataSlice& item,
     absl::flat_hash_set<internal::ObjectId>& path_object_ids,
     const std::optional<absl::string_view>& keys_attr,
-    const std::optional<absl::string_view>& values_attr) {
+    const std::optional<absl::string_view>& values_attr,
+    bool include_missing_values) {
   DCHECK(item.is_item());
 
   if (item.GetSchemaImpl() == schema::kSchema ||
@@ -1217,15 +1235,18 @@ absl::StatusOr<SerializableJson> DataItemToSerializableJson(
     } else if (item_object_id->IsList()) {
       ASSIGN_OR_RETURN(
           json, ListDataItemToSerializableJson(item, path_object_ids, keys_attr,
-                                               values_attr));
+                                               values_attr,
+                                               include_missing_values));
     } else if (item_object_id->IsDict()) {
       ASSIGN_OR_RETURN(
           json, DictDataItemToSerializableJson(item, path_object_ids, keys_attr,
-                                               values_attr));
+                                               values_attr,
+                                               include_missing_values));
     } else {
       ASSIGN_OR_RETURN(
           json, EntityDataItemToSerializableJson(item, path_object_ids,
-                                                 keys_attr, values_attr));
+                                                 keys_attr, values_attr,
+                                                 include_missing_values));
     }
   } else {
     ASSIGN_OR_RETURN(json, PrimitiveDataItemToSerializableJson(item));
@@ -1242,7 +1263,8 @@ absl::StatusOr<SerializableJson> DataItemToSerializableJson(
 
 absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
                                  DataSlice ensure_ascii, DataSlice keys_attr,
-                                 DataSlice values_attr) {
+                                 DataSlice values_attr,
+                                 DataSlice include_missing_values) {
   int indent_value = 0;
   bool indent_is_none = true;
   if (!indent.IsEmpty()) {
@@ -1252,6 +1274,13 @@ absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
   }
   ASSIGN_OR_RETURN(bool ensure_ascii_value,
                    GetBoolArgument(ensure_ascii, "ensure_ascii"));
+
+  bool include_missing_values_value = true;
+  if (!include_missing_values.IsEmpty()) {
+    ASSIGN_OR_RETURN(
+        include_missing_values_value,
+        GetBoolArgument(include_missing_values, "include_missing_values"));
+  }
 
   std::optional<absl::string_view> keys_attr_value;
   std::optional<absl::string_view> values_attr_value;
@@ -1277,8 +1306,9 @@ absl::StatusOr<DataSlice> ToJson(DataSlice x, DataSlice indent,
 
         absl::flat_hash_set<internal::ObjectId> path_object_ids;
         ASSIGN_OR_RETURN(auto json, DataItemToSerializableJson(
-                                        item, path_object_ids, keys_attr_value,
-                                        values_attr_value));
+                                        item, path_object_ids,
+                                        keys_attr_value, values_attr_value,
+                                        include_missing_values_value));
         std::string result =
             json.dump(indent_value, ' ', ensure_ascii_value,
                       nlohmann::detail::error_handler_t::ignore);
