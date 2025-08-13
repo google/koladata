@@ -44,14 +44,15 @@ are lambdas. Example:
 from arolla import arolla
 from koladata import kd
 
+P = arolla.P
 
 @kd.optools.add_to_registry()
 @kd.optools.as_lambda_operator(
   'my_project.cond',
   qtype_constraints=[
-    qtype_utils.expect_data_slice(P.condition),
-    qtype_utils.expect_data_slice(P.yes),
-    qtype_utils.expect_data_slice(P.no),
+    kd.optools.constraints.expect_data_slice(P.condition),
+    kd.optools.constraints.expect_data_slice(P.yes),
+    kd.optools.constraints.expect_data_slice(P.no),
   ]
 )
 def cond(condition, yes, no)
@@ -85,16 +86,18 @@ through a combination of other operators to be expressed as an operator. These
 operators cannot be evaluated through C++.
 
 ```py
+from arolla import arolla
 from koladata import kd
 
+P = arolla.P
 
 @kd.optools.add_to_registry()
 @kd.optools.as_py_function_operator(
   'my_project.cond',
   qtype_constraints=[
-    qtype_utils.expect_data_slice(P.condition),
-    qtype_utils.expect_data_slice(P.yes),
-    qtype_utils.expect_data_slice(P.no),
+    kd.optools.constraints.expect_data_slice(P.condition),
+    kd.optools.constraints.expect_data_slice(P.yes),
+    kd.optools.constraints.expect_data_slice(P.no),
   ],
   qtype_inference_expr=kd.qtypes.DATA_SLICE,  # optional in this case.
 )
@@ -130,15 +133,17 @@ one of the building blocks of the higher-level `my_project.cond` operator.
 #### Python Definition
 
 ```py
+from arolla import arolla
 from koladata import kd
 
+P = arolla.P
 
 @kd.optools.add_to_registry()
 @kd.optools.as_backend_operator(
   'my_project.apply_mask',
   qtype_constraints=[
-    qtype_utils.expect_data_slice(P.obj),
-    qtype_utils.expect_data_slice(P.mask),
+    kd.optools.constraints.expect_data_slice(P.obj),
+    kd.optools.constraints.expect_data_slice(P.mask),
   ],
   qtype_inference_expr=kd.qtypes.DATA_SLICE,  # optional in this case.
 )
@@ -212,9 +217,9 @@ absl::StatusOr<DataSlice> ApplyMask(
     }
   }
 
-  // They are not scalars. We apply a pointwise operation using by iterating
-  // through the values. Note that this is _inefficient_ compared to more
-  // involved alternatives seen in the "Working with `DataSlice` in C++" doc.
+  // They are not scalars. We apply a pointwise operation by iterating through
+  // the values. Note that this is _inefficient_ compared to more involved
+  // alternatives seen in the "Working with `DataSlice` in C++" doc above.
   const internal::DataSliceImpl& obj_slice = broadcasted_obj.slice();
   const internal::DataSliceImpl& mask_slice = broadcasted_mask.slice();
   internal::SliceBuilder bldr(/*size=*/broadcasted_obj.size());
