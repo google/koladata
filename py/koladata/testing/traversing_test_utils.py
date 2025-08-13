@@ -27,6 +27,7 @@ def assert_deep_equivalent(
     *,
     partial: bool = False,
     schemas_equality: bool = False,
+    msg: str | None = None,
 ):
   """Koda slices equivalency check.
 
@@ -46,6 +47,7 @@ def assert_deep_equivalent(
     partial: If True, only the attributes present in the expected_value are
       compared.
     schemas_equality: If True, the schema ObejectIds are compared.
+    msg: Optional message to be used if the assertion fails.
 
   Raises:
     AssertionError: If actual_value and expected_value are not equivalent.
@@ -55,4 +57,5 @@ def assert_deep_equivalent(
       expected_value,
       partial=partial,
       schemas_equality=schemas_equality,
+      msg=msg,
   )

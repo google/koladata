@@ -81,6 +81,17 @@ class TraversingTestUtilsTest(absltest.TestCase):
       b = bag_b.new()
       traversing_test_utils.assert_deep_equivalent(a, b)
 
+  def test_assert_deep_equivalent_msg(self):
+    with self.assertRaisesWithLiteralMatch(
+        AssertionError,
+        'provided message',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      a = bag_a.new(x=1)
+      b = bag_b.new()
+      traversing_test_utils.assert_deep_equivalent(a, b, msg='provided message')
+
   def test_assert_deep_equivalent_diff_rhs_only(self):
     with self.assertRaisesRegex(
         AssertionError,

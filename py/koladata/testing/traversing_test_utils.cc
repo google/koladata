@@ -41,7 +41,7 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   arolla::python::PyCancellationScope cancellation_scope;
   static const absl::NoDestructor<FastcallArgParser> parser(FastcallArgParser(
       /*pos_only_n=*/2, /*parse_kwargs=*/false,
-      {"partial", "schemas_equality"}));
+      {"partial", "schemas_equality", "msg"}));
   FastcallArgParser::Args args;
   if (!parser->Parse(py_args, nargs, py_kwnames, args)) {
     return nullptr;
@@ -74,6 +74,15 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
       arolla::python::SetPyErrFromStatus(_));
   if (mismatches.empty()) {
     Py_RETURN_NONE;
+  }
+  std::string_view msg_view;
+  auto msg_arg_it = args.kw_only_args.find("msg");
+  if (msg_arg_it != args.kw_only_args.end() && msg_arg_it->second != Py_None) {
+    if (!ParseStringOrDataItemArg(msg_arg_it->second, "msg", msg_view)) {
+      return nullptr;
+    }
+    PyErr_SetString(PyExc_AssertionError, std::string(msg_view).c_str());
+    return nullptr;
   }
   ReprOption repr_option(
       {.depth = 1, .unbounded_type_max_len = 100, .show_databag_id = false});
