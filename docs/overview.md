@@ -960,7 +960,8 @@ When such an annotated function is traced to produce a functor, then the inner
 functors can be accessed as attributes.
 
 ```py
-@kd.trace_as_fn(py_fn=True)  # py_fn=True because the Python `while` cannot be traced properly
+# functor_factory=kd.py_fn because the Python `while` cannot be traced properly.
+@kd.trace_as_fn(functor_factory=kd.py_fn)
 def my_op(x, y):
   while (x > 0): y += x; x -= 1
   return y

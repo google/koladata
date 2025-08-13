@@ -451,8 +451,8 @@ Functors created via `kd.fn` offer several capabilities:
     `kd.fn`, it is converted into its own distinct Functor. This Functor is then
     embedded in an attribute of the outer Functor, and a call to the inner
     functor is used in the outer Functor's body, enhancing modularity.
-    Specifying `@kd.trace_as_fn(py_fn=True)` causes the decorated function to be
-    wrapped as a `kd.py_fn` within the traced graph.
+    Specifying `@kd.trace_as_fn(functor_factory=kd.py_fn)` causes the decorated
+    function to be wrapped as a `kd.py_fn` within the traced graph.
 
 ### Benefits and Limitations of Deferred Evaluation
 

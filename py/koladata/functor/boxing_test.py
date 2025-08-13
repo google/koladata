@@ -58,13 +58,17 @@ class BoxingTest(absltest.TestCase):
     yes_executed = False
     no_executed = False
 
-    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    @tracing_decorator.TraceAsFnDecorator(
+        functor_factory=functor_factories.py_fn
+    )
     def yes(x):
       nonlocal yes_executed
       yes_executed = True
       return x + 1
 
-    @tracing_decorator.TraceAsFnDecorator(py_fn=True)
+    @tracing_decorator.TraceAsFnDecorator(
+        functor_factory=functor_factories.py_fn
+    )
     def no(x):
       nonlocal no_executed
       no_executed = True
