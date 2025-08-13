@@ -280,9 +280,10 @@ class FromPyConverter {
     const bool is_struct_schema = IsStructSchema(schema);
     for (PyObject* py_obj : py_objects) {
       if (!PyList_Check(py_obj) && !PyTuple_Check(py_obj)) {
+        // This can only happen if there is a schema provided; otherwise we
+        // always parse objects one by one.
         return absl::InvalidArgumentError(
-            "cannot parse lists/tuples mixed with other types on the same "
-            "level");
+            "schema mismatch: expected list/tuple");
       }
       shape_builder.Add(PySequence_Fast_GET_SIZE(py_obj));
       absl::Span<PyObject*> py_items(PySequence_Fast_ITEMS(py_obj),
@@ -328,9 +329,9 @@ class FromPyConverter {
         GetSchemaAttrOrObjectSchema(schema, schema::kDictValuesSchemaAttr));
     for (PyObject* py_obj : py_objects) {
       if (!PyDict_Check(py_obj)) {
-        return absl::InvalidArgumentError(
-            "cannot parse dicts mixed with other types on the same "
-            "level");
+        // This can only happen if there is a schema provided; otherwise we
+        // always parse objects one by one.
+        return absl::InvalidArgumentError("schema mismatch: expected dict");
       }
 
       const size_t dict_size = PyDict_Size(py_obj);

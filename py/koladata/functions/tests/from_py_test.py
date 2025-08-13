@@ -228,6 +228,24 @@ class FromPyTest(parameterized.TestCase):
         l[:]['d'].no_bag(), ds([None, 8], schema_constants.INT32)
     )
 
+  def test_list_schema_mismatch(self):
+    with self.assertRaisesRegex(ValueError, 'schema mismatch'):
+      fns._from_py_v2(
+          [[1], 2, 3],
+          schema=kde.list_schema(schema_constants.INT32).eval(),
+          from_dim=1,
+      )
+
+  def test_dict_schema_mismatch(self):
+    with self.assertRaisesRegex(ValueError, 'schema mismatch'):
+      fns._from_py_v2(
+          [{'a': 1}, 2, 3],
+          schema=kde.dict_schema(
+              schema_constants.INT32, schema_constants.INT32
+          ).eval(),
+          from_dim=1,
+      )
+
   @parameterized.named_parameters(
       ('list', [1, 2, 3]),
       ('dict', {'a': 2, 'b': 4}),
