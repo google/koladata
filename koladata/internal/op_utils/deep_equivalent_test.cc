@@ -16,7 +16,7 @@
 
 #include <limits>
 #include <optional>
-#include <string_view>
+#include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -28,6 +28,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/op_utils/deep_clone.h"
+#include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/testing/deep_op_utils.h"
 
@@ -37,7 +38,6 @@ namespace {
 using ::arolla::CreateDenseArray;
 using testing::deep_op_utils::DeepOpTest;
 using testing::deep_op_utils::test_param_values;
-
 constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
 class DeepEquivalentTest : public DeepOpTest {};
@@ -72,10 +72,11 @@ TEST_P(DeepEquivalentTest, FloatSlice) {
                          {GetFallbackDb(db).get()}));
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_ds, DataItem(schema::kObject)));
-  std::vector<std::string_view> diff_paths;
+  std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
-    diff_paths.push_back(diff.path);
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
   }
   EXPECT_THAT(diff_paths,
               ::testing::ElementsAre(::testing::HasSubstr(".S[1]")));
@@ -130,10 +131,11 @@ TEST_P(DeepEquivalentTest, DeepEntitySlice) {
 
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_ds, DataItem(schema::kObject)));
-  std::vector<std::string_view> diff_paths;
+  std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
-    diff_paths.push_back(diff.path);
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
   }
   EXPECT_THAT(diff_paths,
               ::testing::ElementsAre(::testing::HasSubstr(".S[0].b.x")));
@@ -185,10 +187,11 @@ TEST_P(DeepEquivalentTest, DeepEntitySlicePartial) {
 
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_ds, DataItem(schema::kObject)));
-  std::vector<std::string_view> diff_paths;
+  std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
-    diff_paths.push_back(diff.path);
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
   }
   EXPECT_THAT(diff_paths,
               ::testing::UnorderedElementsAre(
@@ -245,10 +248,11 @@ TEST_P(DeepEquivalentTest, DeepEntityItem) {
 
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_item, DataItem(schema::kObject)));
-  std::vector<std::string_view> diff_paths;
+  std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
-    diff_paths.push_back(diff.path);
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
   }
   EXPECT_THAT(diff_paths, ::testing::ElementsAre(::testing::HasSubstr(".b.x")));
 }
@@ -268,10 +272,11 @@ TEST_P(DeepEquivalentTest, PrimitiveSlice) {
 
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_ds, DataItem(schema::kObject)));
-  std::vector<std::string_view> diff_paths;
+  std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
-    diff_paths.push_back(diff.path);
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
   }
   EXPECT_THAT(diff_paths,
               ::testing::UnorderedElementsAre(::testing::HasSubstr(".S[1]"),
@@ -312,10 +317,11 @@ TEST_P(DeepEquivalentTest, SchemaSlice) {
                          DataItem(schema::kSchema), *cloned_db, {}));
   ASSERT_OK_AND_ASSIGN(auto diffs, deep_equivalent_op.GetDiffPaths(
                                        result_item, DataItem(schema::kObject)));
-  std::vector<std::string_view> diff_paths;
+  std::vector<std::string> diff_paths;
   diffs.reserve(diffs.size());
   for (const auto& diff : diffs) {
-    diff_paths.push_back(diff.path);
+    diff_paths.push_back(
+        TraverseHelper::TransitionKeySequenceToAccessPath(diff.path));
   }
   EXPECT_THAT(
       diff_paths,

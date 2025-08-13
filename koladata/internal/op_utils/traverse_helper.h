@@ -128,12 +128,37 @@ class TraverseHelper {
   }
 
   static std::string TransitionKeySequenceToAccessPath(
-      absl::Span<TransitionKey> seq,
+      absl::Span<const TransitionKey> seq,
       absl::string_view ignore_attr_name_prefix = "") {
     std::string result;
     for (const auto& key : seq) {
       absl::StrAppend(
           &result, TransitionKeyToAccessString(key, ignore_attr_name_prefix));
+    }
+    return result;
+  }
+
+  // Returns a copy of the sequence of transition keys, where attribute names
+  // starting with the given prefix have this prefix removed.
+  static std::vector<TransitionKey> WithIgnoringPrefix(
+      absl::Span<const TransitionKey> seq,
+      absl::string_view ignore_attr_name_prefix) {
+    std::vector<TransitionKey> result;
+    for (const auto& key : seq) {
+      if (key.type == TransitionType::kSchemaAttributeName ||
+          key.type == TransitionType::kAttributeName) {
+        auto attr_name = key.value.value<arolla::Text>().view();
+        if (!ignore_attr_name_prefix.empty() &&
+            attr_name.starts_with(ignore_attr_name_prefix)) {
+          attr_name = attr_name.substr(ignore_attr_name_prefix.size());
+        }
+        result.push_back(
+            {.type = key.type,
+             .index = key.index,
+             .value = DataItem(arolla::Text(std::move(attr_name)))});
+      } else {
+        result.push_back(key);
+      }
     }
     return result;
   }

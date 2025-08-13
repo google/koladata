@@ -23,6 +23,7 @@
 #include "koladata/internal/data_bag.h"
 #include "koladata/internal/data_item.h"
 #include "koladata/internal/data_slice.h"
+#include "koladata/internal/op_utils/traverse_helper.h"
 
 namespace koladata::internal {
 
@@ -37,7 +38,7 @@ namespace koladata::internal {
 class DeepEquivalentOp {
  public:
   struct DiffItem {
-    std::string path;
+    std::vector<TraverseHelper::TransitionKey> path;
     DataItem item;
     DataItem schema;
   };

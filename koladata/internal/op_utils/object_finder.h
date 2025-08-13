@@ -46,7 +46,8 @@ class ObjectFinder {
   // The visitor can request the path to the object.
  public:
   using ObjectPathCallback = absl::FunctionRef<absl::Status(
-      const DataItem&, const DataItem&, absl::FunctionRef<std::string()> path)>;
+      const DataItem&, const DataItem&,
+      absl::FunctionRef<std::vector<TraverseHelper::TransitionKey>()> path)>;
 
   ObjectFinder(const DataBagImpl& databag, DataBagImpl::FallbackSpan fallbacks,
                absl::string_view ignore_attr_name_prefix = "")
@@ -131,7 +132,10 @@ class ObjectFinder {
     }
     access_stack_.push_back(key);
     RETURN_IF_ERROR(callback(item.item, item.schema, [&]() {
-      return TraverseHelper::TransitionKeySequenceToAccessPath(
+      if (ignore_attr_name_prefix_.empty()) {
+        return access_stack_;
+      }
+      return TraverseHelper::WithIgnoringPrefix(
           absl::MakeSpan(access_stack_), ignore_attr_name_prefix_);
     }));
     access_stack_.pop_back();
@@ -170,7 +174,10 @@ class ObjectFinder {
                 {.type = TraverseHelper::TransitionType::kObjectSchema}),
             callback));
         RETURN_IF_ERROR(callback(item.item, item.schema, [&]() {
-          return TraverseHelper::TransitionKeySequenceToAccessPath(
+          if (ignore_attr_name_prefix_.empty()) {
+            return access_stack_;
+          }
+          return TraverseHelper::WithIgnoringPrefix(
               absl::MakeSpan(access_stack_), ignore_attr_name_prefix_);
         }));
       } else if (item.item != DataItem(schema::kSchema) ||

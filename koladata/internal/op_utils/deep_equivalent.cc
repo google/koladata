@@ -186,14 +186,16 @@ DeepEquivalentOp::GetDiffPaths(const DataSliceImpl& ds, const DataItem& schema,
   std::vector<DiffItem> diff_paths;
   auto diff_uuid =
       CreateSchemaUuidFromFields(DeepDiff::kDiffWrapperSeed, {}, {});
-  auto lambda_visitor = [&](const DataItem& item, const DataItem& schema,
-                            absl::FunctionRef<std::string()> path) {
-    if (schema == diff_uuid && diff_paths.size() < max_count) {
-      diff_paths.push_back(
-          {.path = std::string(path()), .item = item, .schema = schema});
-    }
-    return absl::OkStatus();
-  };
+  auto lambda_visitor =
+      [&](const DataItem& item, const DataItem& schema,
+          absl::FunctionRef<std::vector<TraverseHelper::TransitionKey>()>
+              path) {
+        if (schema == diff_uuid && diff_paths.size() < max_count) {
+          diff_paths.push_back(
+              {.path = path(), .item = item, .schema = schema});
+        }
+        return absl::OkStatus();
+      };
   // We look for the diff items (have diff_uuid schema) in the newly
   // created databag.
   auto diff_finder =
@@ -209,14 +211,16 @@ DeepEquivalentOp::GetDiffPaths(const DataItem& item, const DataItem& schema,
   std::vector<DiffItem> diff_paths;
   auto diff_uuid =
       CreateSchemaUuidFromFields(DeepDiff::kDiffWrapperSeed, {}, {});
-  auto lambda_visitor = [&](const DataItem& item, const DataItem& schema,
-                            absl::FunctionRef<std::string()> path) {
-    if (schema == diff_uuid && diff_paths.size() < max_count) {
-      diff_paths.push_back(
-          {.path = std::string(path()), .item = item, .schema = schema});
-    }
-    return absl::OkStatus();
-  };
+  auto lambda_visitor =
+      [&](const DataItem& item, const DataItem& schema,
+          absl::FunctionRef<std::vector<TraverseHelper::TransitionKey>()>
+              path) {
+        if (schema == diff_uuid && diff_paths.size() < max_count) {
+          diff_paths.push_back(
+              {.path = path(), .item = item, .schema = schema});
+        }
+        return absl::OkStatus();
+      };
   auto diff_finder =
       ObjectFinder(*new_databag_, {}, DeepDiff::kSchemaAttrPrefix);
   RETURN_IF_ERROR(diff_finder.TraverseSlice(item, schema, lambda_visitor));

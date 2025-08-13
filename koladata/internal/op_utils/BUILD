@@ -204,6 +204,7 @@ cc_test(
     srcs = ["object_finder_test.cc"],
     deps = [
         ":object_finder",
+        ":traverse_helper",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",
@@ -483,6 +484,7 @@ cc_test(
     deps = [
         ":deep_clone",
         ":deep_equivalent",
+        ":traverse_helper",
         "//koladata/internal:data_bag",
         "//koladata/internal:data_item",
         "//koladata/internal:data_slice",

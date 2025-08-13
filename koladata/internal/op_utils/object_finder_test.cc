@@ -39,6 +39,7 @@
 #include "koladata/internal/data_slice.h"
 #include "koladata/internal/dtype.h"
 #include "koladata/internal/object_id.h"
+#include "koladata/internal/op_utils/traverse_helper.h"
 #include "koladata/internal/schema_attrs.h"
 #include "koladata/internal/testing/deep_op_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -73,11 +74,14 @@ class TestFinder {
     }
   }
 
-  absl::Status ObjectPathCallback(const DataItem& item, const DataItem& schema,
-                                  absl::FunctionRef<std::string()> path) {
+  absl::Status ObjectPathCallback(
+      const DataItem& item, const DataItem& schema,
+      absl::FunctionRef<std::vector<TraverseHelper::TransitionKey>()> path) {
     ASSIGN_OR_RETURN(bool need_access_path, need_access_path_fn_(item, schema));
     if (need_access_path) {
-      return AccessPath(item, schema, path());
+      return AccessPath(
+          item, schema,
+          TraverseHelper::TransitionKeySequenceToAccessPath(path()));
     }
     return absl::OkStatus();
   }
@@ -147,7 +151,8 @@ TEST_P(ObjectFinderTest, EntitySlicePrimitives) {
   ASSERT_OK(object_finder.TraverseSlice(
       obj_ids, schema,
       [&](const DataItem& item, const DataItem& schema,
-          absl::FunctionRef<std::string()> path) {
+          absl::FunctionRef<std::vector<TraverseHelper::TransitionKey>()>
+              path) {
         return finder->ObjectPathCallback(item, schema, path);
       }));
 }
@@ -188,7 +193,8 @@ TEST_P(ObjectFinderTest, EntitySlicePrimitivesNan) {
   ASSERT_OK(object_finder.TraverseSlice(
       obj_ids, schema,
       [&](const DataItem& item, const DataItem& schema,
-          absl::FunctionRef<std::string()> path) {
+          absl::FunctionRef<std::vector<TraverseHelper::TransitionKey>()>
+              path) {
         return finder->ObjectPathCallback(item, schema, path);
       }));
 }
@@ -239,7 +245,8 @@ TEST_P(ObjectFinderTest, ObjectSliceEntities) {
   ASSERT_OK(object_finder.TraverseSlice(
       obj_ids, object_schema,
       [&](const DataItem& item, const DataItem& schema,
-          absl::FunctionRef<std::string()> path) {
+          absl::FunctionRef<std::vector<TraverseHelper::TransitionKey>()>
+              path) {
         return finder->ObjectPathCallback(item, schema, path);
       }));
 }
@@ -279,7 +286,8 @@ TEST_P(ObjectFinderTest, SchemaSlice) {
     ASSERT_OK(object_finder.TraverseSlice(
         root_schema, DataItem(schema::kSchema),
         [&](const DataItem& item, const DataItem& schema,
-            absl::FunctionRef<std::string()> path) {
+            absl::FunctionRef<std::vector<TraverseHelper::TransitionKey>()>
+                path) {
           return finder->ObjectPathCallback(item, schema, path);
         }));
   }

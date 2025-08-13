@@ -19,12 +19,12 @@
 
 #include "absl/base/no_destructor.h"
 #include "absl/base/nullability.h"
-#include "absl/log/check.h"
-#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
 #include "arolla/jagged_shape/dense_array/qtype/qtype.h"
 #include "koladata/data_slice.h"
+#include "koladata/data_slice_repr.h"
 #include "koladata/testing/traversing_utils.h"
 #include "py/arolla/py_utils/py_utils.h"
 #include "py/koladata/base/py_args.h"
@@ -75,16 +75,13 @@ PyObject* absl_nullable PyAssertDeepEquivalent(PyObject* /*module*/,
   if (mismatches.empty()) {
     Py_RETURN_NONE;
   }
-  std::string msg;
-  if (expected_ds->is_item() &&
-      expected_ds->GetSchemaImpl().is_primitive_schema()) {
-    DCHECK_EQ(mismatches.size(), 1);
-    msg = absl::StrCat("DataSlices are not equivalent: ",
-                       absl::StrJoin(mismatches, "\n"));
-  } else {
-    msg = absl::StrCat("DataSlices are not equivalent, mismatches found at:\n",
-                       absl::StrJoin(mismatches, "\n"));
-  }
+  ReprOption repr_option(
+      {.depth = 1, .unbounded_type_max_len = 100, .show_databag_id = false});
+  auto expected_repr = DataSliceRepr(*expected_ds, repr_option);
+  auto actual_repr = DataSliceRepr(*actual_ds, repr_option);
+  std::string msg = absl::StrFormat(
+      "Expected: is equal to %s\nActual: %s, with difference:\n%s",
+      expected_repr, actual_repr, absl::StrJoin(mismatches, "\n"));
   PyErr_SetString(PyExc_AssertionError, msg.c_str());
   return nullptr;
 }

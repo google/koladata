@@ -49,10 +49,9 @@ TEST(TraversingUtilsTest, ShapesAreNotEquivalent) {
                                          internal::DataItem(explicit_schema)));
   ASSERT_OK_AND_ASSIGN(
       auto result, DeepEquivalentMismatches(ds_a, ds_b, /*max_count=*/2, {}));
-  EXPECT_THAT(
-      result,
-      ElementsAre(
-          "Shapes are not equivalent: JaggedShape(2) vs JaggedShape(3)"));
+  EXPECT_THAT(result,
+              ElementsAre("expected both DataSlices to be of the same shape "
+                          "but got JaggedShape(2) and JaggedShape(3)"));
 }
 
 TEST(TraversingUtilsTest, SlicesAreEquivalent) {
@@ -104,19 +103,20 @@ TEST(TraversingUtilsTest, SlicesMismatch) {
                                               ds_a, ds_b, /*max_count=*/2, {}));
     EXPECT_THAT(
         mismatches,
-        UnorderedElementsAre(
-            MatchesRegex(
-                R"(\.S\[0\]: DataItem\(2, schema: OBJECT\) vs DataItem\(3, schema: OBJECT\))"),
-            MatchesRegex(
-                R"(\.S\[1\]: DataItem\(2, schema: OBJECT\) vs DataItem\(3, schema: OBJECT\))")));
+        ::testing::UnorderedElementsAreArray(
+            {"modified:\nexpected.S[0]:\nDataItem(3, schema: OBJECT)\n"
+             "-> actual.S[0]:\nDataItem(2, schema: OBJECT)",
+             "modified:\nexpected.S[1]:\nDataItem(3, schema: OBJECT)\n"
+             "-> actual.S[1]:\nDataItem(2, schema: OBJECT)"}));
   }
   {
     ASSERT_OK_AND_ASSIGN(auto mismatches, DeepEquivalentMismatches(
                                               ds_a, ds_b, /*max_count=*/1, {}));
-    EXPECT_THAT(
-        mismatches,
-        UnorderedElementsAre(MatchesRegex(
-            R"(\.S\[[01]\]: DataItem\(2, schema: OBJECT\) vs DataItem\(3, schema: OBJECT\))")));
+    EXPECT_THAT(mismatches,
+                ElementsAre(MatchesRegex(
+                    "modified:\nexpected\\.S\\[.\\]:\nDataItem\\(3, schema: "
+                    "OBJECT\\)\n-> actual\\.S\\[.\\]:\nDataItem\\(2, schema: "
+                    "OBJECT\\)")));
   }
 }
 

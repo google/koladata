@@ -31,18 +31,26 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_diff(self):
     with self.assertRaisesRegex(
         AssertionError,
-        r'DataSlices are not equivalent, mismatches found at:\n'
-        r'.S\[2\]: DataItem\(3, schema: INT32\)'
-        r' vs DataItem\(4, schema: INT32',
+        r'Expected: is equal to DataSlice\(.*\)\n'
+        r'Actual: DataSlice\(.*\), with difference:\n'
+        r'modified:\n'
+        r'expected.S\[2\]:\n'
+        r'DataItem\(4, schema: INT32\)\n'
+        r'-> actual.S\[2\]:\n'
+        r'DataItem\(3, schema: INT32\)'
     ):
       traversing_test_utils.assert_deep_equivalent(ds([1, 2, 3]), ds([1, 2, 4]))
 
   def test_assert_deep_equivalent_diff_deep(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'.mapping\[\'d\'\].x: '
-        r'DataItem\(4, schema: INT32\) vs DataItem\(5, schema: INT32\)',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'modified:\n'
+        r"expected.mapping\['d'\].x:\n"
+        r'DataItem\(5, schema: INT32\)\n'
+        r"-> actual.mapping\['d'\].x:\n"
+        r'DataItem\(4, schema: INT32\)'
     ):
       bag_a = bag()
       bag_b = bag()
@@ -61,8 +69,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_diff_lhs_only(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'.x: DataItem\(1, schema: INT32\) vs missing',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'added:\n'
+        r'actual.x:\n'
+        r'DataItem\(1, schema: INT32\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -73,8 +84,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_diff_rhs_only(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'.y: missing vs DataItem\(2, schema: INT32\)',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'deleted:\n'
+        r'expected.y:\n'
+        r'DataItem\(2, schema: INT32\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -85,9 +99,12 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_diff_lhs_only_dict_key(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'.mapping\[\'b\'\]: '
-        r'DataItem\(Entity\(x=2\), schema: ENTITY\(x=INT32\)\) vs missing',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'added:\n'
+        r"key 'b' in actual.mapping:\n"
+        r'DataItem\(Entity\(x=2\), schema: '
+        r'ENTITY\(x=INT32\)\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -104,8 +121,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_diff_lists(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'\[2\]: DataItem\(3, schema: INT32\) vs missing',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'added:\n'
+        r'item at position 2 in list actual:\n'
+        r'DataItem\(3, schema: INT32\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -116,10 +136,14 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_diff_object_types(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'.mapping: '
-        r'DataItem\(Entity\(a=1, c=3, d=4\), schema: ENTITY\(.*\)\) vs '
-        r'DataItem\(Dict{.*}, schema: DICT{STRING, INT32}\)',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'modified:\n'
+        r'expected.mapping:\n'
+        r'DataItem\(Dict{.*}, schema: DICT{STRING, INT32}\)\n'
+        r'-> actual.mapping:\n'
+        r'DataItem\(Entity\(a=1, c=3, d=4\), schema: '
+        r'ENTITY\(a=INT32, c=INT32, d=INT32\)\)'
     ):
       bag_a = bag()
       bag_b = bag()
@@ -137,8 +161,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_diff_partial_rhs_only(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'.y: missing vs DataItem\(2, schema: INT32\)',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'deleted:\n'
+        r'expected.y:\n'
+        r'DataItem\(2, schema: INT32\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -149,8 +176,11 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_partial_diff_lists(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'\[2\]: DataItem\(3, schema: INT32\) vs missing',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'added:\n'
+        r'item at position 2 in list actual:\n'
+        r'DataItem\(3, schema: INT32\)',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -161,8 +191,13 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_diff_not_schemas_equality_deep(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'schema differ at .x: (\$[0-9a-zA-Z]{22}) vs (\$[0-9a-zA-Z]{22})',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'modified schema:\n'
+        r'expected.x:\n'
+        r'(\$[0-9a-zA-Z]{22})\n'
+        r'-> actual.x:\n'
+        r'(\$[0-9a-zA-Z]{22})',
     ):
       bag_a = bag()
       bag_b = bag()
@@ -173,8 +208,13 @@ class TraversingTestUtilsTest(absltest.TestCase):
   def test_assert_deep_equivalent_diff_not_schemas_equality_root_slice(self):
     with self.assertRaisesRegex(
         AssertionError,
-        'DataSlices are not equivalent, mismatches found at:\n'
-        r'schema differ: (\$[0-9a-zA-Z]{22}) vs (\$[0-9a-zA-Z]{22})',
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'modified schema:\n'
+        r'expected:\n'
+        r'(\$[0-9a-zA-Z]{22})\n'
+        r'-> actual:\n'
+        r'(\$[0-9a-zA-Z]{22})',
     ):
       bag_a = bag()
       bag_b = bag()
