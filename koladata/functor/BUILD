@@ -137,6 +137,7 @@ cc_library(
         "//koladata/expr:expr_operators",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:string_view",
         "@com_google_absl//absl/types:span",
         "@com_google_arolla//arolla/expr",

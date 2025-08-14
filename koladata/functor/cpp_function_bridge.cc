@@ -16,11 +16,14 @@
 
 #include <functional>
 #include <memory>
+#include <source_location>  // NOLINT(build/c++20): needed for OSS logging.
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/span.h"
 #include "arolla/expr/expr.h"
@@ -31,10 +34,12 @@
 #include "arolla/qtype/qtype.h"
 #include "arolla/qtype/typed_ref.h"
 #include "arolla/qtype/typed_value.h"
+#include "arolla/util/text.h"
 #include "koladata/data_slice.h"
 #include "koladata/expr/expr_operators.h"
 #include "koladata/functor/functor.h"
 #include "koladata/functor/signature_utils.h"
+#include "koladata/functor_storage.h"
 #include "koladata/signature.h"
 #include "arolla/util/status_macros_backport.h"
 
@@ -45,7 +50,7 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
         absl::StatusOr<arolla::TypedValue>(absl::Span<const arolla::TypedRef>)>
         fn,
     absl::string_view name, absl::string_view signature_spec,
-    arolla::QTypePtr output_type) {
+    arolla::QTypePtr output_type, std::source_location loc) {
   ASSIGN_OR_RETURN(auto signature,
                    arolla::expr::ExprOperatorSignature::Make(signature_spec));
   auto get_output_type =
@@ -83,9 +88,12 @@ absl::StatusOr<koladata::DataSlice> CreateFunctorFromStdFunction(
   ASSIGN_OR_RETURN(auto koda_signature, Signature::Create(koda_params));
   ASSIGN_OR_RETURN(auto koda_signature_slice,
                    CppSignatureToKodaSignature(koda_signature));
-  return CreateFunctor(std::move(op_slice), std::move(koda_signature_slice),
-                       {}, {});
+  std::string module = absl::StrCat("<c++: ", loc.file_name(), ">");
+  return CreateFunctor(
+      std::move(op_slice), std::move(koda_signature_slice),
+      {functor::kModuleAttrName, functor::kQualnameAttrName},
+      {DataSlice::CreateFromScalar(arolla::Text(std::move(module))),
+       DataSlice::CreateFromScalar(arolla::Text(name))});
 }
-
 
 }  // namespace koladata::functor

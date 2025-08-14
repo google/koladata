@@ -51,6 +51,7 @@ using ::absl_testing::StatusIs;
 using ::arolla::testing::QValueWith;
 using ::koladata::testing::IsEquivalentTo;
 using ::testing::HasSubstr;
+using ::testing::IsSupersetOf;
 
 TEST(CppFunctionBridgeTest, CreateFunctorFromStdFunction) {
   ASSERT_OK_AND_ASSIGN(
