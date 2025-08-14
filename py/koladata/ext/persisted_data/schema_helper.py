@@ -72,7 +72,7 @@ More details about the concepts and utilities provided by this module:
 * *Schema node names*: These are identifiers for the nodes of the Schema Graph.
   They indicate which data is requested/provided from a schema perspective.
   Some nodes of a Koda schema have item ids, which are stable identifiers, but
-  some nodes such as kd.INT32 and kd.SCHEMA do not have item ids.
+  some nodes such as kd.INT32 and kd.STRING do not have item ids.
   To accommodate nodes that do not have item ids, we use strings for schema node
   names.
   For schema nodes with item ids, the node name is simply the base62 encoded
@@ -96,21 +96,54 @@ More details about the concepts and utilities provided by this module:
     to be kd.FLOAT32, then there is no need to load the INT32 data when the user
     requests the foo.x data at some future point in time.
   * Those whose data values can be aliased. There are only two such schemas:
-    kd.SCHEMA and kd.OBJECT.
-    The schema node name for kd.SCHEMA is "shared:SCHEMA". That encodes the
-    pessimistic assumption that its values can be aliased inside a concrete
-    DataSlice even if they are mentioned in different parts of the schema of
-    the DataSlice. For example, suppose we have a DataSlice ds with a schema
-    s such that s.foo.x and s.foo.y are both kd.SCHEMA. Then it is possible that
-    ds has only one schema object, such as kd.list_schema(kd.INT32), that is
-    pointed to by both ds.foo.x and ds.foo.y.
-    The use of kd.OBJECT is not supported. The reason is that OBJECT can alias
-    pretty much anything that can be aliased in a DataSlice. Updates to the
-    OBJECT can affect the sub-slice that is aliased, and similarly an update to
-    the aliased sub-slice can affect the OBJECT. Allowing kd.OBJECT would
-    therefore collapse very large parts of the schema graph, which is not
-    desirable because it would erase many of the distinctions encoded in
-    structured schemas that help to load the data incrementally.
+    kd.OBJECT and kd.SCHEMA. Neither of them is supported:
+    * The use of kd.OBJECT is not supported. The reason is that OBJECT can alias
+      pretty much anything that can be aliased in a DataSlice. Updates to the
+      OBJECT can affect the sub-slice that is aliased, and similarly an update
+      to the aliased sub-slice can affect the OBJECT. Allowing kd.OBJECT would
+      therefore collapse very large parts of the schema graph, which is not
+      desirable because it would erase many of the distinctions encoded in
+      structured schemas that help to load the data incrementally.
+    * The use of kd.SCHEMA is not supported. In vanilla Koda,
+      1. Updates to a sub-slice with schema kd.SCHEMA can cause the schema of
+         the main DataSlice (i.e. the outer or containing DataSlice) to be
+         updated.
+      2. Updating the schema of the main DataSlice can cause the data of a
+         sub-slice with schema kd.SCHEMA to be updated.
+      These behaviors are problematic for the Schema Graph. For example, in the
+      case of
+      1. Adding an attribute with schema kd.SCHEMA is not simply adding an edge
+         and a node in the Schema Graph: it can in principle lead to an entirely
+         different Schema Graph. So it is not a local change, and we cannot
+         compute the new schema graph by considering only the old schema graph
+         and the schema of the update (kd.SCHEMA, which is opaque).
+      2. Adding an attribute (with any schema) anywhere in a DataSlice can
+         potentially affect the value of any sub-slice with schema kd.SCHEMA.
+         Together with the point above, this means that allowing kd.SCHEMA would
+         require collapsing the Schema Graph to a single node, which is not
+         desirable. The situation is very much the same as with kd.OBJECT.
+      Said otherwise, supporting the behavior of vanilla Koda is problematic for
+      the PersistedIncrementalDataSliceManager, which indexes an update by
+      considering only its schema. In particular, in the case of
+      1. The update has the schema kd.SCHEMA, so on the basis of only that, the
+         manager does not know which parts of the schema of the main DataSlice
+         are affected and how.
+      2. The manager does not know which sub-slices with schema kd.SCHEMA are
+         affected by an update to the main DataSlice's schema.
+      If kd.SCHEMA was supported, then users could perform multiple updates of
+      kinds 1 and 2 in any interleaved order. It seems there is no simple way to
+      make the manager correctly reason about them without analyzing/indexing
+      each update on the basis of the itemids contained therein.
+      Since that would be a significant departure from the current manager
+      design, which reasons about an update on the basis of its schema alone by
+      using a Schema Graph, it seems more attractive for the moment to ban the
+      use of kd.SCHEMA as a subschema. As a result, managed DataSlices enforce a
+      complete separation between data and schema:
+      1. Data cannot contain subslices that are schemas: kd.SCHEMA as well as
+         kd.OBJECT are banned.
+      2. Schema cannot contain data apart from metadata attributes, but they
+         must be primitives. Hence no aliasing is possible - an update to
+         the schema cannot update data in the main DataSlice.
   The schema node names for a given schema are stable across runs, and they can
   hence be used in metadata that gets persisted. (Their creation do not use
   operations such as kd.hash_itemid that are not stable across runs.)
@@ -280,11 +313,15 @@ def _get_schema_node_name(
         ' instead'
     )
 
-  assert child_schema_item == kd.SCHEMA
-  # These are the schemas that don't have item ids, but whose values might be
-  # aliased. No matter where they occur in the schema, they will always be
-  # associated with the same schema node name because they might be aliased:
-  return f'shared:{child_schema_item}'
+  assert child_schema_item == kd.SCHEMA, (
+      f'unsupported schema {child_schema_item}. Please contact the Koda team if'
+      ' you need support for it'
+  )
+  raise ValueError(
+      'SCHEMA schemas are not supported. Please remove it and try again. If '
+      'you truly want to include data with schema SCHEMA, then consider '
+      'serializing it and attaching the resulting BYTES data instead'
+  )
 
 
 def _get_schema_bag(

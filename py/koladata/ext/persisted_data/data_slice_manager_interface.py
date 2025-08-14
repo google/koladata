@@ -90,7 +90,9 @@ class DataSliceManagerInterface:
     data only or updated data+schema.
 
     Some restrictions apply to attr_value:
-    * attr_value.get_schema() must not use kd.OBJECT anywhere.
+    * attr_value.get_schema() must not use kd.OBJECT or kd.SCHEMA anywhere.
+    * attr_value.get_schema() can use only Koda primitives in schema metadata
+      attributes.
     * Each itemid in attr_value must be associated with at most one structured
       schema. The behavior is undefined if an itemid is associated with two or
       more structured schemas. Here is an example of how that could happen:

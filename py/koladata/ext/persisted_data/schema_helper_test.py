@@ -878,33 +878,16 @@ class SchemaHelperTest(absltest.TestCase):
           stub_value.get_schema(),
       )
 
-  def test_schema_node_name_for_leaf_schemas_that_can_be_aliased(self):
-    foo_schema = kd.named_schema('foo')
-    # See koladata/internal/dtype.h for leaf schemas.
-    for value in [
-        kd.schema.new_schema(x=kd.STRING),
-        kd.list_schema(item_schema=kd.INT32),
+  def test_schema_schema_is_not_supported(self):
+    for schema in [
+        kd.SCHEMA,
+        kd.schema.new_schema(x=kd.SCHEMA),
+        kd.dict_schema(kd.INT32, kd.SCHEMA),
     ]:
-      # Make sure the schema of value is a leaf schema:
-      self.assertIsNone(schema_helper._get_item_id(value.get_schema()))
-      # A leaf schema that can be aliased is never a primitive schema:
-      self.assertFalse(value.get_schema().is_primitive_schema())
-      root = kd.new()
-      root_with_value = root.with_attrs(value=value)
-      root_with_aliased_value = root.with_attrs(value=kd.stub(value))
-      with self.assertRaises(AssertionError):
-        kd.testing.assert_equivalent(
-            root_with_value.value.get_schema(),
-            root_with_aliased_value.value.get_schema(),
-        )
-      self.assertEqual(
-          schema_helper._get_schema_node_name(
-              parent_schema_item=foo_schema,
-              action=GetAttr('bar'),
-              child_schema_item=value.get_schema(),
-          ),
-          'shared:SCHEMA',
-      )
+      with self.assertRaisesRegex(
+          ValueError, re.escape('SCHEMA schemas are not supported')
+      ):
+        schema_helper.SchemaHelper(schema)
 
   def test_object_schema_is_not_supported(self):
     for schema in [

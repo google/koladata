@@ -1594,54 +1594,6 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       ('pidsm', PersistedIncrementalDataSliceManager),
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
-  def test_schema_aliasing(self, dsm_class):
-    s = kd.list_schema(item_schema=kd.INT32)
-    manager = self.new_manager(dsm_class)
-    manager.update(at_path=parse_dsp(''), attr_name='foo', attr_value=s)
-
-    # Next, we make ".bar" an alias for ".foo".
-    manager.update(at_path=parse_dsp(''), attr_name='bar', attr_value=s.stub())
-
-    # We can access ".get_item_schema()" via ".bar" (the subschema at ".bar" is
-    # kd.SCHEMA):
-    self.assertEqual(
-        manager.get_data_slice(parse_dsp('.bar')).get_item_schema(), kd.INT32
-    )
-    if isinstance(manager, PersistedIncrementalDataSliceManager):
-      self.assertEqual(
-          manager._schema_helper.get_subschema_at(
-              manager._schema_helper.get_schema_node_name_for_data_slice_path(
-                  parse_dsp('.bar')
-              )
-          ),
-          kd.SCHEMA,
-      )
-
-    # Starting from a state where nothing is loaded, we should still be able to
-    # access ".get_item_schema()" via ".bar". So internally, the manager must
-    # understand that SCHEMAs can be aliased.
-    manager = self.copy_manager(manager)
-    self.assertEqual(
-        manager.get_data_slice(parse_dsp('.bar')).get_item_schema(), kd.INT32
-    )
-
-    if isinstance(manager, PersistedIncrementalDataSliceManager):
-      manager_schema = manager.get_schema()
-      self.assert_manager_schema_node_names_to_num_bags(
-          manager,
-          [
-              (schema_node_name(manager_schema), 1),
-              (schema_node_name(manager_schema, action=GetAttr('bar')), 2),
-          ],
-      )
-      # It loaded one bag for the root and two for the schema node name
-      # shared:SCHEMA.
-      self.assertLen(manager._bag_manager.get_loaded_bag_names(), 3)
-
-  @parameterized.named_parameters(
-      ('pidsm', PersistedIncrementalDataSliceManager),
-      ('simdsm', SimpleInMemoryDataSliceManager),
-  )
   def test_values_of_primitive_schemas_are_not_aliased(self, dsm_class):
     # In contrast to OBJECT and SCHEMA above, values of primitive schemas are
     # not aliased even if we create stubs. In this test we use a value with
@@ -2748,6 +2700,191 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         manager.get_data_slice(parse_dsp('.query[:].doc[:].title')).extract(),
         kd.slice([[], []], schema=kd.STRING).with_bag(kd.bag()),
     )
+
+  def test_issues_with_allowing_kd_schema_as_a_subschema(self):
+    # This test shows that, in vanilla Koda:
+    # 1. Updates to a subslice with schema kd.SCHEMA can cause the schema of the
+    #    main dataslice (i.e. the outer or containing dataslice) to be updated.
+    # 2. Updating the schema of the main dataslice can cause the data of a
+    #    subslice with schema kd.SCHEMA to be updated.
+    # These behaviors are problematic for the
+    # PersistedIncrementalDataSliceManager, which indexes an update by
+    # considering only its schema. In particular, in the case of
+    # 1. The update has the schema kd.SCHEMA, so on the basis of only that, the
+    #    manager does not know which parts of the schema of the main dataslice
+    #    are affected and how.
+    # 2. The manager does not know which subslices with schema kd.SCHEMA are
+    #    affected by an update to the main dataslice's schema.
+    # Since users can perform multiple updates of kinds 1 and 2 in any
+    # interleaved order, it seems there is no simple way to make the manager
+    # correctly reason about them without analyzing/indexing each update on the
+    # basis of the itemids contained therein.
+    # Since that would be a significant departure from the current manager
+    # design, it seems more attractive for the moment to ban the use of
+    # kd.SCHEMA as a subschema. As a result, managed dataslices enforce a
+    # complete separation between data and schema:
+    # 1. Data cannot contain subslices that are schemas: kd.SCHEMA as well as
+    #    kd.OBJECT are banned.
+    # 2. Schema cannot contain data apart from metadata attributes, but they
+    #    must be primitives. Hence no aliasing is possible - an update to
+    #    the schema cannot update data in the main dataslice.
+
+    doc_schema = kd.named_schema(
+        'doc',
+        doc_id=kd.INT32,
+        title=kd.STRING,
+        some_schema=kd.SCHEMA,
+    )
+    query_schema = kd.named_schema(
+        'query',
+        query_id=kd.INT32,
+        text=kd.STRING,
+        doc=kd.list_schema(doc_schema),
+    )
+
+    root = kd.new()
+    root = root.updated(
+        kd.attrs(
+            root,
+            query=kd.list([
+                query_schema.new(
+                    query_id=0,
+                    text='How tall is Obama',
+                    doc=kd.list([
+                        doc_schema.new(doc_id=5, title='Barack Obama'),
+                    ]),
+                ),
+                query_schema.new(
+                    query_id=1,
+                    text='How high is the Eiffel tower',
+                ),
+            ]),
+        )
+    )
+    # Store the query schema as a scalar in the root.
+    root = root.updated(
+        kd.attrs(
+            root,
+            stored_query_schema=query_schema,
+        )
+    )
+
+    # Issue #1: Updates to a subslice with schema kd.SCHEMA can cause the main
+    # schema to be updated.
+    #
+    # Add a new attribute to the query schema.
+    token_schema = kd.named_schema('token', text=kd.STRING)
+    new_query_schema = query_schema.with_attr(
+        'tokens',
+        kd.list_schema(token_schema),
+    )
+    # Update the query schema by passing the new schema as a dataslice with
+    # schema kd.SCHEMA. This is sneaky but it's allowed by vanilla Koda.
+    root = root.updated(
+        kd.attrs(
+            root.query[:].doc[:],
+            some_schema=kd.slice([[new_query_schema], []]),
+        )
+    )
+    # The schema of the main dataslice managed by the manager is updated.
+    kd.testing.assert_deep_equivalent(
+        root.get_schema().query.get_item_schema(),
+        new_query_schema,
+    )
+    # There is a new valid DataSlicePath for the new tokens attribute.
+    kd.testing.assert_deep_equivalent(
+        root.query[:].tokens,
+        kd.slice([None, None], schema=token_schema),
+    )
+    # The stored query schema is also updated.
+    kd.testing.assert_deep_equivalent(
+        root.stored_query_schema,
+        new_query_schema,
+    )
+
+    # Issue #2: Updating the schema of the main dataslice managed by the manager
+    # can cause the data of a subslice with schema kd.SCHEMA to be updated.
+    #
+    # Add another attribute to the query schema via a data update.
+    root = root.updated(
+        kd.attrs(
+            root.query[:],
+            locale=kd.item('en-US'),
+        )
+    )
+    expected_query_schema = new_query_schema.with_attr('locale', kd.STRING)
+    kd.testing.assert_deep_equivalent(
+        root.get_schema().query.get_item_schema(),
+        expected_query_schema,
+    )
+    # This new attribute is also visible in the stored query schema, which has
+    # schema kd.SCHEMA.
+    kd.testing.assert_deep_equivalent(
+        root.stored_query_schema,
+        expected_query_schema,
+    )
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_schema_schema_is_not_supported(self, dsm_class):
+    # Because of the issues shown in
+    # test_issues_with_allowing_kd_schema_as_a_subschema, the
+    # PersistedIncrementalDataSliceManager does not support the use of SCHEMA
+    # schemas in updates. For consistency, the SimpleInMemoryDataSliceManager
+    # does not support it either.
+
+    manager = self.new_manager(dsm_class)
+
+    query_schema = kd.named_schema('query')
+    new_query = query_schema.new
+    doc_schema = kd.named_schema('doc')
+    new_doc = doc_schema.new
+
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.slice([
+            new_query(
+                query_id='q1',
+                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+            ),
+            new_query(
+                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()
+            ),
+        ]).implode(),
+    )
+
+    # Try to add an alias to the query schema. The alias has schema SCHEMA,
+    # so the update is not supported.
+    with self.assertRaisesRegex(
+        ValueError, re.escape('SCHEMA schemas are not supported')
+    ):
+      manager.update(
+          at_path=parse_dsp(''),
+          attr_name='query_schema',
+          attr_value=manager.get_schema().query,
+      )
+
+    # All updates with SCHEMA schemas are rejected.
+    with self.assertRaisesRegex(
+        ValueError, re.escape('SCHEMA schemas are not supported')
+    ):
+      manager.update(
+          at_path=parse_dsp('.query[:].doc[:]'),
+          attr_name='doc_id_schema',
+          attr_value=kd.INT32,
+      )
+    # This is the case even when SCHEMA is used as a subschema.
+    with self.assertRaisesRegex(
+        ValueError, re.escape('SCHEMA schemas are not supported')
+    ):
+      manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='doc_schema',
+          attr_value=kd.new(title=kd.STRING),
+      )
 
 
 if __name__ == '__main__':
