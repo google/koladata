@@ -454,6 +454,45 @@ cc_test(
 )
 
 cc_library(
+    name = "stream_reduce_stack",
+    srcs = ["stream_reduce_stack.cc"],
+    hdrs = ["stream_reduce_stack.h"],
+    deps = [
+        ":basic_routine",
+        ":executor",
+        ":stream",
+        "//koladata:data_slice",
+        "//koladata:data_slice_qtype",
+        "//koladata/operators:lib",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings:str_format",
+        "@com_google_arolla//arolla/qtype",
+    ],
+)
+
+cc_test(
+    name = "stream_reduce_stack_test",
+    srcs = ["stream_reduce_stack_test.cc"],
+    deps = [
+        ":eager_executor",
+        ":stream",
+        ":stream_reduce_stack",
+        "//koladata:data_slice",
+        "//koladata:test_utils",
+        "//koladata/testing:matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_arolla//arolla/qtype",
+        "@com_google_arolla//arolla/qtype/testing",
+        "@com_google_arolla//arolla/util",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "stream_loop_internal",
     srcs = ["stream_loop_internal.cc"],
     hdrs = ["stream_loop_internal.h"],
@@ -853,7 +892,9 @@ cc_library(
         ":stream_map",
         ":stream_qtype",
         ":stream_reduce",
+        ":stream_reduce_stack",
         ":stream_while",
+        "//koladata:arolla_utils",
         "//koladata:data_slice",
         "//koladata:data_slice_qtype",
         "//koladata/functor:call",

@@ -1366,7 +1366,50 @@ def stream_reduce(executor, fn, stream, initial_value):
     initial_value: The initial value.
 
   Returns:
-    A stream with a single item containing the final result of the reduction.
+    A signle-item stream with a single item containing the final result of
+    the reduction.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
+    'koda_internal.parallel.stream_reduce_stack',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        (
+            P.stream == get_stream_qtype(qtypes.DATA_SLICE),
+            (
+                'expected a stream of DATA_SLICE, got'
+                f' {arolla.optools.constraints.name_type_msg(P.stream)}'
+            ),
+        ),
+        qtype_utils.expect_data_slice(P.initial_value),
+        qtype_utils.expect_data_slice(P.ndim),
+    ],
+    qtype_inference_expr=get_stream_qtype(qtypes.DATA_SLICE),
+)
+def stream_reduce_stack(executor, stream, initial_value, ndim=0):
+  """Stacks data slices from the stream.
+
+  A specialized version of koda_internal_parallel.stream_reduce() designed to
+  speed up the stacking of data slices.
+
+  Using a standard koda_internal_parallel.stream_reduce() with kd.stack() would
+  result in an O(N**2) computational complexity. This implementation, however,
+  achieves an O(N) complexity.
+
+  See the docstring for `kd.stack` for more details about the stacking
+  semantics.
+
+  Args:
+    executor: The executor to use for computations.
+    stream: A stream of data slices to be stacked.
+    initial_value: The initial value to be stacked before items.
+    ndim: The number of last dimensions to stack (default 0).
+
+  Returns:
+    A single-item stream with the stacked data slice.
   """
   raise NotImplementedError('implemented in the backend')
 

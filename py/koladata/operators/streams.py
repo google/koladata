@@ -424,6 +424,45 @@ def reduce(fn, stream, initial_value, *, executor=arolla.unspecified()):
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
+    'kd.streams.reduce_stack',
+    qtype_constraints=[
+        qtype_utils.expect_executor_or_unspecified(P.executor),
+    ],
+)
+def reduce_stack(
+    stream, initial_value, *, ndim=0, executor=arolla.unspecified()
+):
+  """Stacks data slices from the stream.
+
+  A specialized version of kd.streams.reduce() designed to speed up
+  the concatenation of data slices.
+
+  Using a standard kd.streams.reduce() with kd.stack() would result in
+  an O(N**2) computational complexity. This implementation, however,
+  achieves an O(N) complexity.
+
+  See the docstring for `kd.stack` for more details about the stacking
+  semantics.
+
+  Args:
+    stream: A stream of data slices to be stacked.
+    initial_value: The initial value to be stacked before items.
+    ndim: The number of last dimensions to stack (default 0).
+    executor: The executor to use for computations.
+
+  Returns:
+    A single-item stream with the stacked data slice.
+  """
+  return koda_internal_parallel.stream_reduce_stack(
+      M.core.default_if_unspecified(executor, current_executor()),
+      stream,
+      initial_value,
+      ndim,
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
     'kd.streams.while_',
     qtype_constraints=[
         qtype_utils.expect_executor_or_unspecified(P.executor),

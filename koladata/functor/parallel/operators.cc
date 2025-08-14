@@ -121,6 +121,8 @@ OPERATOR_FAMILY("koda_internal.parallel.stream_map_unordered",
                 std::make_unique<StreamMapUnorderedOperatorFamily>());
 OPERATOR_FAMILY("koda_internal.parallel.stream_reduce",
                 std::make_unique<StreamReduceOperatorFamily>());
+OPERATOR_FAMILY("koda_internal.parallel.stream_reduce_stack",
+                std::make_unique<StreamReduceStackOperatorFamily>());
 OPERATOR("koda_internal.parallel.transform", TransformToParallel);
 OPERATOR_FAMILY("koda_internal.parallel.transform_many",
                 std::make_unique<TransformManyOperatorFamily>());
