@@ -2886,6 +2886,94 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           attr_value=kd.new(title=kd.STRING),
       )
 
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_generate_paths_with_various_max_depth_values(self, dsm_class):
+    manager = self.new_manager(dsm_class)
+
+    query_schema = kd.named_schema('query')
+    new_query = query_schema.new
+    doc_schema = kd.named_schema('doc')
+    new_doc = doc_schema.new
+
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.slice([
+            new_query(
+                query_id='q1',
+                doc=new_doc(doc_id=kd.slice([0, 1, 2, 3])).implode(),
+            ),
+            new_query(
+                query_id='q2', doc=new_doc(doc_id=kd.slice([4, 5, 6])).implode()
+            ),
+        ]).implode(),
+    )
+
+    # Passing max_depth=-1 should yield all paths.
+    self.assertEqual(
+        set(manager.generate_paths(max_depth=-1)),
+        set([
+            parse_dsp(''),
+            parse_dsp('.query'),
+            parse_dsp('.query[:]'),
+            parse_dsp('.query[:].query_id'),
+            parse_dsp('.query[:].doc'),
+            parse_dsp('.query[:].doc[:]'),
+            parse_dsp('.query[:].doc[:].doc_id'),
+        ]),
+    )
+    # Passing any other negative value should yield no paths.
+    for max_depth in [-100, -3, -2]:
+      self.assertEmpty(set(manager.generate_paths(max_depth=max_depth)))
+    self.assertEqual(
+        set(manager.generate_paths(max_depth=0)),
+        set([parse_dsp('')]),
+    )
+    self.assertEqual(
+        set(manager.generate_paths(max_depth=1)),
+        set([
+            parse_dsp(''),
+            parse_dsp('.query'),
+        ]),
+    )
+    self.assertEqual(
+        set(manager.generate_paths(max_depth=2)),
+        set([
+            parse_dsp(''),
+            parse_dsp('.query'),
+            parse_dsp('.query[:]'),
+        ]),
+    )
+    self.assertEqual(
+        set(manager.generate_paths(max_depth=3)),
+        set([
+            parse_dsp(''),
+            parse_dsp('.query'),
+            parse_dsp('.query[:]'),
+            parse_dsp('.query[:].query_id'),
+            parse_dsp('.query[:].doc'),
+        ]),
+    )
+    self.assertEqual(
+        set(manager.generate_paths(max_depth=4)),
+        set([
+            parse_dsp(''),
+            parse_dsp('.query'),
+            parse_dsp('.query[:]'),
+            parse_dsp('.query[:].query_id'),
+            parse_dsp('.query[:].doc'),
+            parse_dsp('.query[:].doc[:]'),
+        ]),
+    )
+    for max_depth in [5, 10, 100]:
+      self.assertEqual(
+          set(manager.generate_paths(max_depth=max_depth)),
+          set(manager.generate_paths(max_depth=-1)),  # All paths
+      )
+
 
 if __name__ == '__main__':
   absltest.main()

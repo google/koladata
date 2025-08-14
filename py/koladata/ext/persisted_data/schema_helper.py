@@ -742,12 +742,14 @@ class SchemaHelper:
     """Yields all data slice paths for the schema up to a maximum depth.
 
     This is a generator because the number of data slice paths can be very
-    large. The maximum depth value is used to limit the number of data slice
-    paths that are generated. Without a maximum depth, the number of data slice
-    paths would be infinite for recursive schemas.
+    large, or even infinite in the case of recursive schemas. The maximum depth
+    value is used to limit the data slice paths that are generated;
+    alternatively, the caller can decide when to stop the generation with custom
+    logic.
 
     Args:
-      max_depth: the maximum depth of the data slice paths to generate.
+      max_depth: the maximum depth of the data slice paths to generate. Pass -1
+        to generate all data slice paths.
     """
     yield from data_slice_path_lib.generate_data_slice_paths_for_arbitrary_data_slice_with_schema(
         self._schema, max_depth=max_depth

@@ -524,7 +524,30 @@ class DataSlicePathTest(absltest.TestCase):
         ],
     )
 
-  def test_generate_available_data_paths_for_negative_max_depth(self):
+  def test_generate_all_available_data_paths(
+      self,
+  ):
+    schema = kd.schema.new_schema(
+        foo=kd.INT32,
+        bar=kd.list_schema(kd.STRING),
+    )
+    self.assertEqual(
+        set(
+            data_slice_path_lib.generate_data_slice_paths_for_arbitrary_data_slice_with_schema(
+                schema, max_depth=-1
+            )
+        ),
+        set([
+            DataSlicePath.from_actions([]),
+            DataSlicePath.from_actions([GetAttr('foo')]),
+            DataSlicePath.from_actions([GetAttr('bar')]),
+            DataSlicePath.from_actions([GetAttr('bar'), ListExplode()]),
+        ]),
+    )
+
+  def test_generate_available_data_paths_for_negative_but_not_minus_one_max_depth(
+      self,
+  ):
     schema = kd.schema.new_schema(
         foo=kd.INT32,
         bar=kd.list_schema(kd.STRING),
@@ -532,7 +555,7 @@ class DataSlicePathTest(absltest.TestCase):
     self.assertEmpty(
         set(
             data_slice_path_lib.generate_data_slice_paths_for_arbitrary_data_slice_with_schema(
-                schema, max_depth=-1
+                schema, max_depth=-2
             )
         )
     )

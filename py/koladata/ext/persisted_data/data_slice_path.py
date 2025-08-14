@@ -494,14 +494,15 @@ def generate_data_slice_paths_for_arbitrary_data_slice_with_schema(
   For an arbitrary DataSlice ds with schema `schema`, what are the valid data
   slice paths with at most `max_depth` actions?
 
-  This is a generator because the number of data slice paths can be very large.
-  The maximum depth value is used to limit the number of data slice paths that
-  are generated. Without a maximum depth, the number of data slice paths is
-  infinite for recursive schemas.
+  This is a generator because the number of data slice paths can be very large,
+  or even infinite in the case of recursive schemas. The maximum depth value is
+  used to limit the data slice paths that are generated; alternatively, the
+  caller can decide when to stop the generation with custom logic.
 
   Args:
     schema: the Koda schema that induces the data slice paths.
-    max_depth: the maximum depth of the data slice paths to generate.
+    max_depth: the maximum depth of the data slice paths to generate. Pass -1 to
+      generate all data slice paths.
   """
 
   def expand_one_step(
@@ -537,13 +538,18 @@ def generate_data_slice_paths_for_arbitrary_data_slice_with_schema(
         for attr in kd.dir(schema_item)
     ]
 
+  def within_max_depth(level_depth: int) -> bool:
+    if max_depth == -1:
+      return True
+    return level_depth <= max_depth
+
   level = [(DataSlicePath(tuple()), schema)]
   level_depth = 0
-  while level and level_depth <= max_depth:
+  while level and within_max_depth(level_depth):
     level_depth += 1
     next_level = []
     for data_slice_path, schema_item in level:
       yield data_slice_path
-      if level_depth <= max_depth:
+      if within_max_depth(level_depth):
         next_level.extend(expand_one_step(data_slice_path, schema_item))
     level = next_level

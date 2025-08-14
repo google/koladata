@@ -32,15 +32,20 @@ class DataSliceManagerInterface:
   ) -> Generator[data_slice_path_lib.DataSlicePath, None, None]:
     """Yields all data slice paths induced by self.get_schema().
 
+    This is a generator because the number of data slice paths can be very
+    large, or even infinite in the case of recursive schemas. The maximum depth
+    value is used to limit the data slice paths that are generated;
+    alternatively, the caller can decide when to stop the generation with custom
+    logic.
+
     Args:
-      max_depth: The maximum depth of the paths to yield. If negative, then no
-        paths are yielded. If zero, then only the root path is yielded. If
-        positive, then the root path and all its descendants up to the maximum
-        depth are yielded. Recursive schemas typically have an infinite number
-        of paths, so it is necessary to impose a limit on the depth.
+      max_depth: The maximum depth of the paths to yield. If -1, then all paths
+        are yielded. If negative but not -1, then no paths are yielded. If zero,
+        then only the root path is yielded. If positive, then the root path and
+        all its descendants up to the maximum depth are yielded.
 
     Yields:
-      All data slice paths that exist up to the given max_depth.
+      All data slice paths that exist and satisfy the max_depth condition.
     """
     raise NotImplementedError(type(self))
 

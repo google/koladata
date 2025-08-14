@@ -979,14 +979,32 @@ class SchemaHelperTest(absltest.TestCase):
         )
     )
 
-  def test_generate_available_data_paths_for_negative_max_depth(self):
+  def test_generate_all_available_data_paths(self):
+    schema = kd.schema.new_schema(
+        foo=kd.INT32,
+        bar=kd.list_schema(kd.STRING),
+    )
+    helper = schema_helper.SchemaHelper(schema)
+    self.assertEqual(
+        set(helper.generate_available_data_slice_paths(max_depth=-1)),
+        set([
+            DataSlicePath.from_actions([]),
+            DataSlicePath.from_actions([GetAttr('foo')]),
+            DataSlicePath.from_actions([GetAttr('bar')]),
+            DataSlicePath.from_actions([GetAttr('bar'), ListExplode()]),
+        ]),
+    )
+
+  def test_generate_available_data_paths_for_negative_but_not_minus_one_max_depth(
+      self,
+  ):
     schema = kd.schema.new_schema(
         foo=kd.INT32,
         bar=kd.list_schema(kd.STRING),
     )
     helper = schema_helper.SchemaHelper(schema)
     self.assertEmpty(
-        set(helper.generate_available_data_slice_paths(max_depth=-1)),
+        set(helper.generate_available_data_slice_paths(max_depth=-2)),
     )
 
   def test_get_schema_node_name_for_top_level_primitive_schema(self):
