@@ -454,9 +454,9 @@ cc_test(
 )
 
 cc_library(
-    name = "stream_reduce_stack",
-    srcs = ["stream_reduce_stack.cc"],
-    hdrs = ["stream_reduce_stack.h"],
+    name = "stream_reduce_stack_or_concat",
+    srcs = ["stream_reduce_stack_or_concat.cc"],
+    hdrs = ["stream_reduce_stack_or_concat.h"],
     deps = [
         ":basic_routine",
         ":executor",
@@ -474,12 +474,12 @@ cc_library(
 )
 
 cc_test(
-    name = "stream_reduce_stack_test",
-    srcs = ["stream_reduce_stack_test.cc"],
+    name = "stream_reduce_stack_or_concat_test",
+    srcs = ["stream_reduce_stack_or_concat_test.cc"],
     deps = [
         ":eager_executor",
         ":stream",
-        ":stream_reduce_stack",
+        ":stream_reduce_stack_or_concat",
         "//koladata:data_slice",
         "//koladata:test_utils",
         "//koladata/testing:matchers",
@@ -892,7 +892,7 @@ cc_library(
         ":stream_map",
         ":stream_qtype",
         ":stream_reduce",
-        ":stream_reduce_stack",
+        ":stream_reduce_stack_or_concat",
         ":stream_while",
         "//koladata:arolla_utils",
         "//koladata:data_slice",

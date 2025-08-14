@@ -424,6 +424,45 @@ def reduce(fn, stream, initial_value, *, executor=arolla.unspecified()):
 
 @optools.add_to_registry()
 @optools.as_lambda_operator(
+    'kd.streams.reduce_concat',
+    qtype_constraints=[
+        qtype_utils.expect_executor_or_unspecified(P.executor),
+    ],
+)
+def reduce_concat(
+    stream, initial_value, *, ndim=1, executor=arolla.unspecified()
+):
+  """Concatenates data slices from the stream.
+
+  A specialized version of kd.streams.reduce() designed to speed up
+  the concatenation of data slices.
+
+  Using a standard kd.streams.reduce() with kd.concat() would result in
+  an O(N**2) computational complexity. This implementation, however, achieves
+  an O(N) complexity.
+
+  See the docstring for `kd.concat` for more details about the concatenation
+  semantics.
+
+  Args:
+    stream: A stream of data slices to be concatenated.
+    initial_value: The initial value to be concatenated before items.
+    ndim: The number of last dimensions to concatenate.
+    executor: The executor to use for computations.
+
+  Returns:
+    A single-item stream with the concatenated data slice.
+  """
+  return koda_internal_parallel.stream_reduce_concat(
+      M.core.default_if_unspecified(executor, current_executor()),
+      stream,
+      initial_value,
+      ndim,
+  )
+
+
+@optools.add_to_registry()
+@optools.as_lambda_operator(
     'kd.streams.reduce_stack',
     qtype_constraints=[
         qtype_utils.expect_executor_or_unspecified(P.executor),

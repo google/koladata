@@ -9581,6 +9581,21 @@ py_test(
 )
 
 py_test(
+    name = "streams_reduce_concat_test",
+    srcs = ["streams_reduce_concat_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/functions",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
+py_test(
     name = "streams_reduce_stack_test",
     srcs = ["streams_reduce_stack_test.py"],
     deps = [

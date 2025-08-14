@@ -51,7 +51,7 @@
 #include "koladata/functor/parallel/stream_map.h"
 #include "koladata/functor/parallel/stream_qtype.h"
 #include "koladata/functor/parallel/stream_reduce.h"
-#include "koladata/functor/parallel/stream_reduce_stack.h"
+#include "koladata/functor/parallel/stream_reduce_stack_or_concat.h"
 #include "koladata/functor/parallel/stream_while.h"
 #include "koladata/internal/op_utils/qexpr.h"
 #include "koladata/iterables/iterable_qtype.h"
@@ -671,6 +671,72 @@ absl::StatusOr<arolla::OperatorPtr> StreamReduceOperatorFamily::DoGetOperator(
 
 namespace {
 
+class StreamReduceConcatOp final : public arolla::QExprOperator {
+ public:
+  using QExprOperator::QExprOperator;
+
+  absl::StatusOr<std::unique_ptr<arolla::BoundOperator>> DoBind(
+      absl::Span<const arolla::TypedSlot> input_slots,
+      arolla::TypedSlot output_slot) const final {
+    return MakeBoundOperator<~KodaOperatorWrapperFlags::kWrapError>(
+        "koda_internal.parallel.stream_reduce_concat",
+        [executor_slot = input_slots[0].UnsafeToSlot<ExecutorPtr>(),
+         input_stream_slot = input_slots[1].UnsafeToSlot<StreamPtr>(),
+         initial_value_slot = input_slots[2].UnsafeToSlot<DataSlice>(),
+         ndim_slot = input_slots[3].UnsafeToSlot<DataSlice>(),
+         output_slot = output_slot.UnsafeToSlot<StreamPtr>()](
+            arolla::EvaluationContext* /*ctx*/,
+            arolla::FramePtr frame) -> absl::Status {
+          ASSIGN_OR_RETURN(
+              auto ndim, ToArollaScalar<int64_t>(frame.Get(ndim_slot)),
+              _ << "`ndim` argument must be a scalar INT64, but got "
+                << arolla::Repr(frame.Get(ndim_slot)));
+          ASSIGN_OR_RETURN(auto result,
+                           StreamReduceConcat(frame.Get(executor_slot), ndim,
+                                              frame.Get(initial_value_slot),
+                                              frame.Get(input_stream_slot)));
+          frame.Set(output_slot, std::move(result));
+          return absl::OkStatus();
+        });
+  }
+};
+
+}  // namespace
+
+// stream_reduce_concat(
+//     EXECUTOR, STREAM[DATA_SLICE], DATA_SLICE, DATA_SLICE
+// ) -> STREAM[DATA_SLICE]
+absl::StatusOr<arolla::OperatorPtr>
+StreamReduceConcatOperatorFamily::DoGetOperator(
+    absl::Span<const arolla::QTypePtr> input_types,
+    arolla::QTypePtr output_type) const {
+  if (output_type != GetStreamQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "output type must be a stream of data slices");
+  }
+  if (input_types.size() != 4) {
+    return absl::InvalidArgumentError("requires exactly 4 arguments");
+  }
+  if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
+    return absl::InvalidArgumentError("the first argument must be an executor");
+  }
+  if (input_types[1] != GetStreamQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "the second argument must be a stream of data slices");
+  }
+  if (input_types[2] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "the third argument must be a data slice");
+  }
+  if (input_types[3] != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        "the fourth argument must be a data slice");
+  }
+  return std::make_shared<StreamReduceConcatOp>(input_types, output_type);
+}
+
+namespace {
+
 class StreamReduceStackOp final : public arolla::QExprOperator {
  public:
   using QExprOperator::QExprOperator;
@@ -715,7 +781,7 @@ StreamReduceStackOperatorFamily::DoGetOperator(
         "output type must be a stream of data slices");
   }
   if (input_types.size() != 4) {
-    return absl::InvalidArgumentError("requires exactly 5 arguments");
+    return absl::InvalidArgumentError("requires exactly 4 arguments");
   }
   if (input_types[0] != arolla::GetQType<ExecutorPtr>()) {
     return absl::InvalidArgumentError("the first argument must be an executor");

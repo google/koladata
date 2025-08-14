@@ -1374,6 +1374,48 @@ def stream_reduce(executor, fn, stream, initial_value):
 
 @optools.add_to_registry()
 @optools.as_backend_operator(
+    'koda_internal.parallel.stream_reduce_concat',
+    qtype_constraints=[
+        qtype_utils.expect_executor(P.executor),
+        (
+            P.stream == get_stream_qtype(qtypes.DATA_SLICE),
+            (
+                'expected a stream of DATA_SLICE, got'
+                f' {arolla.optools.constraints.name_type_msg(P.stream)}'
+            ),
+        ),
+        qtype_utils.expect_data_slice(P.initial_value),
+        qtype_utils.expect_data_slice(P.ndim),
+    ],
+    qtype_inference_expr=get_stream_qtype(qtypes.DATA_SLICE),
+)
+def stream_reduce_concat(executor, stream, initial_value, ndim=1):
+  """Concatenates data slices from the stream.
+
+  A specialized version of koda_internal_parallel.stream_reduce() designed to
+  speed up the concatenation of data slices.
+
+  Using a standard koda_internal_parallel.stream_reduce() with kd.concat() would
+  result in an O(N**2) computational complexity. This implementation, however,
+  achieves an O(N) complexity.
+
+  See the docstring for `kd.concat` for more details about the concatenation
+  semantics.
+
+  Args:
+    executor: The executor to use for computations.
+    stream: A stream of data slices to be concatenated.
+    initial_value: The initial value to be concatenated before items.
+    ndim: The number of last dimensions to concatenate.
+
+  Returns:
+    A single-item stream with the concatenated data slice.
+  """
+  raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry()
+@optools.as_backend_operator(
     'koda_internal.parallel.stream_reduce_stack',
     qtype_constraints=[
         qtype_utils.expect_executor(P.executor),

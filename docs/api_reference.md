@@ -8491,6 +8491,29 @@ Args:
 Returns:
   A stream with a single item containing the final result of the reduction.</code></pre>
 
+### `kd.streams.reduce_concat(stream, initial_value, *, ndim=1, executor=unspecified)` {#kd.streams.reduce_concat}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Concatenates data slices from the stream.
+
+A specialized version of kd.streams.reduce() designed to speed up
+the concatenation of data slices.
+
+Using a standard kd.streams.reduce() with kd.concat() would result in
+an O(N**2) computational complexity. This implementation, however, achieves
+an O(N) complexity.
+
+See the docstring for `kd.concat` for more details about the concatenation
+semantics.
+
+Args:
+  stream: A stream of data slices to be concatenated.
+  initial_value: The initial value to be concatenated before items.
+  ndim: The number of last dimensions to concatenate.
+  executor: The executor to use for computations.
+
+Returns:
+  A single-item stream with the concatenated data slice.</code></pre>
+
 ### `kd.streams.reduce_stack(stream, initial_value, *, ndim=0, executor=unspecified)` {#kd.streams.reduce_stack}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Stacks data slices from the stream.

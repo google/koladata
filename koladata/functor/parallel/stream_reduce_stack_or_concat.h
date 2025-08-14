@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#ifndef THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_H_
-#define THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_H_
+#ifndef THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_OR_CONCAT_H_
+#define THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_OR_CONCAT_H_
 
 #include <cstdint>
 
@@ -24,6 +24,19 @@
 #include "koladata/functor/parallel/stream.h"
 
 namespace koladata::functor::parallel {
+
+// A specialized version of StreamReduce designed to speed up the concatenation
+// of data slices from a stream.
+//
+// Using a standard StreamReduce with a binary concatenation would result in
+// an O(N**2) computational complexity. This implementation, however, achieves
+// an O(N) complexity.
+//
+// See the docstring for `kd.concat` for more details about the concatenation
+// semantics.
+absl::StatusOr<StreamPtr absl_nonnull> StreamReduceConcat(
+    ExecutorPtr absl_nonnull executor, int64_t ndim, DataSlice initial_value,
+    StreamPtr absl_nonnull input_stream);
 
 // A specialized version of StreamReduce designed to speed up the stacking
 // of data slices from a stream.
@@ -40,4 +53,4 @@ absl::StatusOr<StreamPtr absl_nonnull> StreamReduceStack(
 
 }  // namespace koladata::functor::parallel
 
-#endif  // THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_H_
+#endif  // THIRD_PARTY_KOLA_DATA_FUNCTOR_PARALLEL_STREAM_REDUCE_STACK_OR_CONCAT_H_

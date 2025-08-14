@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-#include "koladata/functor/parallel/stream_reduce_stack.h"
+#include "koladata/functor/parallel/stream_reduce_stack_or_concat.h"
 
 #include <array>
 #include <cstdint>
@@ -36,16 +36,19 @@
 namespace koladata::functor::parallel {
 namespace {
 
-class StreamReduceStackHooks final : public BasicRoutineHooks {
+class StreamReduceStackOrConcatHooks final : public BasicRoutineHooks {
  public:
-  StreamReduceStackHooks(StreamWriterPtr absl_nonnull writer, int64_t ndim,
-                         int64_t rank, DataSlice initial_value,
-                         StreamPtr absl_nonnull input_stream)
+  enum class Mode { kStack, kConcat };
+
+  StreamReduceStackOrConcatHooks(Mode mode, StreamWriterPtr absl_nonnull writer,
+                                 int64_t ndim, int64_t rank,
+                                 DataSlice initial_value,
+                                 StreamPtr absl_nonnull input_stream)
       : writer_(std::move(writer)),
         input_stream_(std::move(input_stream)),
         rank_(rank),
         first_args_({
-            DataSlice::CreateFromScalar(true),  // is_stack=true
+            DataSlice::CreateFromScalar(mode == Mode::kStack),
             DataSlice::CreateFromScalar(ndim),
             std::move(initial_value),
         }),
@@ -107,6 +110,32 @@ class StreamReduceStackHooks final : public BasicRoutineHooks {
 
 }  // namespace
 
+absl::StatusOr<StreamPtr absl_nonnull> StreamReduceConcat(
+    ExecutorPtr absl_nonnull executor, int64_t ndim, DataSlice initial_value,
+    StreamPtr absl_nonnull input_stream) {
+  if (ndim < 1) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("invalid ndim=%d for concat", ndim));
+  }
+  const int64_t rank = initial_value.GetShape().rank();
+  if (ndim > rank) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("invalid ndim=%d for rank=%d concat", ndim, rank));
+  }
+  if (input_stream->value_qtype() != arolla::GetQType<DataSlice>()) {
+    return absl::InvalidArgumentError(
+        absl::StrFormat("input stream has value_qtype=%s, expected DATA_SLICE",
+                        input_stream->value_qtype()->name()));
+  }
+  auto [result, writer] = MakeStream(arolla::GetQType<DataSlice>());
+  StartBasicRoutine(
+      std::move(executor),
+      std::make_unique<StreamReduceStackOrConcatHooks>(
+          StreamReduceStackOrConcatHooks::Mode::kConcat, std::move(writer),
+          ndim, rank, std::move(initial_value), std::move(input_stream)));
+  return std::move(result);
+}
+
 absl::StatusOr<StreamPtr absl_nonnull> StreamReduceStack(
     ExecutorPtr absl_nonnull executor, int64_t ndim, DataSlice initial_value,
     StreamPtr absl_nonnull input_stream) {
@@ -125,10 +154,11 @@ absl::StatusOr<StreamPtr absl_nonnull> StreamReduceStack(
                         input_stream->value_qtype()->name()));
   }
   auto [result, writer] = MakeStream(arolla::GetQType<DataSlice>());
-  StartBasicRoutine(std::move(executor),
-                    std::make_unique<StreamReduceStackHooks>(
-                        std::move(writer), ndim, rank, std::move(initial_value),
-                        std::move(input_stream)));
+  StartBasicRoutine(
+      std::move(executor),
+      std::make_unique<StreamReduceStackOrConcatHooks>(
+          StreamReduceStackOrConcatHooks::Mode::kStack, std::move(writer), ndim,
+          rank, std::move(initial_value), std::move(input_stream)));
   return std::move(result);
 }
 
