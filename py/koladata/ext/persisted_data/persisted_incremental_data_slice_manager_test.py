@@ -43,12 +43,29 @@ DataSliceManager = (
 )
 
 
+def get_loaded_schema_node_names(
+    manager: PersistedIncrementalDataSliceManager,
+) -> set[str]:
+  """Returns the loaded schema node names of the given manager."""
+  loaded_bag_names = manager._bag_manager.get_loaded_bag_names()
+  return {
+      snn
+      for snn, bag_names in manager._schema_node_name_to_bag_names.items()
+      if all(bag_name in loaded_bag_names for bag_name in bag_names)
+  }
+
+
 def get_loaded_root_dataslice(manager: DataSliceManager) -> kd.types.DataSlice:
   """Returns the loaded root dataslice of the given manager."""
   if isinstance(manager, SimpleInMemoryDataSliceManager):
     return manager.get_data_slice()
 
-  return manager._root_dataslice.updated(manager._bag_manager.get_loaded_bag())
+  schema_bag = manager._schema_helper.get_schema_bag(
+      get_loaded_schema_node_names(manager),
+  )
+  return manager._root_dataslice.updated(
+      manager._bag_manager.get_loaded_bag()
+  ).updated(schema_bag)
 
 
 def get_loaded_schema(manager: DataSliceManager) -> kd.types.DataSlice:
@@ -457,17 +474,14 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
               '',
               '.query',
               '.query[:]',
-              '.query[:].query_id',
               '.query[:].query_text',
           },
           expected_loaded_root_dataslice_pytree={
               'query': [
                   {
-                      'query_id': 'q1',
                       'query_text': 'How tall is Obama',
                   },
                   {
-                      'query_id': 'q2',
                       'query_text': 'How high is the Eiffel tower',
                   },
               ],
@@ -480,7 +494,15 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             'How high is the Eiffel tower',
         ],
     )
-    ds = manager.get_data_slice(parse_dsp('.query[:].doc'))
+    query_id_bag = manager.get_data_slice(
+        parse_dsp('.query[:].query_id')
+    ).get_bag()
+    doc_id_bag = manager.get_data_slice(
+        parse_dsp('.query[:].doc[:].doc_id')
+    ).get_bag()
+    ds = manager.get_data_slice(parse_dsp('.query[:].doc')).updated(
+        doc_id_bag << query_id_bag
+    )
     if isinstance(manager, PersistedIncrementalDataSliceManager):
       self.assert_manager_state(
           manager,
@@ -738,17 +760,6 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
           '',
           '.query',
           '.query[:]',
-          # TODO: '.query[:].query_id' and '.query[:].query_text'
-          # appear here because the update that added '.query' used a schema
-          # that already mentioned '.query_id' and '.query_text'. This is
-          # probably not the desired behavior, and should be fixed later on
-          # when an update is chopped up into fine-grained DataBags. It's
-          # currently not easy to fix it when we have one DataBag for the
-          # entire update, because that DataBag will always contain the given
-          # schema in full. Fixing this will also remove query_id and
-          # query_text from the pytree below.
-          '.query[:].query_id',
-          '.query[:].query_text',
           '.query[:].doc',
           '.query[:].doc[:]',
           '.query[:].doc[:].doc_id',
@@ -763,10 +774,10 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
                     {'doc_id': 2, 'doc_title': 'title2'},
                     {'doc_id': 3, 'doc_title': None},
                 ],
-                'query_id': None,
-                'query_text': None,
             },
-            {'doc': None, 'query_id': None, 'query_text': None},
+            {
+                'doc': None,
+            },
         ]
     }
     if isinstance(manager, SimpleInMemoryDataSliceManager):
@@ -943,19 +954,32 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
 
     # But we can continue to add grandchildren. There are currently no
     # grandchildren:
+    if isinstance(manager, PersistedIncrementalDataSliceManager):
+      grandchildren_schema = kd.list_schema(
+          kd.named_schema(
+              'TreeNode',
+              # Note that "value" is not included here, because the user
+              # did not request it.
+              children=kd.list_schema(kd.named_schema('TreeNode')),
+          )
+      )
+    else:
+      grandchildren_schema = kd.list_schema(
+          kd.named_schema(
+              'TreeNode',
+              # Note that "value" is included here, because everything is always
+              # loaded in the SimpleInMemoryDataSliceManager.
+              value=kd.STRING,
+              children=kd.list_schema(kd.named_schema('TreeNode')),
+          )
+      )
     kd.testing.assert_equivalent(
         manager.get_data_slice(
             parse_dsp('.tree_root.children[:].children')
         ).extract(),
         kd.slice(
             [None, None],
-            schema=kd.list_schema(
-                kd.named_schema(
-                    'TreeNode',
-                    value=kd.STRING,
-                    children=kd.list_schema(kd.named_schema('TreeNode')),
-                )
-            ),
+            schema=grandchildren_schema,
         ),
     )
     # But we can add an update with grandchildren:
@@ -1813,21 +1837,26 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         self.assertFalse(is_loaded_data_slice_path(manager, dsp))
 
     manager.get_data_slice(parse_dsp('.foo'))
-    for dsp_string in ['.foo', '.foo.x']:
+    for dsp_string in ['.foo']:
       dsp = parse_dsp(dsp_string)
       self.assertTrue(manager.exists(dsp))
       self.assertTrue(is_loaded_data_slice_path(manager, dsp))
-    for dsp_string in ['.foo.y', '.foo.y.z']:
+    for dsp_string in ['.foo.x', '.foo.y', '.foo.y.z']:
       dsp = parse_dsp(dsp_string)
       self.assertTrue(manager.exists(dsp))
       if dsm_class == PersistedIncrementalDataSliceManager:
         self.assertFalse(is_loaded_data_slice_path(manager, dsp))
 
     manager.get_data_slice(parse_dsp('.foo.y.z'))
-    for dsp_string in ['.foo', '.foo.x', '.foo.y', '.foo.y.z']:
+    for dsp_string in ['.foo', '.foo.y', '.foo.y.z']:
       dsp = parse_dsp(dsp_string)
       self.assertTrue(manager.exists(dsp))
       self.assertTrue(is_loaded_data_slice_path(manager, dsp))
+    for dsp_string in ['.foo.x']:
+      dsp = parse_dsp(dsp_string)
+      self.assertTrue(manager.exists(dsp))
+      if dsm_class == PersistedIncrementalDataSliceManager:
+        self.assertFalse(is_loaded_data_slice_path(manager, dsp))
 
   @parameterized.named_parameters(
       ('pidsm', PersistedIncrementalDataSliceManager),
@@ -2113,6 +2142,156 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       ('pidsm', PersistedIncrementalDataSliceManager),
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
+  def test_latest_schema_metadata_is_used(self, dsm_class):
+    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
+    doc_schema = kd.named_schema('doc', doc_id=kd.INT32, title=kd.STRING)
+
+    manager = self.new_manager(dsm_class)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.list([
+            query_schema.new(
+                query_id=0,
+                text='How tall is Obama',
+                doc=kd.list([
+                    doc_schema.new(doc_id=0, title='Barack Obama'),
+                    doc_schema.new(doc_id=1, title='Michelle Obama'),
+                ]),
+            ),
+            query_schema.new(query_id=1, text='How high is the Eiffel tower'),
+        ]),
+    )
+
+    # Update the doc schema with metadata.
+    updated_doc_schema = kd.with_metadata(
+        doc_schema, proto='my.proto.Message', version=123
+    )
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='new_doc',
+        attr_value=updated_doc_schema.new(doc_id=2, title='New doc'),
+    )
+
+    # At the time we populated '.query[:].doc[:]' there was no metadata. But
+    # now we ought to have it. That might seem a bit strange, but it is
+    # consistent with the behavior of vanilla Koda.
+    manager = self.copy_manager(manager)
+    actual_schema = manager.get_data_slice(
+        parse_dsp('.query[:].doc[:]')
+    ).get_schema()
+    kd.testing.assert_deep_equivalent(
+        kd.get_metadata(actual_schema),
+        kd.get_metadata(updated_doc_schema),
+    )
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
+  def test_complex_dict_keys(self, dsm_class):
+    query_schema = kd.named_schema(
+        'query',
+        query_id=kd.INT32,
+        text=kd.STRING,
+    )
+    manager = self.new_manager(dsm_class)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='query',
+        attr_value=kd.dict({
+            query_schema.new(
+                query_id=0,
+                text='How tall is Obama',
+            ): 1,
+            query_schema.new(
+                query_id=1,
+                text='How high is the Eiffel tower',
+            ): 2,
+        }),
+    )
+
+    manager = self.copy_manager(manager)
+    self.assertEqual(
+        # We need to use set() to ignore the order of the keys.
+        set(
+            manager.get_data_slice(
+                parse_dsp('.query.get_keys().text')
+            ).to_pytree(max_depth=-1)
+        ),
+        {'How tall is Obama', 'How high is the Eiffel tower'},
+    )
+
+  def test_updates_add_bags_deterministically(self):
+    # This is not a core feature; it is simply nice to have for debugging.
+
+    persistence_dir = self.create_tempdir().full_path
+    original_manager = PersistedIncrementalDataSliceManager(persistence_dir)
+
+    doc_schema = kd.named_schema(
+        'doc',
+        doc_id=kd.INT32,
+        title=kd.STRING,
+    )
+    query_schema = kd.named_schema(
+        'query',
+        query_id=kd.INT32,
+        text=kd.STRING,
+        doc=kd.list_schema(doc_schema),
+    )
+
+    query_data = kd.list([
+        query_schema.new(
+            query_id=0,
+            text='How tall is Obama',
+        ),
+        query_schema.new(
+            query_id=1,
+            text='How high is the Eiffel tower',
+        ),
+    ])
+    doc_data = kd.slice([
+        kd.list([
+            doc_schema.new(doc_id=0, title='Barack Obama'),
+            doc_schema.new(doc_id=1, title='Michelle Obama'),
+        ]),
+        None,
+    ])
+
+    managers = [self.copy_manager(original_manager) for _ in range(5)]
+    for manager in managers:
+      manager.update(
+          at_path=parse_dsp(''),
+          attr_name='query',
+          attr_value=query_data,
+      )
+      manager.update(
+          at_path=parse_dsp('.query[:]'),
+          attr_name='doc',
+          attr_value=doc_data,
+      )
+
+    def get_bags_in_the_bag_manager_total_order(manager):
+      assert isinstance(manager, PersistedIncrementalDataSliceManager)
+      bag_manager = manager._bag_manager
+      bag_names = bag_manager.get_available_bag_names()
+      bag_names = bag_manager._canonical_topological_sorting(bag_names)
+      # The canonical topological sorting always returns the bags in the same
+      # order, namely the lexicographic order:
+      self.assertEqual(bag_names, sorted(bag_names))
+      return [bag_manager.get_minimal_bag({b}) for b in bag_names]
+
+    for bags in zip(
+        *[get_bags_in_the_bag_manager_total_order(m) for m in managers]
+    ):
+      # The bags at the same position of the total order are equivalent.
+      for i in range(1, len(bags)):
+        kd.testing.assert_equivalent(bags[0], bags[i])
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
   def test_subslice_with_list_schema_where_multiple_lists_are_missing(
       self, dsm_class
   ):
@@ -2152,6 +2331,15 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             None,
         ]),
     )
+
+    if dsm_class == PersistedIncrementalDataSliceManager:
+      manager = self.copy_manager(manager)
+      self.assertEqual(
+          manager.get_data_slice(parse_dsp('.query[:]')).to_pytree(
+              max_depth=-1
+          ),
+          [{}, None, {}, None],
+      )
 
     manager = self.copy_manager(manager)
     self.assertEqual(
@@ -2218,6 +2406,16 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         attr_name='query',
         attr_value=query_data,
     )
+
+    if dsm_class == PersistedIncrementalDataSliceManager:
+      # Start from a state where nothing is loaded.
+      manager = self.copy_manager(manager)
+      self.assertEqual(
+          manager.get_data_slice(parse_dsp('.query[:]')).to_pytree(
+              max_depth=-1
+          ),
+          [{}, None, {}, None, {}],
+      )
 
     # Start from a state where nothing is loaded in the pidsm.
     manager = self.copy_manager(manager)

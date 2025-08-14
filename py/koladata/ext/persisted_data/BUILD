@@ -58,6 +58,7 @@ py_library(
         ":persisted_incremental_data_bag_manager",
         ":persisted_incremental_data_slice_manager_metadata_py_pb2",
         ":schema_helper",
+        ":stubs_and_minimal_bags_lib",
         "//py:python_path",
         "//py/koladata:kd",
     ],

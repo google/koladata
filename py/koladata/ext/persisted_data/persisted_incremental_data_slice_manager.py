@@ -20,7 +20,7 @@ PersistedIncrementalDataSliceManager.
 
 import datetime
 import os
-from typing import AbstractSet, Generator
+from typing import Generator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
@@ -30,6 +30,20 @@ from koladata.ext.persisted_data import fs_util
 from koladata.ext.persisted_data import persisted_incremental_data_bag_manager as dbm
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager_metadata_pb2 as metadata_pb2
 from koladata.ext.persisted_data import schema_helper
+from koladata.ext.persisted_data import stubs_and_minimal_bags_lib
+
+
+class _BagIdManager:
+  """Manages bag ids, an internal concept."""
+
+  def __init__(self):
+    self._next_bag_id = 0
+
+  def get_next_bag_id(self) -> int:
+    """Returns the next bag id and increments the internal counter."""
+    bag_id = self._next_bag_id
+    self._next_bag_id += 1
+    return bag_id
 
 
 class PersistedIncrementalDataSliceManager(
@@ -212,9 +226,13 @@ class PersistedIncrementalDataSliceManager(
     needed_bag_names = set()
     for snn in needed_schema_node_names:
       needed_bag_names.update(self._schema_node_name_to_bag_names[snn])
+    data_bag = self._bag_manager.get_minimal_bag(needed_bag_names)
 
-    bag = self._bag_manager.get_minimal_bag(needed_bag_names)
-    loaded_slice = self._root_dataslice.updated(bag)
+    schema_bag = self._schema_helper.get_schema_bag(
+        needed_schema_node_names,
+    )
+
+    loaded_slice = self._root_dataslice.updated(data_bag).updated(schema_bag)
     return data_slice_path_lib.get_subslice(loaded_slice, at_path)
 
   def update(
@@ -259,11 +277,16 @@ class PersistedIncrementalDataSliceManager(
       attr_name: The name of the attribute to update.
       attr_value: The value to assign to the attribute. The restrictions
         mentioned above apply.
-      overwrite_schema: If True, then the schema of the attribute will be
-        overwritten. Otherwise, the schema will be augmented. The value of this
-        argument is forwarded to `kd.attrs()`, which provides more information
-        about the semantics.
+      overwrite_schema: deprecated and ignored.
     """
+    # TODO: Remove this argument from the API.
+    del overwrite_schema
+    # The implementation below creates many small DataBags by traversing a
+    # DataSlice. Conceptually, it would be much simpler and faster to traverse
+    # the DataBag to get data for each schema node name directly. However, there
+    # is currently no convenient API in Python for doing that. So for the time
+    # being, we stick to the indirect traversal of the DataBag via a traversal
+    # of the DataSlice.
     try:
       extracted_attr_value = attr_value.extract()
     except ValueError:
@@ -274,10 +297,10 @@ class PersistedIncrementalDataSliceManager(
     at_schema_node_name = (
         self._schema_helper.get_schema_node_name_for_data_slice_path(at_path)
     )
-    subschema = self._schema_helper.get_subschema_at(at_schema_node_name)
-    if not kd.schema.is_entity_schema(subschema):
+    at_subschema = self._schema_helper.get_subschema_at(at_schema_node_name)
+    if not kd.schema.is_entity_schema(at_subschema):
       raise ValueError(
-          f"the schema at data slice path '{at_path}' is {subschema}, which"
+          f"the schema at data slice path '{at_path}' is {at_subschema}, which"
           ' does not support updates. Please pass a data slice path that is'
           ' associated with an entity schema'
       )
@@ -289,109 +312,216 @@ class PersistedIncrementalDataSliceManager(
         )
     )
 
-    # Loading the data slice at the given path has the effect of loading all
-    # the bags of the affected schema node names that exist so far, as well as
-    # their ancestors, which is required by _add_update().
-    ds = self.get_data_slice(at_path, with_all_descendants=False)
-    data_update = kd.attrs(
-        ds,
-        **{attr_name: extracted_attr_value},
-        overwrite_schema=overwrite_schema,
-    )
-    schema_update = kd.attrs(
-        subschema, **{attr_name: extracted_attr_value.get_schema()}
-    )
-    self._add_update(
-        data_update=data_update,
-        schema_update=schema_update,
-        affected_schema_node_names=affected_schema_node_names,
-    )
-
-  def _add_update(
-      self,
-      *,
-      data_update: kd.types.DataBag,
-      schema_update: kd.types.DataBag,
-      affected_schema_node_names: AbstractSet[str],
-  ):
-    """Internally adds the update to the manager.
-
-    Callers must already have loaded the DataBags for the subset of
-    affected_schema_node_names already exist in the schema graph before the
-    update, as well as the DataBags of all their ancestors in the schema graph.
-
-    Args:
-      data_update: The data update to add.
-      schema_update: The schema update to apply. It is assumed to be included in
-        data_update, so callers must ensure that.
-      affected_schema_node_names: The schema node names that are affected by the
-        update.
-
-    Implementation note: It might perhaps be feasible in the future to have a
-      public method that takes only a data_update DataBag. Such a method would
-      rely on lower level facilities to compute the schema update and the
-      affected schema node names. For the time being, we keep the current
-      interface for simplicity.
-    """
-    # Before changing any attributes of "self", we make sure that there are no
-    # errors. I.e. all attributes must be updated successfully or none must be
-    # updated.
-
-    new_schema = self._schema.updated(schema_update)
-    new_schema_helper = schema_helper.SchemaHelper(new_schema)
-
-    added_bag_name = self._get_timestamped_bag_name()
-    self._bag_manager.add_bags([
-        dbm.BagToAdd(
-            bag_name=added_bag_name,
-            # Here we do not use kd.bags.updated(data_update, schema_update)
-            # because the schema_update is assumed to be included in the
-            # data_update.
-            bag=data_update,
-            # Depend only on the bag manager's root bag - the trivial set of
-            # dependencies.
-            # A fixed set of non-trivial dependencies here would be too
-            # inflexible for our use case, so instead we compute the set of
-            # dependencies dynamically right before we load bags. In particular,
-            # two features make it difficult to use a fixed set of non-trivial
-            # dependencies:
-            # 1. Aliasing. Suppose we add ".x" and then ".x.a". Adding ".y" as
-            #    an alias of ".x" means that ".x.a" now depends on ".y" too,
-            #    because if we call
-            #    get_data_slice(".y", with_all_descendants=True), then we
-            #    want to load ".x.a" as well. So this conceptually requires
-            #    adding a dependency of ".x.a" on ".y", but the bag+deps of the
-            #    former was added a long time ago already.
-            # 2. Schema overwrites. The schema of an attribute might be
-            #    overwritten by an update. For example, we might want to change
-            #    ".x" so that it now contains an INT32 instead of a complex
-            #    entity. When calling get_data_slice(with_all_descendants=True),
-            #    there is no need to load the complex entity anymore. So this
-            #    conceptually requires removing the dependency of the complex
-            #    entity on the root entity's bag, and this dep was added a long
-            #    time ago.
-            dependencies=('',),
+    new_full_schema = self._schema.updated(
+        kd.attrs(
+            at_subschema,
+            **{attr_name: extracted_attr_value.get_schema()},
         )
-    ])
-
-    new_schema_node_name_to_bag_names = dict(
-        self._schema_node_name_to_bag_names
     )
-    for snn in affected_schema_node_names:
-      if snn not in new_schema_node_name_to_bag_names:
-        new_schema_node_name_to_bag_names[snn] = [added_bag_name]
-      else:
-        new_schema_node_name_to_bag_names[snn].append(added_bag_name)
 
-    self._schema = new_schema
+    stub_with_update = (
+        # Loading the data slice at the given path has the effect of loading all
+        # the bags of the affected schema node names that exist so far, as well
+        # as their ancestors.
+        self.get_data_slice(at_path, with_all_descendants=False)
+        .stub()
+        .with_attrs(**{attr_name: extracted_attr_value})
+    )
+    # This also validates the schema of attr_value, e.g. by rejecting uses of
+    # kd.OBJECT immediately:
+    stub_with_update_schema_helper = schema_helper.SchemaHelper(
+        stub_with_update.get_schema()
+    )
+
+    bag_id_manager = _BagIdManager()
+    new_bag_id_to_new_bag: dict[int, kd.types.DataBag] = dict()
+    schema_node_name_to_new_bag_ids: dict[str, list[int]] = {
+        snn: [] for snn in affected_schema_node_names
+    }
+    seen_items = kd.bag().dict(key_schema=kd.ITEMID, value_schema=kd.MASK)
+
+    def process(
+        stub_with_update_data_slice_path: data_slice_path_lib.DataSlicePath,
+        stub_with_update_subslice: kd.types.DataSlice,
+    ):
+      """stub_with_update_subslice is a sub-slice of stub_with_update."""
+
+      def get_schema_node_name_and_path(
+          action: data_slice_path_lib.DataSliceAction,
+      ) -> tuple[str, data_slice_path_lib.DataSlicePath]:
+        path = stub_with_update_data_slice_path.extended_with_action(action)
+        schema_node_name = stub_with_update_schema_helper.get_schema_node_name_for_data_slice_path(
+            path
+        )
+        return schema_node_name, path
+
+      itemids = stub_with_update_subslice.get_itemid()
+      seen_mask = seen_items[itemids]
+      stub_with_update_subslice = stub_with_update_subslice & ~seen_mask
+      if stub_with_update_subslice.is_empty():
+        # Return early. The minimal bags below will all be None anyway.
+        return
+      seen_items[itemids] = kd.present
+      del itemids, seen_mask
+
+      schema = stub_with_update_subslice.get_schema()
+      assert schema.is_struct_schema()
+
+      if schema.is_list_schema():
+        minimal_bag = stubs_and_minimal_bags_lib.minimal_bag_associating_list_with_its_items(
+            stub_with_update_subslice
+        )
+        if minimal_bag is None:
+          return
+        bag_id = bag_id_manager.get_next_bag_id()
+        new_bag_id_to_new_bag[bag_id] = minimal_bag
+        action = data_slice_path_lib.ListExplode()
+        items_schema_node_name, items_path = get_schema_node_name_and_path(
+            action
+        )
+        schema_node_name_to_new_bag_ids[items_schema_node_name].append(bag_id)
+        if stub_with_update_schema_helper.is_non_leaf_schema_node_name(
+            items_schema_node_name
+        ):
+          process(items_path, action.evaluate(stub_with_update_subslice))
+        return
+
+      if schema.is_dict_schema():
+        minimal_bag = stubs_and_minimal_bags_lib.minimal_bag_associating_dict_with_its_keys_and_values(
+            stub_with_update_subslice
+        )
+        if minimal_bag is None:
+          return
+        bag_id = bag_id_manager.get_next_bag_id()
+        new_bag_id_to_new_bag[bag_id] = minimal_bag
+        get_keys_action = data_slice_path_lib.DictGetKeys()
+        get_values_action = data_slice_path_lib.DictGetValues()
+        keys_schema_node_name, keys_path = get_schema_node_name_and_path(
+            get_keys_action
+        )
+        values_schema_node_name, values_path = get_schema_node_name_and_path(
+            get_values_action
+        )
+        schema_node_name_to_new_bag_ids[keys_schema_node_name].append(bag_id)
+        schema_node_name_to_new_bag_ids[values_schema_node_name].append(bag_id)
+        if stub_with_update_schema_helper.is_non_leaf_schema_node_name(
+            keys_schema_node_name
+        ):
+          process(
+              keys_path, get_keys_action.evaluate(stub_with_update_subslice)
+          )
+        if stub_with_update_schema_helper.is_non_leaf_schema_node_name(
+            values_schema_node_name
+        ):
+          process(
+              values_path, get_values_action.evaluate(stub_with_update_subslice)
+          )
+        return
+
+      assert schema.is_entity_schema()
+      for attr_name in kd.dir(schema):
+        minimal_bag = stubs_and_minimal_bags_lib.minimal_bag_associating_entity_with_its_attr_value(
+            stub_with_update_subslice, attr_name
+        )
+        if minimal_bag is None:
+          continue
+        bag_id = bag_id_manager.get_next_bag_id()
+        new_bag_id_to_new_bag[bag_id] = minimal_bag
+        action = data_slice_path_lib.GetAttr(attr_name)
+        value_schema_node_name, value_path = get_schema_node_name_and_path(
+            action
+        )
+        schema_node_name_to_new_bag_ids[value_schema_node_name].append(bag_id)
+        if stub_with_update_schema_helper.is_non_leaf_schema_node_name(
+            value_schema_node_name
+        ):
+          process(value_path, action.evaluate(stub_with_update_subslice))
+
+    process(
+        stub_with_update_data_slice_path=data_slice_path_lib.DataSlicePath.from_actions(
+            []
+        ),
+        stub_with_update_subslice=stub_with_update,
+    )
+
+    new_bag_ids_to_merged_bag_name: dict[tuple[int, ...], str] = dict()
+    merged_bag_name_to_merged_bag: dict[str, kd.types.DataBag] = dict()
+    # The body of the next loop creates a new merged bag name and associates it
+    # with the merged bag. It processes the bag_ids in lexicographic order. Each
+    # newly generated bag name is increasing lexicographically, so as a result,
+    # iterating over the new merged bag names in lexicographic order will follow
+    # the same order as this loop. A fixed ordering is not required for
+    # correctness, but it can make debugging easier.
+    for bag_ids in sorted(schema_node_name_to_new_bag_ids.values()):
+      if not bag_ids:
+        continue
+      bag_ids = tuple(bag_ids)
+      if bag_ids in new_bag_ids_to_merged_bag_name:
+        continue
+      merged_bag_name = self._get_timestamped_bag_name()
+      new_bag_ids_to_merged_bag_name[bag_ids] = merged_bag_name
+      merged_bag_name_to_merged_bag[merged_bag_name] = kd.bags.updated(
+          *[new_bag_id_to_new_bag[bn] for bn in bag_ids]
+      ).merge_fallbacks()
+
+    # The values in this dict are always empty or singleton lists.
+    snn_to_merged_bag_name: dict[str, list[str]] = {
+        snn: (
+            [new_bag_ids_to_merged_bag_name[tuple(bag_names)]]
+            if bag_names
+            else []
+        )
+        for snn, bag_names in schema_node_name_to_new_bag_ids.items()
+    }
+
+    # The processing so far has no errors, so the user inputs are valid and the
+    # update can be performed. We proceed to update the attributes of "self".
+    bags_to_add = [
+        # Depend only on the bag manager's root bag - the trivial set of
+        # dependencies.
+        # A fixed set of non-trivial dependencies here would be too inflexible
+        # for our use case, so instead we compute the set of dependencies
+        # dynamically right before we load bags. In particular, two features
+        # make it difficult to use a fixed set of non-trivial dependencies:
+        # 1. Aliasing. Suppose we add ".x" and then ".x.a". Adding ".y" as an
+        #    alias of ".x" means that ".x.a" now depends on ".y" too, because if
+        #    we call get_data_slice(".y", with_all_descendants=True), then we
+        #    want to load ".x.a" as well. So this conceptually requires adding a
+        #    dependency of ".x.a" on ".y", but the bag+deps of the former was
+        #    added a long time ago already.
+        # 2. Schema overwrites. The schema of an attribute might be overwritten
+        #    by an update. For example, we might want to change ".x" so that it
+        #    now contains an INT32 instead of a complex entity. When calling
+        #    get_data_slice(with_all_descendants=True), there is no need to load
+        #    the complex entity anymore. So this conceptually requires removing
+        #    the dependency of the complex entity on the root entity's bag, and
+        #    this dep was added a long time ago.
+        dbm.BagToAdd(bag_name, bag, dependencies=('',))
+        # We sort based on the bag name to make the order deterministic. The
+        # code is also functionally correct without the sorting. The bag manager
+        # remembers the total order in which the bags are added, and will always
+        # compose a selection of bags in the fixed order that is consistent with
+        # that total order. Adding the bags here in a deterministic order can be
+        # useful for debugging purposes, because then the total order of the
+        # bags is always the same for the same update and even for the same
+        # sequence of updates.
+        for bag_name, bag in sorted(merged_bag_name_to_merged_bag.items())
+    ]
+    self._bag_manager.add_bags(bags_to_add)
+    self._schema = new_full_schema
     fs_util.write_slice_to_file(
         self._fs,
         self._schema,
         self._get_schema_filepath(),
         overwrite=True,
     )
-    self._schema_helper = new_schema_helper
-    self._schema_node_name_to_bag_names = new_schema_node_name_to_bag_names
+    self._schema_helper = schema_helper.SchemaHelper(self._schema)
+    for snn, new_bag_names in snn_to_merged_bag_name.items():
+      existing_bag_names = self._schema_node_name_to_bag_names.get(snn, None)
+      if existing_bag_names is None:
+        self._schema_node_name_to_bag_names[snn] = new_bag_names
+      else:
+        existing_bag_names.extend(new_bag_names)
     self._persist_schema_node_name_to_bag_names()
 
   def _get_root_filepath(self) -> str:
@@ -409,7 +539,17 @@ class PersistedIncrementalDataSliceManager(
     return os.path.join(self._persistence_dir, 'metadata.pb')
 
   def _persist_schema_node_name_to_bag_names(self):
-    item = kd.dict(self._schema_node_name_to_bag_names)
+    # Some values of self._schema_node_name_to_bag_names may be empty lists,
+    # so doing item = kd.dict(self._schema_node_name_to_bag_names) might fail
+    # due to limitations of Koda. In particular, the empty lists will by
+    # default get schema LIST[NONE], which isn't compatible with LIST[STRING].
+    # We overcome that by explicitly specifying the item schema as STRING in a
+    # temporary dict d that is then turned into a Koda item.
+    d = {
+        snn: kd.list(v, item_schema=kd.STRING)
+        for snn, v in self._schema_node_name_to_bag_names.items()
+    }
+    item = kd.dict(d)
     fs_util.write_slice_to_file(
         self._fs,
         item,
