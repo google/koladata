@@ -69,7 +69,6 @@ class SimpleInMemoryDataSliceManager(
       at_path: data_slice_path_lib.DataSlicePath,
       attr_name: str,
       attr_value: kd.types.DataSlice,
-      overwrite_schema: bool = False,
   ):
     self._check_is_valid_data_slice_path(at_path)
     self._check_has_entity_schema(at_path)
@@ -84,7 +83,7 @@ class SimpleInMemoryDataSliceManager(
         kd.attrs(
             data_slice_path_lib.get_subslice(self._ds, at_path),
             **{attr_name: extracted_attr_value},
-            overwrite_schema=overwrite_schema,
+            overwrite_schema=True,
         )
     )
     # Check that the new schema is valid. For example, it must not use kd.OBJECT

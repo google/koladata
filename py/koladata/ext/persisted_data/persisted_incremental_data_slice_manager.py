@@ -246,7 +246,6 @@ class PersistedIncrementalDataSliceManager(
       at_path: data_slice_path_lib.DataSlicePath,
       attr_name: str,
       attr_value: kd.types.DataSlice,
-      overwrite_schema: bool = False,
   ):
     """Updates the data and schema at the given data slice path.
 
@@ -284,10 +283,7 @@ class PersistedIncrementalDataSliceManager(
       attr_name: The name of the attribute to update.
       attr_value: The value to assign to the attribute. The restrictions
         mentioned above apply.
-      overwrite_schema: deprecated and ignored.
     """
-    # TODO: Remove this argument from the API.
-    del overwrite_schema
     # The implementation below creates many small DataBags by traversing a
     # DataSlice. Conceptually, it would be much simpler and faster to traverse
     # the DataBag to get data for each schema node name directly. However, there

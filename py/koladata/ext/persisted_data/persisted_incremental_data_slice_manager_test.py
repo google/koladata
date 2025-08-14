@@ -1542,7 +1542,6 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         at_path=parse_dsp(''),
         attr_name='x',
         attr_value=new_x,
-        overwrite_schema=True,
     )
     x_path = parse_dsp('.x')
 
@@ -1572,7 +1571,6 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         at_path=parse_dsp(''),
         attr_name='x',
         attr_value=kd.list(['a', 'b', 'c']),
-        overwrite_schema=True,
     )
 
     self.assertEqual(
