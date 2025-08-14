@@ -141,6 +141,9 @@ absl::Status CreateIncompatibleSchemaErrorFromStatus(
     absl::Status status, const DataSlice& item_schema,
     const DataSlice& input_schema);
 
+// Returns true if the given object is a scalar Python object or a QValue.
+bool IsPyScalarOrQValueObject(PyObject* py_obj);
+
 }  // namespace koladata::python
 
 #endif  // THIRD_PARTY_PY_KOLADATA_BASE_BOXING_H_

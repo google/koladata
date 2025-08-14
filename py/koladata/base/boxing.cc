@@ -282,7 +282,10 @@ absl::Status ParsePyObject(PyObject* py_obj, const DataItem& explicit_schema,
       callback(ds.item());
       return absl::OkStatus();
     }
+    return absl::InvalidArgumentError(absl::StrFormat(
+        "object with unsupported type: %s", Py_TYPE(py_obj)->tp_name));
   }
+  DCHECK(!IsPyScalarOrQValueObject(py_obj));
   if (arolla::python::IsPyExprInstance(py_obj)) {
     const auto& expr = arolla::python::UnsafeUnwrapPyExpr(py_obj);
     return absl::InvalidArgumentError(absl::StrFormat(
@@ -315,6 +318,13 @@ absl::StatusOr<DataSlice> DataSliceFromPyList(PyObject* py_list,
 }
 
 }  // namespace
+
+bool IsPyScalarOrQValueObject(PyObject* py_obj) {
+  return PyBool_Check(py_obj) || PyLong_Check(py_obj) ||
+         PyFloat_Check(py_obj) || PyUnicode_Check(py_obj) ||
+         PyBytes_Check(py_obj) || py_obj == Py_None ||
+         arolla::python::IsPyQValueInstance(py_obj);
+}
 
 absl::Status CreateIncompatibleSchemaErrorFromStatus(
     absl::Status status, const DataSlice& item_schema,

@@ -54,12 +54,19 @@ class TestKlassInternals:
 _VERSION_PARAMS = [('v1', fns.from_py), ('v2', fns._from_py_v2)]
 
 
+def _zip_with_version_params(input_objects):
+  test_cases = zip(input_objects, _VERSION_PARAMS)
+  for (case_name, input_obj), (version, from_py_fn) in test_cases:
+    yield (f'{case_name}_{version}', (input_obj, from_py_fn))
+
+
 class FromPyTest(parameterized.TestCase):
 
   # More detailed tests for conversions to Koda OBJECT are located in
   # obj_test.py.
-  def test_object(self):
-    obj = fns.from_py({'a': {'b': [1, 2, 3]}})
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_object(self, from_py_fn):
+    obj = from_py_fn({'a': {'b': [1, 2, 3]}})
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_dicts_keys_equal(obj, ds(['a'], schema_constants.OBJECT))
     values = obj['a']
@@ -75,7 +82,7 @@ class FromPyTest(parameterized.TestCase):
     )
 
     ref = fns.obj().ref()
-    testing.assert_equal(fns.from_py([ref], from_dim=1), ds([ref]))
+    testing.assert_equal(from_py_fn([ref], from_dim=1), ds([ref]))
 
   @parameterized.named_parameters(_VERSION_PARAMS)
   def test_same_bag(self, from_py_fn):
@@ -247,20 +254,24 @@ class FromPyTest(parameterized.TestCase):
       )
 
   @parameterized.named_parameters(
-      ('list', [1, 2, 3]),
-      ('dict', {'a': 2, 'b': 4}),
-      ('list of dicts', [{'a': 2, 'b': 4}, {'c': 6, 'd': 8}]),
-      ('empty_tuple', ()),
-      ('tuple', (1, 2, 3)),
-      ('obj', dataclasses.make_dataclass('Obj', [('x', int)])(x=123)),
+      _zip_with_version_params((
+          ('list', [1, 2, 3]),
+          ('dict', {'a': 2, 'b': 4}),
+          ('list of dicts', [{'a': 2, 'b': 4}, {'c': 6, 'd': 8}]),
+          ('empty_tuple', ()),
+          ('tuple', (1, 2, 3)),
+          ('obj', dataclasses.make_dataclass('Obj', [('x', int)])(x=123)),
+      ))
   )
-  def test_same_objects_converted_to_different_items(self, input_obj):
-    d = fns.from_py({'x': input_obj, 'y': input_obj})
+  def test_same_objects_converted_to_different_items(self, test_case):
+    input_obj, from_py_fn = test_case
+    d = from_py_fn({'x': input_obj, 'y': input_obj})
     self.assertNotEqual(d['x'].get_itemid(), d['y'].get_itemid())
     self.assertEqual(d['x'].to_py(), d['y'].to_py())
-    l = fns.from_py([input_obj, input_obj])
+    l = from_py_fn([input_obj, input_obj])
     self.assertNotEqual(l[0].get_itemid(), l[1].get_itemid())
     self.assertEqual(l[0].to_py(), l[1].to_py())
+    # TODO: support dict_as_obj=True in v2.
     o = fns.from_py({'x': input_obj, 'y': input_obj}, dict_as_obj=True)
     self.assertNotEqual(o.x.get_itemid(), o.y.get_itemid())
     self.assertEqual(o.x.to_py(), o.y.to_py())
@@ -859,8 +870,9 @@ assigned schema: ENTITY(x=INT32)'''
     ):
       fns.from_py(entity, schema=schema)
 
-  def test_dataclasses(self):
-    obj = fns.from_py(TestKlass(42, NestedKlass('abc'), b'xyz'))
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclasses(self, from_py_fn):
+    obj = from_py_fn(TestKlass(42, NestedKlass('abc'), b'xyz'))
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     self.assertCountEqual(fns.dir(obj), ['a', 'b', 'c', 'x'])
     testing.assert_equal(obj.a.no_bag(), ds(42))
@@ -920,32 +932,27 @@ assigned schema: ENTITY(x=INT32)'''
     schema = kde.schema.new_schema(
         a=schema_constants.FLOAT32,
     ).eval()
-    is_v1 = from_py_fn == fns.from_py
-    err_type = ValueError if is_v1 else AttributeError
-    err_msg = (
-        'schema is incompatible'
-        if is_v1
-        else "'float' object has no attribute 'a'"
-    )
     with self.assertRaisesRegex(
-        err_type,
-        err_msg,
+        ValueError,
+        'schema is incompatible',
     ):
       _ = from_py_fn(3.14, schema=schema)
 
-  def test_list_of_dataclasses(self):
-    obj = fns.from_py([NestedKlass('a'), NestedKlass('b')])
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_list_of_dataclasses(self, from_py_fn):
+    obj = from_py_fn([NestedKlass('a'), NestedKlass('b')])
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     nested = obj[:]
     testing.assert_equal(nested.S[0].x.no_bag(), ds('a'))
     testing.assert_equal(nested.S[1].x.no_bag(), ds('b'))
 
-  def test_dataclass_with_list(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclass_with_list(self, from_py_fn):
     @dataclasses.dataclass
     class Test:
       l: list[int]
 
-    obj = fns.from_py(Test([1, 2, 3]))
+    obj = from_py_fn(Test([1, 2, 3]))
     testing.assert_equal(obj.get_schema().no_bag(), schema_constants.OBJECT)
     testing.assert_equal(
         obj.l[:].no_bag(), ds([1, 2, 3], schema_constants.OBJECT)
@@ -967,29 +974,32 @@ assigned schema: ENTITY(x=INT32)'''
     testing.assert_equal(koda.get_schema().no_bag(), schema.koda.no_bag())
     testing.assert_equal(koda.x.no_bag(), ds(1))
 
-  def test_dataclasses_prevent_memory_leak(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclasses_prevent_memory_leak(self, from_py_fn):
     gc.collect()
     base_count = sys.getrefcount(42)
     for _ in range(10):
-      fns.from_py(TestKlassInternals(42, 3.14))
+      from_py_fn(TestKlassInternals(42, 3.14))
     gc.collect()
     self.assertEqual(base_count, sys.getrefcount(42))
 
-  def test_dataclasses_errors(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclasses_errors(self, from_py_fn):
     with mock.patch.object(dataclasses, 'fields', return_value=[1, 2]):
       with self.assertRaisesRegex(
           AttributeError, "'int' object has no attribute 'name'"
       ):
-        fns.from_py(TestKlassInternals(42, 3.14))
+        from_py_fn(TestKlassInternals(42, 3.14))
     with mock.patch.object(dataclasses, 'fields') as fields_mock:
       fields_mock.side_effect = ValueError('fields')
       with self.assertRaisesRegex(ValueError, 'fields'):
-        fns.from_py(TestKlassInternals(42, 3.14))
+        from_py_fn(TestKlassInternals(42, 3.14))
     with mock.patch.object(dataclasses, 'fields', return_value=(1, 2)):
       with self.assertRaisesRegex(AttributeError, 'has no attribute \'name\''):
-        fns.from_py(TestKlassInternals(42, 3.14))
+        from_py_fn(TestKlassInternals(42, 3.14))
 
-  def test_dataclasses_field_attribute_error(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclasses_field_attribute_error(self, from_py_fn):
     class TestField:
 
       def __init__(self, val):
@@ -1005,9 +1015,10 @@ assigned schema: ENTITY(x=INT32)'''
       with self.assertRaisesRegex(
           AttributeError, 'has no attribute \'non_existent\''
       ):
-        fns.from_py(TestKlassInternals(42, 3.14))
+        from_py_fn(TestKlassInternals(42, 3.14))
 
-  def test_dataclasses_field_invalid_name_error(self):
+  @parameterized.named_parameters(_VERSION_PARAMS)
+  def test_dataclasses_field_invalid_name_error(self, from_py_fn):
     class TestField:
 
       def __init__(self, val):
@@ -1023,7 +1034,7 @@ assigned schema: ENTITY(x=INT32)'''
       with self.assertRaisesRegex(
           TypeError, "attribute name must be string, not 'bytes'"
       ):
-        fns.from_py(TestKlassInternals(42, 3.14))
+        from_py_fn(TestKlassInternals(42, 3.14))
 
   def test_item_id(self):
     with self.subTest('list'):
@@ -1544,6 +1555,11 @@ assigned schema: ENTITY(x=INT32)'''
         ValueError, r'schema\'s schema must be SCHEMA, got: INT32'
     ):
       from_py_fn([1, 2], schema=ds([42]))
+
+    with self.assertRaisesRegex(
+        ValueError, r'schema mismatch: expected an object schema here'
+    ):
+      fns._from_py_v2([1, 2], schema=schema_constants.SCHEMA)
 
   def test_arg_errors(self):
     with self.assertRaisesRegex(

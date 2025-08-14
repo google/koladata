@@ -130,17 +130,17 @@ class FromPyConverter {
   // checking the schema. If all objects are None, returns false.
   bool IsEntity(const std::vector<PyObject*>& py_objects,
                 const std::optional<DataSlice>& schema) {
-    if (!schema || !schema->IsEntitySchema()) {
-      return false;
+    return IsStructSchema(schema) && schema->IsEntitySchema();
+  }
+
+  bool IsPrimitiveOrQValue(const std::vector<PyObject*>& py_objects,
+                           const std::optional<DataSlice>& schema) {
+    if (schema && schema->IsPrimitiveSchema()) {
+      return true;
     }
-    // TODO: check `IsPrimitive` before calling this function. to
-    // have a better error message.
-    for (PyObject* py_obj : py_objects) {
-      if (py_obj != Py_None) {
-        return true;
-      }
-    }
-    return false;
+    DCHECK_EQ(py_objects.size(), 1);
+    PyObject* obj = py_objects[0];
+    return IsPyScalarOrQValueObject(obj);
   }
 
   absl::StatusOr<DataSlice> CreateWithSchema(internal::DataSliceImpl impl,
@@ -228,40 +228,48 @@ class FromPyConverter {
     if (IsDict(py_objects, schema)) {
       return ConvertDict(py_objects, cur_shape, schema);
     }
-    // This is different from the above, because we want to separate cases when
-    // there is schema and when there is not:
-    // - check if PyObject is a dataclass is expensive
-    // - if there is schema, we get object attributes from it; otherwise we get
-    // them from PyObject.
-    // We don't want to call this if all py_objects are None.
+
+    if (py_objects.empty() || IsPrimitiveOrQValue(py_objects, schema)) {
+      DataItem schema_item;
+      if (IsObjectSchema(schema)) {
+        schema_item = DataItem(schema::kObject);
+      }
+      // We need implicit casting here, so we provide an empty schema if schema
+      // is not OBJECT.
+      // TODO: avoid precision loss when migrated to v2.
+      ASSIGN_OR_RETURN(
+          DataSlice res_slice,
+          DataSliceFromPyFlatList(py_objects, cur_shape, std::move(schema_item),
+                                  adoption_queue_));
+      if (schema) {
+        ASSIGN_OR_RETURN(res_slice, CastToImplicit(res_slice, schema->item()),
+                         [&](absl::Status status) {
+                           return CreateIncompatibleSchemaErrorFromStatus(
+                               std::move(status),
+                               res_slice.GetSchema().WithBag(
+                                   adoption_queue_.GetBagWithFallbacks()),
+                               *schema);
+                         }(_));
+      }
+      return res_slice;
+    }
+
     if (IsEntity(py_objects, schema)) {
       DCHECK(schema.has_value());
       return ConvertEntities(py_objects, cur_shape, *schema);
     }
 
-    // We are left with primitives or DataItems here.
-    DataItem schema_item;
-    if (IsObjectSchema(schema)) {
-      schema_item = DataItem(schema::kObject);
+    if (schema.has_value()) {
+      if (!IsObjectSchema(schema)) {
+        return absl::InvalidArgumentError(
+            "schema mismatch: expected an object schema here.");
+      }
     }
-    // We need implicit casting here, so we provide an empty schema if schema is
-    // not OBJECT.
-    // TODO: avoid precision loss when migrated to v2.
-    ASSIGN_OR_RETURN(
-        DataSlice res_slice,
-        DataSliceFromPyFlatList(py_objects, cur_shape, std::move(schema_item),
-                                adoption_queue_));
-    if (schema) {
-      ASSIGN_OR_RETURN(res_slice, CastToImplicit(res_slice, schema->item()),
-                       [&](absl::Status status) {
-                         return CreateIncompatibleSchemaErrorFromStatus(
-                             std::move(status),
-                             res_slice.GetSchema().WithBag(
-                                 adoption_queue_.GetBagWithFallbacks()),
-                             *schema);
-                       }(_));
-    }
-    return res_slice;
+
+    DCHECK(!py_objects.empty());
+    DCHECK_EQ(py_objects.size(), 1);
+
+    return ConvertObject(py_objects[0], cur_shape);
   }
 
   // Converts a list of Python objects to a List DataSlice, assuming that
@@ -376,6 +384,10 @@ class FromPyConverter {
     return dict;
   }
 
+  // Converts a list of Python objects to an Entity DataSlice, assuming that
+  // all of them have the same schema. First gets a list of attribute names from
+  // the schema, then for each object in the list, gets the values of the
+  // attributes and finally creates an Entity DataSlice.
   absl::StatusOr<DataSlice> ConvertEntities(
       const std::vector<PyObject*>& py_objects,
       const DataSlice::JaggedShape& cur_shape, const DataSlice& schema) {
@@ -429,6 +441,40 @@ class FromPyConverter {
 
     return EntityCreator::Shaped(GetBag(), cur_shape, attr_names_vec, values,
                                  schema);
+  }
+
+  // Converts a Python object (dataclass) to an Entity. Since we don't have a
+  // schema, we get attribute names and values from the dataclass itself.
+  absl::StatusOr<DataSlice> ConvertObject(
+      PyObject* py_obj, const DataSlice::JaggedShape& cur_shape) {
+    // This is a case when we try to parse a single PyObject as a dataclass
+    // object. Checking that it is a dataclass is expensive, so we try to get
+    // the attributes of a dataclass immediately.
+    ASSIGN_OR_RETURN(
+        std::optional<DataClassesUtil::AttrResult> attr_names_and_values,
+        dataclasses_util_.GetAttrNamesAndValues(py_obj));
+
+    if (!attr_names_and_values.has_value()) {
+      // This should not normally happen, since all the types we support are
+      // checked above.
+      return absl::InvalidArgumentError(
+          "could not parse object as a dataclass");
+    }
+
+    DCHECK(attr_names_and_values->attr_names.size() ==
+           attr_names_and_values->values.size());
+    const size_t size = attr_names_and_values->attr_names.size();
+    std::vector<absl::string_view> attr_names(
+        attr_names_and_values->attr_names.begin(),
+        attr_names_and_values->attr_names.end());
+    std::vector<DataSlice> values(size);
+    for (int i = 0; i < size; ++i) {
+      ASSIGN_OR_RETURN(
+          values[i],
+          ConvertImpl({attr_names_and_values->values[i]},
+                      DataSlice::JaggedShape::Empty(), std::nullopt));
+    }
+    return ObjectCreator::Shaped(GetBag(), cur_shape, attr_names, values);
   }
 
   const DataBagPtr& GetBag() {
