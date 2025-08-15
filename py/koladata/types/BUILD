@@ -664,9 +664,9 @@ py_library(
     name = "extension_types",
     srcs = ["extension_types.py"],
     deps = [
-        ":data_bag",
         ":data_slice",
         ":qtypes",
+        ":schema_item",
         "//py:python_path",
         requirement("bidict"),
         "//py/koladata/expr:view",
@@ -679,6 +679,7 @@ py_test(
     name = "extension_types_test",
     srcs = ["extension_types_test.py"],
     deps = [
+        ":data_bag",
         ":data_slice",
         ":extension_types",
         ":qtypes",

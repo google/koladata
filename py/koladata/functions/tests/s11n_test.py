@@ -15,14 +15,13 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from arolla import arolla
-from arolla.derived_qtype import derived_qtype
 from koladata import kd
 from koladata.functions import s11n
 from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import extension_types
 from koladata.types import jagged_shape
-from koladata.types import qtypes
 from koladata.types import schema_constants
 
 M = arolla.M
@@ -56,6 +55,12 @@ DS_DATA = (
     # Text
     (ds(['foo', 'bar', 'baz'])),
 )
+
+
+@extension_types.extension_type()
+class MyExtensionType:
+  x: kd.INT32
+  y: kd.FLOAT32
 
 
 class DumpsLoadsTest(parameterized.TestCase):
@@ -160,31 +165,12 @@ class DumpsLoadsTest(parameterized.TestCase):
     testing.assert_equal(loaded_shape, shape)
 
   def test_dumps_loads_extension_type(self):
-    y = kd.bag().new(x=1)
-    ext_type = arolla.eval(
-        derived_qtype.M.get_labeled_qtype(qtypes.DATA_SLICE, 'USER_TYPE')
-    )
-    ext_y = arolla.eval(derived_qtype.M.downcast(ext_type, y))
-    dumped_bytes = s11n.dumps(ext_y)
-    loaded_y = s11n.loads(dumped_bytes)
-    testing.assert_equal(loaded_y.qtype, ext_y.qtype)
-    testing.assert_equivalent(
-        arolla.eval(derived_qtype.M.upcast(ext_type, ext_y)),
-        arolla.eval(derived_qtype.M.upcast(ext_type, loaded_y)),
-    )
-
-  def test_dumps_loads_extension_type_extracts(self):
-    bag = kd.bag()
-    nested = bag.new(a=bag.new(b=1))
-    ext_type = arolla.eval(
-        derived_qtype.M.get_labeled_qtype(qtypes.DATA_SLICE, 'USER_TYPE')
-    )
-    ext_nested_a = arolla.eval(derived_qtype.M.downcast(ext_type, nested.a))
-    loaded_a = s11n.loads(s11n.dumps(ext_nested_a))
-    loaded_a_ds = arolla.eval(derived_qtype.M.upcast(ext_type, loaded_a))
-    testing.assert_equivalent(
-        loaded_a_ds.get_bag(), nested.a.extract().get_bag()
-    )
+    ext_x = MyExtensionType(1, 2)
+    dumped_bytes = s11n.dumps(ext_x)
+    loaded_x = s11n.loads(dumped_bytes)
+    testing.assert_equal(ext_x.qtype, loaded_x.qtype)
+    testing.assert_equal(ext_x.x, loaded_x.x)
+    testing.assert_equal(ext_x.y, loaded_x.y)
 
 
 if __name__ == '__main__':

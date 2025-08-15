@@ -22,9 +22,9 @@ from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 import bidict
 from koladata.expr import view
-from koladata.types import data_bag
 from koladata.types import data_slice
 from koladata.types import qtypes
+from koladata.types import schema_item
 
 
 M = arolla.M | derived_qtype.M
@@ -40,11 +40,24 @@ _UPCAST_EXPR = M.derived_qtype.upcast(M.qtype.qtype_of(arolla.L.x), arolla.L.x)
 _EXTENSION_TYPE_REGISTRY = bidict.bidict()  # cls -> QType.
 
 
+def _is_extension_qtype(qtype: arolla.QType) -> bool:
+  """Checks if the given qtype is a Koda extension type."""
+  return (
+      arolla.abc.invoke_op('derived_qtype.get_qtype_label', (qtype,)) != ''  # pylint: disable=g-explicit-bool-comparison
+  ) and (
+      # Heuristic check to catch the worst offenders: while there can be many
+      # different types of extension types, they are at least all tuples.
+      arolla.is_tuple_qtype(
+          arolla.abc.invoke_op('qtype.decay_derived_qtype', (qtype,))
+      )
+  )
+
+
 def register_extension_type(
     cls: type[Any], qtype: arolla.QType, *, unsafe_override=False
 ):
   """Registers an extension type with its corresponding qtype."""
-  if not _is_extension_type(qtype):
+  if not _is_extension_qtype(qtype):
     raise ValueError(f'expected an extension type, got: {qtype}')
   if unsafe_override:
     if qtype in _EXTENSION_TYPE_REGISTRY.inverse:
@@ -61,11 +74,22 @@ def register_extension_type(
 
 
 def get_extension_qtype(cls: type[Any]) -> arolla.QType:
-  """Returns the qtype for the given extension type class."""
+  """Returns the QType for the given extension type class."""
   try:
     return _EXTENSION_TYPE_REGISTRY[cls]
   except KeyError:
     raise ValueError(f'{cls} is not a registered extension type') from None
+
+
+def _get_extension_cls(qtype: arolla.QType) -> type[Any]:
+  """Returns the extension type class for the given QType."""
+  try:
+    return _EXTENSION_TYPE_REGISTRY.inverse[qtype]
+  except KeyError:
+    raise ValueError(
+        'there is no registered extension type corresponding to the QType'
+        f' {qtype}'
+    ) from None
 
 
 def is_koda_extension_type(cls: type[Any]) -> bool:
@@ -73,37 +97,38 @@ def is_koda_extension_type(cls: type[Any]) -> bool:
   return cls in _EXTENSION_TYPE_REGISTRY
 
 
-def _is_extension_type(qtype: arolla.QType) -> bool:
-  """Checks if the given qtype is a Koda extension type."""
-  return (
-      arolla.abc.invoke_op('derived_qtype.get_qtype_label', (qtype,)) != ''  # pylint: disable=g-explicit-bool-comparison
-  ) and (
-      arolla.abc.invoke_op('qtype.decay_derived_qtype', (qtype,))
-      == qtypes.DATA_SLICE
-  )
-
-
 def is_koda_extension(x: Any) -> bool:
-  """Returns True iff the given object is instance of a Koda extension type."""
+  """Returns True iff the given object is an instance of a Koda extension type."""
   if not isinstance(x, arolla.QValue):
     return False
-  return _is_extension_type(x.qtype)
+  return x.qtype in _EXTENSION_TYPE_REGISTRY.inverse
 
 
-def wrap(x: data_slice.DataSlice, qtype: arolla.QType) -> Any:
-  """Wraps a DataSlice into an instance of the given extension type."""
-  if not isinstance(x, data_slice.DataSlice):
-    raise ValueError(f'expected a DataSlice, got: {type(x)}')
-  if not _is_extension_type(qtype):
-    raise ValueError(f'expected an extension type, got: {qtype}')
+def wrap(x: arolla.types.Tuple, qtype: arolla.QType) -> Any:
+  """Wraps `x` into an instance of the given extension type."""
+  _ = _get_extension_cls(qtype)  # Check that it's registered
   return arolla.eval(_get_downcast_expr(qtype), x=x)
 
 
-def unwrap(x: Any) -> data_slice.DataSlice:
-  """Unwraps an extension type into the underlying DataSlice."""
+def unwrap(x: Any) -> arolla.types.Tuple:
+  """Unwraps an extension type into the underlying type."""
   if not is_koda_extension(x):
     raise ValueError(f'expected an extension type, got: {type(x)}')
   return arolla.eval(_UPCAST_EXPR, x=x)
+
+
+def get_dummy_value(cls: Any) -> arolla.AnyQValue:
+  """Returns a dummy value for the given extension type class."""
+  extension_qtype = get_extension_qtype(cls)
+  tpl_qtype = arolla.abc.invoke_op(
+      'qtype.decay_derived_qtype', (extension_qtype,)
+  )
+  dummy_fields = []
+  for qtype in arolla.abc.get_field_qtypes(tpl_qtype):
+    assert qtype == qtypes.DATA_SLICE, f'unexpected qtype {qtype}'
+    dummy_fields.append(data_slice.DataSlice.from_vals(None))
+  tpl = arolla.tuple(*dummy_fields)
+  return wrap(tpl, extension_qtype)
 
 
 # Dummy dataclass used to get the list of default dataclassfields.
@@ -119,6 +144,8 @@ _DEFAULT_FIELDS = frozenset(dir(_DummyDC))
 class _ClassMeta:
   signature: inspect.Signature
   methods: Mapping[str, Callable[..., Any]]
+  field_annotations: Mapping[str, schema_item.SchemaItem]
+  field_qtypes: Mapping[str, arolla.QType]
 
 
 def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
@@ -134,9 +161,39 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
     if not callable(method):
       continue
     methods[attr] = method
+
+  sig = inspect.signature(data_class, eval_str=True)
+  field_annotations = {}
+  field_qtypes = {}
+  for param in sig.parameters.values():
+    # TODO: Allow non-schemas as annotation.
+    if not isinstance(param.annotation, schema_item.SchemaItem):
+      raise ValueError(
+          f'expected a Schema annotation, got: {param.annotation}'
+      )
+    field_annotations[param.name] = param.annotation
+    field_qtypes[param.name] = qtypes.DATA_SLICE
+
   return _ClassMeta(
-      signature=inspect.signature(data_class, eval_str=True), methods=methods
+      signature=sig,
+      methods=methods,
+      field_annotations=field_annotations,
+      field_qtypes=field_qtypes,
   )
+
+
+def _sidecast_expr(value: Any, to_qtype: arolla.QType) -> arolla.Expr:
+  return M.derived_qtype.downcast(
+      to_qtype,
+      M.derived_qtype.upcast(M.qtype.qtype_of(value), value),
+  )
+
+
+def _sidecast_qvalue(
+    value: arolla.QValue, to_qtype: arolla.QType
+) -> arolla.AnyQValue:
+  tpl = arolla.eval(_UPCAST_EXPR, x=value)
+  return arolla.eval(_get_downcast_expr(to_qtype), x=tpl)
 
 
 def extension_type(
@@ -149,10 +206,10 @@ def extension_type(
 
   Internally, this function creates the following:
   -  A new `QType` for the extension type, which is a labeled `QType` on top of
-  `DATA_SLICE`.
+    a TUPLE.
   - A `QValue` class for representing evaluated instances of the extension type.
-  - An `ExprView` class for representing expressions that will evaluate to
-        the extension type.
+  - An `ExprView` class for representing expressions that will evaluate to the
+    extension type.
 
   It replaces the decorated class with a new class that acts as a factory. This
   factory's `__new__` method dispatches to either create an `Expr` or a `QValue`
@@ -187,31 +244,43 @@ def extension_type(
     A new class that serves as a factory for the extension type.
   """
 
+  if not isinstance(unsafe_override, bool):
+    raise TypeError(
+        f'expected {unsafe_override=} to be a bool - did you mean to write'
+        ' `@extension_type()` instead of `@extension_type`?'
+    )
+
   def impl(original_class: type[Any]) -> type[arolla.AnyQValue]:
     class_meta = _get_class_meta(original_class)
+
+    # QType definitions.
+    named_tuple_qtype = arolla.make_namedtuple_qtype(**class_meta.field_qtypes)
+    tuple_qtype = arolla.abc.invoke_op(
+        'qtype.decay_derived_qtype', (named_tuple_qtype,)
+    )
+    extension_qtype = M.derived_qtype.get_labeled_qtype(
+        tuple_qtype, original_class.__name__
+    ).qvalue
 
     # QValue construction.
     qvalue_class_attrs = {}
     for name in class_meta.signature.parameters:
       qvalue_class_attrs[name] = property(
-          lambda self, k=name: getattr(unwrap(self), k)
+          lambda self, k=name: _sidecast_qvalue(self, named_tuple_qtype)[k]
       )
     qvalue_class_attrs |= class_meta.methods
     qvalue_class = type(
         f'{original_class.__name__}QValue', (arolla.QValue,), qvalue_class_attrs
     )
 
-    extension_qtype = M.derived_qtype.get_labeled_qtype(
-        qtypes.DATA_SLICE, original_class.__name__
-    ).qvalue
     arolla.abc.register_qvalue_specialization(extension_qtype, qvalue_class)
 
     # ExprView construction.
     expr_view_class_attrs = {}
     for name in class_meta.signature.parameters:
       expr_view_class_attrs[name] = property(
-          lambda self, k=name: getattr(
-              M.derived_qtype.upcast(extension_qtype, self), k
+          lambda self, k=name: M.namedtuple.get_field(
+              _sidecast_expr(self, named_tuple_qtype), k
           )
       )
     expr_view_class_attrs |= class_meta.methods
@@ -223,34 +292,33 @@ def extension_type(
     )
     arolla.abc.set_expr_view_for_qtype(extension_qtype, expr_view_class)
 
-    schema = arolla.abc.aux_eval_op(
-        'kd.named_schema',
-        original_class.__name__,
-        **{
-            p.name: p.annotation
-            for p in class_meta.signature.parameters.values()
-        },
-    )
-
     def dispatching_new(cls, *args, **kwargs):  # pylint: disable=unused-argument
       bound_args = class_meta.signature.bind(*args, **kwargs)
       bound_args.apply_defaults()
       field_values = bound_args.arguments
+      cast_to_narrow = arolla.abc.lookup_operator('kd.schema.cast_to_narrow')
 
       if arolla.Expr in (type(v) for v in field_values.values()):
+        field_values = {
+            k: cast_to_narrow(v, class_meta.field_annotations[k])
+            for k, v in field_values.items()
+        }
         return M.annotation.qtype(
-            M.derived_qtype.downcast(
+            _sidecast_expr(
+                arolla.abc.lookup_operator('kd.namedtuple')(**field_values),
                 extension_qtype,
-                arolla.abc.lookup_operator('kd.new')(
-                    **field_values, schema=schema
-                ),
             ),
             extension_qtype,
         )
       else:
-        return wrap(
-            data_bag.DataBag._new_no_bag(**field_values, schema=schema),  # pylint: disable=protected-access
-            extension_qtype,
+        field_values = {
+            k: arolla.abc.aux_eval_op(
+                cast_to_narrow, v, class_meta.field_annotations[k]
+            )
+            for k, v in field_values.items()
+        }
+        return _sidecast_qvalue(
+            arolla.namedtuple(**field_values), extension_qtype
         )
 
     cls_p = inspect.Parameter('cls', inspect.Parameter.POSITIONAL_OR_KEYWORD)

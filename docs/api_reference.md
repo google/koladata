@@ -9176,10 +9176,10 @@ Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
 
   Internally, this function creates the following:
   -  A new `QType` for the extension type, which is a labeled `QType` on top of
-  `DATA_SLICE`.
+    a TUPLE.
   - A `QValue` class for representing evaluated instances of the extension type.
-  - An `ExprView` class for representing expressions that will evaluate to
-        the extension type.
+  - An `ExprView` class for representing expressions that will evaluate to the
+    extension type.
 
   It replaces the decorated class with a new class that acts as a factory. This
   factory&#39;s `__new__` method dispatches to either create an `Expr` or a `QValue`

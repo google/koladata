@@ -104,10 +104,7 @@ class DefaultTypeTracingConfig(TypeTracingConfig):
     if annotation is data_bag.DataBag:
       return data_bag.DataBag.empty()
     elif extension_types.is_koda_extension_type(annotation):
-      return extension_types.wrap(
-          data_slice.DataSlice.from_vals(None),
-          extension_types.get_extension_qtype(annotation),
-      )
+      return extension_types.get_dummy_value(annotation)
     else:
       # This will be incorrect if 'annotation' is anything except a DataSlice,
       # in which case we currently expect the user to specify return_type_as

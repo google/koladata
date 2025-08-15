@@ -75,14 +75,6 @@ def dumps(
   # not contain the set of attributes used for the entire expression.
   if isinstance(x, data_slice.DataSlice):
     x = _extract_keep_mutability(x)
-  if ext_types.is_koda_extension(x):
-    try:
-      # Try to extract the DataSlice underlying the value of the extension type.
-      x_ds = ext_types.unwrap(x)
-      x_ds = _extract_keep_mutability(x_ds)
-      x = ext_types.wrap(x_ds, x.qtype)
-    except ValueError:
-      pass  # no Bag, ...
   if riegeli_options is None:
     riegeli_options = 'snappy'
   return arolla.s11n.riegeli_dumps(x, riegeli_options=riegeli_options)
