@@ -13,8 +13,11 @@
 // limitations under the License.
 //
 #include "koladata/operators/bitwise.h"
+
 #include "absl/status/statusor.h"
 #include "koladata/data_slice.h"
+#include "koladata/internal/data_item.h"
+#include "koladata/internal/dtype.h"
 #include "koladata/operators/arolla_bridge.h"
 #include "koladata/schema_utils.h"
 #include "arolla/util/status_macros_backport.h"
@@ -42,6 +45,13 @@ absl::StatusOr<DataSlice> BitwiseXor(const DataSlice& x, const DataSlice& y) {
 absl::StatusOr<DataSlice> BitwiseInvert(const DataSlice& x) {
   RETURN_IF_ERROR(ExpectInteger("x", x));
   return SimplePointwiseEval("bitwise.invert", {x});
+}
+
+absl::StatusOr<DataSlice> BitwiseCount(const DataSlice& x) {
+  RETURN_IF_ERROR(ExpectInteger("x", x));
+  return SimplePointwiseEval(
+      "bitwise.count", {x},
+      /*output_schema=*/internal::DataItem(koladata::schema::kInt32));
 }
 
 }  // namespace koladata::ops

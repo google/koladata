@@ -97,6 +97,7 @@ OPERATOR_FAMILY("kd.bags.updated",
 OPERATOR("kd.bitwise.bitwise_and", BitwiseAnd);
 OPERATOR("kd.bitwise.bitwise_or", BitwiseOr);
 OPERATOR("kd.bitwise.bitwise_xor", BitwiseXor);
+OPERATOR("kd.bitwise.count", BitwiseCount);
 OPERATOR("kd.bitwise.invert", BitwiseInvert);
 //
 OPERATOR("kd.comparison.equal", Equal);

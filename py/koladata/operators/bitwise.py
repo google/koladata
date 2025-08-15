@@ -78,3 +78,17 @@ def bitwise_xor(x, y):  # pylint: disable=unused-argument
 def invert(x):  # pylint: disable=unused-argument
   """Computes pointwise bitwise ~x."""
   raise NotImplementedError('implemented in the backend')
+
+
+@optools.add_to_registry(
+    aliases=['kd.bitwise_count'],
+)
+@optools.as_backend_operator(
+    'kd.bitwise.count',
+    qtype_constraints=[
+        qtype_utils.expect_data_slice(P.x),
+    ],
+)
+def count(x):  # pylint: disable=unused-argument
+  """Computes the number of bits set to 1 in the given input."""
+  raise NotImplementedError('implemented in the backend')

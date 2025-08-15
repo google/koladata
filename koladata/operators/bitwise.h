@@ -32,6 +32,9 @@ absl::StatusOr<DataSlice> BitwiseXor(const DataSlice& x, const DataSlice& y);
 
 // kd.bitwise.invert.
 absl::StatusOr<DataSlice> BitwiseInvert(const DataSlice& x);
+
+// kd.bitwise.count.
+absl::StatusOr<DataSlice> BitwiseCount(const DataSlice& x);
 }  // namespace koladata::ops
 
 #endif  // KOLADATA_OPERATORS_BITWISE_H_

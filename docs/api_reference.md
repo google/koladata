@@ -338,6 +338,13 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Computes pointwise bitwise x ^ y.</code></pre>
 
+### `kd.bitwise.count(x)` {#kd.bitwise.count}
+Aliases:
+
+- [kd.bitwise_count](#kd.bitwise_count)
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Computes the number of bits set to 1 in the given input.</code></pre>
+
 ### `kd.bitwise.invert(x)` {#kd.bitwise.invert}
 Aliases:
 
@@ -8767,6 +8774,10 @@ Alias for [kd.functor.bind](#kd.functor.bind) operator.
 ### `kd.bitwise_and(x, y)` {#kd.bitwise_and}
 
 Alias for [kd.bitwise.bitwise_and](#kd.bitwise.bitwise_and) operator.
+
+### `kd.bitwise_count(x)` {#kd.bitwise_count}
+
+Alias for [kd.bitwise.count](#kd.bitwise.count) operator.
 
 ### `kd.bitwise_invert(x)` {#kd.bitwise_invert}
 

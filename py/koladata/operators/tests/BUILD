@@ -394,6 +394,27 @@ py_test(
 )
 
 py_test(
+    name = "bitwise_count_test",
+    srcs = ["bitwise_count_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/expr:expr_eval",
+        "//py/koladata/expr:input_container",
+        "//py/koladata/expr:view",
+        "//py/koladata/operators:kde_operators",
+        "//py/koladata/operators:optools",
+        "//py/koladata/operators/tests/util:qtypes",
+        "//py/koladata/testing",
+        "//py/koladata/types:data_slice",
+        "//py/koladata/types:qtypes",
+        "//py/koladata/types:schema_constants",
+        "@com_google_absl_py//absl/testing:absltest",
+        "@com_google_absl_py//absl/testing:parameterized",
+        "@com_google_arolla//py/arolla",
+    ],
+)
+
+py_test(
     name = "curves_log_pwl_curve_test",
     srcs = ["curves_log_pwl_curve_test.py"],
     deps = [
@@ -6722,6 +6743,36 @@ py_test(
 )
 
 ##### Arolla coverage tests #####
+
+koda_operator_coverage_test(
+    name = "kd_bitwise_and_covers_bitwise_and_test",
+    arolla_op = "bitwise.bitwise_and",
+    koda_op = "bitwise.bitwise_and",
+)
+
+koda_operator_coverage_test(
+    name = "kd_bitwise_or_covers_bitwise_or_test",
+    arolla_op = "bitwise.bitwise_or",
+    koda_op = "bitwise.bitwise_or",
+)
+
+koda_operator_coverage_test(
+    name = "kd_bitwise_xor_covers_bitwise_xor_test",
+    arolla_op = "bitwise.bitwise_xor",
+    koda_op = "bitwise.bitwise_xor",
+)
+
+koda_operator_coverage_test(
+    name = "kd_bitwise_invert_covers_bitwise_invert_test",
+    arolla_op = "bitwise.invert",
+    koda_op = "bitwise.invert",
+)
+
+koda_operator_coverage_test(
+    name = "kd_bitwise_count_covers_bitwise_count_test",
+    arolla_op = "bitwise.count",
+    koda_op = "bitwise.count",
+)
 
 koda_operator_coverage_test(
     name = "kd_core_add_covers_math_add_test",
