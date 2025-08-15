@@ -20,7 +20,7 @@ PersistedIncrementalDataSliceManager.
 
 import datetime
 import os
-from typing import Generator
+from typing import AbstractSet, Generator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
@@ -187,41 +187,62 @@ class PersistedIncrementalDataSliceManager(
 
   def get_data_slice(
       self,
-      at_path: data_slice_path_lib.DataSlicePath | None = None,
-      with_all_descendants: bool = False,
+      populate: AbstractSet[data_slice_path_lib.DataSlicePath] | None = None,
+      populate_including_descendants: (
+          AbstractSet[data_slice_path_lib.DataSlicePath] | None
+      ) = None,
   ) -> kd.types.DataSlice:
-    """Returns the dataslice at the given data slice path.
+    """Returns the dataslice with data for the requested data slice paths.
 
     If this method is called muliple times without intervening calls to
     update(), then the DataBags of the returned DataSlices are guaranteed to
     be compatible with each other. For example,
-    manager.get_data_slice(dsp1).updated(manager.get_data_slice(dsp2).get_bag())
-    will be a DataSlice that is populated with subslices for dsp1 and dsp2.
+    manager.get_data_slice({p1}).updated(manager.get_data_slice({p2}).get_bag())
+    will be a DataSlice populated with data for paths p1 and p2, and will be
+    equivalent to manager.get_data_slice({p1, p2}).
+
+    The result might contain more data than requested. All the data in the
+    result is guaranteed to be valid and up-to-date.
 
     Args:
-      at_path: The data slice path for which the subslice is requested. If None,
-        then the empty path is used and the root dataslice is returned.
-        Otherwise, self.exists(at_path) must be True.
-      with_all_descendants: If True, the returned DataSlice will have all the
-        descendants of at_path populated. Descendants are computed with respect
-        to the schema, i.e. self.get_schema(). If False, then the returned
-        DataSlice might still have some descendants populated.
+      populate: The set of paths whose data must be populated in the result.
+        Each path must be valid, i.e. self.exists(path) must be True.
+      populate_including_descendants: A set of paths whose data must be
+        populated in the result; the data of all their descendant paths must
+        also be populated. Descendants are computed with respect to the schema,
+        i.e. self.get_schema(). Each path must be valid, i.e. self.exists(path)
+        must be True.
 
     Returns:
-      The requested subslice of the root dataslice.
+      The root dataslice populated with data for the requested data slice paths.
     """
-    if at_path is None:
-      at_path = data_slice_path_lib.DataSlicePath.from_actions([])
+    populate = populate or set()
+    populate_including_descendants = populate_including_descendants or set()
+    for path in populate:
+      if not self.exists(path):
+        raise ValueError(
+            f"data slice path '{path}' passed in argument 'populate' is invalid"
+        )
+    for path in populate_including_descendants:
+      if not self.exists(path):
+        raise ValueError(
+            f"data slice path '{path}' passed in argument"
+            " 'populate_including_descendants' is invalid"
+        )
 
     needed_schema_node_names = {
-        self._schema_helper.get_schema_node_name_for_data_slice_path(at_path)
+        self._schema_helper.get_schema_node_name_for_data_slice_path(path)
+        for path in populate_including_descendants
     }
-    if with_all_descendants:
-      needed_schema_node_names.update(
-          self._schema_helper.get_descendant_schema_node_names(
-              needed_schema_node_names
-          )
-      )
+    needed_schema_node_names.update(
+        self._schema_helper.get_descendant_schema_node_names(
+            needed_schema_node_names
+        )
+    )
+    needed_schema_node_names.update({
+        self._schema_helper.get_schema_node_name_for_data_slice_path(path)
+        for path in populate
+    })
     needed_schema_node_names.update(
         self._schema_helper.get_ancestor_schema_node_names(
             needed_schema_node_names
@@ -237,8 +258,35 @@ class PersistedIncrementalDataSliceManager(
         needed_schema_node_names,
     )
 
-    loaded_slice = self._root_dataslice.updated(data_bag).updated(schema_bag)
-    return data_slice_path_lib.get_subslice(loaded_slice, at_path)
+    return self._root_dataslice.updated(data_bag).updated(schema_bag)
+
+  def get_data_slice_at(
+      self,
+      path: data_slice_path_lib.DataSlicePath,
+      with_all_descendants: bool = False,
+  ) -> kd.types.DataSlice:
+    """Returns the data slice managed by this manager at the given path.
+
+    Args:
+      path: The path for which the data slice is requested. It must be valid:
+        self.exists(path) must be True.
+      with_all_descendants: If True, then the result will also include the data
+        of all the descendant paths of `path`.
+
+    Returns:
+      The data slice managed by this manager at the given path.
+    """
+    if with_all_descendants:
+      populate = None
+      populate_including_descendants = {path}
+    else:
+      populate = {path}
+      populate_including_descendants = None
+    ds = self.get_data_slice(
+        populate=populate,
+        populate_including_descendants=populate_including_descendants,
+    )
+    return data_slice_path_lib.get_subslice(ds, path)
 
   def update(
       self,
@@ -269,12 +317,13 @@ class PersistedIncrementalDataSliceManager(
       assert attr_value.foo.get_schema() != attr_value.bar.get_schema()
 
       Moreover, if an itemid is already present in the overall slice, i.e. in
-      self.get_data_slice(with_all_descendants=True), and already associated
-      with a structured schema, then attr_value should not introduce a new
-      structured schema for that itemid. These restrictions mean that
-      "re-interpreting" an itemid with a different structured schema is not
-      allowed, but there are no restrictions when itemids are added with a
-      schema ITEMID, because ITEMID is not a structured schema.
+      self.get_data_slice(populate_including_descendants={root_path}), where
+      root_path is DataSlicePath.from_actions([]), and already associated with a
+      structured schema, then attr_value should not introduce a new structured
+      schema for that itemid. These restrictions mean that "re-interpreting" an
+      itemid with a different structured schema is not allowed, but there are no
+      restrictions when itemids are added with a schema ITEMID, because ITEMID
+      is not a structured schema.
 
     Args:
       at_path: The data slice path at which the update is made. It must be a
@@ -326,7 +375,7 @@ class PersistedIncrementalDataSliceManager(
         # Loading the data slice at the given path has the effect of loading all
         # the bags of the affected schema node names that exist so far, as well
         # as their ancestors.
-        self.get_data_slice(at_path, with_all_descendants=False)
+        self.get_data_slice_at(at_path, with_all_descendants=False)
         .stub()
         .with_attrs(**{attr_name: extracted_attr_value})
     )
@@ -488,17 +537,18 @@ class PersistedIncrementalDataSliceManager(
         # make it difficult to use a fixed set of non-trivial dependencies:
         # 1. Aliasing. Suppose we add ".x" and then ".x.a". Adding ".y" as an
         #    alias of ".x" means that ".x.a" now depends on ".y" too, because if
-        #    we call get_data_slice(".y", with_all_descendants=True), then we
+        #    we call get_data_slice_at(".y", with_all_descendants=True), then we
         #    want to load ".x.a" as well. So this conceptually requires adding a
         #    dependency of ".x.a" on ".y", but the bag+deps of the former was
         #    added a long time ago already.
         # 2. Schema overwrites. The schema of an attribute might be overwritten
         #    by an update. For example, we might want to change ".x" so that it
         #    now contains an INT32 instead of a complex entity. When calling
-        #    get_data_slice(with_all_descendants=True), there is no need to load
-        #    the complex entity anymore. So this conceptually requires removing
-        #    the dependency of the complex entity on the root entity's bag, and
-        #    this dep was added a long time ago.
+        #    get_data_slice(populate_including_descendants={root_path}), there
+        #    is no need to load the complex entity anymore (provided of course
+        #    that it is not aliased elsewhere in the overall slice). So this
+        #    conceptually requires removing the dependency of the complex entity
+        #    on the root entity's bag, and this dep was added a long time ago.
         dbm.BagToAdd(bag_name, bag, dependencies=('',))
         # We sort based on the bag name to make the order deterministic. The
         # code is also functionally correct without the sorting. The bag manager

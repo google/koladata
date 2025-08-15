@@ -14,7 +14,7 @@
 
 """Interface for data slice managers."""
 
-from typing import Generator
+from typing import AbstractSet, Generator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
@@ -55,28 +55,52 @@ class DataSliceManagerInterface:
 
   def get_data_slice(
       self,
-      at_path: data_slice_path_lib.DataSlicePath | None = None,
-      with_all_descendants: bool = False,
+      populate: AbstractSet[data_slice_path_lib.DataSlicePath] | None = None,
+      populate_including_descendants: (
+          AbstractSet[data_slice_path_lib.DataSlicePath] | None
+      ) = None,
   ) -> kd.types.DataSlice:
-    """Returns the dataslice at the given data slice path.
+    """Returns the dataslice with data for the requested data slice paths.
 
     If this method is called muliple times without intervening calls to
     update(), then the DataBags of the returned DataSlices are guaranteed to
     be compatible with each other. For example,
-    manager.get_data_slice(dsp1).updated(manager.get_data_slice(dsp2).get_bag())
-    will be a DataSlice that is populated with subslices for dsp1 and dsp2.
+    manager.get_data_slice({p1}).updated(manager.get_data_slice({p2}).get_bag())
+    will be a DataSlice populated with data for paths p1 and p2, and will be
+    equivalent to manager.get_data_slice({p1, p2}).
+
+    The result might contain more data than requested. All the data in the
+    result is guaranteed to be valid and up-to-date.
 
     Args:
-      at_path: The data slice path for which the subslice is requested. If None,
-        then the empty path is used and the root dataslice is returned.
-        Otherwise, self.exists(at_path) must be True.
-      with_all_descendants: If True, the returned DataSlice will have all the
-        descendants of at_path populated. Descendants are computed with respect
-        to the schema, i.e. self.get_schema(). If False, then the returned
-        DataSlice might still have some descendants populated.
+      populate: The set of paths whose data must be populated in the result.
+        Each path must be valid, i.e. self.exists(path) must be True.
+      populate_including_descendants: A set of paths whose data must be
+        populated in the result; the data of all their descendant paths must
+        also be populated. Descendants are computed with respect to the schema,
+        i.e. self.get_schema(). Each path must be valid, i.e. self.exists(path)
+        must be True.
 
     Returns:
-      The requested subslice of the root dataslice.
+      The root dataslice populated with data for the requested data slice paths.
+    """
+    raise NotImplementedError(type(self))
+
+  def get_data_slice_at(
+      self,
+      path: data_slice_path_lib.DataSlicePath,
+      with_all_descendants: bool = False,
+  ) -> kd.types.DataSlice:
+    """Returns the data slice managed by this manager at the given path.
+
+    Args:
+      path: The path for which the data slice is requested. It must be valid:
+        self.exists(path) must be True.
+      with_all_descendants: If True, then the result will also include the data
+        of all the descendant paths of `path`.
+
+    Returns:
+      The data slice managed by this manager at the given path.
     """
     raise NotImplementedError(type(self))
 
@@ -109,12 +133,13 @@ class DataSliceManagerInterface:
       assert attr_value.foo.get_schema() != attr_value.bar.get_schema()
 
       Moreover, if an itemid is already present in the overall slice, i.e. in
-      self.get_data_slice(with_all_descendants=True), and already associated
-      with a structured schema, then attr_value should not introduce a new
-      structured schema for that itemid. These restrictions mean that
-      "re-interpreting" an itemid with a different structured schema is not
-      allowed, but there are no restrictions when itemids are added with a
-      schema ITEMID, because ITEMID is not a structured schema.
+      self.get_data_slice(populate_including_descendants={root_path}), where
+      root_path is DataSlicePath.from_actions([]), and already associated with a
+      structured schema, then attr_value should not introduce a new structured
+      schema for that itemid. These restrictions mean that "re-interpreting" an
+      itemid with a different structured schema is not allowed, but there are no
+      restrictions when itemids are added with a schema ITEMID, because ITEMID
+      is not a structured schema.
 
     Args:
       at_path: The data slice path at which the update is made. It must be a

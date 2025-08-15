@@ -14,7 +14,7 @@
 
 """A simple DataSlice manager useful for testing."""
 
-from typing import Generator
+from typing import AbstractSet, Generator
 
 from koladata import kd
 from koladata.ext.persisted_data import data_slice_manager_interface
@@ -54,14 +54,43 @@ class SimpleInMemoryDataSliceManager(
 
   def get_data_slice(
       self,
-      at_path: data_slice_path_lib.DataSlicePath | None = None,
+      populate: AbstractSet[data_slice_path_lib.DataSlicePath] | None = None,
+      populate_including_descendants: (
+          AbstractSet[data_slice_path_lib.DataSlicePath] | None
+      ) = None,
+  ) -> kd.types.DataSlice:
+    populate = populate or set()
+    populate_including_descendants = populate_including_descendants or set()
+    for path in populate:
+      if not self.exists(path):
+        raise ValueError(
+            f"data slice path '{path}' passed in argument 'populate' is invalid"
+        )
+    for path in populate_including_descendants:
+      if not self.exists(path):
+        raise ValueError(
+            f"data slice path '{path}' passed in argument"
+            " 'populate_including_descendants' is invalid"
+        )
+
+    return self._ds
+
+  def get_data_slice_at(
+      self,
+      path: data_slice_path_lib.DataSlicePath,
       with_all_descendants: bool = False,
   ) -> kd.types.DataSlice:
-    del with_all_descendants
-    if at_path is None:
-      return self._ds
-    self._check_is_valid_data_slice_path(at_path)
-    return data_slice_path_lib.get_subslice(self._ds, at_path)
+    if with_all_descendants:
+      populate = None
+      populate_including_descendants = {path}
+    else:
+      populate = {path}
+      populate_including_descendants = None
+    ds = self.get_data_slice(
+        populate=populate,
+        populate_including_descendants=populate_including_descendants,
+    )
+    return data_slice_path_lib.get_subslice(ds, path)
 
   def update(
       self,
