@@ -22,7 +22,9 @@ from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 import bidict
 from koladata.expr import view
+from koladata.types import data_bag
 from koladata.types import data_slice
+from koladata.types import jagged_shape
 from koladata.types import qtypes
 from koladata.types import schema_item
 
@@ -117,6 +119,11 @@ def unwrap(x: Any) -> arolla.types.Tuple:
   return arolla.eval(_UPCAST_EXPR, x=x)
 
 
+@functools.cache
+def _get_dummy_bag():
+  return data_bag.DataBag.empty().freeze()
+
+
 def get_dummy_value(cls: Any) -> arolla.AnyQValue:
   """Returns a dummy value for the given extension type class."""
   extension_qtype = get_extension_qtype(cls)
@@ -124,11 +131,19 @@ def get_dummy_value(cls: Any) -> arolla.AnyQValue:
       'qtype.decay_derived_qtype', (extension_qtype,)
   )
   dummy_fields = []
+  # NOTE: This should be kept up-to-date with `_get_class_meta`.
   for qtype in arolla.abc.get_field_qtypes(tpl_qtype):
-    assert qtype == qtypes.DATA_SLICE, f'unexpected qtype {qtype}'
-    dummy_fields.append(data_slice.DataSlice.from_vals(None))
-  tpl = arolla.tuple(*dummy_fields)
-  return wrap(tpl, extension_qtype)
+    if qtype == qtypes.DATA_SLICE:
+      dummy_fields.append(data_slice.DataSlice.from_vals(None))
+    elif qtype == qtypes.DATA_BAG:
+      dummy_fields.append(_get_dummy_bag())
+    elif qtype == qtypes.JAGGED_SHAPE:
+      dummy_fields.append(jagged_shape.create_shape())
+    elif extension_cls := _EXTENSION_TYPE_REGISTRY.inverse.get(qtype):
+      dummy_fields.append(get_dummy_value(extension_cls))
+    else:
+      raise ValueError(f'unexpected qtype field: {qtype}')
+  return wrap(arolla.tuple(*dummy_fields), extension_qtype)
 
 
 # Dummy dataclass used to get the list of default dataclassfields.
@@ -144,7 +159,7 @@ _DEFAULT_FIELDS = frozenset(dir(_DummyDC))
 class _ClassMeta:
   signature: inspect.Signature
   methods: Mapping[str, Callable[..., Any]]
-  field_annotations: Mapping[str, schema_item.SchemaItem]
+  field_annotations: Mapping[str, Any]
   field_qtypes: Mapping[str, arolla.QType]
 
 
@@ -165,14 +180,23 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
   sig = inspect.signature(data_class, eval_str=True)
   field_annotations = {}
   field_qtypes = {}
+  # NOTE: This should be kept up-to-date with `get_dummy_value`.
   for param in sig.parameters.values():
-    # TODO: Allow non-schemas as annotation.
-    if not isinstance(param.annotation, schema_item.SchemaItem):
+    if isinstance(param.annotation, schema_item.SchemaItem):
+      field_qtypes[param.name] = qtypes.DATA_SLICE
+    elif issubclass(param.annotation, data_slice.DataSlice):
+      field_qtypes[param.name] = qtypes.DATA_SLICE
+    elif issubclass(param.annotation, data_bag.DataBag):
+      field_qtypes[param.name] = qtypes.DATA_BAG
+    elif issubclass(param.annotation, jagged_shape.JaggedShape):
+      field_qtypes[param.name] = qtypes.JAGGED_SHAPE
+    elif is_koda_extension_type(param.annotation):
+      field_qtypes[param.name] = get_extension_qtype(param.annotation)
+    else:
       raise ValueError(
-          f'expected a Schema annotation, got: {param.annotation}'
+          f'unsupported extension type annotation: {param.annotation}'
       )
     field_annotations[param.name] = param.annotation
-    field_qtypes[param.name] = qtypes.DATA_SLICE
 
   return _ClassMeta(
       signature=sig,
@@ -194,6 +218,20 @@ def _sidecast_qvalue(
 ) -> arolla.AnyQValue:
   tpl = arolla.eval(_UPCAST_EXPR, x=value)
   return arolla.eval(_get_downcast_expr(to_qtype), x=tpl)
+
+
+def _cast_input_qvalue(value: Any, annotation: Any) -> arolla.AnyQValue:
+  if isinstance(annotation, schema_item.SchemaItem):
+    return arolla.abc.aux_eval_op('kd.schema.cast_to_narrow', value, annotation)
+  else:
+    return value
+
+
+def _cast_input_expr(value: arolla.Expr, annotation: Any) -> arolla.Expr:
+  if isinstance(annotation, schema_item.SchemaItem):
+    return arolla.abc.aux_bind_op('kd.schema.cast_to_narrow', value, annotation)
+  else:
+    return value
 
 
 def extension_type(
@@ -222,8 +260,10 @@ def extension_type(
   Note:
   - The decorated class must not have its own `__new__` method.
   - The type annotations on the fields of the dataclass are used to determine
-    the schema of the underlying `DataSlice`.
+    the schema of the underlying `DataSlice` (if relevant).
   - All fields must have type annotations.
+  - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
+    `JaggedShape`, and other extension types.
 
   Example:
     @extension_type()
@@ -296,11 +336,10 @@ def extension_type(
       bound_args = class_meta.signature.bind(*args, **kwargs)
       bound_args.apply_defaults()
       field_values = bound_args.arguments
-      cast_to_narrow = arolla.abc.lookup_operator('kd.schema.cast_to_narrow')
 
       if arolla.Expr in (type(v) for v in field_values.values()):
         field_values = {
-            k: cast_to_narrow(v, class_meta.field_annotations[k])
+            k: _cast_input_expr(v, class_meta.field_annotations[k])
             for k, v in field_values.items()
         }
         return M.annotation.qtype(
@@ -312,9 +351,7 @@ def extension_type(
         )
       else:
         field_values = {
-            k: arolla.abc.aux_eval_op(
-                cast_to_narrow, v, class_meta.field_annotations[k]
-            )
+            k: _cast_input_qvalue(v, class_meta.field_annotations[k])
             for k, v in field_values.items()
         }
         return _sidecast_qvalue(

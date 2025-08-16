@@ -9203,8 +9203,10 @@ Alias for [kd.slices.expr_quote](#kd.slices.expr_quote) operator.
   Note:
   - The decorated class must not have its own `__new__` method.
   - The type annotations on the fields of the dataclass are used to determine
-    the schema of the underlying `DataSlice`.
+    the schema of the underlying `DataSlice` (if relevant).
   - All fields must have type annotations.
+  - Supported annotations include `SchemaItem`, `DataSlice`, `DataBag`,
+    `JaggedShape`, and other extension types.
 
   Example:
     @extension_type()

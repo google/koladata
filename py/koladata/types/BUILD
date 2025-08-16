@@ -664,7 +664,9 @@ py_library(
     name = "extension_types",
     srcs = ["extension_types.py"],
     deps = [
+        ":data_bag",
         ":data_slice",
+        ":jagged_shape",
         ":qtypes",
         ":schema_item",
         "//py:python_path",
@@ -680,8 +682,10 @@ py_test(
     srcs = ["extension_types_test.py"],
     deps = [
         ":data_bag",
+        ":data_item",
         ":data_slice",
         ":extension_types",
+        ":jagged_shape",
         ":qtypes",
         ":schema_constants",
         "//py:python_path",

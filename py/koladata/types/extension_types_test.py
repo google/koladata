@@ -23,8 +23,10 @@ from koladata.functions import functions as _
 from koladata.functor import functor_factories
 from koladata.testing import testing
 from koladata.types import data_bag
+from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import extension_types as ext_types
+from koladata.types import jagged_shape
 from koladata.types import qtypes
 from koladata.types import schema_constants
 
@@ -38,14 +40,38 @@ _EXT_TYPE = M.derived_qtype.get_labeled_qtype(
     '_MyTestExtension',
 ).qvalue
 
+_DUMMY_EXT_TYPE = M.derived_qtype.get_labeled_qtype(
+    arolla.make_namedtuple_qtype(x=qtypes.DATA_SLICE, y=qtypes.DATA_SLICE),
+    '_MyDummyExtension',
+).qvalue
 
+
+@ext_types.extension_type()  # This is cleared in setUp()
 class _MyTestExtension:
   x: schema_constants.INT32
   y: schema_constants.INT32
 
 
+@ext_types.extension_type()  # This is cleared in setUp()
+class _MyDummyExtension:
+  x: schema_constants.NONE
+  y: schema_constants.NONE
+
+
 class _MyOtherTestExtension:
   pass
+
+
+_DUMMY_VALUES = (
+    (schema_constants.NONE, ds(None)),
+    (data_slice.DataSlice, ds(None)),
+    (data_item.DataItem, ds(None)),
+    (data_bag.DataBag, ext_types._get_dummy_bag()),
+    (jagged_shape.JaggedShape, jagged_shape.create_shape()),
+    (_MyDummyExtension, _MyDummyExtension(ds(None), ds(None))),
+)
+
+assert isinstance(ext_types._get_dummy_bag(), data_bag.DataBag)  # Sanity check.
 
 
 class ExtensionTypesTest(parameterized.TestCase):
@@ -325,17 +351,20 @@ class ExtensionTypesTest(parameterized.TestCase):
         ),
     )
 
-  def test_get_dummy_value_non_empty(self):
+  @parameterized.parameters(*_DUMMY_VALUES)
+  def test_get_dummy_value_non_empty(self, annotation, expected_value):
+    ext_types.register_extension_type(_MyDummyExtension, _DUMMY_EXT_TYPE)
+
     @ext_types.extension_type()
     class MyExtensionType:
-      x: schema_constants.INT32
+      x: annotation  # pytype: disable=invalid-annotation
       y: schema_constants.FLOAT32 = ds(2.0)
 
     res = ext_types.get_dummy_value(MyExtensionType)
     testing.assert_equal(
         res,
         ext_types.wrap(
-            arolla.tuple(ds(None), ds(None)),
+            arolla.tuple(expected_value, ds(None)),
             ext_types.get_extension_qtype(MyExtensionType),
         ),
     )
@@ -349,14 +378,41 @@ class ExtensionTypesTest(parameterized.TestCase):
     ):
       ext_types.get_dummy_value(MyExtensionType)
 
-  def test_non_schema_annotation(self):
+  @parameterized.parameters(*_DUMMY_VALUES)
+  def test_annotations(self, annotation, value):
+    ext_types.register_extension_type(_MyDummyExtension, _DUMMY_EXT_TYPE)
+
+    @ext_types.extension_type()
+    class MyExtensionType:
+      x: annotation  # pytype: disable=invalid-annotation
+
+    with self.subTest('eager'):
+      ext = MyExtensionType(value)
+      testing.assert_equal(ext.x, value)
+
+    with self.subTest('lazy'):
+      ext = MyExtensionType(I.x)
+      testing.assert_equal(ext.x.eval(x=value), value)
+
+  def test_unsupported_annotation(self):
+    class MyExtensionType:
+      x: int
+
+    with self.assertRaisesRegex(
+        ValueError, 'unsupported extension type annotation:.*int'
+    ):
+      ext_types.extension_type()(MyExtensionType)
+
+  def test_bad_value_for_annotation(self):
+    @ext_types.extension_type()
     class MyExtensionType:
       x: data_slice.DataSlice
 
     with self.assertRaisesRegex(
-        ValueError, 'expected a Schema annotation, got:.*DataSlice'
+        ValueError,
+        re.escape('expected tuple<DATA_SLICE>, got value: tuple<JAGGED_SHAPE>'),
     ):
-      ext_types.extension_type()(MyExtensionType)
+      _ = MyExtensionType(jagged_shape.create_shape())
 
   def test_wrong_decorator_use(self):
     class MyExtensionType:
@@ -368,6 +424,40 @@ class ExtensionTypesTest(parameterized.TestCase):
         + re.escape(' `@extension_type()` instead of `@extension_type`?'),
     ):
       ext_types.extension_type(MyExtensionType)
+
+  def test_nested_extension_type_attribute_access(self):
+
+    @ext_types.extension_type()
+    class MyInnerExtensionType:
+      x: schema_constants.INT64
+
+      def inner_fn(self):
+        return self.x + 1
+
+    @ext_types.extension_type()
+    class MyOuterExtensionType:
+      y: MyInnerExtensionType
+
+      def outer_fn(self):
+        return self.y.inner_fn() + 1
+
+    with self.subTest('eager'):
+      ext = MyOuterExtensionType(MyInnerExtensionType(1))
+      testing.assert_equal(ext.y, MyInnerExtensionType(1))
+      testing.assert_equal(ext.y.x, ds(1, schema_constants.INT64))
+      testing.assert_equal(ext.outer_fn(), ds(3, schema_constants.INT64))
+      testing.assert_equal(ext.y.inner_fn(), ds(2, schema_constants.INT64))
+
+    with self.subTest('lazy'):
+      ext = MyOuterExtensionType(MyInnerExtensionType(I.x))
+      testing.assert_equal(ext.y.eval(x=1), MyInnerExtensionType(1))
+      testing.assert_equal(ext.y.x.eval(x=1), ds(1, schema_constants.INT64))
+      testing.assert_equal(
+          ext.outer_fn().eval(x=1), ds(3, schema_constants.INT64)
+      )
+      testing.assert_equal(
+          ext.y.inner_fn().eval(x=1), ds(2, schema_constants.INT64)
+      )
 
 
 if __name__ == '__main__':
