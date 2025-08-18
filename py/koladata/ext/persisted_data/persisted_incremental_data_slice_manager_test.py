@@ -20,6 +20,7 @@ from typing import Generator
 from absl.testing import absltest
 from absl.testing import parameterized
 from koladata import kd
+from koladata.ext.persisted_data import data_slice_manager_interface
 from koladata.ext.persisted_data import data_slice_path as data_slice_path_lib
 from koladata.ext.persisted_data import persisted_incremental_data_slice_manager
 from koladata.ext.persisted_data import schema_helper as schema_helper_lib
@@ -2054,6 +2055,91 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
       ('pidsm', PersistedIncrementalDataSliceManager),
       ('simdsm', SimpleInMemoryDataSliceManager),
   )
+  def test_behavior_of_schema_metadata_itemid_with_multiple_schemas(
+      self, dsm_class
+  ):
+    # Demonstrates that the behavior of PersistedIncrementalDataSliceManager is
+    # not consistent with the behavior of vanilla Koda. See below for the
+    # assertion that is different. For that reason, we state in the docstring
+    # of update() that the behavior is undefined if an itemid of a schema
+    # metadata object is also associated with a structured schema in the main
+    # dataslice.
+
+    foo_schema = kd.named_schema('foo', a=kd.INT32)
+    foo_schema = kd.with_metadata(foo_schema, proto_name='my.proto.Message')
+    schema_metadata_object = kd.get_metadata(foo_schema)
+    explicit_metadata_schema = kd.named_schema(
+        'my_metadata', proto_name=kd.STRING
+    )
+    schema_metadata_entity = schema_metadata_object.with_schema(
+        explicit_metadata_schema
+    )
+
+    manager = self.new_manager(dsm_class)
+    manager.update(
+        at_path=parse_dsp(''),
+        attr_name='my_data',
+        attr_value=kd.new(
+            # This line associates the itemid of schema_metadata_object with
+            # the schema kd.OBJECT:
+            foo=foo_schema.new(a=1),
+            # This line associates the itemid of schema_metadata_object with
+            # explicit_metadata_schema:
+            metadata=schema_metadata_entity,
+        ),
+    )
+
+    my_data = manager.get_data_slice_at(
+        parse_dsp('.my_data'), with_all_descendants=True
+    )
+    # The same itemid can be observed in two ways:
+    self.assertEqual(
+        kd.get_metadata(my_data.foo.get_schema()).get_itemid(),
+        my_data.metadata.get_itemid(),
+    )
+    # But they report different schemas:
+    self.assertEqual(
+        kd.get_metadata(my_data.foo.get_schema()).get_schema(), kd.OBJECT
+    )
+    self.assertTrue(my_data.metadata.get_schema().is_struct_schema())
+
+    # We augment the schema metadata object with a new attribute.
+    augmented_foo_schema = kd.with_metadata(foo_schema, version=123)
+    manager.update(
+        at_path=parse_dsp('.my_data'),
+        attr_name='bar',
+        attr_value=augmented_foo_schema.new(a=2),
+    )
+
+    # The new metadata attribute is also visible on the foo sub-slice:
+    self.assertEqual(
+        kd.get_metadata(
+            manager.get_data_slice_at(parse_dsp('.my_data.foo')).get_schema()
+        ).version,
+        123,
+    )
+
+    # The new attribute is present on the explicit metadata sub-slice in
+    # vanilla Koda, but not in PersistedIncrementalDataSliceManager. This is why
+    # the docstring says that the behavior is undefined.
+    explicit_metadata_version = (
+        manager.get_data_slice_at(parse_dsp('.my_data.metadata'))
+        .with_schema(explicit_metadata_schema.with_attrs(version=kd.INT32))
+        .version
+    )
+    if dsm_class == SimpleInMemoryDataSliceManager:
+      expected_version = kd.item(123)
+    else:
+      expected_version = kd.item(None, schema=kd.INT32)
+    kd.testing.assert_deep_equivalent(
+        explicit_metadata_version,
+        expected_version,
+    )
+
+  @parameterized.named_parameters(
+      ('pidsm', PersistedIncrementalDataSliceManager),
+      ('simdsm', SimpleInMemoryDataSliceManager),
+  )
   def test_updates_preserve_schema_metadata(self, dsm_class):
     query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
     query_schema = kd.with_metadata(
@@ -2080,6 +2166,41 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
         kd.get_metadata(query_schema),
     )
 
+  def test_issue_with_non_primitive_schema_metadata_attributes(self):
+    # This test demonstrates the behavior of vanilla Koda and why it is
+    # problematic for the PersistedIncrementalDataSliceManager.
+
+    query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
+
+    query_data = kd.list([
+        query_schema.new(query_id=0, text='How tall is Obama'),
+        query_schema.new(query_id=1, text='How high is the Eiffel tower'),
+    ])
+    root = kd.new(query=query_data)
+
+    # On the surface, this schema is totally unrelated to the query schema.
+    unrelated_schema = kd.named_schema('unrelated', x=kd.INT32)
+    # However, if the schema metadata objects can have non-primitive attributes,
+    # then there is a covert channel through which we can update pretty much
+    # anything in the main dataslice.
+    unrelated_schema = kd.with_metadata(
+        unrelated_schema,
+        covert_query_data_update=query_data[:].with_attrs(
+            query_id=kd.slice([100, 200])
+        ).implode(),
+    )
+
+    # The manager would receive this update to the main dataslice, and inspect
+    # its schema to determine the effects of the update. The schema metadata
+    # object has the opaque schema kd.OBJECT, so even if the manager explicitly
+    # gets all the schema metadata objects (also of sub-schemas), it would not
+    # be able to tell that the update affects the query data.
+    root = root.with_attrs(unrelated=unrelated_schema.new(x=42))
+    # Yet the covert update takes place in vanilla Koda.
+    kd.testing.assert_deep_equivalent(
+        root.query[:].query_id, kd.slice([100, 200])
+    )
+
   @parameterized.named_parameters(
       ('pidsm', PersistedIncrementalDataSliceManager),
       ('simdsm', SimpleInMemoryDataSliceManager),
@@ -2087,6 +2208,9 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
   def test_update_raises_for_non_primitive_schema_metadata_attributes(
       self, dsm_class
   ):
+    # The reasons for why it raises are discussed in
+    # test_issue_with_non_primitive_schema_metadata_attributes.
+
     query_schema = kd.named_schema('query', id=kd.INT32, text=kd.STRING)
     metadata_update = kd.metadata(query_schema, foo=1, bar=kd.new(zoo='gotcha'))
     query_schema = query_schema.updated(metadata_update)
@@ -3204,6 +3328,20 @@ class PersistedIncrementalDataSliceManagerTest(parameterized.TestCase):
             )
         ),
     )
+
+  def test_pidsm_docstrings_agree_with_the_interface_class(self):
+    for method_name in dir(
+        data_slice_manager_interface.DataSliceManagerInterface
+    ):
+      if method_name.startswith('_'):
+        continue
+      self.assertEqual(
+          getattr(
+              data_slice_manager_interface.DataSliceManagerInterface,
+              method_name,
+          ).__doc__,
+          getattr(PersistedIncrementalDataSliceManager, method_name).__doc__,
+      )
 
 
 if __name__ == '__main__':

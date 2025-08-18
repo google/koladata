@@ -302,28 +302,67 @@ class PersistedIncrementalDataSliceManager(
     data only or updated data+schema.
 
     Some restrictions apply to attr_value:
-    * attr_value.get_schema() must not use kd.OBJECT or kd.SCHEMA anywhere.
-    * attr_value.get_schema() can use only Koda primitives in schema metadata
-      attributes.
-    * Each itemid in attr_value must be associated with at most one structured
-      schema. The behavior is undefined if an itemid is associated with two or
-      more structured schemas. Here is an example of how that could happen:
+    * attr_value.get_schema() must not use kd.SCHEMA anywhere.
+    * attr_value.get_schema() must not use kd.OBJECT anywhere, apart from its
+      implicit use as the schema of schema metadata objects.
+    * The attributes of schema metadata objects must have only primitive Koda
+      values.
+    * Each itemid in attr_value must be associated with at most one schema other
+      than ITEMID. In particular, that implies that:
+      1) The behavior is undetermined if an itemid is associated with two or
+         more structured schemas. Here is an example of how that could happen:
 
-      # AVOID: an attr_value like this leads to undefined behavior!
-      e_foo = kd.new(a=1, schema='foo')
-      e_bar = e_foo.with_schema(kd.named_schema('bar', a=kd.INT32))
-      attr_value = kd.new(foo=e_foo, bar=e_bar)
-      assert attr_value.foo.get_itemid() == attr_value.bar.get_itemid()
-      assert attr_value.foo.get_schema() != attr_value.bar.get_schema()
+         # AVOID: an attr_value like this leads to undetermined behavior!
+         e_foo = kd.new(a=1, schema='foo')
+         e_bar = e_foo.with_schema(kd.named_schema('bar', a=kd.INT32))
+         attr_value = kd.new(foo=e_foo, bar=e_bar)
+         assert attr_value.foo.get_itemid() == attr_value.bar.get_itemid()
+         assert attr_value.foo.get_schema() != attr_value.bar.get_schema()
+
+      2) The behavior is undetermined if the itemid of a schema metadata object
+         is used with some non-ITEMID schema in attr_value. Schema metadata
+         objects are not explicitly mentioned in the schema, but their itemids
+         are associated with kd.OBJECT. The restriction says that attr_value
+         should not associate such an itemid with an explicit schema that is not
+         ITEMID. Here is a contrived example of how that could happen:
+
+         # AVOID: an attr_value like this leads to undetermined behavior!
+         foo_schema = kd.named_schema('foo', a=kd.INT32)
+         foo_schema = kd.with_metadata(
+             foo_schema, proto_name='my.proto.Message'
+         )
+         schema_metadata_object = kd.get_metadata(foo_schema)
+         explicit_metadata_schema = kd.named_schema(
+             'my_metadata', proto_name=kd.STRING
+         )
+         schema_metadata_entity = schema_metadata_object.with_schema(
+             explicit_metadata_schema
+         )
+         attr_value = kd.new(
+             # This line associates the itemid of schema_metadata_object with
+             # the schema kd.OBJECT:
+             foo=foo_schema.new(a=1),
+             # This line associates the itemid of schema_metadata_object with
+             # explicit_metadata_schema:
+             metadata=schema_metadata_entity
+         )
+         assert (
+             kd.get_metadata(attr_value.foo.get_schema()).get_itemid()
+             == attr_value.metadata.get_itemid()
+         )
+         assert (
+             kd.get_metadata(attr_value.foo.get_schema()).get_schema()
+             != attr_value.metadata.get_schema()
+         )
 
       Moreover, if an itemid is already present in the overall slice, i.e. in
       self.get_data_slice(populate_including_descendants={root_path}), where
-      root_path is DataSlicePath.from_actions([]), and already associated with a
-      structured schema, then attr_value should not introduce a new structured
-      schema for that itemid. These restrictions mean that "re-interpreting" an
-      itemid with a different structured schema is not allowed, but there are no
-      restrictions when itemids are added with a schema ITEMID, because ITEMID
-      is not a structured schema.
+      root_path is DataSlicePath.from_actions([]), and already associated
+      with a non-ITEMID schema, then attr_value should not introduce a new
+      non-ITEMID schema for that itemid. These restrictions mean that
+      "re-interpreting" an itemid with two different non-ITEMID schemas is not
+      allowed, but there are no restrictions when itemids are added with a
+      schema ITEMID.
 
     Args:
       at_path: The data slice path at which the update is made. It must be a

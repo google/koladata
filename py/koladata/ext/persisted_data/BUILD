@@ -68,6 +68,7 @@ py_test(
     name = "persisted_incremental_data_slice_manager_test",
     srcs = ["persisted_incremental_data_slice_manager_test.py"],
     deps = [
+        ":data_slice_manager_interface",
         ":data_slice_path",
         ":persisted_incremental_data_slice_manager",
         ":schema_helper",
