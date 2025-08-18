@@ -67,10 +67,10 @@ class ObjectsGroupBy {
   absl::StatusOr<arolla::DenseArrayEdge> EdgeFromSchemaPairs(
       const DataSliceImpl& schemas_a, const DataSliceImpl& schemas_b) {
     DCHECK_EQ(schemas_a.size(), schemas_b.size());
-    ASSIGN_OR_RETURN(
-        auto edge,
-        arolla::DenseArrayEdge::FromSplitPoints(
-            arolla::CreateDenseArray<int64_t>({0, schemas_a.size()})));
+    ASSIGN_OR_RETURN(auto edge,
+                     arolla::DenseArrayEdge::FromSplitPoints(
+                         arolla::CreateDenseArray<int64_t>(
+                             {0, static_cast<int64_t>(schemas_a.size())})));
     ASSIGN_OR_RETURN(edge, SplitEdgeBySchemas(std::move(edge), schemas_a));
     return SplitEdgeBySchemas(std::move(edge), schemas_b);
   }

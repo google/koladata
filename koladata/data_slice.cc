@@ -949,6 +949,7 @@ class RhsHandler {
                 "the schema for dict %s is missing", dict_attr)),
             std::move(error));
     }
+    return absl::InternalError("unknown context");
   }
 
   absl::Status AttrSchemaMissingErrorStatus(
