@@ -159,7 +159,8 @@ absl::StatusOr<DstT> Convert(const FieldDescriptor& field,
     // values can be round-tripped.
     return value;
   }
-  if constexpr (std::is_integral_v<SrcT> && std::is_floating_point_v<DstT>) {
+  if constexpr (std::is_integral_v<SrcT> && !std::is_same_v<SrcT, bool> &&
+                std::is_floating_point_v<DstT>) {
     // Allow storing integers in floating-point fields if they are in the range
     // of integers that the floating-point field can store exactly.
     //
