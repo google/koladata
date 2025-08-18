@@ -144,6 +144,25 @@ class TraversingTestUtilsTest(absltest.TestCase):
       ds_b = bag_b.list([1, 2])
       traversing_test_utils.assert_deep_equivalent(ds_a, ds_b)
 
+  def test_assert_deep_equivalent_diff_objs(self):
+    with self.assertRaisesRegex(
+        AssertionError,
+        r'Expected: is equal to DataItem\(.*\)\n'
+        r'Actual: DataItem\(.*\), with difference:\n'
+        r'modified schema:\n'
+        r'expected:\n'
+        r'OBJECT\n'
+        r'-> actual:\n'
+        r'.*',
+    ):
+      bag_a = bag()
+      bag_b = bag()
+      ds_a = bag_a.new(x=1)
+      ds_b = bag_b.obj(x=1)
+      traversing_test_utils.assert_deep_equivalent(
+          ds_a, ds_b, schemas_equality=True
+      )
+
   def test_assert_deep_equivalent_diff_object_types(self):
     with self.assertRaisesRegex(
         AssertionError,

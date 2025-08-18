@@ -171,6 +171,10 @@ absl::StatusOr<DataItem> DeepDiff::CreateLhsOnlyDiffItem(
   RETURN_IF_ERROR(
       databag_->SetAttr(result, schema::kSchemaAttr, std::move(result_schema)));
   RETURN_IF_ERROR(databag_->SetAttr(result, kLhsAttr, std::move(lhs.item)));
+  if (lhs.item.holds_value<ObjectId>() && lhs.schema == schema::kObject) {
+    RETURN_IF_ERROR(databag_->SetAttr(lhs.item, schema::kSchemaAttr,
+                                      DataItem(schema::kItemId)));
+  }
   return result;
 }
 
@@ -184,6 +188,10 @@ absl::StatusOr<DataItem> DeepDiff::CreateRhsOnlyDiffItem(
   RETURN_IF_ERROR(
       databag_->SetAttr(result, schema::kSchemaAttr, std::move(result_schema)));
   RETURN_IF_ERROR(databag_->SetAttr(result, kRhsAttr, std::move(rhs.item)));
+  if (rhs.item.holds_value<ObjectId>() && rhs.schema == schema::kObject) {
+    RETURN_IF_ERROR(databag_->SetAttr(rhs.item, schema::kSchemaAttr,
+                                      DataItem(schema::kItemId)));
+  }
   return result;
 }
 
@@ -207,6 +215,14 @@ absl::StatusOr<DataItem> DeepDiff::CreateMismatchDiffItem(
       databag_->SetAttr(result, schema::kSchemaAttr, std::move(result_schema)));
   RETURN_IF_ERROR(databag_->SetAttr(result, kLhsAttr, std::move(lhs.item)));
   RETURN_IF_ERROR(databag_->SetAttr(result, kRhsAttr, std::move(rhs.item)));
+  if (lhs.item.holds_value<ObjectId>() && lhs.schema == schema::kObject) {
+    RETURN_IF_ERROR(databag_->SetAttr(lhs.item, schema::kSchemaAttr,
+                                      DataItem(schema::kItemId)));
+  }
+  if (rhs.item.holds_value<ObjectId>() && rhs.schema == schema::kObject) {
+    RETURN_IF_ERROR(databag_->SetAttr(rhs.item, schema::kSchemaAttr,
+                                      DataItem(schema::kItemId)));
+  }
   return result;
 }
 

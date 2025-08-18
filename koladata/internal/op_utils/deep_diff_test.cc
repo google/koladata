@@ -212,6 +212,51 @@ TEST_P(DeepDiffTest, LhsRhsMismatch) {
   EXPECT_THAT(result_db, DataBagEqual(*expected_db));
 }
 
+TEST_P(DeepDiffTest, LhsRhsMismatchObject) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto item = AllocateEmptyObjects(1)[0];
+  auto lhs_value = AllocateEmptyObjects(1)[0];
+  auto rhs_value = AllocateEmptyObjects(1)[0];
+  auto lhs_schema = AllocateSchema();
+  auto rhs_schema = DataItem(schema::kObject);
+  auto result_db = DataBagImpl::CreateEmptyDatabag();
+  auto deep_diff = DeepDiff(result_db);
+  ASSERT_OK_AND_ASSIGN(auto token, deep_diff.CreateTokenLike(item));
+  ASSERT_OK(deep_diff.LhsRhsMismatch(token,
+                                     {.type = TransitionType::kAttributeName,
+                                      .value = DataItem(arolla::Text("x"))},
+                                     {lhs_value, lhs_schema},
+                                     {rhs_value, rhs_schema},
+                                     /*is_schema_mismatch=*/false));
+
+  ASSERT_OK_AND_ASSIGN(auto token_schema, result_db->GetObjSchemaAttr(token));
+  ASSERT_OK_AND_ASSIGN(auto x, result_db->GetAttr(token, "x"));
+  ASSERT_OK_AND_ASSIGN(auto x_schema, result_db->GetObjSchemaAttr(x));
+  ASSERT_OK_AND_ASSIGN(auto diff,
+                       result_db->GetAttr(x, DeepDiff::kDiffItemAttr));
+  ASSERT_OK_AND_ASSIGN(auto diff_schema, result_db->GetObjSchemaAttr(diff));
+
+  auto expected_db = DataBagImpl::CreateEmptyDatabag();
+  TriplesT expected_data_triples = {
+      {token, {{schema::kSchemaAttr, token_schema}, {"x", x}}},
+      {x, {{schema::kSchemaAttr, x_schema}, {DeepDiff::kDiffItemAttr, diff}}},
+      {diff,
+       {{schema::kSchemaAttr, diff_schema},
+        {DeepDiff::kLhsAttr, lhs_value},
+        {DeepDiff::kRhsAttr, rhs_value}}},
+      {rhs_value, {{schema::kSchemaAttr, DataItem(schema::kItemId)}}},
+  };
+  TriplesT expected_schema_triples = {
+      {token_schema, {{"x", DataItem(schema::kObject)}}},
+      {x_schema, {{DeepDiff::kDiffItemAttr, DataItem(schema::kObject)}}},
+      {diff_schema,
+       {{DeepDiff::kLhsAttr, lhs_schema}, {DeepDiff::kRhsAttr, rhs_schema}}}};
+  SetDataTriples(*expected_db, expected_data_triples);
+  SetSchemaTriples(*expected_db, expected_schema_triples);
+
+  EXPECT_THAT(result_db, DataBagEqual(*expected_db));
+}
+
 TEST_P(DeepDiffTest, SliceItemMismatch) {
   auto db = DataBagImpl::CreateEmptyDatabag();
   auto lhs_value = AllocateEmptyObjects(1)[0];
