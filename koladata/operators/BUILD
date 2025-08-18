@@ -202,6 +202,23 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "math_benchmarks",
+    srcs = ["math_benchmarks.cc"],
+    deps = [
+        ":lib",
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//py/koladata/operators:base_cc_operators",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
+        "@com_google_benchmark//:benchmark_main",
+        "@com_google_googletest//:gtest",
+    ],
+)
+
 cc_library(
     name = "json",
     srcs = ["json.cc"],
