@@ -143,6 +143,28 @@ class DataSlice {
                      internal::DataItem(schema::GetDType<T>()));
   }
 
+  static DataSlice UnsafeCreate(internal::DataItem item,
+                                internal::DataItem schema,
+                                DataBagPtr db = nullptr,
+                                Wholeness wholeness = Wholeness::kNotWhole) {
+    DCHECK_OK(VerifySchemaConsistency(schema, item.dtype(),
+                                      /*empty_and_unknown=*/!item.has_value()));
+    return DataSlice(std::move(item), JaggedShape::Empty(), std::move(schema),
+                     std::move(db), wholeness == Wholeness::kWhole);
+  }
+
+  static DataSlice UnsafeCreate(internal::DataSliceImpl impl, JaggedShape shape,
+                                internal::DataItem schema,
+                                DataBagPtr db = nullptr,
+                                Wholeness wholeness = Wholeness::kNotWhole) {
+    DCHECK_EQ(shape.size(), impl.size());
+    DCHECK_GT(shape.rank(), 0);
+    DCHECK_OK(VerifySchemaConsistency(schema, impl.dtype(),
+                                      impl.is_empty_and_unknown()));
+    return DataSlice(std::move(impl), std::move(shape), std::move(schema),
+                     std::move(db), wholeness == Wholeness::kWhole);
+  }
+
   // Default-constructed DataSlice is a single missing item with scalar shape
   // and unknown dtype.
   DataSlice() : internal_(arolla::RefcountPtr<Internal>::Make()) {};

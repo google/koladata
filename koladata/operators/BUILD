@@ -104,6 +104,7 @@ cc_library(
         "arolla_bridge.h",
         "assertion.h",
         "bags.h",
+        "binary_op.h",
         "bitwise.h",
         "comparison.h",
         "core.h",
@@ -194,6 +195,7 @@ cc_library(
         "@com_google_arolla//arolla/pwlcurve",
         "@com_google_arolla//arolla/qexpr",
         "@com_google_arolla//arolla/qexpr/operators/dense_array:lib",
+        "@com_google_arolla//arolla/qexpr/operators/math:lib",
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/qtype/standard_type_properties",
         "@com_google_arolla//arolla/serving",
@@ -357,6 +359,27 @@ cc_test(
         "@com_google_arolla//arolla/qtype",
         "@com_google_arolla//arolla/util",
         "@com_google_arolla//arolla/util/testing",
+        "@com_google_googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "binary_op_test",
+    srcs = ["binary_op_test.cc"],
+    deps = [
+        ":lib",
+        "//koladata:data_slice",
+        "//koladata/internal:data_item",
+        "//koladata/internal:data_slice",
+        "//koladata/internal:dtype",
+        "//koladata/testing:matchers",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:status_matchers",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/strings:string_view",
+        "@com_google_arolla//arolla/dense_array",
+        "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest_main",
     ],
 )

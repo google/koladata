@@ -26,22 +26,6 @@ M = arolla.M | jagged_shape.M
 P = arolla.P
 
 
-@arolla.optools.add_to_registry()
-@arolla.optools.as_lambda_operator('kd.math._add_impl')
-def _add_impl(x, y):  # pylint: disable=unused-argument
-  """Arolla implementation of pointwise x + y."""
-  return arolla.types.DispatchOperator(
-      'x, y',
-      # TODO: Add more verbose checks for add_str as well and
-      # then the default will just raise an error with DataSlice specific
-      # information.
-      numeric_case=arolla.types.DispatchCase(
-          M.math.add, condition=M.qtype.is_numeric_qtype(P.x)
-      ),
-      default=M.strings.join,
-  )(x, y)
-
-
 @optools.add_to_registry_as_overloadable_with_default(
     aliases=['kd.add'], repr_fn=op_repr.add_repr
 )
