@@ -97,12 +97,17 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
         assert not keyword_params
         positional_params.append(param)
 
+  # After tracing, we need to remove the qtype annotations added for extension
+  # types so that parallel.call_multithreaded works properly, so we gather
+  # the subs for these arguments and substitute them back after tracing.
+  deannotate_subs = {}
   def _get_arg_value(param: inspect.Parameter) -> Any:
     arg_value = I[param.name]
     if extension_types.is_koda_extension_type(param.annotation):
       arg_value = arolla.M.annotation.qtype(
           arg_value, extension_types.get_extension_qtype(param.annotation)
       )
+      deannotate_subs[arg_value.fingerprint] = I[param.name]
     return arg_value
 
   try:
@@ -111,6 +116,8 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
           *(_get_arg_value(p) for p in positional_params),
           **{p.name: _get_arg_value(p) for p in keyword_params},
       )
+    if deannotate_subs:
+      res = arolla.abc.sub_by_fingerprint(res, deannotate_subs)
     expr = py_boxing.as_expr(res)
   except Exception as e:
     e.add_note(

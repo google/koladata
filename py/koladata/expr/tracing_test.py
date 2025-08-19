@@ -19,6 +19,8 @@ from absl.testing import absltest
 from arolla import arolla
 from koladata import kd
 from koladata.expr import tracing
+from koladata.functions import parallel
+from koladata.functor import functions
 from koladata.testing import testing
 from koladata.types import extension_types
 from koladata.types import schema_constants
@@ -267,6 +269,20 @@ class TracingTest(absltest.TestCase):
     e = tracing.trace(fn)
     self.assertEqual(e.eval(a=ExtensionPair(x=1, y=2)).x, 2)
     self.assertEqual(e.eval(a=ExtensionPair(x=1, y=2)).y, 1)
+
+  def test_extension_type_with_parallel(self):
+
+    @extension_types.extension_type()
+    class ParallelCallableExtension:
+      x: schema_constants.INT32
+
+    @functions.trace_as_fn()
+    def fn(e: ParallelCallableExtension):
+      return e.x + 2
+
+    self.assertEqual(
+        parallel.call_multithreaded(fn, e=ParallelCallableExtension(x=1)), 3
+    )
 
 
 if __name__ == '__main__':

@@ -165,6 +165,8 @@ py_test(
         ":tracing",
         "//py:python_path",
         "//py/koladata:kd",
+        "//py/koladata/functions:parallel",
+        "//py/koladata/functor:functions",
         "//py/koladata/testing",
         "//py/koladata/types:extension_types",
         "//py/koladata/types:schema_constants",
