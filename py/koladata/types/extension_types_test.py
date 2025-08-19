@@ -25,6 +25,7 @@ from koladata.testing import testing
 from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
+from koladata.types import extension_type_registry
 from koladata.types import extension_types as ext_types
 from koladata.types import jagged_shape
 from koladata.types import qtypes
@@ -36,12 +37,12 @@ I = input_container.InputContainer('I')
 ds = data_slice.DataSlice.from_vals
 
 _EXT_TYPE = M.derived_qtype.get_labeled_qtype(
-    arolla.make_namedtuple_qtype(x=qtypes.DATA_SLICE, y=qtypes.DATA_SLICE),
+    arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_SLICE),
     '_MyTestExtension',
 ).qvalue
 
 _DUMMY_EXT_TYPE = M.derived_qtype.get_labeled_qtype(
-    arolla.make_namedtuple_qtype(x=qtypes.DATA_SLICE, y=qtypes.DATA_SLICE),
+    arolla.make_tuple_qtype(qtypes.DATA_SLICE, qtypes.DATA_SLICE),
     '_MyDummyExtension',
 ).qvalue
 
@@ -66,12 +67,13 @@ _DUMMY_VALUES = (
     (schema_constants.NONE, ds(None)),
     (data_slice.DataSlice, ds(None)),
     (data_item.DataItem, ds(None)),
-    (data_bag.DataBag, ext_types._get_dummy_bag()),
+    (data_bag.DataBag, extension_type_registry._get_dummy_bag()),
     (jagged_shape.JaggedShape, jagged_shape.create_shape()),
     (_MyDummyExtension, _MyDummyExtension(ds(None), ds(None))),
 )
 
-assert isinstance(ext_types._get_dummy_bag(), data_bag.DataBag)  # Sanity check.
+# Sanity check.
+assert isinstance(extension_type_registry._get_dummy_bag(), data_bag.DataBag)
 
 
 class ExtensionTypesTest(parameterized.TestCase):
@@ -79,123 +81,14 @@ class ExtensionTypesTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
     # The registry is a module-level global. Clear it to ensure test isolation.
-    self.addCleanup(ext_types._EXTENSION_TYPE_REGISTRY.clear)
-
-  def test_is_extension_type(self):
-    tpl = arolla.tuple(ds(1), ds(2))
-    ext = arolla.eval(M.derived_qtype.downcast(_EXT_TYPE, tpl))
-    # A raw Tuple is not an extension type.
-    self.assertFalse(ext_types.is_koda_extension(tpl))
-    # The extension type is not yet registered, so it's false even if it has
-    # an ok form.
-    self.assertFalse(ext_types.is_koda_extension(ext))
-    # Is an extension type after registering.
-    ext_types.register_extension_type(_MyTestExtension, _EXT_TYPE)
-    self.assertTrue(ext_types.is_koda_extension(ext))
-
-  def test_wrap_unwrap(self):
-    ext_types.register_extension_type(_MyTestExtension, _EXT_TYPE)
-    tpl = arolla.tuple(ds(1), ds(2))
-    wrapped_tpl = ext_types.wrap(tpl, _EXT_TYPE)
-    self.assertEqual(wrapped_tpl.qtype, _EXT_TYPE)
-    unwrapped_tpl = ext_types.unwrap(wrapped_tpl)
-    self.assertIsInstance(unwrapped_tpl, arolla.types.Tuple)
-    testing.assert_equal(unwrapped_tpl, tpl)
-
-  def test_wrap_invalid_input(self):
-    ext_types.register_extension_type(_MyTestExtension, _EXT_TYPE)
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape('expected tuple<DATA_SLICE,DATA_SLICE>, got value: INT32'),
-    ):
-      ext_types.wrap(123, _EXT_TYPE)
-    with self.assertRaisesRegex(
-        ValueError,
-        'there is no registered extension type corresponding to the QType'
-        ' INT32',
-    ):
-      ext_types.wrap(ds([1, 2, 3]), arolla.INT32)
-
-  def test_wrap_not_registered(self):
-    nt = arolla.namedtuple(x=ds(1), y=ds(2))
-    with self.assertRaisesRegex(
-        ValueError,
-        re.escape(
-            'there is no registered extension type corresponding to the QType'
-            ' LABEL[_MyTestExtension]'
-        ),
-    ):
-      ext_types.wrap(nt, _EXT_TYPE)
-
-  def test_unwrap_not_registered(self):
-    ext_types.register_extension_type(_MyTestExtension, _EXT_TYPE)
-    tpl = arolla.tuple(ds(1), ds(2))
-    ext = ext_types.wrap(tpl, _EXT_TYPE)
-    ext_types._EXTENSION_TYPE_REGISTRY.clear()
-    with self.assertRaisesRegex(ValueError, 'expected an extension type'):
-      ext_types.unwrap(ext)
-
-  def test_unwrap_invalid_input(self):
-    ext_types.register_extension_type(_MyTestExtension, _EXT_TYPE)
-    with self.assertRaisesRegex(ValueError, 'expected an extension type'):
-      ext_types.unwrap(ds([1, 2, 3]))
-
-  def test_registry(self):
-    # Before registration.
-    self.assertFalse(ext_types.is_koda_extension_type(_MyTestExtension))
-    with self.assertRaisesRegex(
-        ValueError, 'is not a registered extension type'
-    ):
-      ext_types.get_extension_qtype(_MyTestExtension)
-
-    # Successful registration.
-    ext_types.register_extension_type(_MyTestExtension, _EXT_TYPE)
-    self.assertTrue(ext_types.is_koda_extension_type(_MyTestExtension))
-    self.assertEqual(ext_types.get_extension_qtype(_MyTestExtension), _EXT_TYPE)
-
-    # Re-registering the same is fine.
-    ext_types.register_extension_type(_MyTestExtension, _EXT_TYPE)
-
-    # Test error cases.
-    with self.assertRaisesRegex(ValueError, 'expected an extension type'):
-      ext_types.register_extension_type(_MyOtherTestExtension, arolla.INT32)
-
-    other_qtype = M.derived_qtype.get_labeled_qtype(
-        arolla.make_namedtuple_qtype(x=qtypes.DATA_SLICE, y=qtypes.DATA_SLICE),
-        'bar',
-    ).qvalue
-    with self.assertRaisesRegex(
-        ValueError, 'is already registered with a different qtype'
-    ):
-      ext_types.register_extension_type(_MyTestExtension, other_qtype)
-
-    # Unsafe override allows it to be registered.
-    ext_types.register_extension_type(
-        _MyTestExtension, other_qtype, unsafe_override=True
-    )
-    self.assertEqual(
-        ext_types.get_extension_qtype(_MyTestExtension), other_qtype
-    )
-
-    with self.assertRaisesRegex(
-        ValueError, 'is already registered with a different class'
-    ):
-      ext_types.register_extension_type(_MyOtherTestExtension, other_qtype)
-
-    # Unsafe override allows it to be registered.
-    ext_types.register_extension_type(
-        _MyOtherTestExtension, other_qtype, unsafe_override=True
-    )
-    self.assertEqual(
-        ext_types.get_extension_qtype(_MyOtherTestExtension), other_qtype
-    )
-    # It deregisters the old type.
-    self.assertFalse(ext_types.is_koda_extension_type(_MyTestExtension))
+    self.addCleanup(extension_type_registry._EXTENSION_TYPE_REGISTRY.clear)
 
   def test_extension_type(self):
     ext_type = ext_types.extension_type()(_MyTestExtension)
-    self.assertTrue(ext_types.is_koda_extension_type(ext_type))
-    self.assertEqual(ext_types.get_extension_qtype(ext_type), _EXT_TYPE)
+    self.assertTrue(extension_type_registry.is_koda_extension_type(ext_type))
+    self.assertEqual(
+        extension_type_registry.get_extension_qtype(ext_type), _EXT_TYPE
+    )
 
     value = ext_type(x=1, y=2)
     self.assertEqual(value.x, 1)
@@ -207,7 +100,8 @@ class ExtensionTypesTest(parameterized.TestCase):
     )
     self.assertIsInstance(expr, arolla.Expr)
     testing.assert_equal(
-        ext_types.unwrap(expr.eval(x=1, y=2)), ext_types.unwrap(value)
+        extension_type_registry.unwrap(expr.eval(x=1, y=2)),
+        extension_type_registry.unwrap(value),
     )
 
   def test_kd_fn(self):
@@ -338,49 +232,11 @@ class ExtensionTypesTest(parameterized.TestCase):
     testing.assert_equal(ext.x, x)
     testing.assert_equal(ext.y, y)
 
-  def test_get_dummy_value_empty(self):
-    @ext_types.extension_type()
-    class MyExtensionType:
-      pass
-
-    res = ext_types.get_dummy_value(MyExtensionType)
-    testing.assert_equal(
-        res,
-        ext_types.wrap(
-            arolla.tuple(), ext_types.get_extension_qtype(MyExtensionType)
-        ),
-    )
-
-  @parameterized.parameters(*_DUMMY_VALUES)
-  def test_get_dummy_value_non_empty(self, annotation, expected_value):
-    ext_types.register_extension_type(_MyDummyExtension, _DUMMY_EXT_TYPE)
-
-    @ext_types.extension_type()
-    class MyExtensionType:
-      x: annotation  # pytype: disable=invalid-annotation
-      y: schema_constants.FLOAT32 = ds(2.0)
-
-    res = ext_types.get_dummy_value(MyExtensionType)
-    testing.assert_equal(
-        res,
-        ext_types.wrap(
-            arolla.tuple(expected_value, ds(None)),
-            ext_types.get_extension_qtype(MyExtensionType),
-        ),
-    )
-
-  def test_get_dummy_value_not_registered(self):
-    class MyExtensionType:
-      x: schema_constants.INT32
-
-    with self.assertRaisesRegex(
-        ValueError, 'MyExtensionType.*is not a registered extension type'
-    ):
-      ext_types.get_dummy_value(MyExtensionType)
-
   @parameterized.parameters(*_DUMMY_VALUES)
   def test_annotations(self, annotation, value):
-    ext_types.register_extension_type(_MyDummyExtension, _DUMMY_EXT_TYPE)
+    extension_type_registry.register_extension_type(
+        _MyDummyExtension, _DUMMY_EXT_TYPE
+    )
 
     @ext_types.extension_type()
     class MyExtensionType:

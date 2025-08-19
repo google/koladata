@@ -126,7 +126,7 @@ py_library(
         ":introspection",
         ":tracing_mode",
         "//py:python_path",
-        "//py/koladata/types:extension_types",
+        "//py/koladata/types:extension_type_registry",
         "//py/koladata/types:py_boxing",
         "//py/koladata/util:kd_functools",
         "@com_google_arolla//py/arolla",

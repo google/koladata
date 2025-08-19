@@ -22,12 +22,15 @@ from koladata.expr import input_container
 from koladata.operators import kde_operators
 from koladata.testing import testing
 from koladata.types import data_bag
+from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import dict_item as _
 from koladata.types import ellipsis
+from koladata.types import extension_types
 from koladata.types import jagged_shape
 from koladata.types import literal_operator
 from koladata.types import py_boxing
+from koladata.types import schema_constants
+from koladata.types import schema_item
 
 
 bag = data_bag.DataBag.empty
@@ -50,6 +53,12 @@ def op_with_default_boxing(x, y):
 )
 def op_with_list_boxing(x, y, z):
   return (x, y, z)
+
+
+@extension_types.extension_type()
+class DummyExtension:
+  x: schema_constants.NONE
+  y: schema_constants.NONE
 
 
 class PyBoxingTest(parameterized.TestCase):
@@ -84,7 +93,10 @@ class PyBoxingTest(parameterized.TestCase):
       ),
       (..., ellipsis.ellipsis()),
       (data_slice.DataSlice, ds(None)),
+      (data_item.DataItem, ds(None)),
+      (schema_item.SchemaItem, ds(None)),
       (jagged_shape.JaggedShape, jagged_shape.create_shape()),
+      (DummyExtension, DummyExtension(ds(None), ds(None))),
       ((), arolla.tuple()),
       ((1, 2), arolla.tuple(ds(1), ds(2))),
       (
@@ -180,6 +192,26 @@ class PyBoxingTest(parameterized.TestCase):
     # This cannot be part of the parameterized test because a different empty
     # DataBag is created anew every time.
     qvalue = py_boxing.as_qvalue_or_expr(data_bag.DataBag)
+    self.assertIsInstance(qvalue, data_bag.DataBag)
+
+  @parameterized.parameters(
+      # Supported.
+      (data_slice.DataSlice, ds(None)),
+      (data_item.DataItem, ds(None)),
+      (schema_item.SchemaItem, ds(None)),
+      (jagged_shape.JaggedShape, jagged_shape.create_shape()),
+      (DummyExtension, DummyExtension(ds(None), ds(None))),
+      # Unsupported.
+      (1, None),
+      (type(arolla.int32(1)), None),
+  )
+  def test_get_dummy_qvalue(self, x, expected_value):
+    testing.assert_equal(py_boxing.get_dummy_qvalue(x), expected_value)
+
+  def test_get_dummy_qvalue_for_databag_type(self):
+    # This cannot be part of the parameterized test because a different empty
+    # DataBag is created anew every time.
+    qvalue = py_boxing.get_dummy_qvalue(data_bag.DataBag)
     self.assertIsInstance(qvalue, data_bag.DataBag)
 
   def test_as_qvalue_raises_on_unsupported_type(self):

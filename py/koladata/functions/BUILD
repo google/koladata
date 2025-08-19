@@ -132,7 +132,7 @@ py_library(
         "//py:python_path",
         "//py/koladata/types:data_bag",
         "//py/koladata/types:data_slice",
-        "//py/koladata/types:extension_types",
+        "//py/koladata/types:extension_type_registry",
         "//py/koladata/types:jagged_shape",
         "@com_google_arolla//py/arolla",
     ],

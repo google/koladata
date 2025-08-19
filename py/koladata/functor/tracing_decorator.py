@@ -23,10 +23,8 @@ from typing import Any, Callable, Protocol
 from arolla import arolla
 from koladata.expr import tracing_mode
 from koladata.functor import functor_factories
-from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
-from koladata.types import extension_types
 from koladata.types import py_boxing
 from koladata.util import kd_functools
 
@@ -101,10 +99,8 @@ class DefaultTypeTracingConfig(TypeTracingConfig):
 
   def return_type_as(self, annotation: type[Any]) -> Any:
     """Returns a value with the Arolla type that should be used for 'annotation'."""
-    if annotation is data_bag.DataBag:
-      return data_bag.DataBag.empty()
-    elif extension_types.is_koda_extension_type(annotation):
-      return extension_types.get_dummy_value(annotation)
+    if (value := py_boxing.get_dummy_qvalue(annotation)) is not None:
+      return value
     else:
       # This will be incorrect if 'annotation' is anything except a DataSlice,
       # in which case we currently expect the user to specify return_type_as

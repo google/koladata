@@ -26,6 +26,7 @@ from koladata.types import data_bag
 from koladata.types import data_item
 from koladata.types import data_slice
 from koladata.types import ellipsis
+from koladata.types import extension_type_registry
 from koladata.types import jagged_shape
 from koladata.types import literal_operator
 
@@ -102,6 +103,22 @@ def register_py_function_boxing_fn(
   _py_function_boxing_fn = fn
 
 
+def get_dummy_qvalue(cls: Any) -> arolla.AnyQValue | None:
+  """Returns a dummy qvalue for the provided `cls` or None if unsupported."""
+  if not isinstance(cls, type):
+    return None
+  elif issubclass(cls, data_slice.DataSlice):
+    return data_item.DataItem.from_vals(None)
+  elif cls is data_bag.DataBag:
+    return data_bag.DataBag.empty()
+  elif cls is jagged_shape.JaggedShape:
+    return jagged_shape.create_shape()
+  elif extension_type_registry.is_koda_extension_type(cls):
+    return extension_type_registry.get_dummy_value(cls)
+  else:
+    return None
+
+
 # NOTE: This function should prefer to return QValues whenever possible to be as
 # friendly to eager evaluation as possible.
 def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
@@ -145,12 +162,8 @@ def as_qvalue_or_expr(arg: Any) -> arolla.Expr | arolla.QValue:
   # TODO: Unify the handling of different function types.
   if isinstance(arg, (py_types.FunctionType, functools.partial)):
     return _py_function_boxing_fn(arg)
-  if arg is data_slice.DataSlice:
-    return data_item.DataItem.from_vals(None)
-  if arg is data_bag.DataBag:
-    return data_bag.DataBag.empty()
-  if arg is jagged_shape.JaggedShape:
-    return jagged_shape.create_shape()
+  if (dummy_value := get_dummy_qvalue(arg)) is not None:
+    return dummy_value
   return data_item.DataItem.from_vals(arg)
 
 

@@ -19,7 +19,7 @@ from typing import Any
 from arolla import arolla
 from koladata.types import data_bag
 from koladata.types import data_slice
-from koladata.types import extension_types as ext_types
+from koladata.types import extension_type_registry
 from koladata.types import jagged_shape
 
 
@@ -28,7 +28,7 @@ def _isinstance_of_supported_type(x: Any) -> bool:
       x, data_slice.DataSlice | data_bag.DataBag | jagged_shape.JaggedShape
   ):
     return True
-  return ext_types.is_koda_extension(x)
+  return extension_type_registry.is_koda_extension(x)
 
 
 def _extract_keep_mutability(x: data_slice.DataSlice) -> data_slice.DataSlice:

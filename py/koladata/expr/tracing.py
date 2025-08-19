@@ -22,7 +22,7 @@ from arolla import arolla
 from koladata.expr import input_container
 from koladata.expr import introspection
 from koladata.expr import tracing_mode
-from koladata.types import extension_types
+from koladata.types import extension_type_registry
 from koladata.types import py_boxing
 from koladata.util import kd_functools
 
@@ -103,9 +103,10 @@ def trace(fn: Callable[..., Any]) -> arolla.Expr:
   deannotate_subs = {}
   def _get_arg_value(param: inspect.Parameter) -> Any:
     arg_value = I[param.name]
-    if extension_types.is_koda_extension_type(param.annotation):
+    if extension_type_registry.is_koda_extension_type(param.annotation):
       arg_value = arolla.M.annotation.qtype(
-          arg_value, extension_types.get_extension_qtype(param.annotation)
+          arg_value,
+          extension_type_registry.get_extension_qtype(param.annotation),
       )
       deannotate_subs[arg_value.fingerprint] = I[param.name]
     return arg_value
