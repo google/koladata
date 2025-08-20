@@ -306,7 +306,9 @@ class InnerTransformManager {
           " . The whole functor: ", arolla::Repr(functor_),
           ". You can set allow_runtime_transforms=True to transform it at"
           " runtime, but this will be slower and should not be used in"
-          " production."));
+          " production. Also consider using"
+          " kd.functor.call_fn_normally_when_parallel or some variant to"
+          " invoke functors."));
     }
     result.is_future = true;
     ASSIGN_OR_RETURN(auto input_expr,
