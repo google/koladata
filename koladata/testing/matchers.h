@@ -20,7 +20,6 @@
 
 #include "gtest/gtest.h"
 #include "arolla/jagged_shape/testing/matchers.h"
-#include "arolla/util/repr.h"
 #include "koladata/data_slice.h"
 #include "koladata/data_slice_qtype.h"
 #include "koladata/data_slice_repr.h"
@@ -33,7 +32,7 @@ class DataSliceEquivalentMatcher {
  public:
   using is_gtest_matcher = void;
 
-  explicit DataSliceEquivalentMatcher(const DataSlice& expected_slice)
+  explicit DataSliceEquivalentMatcher(DataSlice expected_slice)
       : expected_slice_(std::move(expected_slice)) {}
 
   bool MatchAndExplain(const DataSlice& slice,

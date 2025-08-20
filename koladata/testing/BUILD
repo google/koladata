@@ -32,7 +32,6 @@ cc_library(
         "//koladata:data_slice_qtype",
         "//koladata/internal/testing:matchers",
         "@com_google_arolla//arolla/jagged_shape/testing",
-        "@com_google_arolla//arolla/util",
         "@com_google_googletest//:gtest",
     ],
 )
