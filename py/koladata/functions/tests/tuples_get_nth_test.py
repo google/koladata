@@ -34,6 +34,12 @@ class TuplesGetNthTest(parameterized.TestCase):
       (kde.tuple('a', 'b', 'c').eval(), ds(2), ds('c')),
       (kde.tuple(ds([1, 2, 3]), 'b', 'c').eval(), ds(0), ds([1, 2, 3])),
       (kde.tuple('a', 'b', arolla.text('c')).eval(), ds(2), arolla.text('c')),
+      (slice('a', 'b', 'c'), 0, ds('a')),
+      (slice('a', 'b', 'c'), 1, ds('b')),
+      (slice('a', 'b', 'c'), 2, ds('c')),
+      (arolla.types.Slice(ds('a'), ds('b'), ds('c')), ds(0), ds('a')),
+      (arolla.types.Slice(ds('a'), ds('b'), ds('c')), ds(1), ds('b')),
+      (arolla.types.Slice(ds('a'), ds('b'), ds('c')), ds(2), ds('c')),
   )
   def test_get_nth(self, tpl, n, expected):
     testing.assert_equal(fns.tuples.get_nth(tpl, n), expected)

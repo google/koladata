@@ -17,9 +17,16 @@
 from typing import Any, SupportsIndex
 
 from arolla import arolla
+from arolla.derived_qtype import derived_qtype
 from koladata.types import data_item
 from koladata.types import data_slice as _  # pylint: disable=unused-import
 from koladata.types import py_boxing
+
+M = arolla.M | derived_qtype.M
+
+_DECAY_DERIVED_VALUE_EXPR = M.derived_qtype.upcast(
+    M.qtype.qtype_of(arolla.L.x), arolla.L.x
+)
 
 
 # NOTE: Implemented directly as a function since `n` is required to be a
@@ -36,6 +43,8 @@ def get_nth(x: Any, n: SupportsIndex) -> arolla.AnyQValue:
   except (AttributeError, ValueError) as ex:
     raise TypeError(f'expected an index-value, got: {n}') from ex
   x_qv = py_boxing.as_qvalue(x)
+  if isinstance(x_qv, arolla.types.Slice):
+    x_qv = arolla.eval(_DECAY_DERIVED_VALUE_EXPR, x=x_qv)
   if not isinstance(x_qv, arolla.types.Tuple):
     raise TypeError(f'expected a value convertible to a Tuple, got: {x}')
   if not 0 <= n < len(x_qv):

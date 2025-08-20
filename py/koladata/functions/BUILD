@@ -164,5 +164,6 @@ py_library(
         "//py/koladata/types:data_slice",
         "//py/koladata/types:py_boxing",
         "@com_google_arolla//py/arolla",
+        "@com_google_arolla//py/arolla/derived_qtype",
     ],
 )
