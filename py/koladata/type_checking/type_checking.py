@@ -45,6 +45,12 @@ OBJECT_TIP = (
 _DISABLE_TRACED_TYPE_CHECKING_COUNTER = 0
 
 
+class _StaticWhenTraced(object):
+
+  def __init__(self, base_type: schema_item.SchemaItem | None = None):
+    self.base_type = base_type
+
+
 def _is_traced_type_checking_disabled():
   return _DISABLE_TRACED_TYPE_CHECKING_COUNTER > 0
 
@@ -92,8 +98,32 @@ class _DuckType(object):
     )
 
 
-TypeConstraint = schema_item.SchemaItem | _DuckType
+TypeConstraint = schema_item.SchemaItem | _DuckType | _StaticWhenTraced
 ExprOrView = view.KodaView | arolla.Expr
+
+
+def static_when_tracing(
+    base_type: schema_item.SchemaItem | None = None,
+) -> _StaticWhenTraced:
+  """A constraint that the argument is static when tracing.
+
+  It is used to check that the argument is not an expression during tracing to
+  prevent a common mistake.
+
+  Examples:
+  - combined with checking the type:
+    @type_checking.check_inputs(value=kd.static_when_tracing(kd.INT32))
+  - without checking the type:
+    @type_checking.check_inputs(pick_a=kd.static_when_tracing())
+
+  Args:
+    base_type: (optional)The base type to check against. If not specified, only
+      checks that the argument is a static when tracing.
+
+  Returns:
+    A constraint that the argument is a static when tracing.
+  """
+  return _StaticWhenTraced(base_type)
 
 
 def duck_type(**kwargs: TypeConstraint):
@@ -449,6 +479,9 @@ def _verify_input_eager(
   if not isinstance(arg, (data_item.DataItem, data_slice.DataSlice)):
     # Boxing is needed to support Python arguments.
     arg = py_boxing.as_qvalue(arg)
+
+  if isinstance(constraint, _StaticWhenTraced):
+    constraint = constraint.base_type
   _verify_constraint_eager(constraint, arg.get_schema(), key)
 
 
@@ -473,6 +506,8 @@ def _verify_output_eager(
         'kd.check_output: expected DataItem/DataSlice output, got'
         f' {type(output)}'
     )
+  if isinstance(constraint, _StaticWhenTraced):
+    raise TypeError('_ConstantWhenTraced is not supported for kd.check_output')
   _verify_constraint_eager(constraint, output.get_schema(), None)
 
 
@@ -488,6 +523,13 @@ def _with_input_expr_assertions(
     # decoration.
     # Boxing is needed to support Python arguments.
     arg = bound_args.arguments[key]
+    if isinstance(constraint, _StaticWhenTraced):
+      if isinstance(arg, arolla.Expr):
+        raise TypeError(
+            f'argument "{key}" must be resolved statically during tracing and'
+            ' not depend on the inputs'
+        )
+      constraint = constraint.base_type
     if not isinstance(arg, ExprOrView):
       # We attempt eager verification of a static input.
       _verify_input_eager(key, arg, constraint)
@@ -551,6 +593,12 @@ def check_inputs(**kw_constraints: TypeConstraint):
     def get_docs(query):
       return query.docs[:]
 
+  Example for an argument that should not be an Expr at tracing time:
+    @kd.check_inputs(x=kd.constant_when_tracing(kd.INT32))
+    def f(x):
+      return x
+
+
   Args:
     **kw_constraints: mapping of parameter names to type constraints. Names must
       match parameter names in the decorated function. Arguments for the given
@@ -566,8 +614,8 @@ def check_inputs(**kw_constraints: TypeConstraint):
     if not isinstance(value, TypeConstraint):
       raise TypeError(
           'kd.check_inputs: invalid constraint: expected constraint for'
-          f' parameter {key} to be a schema DataItem or a DuckType, got'
-          f' {value}'
+          f' parameter {key} to be a schema DataItem, a DuckType or'
+          f' ConstantWhenTraced, got {value}'
       )
 
   def decorate_f(f):

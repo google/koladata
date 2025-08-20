@@ -440,6 +440,29 @@ class TypeCheckingTest(parameterized.TestCase):
 
     testing.assert_equal(value, f(value))  # Assert does not raise.
 
+  @parameterized.named_parameters(
+      ('base_type', kd.BOOLEAN),
+      ('no_base_type', None),
+  )
+  def test_check_inputs_eager_constant_when_tracing(self, base_type):
+    @type_checking.check_inputs(x=kd.static_when_tracing(base_type))
+    def f(x):
+      return x
+
+    testing.assert_equal(ds(True), f(ds(True)))  # Assert does not raise.
+
+  def test_check_inputs_eager_constant_when_tracing_type_error(self):
+    @type_checking.check_inputs(x=kd.static_when_tracing(kd.INT32))
+    def f(x):
+      return x
+
+    with self.assertRaisesWithLiteralMatch(
+        TypeError,
+        'kd.check_inputs: type mismatch for parameter x; expected type INT32,'
+        ' got BOOLEAN',
+    ):
+      _ = f(ds(True))
+
   @parameterized.named_parameters(*OK_CASES)
   def test_check_inputs_traced_ok(self, constraint, value):
     @type_checking.check_inputs(x=constraint)
@@ -534,7 +557,8 @@ class TypeCheckingTest(parameterized.TestCase):
     with self.assertRaisesWithLiteralMatch(
         TypeError,
         'kd.check_inputs: invalid constraint: expected constraint for parameter'
-        ' x to be a schema DataItem or a DuckType, got 0',
+        ' x to be a schema DataItem, a DuckType or ConstantWhenTraced,'
+        ' got 0',
     ):
 
       @type_checking.check_inputs(x=kd.int32(0))
@@ -694,6 +718,75 @@ class TypeCheckingTest(parameterized.TestCase):
 
     with override_operator('kd.schema.get_repr', get_repr):
       _ = fn(ds([1]))  # Does not raise.
+
+  @parameterized.named_parameters(('boolean', kd.BOOLEAN), ('none', None))
+  def test_check_inputs_traced_boolean_constant_when_tracing(self, base_type):
+    @type_checking.check_inputs(pick_a=kd.static_when_tracing(base_type))
+    def choose(pick_a=True):
+      if pick_a:
+        return ds('a')
+      else:
+        return ds('b')
+
+    def f():
+      return choose(pick_a=True)
+
+    # Assert does not raise.
+    _ = kdf.fn(f)
+
+  def test_check_inputs_traced_int_constant_when_tracing(self):
+    @type_checking.check_inputs(value=kd.static_when_tracing(kd.INT32))
+    def choose(value):
+      if value > 0:
+        return ds('a')
+      else:
+        return ds('b')
+
+    def f():
+      return choose(value=3)
+
+    # Assert does not raise.
+    _ = kdf.fn(f)
+
+  @parameterized.named_parameters(
+      ('base_type', kd.BOOLEAN),
+      ('no_base_type', None),
+  )
+  def test_check_inputs_traced_constant_when_tracing_raises(self, base_type):
+    @type_checking.check_inputs(pick_a=kd.static_when_tracing(base_type))
+    def choose(pick_a=True):
+      if pick_a:
+        return ds('a')
+      else:
+        return ds('b')
+
+    def f():
+      return choose(kd.bool(True) == kd.bool(True))
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'argument "pick_a" must be resolved statically during tracing and not'
+        ' depend on the inputs',
+    ):
+      _ = kdf.fn(f)
+
+  def test_check_inputs_traced_int_constant_when_tracing_raises(self):
+    @type_checking.check_inputs(value=kd.static_when_tracing(kd.INT32))
+    def choose(value):
+      if value > 0:
+        return ds('a')
+      else:
+        return ds('b')
+
+    def f():
+      return choose(kd.int32(3) + kd.int32(3))
+
+    with self.assertRaisesRegex(
+        TypeError,
+        'argument "value" must be resolved statically during tracing and not'
+        ' depend on the inputs',
+    ):
+      _ = kdf.fn(f)
 
   def test_disable_traced_type_checking_manager(self):
     @type_checking.check_inputs(x=kd.INT32)

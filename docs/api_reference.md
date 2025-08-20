@@ -8847,6 +8847,12 @@ Alias for [kd.schema.cast_to](#kd.schema.cast_to) operator.
     def get_docs(query):
       return query.docs[:]
 
+  Example for an argument that should not be an Expr at tracing time:
+    @kd.check_inputs(x=kd.constant_when_tracing(kd.INT32))
+    def f(x):
+      return x
+
+
   Args:
     **kw_constraints: mapping of parameter names to type constraints. Names must
       match parameter names in the decorated function. Arguments for the given
@@ -10116,6 +10122,26 @@ Alias for [kd.slices.sort](#kd.slices.sort) operator.
 ### `kd.stack(*args, ndim=0)` {#kd.stack}
 
 Alias for [kd.slices.stack](#kd.slices.stack) operator.
+
+### `kd.static_when_tracing(base_type=None)` {#kd.static_when_tracing}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">A constraint that the argument is static when tracing.
+
+  It is used to check that the argument is not an expression during tracing to
+  prevent a common mistake.
+
+  Examples:
+  - combined with checking the type:
+    @type_checking.check_inputs(value=kd.static_when_tracing(kd.INT32))
+  - without checking the type:
+    @type_checking.check_inputs(pick_a=kd.static_when_tracing())
+
+  Args:
+    base_type: (optional)The base type to check against. If not specified, only
+      checks that the argument is a static when tracing.
+
+  Returns:
+    A constraint that the argument is a static when tracing.</code></pre>
 
 ### `kd.str(x)` {#kd.str}
 

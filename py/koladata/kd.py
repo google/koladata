@@ -206,6 +206,7 @@ check_output = _same_when_tracing(_type_checking.check_output)
 duck_type = _same_when_tracing(_type_checking.duck_type)
 duck_list = _same_when_tracing(_type_checking.duck_list)
 duck_dict = _same_when_tracing(_type_checking.duck_dict)
+static_when_tracing = _same_when_tracing(_type_checking.static_when_tracing)
 
 expr = _eager_only(_py_types.ModuleType('expr'))
 expr.literal = _literal_operator.literal
