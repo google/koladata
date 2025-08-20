@@ -40,6 +40,44 @@ def op(*args):
   return arolla.optools.fix_trace_args(args)
 
 
+class BaseKodaViewTest(parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    arolla.abc.set_expr_view_for_registered_operator(
+        'test.op', view.BaseKodaView
+    )
+
+  def tearDown(self):
+    # Clear the view.
+    arolla.abc.set_expr_view_for_registered_operator('test.op', None)
+    super().tearDown()
+
+  def test_eval(self):
+    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        op(I.x).eval(x=1),
+        arolla.tuple(data_slice.DataSlice.from_vals(1)),
+    )
+    arolla.testing.assert_qvalue_equal_by_fingerprint(
+        op(I.self).eval(1),
+        arolla.tuple(data_slice.DataSlice.from_vals(1)),
+    )
+
+  def test_inputs(self):
+    I = input_container.InputContainer('I')  # pylint: disable=invalid-name
+    self.assertListEqual(op(I.x, C.y, I.z).inputs(), ['x', 'z'])
+
+  def test_with_name(self):
+    expr = op(1, 2, 3).with_name('my_op')
+    self.assertEqual(introspection.get_name(expr), 'my_op')
+    testing.assert_equal(introspection.unwrap_named(expr), op(1, 2, 3))
+
+  def test_expr_view_tag(self):
+    self.assertTrue(view.has_base_koda_view(op()))
+    self.assertFalse(view.has_koda_view(op()))
+
+
 class KodaViewTest(parameterized.TestCase):
 
   def setUp(self):
@@ -61,6 +99,7 @@ class KodaViewTest(parameterized.TestCase):
 
   def test_expr_view_tag(self):
     self.assertTrue(view.has_koda_view(op()))
+    self.assertTrue(view.has_base_koda_view(op()))
     # Check that C.x has the KodaView, meaning we can use it for further
     # tests instead of `op(...)`.
     self.assertTrue(view.has_koda_view(C.x))

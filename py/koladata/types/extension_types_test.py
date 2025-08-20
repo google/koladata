@@ -19,6 +19,8 @@ from absl.testing import parameterized
 from arolla import arolla
 from arolla.derived_qtype import derived_qtype
 from koladata.expr import input_container
+from koladata.expr import introspection
+from koladata.expr import view
 from koladata.functions import functions as _
 from koladata.functor import functor_factories
 from koladata.testing import testing
@@ -34,6 +36,7 @@ from koladata.types import schema_constants
 
 M = arolla.M | derived_qtype.M
 I = input_container.InputContainer('I')
+C = input_container.InputContainer('C')
 ds = data_slice.DataSlice.from_vals
 
 _EXT_TYPE = M.derived_qtype.get_labeled_qtype(
@@ -218,6 +221,42 @@ class ExtensionTypesTest(parameterized.TestCase):
     x = MyExtensionType(I.x)
     expr = x.foo(I.y)
     testing.assert_equal(expr.eval(x=1, y=2), ds(3))
+
+  def test_expr_view_tag(self):
+    @ext_types.extension_type()
+    class MyExtensionType:
+      x: schema_constants.INT32
+
+    x = MyExtensionType(I.x)
+    self.assertTrue(view.has_base_koda_view(x))
+    self.assertFalse(view.has_koda_view(x))
+
+  def test_expr_view_eval_method(self):
+    @ext_types.extension_type()
+    class MyExtensionType:
+      x: schema_constants.INT32
+
+    testing.assert_equal(MyExtensionType(I.x).eval(x=1), MyExtensionType(1))
+    testing.assert_equal(MyExtensionType(I.self).eval(1), MyExtensionType(1))
+
+  def test_inputs(self):
+    @ext_types.extension_type()
+    class MyExtensionType:
+      x: schema_constants.INT32
+      y: schema_constants.INT32
+      z: schema_constants.INT32
+
+    self.assertListEqual(MyExtensionType(I.x, C.y, I.z).inputs(), ['x', 'z'])
+
+  def test_with_name(self):
+    @ext_types.extension_type()
+    class MyExtensionType:
+      x: schema_constants.INT32
+
+    expr = MyExtensionType(I.x).with_name('my_ext_type')
+    self.assertEqual(introspection.get_name(expr), 'my_ext_type')
+    testing.assert_equal(introspection.unwrap_named(expr), MyExtensionType(I.x))
+    testing.assert_equal(expr.x.eval(x=1), ds(1))
 
   def test_no_broadcasting_or_adoption(self):
     @ext_types.extension_type()

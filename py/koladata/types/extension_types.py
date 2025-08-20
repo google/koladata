@@ -222,7 +222,7 @@ def extension_type(
 
     expr_view_class = type(
         f'{original_class.__name__}ExprView',
-        (view.KodaView,),
+        (view.BaseKodaView,),
         expr_view_class_attrs,
     )
     arolla.abc.set_expr_view_for_qtype(extension_qtype, expr_view_class)

@@ -731,6 +731,8 @@ py_test(
         ":schema_constants",
         "//py:python_path",
         "//py/koladata/expr:input_container",
+        "//py/koladata/expr:introspection",
+        "//py/koladata/expr:view",
         "//py/koladata/functions",
         "//py/koladata/functor:functor_factories",
         "//py/koladata/testing",

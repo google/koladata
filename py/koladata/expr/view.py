@@ -99,13 +99,10 @@ _OPERATORS_ALLOWED_FOR_TUPLE_UNPACKING = frozenset([
 ])
 
 
-class KodaView(arolla.abc.ExprView):
-  """ExprView applicable to all Koda types.
+class BaseKodaView(arolla.abc.ExprView):
+  """ExprView applicable to all Koda types - including extension types."""
 
-  See go/koda-expr-view for details.
-  """
-
-  _koda_view_tag = True
+  _base_koda_view_tag = True
 
   def eval(
       self,
@@ -122,6 +119,15 @@ class KodaView(arolla.abc.ExprView):
     # NOTE: Unlike other methods, we don't add source location here, because
     # there is nothing to evaluate.
     return arolla.abc.aux_bind_op('kd.with_name', self, name)
+
+
+class KodaView(BaseKodaView):
+  """ExprView applicable to all standard Koda types.
+
+  See go/koda-expr-view for details.
+  """
+
+  _koda_view_tag = True
 
   def __getitem__(self, x: Any) -> arolla.Expr:
     return _aux_bind_op('koda_internal.view.get_item', self, x)
@@ -720,8 +726,13 @@ class KodaView(arolla.abc.ExprView):
 
 
 def has_koda_view(node: arolla.Expr) -> bool:
-  """Returns true iff the node has a koda view (only)."""
+  """Returns true iff the node has the full koda view."""
   return hasattr(node, '_koda_view_tag')
+
+
+def has_base_koda_view(node: arolla.Expr) -> bool:
+  """Returns true iff the node has the base koda view."""
+  return hasattr(node, '_base_koda_view_tag')
 
 
 arolla.abc.set_expr_view_for_qtype(qtypes.DATA_SLICE, KodaView)
