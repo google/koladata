@@ -22,7 +22,6 @@ from typing import Optional, Self
 
 from arolla import arolla
 from koladata.expr import tracing_mode
-from koladata.expr import view
 from koladata.operators import eager_op_utils
 from koladata.operators import kde_operators
 from koladata.types import data_item
@@ -99,7 +98,6 @@ class _DuckType(object):
 
 
 TypeConstraint = schema_item.SchemaItem | _DuckType | _StaticWhenTraced
-ExprOrView = view.KodaView | arolla.Expr
 
 
 def static_when_tracing(
@@ -339,7 +337,7 @@ def _lazy_type_mismatch_error_message(
     arg_key: str,
     path: str,
     expected_schema: schema_item.SchemaItem,
-    actual_schema: ExprOrView,
+    actual_schema: arolla.Expr,
 ) -> arolla.Expr:
   """Produces an error message for type mismatches in tracing mode.
 
@@ -371,8 +369,8 @@ def _lazy_type_mismatch_error_message(
 
 
 def _with_lazy_attrribute_verification(
-    result: ExprOrView,
-    actual_schema: ExprOrView,
+    result: arolla.Expr,
+    actual_schema: arolla.Expr,
     arg_key: Optional[str],
     attr_name: str,
     path: str,
@@ -427,12 +425,12 @@ def _with_lazy_attrribute_verification(
 
 
 def _with_lazy_constraint_verification(
-    result: ExprOrView,
+    result: arolla.Expr,
     constraint: TypeConstraint,
-    actual_schema: ExprOrView,
+    actual_schema: arolla.Expr,
     arg_key: Optional[str],
     path: str = '',
-) -> ExprOrView:
+) -> arolla.Expr:
   """Processes a type constraint verification in tracing mode.
 
   Args:
@@ -530,7 +528,7 @@ def _with_input_expr_assertions(
             ' not depend on the inputs'
         )
       constraint = constraint.base_type
-    if not isinstance(arg, ExprOrView):
+    if not isinstance(arg, arolla.Expr):
       # We attempt eager verification of a static input.
       _verify_input_eager(key, arg, constraint)
     else:
