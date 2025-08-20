@@ -21,6 +21,7 @@ from arolla import arolla
 from koladata.expr import expr_eval
 from koladata.expr import input_container
 from koladata.expr import view
+from koladata.functor import functor_factories
 from koladata.operators import kde_operators
 from koladata.operators import optools
 from koladata.operators.tests.util import qtypes as test_qtypes
@@ -208,6 +209,16 @@ class StringsFstrTest(parameterized.TestCase):
     )
     with self.assertRaisesRegex(TypeError, 'expected a string'):
       kde.strings.fstr(b'a')
+
+  def test_not_serializable(self):
+    f = functor_factories.py_fn(lambda x: x)
+    with self.assertRaisesWithPredicateMatch(
+        ValueError,
+        arolla.testing.any_note_regex(
+            r'If you are using kd\.py_fn, try switching to kd\.register_py_fn'
+        ),
+    ):
+      kde.strings.fstr(f'{f(I.x):s}')
 
   def test_qtype_signatures(self):
     arolla.testing.assert_qtype_signatures(

@@ -148,7 +148,14 @@ class KodaView(arolla.abc.ExprView):
     return _aux_bind_op('kd.get_attr', self, attr_name)
 
   def __format__(self, format_spec: str, /):
-    return fstring.fstr_expr_placeholder(self, format_spec)
+    try:
+      return fstring.fstr_expr_placeholder(self, format_spec)
+    except ValueError as e:
+      if 'missing serialization codec for PyObject' in str(e):
+        e.add_note(
+            'If you are using kd.py_fn, try switching to kd.register_py_fn'
+        )
+      raise
 
   @property
   def S(self) -> SlicingHelper:
