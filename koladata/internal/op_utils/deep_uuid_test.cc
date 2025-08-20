@@ -422,5 +422,90 @@ TEST_P(DeepUuidTest, CyclicReferences) {
                            "cyclic attributes are not allowed in deep_uuid")));
 }
 
+TEST_P(DeepUuidTest, CyclicSchema) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto b0 = obj_ids[3];
+  auto b1 = obj_ids[4];
+  auto b2 = obj_ids[5];
+  auto ds =
+      DataSliceImpl::Create(arolla::CreateDenseArray<DataItem>({a0, a1, a2}));
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  TriplesT data_triples = {{a0, {{"x", DataItem("a")}, {"b", b0}}},
+                           {a1, {{"x", DataItem("b")}, {"b", b1}}},
+                           {a2, {{"x", DataItem("c")}, {"b", b2}}},
+                           {b0, {{"parent", DataItem(a1)}}},
+                           {b1, {{"parent", DataItem(a2)}}}};
+  TriplesT schema_triples = {
+      {schema_a, {{"x", DataItem(schema::kBytes)}, {"b", schema_b}}},
+      {schema_b, {{"parent", schema_a}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  ASSERT_OK_AND_ASSIGN(auto result_ds,
+                       DeepUuidOp()(DataItem(arolla::Text("")), ds, schema_a,
+                                    *GetMainDb(db), {GetFallbackDb(db).get()}));
+}
+
+TEST_P(DeepUuidTest, CyclicSchemaSlice) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  TriplesT schema_triples = {
+      {schema_a, {{"x", DataItem(schema::kBytes)}, {"b", schema_b}}},
+      {schema_b, {{"parent", schema_a}}}};
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  EXPECT_THAT(DeepUuidOp()(DataItem(arolla::Text("")), schema_a,
+                           DataItem(schema::kSchema), *GetMainDb(db),
+                           {GetFallbackDb(db).get()}),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       ::testing::HasSubstr(
+                           "cyclic attributes are not allowed in deep_uuid")));
+}
+
+TEST_P(DeepUuidTest, SelfReferences) {
+  auto db = DataBagImpl::CreateEmptyDatabag();
+  auto obj_ids = AllocateEmptyObjects(6);
+  auto a0 = obj_ids[0];
+  auto a1 = obj_ids[1];
+  auto a2 = obj_ids[2];
+  auto b0 = obj_ids[3];
+  auto b1 = obj_ids[4];
+  auto b2 = obj_ids[5];
+  auto ds =
+      DataSliceImpl::Create(arolla::CreateDenseArray<DataItem>({a0, a1, a2}));
+  auto schema_a = AllocateSchema();
+  auto schema_b = AllocateSchema();
+  TriplesT data_triples = {{a0, {{"x", DataItem("a")}, {"b", b0}}},
+                           {a1, {{"x", DataItem("b")}, {"b", b1}}},
+                           {a2, {{"x", DataItem("a")}, {"b", b2}}},
+                           {b0, {{"self", DataItem(b0)}, {"x", DataItem(1)}}},
+                           {b1, {{"self", DataItem(b1)}, {"x", DataItem(2)}}},
+                           {b2, {{"self", DataItem(b2)}, {"x", DataItem(1)}}}};
+  TriplesT schema_triples = {
+      {schema_a, {{"x", DataItem(schema::kBytes)}, {"b", schema_b}}},
+      {schema_b, {{"self", schema_b}, {"x", DataItem(schema::kInt32)}}}};
+  SetDataTriples(*db, data_triples);
+  SetSchemaTriples(*db, schema_triples);
+  SetSchemaTriples(*db, GenSchemaTriplesFoTests());
+  SetDataTriples(*db, GenDataTriplesForTest());
+
+  ASSERT_OK_AND_ASSIGN(
+      auto result_ds,
+      DeepUuidOp()(DataItem(arolla::Text("")), ds, schema_a,
+                   *GetMainDb(db), {GetFallbackDb(db).get()}));
+  EXPECT_EQ(result_ds[0], result_ds[2]);
+  EXPECT_NE(result_ds[0], result_ds[1]);
+}
+
 }  // namespace
 }  // namespace koladata::internal
