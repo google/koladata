@@ -59,6 +59,7 @@ py_library(
         "//py/koladata/types:data_item",
         "//py/koladata/types:data_slice",
         "//py/koladata/types:dict_item",
+        "//py/koladata/types:extension_type_registry",
         "//py/koladata/types:extension_types",
         "//py/koladata/types:iterable_qvalue",
         "//py/koladata/types:jagged_shape",

@@ -4453,6 +4453,43 @@ Operator definition and registration tooling.
   Returns:
     Registered operator.</code></pre>
 
+### `kd.optools.add_to_registry_as_overload(name=None, *, overload_condition_expr, unsafe_override=False)` {#kd.optools.add_to_registry_as_overload}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Koda wrapper around Arolla&#39;s add_to_registry_as_overload.
+
+  Note that for e.g. `name = &#34;foo.bar.baz&#34;`, the wrapped operator will
+  be registered as an overload `&#34;baz&#34;` of the overloadable operator `&#34;foo.bar&#34;`.
+
+  Performs no additional Koda-specific registration.
+
+  Args:
+    name: Optional name of the operator. Otherwise, inferred from the op.
+    overload_condition_expr: Condition for the overload.
+    unsafe_override: Whether to override an existing operator.
+
+  Returns:
+    A decorator that registers an overload for the operator with the
+    corresponding name. Returns the original operator (unlinke the arolla
+    equivalent).</code></pre>
+
+### `kd.optools.add_to_registry_as_overloadable(name, *, unsafe_override=False, view=<class 'koladata.expr.view.KodaView'>, repr_fn=None, aux_policy='koladata_default_boxing')` {#kd.optools.add_to_registry_as_overloadable}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Koda wrapper around Arolla&#39;s add_to_registry_as_overloadable.
+
+  Performs additional Koda-specific registration, such as setting the view and
+  repr function.
+
+  Args:
+    name: Name of the operator.
+    unsafe_override: Whether to override an existing operator.
+    view: Optional view to use for the operator.
+    repr_fn: Optional repr function to use for the operator and its aliases. In
+      case of None, a default repr function will be used.
+    aux_policy: Aux policy for the operator.
+
+  Returns:
+    An overloadable registered operator.</code></pre>
+
 ### `kd.optools.as_backend_operator(name, *, qtype_inference_expr=DATA_SLICE, qtype_constraints=(), deterministic=True, custom_boxing_fn_name_per_parameter=None)` {#kd.optools.as_backend_operator}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Decorator for Koladata backend operators with a unified binding policy.
@@ -4552,6 +4589,14 @@ Operator definition and registration tooling.
 
   Args:
     *namespaces: Namespaces to make available in the returned container.</code></pre>
+
+### `kd.optools.unified_non_deterministic_arg()` {#kd.optools.unified_non_deterministic_arg}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a non-deterministic token for use with `bind_op(..., arg)`.</code></pre>
+
+### `kd.optools.unified_non_deterministic_kwarg()` {#kd.optools.unified_non_deterministic_kwarg}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns a non-deterministic token for use with `bind_op(..., **kwarg)`.</code></pre>
 
 </section>
 

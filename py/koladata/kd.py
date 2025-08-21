@@ -41,6 +41,7 @@ from koladata.types import data_bag as _data_bag
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
 from koladata.types import dict_item as _dict_item
+from koladata.types import extension_type_registry as _extension_type_registry
 from koladata.types import extension_types as _extension_types
 from koladata.types import iterable_qvalue as _iterable_qvalue
 from koladata.types import jagged_shape as _jagged_shape
@@ -97,6 +98,11 @@ types.StreamWriter = _functor_parallel_clib.StreamWriter
 
 ### Extension types.
 extension_type = _eager_only(_extension_types.extension_type)
+extension_types = _eager_only(_py_types.ModuleType('extension_types'))
+extension_types.extension_type = _extension_types.extension_type
+extension_types.get_extension_qtype = (
+    _extension_type_registry.get_extension_qtype
+)
 
 ### Koda QTypes.
 qtypes = _same_when_tracing(_py_types.ModuleType('qtypes'))
@@ -112,10 +118,18 @@ optools.add_to_registry = _optools.add_to_registry
 optools.as_backend_operator = _optools.as_backend_operator
 optools.as_lambda_operator = _optools.as_lambda_operator
 optools.as_py_function_operator = _optools.as_py_function_operator
+optools.add_to_registry_as_overload = _optools.add_to_registry_as_overload
+optools.add_to_registry_as_overloadable = (
+    _optools.add_to_registry_as_overloadable
+)
 optools.equiv_to_op = _optools.equiv_to_op
 optools.as_qvalue = _py_boxing.as_qvalue
 optools.as_qvalue_or_expr = _py_boxing.as_qvalue_or_expr
 optools.make_operators_container = _optools.make_operators_container
+optools.unified_non_deterministic_arg = _optools.unified_non_deterministic_arg
+optools.unified_non_deterministic_kwarg = (
+    _optools.unified_non_deterministic_kwarg
+)
 optools.WITH_PY_FUNCTION_TO_PY_OBJECT = _py_boxing.WITH_PY_FUNCTION_TO_PY_OBJECT
 
 ### Operator constraints.

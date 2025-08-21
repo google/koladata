@@ -171,7 +171,7 @@ def add_to_registry_as_overloadable(
     *,
     unsafe_override: bool = False,
     view: type[arolla.abc.ExprView] | None = view_lib.KodaView,
-    repr_fn: op_repr.OperatorReprFn = op_repr.default_op_repr,
+    repr_fn: op_repr.OperatorReprFn | None = None,
     aux_policy: str = py_boxing.DEFAULT_BOXING_POLICY,
 ):
   """Koda wrapper around Arolla's add_to_registry_as_overloadable.
@@ -183,12 +183,14 @@ def add_to_registry_as_overloadable(
     name: Name of the operator.
     unsafe_override: Whether to override an existing operator.
     view: Optional view to use for the operator.
-    repr_fn: Optional repr function to use for the operator and its aliases.
+    repr_fn: Optional repr function to use for the operator and its aliases. In
+      case of None, a default repr function will be used.
     aux_policy: Aux policy for the operator.
 
   Returns:
     An overloadable registered operator.
   """
+  repr_fn = repr_fn or op_repr.default_op_repr
 
   def impl(fn) -> arolla.types.RegisteredOperator:
     overloadable_op = arolla.optools.add_to_registry_as_overloadable(
