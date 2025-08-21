@@ -354,6 +354,38 @@ class ExtensionTypesTest(parameterized.TestCase):
           ext.y.inner_fn().eval(x=1), ds(2, schema_constants.INT64)
       )
 
+  def test_inheritance(self):
+    @ext_types.extension_type()
+    class MyExtension:
+      x: schema_constants.INT32
+
+      def foo(self):
+        return self.x + 1
+
+      def bar(self):
+        return self.x
+
+    @ext_types.extension_type()
+    class MyChildExtension(MyExtension):
+      y: schema_constants.INT32
+
+      def bar(self):
+        return self.y
+
+    with self.subTest('eager'):
+      ext = MyChildExtension(1, 3)
+      testing.assert_equal(ext.x, ds(1))
+      testing.assert_equal(ext.y, ds(3))
+      testing.assert_equal(ext.foo(), ds(2))
+      testing.assert_equal(ext.bar(), ds(3))
+
+    with self.subTest('lazy'):
+      ext = MyChildExtension(I.x, I.y)
+      testing.assert_equal(ext.x.eval(x=1, y=3), ds(1))
+      testing.assert_equal(ext.y.eval(x=1, y=3), ds(3))
+      testing.assert_equal(ext.foo().eval(x=1, y=3), ds(2))
+      testing.assert_equal(ext.bar().eval(x=1, y=3), ds(3))
+
 
 if __name__ == '__main__':
   absltest.main()

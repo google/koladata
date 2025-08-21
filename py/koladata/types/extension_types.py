@@ -259,15 +259,11 @@ def extension_type(
         return_annotation=inspect.Parameter.empty,
     )
 
-    class_attrs = {}
-    class_attrs['__new__'] = dispatching_new
-    class_attrs['qtype'] = extension_qtype
-
-    new_class = type(original_class.__name__, (object,), class_attrs)
+    original_class.__new__ = dispatching_new
     extension_type_registry.register_extension_type(
-        new_class, extension_qtype, unsafe_override=unsafe_override
+        original_class, extension_qtype, unsafe_override=unsafe_override
     )
 
-    return new_class
+    return original_class
 
   return impl
