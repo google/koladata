@@ -14,6 +14,7 @@
 //
 #include <optional>
 #include <string>
+#include <utility>
 
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_cat.h"
@@ -67,6 +68,20 @@ std::optional<arolla::ReprToken> KodaLiteralOpRepr(
   }
 }
 
+std::optional<arolla::ReprToken> KodaSourceLocationOpRepr(
+    const arolla::expr::ExprNodePtr& node,
+    const absl::flat_hash_map<arolla::Fingerprint, arolla::ReprToken>& tokens) {
+  const arolla::ReprToken& annotated =
+      tokens.at(node->node_deps()[0]->fingerprint());
+  std::string str;
+  if (annotated.precedence.right >= arolla::ReprToken::kOpSubscription.left) {
+    str = absl::StrCat("(", annotated.str, ")📍");
+  } else {
+    str = absl::StrCat(annotated.str, "📍");
+  }
+  return arolla::ReprToken{std::move(str), arolla::ReprToken::kOpSubscription};
+}
+
 }  // namespace
 
 AROLLA_INITIALIZER(.init_fn = [] {
@@ -74,6 +89,8 @@ AROLLA_INITIALIZER(.init_fn = [] {
                                                      KodaInputOpRepr);
   arolla::expr::RegisterOpReprFnByQValueSpecializationKey(
       "::koladata::expr::LiteralOperator", KodaLiteralOpRepr);
+  arolla::expr::RegisterOpReprFnByByRegistrationName(
+      "kd.annotation.source_location", KodaSourceLocationOpRepr);
 })
 
 }  // namespace koladata::expr

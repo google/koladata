@@ -741,6 +741,9 @@ arolla.abc.set_expr_view_for_qtype(qtypes.JAGGED_SHAPE, KodaView)
 arolla.abc.set_expr_view_for_registered_operator(
     'koda_internal.input', KodaView
 )
+arolla.abc.set_expr_view_for_registered_operator(
+    'kd.annotation.source_location', KodaView
+)
 # NOTE: This attaches a KodaView to all literals, including e.g. Arolla values.
 # This is not ideal, but we want e.g. the `eval` method to be attached.
 arolla.abc.set_expr_view_for_operator_family(

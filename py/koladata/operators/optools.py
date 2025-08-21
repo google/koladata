@@ -34,7 +34,7 @@ from koladata.types import qtypes
 class _RegisteredOp:
   op: arolla.types.Operator
   view: type[arolla.abc.ExprView] | None
-  repr_fn: op_repr.OperatorReprFn
+  repr_fn: op_repr.OperatorReprFn | None
 
 
 _REGISTERED_OPS: dict[str, _RegisteredOp] = {}
@@ -42,9 +42,17 @@ _REGISTERED_OPS: dict[str, _RegisteredOp] = {}
 
 def _clear_registered_ops():
   _REGISTERED_OPS.clear()
+  # Manually added public operators that are defined in C++ and are therefore
+  # not registered through add_to_registry().
+  _REGISTERED_OPS['kd.annotation.source_location'] = _RegisteredOp(
+      arolla.abc.lookup_operator('kd.annotation.source_location'),
+      view_lib.KodaView,
+      None,
+  )
 
 
 arolla.abc.cache_clear_callbacks.add(_clear_registered_ops)
+_clear_registered_ops()
 
 
 def add_alias(name: str, alias: str):

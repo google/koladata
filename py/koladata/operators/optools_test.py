@@ -980,6 +980,14 @@ class OptoolsTest(parameterized.TestCase):
       )(fn)
       # ok if no errors
 
+  def test_manually_added_ops_to_registry(self):
+    reg_op = optools._REGISTERED_OPS['kd.annotation.source_location']
+    self.assertIsNone(reg_op.repr_fn)  # C++ impl.
+    testing.assert_equal(
+        reg_op.op, arolla.abc.lookup_operator('kd.annotation.source_location')
+    )
+    self.assertIs(reg_op.view, view.KodaView)
+
 
 if __name__ == '__main__':
   absltest.main()
