@@ -370,13 +370,6 @@ absl::StatusOr<DataSlice> AutoVariables(
     if (var.is_item() &&
         var.GetSchemaImpl() == internal::DataItem(schema::kExpr)) {
       ASSIGN_OR_RETURN(auto var_expr, var.item().value<ExprQuote>().expr());
-      // Already a variable, so we shouldn't extract it again (would lead to
-      // trivial assignments like V.aux_1 = V.aux_0). Note that in case
-      // some expression appears both as a variable and as part of another
-      // expression, it will be marked as a shared node and therefore will
-      // still be extracted.
-      extra_nodes_to_extract.erase(var_expr->fingerprint());
-
       expr_names.push_back(attr_name);
       exprs_vec.push_back(std::move(var_expr));
     }

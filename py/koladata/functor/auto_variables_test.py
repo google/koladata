@@ -307,14 +307,16 @@ class AutoVariablesTest(absltest.TestCase):
     )
     testing.assert_equal(introspection.unpack_expr(fn0.foo), V._aux_0 + 1)
 
-    # Doesn't change anything because `base` is already extracted
     fn1 = _py_functors_py_ext.auto_variables(fn0, [base.fingerprint])
     testing.assert_equal(fn1(x=1), ds(11))
     self.assertCountEqual(
-        fns.dir(fn1), ['__signature__', 'returns', '_aux_0', 'foo']
+        fns.dir(fn1), ['__signature__', 'returns', '_aux_0', '_aux_1', 'foo']
     )
     testing.assert_equal(
-        introspection.unpack_expr(fn1.get_attr('_aux_0')), base
+        introspection.unpack_expr(fn1.get_attr('_aux_0')), V._aux_1
+    )
+    testing.assert_equal(
+        introspection.unpack_expr(fn1.get_attr('_aux_1')), base
     )
     testing.assert_equal(introspection.unpack_expr(fn1.foo), V._aux_0 + 1)
 
@@ -406,6 +408,30 @@ class AutoVariablesTest(absltest.TestCase):
     res = _py_functors_py_ext.auto_variables(fn, [expr.fingerprint])
     testing.assert_equal(res(x=2), ds(114))
     testing.assert_equal(introspection.unpack_expr(res.returns), V._aux_0 * I.x)
+
+  def test_extract_extra_nodes_already_existing_variable(self):
+    fn = functor_factories.expr_fn(
+        V.x * (I.x + 1), x=I.x + 1, auto_variables=False
+    )
+    res = _py_functors_py_ext.auto_variables(fn, [(I.x + 1).fingerprint])
+    testing.assert_equal(introspection.unpack_expr(res.returns), V.x * V._aux_0)
+    testing.assert_equal(introspection.unpack_expr(res.x), V._aux_0)
+    testing.assert_equal(
+        introspection.unpack_expr(res.get_attr('_aux_0')), I.x + 1
+    )
+    self.assertCountEqual(
+        fns.dir(res), ['__signature__', 'returns', 'x', '_aux_0']
+    )
+
+  def test_extract_extra_nodes_input_as_already_existing_variable(self):
+    fn = functor_factories.expr_fn(V.x * I.x, x=I.x, auto_variables=False)
+    res = _py_functors_py_ext.auto_variables(fn, [I.x.fingerprint])
+    testing.assert_equal(introspection.unpack_expr(res.returns), V.x * V._aux_0)
+    testing.assert_equal(introspection.unpack_expr(res.x), V._aux_0)
+    testing.assert_equal(introspection.unpack_expr(res.get_attr('_aux_0')), I.x)
+    self.assertCountEqual(
+        fns.dir(res), ['__signature__', 'returns', 'x', '_aux_0']
+    )
 
 
 if __name__ == '__main__':
