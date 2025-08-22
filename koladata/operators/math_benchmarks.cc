@@ -25,7 +25,7 @@
 #include "koladata/internal/dtype.h"
 #include "koladata/operators/math.h"
 
-namespace koladata::internal {
+namespace koladata {
 namespace {
 
 template <typename T>
@@ -38,7 +38,7 @@ DataSlice CreateFlatSlice(int64_t size) {
   }
 
   return DataSlice::CreateWithFlatShape(
-             DataSliceImpl::Create(std::move(bldr).Build()),
+             internal::DataSliceImpl::Create(std::move(bldr).Build()),
              internal::DataItem(schema::GetDType<T>()))
       .value();
 }
@@ -65,9 +65,9 @@ DataSlice Create2DSlice(int64_t group_count, int64_t group_size) {
     }
   }
 
-  return DataSlice::Create(DataSliceImpl::Create(std::move(bldr).Build()),
-                           std::move(shape),
-                           internal::DataItem(schema::GetDType<T>()))
+  return DataSlice::Create(
+             internal::DataSliceImpl::Create(std::move(bldr).Build()),
+             std::move(shape), internal::DataItem(schema::GetDType<T>()))
       .value();
 }
 
@@ -162,5 +162,32 @@ BENCHMARK(BM_AddFlatTo2DOtherType)
     ->ArgPair(32, 32)
     ->ArgPair(100, 100);
 
+template <class T, bool Scalar>
+void BM_Abs(benchmark::State& state) {
+  arolla::InitArolla();
+  DataSlice x = Scalar ? DataSlice::CreateFromScalar(1)
+                       : CreateFlatSlice<T>(state.range(0));
+
+  (void)ops::Abs(x);  // warmup caches
+
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(x);
+    auto res = ops::Abs(x).value();
+    benchmark::DoNotOptimize(res);
+  }
+  if constexpr (!Scalar) {
+    state.SetItemsProcessed(static_cast<int64_t>(state.iterations()) *
+                            state.range(0));
+  } else {
+    state.SetItemsProcessed(static_cast<int64_t>(state.iterations()));
+  }
+}
+
+void BM_AbsScalar(benchmark::State& state) { BM_Abs<float, true>(state); }
+void BM_AbsSlice(benchmark::State& state) { BM_Abs<float, false>(state); }
+
+BENCHMARK(BM_AbsScalar);
+BENCHMARK(BM_AbsSlice)->Range(1, 10000);
+
 }  // namespace
-}  // namespace koladata::internal
+}  // namespace koladata
