@@ -925,6 +925,16 @@ py_test(
     ],
 )
 
+py_test(
+    name = "internal_is_compliant_attr_name_test",
+    srcs = ["internal_is_compliant_attr_name_test.py"],
+    deps = [
+        "//py:python_path",
+        "//py/koladata/functions",
+        "@com_google_absl_py//absl/testing:absltest",
+    ],
+)
+
 proto_library(
     name = "test_proto",
     srcs = ["test.proto"],

@@ -53,6 +53,9 @@ FUNCTIONS_NOT_PRESENT_IN_KDE_OPERATORS = frozenset([
     # We want to encourage eager usage of the transform before serializing
     # a functor for serving, since it is expensive.
     'parallel.transform',
+    # This function is useful to implement eager __getattr__/__setattr__
+    # methods, and not useful as an operator.
+    'slices.internal_is_compliant_attr_name',
     # Misc.
     'container',
     'core.container',

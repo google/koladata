@@ -6690,6 +6690,10 @@ Aliases:
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">Returns kd.slice(x, kd.INT64).</code></pre>
 
+### `kd.slices.internal_is_compliant_attr_name(attr_name, /)` {#kd.slices.internal_is_compliant_attr_name}
+
+<pre class="no-copy"><code class="lang-text no-auto-prettify">Returns true iff `attr_name` can be accessed through `getattr(slice, attr_name)`.</code></pre>
+
 ### `kd.slices.internal_select_by_slice(ds, fltr, expand_filter=True)` {#kd.slices.internal_select_by_slice}
 
 <pre class="no-copy"><code class="lang-text no-auto-prettify">A version of kd.select that does not support lambdas/functors.</code></pre>

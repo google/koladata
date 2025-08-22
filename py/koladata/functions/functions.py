@@ -28,6 +28,7 @@ from koladata.functions import schema as _schema
 from koladata.functions import tuples as _tuples
 from koladata.types import data_item as _data_item
 from koladata.types import data_slice as _data_slice
+from koladata.types import data_slice_py_ext as _data_slice_py_ext
 from koladata.types import general_eager_ops as _general_eager_ops
 
 bag = _object_factories.bag
@@ -177,6 +178,7 @@ slices = _py_types.SimpleNamespace(
     bool=_py_conversions.bool_,
     mask=_py_conversions.mask,
     expr_quote=_py_conversions.expr_quote,
+    internal_is_compliant_attr_name=_data_slice_py_ext.internal_is_compliant_attr_name,
 )
 
 parallel = _py_types.SimpleNamespace(
