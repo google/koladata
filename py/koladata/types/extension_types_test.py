@@ -386,6 +386,31 @@ class ExtensionTypesTest(parameterized.TestCase):
       testing.assert_equal(ext.foo().eval(x=1, y=3), ds(2))
       testing.assert_equal(ext.bar().eval(x=1, y=3), ds(3))
 
+  def test_redefine_magic_methods(self):
+    @ext_types.extension_type()
+    class MyExtensionType:
+      x: schema_constants.INT32
+
+      def __eq__(self, other):
+        return self.x + 1 == other.x
+
+      def __hash__(self):
+        return hash(self.x)
+
+    ext1 = MyExtensionType(1)
+    ext2 = MyExtensionType(2)
+    ext3 = MyExtensionType(1)
+
+    # Uses redefined __eq__.
+    self.assertEqual(ext1, ext2)
+    self.assertNotEqual(ext1, ext3)
+
+    # Doesn't fail despite __hash__ being prohibited for ExprView.
+    expr = MyExtensionType(I.x)
+
+    with self.assertRaisesRegex(TypeError, 'unhashable type'):
+      _ = hash(expr)
+
 
 if __name__ == '__main__':
   absltest.main()

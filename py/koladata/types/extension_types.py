@@ -39,15 +39,6 @@ def _get_downcast_expr(qtype):
   return M.derived_qtype.downcast(qtype, arolla.L.x)
 
 
-# Dummy dataclass used to get the list of default dataclassfields.
-@dataclasses.dataclass()
-class _DummyDC:
-  _dummy_field: int
-
-
-_DEFAULT_FIELDS = frozenset(dir(_DummyDC))
-
-
 @dataclasses.dataclass(frozen=True)
 class _ClassMeta:
   signature: inspect.Signature
@@ -60,10 +51,9 @@ def _get_class_meta(original_class: type[Any]) -> _ClassMeta:
   """Returns meta information about the given class."""
   data_class = dataclasses.dataclass()(original_class)
   fields = {f.name: f for f in dataclasses.fields(data_class)}
-
   methods = {}
   for attr in dir(data_class):
-    if attr in fields or attr in _DEFAULT_FIELDS:
+    if attr in fields:
       continue
     method = getattr(data_class, attr)
     if not callable(method):
@@ -218,7 +208,12 @@ def extension_type(
               _sidecast_expr(self, named_tuple_qtype), k
           )
       )
-    expr_view_class_attrs |= class_meta.methods
+    expr_view_methods = {
+        name: method
+        for name, method in class_meta.methods.items()
+        if arolla.abc.is_allowed_expr_view_member_name(name)
+    }
+    expr_view_class_attrs |= expr_view_methods
 
     expr_view_class = type(
         f'{original_class.__name__}ExprView',
