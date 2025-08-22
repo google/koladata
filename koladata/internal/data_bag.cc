@@ -480,9 +480,8 @@ std::optional<DataItem> DataBagImpl::LookupAttrInDataSourcesMap(
   AllocationId alloc_id(object_id);
   DCHECK(!alloc_id.IsSmall());
   SourceKeyView search_key{alloc_id, attr};
-  size_t search_hash = absl::HashOf(search_key);
   while (cur_data_bag != nullptr) {
-    if (auto it = cur_data_bag->sources_.find(search_key, search_hash);
+    if (auto it = cur_data_bag->sources_.find(search_key);
         it != cur_data_bag->sources_.end()) {
       const SourceCollection& collection = it->second;
       // mutable source overrides const source if both present.
@@ -748,9 +747,8 @@ int64_t DataBagImpl::GetAttributeDataSources(
   }
   const DataBagImpl* cur_data_bag = this;
   SourceKeyView search_key{alloc, attr};
-  size_t search_hash = absl::HashOf(search_key);
   while (cur_data_bag != nullptr) {
-    if (auto it = cur_data_bag->sources_.find(search_key, search_hash);
+    if (auto it = cur_data_bag->sources_.find(search_key);
         it != cur_data_bag->sources_.end()) {
       const SourceCollection& collection = it->second;
       cur_data_bag = collection.lookup_parent
